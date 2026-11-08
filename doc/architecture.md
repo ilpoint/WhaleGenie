@@ -339,6 +339,35 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 Core 的录制层将原始输入翻译为去抖、合并后的 `RecordedAction`，阈值集中在 `RecordingOptions`。
 应用层的 `RecordingStepBuilder` 将动作转换为可编辑步骤，编辑器负责保存与恢复快照。
 
+### 轮盘触发（第一步）
+
+轮盘是**旁挂**在既有触发链路之外的一条订阅，不修改 `MacroTriggerService`、`ProjectTriggers`、
+`MacroPackage` 或 `LocalSettings`：菜单宏的中键按下路径与项目包格式保持原样。`MainWindow` 在
+`AttachSystemHotkey` 里额外订阅 `MouseDown / MouseUp / Moved / KeyDown`，这四个处理器只在轮盘
+手势有意义时动作，其中右键 `MouseDown` **从不设 `Suppress`** —— 短按必须仍是一次普通右键。
+只有移动超过 `WheelGesture.MoveThreshold` 才把 `Pending` 变成 `Open`，此时才经
+`Dispatcher.UIThread.Post` 打开 `WheelMenuWindow`。右键的 `MouseDown` 与 `MouseUp` **都不设
+`Suppress`**：只吞松开会让 Windows 收到按下却收不到释放，之后所有左键点击都会被一直吞掉。
+轮盘窗口用全透明背景与 `WS_EX_TRANSPARENT` 让鼠标穿透，指针位置完全由钩子报告；它的启用状态
+是 `Volatile` 整数，钩子线程绝不读 Avalonia 的 `DataContext`。
+
+`Runtime/WheelGesture.cs` 是不碰控件的三态状态机；`Models/WheelMenu.cs` 给出槽位、场景、
+几何和选项。`WheelMenuRules.SceneFor(...)` 复用 `ProjectTriggers.WindowRuleMatches`，按列表
+顺序取第一条命中的前台窗口规则；场景、来源和宏列表在轮盘弹出时冻结到 `MainWindow` 的字段里，
+滚动滚轮只在叠加／全局／仅当前程序之间换 `WheelSource` 并重建布局，前台窗口变化不会改变
+正在瞄的轮盘。`Views/WheelCanvas.cs` 画扇区、从中心到指针的引导线（可见圈实线、扩展圈虚线，
+末端跟着鼠标）、子动作扇出与 2.x 的光泽／悬浮边框；`WheelMenuWindow` 的中心文字给出「关闭」、
+扩展圈动作的名字或备注、子动作名，并在打开时做缩放淡入。第三常驻圈容量 0/8/16/24 与
+「隐藏全空外圈」由 `WheelGeometry.For(..., thirdCapacity, rings)` 统一计算半径与命中。
+
+设置窗口的「轮盘动作管理」页用 `Views/WheelMenuEditorView.cs`（与实时轮盘共用同一个
+`WheelCanvas`），场景增删改与上下移动、槽位选宏／备注／图标／子动作都直接改
+`WheelMenuState` 并由 `WheelMenuStore.Save` 落到独立的 `wheel-menu.json`；`Changed` 事件让
+运行中的钩子即时换配置，因此不需要回调主窗口。菜单呼出键仍只走 `LocalSettings`。轮盘的选项与槽位由
+`Storage/WheelMenuStore.cs` 读写独立的 `wheel-menu.json`，`WheelMenuStore.Changed` 让运行中的
+钩子即时换用新配置，因此设置窗口不需要回调主窗口。设置页的「预览轮盘」用 `preview: true`
+打开同一个窗口，由 Avalonia 自己的指针事件闭环，完全不经过全局钩子。
+
 ## 11. 线程与退出
 
 - **界面线程**：项目状态、ViewModel、窗口操作及需要界面上下文的 MCP 读写。

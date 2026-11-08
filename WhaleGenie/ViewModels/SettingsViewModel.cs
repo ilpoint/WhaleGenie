@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.ViewModels;
 
@@ -33,6 +35,15 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
     public override string ToString() => Strings.Get(Key);
 }
 
+/// <summary>One scene in the wheel action manager's list.</summary>
+public sealed record WheelSceneRow(string Key, string Summary, WheelScene Scene, bool IsGlobal);
+
+/// <summary>One capacity of the third resident circle, named by the text table.</summary>
+public sealed record WheelCapacityOption(int Value, string Key)
+{
+    public override string ToString() => Strings.Get(Key);
+}
+
 public enum SettingsSubPage
 {
     General,
@@ -42,6 +53,8 @@ public enum SettingsSubPage
     Devices,
     MenuLauncher,
     WindowRules,
+    WheelMenu,
+    WheelActions,
     Theme,
 }
 
@@ -133,6 +146,7 @@ public partial class SettingsViewModel : ViewModelBase
         DriverReady = DriverState == DriverInputState.Ready;
         MenuLauncher = LocalSettings.LoadMenuLauncher();
         RefreshMenuRules();
+        ReadWheel();
     }
 
     /// <summary>Re-reads the capture choices, which show their own language when read.</summary>
@@ -146,6 +160,12 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(MenuLauncherStatus));
         OnPropertyChanged(nameof(MenuRuleProblem));
         OnPropertyChanged(nameof(FrameRateNote));
+        OnPropertyChanged(nameof(WheelLauncherStatus));
+        OnPropertyChanged(nameof(WheelLauncherDefault));
+        OnPropertyChanged(nameof(WheelLauncherCustom));
+        OnPropertyChanged(nameof(WheelProblem));
+        OnPropertyChanged(nameof(WheelRepeatButton));
+        RefreshWheelScenes();
     }
 
     public MainViewModel? Project { get; }
@@ -168,6 +188,8 @@ public partial class SettingsViewModel : ViewModelBase
     public bool IsDevicesPage => SelectedPage == SettingsSubPage.Devices;
     public bool IsMenuLauncherPage => SelectedPage == SettingsSubPage.MenuLauncher;
     public bool IsWindowRulesPage => SelectedPage == SettingsSubPage.WindowRules;
+    public bool IsWheelMenuPage => SelectedPage == SettingsSubPage.WheelMenu;
+    public bool IsWheelActionsPage => SelectedPage == SettingsSubPage.WheelActions;
     public bool IsThemePage => SelectedPage == SettingsSubPage.Theme;
 
     /// <summary>The group the open page belongs to; the three tabs at the top of the window read it.</summary>
@@ -180,7 +202,9 @@ public partial class SettingsViewModel : ViewModelBase
     /// <summary>Which group a page is listed under.</summary>
     public static SettingsRoot RootOf(SettingsSubPage page) => page switch
     {
-        SettingsSubPage.MenuLauncher or SettingsSubPage.WindowRules => SettingsRoot.Triggers,
+        SettingsSubPage.MenuLauncher or SettingsSubPage.WindowRules
+            or SettingsSubPage.WheelMenu or SettingsSubPage.WheelActions
+            => SettingsRoot.Triggers,
         SettingsSubPage.Theme => SettingsRoot.Appearance,
         _ => SettingsRoot.System,
     };
@@ -205,6 +229,8 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsDevicesPage));
         OnPropertyChanged(nameof(IsMenuLauncherPage));
         OnPropertyChanged(nameof(IsWindowRulesPage));
+        OnPropertyChanged(nameof(IsWheelMenuPage));
+        OnPropertyChanged(nameof(IsWheelActionsPage));
         OnPropertyChanged(nameof(IsThemePage));
         OnPropertyChanged(nameof(SelectedRoot));
         OnPropertyChanged(nameof(IsSystemRoot));
@@ -233,6 +259,8 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MenuLauncherDisplay))]
+    [NotifyPropertyChangedFor(nameof(MenuLauncherMiddle))]
+    [NotifyPropertyChangedFor(nameof(MenuLauncherCustom))]
     public partial string MenuLauncher { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -350,6 +378,558 @@ public partial class SettingsViewModel : ViewModelBase
         MenuLauncher = string.Empty;
         LocalSettings.StoreMenuLauncher(string.Empty);
         OnPropertyChanged(nameof(MenuLauncherStatus));
+    }
+
+    // ── Wheel menu ────────────────────────────────────────────────────────────
+
+    private WheelMenuState _wheelState = new();
+
+    private bool _wheelReady;
+
+    public WheelMenuState WheelState => _wheelState;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(WheelLauncherDisplay))]
+    [NotifyPropertyChangedFor(nameof(WheelEnabled))]
+    [NotifyPropertyChangedFor(nameof(WheelLauncherDefault))]
+    [NotifyPropertyChangedFor(nameof(WheelLauncherCustom))]
+    public partial string WheelLauncher { get; set; } = WheelOptions.RightButton;
+
+    [ObservableProperty]
+    public partial double WheelDiameter { get; set; } = 420;
+
+    [ObservableProperty]
+    public partial bool IsCapturingWheelLauncher { get; set; }
+
+    [ObservableProperty]
+    public partial string WheelLauncherMessage { get; set; } = string.Empty;
+
+    public string WheelLauncherDisplay => WheelLauncher.Length == 0
+        ? Strings.Get("Common.None")
+        : WheelLauncher;
+
+    public string WheelLauncherButton => Strings.Get(IsCapturingWheelLauncher
+        ? "Settings.HotkeyPress"
+        : "Settings.HotkeySet");
+
+    public string WheelLauncherStatus
+    {
+        get
+        {
+            if (WheelLauncherMessage.Length > 0)
+            {
+                return WheelLauncherMessage;
+            }
+
+            if (WheelLauncher.Length == 0)
+            {
+                return Strings.Get("Wheel.LauncherMissing");
+            }
+
+            if (Project is { IsRunning: false })
+            {
+                return Strings.Get("Wheel.SystemOff");
+            }
+
+            return Strings.Get("Wheel.Ready");
+        }
+    }
+
+    /// <summary>
+    /// The wheel and the menu both need the system switch on. It is off by default after a restart,
+    /// and that looks exactly like a broken hotkey, so the settings page offers the switch itself.
+    /// </summary>
+    public bool IsSystemOff => Project is { IsRunning: false };
+
+    public void EnableSystem()
+    {
+        if (Project is { IsRunning: false } project)
+        {
+            project.IsRunning = true;
+            OnPropertyChanged(nameof(IsSystemOff));
+            OnPropertyChanged(nameof(WheelLauncherStatus));
+        }
+    }
+
+    public bool WheelEnabled
+    {
+        get => WheelLauncher.Length > 0;
+        set
+        {
+            if (value)
+            {
+                CaptureWheelLauncher(WheelOptions.RightButton);
+            }
+            else
+            {
+                ClearWheelLauncher();
+            }
+        }
+    }
+
+    /// <summary>The wheel defaults to the right button; the middle button still opens the menu.</summary>
+    public bool WheelLauncherDefault
+    {
+        get => string.Equals(WheelLauncher, WheelOptions.RightButton,
+            StringComparison.OrdinalIgnoreCase);
+        set
+        {
+            if (value)
+            {
+                CaptureWheelLauncher(WheelOptions.RightButton);
+            }
+        }
+    }
+
+    public bool WheelLauncherCustom
+    {
+        get => IsCapturingWheelLauncher
+            || (WheelLauncher.Length > 0 && !WheelLauncherDefault);
+        set
+        {
+            if (value)
+            {
+                WheelLauncherMessage = string.Empty;
+                IsCapturingWheelLauncher = true;
+            }
+            else
+            {
+                IsCapturingWheelLauncher = false;
+            }
+        }
+    }
+
+    /// <summary>The layout the preview shows: the global scene resolved against this project's macros.</summary>
+    public WheelRuntimeLayout BuildWheelLayout()
+        => _wheelState.Rules.Resolve(null, WheelSource.Global,
+            _wheelState.Options.WideOuter, [.. Project?.Macros ?? []],
+            _wheelState.Options.ThirdCapacity, _wheelState.Options.HideEmptyOuter);
+
+    public bool CaptureWheelLauncher(string binding)
+    {
+        if (!WheelOptions.IsAllowedLauncher(binding))
+        {
+            WheelLauncherMessage = Strings.Get("Wheel.LauncherInvalid");
+            OnPropertyChanged(nameof(WheelLauncherStatus));
+            return false;
+        }
+
+        IsCapturingWheelLauncher = false;
+        WheelLauncherMessage = string.Empty;
+        WheelLauncher = binding.Trim();
+        OnPropertyChanged(nameof(WheelLauncherStatus));
+        return true;
+    }
+
+    public void ClearWheelLauncher()
+    {
+        IsCapturingWheelLauncher = false;
+        WheelLauncherMessage = string.Empty;
+        WheelLauncher = string.Empty;
+        OnPropertyChanged(nameof(WheelLauncherStatus));
+    }
+
+    [ObservableProperty]
+    public partial bool IsCapturingWheelRepeat { get; set; }
+
+    public string WheelRepeatButton => Strings.Get(IsCapturingWheelRepeat
+        ? "Settings.HotkeyPress"
+        : "Settings.HotkeySet");
+
+    public IReadOnlyList<WheelCapacityOption> ThirdCapacityOptions { get; } =
+    [
+        new(0, "Settings.WheelThird0"),
+        new(8, "Settings.WheelThird8"),
+        new(16, "Settings.WheelThird16"),
+        new(24, "Settings.WheelThird24"),
+    ];
+
+    public WheelCapacityOption SelectedThirdCapacity
+    {
+        get => ThirdCapacityOptions.First(option =>
+            option.Value == _wheelState.Options.ThirdCapacity);
+        set => SetWheel(o => o.ThirdCapacity, (o, v) => o.ThirdCapacity = v, value.Value);
+    }
+
+    public double WheelFontSize
+    {
+        get => _wheelState.Options.FontSize;
+        set => SetWheel(o => (double)o.FontSize,
+            (o, v) => o.FontSize = Math.Clamp((int)Math.Round(v),
+                WheelOptions.SmallestFont, WheelOptions.LargestFont), value);
+    }
+
+    public double WheelTimeoutMs
+    {
+        get => _wheelState.Options.TimeoutMs;
+        set => SetWheel(o => (double)o.TimeoutMs,
+            (o, v) => o.TimeoutMs = Math.Clamp((int)Math.Round(v), 0,
+                WheelOptions.LongestTimeoutMs), value);
+    }
+
+    public string WheelRepeatKey
+    {
+        get => _wheelState.Options.RepeatKey;
+        set => SetWheel(o => o.RepeatKey, (o, v) => o.RepeatKey = v, value.Trim());
+    }
+
+    public bool WideOuter
+    {
+        get => _wheelState.Options.WideOuter;
+        set => SetWheel(o => o.WideOuter, (o, v) => o.WideOuter = v, value);
+    }
+
+    public bool HideEmptyOuter
+    {
+        get => _wheelState.Options.HideEmptyOuter;
+        set => SetWheel(o => o.HideEmptyOuter, (o, v) => o.HideEmptyOuter = v, value);
+    }
+
+    public bool ShowGuide
+    {
+        get => _wheelState.Options.ShowGuide;
+        set => SetWheel(o => o.ShowGuide, (o, v) => o.ShowGuide = v, value);
+    }
+
+    public bool ShowSubActions
+    {
+        get => _wheelState.Options.ShowSubActions;
+        set => SetWheel(o => o.ShowSubActions, (o, v) => o.ShowSubActions = v, value);
+    }
+
+    public bool ExtendedHint
+    {
+        get => _wheelState.Options.ExtendedHint;
+        set => SetWheel(o => o.ExtendedHint, (o, v) => o.ExtendedHint = v, value);
+    }
+
+    public bool HideWheelLabelWithIcon
+    {
+        get => _wheelState.Options.HideLabelWithIcon;
+        set => SetWheel(o => o.HideLabelWithIcon, (o, v) => o.HideLabelWithIcon = v, value);
+    }
+
+    public bool CenterName
+    {
+        get => _wheelState.Options.CenterName;
+        set => SetWheel(o => o.CenterName, (o, v) => o.CenterName = v, value);
+    }
+
+    public bool ClampToScreen
+    {
+        get => _wheelState.Options.ClampToScreen;
+        set => SetWheel(o => o.ClampToScreen, (o, v) => o.ClampToScreen = v, value);
+    }
+
+    public bool MovePointerToCenter
+    {
+        get => _wheelState.Options.MovePointerToCenter;
+        set => SetWheel(o => o.MovePointerToCenter, (o, v) => o.MovePointerToCenter = v, value);
+    }
+
+    public bool FollowTheme
+    {
+        get => _wheelState.Options.FollowTheme;
+        set => SetWheel(o => o.FollowTheme, (o, v) => o.FollowTheme = v, value);
+    }
+
+    public bool Gloss
+    {
+        get => _wheelState.Options.Gloss;
+        set => SetWheel(o => o.Gloss, (o, v) => o.Gloss = v, value);
+    }
+
+    public bool HoverBorder
+    {
+        get => _wheelState.Options.HoverBorder;
+        set => SetWheel(o => o.HoverBorder, (o, v) => o.HoverBorder = v, value);
+    }
+
+    public bool PopAnimation
+    {
+        get => _wheelState.Options.PopAnimation;
+        set => SetWheel(o => o.PopAnimation, (o, v) => o.PopAnimation = v, value);
+    }
+
+    /// <summary>
+    /// Every wheel choice reads and writes the same option object, so the file, the preview and the
+    /// running wheel can never disagree. The caller's name is used for the change notification.
+    /// </summary>
+    private void SetWheel<T>(Func<WheelOptions, T> read, Action<WheelOptions, T> write,
+        T value, [CallerMemberName] string? name = null)
+    {
+        var options = _wheelState.Options;
+        if (EqualityComparer<T>.Default.Equals(read(options), value))
+        {
+            return;
+        }
+
+        write(options, value);
+        OnPropertyChanged(name);
+        OnPropertyChanged(nameof(WheelRevision));
+        SaveWheel();
+    }
+
+    // ── Wheel action manager ─────────────────────────────────────────────────
+
+    public ObservableCollection<WheelSceneRow> WheelScenes { get; } = [];
+
+    [ObservableProperty]
+    public partial WheelSceneRow? SelectedWheelScene { get; set; }
+
+    [ObservableProperty]
+    public partial int WheelRevision { get; set; }
+
+    private string _selectedWheelKey = WheelScene.GlobalKey;
+
+    public WheelScene? EditingWheelScene => _wheelState.Rules.Find(_selectedWheelKey);
+
+    public WheelScene WheelGlobal => _wheelState.Rules.Global;
+
+    public string WheelProblem => string.Join(" ", _wheelState.Rules.Problems(
+        [.. Project?.Macros ?? []], key => MenuIconCatalog.Knows(key)));
+
+    public void RefreshWheelScenes()
+    {
+        WheelScenes.Clear();
+        WheelScenes.Add(new WheelSceneRow(WheelScene.GlobalKey,
+            WheelGlobal.Summary, WheelGlobal, true));
+        foreach (var scene in _wheelState.Rules.Scenes)
+        {
+            WheelScenes.Add(new WheelSceneRow(scene.Key, scene.Summary, scene, false));
+        }
+
+        SelectedWheelScene = WheelScenes.FirstOrDefault(row => row.Key == _selectedWheelKey)
+            ?? WheelScenes[0];
+        OnPropertyChanged(nameof(WheelProblem));
+        OnPropertyChanged(nameof(WheelRevision));
+    }
+
+    public void AddWheelScene(WindowRule rule)
+    {
+        var scene = _wheelState.Rules.AddScene(rule);
+        _selectedWheelKey = scene.Key;
+        TouchWheel();
+        RefreshWheelScenes();
+    }
+
+    public void UpdateWheelScene(WheelSceneRow row, WindowRule rule)
+    {
+        if (_wheelState.Rules.Find(row.Key) is { IsGlobal: false } scene)
+        {
+            scene.Window = rule with { };
+            TouchWheel();
+            RefreshWheelScenes();
+        }
+    }
+
+    public void RemoveWheelScene(WheelSceneRow row)
+    {
+        if (row.IsGlobal)
+        {
+            return;
+        }
+
+        _wheelState.Rules.RemoveScene(row.Key);
+        _selectedWheelKey = WheelScene.GlobalKey;
+        TouchWheel();
+        RefreshWheelScenes();
+    }
+
+    public void MoveWheelScene(int step)
+    {
+        var row = SelectedWheelScene;
+        if (row is null || row.IsGlobal)
+        {
+            return;
+        }
+
+        var scenes = _wheelState.Rules.Scenes;
+        var from = scenes.FirstOrDefault(scene => scene.Key == row.Key);
+        if (from is null)
+        {
+            return;
+        }
+
+        var index = scenes.IndexOf(from);
+        var target = Math.Clamp(index + step, 0, scenes.Count - 1);
+        if (target == index)
+        {
+            return;
+        }
+
+        scenes.RemoveAt(index);
+        scenes.Insert(target, from);
+        TouchWheel();
+        RefreshWheelScenes();
+    }
+
+    public void SetWheelSlot(WheelSlotRef reference, string? macroName)
+    {
+        if (EditingWheelScene is not { } scene)
+        {
+            return;
+        }
+
+        var slot = scene.At(reference);
+        slot.Macro = macroName?.Trim() ?? string.Empty;
+        if (slot.IsEmpty)
+        {
+            slot.Icon = null;
+            slot.Note = string.Empty;
+            slot.Children.Clear();
+        }
+
+        TouchWheel();
+    }
+
+    public void SetWheelNote(WheelSlotRef reference, string? note)
+    {
+        if (EditingWheelScene is { } scene)
+        {
+            scene.At(reference).Note = note?.Trim() ?? string.Empty;
+            TouchWheel();
+        }
+    }
+
+    public void SetWheelIcon(WheelSlotRef reference, MenuIconReference? icon)
+    {
+        if (EditingWheelScene is { } scene)
+        {
+            scene.At(reference).Icon = icon is null || icon.IsEmpty ? null : icon;
+            TouchWheel();
+        }
+    }
+
+    public void AddWheelChild(WheelSlotRef reference, string macroName)
+    {
+        if (EditingWheelScene is { } scene && macroName.Trim().Length > 0)
+        {
+            scene.At(reference).Children.Add(new WheelSlot { Macro = macroName.Trim() });
+            TouchWheel();
+        }
+    }
+
+    public void ClearWheelChildren(WheelSlotRef reference)
+    {
+        if (EditingWheelScene is { } scene)
+        {
+            scene.At(reference).Children.Clear();
+            TouchWheel();
+        }
+    }
+
+    private void TouchWheel()
+    {
+        WheelMenuStore.Save(_wheelState);
+        OnPropertyChanged(nameof(WheelProblem));
+        WheelRevision++;
+    }
+
+    partial void OnSelectedWheelSceneChanged(WheelSceneRow? value)
+    {
+        if (value is not null)
+        {
+            _selectedWheelKey = value.Key;
+        }
+    }
+
+    // ── Menu launcher: the middle button by default, or a custom key ─────────
+
+    public bool MenuLauncherMiddle
+    {
+        get => string.Equals(MenuLauncher, WheelOptions.MiddleButton,
+            StringComparison.OrdinalIgnoreCase);
+        set
+        {
+            if (value)
+            {
+                CaptureMenuLauncher(WheelOptions.MiddleButton);
+            }
+        }
+    }
+
+    public bool MenuLauncherCustom
+    {
+        get => IsCapturingMenuLauncher
+            || (MenuLauncher.Length > 0 && !MenuLauncherMiddle);
+        set
+        {
+            if (value)
+            {
+                IsCapturingWheelLauncher = false;
+                IsCapturingWheelRepeat = false;
+                BeginMenuLauncherCapture();
+            }
+            else
+            {
+                StopMenuLauncherCapture();
+            }
+        }
+    }
+
+    public void BeginWheelRepeatCapture()
+    {
+        IsCapturingMenuLauncher = false;
+        IsCapturingWheelLauncher = false;
+        IsCapturingSystemHotkey = false;
+        IsCapturingRecordStop = false;
+        IsCapturingWheelRepeat = true;
+    }
+
+    public bool CaptureWheelRepeat(string binding)
+    {
+        if (!HotkeyBinding.IsSupported(binding))
+        {
+            return false;
+        }
+
+        IsCapturingWheelRepeat = false;
+        WheelRepeatKey = binding.Trim();
+        return true;
+    }
+
+    private void ReadWheel()
+    {
+        _wheelState = WheelMenuStore.Load();
+        WheelLauncher = _wheelState.Options.Launcher;
+        WheelDiameter = _wheelState.Options.Diameter;
+        _wheelReady = true;
+        RefreshWheelScenes();
+    }
+
+    private void SaveWheel()
+    {
+        OnPropertyChanged(nameof(WheelLauncherStatus));
+        if (!_wheelReady)
+        {
+            return;
+        }
+
+        _wheelState.Options.Launcher = WheelLauncher;
+        _wheelState.Options.Diameter =
+            Math.Clamp((int)Math.Round(WheelDiameter),
+                WheelOptions.SmallestDiameter, WheelOptions.LargestDiameter);
+        WheelMenuStore.Save(_wheelState);
+    }
+
+    partial void OnWheelLauncherChanged(string value) => SaveWheel();
+
+    partial void OnWheelDiameterChanged(double value) => SaveWheel();
+
+    partial void OnWheelLauncherMessageChanged(string value)
+        => OnPropertyChanged(nameof(WheelLauncherStatus));
+
+    partial void OnIsCapturingWheelLauncherChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsCapturingHotkey));
+        OnPropertyChanged(nameof(WheelLauncherCustom));
+    }
+
+    partial void OnIsCapturingWheelRepeatChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsCapturingHotkey));
+        OnPropertyChanged(nameof(WheelRepeatButton));
     }
 
     public void RefreshMenuRules()
@@ -861,7 +1441,7 @@ public partial class SettingsViewModel : ViewModelBase
     public partial string SystemHotkeyProblem { get; set; } = string.Empty;
 
     public bool IsCapturingHotkey => IsCapturingSystemHotkey || IsCapturingMenuLauncher
-        || IsCapturingRecordStop;
+        || IsCapturingRecordStop || IsCapturingWheelLauncher || IsCapturingWheelRepeat;
 
     public string SystemHotkeyDisplay => SystemHotkey.Length == 0
         ? Strings.Get("Common.None")
@@ -880,7 +1460,10 @@ public partial class SettingsViewModel : ViewModelBase
         => OnPropertyChanged(nameof(IsCapturingHotkey));
 
     partial void OnIsCapturingMenuLauncherChanged(bool value)
-        => OnPropertyChanged(nameof(IsCapturingHotkey));
+    {
+        OnPropertyChanged(nameof(IsCapturingHotkey));
+        OnPropertyChanged(nameof(MenuLauncherCustom));
+    }
 
     partial void OnIsCapturingRecordStopChanged(bool value)
         => OnPropertyChanged(nameof(IsCapturingHotkey));

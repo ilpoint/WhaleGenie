@@ -36,6 +36,25 @@ public partial class MainWindow : AppWindow
     private readonly Dictionary<string, WindowInfo> _surfaceTargets = new(StringComparer.Ordinal);
     private readonly Dictionary<string, WindowRule> _surfaceRules = new(StringComparer.Ordinal);
     private MacroMenuWindow? _menu;
+    private WheelGesture? _wheel;
+    private WheelMenuWindow? _wheelWindow;
+    private WheelMenuState _wheelState = new();
+
+    // Frozen for the whole time a wheel is open: a window coming forward must not change what a
+    // direction means while the pointer is aiming at it.
+    private WheelScene? _wheelScene;
+    private WheelSource _wheelSource = WheelSource.Merged;
+    private IReadOnlyList<MacroItem> _wheelMacros = [];
+    private WheelMenuRules? _wheelRules;
+    private WheelSlotRef? _wheelSubParent;
+    private int _wheelSubCount;
+
+    /// <summary>
+    /// A plain copy of the system switch for the hook thread. Avalonia's DataContext and the
+    /// view model may only be read on the interface thread: reading them from a hook callback
+    /// throws InvalidOperationException, which used to leave the wheel gesture permanently idle.
+    /// </summary>
+    private int _systemRunning;
     private WindowInfo? _menuForeground;
     private int _menuOpen;
     private int _menuChildOpen;
@@ -433,6 +452,7 @@ public partial class MainWindow : AppWindow
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
         PublishRuntimeState(viewModel);
+        Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
         _triggers = Runtime.Triggers;
         _triggers.Ask = AskAboutFailedStep;
         _triggers.AskUser = AskWhatTheMacroWantsToKnow;
@@ -442,6 +462,11 @@ public partial class MainWindow : AppWindow
 
         viewModel.PropertyChanged += (_, args) =>
         {
+            if (args.PropertyName == nameof(MainViewModel.IsRunning))
+            {
+                Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
+            }
+
             if (args.PropertyName == nameof(MainViewModel.IsRunning) && _triggers is not null)
             {
                 _triggers.IsEnabled = viewModel.IsRunning;
@@ -459,6 +484,16 @@ public partial class MainWindow : AppWindow
         };
 
         _triggers.MenuRequested += OnMenuRequested;
+
+        // The wheel has its own state and its own file. Nothing here asks the trigger service to
+        // yield a key: the middle button keeps the untouched menu path above.
+        _wheelState = WheelMenuStore.Load();
+        _wheel = new WheelGesture(
+            () => Volatile.Read(ref _wheelState).Options.Launcher,
+            () => Volatile.Read(ref _wheelState).Options.RepeatKey,
+            () => Volatile.Read(ref _systemRunning) == 1);
+        WheelMenuStore.Changed += OnWheelStateChanged;
+
         var windowEvents = SharedDevices.Current.WindowEvents;
         windowEvents.ForegroundChanged += OnSurfaceForegroundChanged;
         windowEvents.BoundsChanged += OnSurfaceBoundsChanged;
@@ -473,6 +508,8 @@ public partial class MainWindow : AppWindow
         {
             DetachSystemHotkey();
             _triggers.MenuRequested -= OnMenuRequested;
+            WheelMenuStore.Changed -= OnWheelStateChanged;
+            CloseWheel();
             windowEvents.ForegroundChanged -= OnSurfaceForegroundChanged;
             windowEvents.BoundsChanged -= OnSurfaceBoundsChanged;
             viewModel.Triggers.Changed -= OnProjectTriggersChanged;
@@ -1153,6 +1190,11 @@ public partial class MainWindow : AppWindow
             hook.KeyDown += OnSystemHotkeyDown;
             hook.KeyUp += OnSystemHotkeyUp;
             hook.MouseDown += OnMenuMouseDown;
+            hook.MouseDown += OnWheelMouseDown;
+            hook.MouseUp += OnWheelMouseUp;
+            hook.Moved += OnWheelMouseMoved;
+            hook.KeyDown += OnWheelKeyDown;
+            hook.Wheel += OnWheelScroll;
             _hotkeyHook = hook;
         }
         catch (Exception)
@@ -1169,6 +1211,11 @@ public partial class MainWindow : AppWindow
             hook.KeyDown -= OnSystemHotkeyDown;
             hook.KeyUp -= OnSystemHotkeyUp;
             hook.MouseDown -= OnMenuMouseDown;
+            hook.MouseDown -= OnWheelMouseDown;
+            hook.MouseUp -= OnWheelMouseUp;
+            hook.Moved -= OnWheelMouseMoved;
+            hook.KeyDown -= OnWheelKeyDown;
+            hook.Wheel -= OnWheelScroll;
             _globalHeld.Clear();
             _hotkeyHook = null;
         }
@@ -1301,6 +1348,271 @@ public partial class MainWindow : AppWindow
 
     internal static bool CanCloseMenuFromOutside(int childOpen, int popupOpen)
         => childOpen == 0 && popupOpen == 0;
+
+    // ── Wheel menu ────────────────────────────────────────────────────────────
+
+    private void OnWheelStateChanged()
+        => Volatile.Write(ref _wheelState, WheelMenuStore.Load());
+
+    /// <summary>
+    /// A press only starts the gesture. It never suppresses the event: a short right click must
+    /// stay an ordinary right click so the system context menu still opens.
+    /// </summary>
+    private void OnWheelMouseDown(MouseHookEvent e)
+    {
+        try
+        {
+            if (_wheel is { } gesture)
+            {
+                gesture.Down(KeyNames.MouseName(e.Button), e.X, e.Y);
+            }
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.wheel.down", error);
+        }
+    }
+
+    private void OnWheelMouseMoved(MouseMovedHookEvent e)
+    {
+        try
+        {
+            if (_wheel is { } gesture)
+            {
+                HandleWheel(gesture.Move(e.X, e.Y));
+            }
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.wheel.move", error);
+        }
+    }
+
+    /// <summary>
+    /// The press is never swallowed, so the release must not be either. Suppressing only the up
+    /// event leaves Windows with a right button that went down and never came back up: every later
+    /// left click is then eaten until another press/release pair happens. The wheel window itself
+    /// is mouse-transparent, so letting the ordinary right click through costs nothing.
+    /// </summary>
+    private void OnWheelMouseUp(MouseHookEvent e)
+    {
+        try
+        {
+            if (_wheel is not { } gesture)
+            {
+                return;
+            }
+
+            HandleWheel(gesture.Up(KeyNames.MouseName(e.Button), e.X, e.Y));
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.wheel.up", error);
+        }
+    }
+
+    private void OnWheelKeyDown(KeyHookEvent e)
+    {
+        try
+        {
+            if (_wheel is not { IsOpen: true } gesture)
+            {
+                return;
+            }
+
+            var answered = gesture.Key(KeyNames.Name(e.Key, sided: true));
+            if (answered.Action != WheelGestureAction.None)
+            {
+                e.Suppress = true;
+                HandleWheel(answered);
+            }
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.wheel.key", error);
+        }
+    }
+
+    /// <summary>
+    /// Scrolling while the wheel is open changes which scene its positions come from: up goes to
+    /// the global scene, down to the current program's scene, and the same direction again returns
+    /// to the merged view. This is Quicker's way of answering "show me only this app's actions".
+    /// </summary>
+    private void OnWheelScroll(WheelHookEvent e)
+    {
+        try
+        {
+            if (_wheelWindow is null || e.Injected || e.Axis == HookWheelAxis.Horizontal)
+            {
+                return;
+            }
+
+            var direction = Math.Sign(e.Rotation);
+            if (direction == 0)
+            {
+                return;
+            }
+
+            var wanted = direction > 0 ? WheelSource.Global : WheelSource.Program;
+            _wheelSource = _wheelSource == wanted ? WheelSource.Merged : wanted;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_wheelWindow is { } window)
+                {
+                    window.SetLayout(LayoutFor(Volatile.Read(ref _wheelState).Options));
+                }
+            });
+            e.Suppress = true;
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("hook.wheel.scroll", error);
+        }
+    }
+
+    private WheelRuntimeLayout LayoutFor(WheelOptions options)
+        => (_wheelRules ?? new WheelMenuRules()).Resolve(
+            _wheelSource == WheelSource.Global ? null : _wheelScene,
+            _wheelSource, options.WideOuter, _wheelMacros,
+            options.ThirdCapacity, options.HideEmptyOuter);
+
+    private void HandleWheel(WheelGestureEvent answered)
+    {
+        switch (answered.Action)
+        {
+            case WheelGestureAction.OpenWheel:
+                Dispatcher.UIThread.Post(() => OpenWheel(new PixelPoint(
+                    (int)Math.Round(answered.X), (int)Math.Round(answered.Y))));
+                break;
+            case WheelGestureAction.Move:
+                Dispatcher.UIThread.Post(() => UpdateWheelHover(answered.X, answered.Y));
+                break;
+            case WheelGestureAction.Select:
+                Dispatcher.UIThread.Post(() =>
+                {
+                    RunWheelSlot(answered.Slot);
+                    CloseWheel();
+                });
+                break;
+            case WheelGestureAction.Repeat:
+                Dispatcher.UIThread.Post(() => RunWheelSlot(answered.Slot));
+                break;
+            case WheelGestureAction.Cancel:
+                Dispatcher.UIThread.Post(CloseWheel);
+                break;
+        }
+    }
+
+    private void OpenWheel(PixelPoint origin)
+    {
+        if (_wheelWindow is not null || DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        var state = Volatile.Read(ref _wheelState);
+        if (state.Options.Launcher.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            // The scene is chosen once, from the window that was in front when the button went
+            // down, exactly as the floating macro menu picks its lower region.
+            _wheelMacros = [.. viewModel.Macros];
+            _wheelRules = state.Rules;
+            _wheelSource = WheelSource.Merged;
+            _wheelSubParent = null;
+            try
+            {
+                _wheelScene = state.Rules.SceneFor(
+                    SharedDevices.Current.Windows.Foreground(),
+                    SharedDevices.Current.Windows);
+            }
+            catch
+            {
+                _wheelScene = null;
+            }
+
+            var layout = LayoutFor(state.Options);
+            var window = new WheelMenuWindow(layout, state.Options, origin);
+            window.TimedOut += () =>
+            {
+                _wheel?.Timeout();
+                CloseWheel();
+            };
+            window.ShowAsPeer(this);
+            window.Position = window.PlaceAt(origin);
+            _wheelWindow = window;
+            _wheel?.SetCenter(window.Center.X, window.Center.Y, window.Metrics);
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("wheel.open", error);
+            CloseWheel();
+        }
+    }
+
+    private void UpdateWheelHover(double x, double y)
+    {
+        if (_wheelWindow is not { } window)
+        {
+            return;
+        }
+
+        var dx = x - window.Center.X;
+        var dy = y - window.Center.Y;
+        var aimed = WheelGeometry.At(dx, dy, window.Metrics);
+        var chosen = aimed;
+        var previous = _wheelSubParent;
+        _wheelSubParent = null;
+
+        if (Volatile.Read(ref _wheelState).Options.ShowSubActions
+            && aimed is { Ring: not WheelRing.Extended } resident
+            && window.SlotAt(resident) is { HasSub: true } parent)
+        {
+            _wheelSubParent = resident;
+            _wheelSubCount = parent.Sub.Count;
+        }
+
+        var held = _wheelSubParent ?? previous;
+        if (held is { } fan && Volatile.Read(ref _wheelState).Options.ShowSubActions)
+        {
+            var angle = WheelGeometry.SectorAngle(fan, window.Metrics);
+            if (WheelGeometry.SubAt(dx, dy, window.Metrics, angle, _wheelSubCount) is { } index)
+            {
+                chosen = new WheelSlotRef(fan.Ring, fan.Index, index);
+            }
+        }
+
+        _wheel?.Hover(chosen);
+        window.Hover(chosen);
+        window.Aim(x, y);
+    }
+
+    private void RunWheelSlot(WheelSlotRef? reference)
+    {
+        if (reference is not { } chosen
+            || _wheelWindow?.SlotAt(chosen) is not { Macro: { } macro })
+        {
+            return;
+        }
+
+        _triggers?.RunOnce(macro);
+    }
+
+    private void CloseWheel()
+    {
+        var window = _wheelWindow;
+        _wheelWindow = null;
+        _wheelScene = null;
+        _wheelRules = null;
+        _wheelMacros = [];
+        _wheelSubParent = null;
+        _wheelSource = WheelSource.Merged;
+        window?.Close();
+    }
 
     private void OnSystemHotkeyUp(KeyHookEvent e)
     {

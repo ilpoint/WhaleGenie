@@ -25,6 +25,7 @@ public partial class SettingsWindow : AppWindow
     private MenuRuleRow? _ruleDragSource;
     private Point _ruleDragOrigin;
     private bool _ruleDragging;
+    private bool _wheelEditorReady;
 
     public SettingsWindow()
         : this(null, null, SettingsSubPage.General)
@@ -101,8 +102,14 @@ public partial class SettingsWindow : AppWindow
             {
                 ShowMenuItemsOf(_viewModel.SelectedPage);
                 SelectPage(_nav, _viewModel.SelectedPage);
+                EnsureWheelEditor();
             }
         };
+
+        // The wheel's sectors are drawn rather than templated, so the action manager builds its
+        // own controls and shares the painter with the live wheel. Building it only when its page
+        // is first opened keeps every other settings page cheap to open.
+        EnsureWheelEditor();
 
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, OnPreviewKeyUp, RoutingStrategies.Tunnel);
@@ -110,6 +117,20 @@ public partial class SettingsWindow : AppWindow
         AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheel, RoutingStrategies.Tunnel);
         Closed += (_, _) => MacroTriggerGate.Exit();
         MacroTriggerGate.Enter();
+    }
+
+    private void EnsureWheelEditor()
+    {
+        if (_wheelEditorReady || _viewModel.SelectedPage != SettingsSubPage.WheelActions)
+        {
+            return;
+        }
+
+        if (this.FindControl<ContentControl>("WheelEditorHost") is { } host)
+        {
+            host.Content = new WheelMenuEditorView(_viewModel, this);
+            _wheelEditorReady = true;
+        }
     }
 
     private async void OnCustomizeThemeClicked(object? sender, RoutedEventArgs e)
@@ -180,6 +201,47 @@ public partial class SettingsWindow : AppWindow
 
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {
+        if (_viewModel.IsCapturingWheelRepeat)
+        {
+            if (HotkeyNameMapper.IsModifier(e.Key))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Escape)
+            {
+                _viewModel.IsCapturingWheelRepeat = false;
+            }
+            else
+            {
+                _viewModel.CaptureWheelRepeat(Chord(e.Key, e.KeyModifiers));
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (_viewModel.IsCapturingWheelLauncher)
+        {
+            if (HotkeyNameMapper.IsModifier(e.Key))
+            {
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key == Key.Escape)
+            {
+                _viewModel.IsCapturingWheelLauncher = false;
+                e.Handled = true;
+                return;
+            }
+
+            _viewModel.CaptureWheelLauncher(Chord(e.Key, e.KeyModifiers));
+            e.Handled = true;
+            return;
+        }
+
         if (_viewModel.IsCapturingSystemHotkey)
         {
             if (HotkeyNameMapper.IsModifier(e.Key))
@@ -257,7 +319,7 @@ public partial class SettingsWindow : AppWindow
 
     private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!_viewModel.IsCapturingMenuLauncher)
+        if (!_viewModel.IsCapturingMenuLauncher && !_viewModel.IsCapturingWheelLauncher)
         {
             return;
         }
@@ -284,7 +346,16 @@ public partial class SettingsWindow : AppWindow
             return;
         }
 
-        _viewModel.CaptureMenuLauncher(KeyNames.MouseName(pressed));
+        var binding = KeyNames.MouseName(pressed);
+        if (_viewModel.IsCapturingMenuLauncher)
+        {
+            _viewModel.CaptureMenuLauncher(binding);
+        }
+        else
+        {
+            _viewModel.CaptureWheelLauncher(binding);
+        }
+
         e.Handled = true;
     }
 
@@ -300,6 +371,13 @@ public partial class SettingsWindow : AppWindow
 
         for (var visual = source as Visual; visual is not null; visual = visual.GetVisualParent())
         {
+            // Wheel buttons are looked up by their Click handler, so they carry a tag instead of
+            // a name: a click on one of them cancels or clears, not a mouse button to record.
+            if (visual is Control { Tag: string tag } && tag == "HotkeyButton")
+            {
+                return true;
+            }
+
             if (visual is Button button && button.Name is { } name
                 && names.Contains(name, StringComparer.Ordinal))
             {
@@ -312,7 +390,7 @@ public partial class SettingsWindow : AppWindow
 
     private void OnPreviewPointerWheel(object? sender, PointerWheelEventArgs e)
     {
-        if (!_viewModel.IsCapturingMenuLauncher)
+        if (!_viewModel.IsCapturingMenuLauncher && !_viewModel.IsCapturingWheelLauncher)
         {
             return;
         }
@@ -320,8 +398,57 @@ public partial class SettingsWindow : AppWindow
         var (axis, rotation) = System.Math.Abs(e.Delta.X) > System.Math.Abs(e.Delta.Y)
             ? (HookWheelAxis.Horizontal, e.Delta.X < 0 ? 1 : -1)
             : (HookWheelAxis.Vertical, e.Delta.Y >= 0 ? 1 : -1);
-        _viewModel.CaptureMenuLauncher(KeyNames.WheelName(axis, rotation));
+        var binding = KeyNames.WheelName(axis, rotation);
+        if (_viewModel.IsCapturingMenuLauncher)
+        {
+            _viewModel.CaptureMenuLauncher(binding);
+        }
+        else
+        {
+            _viewModel.CaptureWheelLauncher(binding);
+        }
+
         e.Handled = true;
+    }
+
+    private void OnCaptureWheelLauncher(object? sender, RoutedEventArgs e)
+    {
+        _viewModel.StopMenuLauncherCapture();
+        _viewModel.IsCapturingSystemHotkey = false;
+        _viewModel.IsCapturingRecordStop = false;
+        _viewModel.WheelLauncherCustom = !_viewModel.WheelLauncherCustom;
+    }
+
+    private void OnCaptureWheelRepeat(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel.IsCapturingWheelRepeat)
+        {
+            _viewModel.IsCapturingWheelRepeat = false;
+        }
+        else
+        {
+            _viewModel.BeginWheelRepeatCapture();
+        }
+    }
+
+    private void OnClearWheelLauncher(object? sender, RoutedEventArgs e)
+        => _viewModel.ClearWheelLauncher();
+
+    private void OnEnableSystem(object? sender, RoutedEventArgs e)
+        => _viewModel.EnableSystem();
+
+    /// <summary>
+    /// Opens the wheel from the settings window so it can be seen and aimed at without any system
+    /// input: preview mode answers the pointer inside Avalonia rather than through the global hook.
+    /// </summary>
+    private void OnPreviewWheel(object? sender, RoutedEventArgs e)
+    {
+        var origin = new PixelPoint(
+            Position.X + (int)(Width / 2),
+            Position.Y + (int)(Height / 2));
+        var preview = new WheelMenuWindow(_viewModel.BuildWheelLayout(),
+            _viewModel.WheelState.Options, origin, preview: true);
+        preview.ShowOver(this);
     }
 
     private async Task AddMenuRuleAsync()

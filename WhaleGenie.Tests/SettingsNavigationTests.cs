@@ -20,7 +20,7 @@ public class SettingsNavigationTests
     private static readonly string[] Pages =
     [
         "General", "Hotkeys", "Screen", "Input", "Devices",
-        "MenuLauncher", "WindowRules", "Theme",
+        "MenuLauncher", "WindowRules", "WheelMenu", "WheelActions", "Theme",
     ];
 
     [Fact]
@@ -92,7 +92,7 @@ public class SettingsNavigationTests
 
             var nav = Assert.IsType<FANavigationView>(window.FindControl<FANavigationView>("Nav"));
             Assert.Equal(
-                new[] { "MenuLauncher", "WindowRules" },
+                new[] { "MenuLauncher", "WindowRules", "WheelMenu", "WheelActions" },
                 Shown(nav));
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
@@ -187,7 +187,8 @@ public class SettingsNavigationTests
             "RunAsAdminCheck", "AdminRestartButton",
             "MenuRuleList", "AddMenuRulePageButton", "EditMenuRuleButton", "RemoveMenuRuleButton",
             "CaptureMenuLauncherButton", "ClearMenuLauncherButton",
-            "FrameRateBox", "ThemeSelect", "CustomizeThemeButton",
+            "PreviewWheelButton", "WheelEditorHost", "FrameRateBox", "ThemeSelect",
+            "CustomizeThemeButton",
         ];
 
         foreach (var name in looked)
