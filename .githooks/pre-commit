@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Rejects oversized text files before they enter the repository. It reads the staged blob rather
+# than the working tree so a file that is only partly staged is judged by what will be committed.
+
+set -euo pipefail
+
+limit=20000
+root="$(git rev-parse --show-toplevel)"
+baseline_file="$root/.githooks/file-size-baseline.tsv"
+declare -A baseline=()
+
+if [[ -f "$baseline_file" ]]; then
+  while IFS=$'\t' read -r bytes path || [[ -n "$bytes$path" ]]; do
+    bytes="${bytes%$'\r'}"
+    path="${path%$'\r'}"
+    [[ -z "$bytes" || "$bytes" == \#* ]] && continue
+    baseline["$path"]="$bytes"
+  done < "$baseline_file"
+fi
+
+# These files are either generated, lockfiles, build output, or the baseline itself. None of them
+# is maintained by hand, so splitting one would only be undone by the next generation step.
+skipped() {
+  case "$1" in
+    .githooks/file-size-baseline.tsv|*/.githooks/file-size-baseline.tsv) return 0 ;;
+    .git/*|*/.git/*|bin/*|*/bin/*|obj/*|*/obj/*|dist/*|*/dist/*|_site/*|*/_site/*) return 0 ;;
+    TestResults/*|*/TestResults/*|third_party/*|LICENSE.txt|NOTICE) return 0 ;;
+    package-lock.json|*/package-lock.json|yarn.lock|*/yarn.lock|pnpm-lock.yaml|*/pnpm-lock.yaml) return 0 ;;
+    *.lock|*.lock.json|*.g.cs|*.designer.cs|*.generated.*|*.min.js|*.min.css) return 0 ;;
+  esac
+  return 1
+}
+
+# Git already records whether a staged change is binary, so ask it rather than streaming a large
+# blob through a pipe that would close early.
+is_binary() {
+  local stats added
+  stats="$(git diff --cached --numstat -- "$1")" || return 1
+  added="${stats%%$'\t'*}"
+  [[ "$added" == "-" ]]
+}
+
+violations=()
+
+while IFS= read -r -d '' status && IFS= read -r -d '' first; do
+  old_path=""
+  path="$first"
+  if [[ "$status" == R* || "$status" == C* ]]; then
+    old_path="$first"
+    IFS= read -r -d '' path || break
+  fi
+
+  skipped "$path" && continue
+  size="$(git cat-file -s ":$path" 2>/dev/null)" || continue
+  is_binary "$path" && continue
+
+  if [[ -n "${baseline["$path"]+set}" ]]; then
+    allowed="${baseline["$path"]}"
+  elif [[ "$status" == R* && -n "$old_path" ]]; then
+    # A rename does not create a new file. It keeps the old file's ceiling when that ceiling is
+    # above the normal limit, but an ordinary small-file rename must not inherit a lower limit
+    # merely because the destination was edited on the way.
+    old_size="$(git cat-file -s "HEAD:$old_path" 2>/dev/null || printf '%s' "$limit")"
+    allowed="$limit"
+    if (( old_size > allowed )); then
+      allowed="$old_size"
+    fi
+  else
+    allowed="$limit"
+  fi
+
+  if (( size > allowed )); then
+    violations+=("$path"$'\t'"$size"$'\t'"$allowed")
+  fi
+done < <(git diff --cached --name-status -z --diff-filter=ACMR)
+
+if (( ${#violations[@]} == 0 )); then
+  exit 0
+fi
+
+printf '提交被文件大小钩子拒绝：\n' >&2
+printf '以下暂存文本文件超过允许大小，请按功能拆成多个文件后重新暂存。\n' >&2
+for item in "${violations[@]}"; do
+  IFS=$'\t' read -r path size allowed <<< "$item"
+  printf '  %s：%s 字节（本次上限 %s 字节）\n' "$path" "$size" "$allowed" >&2
+done
+printf '新增文件上限 %s 字节；存量上限见 .githooks/file-size-baseline.tsv，不得为提高上限而修改它。\n' "$limit" >&2
+exit 1

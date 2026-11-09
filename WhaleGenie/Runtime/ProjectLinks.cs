@@ -25,7 +25,7 @@ public static class ProjectLinks
     /// the repository rather than a window of our own: the two would drift apart, and a window cannot
     /// be searched, linked to or read without the program running.
     /// </summary>
-    public const string Manual = Home + "/blob/master/doc/manual.md";
+    public const string Manual = Home + "/blob/master/docs/manual.md";
 
     /// <summary>
     /// Where the usbip-win2 driver is fetched from. The newest release is what belongs on the

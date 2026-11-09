@@ -118,7 +118,7 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     # 装好程序的人手上没有仓库可翻，也不一定有网。它按 exe 旁边的 doc\manual.md 找，路径别改。
     $packagedManual = Join-Path $app 'doc'
     [System.IO.Directory]::CreateDirectory($packagedManual) | Out-Null
-    Copy-Item -Path (Join-Path $PSScriptRoot '..\doc\manual.md') -Destination $packagedManual
+    Copy-Item -Path (Join-Path $PSScriptRoot '..\docs\manual.md') -Destination $packagedManual
 
     # 单文件之外只剩原生库（OpenCV、ffmpeg、Skia、HarfBuzz、uiohook、libVIIPER），全部进 lib。
     Get-ChildItem $app -File -Filter *.dll | Move-Item -Destination $lib

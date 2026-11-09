@@ -35,6 +35,16 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 报告属于本机验证产物，不提交到仓库。MCP 服务使用标准输入输出，不监听网络端口；权限来自
 `settings.json`，命令行不提供权限参数。
 
+### MCP 自检口径
+
+`--mcp-doctor` 用固定场景覆盖状态读取、草稿、动作查询、写宏、校验、应用、保存、局部补丁、资源、
+权限拒绝和清理。比较修改前后的报告时必须使用同一场景与命令；动作数、工具数、字节数等随实现变化的
+数字只留在本机报告中，不另维护一份长期基线。带权限与无窗口路径都要覆盖，跳过项须能由权限状态解释。
+
+`McpSelfCheck` 负责采集并尽量继续执行，不用自检代替行为断言；正确性由 MCP 测试、引擎测试和真实桌面
+验收负责。若失败来自自检脚本或样本宏，先修测量，不能为得到好看的数字改变判定标准。退出码为
+0（全部通过）、1（有失败）、2（参数错误）、3（无法通信）、4（子进程无法启动）。
+
 ## 文档修改与检查
 
 只修改文档时，至少运行：
@@ -46,7 +56,7 @@ git diff --check
 并检查 Markdown 相对链接：
 
 ```powershell
-$files = @("README.md", "AGENTS.md") + (Get-ChildItem doc -Recurse -Filter *.md).FullName
+$files = @("README.md", "AGENTS.md") + (Get-ChildItem docs -Recurse -Filter *.md).FullName
 $missing = foreach ($file in $files) {
   $resolved = Resolve-Path $file
   $base = Split-Path $resolved
@@ -71,23 +81,19 @@ if ($missing) { $missing; exit 1 }
 | `README.md` | 项目简介、启动方式和文档入口 | 动作细节、工程命令、未完成计划 |
 | [manual.md](manual.md) | 已实现的用户行为、动作、字段、失败键与限制 | 实现细节、发布流程、未来行为 |
 | `AGENTS.md` | 长期定位、开发规范、跨子系统约定 | 操作手册、阶段计划、完成历史 |
-| `doc/dev.md` | 命令、依赖、修改流程、测试、出图、CI 与发布 | 子系统详细设计、路线排序 |
+| `docs/dev.md` | 命令、依赖、修改流程、测试、出图、CI 与发布 | 子系统详细设计、路线排序 |
 | [architecture.md](architecture.md) | 三个产品工程、依赖方向、主链路、子系统边界与当前限制 | 操作命令、逐字段用户语义、阶段计划 |
 | [roadmap.md](roadmap.md) | 未完成阶段、依赖、验收、待评估事项与非目标 | 已完成清单、工期、重复的开发规范 |
-| [mcp-usability.md](mcp-usability.md) | MCP 自检指标与遗留项 | 未由检查支撑的评价 |
-| [design/ui-ux-roadmap.md](design/ui-ux-roadmap.md) | 动作表单的样板、各族的块顺序、每批检查单 | 已完成清单、批次流水、动作字段事实 |
-| [design/step-list-and-conditions.md](design/step-list-and-conditions.md) | 步骤列表与流程条件的读法、不能随便改的原因 | 实现过程、进度、与代码不符的描述 |
-| [design/find-color-actions.md](design/find-color-actions.md) | 找色族的判定层与处置层、几处刻意的取舍 | 已完成清单、批次流水、字段事实 |
-| [performance.md](performance.md) | 抓屏、识别与检测的单位成本及量法 | 用户教程、阶段计划 |
 
 事实来源按以下规则确定：
 
 - 用户可见行为以 `manual.md` 为准；动作字段的机器可读语义以 `ActionSemantics.json` 为准。
 - 界面展示元数据只放在 `ActionDisplay.json`，不得复制引擎事实。
 - 失败键以 `RunKeys` 与手册失败键表为准，由 `FailureKeyTests` 对账。
-- 当前结构以代码和 `architecture.md` 为准；未完成工作只登记在 `roadmap.md`；变更历史以 git 为准。
-- 设计意图与「不能改的原因」只在 `doc/design/`；进度、批次过程与完成勾选不写进文档，以 git 为准。
-- 文档中的数量、体积和耗时必须可重新测量。无法保持准确时，不写具体数值。
+- 当前结构与跨子系统设计取舍以代码和 `architecture.md` 为准；修改、测试与验收方法放在本文。
+- 未完成工作只登记在 `roadmap.md`；进度、批次过程、完成勾选和变更历史以 git 为准，不另写流水。
+- 文档中的数量、体积和耗时必须可重新测量。无法保持准确时，不写具体数值；一次性检测数字不进入
+  长期文档，需要比较时保留本机报告。
 
 ## 工程结构
 
@@ -151,6 +157,33 @@ if ($missing) { $missing; exit 1 }
 9. **完成手动验收。** 涉及真实桌面行为时，按本文手动清单记录环境、步骤和观察结果。
 10. **收尾验证。** 更新手册、依赖与许可说明；完成路线图对应事项后删除该事项；运行构建、全部测试和
     格式检查。
+
+## 动作表单与编辑器约定
+
+动作表单按用户需要回答的问题分块，而不是按字段类型堆砌：
+
+- 每块使用统一图标与标题，同块字段必须相邻，目录加载时检查；图标由 `AppIcons.Block` 提供。
+- 同一个问题跨页时保留同一块标题与序号，不按页面重新编号。只有一项简单设置时不增加多余块头。
+- 必填项新建后即有可用值；空值只表示未提供，不默认等同于 0。坐标、区域、颜色、窗口和元素等已有
+  拾取能力的字段复用对应拾取器。说明先解释字段含义，再说明修改时机；数值须给出范围、单位和默认值。
+- 一行一项的数据使用统一行表；返回值使用“留下 / 结果 / 结构 / 变量名”四列，结构列给出可读示例。
+- 执行与容错页统一承载超时、延迟、重试和失败策略；危险动作提供确认或可撤销路径。
+- 每页至多三块。界面文案不用破折号，同一概念在字段、提示和手册中使用同一个词；动作名称须说清所属族，
+  两个动作不得同名。
+
+各族按以下顺序组织问题，新动作不另起一套顺序：
+
+| 族 | 块顺序 |
+| --- | --- |
+| 视觉 / 识别 | 范围 → 找什么 → 按内容挑 → 怎样算成功 → 怎么点 → 识别调参 |
+| 输入（键鼠、手柄） | 发给谁 → 按什么 / 点哪儿 → 怎么点 → 节奏 |
+| 界面 / 浏览器 | 在哪个窗口 → 找哪个元素 → 元素限定 → 改成什么样 / 读哪一部分 → 第几个 |
+| 数据 / 文件 / 剪贴板 | 哪个变量 → 从哪儿读 → 存到哪儿 → 挑哪些 → 怎么读 / 怎么写 → 怎么排 |
+| 脚本 | 跑什么 → 交给谁跑 → 传什么给它 |
+| 窗口 / 程序 | 哪个窗口 → 挪到哪儿 / 等它 → 交给它什么 |
+| 流程 | 问什么 / 比什么 / 跑几轮 → 每轮叫什么 → 节奏 → 各分支跑什么 |
+
+步骤树、条件读回和取值窗口的结构约束见 [architecture.md](architecture.md)，本文不重复其设计理由。
 
 ## 测试分层与契约
 
@@ -256,11 +289,11 @@ if ($missing) { $missing; exit 1 }
   外观与落点仍需真机检查。
 - 读屏幕的图必须经过 `ScreenReady`，不要直接 `screen.Capture`：桌面复制器会把隐藏前的画面继续交出来，
   `DwmFlush` 并不能保证新帧已经到了。拾取器、框选后的成图和单步试看都走这一条。
-- 一个矩形的四个数（`vision.capture`、`ocr.recognize` 的 x/y/width/height）现在压在一行里，
-  每格是 `NumberCellViewModel`（短名 + 自带取值片的框），不再各自是一个参数对象：测试里按参数
+- `vision.capture` 的矩形四个数（x/y/width/height）压在一行里，每格是
+  `NumberCellViewModel`（短名 + 自带取值片的框），不再各自是一个参数对象：测试里按参数
   `DataContext` 找数字框会落空，要看 `ParameterRowViewModel.IsQuad` 与 `QuadCells`，或者按可见的
   数字框找。格与参数之间的同步在 `ParameterRowViewModel.Cell` 里，数字字段要连 `NumberValue`
-  一起写，只写 `Text` 会让框里有字、步骤却是空的。
+  一起写，只写 `Text` 会让框里有字、步骤却是空的。OCR 的区域列表形状见下一条。
 - 拾取窗口的检查用 `WindowRuleWindow.Picking` 换掉桌面那一步，不真的让位与指窗口；拾取器本身
   （`WindowPickWindow`）用 `ProbeAt`/`Confirm` 驱动，和元素拾取器一样。
 - 拾取器的确认键要从 `IInputHook` 读，不能只靠窗口自己的 `KeyDown`：拾取器开在最上面，但 Windows
@@ -281,20 +314,18 @@ if ($missing) { $missing; exit 1 }
   「看看效果」两颗按钮由 `NarrowRowViewModel.OnPage` 决定画不画。
 - 桌面的窄条件读成 `UiCondition`（`UiConditionHow` + 值），从步骤的 `narrow` 行读；
   `FlaUiDevice.Matches` 逐条比，`Search` 在有窄条件时走「先按选择器缩，再逐项比」那条路。
-  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在 `doc/manual.md` 的失败键表里。
+  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在 `docs/manual.md` 的失败键表里。
 - 动作名：`uia.*` 说「界面」、`browser.*` 说「网页」；`No_two_actions_are_called_the_same_thing`
   直接读 `Strings.Chinese` / `Strings.English` 两张表来查重，不要改全局语言——测试并行跑，
   换语言会改到别人正在读的表。
 
-- 已知抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`
-  与 `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing` 在**全量**跑时偶发失败
-  （单跑、单类跑都过），两条都动 `VariableCatalog.Globals` / `SharedVariables` / `PersistentVariables`
-  这类进程级状态。全量跑时 `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`
-  也偶发同一种挂法（单跑通过），同样是进程级状态；`GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`
-  全量跑时也遇到过一次（单跑通过）；`LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
-全量跑时也偶发（单跑通过）；`StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step`
-  在全量跑时偶尔不认第二次点击（连续三次单跑都过），属于同一种"机器忙时手势计时被拉长"。
-再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
+- 已知抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`、
+  `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`、
+  `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one` 与
+  `LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
+  在全量运行时偶发失败，单跑或单类运行通过，均涉及进程级共享状态。
+  `StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step` 偶发不认第二次点击，可能与机器忙时
+  手势计时被拉长有关。遇到时先比较单跑与全量结果并检查共享状态还原，不要仅凭重跑放行或直接改被测代码。
 
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或
@@ -394,7 +425,7 @@ WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
   左键都取消；**取消之后立刻点几下左键，确认没有被吞掉**（这是曾经因为只拦截松开而出现的回归）。
   悬停按 `F1` 重复触发；超时自动取消。在屏幕边缘触发确认可见轮盘仍在屏幕内。设置页点「预览轮盘」
   应能在不经过全局钩子的情况下打开窗口、悬停高亮、松开显示「将运行：…」，`Esc` 关闭。把触发键
-  改成中键 / `F8` 各验一次，再关掉「启用轮盘菜单」确认右键完全不受影响。第三圈容量切到
+  改成中键 / 4 侧键各验一次，再关掉「启用轮盘菜单」确认右键完全不受影响。第三圈容量切到
   8/16/24 各看一次版面与命中；只给内圈填动作时确认空外圈被隐藏。在动作管理页右键一个扇区，
   确认「编辑轮盘动作」能改宏、备注与图标，选一个图标后文字上方出现它；「清除该位置」把整格清空。
   新增一个按进程名匹配的程序场景、覆盖一个位置，确认其余位置显示「（全局）」；轮盘弹出后滚动滚轮三次，确认
@@ -450,9 +481,15 @@ node build/record-vibe.mjs .
 
 ## 性能测量
 
-抓屏、识别和检测的单位成本记录于 [performance.md](performance.md)。修改画面获取或匹配算法后，
-按该文档的方法重新测量并比较结果。测量程序使用真实引擎设备，先预热，再取多次测量的中位数；
-临时程序不留在仓库中。
+修改 `WhaleGenie.GraphicsCapture`、`OpenCvVisionDevice`、`PixelSearch`、`PaddleOcrDevice`、
+`OpenCvDetectDevice` 或触发器等待间隔后，重新测量受影响路径。用临时工程引用 `WhaleGenie.Core`，
+通过 `WindowsDeviceLayer` 取得运行时才使用的真实设备；需要指定抓法或验证可用性时可直接使用
+`ScreenGrabber`。记录 Windows 版本、CPU、显卡、分辨率、模型与参考图尺寸，先预热，再取多次测量的
+中位数，不能用单次结果判断回归。
+
+找图分别测量足够大的搜索区域与缩小后的区域，找色覆盖提前命中与完整遍历，OCR 与检测把首次模型加载
+和后续调用分开。触发器使用真实窗口或短生命周期进程，并区分事件通知与轮询退路。测量前停止其他重负载，
+临时工程不留在仓库；修改前后的本机报告用同一场景比较，过期数字不写入长期文档。
 
 ## 提交与 CI
 
@@ -467,7 +504,6 @@ act -W .github/workflows/ci.yml -j build-and-test -P windows-latest=-self-hosted
 ```
 
 提交信息使用中文并说明原因。手动验收结果须包含环境和观察结果，不能只写“已手动验证”。
-
 ## 发布
 
 发布由 `.github/workflows/release.yml` 完成。推送以 `v` 开头的标签，或在 Actions 中手动运行

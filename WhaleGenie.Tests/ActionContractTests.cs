@@ -791,7 +791,7 @@ public class ActionContractTests
             .Select(field => field.Name)
             .ToHashSet(StringComparer.Ordinal);
 
-        var manual = File.ReadAllLines(Path.Combine(Repository(), "doc", "manual.md"));
+        var manual = File.ReadAllLines(Path.Combine(Repository(), "docs", "manual.md"));
         var documented = new HashSet<string>(StringComparer.Ordinal);
         foreach (var line in manual.Where(line =>
                      line.StartsWith("| 命中（", StringComparison.Ordinal)
@@ -851,7 +851,7 @@ public class ActionContractTests
         Assert.Contains("共用", Strings.Chinese["Add.StepTimeoutHint"], StringComparison.Ordinal);
         Assert.Contains("整块重来", Strings.Chinese["Add.BlockSettings"], StringComparison.Ordinal);
 
-        var manual = File.ReadAllText(Path.Combine(Repository(), "doc", "manual.md"));
+        var manual = File.ReadAllText(Path.Combine(Repository(), "docs", "manual.md"));
         Assert.Contains("共用", manual, StringComparison.Ordinal);
         Assert.Contains("整块重来", manual, StringComparison.Ordinal);
     }

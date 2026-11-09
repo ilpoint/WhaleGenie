@@ -93,7 +93,7 @@ public class FailureKeyTests
 
     private static string Section(string heading)
     {
-        var manual = File.ReadAllText(Path.Combine(Repository(), "doc", "manual.md"));
+        var manual = File.ReadAllText(Path.Combine(Repository(), "docs", "manual.md"));
         var start = manual.IndexOf(heading, StringComparison.Ordinal);
         Assert.True(start >= 0, $"the manual has no {heading} section");
         var next = Regex.Match(manual[(start + heading.Length)..], @"\n#{2,3} ");

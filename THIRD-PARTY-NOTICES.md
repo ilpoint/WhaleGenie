@@ -127,7 +127,7 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/dotnet/runtime>
   下载 C# 脚本要用的 NuGet 包时做签名校验。程序的目标框架是 net10.0-windows，这一份由
   WindowsDesktop 共享框架提供，所以包里没有它自己的文件；引擎为什么把它单独钉一个版本，
-  见 doc/dev.md 的「依赖的包」。
+  见 docs/dev.md 的「依赖的包」。
 - MicroCom.Runtime、Tmds.DBus.Protocol、Microsoft.Extensions.* — MIT
 
 ## 只在编译时用到的组件

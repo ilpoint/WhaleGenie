@@ -37,8 +37,8 @@ public class HelpMenuTests
         // The page only helps if it is the one that is really in the repository under the name the
         // link spells out, so both halves are checked: where the link points, and that the file is
         // there.
-        Assert.Equal(ProjectLinks.Home + "/blob/master/doc/manual.md", ProjectLinks.Manual);
-        Assert.True(File.Exists(Path.Combine(Repository(), "doc", "manual.md")),
+        Assert.Equal(ProjectLinks.Home + "/blob/master/docs/manual.md", ProjectLinks.Manual);
+        Assert.True(File.Exists(Path.Combine(Repository(), "docs", "manual.md")),
             "the manual the Get started item opens is not in the repository");
     }
 

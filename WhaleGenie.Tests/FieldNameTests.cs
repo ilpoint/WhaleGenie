@@ -253,7 +253,7 @@ public class FieldNameTests
     /// </summary>
     private static Dictionary<string, string> Whitelist()
     {
-        var notes = File.ReadAllLines(Path.Combine(Repository(), "doc", "dev.md"));
+        var notes = File.ReadAllLines(Path.Combine(Repository(), "docs", "dev.md"));
         var start = Array.FindIndex(notes,
             line => line.StartsWith("**保留同名**", StringComparison.Ordinal));
         Assert.True(start >= 0, "the developer notes have no retained-name table");
