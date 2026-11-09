@@ -248,19 +248,24 @@ public class FieldNameTests
     /// <summary>
     /// Reads the retained-name table out of the developer notes, which is where a reason is
     /// written for a name whose labels or choices deliberately differ between actions. The table
-    /// ends at the next heading of any level: a sub-section is a different stretch of the notes, and
-    /// its tables are about something else.
+    /// ends at the next heading of any level, or at the end of the file: a sub-section is a different
+    /// stretch of the notes, and its tables are about something else.
     /// </summary>
     private static Dictionary<string, string> Whitelist()
     {
-        var notes = File.ReadAllLines(Path.Combine(Repository(), "docs", "dev.md"));
+        var notes = File.ReadAllLines(Path.Combine(Repository(), "docs", "dev", "field-names.md"));
         var start = Array.FindIndex(notes,
-            line => line.StartsWith("**保留同名**", StringComparison.Ordinal));
+            line => line.StartsWith("## 同名字段保留表", StringComparison.Ordinal));
         Assert.True(start >= 0, "the developer notes have no retained-name table");
 
         var end = Array.FindIndex(notes, start + 1,
             line => line.StartsWith("## ", StringComparison.Ordinal)
                 || line.StartsWith("### ", StringComparison.Ordinal));
+        if (end < 0)
+        {
+            end = notes.Length;
+        }
+
         Assert.True(end > start, "the retained-name table has no end");
 
         var table = new Dictionary<string, string>(StringComparer.Ordinal);
