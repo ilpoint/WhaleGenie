@@ -20,6 +20,19 @@ namespace WhaleGenie.ViewModels;
 
 public sealed record TriggerKindChoice(TriggerKind Kind, string Label);
 
+/// <summary>
+/// The two halves of the macro settings drawer. They are pages rather than one long column
+/// because the list of trigger entries and the macro's own interface each need the room.
+/// </summary>
+public enum MacroSettingsPage
+{
+    /// <summary>What the macro is called and how it starts.</summary>
+    General,
+
+    /// <summary>What belongs to this macro alone: its limit, its switch key and its interface.</summary>
+    Specific,
+}
+
 public partial class MacroEditorViewModel : ViewModelBase
 {
     /// <summary>Raised when the editor should close, with the macro to save or <c>null</c> when cancelled.</summary>
@@ -266,6 +279,50 @@ public partial class MacroEditorViewModel : ViewModelBase
         MarkDirty();
     }
 
+    /// <summary>
+    /// Takes a key the hook can read as this macro's arm/disarm switch. A key the hook cannot see
+    /// is refused here rather than saved and found dead at the first press; the answer comes back
+    /// so the window can drop its capture state.
+    /// </summary>
+    public bool SetToggleKey(string binding)
+    {
+        var text = binding.Trim();
+        if (text.Length > 0 && !HotkeyBinding.IsSupported(text))
+        {
+            IsCapturingToggleKey = false;
+            ToggleKeyProblem = Strings.Get("Editor.InterfaceHotkeyUnsupported");
+            return false;
+        }
+
+        IsCapturingToggleKey = false;
+        ToggleKeyProblem = string.Empty;
+        ToggleKey = text;
+        return true;
+    }
+
+    public void ClearToggleKey()
+    {
+        IsCapturingToggleKey = false;
+        ToggleKeyProblem = string.Empty;
+        ToggleKey = string.Empty;
+    }
+
+    [RelayCommand]
+    private void ClearToggleKeyCommand()
+    {
+        ClearToggleKey();
+        MarkDirty();
+    }
+
+    /// <summary>
+    /// Which page holds the reason a save was refused: a bad name or hotstring is written on the
+    /// first page, a bad declaration on the second.
+    /// </summary>
+    internal MacroSettingsPage PageThatBlocksSaving =>
+        HasNameProblem || HasBlockingHotstringProblem
+            ? MacroSettingsPage.General
+            : MacroSettingsPage.Specific;
+
     private void RememberInterfaceHotkey()
     {
         if (!WindowTarget.HasTarget)
@@ -386,6 +443,7 @@ public partial class MacroEditorViewModel : ViewModelBase
                     && entry.BindKey.Trim().Length > 0)
                 .Select(entry => entry.BindKey.Trim())
                 .Concat(InterfaceHotkeysForChecks())
+                .Append(ToggleKey.Trim())
                 .Append(LocalSettings.LoadMenuLauncher())
                 .Append(LocalSettings.LoadSystemHotkey())
                 .Where(binding => binding.Length > 0)
@@ -530,6 +588,8 @@ public partial class MacroEditorViewModel : ViewModelBase
         }
 
         WindowPreview.RefreshLanguage();
+        OnPropertyChanged(nameof(ToggleKeyDisplay));
+        OnPropertyChanged(nameof(ToggleKeyButton));
     }
 
     /// <summary>Clears changes made only by controls taking their initial bound values.</summary>
@@ -639,12 +699,6 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// because a macro may call itself.
     /// </summary>
     private IReadOnlyList<MacroCallable> _projectMacros = [];
-
-    /// <summary>
-    /// True when another macro of the same project also sends keys or clicks: the check has to know
-    /// that to say two of them running at once would write their input through each other.
-    /// </summary>
-    private bool _inputShared;
 
     /// <summary>
     /// True when another macro of the same project also uses the browser. One browser serves the
@@ -776,13 +830,11 @@ public partial class MacroEditorViewModel : ViewModelBase
     private Dictionary<MacroStep, string> _problemByStep = [];
 
     /// <summary>Hands in the macro names a call may reach, and checks the steps again.</summary>
-    public void SetProjectMacros(IEnumerable<MacroCallable> macros, bool inputShared = false,
-        bool browserShared = false)
+    public void SetProjectMacros(IEnumerable<MacroCallable> macros, bool browserShared = false)
     {
         _projectMacros = [.. macros];
         OnPropertyChanged(nameof(NameProblem));
         OnPropertyChanged(nameof(HasNameProblem));
-        _inputShared = inputShared;
         _browserShared = browserShared;
         RebuildRows();
     }
@@ -819,6 +871,59 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     public partial string Group { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Which half of the drawer is showing. Switching pages is not an edit: the two pages say
+    /// different things about the same macro.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsGeneralSettingsPage))]
+    [NotifyPropertyChangedFor(nameof(IsSpecificSettingsPage))]
+    public partial MacroSettingsPage SettingsPage { get; set; } = MacroSettingsPage.General;
+
+    public bool IsGeneralSettingsPage => SettingsPage == MacroSettingsPage.General;
+
+    public bool IsSpecificSettingsPage => SettingsPage == MacroSettingsPage.Specific;
+
+    /// <summary>Shows one page of the macro settings drawer.</summary>
+    public void ShowSettingsPage(MacroSettingsPage page) => SettingsPage = page;
+
+    /// <summary>
+    /// True while this macro uses the program's input limit instead of one of its own. The number
+    /// beside it keeps the program's current value, so turning this off starts from something the
+    /// person can see rather than from a zero they did not choose.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool FollowProgramInputRate { get; set; } = true;
+
+    /// <summary>Events per second this macro may send; only written to the macro when not following.</summary>
+    [ObservableProperty]
+    public partial double InputLimitValue { get; set; } = InputLimit.Usual;
+
+    /// <summary>The key that arms or disarms this macro at runtime, or empty.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToggleKeyDisplay))]
+    [NotifyPropertyChangedFor(nameof(TriggerProblemSummary))]
+    public partial string ToggleKey { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToggleKeyButton))]
+    public partial bool IsCapturingToggleKey { get; set; }
+
+    /// <summary>Why the last attempt to use a switch key was refused, or empty.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasToggleKeyProblem))]
+    public partial string ToggleKeyProblem { get; set; } = string.Empty;
+
+    public bool HasToggleKeyProblem => ToggleKeyProblem.Length > 0;
+
+    public string ToggleKeyDisplay => ToggleKey.Trim().Length > 0
+        ? ToggleKey
+        : Strings.Get("Editor.NoKey");
+
+    public string ToggleKeyButton => Strings.Get(IsCapturingToggleKey
+        ? "Editor.HotstringEndCaptureWaiting"
+        : "Editor.SetKey");
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
@@ -1589,6 +1694,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     {
         IsCapturingKey = false;
         IsCapturingInterfaceHotkey = false;
+        IsCapturingToggleKey = false;
         _keyCaptureTarget = null;
         _captureKeyboardOnly = false;
         _captureSingleKey = false;
@@ -2460,6 +2566,17 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordIgnoreInjected = WhaleGenieInputGate.IgnoreOwnInput;
             DelayScale = macro.DelayScale;
 
+            // The box shows the program's value while this macro is following it, so turning the
+            // follow switch off does not start from a number nobody picked.
+            FollowProgramInputRate = macro.InputRate is null;
+            InputLimitValue = macro.InputRate ?? LocalSettings.LoadInputRate();
+            ToggleKey = macro.ToggleKey;
+            ToggleKeyProblem = string.Empty;
+
+            // The page is a view of this window, not part of the macro: opening one always starts
+            // where the name and triggers are.
+            SettingsPage = MacroSettingsPage.General;
+
             DeclaredParameters.Clear();
             DeclaredParameters.AddRange(macro.Parameters);
             DeclaredResults.Clear();
@@ -3224,7 +3341,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// </summary>
     private void RefreshProblems()
     {
-        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _inputShared, _browserShared);
+        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _browserShared);
         DeclarationProblems = MacroCheck.DeclarationProblems(OwnCallable);
         CallImpactSummary = MacroCheck.CallImpact(OwnCallable, _projectMacros);
         _problemByStep = Problems
@@ -3664,6 +3781,9 @@ public partial class MacroEditorViewModel : ViewModelBase
                 or nameof(IsCapturingInterfaceHotkey) or nameof(InterfaceToggleHotkey)
                 or nameof(InterfaceHotkeyProblem)
                 or nameof(InterfaceHotkeyButton) or nameof(InterfaceToggleHotkeyDisplay)
+                or nameof(SettingsPage) or nameof(IsGeneralSettingsPage)
+                or nameof(IsSpecificSettingsPage) or nameof(IsCapturingToggleKey)
+                or nameof(ToggleKeyDisplay) or nameof(ToggleKeyButton) or nameof(ToggleKeyProblem)
                 or nameof(HasBlockingDeclarationProblems) or nameof(CanSave)
                 or nameof(CallImpactSummary) or nameof(HasCallImpact)
                 or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)
@@ -3746,6 +3866,10 @@ public partial class MacroEditorViewModel : ViewModelBase
             RecordDelays = RecordDelays,
             IgnoreDelaysBelowMs = (int)(IgnoreDelaysBelowMs ?? 0),
             DelayScale = DelayScale,
+            InputRate = FollowProgramInputRate || !double.IsFinite(InputLimitValue)
+                ? null
+                : Math.Clamp((int)Math.Round(InputLimitValue), 0, InputLimit.Most),
+            ToggleKey = ToggleKey.Trim(),
         };
         RememberInterfaceHotkey();
         macro.InterfaceLayouts.AddRange(_interfaceLayouts.Values.Select(layout => layout with { }));

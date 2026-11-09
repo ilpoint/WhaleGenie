@@ -1362,6 +1362,13 @@ public partial class MainWindow : AppWindow
             {
                 Dispatcher.UIThread.Post(ToggleSystemFromHotkey);
             }
+            else if (match.Action == GlobalHotkeyAction.ToggleMacro)
+            {
+                // An arm/disarm key is a switch, not something the person meant to type into
+                // whatever window is in front, so it is held back the way the system switch is.
+                e.Suppress = true;
+                Dispatcher.UIThread.Post(() => ToggleMacroFromHotkey(match.MacroName));
+            }
             else if (match.Action == GlobalHotkeyAction.ToggleInterfaceGroup)
             {
                 Dispatcher.UIThread.Post(() => ToggleInterfaceGroupFromHotkey(match.GroupKey));
@@ -2906,6 +2913,26 @@ public partial class MainWindow : AppWindow
 
         // 圆点就在眼前，声音不是用来看状态的：它说的是"这一下点到了"，两者成对才好分辨。
         AppSound.Play(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
+    }
+
+    /// <summary>
+    /// The same switch, reached from a macro's own arm/disarm key. The name is looked up again here
+    /// rather than carried as a macro: a plan made before a rename would otherwise switch whatever
+    /// now answers to the old name, and doing nothing is the better answer for a name that is gone.
+    /// </summary>
+    private void ToggleMacroFromHotkey(string name)
+    {
+        if (DataContext is not MainViewModel viewModel)
+        {
+            return;
+        }
+
+        var macro = viewModel.Macros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (macro is not null)
+        {
+            ToggleMacro(macro, viewModel);
+        }
     }
 
     /// <summary>The same switch, chosen from the card's right-click menu.</summary>

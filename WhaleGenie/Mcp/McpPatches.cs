@@ -443,15 +443,15 @@ internal static class McpPatches
     {
         var changed = 0;
 
-        // A macro no longer carries this: whether input is kept apart belongs to the program, not to
-        // one macro, and a caller that writes it here would be setting something nothing reads.
+        // A macro does not carry this: keeping input apart is a property of the stretch that must
+        // not be interrupted, not of a whole macro, and a caller that writes it here would be
+        // setting something nothing reads.
         if (operation.ContainsKey("exclusiveInput"))
         {
             return Refused(McpErrors.BadArgument,
                 "exclusiveInput is not a macro field any more.",
-                "Taking turns sending input is a setting of the program: ask the person to turn on "
-                + "the exclusive input switch in 设置 → 输入与捕获 (Settings → Input and capture). "
-                + "It applies to every macro the program runs, not to one of them.",
+                "Wrap the steps that must run without another macro's input between them in a "
+                + "control.holdInput block instead; that block is what holds the one input door.",
                 false, new { field = "exclusiveInput" });
         }
 
@@ -497,6 +497,47 @@ internal static class McpPatches
 
             macro.DelayScale = delay;
             touches.Add(new Touch("macro", null, "delayScale"));
+            changed++;
+        }
+
+        if (operation.TryGetPropertyValue("inputRate", out var limit))
+        {
+            if (limit is null)
+            {
+                macro.InputRate = null;
+            }
+            else
+            {
+                var written = Text(limit).Trim();
+                if (!int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                        out var rate) || rate < 0 || rate > InputLimit.Most)
+                {
+                    return Refused(McpErrors.BadArgument, $"\"{written}\" is not an input limit.",
+                        $"An input limit is between 0 and {InputLimit.Most} events per second, "
+                        + "where 0 means no limit and null means follow the program setting.",
+                        true, new { field = "inputRate", value = written });
+                }
+
+                macro.InputRate = rate;
+            }
+
+            touches.Add(new Touch("macro", null, "inputRate"));
+            changed++;
+        }
+
+        if (Said(operation, "toggleKey") is { } toggle)
+        {
+            var key = toggle.Trim();
+            if (key.Length > 0 && !HotkeyBinding.IsSupported(key))
+            {
+                return Refused(McpErrors.BadArgument, $"\"{key}\" cannot be read as a key.",
+                    "Use a key or a combination written the way a trigger's bindKey is, or an empty "
+                    + "string to remove the switch key.",
+                    true, new { field = "toggleKey", value = key });
+            }
+
+            macro.ToggleKey = key;
+            touches.Add(new Touch("macro", null, "toggleKey"));
             changed++;
         }
 
@@ -606,7 +647,7 @@ internal static class McpPatches
 
         return changed == 0
             ? Refused(McpErrors.BadArgument, "The operation names no field this macro has.",
-                "Fields are description, name, enabled, bindKey, delayScale, "
+                "Fields are description, name, enabled, bindKey, delayScale, inputRate, toggleKey, "
                 + "triggerMode, loopMode, scheduleMode, scheduleUnit, scheduleTime, scheduleInterval, "
                 + "watchPath, watchFilter, watchSubfolders, processName, idleSeconds and windowTarget.",
                 true, null)

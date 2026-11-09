@@ -256,9 +256,9 @@
                         <TextBlock FontSize="11.5" Foreground="{DynamicResource Warning}"
                                    Text="{Binding SpeedNote}" />
                     </Border>
-                    <!-- Whose turn it is at the input door. Two macros running at once are two
-                         hands on one keyboard, and this is the line that says which of them is
-                         sending keys right now. -->
+                    <!-- Who holds the input door. Only a Hold input block takes it, so this line
+                         says which macro is in such a block right now: the one place another run
+                         has to wait for. It is hidden while the door is free. -->
                     <TextBlock Grid.Column="7" Name="InputOwnerText" Margin="12,0,0,0"
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource Warning}"

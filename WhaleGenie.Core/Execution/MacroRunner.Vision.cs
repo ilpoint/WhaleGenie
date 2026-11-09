@@ -968,7 +968,7 @@ public sealed partial class MacroRunner
         GiveMatch(step, found.Match.Location, found.Match.Size, found.Match.Score);
         GiveEvery(step, HitRecords(found.Hits));
 
-        await ClickAt(step, at, token);
+        ClickAt(step, at);
         Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedImage, at.X, at.Y);
     }
 
@@ -1010,7 +1010,7 @@ public sealed partial class MacroRunner
         GiveMatch(step, match.Location, match.Size, match.Score);
         GiveEvery(step, HitRecords(found.Hits));
 
-        await ClickAt(step, at, token);
+        ClickAt(step, at);
         Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedColour, at.X, at.Y);
     }
 

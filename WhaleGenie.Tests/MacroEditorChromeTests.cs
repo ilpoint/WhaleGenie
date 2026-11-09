@@ -301,6 +301,196 @@ public class MacroEditorChromeTests
         });
     }
 
+    /// <summary>
+    /// 宏设置分成两页，标题与这排按钮固定在滚动区外：翻页时它们不动，滚动只发生在当前页里。
+    /// </summary>
+    [Fact]
+    public void The_settings_drawer_switches_between_two_pages_under_its_title()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var drawer = window.FindControl<Border>("MacroSettingsDrawer")!;
+            var title = window.FindControl<TextBlock>("MacroSettingsTitle")!;
+            var tabs = drawer.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.Classes.Contains("Tab") && button.Classes.Contains("Root"))
+                .ToList();
+
+            Assert.Equal(2, tabs.Count);
+            Assert.Equal(["General", "Specific"],
+                tabs.Select(tab => (string)tab.Tag!).ToArray());
+            Assert.DoesNotContain(title.GetVisualAncestors(), visual => visual is ScrollViewer);
+            Assert.All(tabs, tab =>
+                Assert.DoesNotContain(tab.GetVisualAncestors(), visual => visual is ScrollViewer));
+
+            var name = window.FindControl<TextBox>("NameInput")!;
+            Assert.True(title.TranslatePoint(default, drawer)!.Value.Y
+                < tabs[0].TranslatePoint(default, drawer)!.Value.Y);
+            Assert.True(tabs[0].TranslatePoint(default, drawer)!.Value.Y
+                < name.TranslatePoint(default, drawer)!.Value.Y);
+
+            // 选中的那一页由类表达，和设置窗口顶部同一套做法。
+            Assert.Contains("selected", tabs[0].Classes);
+            var model = (MacroEditorViewModel)window.DataContext!;
+            model.ShowSettingsPage(MacroSettingsPage.Specific);
+            Dispatcher.UIThread.RunJobs();
+            Assert.DoesNotContain("selected", tabs[0].Classes);
+            Assert.Contains("selected", tabs[1].Classes);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>
+    /// 专属设置页放着这个宏自己的限速、启用/停用键与宏接口；跟随程序设置时限速那一格是灰的。
+    /// </summary>
+    [Fact]
+    public void The_specific_page_holds_the_limit_and_the_switch_key_beside_the_interface()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var model = (MacroEditorViewModel)window.DataContext!;
+            model.ShowSettingsPage(MacroSettingsPage.Specific);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.False(window.FindControl<StackPanel>("GeneralSettingsPage")!
+                .IsEffectivelyVisible);
+            Assert.True(window.FindControl<StackPanel>("SpecificSettingsPage")!
+                .IsEffectivelyVisible);
+            Assert.True(window.FindControl<ContentControl>("MacroInterfaceHost")!
+                .IsEffectivelyVisible);
+
+            var box = window.FindControl<FANumberBox>("MacroInputLimitBox")!;
+            Assert.False(box.IsEnabled);
+
+            model.FollowProgramInputRate = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(box.IsEnabled);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>专属设置页在最短的 360 像素列里也不许有格子出界。</summary>
+    [Fact]
+    public void The_specific_page_keeps_its_inputs_inside_the_360_pixel_column()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var columns = window.FindControl<Grid>("EditorColumns")!;
+            columns.ColumnDefinitions[4].Width = new GridLength(360);
+            var model = (MacroEditorViewModel)window.DataContext!;
+            model.ShowSettingsPage(MacroSettingsPage.Specific);
+            Dispatcher.UIThread.RunJobs();
+
+            var drawer = window.FindControl<Border>("MacroSettingsDrawer")!;
+            var controls = drawer.GetVisualDescendants().OfType<Control>()
+                .Where(control => control.IsEffectivelyVisible
+                    && control is ComboBox or TextBox or FANumberBox)
+                .ToList();
+            Assert.NotEmpty(controls);
+            Assert.All(controls, control =>
+            {
+                var left = control.TranslatePoint(default, drawer);
+                var right = control.TranslatePoint(new Point(control.Bounds.Width, 0), drawer);
+                Assert.NotNull(left);
+                Assert.NotNull(right);
+                Assert.True(control.Bounds.Width > 0);
+                Assert.True(left.Value.X >= -0.5);
+                Assert.True(right.Value.X <= drawer.Bounds.Width + 0.5);
+            });
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>保存被拦住时，抽屉翻到写着原因的那一页：名字在第一页，声明在第二页。</summary>
+    [Fact]
+    public void A_blocked_save_opens_the_page_that_holds_the_reason()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var model = (MacroEditorViewModel)window.DataContext!;
+            model.ShowSettingsPage(MacroSettingsPage.Specific);
+            model.Name = string.Empty;
+            Dispatcher.UIThread.RunJobs();
+
+            model.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(model.IsGeneralSettingsPage);
+
+            model.Name = "probe";
+            model.DeclaredParameters.Add(new MacroParameter { Name = "same" });
+            model.DeclaredParameters.Add(new MacroParameter { Name = "same" });
+            Assert.Equal(MacroSettingsPage.Specific, model.PageThatBlocksSaving);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    /// <summary>
+    /// 这两格写进宏里；新宏写的是「跟随程序设置」与「没有切换键」；翻页与开始录键都不算编辑。
+    /// </summary>
+    [Fact]
+    public void The_specific_settings_are_written_onto_the_macro_and_kept_out_of_a_new_one()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var model = (MacroEditorViewModel)window.DataContext!;
+            Assert.False(model.IsDirty);
+
+            model.ShowSettingsPage(MacroSettingsPage.Specific);
+            model.IsCapturingToggleKey = true;
+            Assert.False(model.IsDirty);
+            model.IsCapturingToggleKey = false;
+
+            Assert.Null(model.BuildMacro().InputRate);
+            Assert.Equal(string.Empty, model.BuildMacro().ToggleKey);
+
+            model.FollowProgramInputRate = false;
+            model.InputLimitValue = 300;
+            Assert.True(model.SetToggleKey("F9"));
+
+            var saved = model.BuildMacro();
+            Assert.Equal(300, saved.InputRate);
+            Assert.Equal("F9", saved.ToggleKey);
+
+            var fresh = new MacroEditorWindow(null, [macro]);
+            fresh.Show();
+            Dispatcher.UIThread.RunJobs();
+            var freshModel = (MacroEditorViewModel)fresh.DataContext!;
+            Assert.Null(freshModel.BuildMacro().InputRate);
+            Assert.Equal(string.Empty, freshModel.BuildMacro().ToggleKey);
+
+            Ui.CloseAndAnswer(window);
+            Ui.CloseAndAnswer(fresh);
+        });
+    }
+
     [Fact]
     public void Trigger_cards_select_the_entry_and_show_only_its_shared_fields()
     {

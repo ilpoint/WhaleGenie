@@ -302,6 +302,20 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     /// </summary>
     public double DelayScale { get; set; } = 1;
 
+    /// <summary>
+    /// Events per second this macro may send, or null when it follows the program setting. Zero is
+    /// no limit, which is a different answer from "follow the program": a program change must not
+    /// silently lift a limit its author set for this one macro.
+    /// </summary>
+    public int? InputRate { get; set; }
+
+    /// <summary>
+    /// The key that arms or disarms this macro while the program runs, or empty. It is not a
+    /// trigger: pressing it sends nothing and runs no step, which is why it lives with the macro's
+    /// own settings rather than among its trigger entries.
+    /// </summary>
+    public string ToggleKey { get; set; } = string.Empty;
+
     /// <summary>The recorded or hand-built steps, saved as the macro's JSON tree.</summary>
     public List<MacroStep> Steps { get; } = [];
 
@@ -451,6 +465,18 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         if (Group.Trim().Length > 0)
         {
             node["group"] = Group.Trim();
+        }
+
+        // The same rule for the two settings that belong to this macro alone: an absent field means
+        // "follow the program" and "no switch key", so a macro that never touched them stays short.
+        if (InputRate is { } rate)
+        {
+            node["inputRate"] = Math.Clamp(rate, 0, InputLimit.Most);
+        }
+
+        if (ToggleKey.Trim().Length > 0)
+        {
+            node["toggleKey"] = ToggleKey.Trim();
         }
 
         if (includeTriggers)
@@ -679,6 +705,8 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             RecordDelays = ReadBool(record?["delays"], true),
             IgnoreDelaysBelowMs = ReadInt(record?["ignoreDelaysBelowMs"], 50),
             DelayScale = ReadDouble(node["delayScale"], 1),
+            InputRate = ReadOptionalInt(node["inputRate"]),
+            ToggleKey = node["toggleKey"]?.GetValue<string>()?.Trim() ?? string.Empty,
             Origin = MacroOrigin.FromJson(node[FieldNames.Origin] as JsonObject),
         };
 
@@ -791,6 +819,28 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         return value.TryGetValue<string>(out var text) && int.TryParse(text, out var parsed)
             ? parsed
             : fallback;
+    }
+
+    /// <summary>
+    /// A number that is only there when somebody chose one. Missing or unreadable means "not
+    /// chosen", which is why this cannot share <see cref="ReadInt"/>: its fallback of zero is a
+    /// real answer here (no limit), not an empty one.
+    /// </summary>
+    private static int? ReadOptionalInt(JsonNode? node)
+    {
+        if (node is not JsonValue value)
+        {
+            return null;
+        }
+
+        if (value.TryGetValue<int>(out var number))
+        {
+            return Math.Clamp(number, 0, InputLimit.Most);
+        }
+
+        return value.TryGetValue<string>(out var text) && int.TryParse(text, out var parsed)
+            ? Math.Clamp(parsed, 0, InputLimit.Most)
+            : null;
     }
 
     private static double ReadDouble(JsonNode? node, double fallback)

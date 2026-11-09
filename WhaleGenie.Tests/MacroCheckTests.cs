@@ -140,37 +140,6 @@ public class MacroCheckTests
     private static MacroStep Pressing()
         => Step("input.keyPress", Text("key", "F5"));
 
-    /// <summary>
-    /// 项目里还有别的宏也发键鼠时，说一次：两个宏同时跑，输入会写进对方中间，而单看哪一个宏都
-    /// 看不出这件事。提示落在第一次发输入的那一步上，一句话就够。
-    /// </summary>
-    [Fact]
-    public void Sending_input_next_to_another_macro_that_does_is_said_once()
-    {
-        var first = Pressing();
-        var second = Pressing();
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([first, second], null, [], inputShared: true));
-
-        var problem = Assert.Single(problems);
-        Assert.Same(first, problem.Step);
-        Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
-
-        // 没人跟它抢的时候什么也不说，没勾上的宏也一样。
-        Assert.Empty(Inspect(first, second));
-    }
-
-    /// <summary>
-    /// 只看屏幕的宏不掺和这件事：两边都读屏幕没有任何要排队的地方。
-    /// </summary>
-    [Fact]
-    public void A_macro_that_only_looks_at_the_screen_is_not_warned_about()
-    {
-        var reading = Step("vision.capture");
-
-        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], null, [], inputShared: true)));
-    }
-
     [Fact]
     public void A_case_outside_a_switch_is_marked_on_the_case()
     {
@@ -955,23 +924,6 @@ public class MacroCheckTests
             problem.Message);
     }
 
-    /// <summary>
-    /// 调用的宏里发键鼠，也算这个宏在发：调用那一步标「与别的宏互斥发输入」的提示，不必等
-    /// 子宏自己的行。
-    /// </summary>
-    [Fact]
-    public void A_call_to_a_macro_that_sends_input_counts_as_input()
-    {
-        var input = Step("input.keyPress", Text("key", "F5"));
-        var child = Callable("输入", null, null, input);
-        var call = Step("control.runMacro", Text("macro", "输入"));
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [child], inputShared: true));
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == call);
-        Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
-    }
-
     /// <summary>两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。</summary>
     [Fact]
     public void A_circle_of_calls_does_not_make_the_analysis_run_forever()
@@ -979,12 +931,14 @@ public class MacroCheckTests
         var toB = Step("control.runMacro", Text("macro", "乙"));
         var toA = Step("control.runMacro", Text("macro", "甲"));
         var a = Callable("甲", null, null, toB);
-        var b = Callable("乙", null, null, toA);
+        var b = Callable("乙", null, null, toA,
+            Step("browser.switchTab", Text("tabHow", "newest")));
 
-        var problems = Ui.Run(() => MacroCheck.Inspect([toA], null, [a, b], inputShared: true));
+        var problems = Ui.Run(() => MacroCheck.Inspect([toA], null, [a, b], browserShared: true));
 
-        Assert.DoesNotContain(problems,
-            candidate => candidate.Message == Strings.Get("Editor.Problem.SharedInput"));
+        // 环里仍然找得到乙的浏览器步骤：分析有结论，而且只报一次。
+        var problem = Assert.Single(problems, candidate => candidate.Step == toA);
+        Assert.Equal(Strings.Get("Editor.Problem.SharedBrowser"), problem.Message);
     }
 
     [Fact]

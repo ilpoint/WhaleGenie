@@ -146,7 +146,7 @@ public sealed partial class MacroRunner
             label: seen.Match.Label, classId: seen.Match.ClassId);
         GiveEvery(step, HitRecords(seen.Found));
 
-        await ClickAt(step, at, token);
+        ClickAt(step, at);
         Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedObject, Saying(seen.Match),
             $"{at.X},{at.Y}");
     }

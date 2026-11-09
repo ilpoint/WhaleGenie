@@ -67,13 +67,13 @@ public partial class RunWindow : AppWindow
     public RunWindow(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
         MacroTriggerService? triggers = null, string macroName = "",
-        MacroCallable? callable = null)
+        MacroCallable? callable = null, int? inputRate = null)
     {
         InitializeComponent();
 
         _listed = listed ?? [];
         var viewModel = new RunViewModel(steps, devices ?? SharedDevices.Current, delayScale, macros,
-            _listed, triggers, macroName, callable);
+            _listed, triggers, macroName, callable, inputRate);
         DataContext = viewModel;
         VariableCatalog.GlobalsChanged += OnVariablesChanged;
         SharedVariables.Current.Changed += OnVariableChanged;

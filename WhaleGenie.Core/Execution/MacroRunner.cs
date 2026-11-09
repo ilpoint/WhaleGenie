@@ -369,17 +369,11 @@ public sealed partial class MacroRunner
     public IReadOnlyList<MacroStartArgument>? StartArguments { get; init; }
 
     /// <summary>
-    /// True when this run waits at the one input door every such run shares, so two macros do not
-    /// send their keys and clicks through each other. It is a setting of the program rather than of
-    /// a macro, handed in by whoever assembles the run: whether input has to be kept apart depends on
-    /// what the person runs at once, not on which macro they happen to start. Off by default, since
-    /// a single macro never has anything to wait for.
+    /// Events per second this run may send, or null to follow the program setting. It belongs to the
+    /// run rather than to a macro: a call made by this run sends what the caller sends, and the same
+    /// macro called from two runs keeps each of their limits.
     /// </summary>
-    /// <remarks>
-    /// The answer belongs to the run, so a macro it calls runs the same way: taking turns is not
-    /// something a call can switch off for the steps it brings along.
-    /// </remarks>
-    public bool ExclusiveInput { get; init; }
+    public int? InputRate { get; init; }
 
     /// <summary>
     /// How many calls deep this run already is. A background run carries the depth of the call that
@@ -461,6 +455,11 @@ public sealed partial class MacroRunner
         _lastFrame = 0;
         _agreed.Clear();
         _steps = steps;
+
+        // A run that brought its own ceiling spaces its events along a line of its own; without one
+        // it answers to the program setting exactly as before. Either way the answer is put back
+        // when the run ends, so a stopped run leaves nothing behind for the next.
+        using var limit = InputRate is { } rate ? InputLimit.Scope(rate) : null;
 
         // Which macro is running, for the steps that want to say so in a log line or a file name. It
         // is this run's own name, written into the macro's values so a called macro's own name — put
@@ -1784,18 +1783,9 @@ public sealed partial class MacroRunner
             }
         }
 
-        // A step that sends keys or clicks goes through the input door when this run asked to share
-        // it. What is kept apart is the input, so the door is taken and given up around one step
-        // rather than held for the whole macro.
-        // A step that reads the screen may spend most of its time waiting for something to turn
-        // up. It takes the input door only around the click itself, so a macro waiting for an
-        // image does not keep another macro's keys out while it waits.
-        if (!ExclusiveInput || _inputHolds > 0 || !SendsInput(step.Type) || LooksAtScreen(step.Type))
-        {
-            return await Dispatch(step, depth, token);
-        }
-
-        using var inside = await InputGate.Take(RunName, token);
+        // Sending input is not what makes a run wait: the one input door is taken by a
+        // control.holdInput block, and by nothing else. Two macros running at once are expected to
+        // send side by side; a stretch that must not be interrupted says so where it is written.
         return await Dispatch(step, depth, token);
     }
 

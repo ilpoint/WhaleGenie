@@ -11,14 +11,22 @@ public enum GlobalHotkeyAction
     None,
     ToggleSystem,
     ToggleInterfaceGroup,
+    ToggleMacro,
 }
 
-public sealed record GlobalHotkeyMatch(GlobalHotkeyAction Action, string GroupKey = "")
+public sealed record GlobalHotkeyMatch(GlobalHotkeyAction Action, string GroupKey = "",
+    string MacroName = "")
 {
     public static GlobalHotkeyMatch None { get; } = new(GlobalHotkeyAction.None);
 }
 
 public sealed record InterfaceHotkeyGroup(string GroupKey, string Binding);
+
+/// <summary>
+/// The key that arms and disarms one macro. It is matched even while that macro is disarmed, since
+/// arming it again is exactly what the key is for.
+/// </summary>
+public sealed record MacroToggleHotkey(string MacroName, string Binding);
 
 /// <summary>
 /// An immutable copy of the shortcuts a hook callback may answer. Hook threads never read the
@@ -34,10 +42,17 @@ public sealed record GlobalHotkeyPlan(
     public static GlobalHotkeyPlan Empty { get; } =
         new(string.Empty, false, [], [], string.Empty);
 
+    /// <summary>
+    /// The arm/disarm keys of the project's macros. A property rather than a constructor argument so
+    /// a plan that has none is written the same way it always was.
+    /// </summary>
+    public IReadOnlyList<MacroToggleHotkey> MacroToggles { get; init; } = [];
+
     public static GlobalHotkeyPlan From(MainViewModel viewModel)
     {
         var claimed = new List<string>();
         var groups = new List<InterfaceHotkeyGroup>();
+        var toggles = new List<MacroToggleHotkey>();
         var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
         if (viewModel.IsRunning)
         {
@@ -63,6 +78,18 @@ public sealed record GlobalHotkeyPlan(
             {
                 groups.Add(new InterfaceHotkeyGroup(layout.GroupKey, layout.ToggleHotkey.Trim()));
             }
+
+            // A disarmed macro keeps its key in the plan on purpose: the key is how somebody arms it
+            // again, so dropping it while it is off would leave the switch one-way.
+            foreach (var macro in viewModel.Macros)
+            {
+                var key = macro.ToggleKey.Trim();
+                var name = macro.Name.Trim();
+                if (key.Length > 0 && name.Length > 0)
+                {
+                    toggles.Add(new MacroToggleHotkey(name, key));
+                }
+            }
         }
 
         return new GlobalHotkeyPlan(
@@ -70,7 +97,10 @@ public sealed record GlobalHotkeyPlan(
             viewModel.IsRunning,
             [.. claimed],
             [.. groups],
-            menuLauncher);
+            menuLauncher)
+        {
+            MacroToggles = [.. toggles],
+        };
     }
 
     public GlobalHotkeyMatch Match(string key, IReadOnlyCollection<string> held)
@@ -91,6 +121,15 @@ public sealed record GlobalHotkeyPlan(
         if (!AutomationEnabled)
         {
             return GlobalHotkeyMatch.None;
+        }
+
+        // After the trigger bindings and the system switch: a key that already runs a macro keeps
+        // running it, and a macro's arm key never takes the system switch away from it.
+        var toggle = MacroToggles.FirstOrDefault(candidate =>
+            MacroTriggerService.Binds(candidate.Binding, key, held));
+        if (toggle is not null)
+        {
+            return new GlobalHotkeyMatch(GlobalHotkeyAction.ToggleMacro, MacroName: toggle.MacroName);
         }
 
         var group = InterfaceGroups.FirstOrDefault(candidate =>

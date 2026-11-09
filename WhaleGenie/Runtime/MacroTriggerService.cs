@@ -1697,6 +1697,7 @@ public sealed class MacroTriggerService : IDisposable
                     Library = library,
                     Name = macro.Name,
                     Scale = macro.DelayScale,
+                    InputRate = macro.InputRate,
                     Looks = capture,
                     StartSignature = macro.Callable.Signature,
                 });

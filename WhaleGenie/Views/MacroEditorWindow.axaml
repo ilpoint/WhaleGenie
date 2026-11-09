@@ -313,20 +313,34 @@
 
                 <Border Grid.Row="2" Name="MacroSettingsDrawer"
                         IsVisible="True" Background="{DynamicResource SurfacePanel}" CornerRadius="6">
-                <Grid RowDefinitions="*,Auto">
-                    <ScrollViewer Grid.Row="0" Padding="18,16,18,8" VerticalScrollBarVisibility="Auto">
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="18,14,18,0">
+                        <views:IconView Width="15" Height="15"
+                                        Stroke="{DynamicResource TextPrimary}"
+                                        StrokeThickness="1.4" FitToBounds="True"
+                                        Data="{x:Static vm:AppIcons.Settings}" />
+                        <TextBlock Grid.Column="1" Name="MacroSettingsTitle"
+                                   VerticalAlignment="Center"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
+                    </Grid>
+
+                    <!-- Two halves of the same settings, the way the settings window splits its
+                         own: the title and this strip stay put while only one page scrolls. -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="2" Margin="16,6,16,0">
+                        <Button Classes="Tab Root Compact" Tag="General" Click="OnSettingsPageClicked"
+                                Classes.selected="{Binding IsGeneralSettingsPage}"
+                                Content="{Binding [Editor.MacroSettings.General], Source={x:Static loc:Strings.Current}}" />
+                        <Button Classes="Tab Root Compact" Tag="Specific" Click="OnSettingsPageClicked"
+                                Classes.selected="{Binding IsSpecificSettingsPage}"
+                                Content="{Binding [Editor.MacroSettings.Specific], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+
+                    <ScrollViewer Grid.Row="2" Padding="18,10,18,8" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="2,0,0,10">
-                                <views:IconView Width="15" Height="15"
-                                                Stroke="{DynamicResource TextPrimary}"
-                                                StrokeThickness="1.4" FitToBounds="True"
-                                                Data="{x:Static vm:AppIcons.Settings}" />
-                                <TextBlock Grid.Column="1" Name="MacroSettingsTitle"
-                                           VerticalAlignment="Center"
-                                           FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}"
-                                           Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
-                            </Grid>
+                            <StackPanel Name="GeneralSettingsPage"
+                                        IsVisible="{Binding IsGeneralSettingsPage}">
                             <TextBlock Classes="FieldLabel" Text="{Binding [Editor.MacroName], Source={x:Static loc:Strings.Current}}" />
                             <TextBox Name="NameInput" Classes="Field" Text="{Binding Name}"
                                      PlaceholderText="{Binding [Editor.NamePlaceholder], Source={x:Static loc:Strings.Current}}" />
@@ -830,16 +844,78 @@
                             </StackPanel>
                             </Border>
                             </StackPanel>
+                            </StackPanel>
 
-                            <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,16,0,9"
-                                       Text="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
-                            <ContentControl Name="MacroInterfaceHost" />
+                            <!-- What belongs to this macro alone. A submacro is only ever called,
+                                 so it has neither a limit nor an arm key of its own; its interface
+                                 is still written here. -->
+                            <StackPanel Name="SpecificSettingsPage"
+                                        IsVisible="{Binding IsSpecificSettingsPage}">
+                                <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                           Text="{Binding [Editor.SpecificHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <Border Classes="Sunken" Margin="0,10,0,0" IsVisible="{Binding !IsSubMacro}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Classes="FieldLabel"
+                                                       Text="{Binding [Editor.InputLimit], Source={x:Static loc:Strings.Current}}" />
+                                            <views:HintInfo Text="{Binding [Common.InputLimitInfo], Source={x:Static loc:Strings.Current}}" />
+                                        </StackPanel>
+                                        <CheckBox Classes="Field" Margin="2,2,0,8"
+                                                  Content="{Binding [Editor.InputLimitFollow], Source={x:Static loc:Strings.Current}}"
+                                                  IsChecked="{Binding FollowProgramInputRate}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <fa:FANumberBox Name="MacroInputLimitBox" Width="120" Height="30"
+                                                            Minimum="0" Maximum="999" SmallChange="10"
+                                                            SimpleNumberFormat="0"
+                                                            IsEnabled="{Binding !FollowProgramInputRate}"
+                                                            Value="{Binding InputLimitValue}" />
+                                            <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                                       Text="{Binding [Settings.InputLimitUnit], Source={x:Static loc:Strings.Current}}" />
+                                        </StackPanel>
+                                        <TextBlock Classes="Hint" Margin="2,6,0,0" TextWrapping="Wrap"
+                                                   Text="{Binding [Editor.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Classes="Sunken" Margin="0,10,0,0" IsVisible="{Binding !IsSubMacro}">
+                                    <StackPanel>
+                                        <TextBlock Classes="FieldLabel"
+                                                   Text="{Binding [Editor.ToggleKey], Source={x:Static loc:Strings.Current}}" />
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" Margin="0,6,0,0">
+                                            <Border Background="{DynamicResource SurfaceField}"
+                                                    BorderBrush="{DynamicResource BorderControl}"
+                                                    BorderThickness="1" CornerRadius="5" Padding="10,7">
+                                                <TextBlock Classes="Note"
+                                                           Foreground="{DynamicResource TextPrimary}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Text="{Binding ToggleKeyDisplay}" />
+                                            </Border>
+                                            <Button Grid.Column="1" Classes="Secondary" Height="32" Padding="10,0"
+                                                    Click="OnSetToggleKey"
+                                                    Content="{Binding ToggleKeyButton}" />
+                                            <Button Grid.Column="2" Classes="Secondary" Height="32" Padding="10,0"
+                                                    Command="{Binding ClearToggleKeyCommand}"
+                                                    Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
+                                        </Grid>
+                                        <TextBlock Classes="Hint" Margin="2,6,0,0" TextWrapping="Wrap"
+                                                   Text="{Binding [Editor.ToggleKeyHint], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock Classes="Problem" Margin="2,4,0,0" TextWrapping="Wrap"
+                                                   Text="{Binding ToggleKeyProblem}"
+                                                   IsVisible="{Binding HasToggleKeyProblem}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Classes="GroupHeader" HorizontalAlignment="Center" Margin="0,16,0,9"
+                                           Text="{Binding [Editor.MacroInterface], Source={x:Static loc:Strings.Current}}" />
+                                <ContentControl Name="MacroInterfaceHost" />
+                            </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
 
                     <!-- Save stays in this window; the title-bar close is the way out. The run
                          beside it loads the steps and stops in its own window. -->
-                    <StackPanel Grid.Row="1">
+                    <StackPanel Grid.Row="3">
                         <TextBlock Name="SavedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
                                    Foreground="{DynamicResource Success}"
                                    Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />

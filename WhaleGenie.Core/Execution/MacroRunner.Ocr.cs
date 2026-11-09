@@ -348,7 +348,7 @@ public sealed partial class MacroRunner
         GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
         GiveEvery(step, HitRecords(hits));
 
-        await ClickAt(step, at, token);
+        ClickAt(step, at);
         Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedText, wanted, $"{at.X},{at.Y}");
     }
 

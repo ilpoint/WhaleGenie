@@ -961,15 +961,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.VariableNameTaken"] = "That variable name is already in use: {0}",
         ["Editor.Problem.LoopIndexOutsideLoop"] = "The loop round is read outside a loop, so it will be empty there.",
         ["Editor.Problem.NoMacro"] = "This step does not say which macro to run.",
-        ["Editor.Problem.SharedInput"] = "Another macro of this project sends keys or clicks too. "
-            + "Two of them running at once write their input through each other, so turn on "
-            + "\"Take turns sending input\" on both if they may ever run together.",
         ["Editor.Problem.SharedBrowser"] = "Another macro of this project uses the browser too. "
             + "The browser keeps one current page for the whole program, so two macros running at "
             + "once take turns at it; a macro that changes tabs will change what the other one sees.",
         ["Editor.Problem.ScriptInput"] = "This script says it sends keys or clicks itself. Input "
-            + "the script sends directly does not go through the input door, so turn on \"Take turns "
-            + "sending input\" on the other macro as well, or leave one of them stopped.",
+            + "a script sends directly does not pass through a Hold input block, so keep it out of "
+            + "stretches another macro must not interrupt, or leave one of the two stopped.",
         ["Editor.Problem.MacroNotFound"] = "There is no macro called \"{0}\" in this project.",
         ["Editor.Problem.UndeclaredArgument"] =
             "\"{0}\" is not filled in by \"{1}\" as one of its arguments, so nothing reads it.",
@@ -1862,14 +1859,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Capture.gdi"] = "Desktop (GDI)",
         ["Settings.PreloadOcr"] = "Load text recognition at startup",
         ["Settings.PreloadOcrHint"] = "Skips the first wait for text, at the cost of memory; off by default.",
-        ["Settings.InputCard"] = "Pacing and queueing",
+        ["Settings.InputCard"] = "Input behaviour",
         ["Settings.InputLimit"] = "Input limit",
         ["Settings.InputLimitUnit"] = "events per second",
-        ["Settings.InputLimitHint"] = "Cap on keyboard and mouse events; 0 is no limit. Range 0–999, default 120.",
+        ["Settings.InputLimitHint"] = "Most keyboard and mouse events per second; 0 is no limit. Range 0–999, default 120.",
         ["Settings.IgnoreOwnInput"] = "Ignore this program's own input",
         ["Settings.IgnoreOwnInputHint"] = "Triggers and recording skip what this program sends; on by default.",
-        ["Settings.ExclusiveInput"] = "Exclusive input",
-        ["Settings.ExclusiveInputHint"] = "One macro sends input at a time; off by default, next run applies it.",
         ["Settings.Driver"] = "Driver-level input",
         ["Settings.DriverReady"] = "Installed and ready.",
         ["Settings.DriverMissing"] = "usbip-win2 is not installed.",
@@ -1903,6 +1898,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Common.OptionalSuffix"] = "{0} (optional)",
         ["Common.StepCount"] = "{0} step(s)",
         ["Common.None"] = "None",
+        ["Common.InputLimitInfo"] =
+            "What is Input Limit?\n"
+            + "Input Limit controls how fast your macro sends actions. It adds small pauses between them to match the speed you set. For example, if you set it to 60, your macro will try to send up to 60 key presses or mouse clicks every second.\n\n"
+            + "Setting a value higher than what your system can handle doesn't mean it will reach that speed. If the limit is too high, the system will simply send inputs as fast as it can instead.\n\n"
+            + "Using a balanced value helps your macros run smoother, stay stable, and perform consistently on any computer.\n\n"
+            + "You can enter a value between 0 and 999. Setting it to 0 disables the Input Limit completely.\n\n"
+            + "You can also set a different Input Limit for each macro in the Macro Editor.\n\n"
+            + "Note: Most games can't process more inputs than their frame rate (FPS). Setting a limit higher than your FPS won't improve performance and may even cause lag in the game or on your system.",
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "Open Macro Project",
@@ -2027,7 +2030,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Ready"] = "Ready",
         // Whose turn it is at the input door, for the macros that take turns there.
         ["Run.InputOwner"] = "Sending input: {0}",
-        ["Run.InputOwnerNone"] = "Nobody else is sending input",
         ["Run.BrowserOwner"] = "Using the browser: {0}",
         // What each armed trigger is waiting for, and when the thing it waits for was last looked at.
         ["Run.Triggers"] = "Triggers waiting to be wanted",
@@ -2490,6 +2492,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.WindowBounds"] =
             "Set at least one side, or pick the window bounds, so the mover has something to change.",
         ["Editor.MacroSettings"] = "Macro settings",
+        ["Editor.MacroSettings.General"] = "General",
+        ["Editor.MacroSettings.Specific"] = "Macro specific settings",
+        ["Editor.SpecificHint"] = "These belong to this macro alone: its own input limit, the key that arms it, and the interface its callers read.",
+        ["Editor.InputLimit"] = "Input limit:",
+        ["Editor.InputLimitFollow"] = "Follow the program setting",
+        ["Editor.InputLimitHint"] = "Events per second (KPS) this macro may send; 0 is no limit, range 0–999.",
+        ["Editor.ToggleKey"] = "Enable/disable key:",
+        ["Editor.ToggleKeyHint"] = "Press it once to disarm this macro, again to arm it. The key itself sends nothing, and it keeps working while the macro is disarmed.",
         ["Editor.MacroName"] = "Macro name:",
         ["Editor.MacroDescription"] = "Description:",
         ["Editor.MacroGroup"] = "Group:",
@@ -3348,11 +3358,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.VariableNameTaken"] = "这个变量名已经被占用：{0}",
         ["Editor.Problem.LoopIndexOutsideLoop"] = "循环轮次只在循环体里有效；写在这里读到的是空的。",
         ["Editor.Problem.NoMacro"] = "这一步没有选要执行的宏。",
-        ["Editor.Problem.SharedInput"] = "本项目还有其他宏会发送键鼠输入；两者同时运行时输入会相互插入。可能同时运行时，请两边都勾选「与别的宏互斥发输入」。",
         ["Editor.Problem.SharedBrowser"] = "这个项目里还有别的宏也用浏览器。整个程序只有一份浏览器与当前页，"
             + "两条宏同时运行时会轮流使用；其中一条切换标签页，另一条看到的页面也会随之改变。",
-        ["Editor.Problem.ScriptInput"] = "这个脚本声明会自己发键鼠。脚本直接发出的输入不经过输入互斥，"
-            + "要同时运行的另一条宏也须勾选「与别的宏互斥发输入」，或让其中一条先停止。",
+        ["Editor.Problem.ScriptInput"] = "这个脚本声明会自己发键鼠。脚本直接发出的输入不经过「独占输入」块，"
+            + "别把它放进不希望被打断的时段，或让其中一条先停止。",
         ["Editor.Problem.MacroNotFound"] = "本项目里没有名为“{0}”的宏。",
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
         ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
@@ -4571,14 +4580,12 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Capture.gdi"] = "桌面（GDI）",
         ["Settings.PreloadOcr"] = "启动时预加载文字识别",
         ["Settings.PreloadOcrHint"] = "省掉第一次识别文字的等待，代价是内存常驻；默认关闭。",
-        ["Settings.InputCard"] = "节奏与排队",
-        ["Settings.InputLimit"] = "输入上限",
+        ["Settings.InputCard"] = "输入行为",
+        ["Settings.InputLimit"] = "输入限制",
         ["Settings.InputLimitUnit"] = "次/秒",
-        ["Settings.InputLimitHint"] = "键鼠事件的上限，0 为不限。范围 0–999，默认 120。",
+        ["Settings.InputLimitHint"] = "每秒最多发出多少键鼠事件；0 为不限。范围 0–999，默认 120。",
         ["Settings.IgnoreOwnInput"] = "忽略程序自己的输入",
         ["Settings.IgnoreOwnInputHint"] = "触发器与录制都不把本程序发出的键鼠当成你按下的；默认开启。",
-        ["Settings.ExclusiveInput"] = "独占输入",
-        ["Settings.ExclusiveInputHint"] = "同一时刻只让一个宏发键鼠，其余排队；默认关闭，下次运行生效。",
         ["Settings.Driver"] = "驱动级输入",
         ["Settings.DriverReady"] = "已安装，可以用。",
         ["Settings.DriverMissing"] = "未安装 usbip-win2。",
@@ -4612,6 +4619,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Common.OptionalSuffix"] = "{0}（可选）",
         ["Common.StepCount"] = "{0} 个步骤",
         ["Common.None"] = "无",
+        ["Common.InputLimitInfo"] =
+            "什么是输入限制？\n"
+            + "输入限制决定宏发出动作的速度：它在动作之间加上小小的停顿，让速度符合你设定的值。例如设为 60，宏每秒就会尽量发出至多 60 次按键或鼠标点击。\n\n"
+            + "把值设得比系统能处理的更高，并不意味着真能达到那个速度；限制过高时，系统只会以它能做到的最快速度发出输入。\n\n"
+            + "一个均衡的值能让宏跑得更顺、更稳，在不同电脑上表现一致。\n\n"
+            + "可以填 0 到 999 的值；设为 0 就完全关闭输入限制。\n\n"
+            + "在宏编辑器里，还可以给每个宏单独设置输入限制。\n\n"
+            + "注意：大多数游戏处理输入的次数不会超过帧率（FPS）。把限制设得比 FPS 还高不会更快，反而可能让游戏或系统卡顿。",
 
         // ------------------------------------------------------------ macro package
         ["Main.OpenProjectTitle"] = "打开宏项目",
@@ -4726,7 +4741,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.Empty"] = "这个宏还没有步骤。",
         ["Run.Ready"] = "准备就绪",
         ["Run.InputOwner"] = "正在发输入：{0}",
-        ["Run.InputOwnerNone"] = "现在没有别的宏在发输入",
         ["Run.BrowserOwner"] = "正在用浏览器：{0}",
         ["Run.Triggers"] = "等触发的宏",
         ["Run.TriggersHint"] = "开着的宏里，靠定时去看的那几种各占一行：等的是什么、现在成不成立、上次去看是什么时候、"
@@ -5147,6 +5161,14 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.EmptyMacroName"] = "宏需要一个名字。",
         ["Editor.Problem.WindowBounds"] = "至少填写一条边，或先拾取窗口位置和尺寸，否则这一步不会改动窗口。",
         ["Editor.MacroSettings"] = "宏设置",
+        ["Editor.MacroSettings.General"] = "常规",
+        ["Editor.MacroSettings.Specific"] = "专属设置",
+        ["Editor.SpecificHint"] = "这些只属于这个宏：它自己的输入限制、启用/停用键，以及调用方读到的宏接口。",
+        ["Editor.InputLimit"] = "输入限制：",
+        ["Editor.InputLimitFollow"] = "跟随程序设置",
+        ["Editor.InputLimitHint"] = "这个宏每秒最多发出多少键鼠事件（KPS）；0 为不限，范围 0–999。",
+        ["Editor.ToggleKey"] = "启用/停用键：",
+        ["Editor.ToggleKeyHint"] = "按一下停用这个宏，再按一下恢复；这个键本身不发送任何输入，宏停用时它仍然有效。",
         ["Editor.MacroName"] = "宏名称：",
         ["Editor.MacroDescription"] = "描述：",
         ["Editor.MacroGroup"] = "分组：",

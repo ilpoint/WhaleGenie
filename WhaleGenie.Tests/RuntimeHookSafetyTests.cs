@@ -59,6 +59,56 @@ public class RuntimeHookSafetyTests
         Assert.Equal(ProjectTriggers.GroupKey(rule), match.GroupKey);
     }
 
+    /// <summary>
+    /// 宏自己带的启用/停用键走同一份计划；宏停着的时候也要认，否则这个键只能停不能开。
+    /// </summary>
+    [Fact]
+    public void A_macro_switch_key_toggles_its_macro_even_while_it_is_disarmed()
+    {
+        var viewModel = new MainViewModel { IsRunning = true };
+        viewModel.AddMacro(new MacroItem { Name = "探针", IsEnabled = false, ToggleKey = "F9" });
+
+        var match = GlobalHotkeyPlan.From(viewModel).Match("F9", []);
+
+        Assert.Equal(GlobalHotkeyAction.ToggleMacro, match.Action);
+        Assert.Equal("探针", match.MacroName);
+    }
+
+    /// <summary>一个键已经被按键触发占着时，它不会被开关键抢走：跑宏优先。</summary>
+    [Fact]
+    public void A_trigger_key_still_wins_over_a_macro_switch_key()
+    {
+        var viewModel = new MainViewModel { IsRunning = true };
+        viewModel.AddMacro(new MacroItem { Name = "探针", ToggleKey = "F9" });
+        viewModel.Triggers.Entries.Add(new TriggerEntry
+        {
+            Kind = TriggerKind.Key,
+            MacroName = "探针",
+            BindKey = "F9",
+        });
+
+        Assert.Equal(GlobalHotkeyAction.None,
+            GlobalHotkeyPlan.From(viewModel).Match("F9", []).Action);
+    }
+
+    /// <summary>组合键写法与触发键一致，退出自动化总开关之后也不再认。</summary>
+    [Fact]
+    public void A_macro_switch_key_is_matched_like_a_trigger_binding()
+    {
+        var plan = new GlobalHotkeyPlan("Home", true, ["F6"], [])
+        {
+            MacroToggles = [new MacroToggleHotkey("探针", "Ctrl+Alt+P")],
+        };
+
+        var match = plan.Match("P", ["左Ctrl", "左Alt"]);
+
+        Assert.Equal(GlobalHotkeyAction.ToggleMacro, match.Action);
+        Assert.Equal("探针", match.MacroName);
+
+        var off = plan with { AutomationEnabled = false };
+        Assert.Equal(GlobalHotkeyAction.None, off.Match("P", ["左Ctrl", "左Alt"]).Action);
+    }
+
     [Fact]
     public void A_project_hotkey_only_claims_the_system_switch_while_enabled()
     {

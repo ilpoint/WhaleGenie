@@ -522,6 +522,9 @@ public partial class MacroEditorWindow : AppWindow
                 break;
             case VariableOrigin.Parameter:
             case VariableOrigin.Result:
+                // The interface lives on the second page now, so a click on one of its names has to
+                // bring that page up before there is anything to scroll to.
+                _viewModel.ShowSettingsPage(MacroSettingsPage.Specific);
                 EnsureInterface();
                 this.FindControl<ContentControl>("MacroInterfaceHost")?.BringIntoView();
                 break;
@@ -859,7 +862,6 @@ public partial class MacroEditorWindow : AppWindow
             .Where(page => !page.IsCurrent)
             .Select(page => page.Editor.BuildMacro().Callable)
             .ToList();
-        var inputShared = OtherMacroSendsInput();
         var browserShared = OtherMacroUsesBrowser();
 
         // The submacros of the document being edited are callable too, and they were nowhere in
@@ -879,7 +881,7 @@ public partial class MacroEditorWindow : AppWindow
                 .GroupBy(call => call.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(group => group.First())
                 .ToList();
-            page.Editor.SetProjectMacros(calls, inputShared, browserShared);
+            page.Editor.SetProjectMacros(calls, browserShared);
         }
     }
 
@@ -1161,6 +1163,34 @@ public partial class MacroEditorWindow : AppWindow
             }, combination: true, keyboardOnly: true))
         {
             _viewModel.IsCapturingInterfaceHotkey = true;
+        }
+    }
+
+    /// <summary>Switches the settings drawer between its two halves.</summary>
+    private void OnSettingsPageClicked(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string tag })
+        {
+            _viewModel.ShowSettingsPage(tag == "Specific"
+                ? MacroSettingsPage.Specific
+                : MacroSettingsPage.General);
+        }
+    }
+
+    /// <summary>
+    /// Takes the key that arms or disarms this macro. The capture is the same one a trigger's key
+    /// field uses, so a combination is written the same way; the answer goes to the macro rather
+    /// than to the selected trigger entry.
+    /// </summary>
+    private void OnSetToggleKey(object? sender, RoutedEventArgs e)
+    {
+        if (_viewModel.BeginKeyCapture(binding =>
+            {
+                _viewModel.SetToggleKey(binding);
+                ResetKeyCaptureLabel();
+            }, combination: true, keyboardOnly: true))
+        {
+            _viewModel.IsCapturingToggleKey = true;
         }
     }
 
@@ -1802,13 +1832,6 @@ public partial class MacroEditorWindow : AppWindow
         => await ShowActionEditor(null, ActionCatalog.ForKeys(["control.runMacro"]), "control.runMacro", null);
 
     /// <summary>
-    /// Whether any other macro of this project sends keys or clicks. Two macros that do, running at
-    /// once, write their input through each other, and neither of them looks wrong on its own — so
-    /// the check is handed this rather than left to guess it from the macro being edited.
-    /// </summary>
-    private bool OtherMacroSendsInput() => OtherMacroReaches(MacroRunner.SendsInput);
-
-    /// <summary>
     /// Whether any other macro of this project uses the shared browser. There is one current page
     /// for the program, so two macros that work in it take turns even when they never send input.
     /// </summary>
@@ -2000,6 +2023,10 @@ public partial class MacroEditorWindow : AppWindow
         MacroSettingsDrawer.IsVisible = true;
         RecordingPanel.IsVisible = false;
 
+        // The reason is written on one of the two pages, so the drawer opens the one that holds it:
+        // a declaration problem is on the interface page, everything else on the first.
+        _viewModel.ShowSettingsPage(_viewModel.PageThatBlocksSaving);
+
         // The save may have been asked for by the way out from the notification area. That way out
         // waits for this editor to close, so an editor that has to stay and explain itself must
         // cancel it.
@@ -2157,9 +2184,11 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         _running?.Close();
+        var macro = _viewModel.BuildMacro();
         var window = new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
             macroName: _viewModel.Name,
-            callable: _viewModel.BuildMacro().Callable);
+            callable: macro.Callable,
+            inputRate: macro.InputRate);
         _running = window;
         window.Closed += (_, _) =>
         {

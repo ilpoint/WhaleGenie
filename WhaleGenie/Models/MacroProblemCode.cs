@@ -43,7 +43,6 @@ public static class MacroProblemCode
     public const string ReservedVariable = nameof(ReservedVariable);
     public const string ScriptInput = nameof(ScriptInput);
     public const string SharedBrowser = nameof(SharedBrowser);
-    public const string SharedInput = nameof(SharedInput);
     public const string UndeclaredActionResult = nameof(UndeclaredActionResult);
     public const string UndeclaredArgument = nameof(UndeclaredArgument);
     public const string UndeclaredResult = nameof(UndeclaredResult);

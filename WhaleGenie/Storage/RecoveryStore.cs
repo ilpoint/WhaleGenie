@@ -31,6 +31,8 @@ public sealed class RecoveryEditor
     public bool IsWorthKeeping => Macro.Steps.Count > 0
         || Macro.Description.Trim().Length > 0
         || Macro.BindKey.Trim().Length > 0
+        || Macro.ToggleKey.Trim().Length > 0
+        || Macro.InputRate is not null
         || !MacroNames.IsDefault(Macro.Name);
 }
 

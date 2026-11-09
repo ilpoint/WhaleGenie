@@ -496,21 +496,15 @@ public class LocalSettingsTests
     }
 
     /// <summary>
-    /// 独占输入是程序的设置，默认关闭：存下来之后，装配出来的那一次运行拿到的就是这个答案。
-    /// 触发、调试与 MCP 三条路都从这里取，所以它只读一次。
+    /// 每次运行带的是它那个宏自己的限速，而不是装配时另外猜一个：三条启动路径都把宏里那一格
+    /// 原样交过来，没写的传 null，运行就跟随程序设置。
     /// </summary>
     [Fact]
-    public void A_run_is_told_what_the_settings_say_about_the_input_door()
+    public void A_run_carries_the_input_limit_its_macro_asked_for()
     {
-        InOwnFile(_ =>
-        {
-            Assert.False(LocalSettings.LoadExclusiveInput());
-            Assert.False(RunFactory.Create(NeedsNothing()).ExclusiveInput);
-
-            LocalSettings.StoreExclusiveInput(true);
-            Assert.True(LocalSettings.LoadExclusiveInput());
-            Assert.True(RunFactory.Create(NeedsNothing()).ExclusiveInput);
-        });
+        Assert.Null(RunFactory.Create(NeedsNothing()).InputRate);
+        Assert.Equal(300, RunFactory.Create(NeedsNothing() with { InputRate = 300 }).InputRate);
+        Assert.Equal(0, RunFactory.Create(NeedsNothing() with { InputRate = 0 }).InputRate);
 
         static RunRequest NeedsNothing() => new()
         {

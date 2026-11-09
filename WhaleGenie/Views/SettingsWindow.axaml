@@ -381,8 +381,11 @@
                                                IsExpanded="True">
                             <fa:FASettingsExpanderItem Name="InputLimitBox">
                                 <StackPanel>
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Settings.InputLimit], Source={x:Static loc:Strings.Current}}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Classes="FieldLabel"
+                                                   Text="{Binding [Settings.InputLimit], Source={x:Static loc:Strings.Current}}" />
+                                        <views:HintInfo Text="{Binding [Common.InputLimitInfo], Source={x:Static loc:Strings.Current}}" />
+                                    </StackPanel>
                                     <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Settings.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
@@ -406,19 +409,6 @@
                                 <fa:FASettingsExpanderItem.Footer>
                                     <ToggleSwitch OnContent="" OffContent=""
                                                   IsChecked="{Binding IgnoreOwnInput}" />
-                                </fa:FASettingsExpanderItem.Footer>
-                            </fa:FASettingsExpanderItem>
-
-                            <fa:FASettingsExpanderItem Name="ExclusiveInputCheck">
-                                <StackPanel>
-                                    <TextBlock Classes="FieldLabel"
-                                               Text="{Binding [Settings.ExclusiveInput], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                                               Text="{Binding [Settings.ExclusiveInputHint], Source={x:Static loc:Strings.Current}}" />
-                                </StackPanel>
-                                <fa:FASettingsExpanderItem.Footer>
-                                    <ToggleSwitch OnContent="" OffContent=""
-                                                  IsChecked="{Binding ExclusiveInput}" />
                                 </fa:FASettingsExpanderItem.Footer>
                             </fa:FASettingsExpanderItem>
                         </fa:FASettingsExpander>

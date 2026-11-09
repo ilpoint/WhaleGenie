@@ -2298,23 +2298,23 @@ public class MacroRunnerTests
     }
 
     /// <summary>
-    /// 独占输入是整个程序的答案，一旦这次运行要排队，它调用的子宏也一样：门是在子宏的步骤上取的，
-    /// 调用处没有自己的开关可以把它关掉。
+    /// 互斥写在子宏里，就由子宏那一段去等：调用处没有别的地方可以把它关掉，一次运行也不会因为
+    /// 某一步会发键鼠就自动排队。
     /// </summary>
     [Fact]
-    public async Task A_called_macro_takes_turns_when_the_run_was_told_to()
+    public async Task A_hold_inside_a_called_macro_waits_at_the_door()
     {
         var library = new Library(("输入", MacroSignature.Empty,
-            [Step("input.keyPress", Param("key", "F5"))]));
+        [
+            Step("control.holdInput", Body("steps", Step("input.keyPress", Param("key", "F5")))),
+        ]));
 
         var holder = await InputGate.Take("another macro", CancellationToken.None);
         Task<RunResult> running;
         try
         {
             running = new MacroRunner(new VariableStore(), new SilentRunHost(), null, 1, library)
-            {
-                ExclusiveInput = true,
-            }.RunAsync([Step("control.runMacro", Param("macro", "输入"))]);
+                .RunAsync([Step("control.runMacro", Param("macro", "输入"))]);
 
             await Task.Delay(120);
             Assert.False(running.IsCompleted);

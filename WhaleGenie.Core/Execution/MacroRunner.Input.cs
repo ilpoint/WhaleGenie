@@ -30,20 +30,13 @@ public sealed partial class MacroRunner
     private IInputDevice Input(ExecutableStep step) => _devices.Inputs.For(Route(step));
 
     /// <summary>
-    /// A click worked out after waiting for the screen. The input door is taken here rather than
-    /// around the whole step, because the wait that found the place is not input and must not keep
-    /// another macro from typing while it runs.
+    /// A click worked out after waiting for the screen. The wait that found the place is not input,
+    /// so it is not what puts this click in any kind of queue: a run that must not be interrupted
+    /// says so by wrapping the stretch in control.holdInput, which is where the one input door is
+    /// taken.
     /// </summary>
-    private async Task ClickAt(ExecutableStep step, ScreenPoint at, CancellationToken token)
+    private void ClickAt(ExecutableStep step, ScreenPoint at)
     {
-        if (!ExclusiveInput)
-        {
-            Aim(at);
-            Input(step).Click(Button(step), at.X, at.Y, 1, 0);
-            return;
-        }
-
-        using var inside = await InputGate.Take(RunName, token);
         Aim(at);
         Input(step).Click(Button(step), at.X, at.Y, 1, 0);
     }

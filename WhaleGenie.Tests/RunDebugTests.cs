@@ -986,53 +986,38 @@ public class RunDebugTests
     }
 
     /// <summary>
-    /// 程序开了独占输入，运行调试里看得见这一行 —— 两个宏同时跑时"现在是谁在发"是唯一能解释
-    /// "我的按键去哪儿了"的东西；没开时不画它，因为答案永远是同一句话。
+    /// 有人占着输入门时，运行调试里看得见这一行 —— 两个宏同时跑时"现在是谁在发"是唯一能解释
+    /// "我的按键去哪儿了"的东西；没有人在门里时不画它，因为那时候没有话可说。
     /// </summary>
     [Fact]
-    public void A_run_that_takes_turns_says_who_is_sending_input()
+    public void The_input_line_appears_while_someone_holds_the_door()
     {
-        WithExclusiveInput(() => Ui.Run(() =>
+        Ui.Run(() =>
         {
-            // 这个宏没有步骤，所以它跑不起来，这一行只是把窗口指到它上面。
-            var macro = new MacroItem { Name = "取订单" };
-            var window = new RunWindow([], null, 1, null, [macro]);
+            var window = new RunWindow([], null, 1);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
             var viewModel = (RunViewModel)window.DataContext!;
             Assert.False(viewModel.ShowsInputOwner);
 
-            viewModel.DebugAsync(macro).GetAwaiter().GetResult();
+            var held = InputGate.Take("别的宏", default).GetAwaiter().GetResult();
+            try
+            {
+                viewModel.RefreshInputOwner();
+                Assert.True(viewModel.ShowsInputOwner);
+                Assert.Equal(Strings.Format("Run.InputOwner", "别的宏"), viewModel.InputOwnerLine);
+            }
+            finally
+            {
+                held.Dispose();
+            }
 
-            Assert.True(viewModel.ShowsInputOwner);
-            Assert.Equal(Strings.Get("Run.InputOwnerNone"), viewModel.InputOwnerLine);
+            viewModel.RefreshInputOwner();
+            Assert.False(viewModel.ShowsInputOwner);
 
             window.Close();
-            return true;
-        }));
-    }
-
-    /// <summary>
-    /// 在打开独占输入的情况下做一件事，做完把设置文件放回原处。这一格是程序的设置，不是宏的，
-    /// 所以窗口得从设置里读到它。
-    /// </summary>
-    private static T WithExclusiveInput<T>(Func<T> check)
-    {
-        var stored = LocalSettings.FilePath;
-        var folder = Path.Combine(Path.GetTempPath(), "wg-input-door-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
-        LocalSettings.FilePath = Path.Combine(folder, "settings.json");
-        try
-        {
-            LocalSettings.StoreExclusiveInput(true);
-            return check();
-        }
-        finally
-        {
-            LocalSettings.FilePath = stored;
-            Directory.Delete(folder, true);
-        }
+        });
     }
 
     /// <summary>
@@ -1198,12 +1183,12 @@ public class RunDebugTests
     [Fact]
     public void The_speed_badge_and_the_input_line_are_not_drawn_on_each_other()
     {
-        var answer = WithExclusiveInput(() => Ui.Run(() =>
+        var answer = Ui.Run(() =>
         {
             var step = SlowStep(5);
             StepIds.Settle([step]);
 
-            // 开了独占输入，那一行才画；速度调过，徽标才画。
+            // 有人占着门，那一行才画；速度调过，徽标才画。
             var macro = new MacroItem { Name = "取订单" };
             macro.Steps.Add(step);
 
@@ -1213,6 +1198,9 @@ public class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
             viewModel.DebugAsync(macro).GetAwaiter().GetResult();
+
+            using var held = InputGate.Take("别的宏", default).GetAwaiter().GetResult();
+            viewModel.RefreshInputOwner();
             Dispatcher.UIThread.RunJobs();
 
             var badge = Find<Border>(window, "SpeedBadge");
@@ -1225,7 +1213,7 @@ public class RunDebugTests
 
             window.Close();
             return answer;
-        }));
+        });
 
         // 两个都画出来才量得出它们是不是叠在一起，所以先确认这一点，否则这一条什么都没看。
         Assert.True(answer.Both, "倍速徽标与输入那一行都该画出来");

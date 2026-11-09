@@ -421,19 +421,13 @@ public static class MacroCheck
     /// <paramref name="macros"/> is every macro a call can reach — the project list, each with what
     /// it declares — and <paramref name="own"/> is the macro being edited, which may call itself.
     /// </summary>
-    /// <param name="inputShared">
-    /// True when another macro in the same project also sends keys or clicks. Two macros that send
-    /// input at the same time write it through each other, and nothing about either macro looks
-    /// wrong on its own — which is exactly why it has to be said here.
-    /// </param>
     /// <param name="browserShared">
     /// True when another macro in the same project also uses the browser. There is one browser and
     /// one current page for the whole program, so two runs take turns there; a tab one changes is
     /// the page the other reads next.
     /// </param>
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
-        MacroCallable? own, IEnumerable<MacroCallable> macros, bool inputShared = false,
-        bool browserShared = false)
+        MacroCallable? own, IEnumerable<MacroCallable> macros, bool browserShared = false)
     {
         IReadOnlyList<MacroStep> tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];
         var problems = new List<MacroProblem>();
@@ -489,7 +483,6 @@ public static class MacroCheck
         Visit(tree, null, 0, 0,
             new HashSet<string>(StringComparer.OrdinalIgnoreCase), bounded: false,
             guarded: false, browserHeld: false);
-        CheckSharedInput();
         CheckSharedBrowser();
         return problems;
 
@@ -532,28 +525,6 @@ public static class MacroCheck
             finally
             {
                 walking.Remove(name);
-            }
-        }
-
-        void CheckSharedInput()
-        {
-            if (!inputShared)
-            {
-                return;
-            }
-
-            // Said once, on the first step that sends input: a mark on every one of them would be
-            // the same sentence twenty times, and the answer — turn the switch on, or leave the two
-            // macros not running together — is the same for all of them. A step that calls a macro
-            // which sends input counts: the input is sent either way.
-            var walking = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var step in Every(tree))
-            {
-                if (Reaches(step, MacroRunner.SendsInput, walking))
-                {
-                    Add(step, MacroProblemCode.SharedInput, Strings.Get("Editor.Problem.SharedInput"));
-                    return;
-                }
             }
         }
 

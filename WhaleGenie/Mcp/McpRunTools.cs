@@ -133,6 +133,7 @@ public sealed class McpRunTools
                     Library = library,
                     Name = runName,
                     Scale = scale,
+                    InputRate = macro.InputRate,
                     Looks = capture,
                     StartSignature = signature,
                 });

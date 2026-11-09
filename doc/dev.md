@@ -172,6 +172,7 @@ if ($missing) { $missing; exit 1 }
 | 参数约束、行列表、类型检查和设计期诊断 | `MacroRunnerTests`、`MacroCheckTests`、`ActionContractTests` |
 | 宏声明、直接运行、调用参数和结果交付 | `MacroSignatureTests`、`MacroCallTests`、`RunDebugTests` |
 | 输入副作用、互斥门和宏调用图 | `ActionContractTests`、`DeviceActionTests`、`MacroRunnerTests` |
+| 输入限速（程序与每宏）、启用/停用键 | `InputLimitTests`、`LocalSettingsTests`、`RuntimeHookSafetyTests`、`MacroEditorChromeTests` |
 | 返回页、引擎返回键和记录字段 | `ReturnsPageTests`、`ActionContractTests`、`DeviceActionTests` |
 | 失败键、函数表和中英文文案 | `FailureKeyTests`、`FunctionTableTests`、`LocalizationTests` |
 | 字段命名与步骤落点 | `FieldNameTests`、`StepPlacementTests`、`MacroEditorWorkspaceTests` |
@@ -382,7 +383,9 @@ WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
 - **设置窗口的十个页面**：深色与浅色各走一遍「通用、快捷键与声音、屏幕捕获、输入、设备与权限、菜单、
   窗口规则、轮盘菜单、轮盘动作管理、主题」，检查顶部分组切换与左列是否同步、切组是否落到该组第一页、卡片左右两端
   是否对齐、每张卡片的开关与数字框是否落在同一列，以及说明是否换行而不是被截断；再把窗口拉到最小
-  尺寸（780×560）看一遍，确认右侧控件没有被挤压、只有内容区出现滚动条。只有一项的卡片不再重复字段
+  尺寸（780×560）看一遍，确认右侧控件没有被挤压、只有内容区出现滚动条。输入页现在只有两项
+  （输入限制与忽略自己的输入），点输入限制旁的 info 图标应弹出整段说明、能选中复制、换行不挤在一起。
+  只有一项的卡片不再重复字段
   标签，确认卡片头自己说清了这一项、说明贴着卡片头显示。打开窗口本身不应改写 `settings.json`。
 - **轮盘菜单**：先启用系统总开关（`Home`）。中键按下应照旧弹出菜单宏；**短按右键**应照旧
   弹出系统右键菜单，鲸灵不出任何界面；**按住右键并移动**才弹出轮盘，且以按下点为中心。移向内圈、
@@ -406,6 +409,10 @@ WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
 - **识别与录制**：验证 YOLO 检测、等待与点击落点；验证录制热键、动作翻译和停止流程。
 - **脚本与依赖**：验证批处理、PowerShell、Python、C#、AutoHotkey、包安装及断网失败路径。
 - **编辑器交互**：验证表达式拖放、动作落点、取消与保存、公共宏版本复制及重启后的公共宏库。
+  宏设置的两页都要在 360 像素宽的右栏里走一遍：`常规` 与 `专属设置` 来回切、滚动只发生在当前页、
+  标题与按钮不动；专属页填一个每宏限速（含 0）并跑一次，确认打字与点击按这个速率发出；录一个
+  启用/停用键，回到主界面按它两次，确认宏先停后开、这个键本身没有打进前台窗口，再在没有保存的
+  情况下关掉编辑器，确认恢复提示还在。
 - **压缩包的两个层次**：打一个含文件的 `photos` 目录，两种设置各打一次并解压：不带上得到里面的文件，
   带上得到 `photos/` 目录；对同一个目标再打第二次，确认替换而不是失败。
 - **透明色与不同底色**：同一张小图标分别放在两种底色上截两次图，用其中一张当参考图、填上它那一种底色

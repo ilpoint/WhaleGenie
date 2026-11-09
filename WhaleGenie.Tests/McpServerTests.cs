@@ -1447,8 +1447,8 @@ public class McpServerTests : IDisposable
     }
 
     /// <summary>
-    /// 独占输入不再是宏的字段：补丁里带上它会被拒绝，并说明它已经变成程序的设置 —— 悄悄忽略比
-    /// 拒绝更糟，调用方会以为自己改到了。
+    /// 独占输入不是宏的字段：补丁里带上它会被拒绝，并说明该用「独占输入」块 —— 悄悄忽略比拒绝
+    /// 更糟，调用方会以为自己改到了。
     /// </summary>
     [Fact]
     public void A_patch_cannot_set_the_input_door_on_one_macro()
@@ -1479,7 +1479,64 @@ public class McpServerTests : IDisposable
                 JsonDocument.Parse(said).RootElement.GetProperty("error").GetProperty("code")
                     .GetString());
             Assert.Contains("exclusiveInput", said, StringComparison.Ordinal);
-            Assert.Contains("设置", said, StringComparison.Ordinal);
+            Assert.Contains("control.holdInput", said, StringComparison.Ordinal);
+
+            await loop.StopAsync();
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// 每宏限速与启用/停用键也走补丁：数字写进去、null 交回「跟随程序设置」，键写成触发键同一种
+    /// 写法，读回来还是那两个值。
+    /// </summary>
+    [Fact]
+    public void A_patch_can_set_the_input_limit_and_the_switch_key_of_one_macro()
+    {
+        Ui.RunAsync(async () =>
+        {
+            await using var loop = McpLoopback.Start(new MainViewModel());
+            await using var client = await loop.ConnectAsync();
+
+            var draft = await Draft(client);
+            await Call(client, "whalegenie_put_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["macro"] = JsonNode.Parse("""{"name":"专属","steps":[]}"""),
+            });
+
+            await Wrote(client, "whalegenie_patch_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["name"] = "专属",
+                ["operations"] = JsonNode.Parse(
+                    """[{"op":"macro","inputRate":300,"toggleKey":"F9"}]"""),
+            });
+
+            var macro = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "专属",
+                })).RootElement;
+            Assert.Equal(300, macro.GetProperty("inputRate").GetInt32());
+            Assert.Equal("F9", macro.GetProperty("toggleKey").GetString());
+
+            await Wrote(client, "whalegenie_patch_macro", new Dictionary<string, object?>
+            {
+                ["draftId"] = draft,
+                ["name"] = "专属",
+                ["operations"] = JsonNode.Parse("""[{"op":"macro","inputRate":null}]"""),
+            });
+
+            var back = JsonDocument.Parse(await Call(client, "whalegenie_get_macro",
+                new Dictionary<string, object?>
+                {
+                    ["draftId"] = draft,
+                    ["name"] = "专属",
+                })).RootElement;
+            // 交回「跟随程序设置」就是不再写这一格，文件形状与没设过一样。
+            Assert.False(back.TryGetProperty("inputRate", out _));
 
             await loop.StopAsync();
             return true;

@@ -535,6 +535,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private readonly VariableStore _variables;
     private readonly IDeviceLayer _devices;
     private readonly double _delayScale;
+
+    /// <summary>
+    /// The macro's own input ceiling, or null to follow the program. It is replaced whenever the
+    /// window is pointed at another macro, because it belongs to the macro being run rather than to
+    /// the window.
+    /// </summary>
+    private int? _inputRate;
     /// <summary>The steps a run stops in front of, named the way a step's results name it.</summary>
     private readonly HashSet<string> _breakpoints = new(StringComparer.OrdinalIgnoreCase);
 
@@ -570,26 +577,21 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private bool _skipThisStep;
 
     /// <summary>
-    /// Whether the program keeps input to one macro at a time. A window opened on its own, with no
-    /// macro behind it, has nothing to say about the door yet; the answer is read again when a run
-    /// starts, from the same setting the run itself is given.
+    /// Whose turn it is at the input door, as a line to read. The door is only ever held by a
+    /// control.holdInput block, so the line has something to say exactly while one of those is
+    /// running.
     /// </summary>
-    private bool _exclusiveInput;
+    public string InputOwnerLine => Strings.Format("Run.InputOwner", InputGate.Owner);
 
-    /// <summary>
-    /// Whose turn it is at the input door, as a line to read. It is shown only while the program is
-    /// set to keep input apart, because for anything else the answer is always the same and says
-    /// nothing.
-    /// </summary>
-    public string InputOwnerLine => InputGate.Owner.Length == 0
-        ? Strings.Get("Run.InputOwnerNone")
-        : Strings.Format("Run.InputOwner", InputGate.Owner);
-
-    /// <summary>True while this macro takes turns at the input door, so the line means something.</summary>
-    public bool ShowsInputOwner => _exclusiveInput;
+    /// <summary>True while some run holds the input door, so the line means something.</summary>
+    public bool ShowsInputOwner => InputGate.Owner.Length > 0;
 
     /// <summary>The door changed hands, so what the line says has changed with it.</summary>
-    public void RefreshInputOwner() => OnPropertyChanged(nameof(InputOwnerLine));
+    public void RefreshInputOwner()
+    {
+        OnPropertyChanged(nameof(InputOwnerLine));
+        OnPropertyChanged(nameof(ShowsInputOwner));
+    }
 
     /// <summary>
     /// Which run is using the shared browser right now. There is one browser and one current page
@@ -696,10 +698,11 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer devices, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
         MacroTriggerService? triggers = null, string macroName = "",
-        MacroCallable? callable = null)
+        MacroCallable? callable = null, int? inputRate = null)
     {
         _devices = devices;
         _delayScale = delayScale;
+        _inputRate = inputRate;
         _macros = macros;
         _listed = listed ?? [];
         _triggers = triggers;
@@ -848,7 +851,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _callable = macro.Callable;
         Load(macro.Steps);
         Debugged = macro.Name;
-        _exclusiveInput = LocalSettings.LoadExclusiveInput();
+        _inputRate = macro.InputRate;
         OnPropertyChanged(nameof(ShowsInputOwner));
         OnPropertyChanged(nameof(InputOwnerLine));
         if (switched)
@@ -1199,10 +1202,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     {
         Lines.Clear();
 
-        // Read when the run starts rather than when the window opened: the line about the door only
-        // means something while input is being kept apart, and this is also where the run itself is
-        // given its answer.
-        _exclusiveInput = LocalSettings.LoadExclusiveInput();
+        // Read again when the run starts rather than when the window opened: the line about the door
+        // is about whichever run holds it right now.
         OnPropertyChanged(nameof(ShowsInputOwner));
         OnPropertyChanged(nameof(InputOwnerLine));
 
@@ -1241,6 +1242,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
                 Library = Library,
                 Name = Debugged,
                 Scale = _delayScale,
+                InputRate = _inputRate,
                 Looks = _capture is { } capture ? new RunLooks(capture, this) : this,
                 StartSignature = _callable?.Signature,
                 StartArguments = StartArguments(),

@@ -137,7 +137,6 @@ public partial class SettingsViewModel : ViewModelBase
         FrameCache = LocalSettings.LoadFrameCache();
         FrameCacheAge = Math.Clamp(LocalSettings.LoadFrameCacheAge(), 0, LocalSettings.FrameCacheOldest);
         _frameReady = true;
-        ExclusiveInput = LocalSettings.LoadExclusiveInput();
         IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
         SoundSystem = LocalSettings.LoadSoundSystem();
         SoundMacro = LocalSettings.LoadSoundMacro();
@@ -1386,13 +1385,6 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Whether keyboard and mouse input is kept to one macro at a time. It takes effect at the next
-    /// run: a macro already running was handed its answer when it started.
-    /// </summary>
-    [ObservableProperty]
-    public partial bool ExclusiveInput { get; set; }
-
-    /// <summary>
     /// How many failure and MCP logs are kept, counted by modification time. Held as a number
     /// field's double because that is what the control speaks; it is a count, so the rounded value
     /// is what is stored.
@@ -1655,15 +1647,6 @@ public partial class SettingsViewModel : ViewModelBase
         if (value != LocalSettings.LoadEnabledFirst())
         {
             LocalSettings.StoreEnabledFirst(value);
-        }
-    }
-
-    /// <summary>Stores whether input is kept to one macro at a time.</summary>
-    partial void OnExclusiveInputChanged(bool value)
-    {
-        if (value != LocalSettings.LoadExclusiveInput())
-        {
-            LocalSettings.StoreExclusiveInput(value);
         }
     }
 

@@ -3793,30 +3793,27 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// Waiting for a picture is reading, not input. A run that shares the input door takes it
-    /// only for the click, so another macro can still type while this one waits.
+    /// 找图之后的点击不再自己取门。别人正占着门时它照点不误：要独占就把「找图并点击」整步放进
+    /// 「独占输入」块，门由块来取。
     /// </summary>
     [Fact]
-    public async Task A_click_waits_for_the_screen_without_holding_the_input_door()
+    public async Task A_click_that_found_its_place_does_not_wait_at_the_input_door()
     {
         var devices = new FakeDeviceLayer();
-        string? ownerWhileLooking = null;
         devices.Vision.PictureAnswers = (_, _) =>
-        {
-            ownerWhileLooking = InputGate.Owner;
-            return [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))];
-        };
+            [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))];
+        using var inside = await InputGate.Take("别人", default);
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
             RunName = "看图",
-            ExclusiveInput = true,
         }.RunAsync([Step("vision.clickImage", Pictures("ok.png"), Param("confidence", "90"))]);
 
         Assert.True(result.Succeeded, result.Key);
-        Assert.Equal(string.Empty, ownerWhileLooking);
-        Assert.Equal("看图", devices.Input.GateAtClick);
-        Assert.Equal(string.Empty, InputGate.Owner);
+
+        // 点击发生时门还在别人手里：这一步既没有等，也没有把门拿走。
+        Assert.Equal("别人", devices.Input.GateAtClick);
+        Assert.Equal("别人", InputGate.Owner);
     }
 
     /// <summary>
@@ -10818,25 +10815,36 @@ public class DeviceActionTests
         Assert.Equal("keyUp Shift", devices.Calls[^1]);
     }
 
-    /// <summary>One run that presses a key and holds it, with its own answer about taking turns.</summary>
+    /// <summary>One run that presses a key and holds it.</summary>
     private static Task<RunResult> Pressing(FakeDeviceLayer devices, string key, string holdMs,
-        bool exclusive, string name)
+        string name)
         => new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
             RunName = name,
-            ExclusiveInput = exclusive,
         }.RunAsync([Step("input.keyPress", Param("key", key), Param("holdMs", holdMs))]);
 
+    /// <summary>The same key, inside the block that is what takes the one input door.</summary>
+    private static Task<RunResult> Holding(FakeDeviceLayer devices, string key, string holdMs,
+        string name)
+        => new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
+        {
+            RunName = name,
+        }.RunAsync(
+        [
+            Step("control.holdInput", Body("steps",
+                Step("input.keyPress", Param("key", key), Param("holdMs", holdMs)))),
+        ]);
+
     /// <summary>
-    /// 要求互斥的运行，发输入的那一步会排在门外等：别人还在发的时候，它不会硬挤进去。谁先谁后
-    /// 不能靠运气 —— 收到输入的那一方会看到两个宏的按键穿插在一起。
+    /// 「独占输入」块会等在门外：别人还在发的时候，它不会硬挤进去。谁先谁后不能靠运气 —— 收到
+    /// 输入的那一方会看到两个宏的按键穿插在一起。
     /// </summary>
     [Fact]
-    public async Task An_input_step_waits_at_the_door_while_another_run_is_inside()
+    public async Task A_hold_waits_at_the_door_while_another_run_is_inside()
     {
         var devices = new FakeDeviceLayer();
         var inside = await InputGate.Take("别人", default);
-        var run = Pressing(devices, "A", "10", exclusive: true, "第一个");
+        var run = Holding(devices, "A", "10", "第一个");
 
         try
         {
@@ -10860,15 +10868,15 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 没要求互斥的运行站在门外也照发：门只拦要求互斥的那些，一个宏单独跑时不该为它停下来。
+    /// 没有「独占输入」块的运行照发：门只拦写了块的那一段，两条宏同时跑时谁也不为谁停下来。
     /// </summary>
     [Fact]
-    public async Task A_run_that_did_not_ask_to_take_turns_goes_straight_through()
+    public async Task A_run_without_a_hold_goes_straight_through()
     {
         var devices = new FakeDeviceLayer();
         using var inside = await InputGate.Take("别人", default);
 
-        await Pressing(devices, "A", "10", exclusive: false, "第一个");
+        await Pressing(devices, "A", "10", "第一个");
 
         Assert.Equal(["keyPress A 10"], devices.Calls);
         Assert.Equal("别人", InputGate.Owner);
@@ -10914,7 +10922,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         using var browser = await BrowserGate.Take("别人", default);
 
-        await Pressing(devices, "A", "10", exclusive: true, "第一个");
+        await Pressing(devices, "A", "10", "第一个");
 
         Assert.Equal(["keyPress A 10"], devices.Calls);
         Assert.Equal("别人", BrowserGate.Owner);
@@ -10932,7 +10940,6 @@ public class DeviceActionTests
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
             RunName = "第一个",
-            ExclusiveInput = true,
         }.RunAsync([Step("browser.switchTab", Param("tabHow", "newest"))]);
 
         Assert.True(result.Succeeded, result.Key);
@@ -10941,64 +10948,30 @@ public class DeviceActionTests
     }
 
     /// <summary>
-    /// 脚本声明会发键鼠，但整段脚本不拿输入门：脚本在别的进程里，门本来也拦不住它直接发的输入，
-    /// 拿着门等脚本结束只会让别的宏白等。
+    /// 脚本整段放在「独占输入」块里时跟着块走：块在门口等一次，脚本不会自己再取一次门。脚本在
+    /// 别的进程里直接发的键鼠仍旧拦不住，那是脚本自己的事。
     /// </summary>
     [Fact]
-    public async Task A_script_that_says_it_sends_input_does_not_hold_the_door()
-    {
-        var devices = new FakeDeviceLayer();
-        using var inside = await InputGate.Take("别人", default);
-        var run = new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
-        {
-            RunName = "脚本",
-            ExclusiveInput = true,
-        }.RunAsync(
-        [
-            Step("script.ahk", Param("sendsInput", "true"), Param("script", "Print(\"hi\")")),
-        ]);
-
-        try
-        {
-            await Task.Delay(100);
-            Assert.True(run.IsCompleted);
-        }
-        finally
-        {
-            inside.Dispose();
-        }
-
-        Assert.True((await run).Succeeded);
-        Assert.Equal(string.Empty, InputGate.Owner);
-    }
-
-    /// <summary>
-    /// 脚本里的 StepExecute 跑一步发输入的步骤时，由那一步自己取门。整段脚本没有拿着门，所以
-    /// 这里既能进去，也不会自己等自己。
-    /// </summary>
-    [Fact]
-    public async Task A_step_run_from_a_script_takes_the_input_door_without_deadlocking()
+    public async Task A_script_inside_a_hold_runs_under_the_same_door()
     {
         var devices = new FakeDeviceLayer();
         devices.Script.AutoHotkey = new ScriptResult(0, string.Empty, string.Empty, Value.Null);
         devices.Files.PathExists = true;
-        devices.Script.AutoHotkeyBody = (host, _) => Assert.True(host.RunStep("a7k2"));
 
         var run = new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
             RunName = "脚本",
-            ExclusiveInput = true,
         }.RunAsync(
         [
-            Step("script.ahk", Param("sendsInput", "true"), Param("script", "Print(\"hi\")")),
-            Called("a7k2", Step("input.keyPress", Param("key", "A"), Param("holdMs", "1"))),
+            Step("control.holdInput", Body("steps",
+                Step("script.ahk", Param("sendsInput", "true"), Param("script", "Print(\"hi\")")))),
         ]);
 
         // A deadlock would never finish; five seconds is far longer than the step needs.
         var finished = await Task.WhenAny(run, Task.Delay(5000));
         Assert.Same(run, finished);
         Assert.True((await run).Succeeded);
-        Assert.Contains(devices.Calls, call => call.StartsWith("keyPress A"));
+        Assert.Equal(string.Empty, InputGate.Owner);
     }
 
     [Fact]
@@ -11007,9 +10980,7 @@ public class DeviceActionTests
         var devices = new FakeDeviceLayer();
         var store = new VariableStore();
         var result = await new MacroRunner(store, new SilentRunHost(), devices)
-        {
-            ExclusiveInput = true,
-        }.RunAsync(
+            .RunAsync(
         [
             Step("control.holdInput", Body("steps",
                 Step("input.keyPress", Param("key", "F5")),

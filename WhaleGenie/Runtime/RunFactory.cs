@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
-
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Runtime;
@@ -21,12 +19,10 @@ internal static class RunFactory
             request.Looks)
         {
             // Where a failure log goes does not depend on who started the run, so it is decided
-            // here rather than three times. Whether input is kept apart is a setting of the program,
-            // so it is read here too: three callers asking the same question would end up with three
-            // answers, and the one that read a stale copy would send its keys over another run's.
+            // here rather than three times.
             FailureLogFolder = AppPaths.Logs,
             RunName = request.Name,
-            ExclusiveInput = LocalSettings.LoadExclusiveInput(),
+            InputRate = request.InputRate,
             StartSignature = request.StartSignature,
             StartArguments = request.StartArguments,
         };
@@ -55,6 +51,12 @@ internal sealed record RunRequest
 
     /// <summary>How much slower or faster than written the macro's own timings are taken.</summary>
     public double Scale { get; init; } = 1;
+
+    /// <summary>
+    /// Events per second this macro asked for, or null to use the program setting. It is the
+    /// macro's own answer, read by the caller that knows which macro is being started.
+    /// </summary>
+    public int? InputRate { get; init; }
 
     /// <summary>Who shows what a trial looks at; the debugger watches, a trigger does not.</summary>
     public IRunLooks? Looks { get; init; }

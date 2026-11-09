@@ -748,7 +748,7 @@ public class MacroEditorTests
             .Where(control => control.Classes.Contains("ProblemMark"))];
 
     /// <summary>
-    /// 独占输入是程序的设置，不再是宏自己的性质：宏文件里没有这一格，旧包里还留着的按未知字段读过去，
+    /// 独占输入是「独占输入」块的性质，不是宏的：宏文件里没有这一格，旧包里还留着的按未知字段读过去，
     /// 读得开、读回来也没有，再存一次就没了。
     /// </summary>
     [Fact]
@@ -930,9 +930,13 @@ public class MacroEditorTests
         {
             var (window, viewModel) = Open();
 
+            // 宏接口在「专属设置」页，所以先翻到那一页：内容一直在，但不在当前页时看不见。
+            viewModel.ShowSettingsPage(MacroSettingsPage.Specific);
+            Dispatcher.UIThread.RunJobs();
+
             var host = window.FindControl<ContentControl>("MacroInterfaceHost");
             Assert.NotNull(host);
-            Assert.True(host!.IsVisible);
+            Assert.True(host!.IsEffectivelyVisible);
 
             var view = Assert.IsType<MacroInterfaceView>(host.Content);
             var model = (MacroInterfaceViewModel)view.DataContext!;
@@ -998,7 +1002,12 @@ public class MacroEditorTests
     {
         Ui.Run(() =>
         {
-            var (window, _) = Open();
+            var (window, viewModel) = Open();
+
+            // 接口在「专属设置」页：页收起来时行容器不会被生成，所以要先把那一页翻出来。
+            viewModel.ShowSettingsPage(MacroSettingsPage.Specific);
+            Dispatcher.UIThread.RunJobs();
+
             var host = window.FindControl<ContentControl>("MacroInterfaceHost");
             Assert.NotNull(host);
             var view = Assert.IsType<MacroInterfaceView>(host!.Content);

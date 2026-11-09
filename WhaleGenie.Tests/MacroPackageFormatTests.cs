@@ -95,6 +95,47 @@ public class MacroPackageFormatTests
         }
     }
 
+    /// <summary>
+    /// 每宏限速与启用/停用键随宏一起走。没改过的两格不写进文件：缺省就是「跟随程序设置」与
+    /// 「没有切换键」，所以同一个格式版本还是读得开旧包。
+    /// </summary>
+    [Fact]
+    public void A_macro_keeps_its_own_input_limit_and_switch_key()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+
+        try
+        {
+            var path = Path.Combine(folder, "own.wgmacro");
+            var own = new MacroItem { Name = "own", InputRate = 300, ToggleKey = "F9" };
+            var plain = new MacroItem { Name = "plain" };
+
+            MacroPackage.Save(path, [own, plain], [], "test");
+            var loaded = MacroPackage.Load(path).Macros;
+
+            var readBack = loaded.Single(macro => macro.Name == "own");
+            Assert.Equal(300, readBack.InputRate);
+            Assert.Equal("F9", readBack.ToggleKey);
+
+            var untouched = loaded.Single(macro => macro.Name == "plain");
+            Assert.Null(untouched.InputRate);
+            Assert.Equal(string.Empty, untouched.ToggleKey);
+
+            // 文件形状没有为新增加宽：没写过的格子照旧不出现。
+            var node = plain.ToJson();
+            Assert.False(node.ContainsKey("inputRate"));
+            Assert.False(node.ContainsKey("toggleKey"));
+            Assert.Null(MacroItem.FromJson(node).InputRate);
+            Assert.Equal(string.Empty, MacroItem.FromJson(node).ToggleKey);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
     [Fact]
     public void Trigger_entries_and_surface_layouts_live_in_triggers_json()
     {
