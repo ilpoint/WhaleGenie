@@ -243,6 +243,21 @@ public sealed class ActionReturn
         ActionReturnType.Image => "image",
         _ => "text",
     };
+
+    /// <summary>
+    /// The kind a name stands for, so a value written the way the variable tables spell it goes
+    /// back to the kind the engine reads it as. Anything unrecognised is text, the one kind every
+    /// value can be read as.
+    /// </summary>
+    public static ActionReturnType TypeOf(string name) => name switch
+    {
+        "number" => ActionReturnType.Number,
+        "bool" => ActionReturnType.Flag,
+        "list" => ActionReturnType.List,
+        "record" => ActionReturnType.Record,
+        "image" => ActionReturnType.Image,
+        _ => ActionReturnType.Text,
+    };
 }
 
 /// <summary>

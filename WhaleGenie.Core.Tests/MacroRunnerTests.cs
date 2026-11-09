@@ -2237,7 +2237,7 @@ public class MacroRunnerTests
     public async Task A_return_ends_the_macro_and_the_caller_carries_on()
     {
         var store = Store();
-        var library = new Library(("检查", new MacroSignature([], [new MacroReturn("结果")]),
+        var library = new Library(("检查", new MacroSignature([], [new MacroReturn("结果")], []),
             [Set("结果", "early"), Step("control.return"), Set("结果", "late")]));
 
         var (result, _) = await RunAsync(
@@ -2282,7 +2282,7 @@ public class MacroRunnerTests
     public async Task A_failed_call_brings_back_no_half_results()
     {
         var store = Store();
-        var library = new Library(("坏", new MacroSignature([], [new MacroReturn("结果")]),
+        var library = new Library(("坏", new MacroSignature([], [new MacroReturn("结果")], []),
             [Set("结果", "半截"), Step("control.fail", Param("reason", "boom"))]));
 
         var (result, _) = await RunAsync(
@@ -2638,7 +2638,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("倍数", new MacroSignature(
-            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")]), [Set("结果", "$倍数 * 2")]));
+            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")], []), [Set("结果", "$倍数 * 2")]));
 
         var (result, _) = await RunAsync(
             [Call("倍数", Returns("结果=结果"))], variables: store, macros: library);
@@ -2652,7 +2652,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("倍数", new MacroSignature(
-            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")]),
+            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")], []),
             [Set("结果", "$倍数 * 2")]));
 
         var (result, _) = await RunAsync(
@@ -2667,7 +2667,7 @@ public class MacroRunnerTests
     public async Task A_required_argument_field_that_is_present_but_empty_is_missing()
     {
         var library = new Library(("甲", new MacroSignature(
-            [new MacroArgument("次数", "", true)], [new MacroReturn("痕迹")]),
+            [new MacroArgument("次数", "", true)], [new MacroReturn("痕迹")], []),
             [Set("痕迹", "1")]));
 
         var (result, _) = await RunAsync(
@@ -2681,7 +2681,7 @@ public class MacroRunnerTests
     public async Task A_required_argument_with_a_default_is_refused_before_the_call()
     {
         var library = new Library(("甲", new MacroSignature(
-            [new MacroArgument("次数", "3", true)], []), []));
+            [new MacroArgument("次数", "3", true)], [], []), []));
 
         var (result, _) = await RunAsync([Call("甲")], macros: library);
 
@@ -2693,7 +2693,7 @@ public class MacroRunnerTests
     public async Task A_default_of_the_wrong_kind_stops_the_call()
     {
         var library = new Library(("甲", new MacroSignature(
-            [new MacroArgument("数量", "不是数", false, ActionReturnType.Number)], []), []));
+            [new MacroArgument("数量", "不是数", false, ActionReturnType.Number)], [], []), []));
 
         var (result, _) = await RunAsync([Call("甲")], macros: library);
 
@@ -2707,7 +2707,7 @@ public class MacroRunnerTests
         var store = Store();
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("数量", "", true, ActionReturnType.Number)],
-                [new MacroReturn("痕迹")]),
+                [new MacroReturn("痕迹")], []),
             [Set("痕迹", "$数量")]));
 
         var (result, _) = await RunAsync(
@@ -2775,7 +2775,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("甲",
-            new MacroSignature([new MacroArgument("数量", "", true)], [new MacroReturn("痕迹")]),
+            new MacroSignature([new MacroArgument("数量", "", true)], [new MacroReturn("痕迹")], []),
             [Set("痕迹", "$数量")]));
 
         var (result, _) = await RunAsync(
@@ -2793,7 +2793,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("甲",
-            new MacroSignature([new MacroArgument("数量", "7", false)], [new MacroReturn("痕迹")]),
+            new MacroSignature([new MacroArgument("数量", "7", false)], [new MacroReturn("痕迹")], []),
             [Set("痕迹", "$数量")]));
 
         var (result, _) = await RunAsync(
@@ -2812,7 +2812,7 @@ public class MacroRunnerTests
         var store = Store();
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("数量", "", true, ActionReturnType.Number)],
-                [new MacroReturn("结果")]),
+                [new MacroReturn("结果")], []),
             [Set("结果", "$数量")]));
 
         var (result, _) = await RunAsync(
@@ -2847,7 +2847,7 @@ public class MacroRunnerTests
         var store = Store();
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("同名", "", false),
-                new MacroArgument("同名", "", false)], []),
+                new MacroArgument("同名", "", false)], [], []),
             [Set("痕迹", "1")]));
 
         var (result, _) = await RunAsync([Call("甲")], variables: store, macros: library);
@@ -2938,7 +2938,7 @@ public class MacroRunnerTests
     public async Task A_declared_result_is_empty_until_the_called_macro_writes_it()
     {
         var store = Store();
-        var library = new Library(("甲", new MacroSignature([], [new MacroReturn("结果")]),
+        var library = new Library(("甲", new MacroSignature([], [new MacroReturn("结果")], []),
             [Set("副本", "$结果")]));
 
         var (result, _) = await RunAsync(
@@ -2957,7 +2957,7 @@ public class MacroRunnerTests
         var library = new Library((
             "甲",
             new MacroSignature([new MacroArgument("n", string.Empty, false)],
-                [new MacroReturn("n")]),
+                [new MacroReturn("n")], []),
             []));
 
         var (result, _) = await RunAsync(
@@ -2977,7 +2977,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature(
-            [new MacroArgument("数量", string.Empty, true)], []);
+            [new MacroArgument("数量", string.Empty, true)], [], []);
 
         var (result, _) = await RunAsync(
             [Set("结果", "$数量 * 2")], variables: store, startSignature: signature,
@@ -2992,7 +2992,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature(
-            [new MacroArgument("数量", "5", false)], []);
+            [new MacroArgument("数量", "5", false)], [], []);
 
         var (result, _) = await RunAsync(
             [Set("结果", "$数量 * 2")], variables: store, startSignature: signature);
@@ -3006,7 +3006,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature(
-            [new MacroArgument("数量", string.Empty, true)], []);
+            [new MacroArgument("数量", string.Empty, true)], [], []);
 
         var (result, _) = await RunAsync(
             [Set("痕迹", "1")], variables: store, startSignature: signature);
@@ -3022,7 +3022,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature(
-            [new MacroArgument("数量", "5", false)], []);
+            [new MacroArgument("数量", "5", false)], [], []);
 
         var (result, _) = await RunAsync(
             [Set("结果", "$数量")], variables: store, startSignature: signature,
@@ -3037,7 +3037,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature([],
-            [new MacroReturn("答案")]);
+            [new MacroReturn("答案")], []);
 
         var (result, _) = await RunAsync(
             [Set("副本", "$答案")], variables: store, startSignature: signature);
@@ -3051,7 +3051,7 @@ public class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature(
-            [new MacroArgument("数量", "3", Required: true)], []);
+            [new MacroArgument("数量", "3", Required: true)], [], []);
 
         var (result, _) = await RunAsync(
             [Set("痕迹", "1")], variables: store, startSignature: signature);
@@ -3141,7 +3141,7 @@ public class MacroRunnerTests
     public async Task A_macro_reads_its_own_name_while_it_runs()
     {
         var store = Store();
-        var library = new Library(("对账", new MacroSignature([], [new MacroReturn("看到的")]),
+        var library = new Library(("对账", new MacroSignature([], [new MacroReturn("看到的")], []),
             [Set("看到的", "$sys.macroName")]));
 
         var (result, _) = await RunAsync(
@@ -3333,6 +3333,103 @@ public class MacroRunnerTests
             Value.FromList([first, Value.FromText("not a record")])));
     }
 
+    [Fact]
+    public async Task A_declared_local_starts_every_run_at_the_value_it_declares()
+    {
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("total", "5", ActionReturnType.Number)]);
+        var store = Store();
+
+        var (first, _) = await RunAsync([Set("total", "9")], variables: store,
+            startSignature: signature);
+        Assert.True(first.Succeeded, first.Key);
+        Assert.Equal(9, N(store, "total"));
+
+        // The second run does not inherit what the first one left: an initial value is written at
+        // the start of every run, not only when the name is missing.
+        var (second, _) = await RunAsync([], variables: store, startSignature: signature);
+        Assert.True(second.Succeeded, second.Key);
+        Assert.Equal(5, N(store, "total"));
+    }
+
+    [Fact]
+    public async Task A_declared_local_reads_a_parameter_and_the_ones_declared_before_it()
+    {
+        var signature = new MacroSignature(
+            [new MacroArgument("base", "", true, ActionReturnType.Number)], [],
+            [
+                new MacroLocal("doubled", "$base * 2", ActionReturnType.Number),
+                new MacroLocal("plus", "$doubled + 1", ActionReturnType.Number),
+            ]);
+        var store = Store();
+
+        var (result, _) = await RunAsync([], variables: store, startSignature: signature,
+            startArguments: [new MacroStartArgument("base", "4", false)]);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(8, N(store, "doubled"));
+        Assert.Equal(9, N(store, "plus"));
+    }
+
+    [Fact]
+    public async Task A_declared_local_left_empty_starts_at_the_empty_value_of_its_kind()
+    {
+        var signature = new MacroSignature([], [],
+            [
+                new MacroLocal("count", "", ActionReturnType.Number),
+                new MacroLocal("items", "", ActionReturnType.List),
+            ]);
+        var store = Store();
+
+        var (result, _) = await RunAsync([], variables: store, startSignature: signature);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(0, N(store, "count"));
+        Assert.True(store.Local.Values["items"].IsList);
+    }
+
+    [Fact]
+    public async Task A_called_macro_starts_at_its_own_declaration_not_the_callers()
+    {
+        var store = Store();
+        store.Local.Set("base", Value.FromNumber(100));
+        var library = new Library(("内部", new MacroSignature([], [new MacroReturn("结果")],
+            [
+                new MacroLocal("base", "10"),
+                new MacroLocal("derived", "$base + 1"),
+            ]), [Set("结果", "$derived")]));
+
+        var (result, _) = await RunAsync([Call("内部", Returns("结果=结果"))],
+            variables: store, macros: library);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(11, N(store, "结果"));
+    }
+
+    [Fact]
+    public async Task A_declaration_that_repeats_a_name_stops_the_run_before_it_starts()
+    {
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("n", "1"), new MacroLocal("n", "2")]);
+
+        var (result, _) = await RunAsync([Set("seen", "1")], startSignature: signature);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadDeclaration, result.Key);
+    }
+
+    [Fact]
+    public async Task A_starting_value_that_cannot_be_the_kind_it_declares_stops_the_run()
+    {
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("count", "many", ActionReturnType.Number)]);
+
+        var (result, _) = await RunAsync([Set("seen", "1")], startSignature: signature);
+
+        Assert.Equal(RunStatus.Failed, result.Status);
+        Assert.Equal(RunKeys.BadInitial, result.Key);
+    }
+
     /// <summary>A call to another macro of the stand-in project.</summary>
     private static ExecutableStep Call(string macro, params ExecutableParameter[] more)
         => Step("control.runMacro", [Param("macro", macro), .. more]);
@@ -3364,7 +3461,7 @@ public class MacroRunnerTests
         string name, string[] arguments, string[] results, params ExecutableStep[] steps)
         => (name, new MacroSignature(
             [.. arguments.Select(argument => new MacroArgument(argument, string.Empty, true))],
-            [.. results.Select(name => new MacroReturn(name))]), steps);
+            [.. results.Select(name => new MacroReturn(name))], []), steps);
 
     /// <summary>The same for a macro that asks for nothing, which is a macro called for what it does.</summary>
     private static (string Name, MacroSignature Signature, ExecutableStep[] Steps) Plain(

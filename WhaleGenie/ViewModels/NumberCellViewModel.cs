@@ -9,8 +9,8 @@ using WhaleGenie.Models;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// One number of a place to look, edited the way any other number is: dialled in with the spinner,
-/// or written as an expression the engine works out while the macro runs. Which of the two boxes is
+/// One number of a place to look, edited the way any other number is: typed in as a number, or
+/// written as an expression the engine works out while the macro runs. Which of the two boxes is
 /// showing follows what is in it, so a place can be given exactly or worked out from what an earlier
 /// step found without the dialog asking which one is meant.
 /// </summary>
@@ -74,7 +74,7 @@ public partial class NumberCellViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsPlain))]
     public partial bool IsFormula { get; set; }
 
-    /// <summary>True while the spinner is showing.</summary>
+    /// <summary>True while the box holds a number rather than an expression.</summary>
     public bool IsPlain => !IsFormula;
 
     /// <summary>What the expression comes to, or why it cannot be read.</summary>
@@ -203,8 +203,8 @@ public partial class NumberCellViewModel : ViewModelBase
             return;
         }
 
-        // What is in the box decides which box it is: a plain number is dialled in, and clearing it
-        // leaves the spinner there, so the way back from a formula is simply to empty it.
+        // What is in the box decides which box it is: a plain number is the numbered one, and
+        // clearing it goes back there, so the way back from a formula is simply to empty it.
         if (IsFormula && (value.Trim().Length == 0 || NumberField.IsNumberText(value)))
         {
             IsFormula = false;

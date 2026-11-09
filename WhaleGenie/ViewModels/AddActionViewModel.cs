@@ -2587,21 +2587,12 @@ public partial class AddActionViewModel : ViewModelBase
                 Description = draft.Description.Trim(),
             };
             VariableCatalog.Globals.Add(existing);
-            SharedVariables.Current.Set(name,
-                VariableValues.Read(draft.Type, draft.DefaultValue,
-                    VariableValues.DesignContext()));
         }
         else
         {
             existing.Type = draft.Type;
             existing.DefaultValue = draft.DefaultValue.Trim();
             existing.Description = draft.Description.Trim();
-            if (draft.CurrentValueDirty)
-            {
-                SharedVariables.Current.Set(name,
-                    VariableValues.Read(draft.Type, draft.CurrentValue,
-                        VariableValues.DesignContext()));
-            }
         }
 
         existing.PersistValue = draft.PersistValue;

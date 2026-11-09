@@ -122,7 +122,7 @@ public sealed class VariableChoice
         VariableOrigin.Global => "maths",
         VariableOrigin.Parameter => "dates",
         VariableOrigin.Result or VariableOrigin.StepOutput => "lists",
-        VariableOrigin.Local => "records",
+        VariableOrigin.Local or VariableOrigin.DeclaredLocal => "records",
         _ => "other",
     };
 
@@ -163,6 +163,11 @@ public sealed class VariableChoice
         }
     }
 
+    /// <summary>
+    /// The same row, reading its value from the macro unless it already knows how to read itself.
+    /// A declared local answers from its own declaration — the value it starts every run with — and
+    /// that answer is better than the macro's, which can only say a local has no value yet.
+    /// </summary>
     internal VariableChoice WithContent(Func<string, VariableScope, string?> content) => new()
     {
         Name = Name,
@@ -175,7 +180,7 @@ public sealed class VariableChoice
         IsPersistent = IsPersistent,
         Origin = Origin,
         Uses = Uses,
-        ContentReader = () => content(Name, Scope),
+        ContentReader = ContentReader ?? (() => content(Name, Scope)),
     };
 }
 
@@ -203,7 +208,12 @@ public enum VariableGroup
 /// <summary>The declaration or generated source that owns a variable name.</summary>
 public enum VariableOrigin
 {
+    /// <summary>A name a step of this macro wrote.</summary>
     Local,
+
+    /// <summary>A name this macro declares, with the value every run starts from.</summary>
+    DeclaredLocal,
+
     Global,
     System,
     Parameter,
@@ -220,12 +230,13 @@ public static class VariableChoices
 {
     public static IReadOnlyList<VariableChoice> For(IEnumerable<MacroStep> steps,
         IEnumerable<MacroParameter>? parameters = null, IEnumerable<MacroResult>? results = null,
+        IEnumerable<MacroLocalVariable>? locals = null,
         Func<string, VariableScope, string?>? content = null)
     {
         var rows = new List<VariableChoice>();
         var uses = new Dictionary<string, List<VariableUse>>(StringComparer.OrdinalIgnoreCase);
         Read(steps, uses);
-        AddDeclarations(rows, uses, parameters, results);
+        AddDeclarations(rows, uses, parameters, results, locals);
         Walk(steps, rows, uses);
 
         IReadOnlyList<VariableChoice> shared =
@@ -265,7 +276,8 @@ public static class VariableChoices
     /// </summary>
     private static void AddDeclarations(List<VariableChoice> rows,
         Dictionary<string, List<VariableUse>> uses,
-        IEnumerable<MacroParameter>? parameters, IEnumerable<MacroResult>? results)
+        IEnumerable<MacroParameter>? parameters, IEnumerable<MacroResult>? results,
+        IEnumerable<MacroLocalVariable>? locals)
     {
         foreach (var parameter in parameters ?? [])
         {
@@ -309,6 +321,30 @@ public static class VariableChoices
                 Uses = UsesOf(uses, name),
             });
 
+        }
+
+        // A declared local is written before the first step, so the wall can say what it starts at
+        // rather than "after a run". One a step makes has no value until then, and keeps saying so.
+        foreach (var local in locals ?? [])
+        {
+            var name = local.Name.Trim();
+            if (!VariableText.IsName(name))
+            {
+                continue;
+            }
+
+            var type = ActionReturn.TypeNameOf(local.Type);
+            rows.Add(new VariableChoice
+            {
+                Name = name,
+                Scope = VariableScope.Local,
+                Type = type,
+                Description = local.Description,
+                Source = Strings.Get("VarWall.Declared"),
+                Origin = VariableOrigin.DeclaredLocal,
+                Uses = UsesOf(uses, name),
+                ContentReader = () => VariableValues.Preview(type, local.Initial),
+            });
         }
     }
 

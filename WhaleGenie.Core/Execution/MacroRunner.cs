@@ -840,6 +840,11 @@ public sealed partial class MacroRunner
         var finished = false;
         try
         {
+            // Seeded after the swap, not before: an initial value that reads a name has to read it
+            // in the macro that declared it. Read before the swap, `$total` would be the caller's
+            // total and the called macro would start from a value it never declared.
+            SeedLocals(signature);
+
             Log(LogLevel.Info, depth, step.Type, LogKeys.CalledMacro, name, steps.Count);
             var signal = await RunSteps(steps, depth + 1, token);
 
@@ -1042,6 +1047,10 @@ public sealed partial class MacroRunner
                 Variables.Local.Set(name, value);
             }
 
+            // The macro's own declarations, in the order they were written: an initial value may
+            // read a parameter, a built-in, or a declaration above it.
+            SeedLocals(signature);
+
             foreach (var result in signature.Results)
             {
                 var name = result.Name.Trim();
@@ -1060,6 +1069,24 @@ public sealed partial class MacroRunner
         catch (ExpressionException failure)
         {
             return new StepFailure(RunKeys.BadExpression, failure.Detail);
+        }
+    }
+
+    /// <summary>
+    /// Writes the values a macro declares for itself into the table that is running, in the order
+    /// they were written: an initial value may read a parameter, a built-in, or a declaration above
+    /// it. They are set rather than filled in, because an initial value is where a run starts —
+    /// not a fallback for a name that happens to be missing.
+    /// </summary>
+    private void SeedLocals(MacroSignature signature)
+    {
+        foreach (var local in signature.Locals)
+        {
+            var name = local.Name.Trim();
+            if (name.Length > 0)
+            {
+                Variables.Local.Set(name, ReadDeclared(name, local.Initial, local.Type));
+            }
         }
     }
 
@@ -1094,6 +1121,26 @@ public sealed partial class MacroRunner
 
         var value = written.Length > 0 ? Read(written) : Value.FromText(string.Empty);
         CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
+        return value;
+    }
+
+    /// <summary>
+    /// A value a macro declares for itself, read at the moment the macro starts. An empty cell is
+    /// the kind's empty value rather than nothing at all: a number nobody filled in adds up from
+    /// zero, which is what the editor's preview of the same declaration shows. An expression that
+    /// cannot be read is raised the way any other bad value is, so the failure names the same key
+    /// wherever the value was written.
+    /// </summary>
+    private Value ReadDeclared(string name, string initial, ActionReturnType type)
+    {
+        var written = initial.Trim();
+        if (written.Length == 0)
+        {
+            return MacroValues.Empty(type);
+        }
+
+        var value = Read(written);
+        CheckValueFits(type, value, name, RunKeys.BadInitial);
         return value;
     }
 

@@ -10,19 +10,17 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// One staged variable definition. The macro editor and the project-level variable manager both
-/// bind to this shape, so the same name, type, default, persistence and current value are read one
-/// way whichever entry opened them.
+/// One staged global variable definition. The project-level manager and the "set variable" dialog
+/// both bind to this shape, so the same name, type, default and persistence are read one way
+/// whichever entry opened them. The current value is what a run has already put there: it is shown,
+/// never typed, because nothing at design time can know what a run will hold.
 /// </summary>
 public sealed partial class VariableDefinitionDraft : ObservableObject
 {
-    private bool _initializing;
-
     public VariableDefinitionDraft(VariableDefinition? source = null,
         IReadOnlyList<VariableUse>? uses = null)
     {
         OriginalName = source?.Name ?? string.Empty;
-        _initializing = true;
         Name = source?.Name ?? string.Empty;
         Type = source?.Type ?? "text";
         OriginalType = Type;
@@ -32,12 +30,8 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         OriginalDescription = Description;
         PersistValue = source?.PersistValue ?? false;
         OriginalPersistValue = PersistValue;
-        CurrentValue = source is { Scope: VariableScope.Global }
-            ? CurrentText(source)
-            : string.Empty;
-        CurrentOriginal = CurrentValue;
+        CurrentValue = source is { Scope: VariableScope.Global } ? CurrentText(source) : string.Empty;
         Uses = uses ?? [];
-        _initializing = false;
     }
 
     public string OriginalName { get; }
@@ -54,22 +48,17 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         || !string.Equals(Type, OriginalType, StringComparison.Ordinal)
         || !string.Equals(DefaultValue.Trim(), OriginalDefaultValue.Trim(), StringComparison.Ordinal)
         || !string.Equals(Description.Trim(), OriginalDescription.Trim(), StringComparison.Ordinal)
-        || PersistValue != OriginalPersistValue
-        || CurrentValueDirty;
+        || PersistValue != OriginalPersistValue;
 
     public string NameProblem { get; private set; } = string.Empty;
     public string DefaultProblem { get; private set; } = string.Empty;
-    public string CurrentProblem { get; private set; } = string.Empty;
     public string RenameProblem { get; private set; } = string.Empty;
     public bool HasNameProblem => NameProblem.Length > 0;
     public bool HasDefaultProblem => DefaultProblem.Length > 0;
-    public bool HasCurrentProblem => CurrentProblem.Length > 0;
     public bool HasRenameProblem => RenameProblem.Length > 0;
-    public bool HasProblem => HasNameProblem || HasDefaultProblem || HasCurrentProblem
-        || HasRenameProblem;
+    public bool HasProblem => HasNameProblem || HasDefaultProblem || HasRenameProblem;
 
-    public IReadOnlyList<ActionParameterOption> TypeOptions { get; private set; } =
-        TypeChoices();
+    public IReadOnlyList<ActionParameterOption> TypeOptions { get; private set; } = TypeChoices();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayName))]
@@ -80,8 +69,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     [NotifyPropertyChangedFor(nameof(SelectedType))]
     [NotifyPropertyChangedFor(nameof(DefaultPreview))]
     [NotifyPropertyChangedFor(nameof(DefaultHasError))]
-    [NotifyPropertyChangedFor(nameof(CurrentPreview))]
-    [NotifyPropertyChangedFor(nameof(CurrentHasError))]
     [NotifyPropertyChangedFor(nameof(LocalType))]
     [NotifyPropertyChangedFor(nameof(IsChanged))]
     public partial string Type { get; set; } = "text";
@@ -100,14 +87,13 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsChanged))]
     public partial bool PersistValue { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CurrentPreview))]
-    [NotifyPropertyChangedFor(nameof(CurrentHasError))]
-    [NotifyPropertyChangedFor(nameof(IsChanged))]
-    public partial string CurrentValue { get; set; } = string.Empty;
+    /// <summary>
+    /// What the running program holds under this name, or the persisted value, or the default when
+    /// neither exists. Read once when the manager opens: a run that writes the variable afterwards
+    /// is not something a staged edit should follow.
+    /// </summary>
+    public string CurrentValue { get; }
 
-    public string CurrentOriginal { get; private set; }
-    public bool CurrentValueDirty { get; private set; }
     public bool HasUses => Uses.Count > 0;
     public string DisplayName => Name.Trim().Length == 0
         ? Strings.Get("Variable.New")
@@ -128,8 +114,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
 
     public string DefaultPreview => VariableValues.Preview(Type, DefaultValue, Resolver);
     public bool DefaultHasError => VariableValues.HasError(Type, DefaultValue, Resolver);
-    public string CurrentPreview => VariableValues.Preview(Type, CurrentValue, Resolver);
-    public bool CurrentHasError => VariableValues.HasError(Type, CurrentValue, Resolver);
 
     public VariableDefinition ToDefinition() => new()
     {
@@ -140,13 +124,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         Description = Description.Trim(),
         PersistValue = PersistValue,
     };
-
-    public void AcceptCurrent()
-    {
-        CurrentOriginal = CurrentValue;
-        CurrentValueDirty = false;
-        OnPropertyChanged(nameof(IsChanged));
-    }
 
     public void RefreshLanguage()
     {
@@ -160,20 +137,15 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     {
         OnPropertyChanged(nameof(DefaultPreview));
         OnPropertyChanged(nameof(DefaultHasError));
-        OnPropertyChanged(nameof(CurrentPreview));
-        OnPropertyChanged(nameof(CurrentHasError));
     }
 
-    internal void SetProblems(string name, string defaultValue, string currentValue,
-        string rename)
+    internal void SetProblems(string name, string defaultValue, string rename)
     {
         var changed = !string.Equals(NameProblem, name, StringComparison.Ordinal)
             || !string.Equals(DefaultProblem, defaultValue, StringComparison.Ordinal)
-            || !string.Equals(CurrentProblem, currentValue, StringComparison.Ordinal)
             || !string.Equals(RenameProblem, rename, StringComparison.Ordinal);
         NameProblem = name;
         DefaultProblem = defaultValue;
-        CurrentProblem = currentValue;
         RenameProblem = rename;
         if (!changed)
         {
@@ -182,55 +154,11 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
 
         OnPropertyChanged(nameof(NameProblem));
         OnPropertyChanged(nameof(DefaultProblem));
-        OnPropertyChanged(nameof(CurrentProblem));
         OnPropertyChanged(nameof(RenameProblem));
         OnPropertyChanged(nameof(HasNameProblem));
         OnPropertyChanged(nameof(HasDefaultProblem));
-        OnPropertyChanged(nameof(HasCurrentProblem));
         OnPropertyChanged(nameof(HasRenameProblem));
         OnPropertyChanged(nameof(HasProblem));
-    }
-
-    partial void OnCurrentValueChanged(string value)
-    {
-        if (!_initializing)
-        {
-            var dirty = !string.Equals(value, CurrentOriginal, StringComparison.Ordinal);
-            if (CurrentValueDirty != dirty)
-            {
-                CurrentValueDirty = dirty;
-                OnPropertyChanged(nameof(CurrentValueDirty));
-            }
-
-            OnPropertyChanged(nameof(IsChanged));
-        }
-    }
-
-    partial void OnTypeChanged(string value)
-    {
-        OnPropertyChanged(nameof(LocalType));
-        if (!_initializing)
-        {
-            CurrentValue = DefaultValue;
-            CurrentValueDirty = true;
-            OnPropertyChanged(nameof(CurrentValueDirty));
-            OnPropertyChanged(nameof(TypeChanged));
-        }
-    }
-
-    partial void OnDefaultValueChanged(string value)
-    {
-        if (!IsNew || CurrentValueDirty)
-        {
-            return;
-        }
-
-        _initializing = true;
-        CurrentValue = value;
-        CurrentOriginal = value;
-        _initializing = false;
-        OnPropertyChanged(nameof(CurrentPreview));
-        OnPropertyChanged(nameof(CurrentHasError));
     }
 
     private static string CurrentText(VariableDefinition definition)

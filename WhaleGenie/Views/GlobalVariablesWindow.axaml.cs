@@ -25,7 +25,6 @@ public partial class GlobalVariablesWindow : AppWindow
     private readonly ListBox _variableList;
     private readonly TextBox _nameBox;
     private readonly TextBox _defaultValueBox;
-    private readonly TextBox _currentValueBox;
     private bool _allowClose;
     private bool _prompting;
 
@@ -50,7 +49,6 @@ public partial class GlobalVariablesWindow : AppWindow
         _variableList = this.FindControl<ListBox>("VariableList")!;
         _nameBox = this.FindControl<TextBox>("NameBox")!;
         _defaultValueBox = this.FindControl<TextBox>("DefaultValueBox")!;
-        _currentValueBox = this.FindControl<TextBox>("CurrentValueBox")!;
 
         _viewModel = new GlobalVariablesViewModel(globals, usesOf, renameConflict, scriptUsers);
         _viewModel.Saved += rows =>
@@ -61,7 +59,6 @@ public partial class GlobalVariablesWindow : AppWindow
         _viewModel.Cancelled += RequestClose;
         _viewModel.FocusRequested += FocusProblemField;
         _viewModel.DefaultExpressionRequested += OnDefaultExpression;
-        _viewModel.CurrentExpressionRequested += OnCurrentExpression;
         DataContext = _viewModel;
         if (initialName is { Length: > 0 })
         {
@@ -113,18 +110,6 @@ public partial class GlobalVariablesWindow : AppWindow
                 ExpressionVariablesBefore(row), startOnFormula: true) is { } built)
         {
             row.DefaultValue = built;
-        }
-    }
-
-    private async void OnCurrentExpression(VariableDefinitionDraft row)
-    {
-        if (await ValuePickerWindow.ShowFor(this, row.CurrentValue,
-                ExpressionVariablesBefore(row), startOnFormula: true) is { } built)
-        {
-            row.CurrentValue = VariableValues.TryRead(row.Type, built, row.Resolver,
-                out var value, out _)
-                ? value.AsText()
-                : built;
         }
     }
 
@@ -206,7 +191,6 @@ public partial class GlobalVariablesWindow : AppWindow
             var box = field switch
             {
                 GlobalVariableProblemField.DefaultValue => _defaultValueBox,
-                GlobalVariableProblemField.CurrentValue => _currentValueBox,
                 _ => _nameBox,
             };
             box.BringIntoView();

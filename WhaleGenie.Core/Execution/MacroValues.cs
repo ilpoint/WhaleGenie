@@ -44,4 +44,18 @@ public static class MacroValues
             _ => false,
         };
     }
+
+    /// <summary>
+    /// The value a name of this kind holds when nothing was written for it: zero, false, an empty
+    /// list, an empty line. A declaration that leaves its value empty starts at that rather than at
+    /// nothing at all, so a number that was never filled in adds up instead of failing. One place
+    /// decides it for the run and for the editor's preview.
+    /// </summary>
+    public static Value Empty(ActionReturnType kind) => kind switch
+    {
+        ActionReturnType.Number => Value.FromNumber(0),
+        ActionReturnType.Flag => Value.FromBool(false),
+        ActionReturnType.List => Value.FromList([]),
+        _ => Value.FromText(string.Empty),
+    };
 }

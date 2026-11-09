@@ -66,21 +66,16 @@
                                           IsChecked="{Binding Required}"
                                           Content="{Binding [MacroInterface.Required], Source={x:Static loc:Strings.Current}}" />
 
-                                <Grid Grid.Row="2" Grid.ColumnSpan="2"
-                                      ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                                    <TextBox Text="{Binding Default}"
-                                             PlaceholderText="{Binding [MacroInterface.Default], Source={x:Static loc:Strings.Current}}" />
-                                    <Button Grid.Column="1" Classes="Secondary" Height="30"
-                                            Padding="8,0"
-                                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                                            Click="OnOpenDefaultExpression" />
-                                    <Button Grid.Column="2" Classes="Secondary" Height="30"
-                                            Padding="8,0"
-                                            Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                                            ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                                            Click="OnPickDefaultVariable" />
-                                </Grid>
+                                <TextBox Grid.Row="2" Grid.ColumnSpan="2"
+                                         Classes="HasChip"
+                                         Text="{Binding Default}"
+                                         PlaceholderText="{Binding [MacroInterface.Default], Source={x:Static loc:Strings.Current}}">
+                                    <TextBox.InnerRightContent>
+                                        <Button Classes="ValueChip" Click="OnOpenDefaultExpression"
+                                                Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                    </TextBox.InnerRightContent>
+                                </TextBox>
                                 <TextBox Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding Description}"
                                          PlaceholderText="{Binding [MacroInterface.Description], Source={x:Static loc:Strings.Current}}" />
 

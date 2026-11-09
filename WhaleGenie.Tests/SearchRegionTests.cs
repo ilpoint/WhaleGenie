@@ -185,20 +185,21 @@ public class SearchRegionTests
             var row = Assert.Single(region.Regions);
             var cells = row.Cells;
 
-            // Four numbers, each with the expression builder beside it.
+            // Four numbers, each with the value chip beside it: a number box draws its own up and
+            // down buttons on that edge, so the chip has nowhere to go inside it.
             Assert.Equal(4, window.GetVisualDescendants().OfType<FANumberBox>()
                 .Count(box => box.IsEffectivelyVisible
                     && box.DataContext is NumberCellViewModel cell && cells.Contains(cell)));
             Assert.Equal(4, window.GetVisualDescendants().OfType<Button>()
-                .Count(button => button.IsEffectivelyVisible
+                .Count(button => button.IsEffectivelyVisible && button.Classes.Contains("ValueChip")
                     && button.Tag is NumberCellViewModel cell && cells.Contains(cell)));
 
-            // And the one box that names a variable instead, on the same row.
+            // And the one box that names a variable instead, on the same row — with its chip inside.
             Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(),
                 box => box.IsEffectivelyVisible && ReferenceEquals(box.DataContext, row));
 
-            // The buttons that go with the row itself: picking one on the screen, naming the
-            // variable that says where to look, and taking the row away again.
+            // The buttons that go with the row itself: picking one on the screen and taking the row
+            // away again. Naming the variable lives in the box now, so it is not one of them.
             var buttons = window.GetVisualDescendants().OfType<Button>()
                 .Where(button => button.IsEffectivelyVisible
                     && ReferenceEquals(button.DataContext, row))
@@ -206,7 +207,7 @@ public class SearchRegionTests
                 .ToList();
             Assert.Contains(Strings.Get("Add.PickRegion"), buttons);
             Assert.Contains(Strings.Get("Add.RegionRemove"), buttons);
-            Assert.Contains(Strings.Get("Add.VariablePicker"), buttons);
+            Assert.DoesNotContain(Strings.Get("Add.VariablePicker"), buttons);
 
             // A number written as an expression swaps the spinner for the expression box, the same
             // way it does in every other number field, and writing a plain number swaps it back.

@@ -23,10 +23,12 @@
 
         <!-- The group chips, a touch smaller than the same dock in the expression builder: this one
              shares a 360-pixel column with the wall under it and has five names to fit on a line.
-             One pixel less each side than it looks like it needs: the theme's list item carries a
-             little padding of its own, and without this the row is 11 pixels wider than the column. -->
+             The minimum height comes from the theme's list item and is what made the row 40 pixels
+             tall for 18 pixels of writing; without it the row is the writing plus its own padding,
+             and those 14 pixels are a variable card the list below gets to show. -->
         <Style Selector="ListBox.VariableFilters ListBoxItem">
-            <Setter Property="Padding" Value="3,2" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="3,1" />
             <Setter Property="Margin" Value="0,0,2,3" />
         </Style>
     </UserControl.Styles>

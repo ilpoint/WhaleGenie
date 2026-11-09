@@ -131,11 +131,21 @@
     </Styles.Resources>
 
     <!--
-      数字输入框的微调按钮放进取焦才开的弹层。它们夹在数字右边时，一行四个数字的宽度就被它们吃掉
-      一截；以前这件事靠一个子类在运行时把按钮压到 16×15 来做，现在由控件自己的摆放模式说清楚。
+      数字输入框没有上下按钮。它们原来折进取焦才开的弹层，为的是一行四个数字时不吃宽度；可弹层
+      开在框的右端，正好压住框里的数字：76 宽的抖动框只剩两个数字的位置。带片的数字格现在把那
+      一端留给「取值」片（见下面的 `HasChip`），数字照旧手打，要算式的走「取值」。
     -->
     <Style Selector="fa|FANumberBox">
-        <Setter Property="SpinButtonPlacementMode" Value="Compact" />
+        <Setter Property="SpinButtonPlacementMode" Value="Hidden" />
+    </Style>
+
+    <!--
+      带片的数字框：片浮在框的右端，字让开它。数字框的模板只有内嵌**左**内容的位置，右侧那一格
+      被上下按钮占着，所以这里换一种让法——改内层输入框的右内边距，与 `TextBox.HasChip` 同一个数。
+      片本身是这个框的兄弟（在同一个格子里右对齐），画在框的上面，读起来仍在框里。
+    -->
+    <Style Selector="fa|FANumberBox.HasChip /template/ TextBox#InputBox">
+        <Setter Property="Padding" Value="8,6,48,6" />
     </Style>
 
     <!--
@@ -210,6 +220,7 @@
       LAYER1 ComboBox.Field.Cell ComboBox
       LAYER1 AutoCompleteBox.Field TextControl
       STATIC AutoCompleteBox.HasChip
+      STATIC fa|FANumberBox.HasChip
       STATIC ListBox.Panel
       STATIC ListBox.Chips
       STATIC TextBox.HasChip

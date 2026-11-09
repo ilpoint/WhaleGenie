@@ -17,21 +17,29 @@ public sealed record MacroArgument(string Name, string Default, bool Required,
 public sealed record MacroReturn(string Name, ActionReturnType Type = ActionReturnType.Text);
 
 /// <summary>
+/// One value a macro declares for itself. The name is read by its own steps only, and
+/// <paramref name="Initial"/> is written into the macro's own table before the first step — on every
+/// run, not only when the name happens to be missing.
+/// </summary>
+public sealed record MacroLocal(string Name, string Initial,
+    ActionReturnType Type = ActionReturnType.Text);
+
+/// <summary>
 /// One value supplied to a direct run, the way a call supplies an argument. <paramref name="Given"/>
 /// is the explicit-empty marker: a field left empty with it false means "use the declaration".
 /// </summary>
 public sealed record MacroStartArgument(string Name, string Text, bool Given);
 
 /// <summary>
-/// What a macro asks of a call to it: the values that have to be filled in, and the names it may
-/// hand back. A macro that declares neither is called the way every call used to work, so a macro
-/// written before this existed still runs.
+/// What a macro asks of a call to it — the values that have to be filled in and the names it may
+/// hand back — together with the values it keeps for itself.
 /// </summary>
 public sealed record MacroSignature(
-    IReadOnlyList<MacroArgument> Arguments, IReadOnlyList<MacroReturn> Results)
+    IReadOnlyList<MacroArgument> Arguments, IReadOnlyList<MacroReturn> Results,
+    IReadOnlyList<MacroLocal> Locals)
 {
     /// <summary>What a macro that declares nothing asks for.</summary>
-    public static MacroSignature Empty { get; } = new([], []);
+    public static MacroSignature Empty { get; } = new([], [], []);
 
     /// <summary>The declared argument of this name, or null when there is none.</summary>
     public MacroArgument? Argument(string name)
@@ -56,10 +64,18 @@ public sealed record MacroSignature(
     public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
     {
         var problems = new List<(MacroSignatureFault, string)>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        Collect(Arguments.Select(argument => argument.Name), seen, problems);
-        seen.Clear();
-        Collect(Results.Select(result => result.Name), seen, problems);
+        var declared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Collect(Arguments.Select(argument => argument.Name), declared, problems);
+
+        // A result may share an argument's name: the call passes a value in and takes the same one
+        // back out. Only a repeat within the results themselves is a mistake.
+        var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Collect(Results.Select(result => result.Name), results, problems);
+        declared.UnionWith(results);
+
+        // A local is written before the first step, so a name it shares with a value the caller
+        // filled in — or with another local — would be one of the two silently replaced.
+        Collect(Locals.Select(local => local.Name), declared, problems);
 
         // A required argument with a default has two answers to "what if the call leaves it
         // out": the declaration says the call must fill it in, and the default says it need

@@ -40,6 +40,9 @@ public static class RunKeys
     public const string BadEnvironmentName = "Run.BadEnvironmentName";
     public const string BadExpression = "Run.BadExpression";
     public const string BadDeclaration = "Run.BadDeclaration";
+
+    /// <summary>A local variable's declared starting value cannot be read as the kind it declares.</summary>
+    public const string BadInitial = "Run.BadInitial";
     public const string BadJson = "Run.BadJson";
     public const string BadJsonPath = "Run.BadJsonPath";
     public const string BadList = "Run.BadList";

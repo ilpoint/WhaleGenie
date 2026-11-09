@@ -662,13 +662,21 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>The names this macro offers to hand back to a call.</summary>
     public List<MacroResult> DeclaredResults { get; } = [];
 
+    /// <summary>
+    /// The values this macro keeps for itself, with the value every run starts at. Held here for the
+    /// same reason the interface is: opening a macro and saving it again must not drop what it
+    /// declares, and the variable wall has to offer the names before a step happens to write one.
+    /// </summary>
+    public List<MacroLocalVariable> DeclaredLocals { get; } = [];
+
     /// <summary>This macro's own declarations, in the shape a call to it is read against.</summary>
     /// <remarks>
     /// The steps travel with the declarations because the call graph has to be able to follow a
     /// macro that calls itself. Without them a self-call looks like a call into a macro with no
     /// steps, so the input and browser analysis would miss everything behind the recursion.
     /// </remarks>
-    private MacroCallable OwnCallable => new(Name, DeclaredParameters, DeclaredResults, Steps);
+    private MacroCallable OwnCallable => new(Name, DeclaredParameters, DeclaredResults, Steps,
+        DeclaredLocals);
 
     /// <summary>What the design-time check has to say about the steps as they stand now.</summary>
     public IReadOnlyList<MacroProblem> Problems { get; private set; } = [];
@@ -2456,6 +2464,8 @@ public partial class MacroEditorViewModel : ViewModelBase
             DeclaredParameters.AddRange(macro.Parameters);
             DeclaredResults.Clear();
             DeclaredResults.AddRange(macro.Results);
+            DeclaredLocals.Clear();
+            DeclaredLocals.AddRange(macro.Locals);
 
             Steps.Clear();
             foreach (var step in macro.Steps)
@@ -2506,9 +2516,26 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// behind — each with what a person choosing one needs to know about it.
     /// </summary>
     public IReadOnlyList<VariableChoice> CollectVariables()
-        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults, ReadVariableContent);
+        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults, DeclaredLocals,
+            ReadVariableContent);
 
-    /// <summary>Renames a local name created by this macro's steps and all exact references to it.</summary>
+    /// <summary>
+    /// Why a local may not go by this name, judged against the names the local manager does not own:
+    /// a shared value, a built-in, a parameter or a result. Whether two rows of the manager repeat
+    /// each other is that window's own business, and it says so itself.
+    /// </summary>
+    internal string LocalNameConflict(string name)
+    {
+        var written = name.Trim();
+        var taken = CollectVariables().Any(choice =>
+            choice.Origin is not (VariableOrigin.Local or VariableOrigin.DeclaredLocal)
+            && string.Equals(choice.Name, written, StringComparison.OrdinalIgnoreCase));
+        return taken
+            ? Strings.Format("Editor.Problem.VariableNameTaken", written)
+            : string.Empty;
+    }
+
+    /// <summary>Renames a local name this macro owns and all exact references to it.</summary>
     public bool RenameLocalVariable(string oldName, string newName, out string problem)
     {
         var old = oldName.Trim();
@@ -2533,10 +2560,117 @@ public partial class MacroEditorViewModel : ViewModelBase
             return false;
         }
 
-        VariableRename.RenameSteps(Steps, old, next);
+        RenameLocalEverywhere(old, next);
         NotifyStepsChanged();
         problem = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// Carries one local name through everything this macro can know it by: the fields of the steps,
+    /// the other declarations that may start from it, and the declaration itself. No checking — the
+    /// callers above decide whether the name may be used, so a batch of renames cannot fail half way
+    /// through and leave the macro with one name changed and the rest not.
+    /// </summary>
+    private void RenameLocalEverywhere(string oldName, string newName)
+    {
+        VariableRename.RenameSteps(Steps, oldName, newName);
+        foreach (var local in DeclaredLocals)
+        {
+            if (string.Equals(local.Name.Trim(), oldName, StringComparison.Ordinal))
+            {
+                local.Name = newName;
+            }
+
+            local.Initial = VariableRename.RenameValue(local.Initial, oldName, newName);
+        }
+
+        foreach (var parameter in DeclaredParameters)
+        {
+            parameter.Default = VariableRename.RenameValue(parameter.Default, oldName, newName);
+        }
+    }
+
+    /// <summary>
+    /// Takes what the local variable manager handed back: names that changed, values declared for the
+    /// first time, and declarations taken away. One undo entry covers the batch.
+    /// </summary>
+    /// <returns>Empty when the rows were applied; the reason they were not, otherwise.</returns>
+    internal string ApplyLocalVariableEdits(IReadOnlyList<LocalVariableDraft> rows)
+    {
+        if (InvalidEdit(rows) is { Length: > 0 } refused)
+        {
+            return refused;
+        }
+
+        // Renamed in two passes. One pass would read as a collision half way through whenever two
+        // names swap places, because each step of the batch is checked against the names as they
+        // stand at that moment; the same name briefly held twice is nobody's business but this
+        // method's, so it is written under a name no step can spell.
+        var renames = rows
+            .Where(row => !row.IsNew
+                && !string.Equals(row.OriginalName, row.Name.Trim(), StringComparison.Ordinal))
+            .ToList();
+
+        PushUndo();
+        var temporary = new List<(string Passed, string Final)>();
+        foreach (var row in renames)
+        {
+            var pass = "__wg" + Guid.NewGuid().ToString("N")[..8];
+            RenameLocalEverywhere(row.OriginalName, pass);
+            temporary.Add((pass, row.Name.Trim()));
+        }
+
+        foreach (var (passed, final) in temporary)
+        {
+            RenameLocalEverywhere(passed, final);
+        }
+
+        var kept = rows
+            .Where(row => row.IsDeclared)
+            .Select(row => row.Name.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        DeclaredLocals.RemoveAll(local => !kept.Contains(local.Name.Trim()));
+        foreach (var row in rows.Where(row => row.IsDeclared))
+        {
+            var declared = row.ToLocal();
+            var existing = DeclaredLocals.FirstOrDefault(local =>
+                string.Equals(local.Name.Trim(), declared.Name, StringComparison.Ordinal));
+            if (existing is null)
+            {
+                DeclaredLocals.Add(declared);
+                continue;
+            }
+
+            existing.Type = declared.Type;
+            existing.Initial = declared.Initial;
+            existing.Description = declared.Description;
+        }
+
+        NotifyStepsChanged();
+        MarkDirty();
+        return string.Empty;
+    }
+
+    /// <summary>The reason a batch cannot be applied, or nothing when it can.</summary>
+    private static string InvalidEdit(IReadOnlyList<LocalVariableDraft> rows)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in rows)
+        {
+            var name = row.Name.Trim();
+            if (!VariableText.IsName(name))
+            {
+                return Strings.Format("Editor.Problem.InvalidVariableName", name);
+            }
+
+            if (!seen.Add(name))
+            {
+                return Strings.Format("Editor.Problem.VariableNameTaken", name);
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>Applies a project-level global rename to this editor page's steps and declarations.</summary>
@@ -3667,6 +3801,7 @@ public partial class MacroEditorViewModel : ViewModelBase
 
         macro.Parameters.AddRange(DeclaredParameters);
         macro.Results.AddRange(DeclaredResults);
+        macro.Locals.AddRange(DeclaredLocals);
         macro.SubMacros.AddRange(SubMacros);
 
         return macro;

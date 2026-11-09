@@ -45,9 +45,12 @@ public static class MacroPackage
     /// <c>frameMaxAgeMs</c> would be read as fields no action has any more, and the macro would run
     /// at a different pace than the one it was written at without saying so. The wheel's positions
     /// joining <c>triggers.json</c> needs no bump: a package without the node opens with an empty
-    /// wheel, and a package that has one is read by a build that knows the node.
+    /// wheel, and a package that has one is read by a build that knows the node. 26 is the version
+    /// where a macro declares the local values it starts every run with: a 25 build would drop the
+    /// <c>locals</c> node and run the same macro without its initial values, which is a different
+    /// macro than the one that was saved.
     /// </summary>
-    public const int FormatVersion = 25;
+    public const int FormatVersion = 26;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

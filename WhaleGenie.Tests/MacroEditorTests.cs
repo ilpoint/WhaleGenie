@@ -994,7 +994,7 @@ public class MacroEditorTests
     }
 
     [Fact]
-    public void The_macro_interface_offers_expression_and_variable_tools_for_a_default()
+    public void The_macro_interface_puts_the_value_tool_inside_the_default_box()
     {
         Ui.Run(() =>
         {
@@ -1007,11 +1007,14 @@ public class MacroEditorTests
             model.AddParameterCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
-            var buttons = view.GetVisualDescendants().OfType<Button>()
-                .Select(button => button.Content?.ToString())
+            // One chip inside the box rather than two buttons beside it: a default is read as one
+            // value, and the window that opens lists the variables on the same page as the functions.
+            var chips = view.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.Classes.Contains("ValueChip"))
                 .ToList();
-            Assert.Contains(Strings.Get("Add.ExpressionBuilder"), buttons);
-            Assert.Contains(Strings.Get("Add.VariablePicker"), buttons);
+            var chip = Assert.Single(chips);
+            Assert.Equal(Strings.Get("Add.Value"), chip.Content?.ToString());
+            Assert.NotNull(chip.FindAncestorOfType<TextBox>(true));
             Assert.Contains(model.ValueVariables, choice => choice.Name == "sys.date");
         });
     }

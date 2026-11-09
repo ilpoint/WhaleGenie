@@ -401,6 +401,13 @@ public class VariableFieldTests
         Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", naming, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnPickVariable\"", naming, StringComparison.Ordinal);
 
+        // The same one door: the field that names a value keeps its chip inside the box, and the
+        // expression button that used to stand beside it is gone.
+        Assert.Contains("Classes=\"Field HasChip\"", naming, StringComparison.Ordinal);
+        Assert.Contains("AutoCompleteBox.InnerRightContent", naming, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"ValueChip\"", naming, StringComparison.Ordinal);
+        Assert.DoesNotContain("Click=\"OnOpenExpressionBuilder\"", naming, StringComparison.Ordinal);
+
         // And a picture, which is a file or the picture an earlier step saved under a name, is
         // offered those names as well.
         var pictured = markup.IndexOf("IsVisible=\"{Binding IsImage}\"", StringComparison.Ordinal);

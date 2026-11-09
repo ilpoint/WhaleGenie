@@ -84,6 +84,47 @@ public class MacroEditorChromeTests
     }
 
     [Fact]
+    public void The_variable_center_spends_its_height_on_variables_rather_than_on_its_own_header()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            for (var index = 0; index < 12; index++)
+            {
+                macro.Steps.Add(SetVariable($"item{index}", index.ToString()));
+            }
+
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var wall = window.FindControl<VariableWall>("VariableCenterWall")!;
+            var groups = wall.FindControl<ListBox>("VariableGroups")!;
+            var list = wall.FindControl<ScrollViewer>("VariableList")!;
+            var locals = window.FindControl<Button>("ManageLocalsButton")!;
+            var globals = window.FindControl<Button>("ManageGlobalsButton")!;
+
+            // 标题和两个按钮占一行，不再是标题加两行说明的六十像素。
+            Assert.InRange(wall.Bounds.Y, 28, 36);
+
+            // 两个按钮要在面板里放得下：右边不出界，也不会把标题挤到折行。
+            Assert.True(globals.Bounds.Right <= wall.Bounds.Width + 1,
+                $"the buttons end at {globals.Bounds.Right:0.#}, the panel is "
+                + $"{wall.Bounds.Width:0.#} wide");
+            Assert.Equal(locals.Bounds.Height, globals.Bounds.Height);
+
+            // 筛选条只占一行字的高度。
+            Assert.InRange(groups.Bounds.Height, 18, 30);
+
+            // 搜索框、筛选条和它们之间的间距之外，整块高度都是变量卡的。
+            Assert.True(list.Bounds.Height >= wall.Bounds.Height - 80,
+                $"the list is {list.Bounds.Height:0.#} of {wall.Bounds.Height:0.#}");
+
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void The_right_splitters_cannot_hide_the_save_and_run_buttons()
     {
         Ui.Run(() =>

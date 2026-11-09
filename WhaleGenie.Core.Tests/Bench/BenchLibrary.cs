@@ -35,7 +35,7 @@ internal sealed class BenchLibrary : IMacroLibrary
         => Same(name)
             ? new MacroSignature(
                 [new MacroArgument(BenchFixtures.CalledArgument, string.Empty, false)],
-                [new MacroReturn(BenchFixtures.CalledResult)])
+                [new MacroReturn(BenchFixtures.CalledResult)], [])
             : null;
 
     private static bool Same(string name)

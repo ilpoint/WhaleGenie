@@ -9,8 +9,6 @@ public sealed class VariableCenterViewModel : ViewModelBase
 {
     public string Header => Strings.Get("Editor.VariableCenter");
 
-    public string Help => Strings.Get("Editor.VariableCenterHint");
-
     public VariableWallViewModel Wall { get; } = new() { ShowsDetails = false };
 
     public VariableCenterViewModel()
@@ -26,7 +24,6 @@ public sealed class VariableCenterViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         OnPropertyChanged(nameof(Header));
-        OnPropertyChanged(nameof(Help));
         Wall.RefreshLanguage();
     }
 }

@@ -121,10 +121,9 @@ public class GlobalVariablesTests
         row.Description = "running total";
         Assert.False(viewModel.HasChanges);
 
-        row.CurrentValue = "2";
-        Assert.True(viewModel.HasChanges);
-        row.CurrentValue = row.CurrentOriginal;
-        Assert.False(viewModel.HasChanges);
+        // The current value is what a run put there: shown, never typed, and nothing here can dirty
+        // the row through it.
+        Assert.Equal("1", row.CurrentValue);
 
         row.PersistValue = false;
         Assert.True(viewModel.HasChanges);
@@ -645,7 +644,7 @@ public class GlobalVariablesTests
 
                 var dialog = Assert.Single(window.OwnedWindows.OfType<GlobalVariablesWindow>());
                 var manager = (GlobalVariablesViewModel)dialog.DataContext!;
-                manager.Selected!.CurrentValue = "9";
+                manager.Selected!.DefaultValue = "9";
                 manager.Selected.PersistValue = true;
                 Assert.True(manager.CanSave, manager.ValidationMessage);
                 manager.SaveCommand.Execute(null);
@@ -653,6 +652,8 @@ public class GlobalVariablesTests
                 await Task.Delay(50);
                 Dispatcher.UIThread.RunJobs();
 
+                // Nothing types the current value any more: turning persistence on seeds the shared
+                // table from the default, which is the value a run would start it at.
                 Assert.Equal(9, SharedVariables.Current.Values["editedByManager"].AsNumber());
                 Assert.True(VariableCatalog.FindGlobal("editedByManager")!.PersistValue);
                 PersistentVariables.Flush();
@@ -791,7 +792,6 @@ public class GlobalVariablesTests
                 var manager = (GlobalVariablesViewModel)dialog.DataContext!;
                 manager.Selected!.Name = "changed";
                 manager.Selected.DefaultValue = "8";
-                manager.Selected.CurrentValue = "12";
                 manager.Selected.PersistValue = true;
                 dialog.Close(null);
                 Dispatcher.UIThread.RunJobs();

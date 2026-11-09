@@ -114,6 +114,11 @@ public static class FieldNames
     /// <summary>A callable macro copied beneath another macro.</summary>
     public const string SubMacros = "subMacros";
 
+    /// <summary>
+    /// The values a macro declares for itself: name, kind and the value it starts every run with.
+    /// </summary>
+    public const string Locals = "locals";
+
     /// <summary>Where a copied submacro came from and which source version it froze.</summary>
     public const string Origin = "origin";
 

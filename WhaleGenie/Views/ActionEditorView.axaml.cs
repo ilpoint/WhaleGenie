@@ -816,8 +816,11 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        var caret = button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
-            .OfType<TextBox>().FirstOrDefault()?.CaretIndex;
+        // The chip is inside the row's box, so the nearest box is the one to put the name in; a
+        // button laid out beside it still reaches the row through the panel it stands in.
+        var caret = (button.FindAncestorOfType<TextBox>(true)
+                ?? button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
+                    .OfType<TextBox>().FirstOrDefault())?.CaretIndex;
         row.InsertVariable(picked, caret ?? row.OrVariable.Length);
     }
 
@@ -834,10 +837,12 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        // The caret belongs to the box beside the button, which is the row's own field: the box
-        // holds one value per row, so the one on this row is the one that was being filled in.
-        var caret = button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
-            .OfType<AutoCompleteBox>().FirstOrDefault()?.CaretIndex
+        // The caret belongs to the box the button sits in or beside. The chip lives inside the box's
+        // own template now, so the nearest box ancestor is the one being filled in; a button laid
+        // out beside the box still finds it under the row.
+        var caret = (button.FindAncestorOfType<AutoCompleteBox>(true)
+                ?? button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
+                    .OfType<AutoCompleteBox>().FirstOrDefault())?.CaretIndex
             ?? (parameter.Text ?? string.Empty).Length;
 
         // A field whose whole value is read opens the one window anywhere in the cell, with the
@@ -1839,22 +1844,6 @@ public partial class ActionEditorView : UserControl
         };
         item.Click += (_, _) => chosen();
         return item;
-    }
-
-    private async void OnPickWindowRule(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: StepParameterViewModel parameter })
-        {
-            await CaptureWindowRule(parameter);
-        }
-    }
-
-    private async void OnPickWindowVariable(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: StepParameterViewModel parameter })
-        {
-            await UseWindowVariable(parameter);
-        }
     }
 
     private void OnClearWindowRule(object? sender, RoutedEventArgs e)

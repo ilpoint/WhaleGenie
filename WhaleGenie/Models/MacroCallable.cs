@@ -66,15 +66,43 @@ public sealed class MacroResult
 }
 
 /// <summary>
+/// One value a macro keeps for itself. It is declared here rather than left to whatever a step
+/// happens to write, so a macro that counts up can say where the count starts and be read back
+/// that way. Every run writes the initial value into the macro's own table before the first step,
+/// which is why it is an initial value and not a default: it does not wait for the name to be
+/// missing, it puts the name back where it started.
+/// </summary>
+public sealed class MacroLocalVariable
+{
+    /// <summary>The name the macro reads it by.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>What kind of value it holds, which is what decides how the initial value is read.</summary>
+    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+
+    /// <summary>
+    /// What it starts every run at: a written value or an expression, read the way any other value
+    /// field is. Left empty it starts empty, not at the kind's empty value written into the file.
+    /// </summary>
+    public string Initial { get; set; } = string.Empty;
+
+    /// <summary>What it is for, shown on the variable wall and under the field that declares it.</summary>
+    public string Description { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// What one macro in the project asks of a call to it, in the shape the call site and the
 /// design-time check work with.
 /// </summary>
 public sealed record MacroCallable(
     string Name, IReadOnlyList<MacroParameter> Parameters, IReadOnlyList<MacroResult> Results,
-    IReadOnlyList<MacroStep>? Steps = null)
+    IReadOnlyList<MacroStep>? Steps = null, IReadOnlyList<MacroLocalVariable>? Locals = null)
 {
     /// <summary>The steps the macro runs, for the checks that follow a call into it.</summary>
     public IReadOnlyList<MacroStep> OwnSteps => Steps ?? [];
+
+    /// <summary>The values the macro declares for itself, which its own steps read as locals.</summary>
+    public IReadOnlyList<MacroLocalVariable> OwnLocals => Locals ?? [];
 
     /// <summary>
     /// The same, in the shape the engine calls macros by. Empty rows are kept: the engine has to
@@ -84,7 +112,8 @@ public sealed record MacroCallable(
     public MacroSignature Signature => new(
         [.. Parameters.Select(parameter => new MacroArgument(parameter.Name.Trim(),
             parameter.Default, parameter.Required, parameter.Type))],
-        [.. Results.Select(result => new MacroReturn(result.Name.Trim(), result.Type))]);
+        [.. Results.Select(result => new MacroReturn(result.Name.Trim(), result.Type))],
+        [.. OwnLocals.Select(local => new MacroLocal(local.Name.Trim(), local.Initial, local.Type))]);
 
     /// <summary>
     /// Every declaration name that cannot be used: one left empty, one the macro language cannot

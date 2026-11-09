@@ -129,6 +129,7 @@ if ($missing) { $missing; exit 1 }
 | `Lucide.Avalonia` | 界面：动作、工具栏和菜单图标 |
 | `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | 界面：stdio MCP 服务、工具发现与通用宿主 |
 | `AvaloniaUI.DiagnosticsSupport` | 仅 Debug：界面诊断支持 |
+| `Declarative.Avalonia.AgentTools` | 仅 Debug：进程内的 MCP 检查器，让 agent 自己调试正在运行的界面 |
 
 ## 修改动作的流程
 
@@ -244,8 +245,8 @@ if ($missing) { $missing; exit 1 }
 - 提示只挂在说到它的那个小部件上。整张卡片挂一条 ID 提示，等于指针落在任何一处都弹同一句、
   挡住正文；`MacroEditorTests` 核对卡片上没有提示、ID 徽标上有。
 - 一个参数模板里画着好几支（单行、数字、多行、变量…），只有一支显示，其余仍会生成控件。
-  在测试里按 `DataContext` 加按钮文字去找会命中多枚，`IsVisible` 也仍是 `true`（局部值不看祖先）；
-  要按位置找，或直接断言模型上的标志与行集合。
+  在测试里按 `DataContext` 去找会命中多枚，`IsVisible` 也仍是 `true`（局部值不看祖先）；每一支
+  都带着同一枚 `ValueChip`，所以按按钮文字找更不可靠。要按位置找，或直接断言模型上的标志与行集合。
 - 由工具写入的值在显示数据里标 `WrittenByTool`（不是语义里的 `Hidden`：契约测试禁止显示层重复
   引擎字段名），`BuildRows` 据此不给它生成行。值本身照常保存、校验，并在写入它的那扇窗里编辑。
 - 控件模板的归属要查清楚。`FluentAvaloniaTheme` 覆盖大部分 Avalonia 控件，但 `ContextMenu` 没有：
@@ -255,7 +256,7 @@ if ($missing) { $missing; exit 1 }
 - 读屏幕的图必须经过 `ScreenReady`，不要直接 `screen.Capture`：桌面复制器会把隐藏前的画面继续交出来，
   `DwmFlush` 并不能保证新帧已经到了。拾取器、框选后的成图和单步试看都走这一条。
 - 一个矩形的四个数（`vision.capture`、`ocr.recognize` 的 x/y/width/height）现在压在一行里，
-  每格是 `NumberCellViewModel`（短名 + 框 + ƒ），不再各自是一个参数对象：测试里按参数
+  每格是 `NumberCellViewModel`（短名 + 自带取值片的框），不再各自是一个参数对象：测试里按参数
   `DataContext` 找数字框会落空，要看 `ParameterRowViewModel.IsQuad` 与 `QuadCells`，或者按可见的
   数字框找。格与参数之间的同步在 `ParameterRowViewModel.Cell` 里，数字字段要连 `NumberValue`
   一起写，只写 `Text` 会让框里有字、步骤却是空的。
@@ -300,15 +301,17 @@ if ($missing) { $missing; exit 1 }
 - 等待条件使用事件、`TaskCompletionSource` 或 `Ui.Until`，不使用固定睡眠推断异步操作已完成。
 - 修改全局状态的测试使用 `[RestoreSharedState]` 并在界面线程还原；共享变量值由相关用例自行清理。
 
-### 看图与看运行中的程序（只能 Debug）
+### 让 agent 自己调试界面（只能 Debug）
 
-界面自省通道（`Declarative.Avalonia.AgentTools`）**只在 Debug 编译里存在**。Release 既不还原
-`AvaloniaUI.DiagnosticsSupport`，也不会在 `127.0.0.1:5599` 上注册 MCP——用 Release 二进制或安装包
-启动时端口根本不会打开，`get_app_info` 一定失败；这时先去检查启动的是不是 Debug 版，不要先怀疑
-MCP 配置。
+`Declarative.Avalonia.AgentTools` 是一个**跑在进程里**的 MCP 检查器：它把正在运行的这一份界面交给
+agent，让 agent 自己读、自己点、自己看结果，而不是由人截图转述。它读的是真的那一扇窗，不是无头重绘。
+**只在 Debug 编译里存在**：Release 既不还原 `AvaloniaUI.DiagnosticsSupport`，也不会把这个服务开起来
+——用 Release 二进制或安装包启动时，`get_app_info` 一定失败；这时先去检查启动的是不是 Debug 版，
+不要先怀疑 MCP 配置。
 
-它跑起来后可以读视觉树、读布局、点、输入、按键、截图，**看的是真的那一扇窗，不是无头重绘**。
-这是首选的查看方式——离屏渲染看不出真实的字体、主题、滚动条和 POPUP。
+用法就是普通 MCP：按你用的客户端配一个 `avalonia-agent-inspector` 即可——端点、传输方式与各客户端的
+配置片段都在包自带的 README 与 `docs/agent-tools.md` 里，这里不重复。程序这边只负责在 Debug 下把服务
+开起来。`EnableInteraction` 打开后才有 `tap`/`invoke`/`type` 这一类真驱动界面的工具，只读那一层默认就有。
 
 ```bash
 # 1. 结束上一次的进程。文件被锁时新编的 exe 不会生效，跑的还是旧进程。
@@ -320,21 +323,27 @@ dotnet build WhaleGenie.slnx -c Debug -p:Platform=x64
 
 # 3. 用后台任务启动它（前台运行会一直占着这次调用，超时被杀，等于没看）
 WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
-
-# 4. 先确认端口在听，再让 agent 连；没有这一行输出就是根本没开 Debug 版
-netstat -ano | findstr :5599
 ```
 
-不要用 `dotnet run -c Release` 或 `dotnet run --project WhaleGenie`（默认 Debug 但输出目录不是
-x64 那一份）；这两种都会让 5599 不存在或连到旧文件。MCP 的连接方式（`~/.workbuddy/mcp.json`
-里的 `avalonia-agent-inspector`，`streamableHttp`，`http://127.0.0.1:5599`）由使用者配置；
-程序这边只负责在 Debug 下把服务开起来。`EnableInteraction` 打开后才有 `tap`/`invoke`/`type`
-这一类真驱动界面的工具，只读那一层默认就有。
+起来之后先调一次 `get_app_info`：连不上就是没开 Debug 版，或者进程已经退出了。
 
-连上以后：`get_app_info` 认路，`screenshot_window` 看整扇窗（`maxWidth` 压到 1100 以内够看版式），
-`screenshot_region` 放大看一块（`scale=3`，最近邻，字不会糊），`hit_test` / `find_text` 反查控件，
-`tap` / `click_at` / `invoke` / `type` / `key` 合成真实输入，`get_errors` 读绑定错误、转换器错误和
-事件里的异常。
+**按要回答的问题选工具**：
+
+| 问题 | 工具 |
+|---|---|
+| 这扇窗里有什么、焦点在哪、有没有 popup | `get_app_info`（先调它认路） |
+| 视觉树长什么样、某个控件在哪 | `get_visual_tree`（带 `abs=`/`center=` 坐标）、`find_text`、`hit_test` |
+| 这个控件为什么这么大、为什么看不见 | `get_layout`、`layout_audit`（零尺寸、越界、重叠、文字被裁） |
+| 这个值从哪来（本地、样式、模板、动画、继承） | `get_properties`、`get_property_sources` |
+| 绑定对不对、DataContext 是什么 | `get_data_context`、`get_errors`（绑定、转换器、事件里的异常） |
+| 程序自己打印了什么 | `get_logs`（Avalonia 的 `Logger` 与 stdout/stderr 都在环形缓冲里） |
+| 改这一处要动哪个文件 | `get_source`（可带 `file:line`） |
+| 版面有没有变慢、掉帧 | `get_render_stats`（fps、布局耗时、视觉数） |
+| 看一帧画面 | `screenshot_window`（`maxWidth` 压到 1100 以内够看版式）、`screenshot_region`（`scale=3` 放大看一块）、`compare_screenshots`（前后像素差） |
+| 把界面真的驱动一遍 | `tap`/`click_at`/`invoke`/`type`/`key`（`EnableInteraction` 打开后）、`wait_for`/`wait_idle` |
+
+工具是给 agent 自己闭环用的：改一版、驱动一次、读一遍错误和版面，再决定下一步。**截图只是其中一种
+读法**，不是这条通道的用途。
 
 **踩过的坑，按发生频率排**：
 
@@ -344,7 +353,7 @@ x64 那一份）；这两种都会让 5599 不存在或连到旧文件。MCP 的
 - **发的是旧二进制**。调试版的输出在 `bin/x64/Debug/<框架>/`，而 `dotnet build WhaleGenie/WhaleGenie.csproj`
   默认写到 `bin/Debug/<框架>/`——两者不是同一份文件。改完代码要么 `-p:Platform=x64`，要么整解编译；
   启动前先 `taskkill /IM WhaleGenie.exe /F`，否则文件被锁、跑的还是上一次的进程。
-- **窗口截图里没有 popup**。下拉、`Flyout`、菜单都是独立的 top-level，`screenshot_window` 只画这一扇窗，
+- **截图里没有 popup**。下拉、`Flyout`、菜单都是独立的 top-level，`screenshot_window` 只画这一扇窗，
   所以"截图里没看到"不等于"没弹出来"。用 `get_app_info` 的 `Open popups` 计数判断，确实要看图时
   用程序自己的抓屏读那块屏幕。
 - **交互是异步的**。点完先 `wait_idle` 或再取一次 `get_app_info`，再截图；窗口列表里窗口消失往往

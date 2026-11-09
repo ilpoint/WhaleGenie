@@ -13,7 +13,7 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 internal static class NumberField
 {
-    /// <summary>True when the text is a plain number, which is what the spinner shows.</summary>
+    /// <summary>True when the text is a plain number, which is what the numbered box holds.</summary>
     public static bool IsNumberText(string? text)
         => decimal.TryParse((text ?? string.Empty).Trim(), NumberStyles.Number,
             CultureInfo.InvariantCulture, out _);

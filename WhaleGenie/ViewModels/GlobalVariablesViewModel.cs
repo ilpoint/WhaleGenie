@@ -57,7 +57,6 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
     public event Action? SaveBlocked;
     public event Action<GlobalVariableProblemField>? FocusRequested;
     public event Action<VariableDefinitionDraft>? DefaultExpressionRequested;
-    public event Action<VariableDefinitionDraft>? CurrentExpressionRequested;
 
     public string Header => Strings.Get("GlobalVariables.Title");
     public string Help => Strings.Get("GlobalVariables.Help");
@@ -252,15 +251,6 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
         }
     }
 
-    [RelayCommand]
-    private void BuildCurrentExpression()
-    {
-        if (Selected is { } row)
-        {
-            CurrentExpressionRequested?.Invoke(row);
-        }
-    }
-
     public override void RefreshLanguage()
     {
         var kind = SelectedFilter?.Kind ?? GlobalVariableFilterKind.All;
@@ -299,8 +289,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
 
         if (e.PropertyName is nameof(VariableDefinitionDraft.Name)
             or nameof(VariableDefinitionDraft.Type)
-            or nameof(VariableDefinitionDraft.DefaultValue)
-            or nameof(VariableDefinitionDraft.CurrentValue))
+            or nameof(VariableDefinitionDraft.DefaultValue))
         {
             RefreshValidation();
         }
@@ -351,8 +340,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
             foreach (var row in Rows)
             {
                 row.Resolver = context;
-                var source = row.CurrentValueDirty ? row.CurrentValue : row.DefaultValue;
-                if (VariableValues.TryRead(row.Type, source, context, out var value, out _)
+                if (VariableValues.TryRead(row.Type, row.DefaultValue, context, out var value, out _)
                     && VariableText.IsName(row.Name.Trim()))
                 {
                     context.Global.Set(row.Name.Trim(), value);
@@ -394,11 +382,8 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
                 var defaultProblem = row.DefaultHasError
                     ? Strings.Format("GlobalVariables.BadDefault", display, row.DefaultPreview)
                     : string.Empty;
-                var currentProblem = row.CurrentValueDirty && row.CurrentHasError
-                    ? Strings.Format("GlobalVariables.BadCurrent", display, row.CurrentPreview)
-                    : string.Empty;
 
-                row.SetProblems(nameProblem, defaultProblem, currentProblem, renameProblem);
+                row.SetProblems(nameProblem, defaultProblem, renameProblem);
                 if (nameProblem.Length > 0)
                 {
                     problems.Add(new GlobalVariableProblem(row,
@@ -409,12 +394,6 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
                 {
                     problems.Add(new GlobalVariableProblem(row,
                         GlobalVariableProblemField.DefaultValue, defaultProblem));
-                }
-
-                if (currentProblem.Length > 0)
-                {
-                    problems.Add(new GlobalVariableProblem(row,
-                        GlobalVariableProblemField.CurrentValue, currentProblem));
                 }
 
                 if (renameProblem.Length > 0)
@@ -477,7 +456,6 @@ public enum GlobalVariableProblemField
 {
     Name,
     DefaultValue,
-    CurrentValue,
     RenameConflict,
 }
 

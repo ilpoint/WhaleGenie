@@ -150,11 +150,12 @@ public class StepTreeTests
 
             // A branch value is read as text with the names in it replaced, so it is the same kind
             // of field the step's own form gives a picker to — and a line typed on the row must not
-            // be the one place where a name has to be spelled from memory.
+            // be the one place where a name has to be spelled from memory. The chip sits in the box
+            // itself now, which is also why it does not take the focus: the line stays open.
             var pickerButton = window.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.IsEffectivelyVisible
                     && ReferenceEquals(button.DataContext, row)
-                    && Equals(button.Content, Strings.Get("Add.VariablePicker")));
+                    && button.Classes.Contains("ValueChip"));
             pickerButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();

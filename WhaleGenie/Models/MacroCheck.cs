@@ -228,6 +228,31 @@ public static class MacroCheck
             }
         }
 
+        // An initial value is read at the start of every run, so one that cannot be read — or that
+        // plainly cannot be the kind it declares — fails the macro before any step has done
+        // anything. That is worth saying while the declaration is being written.
+        foreach (var local in own.OwnLocals)
+        {
+            var name = local.Name.Trim();
+            if (name.Length == 0 || !VariableText.IsName(name))
+            {
+                continue;
+            }
+
+            var initial = local.Initial.Trim();
+            if (initial.StartsWith('$') && !initial.StartsWith("$$", StringComparison.Ordinal)
+                && !Expression.TryParse(initial, out _, out var error))
+            {
+                warnings.Add(Strings.Format("Editor.Problem.BadExpression", error?.Detail ?? initial));
+            }
+
+            if (ConstantValue(local.Initial) is { } value && !MacroValues.Fits(local.Type, value))
+            {
+                warnings.Add(Strings.Format("Editor.Problem.BadInitialType", own.Name, name,
+                    Strings.Get("ActionType." + local.Type, local.Type.ToString())));
+            }
+        }
+
         return warnings;
     }
 
@@ -438,7 +463,8 @@ public static class MacroCheck
         // is exactly this shape, so without this it would be told that the names it was made for
         // are ones nothing defines. Declared results count too: the runtime clears them at the
         // start of a call, so reading one before a step writes it is reading the empty value this
-        // attempt started with.
+        // attempt started with. A declared local is written before the first step, so it is a name
+        // the macro already has rather than one a step has yet to make.
         if (own is not null)
         {
             defined.UnionWith(own.Parameters
@@ -447,6 +473,10 @@ public static class MacroCheck
                 .Where(VariableText.IsName));
             defined.UnionWith(own.Results
                 .Select(result => result.Name.Trim())
+                .Where(name => name.Length > 0)
+                .Where(VariableText.IsName));
+            defined.UnionWith(own.OwnLocals
+                .Select(local => local.Name.Trim())
                 .Where(name => name.Length > 0)
                 .Where(VariableText.IsName));
         }
@@ -1670,6 +1700,18 @@ public static class MacroCheck
                     && !known.ContainsKey(name))
                 {
                     known[name] = result.Type;
+                }
+            }
+
+            // A declared local holds its kind from before the first step, so a formula reading one
+            // is checked against the kind it was declared as rather than left unknown.
+            foreach (var local in own.OwnLocals)
+            {
+                if (local.Name.Trim() is { Length: > 0 } name
+                    && VariableText.IsName(name)
+                    && !known.ContainsKey(name))
+                {
+                    known[name] = local.Type;
                 }
             }
         }

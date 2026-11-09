@@ -147,8 +147,8 @@ public partial class StepParameterViewModel : ViewModelBase
                  && definition.DefaultValue.Trim().Length > 0)
         {
             // A number that was written as an expression opens in the expression editor. One that
-            // starts empty is a field nobody has answered yet, and it opens as the spinner: an empty
-            // expression box would read as "this step has a formula" when it has nothing at all.
+            // starts empty is a field nobody has answered yet, and it opens as the numbered box: an
+            // empty expression box would read as "this step has a formula" when it has nothing at all.
             UseFormula = true;
         }
 
@@ -476,7 +476,7 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>
     /// True while a number is being written as an expression (<c>$match.x</c>, <c>$count + 1</c>)
-    /// instead of being dialled in with the spinner. The engine reads both the same way.
+    /// instead of typed in as a plain number. The engine reads both the same way.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsNumberValue))]
@@ -655,8 +655,8 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>
     /// True when the whole value written here is read as one rather than as text with the names in
-    /// it replaced, so an expression may be written in the box. A number counts: the spinner and
-    /// the expression box are two ways of writing the same kind of value, and the engine works out
+    /// it replaced, so an expression may be written in the box. A number counts: the numbered box
+    /// and the expression box are two ways of writing the same kind of value, and the engine works out
     /// whichever one is there. This is not the same question as <see cref="OffersFormula"/>, which
     /// asks whether the expression editor is the thing to offer beside this particular editor.
     /// </summary>
@@ -1082,7 +1082,7 @@ public partial class StepParameterViewModel : ViewModelBase
         _ => Definition.LocalLabel,
     };
 
-    /// <summary>True when the number is dialled in with the spinner.</summary>
+    /// <summary>True when the number is typed in as a plain number.</summary>
     public bool IsNumberValue => IsNumber && !UseFormula;
 
     /// <summary>True when the number is written as an expression.</summary>
@@ -1178,8 +1178,8 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool IsDurationFormula => IsDuration && UseFormula;
 
     /// <summary>
-    /// What the box under a number written as an expression says, so the way back to the spinner is
-    /// not something to be discovered by accident.
+    /// What the box under a number written as an expression says, so the way back to a plain number
+    /// is not something to be discovered by accident.
     /// </summary>
     public string FormulaNote => Strings.Get("Add.FormulaNumber");
 
@@ -1708,8 +1708,8 @@ public partial class StepParameterViewModel : ViewModelBase
             OnPropertyChanged(nameof(IsIncluded));
         }
 
-        // A number written as an expression goes back to the spinner the moment what is in the box
-        // is a plain number again — which is also how the box is emptied. The expression builder and
+        // A number written as an expression goes back to the numbered box the moment what is in the
+        // box is a plain number again — which is also how the box is emptied. The builder and
         // a number typed by hand both land here, so neither has to know which box it wrote into.
         if (!_writing && IsNumber && UseFormula && (value.Trim().Length == 0 || TextIsNumber))
         {

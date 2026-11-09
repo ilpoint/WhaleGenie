@@ -469,24 +469,25 @@ public partial class MacroEditorWindow : AppWindow
     private async void OnManageGlobals(object? sender, RoutedEventArgs e)
         => await ManageGlobalsAsync();
 
-    /// <summary>
-    /// 管理这个宏自己的变量：改名是唯一能在这里做的改动，因为局部变量是步骤写出来的，
-    /// 这里既不能凭空新建一个，也不能删掉一条还在写的步骤。
-    /// </summary>
     private async void OnManageLocals(object? sender, RoutedEventArgs e)
-    {
-        await LocalVariablesWindow.ShowAsync(this,
-            () => _viewModel.CollectVariables(),
-            (old, next) =>
-            {
-                if (!_viewModel.RenameLocalVariable(old, next, out var problem))
-                {
-                    return (false, problem);
-                }
+        => await ManageLocalsAsync();
 
-                _viewModel.RefreshVariableCenter();
-                return (true, string.Empty);
-            });
+    /// <summary>
+    /// 管理这个宏自己的变量：声明在窗口里新建、编辑和删除，步骤写出来的名字只能在窗口里改名。
+    /// </summary>
+    private async Task ManageLocalsAsync(string? initialName = null)
+    {
+        var all = _viewModel.CollectVariables();
+        await LocalVariablesWindow.ShowAsync(this,
+            _viewModel.DeclaredLocals,
+            all,
+            // An initial value is read before the first step, so it can only name what a run
+            // already has: the built-ins, the shared values and what the caller fills in.
+            [.. all.Where(choice => choice.Group is VariableGroup.System or VariableGroup.Global
+                || choice.Origin is VariableOrigin.Parameter)],
+            _viewModel.LocalNameConflict,
+            _viewModel.ApplyLocalVariableEdits,
+            initialName);
     }
 
     private async Task ManageGlobalsAsync(string? initialName = null)
@@ -515,18 +516,9 @@ public partial class MacroEditorWindow : AppWindow
             case VariableOrigin.Global:
                 await ManageGlobalsAsync(choice.Name);
                 break;
+            case VariableOrigin.DeclaredLocal:
             case VariableOrigin.Local:
-                var answer = await TextPromptDialog.ShowAsync(this,
-                    Strings.Get("Editor.RenameVariable"),
-                    new AskQuestion(AskKind.Text,
-                        Strings.Format("Editor.RenameVariableMessage", choice.Name), choice.Name));
-                if (answer.Confirmed && answer.Text is { Length: > 0 } next
-                    && !_viewModel.RenameLocalVariable(choice.Name, next, out var problem))
-                {
-                    await ConfirmDialog.ShowAsync(this, Strings.Get("Editor.RenameVariable"),
-                        problem, Strings.Get("Common.Ok"), showCancel: false);
-                }
-
+                await ManageLocalsAsync(choice.Name);
                 break;
             case VariableOrigin.Parameter:
             case VariableOrigin.Result:
@@ -585,17 +577,6 @@ public partial class MacroEditorWindow : AppWindow
                 Description = draft.Description.Trim(),
             };
             VariableCatalog.Globals.Add(definition);
-
-            if (draft.IsNew || draft.CurrentValueDirty)
-            {
-                var source = draft.IsNew && !draft.CurrentValueDirty
-                    ? draft.DefaultValue
-                    : draft.CurrentValue;
-                SharedVariables.Current.Set(name,
-                    VariableValues.Read(draft.Type, source, VariableValues.DesignContext()));
-                draft.AcceptCurrent();
-            }
-
             definition.PersistValue = draft.PersistValue;
         }
 

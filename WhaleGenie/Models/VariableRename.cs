@@ -97,7 +97,12 @@ public static class VariableRename
             ? Expression.RenameVariable(value, oldName, newName)
             : VariableText.Rename(value, oldName, newName);
 
-    private static string RenameValue(string value, string oldName, string newName)
+    /// <summary>
+    /// A value cell with one name inside it changed, written the way a whole-value field writes
+    /// one: an expression is rewritten through the expression parser, plain text through the
+    /// interpolation rules. A declaration's starting value is that same kind of cell.
+    /// </summary>
+    public static string RenameValue(string value, string oldName, string newName)
     {
         var trimmed = value.Trim();
         if (trimmed.StartsWith('$'))

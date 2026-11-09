@@ -43,52 +43,23 @@
             </Grid>
         </DataTemplate>
 
-        <!-- One number of a place to look: dialled in with the spinner, or written as an
-             expression the engine works out while the macro runs. It stands in a grid of two
-             columns, so the four numbers of a rectangle read as two pairs rather than a column. -->
-        <DataTemplate x:Key="NumberCell" x:DataType="vm:NumberCellViewModel">
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                <TextBlock Classes="Hint" VerticalAlignment="Center"
-                           Text="{Binding Label}"
-                           ToolTip.Tip="{Binding Hint}" />
-
-                <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0"
-                               IsVisible="{Binding IsPlain}"
-                               HorizontalAlignment="Stretch"
-                               Value="{Binding Number, Converter={StaticResource Number}}" />
-
-                <AutoCompleteBox Grid.Column="1" Classes="Field"
-                                 IsVisible="{Binding IsFormula}"
-                                 ItemsSource="{Binding Suggestions}"
-                                 Text="{Binding Text}"
-                                 PlaceholderText="{Binding Placeholder}"
-                                 MinimumPrefixLength="1"
-                                 FilterMode="Contains" />
-
-                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
-                        Tag="{Binding}"
-                        Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                        ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                        Click="OnOpenCellExpression" />
-            </Grid>
-        </DataTemplate>
-
-        <!-- The same number, pressed onto one line: a short name, the box, and a small "ƒ" instead
-             of a wide button. Four of these make the four sides of a rectangle, so a place to look
-             reads as one line rather than a block. -->
+        <!-- The same number, pressed onto one line: a short name, and a box that carries the
+             same「取值」chip every other value field does on its right edge. Four of these make the
+             four sides of a rectangle, so the box has to stay readable once the chip has taken its
+             share of the width — hence the floor below. -->
         <DataTemplate x:Key="NumberCellTight" x:DataType="vm:NumberCellViewModel">
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="5">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
                 <TextBlock VerticalAlignment="Center" FontSize="12"
                            Foreground="{DynamicResource TextSecondary}"
                            Text="{Binding ShortLabel}"
                            ToolTip.Tip="{Binding Hint}" />
 
-                <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0"
-                               IsVisible="{Binding IsPlain}" MinWidth="58"
+                <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0" Classes="HasChip"
+                               IsVisible="{Binding IsPlain}" MinWidth="92"
                                HorizontalAlignment="Stretch"
                                Value="{Binding Number, Converter={StaticResource Number}}" />
 
-                <AutoCompleteBox Grid.Column="1" Classes="Field"
+                <AutoCompleteBox Grid.Column="1" Classes="Field HasChip"
                                  IsVisible="{Binding IsFormula}"
                                  ItemsSource="{Binding Suggestions}"
                                  Text="{Binding Text}"
@@ -96,9 +67,10 @@
                                  MinimumPrefixLength="1"
                                  FilterMode="Contains" />
 
-                <Button Grid.Column="2" Classes="Secondary" Height="30" Width="24" Padding="0"
-                        FontSize="12" Tag="{Binding}" Content="ƒ"
-                        ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                <Button Grid.Column="1" Classes="ValueChip" HorizontalAlignment="Right"
+                        Tag="{Binding}"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}"
                         Click="OnOpenCellExpression" />
             </Grid>
         </DataTemplate>
@@ -245,10 +217,19 @@
                      been redesigned is met by writing a second way of naming the element under the
                      first, and the other ways a pick found are offered under the box to add. -->
                 <StackPanel IsVisible="{Binding IsBrowserTarget}" Spacing="6">
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                        <TextBox Classes="Field" Text="{Binding Text}"
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                        <TextBox Classes="Field" Classes.HasChip="{Binding OffersPageVariables}"
+                                 Text="{Binding Text}"
                                  AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
-                                 PlaceholderText="{Binding Placeholder}" />
+                                 PlaceholderText="{Binding Placeholder}">
+                            <TextBox.InnerRightContent>
+                                <Button Classes="ValueChip" Margin="0,6,4,0" VerticalAlignment="Top"
+                                        IsVisible="{Binding OffersPageVariables}"
+                                        Click="OnPickBrowserVariable"
+                                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                            </TextBox.InnerRightContent>
+                        </TextBox>
                         <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                                 VerticalAlignment="Top"
                                 Content="{Binding [Add.PickBrowserElement], Source={x:Static loc:Strings.Current}}"
@@ -259,12 +240,6 @@
                                 Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
                                 Click="OnTestBrowserElement" />
-                        <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
-                                VerticalAlignment="Top"
-                                IsVisible="{Binding OffersPageVariables}"
-                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnPickBrowserVariable" />
                     </Grid>
 
                     <StackPanel IsVisible="{Binding HasCandidates}" Spacing="5">
@@ -294,30 +269,37 @@
                      taller than one holding a sentence and keeps its lines as they were written:
                      a script of a dozen lines is not read through a window four lines high, and
                      its indentation is part of what it says. -->
-                <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="Field" Classes.Code="{Binding IsCode}"
+                <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                    <TextBox Classes="Field" Classes.HasChip="{Binding OffersFormula}"
+                             Classes.Code="{Binding IsCode}"
                              Text="{Binding Text}"
                              AcceptsReturn="True" TextWrapping="{Binding Wrap}"
                              Height="{Binding MultilineHeight}"
-                             PlaceholderText="{Binding Placeholder}" />
+                             PlaceholderText="{Binding Placeholder}">
+                        <TextBox.InnerRightContent>
+                            <!-- 多行框里的片贴右上角：跟着框高居中会漂在文字中间，像另一段内容。 -->
+                            <Button Classes="ValueChip" Margin="0,6,4,0" VerticalAlignment="Top"
+                                    IsVisible="{Binding OffersFormula}"
+                                    Click="OnOpenExpressionBuilder"
+                                    Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                        </TextBox.InnerRightContent>
+                    </TextBox>
                     <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                             VerticalAlignment="Top"
                             IsVisible="{Binding IsPath}"
                             Content="{Binding PathButton}"
                             ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnBrowsePath" />
-                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
-                            VerticalAlignment="Top"
-                            IsVisible="{Binding OffersFormula}"
-                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnOpenExpressionBuilder" />
                 </Grid>
 
-                <!-- A number is dialled in with the spinner or written as an expression. -->
-                <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                <!-- A number is typed in, or written as an expression. Both boxes in this cell carry
+                     the same「取值」chip on their right edge, so switching between the two does not
+                     move it. -->
+                <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto"
                       ColumnSpacing="6">
                     <fa:FANumberBox IsVisible="{Binding IsNumberValue}"
+                                   Classes.HasChip="{Binding OffersExpressionBuilder}"
                                    Value="{Binding NumberValue, Converter={StaticResource Number}}"
                                    Minimum="{Binding Minimum, Converter={StaticResource Number}}"
                                    Maximum="{Binding Maximum, Converter={StaticResource Number}}"
@@ -326,6 +308,7 @@
                                    HorizontalAlignment="Stretch" />
 
                     <AutoCompleteBox Grid.Column="0" Classes="Field"
+                                     Classes.HasChip="{Binding OffersExpressionBuilder}"
                                      IsVisible="{Binding IsNumberFormula}"
                                      ItemsSource="{Binding ExpressionSuggestions}"
                                      Text="{Binding Text}"
@@ -362,14 +345,14 @@
                                    Text="{Binding [Add.JitterUnit], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
 
-                    <!-- A number can always be written as an expression instead, so the box that
-                         builds one is there from the start rather than behind a switch: what the
-                         builder hands back is what the field holds, and a plain number written that
-                         way puts the spinner back. -->
-                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
+                    <!-- The same chip every other value field carries, on the edge the up and down
+                         buttons used to have: inside the box it answers for, so there is no need
+                         to guess which field it belongs to. -->
+                    <Button Grid.Column="0" Classes="ValueChip"
+                            HorizontalAlignment="Right"
                             IsVisible="{Binding OffersExpressionBuilder}"
-                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
+                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}"
                             Click="OnOpenExpressionBuilder" />
                 </Grid>
 
@@ -410,9 +393,15 @@
 
                 <!-- Colour parameters open the screen magnifier, and may be a variable holding one. -->
                 <Grid IsVisible="{Binding IsColor}"
-                      ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
-                    <TextBox Classes="Field" Text="{Binding Text}"
-                             PlaceholderText="{Binding Placeholder}" />
+                      ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <TextBox Classes="Field HasChip" Text="{Binding Text}"
+                             PlaceholderText="{Binding Placeholder}">
+                        <TextBox.InnerRightContent>
+                            <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                                    Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                        </TextBox.InnerRightContent>
+                    </TextBox>
                     <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
                             Background="{Binding Text, Converter={StaticResource HexBrush}}"
                             BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
@@ -422,11 +411,6 @@
                             Click="OnPickParameterColor">
                         <views:IconView Width="17" Height="17" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
                     </Button>
-                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
-                            IsVisible="{Binding OffersFormula}"
-                            Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                            ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                            Click="OnOpenExpressionBuilder" />
                 </Grid>
 
                 <!-- A picture the action looks for: taken from a file, or straight off the
@@ -575,9 +559,10 @@
                             <DataTemplate x:DataType="vm:RegionRowViewModel">
                                 <StackPanel Margin="0,0,0,9" Spacing="5">
                                     <!-- The four numbers of the rectangle on one line: where the
-                                         corner is, then how far it reaches. Each is a short name, a
-                                         box and a small ƒ — four wide buttons would not fit, and a
-                                         place to look is one line of four numbers, not a block. -->
+                                         corner is, then how far it reaches. Each is a short name and
+                                         a box with the「取值」chip on its own right edge — four
+                                         buttons of their own would not fit, and a place to look is
+                                         one line of four numbers, not a block. -->
                                     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
                                         <ContentControl Grid.Column="0"
                                                         Content="{Binding X}"
@@ -610,15 +595,16 @@
                                                    Margin="0,0,6,0"
                                                    Text="{Binding [Add.RegionOrVariable], Source={x:Static loc:Strings.Current}}"
                                                    ToolTip.Tip="{Binding VariableHint}" />
-                                        <TextBox Width="190" Classes="Field" Margin="0,0,6,0"
+                                        <TextBox Width="190" Classes="Field HasChip" Margin="0,0,6,0"
                                                  Text="{Binding OrVariable}"
                                                  PlaceholderText="{Binding VariablePlaceholder}"
-                                                 ToolTip.Tip="{Binding VariableHint}" />
-                                        <Button Classes="Secondary" Height="33" Padding="11,0"
-                                                Margin="0,0,6,0"
-                                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                                                Click="OnPickRegionVariable" />
+                                                 ToolTip.Tip="{Binding VariableHint}">
+                                            <TextBox.InnerRightContent>
+                                                <Button Classes="ValueChip" Click="OnPickRegionVariable"
+                                                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                            </TextBox.InnerRightContent>
+                                        </TextBox>
                                         <Button Classes="Secondary" Height="33" Padding="11,0"
                                                 Margin="0,0,6,0"
                                                 Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
@@ -914,28 +900,24 @@
                 </ComboBox>
 
                 <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                    <AutoCompleteBox Classes="Field"
+                    <AutoCompleteBox Classes="Field HasChip"
                                      ItemsSource="{Binding NameChoices}"
                                      Text="{Binding Text}"
                                      PlaceholderText="{Binding Placeholder}"
                                      MinimumPrefixLength="{Binding NamePrefix}"
-                                     FilterMode="Contains" />
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                        <Button Classes="Secondary" Height="33" Padding="11,0"
-                                IsVisible="{Binding OffersFormula}"
-                                Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnOpenExpressionBuilder" />
-                        <Button Classes="Secondary" Height="33" Padding="11,0"
-                                IsVisible="{Binding IsPath}"
-                                Content="{Binding PathButton}"
-                                ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnBrowsePath" />
-                        <Button Classes="Secondary" Height="33" Padding="11,0"
-                                Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnPickVariable" />
-                    </StackPanel>
+                                     FilterMode="Contains">
+                        <AutoCompleteBox.InnerRightContent>
+                            <!-- 一格一个入口：整值字段走公式，写名字的格子只列名字，由 OnPickVariable 自己分。 -->
+                            <Button Classes="ValueChip" Click="OnPickVariable"
+                                    Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                        </AutoCompleteBox.InnerRightContent>
+                    </AutoCompleteBox>
+                    <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                            IsVisible="{Binding IsPath}"
+                            Content="{Binding PathButton}"
+                            ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                            Click="OnBrowsePath" />
                 </Grid>
 
                 <AutoCompleteBox Classes="Field" IsVisible="{Binding IsMacro}"
@@ -957,18 +939,18 @@
                 </ContentControl>
 
                 <StackPanel IsVisible="{Binding IsExpression}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
-                        <AutoCompleteBox Classes="Field"
-                                         ItemsSource="{Binding ExpressionSuggestions}"
-                                         Text="{Binding Text}"
-                                         PlaceholderText="{Binding Placeholder}"
-                                         MinimumPrefixLength="1"
-                                         FilterMode="Contains" />
-                        <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
-                                Content="{Binding [Add.ExpressionBuilder], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.ExpressionBuilderHint], Source={x:Static loc:Strings.Current}}"
-                                Click="OnOpenExpressionBuilder" />
-                    </Grid>
+                    <AutoCompleteBox Classes="Field HasChip"
+                                     ItemsSource="{Binding ExpressionSuggestions}"
+                                     Text="{Binding Text}"
+                                     PlaceholderText="{Binding Placeholder}"
+                                     MinimumPrefixLength="1"
+                                     FilterMode="Contains">
+                        <AutoCompleteBox.InnerRightContent>
+                            <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                                    Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                        </AutoCompleteBox.InnerRightContent>
+                    </AutoCompleteBox>
                     <TextBlock Classes="Hint" Margin="2,5,0,0"
                                TextWrapping="Wrap"
                                Foreground="{DynamicResource Danger}"
@@ -1113,8 +1095,8 @@
                                 IsVisible="{Binding ShowsSecond}" />
 
                 <!-- 一个矩形的四个数一行说完：X、Y、宽、高。与"搜索区域"那一行同一个样子，
-                     四个格子都短名、框、ƒ，说明在提示里；四个完整字段并排会各带一段话，
-                     那正是要收起来的东西。 -->
+                     四个格子都短名加一个自带「取值」片的框，说明在提示里；四个完整字段并排会各带
+                     一段话，那正是要收起来的东西。 -->
                 <ContentControl Grid.Row="1" Grid.Column="0"
                                 IsVisible="{Binding IsQuad}"
                                 Content="{Binding QuadCells[0]}"
@@ -1308,14 +1290,17 @@
                                             </ComboBox.ItemTemplate>
                                         </ComboBox>
                                     </Grid>
-                                    <Grid ColumnDefinitions="130,*,Auto" ColumnSpacing="8">
+                                    <Grid ColumnDefinitions="130,*" ColumnSpacing="8">
                                         <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
-                                        <TextBox Grid.Column="1"
-                                                 Text="{Binding GlobalVariableDraft.DefaultValue}" />
-                                        <Button Grid.Column="2" Classes="Secondary"
-                                                Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
-                                                Click="OnBuildGlobalDefaultExpression" />
+                                        <TextBox Grid.Column="1" Classes="HasChip"
+                                                 Text="{Binding GlobalVariableDraft.DefaultValue}">
+                                            <TextBox.InnerRightContent>
+                                                <Button Classes="ValueChip" Click="OnBuildGlobalDefaultExpression"
+                                                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                            </TextBox.InnerRightContent>
+                                        </TextBox>
                                     </Grid>
                                     <TextBlock Margin="138,0,0,0"
                                                Text="{Binding GlobalVariableDraft.DefaultPreview}"

@@ -278,32 +278,31 @@
                 </Grid.RowDefinitions>
                 <Border Grid.Row="0" Name="VariableCenterPanel"
                         Background="{DynamicResource SurfacePanel}" CornerRadius="6"
-                        Padding="12,12,12,8">
+                        Padding="12,10,12,8">
                     <Grid RowDefinitions="Auto,*">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <StackPanel>
-                                <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
-                                           FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
-                                           Margin="4,0,0,2" />
-                                <TextBlock Classes="Hint" Text="{Binding VariableCenter.Help}"
-                                           Foreground="{DynamicResource TextTertiary}"
-                                           TextWrapping="Wrap" Margin="4,0,8,8" />
-                            </StackPanel>
-                            <!-- 两个按钮并排：这个宏自己的变量，与整个项目共享的变量。以前只有一个
-                                 「管理全局变量」，局部变量只能靠右键一个个改。 -->
+                        <!-- 两个按钮并排：这个宏自己的变量，与整个项目共享的变量。以前只有一个
+                             「管理全局变量」，局部变量只能靠右键一个个改。说明不再常驻一行——在这
+                             个 290 像素高的面板里它值三十像素，现在鼠标停在墙上方才出现。 -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                            <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
+                                       FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="4,0,0,0" />
                             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
-                                        VerticalAlignment="Top" Margin="0,0,2,0">
+                                        VerticalAlignment="Center">
                                 <Button Name="ManageLocalsButton" Classes="Secondary"
+                                        Height="28" Padding="10,0"
                                         ToolTip.Tip="{Binding [Editor.ManageLocalsHint], Source={x:Static loc:Strings.Current}}"
                                         Content="{Binding [Editor.ManageLocals], Source={x:Static loc:Strings.Current}}"
                                         Click="OnManageLocals" />
                                 <Button Name="ManageGlobalsButton" Classes="Secondary"
+                                        Height="28" Padding="10,0"
                                         ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
                                         Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
                                         Click="OnManageGlobals" />
                             </StackPanel>
                         </Grid>
                         <views:VariableWall Grid.Row="1" Name="VariableCenterWall"
+                                            ToolTip.Tip="{Binding [Editor.VariableCenterHint], Source={x:Static loc:Strings.Current}}"
                                             DataContext="{Binding VariableCenter.Wall}" />
                     </Grid>
                 </Border>
@@ -1138,7 +1137,11 @@
                                                   Content="{Binding HeadLabel}"
                                                   Click="OnEditCaseValues"
                                                   ToolTip.Tip="{Binding [Editor.CaseValuesHint], Source={x:Static loc:Strings.Current}}" />
-                                          <TextBox Name="CaseValueBox" Classes="Field" Height="24"
+                                          <!-- 一行值也是一格"写成文本、里面的 $名字 会被换掉"的字段，
+                                               所以框里那一枚「取值」和步骤表单里的同一颗做同一件事：
+                                               把名字放进光标处，或者在挑选窗口里改写成表达式。
+                                               片不吃焦点（Focusable=False）：按下它时编辑框不该关掉。 -->
+                                          <TextBox Name="CaseValueBox" Classes="Field HasChip" Height="24"
                                                    MinWidth="200" MaxWidth="420"
                                                    IsVisible="{Binding IsEditingValues}"
                                                    Text="{Binding CaseValuesText, Mode=TwoWay}"
@@ -1146,16 +1149,14 @@
                                                    AttachedToVisualTree="OnCaseValueBoxAttached"
                                                    KeyDown="OnCaseValuesKeyDown"
                                                    LostFocus="OnCaseValuesLostFocus"
-                                                   ToolTip.Tip="{Binding [Editor.CaseValuesHint], Source={x:Static loc:Strings.Current}}" />
-                                          <!-- 一行值也是一格"写成文本、里面的 $名字 会被换掉"的字段，
-                                               所以旁边那一枚「变量」和步骤表单里的同一颗按钮做同一件事：
-                                               把名字放进光标处，或者在挑选窗口里改写成表达式。
-                                               按钮不吃焦点（Focusable=False）：按下它时编辑框不该关掉。 -->
-                                          <Button Classes="Secondary Chip Dense" Focusable="False"
-                                                  IsVisible="{Binding IsEditingValues}"
-                                                  Content="{Binding [Add.VariablePicker], Source={x:Static loc:Strings.Current}}"
-                                                  ToolTip.Tip="{Binding [Add.VariablePickerHint], Source={x:Static loc:Strings.Current}}"
-                                                  Click="OnPickCaseValuesVariable" />
+                                                   ToolTip.Tip="{Binding [Editor.CaseValuesHint], Source={x:Static loc:Strings.Current}}">
+                                              <TextBox.InnerRightContent>
+                                                  <Button Classes="ValueChip" Focusable="False"
+                                                          Click="OnPickCaseValuesVariable"
+                                                          Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                                          ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                              </TextBox.InnerRightContent>
+                                          </TextBox>
                                           <!-- 值后面断开一下：'值 1, 2' 和 '1 个步骤' 挨在一起时会读成
                                                '值 1, 21 个步骤'。普通分节也用同一个断点：'其他情况 · 0 个步骤'
                                                与分支行读起来才是同一张表的两行。 -->

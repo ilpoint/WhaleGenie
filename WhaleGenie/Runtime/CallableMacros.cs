@@ -40,7 +40,8 @@ public static class CallableMacros
         =>
         [
             .. Pieces(macros).Select(piece =>
-                new MacroCallable(piece.Name, piece.Macro.Parameters, piece.Macro.Results)),
+                new MacroCallable(piece.Name, piece.Macro.Parameters, piece.Macro.Results,
+                    Locals: piece.Macro.Locals)),
         ];
 
     /// <summary>One macro, then every submacro it holds, with the path that names each one.</summary>

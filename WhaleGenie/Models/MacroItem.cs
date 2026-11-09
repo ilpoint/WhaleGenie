@@ -326,8 +326,15 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     /// </summary>
     public List<MacroResult> Results { get; } = [];
 
+    /// <summary>
+    /// The values this macro keeps for itself and starts every run with. A local variable used to
+    /// exist only because a step wrote one; declaring it here lets a macro say where a count starts
+    /// and be read back that way.
+    /// </summary>
+    public List<MacroLocalVariable> Locals { get; } = [];
+
     /// <summary>What this macro asks of a call to it, read by the editor, the check and the engine.</summary>
-    public MacroCallable Callable => new(Name, Parameters, Results, Steps);
+    public MacroCallable Callable => new(Name, Parameters, Results, Steps, Locals);
 
     /// <summary>Names of the variables this macro creates for itself.</summary>
     public IReadOnlyList<string> LocalVariableNames()
@@ -353,6 +360,17 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         foreach (var result in Results)
         {
             var name = result.Name.Trim();
+            if (VariableText.IsName(name))
+            {
+                names.Add(name);
+            }
+        }
+
+        // A declared local is a value of this macro exactly like a parameter is: the runtime puts
+        // it into the macro's own table before the first step, so the pickers should offer it.
+        foreach (var local in Locals)
+        {
+            var name = local.Name.Trim();
             if (VariableText.IsName(name))
             {
                 names.Add(name);
@@ -423,6 +441,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             },
             ["arguments"] = ArgumentsJson(),
             ["returns"] = ResultsJson(),
+            [FieldNames.Locals] = LocalsJson(),
             ["steps"] = steps,
             [FieldNames.SubMacros] = SubMacrosJson(),
         };
@@ -468,6 +487,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             [FieldNames.Description] = Description,
             ["arguments"] = ArgumentsJson(),
             ["returns"] = ResultsJson(),
+            [FieldNames.Locals] = LocalsJson(),
             ["steps"] = steps,
         };
 
@@ -550,6 +570,29 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             }
 
             array.Add(written);
+        }
+
+        return array;
+    }
+
+    /// <summary>
+    /// The values the macro keeps for itself. Written the way the other declarations are, with
+    /// <c>initial</c> rather than <c>default</c>: the runtime writes it at the start of every run
+    /// instead of falling back to it when the name is missing.
+    /// </summary>
+    private JsonArray LocalsJson()
+    {
+        var array = new JsonArray();
+        foreach (var local in Locals)
+        {
+            // See ArgumentsJson: an empty row is an unfinished declaration, not something to drop.
+            array.Add(new JsonObject
+            {
+                ["name"] = local.Name.Trim(),
+                ["type"] = local.Type.ToString(),
+                ["initial"] = local.Initial,
+                [FieldNames.Description] = local.Description,
+            });
         }
 
         return array;
@@ -665,6 +708,21 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
                     Fields = ReadFields(declared),
+                });
+            }
+        }
+
+        if (node[FieldNames.Locals] is JsonArray locals)
+        {
+            foreach (var declared in locals.OfType<JsonObject>())
+            {
+                macro.Locals.Add(new MacroLocalVariable
+                {
+                    Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
+                    Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                    Initial = declared["initial"]?.GetValue<string>() ?? string.Empty,
+                    Description = declared[FieldNames.Description]?.GetValue<string>()
+                        ?? string.Empty,
                 });
             }
         }

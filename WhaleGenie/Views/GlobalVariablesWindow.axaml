@@ -154,35 +154,40 @@
                                     </ComboBox>
                                 </Grid>
 
-                                <Grid ColumnDefinitions="170,*,Auto" ColumnSpacing="10">
+                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
                                     <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
-                                        <TextBox Name="DefaultValueBox" Text="{Binding Editor.DefaultValue}"
-                                                 PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBox Name="DefaultValueBox" Classes="HasChip"
+                                                 Text="{Binding Editor.DefaultValue}"
+                                                 PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}">
+                                            <TextBox.InnerRightContent>
+                                                <Button Classes="ValueChip"
+                                                        Command="{Binding BuildDefaultExpressionCommand}"
+                                                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                            </TextBox.InnerRightContent>
+                                        </TextBox>
                                         <TextBlock Classes="Hint" Text="{Binding Editor.DefaultPreview}"
                                                    IsVisible="{Binding !Editor.HasDefaultProblem}" />
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.DefaultProblem}"
                                                    IsVisible="{Binding Editor.HasDefaultProblem}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
-                                            Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
-                                            Command="{Binding BuildDefaultExpressionCommand}" />
                                 </Grid>
 
-                                <Grid ColumnDefinitions="170,*,Auto" ColumnSpacing="10">
+                                <!-- 当前值由运行写入，这里只读：设计期算不出运行期的值，装成能算的
+                                     样子只会让人以为改了就生效。 -->
+                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
                                     <TextBlock Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
-                                        <TextBox Name="CurrentValueBox" Text="{Binding Editor.CurrentValue}" />
-                                        <TextBlock Classes="Hint" Text="{Binding Editor.CurrentPreview}"
-                                                   IsVisible="{Binding !Editor.HasCurrentProblem}" />
-                                        <TextBlock Classes="FieldProblem" Text="{Binding Editor.CurrentProblem}"
-                                                   IsVisible="{Binding Editor.HasCurrentProblem}" />
+                                        <SelectableTextBlock Name="CurrentValueBox"
+                                                             Text="{Binding Editor.CurrentValue}"
+                                                             FontFamily="Consolas" TextWrapping="Wrap"
+                                                             Foreground="{DynamicResource TextSecondary}" />
+                                        <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                                   Text="{Binding [GlobalVariables.CurrentHint], Source={x:Static loc:Strings.Current}}" />
                                     </StackPanel>
-                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
-                                            Content="{Binding [GlobalVariables.UseCurrentExpression], Source={x:Static loc:Strings.Current}}"
-                                            Command="{Binding BuildCurrentExpressionCommand}" />
                                 </Grid>
 
                                 <Grid ColumnDefinitions="170,*" ColumnSpacing="10">

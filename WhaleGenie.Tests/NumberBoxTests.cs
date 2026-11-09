@@ -15,18 +15,18 @@ namespace WhaleGenie.Tests;
 /// <summary>
 /// The number boxes, and the rows they are laid out in. A row of several numbers with their labels
 /// is the widest thing the add-action page holds, and the window may be as narrow as 900, so what
-/// is checked here is that the spin buttons stay small and that a row wraps rather than running
-/// under the buttons beside it.
+/// is checked here is that no number box carries spin buttons of its own, that its chip sits inside
+/// it, and that a row wraps rather than running under the buttons beside it.
 /// </summary>
 public class NumberBoxTests
 {
-    /// <summary>The two buttons a number box puts beside its digits, by the names the theme uses.</summary>
+    /// <summary>The two buttons a number box used to put beside its digits, by the names the theme uses.</summary>
     private static IReadOnlyList<Button> Spinners(FANumberBox box)
         => [.. box.GetVisualDescendants().OfType<Button>().Where(button =>
             button.Name is "UpSpinButton" or "DownSpinButton")];
 
     [Fact]
-    public void A_number_box_keeps_its_spin_buttons_out_of_the_text_row()
+    public void A_number_box_has_no_spin_buttons_of_its_own()
     {
         Ui.Run(() =>
         {
@@ -40,12 +40,51 @@ public class NumberBoxTests
 
             foreach (var box in boxes)
             {
-                // The buttons belong to a popup that opens when the field is focused. In a row of
-                // four numbers they used to sit inside the field itself, squeezed to 16×15 by hand
-                // because the theme's buttons did not fit — this is the theme saying it for us.
-                Assert.Equal(FANumberBoxSpinButtonPlacementMode.Compact, box.SpinButtonPlacementMode);
+                // The right edge of the box is where the「取值」chip now sits. A pair of buttons
+                // there — folded into a flyout or not — would open over the chip and the digits.
+                Assert.Equal(FANumberBoxSpinButtonPlacementMode.Hidden, box.SpinButtonPlacementMode);
                 Assert.All(Spinners(box), spinner => Assert.False(spinner.IsEffectivelyVisible));
             }
+        });
+    }
+
+    /// <summary>
+    /// The chip belongs to the box it answers for. Beside the field, a row of four numbers leaves
+    /// the reader to work out which one it belongs to — the same reason every other field keeps its
+    /// own inside.
+    /// </summary>
+    [Fact]
+    public void A_number_field_carries_its_chip_inside_the_box()
+    {
+        Ui.Run(() =>
+        {
+            var window = Open("control.delay");
+            var ms = Parameter(window, "ms");
+
+            var box = window.GetVisualDescendants().OfType<FANumberBox>()
+                .First(one => ReferenceEquals(one.DataContext, ms));
+            var chip = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.Classes.Contains("ValueChip")
+                    && ReferenceEquals(button.DataContext, ms));
+
+            Assert.True(chip.IsEffectivelyVisible, "the number field has no chip");
+            var corner = chip.TranslatePoint(default, box)!.Value;
+            Assert.True(corner.X > 0, $"the chip starts at {corner.X:0.#}, left of the box");
+            Assert.True(corner.X + chip.Bounds.Width <= box.Bounds.Width + 0.5,
+                $"the chip ends at {corner.X + chip.Bounds.Width:0.#} in a {box.Bounds.Width:0.#} wide box");
+
+            // And the digits stop before it rather than running underneath: the box's own template
+            // has no slot on the right, so the room is made by the inner box's padding.
+            var input = box.GetVisualDescendants().OfType<TextBox>()
+                .First(one => one.Name == "InputBox");
+            Assert.True(input.Padding.Right >= chip.Bounds.Width,
+                $"the text stops {input.Padding.Right:0.#} from the edge and the chip is "
+                + $"{chip.Bounds.Width:0.#} wide");
+
+            // The two share a cell, so the chip is drawn above the box only because it comes later.
+            var cell = Assert.IsType<Grid>(chip.Parent);
+            Assert.True(cell.Children.IndexOf(chip) > cell.Children.IndexOf(box),
+                "the chip is under the box it answers for");
         });
     }
 

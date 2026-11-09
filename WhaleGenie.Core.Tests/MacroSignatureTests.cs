@@ -11,10 +11,10 @@ namespace WhaleGenie.Core.Tests;
 public class MacroSignatureTests
 {
     private static MacroSignature Signature(params MacroArgument[] arguments)
-        => new(arguments, []);
+        => new(arguments, [], []);
 
     private static MacroSignature WithResult(params MacroReturn[] results)
-        => new([], results);
+        => new([], results, []);
 
     [Theory]
     [InlineData("有 空格")]
@@ -83,7 +83,7 @@ public class MacroSignatureTests
         // The same name on both sides is an in-out value: the call hands it in and takes it back.
         var problems = new MacroSignature(
             [new MacroArgument("n", string.Empty, false)],
-            [new MacroReturn("n")]).Problems();
+            [new MacroReturn("n")], []).Problems();
 
         Assert.Empty(problems);
     }

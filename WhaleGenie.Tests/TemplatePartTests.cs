@@ -9,6 +9,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using FluentAvalonia.UI.Controls;
 
 namespace WhaleGenie.Tests;
 
@@ -87,6 +88,8 @@ public class TemplatePartTests
         ("TreeViewItem", "", "Grid#PART_Header"),
         ("TreeViewItem", "", "ToggleButton#PART_ExpandCollapseChevron"),
         ("ScrollViewer", "VarWallScroll", "ScrollBar#PART_VerticalScrollBar"),
+        // 数字框的右端：带片的那一档把内层输入框的右内边距让出来（模板没有内嵌右内容的位置）。
+        ("fa|FANumberBox", "HasChip", "TextBox#InputBox"),
     ];
 
     /// <summary>
@@ -322,6 +325,8 @@ public class TemplatePartTests
         "GridSplitter" => new GridSplitter(),
         // 单选卡：模板整份重写过，卡、圆点、圆心里的小点都是它自己的部件。
         "RadioButton" => new RadioButton { Content = "x" },
+        // 数字框：模板来自 FluentAvalonia，内层输入框的名字就是 `InputBox`。
+        "fa|FANumberBox" => new FANumberBox { Width = 200 },
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "no probe for this host"),
     };
 

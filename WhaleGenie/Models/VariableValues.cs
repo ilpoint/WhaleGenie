@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
@@ -122,11 +123,10 @@ public static class VariableValues
         }
     }
 
-    private static Value Empty(string type) => type switch
-    {
-        "number" => Value.FromNumber(0),
-        "bool" => Value.FromBool(false),
-        "list" => Value.FromList([]),
-        _ => Value.FromText(string.Empty),
-    };
+    /// <summary>
+    /// What a declaration of this kind holds when nothing was written for it. The run and the
+    /// editor's preview read it from the same place, so a preview cannot promise a number where the
+    /// run starts from an empty value.
+    /// </summary>
+    private static Value Empty(string type) => MacroValues.Empty(ActionReturn.TypeOf(type));
 }
