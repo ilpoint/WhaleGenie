@@ -11,6 +11,12 @@ public enum WheelGestureAction
     Cancel,
     Repeat,
     Move,
+
+    /// <summary>
+    /// The press was taken and the wheel never opened: it was an ordinary click after all, and the
+    /// caller has to send it again so the application sees the one it never received.
+    /// </summary>
+    Replay,
 }
 
 /// <summary>What one hook event asks the wheel to do.</summary>
@@ -18,15 +24,20 @@ public readonly record struct WheelGestureEvent(
     WheelGestureAction Action,
     double X = 0,
     double Y = 0,
-    WheelSlotRef? Slot = null);
+    WheelSlotRef? Slot = null,
+    bool Swallow = false);
 
 /// <summary>
 /// The Quicker gesture: hold the trigger button, move the pointer, release over a direction.
-/// A press with no movement is deliberately left completely alone — the trigger service never
-/// yields the button and no input is swallowed, so a short right click still opens the ordinary
-/// system context menu. Only the release that ends an open wheel is swallowed, and only because
-/// Windows would otherwise put that context menu on top of the wheel.
 /// </summary>
+/// <remarks>
+/// The button belongs to the wheel from the moment it goes down until it comes back up, and both
+/// events are kept from the rest of the system. That is not a detail: a right button that reaches
+/// the window under the pointer makes it draw a selection of its own while the person is aiming,
+/// and releases into its context menu instead of the sector that was chosen. Nothing is lost by
+/// taking it, because a press that never opened the wheel is answered with <see cref="WheelGestureAction.Replay"/>,
+/// which sends the same click once the button is up.
+/// </remarks>
 public sealed class WheelGesture
 {
     /// <summary>Enough movement to tell an intentional swipe from a hand resting on the mouse.</summary>
@@ -47,6 +58,13 @@ public sealed class WheelGesture
     private WheelMetrics? _metrics;
     private WheelSlotRef? _hover;
 
+    /// <summary>
+    /// The button this gesture took from the system and still owes an answer for. It outlives the
+    /// wheel state on purpose: after Escape or a timeout the press is still held down, and its
+    /// release must not reach the application either.
+    /// </summary>
+    private string _owned = string.Empty;
+
     public WheelGesture(Func<string> triggerKey, Func<string> repeatKey, Func<bool> enabled)
     {
         _triggerKey = triggerKey;
@@ -59,27 +77,31 @@ public sealed class WheelGesture
     public bool IsPending => _state == State.Pending;
 
     /// <summary>
-    /// A press only starts waiting. It returns None and never asks for the event to be suppressed:
-    /// from the operating system's point of view this is still an ordinary button press.
+    /// A press that names the trigger button is taken: the state waits for a movement to decide
+    /// whether this is a swipe or a click. The press itself is swallowed, so nothing under the
+    /// pointer acts on a button whose only job so far is to be held.
     /// </summary>
     public WheelGestureEvent Down(string binding, double x, double y)
     {
-        if (_state == State.Pending)
+        // A second press of the same button is a new gesture (the release was lost); any other
+        // button belongs to the application and must not cancel the one being held.
+        if (_state == State.Pending && Same(binding, _held))
         {
             Reset();
         }
 
-        if (_state != State.Idle || !_enabled() || !Same(binding, _triggerKey()))
+        if (_state != State.Idle || !Same(binding, _triggerKey()) || !_enabled())
         {
             return new WheelGestureEvent(WheelGestureAction.None);
         }
 
         _state = State.Pending;
         _held = binding;
+        _owned = binding;
         _startX = x;
         _startY = y;
         _hover = null;
-        return new WheelGestureEvent(WheelGestureAction.None);
+        return new WheelGestureEvent(WheelGestureAction.None, Swallow: true);
     }
 
     public WheelGestureEvent Move(double x, double y)
@@ -99,39 +121,39 @@ public sealed class WheelGesture
 
     public WheelGestureEvent Up(string binding, double x, double y)
     {
-        if (_state == State.Idle || !Same(binding, _held))
+        // A release this gesture does not own belongs to the application: a middle click over an
+        // open wheel, for instance, is still a middle click.
+        if (_owned.Length == 0 || !Same(binding, _owned))
         {
             return new WheelGestureEvent(WheelGestureAction.None);
         }
 
+        _owned = string.Empty;
         var wasOpen = _state == State.Open;
+        var wasPending = _state == State.Pending;
         var metrics = _metrics;
         var centreX = _centerX;
         var centreY = _centerY;
-        var hover = _hover;
         Reset();
 
-        // A short press is nothing at all: the button was never suppressed, so the system handles it.
-        if (!wasOpen)
+        // The press never reached the application, so a release that opened nothing has to hand
+        // it back as the click it turned out to be.
+        if (wasPending)
         {
-            return new WheelGestureEvent(WheelGestureAction.None);
+            return new WheelGestureEvent(WheelGestureAction.Replay, x, y, Swallow: true);
         }
 
-        if (metrics is null)
+        // Escape and the timeout end the wheel before the button comes up; the release still has
+        // to be swallowed, and it has nothing left to answer.
+        if (!wasOpen || metrics is null)
         {
-            return new WheelGestureEvent(WheelGestureAction.Cancel, x, y);
+            return new WheelGestureEvent(WheelGestureAction.None, Swallow: true);
         }
 
         var aimed = WheelGeometry.At(x - centreX, y - centreY, metrics);
-        // A parent's children are fanned out past the wheel; releasing while the pointer is still
-        // in that direction picks the child that was being aimed at, not the parent underneath it.
-        var chosen = hover is { IsSub: true } sub && aimed is not null
-                     && sub.Parent == aimed.Value.Parent
-            ? sub
-            : aimed;
-        return chosen is { } picked
-            ? new WheelGestureEvent(WheelGestureAction.Select, x, y, picked)
-            : new WheelGestureEvent(WheelGestureAction.Cancel, x, y);
+        return aimed is { } picked
+            ? new WheelGestureEvent(WheelGestureAction.Select, x, y, picked, Swallow: true)
+            : new WheelGestureEvent(WheelGestureAction.Cancel, x, y, Swallow: true);
     }
 
     public WheelGestureEvent Key(string name)

@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
-using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -30,9 +31,8 @@ public sealed class WheelMenuEditorView : UserControl
     private readonly Canvas _labels;
     private readonly TextBlock _centre;
     private readonly TextBlock _problem;
-    private readonly TextBox _noteBox;
+    private readonly MenuIconPicture _icons = new();
     private WheelSlotRef? _hover;
-    private bool _syncingNote;
 
     public WheelMenuEditorView(SettingsViewModel viewModel, Window owner)
     {
@@ -43,13 +43,16 @@ public sealed class WheelMenuEditorView : UserControl
         _sceneList = new ListBox
         {
             Width = 196,
-            Height = 300,
+            Height = 200,
             Classes = { "List" },
             ItemsSource = viewModel.WheelScenes,
-            ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<WheelSceneRow>((row, _) =>
+            // Refreshing the list clears it and adds the rows again, and a container that is being
+            // recycled is asked to build with nothing in it. Reading the row through the template
+            // parameter without this guard crashed the settings window on every added scene.
+            ItemTemplate = new FuncDataTemplate<WheelSceneRow>((row, _) =>
                 new TextBlock
                 {
-                    Text = row.Summary,
+                    Text = row?.Summary ?? string.Empty,
                     FontSize = 12.5,
                     TextTrimming = TextTrimming.CharacterEllipsis,
                 }),
@@ -80,10 +83,8 @@ public sealed class WheelMenuEditorView : UserControl
         wheel.PointerExited += (_, _) =>
         {
             _hover = null;
-            SyncNote();
             Redraw();
         };
-
         _problem = new TextBlock
         {
             Classes = { "Hint" },
@@ -94,55 +95,43 @@ public sealed class WheelMenuEditorView : UserControl
 
         var sceneButtons = new StackPanel
         {
-            Orientation = Orientation.Horizontal,
             Spacing = 6,
             Margin = new Thickness(0, 8, 0, 0),
             Children =
             {
-                ActionButton("Wheel.SceneAdd", OnAddScene),
-                ActionButton("Wheel.SceneEdit", OnEditScene),
-                ActionButton("Wheel.SceneRemove", OnRemoveScene),
-                ActionButton("Wheel.SceneUp", OnMoveUp),
-                ActionButton("Wheel.SceneDown", OnMoveDown),
-            },
-        };
-
-        var left = new StackPanel
-        {
-            Spacing = 4,
-            Children =
-            {
-                new TextBlock { Classes = { "FieldLabel" }, Text = Strings.Get("Wheel.Scenes") },
-                _sceneList,
-                sceneButtons,
-            },
-        };
-        _noteBox = new TextBox
-        {
-            Width = Diameter,
-            FontSize = 12,
-            PlaceholderText = Strings.Get("Wheel.NoteWatermark"),
-        };
-        _noteBox.LostFocus += OnNoteCommitted;
-
-        var slotTools = new StackPanel
-        {
-            Spacing = 6,
-            Children =
-            {
-                new TextBlock { Classes = { "Hint" }, Text = Strings.Get("Wheel.SlotHint") },
-                _noteBox,
                 new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
                     Spacing = 6,
                     Children =
                     {
-                        ActionButton("Wheel.PickIcon", OnPickIcon),
-                        ActionButton("Wheel.AddChild", OnAddChild),
-                        ActionButton("Wheel.ClearChildren", OnClearChildren),
+                        ActionButton("Wheel.SceneAdd", OnAddScene),
+                        ActionButton("Wheel.SceneEdit", OnEditScene),
+                        ActionButton("Wheel.SceneRemove", OnRemoveScene),
                     },
                 },
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 6,
+                    Children =
+                    {
+                        ActionButton("Wheel.SceneUp", OnMoveUp),
+                        ActionButton("Wheel.SceneDown", OnMoveDown),
+                    },
+                },
+            },
+        };
+
+        var left = new StackPanel
+        {
+            Spacing = 4,
+            Width = 196,
+            Children =
+            {
+                new TextBlock { Classes = { "FieldLabel" }, Text = Strings.Get("Wheel.Scenes") },
+                _sceneList,
+                sceneButtons,
             },
         };
 
@@ -160,7 +149,13 @@ public sealed class WheelMenuEditorView : UserControl
                     Text = Strings.Get("Wheel.EditorHint"),
                 },
                 wheel,
-                slotTools,
+                new TextBlock
+                {
+                    Classes = { "Hint" },
+                    MaxWidth = Diameter,
+                    TextWrapping = TextWrapping.Wrap,
+                    Text = Strings.Get("Wheel.SlotHint"),
+                },
                 Legend(),
                 _problem,
             },
@@ -184,6 +179,7 @@ public sealed class WheelMenuEditorView : UserControl
                 Redraw();
             }
         };
+        DetachedFromVisualTree += (_, _) => _icons.Dispose();
         SyncSelection();
         Redraw();
     }
@@ -274,6 +270,7 @@ public sealed class WheelMenuEditorView : UserControl
                 var name = ownAction ? own.Label
                     : inheritedAction ? inherited.Label
                     : string.Empty;
+                var painted = ownAction ? own : inheritedAction ? inherited : null;
                 var tone = ring == WheelRing.Extended ? WheelPaintTone.Extended
                     : ownAction ? (scene.IsGlobal
                         ? WheelPaintTone.Global
@@ -282,7 +279,11 @@ public sealed class WheelMenuEditorView : UserControl
                     : WheelPaintTone.Empty;
                 items.Add(new WheelPaintSlot(reference, name, tone, _hover == reference));
 
-                if (name.Length == 0)
+                var picture = painted?.Icon is { IsEmpty: false } icon
+                    ? _icons.Create(icon, 15, ThemeBrush.Of(
+                        inheritedAction ? "TextTertiary" : "TextPrimary") ?? Brushes.Black)
+                    : null;
+                if (name.Length == 0 && picture is null)
                 {
                     continue;
                 }
@@ -290,22 +291,40 @@ public sealed class WheelMenuEditorView : UserControl
                 var narrow = ring == WheelRing.Third
                     || ring == WheelRing.Outer && _viewModel.WideOuter;
                 var width = Math.Max(38, Diameter * (narrow ? 0.13 : 0.18));
-                var label = new TextBlock
+                var content = new StackPanel
                 {
-                    Text = inheritedAction
-                        ? Strings.Format("Wheel.Inherited", name)
-                        : name,
                     Width = width,
-                    FontSize = 10.5,
-                    Foreground = ThemeBrush.Of(inheritedAction ? "TextTertiary" : "TextPrimary"),
-                    TextAlignment = TextAlignment.Center,
-                    TextWrapping = TextWrapping.Wrap,
-                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    Spacing = 1,
+                    HorizontalAlignment = HorizontalAlignment.Center,
                 };
+                if (picture is not null)
+                {
+                    picture.HorizontalAlignment = HorizontalAlignment.Center;
+                    content.Children.Add(picture);
+                }
+
+                if (name.Length > 0)
+                {
+                    content.Children.Add(new TextBlock
+                    {
+                        Text = inheritedAction
+                            ? Strings.Format("Wheel.Inherited", name)
+                            : name,
+                        Width = width,
+                        FontSize = 10.5,
+                        Foreground = ThemeBrush.Of(
+                            inheritedAction ? "TextTertiary" : "TextPrimary"),
+                        TextAlignment = TextAlignment.Center,
+                        TextWrapping = TextWrapping.Wrap,
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                    });
+                }
+
+                var height = (picture is null ? 0 : 17) + 10.5 * 1.4;
                 var (x, y) = WheelGeometry.LabelAt(reference, metrics, Diameter);
-                Canvas.SetLeft(label, Diameter / 2 + x - width / 2);
-                Canvas.SetTop(label, Diameter / 2 + y - 8);
-                _labels.Children.Add(label);
+                Canvas.SetLeft(content, Diameter / 2 + x - width / 2);
+                Canvas.SetTop(content, Diameter / 2 + y - height / 2);
+                _labels.Children.Add(content);
             }
         }
 
@@ -323,62 +342,7 @@ public sealed class WheelMenuEditorView : UserControl
         }
 
         _hover = next;
-        SyncNote();
         Redraw();
-    }
-
-    private void SyncNote()
-    {
-        _syncingNote = true;
-        _noteBox.Text = _hover is { } chosen && _viewModel.EditingWheelScene is { } scene
-            ? scene.At(chosen).Note
-            : string.Empty;
-        _syncingNote = false;
-    }
-
-    private void OnNoteCommitted(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (_syncingNote || _hover is not { } chosen)
-        {
-            return;
-        }
-
-        _viewModel.SetWheelNote(chosen, _noteBox.Text);
-        Redraw();
-    }
-
-    private async void OnPickIcon(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (_hover is { } chosen
-            && await MenuIconPickerWindow.ShowAsync(_owner) is { } icon)
-        {
-            _viewModel.SetWheelIcon(chosen, icon);
-            Redraw();
-        }
-    }
-
-    private async void OnAddChild(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (_hover is not { } chosen)
-        {
-            return;
-        }
-
-        var macros = _viewModel.Project?.Macros.ToList() ?? [];
-        if (await MenuMacroPickerWindow.ShowAsync(_owner, macros) is { } macro)
-        {
-            _viewModel.AddWheelChild(chosen, macro.Name);
-            Redraw();
-        }
-    }
-
-    private void OnClearChildren(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (_hover is { } chosen)
-        {
-            _viewModel.ClearWheelChildren(chosen);
-            Redraw();
-        }
     }
 
     private async void OnWheelPressed(object? sender, PointerPressedEventArgs e)
@@ -392,7 +356,7 @@ public sealed class WheelMenuEditorView : UserControl
         var point = e.GetCurrentPoint(this).Properties;
         if (point.IsRightButtonPressed)
         {
-            Clear(chosen);
+            await EditActionAsync(chosen);
             return;
         }
 
@@ -409,10 +373,34 @@ public sealed class WheelMenuEditorView : UserControl
         }
     }
 
-    private void Clear(WheelSlotRef reference)
+    private async Task EditActionAsync(WheelSlotRef reference)
     {
-        _viewModel.SetWheelSlot(reference, null);
-        Redraw();
+        if (_viewModel.WheelSlotForEdit(reference) is not { } slot)
+        {
+            return;
+        }
+
+        var macros = _viewModel.Project?.Macros.ToList() ?? [];
+        var edited = await WheelActionWindow.ShowAsync(_owner, slot, macros,
+            PositionName(reference), _viewModel.IsWheelSlotInherited(reference),
+            _viewModel.Project?.CurrentPath);
+        if (edited is not null)
+        {
+            _viewModel.SetWheelAction(reference, edited);
+            Redraw();
+        }
+    }
+
+    private static string PositionName(WheelSlotRef reference)
+    {
+        var ring = reference.Ring switch
+        {
+            WheelRing.Inner => Strings.Get("Wheel.RingInner"),
+            WheelRing.Outer => Strings.Get("Wheel.RingOuter"),
+            WheelRing.Third => Strings.Get("Wheel.RingThird"),
+            _ => Strings.Get("Wheel.RingExtended"),
+        };
+        return Strings.Format("Wheel.ActionPosition", ring, reference.Index + 1);
     }
 
     private WheelSlotRef? Hit(Point point) => WheelGeometry.At(

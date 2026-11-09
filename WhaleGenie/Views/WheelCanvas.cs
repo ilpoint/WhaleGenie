@@ -58,22 +58,22 @@ public sealed class WheelCanvas : Control
 
     private Point? _aim;
     private bool _aimExtended;
-    private IReadOnlyList<WheelPaintSlot> _subActions = [];
-    private double _subAngle;
+
+    /// <summary>
+    /// Sector shapes by position and count. A wheel redraws on every change of direction, and the
+    /// shape of a sector only changes when the wheel's size or its rings do; building forty-eight
+    /// closed paths per frame was most of what a fast pointer cost.
+    /// </summary>
+    private readonly Dictionary<(WheelRing Ring, int Index, int Count), Geometry> _sectors = [];
+    private WheelMetrics _sectorMetrics = WheelGeometry.For(1, false);
+    private double _sectorDiameter;
+    private double _sectorSize;
 
     public WheelPaintStyle Style { get; private set; } = new();
 
     public void SetStyle(WheelPaintStyle style)
     {
         Style = style;
-        InvalidateVisual();
-    }
-
-    /// <summary>Sub-actions fanned out beyond the wheel in the direction of their parent.</summary>
-    public void SetSubActions(IReadOnlyList<WheelPaintSlot> items, double parentAngle)
-    {
-        _subActions = items;
-        _subAngle = parentAngle;
         InvalidateVisual();
     }
 
@@ -85,6 +85,17 @@ public sealed class WheelCanvas : Control
         Metrics = WheelGeometry.For(diameter, wideOuter, thirdCapacity, rings);
         Items = items;
         ShowExtendedBand = showExtendedBand;
+
+        // The cached sectors are drawn in this canvas' own coordinates, so they only survive while
+        // the wheel keeps the same size and the same rings.
+        if (Metrics != _sectorMetrics || Diameter != _sectorDiameter || Size != _sectorSize)
+        {
+            _sectors.Clear();
+            _sectorMetrics = Metrics;
+            _sectorDiameter = Diameter;
+            _sectorSize = Size;
+        }
+
         InvalidateVisual();
     }
 
@@ -160,6 +171,11 @@ public sealed class WheelCanvas : Control
         var warning = Brush("Warning", theme, Accent, Accent);
         var warningSurface = Brush("WarningSurface", theme, DarkCard, LightField);
         var outline = new Pen(border, 1);
+        var sectorPen = new Pen(border, 0.8);
+        var hoverPen = new Pen(warning, Style.HoverBorder ? 2.5 : 0.8);
+        var glowPen = Style.HoverBorder && warning is SolidColorBrush solid
+            ? new Pen(new SolidColorBrush(solid.Color) { Opacity = 0.22 }, 7)
+            : null;
 
         context.DrawEllipse(surface, outline,
             new Point(centre, centre), Metrics.Edge, Metrics.Edge);
@@ -200,21 +216,16 @@ public sealed class WheelCanvas : Control
                 continue;
             }
 
-            var (from, to) = RadiiOf(item.Reference.Ring);
             var fill = FillOf(item.Tone, item.Highlighted, surface, field, card, warningSurface);
-            var pen = new Pen(item.Highlighted ? warning : border,
-                item.Highlighted && Style.HoverBorder ? 2.5 : 0.8);
-            var shape = Sector(centre, from, to, item.Reference.Index, count);
+            var pen = item.Highlighted ? hoverPen : sectorPen;
+            var shape = SectorFor(item.Reference, count);
             context.DrawGeometry(fill, pen, shape);
 
-            if (item.Highlighted && Style.HoverBorder)
+            if (item.Highlighted && glowPen is not null)
             {
-                var glow = new SolidColorBrush(((SolidColorBrush)warning).Color) { Opacity = 0.22 };
-                context.DrawGeometry(null, new Pen(glow, 7), shape);
+                context.DrawGeometry(null, glowPen, shape);
             }
         }
-
-        DrawSubActions(context, centre, warning, card, border, theme);
 
         if (Style.ShowGuide && _aim is { } pointer)
         {
@@ -224,42 +235,6 @@ public sealed class WheelCanvas : Control
         // The centre circle is the cancel region: releasing here runs nothing.
         context.DrawEllipse(card, outline,
             new Point(centre, centre), Metrics.Center, Metrics.Center);
-    }
-
-    private void DrawSubActions(DrawingContext context, double centre, IBrush warning,
-        IBrush card, IBrush border, bool theme)
-    {
-        if (_subActions.Count == 0)
-        {
-            return;
-        }
-
-        var inner = Metrics.Edge + 10;
-        var outer = Metrics.Edge + 68;
-        var step = WheelGeometry.SubSpread / _subActions.Count;
-        var text = Brush("TextPrimary", theme, Brushes.White, Brushes.Black);
-        for (var index = 0; index < _subActions.Count; index++)
-        {
-            var from = _subAngle - WheelGeometry.SubSpread / 2 + index * step;
-            var to = from + step;
-            var item = _subActions[index];
-            context.DrawGeometry(
-                item.Highlighted ? warning : card,
-                new Pen(border, item.Highlighted ? 2 : 1),
-                Band(centre, inner, outer, from, to));
-
-            if (item.Label.Trim().Length == 0)
-            {
-                continue;
-            }
-
-            var point = PointAt(centre, (inner + outer) / 2, (from + to) / 2);
-            var label = item.Label.Length > 8 ? item.Label[..8] : item.Label;
-            var formatted = new FormattedText(label, CultureInfo.CurrentUICulture,
-                FlowDirection.LeftToRight, new Typeface(FontFamily.Default), 10, text);
-            context.DrawText(formatted,
-                new Point(point.X - formatted.Width / 2, point.Y - formatted.Height / 2));
-        }
     }
 
     /// <summary>
@@ -316,24 +291,19 @@ public sealed class WheelCanvas : Control
         };
     }
 
-    /// <summary>A piece of a band between two angles, used by the fanned-out sub-actions.</summary>
-    private static Geometry Band(double centre, double from, double to, double start, double end)
+    /// <summary>The shape of one position, built once for the size and rings it is drawn at.</summary>
+    private Geometry SectorFor(WheelSlotRef reference, int count)
     {
-        var geometry = new StreamGeometry();
-        using var path = geometry.Open();
-        path.BeginFigure(PointAt(centre, from, start), isFilled: true);
-        for (var segment = 1; segment <= Segments; segment++)
+        var key = (reference.Ring, reference.Index, count);
+        if (_sectors.TryGetValue(key, out var cached))
         {
-            path.LineTo(PointAt(centre, from, start + (end - start) * segment / Segments));
+            return cached;
         }
 
-        for (var segment = Segments; segment >= 0; segment--)
-        {
-            path.LineTo(PointAt(centre, to, start + (end - start) * segment / Segments));
-        }
-
-        path.EndFigure(isClosed: true);
-        return geometry;
+        var (from, to) = RadiiOf(reference.Ring);
+        var shape = Sector(Size / 2, from, to, reference.Index, count);
+        _sectors[key] = shape;
+        return shape;
     }
 
     private static Geometry Sector(double centre, double from, double to, int index, int count)

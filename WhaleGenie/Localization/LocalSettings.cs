@@ -394,11 +394,11 @@ public static class LocalSettings
 
     private static bool UsableSize(double value) => double.IsFinite(value) && value > 0;
 
-    public static DockPage LoadDockPage()
-        => Enum.TryParse<DockPage>(Read().DockPage, true, out var page) ? page : DockPage.Keys;
+    public static MacroView LoadView()
+        => Enum.TryParse<MacroView>(Read().View, true, out var view) ? view : MacroView.All;
 
-    public static void StoreDockPage(DockPage page)
-        => Write(model => model.DockPage = page.ToString());
+    public static void StoreView(MacroView view)
+        => Write(model => model.View = view.ToString());
 
     private static Model Read()
     {
@@ -545,7 +545,7 @@ public static class LocalSettings
 
         public double MainWindowHeight { get; set; }
 
-        public string DockPage { get; set; } = nameof(Models.DockPage.Keys);
+        public string View { get; set; } = nameof(Models.MacroView.All);
 
         public bool McpAllowControl { get; set; }
 

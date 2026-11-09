@@ -6,19 +6,23 @@ using WhaleGenie.Models;
 
 namespace WhaleGenie.Storage;
 
-/// <summary>Everything the wheel remembers, kept in a file of its own.</summary>
+/// <summary>What the wheel remembers about this machine: the button, the size and the look.</summary>
 public sealed class WheelMenuState
 {
     public WheelOptions Options { get; set; } = new();
-
-    public WheelMenuRules Rules { get; set; } = new();
 }
 
 /// <summary>
-/// The wheel reads and writes its own file rather than settings.json or the macro package: neither
-/// the machine's other choices nor a project's format version has to change for a wheel to exist.
-/// A missing or unreadable file means an empty wheel with the default options, never an error.
+/// The wheel reads and writes its own file rather than settings.json: neither the machine's other
+/// choices nor a project's format version has to change for a wheel to exist. A missing or
+/// unreadable file means an empty wheel with the default options, never an error.
 /// </summary>
+/// <remarks>
+/// Only what belongs to the machine lives here. The positions and the window rules that choose a
+/// scene name macros, and a macro belongs to a project, so they travel inside the project package
+/// (<see cref="WhaleGenie.Models.ProjectTriggers.Wheel"/>). A file written by an older build still
+/// carries a <c>rules</c> object; it is ignored rather than half-read.
+/// </remarks>
 public static class WheelMenuStore
 {
     /// <summary>Lets a check point the store at a file of its own instead of the person's.</summary>
@@ -44,11 +48,7 @@ public static class WheelMenuStore
             }
 
             var options = node["options"]?.Deserialize<WheelOptions>() ?? new WheelOptions();
-            return new WheelMenuState
-            {
-                Options = options.Clamped(),
-                Rules = WheelMenuRules.FromJson(node["rules"] as JsonObject),
-            };
+            return new WheelMenuState { Options = options.Clamped() };
         }
         catch
         {
@@ -64,7 +64,6 @@ public static class WheelMenuStore
             var node = new JsonObject
             {
                 ["options"] = JsonSerializer.SerializeToNode(state.Options.Clamped()),
-                ["rules"] = state.Rules.ToJson(),
             };
             File.WriteAllText(FilePath, node.ToJsonString(new JsonSerializerOptions
             {

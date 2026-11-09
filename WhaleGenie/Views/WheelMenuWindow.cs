@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -8,7 +9,6 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
-using Lucide.Avalonia;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -36,6 +36,7 @@ public sealed class WheelMenuWindow : Window
     private readonly Canvas _labels;
     private readonly TextBlock _centre;
     private readonly WheelOptions _options;
+    private readonly MenuIconPicture _icons = new();
     private readonly DispatcherTimer? _timeout;
     private readonly Grid _root;
     private readonly bool _preview;
@@ -146,11 +147,20 @@ public sealed class WheelMenuWindow : Window
             _timeout.Start();
         }
 
-        Closed += (_, _) => _timeout?.Stop();
+        Closed += (_, _) =>
+        {
+            _timeout?.Stop();
+            _icons.Dispose();
+        };
         Redraw();
     }
 
     /// <summary>Scales and fades the wheel in, the way Quicker 2.x pops it onto the screen.</summary>
+    /// <remarks>
+    /// The progress is read from the clock rather than counted in ticks. Each tick draws the wheel
+    /// again, and on a fast swipe the queue can delay one; counting ticks made those delays add up
+    /// and the pop noticeably longer whenever the pointer was busy.
+    /// </remarks>
     private void PlayPop()
     {
         if (_preview || !_options.PopAnimation)
@@ -162,11 +172,12 @@ public sealed class WheelMenuWindow : Window
         var scale = new ScaleTransform(0.86, 0.86);
         _root.RenderTransform = scale;
         _root.Opacity = 0;
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(18) };
-        var step = 0;
+        var started = Stopwatch.GetTimestamp();
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         timer.Tick += (_, _) =>
         {
-            var fraction = Math.Min(1, ++step / 9.0);
+            var fraction = Math.Clamp(
+                Stopwatch.GetElapsedTime(started).TotalMilliseconds / 160, 0, 1);
             scale.ScaleX = 0.86 + 0.14 * fraction;
             scale.ScaleY = 0.86 + 0.14 * fraction;
             _root.Opacity = fraction;
@@ -265,15 +276,14 @@ public sealed class WheelMenuWindow : Window
                     : slot.FromProgram
                         ? WheelPaintTone.Overridden
                         : WheelPaintTone.Global,
-            _hover is { } aimed && aimed.Parent == slot.Reference)).ToList();
+            _hover == slot.Reference)).ToList();
         _canvas.SetStyle(new WheelPaintStyle(_options.FollowTheme, _options.Gloss,
             _options.HoverBorder, _options.ShowGuide));
         _canvas.Draw(diameter, _layout.WideOuter, painted, false, _canvasSize,
             _layout.ThirdCapacity, rings);
 
-        DrawSubActions(metrics);
-
         _labels.Children.Clear();
+        var ink = TextInk();
         foreach (var slot in _layout.Slots)
         {
             if (slot.Reference.Ring == WheelRing.Extended || slot.Macro is null
@@ -283,72 +293,73 @@ public sealed class WheelMenuWindow : Window
                 continue;
             }
 
-            var iconOnly = slot.Icon is { IsEmpty: false } && _options.HideLabelWithIcon;
-            if (!iconOnly && !string.IsNullOrWhiteSpace(slot.Label))
-            {
-                _labels.Children.Add(MakeLabel(slot, diameter, metrics));
-            }
-
-            if (iconOnly && slot.Icon is { IsEmpty: false } icon
-                && TryIcon(icon, TextInk()) is { } picture)
+            // An icon is drawn whether or not the label is: choosing one used to change nothing
+            // unless "labels off" was also on, which made the picker look broken.
+            var picture = slot.Icon is { IsEmpty: false } icon
+                ? _icons.Create(icon, _options.HideLabelWithIcon ? 28 : 18, ink)
+                : null;
+            if (picture is not null && _options.HideLabelWithIcon)
             {
                 var (x, y) = WheelGeometry.LabelAt(slot.Reference, metrics, diameter);
                 Canvas.SetLeft(picture, _canvasSize / 2 + x - 14);
                 Canvas.SetTop(picture, _canvasSize / 2 + y - 14);
                 _labels.Children.Add(picture);
+                continue;
             }
+
+            if (string.IsNullOrWhiteSpace(slot.Label) && picture is null)
+            {
+                continue;
+            }
+
+            _labels.Children.Add(MakeLabel(slot, diameter, metrics, picture));
         }
 
         _centre.Text = HintFor(_hover);
-        var answer = _hover is null
-            || _hover is { Ring: WheelRing.Extended }
-            || _hover is { IsSub: true };
+        var answer = _hover is null || _hover is { Ring: WheelRing.Extended };
         _centre.Foreground = answer ? WarningInk() : TextInk();
-        // "Close", an invisible extended action and a fanned-out child have to read at a glance.
+        // "Close" and an invisible extended action have to read at a glance.
         _centre.FontSize = answer
             ? Math.Max(12, _options.FontSize + 1)
             : Math.Max(9, _options.FontSize - 1);
     }
 
-    private void DrawSubActions(WheelMetrics metrics)
-    {
-        var fan = new List<WheelPaintSlot>();
-        var angle = 0d;
-        if (_options.ShowSubActions && _hover is { } aimed)
-        {
-            var parentRef = aimed.Parent;
-            var parent = _layout.At(parentRef);
-            if (parent?.HasSub == true)
-            {
-                angle = WheelGeometry.SectorAngle(parentRef, metrics);
-                fan = parent.Sub.Select((child, index) => new WheelPaintSlot(
-                    new WheelSlotRef(parentRef.Ring, parentRef.Index, index),
-                    child.Label, WheelPaintTone.Global,
-                    aimed.IsSub && aimed.Sub == index)).ToList();
-            }
-        }
-
-        _canvas.SetSubActions(fan, angle);
-    }
-
-    private Control MakeLabel(WheelRuntimeSlot slot, double diameter, WheelMetrics metrics)
+    private Control MakeLabel(WheelRuntimeSlot slot, double diameter, WheelMetrics metrics,
+        Control? picture)
     {
         var width = Math.Max(56, diameter * (slot.Reference.Ring == WheelRing.Outer
             && _layout.WideOuter ? 0.13 : 0.20));
-        var block = new TextBlock
+        var content = new StackPanel
         {
-            Text = slot.Label,
             Width = width,
-            FontSize = _options.FontSize,
-            Foreground = TextInk(),
-            TextAlignment = TextAlignment.Center,
-            TextWrapping = TextWrapping.Wrap,
-            TextTrimming = TextTrimming.CharacterEllipsis,
+            Spacing = 1,
+            HorizontalAlignment = HorizontalAlignment.Center,
         };
+        if (picture is not null)
+        {
+            picture.HorizontalAlignment = HorizontalAlignment.Center;
+            content.Children.Add(picture);
+        }
+
+        if (!string.IsNullOrWhiteSpace(slot.Label))
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = slot.Label,
+                Width = width,
+                FontSize = _options.FontSize,
+                Foreground = TextInk(),
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+        }
+
+        var height = (picture is null ? 0 : 20) + _options.FontSize * 1.4;
         var (x, y) = WheelGeometry.LabelAt(slot.Reference, metrics, diameter);
-        Canvas.SetLeft(block, _canvasSize / 2 + x - width / 2);
-        Canvas.SetTop(block, _canvasSize / 2 + y - _options.FontSize);
-        return block;
+        Canvas.SetLeft(content, _canvasSize / 2 + x - width / 2);
+        Canvas.SetTop(content, _canvasSize / 2 + y - height / 2);
+        return content;
     }
 
     /// <summary>
@@ -410,13 +421,6 @@ public sealed class WheelMenuWindow : Window
                 : $"{Strings.Get("Wheel.ExtendedPrefix")}\n{name}";
         }
 
-        if (reference.Value.IsSub)
-        {
-            return string.IsNullOrWhiteSpace(name)
-                ? _layout.SceneName
-                : $"{Strings.Get("Wheel.SubPrefix")}\n{name}";
-        }
-
         return _options.CenterName && slot?.Macro is not null && name.Length > 0
             ? name
             : _layout.SceneName;
@@ -449,24 +453,6 @@ public sealed class WheelMenuWindow : Window
     private IBrush WarningInk() => _options.FollowTheme
         ? ThemeBrush.Of("Warning") ?? ThemeBrush.Of("TextPrimary") ?? Brushes.Black
         : new SolidColorBrush(Color.Parse("#FFC0520A"));
-
-    private static Control? TryIcon(MenuIconReference icon, IBrush ink)
-    {
-        if (icon.Kind == MenuIconKind.Builtin
-            && MenuIconCatalog.Find(icon.Value) is { } option)
-        {
-            return new IconView
-            {
-                Width = 28,
-                Height = 28,
-                Data = option.Kind,
-                Stroke = ink,
-                StrokeThickness = 1.5,
-            };
-        }
-
-        return null;
-    }
 
     public PixelPoint PlaceAt(PixelPoint origin)
     {

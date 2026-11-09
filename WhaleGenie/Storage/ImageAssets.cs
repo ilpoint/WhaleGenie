@@ -67,6 +67,26 @@ public static class ImageAssets
     }
 
     /// <summary>
+    /// Copies a picture beside the project and reports the copy. A menu cell or a wheel position
+    /// that pointed at the file it was picked from would lose its icon as soon as that file moved.
+    /// </summary>
+    public static string Adopt(string source, string? packagePath)
+    {
+        var folder = FolderFor(packagePath);
+        Directory.CreateDirectory(folder);
+        var extension = Path.GetExtension(source).ToLowerInvariant();
+        if (extension is not (".png" or ".jpg" or ".jpeg" or ".bmp"))
+        {
+            extension = ".png";
+        }
+
+        var target = Path.Combine(folder,
+            "icon-" + Guid.NewGuid().ToString("N")[..10] + extension);
+        File.Copy(source, target, overwrite: false);
+        return target;
+    }
+
+    /// <summary>
     /// The file a stored picture value points at, or null when there is nothing to show. An
     /// absolute path is used as it stands; anything else is looked for beside the package.
     /// </summary>

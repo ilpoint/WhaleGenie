@@ -15,7 +15,7 @@ public class MainScrollTests
         Ui.RunAsync(async () =>
         {
             var viewModel = new MainViewModel();
-            viewModel.SelectedDock = DockPage.Keys;
+            viewModel.SelectedView = MacroView.All;
             for (var index = 0; index < 30; index++)
             {
                 viewModel.AddMacro(new MacroItem { Name = $"Macro{index + 1}" });

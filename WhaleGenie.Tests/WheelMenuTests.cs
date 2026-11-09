@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -48,16 +49,21 @@ public class WheelMenuTests
     }
 
     [Fact]
-    public void A_short_right_press_is_left_alone_and_a_swipe_opens_and_selects_the_wheel()
+    public void A_short_right_press_is_given_back_as_a_click_and_a_swipe_opens_the_wheel()
     {
         var gesture = Gesture();
 
-        // A press must not claim or suppress anything: it is still an ordinary right click.
-        Assert.Equal(WheelGestureAction.None,
-            gesture.Down(WheelOptions.RightButton, 100, 100).Action);
+        // The press belongs to the wheel while it is held: nothing under the pointer may draw a
+        // selection of its own from a button that is only being held down.
+        var down = gesture.Down(WheelOptions.RightButton, 100, 100);
+        Assert.Equal(WheelGestureAction.None, down.Action);
+        Assert.True(down.Swallow);
         Assert.True(gesture.IsPending);
-        Assert.Equal(WheelGestureAction.None,
-            gesture.Up(WheelOptions.RightButton, 101, 101).Action);
+
+        // Nothing moved, so it was an ordinary click after all and is sent again on release.
+        var up = gesture.Up(WheelOptions.RightButton, 101, 101);
+        Assert.Equal(WheelGestureAction.Replay, up.Action);
+        Assert.True(up.Swallow);
         Assert.False(gesture.IsPending);
 
         gesture.Down(WheelOptions.RightButton, 100, 100);
@@ -71,7 +77,26 @@ public class WheelMenuTests
         var selected = gesture.Up(WheelOptions.RightButton, 260, 100);
         Assert.Equal(WheelGestureAction.Select, selected.Action);
         Assert.Equal(new WheelSlotRef(WheelRing.Outer, 2), selected.Slot);
+        Assert.True(selected.Swallow);
         Assert.False(gesture.IsOpen);
+    }
+
+    [Fact]
+    public void A_release_after_escape_is_swallowed_and_answers_nothing()
+    {
+        var gesture = Gesture();
+        gesture.Down(WheelOptions.RightButton, 100, 100);
+        gesture.Move(300, 100);
+        Assert.Equal(WheelGestureAction.Cancel, gesture.Key("Esc").Action);
+
+        // The wheel is gone but the button is still down: its release must not reach the
+        // application, which never saw the press either.
+        var up = gesture.Up(WheelOptions.RightButton, 300, 100);
+        Assert.Equal(WheelGestureAction.None, up.Action);
+        Assert.True(up.Swallow);
+
+        // And the next press is a wheel press again, not a leftover of the cancelled one.
+        Assert.True(gesture.Down(WheelOptions.RightButton, 100, 100).Swallow);
     }
 
     [Fact]
@@ -113,8 +138,9 @@ public class WheelMenuTests
     public void The_middle_button_never_starts_a_wheel_gesture()
     {
         var gesture = Gesture();
-        Assert.Equal(WheelGestureAction.None,
-            gesture.Down(WheelOptions.MiddleButton, 100, 100).Action);
+        var down = gesture.Down(WheelOptions.MiddleButton, 100, 100);
+        Assert.Equal(WheelGestureAction.None, down.Action);
+        Assert.False(down.Swallow, "a button that is not the launcher must reach the application");
         Assert.Equal(WheelGestureAction.None, gesture.Move(300, 100).Action);
         Assert.Equal(WheelGestureAction.None,
             gesture.Up(WheelOptions.MiddleButton, 300, 100).Action);
@@ -179,7 +205,7 @@ public class WheelMenuTests
     }
 
     [Fact]
-    public void The_wheel_state_round_trips_through_its_own_file()
+    public void The_machines_options_round_trip_through_their_own_file()
     {
         InOwnFiles(() =>
         {
@@ -189,18 +215,37 @@ public class WheelMenuTests
             var state = new WheelMenuState();
             state.Options.Launcher = "Mouse 4";
             state.Options.Diameter = 520;
-            state.Rules.Global.At(Top).Macro = "copy";
-            var scene = state.Rules.AddScene(new WindowRule(Process: "notepad",
-                How: WindowHow.ProcessEquals));
-            scene.At(Right).Macro = "cut";
             WheelMenuStore.Save(state);
 
             var read = WheelMenuStore.Load();
             Assert.Equal("Mouse 4", read.Options.Launcher);
             Assert.Equal(520, read.Options.Diameter);
-            Assert.Equal("copy", read.Rules.Global.At(Top).Macro);
-            Assert.Equal("cut", Assert.Single(read.Rules.Scenes).At(Right).Macro);
         });
+    }
+
+    /// <summary>
+    /// A position names a macro, and a macro belongs to a project, so the positions travel in the
+    /// project's trigger file rather than in the machine's wheel file.
+    /// </summary>
+    [Fact]
+    public void The_positions_travel_with_the_project()
+    {
+        var triggers = new ProjectTriggers();
+        triggers.Wheel.Global.At(Top).Macro = "copy";
+        var scene = triggers.Wheel.AddScene(new WindowRule(Process: "notepad",
+            How: WindowHow.ProcessEquals));
+        scene.At(Right).Macro = "cut";
+
+        var read = ProjectTriggers.FromJson(triggers.ToJson());
+        Assert.Equal("copy", read.Wheel.Global.At(Top).Macro);
+        Assert.Equal("cut", Assert.Single(read.Wheel.Scenes).At(Right).Macro);
+        Assert.Equal(scene.Key, read.Wheel.Scenes[0].Key);
+
+        // Opening a project replaces everything the previous one held, the wheel included.
+        var opened = new ProjectTriggers();
+        opened.ReplaceAll(read);
+        Assert.Equal("copy", opened.Wheel.Global.At(Top).Macro);
+        Assert.Single(opened.Wheel.Scenes);
     }
 
     [Fact]
@@ -214,10 +259,67 @@ public class WheelMenuTests
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
             Assert.True(viewModel.IsWheelMenuPage);
             Assert.Equal(SettingsRoot.Triggers, viewModel.SelectedRoot);
-            Assert.True(viewModel.WheelLauncherDefault);
+            Assert.Equal(WheelOptions.RightButton, viewModel.SelectedWheelLauncher?.Binding);
             Assert.NotNull(window.FindControl<Button>("PreviewWheelButton"));
 
             window.Close();
+        }));
+    }
+
+    /// <summary>
+    /// The four buttons a wheel can be opened with are the ones a hand can hold while it moves.
+    /// A keyboard binding is refused, and a stored one is read back as the default.
+    /// </summary>
+    [Fact]
+    public void The_launcher_is_one_of_four_mouse_buttons_and_nothing_else()
+    {
+        InOwnFiles(() => Ui.Run(() =>
+        {
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready, project: null);
+            Assert.Equal(WheelOptions.LauncherButtons,
+                viewModel.WheelLauncherChoices.Select(choice => choice.Binding));
+
+            Assert.Equal(WheelOptions.RightButton,
+                new WheelOptions { Launcher = "F2" }.Clamped().Launcher);
+            Assert.Equal(string.Empty, new WheelOptions { Launcher = "" }.Clamped().Launcher);
+            Assert.False(WheelOptions.IsAllowedLauncher(WheelOptions.MiddleButton + "x"));
+        }));
+    }
+
+    /// <summary>
+    /// The menu and the wheel both start on a press, so one button cannot open both: whichever ran
+    /// second would never be seen. The page refuses the change and says which gesture took it.
+    /// </summary>
+    [Fact]
+    public void A_button_the_menu_already_opens_on_cannot_open_the_wheel()
+    {
+        InOwnFiles(() => Ui.Run(() =>
+        {
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready, project: null);
+            Assert.True(viewModel.CaptureMenuLauncher(WheelOptions.MiddleButton));
+
+            Assert.False(viewModel.SetWheelLauncher(WheelOptions.MiddleButton));
+            Assert.NotEqual(WheelOptions.MiddleButton, viewModel.WheelLauncher);
+            Assert.Equal(Strings.Get("Wheel.LauncherConflict"), viewModel.WheelLauncherStatus);
+
+            // The other three are untouched by the refusal.
+            Assert.True(viewModel.SetWheelLauncher(WheelOptions.BackButton));
+            Assert.Equal(WheelOptions.BackButton, viewModel.WheelLauncher);
+        }));
+    }
+
+    [Fact]
+    public void The_menu_cannot_take_the_button_the_wheel_opens_on()
+    {
+        InOwnFiles(() => Ui.Run(() =>
+        {
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready, project: null);
+            Assert.True(viewModel.SetWheelLauncher(WheelOptions.ForwardButton));
+
+            Assert.False(viewModel.CaptureMenuLauncher(WheelOptions.ForwardButton));
+            Assert.NotEqual(WheelOptions.ForwardButton, viewModel.MenuLauncher);
+            Assert.Equal(Strings.Get("Settings.MenuLauncherConflictWheel"),
+                viewModel.MenuLauncherStatus);
         }));
     }
 
@@ -330,45 +432,6 @@ public class WheelMenuTests
     }
 
     [Fact]
-    public void Visible_sub_actions_are_resolved_and_answered_by_direction()
-    {
-        var rules = new WheelMenuRules();
-        var parent = rules.Global.At(Top);
-        parent.Macro = "copy";
-        parent.Children.Add(new WheelSlot { Macro = "paste", Note = "Plain text" });
-        parent.Children.Add(new WheelSlot { Macro = "cut" });
-        var layout = rules.Resolve(null, WheelSource.Global, false,
-            [
-                new MacroItem { Name = "copy", IsEnabled = true },
-                new MacroItem { Name = "paste", IsEnabled = true },
-                new MacroItem { Name = "cut", IsEnabled = true },
-            ]);
-
-        Assert.True(layout.At(Top)?.HasSub);
-        Assert.Equal(2, layout.At(Top)?.Sub.Count);
-        var child = new WheelSlotRef(WheelRing.Inner, 0, 1);
-        Assert.Equal("cut", layout.At(child)?.Macro?.Name);
-
-        var metrics = WheelGeometry.For(420, false);
-        Assert.Null(WheelGeometry.SubAt(0, -100, metrics, 0, 2));
-        Assert.Equal(1, WheelGeometry.SubAt(0, -(metrics.Edge + 40), metrics, 0, 2));
-    }
-
-    [Fact]
-    public void A_release_while_a_child_is_aimed_at_runs_the_child()
-    {
-        var gesture = Gesture();
-        gesture.Down(WheelOptions.RightButton, 100, 100);
-        gesture.Move(300, 100);
-        gesture.SetCenter(100, 100, WheelGeometry.For(420, false));
-        gesture.Hover(new WheelSlotRef(WheelRing.Inner, 2, 1));
-
-        var selected = gesture.Up(WheelOptions.RightButton, 160, 100);
-        Assert.Equal(WheelGestureAction.Select, selected.Action);
-        Assert.Equal(new WheelSlotRef(WheelRing.Inner, 2, 1), selected.Slot);
-    }
-
-    [Fact]
     public void The_three_sources_answer_the_same_position_differently()
     {
         var rules = new WheelMenuRules();
@@ -402,15 +465,12 @@ public class WheelMenuTests
             options.ThirdCapacity = 16;
             options.RepeatKey = "F8";
             options.ShowGuide = false;
-            options.ShowSubActions = false;
             options.FollowTheme = false;
             options.Gloss = false;
             options.HoverBorder = false;
             options.PopAnimation = false;
             options.HideEmptyOuter = false;
-            state.Rules.Global.At(Top).Macro = "copy";
-            state.Rules.Global.At(Top).Note = "Copy the text";
-            state.Rules.Global.At(Top).Children.Add(new WheelSlot { Macro = "paste" });
+            options.OnlyInPrograms = true;
             WheelMenuStore.Save(state);
 
             var read = WheelMenuStore.Load();
@@ -421,9 +481,16 @@ public class WheelMenuTests
             Assert.False(read.Options.ShowGuide);
             Assert.False(read.Options.FollowTheme);
             Assert.False(read.Options.HideEmptyOuter);
-            Assert.Equal("Copy the text", read.Rules.Global.At(Top).Note);
-            Assert.Equal("paste", Assert.Single(read.Rules.Global.At(Top).Children).Macro);
+            Assert.True(read.Options.OnlyInPrograms);
+            Assert.False(new WheelOptions().OnlyInPrograms);
             Assert.Equal(0, new WheelOptions { ThirdCapacity = 7 }.Clamped().ThirdCapacity);
+
+            // A note is part of the position, so it belongs to the project's file.
+            var triggers = new ProjectTriggers();
+            triggers.Wheel.Global.At(Top).Macro = "copy";
+            triggers.Wheel.Global.At(Top).Note = "Copy the text";
+            var reread = ProjectTriggers.FromJson(triggers.ToJson());
+            Assert.Equal("Copy the text", reread.Wheel.Global.At(Top).Note);
         });
     }
 
@@ -447,6 +514,29 @@ public class WheelMenuTests
         }));
     }
 
+    /// <summary>
+    /// Adding a scene rebuilds the list by clearing it, and a recycled row container is built once
+    /// with nothing in it. Reading the row without a guard threw from the template and took the
+    /// whole program down, which is what made "add" look like "crash".
+    /// </summary>
+    [Fact]
+    public void Adding_a_scene_while_the_editor_is_open_keeps_the_window_alive()
+    {
+        InOwnFiles(() => Ui.Run(() =>
+        {
+            var window = new SettingsWindow(null, null, SettingsSubPage.WheelActions);
+            window.Show();
+
+            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
+            viewModel.AddWheelScene(new WindowRule(Title: "Notepad"));
+            viewModel.AddWheelScene(new WindowRule(Title: "Browser"));
+
+            Assert.Equal(3, viewModel.WheelScenes.Count);
+            Assert.NotNull(viewModel.SelectedWheelScene);
+            window.Close();
+        }));
+    }
+
     [Fact]
     public void The_menu_launcher_check_boxes_set_the_middle_button_or_a_custom_key()
     {
@@ -462,6 +552,272 @@ public class WheelMenuTests
             Assert.True(viewModel.MenuLauncherCustom);
             Assert.False(viewModel.MenuLauncherMiddle);
         });
+    }
+
+    /// <summary>
+    /// The hook writes the pointer position and the window reads it once a frame: what happened
+    /// between two frames is one drawing, and nothing written is lost by the reading that took it.
+    /// </summary>
+    [Fact]
+    public void A_pointer_that_moves_between_frames_is_read_once_per_frame()
+    {
+        var aim = new WheelAim();
+        aim.Move(10, 20);
+        aim.Move(30, 40);
+        aim.Move(50, 60);
+
+        Assert.True(aim.Take(out var x, out var y));
+        Assert.Equal(50, x);
+        Assert.Equal(60, y);
+        Assert.False(aim.Take(out _, out _), "a pointer that has not moved drew again");
+        Assert.Equal((3L, 1L), aim.Counts);
+    }
+
+    [Fact]
+    public void A_move_written_after_a_reading_is_read_by_the_next_one()
+    {
+        var aim = new WheelAim();
+        aim.Move(1, 2);
+        Assert.True(aim.Take(out _, out _));
+
+        aim.Move(3, 4);
+        Assert.True(aim.Take(out var x, out var y));
+        Assert.Equal(3, x);
+        Assert.Equal(4, y);
+    }
+
+    [Fact]
+    public void A_closed_wheel_forgets_the_move_it_never_drew()
+    {
+        var aim = new WheelAim();
+        aim.Move(7, 8);
+        aim.Clear();
+
+        Assert.False(aim.Take(out _, out _));
+    }
+
+
+    [Fact]
+    public void The_wheel_only_opens_where_a_program_scene_matches()
+    {
+        var windows = new WindowsForChecks()
+            .Add(1, "Notes", "notepad", "Notepad")
+            .Add(2, "Browser", "chrome", "Chrome");
+        var notepad = windows.Open[0];
+        var browser = windows.Open[1];
+        var rules = new WheelMenuRules();
+
+        // Without the switch the wheel opens everywhere, which is what it did until now.
+        Assert.True(rules.OpensFor(notepad, windows, onlyInPrograms: false));
+        Assert.True(rules.OpensFor(browser, windows, onlyInPrograms: false));
+
+        // With it on, and no scene at all, it opens nowhere.
+        Assert.False(rules.OpensFor(notepad, windows, onlyInPrograms: true));
+
+        rules.AddScene(new WindowRule(Process: "notepad", How: WindowHow.ProcessEquals));
+        Assert.True(rules.OpensFor(notepad, windows, onlyInPrograms: true));
+        Assert.False(rules.OpensFor(browser, windows, onlyInPrograms: true));
+
+        // A missing foreground window is not a match: the wheel stays out of the way.
+        Assert.False(rules.OpensFor(null, windows, onlyInPrograms: true));
+    }
+
+    [Fact]
+    public void Editing_an_inherited_position_writes_a_program_override_and_clearing_empties_it()
+    {
+        InOwnFiles(() =>
+        {
+            var project = new MainViewModel();
+            var settings = new SettingsViewModel(() => DriverInputState.Ready, project: project);
+            var scene = project.Triggers.Wheel.AddScene(
+                new WindowRule(Process: "notepad", How: WindowHow.ProcessEquals));
+            project.Triggers.Wheel.Global.At(Top).Macro = "copy";
+            settings.RefreshWheelScenes();
+            settings.SelectedWheelScene =
+                settings.WheelScenes.First(row => row.Key == scene.Key);
+
+            // The editor starts from the global action the position is drawn with, and saving it
+            // writes that action into this program's own scene.
+            Assert.True(settings.IsWheelSlotInherited(Top));
+            var draft = Assert.IsType<WheelSlot>(settings.WheelSlotForEdit(Top));
+            Assert.Equal("copy", draft.Macro);
+            draft.Note = "Copy the text";
+            settings.SetWheelAction(Top, draft);
+
+            Assert.False(settings.IsWheelSlotInherited(Top));
+            Assert.Equal("copy", scene.At(Top).Macro);
+            Assert.Equal("Copy the text", scene.At(Top).Note);
+
+            // Clearing through the same path leaves nothing behind.
+            settings.SetWheelAction(Top, new WheelSlot());
+            Assert.True(scene.At(Top).IsEmpty);
+            Assert.Equal(string.Empty, scene.At(Top).Note);
+            Assert.Null(scene.At(Top).Icon);
+
+            // The global scene still holds the action this program was inheriting.
+            Assert.Equal("copy", project.Triggers.Wheel.Global.At(Top).Macro);
+        });
+    }
+
+    [Fact]
+    public void Clearing_the_global_action_does_not_touch_another_scene()
+    {
+        var rules = new WheelMenuRules();
+        var scene = rules.AddScene(new WindowRule(Process: "notepad",
+            How: WindowHow.ProcessEquals));
+        scene.At(Top).Macro = "cut";
+        rules.Find(WheelScene.GlobalKey)!.At(Top).Macro = "copy";
+
+        Assert.Equal("copy", rules.Global.At(Top).Macro);
+        rules.Global.At(Top).Macro = string.Empty;
+        Assert.Equal("cut", scene.At(Top).Macro);
+    }
+
+
+    [Fact]
+    public void The_action_dialog_opens_on_the_action_it_was_given()
+    {
+        Ui.Run(() =>
+        {
+            var slot = new WheelSlot { Macro = "copy", Note = "Copy the text" };
+            var macros = new List<MacroItem>
+            {
+                new() { Name = "copy" },
+                new() { Name = "paste" },
+            };
+
+            var window = new WheelActionWindow(slot, macros,
+                "Inner circle, position 1", inherited: false);
+            window.Show();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            var controls = window.GetVisualDescendants().OfType<Control>().ToList();
+            Assert.Equal("copy", controls.OfType<TextBlock>()
+                .Single(control => control.Name == "ActionMacroName").Text);
+            Assert.Equal("Copy the text", controls.OfType<TextBox>()
+                .Single(control => control.Name == "ActionNote").Text);
+            // An empty program position inherits the global action again, so "clear this position"
+            // is not offered where clearing would leave the wheel showing the same action.
+            var clear = controls.OfType<Button>().Single(button =>
+                Equals(button.Content, Strings.Get("Wheel.ActionClearSlot")));
+            Assert.True(clear.IsVisible);
+            window.Close();
+
+            var inherited = new WheelActionWindow(slot, macros,
+                "Inner circle, position 1", inherited: true);
+            inherited.Show();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var inheritedClear = inherited.GetVisualDescendants().OfType<Button>().Single(button =>
+                Equals(button.Content, Strings.Get("Wheel.ActionClearSlot")));
+            Assert.False(inheritedClear.IsVisible);
+            inherited.Close();
+        });
+    }
+
+
+    [Fact]
+    public void The_only_in_programs_switch_is_saved_and_warns_when_no_scene_exists()
+    {
+        InOwnFiles(() =>
+        {
+            var settings = new SettingsViewModel(() => DriverInputState.Ready);
+            Assert.False(settings.OnlyInPrograms);
+
+            settings.OnlyInPrograms = true;
+            Assert.True(WheelMenuStore.Load().Options.OnlyInPrograms);
+            Assert.Equal(Strings.Get("Wheel.OnlyInProgramsNoScene"),
+                settings.WheelLauncherStatus);
+        });
+    }
+
+    [Fact]
+    public void A_system_hotkey_cannot_take_the_key_the_menu_already_opens_on()
+    {
+        InOwnFiles(() =>
+        {
+            var settings = new SettingsViewModel(() => DriverInputState.Ready);
+            Assert.True(settings.CaptureMenuLauncher("F9"));
+
+            Assert.False(settings.CaptureSystemHotkey("F9"));
+            Assert.Equal(Strings.Get("Settings.HotkeyConflictMenu"),
+                settings.SystemHotkeyProblem);
+            Assert.NotEqual("F9", settings.SystemHotkey);
+        });
+    }
+
+
+    [Fact]
+    public void The_wheel_page_carries_the_only_in_programs_check_box()
+    {
+        InOwnFiles(() => Ui.Run(() =>
+        {
+            var window = new SettingsWindow(null, null, SettingsSubPage.WheelMenu);
+            window.Show();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
+            var check = window.FindControl<CheckBox>("OnlyInProgramsCheck");
+            Assert.NotNull(check);
+            Assert.False(check.IsChecked);
+
+            check.IsChecked = true;
+            Assert.True(viewModel.OnlyInPrograms);
+            Assert.True(WheelMenuStore.Load().Options.OnlyInPrograms);
+
+            window.Close();
+        }));
+    }
+
+
+    [Fact]
+    public void A_chosen_icon_is_drawn_even_when_the_label_is_shown()
+    {
+        Ui.Run(() =>
+        {
+            var rules = new WheelMenuRules();
+            rules.Global.At(Top).Macro = "copy";
+            rules.Global.At(Top).Icon = new MenuIconReference(MenuIconKind.Builtin,
+                MenuIconCatalog.Options[0].Key);
+            var layout = rules.Resolve(null, WheelSource.Global, false,
+                [new MacroItem { Name = "copy", IsEnabled = true }]);
+            var options = new WheelOptions
+            {
+                PopAnimation = false,
+                HideLabelWithIcon = false,
+                FollowTheme = false,
+            };
+
+            var window = new WheelMenuWindow(layout, options, new PixelPoint(0, 0), preview: true);
+            window.Show();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            // The picker used to change nothing unless "labels off" was also on. The icon now has
+            // to be there with the label, which is the state a wheel is normally in.
+            Assert.NotEmpty(window.GetVisualDescendants().OfType<IconView>());
+            window.Close();
+        });
+    }
+
+
+    [Fact]
+    public void The_editor_paints_the_icon_a_position_carries()
+    {
+        InOwnFiles(() => Ui.Run(() =>
+        {
+            var project = new MainViewModel();
+            project.AddMacro(new MacroItem { Name = "copy" });
+            project.Triggers.Wheel.Global.At(Top).Macro = "copy";
+            project.Triggers.Wheel.Global.At(Top).Icon = new MenuIconReference(
+                MenuIconKind.Builtin, MenuIconCatalog.Options[0].Key);
+
+            var window = new SettingsWindow(project, null, SettingsSubPage.WheelActions);
+            window.Show();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            var editor = window.GetVisualDescendants().OfType<WheelMenuEditorView>().Single();
+            Assert.NotEmpty(editor.GetVisualDescendants().OfType<IconView>());
+            window.Close();
+        }));
     }
 
     private static WheelGesture Gesture() => new(

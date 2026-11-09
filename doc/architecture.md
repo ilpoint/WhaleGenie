@@ -344,28 +344,60 @@ Core 的录制层将原始输入翻译为去抖、合并后的 `RecordedAction`�
 轮盘是**旁挂**在既有触发链路之外的一条订阅，不修改 `MacroTriggerService`、`ProjectTriggers`、
 `MacroPackage` 或 `LocalSettings`：菜单宏的中键按下路径与项目包格式保持原样。`MainWindow` 在
 `AttachSystemHotkey` 里额外订阅 `MouseDown / MouseUp / Moved / KeyDown`，这四个处理器只在轮盘
-手势有意义时动作，其中右键 `MouseDown` **从不设 `Suppress`** —— 短按必须仍是一次普通右键。
+手势有意义时动作。
+
+命中呼出键的**按下与松开都由轮盘吞掉**。按下若落到下层窗口，右键拖动会让它画出自己的选择框；松开
+则会弹出它的右键菜单，正好盖在刚选中的扇区上——这两样在桌面上都看得见，所以不能只吞一半。吞掉不等于
+丢掉：没有移动就松开的按下以 `WheelGestureAction.Replay` 交回，由 `SharedDevices.Current.Input`
+在原处补发一次同样的点击，短按因此仍是一次普通右键。松开比按下更早失去归属的那条路（Esc、超时）同样
+要把松开吞掉，所以 `WheelGesture` 单独记住“这只按钮还欠一次答复”，它不随轮盘状态一起清空。程序自己
+补发的点击带注入标记，轮盘的处理器据此跳过，不会重新起一次手势。
+
+呼出键只允许右键、中键、4/5 侧键（`WheelOptions.LauncherButtons`），设置页用固定下拉呈现，不能再
+录键盘组合：手势要按住再移动，键盘键是另一种操作。两个呼出键也不能相同——菜单与轮盘都在按下时
+开始，一个按键只能属于一个手势；菜单呼出键与系统热键也不能相同。设置页在这几个方向上都拒绝并说明
+被谁占用。
+
+`WheelOptions.OnlyInPrograms` 打开后，`WheelGesture` 的启用判断不再只是系统总开关：`MainWindow`
+把项目的 `WheelMenuRules` 复制一份放进 `_wheelGateRules`（项目或宏变化时整体替换），钩子线程用
+`WheelMenuRules.OpensFor` 在当前前台窗口上找程序场景，找不到就返回 `None`，**连按下也不吞**，
+所以其他软件里这个键仍是普通按键。`Down` 先比按键再问启用，启用回调只在真的按下呼出键时执行，
+不会为每一次鼠标按下都去查一次前台窗口。命中的场景存进 `_wheelPressScene`，轮盘打开时直接使用，
+保证“按下时在哪个程序里”与“弹出后显示哪套动作”是同一个答案。
+
 只有移动超过 `WheelGesture.MoveThreshold` 才把 `Pending` 变成 `Open`，此时才经
-`Dispatcher.UIThread.Post` 打开 `WheelMenuWindow`。右键的 `MouseDown` 与 `MouseUp` **都不设
-`Suppress`**：只吞松开会让 Windows 收到按下却收不到释放，之后所有左键点击都会被一直吞掉。
+`Dispatcher.UIThread.Post` 打开 `WheelMenuWindow`。**移动本身不投递回调**：钩子把最新坐标写进
+`Runtime/WheelAim.cs`，`MainWindow` 用一个 8 毫秒的定时器每帧读一次，一次读取只换一次画面，
+指针再快也不会把界面线程堆出队列。轮盘关闭时代际号加一，仍在队列里的回答按上一只轮盘丢弃；
+投递出去的回答都在捕获异常后关掉轮盘并记入日志，界面线程不再带着异常结束进程。
 轮盘窗口用全透明背景与 `WS_EX_TRANSPARENT` 让鼠标穿透，指针位置完全由钩子报告；它的启用状态
 是 `Volatile` 整数，钩子线程绝不读 Avalonia 的 `DataContext`。
 
 `Runtime/WheelGesture.cs` 是不碰控件的三态状态机；`Models/WheelMenu.cs` 给出槽位、场景、
 几何和选项。`WheelMenuRules.SceneFor(...)` 复用 `ProjectTriggers.WindowRuleMatches`，按列表
-顺序取第一条命中的前台窗口规则；场景、来源和宏列表在轮盘弹出时冻结到 `MainWindow` 的字段里，
+顺序取第一条命中的前台窗口规则；场景、来源和宏快照在轮盘弹出时冻结到 `MainWindow` 的字段里，
 滚动滚轮只在叠加／全局／仅当前程序之间换 `WheelSource` 并重建布局，前台窗口变化不会改变
 正在瞄的轮盘。`Views/WheelCanvas.cs` 画扇区、从中心到指针的引导线（可见圈实线、扩展圈虚线，
-末端跟着鼠标）、子动作扇出与 2.x 的光泽／悬浮边框；`WheelMenuWindow` 的中心文字给出「关闭」、
-扩展圈动作的名字或备注、子动作名，并在打开时做缩放淡入。第三常驻圈容量 0/8/16/24 与
+末端跟着鼠标）与 2.x 的光泽／悬浮边框；`WheelMenuWindow` 的中心文字给出「关闭」、
+扩展圈动作的名字或备注，并在打开时做缩放淡入。图标由 `Views/MenuIconPicture.cs` 绘制：有图标时
+画在文字上方，打开「只显示图标」时只画图标；内置图标来自 Lucide，图片图标按路径读一次并缓存到
+窗口关闭，悬停重绘不会反复读盘。第三常驻圈容量 0/8/16/24 与
 「隐藏全空外圈」由 `WheelGeometry.For(..., thirdCapacity, rings)` 统一计算半径与命中。
 
 设置窗口的「轮盘动作管理」页用 `Views/WheelMenuEditorView.cs`（与实时轮盘共用同一个
-`WheelCanvas`），场景增删改与上下移动、槽位选宏／备注／图标／子动作都直接改
-`WheelMenuState` 并由 `WheelMenuStore.Save` 落到独立的 `wheel-menu.json`；`Changed` 事件让
-运行中的钩子即时换配置，因此不需要回调主窗口。菜单呼出键仍只走 `LocalSettings`。轮盘的选项与槽位由
-`Storage/WheelMenuStore.cs` 读写独立的 `wheel-menu.json`，`WheelMenuStore.Changed` 让运行中的
-钩子即时换用新配置，因此设置窗口不需要回调主窗口。设置页的「预览轮盘」用 `preview: true`
+`WheelCanvas`）。左列是场景列表；右侧环形编辑器里**左键点扇区**快速选宏，**右键点扇区**打开
+`Views/WheelActionWindow.cs`，在对话框里改宏、备注和图标。位置以副本进、以副本出，取消不会动到
+项目；程序场景里继承全局的位置会带着全局动作打开，保存后写成该场景自己的覆盖。编辑状态不再挂在
+鼠标悬停上——之前“备注框 / 选图标 / 加子动作 / 清子动作”都靠鼠标指向的位置，鼠标一移到按钮上
+`PointerExited` 就把指向清掉，按钮看起来毫无反应；现在右键时把位置固定下来，对话框不再依赖指针
+还停在扇区上。子动作的扇出交互已整体移除：它难瞄准，选中成本和收益不成比例，槽位现在只表示
+一个宏、一条备注和一个图标。
+
+所有编辑都改 `ProjectTriggers.Wheel`，由项目的 `triggers.json` 保存并跟着包走；面板只读写这台机器的
+`WheelMenuState.Options`，仍落在 `wheel-menu.json`。改完调用 `ProjectTriggers.NotifyChanged()`，
+主窗口据此标记未保存并刷新运行时快照，因此不需要设置窗口回调主窗口。设置窗口以 `ShowAsPeer`
+打开并保持单实例，不压住主窗口：拾取器要让位时它和别的窗口一样收起再回来，轮盘也能一边开着设置页
+一边试，而不必先关掉它。菜单呼出键仍只走 `LocalSettings`。设置页的「预览轮盘」用 `preview: true`
 打开同一个窗口，由 Avalonia 自己的指针事件闭环，完全不经过全局钩子。
 
 ## 11. 线程与退出

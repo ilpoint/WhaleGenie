@@ -60,6 +60,13 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// The folder this macro was put in, as the author spelled it. Empty means ungrouped. It is a
+    /// second layer beside the fixed views: the views say how a macro starts, a group says which
+    /// part of someone's work it belongs to, and the two filter together.
+    /// </summary>
+    public string Group { get; set; } = string.Empty;
+
+    /// <summary>
     /// A sentence for the macro library or for a call made to this macro. It does not describe a
     /// particular trigger, so it belongs to the callable part shared by projects and submacros.
     /// </summary>
@@ -68,7 +75,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     [ObservableProperty]
     public partial MacroTrigger TriggerMode { get; set; } = MacroTrigger.KeystrokesButtonInputs;
 
-    public MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
+    public MacroLoop LoopMode { get; set; } = MacroLoop.Press;
 
     /// <summary>What starts the macro, said the way the macro list says it.</summary>
     public string Trigger => TriggerMode switch
@@ -420,6 +427,13 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             [FieldNames.SubMacros] = SubMacrosJson(),
         };
 
+        // Only a macro that was actually put in a group carries the field: an empty one would say
+        // "in no group" where the file could simply not mention it.
+        if (Group.Trim().Length > 0)
+        {
+            node["group"] = Group.Trim();
+        }
+
         if (includeTriggers)
         {
             var triggers = new JsonArray();
@@ -590,8 +604,9 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         {
             Name = node["name"]?.GetValue<string>() ?? string.Empty,
             Description = node[FieldNames.Description]?.GetValue<string>() ?? string.Empty,
+            Group = node["group"]?.GetValue<string>() ?? string.Empty,
             TriggerMode = ReadEnum(node, "triggerMode", MacroTrigger.KeystrokesButtonInputs),
-            LoopMode = ReadEnum(node, "loopMode", MacroLoop.Toggle),
+            LoopMode = ReadEnum(node, "loopMode", MacroLoop.Press),
             BindKey = node["bindKey"]?.GetValue<string>() ?? string.Empty,
             ScheduleMode = ReadEnum(schedule, "mode", ScheduleMode.Interval),
             ScheduleInterval = ReadInt(schedule?["interval"], 5),

@@ -175,7 +175,7 @@ if ($missing) { $missing; exit 1 }
 | 失败键、函数表和中英文文案 | `FailureKeyTests`、`FunctionTableTests`、`LocalizationTests` |
 | 字段命名与步骤落点 | `FieldNameTests`、`StepPlacementTests`、`MacroEditorWorkspaceTests` |
 | 依赖方向与主题资源 | `LayeringTests`、`ControlsRegistryTests`、`StyleVocabularyTests`、`TemplatePartTests` |
-| 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、子动作、选项往返、设置页与轮盘预览 | `WheelMenuTests` |
+| 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、图标绘制、选项往返、设置页与轮盘预览 | `WheelMenuTests` |
 
 **保留同名**（同 `Kind`、`Shape`、读法；选项或标签随动作变化，理由写在这里）
 
@@ -300,30 +300,41 @@ if ($missing) { $missing; exit 1 }
 - 等待条件使用事件、`TaskCompletionSource` 或 `Ui.Until`，不使用固定睡眠推断异步操作已完成。
 - 修改全局状态的测试使用 `[RestoreSharedState]` 并在界面线程还原；共享变量值由相关用例自行清理。
 
-### 看图与看运行中的程序
+### 看图与看运行中的程序（只能 Debug）
 
-调试版里开着一条给 agent 的界面自省通道（`Declarative.Avalonia.AgentTools`，只在 Debug 编译，
-Release 既不还原这个包也不注册它）：进程起来后在 `127.0.0.1:5599` 上跑一个 loopback 的 MCP，
-可以读视觉树、读布局、点、输入、按键、截图，**看的是真的那一扇窗，不是无头重绘**。这是首选的
-查看方式——离屏渲染看不出真实的字体、主题、滚动条和 POPUP。
+界面自省通道（`Declarative.Avalonia.AgentTools`）**只在 Debug 编译里存在**。Release 既不还原
+`AvaloniaUI.DiagnosticsSupport`，也不会在 `127.0.0.1:5599` 上注册 MCP——用 Release 二进制或安装包
+启动时端口根本不会打开，`get_app_info` 一定失败；这时先去检查启动的是不是 Debug 版，不要先怀疑
+MCP 配置。
+
+它跑起来后可以读视觉树、读布局、点、输入、按键、截图，**看的是真的那一扇窗，不是无头重绘**。
+这是首选的查看方式——离屏渲染看不出真实的字体、主题、滚动条和 POPUP。
 
 ```bash
-# 1. 按 x64 编调试版（见下面那一段，路径别弄错），把它放到后台跑起来
-#    前台跑会一直占着这次调用，超时被杀；后台跑才连得上
+# 1. 结束上一次的进程。文件被锁时新编的 exe 不会生效，跑的还是旧进程。
+taskkill /IM WhaleGenie.exe /F
+
+# 2. 必须用 Debug 编，并且是 x64：解决方案只提供 x64 平台，
+#    Debug 输出在 bin/x64/Debug/<框架>/，不是 bin/Debug/，也不是 bin/x64/Release/。
+dotnet build WhaleGenie.slnx -c Debug -p:Platform=x64
+
+# 3. 用后台任务启动它（前台运行会一直占着这次调用，超时被杀，等于没看）
 WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
 
-# 2. 在 agent 里连它：先 get_app_info 认路，再按需取图与操作
-#    get_app_info            → 有哪几扇窗、主题、焦点、开着几个 popup
-#    screenshot_window       → 整扇窗（maxWidth 压到 1100 以内够看版式）
-#    screenshot_region       → 放大看一块（scale=3，最近邻，字不会糊）
-#    hit_test / find_text    → 坐标反查控件、按文字找控件
-#    tap / click_at / invoke / type / key → 真的合成输入，流程能一路点下去
-#    get_errors              → 绑定错误、转换器错误、事件里的异常
+# 4. 先确认端口在听，再让 agent 连；没有这一行输出就是根本没开 Debug 版
+netstat -ano | findstr :5599
 ```
 
-MCP 的连接方式（`~/.workbuddy/mcp.json` 里的 `avalonia-agent-inspector`，`streamableHttp`，
-`http://127.0.0.1:5599`）由使用者配置；程序这边只负责在 Debug 下把服务开起来。
-`EnableInteraction` 打开后才有 `tap`/`invoke`/`type` 这一类真驱动界面的工具，只读那一层默认就有。
+不要用 `dotnet run -c Release` 或 `dotnet run --project WhaleGenie`（默认 Debug 但输出目录不是
+x64 那一份）；这两种都会让 5599 不存在或连到旧文件。MCP 的连接方式（`~/.workbuddy/mcp.json`
+里的 `avalonia-agent-inspector`，`streamableHttp`，`http://127.0.0.1:5599`）由使用者配置；
+程序这边只负责在 Debug 下把服务开起来。`EnableInteraction` 打开后才有 `tap`/`invoke`/`type`
+这一类真驱动界面的工具，只读那一层默认就有。
+
+连上以后：`get_app_info` 认路，`screenshot_window` 看整扇窗（`maxWidth` 压到 1100 以内够看版式），
+`screenshot_region` 放大看一块（`scale=3`，最近邻，字不会糊），`hit_test` / `find_text` 反查控件，
+`tap` / `click_at` / `invoke` / `type` / `key` 合成真实输入，`get_errors` 读绑定错误、转换器错误和
+事件里的异常。
 
 **踩过的坑，按发生频率排**：
 
@@ -372,9 +383,9 @@ MCP 的连接方式（`~/.workbuddy/mcp.json` 里的 `avalonia-agent-inspector`�
   悬停按 `F1` 重复触发；超时自动取消。在屏幕边缘触发确认可见轮盘仍在屏幕内。设置页点「预览轮盘」
   应能在不经过全局钩子的情况下打开窗口、悬停高亮、松开显示「将运行：…」，`Esc` 关闭。把触发键
   改成中键 / `F8` 各验一次，再关掉「启用轮盘菜单」确认右键完全不受影响。第三圈容量切到
-  8/16/24 各看一次版面与命中；只给内圈填动作时确认空外圈被隐藏。给某个位置加子动作，
-  指向父项时确认外侧扇出、继续划过去松开运行子动作。在动作管理页新增一个按进程名匹配的
-  程序场景、覆盖一个位置，确认其余位置显示「（全局）」；轮盘弹出后滚动滚轮三次，确认
+  8/16/24 各看一次版面与命中；只给内圈填动作时确认空外圈被隐藏。在动作管理页右键一个扇区，
+  确认「编辑轮盘动作」能改宏、备注与图标，选一个图标后文字上方出现它；「清除该位置」把整格清空。
+  新增一个按进程名匹配的程序场景、覆盖一个位置，确认其余位置显示「（全局）」；轮盘弹出后滚动滚轮三次，确认
   来源按叠加／全局／当前程序／叠加变化。把重复键从 `F1` 改成 `F8` 验一次，再关掉光泽、
   悬浮边框、弹出动效与主题跟随，确认浅色固定盘面仍可读。
 - **屏幕捕获设置**：把「跟随屏幕刷新率」关掉，确认数字框可改、上限等于设置页显示的赫兹数；填一个

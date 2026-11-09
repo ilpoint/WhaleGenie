@@ -50,7 +50,7 @@ public partial class TriggerEntry : ObservableObject
     public partial string BindKey { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial MacroLoop LoopMode { get; set; } = MacroLoop.Toggle;
+    public partial MacroLoop LoopMode { get; set; } = MacroLoop.Press;
 
     [ObservableProperty]
     public partial bool TriggerOnce { get; set; }
@@ -398,7 +398,7 @@ public partial class TriggerEntry : ObservableObject
             IsEnabled = Bool(node, "enabled", true),
             BindKey = Text(node, "bindKey"),
             LoopMode = Enum.TryParse<MacroLoop>(Text(node, "loopMode"), true, out var loop)
-                ? loop : MacroLoop.Toggle,
+                ? loop : MacroLoop.Press,
             TriggerOnce = Bool(node, "triggerOnce"),
             ColorMatch = Enum.TryParse<ColorMatchCondition>(Text(node, "colorMatch"), true, out var match)
                 ? match : ColorMatchCondition.ColorMatches,
@@ -578,6 +578,13 @@ public sealed class ProjectTriggers
 
     public ObservableCollection<MenuPage> MenuPages { get; } = [];
 
+    /// <summary>
+    /// The wheel's positions and the window rules that choose them. They belong to the project
+    /// rather than to this machine: a position names a macro, and a macro only exists in a project.
+    /// The button that opens the wheel is a machine choice and stays in <c>wheel-menu.json</c>.
+    /// </summary>
+    public WheelMenuRules Wheel { get; private set; } = new();
+
     /// <summary>Programs whose foreground windows do not open the macro menu.</summary>
     public ObservableCollection<WindowRule> BlockedMenuRules { get; } = [];
 
@@ -589,18 +596,29 @@ public sealed class ProjectTriggers
         => [.. Entries.Where(entry =>
             string.Equals(entry.MacroName, macroName, StringComparison.OrdinalIgnoreCase))];
 
-    public bool HasPage(string macroName, DockPage page)
+    /// <summary>
+    /// Whether the macro is listed under a view. These are filters, not places a macro is filed:
+    /// one macro can be in several of them, and a macro with no trigger at all is still in
+    /// <see cref="MacroView.All"/>.
+    /// </summary>
+    public bool InView(string macroName, MacroView view)
     {
-        var entries = ForMacro(macroName);
-        return page switch
+        if (view == MacroView.All)
         {
-            DockPage.Keys => entries.Count == 0 || entries.Any(entry =>
-                entry.Kind is TriggerKind.Key or TriggerKind.Color),
-            DockPage.Interface => entries.Any(entry => entry.Kind == TriggerKind.Interface),
-            DockPage.Hotstring => entries.Any(entry => entry.Kind == TriggerKind.Hotstring),
-            DockPage.Menu => entries.Any(entry => entry.Kind == TriggerKind.Menu),
-            _ => entries.Any(entry => entry.Kind is TriggerKind.Timer or TriggerKind.File
-                or TriggerKind.Process or TriggerKind.Window or TriggerKind.Idle),
+            return true;
+        }
+
+        var entries = ForMacro(macroName);
+        return view switch
+        {
+            MacroView.Keys => entries.Any(entry => entry.Kind == TriggerKind.Key),
+            MacroView.Interface => entries.Any(entry => entry.Kind == TriggerKind.Interface),
+            MacroView.Hotstring => entries.Any(entry => entry.Kind == TriggerKind.Hotstring),
+            MacroView.Menu => entries.Any(entry => entry.Kind == TriggerKind.Menu),
+            MacroView.Wheel => Wheel.Uses(macroName),
+            // A watched pixel is a watch like a schedule or a file, not a key.
+            _ => entries.Any(entry => entry.Kind is TriggerKind.Color or TriggerKind.Timer
+                or TriggerKind.File or TriggerKind.Process or TriggerKind.Window or TriggerKind.Idle),
         };
     }
 
@@ -614,6 +632,33 @@ public sealed class ProjectTriggers
 
     public IReadOnlyList<TriggerEntry> MenuMembers()
         => [.. Entries.Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Menu)];
+
+    /// <summary>
+    /// The first cell no menu entry occupies, across the common pages in order. A macro created
+    /// from the menu view goes here, so "add from this page" really does add it to this page.
+    /// </summary>
+    public (string PageId, int Row, int Column)? FirstFreeMenuCell()
+    {
+        foreach (var page in CommonMenuPages())
+        {
+            var used = Entries
+                .Where(entry => entry.Kind == TriggerKind.Menu && entry.MenuPageId == page.Id)
+                .Select(entry => (entry.MenuRow, entry.MenuColumn))
+                .ToHashSet();
+            for (var row = 0; row < MenuRegionRows; row++)
+            {
+                for (var column = 0; column < MenuColumns; column++)
+                {
+                    if (!used.Contains((row, column)))
+                    {
+                        return (page.Id, row, column);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
 
     public IReadOnlyList<MenuPage> CommonMenuPages()
         => [.. MenuPages.Where(page => page.Region == MenuPageRegion.Common)];
@@ -1030,6 +1075,10 @@ public sealed class ProjectTriggers
         {
             BlockedMenuRules.Add(rule with { });
         }
+
+        // The wheel's positions are part of what a project holds, so opening one has to take them
+        // with it rather than leave the previous project's wheel on screen.
+        Wheel = other.Wheel.Copy();
         EnsureMenuPages();
     }
 
@@ -1279,6 +1328,7 @@ public sealed class ProjectTriggers
             copy.BlockedMenuRules.Add(rule with { });
         }
 
+        copy.Wheel = Wheel.Copy();
         return copy;
     }
 
@@ -1306,6 +1356,7 @@ public sealed class ProjectTriggers
                 ["blockedRules"] = new JsonArray(
                     [.. BlockedMenuRules.Select(rule => (JsonNode)rule.ToJson())]),
             },
+            ["wheel"] = Wheel.ToJson(),
         };
     }
 
@@ -1347,6 +1398,9 @@ public sealed class ProjectTriggers
             }
         }
 
+        triggers.Wheel = node?["wheel"] is JsonObject wheel
+            ? WheelMenuRules.FromJson(wheel)
+            : new WheelMenuRules();
         triggers.EnsureMenuPages();
         return triggers;
     }

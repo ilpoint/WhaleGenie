@@ -138,7 +138,7 @@ public class LocalSettingsTests
         InOwnFile(_ =>
         {
             var viewModel = new MainViewModel();
-            viewModel.SelectedDock = DockPage.Keys;
+            viewModel.SelectedView = MacroView.All;
 
             viewModel.AddMacro(new MacroItem { Name = "停用一", IsEnabled = false });
             viewModel.AddMacro(new MacroItem { Name = "启用一" });
@@ -167,7 +167,7 @@ public class LocalSettingsTests
         {
             LocalSettings.StoreEnabledFirst(true);
             var viewModel = new MainViewModel();
-            viewModel.SelectedDock = DockPage.Keys;
+            viewModel.SelectedView = MacroView.All;
 
             var first = new MacroItem { Name = "甲" };
             var second = new MacroItem { Name = "乙", IsEnabled = false };
@@ -430,15 +430,15 @@ public class LocalSettingsTests
         InOwnFile(_ =>
         {
             Assert.Equal("Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(DockPage.Keys, LocalSettings.LoadDockPage());
+            Assert.Equal(MacroView.All, LocalSettings.LoadView());
             Assert.Equal(string.Empty, LocalSettings.LoadMenuLauncher());
 
             LocalSettings.StoreSystemHotkey("Ctrl+Alt+Home");
-            LocalSettings.StoreDockPage(DockPage.Menu);
+            LocalSettings.StoreView(MacroView.Menu);
             LocalSettings.StoreMenuLauncher("F9");
 
             Assert.Equal("Ctrl+Alt+Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(DockPage.Menu, LocalSettings.LoadDockPage());
+            Assert.Equal(MacroView.Menu, LocalSettings.LoadView());
             Assert.Equal("F9", LocalSettings.LoadMenuLauncher());
         });
     }

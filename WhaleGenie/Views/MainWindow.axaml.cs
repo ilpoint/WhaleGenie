@@ -40,14 +40,38 @@ public partial class MainWindow : AppWindow
     private WheelMenuWindow? _wheelWindow;
     private WheelMenuState _wheelState = new();
 
+    /// <summary>
+    /// The project's wheel positions as the hook thread reads them. The live collection belongs to
+    /// the interface thread, so it is copied whenever it changes and replaced whole: a press may
+    /// ask whether a program scene matches, and a half-edited scene list is not an answer.
+    /// </summary>
+    private WheelMenuRules? _wheelGateRules;
+
+    /// <summary>The scene matched by the press that armed the gesture, reused when the wheel opens.</summary>
+    private WheelScene? _wheelPressScene;
+
     // Frozen for the whole time a wheel is open: a window coming forward must not change what a
     // direction means while the pointer is aiming at it.
     private WheelScene? _wheelScene;
     private WheelSource _wheelSource = WheelSource.Merged;
     private IReadOnlyList<MacroItem> _wheelMacros = [];
     private WheelMenuRules? _wheelRules;
-    private WheelSlotRef? _wheelSubParent;
-    private int _wheelSubCount;
+
+    /// <summary>
+    /// Where the pointer is while a wheel is open. The hook writes it and the frame timer reads it,
+    /// so a pointer that moves a thousand times a second still costs one drawing a frame.
+    /// </summary>
+    private readonly WheelAim _wheelAim = new();
+    private DispatcherTimer? _wheelFrame;
+    private long _wheelOpenedAt;
+    private long _wheelMovesAtOpen;
+    private long _wheelDrawnAtOpen;
+
+    /// <summary>
+    /// Counts wheels rather than events: an answer posted for one wheel that arrives after it has
+    /// closed must not touch the next one, which is open at the same place on the screen.
+    /// </summary>
+    private int _wheelGeneration;
 
     /// <summary>
     /// A plain copy of the system switch for the hook thread. Avalonia's DataContext and the
@@ -74,12 +98,25 @@ public partial class MainWindow : AppWindow
     private MacroEditorWindow? _editor;
 
     /// <summary>
+    /// The settings window on screen, or null while there is none. It stands beside the main window
+    /// rather than over it: the wheel page is edited while the thing it edits is on the desk, and a
+    /// modal window would be put away by every picker that has to look at the desk.
+    /// </summary>
+    private SettingsWindow? _settings;
+
+    /// <summary>
     /// The macro an open editor currently replaces in the project. Save commits a fresh snapshot,
     /// so this moves forward with every successful save and keeps close from applying it twice.
     /// </summary>
-    private sealed class EditorCommitState(MacroItem? target)
+    private sealed class EditorCommitState(MacroItem? target, MacroView newView)
     {
         public MacroItem? Target { get; set; } = target;
+
+        /// <summary>
+        /// The view the macro was created from. A macro made from the menu or the wheel view is
+        /// placed there once it has a name, which is the only moment a position can point at it.
+        /// </summary>
+        public MacroView NewView { get; } = newView;
 
         public HashSet<MacroItem> Lifted { get; } = [];
     }
@@ -194,7 +231,8 @@ public partial class MainWindow : AppWindow
         var addMacroButton = this.FindControl<Button>("AddMacroButton");
         if (addMacroButton is not null)
         {
-            addMacroButton.Click += (_, _) => OpenEditor(null, null, draft: false);
+            addMacroButton.Click += (_, _) => OpenEditor(null, null, draft: false,
+                (DataContext as MainViewModel)?.SelectedView);
         }
 
         // Clicking a macro card arms or disarms it; the card buttons opt out below.
@@ -491,7 +529,7 @@ public partial class MainWindow : AppWindow
         _wheel = new WheelGesture(
             () => Volatile.Read(ref _wheelState).Options.Launcher,
             () => Volatile.Read(ref _wheelState).Options.RepeatKey,
-            () => Volatile.Read(ref _systemRunning) == 1);
+            WheelCanOpen);
         WheelMenuStore.Changed += OnWheelStateChanged;
 
         var windowEvents = SharedDevices.Current.WindowEvents;
@@ -501,6 +539,7 @@ public partial class MainWindow : AppWindow
         viewModel.Changed += OnProjectChanged;
         viewModel.Macros.CollectionChanged += OnMacrosChanged;
 
+        RefreshWheelGate(viewModel);
         RefreshRunning(viewModel);
         AttachSystemHotkey();
         WatchUnsavedProject(viewModel);
@@ -535,6 +574,7 @@ public partial class MainWindow : AppWindow
     {
         if (DataContext is MainViewModel viewModel)
         {
+            RefreshWheelGate(viewModel);
             PublishRuntimeState(viewModel);
             RefreshSurface(viewModel);
         }
@@ -544,6 +584,7 @@ public partial class MainWindow : AppWindow
     {
         if (DataContext is MainViewModel viewModel)
         {
+            RefreshWheelGate(viewModel);
             PublishRuntimeState(viewModel);
         }
     }
@@ -553,8 +594,53 @@ public partial class MainWindow : AppWindow
     {
         if (DataContext is MainViewModel viewModel)
         {
+            // Opening a package replaces the macros and the wheel without raising a change of the
+            // project itself, so the gate learns about the new wheel here as well.
+            RefreshWheelGate(viewModel);
             PublishRuntimeState(viewModel);
         }
+    }
+
+    /// <summary>Hands the hook thread a copy of the wheel's positions.</summary>
+    private void RefreshWheelGate(MainViewModel viewModel)
+        => Volatile.Write(ref _wheelGateRules, viewModel.Triggers.Wheel.Copy());
+
+    /// <summary>
+    /// Whether the trigger button belongs to the wheel at the place the press happened. It belongs
+    /// there unless "only in these programs" is on, in which case a program scene has to match; the
+    /// matched scene is kept so the wheel that opens is the one the press decided on.
+    /// </summary>
+    private bool WheelCanOpen()
+    {
+        _wheelPressScene = null;
+        if (Volatile.Read(ref _systemRunning) != 1)
+        {
+            return false;
+        }
+
+        var options = Volatile.Read(ref _wheelState).Options;
+        if (!options.OnlyInPrograms)
+        {
+            return true;
+        }
+
+        var rules = Volatile.Read(ref _wheelGateRules);
+        if (rules is null)
+        {
+            return false;
+        }
+
+        try
+        {
+            _wheelPressScene = rules.SceneFor(
+                SharedDevices.Current.Windows.Foreground(), SharedDevices.Current.Windows);
+        }
+        catch
+        {
+            _wheelPressScene = null;
+        }
+
+        return _wheelPressScene is not null;
     }
 
     private void PublishRuntimeState(MainViewModel viewModel)
@@ -1163,20 +1249,7 @@ public partial class MainWindow : AppWindow
     }
 
     private static string CopyMenuIcon(string path, MainViewModel viewModel)
-    {
-        var folder = ImageAssets.FolderFor(viewModel.CurrentPath);
-        Directory.CreateDirectory(folder);
-        var extension = Path.GetExtension(path).ToLowerInvariant();
-        if (extension is not (".png" or ".jpg" or ".jpeg" or ".bmp"))
-        {
-            extension = ".png";
-        }
-
-        var target = Path.Combine(folder,
-            "menu-icon-" + Guid.NewGuid().ToString("N")[..10] + extension);
-        File.Copy(path, target, overwrite: false);
-        return target;
-    }
+        => ImageAssets.Adopt(path, viewModel.CurrentPath);
 
     /// <summary>
     /// Answers the Home key from anywhere, so the system switch works without bringing the window
@@ -1362,9 +1435,16 @@ public partial class MainWindow : AppWindow
     {
         try
         {
-            if (_wheel is { } gesture)
+            // A click this program sent itself (the one a short press is answered with) must not
+            // arm the gesture again.
+            if (e.Injected || _wheel is not { } gesture)
             {
-                gesture.Down(KeyNames.MouseName(e.Button), e.X, e.Y);
+                return;
+            }
+
+            if (gesture.Down(KeyNames.MouseName(e.Button), e.X, e.Y).Swallow)
+            {
+                e.Suppress = true;
             }
         }
         catch (Exception error)
@@ -1377,10 +1457,12 @@ public partial class MainWindow : AppWindow
     {
         try
         {
-            if (_wheel is { } gesture)
+            if (e.Injected || _wheel is not { } gesture)
             {
-                HandleWheel(gesture.Move(e.X, e.Y));
+                return;
             }
+
+            HandleWheel(gesture.Move(e.X, e.Y));
         }
         catch (Exception error)
         {
@@ -1389,26 +1471,71 @@ public partial class MainWindow : AppWindow
     }
 
     /// <summary>
-    /// The press is never swallowed, so the release must not be either. Suppressing only the up
-    /// event leaves Windows with a right button that went down and never came back up: every later
-    /// left click is then eaten until another press/release pair happens. The wheel window itself
-    /// is mouse-transparent, so letting the ordinary right click through costs nothing.
+    /// The release belongs to the gesture that took the press. An open wheel answers with the
+    /// sector that was aimed at; a press that never moved is the ordinary click it turned out to
+    /// be, so the same button is sent again at that place. Neither reaches the application before
+    /// this point, which is what keeps it from painting its own selection while the wheel is being
+    /// aimed and from putting its context menu over the action that was chosen.
     /// </summary>
     private void OnWheelMouseUp(MouseHookEvent e)
     {
         try
         {
-            if (_wheel is not { } gesture)
+            if (e.Injected || _wheel is not { } gesture)
             {
                 return;
             }
 
-            HandleWheel(gesture.Up(KeyNames.MouseName(e.Button), e.X, e.Y));
+            var answered = gesture.Up(KeyNames.MouseName(e.Button), e.X, e.Y);
+            if (answered.Swallow)
+            {
+                e.Suppress = true;
+            }
+
+            if (answered.Action == WheelGestureAction.Replay)
+            {
+                ReplayClick(e.Button);
+                return;
+            }
+
+            HandleWheel(answered);
         }
         catch (Exception error)
         {
             AppDiagnostics.Record("hook.wheel.up", error);
         }
+    }
+
+    /// <summary>
+    /// Sends the click the gesture took but never used. It goes out on a worker thread because the
+    /// device layer waits between the press and the release, and a hook callback has to answer the
+    /// system at once. The click is marked as this program's input, so it cannot rearm the wheel.
+    /// </summary>
+    private void ReplayClick(HookMouseButton button)
+    {
+        var name = button switch
+        {
+            HookMouseButton.Right => "right",
+            HookMouseButton.Middle => "middle",
+            HookMouseButton.Back => "back",
+            HookMouseButton.Forward => "forward",
+            _ => "left",
+        };
+
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                // Where the pointer is now, rather than where it was released: sending the click
+                // through a position would pull the cursor back if the hand had already moved on.
+                var at = SharedDevices.Current.Input.Cursor;
+                SharedDevices.Current.Input.Click(name, at.X, at.Y, 1, 0);
+            }
+            catch (Exception error)
+            {
+                AppDiagnostics.Record("wheel.replay", error);
+            }
+        });
     }
 
     private void OnWheelKeyDown(KeyHookEvent e)
@@ -1455,13 +1582,13 @@ public partial class MainWindow : AppWindow
 
             var wanted = direction > 0 ? WheelSource.Global : WheelSource.Program;
             _wheelSource = _wheelSource == wanted ? WheelSource.Merged : wanted;
-            Dispatcher.UIThread.Post(() =>
+            PostWheel(() =>
             {
                 if (_wheelWindow is { } window)
                 {
                     window.SetLayout(LayoutFor(Volatile.Read(ref _wheelState).Options));
                 }
-            });
+            }, "wheel.scroll");
             e.Suppress = true;
         }
         catch (Exception error)
@@ -1481,26 +1608,56 @@ public partial class MainWindow : AppWindow
         switch (answered.Action)
         {
             case WheelGestureAction.OpenWheel:
-                Dispatcher.UIThread.Post(() => OpenWheel(new PixelPoint(
-                    (int)Math.Round(answered.X), (int)Math.Round(answered.Y))));
+                PostWheel(() => OpenWheel(new PixelPoint(
+                    (int)Math.Round(answered.X), (int)Math.Round(answered.Y))), "wheel.open");
                 break;
             case WheelGestureAction.Move:
-                Dispatcher.UIThread.Post(() => UpdateWheelHover(answered.X, answered.Y));
+                // Nothing is posted here. The hook writes where the pointer is; the frame timer
+                // reads it once and draws once, however many of these arrived in between.
+                _wheelAim.Move(answered.X, answered.Y);
                 break;
             case WheelGestureAction.Select:
-                Dispatcher.UIThread.Post(() =>
+                PostWheel(() =>
                 {
                     RunWheelSlot(answered.Slot);
                     CloseWheel();
-                });
+                }, "wheel.select");
                 break;
             case WheelGestureAction.Repeat:
-                Dispatcher.UIThread.Post(() => RunWheelSlot(answered.Slot));
+                PostWheel(() => RunWheelSlot(answered.Slot), "wheel.repeat");
                 break;
             case WheelGestureAction.Cancel:
-                Dispatcher.UIThread.Post(CloseWheel);
+                PostWheel(CloseWheel, "wheel.cancel");
                 break;
         }
+    }
+
+    /// <summary>
+    /// Hands one wheel answer to the interface. The hook thread must not touch a window, and an
+    /// exception on the interface thread ends the process with nothing written down: a stage that
+    /// fails closes the wheel and leaves a record instead. An answer that arrives after the wheel
+    /// it belonged to has gone is dropped.
+    /// </summary>
+    private void PostWheel(Action answer, string stage)
+    {
+        var generation = Volatile.Read(ref _wheelGeneration);
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (generation != Volatile.Read(ref _wheelGeneration))
+            {
+                return;
+            }
+
+            try
+            {
+                answer();
+            }
+            catch (Exception error)
+            {
+                AppDiagnostics.Record(stage, error);
+                CloseWheel();
+            }
+        });
     }
 
     private void OpenWheel(PixelPoint origin)
@@ -1519,20 +1676,25 @@ public partial class MainWindow : AppWindow
         try
         {
             // The scene is chosen once, from the window that was in front when the button went
-            // down, exactly as the floating macro menu picks its lower region.
+            // down, exactly as the floating macro menu picks its lower region. The positions come
+            // from the project, the button and the look from this machine's file. The copy taken
+            // for the gate is used here as well: it is the wheel the press was judged against.
             _wheelMacros = [.. viewModel.Macros];
-            _wheelRules = state.Rules;
+            _wheelRules = Volatile.Read(ref _wheelGateRules) ?? viewModel.Triggers.Wheel.Copy();
             _wheelSource = WheelSource.Merged;
-            _wheelSubParent = null;
-            try
+            _wheelScene = _wheelPressScene;
+            if (_wheelScene is null && !Volatile.Read(ref _wheelState).Options.OnlyInPrograms)
             {
-                _wheelScene = state.Rules.SceneFor(
-                    SharedDevices.Current.Windows.Foreground(),
-                    SharedDevices.Current.Windows);
-            }
-            catch
-            {
-                _wheelScene = null;
+                try
+                {
+                    _wheelScene = _wheelRules.SceneFor(
+                        SharedDevices.Current.Windows.Foreground(),
+                        SharedDevices.Current.Windows);
+                }
+                catch
+                {
+                    _wheelScene = null;
+                }
             }
 
             var layout = LayoutFor(state.Options);
@@ -1546,10 +1708,55 @@ public partial class MainWindow : AppWindow
             window.Position = window.PlaceAt(origin);
             _wheelWindow = window;
             _wheel?.SetCenter(window.Center.X, window.Center.Y, window.Metrics);
+
+            // Everything that belonged to the wheel before this one is stale, including a move
+            // that was written but never drawn. The generation itself moves when a wheel closes,
+            // not when one opens: an answer posted before the open ran still belongs to the wheel
+            // that is now up, and dropping it would leave a release unanswered.
+            _wheelOpenedAt = Stopwatch.GetTimestamp();
+            _wheelMovesAtOpen = _wheelAim.Counts.Written;
+            _wheelDrawnAtOpen = _wheelAim.Counts.Taken;
+            _wheelAim.Clear();
+            StartWheelFrames();
         }
         catch (Exception error)
         {
             AppDiagnostics.Record("wheel.open", error);
+            CloseWheel();
+        }
+    }
+
+    /// <summary>
+    /// The one timer the wheel draws from. It runs only while a wheel is up: reading a position that
+    /// has not changed costs a comparison and draws nothing, so an idle wheel is idle.
+    /// </summary>
+    private void StartWheelFrames()
+    {
+        _wheelFrame ??= new DispatcherTimer(
+            TimeSpan.FromMilliseconds(8), DispatcherPriority.Input, (_, _) => DrainWheelAim());
+        _wheelFrame.Start();
+    }
+
+    private void DrainWheelAim()
+    {
+        if (_wheelWindow is null)
+        {
+            _wheelAim.Clear();
+            return;
+        }
+
+        if (!_wheelAim.Take(out var x, out var y))
+        {
+            return;
+        }
+
+        try
+        {
+            UpdateWheelHover(x, y);
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("wheel.hover", error);
             CloseWheel();
         }
     }
@@ -1563,29 +1770,7 @@ public partial class MainWindow : AppWindow
 
         var dx = x - window.Center.X;
         var dy = y - window.Center.Y;
-        var aimed = WheelGeometry.At(dx, dy, window.Metrics);
-        var chosen = aimed;
-        var previous = _wheelSubParent;
-        _wheelSubParent = null;
-
-        if (Volatile.Read(ref _wheelState).Options.ShowSubActions
-            && aimed is { Ring: not WheelRing.Extended } resident
-            && window.SlotAt(resident) is { HasSub: true } parent)
-        {
-            _wheelSubParent = resident;
-            _wheelSubCount = parent.Sub.Count;
-        }
-
-        var held = _wheelSubParent ?? previous;
-        if (held is { } fan && Volatile.Read(ref _wheelState).Options.ShowSubActions)
-        {
-            var angle = WheelGeometry.SectorAngle(fan, window.Metrics);
-            if (WheelGeometry.SubAt(dx, dy, window.Metrics, angle, _wheelSubCount) is { } index)
-            {
-                chosen = new WheelSlotRef(fan.Ring, fan.Index, index);
-            }
-        }
-
+        var chosen = WheelGeometry.At(dx, dy, window.Metrics);
         _wheel?.Hover(chosen);
         window.Hover(chosen);
         window.Aim(x, y);
@@ -1609,9 +1794,36 @@ public partial class MainWindow : AppWindow
         _wheelScene = null;
         _wheelRules = null;
         _wheelMacros = [];
-        _wheelSubParent = null;
         _wheelSource = WheelSource.Merged;
+
+        // Bumping the generation is what makes an answer still in the queue belong to a wheel that
+        // no longer exists; the frame timer stops with it.
+        _wheelGeneration++;
+        _wheelFrame?.Stop();
+        _wheelAim.Clear();
+        NoteWheelFrames();
         window?.Close();
+    }
+
+    /// <summary>
+    /// One line about what a wheel cost, written when it closes. The pair of numbers is the whole
+    /// diagnosis of a pointer that felt slow: positions written against drawings made.
+    /// </summary>
+    private void NoteWheelFrames()
+    {
+        if (_wheelOpenedAt == 0)
+        {
+            return;
+        }
+
+        var openMs = (long)Stopwatch.GetElapsedTime(_wheelOpenedAt).TotalMilliseconds;
+        var moves = _wheelAim.Counts.Written - _wheelMovesAtOpen;
+        var drawn = _wheelAim.Counts.Taken - _wheelDrawnAtOpen;
+        _wheelOpenedAt = 0;
+        if (openMs >= 500)
+        {
+            AppDiagnostics.Note("wheel.frames", $"open={openMs}ms moves={moves} drawn={drawn}");
+        }
     }
 
     private void OnSystemHotkeyUp(KeyHookEvent e)
@@ -2335,37 +2547,62 @@ public partial class MainWindow : AppWindow
         => await new AboutWindow().ShowDialogOver(this);
 
     private async void OnOpenSettings(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainViewModel viewModel)
-        {
-            return;
-        }
+        => await OpenSettingsAsync(SettingsSubPage.General);
 
-        var dialog = new SettingsWindow(viewModel, viewModel.CurrentPath);
-        await dialog.ShowDialogOver(this);
-        PublishRuntimeState(viewModel);
-        viewModel.RefreshHotkeyHints();
-
-        // 列表的排序在设置里可改，关掉设置窗口就按新选择重排一次。
-        viewModel.RefreshVisibleMacros();
-    }
-
-    private Task OpenMenuSettingsAsync(WindowInfo? foreground)
+    /// <summary>
+    /// Opens the settings window beside the main window, on the page asked for, and answers when it
+    /// closes. One at a time: a second request brings the open window forward instead of laying
+    /// another copy of the same settings over it.
+    /// </summary>
+    /// <remarks>
+    /// It is shown as a peer rather than as a dialog because the pages it holds reach outside it: a
+    /// picker has to put this program's windows away and take a window from the desk, and the wheel
+    /// has to be tried while its page is open. A modal settings window cannot be put away that way
+    /// without breaking the modal chain its owner is disabled by, which is what left "add rule"
+    /// doing nothing at all.
+    /// </remarks>
+    private Task OpenSettingsAsync(SettingsSubPage page)
     {
         if (DataContext is not MainViewModel viewModel)
         {
             return Task.CompletedTask;
         }
 
-        _ = ShowMenuSettingsAsync(viewModel, foreground);
-        return Task.CompletedTask;
+        if (_settings is { } open)
+        {
+            open.Activate();
+            return Task.CompletedTask;
+        }
+
+        var dialog = new SettingsWindow(viewModel, viewModel.CurrentPath, page);
+        var closed = new TaskCompletionSource();
+        _settings = dialog;
+        dialog.Closed += (_, _) =>
+        {
+            if (ReferenceEquals(_settings, dialog))
+            {
+                _settings = null;
+            }
+
+            // Everything the settings pages change is read back through these three: the runtime
+            // snapshot the triggers run from, the words on the hotkey hints, and the order of the
+            // list, which the settings can change without touching a single macro.
+            PublishRuntimeState(viewModel);
+            viewModel.RefreshHotkeyHints();
+            viewModel.RefreshVisibleMacros();
+            closed.TrySetResult();
+        };
+        dialog.ShowAsPeer(this);
+        return closed.Task;
     }
 
-    private async Task ShowMenuSettingsAsync(MainViewModel viewModel, WindowInfo? foreground)
+    private Task OpenMenuSettingsAsync(WindowInfo? foreground) => ShowMenuSettingsAsync(foreground);
+
+    private async Task ShowMenuSettingsAsync(WindowInfo? foreground)
     {
-        var dialog = new SettingsWindow(viewModel, viewModel.CurrentPath,
-            SettingsSubPage.MenuLauncher);
-        await dialog.ShowDialogOver(this);
+        // The settings window is not modal any more, so this waits for it to close by its own
+        // Closed event rather than by the modal loop that used to end here.
+        await OpenSettingsAsync(SettingsSubPage.MenuLauncher);
         if (foreground is not null)
         {
             try
@@ -2377,8 +2614,6 @@ public partial class MainWindow : AppWindow
                 // The target may have closed while settings were open.
             }
         }
-        PublishRuntimeState(viewModel);
-        viewModel.RefreshHotkeyHints();
     }
 
     /// <summary>
@@ -2387,7 +2622,8 @@ public partial class MainWindow : AppWindow
     /// when it is saved is <paramref name="existing"/>, which is null for a new one. It answers the
     /// editor back so that a check can write in it; nothing else reads that.
     /// </summary>
-    internal MacroEditorWindow? OpenEditor(MacroItem? editing, MacroItem? existing, bool draft)
+    internal MacroEditorWindow? OpenEditor(MacroItem? editing, MacroItem? existing, bool draft,
+        MacroView? newView = null)
     {
         if (DataContext is not MainViewModel viewModel)
         {
@@ -2406,7 +2642,7 @@ public partial class MainWindow : AppWindow
         // layer is the program's own, so the trials and the runs started from here use the one layer
         // whose text recognition models are already loaded.
         var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath,
-            SharedDevices.Current, viewModel.Triggers);
+            SharedDevices.Current, viewModel.Triggers, callableOnly: false, newView);
 
         // Recovered work is unsaved by definition, so closing that editor has to ask about it rather
         // than let it go without a word.
@@ -2415,7 +2651,7 @@ public partial class MainWindow : AppWindow
             editor.MarkUnsaved();
         }
 
-        var commit = new EditorCommitState(existing);
+        var commit = new EditorCommitState(existing, newView ?? MacroView.All);
         _editor = editor;
         editor.Saved += macro => CommitEditorSnapshot(editor, macro, commit, viewModel);
         editor.Closed += (_, _) => OnEditorClosed(editor, commit, viewModel);
@@ -2468,6 +2704,7 @@ public partial class MainWindow : AppWindow
         {
             ApplyEditorTriggerSettings(viewModel, macro);
             viewModel.AddMacro(macro);
+            PlaceNewMacro(commit.NewView, macro, viewModel);
             commit.Target = macro;
             WriteUnsavedProject(viewModel);
             return;
@@ -2490,6 +2727,33 @@ public partial class MainWindow : AppWindow
         // The editor has just let its draft go, so the list is the only copy of this macro: it
         // goes into the snapshot now rather than waiting for the next turn of the timer.
         WriteUnsavedProject(viewModel);
+    }
+
+    /// <summary>
+    /// Puts a macro that was created from the menu or the wheel view where that view keeps things.
+    /// It happens after the save because a position names the macro, and a macro is named by the
+    /// editor. The key, window and string views already brought their own entry with them.
+    /// </summary>
+    internal static void PlaceNewMacro(MacroView view, MacroItem macro, MainViewModel viewModel)
+    {
+        switch (view)
+        {
+            case MacroView.Menu when viewModel.Triggers.FirstFreeMenuCell() is { } cell:
+                viewModel.Triggers.Entries.Add(new TriggerEntry
+                {
+                    Kind = TriggerKind.Menu,
+                    MacroName = macro.Name,
+                    MenuPageId = cell.PageId,
+                    MenuRow = cell.Row,
+                    MenuColumn = cell.Column,
+                    IsEnabled = true,
+                });
+                break;
+            case MacroView.Wheel when viewModel.Triggers.Wheel.Global.FirstEmptySlot() is { } slot:
+                slot.Macro = macro.Name;
+                viewModel.Triggers.NotifyChanged();
+                break;
+        }
     }
 
     /// <summary>

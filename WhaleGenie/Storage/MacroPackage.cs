@@ -43,7 +43,9 @@ public static class MacroPackage
     /// so it is refused rather than half-read. 25 is the version where how often the screen is read
     /// moved from each step to the settings window: a 24 package's <c>intervalMs</c> and
     /// <c>frameMaxAgeMs</c> would be read as fields no action has any more, and the macro would run
-    /// at a different pace than the one it was written at without saying so.
+    /// at a different pace than the one it was written at without saying so. The wheel's positions
+    /// joining <c>triggers.json</c> needs no bump: a package without the node opens with an empty
+    /// wheel, and a package that has one is read by a build that knows the node.
     /// </summary>
     public const int FormatVersion = 25;
 

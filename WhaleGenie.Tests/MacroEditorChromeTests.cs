@@ -271,6 +271,7 @@ public class MacroEditorChromeTests
             Dispatcher.UIThread.RunJobs();
 
             var model = (MacroEditorViewModel)window.DataContext!;
+            model.AddTriggerCommand.Execute(TriggerKind.Key);
             var key = model.SelectedTrigger!;
             model.AddTriggerCommand.Execute(TriggerKind.Color);
             Dispatcher.UIThread.RunJobs();
@@ -328,6 +329,7 @@ public class MacroEditorChromeTests
             Dispatcher.UIThread.RunJobs();
 
             var model = (MacroEditorViewModel)window.DataContext!;
+            model.AddTriggerCommand.Execute(TriggerKind.Key);
             var menu = new TriggerEntry { Kind = TriggerKind.Menu };
             model.TriggerEntries.Add(menu);
             Dispatcher.UIThread.RunJobs();

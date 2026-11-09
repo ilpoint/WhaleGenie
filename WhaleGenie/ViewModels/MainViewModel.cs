@@ -18,7 +18,7 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null)
     {
         _makeMcp = mcp;
-        SelectedDock = LocalSettings.LoadDockPage();
+        SelectedView = LocalSettings.LoadView();
 
         // 启动时是否已经在听触发，由设置决定；默认关着，和按热键启用之前一样。
         IsRunning = LocalSettings.LoadSystemAtStart();
@@ -26,6 +26,7 @@ public partial class MainViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(HasMacros));
             OnPropertyChanged(nameof(HasUnsavedChanges));
+            RefreshGroups();
             RefreshVisibleMacros();
         };
         Triggers.Changed += (_, _) =>
@@ -42,7 +43,12 @@ public partial class MainViewModel : ViewModelBase
             {
                 macro.RefreshLanguage();
             }
+
+            // The filter's own two words ("all groups", "ungrouped") are drawn from the item, and a
+            // combo box keeps the text it was given, so the list is rebuilt for the new language.
+            RefreshGroups();
         };
+        RefreshGroups();
     }
 
     /// <summary>
@@ -57,26 +63,82 @@ public partial class MainViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value) => RefreshVisibleMacros();
 
-    /// <summary>Every trigger entry in the project, including the active dock page's filter.</summary>
+    /// <summary>
+    /// One entry of the group filter beside the search box: "all", "ungrouped", or a group name.
+    /// Groups are the second layer beside the fixed views — the view says how a macro starts, the
+    /// group says which part of someone's work it belongs to.
+    /// </summary>
+    public sealed record MacroGroupChoice(string? Name)
+    {
+        public override string ToString() => Name switch
+        {
+            null => Strings.Get("Main.Ungrouped"),
+            { Length: 0 } => Strings.Get("Main.GroupAll"),
+            _ => Name,
+        };
+    }
+
+    public ObservableCollection<MacroGroupChoice> Groups { get; } = [];
+
+    [ObservableProperty]
+    public partial MacroGroupChoice? SelectedGroup { get; set; }
+
+    partial void OnSelectedGroupChanged(MacroGroupChoice? value) => RefreshVisibleMacros();
+
+    /// <summary>
+    /// Rebuilds the filter from the groups the macros actually carry, keeping the chosen one by
+    /// name. A group disappears from the list when its last macro leaves it.
+    /// </summary>
+    private void RefreshGroups()
+    {
+        var wanted = SelectedGroup?.Name ?? string.Empty;
+        var names = Macros
+            .Select(macro => macro.Group.Trim())
+            .Where(name => name.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.CurrentCulture)
+            .ToList();
+
+        Groups.Clear();
+        Groups.Add(new MacroGroupChoice(string.Empty));
+        foreach (var name in names)
+        {
+            Groups.Add(new MacroGroupChoice(name));
+        }
+        Groups.Add(new MacroGroupChoice(null));
+
+        var keeping = Groups.FirstOrDefault(choice =>
+            string.Equals(choice.Name, wanted, StringComparison.OrdinalIgnoreCase)) ?? Groups[0];
+        if (!ReferenceEquals(SelectedGroup, keeping))
+        {
+            SelectedGroup = keeping;
+        }
+    }
+
+    /// <summary>Every trigger entry in the project, including the one the list is filtered by.</summary>
     public ProjectTriggers Triggers { get; } = new();
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsKeysDock))]
-    [NotifyPropertyChangedFor(nameof(IsInterfaceDock))]
-    [NotifyPropertyChangedFor(nameof(IsHotstringDock))]
-    [NotifyPropertyChangedFor(nameof(IsMenuDock))]
-    [NotifyPropertyChangedFor(nameof(IsOtherDock))]
-    public partial DockPage SelectedDock { get; set; } = DockPage.Keys;
+    [NotifyPropertyChangedFor(nameof(IsAllView))]
+    [NotifyPropertyChangedFor(nameof(IsKeysView))]
+    [NotifyPropertyChangedFor(nameof(IsInterfaceView))]
+    [NotifyPropertyChangedFor(nameof(IsHotstringView))]
+    [NotifyPropertyChangedFor(nameof(IsMenuView))]
+    [NotifyPropertyChangedFor(nameof(IsWheelView))]
+    [NotifyPropertyChangedFor(nameof(IsEventsView))]
+    public partial MacroView SelectedView { get; set; } = MacroView.All;
 
-    public bool IsKeysDock => SelectedDock == DockPage.Keys;
-    public bool IsInterfaceDock => SelectedDock == DockPage.Interface;
-    public bool IsHotstringDock => SelectedDock == DockPage.Hotstring;
-    public bool IsMenuDock => SelectedDock == DockPage.Menu;
-    public bool IsOtherDock => SelectedDock == DockPage.Other;
+    public bool IsAllView => SelectedView == MacroView.All;
+    public bool IsKeysView => SelectedView == MacroView.Keys;
+    public bool IsInterfaceView => SelectedView == MacroView.Interface;
+    public bool IsHotstringView => SelectedView == MacroView.Hotstring;
+    public bool IsMenuView => SelectedView == MacroView.Menu;
+    public bool IsWheelView => SelectedView == MacroView.Wheel;
+    public bool IsEventsView => SelectedView == MacroView.Events;
 
-    partial void OnSelectedDockChanged(DockPage value)
+    partial void OnSelectedViewChanged(MacroView value)
     {
-        LocalSettings.StoreDockPage(value);
+        LocalSettings.StoreView(value);
         RefreshVisibleMacros();
     }
 
@@ -174,7 +236,16 @@ public partial class MainViewModel : ViewModelBase
     public bool HasMacros => Macros.Count > 0;
 
     /// <summary>True when there are macros but the search left none of them on screen.</summary>
-    public bool HasNoMatch => Macros.Count > 0 && VisibleMacros.Count == 0;
+    public bool HasNoMatch => Macros.Count > 0 && VisibleMacros.Count == 0
+        && SearchText.Trim().Length > 0;
+
+    /// <summary>
+    /// True when the view that is open holds nothing and no search is narrowing it — which is a
+    /// different sentence from "nothing matches what you typed", and the common one now that the
+    /// list has a view for every kind of trigger.
+    /// </summary>
+    public bool IsEmptyView => Macros.Count > 0 && VisibleMacros.Count == 0
+        && SearchText.Trim().Length == 0;
 
     /// <summary>
     /// Puts the macros the search box lets through into the list the window shows. Enabled ones come
@@ -184,8 +255,15 @@ public partial class MainViewModel : ViewModelBase
     public void RefreshVisibleMacros()
     {
         var wanted = SearchText.Trim();
+        var group = SelectedGroup?.Name;
         var keeping = Macros.Where(macro =>
-            Triggers.HasPage(macro.Name, SelectedDock)
+            Triggers.InView(macro.Name, SelectedView)
+            && (group switch
+            {
+                null => macro.Group.Trim().Length == 0,
+                { Length: 0 } => true,
+                _ => string.Equals(macro.Group.Trim(), group, StringComparison.OrdinalIgnoreCase),
+            })
             && (wanted.Length == 0
                 || macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)));
 
@@ -202,6 +280,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(HasNoMatch));
+        OnPropertyChanged(nameof(IsEmptyView));
     }
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
@@ -221,13 +300,9 @@ public partial class MainViewModel : ViewModelBase
             macro.Name = MacroNames.Free(macro.Name, Macros.Select(item => item.Name), DateTime.Now);
         }
 
-        if (macro.Triggers.Count == 0)
-        {
-            var entry = TriggerEntry.FromMacro(macro);
-            entry.MacroName = macro.Name;
-            macro.Triggers.Add(entry);
-        }
-
+        // A macro without a trigger is a real state: it is listed in "all" and runs when something
+        // calls it. Inventing an empty key entry here made every new macro look like a key macro
+        // whose key had merely not been chosen yet.
         Macros.Add(macro);
         Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
         MarkDirty();
@@ -394,11 +469,11 @@ public partial class MainViewModel : ViewModelBase
     private void ToggleRun() => IsRunning = !IsRunning;
 
     [RelayCommand]
-    private void SelectDock(string? page)
+    private void SelectView(string? view)
     {
-        if (Enum.TryParse<DockPage>(page, true, out var selected))
+        if (Enum.TryParse<MacroView>(view, true, out var selected))
         {
-            SelectedDock = selected;
+            SelectedView = selected;
         }
     }
 

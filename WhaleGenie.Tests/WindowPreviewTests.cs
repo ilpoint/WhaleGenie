@@ -394,7 +394,12 @@ public class WindowPreviewTests
                         .Add(2, "Calculator", "calc", "CalcFrame"),
                 };
 
-                var macro = new MacroItem { Name = "probe", TriggerMode = MacroTrigger.Window };
+                var macro = new MacroItem { Name = "probe" };
+                macro.Triggers.Add(new TriggerEntry
+                {
+                    Kind = TriggerKind.Window,
+                    WindowTarget = WindowRule.Empty,
+                });
                 var window = new MacroEditorWindow(macro, [macro], null, devices);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
@@ -687,7 +692,12 @@ public class WindowPreviewTests
                     .Add(2, "Calculator", "calc", "CalcFrame"),
             };
 
-            var macro = new MacroItem { Name = "probe", TriggerMode = MacroTrigger.Window };
+            var macro = new MacroItem { Name = "probe" };
+            macro.Triggers.Add(new TriggerEntry
+            {
+                Kind = TriggerKind.Window,
+                WindowTarget = WindowRule.Empty,
+            });
             var window = new MacroEditorWindow(macro, [macro], null, devices);
             window.Show();
             Dispatcher.UIThread.RunJobs();

@@ -584,29 +584,15 @@
                                             HorizontalAlignment="Left" Margin="0,8,0,0"
                                             IsVisible="{Binding IsSystemOff}" Click="OnEnableSystem"
                                             Content="{Binding [Settings.WheelEnableSystem], Source={x:Static loc:Strings.Current}}" />
-                                    <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                                               Text="{Binding [Settings.WheelLauncherHint], Source={x:Static loc:Strings.Current}}" />
-                                    <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,8,0,0">
-                                        <CheckBox Classes="Field" IsChecked="{Binding WheelLauncherDefault}"
-                                                  Content="{Binding [Settings.RightButton], Source={x:Static loc:Strings.Current}}" />
-                                        <CheckBox Classes="Field" IsChecked="{Binding WheelLauncherCustom}"
-                                                  Content="{Binding [Settings.CustomKey], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
+                                    <TextBlock Classes="FieldLabel" Margin="0,10,0,0"
+                                               Text="{Binding [Settings.WheelLauncher], Source={x:Static loc:Strings.Current}}" />
+                                    <ComboBox Classes="Field" Width="200" Margin="0,6,0,0"
+                                              HorizontalAlignment="Left"
+                                              ItemsSource="{Binding WheelLauncherChoices}"
+                                              SelectedItem="{Binding SelectedWheelLauncher}" />
                                     <TextBlock Classes="Hint" Margin="0,6,0,0" TextWrapping="Wrap"
                                                Text="{Binding [Settings.WheelGestureHint], Source={x:Static loc:Strings.Current}}" />
                                 </StackPanel>
-                                <fa:FASettingsExpanderItem.Footer>
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
-                                                   TextAlignment="Right" Text="{Binding WheelLauncherDisplay}" />
-                                        <Button Tag="HotkeyButton" Classes="Secondary" Height="30"
-                                                Click="OnCaptureWheelLauncher"
-                                                Content="{Binding WheelLauncherButton}" />
-                                        <Button Tag="HotkeyButton" Classes="Secondary" Height="30"
-                                                Click="OnClearWheelLauncher"
-                                                Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
-                                </fa:FASettingsExpanderItem.Footer>
                             </fa:FASettingsExpanderItem>
 
                             <fa:FASettingsExpanderItem>
@@ -619,6 +605,16 @@
                                 <fa:FASettingsExpanderItem.Footer>
                                     <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding WheelEnabled}" />
                                 </fa:FASettingsExpanderItem.Footer>
+                            </fa:FASettingsExpanderItem>
+
+                            <fa:FASettingsExpanderItem>
+                                <StackPanel>
+                                    <CheckBox Name="OnlyInProgramsCheck" Classes="Field"
+                                              IsChecked="{Binding OnlyInPrograms}"
+                                              Content="{Binding [Settings.WheelOnlyInPrograms], Source={x:Static loc:Strings.Current}}" />
+                                    <TextBlock Classes="Hint" Margin="0,6,0,0" TextWrapping="Wrap"
+                                               Text="{Binding [Settings.WheelOnlyInProgramsHint], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
                             </fa:FASettingsExpanderItem>
 
                             <fa:FASettingsExpanderItem>
@@ -737,8 +733,6 @@
                               Content="{Binding [Settings.WheelGuide], Source={x:Static loc:Strings.Current}}" />
                     <CheckBox Classes="Field" IsChecked="{Binding ExtendedHint}"
                               Content="{Binding [Settings.WheelExtendedHint], Source={x:Static loc:Strings.Current}}" />
-                    <CheckBox Classes="Field" IsChecked="{Binding ShowSubActions}"
-                              Content="{Binding [Settings.WheelSubActions], Source={x:Static loc:Strings.Current}}" />
                 </WrapPanel>
             </StackPanel>
         </fa:FASettingsExpanderItem>

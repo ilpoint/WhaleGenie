@@ -128,14 +128,45 @@ public partial class MacroEditorViewModel : ViewModelBase
             OnPropertyChanged(nameof(TriggerProblemSummary));
             OnPropertyChanged(nameof(HasTriggerProblem));
         };
-        var first = new TriggerEntry { Kind = TriggerKind.Key };
-        WatchTriggerEntry(first);
-        TriggerEntries.Add(first);
-        _selectedTrigger = first;
-        LoadTriggerFields(first);
+
+        // No entry is created here. A macro without a trigger is an ordinary state now, and what
+        // kind of entry a new macro starts with is decided by where the person pressed "add":
+        // see PrepareNewTrigger.
         RebuildHotstringEndKeys();
         RefreshPaletteState();
         RefreshVariableCenter();
+    }
+
+    /// <summary>
+    /// Gives a brand-new macro the entry its list view stands for: a key entry with nothing bound
+    /// yet on the key view, and the matching entry on the window and string views. "All", "events"
+    /// and the wheel start with nothing — the first two are not one kind, and a wheel position
+    /// needs the macro's name, so it is placed once the macro is saved.
+    /// </summary>
+    public void PrepareNewTrigger(MacroView view)
+    {
+        var kind = view switch
+        {
+            MacroView.Keys => TriggerKind.Key,
+            MacroView.Interface => TriggerKind.Interface,
+            MacroView.Hotstring => TriggerKind.Hotstring,
+            _ => (TriggerKind?)null,
+        };
+
+        if (kind is { } wanted)
+        {
+            AddEntry(wanted);
+        }
+    }
+
+    /// <summary>Adds an entry and shows it, without counting as an edit the person made.</summary>
+    private TriggerEntry AddEntry(TriggerKind kind)
+    {
+        var entry = new TriggerEntry { Kind = kind, MacroName = Name.Trim() };
+        WatchTriggerEntry(entry);
+        TriggerEntries.Add(entry);
+        SelectedTrigger = entry;
+        return entry;
     }
 
     public VariableCenterViewModel VariableCenter { get; } = new();
@@ -423,14 +454,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     private void AddTrigger(TriggerKind? kind)
     {
         CommitTriggerFields();
-        var entry = new TriggerEntry
-        {
-            Kind = kind ?? TriggerKind.Key,
-            MacroName = Name.Trim(),
-        };
-        WatchTriggerEntry(entry);
-        TriggerEntries.Add(entry);
-        SelectedTrigger = entry;
+        AddEntry(kind ?? TriggerKind.Key);
         MarkDirty();
     }
 
@@ -780,6 +804,13 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>A sentence shown with a callable macro in pickers and libraries.</summary>
     [ObservableProperty]
     public partial string Description { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The folder this macro is filed under, as the author spelled it. Empty means ungrouped; the
+    /// main list offers the names that exist as a filter beside the fixed views.
+    /// </summary>
+    [ObservableProperty]
+    public partial string Group { get; set; } = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsColorTrigger))]
@@ -2391,28 +2422,26 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             Name = macro.Name;
             Description = macro.Description;
+            Group = macro.Group;
             Origin = macro.Origin;
             TriggerEntries.Clear();
-            if (macro.Triggers.Count == 0)
+            foreach (var entry in macro.Triggers)
             {
-                var initial = TriggerEntry.FromMacro(macro);
-                WatchTriggerEntry(initial);
-                TriggerEntries.Add(initial);
-            }
-            else
-            {
-                foreach (var entry in macro.Triggers)
-                {
-                    var copy = entry.Copy();
-                    WatchTriggerEntry(copy);
-                    TriggerEntries.Add(copy);
-                }
+                var copy = entry.Copy();
+                WatchTriggerEntry(copy);
+                TriggerEntries.Add(copy);
             }
 
-            _selectedTrigger = TriggerEntries[0];
+            _selectedTrigger = TriggerEntries.FirstOrDefault();
             OnPropertyChanged(nameof(SelectedTrigger));
             OnPropertyChanged(nameof(HasSelectedTrigger));
-            LoadTriggerFields(_selectedTrigger);
+            OnPropertyChanged(nameof(ShowsTriggerSettings));
+            OnPropertyChanged(nameof(ShowsLoopMode));
+            OnPropertyChanged(nameof(ShowsTriggerOnce));
+            if (_selectedTrigger is { } first)
+            {
+                LoadTriggerFields(first);
+            }
             PositionCapture = macro.PositionCapture;
             RecordMouseMovement = macro.RecordMouseMovement;
             RecordMouseButtons = macro.RecordMouseButtons;
@@ -3573,6 +3602,7 @@ public partial class MacroEditorViewModel : ViewModelBase
         {
             Name = Name.Trim(),
             Description = Description.Trim(),
+            Group = Group.Trim(),
             Origin = Origin,
             PositionCapture = PositionCapture,
             RecordMouseMovement = RecordMouseMovement,

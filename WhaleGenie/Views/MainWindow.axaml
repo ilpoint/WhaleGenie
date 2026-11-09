@@ -326,32 +326,43 @@
 
         <!-- ============ Main content ============ -->
         <Grid Grid.Row="2" RowDefinitions="Auto,Auto,*" Margin="14,10">
-            <!-- Trigger dock -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="2"
+            <!-- Trigger views: filters over the project, not buckets a macro is filed into. -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="2"
                   Margin="0,0,0,8">
-                <Button Grid.Column="0" Classes="Tab Root" Classes.selected="{Binding IsKeysDock}"
-                        Command="{Binding SelectDockCommand}" CommandParameter="Keys"
+                <Button Grid.Column="0" Classes="Tab Root" Classes.selected="{Binding IsAllView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="All"
+                        Content="{Binding [Main.Dock.All], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="1" Classes="Tab Root" Classes.selected="{Binding IsKeysView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="Keys"
                         Content="{Binding [Main.Dock.Keys], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="1" Classes="Tab Root" Classes.selected="{Binding IsInterfaceDock}"
-                        Command="{Binding SelectDockCommand}" CommandParameter="Interface"
+                <Button Grid.Column="2" Classes="Tab Root" Classes.selected="{Binding IsInterfaceView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="Interface"
                         Content="{Binding [Main.Dock.Interface], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="2" Classes="Tab Root" Classes.selected="{Binding IsHotstringDock}"
-                        Command="{Binding SelectDockCommand}" CommandParameter="Hotstring"
+                <Button Grid.Column="3" Classes="Tab Root" Classes.selected="{Binding IsHotstringView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="Hotstring"
                         Content="{Binding [Main.Dock.Hotstring], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="3" Classes="Tab Root" Classes.selected="{Binding IsMenuDock}"
-                        Command="{Binding SelectDockCommand}" CommandParameter="Menu"
+                <Button Grid.Column="4" Classes="Tab Root" Classes.selected="{Binding IsMenuView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="Menu"
                         Content="{Binding [Main.Dock.Menu], Source={x:Static loc:Strings.Current}}" />
-                <Button Grid.Column="4" Classes="Tab Root" Classes.selected="{Binding IsOtherDock}"
-                        Command="{Binding SelectDockCommand}" CommandParameter="Other"
-                        Content="{Binding [Main.Dock.Other], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="5" Classes="Tab Root" Classes.selected="{Binding IsWheelView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="Wheel"
+                        Content="{Binding [Main.Dock.Wheel], Source={x:Static loc:Strings.Current}}" />
+                <Button Grid.Column="6" Classes="Tab Root" Classes.selected="{Binding IsEventsView}"
+                        Command="{Binding SelectViewCommand}" CommandParameter="Events"
+                        Content="{Binding [Main.Dock.Events], Source={x:Static loc:Strings.Current}}" />
             </Grid>
 
-            <!-- Search box -->
-            <TextBox Grid.Row="1" Text="{Binding SearchText}"
-                     PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
-                     Background="{DynamicResource SurfacePanel}" BorderBrush="{DynamicResource SurfacePanel}"
-                     Foreground="{DynamicResource TextPrimary}" FontSize="13"
-                     CornerRadius="4" Padding="10,7" />
+            <!-- Group filter and search box -->
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                <ComboBox Classes="Field" Width="132" VerticalAlignment="Center"
+                          ItemsSource="{Binding Groups}"
+                          SelectedItem="{Binding SelectedGroup}" />
+                <TextBox Grid.Column="1" Text="{Binding SearchText}"
+                         PlaceholderText="{Binding [Main.SearchPlaceholder], Source={x:Static loc:Strings.Current}}"
+                         Background="{DynamicResource SurfacePanel}" BorderBrush="{DynamicResource SurfacePanel}"
+                         Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                         CornerRadius="4" Padding="10,7" />
+            </Grid>
 
             <!-- Macro list -->
             <ScrollViewer Grid.Row="2" Name="MacroListScroll" Margin="0,10,0,0"
@@ -473,6 +484,13 @@
                        IsVisible="{Binding HasNoMatch}"
                        IsHitTestVisible="False"
                        Text="{Binding [Main.NoMatch], Source={x:Static loc:Strings.Current}}"
+                       Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
+
+            <!-- The view itself holds nothing: the same sentence here would blame a search nobody typed -->
+            <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Center"
+                       IsVisible="{Binding IsEmptyView}"
+                       IsHitTestVisible="False"
+                       Text="{Binding [Main.EmptyView], Source={x:Static loc:Strings.Current}}"
                        Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap" TextAlignment="Center" />
         </Grid>
 

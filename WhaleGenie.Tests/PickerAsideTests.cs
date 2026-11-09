@@ -333,6 +333,26 @@ public class PickerAsideTests
             "the picture is not taken inside the scope, after the screen has been drawn again");
     }
 
+    /// <summary>
+    /// The settings window stands beside the main window instead of over it. A picker answers by
+    /// putting this program's windows away first, and a modal window cannot be put away and brought
+    /// back that way: hiding it breaks the chain its owner is disabled by, so the page that asked
+    /// comes back unusable and its buttons do nothing.
+    /// </summary>
+    [Fact]
+    public void The_settings_window_stands_beside_the_main_window()
+    {
+        var main = Source("MainWindow.axaml.cs");
+        var start = main.IndexOf("private Task OpenSettingsAsync", StringComparison.Ordinal);
+        var end = main.IndexOf("private Task OpenMenuSettingsAsync", start, StringComparison.Ordinal);
+        Assert.True(start >= 0 && end > start, "OpenSettingsAsync is not where the checks look for it");
+
+        var opening = main[start..end];
+        Assert.Contains("dialog.ShowAsPeer(this);", opening, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowDialogOver", opening, StringComparison.Ordinal);
+        Assert.Contains("if (_settings is { } open)", opening, StringComparison.Ordinal);
+    }
+
     /// <summary>The control an element pick is meant to find, which is what the pointer is over.</summary>
     private static readonly UiElementInfo Save = new("Save", "saveButton", "Button", "ButtonClass",
         new ScreenPoint(1000, 500), new ScreenSize(80, 24), "Untitled - Notepad");

@@ -4,6 +4,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -24,10 +25,9 @@ public class ProjectTriggerTests
     }
 
     [Fact]
-    public void One_macro_can_appear_on_several_dock_pages()
+    public void One_macro_is_listed_once_in_every_view_it_belongs_to()
     {
         var viewModel = new MainViewModel();
-        viewModel.SelectedDock = DockPage.Keys;
         var macro = new MacroItem { Name = "multi" };
         macro.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Key, BindKey = "F8" });
         macro.Triggers.Add(new TriggerEntry
@@ -44,34 +44,118 @@ public class ProjectTriggerTests
 
         viewModel.AddMacro(macro);
 
-        Assert.Single(viewModel.VisibleMacros);
-        viewModel.SelectedDock = DockPage.Interface;
-        Assert.Single(viewModel.VisibleMacros);
-        viewModel.SelectedDock = DockPage.Hotstring;
-        Assert.Single(viewModel.VisibleMacros);
-        viewModel.SelectedDock = DockPage.Menu;
-        Assert.Single(viewModel.VisibleMacros);
+        foreach (var view in new[]
+                 {
+                     MacroView.All, MacroView.Keys, MacroView.Interface,
+                     MacroView.Hotstring, MacroView.Menu,
+                 })
+        {
+            viewModel.SelectedView = view;
+            Assert.Equal(["multi"], viewModel.VisibleMacros.Select(item => item.Name));
+        }
+
+        // It is on no wheel position and starts nothing on a schedule or a watch.
+        viewModel.SelectedView = MacroView.Wheel;
+        Assert.Empty(viewModel.VisibleMacros);
+        viewModel.SelectedView = MacroView.Events;
+        Assert.Empty(viewModel.VisibleMacros);
+    }
+
+    /// <summary>
+    /// A macro with no trigger is listed in "all" and nowhere else. It used to be counted as a key
+    /// macro, which made a new macro look as if someone had already chosen a trigger for it.
+    /// </summary>
+    [Fact]
+    public void A_macro_without_a_trigger_is_only_in_the_all_view()
+    {
+        var triggers = new ProjectTriggers();
+        Assert.True(triggers.InView("nothing", MacroView.All));
+        Assert.False(triggers.InView("nothing", MacroView.Keys));
+        Assert.False(triggers.InView("nothing", MacroView.Menu));
     }
 
     [Fact]
-    public void The_five_dock_pages_put_existing_triggers_where_the_product_says()
+    public void A_macro_placed_on_the_wheel_is_listed_under_the_wheel_view()
     {
         var viewModel = new MainViewModel();
-        viewModel.SelectedDock = DockPage.Keys;
+        var macro = new MacroItem { Name = "wheeled" };
+        viewModel.AddMacro(macro);
+        viewModel.Triggers.Entries.Clear();
+        viewModel.Triggers.Wheel.Global.At(new WheelSlotRef(WheelRing.Inner, 0)).Macro = "wheeled";
+
+        viewModel.SelectedView = MacroView.Wheel;
+        Assert.Equal(["wheeled"], viewModel.VisibleMacros.Select(item => item.Name));
+
+        viewModel.SelectedView = MacroView.Menu;
+        Assert.Empty(viewModel.VisibleMacros);
+    }
+
+    /// <summary>
+    /// "Add" pressed on the menu or the wheel view puts the new macro where that view keeps things.
+    /// It happens after the save, because a cell and a position both name the macro.
+    /// </summary>
+    [Fact]
+    public void A_macro_created_from_the_menu_or_wheel_view_is_placed_there()
+    {
+        var viewModel = new MainViewModel();
+
+        var menuMacro = new MacroItem { Name = "from-menu" };
+        viewModel.AddMacro(menuMacro);
+        MainWindow.PlaceNewMacro(MacroView.Menu, menuMacro, viewModel);
+
+        var cell = Assert.Single(viewModel.Triggers.Entries);
+        Assert.Equal(TriggerKind.Menu, cell.Kind);
+        Assert.Equal("from-menu", cell.MacroName);
+        Assert.Equal(viewModel.Triggers.CommonMenuPages()[0].Id, cell.MenuPageId);
+        Assert.Equal(0, cell.MenuRow);
+        Assert.Equal(0, cell.MenuColumn);
+
+        // The next one takes the cell after it, not the same one again.
+        var second = new MacroItem { Name = "second" };
+        viewModel.AddMacro(second);
+        MainWindow.PlaceNewMacro(MacroView.Menu, second, viewModel);
+        Assert.Equal(0, viewModel.Triggers.Entries
+            .Single(entry => entry.MacroName == "second").MenuRow);
+        Assert.Equal(1, viewModel.Triggers.Entries
+            .Single(entry => entry.MacroName == "second").MenuColumn);
+
+        var wheelMacro = new MacroItem { Name = "from-wheel" };
+        viewModel.AddMacro(wheelMacro);
+        MainWindow.PlaceNewMacro(MacroView.Wheel, wheelMacro, viewModel);
+
+        Assert.Equal("from-wheel", viewModel.Triggers.Wheel.Global.Inner[0].Macro);
+        Assert.True(viewModel.Triggers.InView("from-wheel", MacroView.Wheel));
+    }
+
+    [Fact]
+    public void A_view_with_nothing_in_it_says_so_without_blaming_a_search()
+    {
+        var viewModel = new MainViewModel();
+        viewModel.AddMacro(new MacroItem { Name = "only-key" });
+        viewModel.SelectedView = MacroView.Wheel;
+
+        Assert.Empty(viewModel.VisibleMacros);
+        Assert.True(viewModel.IsEmptyView);
+        Assert.False(viewModel.HasNoMatch, "nothing was typed, so no search can have failed");
+    }
+
+    [Fact]
+    public void A_watched_pixel_belongs_to_the_event_view()
+    {
+        var viewModel = new MainViewModel();
         var colour = new MacroItem { Name = "colour" };
         colour.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Color });
         var timer = new MacroItem { Name = "timer" };
         timer.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Timer });
-        var empty = new MacroItem { Name = "empty" };
-        empty.Triggers.Clear();
 
         viewModel.AddMacro(colour);
         viewModel.AddMacro(timer);
-        viewModel.AddMacro(empty);
 
-        Assert.Contains(viewModel.VisibleMacros, macro => macro.Name == "colour");
-        viewModel.SelectedDock = DockPage.Other;
-        Assert.Equal(["timer"], viewModel.VisibleMacros.Select(macro => macro.Name));
+        viewModel.SelectedView = MacroView.Events;
+        Assert.Equal(["colour", "timer"], viewModel.VisibleMacros.Select(item => item.Name));
+
+        viewModel.SelectedView = MacroView.Keys;
+        Assert.Empty(viewModel.VisibleMacros);
     }
 
     [Fact]

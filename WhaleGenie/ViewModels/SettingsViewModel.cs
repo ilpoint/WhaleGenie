@@ -38,6 +38,12 @@ public sealed record CaptureOption(CaptureWay Way, string Key)
 /// <summary>One scene in the wheel action manager's list.</summary>
 public sealed record WheelSceneRow(string Key, string Summary, WheelScene Scene, bool IsGlobal);
 
+/// <summary>One of the four buttons a wheel can be opened with, and the words for it.</summary>
+public sealed record WheelLauncherChoice(string Binding, string Key)
+{
+    public override string ToString() => Strings.Get(Key);
+}
+
 /// <summary>One capacity of the third resident circle, named by the text table.</summary>
 public sealed record WheelCapacityOption(int Value, string Key)
 {
@@ -161,8 +167,7 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(MenuRuleProblem));
         OnPropertyChanged(nameof(FrameRateNote));
         OnPropertyChanged(nameof(WheelLauncherStatus));
-        OnPropertyChanged(nameof(WheelLauncherDefault));
-        OnPropertyChanged(nameof(WheelLauncherCustom));
+        OnPropertyChanged(nameof(SelectedWheelLauncher));
         OnPropertyChanged(nameof(WheelProblem));
         OnPropertyChanged(nameof(WheelRepeatButton));
         RefreshWheelScenes();
@@ -261,6 +266,7 @@ public partial class SettingsViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(MenuLauncherDisplay))]
     [NotifyPropertyChangedFor(nameof(MenuLauncherMiddle))]
     [NotifyPropertyChangedFor(nameof(MenuLauncherCustom))]
+    [NotifyPropertyChangedFor(nameof(WheelLauncherStatus))]
     public partial string MenuLauncher { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -290,6 +296,20 @@ public partial class SettingsViewModel : ViewModelBase
             if (MenuLauncher.Length == 0)
             {
                 return Strings.Get("Settings.MenuLauncherMissing");
+            }
+
+            // The wheel takes the press for its own gesture, so the same button cannot also open
+            // the menu: whichever ran first would swallow the other.
+            if (WheelLauncher.Length > 0
+                && string.Equals(MenuLauncher, WheelLauncher, StringComparison.OrdinalIgnoreCase))
+            {
+                return Strings.Get("Settings.MenuLauncherConflictWheel");
+            }
+
+            if (SystemHotkey.Length > 0
+                && string.Equals(MenuLauncher, SystemHotkey, StringComparison.OrdinalIgnoreCase))
+            {
+                return Strings.Get("Settings.MenuLauncherConflictHotkey");
             }
 
             if (Project is { IsRunning: false })
@@ -363,6 +383,22 @@ public partial class SettingsViewModel : ViewModelBase
             return false;
         }
 
+        if (WheelLauncher.Length > 0
+            && string.Equals(binding.Trim(), WheelLauncher, StringComparison.OrdinalIgnoreCase))
+        {
+            MenuLauncherMessage = Strings.Get("Settings.MenuLauncherConflictWheel");
+            OnPropertyChanged(nameof(MenuLauncherStatus));
+            return false;
+        }
+
+        if (SystemHotkey.Length > 0
+            && string.Equals(binding.Trim(), SystemHotkey, StringComparison.OrdinalIgnoreCase))
+        {
+            MenuLauncherMessage = Strings.Get("Settings.MenuLauncherConflictHotkey");
+            OnPropertyChanged(nameof(MenuLauncherStatus));
+            return false;
+        }
+
         IsCapturingMenuLauncher = false;
         MenuLauncherMessage = string.Empty;
         MenuLauncher = binding.Trim();
@@ -388,29 +424,57 @@ public partial class SettingsViewModel : ViewModelBase
 
     public WheelMenuState WheelState => _wheelState;
 
+    /// <summary>
+    /// The positions being edited: the project's own, or an empty set while no project is open.
+    /// The wheel's look and button stay in the machine's file, but a position names a macro, so it
+    /// travels with the project.
+    /// </summary>
+    private readonly WheelMenuRules _wheelDraft = new();
+
+    private WheelMenuRules WheelRules => Project?.Triggers.Wheel ?? _wheelDraft;
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(WheelLauncherDisplay))]
     [NotifyPropertyChangedFor(nameof(WheelEnabled))]
-    [NotifyPropertyChangedFor(nameof(WheelLauncherDefault))]
-    [NotifyPropertyChangedFor(nameof(WheelLauncherCustom))]
+    [NotifyPropertyChangedFor(nameof(SelectedWheelLauncher))]
+    [NotifyPropertyChangedFor(nameof(WheelLauncherStatus))]
     public partial string WheelLauncher { get; set; } = WheelOptions.RightButton;
 
     [ObservableProperty]
     public partial double WheelDiameter { get; set; } = 420;
 
     [ObservableProperty]
-    public partial bool IsCapturingWheelLauncher { get; set; }
-
-    [ObservableProperty]
     public partial string WheelLauncherMessage { get; set; } = string.Empty;
 
-    public string WheelLauncherDisplay => WheelLauncher.Length == 0
-        ? Strings.Get("Common.None")
-        : WheelLauncher;
+    /// <summary>
+    /// The four buttons a wheel can be opened with. The list is fixed on purpose: the gesture is
+    /// "hold and move", which the left button cannot do without dragging what is under it, and a
+    /// key that has to be held while the pointer moves is a different thing to explain.
+    /// </summary>
+    public IReadOnlyList<WheelLauncherChoice> WheelLauncherChoices { get; } =
+    [
+        new(WheelOptions.RightButton, "Settings.WheelLauncher.Right"),
+        new(WheelOptions.MiddleButton, "Settings.WheelLauncher.Middle"),
+        new(WheelOptions.ForwardButton, "Settings.WheelLauncher.Forward"),
+        new(WheelOptions.BackButton, "Settings.WheelLauncher.Back"),
+    ];
 
-    public string WheelLauncherButton => Strings.Get(IsCapturingWheelLauncher
-        ? "Settings.HotkeyPress"
-        : "Settings.HotkeySet");
+    /// <summary>
+    /// The button in the list, or null while the wheel is switched off. Setting it goes through
+    /// <see cref="SetWheelLauncher"/>, so a button the menu already owns is refused with a reason
+    /// rather than stored and quietly losing one of the two gestures.
+    /// </summary>
+    public WheelLauncherChoice? SelectedWheelLauncher
+    {
+        get => WheelLauncherChoices.FirstOrDefault(choice =>
+            string.Equals(choice.Binding, WheelLauncher, StringComparison.OrdinalIgnoreCase));
+        set
+        {
+            if (value is not null)
+            {
+                SetWheelLauncher(value.Binding);
+            }
+        }
+    }
 
     public string WheelLauncherStatus
     {
@@ -426,9 +490,27 @@ public partial class SettingsViewModel : ViewModelBase
                 return Strings.Get("Wheel.LauncherMissing");
             }
 
+            if (MenuOwns(WheelLauncher))
+            {
+                return Strings.Get("Wheel.LauncherConflict");
+            }
+
+            if (SystemHotkey.Length > 0
+                && string.Equals(WheelLauncher, SystemHotkey, StringComparison.OrdinalIgnoreCase))
+            {
+                return Strings.Get("Wheel.LauncherConflictHotkey");
+            }
+
             if (Project is { IsRunning: false })
             {
                 return Strings.Get("Wheel.SystemOff");
+            }
+
+            // "Only in these programs" with no program scene is a wheel that cannot open anywhere.
+            // The switch is one click away from being understood, but only if the line says so.
+            if (OnlyInPrograms && WheelRules.Scenes.Count == 0)
+            {
+                return Strings.Get("Wheel.OnlyInProgramsNoScene");
             }
 
             return Strings.Get("Wheel.Ready");
@@ -458,7 +540,7 @@ public partial class SettingsViewModel : ViewModelBase
         {
             if (value)
             {
-                CaptureWheelLauncher(WheelOptions.RightButton);
+                SetWheelLauncher(WheelOptions.RightButton);
             }
             else
             {
@@ -467,54 +549,45 @@ public partial class SettingsViewModel : ViewModelBase
         }
     }
 
-    /// <summary>The wheel defaults to the right button; the middle button still opens the menu.</summary>
-    public bool WheelLauncherDefault
+    /// <summary>
+    /// Keeps the wheel to the programs that have a scene. It is the switch for people who want the
+    /// trigger button everywhere except in the two or three programs they actually use the wheel in.
+    /// </summary>
+    public bool OnlyInPrograms
     {
-        get => string.Equals(WheelLauncher, WheelOptions.RightButton,
-            StringComparison.OrdinalIgnoreCase);
+        get => _wheelState.Options.OnlyInPrograms;
         set
         {
-            if (value)
-            {
-                CaptureWheelLauncher(WheelOptions.RightButton);
-            }
-        }
-    }
-
-    public bool WheelLauncherCustom
-    {
-        get => IsCapturingWheelLauncher
-            || (WheelLauncher.Length > 0 && !WheelLauncherDefault);
-        set
-        {
-            if (value)
-            {
-                WheelLauncherMessage = string.Empty;
-                IsCapturingWheelLauncher = true;
-            }
-            else
-            {
-                IsCapturingWheelLauncher = false;
-            }
-        }
-    }
-
-    /// <summary>The layout the preview shows: the global scene resolved against this project's macros.</summary>
-    public WheelRuntimeLayout BuildWheelLayout()
-        => _wheelState.Rules.Resolve(null, WheelSource.Global,
-            _wheelState.Options.WideOuter, [.. Project?.Macros ?? []],
-            _wheelState.Options.ThirdCapacity, _wheelState.Options.HideEmptyOuter);
-
-    public bool CaptureWheelLauncher(string binding)
-    {
-        if (!WheelOptions.IsAllowedLauncher(binding))
-        {
-            WheelLauncherMessage = Strings.Get("Wheel.LauncherInvalid");
+            SetWheel(o => o.OnlyInPrograms, (o, v) => o.OnlyInPrograms = v, value);
             OnPropertyChanged(nameof(WheelLauncherStatus));
+        }
+    }
+
+    /// <summary>
+    /// Stores one of the four buttons. The menu's own button is refused: both gestures start on a
+    /// press, and a press can only belong to one of them, so whichever ran second would never open.
+    /// </summary>
+    public bool SetWheelLauncher(string binding)
+    {
+        if (MenuOwns(binding))
+        {
+            WheelLauncherMessage = Strings.Get("Wheel.LauncherConflict");
+            OnPropertyChanged(nameof(WheelLauncherStatus));
+            OnPropertyChanged(nameof(SelectedWheelLauncher));
             return false;
         }
 
-        IsCapturingWheelLauncher = false;
+        // The system switch is a keyboard hotkey, so this cannot normally collide; a stored file
+        // that says otherwise is still worth refusing rather than leaving two jobs on one key.
+        if (SystemHotkey.Length > 0
+            && string.Equals(binding.Trim(), SystemHotkey.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            WheelLauncherMessage = Strings.Get("Wheel.LauncherConflictHotkey");
+            OnPropertyChanged(nameof(WheelLauncherStatus));
+            OnPropertyChanged(nameof(SelectedWheelLauncher));
+            return false;
+        }
+
         WheelLauncherMessage = string.Empty;
         WheelLauncher = binding.Trim();
         OnPropertyChanged(nameof(WheelLauncherStatus));
@@ -523,11 +596,21 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void ClearWheelLauncher()
     {
-        IsCapturingWheelLauncher = false;
         WheelLauncherMessage = string.Empty;
         WheelLauncher = string.Empty;
         OnPropertyChanged(nameof(WheelLauncherStatus));
     }
+
+    /// <summary>Whether the floating macro menu opens on this binding.</summary>
+    private bool MenuOwns(string binding)
+        => MenuLauncher.Length > 0
+           && string.Equals(MenuLauncher.Trim(), binding.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The layout the preview shows: the global scene resolved against this project's macros.</summary>
+    public WheelRuntimeLayout BuildWheelLayout()
+        => WheelRules.Resolve(null, WheelSource.Global,
+            _wheelState.Options.WideOuter, [.. Project?.Macros ?? []],
+            _wheelState.Options.ThirdCapacity, _wheelState.Options.HideEmptyOuter);
 
     [ObservableProperty]
     public partial bool IsCapturingWheelRepeat { get; set; }
@@ -589,12 +672,6 @@ public partial class SettingsViewModel : ViewModelBase
     {
         get => _wheelState.Options.ShowGuide;
         set => SetWheel(o => o.ShowGuide, (o, v) => o.ShowGuide = v, value);
-    }
-
-    public bool ShowSubActions
-    {
-        get => _wheelState.Options.ShowSubActions;
-        set => SetWheel(o => o.ShowSubActions, (o, v) => o.ShowSubActions = v, value);
     }
 
     public bool ExtendedHint
@@ -682,11 +759,11 @@ public partial class SettingsViewModel : ViewModelBase
 
     private string _selectedWheelKey = WheelScene.GlobalKey;
 
-    public WheelScene? EditingWheelScene => _wheelState.Rules.Find(_selectedWheelKey);
+    public WheelScene? EditingWheelScene => WheelRules.Find(_selectedWheelKey);
 
-    public WheelScene WheelGlobal => _wheelState.Rules.Global;
+    public WheelScene WheelGlobal => WheelRules.Global;
 
-    public string WheelProblem => string.Join(" ", _wheelState.Rules.Problems(
+    public string WheelProblem => string.Join(" ", WheelRules.Problems(
         [.. Project?.Macros ?? []], key => MenuIconCatalog.Knows(key)));
 
     public void RefreshWheelScenes()
@@ -694,7 +771,7 @@ public partial class SettingsViewModel : ViewModelBase
         WheelScenes.Clear();
         WheelScenes.Add(new WheelSceneRow(WheelScene.GlobalKey,
             WheelGlobal.Summary, WheelGlobal, true));
-        foreach (var scene in _wheelState.Rules.Scenes)
+        foreach (var scene in WheelRules.Scenes)
         {
             WheelScenes.Add(new WheelSceneRow(scene.Key, scene.Summary, scene, false));
         }
@@ -707,7 +784,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void AddWheelScene(WindowRule rule)
     {
-        var scene = _wheelState.Rules.AddScene(rule);
+        var scene = WheelRules.AddScene(rule);
         _selectedWheelKey = scene.Key;
         TouchWheel();
         RefreshWheelScenes();
@@ -715,7 +792,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void UpdateWheelScene(WheelSceneRow row, WindowRule rule)
     {
-        if (_wheelState.Rules.Find(row.Key) is { IsGlobal: false } scene)
+        if (WheelRules.Find(row.Key) is { IsGlobal: false } scene)
         {
             scene.Window = rule with { };
             TouchWheel();
@@ -730,7 +807,7 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        _wheelState.Rules.RemoveScene(row.Key);
+        WheelRules.RemoveScene(row.Key);
         _selectedWheelKey = WheelScene.GlobalKey;
         TouchWheel();
         RefreshWheelScenes();
@@ -744,7 +821,7 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        var scenes = _wheelState.Rules.Scenes;
+        var scenes = WheelRules.Scenes;
         var from = scenes.FirstOrDefault(scene => scene.Key == row.Key);
         if (from is null)
         {
@@ -777,52 +854,66 @@ public partial class SettingsViewModel : ViewModelBase
         {
             slot.Icon = null;
             slot.Note = string.Empty;
-            slot.Children.Clear();
         }
 
         TouchWheel();
     }
 
-    public void SetWheelNote(WheelSlotRef reference, string? note)
+    /// <summary>
+    /// What the editor should open for a position. A program scene shows the global action it
+    /// inherits until it fills that position itself; editing starts from that action and saves it
+    /// back as a program override, which is the same rule the wheel follows when it is drawn.
+    /// </summary>
+    public WheelSlot? WheelSlotForEdit(WheelSlotRef reference)
     {
-        if (EditingWheelScene is { } scene)
+        if (EditingWheelScene is not { } scene)
         {
-            scene.At(reference).Note = note?.Trim() ?? string.Empty;
-            TouchWheel();
+            return null;
         }
+
+        var own = scene.At(reference);
+        if (!scene.IsGlobal && own.IsEmpty
+            && WheelRules.Global.At(reference) is { IsEmpty: false } inherited)
+        {
+            return inherited.Copy();
+        }
+
+        return own.Copy();
     }
 
-    public void SetWheelIcon(WheelSlotRef reference, MenuIconReference? icon)
-    {
-        if (EditingWheelScene is { } scene)
-        {
-            scene.At(reference).Icon = icon is null || icon.IsEmpty ? null : icon;
-            TouchWheel();
-        }
-    }
+    /// <summary>Whether the position is being drawn from the global scene rather than its own.</summary>
+    public bool IsWheelSlotInherited(WheelSlotRef reference)
+        => EditingWheelScene is { IsGlobal: false } scene
+           && scene.At(reference).IsEmpty
+           && WheelRules.Global.At(reference) is { IsEmpty: false };
 
-    public void AddWheelChild(WheelSlotRef reference, string macroName)
+    /// <summary>
+    /// Writes an edited action back into the position. An action with no macro is left completely
+    /// empty, so "clear" cannot leave a note or an icon behind in a slot nothing runs.
+    /// </summary>
+    public void SetWheelAction(WheelSlotRef reference, WheelSlot edited)
     {
-        if (EditingWheelScene is { } scene && macroName.Trim().Length > 0)
+        if (EditingWheelScene is not { } scene)
         {
-            scene.At(reference).Children.Add(new WheelSlot { Macro = macroName.Trim() });
-            TouchWheel();
+            return;
         }
-    }
 
-    public void ClearWheelChildren(WheelSlotRef reference)
-    {
-        if (EditingWheelScene is { } scene)
-        {
-            scene.At(reference).Children.Clear();
-            TouchWheel();
-        }
+        var slot = scene.At(reference);
+        slot.Macro = edited.Macro.Trim();
+        slot.Note = slot.Macro.Length == 0 ? string.Empty : edited.Note.Trim();
+        slot.Icon = slot.Macro.Length == 0 || edited.Icon is not { IsEmpty: false } icon
+            ? null
+            : icon;
+
+        TouchWheel();
     }
 
     private void TouchWheel()
     {
         WheelMenuStore.Save(_wheelState);
+        Project?.Triggers.NotifyChanged();
         OnPropertyChanged(nameof(WheelProblem));
+        OnPropertyChanged(nameof(WheelLauncherStatus));
         WheelRevision++;
     }
 
@@ -832,6 +923,8 @@ public partial class SettingsViewModel : ViewModelBase
         {
             _selectedWheelKey = value.Key;
         }
+
+        OnPropertyChanged(nameof(EditingWheelScene));
     }
 
     // ── Menu launcher: the middle button by default, or a custom key ─────────
@@ -857,7 +950,6 @@ public partial class SettingsViewModel : ViewModelBase
         {
             if (value)
             {
-                IsCapturingWheelLauncher = false;
                 IsCapturingWheelRepeat = false;
                 BeginMenuLauncherCapture();
             }
@@ -871,7 +963,6 @@ public partial class SettingsViewModel : ViewModelBase
     public void BeginWheelRepeatCapture()
     {
         IsCapturingMenuLauncher = false;
-        IsCapturingWheelLauncher = false;
         IsCapturingSystemHotkey = false;
         IsCapturingRecordStop = false;
         IsCapturingWheelRepeat = true;
@@ -919,12 +1010,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnWheelLauncherMessageChanged(string value)
         => OnPropertyChanged(nameof(WheelLauncherStatus));
-
-    partial void OnIsCapturingWheelLauncherChanged(bool value)
-    {
-        OnPropertyChanged(nameof(IsCapturingHotkey));
-        OnPropertyChanged(nameof(WheelLauncherCustom));
-    }
 
     partial void OnIsCapturingWheelRepeatChanged(bool value)
     {
@@ -1441,7 +1526,7 @@ public partial class SettingsViewModel : ViewModelBase
     public partial string SystemHotkeyProblem { get; set; } = string.Empty;
 
     public bool IsCapturingHotkey => IsCapturingSystemHotkey || IsCapturingMenuLauncher
-        || IsCapturingRecordStop || IsCapturingWheelLauncher || IsCapturingWheelRepeat;
+        || IsCapturingRecordStop || IsCapturingWheelRepeat;
 
     public string SystemHotkeyDisplay => SystemHotkey.Length == 0
         ? Strings.Get("Common.None")
@@ -1484,6 +1569,24 @@ public partial class SettingsViewModel : ViewModelBase
         {
             IsCapturingSystemHotkey = false;
             SystemHotkeyProblem = Strings.Get("Settings.HotkeyUnsupported");
+            return false;
+        }
+
+        // The menu can be opened with a keyboard chord as well as a mouse button, and a key that
+        // is both the system switch and the menu trigger would do one of the two jobs only.
+        if (text.Length > 0 && MenuLauncher.Length > 0
+            && string.Equals(text, MenuLauncher, StringComparison.OrdinalIgnoreCase))
+        {
+            IsCapturingSystemHotkey = false;
+            SystemHotkeyProblem = Strings.Get("Settings.HotkeyConflictMenu");
+            return false;
+        }
+
+        if (text.Length > 0 && WheelLauncher.Length > 0
+            && string.Equals(text, WheelLauncher, StringComparison.OrdinalIgnoreCase))
+        {
+            IsCapturingSystemHotkey = false;
+            SystemHotkeyProblem = Strings.Get("Settings.HotkeyConflictWheel");
             return false;
         }
 

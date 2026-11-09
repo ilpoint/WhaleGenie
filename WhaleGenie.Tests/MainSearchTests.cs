@@ -79,7 +79,7 @@ public class MainSearchTests
     private static MainViewModel Project()
     {
         var viewModel = new MainViewModel();
-        viewModel.SelectedDock = DockPage.Keys;
+        viewModel.SelectedView = MacroView.All;
         return viewModel;
     }
 }

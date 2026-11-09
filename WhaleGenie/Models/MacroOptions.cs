@@ -15,14 +15,34 @@ public enum TriggerKind
     Idle,
 }
 
-/// <summary>The five pages of the macro list's trigger dock.</summary>
-public enum DockPage
+/// <summary>
+/// The fixed filters above the macro list. They are views over the project, not categories a macro
+/// belongs to: one macro can have a key, a menu cell and a wheel position at once, and it is listed
+/// once in each of those views and once in <see cref="All"/>. Nothing is ever filed under one view
+/// at the expense of another, which is what the old trigger buckets got wrong.
+/// </summary>
+public enum MacroView
 {
+    /// <summary>Everything, which is also what the list opens on.</summary>
+    All,
+
+    /// <summary>Macros a key, a mouse button or a colour starts.</summary>
     Keys,
+
+    /// <summary>Macros with a window layout.</summary>
     Interface,
+
+    /// <summary>Macros a typed abbreviation expands.</summary>
     Hotstring,
+
+    /// <summary>Macros placed in the floating menu.</summary>
     Menu,
-    Other,
+
+    /// <summary>Macros placed on the wheel. Read from the wheel's positions, not from a trigger entry.</summary>
+    Wheel,
+
+    /// <summary>Macros a schedule, a file, a program, a window or idleness starts.</summary>
+    Events,
 }
 
 /// <summary>What makes a macro start running.</summary>

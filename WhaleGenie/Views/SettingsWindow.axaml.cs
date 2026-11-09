@@ -115,8 +115,12 @@ public partial class SettingsWindow : AppWindow
         AddHandler(KeyUpEvent, OnPreviewKeyUp, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, OnPreviewPointerPressed, RoutingStrategies.Tunnel);
         AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheel, RoutingStrategies.Tunnel);
-        Closed += (_, _) => MacroTriggerGate.Exit();
+
+        // Keys typed here are the interface's, not a macro's. The window is not modal any more, so
+        // the hold lasts for as long as it is open — the same rule the editor and the run window
+        // keep, and the reason the pages can capture a hotkey without setting one off.
         MacroTriggerGate.Enter();
+        Closed += (_, _) => MacroTriggerGate.Exit();
     }
 
     private void EnsureWheelEditor()
@@ -222,26 +226,6 @@ public partial class SettingsWindow : AppWindow
             return;
         }
 
-        if (_viewModel.IsCapturingWheelLauncher)
-        {
-            if (HotkeyNameMapper.IsModifier(e.Key))
-            {
-                e.Handled = true;
-                return;
-            }
-
-            if (e.Key == Key.Escape)
-            {
-                _viewModel.IsCapturingWheelLauncher = false;
-                e.Handled = true;
-                return;
-            }
-
-            _viewModel.CaptureWheelLauncher(Chord(e.Key, e.KeyModifiers));
-            e.Handled = true;
-            return;
-        }
-
         if (_viewModel.IsCapturingSystemHotkey)
         {
             if (HotkeyNameMapper.IsModifier(e.Key))
@@ -319,7 +303,7 @@ public partial class SettingsWindow : AppWindow
 
     private void OnPreviewPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!_viewModel.IsCapturingMenuLauncher && !_viewModel.IsCapturingWheelLauncher)
+        if (!_viewModel.IsCapturingMenuLauncher)
         {
             return;
         }
@@ -347,15 +331,7 @@ public partial class SettingsWindow : AppWindow
         }
 
         var binding = KeyNames.MouseName(pressed);
-        if (_viewModel.IsCapturingMenuLauncher)
-        {
-            _viewModel.CaptureMenuLauncher(binding);
-        }
-        else
-        {
-            _viewModel.CaptureWheelLauncher(binding);
-        }
-
+        _viewModel.CaptureMenuLauncher(binding);
         e.Handled = true;
     }
 
@@ -390,7 +366,7 @@ public partial class SettingsWindow : AppWindow
 
     private void OnPreviewPointerWheel(object? sender, PointerWheelEventArgs e)
     {
-        if (!_viewModel.IsCapturingMenuLauncher && !_viewModel.IsCapturingWheelLauncher)
+        if (!_viewModel.IsCapturingMenuLauncher)
         {
             return;
         }
@@ -399,24 +375,8 @@ public partial class SettingsWindow : AppWindow
             ? (HookWheelAxis.Horizontal, e.Delta.X < 0 ? 1 : -1)
             : (HookWheelAxis.Vertical, e.Delta.Y >= 0 ? 1 : -1);
         var binding = KeyNames.WheelName(axis, rotation);
-        if (_viewModel.IsCapturingMenuLauncher)
-        {
-            _viewModel.CaptureMenuLauncher(binding);
-        }
-        else
-        {
-            _viewModel.CaptureWheelLauncher(binding);
-        }
-
+        _viewModel.CaptureMenuLauncher(binding);
         e.Handled = true;
-    }
-
-    private void OnCaptureWheelLauncher(object? sender, RoutedEventArgs e)
-    {
-        _viewModel.StopMenuLauncherCapture();
-        _viewModel.IsCapturingSystemHotkey = false;
-        _viewModel.IsCapturingRecordStop = false;
-        _viewModel.WheelLauncherCustom = !_viewModel.WheelLauncherCustom;
     }
 
     private void OnCaptureWheelRepeat(object? sender, RoutedEventArgs e)
@@ -430,9 +390,6 @@ public partial class SettingsWindow : AppWindow
             _viewModel.BeginWheelRepeatCapture();
         }
     }
-
-    private void OnClearWheelLauncher(object? sender, RoutedEventArgs e)
-        => _viewModel.ClearWheelLauncher();
 
     private void OnEnableSystem(object? sender, RoutedEventArgs e)
         => _viewModel.EnableSystem();

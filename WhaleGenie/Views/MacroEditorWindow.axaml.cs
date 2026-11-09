@@ -176,7 +176,7 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
         string? packagePath = null, IDeviceLayer? devices = null, ProjectTriggers? triggers = null,
-        bool callableOnly = false)
+        bool callableOnly = false, MacroView? newView = null)
     {
         InitializeComponent();
 
@@ -216,6 +216,10 @@ public partial class MacroEditorWindow : AppWindow
         else
         {
             _rootViewModel.UseDefaultName(_session.Project.Select(macro => macro.Name));
+            if (newView is { } view && !callableOnly)
+            {
+                _rootViewModel.PrepareNewTrigger(view);
+            }
         }
 
         BuildDocumentPages();

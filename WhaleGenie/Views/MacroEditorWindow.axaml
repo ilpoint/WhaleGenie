@@ -337,6 +337,10 @@
                                        Text="{Binding [Editor.MacroDescription], Source={x:Static loc:Strings.Current}}" />
                             <TextBox Name="DescriptionInput" Text="{Binding Description}"
                                      PlaceholderText="{Binding [Editor.DescriptionPlaceholder], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="FieldLabel" Margin="2,8,0,6"
+                                       Text="{Binding [Editor.MacroGroup], Source={x:Static loc:Strings.Current}}" />
+                            <TextBox Name="GroupInput" Text="{Binding Group}"
+                                     PlaceholderText="{Binding [Editor.GroupPlaceholder], Source={x:Static loc:Strings.Current}}" />
                             <Border Margin="0,8,0,0" Padding="9,7" CornerRadius="5"
                                     Background="{DynamicResource SurfaceField}"
                                     IsVisible="{Binding HasOrigin}">

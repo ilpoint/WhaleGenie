@@ -31,22 +31,8 @@ public enum WheelSource
 
 /// <summary>
 /// One position on the wheel, named by its circle and its clockwise index from straight up.
-/// <paramref name="Sub"/> is -1 for a resident position and the index of a visible sub-action
-/// when a parent slot has fanned its children out.
 /// </summary>
-public readonly record struct WheelSlotRef(WheelRing Ring, int Index, int Sub = -1)
-{
-    public bool IsSub => Sub >= 0;
-
-    public WheelSlotRef Parent => new(Ring, Index);
-
-    /// <summary>
-    /// Written by hand: the generated one prints every public member, and Parent points back at
-    /// another WheelSlotRef, so an assertion comparing two positions would recurse forever.
-    /// </summary>
-    public override string ToString()
-        => IsSub ? $"{Ring}:{Index}:{Sub}" : $"{Ring}:{Index}";
-}
+public readonly record struct WheelSlotRef(WheelRing Ring, int Index);
 
 /// <summary>
 /// The fixed capacities of the three circles. The outer circle keeps sixteen slots even when the
@@ -97,15 +83,7 @@ public sealed class WheelSlot
 
     public MenuIconReference? Icon { get; set; }
 
-    /// <summary>
-    /// Visible sub-actions: when a slot carrying these is aimed at, its children fan out just
-    /// outside the wheel so one more move can pick one without any extra key.
-    /// </summary>
-    public List<WheelSlot> Children { get; set; } = [];
-
     public bool IsEmpty => Macro.Trim().Length == 0;
-
-    public bool HasChildren => Children.Any(child => !child.IsEmpty);
 
     public string Label => Note.Trim().Length > 0 ? Note.Trim() : Macro.Trim();
 
@@ -114,7 +92,6 @@ public sealed class WheelSlot
         Macro = Macro,
         Note = Note,
         Icon = Icon is null ? null : Icon with { },
-        Children = [.. Children.Select(child => child.Copy())],
     };
 
     public JsonObject ToJson()
@@ -130,11 +107,6 @@ public sealed class WheelSlot
             node["icon"] = icon.ToJson();
         }
 
-        if (HasChildren)
-        {
-            node["children"] = new JsonArray([.. Children.Select(child => (JsonNode)child.ToJson())]);
-        }
-
         return node;
     }
 
@@ -143,9 +115,6 @@ public sealed class WheelSlot
         Macro = node?["macro"]?.GetValue<string>() ?? string.Empty,
         Note = node?["note"]?.GetValue<string>() ?? string.Empty,
         Icon = node?["icon"] is JsonObject icon ? MenuIconReference.FromJson(icon) : null,
-        Children = node?["children"] is JsonArray children
-            ? [.. children.OfType<JsonObject>().Select(child => FromJson(child))]
-            : [],
     };
 }
 
@@ -196,6 +165,13 @@ public sealed class WheelScene
 
     public bool AnyAction()
         => _inner.Concat(_outer).Concat(_third).Concat(_extended).Any(slot => !slot.IsEmpty);
+
+    /// <summary>
+    /// The first empty position of a circle that is on screen. The invisible extended circle is
+    /// left out: a macro put there would be a position nobody can see or aim at.
+    /// </summary>
+    public WheelSlot? FirstEmptySlot()
+        => _inner.Concat(_outer).FirstOrDefault(slot => slot.IsEmpty);
 
     public JsonObject ToJson()
     {
@@ -274,15 +250,10 @@ public sealed record WheelRuntimeSlot(
     MacroItem? Macro,
     MenuIconReference? Icon,
     bool FromProgram,
-    string Note = "",
-    IReadOnlyList<WheelRuntimeSlot>? Children = null)
+    string Note = "")
 {
     /// <summary>The note wins over the macro name wherever a label is shown.</summary>
     public string Label => Note.Trim().Length > 0 ? Note.Trim() : Name.Trim();
-
-    public IReadOnlyList<WheelRuntimeSlot> Sub => Children ?? [];
-
-    public bool HasSub => Sub.Any(child => child.Macro is not null);
 }
 
 /// <summary>An immutable snapshot handed to the floating wheel window.</summary>
@@ -295,15 +266,7 @@ public sealed record WheelRuntimeLayout(
     bool HideEmptyOuter = false)
 {
     public WheelRuntimeSlot? At(WheelSlotRef reference)
-    {
-        var parent = Slots.FirstOrDefault(slot => slot.Reference == reference.Parent);
-        if (!reference.IsSub || parent is null)
-        {
-            return parent;
-        }
-
-        return reference.Sub < parent.Sub.Count ? parent.Sub[reference.Sub] : null;
-    }
+        => Slots.FirstOrDefault(slot => slot.Reference == reference);
 }
 
 /// <summary>
@@ -324,10 +287,35 @@ public sealed class WheelMenuRules
                 scene.Window.HasTarget
                 && ProjectTriggers.WindowRuleMatches(scene.Window, foreground, windows));
 
+    /// <summary>
+    /// Whether the wheel may open in the window that is in front. With "only in these programs"
+    /// off this is always true; with it on, a program scene has to match, which is what keeps the
+    /// trigger button an ordinary button everywhere else.
+    /// </summary>
+    public bool OpensFor(WindowInfo? foreground, IWindowDevice windows, bool onlyInPrograms)
+        => !onlyInPrograms || SceneFor(foreground, windows) is not null;
+
     public WheelScene? Find(string key)
         => Global.IsGlobal && key == WheelScene.GlobalKey
             ? Global
             : Scenes.FirstOrDefault(scene => scene.Key == key);
+
+    /// <summary>
+    /// Whether any position of any scene runs this macro. The wheel is a trigger surface of its
+    /// own, so the macro list asks this rather than looking for a trigger entry that never existed.
+    /// </summary>
+    public bool Uses(string macroName)
+    {
+        var wanted = macroName.Trim();
+        bool InSlot(WheelSlot slot)
+            => !slot.IsEmpty
+               && string.Equals(slot.Macro.Trim(), wanted, StringComparison.OrdinalIgnoreCase);
+
+        bool InScene(WheelScene scene)
+            => scene.Inner.Concat(scene.Outer).Concat(scene.Third).Concat(scene.Extended).Any(InSlot);
+
+        return InScene(Global) || Scenes.Any(InScene);
+    }
 
     public WheelScene AddScene(WindowRule rule)
     {
@@ -379,17 +367,8 @@ public sealed class WheelMenuRules
                         StringComparison.OrdinalIgnoreCase));
 
         WheelRuntimeSlot Make(WheelSlotRef reference, WheelSlot picked, bool fromProgram)
-        {
-            var children = picked.HasChildren
-                ? picked.Children.Where(child => !child.IsEmpty)
-                    .Select((child, index) => new WheelRuntimeSlot(
-                        new WheelSlotRef(reference.Ring, reference.Index, index), child.Macro,
-                        FindMacro(child.Macro), child.Icon, fromProgram, child.Note))
-                    .ToList()
-                : [];
-            return new WheelRuntimeSlot(reference, picked.Macro,
-                FindMacro(picked.Macro), picked.Icon, fromProgram, picked.Note, children);
-        }
+            => new(reference, picked.Macro, FindMacro(picked.Macro), picked.Icon, fromProgram,
+                picked.Note);
 
         foreach (var ring in new[] { WheelRing.Inner, WheelRing.Outer,
                     WheelRing.Third, WheelRing.Extended })
@@ -438,11 +417,6 @@ public sealed class WheelMenuRules
                     && knowsIcon is not null && !knowsIcon(icon.Value))
                 {
                     problems.Add(Strings.Format("Wheel.Problem.Icon", scene.Summary, icon.Value));
-                }
-
-                foreach (var child in slot.Children)
-                {
-                    Check(child);
                 }
             }
 
@@ -521,7 +495,18 @@ public sealed class WheelOptions
 
     public const string MiddleButton = "Mouse Middle";
     public const string RightButton = "Mouse Right";
+    public const string BackButton = "Mouse 4";
+    public const string ForwardButton = "Mouse 5";
     public const string UsualRepeatKey = "F1";
+
+    /// <summary>
+    /// The four buttons a wheel can be opened with. They are the buttons a hand can hold while it
+    /// moves: the left button drags things, and the wheel notches belong to switching the scene.
+    /// A keyboard binding is deliberately not among them — the gesture is a press-and-move, and a
+    /// key that has to be held while the pointer moves is a different interaction.
+    /// </summary>
+    public static IReadOnlyList<string> LauncherButtons =>
+        [RightButton, MiddleButton, ForwardButton, BackButton];
 
     /// <summary>
     /// The wheel opens on the right button by default. The middle button belongs to the floating
@@ -558,8 +543,12 @@ public sealed class WheelOptions
     /// <summary>Shows the line from the centre to the pointer, solid inside and dashed outside.</summary>
     public bool ShowGuide { get; set; } = true;
 
-    /// <summary>Fans a parent slot's sub-actions out beyond the wheel when it is aimed at.</summary>
-    public bool ShowSubActions { get; set; } = true;
+    /// <summary>
+    /// Keeps the trigger button to the programs that have a scene. With this on the wheel opens
+    /// only where a program scene matches; the desktop and every other program keep an ordinary
+    /// button, which is what makes the wheel feel switched off by default.
+    /// </summary>
+    public bool OnlyInPrograms { get; set; }
 
     /// <summary>Uses the application's theme colours instead of a fixed light palette.</summary>
     public bool FollowTheme { get; set; } = true;
@@ -589,7 +578,7 @@ public sealed class WheelOptions
         ThirdCapacity = ThirdCapacity,
         HideEmptyOuter = HideEmptyOuter,
         ShowGuide = ShowGuide,
-        ShowSubActions = ShowSubActions,
+        OnlyInPrograms = OnlyInPrograms,
         FollowTheme = FollowTheme,
         Gloss = Gloss,
         HoverBorder = HoverBorder,
@@ -616,7 +605,7 @@ public sealed class WheelOptions
         ThirdCapacity = WheelShape.ClampThird(ThirdCapacity),
         HideEmptyOuter = HideEmptyOuter,
         ShowGuide = ShowGuide,
-        ShowSubActions = ShowSubActions,
+        OnlyInPrograms = OnlyInPrograms,
         FollowTheme = FollowTheme,
         Gloss = Gloss,
         HoverBorder = HoverBorder,
@@ -624,30 +613,14 @@ public sealed class WheelOptions
     };
 
     /// <summary>
-    /// The left button is refused because it is the mouse's own selection button; a wheel needs a
-    /// button that can be held without dragging things around. The wheel notches are refused as
-    /// well because scrolling switches the wheel's source while it is open.
+    /// The four buttons of <see cref="LauncherButtons"/>, and nothing else. A stored binding that
+    /// is not one of them — a keyboard key from an older file, say — is read back as the default
+    /// rather than left in place, because nothing would ever open the wheel with it.
     /// </summary>
     public static bool IsAllowedLauncher(string? binding)
     {
         var text = binding?.Trim() ?? string.Empty;
-        if (text.Length == 0
-            || text.Equals("Mouse Left", StringComparison.OrdinalIgnoreCase)
-            || text.StartsWith("Wheel ", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        if (text.Equals("Mouse Right", StringComparison.OrdinalIgnoreCase)
-            || text.Equals(MiddleButton, StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Mouse 4", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("Mouse 5", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        return !text.StartsWith("Mouse ", StringComparison.OrdinalIgnoreCase)
-               && HotkeyBinding.IsSupported(text);
+        return LauncherButtons.Contains(text, StringComparer.OrdinalIgnoreCase);
     }
 }
 
@@ -730,55 +703,6 @@ public static class WheelGeometry
 
         return new WheelSlotRef(WheelRing.Extended,
             Sector(dx, dy, WheelShape.ExtendedCount));
-    }
-
-    /// <summary>How wide the fan of visible sub-actions is, in radians.</summary>
-    public const double SubSpread = 1.1;
-
-    /// <summary>Zero points straight up and the angle grows clockwise.</summary>
-    public static double AngleOf(double dx, double dy) => Math.Atan2(dx, -dy);
-
-    /// <summary>The angle a resident position sits at, used to fan its children out.</summary>
-    public static double SectorAngle(WheelSlotRef reference, WheelMetrics metrics)
-    {
-        var count = reference.Ring switch
-        {
-            WheelRing.Outer => metrics.OuterCount,
-            WheelRing.Third => Math.Max(1, metrics.ThirdCount),
-            WheelRing.Extended => WheelShape.ExtendedCount,
-            _ => WheelShape.InnerCount,
-        };
-        return reference.Index * Math.PI * 2 / count;
-    }
-
-    /// <summary>
-    /// Which fanned-out child the pointer is on. Only the band just outside the wheel answers, and
-    /// only within the parent's fan, so a swipe past a parent without children still means the
-    /// invisible extended circle.
-    /// </summary>
-    public static int? SubAt(double dx, double dy, WheelMetrics metrics, double parentAngle,
-        int count)
-    {
-        if (count <= 0)
-        {
-            return null;
-        }
-
-        var distance = Math.Sqrt(dx * dx + dy * dy);
-        if (distance < metrics.Edge + 8 || distance > metrics.Edge + 72)
-        {
-            return null;
-        }
-
-        var difference = AngleOf(dx, dy) - parentAngle;
-        var delta = Math.Atan2(Math.Sin(difference), Math.Cos(difference));
-        if (Math.Abs(delta) > SubSpread / 2)
-        {
-            return null;
-        }
-
-        var index = (int)Math.Floor((delta + SubSpread / 2) / (SubSpread / count));
-        return Math.Clamp(index, 0, count - 1);
     }
 
     public static int Sector(double dx, double dy, int count)
