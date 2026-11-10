@@ -76,7 +76,6 @@
 431	WhaleGenie.Core/Execution/MacroRunner.Ocr.cs	pending review
 358	WhaleGenie.Core/Execution/MacroRunner.Process.cs	pending review
 517	WhaleGenie.Core/Execution/MacroRunner.Run.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
-925	WhaleGenie.Core/Execution/MacroRunner.Script.cs	split: 超过 700 行，技术债
 478	WhaleGenie.Core/Execution/MacroRunner.System.cs	pending review
 364	WhaleGenie.Core/Execution/MacroRunner.Uia.cs	pending review
 618	WhaleGenie.Core/Execution/MacroRunner.Window.cs	keep: 已按动作族分出的局部实现
@@ -155,7 +154,6 @@
 658203	WhaleGenie/Models/ActionDisplay.json	keep: 动作显示目录数据
 1906	WhaleGenie/Models/MacroCheck.cs	split: 超过 700 行，技术债
 864	WhaleGenie/Models/MacroItem.cs	split: 超过 700 行，技术债
-914	WhaleGenie/Models/MacroStep.cs	split: 超过 700 行，技术债
 459	WhaleGenie/Models/TriggerEntry.cs	keep: 触发器数据模型的一族，按职责拆分后单一职责
 511	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
 741	WhaleGenie/Models/WheelMenu.cs	split: 超过 700 行，技术债
@@ -164,7 +162,7 @@
 768	WhaleGenie/Storage/MacroPackage.cs	split: 超过 700 行，技术债
 399	WhaleGenie/Storage/PublicMacroLibrary.cs	pending review
 448	WhaleGenie/Storage/RecoveryStore.cs	pending review
-1744	WhaleGenie/Themes/Controls.axaml	split: 超过 700 行，技术债
+1744	WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
 572	WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 327	WhaleGenie/ViewModels/ActionPaletteViewModel.cs	pending review
