@@ -116,7 +116,6 @@
 921	WhaleGenie.Tests/LookWindowTests.cs	split: 超过 700 行，技术债
 1297	WhaleGenie.Tests/MacroCheckTests.cs	split: 超过 700 行，技术债
 759	WhaleGenie.Tests/MacroEditorChromeTests.cs	split: 超过 700 行，技术债
-1278	WhaleGenie.Tests/MacroEditorTests.cs	split: 超过 700 行，技术债
 865	WhaleGenie.Tests/MacroEditorWorkspaceTests.cs	split: 超过 700 行，技术债
 709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
 592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
