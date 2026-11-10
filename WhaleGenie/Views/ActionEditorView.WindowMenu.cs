@@ -25,7 +25,7 @@ namespace WhaleGenie.Views;
 public partial class ActionEditorView : UserControl
 {
     /// <summary>Picks one of the windows that are open and writes its title into the field.</summary>
-    private async void OnPickWindow(object? sender, RoutedEventArgs e)
+    internal async void OnPickWindow(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {
@@ -45,7 +45,7 @@ public partial class ActionEditorView : UserControl
     /// 窗口那一格的唯一入口：把"用哪个窗口"的几种走法收在一处。以前是三颗按钮，其中捕获那一颗
     /// 还要先按 F1 再对准窗口点一下；同一个窗口在一页宏里要用二十次时，这一格是最费手的地方。
     /// </summary>
-    private void OnChooseWindow(object? sender, RoutedEventArgs e)
+    internal void OnChooseWindow(object? sender, RoutedEventArgs e)
     {
         if (sender is Button { DataContext: StepParameterViewModel parameter } button)
         {
@@ -211,7 +211,7 @@ public partial class ActionEditorView : UserControl
         return item;
     }
 
-    private void OnClearWindowRule(object? sender, RoutedEventArgs e)
+    internal void OnClearWindowRule(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {

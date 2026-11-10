@@ -116,7 +116,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Adds an empty place to look at to a step's list of them.</summary>
-    private void OnAddRegionRow(object? sender, RoutedEventArgs e)
+    internal void OnAddRegionRow(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
@@ -125,7 +125,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Adds another colour to the pattern the step is matching.</summary>
-    private void OnAddColourPoint(object? sender, RoutedEventArgs e)
+    internal void OnAddColourPoint(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
@@ -134,7 +134,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Adds another press to a key run.</summary>
-    private void OnAddKeyRow(object? sender, RoutedEventArgs e)
+    internal void OnAddKeyRow(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
@@ -143,7 +143,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Adds an empty row to the pictures a search looks for.</summary>
-    private void OnAddImageRow(object? sender, RoutedEventArgs e)
+    internal void OnAddImageRow(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
@@ -152,7 +152,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Chooses a picture file for one row of a search's list of them.</summary>
-    private async void OnBrowseImageRow(object? sender, RoutedEventArgs e)
+    internal async void OnBrowseImageRow(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: ImageRowViewModel row })
         {
@@ -169,7 +169,7 @@ public partial class ActionEditorView : UserControl
     /// Drags a rectangle on the screen and keeps it as a picture inside the macro project, which is
     /// how a reference picture is normally made.
     /// </summary>
-    private async void OnCaptureImageRow(object? sender, RoutedEventArgs e)
+    internal async void OnCaptureImageRow(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: ImageRowViewModel row }
             || DataContext is not AddActionViewModel viewModel)
@@ -210,7 +210,7 @@ public partial class ActionEditorView : UserControl
     /// Points the keyboard drawn on screen at one press of a key run. The keys already there stay,
     /// because a combination of several keys is built a key at a time.
     /// </summary>
-    private void OnPickKeyRow(object? sender, RoutedEventArgs e)
+    internal void OnPickKeyRow(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: KeyRowViewModel row })
         {
@@ -223,7 +223,7 @@ public partial class ActionEditorView : UserControl
     /// so the capture stays up until it is clicked off — which is the only way out that is not a
     /// key, because every key pressed belongs to the run.
     /// </summary>
-    private void OnCaptureKeyRow(object? sender, RoutedEventArgs e)
+    internal void OnCaptureKeyRow(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: KeyRowViewModel row })
         {
@@ -298,7 +298,7 @@ public partial class ActionEditorView : UserControl
     /// Drags a rectangle out on the screen and writes it into the row that asked for it, which is
     /// how a region is given without the four numbers being read off a ruler.
     /// </summary>
-    private async void OnPickRegionRow(object? sender, RoutedEventArgs e)
+    internal async void OnPickRegionRow(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: RegionRowViewModel row }
             || DataContext is not AddActionViewModel viewModel)

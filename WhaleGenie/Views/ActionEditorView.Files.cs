@@ -49,7 +49,7 @@ public partial class ActionEditorView : UserControl
     /// path is going: reading, writing, or a folder. What comes back is stored the way the engine
     /// will read it — relative when it is inside the macros folder, in full otherwise.
     /// </summary>
-    private async void OnBrowsePath(object? sender, RoutedEventArgs e)
+    internal async void OnBrowsePath(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {
@@ -168,7 +168,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Chooses a picture file for an image parameter.</summary>
-    private async void OnBrowseImage(object? sender, RoutedEventArgs e)
+    internal async void OnBrowseImage(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {
@@ -204,7 +204,7 @@ public partial class ActionEditorView : UserControl
     /// Drags a rectangle on the screen and keeps it as a picture inside the macro project, which
     /// is how a reference image is normally made.
     /// </summary>
-    private async void OnCaptureImage(object? sender, RoutedEventArgs e)
+    internal async void OnCaptureImage(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)
@@ -242,7 +242,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Forgets the picture an image parameter points at.</summary>
-    private void OnClearImage(object? sender, RoutedEventArgs e)
+    internal void OnClearImage(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {

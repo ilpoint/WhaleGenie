@@ -42,8 +42,8 @@ public class PickTestTests
     [Fact]
     public void Both_pickers_carry_a_test_button()
     {
-        var markup = File.ReadAllText(Path.Combine(
-            Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         // One next to the control picker and one next to the page picker: the two select the same
         // kind of thing by different means, and both leave the same question open.

@@ -29,7 +29,7 @@ public partial class ActionEditorView : UserControl
     /// the macro has to spell exactly, so it is taken off a picture of a keyboard rather than out
     /// of a list of names.
     /// </summary>
-    private void OnOpenKeyPad(object? sender, RoutedEventArgs e)
+    internal void OnOpenKeyPad(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepParameterViewModel parameter })
         {
@@ -42,7 +42,7 @@ public partial class ActionEditorView : UserControl
     /// again is how a capture that was started by mistake is called off: a key field may hold Esc,
     /// so Esc is a key like any other here rather than the way out.
     /// </summary>
-    private void OnCaptureKey(object? sender, RoutedEventArgs e)
+    internal void OnCaptureKey(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {
@@ -199,7 +199,7 @@ public partial class ActionEditorView : UserControl
     /// the pad answers — a button, a stick or a trigger — follows from the parameter it was opened
     /// from, because that is what the step is asking for.
     /// </summary>
-    private async void OnOpenGamepadPad(object? sender, RoutedEventArgs e)
+    internal async void OnOpenGamepadPad(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {

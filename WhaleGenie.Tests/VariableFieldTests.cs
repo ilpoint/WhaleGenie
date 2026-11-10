@@ -374,8 +374,8 @@ public class VariableFieldTests
     [Fact]
     public void The_dialog_puts_the_variables_on_the_fields_that_take_them()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         var start = markup.IndexOf("IsVisible=\"{Binding OffersVariables}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering variables in a field that takes them");

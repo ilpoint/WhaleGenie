@@ -318,8 +318,8 @@ public class ElementPickerTests
     [Fact]
     public void The_dialog_puts_the_page_picker_beside_an_element_of_a_page()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsBrowserTarget}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering a picker for elements of a page");
@@ -337,8 +337,8 @@ public class ElementPickerTests
     [Fact]
     public void The_dialog_takes_a_second_way_of_naming_an_element_of_a_page()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsBrowserTarget}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering a picker for elements of a page");
@@ -514,13 +514,20 @@ public class ElementPickerTests
     [Fact]
     public void The_dialog_draws_a_page_step_s_conditions_one_row_each()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsNarrow}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped drawing the conditions of a page element");
 
+        // The block runs to the end of its own page view when the next field lives in another
+        // file, so a missing marker means "to the end" rather than "the block is gone".
         var end = markup.IndexOf("IsVisible=\"{Binding IsBool}\"", start, StringComparison.Ordinal);
+        if (end < 0)
+        {
+            end = markup.Length;
+        }
+
         Assert.True(end > start, "the dialog stopped drawing the conditions in a block of its own");
 
         var block = markup[start..end];

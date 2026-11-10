@@ -164,13 +164,15 @@
 379	WhaleGenie/ViewModels/WindowPreviewViewModel.cs	pending review
 369	WhaleGenie/Views/ActionEditorView.Elements.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
 327	WhaleGenie/Views/ActionEditorView.RegionPickers.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
-1639	WhaleGenie/Views/ActionEditorView.axaml	split: 超过 700 行，技术债
+688	WhaleGenie/Views/ActionEditorView.axaml	keep: 表单框架、标签行与三个参数视图的挂载
+489	WhaleGenie/Views/ParameterStructuredView.axaml	keep: 一行一物的字段（图片、区域、颜色、按键、窄值）
+354	WhaleGenie/Views/ParameterScalarView.axaml	keep: 单值字段：文本、按键、窗口、变量、数字、颜色
 324	WhaleGenie/Views/ActionEditorView.axaml.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
 605	WhaleGenie/Views/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	WhaleGenie/Views/ElementPickerWindow.cs	split: 超过 500 行，评估后可推迟
 551	WhaleGenie/Views/MacroEditorWindow.Documents.cs	split: 超过 500 行，评估后可推迟
 553	WhaleGenie/Views/MacroEditorWindow.DragDrop.cs	keep: 拖放手势、落点几何与拖入处理同属一个交互，拆开要跨文件追同一组状态
-313	WhaleGenie/Views/MacroEditorWindow.Steps.cs	pending review
+313	WhaleGenie/Views/MacroEditorWindow.Steps.cs	keep: 步骤列表的选择、移动与右键操作同属一列
 505	WhaleGenie/Views/MacroEditorWindow.Triggers.cs	split: 超过 500 行，评估后可推迟
 333	WhaleGenie/Views/MacroEditorWindow.axaml	keep: 窗口框架：标题栏、五列工作区与三个视图的挂载
 656	WhaleGenie/Views/MacroSettingsView.axaml	split: 通用与特定两页各成一页，可分开
@@ -190,8 +192,8 @@
 598	WhaleGenie/Views/RunWindow.axaml	keep: 一个窗口的布局与隐式结构，样式与资源已分处一文件
 565	WhaleGenie/Views/RunWindow.axaml.cs	keep: 运行窗的单一交互
 90	WhaleGenie/Views/SettingsWindow.axaml	keep: 窗口框架：顶部分组、页面列表与三个页面视图的挂载
-420	WhaleGenie/Views/SettingsSystemView.axaml	keep: 一页设置一张卡，页面之间只共用一个滚动区
-308	WhaleGenie/Views/SettingsTriggersView.axaml	keep: 呼出与规则各一页，按钮转发给窗口
+421	WhaleGenie/Views/SettingsSystemView.axaml	keep: 一页设置一张卡，页面之间只共用一个滚动区
+309	WhaleGenie/Views/SettingsTriggersView.axaml	keep: 呼出与规则各一页，按钮转发给窗口
 574	WhaleGenie/Views/SettingsWindow.axaml.cs	split: 导航、热键捕获与规则拖拽挤在一处，可推迟
 374	WhaleGenie/Views/ValuePickerWindow.Styles.axaml	keep: 该窗口自己的样式表，与布局分处一文件
 558	WhaleGenie/Views/ValuePickerWindow.axaml	keep: 一个窗口的布局与隐式模板，再拆要把绑定与事件挪进子视图

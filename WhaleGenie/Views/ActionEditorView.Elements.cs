@@ -30,7 +30,7 @@ public partial class ActionEditorView : UserControl
     /// empty, which is what stops the selector from matching the same kind of control somewhere
     /// else.
     /// </summary>
-    private async void OnPickElement(object? sender, RoutedEventArgs e)
+    internal async void OnPickElement(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)
@@ -58,7 +58,7 @@ public partial class ActionEditorView : UserControl
     /// the step as well, so a step that works in a browser it has signed in to is picked off that
     /// same one.
     /// </summary>
-    private async void OnPickBrowserElement(object? sender, RoutedEventArgs e)
+    internal async void OnPickBrowserElement(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)
@@ -98,7 +98,7 @@ public partial class ActionEditorView : UserControl
     /// The dialog steps aside first, the same way picking does: the control being looked at is
     /// usually behind the window asking about it.
     /// </summary>
-    private async void OnTestElement(object? sender, RoutedEventArgs e)
+    internal async void OnTestElement(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)
@@ -142,7 +142,7 @@ public partial class ActionEditorView : UserControl
     /// it — the lines of the field tried in order, the "which match" field read as well — so what
     /// is outlined is what the step will act on, and the message says which line that was.
     /// </summary>
-    private async void OnTestBrowserElement(object? sender, RoutedEventArgs e)
+    internal async void OnTestBrowserElement(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)
@@ -182,7 +182,7 @@ public partial class ActionEditorView : UserControl
     /// Adds one of the ways of naming the element a pick answered with as another line of the
     /// field, which is one more way for the step to find it once the first stops working.
     /// </summary>
-    private void OnAddBrowserWay(object? sender, RoutedEventArgs e)
+    internal void OnAddBrowserWay(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: BrowserWayViewModel way })
         {
@@ -191,7 +191,7 @@ public partial class ActionEditorView : UserControl
     }
 
     /// <summary>Puts another thing the element has to be like at the end of the list.</summary>
-    private void OnAddNarrowRow(object? sender, RoutedEventArgs e)
+    internal void OnAddNarrowRow(object? sender, RoutedEventArgs e)
     {
         // The button is only drawn for a field that narrows an element down, but a hidden control
         // is still reachable from automation, and asking a condition field for a narrow family is
@@ -214,7 +214,7 @@ public partial class ActionEditorView : UserControl
     /// themselves. An element that shows no writing has none to take, which is said rather than
     /// left as a box that looks untouched.
     /// </remarks>
-    private async void OnPickNarrowValue(object? sender, RoutedEventArgs e)
+    internal async void OnPickNarrowValue(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: NarrowRowViewModel row }
             || DataContext is not AddActionViewModel viewModel)
@@ -269,7 +269,7 @@ public partial class ActionEditorView : UserControl
     /// asking — did this make it clearer — and it is answered by counting rather than by running the
     /// step, so a wrong condition is found before it acts on the wrong element.
     /// </summary>
-    private async void OnLookNarrowRow(object? sender, RoutedEventArgs e)
+    internal async void OnLookNarrowRow(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: NarrowRowViewModel row }
             || DataContext is not AddActionViewModel viewModel)
@@ -322,7 +322,7 @@ public partial class ActionEditorView : UserControl
     /// out which element to look for puts the selector in a variable and names it here, and the
     /// engine fills the name in when the step runs.
     /// </summary>
-    private async void OnPickBrowserVariable(object? sender, RoutedEventArgs e)
+    internal async void OnPickBrowserVariable(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)

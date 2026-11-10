@@ -67,8 +67,8 @@ public class ValueChipTests
     [Fact]
     public void A_multi_line_box_holds_its_chip_at_the_top()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         var start = markup.IndexOf("IsVisible=\"{Binding IsMultiline}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped editing a stretch of text in a box of its own");

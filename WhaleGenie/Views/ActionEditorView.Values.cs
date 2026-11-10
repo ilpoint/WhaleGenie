@@ -28,7 +28,7 @@ public partial class ActionEditorView : UserControl
     /// Opens the value window on the field that asked for it and keeps what it returns. A field laid
     /// out with buttons of its own still reaches the same window as the one with the button inside.
     /// </summary>
-    private async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
+    internal async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {
@@ -47,7 +47,7 @@ public partial class ActionEditorView : UserControl
     /// the button does not have to be looked up from the row it stands in, and what comes back is
     /// put in the way the cell reads it: a number stays a number, anything else becomes a formula.
     /// </summary>
-    private async void OnOpenCellExpression(object? sender, RoutedEventArgs e)
+    internal async void OnOpenCellExpression(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { Tag: NumberCellViewModel cell })
         {
@@ -69,7 +69,7 @@ public partial class ActionEditorView : UserControl
     /// a record that says where to look — a formula in it is not read as one, so the picker offers
     /// no expression editor here.
     /// </summary>
-    private async void OnPickRegionVariable(object? sender, RoutedEventArgs e)
+    internal async void OnPickRegionVariable(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: RegionRowViewModel row } button
             || DataContext is not AddActionViewModel viewModel)
@@ -96,7 +96,7 @@ public partial class ActionEditorView : UserControl
     /// should never need the name typed out of memory, and the name goes in where the caret is: a
     /// field is often a piece of text with a variable beside it rather than only a variable.
     /// </summary>
-    private async void OnPickVariable(object? sender, RoutedEventArgs e)
+    internal async void OnPickVariable(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter } button
             || DataContext is not AddActionViewModel viewModel)
@@ -157,7 +157,7 @@ public partial class ActionEditorView : UserControl
     /// colour was read from goes into the step's own position as well: the pixel worth watching is
     /// the one the magnifier was aimed at, so writing both is what saves lining the two up by hand.
     /// </summary>
-    private async void OnPickParameterColor(object? sender, RoutedEventArgs e)
+    internal async void OnPickParameterColor(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter }
             || DataContext is not AddActionViewModel viewModel)

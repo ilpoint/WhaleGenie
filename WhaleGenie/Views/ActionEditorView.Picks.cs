@@ -52,7 +52,7 @@ public partial class ActionEditorView : UserControl
     /// recognition, then as many clicks as the pattern has colours: each click is one line of the
     /// field, worked out from the picture instead of by eye.
     /// </summary>
-    private async void OnPickColourPoints(object? sender, RoutedEventArgs e)
+    internal async void OnPickColourPoints(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not AddActionViewModel viewModel
             || await LookForPickAsync(viewModel) is not { } pick)

@@ -66,8 +66,8 @@ public partial class ActionDialogTests
     [Fact]
     public void The_note_of_a_step_is_written_on_the_basic_page()
     {
-        var markup = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         Assert.Contains("MetaComment", Page(markup, "OnBase"), StringComparison.Ordinal);
         Assert.DoesNotContain("MetaComment", Page(markup, "OnOther"), StringComparison.Ordinal);

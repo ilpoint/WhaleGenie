@@ -380,8 +380,8 @@ public class VariableWallTests
     [Fact]
     public void The_dialog_puts_the_picker_on_every_field_that_may_name_a_variable()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
+            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
 
         var value = markup.IndexOf("IsVisible=\"{Binding OffersVariables}\"", StringComparison.Ordinal);
         Assert.True(value >= 0, "the dialog stopped offering a field that may name variables");
