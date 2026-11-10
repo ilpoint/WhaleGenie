@@ -79,7 +79,7 @@
 618	WhaleGenie.Core/Execution/MacroRunner.Window.cs	keep: 已按动作族分出的局部实现
 300	WhaleGenie.Core/Execution/OcrReading.cs	pending review
 454	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
-727	WhaleGenie.Core/Expressions/ExpressionTree.cs	split: 超过 700 行，技术债
+396	WhaleGenie.Core/Expressions/ExpressionReader.cs	keep: 表达式树的一族，按读/写/编译拆分后单一职责
 331	WhaleGenie.Core/Expressions/VariableText.cs	pending review
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	split: 超过 500 行，评估后可推迟
 410	WhaleGenie.GraphicsCapture.Tests/ScreenGrabberTests.cs	pending review
@@ -140,7 +140,6 @@
 1906	WhaleGenie/Models/MacroCheck.cs	split: 超过 700 行，技术债
 459	WhaleGenie/Models/TriggerEntry.cs	keep: 触发器数据模型的一族，按职责拆分后单一职责
 511	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
-741	WhaleGenie/Models/WheelMenu.cs	split: 超过 700 行，技术债
 301	WhaleGenie/Runtime/AppTray.cs	pending review
 454	WhaleGenie/Runtime/MacroTriggerService.Keyboard.cs	keep: 触发器服务的一族，按触发来源拆分后单一职责
 399	WhaleGenie/Storage/PublicMacroLibrary.cs	pending review
@@ -163,7 +162,7 @@
 662	WhaleGenie/ViewModels/MacroInterfaceViewModel.cs	split: 超过 500 行，评估后可推迟
 529	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
 331	WhaleGenie/ViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
-731	WhaleGenie/ViewModels/SlotRecipe.cs	split: 超过 700 行，技术债
+410	WhaleGenie/ViewModels/SlotReader.cs	keep: 槽位配方的一族，按读取/标记/折行拆分后单一职责
 536	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型
 315	WhaleGenie/ViewModels/VariableWallViewModel.cs	pending review
 379	WhaleGenie/ViewModels/WindowPreviewViewModel.cs	pending review
