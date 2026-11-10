@@ -204,8 +204,7 @@ public class RunBreakpointTests
     [Fact]
     public void The_red_of_a_breakpoint_beats_the_hover_colour()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
+        var markup = ViewSource.Markup("RunWindow.axaml");
 
         foreach (var state in new[] { "", ":pointerover", ":pressed" })
         {
