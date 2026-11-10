@@ -174,7 +174,10 @@
 532	WhaleGenie/ViewModels/ConditionEditorViewModel.cs	split: 超过 500 行，评估后可推迟
 476	WhaleGenie/ViewModels/GlobalVariablesViewModel.cs	pending review
 364	WhaleGenie/ViewModels/LocalVariablesViewModel.cs	pending review
-3938	WhaleGenie/ViewModels/MacroEditorViewModel.cs	split: 超过 700 行，技术债
+576	WhaleGenie/ViewModels/MacroEditorViewModel.Editing.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
+361	WhaleGenie/ViewModels/MacroEditorViewModel.Rows.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
+683	WhaleGenie/ViewModels/MacroEditorViewModel.Settings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
+461	WhaleGenie/ViewModels/MacroEditorViewModel.TriggerSettings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 662	WhaleGenie/ViewModels/MacroInterfaceViewModel.cs	split: 超过 500 行，评估后可推迟
 529	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
 2259	WhaleGenie/ViewModels/RunViewModel.cs	split: 超过 700 行，技术债
