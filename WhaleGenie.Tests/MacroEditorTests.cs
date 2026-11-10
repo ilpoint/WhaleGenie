@@ -1243,7 +1243,7 @@ public class MacroEditorTests
             Assert.True(RowLine(rows[0]).Bounds.Height <= 40,
                 $"没点中的那一行跟着长到了 {RowLine(rows[0]).Bounds.Height:0}");
 
-            window.Close();
+            Ui.CloseAndDiscard(window);
         });
     }
 
@@ -1271,7 +1271,7 @@ public class MacroEditorTests
             Assert.Null(ToolTip.GetTip(card));
             Assert.Equal(row.IdHint, ToolTip.GetTip(badge) as string);
             Assert.Contains(row.Id, row.IdHint, StringComparison.Ordinal);
-            window.Close();
+            Ui.CloseAndDiscard(window);
         });
     }
 
