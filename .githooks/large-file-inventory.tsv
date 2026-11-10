@@ -85,7 +85,6 @@
 618	WhaleGenie.Core/Execution/MacroRunner.Window.cs	keep: 已按动作族分出的局部实现
 300	WhaleGenie.Core/Execution/OcrReading.cs	pending review
 454	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
-1330	WhaleGenie.Core/Expressions/ExpressionFunctions.cs	split: 超过 700 行，技术债
 727	WhaleGenie.Core/Expressions/ExpressionTree.cs	split: 超过 700 行，技术债
 331	WhaleGenie.Core/Expressions/VariableText.cs	pending review
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	split: 超过 500 行，评估后可推迟
