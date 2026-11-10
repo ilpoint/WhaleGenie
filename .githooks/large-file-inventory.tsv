@@ -6,7 +6,27 @@
 551	WhaleGenie.Core.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
 606	WhaleGenie.Core.Tests/BrowserActionTests.cs	keep: 浏览器动作的单一契约测试
 464	WhaleGenie.Core.Tests/BrowserTargetTests.cs	keep: 浏览器目标解析的单一测试
-11098	WhaleGenie.Core.Tests/DeviceActionTests.cs	split: 超过 700 行，技术债
+367	WhaleGenie.Core.Tests/DeviceActionTests.Browser.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+426	WhaleGenie.Core.Tests/DeviceActionTests.BrowserPage.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+586	WhaleGenie.Core.Tests/DeviceActionTests.Colour.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+488	WhaleGenie.Core.Tests/DeviceActionTests.ColourWatch.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+417	WhaleGenie.Core.Tests/DeviceActionTests.DataFiles.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+626	WhaleGenie.Core.Tests/DeviceActionTests.Element.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+654	WhaleGenie.Core.Tests/DeviceActionTests.Files.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+569	WhaleGenie.Core.Tests/DeviceActionTests.Image.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+302	WhaleGenie.Core.Tests/DeviceActionTests.Input.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+436	WhaleGenie.Core.Tests/DeviceActionTests.Languages.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+309	WhaleGenie.Core.Tests/DeviceActionTests.Mouse.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+452	WhaleGenie.Core.Tests/DeviceActionTests.Moves.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+619	WhaleGenie.Core.Tests/DeviceActionTests.Programs.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+591	WhaleGenie.Core.Tests/DeviceActionTests.Records.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+521	WhaleGenie.Core.Tests/DeviceActionTests.Screen.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+383	WhaleGenie.Core.Tests/DeviceActionTests.Scripts.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+551	WhaleGenie.Core.Tests/DeviceActionTests.System.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+580	WhaleGenie.Core.Tests/DeviceActionTests.Text.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+466	WhaleGenie.Core.Tests/DeviceActionTests.WindowActions.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+355	WhaleGenie.Core.Tests/DeviceActionTests.WindowListing.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
+308	WhaleGenie.Core.Tests/DeviceActionTests.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
 393	WhaleGenie.Core.Tests/ExpressionTests.cs	pending review
 308	WhaleGenie.Core.Tests/InputLimitTests.cs	pending review
 3556	WhaleGenie.Core.Tests/MacroRunnerTests.cs	split: 超过 700 行，技术债
