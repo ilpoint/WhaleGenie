@@ -93,7 +93,7 @@
 507	WhaleGenie.Tests/ActionDialogTests.Calls.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 321	WhaleGenie.Tests/ActionDialogTests.Fields.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 696	WhaleGenie.Tests/ActionDialogTests.Keys.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
-528	WhaleGenie.Tests/ActionDialogTests.Pickers.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
+525	WhaleGenie.Tests/ActionDialogTests.Pickers.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 440	WhaleGenie.Tests/ActionDialogTests.Picking.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 467	WhaleGenie.Tests/ActionDialogTests.Records.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 482	WhaleGenie.Tests/ActionDialogTests.Windows.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
@@ -120,7 +120,7 @@
 323	WhaleGenie.Tests/McpServerTests.StepPatch.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
 702	WhaleGenie.Tests/MenuWindowTests.cs	split: 超过 700 行，技术债
 317	WhaleGenie.Tests/NumberBoxTests.cs	pending review
-524	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
+527	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
 385	WhaleGenie.Tests/PickerDeviceTests.cs	pending review
 390	WhaleGenie.Tests/PickerTests.cs	pending review
 374	WhaleGenie.Tests/ProjectSaveTests.cs	pending review
