@@ -476,4 +476,30 @@ public partial class MacroEditorWindow : AppWindow
 
         e.Handled = true;
     }
+
+    /// <summary>
+    /// Everything held when a key was pressed: what the event itself carries, plus the modifiers
+    /// this window saw go down, so a modifier pressed before the capture started still counts.
+    /// </summary>
+    private KeyModifiers Held(KeyEventArgs e)
+    {
+        var held = e.KeyModifiers;
+        foreach (var modifier in _captureModifiers)
+        {
+            held |= HotkeyNameMapper.ModifierFlag(modifier);
+        }
+
+        return held;
+    }
+
+    /// <summary>
+    /// The binding a key press makes: the modifiers held at that moment, then the key itself. Each
+    /// modifier is written without its side — either Ctrl answers it — which is how a recorded
+    /// combination is written too; a lone modifier, where the two sides are two different keys,
+    /// keeps its side in <see cref="DescribeKey"/>.
+    /// </summary>
+    private static string Chord(Key key, KeyModifiers held)
+        => HotkeyNameMapper.Chord(key, held);
+
+    private static string DescribeKey(Key key) => HotkeyNameMapper.Name(key);
 }
