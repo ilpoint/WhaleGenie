@@ -191,7 +191,6 @@
 662	WhaleGenie/ViewModels/MacroInterfaceViewModel.cs	split: 超过 500 行，评估后可推迟
 529	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
 331	WhaleGenie/ViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
-1726	WhaleGenie/ViewModels/SettingsViewModel.cs	split: 超过 700 行，技术债
 731	WhaleGenie/ViewModels/SlotRecipe.cs	split: 超过 700 行，技术债
 536	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型
 1077	WhaleGenie/ViewModels/ValuePickerViewModel.cs	split: 超过 700 行，技术债

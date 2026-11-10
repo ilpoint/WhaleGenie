@@ -30,14 +30,13 @@
   大型机器目录、查表数据与共享运行状态属于这一类，不应为了阈值切碎装载入口或状态。但超过 700 行
   的代码属于技术债，须尽快按关注点拆分。
 
-清单现有 231 个文件：94 个 `keep`，67 个 `split`（其中 56 个超过 700 行，属于技术债），2 个文案
+清单现有 230 个文件：94 个 `keep`，66 个 `split`（其中 55 个超过 700 行，属于技术债），2 个文案
 查表 `exempt`，68 个 300–500 行仍待检查。优先处理技术债，再按读取集收益分批，而不是按行数排队；
 每批一次只动一组关注点，同步修正引用与契约测试后单独提交：
 
 1. 窗口代码后置：`MainWindow.axaml.cs`（热键、运行入口、文件菜单、设置与帮助、编辑器提交、宏卡片）。
-2. 视图模型：`SettingsViewModel`。
-3. 设备层与 MCP：`McpControlTools`。
-4. 界面模板：`ActionEditorView.axaml`、`MacroEditorWindow.axaml`、`SettingsWindow.axaml` 按页拆控件。
+2. 设备层与 MCP：`McpControlTools`。
+3. 界面模板：`ActionEditorView.axaml`、`MacroEditorWindow.axaml`、`SettingsWindow.axaml` 按页拆控件。
 
 完成一批后，从清单删除旧路径或更新行数；超过 700 行的文件在每次提交时都会再次提示，直到拆分。
 不改变动作字段、文件格式或发布包形状；结构调整与行为变更分开提交。清单中只剩 `keep:` 与
