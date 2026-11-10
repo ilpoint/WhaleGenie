@@ -211,10 +211,10 @@
 1455	WhaleGenie/Views/MacroEditorWindow.axaml	split: 超过 700 行，技术债
 428	WhaleGenie/Views/MacroEditorWindow.axaml.cs	pending review
 316	WhaleGenie/Views/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
-494	WhaleGenie/Views/MainWindow.Menu.cs	pending review
-503	WhaleGenie/Views/MainWindow.Wheel.cs	split: 超过 500 行，评估后可推迟
+470	WhaleGenie/Views/MainWindow.Files.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
+494	WhaleGenie/Views/MainWindow.Menu.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
+503	WhaleGenie/Views/MainWindow.Wheel.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 532	WhaleGenie/Views/MainWindow.axaml	keep: 主窗口一份布局
-1572	WhaleGenie/Views/MainWindow.axaml.cs	split: 超过 700 行，技术债
 311	WhaleGenie/Views/MenuIconPickerWindow.cs	pending review
 498	WhaleGenie/Views/PickEntryWindow.axaml.cs	pending review
 660	WhaleGenie/Views/PointPickerWindow.cs	keep: 取点窗口的单一交互

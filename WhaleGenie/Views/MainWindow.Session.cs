@@ -79,6 +79,7 @@ public partial class MainWindow : AppWindow
     /// </summary>
     internal Func<RecoveryContents, Task<ConfirmChoice>> AskToRecover { get; set; }
 
+    /// <summary>Keeps the main window above the other windows until the pin is pressed again.</summary>
     private void ToggleAlwaysOnTop(Button button)
     {
         _alwaysOnTop = !_alwaysOnTop;
