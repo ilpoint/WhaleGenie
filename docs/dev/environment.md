@@ -84,3 +84,9 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 | `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | 界面：stdio MCP 服务、工具发现与通用宿主 |
 | `AvaloniaUI.DiagnosticsSupport` | 仅 Debug：界面诊断支持 |
 | `Declarative.Avalonia.AgentTools` | 仅 Debug：进程内的 MCP 检查器，让 agent 自己调试正在运行的界面 |
+
+### Debug 构建与分部窗口
+
+`Declarative.Avalonia.AgentTools` 顺带引入一个声明式视图注册生成器。它按类声明逐个生成，窗口拆成
+分部类后会重复写出同名 hintName 并报 CS8785。本项目界面全部是 XAML，不需要这份注册；
+`WhaleGenie.csproj` 在 `CoreCompile` 前移除该分析器，自省通道与 Release 构建都不受影响。

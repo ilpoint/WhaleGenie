@@ -108,4 +108,15 @@
     <!-- The interface tests look at the view models and the trigger matching directly. -->
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
   </ItemGroup>
+
+  <!--
+    界面都是 XAML，不靠声明式视图工厂创建。AgentTools 带进来的生成器按类声明逐个注册视图，
+    窗口拆成分部类后会重复生成同名 hintName 而报 CS8785；编译前移除它，运行时仍保留自省通道。
+  -->
+  <Target Name="DropDeclarativeViewFactoryGenerator" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)"
+                Condition="'%(Filename)' == 'Avalonia.Markup.Declarative.SourceGenerator'" />
+    </ItemGroup>
+  </Target>
 </Project>
