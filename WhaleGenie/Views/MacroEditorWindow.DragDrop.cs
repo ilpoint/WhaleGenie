@@ -30,6 +30,7 @@ public partial class MacroEditorWindow : AppWindow
 {
     // Dragging a step and dropping an action: the pointer gesture, the seam it would land on, and
     // what an action dropped there becomes. The row drawing itself stays in the steps partial.
+    /// <summary>Remembers where a press landed, so a plain click never turns into a drag.</summary>
     private void OnStepPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         var point = e.GetCurrentPoint(this);

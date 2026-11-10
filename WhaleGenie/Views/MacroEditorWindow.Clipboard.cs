@@ -30,6 +30,10 @@ public partial class MacroEditorWindow : AppWindow
 {
     // Selecting steps and moving them through the clipboard. It is kept apart because it is the
     // only part that talks to the platform clipboard, not to the tree's drag geometry.
+    /// <summary>
+    /// Selects every step the list is showing. The list is asked for one bulk change and the
+    /// editor takes the same rows from it, so a long macro is not scrolled one row at a time.
+    /// </summary>
     private void SelectAllSteps()
     {
         if (_stepList is null)

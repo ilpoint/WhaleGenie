@@ -96,8 +96,6 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     private readonly List<Key> _swallowReleases = [];
 
-    /// <summary>The input hook, up only while a recording is in progress.</summary>
-
     /// <summary>
     /// The controller, read while the editor is waiting for a binding. Windows has no word for a
     /// controller button going down, so this is a reading on a clock; what it was holding at the
@@ -463,11 +461,6 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>
-    /// Selects every step the list is showing. The list is asked for one bulk change and the
-    /// editor takes the same rows from it, so a long macro is not scrolled one row at a time.
-    /// </summary>
-
-    /// <summary>
     /// Everything held when a key was pressed: what the event itself carries, plus the modifiers
     /// this window saw go down, so a modifier pressed before the capture started still counts.
     /// </summary>
@@ -492,8 +485,6 @@ public partial class MacroEditorWindow : AppWindow
         => HotkeyNameMapper.Chord(key, held);
 
     private static string DescribeKey(Key key) => HotkeyNameMapper.Name(key);
-
-    /// <summary>Opens the magnifier, which follows the pointer and reads the pixel under it.</summary>
 
     /// <summary>Brings up the window a step is written in, on the place the editor is now.</summary>
     private async void OnAddStepRequested()
@@ -954,15 +945,4 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// Marks the macro the editor was opened on as not saved. Work recovered from a run that
-    /// stopped without notice is unsaved by definition, so closing the editor has to ask about it
-    /// rather than let it go without a word.
-    /// </summary>
-
-    /// <summary>Puts the input hook up when recording starts and takes it down when it stops.</summary>
-
-    /// <summary>Opens or folds the picked block, which is what the arrow keys do in a tree.</summary>
-
-    /// <summary>Remembers where a press landed, so a plain click never turns into a drag.</summary>
 }

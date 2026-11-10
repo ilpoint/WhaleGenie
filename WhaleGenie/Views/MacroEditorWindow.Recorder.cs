@@ -30,6 +30,7 @@ public partial class MacroEditorWindow : AppWindow
 {
     // Starting, stopping and timing the recorder. It is kept apart because it talks to the device
     // layer and the recording session, not to the step tree or the document tabs.
+    /// <summary>Puts the input hook up when recording starts and takes it down when it stops.</summary>
     private void OnRecordingChanged(bool recording)
     {
         if (recording)

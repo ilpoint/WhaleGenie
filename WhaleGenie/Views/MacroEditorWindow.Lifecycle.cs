@@ -30,6 +30,11 @@ public partial class MacroEditorWindow : AppWindow
 {
     // What the editor leaves behind and what it asks on the way out: the result and lifted macros,
     // the recovery snapshot, the title-bar state, and closing with unsaved work.
+    /// <summary>
+    /// Marks the macro the editor was opened on as not saved. Work recovered from a run that
+    /// stopped without notice is unsaved by definition, so closing the editor has to ask about it
+    /// rather than let it go without a word.
+    /// </summary>
     internal void MarkUnsaved()
     {
         _mustStayUnsaved = true;

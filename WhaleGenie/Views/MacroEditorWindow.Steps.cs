@@ -30,6 +30,7 @@ public partial class MacroEditorWindow : AppWindow
 {
     // The step rows themselves: folding a block, editing the values a case compares against, and
     // the commands on a step's context menu. Dragging a step stays with the drop geometry.
+    /// <summary>Opens or folds the picked block, which is what the arrow keys do in a tree.</summary>
     private void Fold(bool open)
     {
         if (_viewModel.SelectedSteps is [{ } step])

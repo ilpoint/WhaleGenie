@@ -30,6 +30,7 @@ public partial class MacroEditorWindow : AppWindow
 {
     // The colour and window pickers the trigger pages use, and where the pointer was when the
     // editor asked. They are kept apart because they step the whole program aside to look outside.
+    /// <summary>Opens the magnifier, which follows the pointer and reads the pixel under it.</summary>
     private async void OnPickColorClicked(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MacroEditorViewModel viewModel)
