@@ -1,0 +1,178 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+
+
+namespace WhaleGenie.Core.Expressions;
+
+// Turning a tree into something a run can call.
+/// <summary>
+/// Turns a tree into the thunk that works the value out. Thunks rather than values is what keeps
+/// <c>and</c>, <c>or</c> and <c>if</c> lazy: the branch that is not taken never runs.
+/// </summary>
+internal static class ExpressionCompiler
+{
+    public static Func<Value> Compile(ExpressionNode node, IVariableResolver variables)
+        => node switch
+        {
+            NumberNode number => () => Value.FromNumber(number.Value),
+            TextNode text => () => Value.FromText(text.Text),
+            ConstantNode constant => Compiled(constant.Word),
+            VariableNode variable => () => Resolve(variables, variable.Name),
+            ListNode list => Compiled(list, variables),
+            CallNode call => Compiled(call, variables),
+            UnaryNode unary => Compiled(unary, variables),
+            BinaryNode binary => Compiled(binary, variables),
+            _ => throw ExpressionException.Syntax("a place in the formula is still empty"),
+        };
+
+    private static Func<Value> Compiled(string word) => word switch
+    {
+        "true" => () => Value.FromBool(true),
+        "false" => () => Value.FromBool(false),
+        _ => () => Value.Null,
+    };
+
+    private static Func<Value> Compiled(ListNode list, IVariableResolver variables)
+    {
+        var items = list.Items.Select(item => Compile(item, variables)).ToList();
+        return () => Value.FromList(items.Select(item => item()));
+    }
+
+    private static Func<Value> Compiled(CallNode call, IVariableResolver variables)
+    {
+        if (!FunctionLibrary.TryGet(call.Name, out var entry))
+        {
+            throw ExpressionException.UnknownFunction(call.Name);
+        }
+
+        if (call.Arguments.Count < entry.MinArguments || call.Arguments.Count > entry.MaxArguments)
+        {
+            throw ExpressionException.ArgumentCount(entry.Signature);
+        }
+
+        var arguments = call.Arguments.Select(argument => Compile(argument, variables)).ToList();
+        return () => entry.Body(arguments);
+    }
+
+    private static Func<Value> Compiled(UnaryNode unary, IVariableResolver variables)
+    {
+        var operand = Compile(unary.Operand, variables);
+        return unary.Operator == "not"
+            ? () => Value.FromBool(!operand().AsBool())
+            : () => Value.FromNumber(-operand().AsNumber());
+    }
+
+    private static Func<Value> Compiled(BinaryNode binary, IVariableResolver variables)
+    {
+        var left = Compile(binary.Left, variables);
+        var right = Compile(binary.Right, variables);
+
+        switch (binary.Operator)
+        {
+            case "or":
+                return () => Value.FromBool(left().AsBool() || right().AsBool());
+            case "and":
+                return () => Value.FromBool(left().AsBool() && right().AsBool());
+            case "+":
+                return () => Add(left(), right());
+            case "-":
+                return () => Value.FromNumber(left().AsNumber() - right().AsNumber());
+            case "*":
+                return () => Multiply("*", left(), right());
+            case "/":
+                return () => Multiply("/", left(), right());
+            case "%":
+                return () => Multiply("%", left(), right());
+            default:
+                return () => Compare(binary.Operator, left(), right());
+        }
+    }
+
+    private static Value Resolve(IVariableResolver variables, string name)
+        => variables.TryGet(name, out var value)
+            ? value
+            : throw ExpressionException.UnknownVariable(name);
+
+    private static Value Add(Value left, Value right)
+    {
+        if (left.Kind is ValueKind.Text or ValueKind.List or ValueKind.Record
+            || right.Kind is ValueKind.Text or ValueKind.List or ValueKind.Record)
+        {
+            return Value.FromText(left.AsText() + right.AsText());
+        }
+
+        return Value.FromNumber(left.AsNumber() + right.AsNumber());
+    }
+
+    private static Value Multiply(string operation, Value left, Value right)
+    {
+        var first = left.AsNumber();
+        var second = right.AsNumber();
+
+        switch (operation)
+        {
+            case "/":
+                if (second == 0)
+                {
+                    throw ExpressionException.DivideByZero();
+                }
+
+                return Value.FromNumber(first / second);
+            case "%":
+                if (second == 0)
+                {
+                    throw ExpressionException.DivideByZero();
+                }
+
+                return Value.FromNumber(first % second);
+            default:
+                return Value.FromNumber(first * second);
+        }
+    }
+
+    private static Value Compare(string operation, Value left, Value right)
+    {
+        switch (operation)
+        {
+            case "==":
+                return Value.FromBool(left.Equals(right));
+            case "!=":
+                return Value.FromBool(!left.Equals(right));
+        }
+
+        if (TryNumber(left, out var first) && TryNumber(right, out var second))
+        {
+            return Value.FromBool(operation switch
+            {
+                "<" => first < second,
+                "<=" => first <= second,
+                ">" => first > second,
+                _ => first >= second,
+            });
+        }
+
+        var order = string.Compare(left.AsText(), right.AsText(), StringComparison.OrdinalIgnoreCase);
+        return Value.FromBool(operation switch
+        {
+            "<" => order < 0,
+            "<=" => order <= 0,
+            ">" => order > 0,
+            _ => order >= 0,
+        });
+    }
+
+    private static bool TryNumber(Value value, out double number)
+    {
+        if (value.Kind is ValueKind.Number)
+        {
+            number = value.Number;
+            return true;
+        }
+
+        return double.TryParse(value.AsText(), NumberStyles.Any, CultureInfo.InvariantCulture,
+            out number);
+    }
+}
