@@ -60,7 +60,7 @@ public class MainTitleTests
                 continue;
             }
 
-            var code = File.Exists(markup + ".cs") ? File.ReadAllText(markup + ".cs") : string.Empty;
+            var code = File.Exists(markup + ".cs") ? ViewSource.Beside(markup) : string.Empty;
             if (!code.Contains("Title = ", StringComparison.Ordinal))
             {
                 unwired.Add(Path.GetFileName(markup));

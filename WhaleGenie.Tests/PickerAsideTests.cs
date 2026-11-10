@@ -365,8 +365,11 @@ public class PickerAsideTests
     }
 
     /// <summary>The source of one file under WhaleGenie/Views.</summary>
-    private static string Source(string name)
-        => File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", name));
+    /// <summary>
+    /// A view's code, read across all its partial files, so a check about what it awaits keeps
+    /// working when the window is split further.
+    /// </summary>
+    private static string Source(string name) => ViewSource.All(name);
 
     /// <summary>
     /// A window's code, read across all its partial files. The window is one type split by concern,

@@ -139,8 +139,11 @@ public class PickerSnapshotTests
             => throw new NotSupportedException("this screen is only read as a picture of the desktop");
     }
 
-    private static string Source(string name)
-        => File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", name));
+    /// <summary>
+    /// A view's code, read across all its partial files: the window is one type split by concern,
+    /// so a check about what it does has to look at every part rather than only the main file.
+    /// </summary>
+    private static string Source(string name) => ViewSource.All(name);
 
     private static string Repository()
     {

@@ -105,8 +105,7 @@ public class AboutWindowTests
 
         // The About window itself has to follow the rule that keeps dialogs above a pinned main
         // window, which means it is opened through the helper rather than by calling ShowDialog.
-        var main = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml.cs"));
+        var main = ViewSource.All("MainWindow.axaml.cs");
         Assert.Contains("new AboutWindow().ShowDialogOver(this)", main, StringComparison.Ordinal);
     }
 
