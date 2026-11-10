@@ -134,7 +134,7 @@
 480	WhaleGenie.Tests/RegionPickerTests.cs	pending review
 366	WhaleGenie.Tests/ReturnsPageTests.cs	pending review
 357	WhaleGenie.Tests/RunBreakpointTests.cs	pending review
-1516	WhaleGenie.Tests/RunDebugTests.cs	split: 超过 700 行，技术债
+434	WhaleGenie.Tests/RunDebugTests.Breakpoints.cs	keep: 运行窗口测试的一族，按窗口行为拆分后单一职责
 542	WhaleGenie.Tests/RunLookTests.cs	keep: 运行取景界面的单一测试
 354	WhaleGenie.Tests/ScriptHostRunTests.cs	pending review
 330	WhaleGenie.Tests/StepPlacementTests.cs	pending review
