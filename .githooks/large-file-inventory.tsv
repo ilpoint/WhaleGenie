@@ -120,7 +120,8 @@
 709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
 592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
 345	WhaleGenie.Tests/McpRunTests.cs	pending review
-2117	WhaleGenie.Tests/McpServerTests.cs	split: 超过 700 行，技术债
+324	WhaleGenie.Tests/McpServerTests.Patches.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
+323	WhaleGenie.Tests/McpServerTests.StepPatch.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
 702	WhaleGenie.Tests/MenuWindowTests.cs	split: 超过 700 行，技术债
 317	WhaleGenie.Tests/NumberBoxTests.cs	pending review
 524	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
