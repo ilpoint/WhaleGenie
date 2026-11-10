@@ -42,7 +42,6 @@
 449	WhaleGenie.Core.Tests/StepOutcomeTests.cs	pending review
 485	WhaleGenie.Core.Tests/ViiperInputTests.cs	pending review
 500	WhaleGenie.Core.Tests/ViiperServerTests.cs	pending review
-866	WhaleGenie.Core/Devices/DeviceTypes.cs	split: 超过 700 行，技术债
 538	WhaleGenie.Core/Devices/IBrowserDevice.cs	keep: 设备族契约或其空实现，单一职责
 510	WhaleGenie.Core/Devices/NullDeviceLayer.cs	keep: 设备族契约或其空实现，单一职责
 475	WhaleGenie.Core/Devices/Platform/BrowserPickerScript.cs	keep: 一段拾取脚本及其转义
@@ -62,6 +61,7 @@
 702	WhaleGenie.Core/Devices/Platform/WindowsSystemDevice.cs	split: 超过 700 行，技术债
 479	WhaleGenie.Core/Devices/Platform/WindowsTray.cs	pending review
 484	WhaleGenie.Core/Devices/Platform/WindowsWindowDevice.cs	pending review
+303	WhaleGenie.Core/Devices/UiTypes.cs	keep: 设备值类型的一族，按领域拆分后单一职责
 689	WhaleGenie.Core/Execution/ActionSemantics.cs	keep: 动作语义模型的一整套枚举与记录
 428374	WhaleGenie.Core/Execution/ActionSemantics.json	keep: 机器可读动作目录，MCP、检查与测试共用一份
 541	WhaleGenie.Core/Execution/MacroRunner.Attempts.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
@@ -101,7 +101,6 @@
 488	WhaleGenie.Tests/ConditionEditorTests.cs	pending review
 569	WhaleGenie.Tests/ElementPickerTests.cs	keep: 元素拾取的单一测试
 310	WhaleGenie.Tests/FieldNameTests.cs	pending review
-900	WhaleGenie.Tests/GlobalVariablesTests.cs	split: 超过 700 行，技术债
 380	WhaleGenie.Tests/HotstringKeyboardTests.cs	pending review
 370	WhaleGenie.Tests/KeyRunTests.cs	pending review
 572	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
@@ -132,7 +131,6 @@
 348	WhaleGenie.Tests/TemplatePartTests.cs	pending review
 508	WhaleGenie.Tests/TrayTests.cs	split: 超过 500 行，评估后可推迟
 456	WhaleGenie.Tests/TriggerKindTests.cs	pending review
-900	WhaleGenie.Tests/ValuePickerTests.cs	split: 超过 700 行，技术债
 530	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
 499	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 543	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
