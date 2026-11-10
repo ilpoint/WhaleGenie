@@ -103,12 +103,10 @@
 370	WhaleGenie.Tests/KeyRunTests.cs	pending review
 572	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
 655	WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
-709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
 592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
 345	WhaleGenie.Tests/McpRunTests.cs	pending review
 324	WhaleGenie.Tests/McpServerTests.Patches.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
 323	WhaleGenie.Tests/McpServerTests.StepPatch.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
-702	WhaleGenie.Tests/MenuWindowTests.cs	split: 超过 700 行，技术债
 317	WhaleGenie.Tests/NumberBoxTests.cs	pending review
 527	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
 385	WhaleGenie.Tests/PickerDeviceTests.cs	pending review
@@ -130,7 +128,6 @@
 543	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	pending review
 328	WhaleGenie.Tests/WindowPreviewTests.Steps.cs	keep: 窗口预览测试的一族，按列表/取景/排除拆分后单一职责
-734	WhaleGenie.Tests/WindowRulePickerTests.cs	split: 超过 700 行，技术债
 4278	WhaleGenie/Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 553	WhaleGenie/Localization/LocalSettings.cs	keep: 本机设置模型
 5316	WhaleGenie/Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
