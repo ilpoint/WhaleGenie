@@ -169,7 +169,7 @@
 511	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
 741	WhaleGenie/Models/WheelMenu.cs	split: 超过 700 行，技术债
 301	WhaleGenie/Runtime/AppTray.cs	pending review
-1818	WhaleGenie/Runtime/MacroTriggerService.cs	split: 超过 700 行，技术债
+454	WhaleGenie/Runtime/MacroTriggerService.Keyboard.cs	keep: 触发器服务的一族，按触发来源拆分后单一职责
 768	WhaleGenie/Storage/MacroPackage.cs	split: 超过 700 行，技术债
 399	WhaleGenie/Storage/PublicMacroLibrary.cs	pending review
 448	WhaleGenie/Storage/RecoveryStore.cs	pending review
