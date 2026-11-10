@@ -214,7 +214,6 @@
 498	WhaleGenie/Views/PickEntryWindow.axaml.cs	pending review
 660	WhaleGenie/Views/PointPickerWindow.cs	keep: 取点窗口的单一交互
 346	WhaleGenie/Views/PublicMacroLibraryWindow.cs	pending review
-1167	WhaleGenie/Views/RegionPickerWindow.axaml.cs	split: 超过 700 行，技术债
 747	WhaleGenie/Views/RunWindow.axaml	split: 超过 700 行，技术债
 565	WhaleGenie/Views/RunWindow.axaml.cs	keep: 运行窗的单一交互
 809	WhaleGenie/Views/SettingsWindow.axaml	split: 超过 700 行，技术债
