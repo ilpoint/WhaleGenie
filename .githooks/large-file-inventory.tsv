@@ -134,7 +134,6 @@
 314	WhaleGenie/Mcp/McpRunTools.cs	pending review
 629	WhaleGenie/Models/ActionDefinition.cs	keep: 动作定义模型
 658203	WhaleGenie/Models/ActionDisplay.json	keep: 动作显示目录数据
-433	WhaleGenie/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 459	WhaleGenie/Models/TriggerEntry.cs	keep: 触发器数据模型的一族，按职责拆分后单一职责
 511	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
 301	WhaleGenie/Runtime/AppTray.cs	pending review
@@ -176,6 +175,8 @@
 1455	WhaleGenie/Views/MacroEditorWindow.axaml	split: 超过 700 行，技术债
 428	WhaleGenie/Views/MacroEditorWindow.axaml.cs	pending review
 316	WhaleGenie/Views/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
+433	WhaleGenie/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
+410	WhaleGenie/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
 470	WhaleGenie/Views/MainWindow.Files.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 494	WhaleGenie/Views/MainWindow.Menu.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 503	WhaleGenie/Views/MainWindow.Wheel.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
