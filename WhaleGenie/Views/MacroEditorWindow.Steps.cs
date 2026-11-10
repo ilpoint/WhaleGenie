@@ -232,4 +232,81 @@ public partial class MacroEditorWindow : AppWindow
 
     private void OnStepContextToggleEnabled(object? sender, RoutedEventArgs e)
         => _viewModel.ToggleStepEnabledCommand.Execute(null);
+
+    private void ShowDropMarker()
+    {
+        if (_dropLayer is null || _dropMarker is null)
+        {
+            return;
+        }
+
+        var empty = _viewModel.Roots.Count == 0;
+        var height = empty
+            ? Math.Max(64, _dropLayer.Bounds.Height)
+            : Math.Max(30, _dropMarker.MinHeight);
+        var highest = Math.Max(0, _dropLayer.Bounds.Height - height);
+        _dropMarker.Height = height;
+        Canvas.SetLeft(_dropMarker, _dropMarkerIndent);
+        _dropMarker.Width = Math.Max(0, _dropLayer.Bounds.Width - _dropMarkerIndent);
+        Canvas.SetTop(_dropMarker, empty
+            ? 0
+            : Math.Clamp(_dropMarkerY - (height / 2), 0, highest));
+        _dropMarker.Classes.Set("Rejected", !_dropAllowed);
+        if (_dropHint is not null)
+        {
+            _dropHint.Text = _dropRefusal.Length > 0
+                ? _dropRefusal
+                : Strings.Get(_dropHintKey);
+        }
+
+        _dropMarker.IsVisible = true;
+    }
+
+    /// <summary>
+    /// Puts the tree's own highlight on exactly the nodes the editor has picked. The tree keeps
+    /// a highlight per node and the editor keeps one per step, and this is the one place the two
+    /// are made to agree; without it, a rebuild would leave a row looking picked that is not.
+    /// </summary>
+    private static void SyncSelection(TreeView tree, IReadOnlyList<object> wanted)
+    {
+        if (tree.SelectedItems is not { } selection)
+        {
+            return;
+        }
+
+        for (var index = selection.Count - 1; index >= 0; index--)
+        {
+            if (selection[index] is not { } item || !wanted.Contains(item))
+            {
+                selection.RemoveAt(index);
+            }
+        }
+
+        foreach (var item in wanted)
+        {
+            if (!selection.Contains(item))
+            {
+                selection.Add(item);
+            }
+        }
+    }
+
+    /// <summary>The row a pointer event happened on, or <c>null</c> when it missed them all.</summary>
+    private static StepRow? RowUnder(object? source)
+        => source is Visual visual
+            ? visual.FindAncestorOfType<TreeViewItem>(true)?.DataContext as StepRow
+            : null;
+
+    /// <summary>True when the event landed on a button, which handles its own presses.</summary>
+    private static bool IsOnButton(object? source)
+        => source is Visual visual && visual.FindAncestorOfType<Button>(true) is not null;
+
+    /// <summary>True when the event landed in a text box, which owns its own presses and keys.</summary>
+    private static bool IsOnText(object? source)
+        => source is Visual visual && visual.FindAncestorOfType<TextBox>(true) is not null;
+
+    /// <summary>True when the event landed on the list's scrollbar rather than on its rows.</summary>
+    private static bool IsOnScrollbar(object? source)
+        => source is Visual visual
+            && visual.FindAncestorOfType<Avalonia.Controls.Primitives.ScrollBar>(true) is not null;
 }
