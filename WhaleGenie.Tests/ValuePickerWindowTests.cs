@@ -476,8 +476,7 @@ public class ValuePickerWindowTests
     [Fact]
     public void The_caret_blinks_through_a_style_animation()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "ValuePickerWindow.axaml"));
+        var markup = ViewSource.Markup("ValuePickerWindow.axaml");
 
         var at = markup.IndexOf("Selector=\"Border.Caret\"", StringComparison.Ordinal);
         Assert.True(at >= 0, "the caret has no style of its own to hang an animation on");

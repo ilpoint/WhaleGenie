@@ -31,6 +31,19 @@ internal static class ViewSource
             .Select(File.ReadAllText));
     }
 
+    /// <summary>
+    /// A view's markup, read together with the parts it was split into: a window keeps its layout
+    /// in the file named after it and may keep its styles or resources beside it.
+    /// </summary>
+    public static string Markup(string fileName)
+    {
+        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        var stem = Path.GetFileNameWithoutExtension(fileName);
+        return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.axaml")
+            .Order(StringComparer.Ordinal)
+            .Select(File.ReadAllText));
+    }
+
     private static string Repository()
     {
         for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
