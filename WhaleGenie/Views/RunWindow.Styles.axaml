@@ -1,0 +1,156 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+        <!-- Which half of the window is showing, and the variables half's own pages. -->
+
+        <Style Selector="ComboBox.VarSelect">
+            <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="MinHeight" Value="30" />
+        </Style>
+
+        <!-- The edge between two halves: a hairline down the middle of the band that is dragged, so
+             nothing looks stuck to either panel, and it lights up when the pointer is on it. -->
+        <Style Selector="GridSplitter.RunSplit">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" Padding="2">
+                        <Border Name="SplitLine" Width="1" Margin="0,7"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                Background="{DynamicResource BorderControl}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="GridSplitter.RunSplit:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+        <Style Selector="GridSplitter.RunSplit:pointerover /template/ Border#SplitLine">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        </Style>
+        <Style Selector="GridSplitter.SplitVertical">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" Padding="2">
+                        <Border Name="SplitLine" Height="1" Margin="7,0"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                Background="{DynamicResource BorderControl}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="GridSplitter.SplitVertical:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+        <Style Selector="GridSplitter.SplitVertical:pointerover /template/ Border#SplitLine">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        </Style>
+
+        <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+
+        <Style Selector="Border.RunRow">
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        </Style>
+        <Style Selector="Border.RunRow:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <!-- 运行位置族：**只改底色与边，不改前景**——它标记的是"位置"，不是"这段文字是什么"。
+             原来那对棕红/琥珀是"一色两用"（同一个琥珀也当语法色用），换成状态族里的 `Warning`
+             与 `WarningSurface`。 -->
+        <Style Selector="Border.RunRow.current">
+            <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
+        </Style>
+
+        <!-- 步骤正文：`#E4E4E4` 与正文色差 4%，肉眼不可辨，等于没上色 -->
+        <Style Selector="TextBlock.StepLabel">
+            <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+        <!-- 容器步的标题：字重承担"这是一层"，颜色回到正文色 —— 与 `StepLabel` 同一条裁定 -->
+        <Style Selector="TextBlock.StepLabel.container">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+
+        <Style Selector="Button.Fold">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="9" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style Selector="Button.Breakpoint">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <Style Selector="Button.Breakpoint.on">
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+        <!-- 断点的红色要压过悬停与按下的颜色：主题把这两态画在 ContentPresenter 上，只给 Button
+             自己上色的话，指针还停在圆点上时那一点的先后看不出来 —— 点完要等鼠标移开才变红。 -->
+        <Style Selector="Button.Breakpoint.on /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+        <Style Selector="Button.Breakpoint.on:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+        <Style Selector="Button.Breakpoint.on:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Danger}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+
+        <Style Selector="Button.LookThumb">
+            <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="1" />
+        </Style>
+        <Style Selector="Button.LookThumb:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+        </Style>
+
+        <!-- Taking one value away: small, and sitting at the end of the row it belongs to. -->
+        <Style Selector="Button.CopyButton">
+            <Setter Property="Background" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.CopyButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+</Styles>
