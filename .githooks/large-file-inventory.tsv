@@ -90,7 +90,6 @@
 451	WhaleGenie.GraphicsCapture/DesktopDuplicator.cs	pending review
 401	WhaleGenie.GraphicsCapture/ScreenGrabber.cs	pending review
 302	WhaleGenie.GraphicsCapture/WindowsDesktop.cs	pending review
-1122	WhaleGenie.Tests/ActionContractTests.cs	split: 超过 700 行，技术债
 309	WhaleGenie.Tests/ActionDialogTests.Blocks.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 507	WhaleGenie.Tests/ActionDialogTests.Calls.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 321	WhaleGenie.Tests/ActionDialogTests.Fields.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
