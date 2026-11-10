@@ -92,13 +92,14 @@
   直接读 `Strings.Chinese` / `Strings.English` 两张表来查重，不要改全局语言——测试并行跑，
   换语言会改到别人正在读的表。
 
-- 已知抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`、
+- 无头用例报告 `You've caused dispatcher loop` 时，先找前一个启动模态窗口的用例，不要改被随机点中的
+  断言。`ShowDialog` 打开的调度循环必须在本用例内完成：`RunJobs` 让循环启动，关闭窗口后 `await`
+  返回的任务。`WindowStackingTests` 曾漏掉这两个步骤，把循环留给后续无关用例；新增模态用例照此写。
+- 已知共享状态抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`、
   `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`、
   `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one` 与
   `LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
-  在全量运行时偶发失败，单跑或单类运行通过，均涉及进程级共享状态。
-  `StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step` 偶发不认第二次点击，可能与机器忙时
-  手势计时被拉长有关。遇到时先比较单跑与全量结果并检查共享状态还原，不要仅凭重跑放行或直接改被测代码。
+  涉及进程级状态；遇到时比较单跑与全量结果并检查 `[RestoreSharedState]`，不要仅凭重跑放行。
 
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或

@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Threading;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
@@ -13,30 +14,41 @@ public class WindowStackingTests
     [Fact]
     public void A_dialog_of_a_pinned_window_is_pinned_too()
     {
-        Ui.Run(() =>
+        Ui.RunAsync(async () =>
         {
             var owner = OnScreen(new Window { Topmost = true });
             var dialog = new Window();
 
-            DialogWindow.ShowDialogOver<object?>(dialog, owner);
+            // ShowDialog starts a modal dispatcher loop. It has to start and finish inside this
+            // check: a close posted before the loop exists, or a task that is never awaited,
+            // leaves the loop for whichever unrelated check runs next.
+            var loop = DialogWindow.ShowDialogOver<object?>(dialog, owner);
+            Dispatcher.UIThread.RunJobs();
 
             Assert.True(dialog.Topmost);
             dialog.Close();
+            await loop;
+            owner.Close();
+            return true;
         });
     }
 
     [Fact]
     public void A_dialog_of_an_ordinary_window_is_left_alone()
     {
-        Ui.Run(() =>
+        Ui.RunAsync(async () =>
         {
             var owner = OnScreen(new Window());
             var dialog = new Window();
 
-            DialogWindow.ShowDialogOver<object?>(dialog, owner);
+            var loop = DialogWindow.ShowDialogOver<object?>(dialog, owner);
+            Dispatcher.UIThread.RunJobs();
 
             Assert.False(dialog.Topmost);
             dialog.Close();
+            await loop;
+            owner.Close();
+            return true;
         });
     }
 
