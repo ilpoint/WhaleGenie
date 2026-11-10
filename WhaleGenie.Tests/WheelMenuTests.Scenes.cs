@@ -99,7 +99,7 @@ public partial class WheelMenuTests
             Assert.True(viewModel.IsWheelMenuPage);
             Assert.Equal(SettingsRoot.Triggers, viewModel.SelectedRoot);
             Assert.Equal(WheelOptions.RightButton, viewModel.SelectedWheelLauncher?.Binding);
-            Assert.NotNull(window.FindControl<Button>("PreviewWheelButton"));
+            Assert.NotNull(SettingsView.Find<Button>(window, "PreviewWheelButton"));
 
             window.Close();
         }));

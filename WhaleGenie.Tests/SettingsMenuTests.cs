@@ -127,8 +127,8 @@ public class SettingsMenuTests
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
             Assert.Equal(SettingsSubPage.MenuLauncher, viewModel.SelectedPage);
             Assert.True(viewModel.IsMenuLauncherPage);
-            Assert.NotNull(window.FindControl<Button>("CaptureMenuLauncherButton"));
-            Assert.NotNull(window.FindControl<ListBox>("MenuRuleList"));
+            Assert.NotNull(SettingsView.Find<Button>(window, "CaptureMenuLauncherButton"));
+            Assert.NotNull(SettingsView.Find<ListBox>(window, "MenuRuleList"));
             window.Close();
         });
     }

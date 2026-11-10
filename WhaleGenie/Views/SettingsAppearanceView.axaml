@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        x:Class="WhaleGenie.Views.SettingsAppearanceView"
+        x:DataType="vm:SettingsViewModel">
+
+    <Design.DataContext>
+        <vm:SettingsViewModel />
+    </Design.DataContext>
+
+    <StackPanel Spacing="10">
+        <!-- ── 主题 ─────────────────────────────────────────────── -->
+        <StackPanel IsVisible="{Binding IsThemePage}" Spacing="10">
+            <fa:FASettingsExpander Header="{Binding [Settings.Colors], Source={x:Static loc:Strings.Current}}"
+                IsExpanded="True">
+                <fa:FASettingsExpanderItem>
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                        Text="{Binding [Settings.ThemeHint], Source={x:Static loc:Strings.Current}}" />
+                    <fa:FASettingsExpanderItem.Footer>
+                        <ComboBox Name="ThemeSelect" Classes="Field" Width="200"
+                            ItemsSource="{Binding ThemeOptions}"
+                            SelectedItem="{Binding SelectedTheme}" />
+                    </fa:FASettingsExpanderItem.Footer>
+                </fa:FASettingsExpanderItem>
+
+                <fa:FASettingsExpanderItem IsVisible="{Binding IsCustomTheme}">
+                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                        Text="{Binding [Settings.CustomizeThemeHint], Source={x:Static loc:Strings.Current}}" />
+                    <fa:FASettingsExpanderItem.Footer>
+                        <Button Name="CustomizeThemeButton" Classes="Secondary" Height="32"
+                            Click="OnCustomizeThemeClicked"
+                            Content="{Binding [Settings.CustomizeTheme], Source={x:Static loc:Strings.Current}}" />
+                    </fa:FASettingsExpanderItem.Footer>
+                </fa:FASettingsExpanderItem>
+            </fa:FASettingsExpander>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

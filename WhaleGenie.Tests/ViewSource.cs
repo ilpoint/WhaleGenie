@@ -44,6 +44,13 @@ internal static class ViewSource
             .Select(File.ReadAllText));
     }
 
+    /// <summary>
+    /// Several markup files read as one, for a window whose pages were split into views of their
+    /// own: a check about what the window offers has to look at the pages as well as the frame.
+    /// </summary>
+    public static string MarkupAnd(params string[] fileNames) =>
+        string.Join("\n", fileNames.Select(Markup));
+
     private static string Repository()
     {
         for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)

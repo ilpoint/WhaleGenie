@@ -413,7 +413,7 @@ public class LocalSettingsTests
             viewModel.SetPage(SettingsSubPage.Screen);
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-            var box = window.FindControl<ToggleSwitch>("PreloadOcrCheck");
+            var box = SettingsView.Find<ToggleSwitch>(window, "PreloadOcrCheck");
             Assert.True(box is not null, "the settings window stopped offering to load the models");
             Assert.False(box.IsChecked);
 

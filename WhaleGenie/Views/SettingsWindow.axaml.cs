@@ -22,6 +22,8 @@ public partial class SettingsWindow : AppWindow
 {
     private readonly SettingsViewModel _viewModel;
     private readonly FANavigationView _nav;
+    private readonly SettingsSystemView _system;
+    private readonly SettingsTriggersView _triggers;
     private MenuRuleRow? _ruleDragSource;
     private Point _ruleDragOrigin;
     private bool _ruleDragging;
@@ -38,6 +40,9 @@ public partial class SettingsWindow : AppWindow
         InitializeComponent();
         WindowChrome.Attach(this);
 
+        _system = this.FindControl<SettingsSystemView>("SystemPages")!;
+        _triggers = this.FindControl<SettingsTriggersView>("TriggerPages")!;
+
         _viewModel = new SettingsViewModel(SharedDevices.Current.Driver,
             project: project, packagePath: packagePath);
         DataContext = _viewModel;
@@ -49,36 +54,36 @@ public partial class SettingsWindow : AppWindow
             doneButton.Click += (_, _) => Close();
         }
 
-        this.FindControl<Button>("CaptureSystemHotkeyButton")!.Click += (_, _) =>
+        _system.CaptureSystemHotkeyButton.Click += (_, _) =>
         {
             _viewModel.StopMenuLauncherCapture();
             _viewModel.IsCapturingSystemHotkey = !_viewModel.IsCapturingSystemHotkey;
         };
-        this.FindControl<Button>("ClearSystemHotkeyButton")!.Click += (_, _) =>
+        _system.ClearSystemHotkeyButton.Click += (_, _) =>
             _viewModel.ClearSystemHotkey();
-        this.FindControl<Button>("CaptureMenuLauncherButton")!.Click += (_, _) =>
+        _triggers.CaptureMenuLauncherButton.Click += (_, _) =>
         {
             _viewModel.IsCapturingSystemHotkey = false;
             _viewModel.BeginMenuLauncherCapture();
         };
-        this.FindControl<Button>("ClearMenuLauncherButton")!.Click += (_, _) =>
+        _triggers.ClearMenuLauncherButton.Click += (_, _) =>
             _viewModel.ClearMenuLauncher();
-        this.FindControl<Button>("CaptureRecordStopButton")!.Click += (_, _) =>
+        _system.CaptureRecordStopButton.Click += (_, _) =>
         {
             _viewModel.IsCapturingSystemHotkey = false;
             _viewModel.StopMenuLauncherCapture();
             _viewModel.IsCapturingRecordStop = !_viewModel.IsCapturingRecordStop;
         };
 
-        this.FindControl<Button>("EditMenuRuleButton")!.IsEnabled = project is not null;
-        this.FindControl<Button>("RemoveMenuRuleButton")!.IsEnabled = project is not null;
+        _triggers.EditMenuRuleButton.IsEnabled = project is not null;
+        _triggers.RemoveMenuRuleButton.IsEnabled = project is not null;
 
         // The pages are one list, and the group named at the top of the window decides which of them
         // the list shows. All that is left here is opening on the page the caller asked for.
         _nav = this.FindControl<FANavigationView>("Nav")!;
 
-        var ruleList = this.FindControl<ListBox>("MenuRuleList")!;
-        var addPage = this.FindControl<Button>("AddMenuRulePageButton")!;
+        var ruleList = _triggers.MenuRuleList!;
+        var addPage = _triggers.AddMenuRulePageButton;
         addPage.IsEnabled = false;
         ruleList.SelectionChanged += (_, _) =>
             addPage.IsEnabled = ruleList.SelectedItem is MenuRuleRow { IsBlocked: false };
@@ -130,14 +135,14 @@ public partial class SettingsWindow : AppWindow
             return;
         }
 
-        if (this.FindControl<ContentControl>("WheelEditorHost") is { } host)
+        if (_triggers.WheelEditorHost is { } host)
         {
             host.Content = new WheelMenuEditorView(_viewModel, this);
             _wheelEditorReady = true;
         }
     }
 
-    private async void OnCustomizeThemeClicked(object? sender, RoutedEventArgs e)
+    internal async void OnCustomizeThemeClicked(object? sender, RoutedEventArgs e)
         => await new ThemePaletteWindow().ShowDialogOver(this);
 
     /// <summary>Shows the page the panel's selection stands for.</summary>
@@ -379,7 +384,7 @@ public partial class SettingsWindow : AppWindow
         e.Handled = true;
     }
 
-    private void OnCaptureWheelRepeat(object? sender, RoutedEventArgs e)
+    internal void OnCaptureWheelRepeat(object? sender, RoutedEventArgs e)
     {
         if (_viewModel.IsCapturingWheelRepeat)
         {
@@ -391,14 +396,14 @@ public partial class SettingsWindow : AppWindow
         }
     }
 
-    private void OnEnableSystem(object? sender, RoutedEventArgs e)
+    internal void OnEnableSystem(object? sender, RoutedEventArgs e)
         => _viewModel.EnableSystem();
 
     /// <summary>
     /// Opens the wheel from the settings window so it can be seen and aimed at without any system
     /// input: preview mode answers the pointer inside Avalonia rather than through the global hook.
     /// </summary>
-    private void OnPreviewWheel(object? sender, RoutedEventArgs e)
+    internal void OnPreviewWheel(object? sender, RoutedEventArgs e)
     {
         var origin = new PixelPoint(
             Position.X + (int)(Width / 2),
@@ -419,7 +424,7 @@ public partial class SettingsWindow : AppWindow
 
     private async Task EditMenuRuleAsync()
     {
-        if (this.FindControl<ListBox>("MenuRuleList")?.SelectedItem is not MenuRuleRow row
+        if (_triggers.MenuRuleList?.SelectedItem is not MenuRuleRow row
             || row.IsDefault)
         {
             return;
@@ -432,35 +437,35 @@ public partial class SettingsWindow : AppWindow
         }
     }
 
-    private void OnAddMenuRule(object? sender, RoutedEventArgs e) => _ = AddMenuRuleAsync();
+    internal void OnAddMenuRule(object? sender, RoutedEventArgs e) => _ = AddMenuRuleAsync();
 
-    private void OnEditMenuRule(object? sender, RoutedEventArgs e) => _ = EditMenuRuleAsync();
+    internal void OnEditMenuRule(object? sender, RoutedEventArgs e) => _ = EditMenuRuleAsync();
 
-    private void OnRemoveMenuRule(object? sender, RoutedEventArgs e)
+    internal void OnRemoveMenuRule(object? sender, RoutedEventArgs e)
     {
-        if (this.FindControl<ListBox>("MenuRuleList")?.SelectedItem is MenuRuleRow row)
+        if (_triggers.MenuRuleList?.SelectedItem is MenuRuleRow row)
         {
             _viewModel.RemoveMenuRule(row);
         }
     }
 
-    private void OnAddMenuRulePage(object? sender, RoutedEventArgs e)
+    internal void OnAddMenuRulePage(object? sender, RoutedEventArgs e)
     {
-        if (this.FindControl<ListBox>("MenuRuleList")?.SelectedItem is MenuRuleRow row)
+        if (_triggers.MenuRuleList?.SelectedItem is MenuRuleRow row)
         {
             _viewModel.AddMenuPage(row);
         }
     }
 
-    private void OnMoveMenuRuleUp(object? sender, RoutedEventArgs e)
+    internal void OnMoveMenuRuleUp(object? sender, RoutedEventArgs e)
         => MoveMenuRule(-1);
 
-    private void OnMoveMenuRuleDown(object? sender, RoutedEventArgs e)
+    internal void OnMoveMenuRuleDown(object? sender, RoutedEventArgs e)
         => MoveMenuRule(1);
 
     private void MoveMenuRule(int step)
     {
-        if (this.FindControl<ListBox>("MenuRuleList")?.SelectedItem is MenuRuleRow row)
+        if (_triggers.MenuRuleList?.SelectedItem is MenuRuleRow row)
         {
             _viewModel.MoveMenuRule(row, step);
         }
@@ -524,7 +529,7 @@ public partial class SettingsWindow : AppWindow
     /// pictures only exist once something has been saved, and a button that fails on a fresh
     /// install teaches the wrong thing about where things go.
     /// </summary>
-    private void OnOpenStorage(object? sender, RoutedEventArgs e)
+    internal void OnOpenStorage(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { Tag: string folder } || folder.Length == 0)
         {
@@ -541,17 +546,17 @@ public partial class SettingsWindow : AppWindow
             // 界面只说一句本地化的话；打不开的理由（只读目录、被策略拦住）写进日志，
             // 把一串 .NET 文本贴到窗口里对谁都不算说明。
             AppDiagnostics.Record("settings.storage.open", error);
-            if (this.FindControl<TextBlock>("StorageProblem") is { } problem)
+            if (_system.StorageProblem is { } problem)
             {
                 problem.IsVisible = true;
             }
         }
     }
 
-    private void OnInstallDriverClicked(object? sender, RoutedEventArgs e)
+    internal void OnInstallDriverClicked(object? sender, RoutedEventArgs e)
         => WebPage.Open(ProjectLinks.DriverDownload);
 
-    private void OnRestartElevatedClicked(object? sender, RoutedEventArgs e)
+    internal void OnRestartElevatedClicked(object? sender, RoutedEventArgs e)
     {
         SharedDevices.Current.Driver.HandOver();
         if (!ProcessRights.RestartElevated())

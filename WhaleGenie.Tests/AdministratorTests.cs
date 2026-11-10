@@ -36,7 +36,8 @@ public class AdministratorTests
     [Fact]
     public void The_settings_window_offers_a_restart_that_answers_the_click()
     {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "SettingsWindow.axaml"));
+        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
+            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
 
         var start = xaml.IndexOf("Name=\"AdminRestartButton\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the settings window stopped offering to restart as administrator");
@@ -75,7 +76,8 @@ public class AdministratorTests
     [Fact]
     public void The_panel_offers_the_choice_as_well_as_the_restart()
     {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "SettingsWindow.axaml"));
+        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
+            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
 
         var start = xaml.IndexOf("Name=\"RunAsAdminCheck\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the settings window stopped offering to start elevated");

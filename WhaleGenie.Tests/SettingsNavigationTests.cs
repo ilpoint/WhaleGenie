@@ -176,8 +176,8 @@ public class SettingsNavigationTests
     [Fact]
     public void Every_control_the_window_looks_up_by_name_is_named_once()
     {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "SettingsWindow.axaml"));
+        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
+            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
 
         string[] looked =
         [
@@ -227,7 +227,7 @@ public class SettingsNavigationTests
             viewModel.SetPage(SettingsSubPage.Screen);
             Dispatcher.UIThread.RunJobs();
 
-            var cap = Assert.IsType<FANumberBox>(window.FindControl<FANumberBox>("FrameRateBox"));
+            var cap = Assert.IsType<FANumberBox>(SettingsView.Find<FANumberBox>(window, "FrameRateBox"));
             Assert.Equal(viewModel.FastestRate, (int)cap.Maximum);
             Assert.True(viewModel.FrameRateFollow);
             Assert.False(viewModel.FrameRateEnabled);

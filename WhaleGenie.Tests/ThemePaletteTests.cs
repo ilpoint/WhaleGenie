@@ -197,7 +197,7 @@ public class ThemePaletteTests
                 viewModel.SelectedTheme = viewModel.ThemeOptions.Single(option => option.Mode == ThemeMode.Custom);
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-                var button = window.FindControl<Avalonia.Controls.Button>("CustomizeThemeButton");
+                var button = SettingsView.Find<Avalonia.Controls.Button>(window, "CustomizeThemeButton");
                 Assert.NotNull(button);
                 Assert.True(button!.IsVisible);
                 Assert.Equal(ThemeMode.Custom, LocalSettings.LoadTheme().Mode);

@@ -73,7 +73,7 @@ public partial class WheelMenuTests
             Assert.Equal(SettingsRoot.Triggers, viewModel.SelectedRoot);
             Assert.NotEmpty(viewModel.WheelScenes);
             Assert.IsType<WheelMenuEditorView>(
-                Assert.IsType<ContentControl>(window.FindControl<ContentControl>("WheelEditorHost"))
+                Assert.IsType<ContentControl>(SettingsView.Find<ContentControl>(window, "WheelEditorHost"))
                     .Content);
 
             window.Close();

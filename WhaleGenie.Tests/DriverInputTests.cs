@@ -31,7 +31,8 @@ public class DriverInputTests
     [Fact]
     public void The_settings_window_has_a_button_that_installs_the_driver()
     {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "SettingsWindow.axaml"));
+        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
+            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
 
         // A button that looks like it installs something and does nothing when clicked is exactly
         // the kind of thing the help menu used to be full of.
@@ -101,10 +102,10 @@ public class DriverInputTests
             viewModel.SetPage(SettingsSubPage.Devices);
             Dispatcher.UIThread.RunJobs();
 
-            var install = window.FindControl<Button>("DriverInstallButton");
+            var install = SettingsView.Find<Button>(window, "DriverInstallButton");
             Assert.True(install is not null && install.IsVisible);
 
-            var attach = window.FindControl<Control>("DriverAttachCheck");
+            var attach = SettingsView.Find<Control>(window, "DriverAttachCheck");
             Assert.True(attach is not null && attach.IsVisible);
 
             window.Close();
@@ -122,7 +123,7 @@ public class DriverInputTests
             var window = new SettingsWindow();
             window.Show();
 
-            var panel = window.FindControl<StackPanel>("SettingsPanel")!;
+            var panel = window.FindControl<Panel>("SettingsPanel")!;
             // DesiredSize already carries the child's margins, so adding them again would count the
             // gaps twice and ask for room the panel never needed.
             var wanted = panel.Children.OfType<Control>().Sum(child => child.DesiredSize.Height);

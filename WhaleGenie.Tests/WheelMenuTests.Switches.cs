@@ -60,7 +60,7 @@ public partial class WheelMenuTests
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            var check = window.FindControl<CheckBox>("OnlyInProgramsCheck");
+            var check = SettingsView.Find<CheckBox>(window, "OnlyInProgramsCheck");
             Assert.NotNull(check);
             Assert.False(check.IsChecked);
 
