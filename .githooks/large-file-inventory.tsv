@@ -139,7 +139,6 @@
 542	WhaleGenie.Tests/RunLookTests.cs	keep: 运行取景界面的单一测试
 354	WhaleGenie.Tests/ScriptHostRunTests.cs	pending review
 330	WhaleGenie.Tests/StepPlacementTests.cs	pending review
-1378	WhaleGenie.Tests/StepTreeTests.cs	split: 超过 700 行，技术债
 348	WhaleGenie.Tests/TemplatePartTests.cs	pending review
 508	WhaleGenie.Tests/TrayTests.cs	split: 超过 500 行，评估后可推迟
 456	WhaleGenie.Tests/TriggerKindTests.cs	pending review
