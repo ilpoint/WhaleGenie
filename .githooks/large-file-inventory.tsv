@@ -1,113 +1,189 @@
-# Large files above the 20,000-byte reading signal. Paths are relative to the repository root.
-# The third column is the review decision:
-#   keep: <why it is cohesive>   stays whole; reported again only when it grows past this size
-#   split: <why it mixes concerns>  should be split by business concern; reported when it grows
-# The size is a signal, not a permission limit.
-# bytes	path	review
-21457	WhaleGenie.Core.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
-31374	WhaleGenie.Core.Tests/BrowserActionTests.cs	keep: 浏览器动作的单一契约测试
-24693	WhaleGenie.Core.Tests/BrowserTargetTests.cs	keep: 浏览器目标解析的单一测试
-469637	WhaleGenie.Core.Tests/DeviceActionTests.cs	split: 541 条用例横跨输入、按键、画面、窗口、程序与检测等独立设备族
-136938	WhaleGenie.Core.Tests/MacroRunnerTests.cs	split: 控制流、变量、条件与失败处理各自独立变化
-40234	WhaleGenie.Core.Tests/RunLookTests.cs	keep: 运行取景的单一测试
-35782	WhaleGenie.Core/Devices/DeviceTypes.cs	keep: 设备层共用值类型，改任一设备都用同一套定义
-82784	WhaleGenie.Core/Devices/IDeviceLayer.cs	split: 12 个设备接口各自独立变化，按设备族拆文件并保留聚合接口
-21018	WhaleGenie.Core/Devices/Platform/BrowserPickerScript.cs	keep: 一段拾取脚本及其转义
-38955	WhaleGenie.Core/Devices/Platform/FlaUiDevice.cs	keep: 单一 UI 设备适配器
-21937	WhaleGenie.Core/Devices/Platform/MessageInputDevice.cs	keep: 单一消息输入适配器
-20558	WhaleGenie.Core/Devices/Platform/OpenCvDetectDevice.cs	keep: 单一检测适配器与 YOLO 解码
-88797	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.cs	keep: 单一浏览器适配器，围绕一份 Playwright 会话状态
-36479	WhaleGenie.Core/Devices/Platform/ScriptDevice.cs	keep: 单一脚本执行适配器
-25396	WhaleGenie.Core/Devices/Platform/ViiperInputDevice.cs	keep: 单一虚拟手柄适配器
-20357	WhaleGenie.Core/Devices/Platform/WindowsProcessDevice.cs	keep: 单一进程适配器
-30942	WhaleGenie.Core/Devices/Platform/WindowsSystemDevice.cs	keep: 单一系统事实适配器
-28157	WhaleGenie.Core/Execution/ActionSemantics.cs	keep: 动作语义模型的一整套枚举与记录
+# Code files are measured in lines; documents and data files in bytes.
+# Review: "keep: <why cohesive>", "split: <why it mixes concerns>", or
+# "exempt: <why a lookup table>" for a key-to-text table above 700 lines.
+# metric	path	review
+429	WhaleGenie.Core.Tests/Bench/ActionBench.cs	pending review
+551	WhaleGenie.Core.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
+606	WhaleGenie.Core.Tests/BrowserActionTests.cs	keep: 浏览器动作的单一契约测试
+464	WhaleGenie.Core.Tests/BrowserTargetTests.cs	keep: 浏览器目标解析的单一测试
+11098	WhaleGenie.Core.Tests/DeviceActionTests.cs	split: 超过 700 行，技术债
+393	WhaleGenie.Core.Tests/ExpressionTests.cs	pending review
+308	WhaleGenie.Core.Tests/InputLimitTests.cs	pending review
+3556	WhaleGenie.Core.Tests/MacroRunnerTests.cs	split: 超过 700 行，技术债
+355	WhaleGenie.Core.Tests/MessageInputDeviceTests.cs	pending review
+439	WhaleGenie.Core.Tests/RecordingTests.cs	pending review
+937	WhaleGenie.Core.Tests/RunLookTests.cs	split: 超过 700 行，技术债
+341	WhaleGenie.Core.Tests/SampleFiles.cs	pending review
+420	WhaleGenie.Core.Tests/ScriptBridgeTests.cs	pending review
+449	WhaleGenie.Core.Tests/StepOutcomeTests.cs	pending review
+485	WhaleGenie.Core.Tests/ViiperInputTests.cs	pending review
+500	WhaleGenie.Core.Tests/ViiperServerTests.cs	pending review
+866	WhaleGenie.Core/Devices/DeviceTypes.cs	split: 超过 700 行，技术债
+1806	WhaleGenie.Core/Devices/IDeviceLayer.cs	split: 超过 700 行，技术债
+475	WhaleGenie.Core/Devices/Platform/BrowserPickerScript.cs	keep: 一段拾取脚本及其转义
+1076	WhaleGenie.Core/Devices/Platform/FlaUiDevice.cs	split: 超过 700 行，技术债
+429	WhaleGenie.Core/Devices/Platform/InputHookRecorder.cs	pending review
+405	WhaleGenie.Core/Devices/Platform/LocalFileDevice.cs	pending review
+605	WhaleGenie.Core/Devices/Platform/MessageInputDevice.cs	keep: 单一消息输入适配器
+377	WhaleGenie.Core/Devices/Platform/NuGetStore.cs	pending review
+489	WhaleGenie.Core/Devices/Platform/OpenCvDetectDevice.cs	keep: 单一检测适配器与 YOLO 解码
+2118	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.cs	split: 超过 700 行，技术债
+826	WhaleGenie.Core/Devices/Platform/ScriptDevice.cs	split: 超过 700 行，技术债
+722	WhaleGenie.Core/Devices/Platform/ViiperInputDevice.cs	split: 超过 700 行，技术债
+301	WhaleGenie.Core/Devices/Platform/ViiperKeys.cs	pending review
+401	WhaleGenie.Core/Devices/Platform/WindowsClipboardDevice.cs	pending review
+385	WhaleGenie.Core/Devices/Platform/WindowsKeyStrokes.cs	pending review
+579	WhaleGenie.Core/Devices/Platform/WindowsProcessDevice.cs	keep: 单一进程适配器
+702	WhaleGenie.Core/Devices/Platform/WindowsSystemDevice.cs	split: 超过 700 行，技术债
+479	WhaleGenie.Core/Devices/Platform/WindowsTray.cs	pending review
+484	WhaleGenie.Core/Devices/Platform/WindowsWindowDevice.cs	pending review
+689	WhaleGenie.Core/Execution/ActionSemantics.cs	keep: 动作语义模型的一整套枚举与记录
 428374	WhaleGenie.Core/Execution/ActionSemantics.json	keep: 机器可读动作目录，MCP、检查与测试共用一份
-27083	WhaleGenie.Core/Execution/MacroRunner.Browser.cs	keep: 已按动作族分出的局部实现
-48355	WhaleGenie.Core/Execution/MacroRunner.Detection.cs	keep: 已按动作族分出的局部实现
-46538	WhaleGenie.Core/Execution/MacroRunner.Files.cs	keep: 已按动作族分出的局部实现
-59675	WhaleGenie.Core/Execution/MacroRunner.Input.cs	keep: 已按动作族分出的局部实现
-41243	WhaleGenie.Core/Execution/MacroRunner.Script.cs	keep: 已按动作族分出的局部实现
-47463	WhaleGenie.Core/Execution/MacroRunner.Vision.cs	keep: 已按动作族分出的局部实现
-27358	WhaleGenie.Core/Execution/MacroRunner.Window.cs	keep: 已按动作族分出的局部实现
-137772	WhaleGenie.Core/Execution/MacroRunner.cs	keep: 运行循环、控制流与重试共享同一份运行状态，动作族已分 partial
-25137	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
-56078	WhaleGenie.Core/Expressions/ExpressionFunctions.cs	keep: 函数目录与实现同表，新增函数只改一处
-24284	WhaleGenie.Core/Expressions/ExpressionTree.cs	keep: 表达式节点与解析
-47795	WhaleGenie.Tests/ActionContractTests.cs	keep: 动作契约表逐项核对
-181704	WhaleGenie.Tests/ActionDialogTests.cs	split: 各动作族的表单用例混在一份文件
-32368	WhaleGenie.Tests/ActionPageTests.cs	keep: 动作页的单一交互测试
-32238	WhaleGenie.Tests/ClassAuditTests.cs	keep: 架构约束审计
-25210	WhaleGenie.Tests/ElementPickerTests.cs	keep: 元素拾取的单一测试
-35505	WhaleGenie.Tests/GlobalVariablesTests.cs	keep: 全局变量管理的单一测试
-23016	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
-27683	WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
-38132	WhaleGenie.Tests/LookPickTests.cs	keep: 取色拾取的单一测试
-38648	WhaleGenie.Tests/LookWindowTests.cs	keep: 取色窗口的单一测试
-51245	WhaleGenie.Tests/MacroCheckTests.cs	keep: 一份检查器的规则用例
-31910	WhaleGenie.Tests/MacroEditorChromeTests.cs	keep: 编辑器窗口框架的单一测试
-52483	WhaleGenie.Tests/MacroEditorTests.cs	keep: 编辑器主流程的单一测试
-36941	WhaleGenie.Tests/MacroEditorWorkspaceTests.cs	keep: 编辑工作区的单一测试
-27648	WhaleGenie.Tests/MacroPackageFormatTests.cs	keep: 包格式的单一测试
-24676	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
-101086	WhaleGenie.Tests/McpServerTests.cs	keep: MCP 服务端一份会话与协议测试
-26422	WhaleGenie.Tests/MenuWindowTests.cs	keep: 菜单窗口的单一测试
-20531	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
-28885	WhaleGenie.Tests/RecoveryTests.cs	keep: 恢复流程的单一测试
-64280	WhaleGenie.Tests/RunDebugTests.cs	keep: 运行窗调试流程的单一测试
-22053	WhaleGenie.Tests/RunLookTests.cs	keep: 运行取景界面的单一测试
-57855	WhaleGenie.Tests/StepTreeTests.cs	keep: 步骤树交互的单一测试
-34311	WhaleGenie.Tests/ValuePickerTests.cs	keep: 取值窗口的单一测试
-20817	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
-24325	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
-21777	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
-34100	WhaleGenie.Tests/WheelMenuTests.cs	keep: 轮盘菜单的单一测试
-30803	WhaleGenie.Tests/WindowPreviewTests.cs	keep: 窗口预览的单一测试
-28590	WhaleGenie.Tests/WindowRulePickerTests.cs	keep: 窗口规则拾取的单一测试
-322563	WhaleGenie/Localization/ActionStrings.cs	keep: 动作文案查表，键与动作目录一一对应
-24691	WhaleGenie/Localization/LocalSettings.cs	keep: 本机设置模型
-369375	WhaleGenie/Localization/Strings.cs	keep: 界面文案查表
-38789	WhaleGenie/Mcp/McpControlTools.cs	split: 屏幕、输入、窗口、剪贴板与进程工具各自独立
-61189	WhaleGenie/Mcp/McpPatches.cs	keep: 补丁解析与应用
-66971	WhaleGenie/Mcp/McpSelfCheck.cs	keep: 自检项清单
-54768	WhaleGenie/Mcp/McpTools.cs	keep: 工具注册与调用分发
-29306	WhaleGenie/Models/ActionDefinition.cs	keep: 动作定义模型
+592	WhaleGenie.Core/Execution/MacroRunner.Browser.cs	keep: 已按动作族分出的局部实现
+1086	WhaleGenie.Core/Execution/MacroRunner.Detection.cs	split: 超过 700 行，技术债
+1148	WhaleGenie.Core/Execution/MacroRunner.Files.cs	split: 超过 700 行，技术债
+1420	WhaleGenie.Core/Execution/MacroRunner.Input.cs	split: 超过 700 行，技术债
+431	WhaleGenie.Core/Execution/MacroRunner.Ocr.cs	pending review
+358	WhaleGenie.Core/Execution/MacroRunner.Process.cs	pending review
+925	WhaleGenie.Core/Execution/MacroRunner.Script.cs	split: 超过 700 行，技术债
+478	WhaleGenie.Core/Execution/MacroRunner.System.cs	pending review
+364	WhaleGenie.Core/Execution/MacroRunner.Uia.cs	pending review
+1095	WhaleGenie.Core/Execution/MacroRunner.Vision.cs	split: 超过 700 行，技术债
+618	WhaleGenie.Core/Execution/MacroRunner.Window.cs	keep: 已按动作族分出的局部实现
+3165	WhaleGenie.Core/Execution/MacroRunner.cs	split: 超过 700 行，技术债
+300	WhaleGenie.Core/Execution/OcrReading.cs	pending review
+454	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
+1330	WhaleGenie.Core/Expressions/ExpressionFunctions.cs	split: 超过 700 行，技术债
+727	WhaleGenie.Core/Expressions/ExpressionTree.cs	split: 超过 700 行，技术债
+331	WhaleGenie.Core/Expressions/VariableText.cs	pending review
+592	WhaleGenie.Core/Recording/RecordingTranslator.cs	split: 超过 500 行，评估后可推迟
+410	WhaleGenie.GraphicsCapture.Tests/ScreenGrabberTests.cs	pending review
+451	WhaleGenie.GraphicsCapture/DesktopDuplicator.cs	pending review
+401	WhaleGenie.GraphicsCapture/ScreenGrabber.cs	pending review
+302	WhaleGenie.GraphicsCapture/WindowsDesktop.cs	pending review
+1122	WhaleGenie.Tests/ActionContractTests.cs	split: 超过 700 行，技术债
+4191	WhaleGenie.Tests/ActionDialogTests.cs	split: 超过 700 行，技术债
+736	WhaleGenie.Tests/ActionPageTests.cs	split: 超过 700 行，技术债
+300	WhaleGenie.Tests/ActionPaletteCategoryTests.cs	pending review
+694	WhaleGenie.Tests/ClassAuditTests.cs	keep: 架构约束审计
+488	WhaleGenie.Tests/ConditionEditorTests.cs	pending review
+569	WhaleGenie.Tests/ElementPickerTests.cs	keep: 元素拾取的单一测试
+310	WhaleGenie.Tests/FieldNameTests.cs	pending review
+900	WhaleGenie.Tests/GlobalVariablesTests.cs	split: 超过 700 行，技术债
+380	WhaleGenie.Tests/HotstringKeyboardTests.cs	pending review
+370	WhaleGenie.Tests/KeyRunTests.cs	pending review
+572	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
+655	WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
+865	WhaleGenie.Tests/LookPickTests.cs	split: 超过 700 行，技术债
+921	WhaleGenie.Tests/LookWindowTests.cs	split: 超过 700 行，技术债
+1297	WhaleGenie.Tests/MacroCheckTests.cs	split: 超过 700 行，技术债
+759	WhaleGenie.Tests/MacroEditorChromeTests.cs	split: 超过 700 行，技术债
+1278	WhaleGenie.Tests/MacroEditorTests.cs	split: 超过 700 行，技术债
+865	WhaleGenie.Tests/MacroEditorWorkspaceTests.cs	split: 超过 700 行，技术债
+709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
+592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
+345	WhaleGenie.Tests/McpRunTests.cs	pending review
+2117	WhaleGenie.Tests/McpServerTests.cs	split: 超过 700 行，技术债
+702	WhaleGenie.Tests/MenuWindowTests.cs	split: 超过 700 行，技术债
+317	WhaleGenie.Tests/NumberBoxTests.cs	pending review
+524	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
+385	WhaleGenie.Tests/PickerDeviceTests.cs	pending review
+390	WhaleGenie.Tests/PickerTests.cs	pending review
+374	WhaleGenie.Tests/ProjectSaveTests.cs	pending review
+372	WhaleGenie.Tests/ProjectTriggerTests.cs	pending review
+767	WhaleGenie.Tests/RecoveryTests.cs	split: 超过 700 行，技术债
+480	WhaleGenie.Tests/RegionPickerTests.cs	pending review
+366	WhaleGenie.Tests/ReturnsPageTests.cs	pending review
+357	WhaleGenie.Tests/RunBreakpointTests.cs	pending review
+1516	WhaleGenie.Tests/RunDebugTests.cs	split: 超过 700 行，技术债
+542	WhaleGenie.Tests/RunLookTests.cs	keep: 运行取景界面的单一测试
+354	WhaleGenie.Tests/ScriptHostRunTests.cs	pending review
+330	WhaleGenie.Tests/StepPlacementTests.cs	pending review
+1378	WhaleGenie.Tests/StepTreeTests.cs	split: 超过 700 行，技术债
+348	WhaleGenie.Tests/TemplatePartTests.cs	pending review
+508	WhaleGenie.Tests/TrayTests.cs	split: 超过 500 行，评估后可推迟
+456	WhaleGenie.Tests/TriggerKindTests.cs	pending review
+900	WhaleGenie.Tests/ValuePickerTests.cs	split: 超过 700 行，技术债
+530	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
+499	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
+543	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
+330	WhaleGenie.Tests/VirtualPadTests.cs	pending review
+851	WhaleGenie.Tests/WheelMenuTests.cs	split: 超过 700 行，技术债
+790	WhaleGenie.Tests/WindowPreviewTests.cs	split: 超过 700 行，技术债
+734	WhaleGenie.Tests/WindowRulePickerTests.cs	split: 超过 700 行，技术债
+4278	WhaleGenie/Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
+553	WhaleGenie/Localization/LocalSettings.cs	keep: 本机设置模型
+5316	WhaleGenie/Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+333	WhaleGenie/Mcp/ActionKnowledge.cs	pending review
+772	WhaleGenie/Mcp/McpControlTools.cs	split: 超过 700 行，技术债
+379	WhaleGenie/Mcp/McpDraftStore.cs	pending review
+1476	WhaleGenie/Mcp/McpPatches.cs	split: 超过 700 行，技术债
+314	WhaleGenie/Mcp/McpRunTools.cs	pending review
+1479	WhaleGenie/Mcp/McpSelfCheck.cs	split: 超过 700 行，技术债
+1091	WhaleGenie/Mcp/McpTools.cs	split: 超过 700 行，技术债
+629	WhaleGenie/Models/ActionDefinition.cs	keep: 动作定义模型
 658203	WhaleGenie/Models/ActionDisplay.json	keep: 动作显示目录数据
-82107	WhaleGenie/Models/MacroCheck.cs	keep: 检查规则与问题模型
-35442	WhaleGenie/Models/MacroItem.cs	keep: 宏列表项模型
-38167	WhaleGenie/Models/MacroStep.cs	keep: 步骤与参数模型
-54627	WhaleGenie/Models/ProjectTriggers.cs	keep: triggers.json 的一份模型，序列化要求同文件
-20422	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
-27365	WhaleGenie/Models/WheelMenu.cs	keep: 轮盘槽位与几何模型
-62111	WhaleGenie/Runtime/MacroTriggerService.cs	keep: 触发监听与命中的单一服务
-31316	WhaleGenie/Storage/MacroPackage.cs	keep: 宏包读写
-101610	WhaleGenie/Themes/Controls.axaml	keep: 一套控件样式资源，共用令牌与选择器层级
-54068	WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
-20310	WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
-109214	WhaleGenie/ViewModels/AddActionViewModel.cs	split: 表单装配、拾取回填、调用参数与分页各自独立
-143797	WhaleGenie/ViewModels/MacroEditorViewModel.cs	split: 触发器与热键、步骤编辑与历史、设置页各自独立
-20922	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
-90182	WhaleGenie/ViewModels/RunViewModel.cs	keep: 运行窗状态与结果呈现
-61133	WhaleGenie/ViewModels/SettingsViewModel.cs	split: 常规设置、菜单规则与轮盘编辑各自独立
-26013	WhaleGenie/ViewModels/SlotRecipe.cs	keep: 轮盘槽位表达式模型
-88641	WhaleGenie/ViewModels/StepParameterViewModel.cs	split: 颜色点、区域、按键行、图片、窗口规则、条件与返回各是独立参数族
-23572	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型
-40373	WhaleGenie/ViewModels/ValuePickerViewModel.cs	keep: 取值窗口的一份状态模型
-124552	WhaleGenie/Views/ActionEditorView.axaml	split: 各动作族的表单模板各自独立
-90931	WhaleGenie/Views/ActionEditorView.axaml.cs	split: 预览试运行、键位捕获、拾取回填与文件浏览各自独立
-21251	WhaleGenie/Views/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
-47675	WhaleGenie/Views/LookPickWindow.axaml.cs	keep: 取色拾取窗口的单一交互
-47462	WhaleGenie/Views/LookWindow.axaml.cs	keep: 取色窗口的单一交互
-21250	WhaleGenie/Views/MacroEditorWindow.DragDrop.cs	keep: 拖放手势、落点几何与拖入处理同属一个交互，拆开要跨文件追同一组状态
-114366	WhaleGenie/Views/MacroEditorWindow.axaml	split: 左库、中文档与右触发器设置各成一块
-54799	WhaleGenie/Views/MacroMenuWindow.cs	keep: 菜单窗口的一份布局与交互
-40607	WhaleGenie/Views/MainWindow.axaml	keep: 主窗口一份布局
-58118	WhaleGenie/Views/MainWindow.axaml.cs	split: 会话保存、贴边面板、菜单、热键与轮盘各自独立
-22113	WhaleGenie/Views/PointPickerWindow.cs	keep: 取点窗口的单一交互
-42106	WhaleGenie/Views/RegionPickerWindow.axaml.cs	keep: 区域拾取窗口的单一交互
-56063	WhaleGenie/Views/RunWindow.axaml	keep: 运行窗一份布局
-21713	WhaleGenie/Views/RunWindow.axaml.cs	keep: 运行窗的单一交互
-62384	WhaleGenie/Views/SettingsWindow.axaml	split: 十二个设置页各自独立，按页拆成控件
-60435	WhaleGenie/Views/ValuePickerWindow.axaml	keep: 取值窗口一份布局
-38609	WhaleGenie/Views/ValuePickerWindow.axaml.cs	keep: 取值窗口的单一交互
-20872	WhaleGenie/Views/VirtualKeyboardWindow.axaml	keep: 虚拟键盘一份布局
+1906	WhaleGenie/Models/MacroCheck.cs	split: 超过 700 行，技术债
+864	WhaleGenie/Models/MacroItem.cs	split: 超过 700 行，技术债
+914	WhaleGenie/Models/MacroStep.cs	split: 超过 700 行，技术债
+1484	WhaleGenie/Models/ProjectTriggers.cs	split: 超过 700 行，技术债
+511	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
+741	WhaleGenie/Models/WheelMenu.cs	split: 超过 700 行，技术债
+301	WhaleGenie/Runtime/AppTray.cs	pending review
+1818	WhaleGenie/Runtime/MacroTriggerService.cs	split: 超过 700 行，技术债
+768	WhaleGenie/Storage/MacroPackage.cs	split: 超过 700 行，技术债
+399	WhaleGenie/Storage/PublicMacroLibrary.cs	pending review
+448	WhaleGenie/Storage/RecoveryStore.cs	pending review
+1744	WhaleGenie/Themes/Controls.axaml	split: 超过 700 行，技术债
+572	WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
+322	WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
+327	WhaleGenie/ViewModels/ActionPaletteViewModel.cs	pending review
+2601	WhaleGenie/ViewModels/AddActionViewModel.cs	split: 超过 700 行，技术债
+532	WhaleGenie/ViewModels/ConditionEditorViewModel.cs	split: 超过 500 行，评估后可推迟
+476	WhaleGenie/ViewModels/GlobalVariablesViewModel.cs	pending review
+364	WhaleGenie/ViewModels/LocalVariablesViewModel.cs	pending review
+3938	WhaleGenie/ViewModels/MacroEditorViewModel.cs	split: 超过 700 行，技术债
+662	WhaleGenie/ViewModels/MacroInterfaceViewModel.cs	split: 超过 500 行，评估后可推迟
+529	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
+2259	WhaleGenie/ViewModels/RunViewModel.cs	split: 超过 700 行，技术债
+1726	WhaleGenie/ViewModels/SettingsViewModel.cs	split: 超过 700 行，技术债
+731	WhaleGenie/ViewModels/SlotRecipe.cs	split: 超过 700 行，技术债
+2065	WhaleGenie/ViewModels/StepParameterViewModel.cs	split: 超过 700 行，技术债
+536	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型
+1077	WhaleGenie/ViewModels/ValuePickerViewModel.cs	split: 超过 700 行，技术债
+315	WhaleGenie/ViewModels/VariableWallViewModel.cs	pending review
+379	WhaleGenie/ViewModels/WindowPreviewViewModel.cs	pending review
+1639	WhaleGenie/Views/ActionEditorView.axaml	split: 超过 700 行，技术债
+2239	WhaleGenie/Views/ActionEditorView.axaml.cs	split: 超过 700 行，技术债
+605	WhaleGenie/Views/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
+531	WhaleGenie/Views/ElementPickerWindow.cs	split: 超过 500 行，评估后可推迟
+1288	WhaleGenie/Views/LookPickWindow.axaml.cs	split: 超过 700 行，技术债
+1240	WhaleGenie/Views/LookWindow.axaml.cs	split: 超过 700 行，技术债
+551	WhaleGenie/Views/MacroEditorWindow.Documents.cs	split: 超过 500 行，评估后可推迟
+553	WhaleGenie/Views/MacroEditorWindow.DragDrop.cs	keep: 拖放手势、落点几何与拖入处理同属一个交互，拆开要跨文件追同一组状态
+313	WhaleGenie/Views/MacroEditorWindow.Steps.cs	pending review
+505	WhaleGenie/Views/MacroEditorWindow.Triggers.cs	split: 超过 500 行，评估后可推迟
+1455	WhaleGenie/Views/MacroEditorWindow.axaml	split: 超过 700 行，技术债
+428	WhaleGenie/Views/MacroEditorWindow.axaml.cs	pending review
+1650	WhaleGenie/Views/MacroMenuWindow.cs	split: 超过 700 行，技术债
+494	WhaleGenie/Views/MainWindow.Menu.cs	pending review
+503	WhaleGenie/Views/MainWindow.Wheel.cs	split: 超过 500 行，评估后可推迟
+532	WhaleGenie/Views/MainWindow.axaml	keep: 主窗口一份布局
+1572	WhaleGenie/Views/MainWindow.axaml.cs	split: 超过 700 行，技术债
+311	WhaleGenie/Views/MenuIconPickerWindow.cs	pending review
+498	WhaleGenie/Views/PickEntryWindow.axaml.cs	pending review
+660	WhaleGenie/Views/PointPickerWindow.cs	keep: 取点窗口的单一交互
+346	WhaleGenie/Views/PublicMacroLibraryWindow.cs	pending review
+1167	WhaleGenie/Views/RegionPickerWindow.axaml.cs	split: 超过 700 行，技术债
+747	WhaleGenie/Views/RunWindow.axaml	split: 超过 700 行，技术债
+565	WhaleGenie/Views/RunWindow.axaml.cs	keep: 运行窗的单一交互
+809	WhaleGenie/Views/SettingsWindow.axaml	split: 超过 700 行，技术债
+569	WhaleGenie/Views/SettingsWindow.axaml.cs	split: 超过 500 行，评估后可推迟
+950	WhaleGenie/Views/ValuePickerWindow.axaml	split: 超过 700 行，技术债
+1026	WhaleGenie/Views/ValuePickerWindow.axaml.cs	split: 超过 700 行，技术债
+329	WhaleGenie/Views/WheelActionWindow.cs	pending review
+332	WhaleGenie/Views/WheelCanvas.cs	pending review
+450	WhaleGenie/Views/WheelMenuEditorView.cs	pending review
+538	WhaleGenie/Views/WheelMenuWindow.cs	split: 超过 500 行，评估后可推迟
+562	WhaleGenie/Views/WindowPickWindow.cs	split: 超过 500 行，评估后可推迟
+442	WhaleGenie/Views/WindowRuleWindow.axaml.cs	pending review
