@@ -199,7 +199,6 @@
 324	WhaleGenie/Views/ActionEditorView.axaml.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
 605	WhaleGenie/Views/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	WhaleGenie/Views/ElementPickerWindow.cs	split: 超过 500 行，评估后可推迟
-1240	WhaleGenie/Views/LookWindow.axaml.cs	split: 超过 700 行，技术债
 551	WhaleGenie/Views/MacroEditorWindow.Documents.cs	split: 超过 500 行，评估后可推迟
 553	WhaleGenie/Views/MacroEditorWindow.DragDrop.cs	keep: 拖放手势、落点几何与拖入处理同属一个交互，拆开要跨文件追同一组状态
 313	WhaleGenie/Views/MacroEditorWindow.Steps.cs	pending review
