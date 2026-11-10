@@ -304,7 +304,7 @@ public class PickerAsideTests
     {
         // The action editor is opened from the macro editor, and it carries pickers: its Answer is
         // what is awaited, because a hidden modal window answers nothing.
-        var editor = Source("MacroEditorWindow.axaml.cs");
+        var editor = WindowSource("MacroEditorWindow.axaml.cs");
         Assert.Contains("await dialog.Answer", editor, StringComparison.Ordinal);
         Assert.DoesNotContain("await dialog.ShowDialogOver<MacroStep?>", editor,
             StringComparison.Ordinal);
@@ -367,6 +367,19 @@ public class PickerAsideTests
     /// <summary>The source of one file under WhaleGenie/Views.</summary>
     private static string Source(string name)
         => File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", name));
+
+    /// <summary>
+    /// A window's code, read across all its partial files. The window is one type split by concern,
+    /// so a check about what it awaits has to look at every part rather than only the main file.
+    /// </summary>
+    private static string WindowSource(string name)
+    {
+        var stem = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(name));
+        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.cs")
+            .Order(StringComparer.Ordinal)
+            .Select(File.ReadAllText));
+    }
 
     /// <summary>The repository root, found by walking up from the test binaries.</summary>
     private static string Repository()
