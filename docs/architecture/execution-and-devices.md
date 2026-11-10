@@ -126,9 +126,10 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 
 ### 6.1 设备契约与实现
 
-`Core/Devices/IDeviceLayer.cs` 聚合输入、屏幕、视觉、OCR、检测、UIA、文件、剪贴板、进程、系统、
-浏览器、窗口、钩子、录制和脚本等契约。消费者可以只依赖所需接口；`MacroRunner` 和综合编辑器使用
-聚合层。
+`Core/Devices/` 下每个设备族一个契约文件（`IInputDevice`、`IScreenDevice`、`IUiDevice`、
+`IFileDevice`、`IProcessDevice`、`ISystemDevice`、`IBrowserDevice`、`IWindowDevice` 等），
+`IDeviceLayer` 把它们聚合为引擎取得的唯一契约。消费者可以只依赖所需接口；`MacroRunner` 和
+综合编辑器使用聚合层。
 
 `Core/Devices/Platform/` 是 Windows 实现所在位置，第三方库的类型和异常不得泄漏到界面。
 `NullDeviceLayer` 提供无设备默认实现，测试替身按设备分别组装，并共享一份有序调用记录以验证
