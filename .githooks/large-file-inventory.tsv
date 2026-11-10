@@ -156,7 +156,6 @@
 333	WhaleGenie/Mcp/ActionKnowledge.cs	pending review
 772	WhaleGenie/Mcp/McpControlTools.cs	split: 超过 700 行，技术债
 379	WhaleGenie/Mcp/McpDraftStore.cs	pending review
-1476	WhaleGenie/Mcp/McpPatches.cs	split: 超过 700 行，技术债
 314	WhaleGenie/Mcp/McpRunTools.cs	pending review
 1091	WhaleGenie/Mcp/McpTools.cs	split: 超过 700 行，技术债
 629	WhaleGenie/Models/ActionDefinition.cs	keep: 动作定义模型
