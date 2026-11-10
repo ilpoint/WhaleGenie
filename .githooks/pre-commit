@@ -64,7 +64,11 @@ while IFS= read -r -d '' status && IFS= read -r -d '' path; do
     if [[ "$review" == pending* ]]; then
       notices+=("$path"$'\t'"$size"$'\t'"pending"$'\t'"$previous")
     elif (( size > previous )); then
-      notices+=("$path"$'\t'"$size"$'\t'"grown"$'\t'"$previous")
+      if [[ "$review" == split* ]]; then
+        notices+=("$path"$'\t'"$size"$'\t'"planned"$'\t'"$previous")
+      else
+        notices+=("$path"$'\t'"$size"$'\t'"grown"$'\t'"$previous")
+      fi
     fi
   else
     notices+=("$path"$'\t'"$size"$'\t'"new"$'\t'"0")
@@ -80,7 +84,8 @@ printf '以下暂存文本文件超过 %s 字节的检查线。\n' "$signal_size
 for item in "${notices[@]}"; do
   IFS=$'\t' read -r path size kind previous <<< "$item"
   case "$kind" in
-    grown) printf '  %s：%s 字节（已接受为大而内聚，原大小 %s，本次增长）\n' "$path" "$size" "$previous" >&2 ;;
+    grown) printf '  %s：%s 字节（已评估为内聚，原大小 %s，本次增长）\n' "$path" "$size" "$previous" >&2 ;;
+    planned) printf '  %s：%s 字节（清单判定应拆分，原大小 %s，本次仍增长）\n' "$path" "$size" "$previous" >&2 ;;
     pending) printf '  %s：%s 字节（清单中仍待评估）\n' "$path" "$size" >&2 ;;
     *) printf '  %s：%s 字节（尚未评估）\n' "$path" "$size" >&2 ;;
   esac
@@ -90,6 +95,7 @@ cat >&2 <<'EOF'
   - 是：按业务关注点拆分，让一次任务只读取相关内容，不按 helpers/utils 之类技术层拆。
   - 否：单一职责、高度内聚、很少与别处同时修改的文件可以保持原样；评估后把路径、当前大小与
     "keep: 内聚理由" 写进 .githooks/large-file-inventory.tsv。只有写清理由的文件才会在大小不变时静默。
+  - 已判定混合关注点、但这次不改的：同一清单里写 "split: 拆分理由"，增长时仍会提示，但不必当场拆完。
 这次提交继续执行。
 EOF
 exit 0
