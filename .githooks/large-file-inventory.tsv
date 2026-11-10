@@ -121,7 +121,7 @@
 348	WhaleGenie.Tests/TemplatePartTests.cs	pending review
 508	WhaleGenie.Tests/TrayTests.cs	split: 超过 500 行，评估后可推迟
 456	WhaleGenie.Tests/TriggerKindTests.cs	pending review
-530	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
+529	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
 499	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 543	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	pending review
@@ -134,7 +134,7 @@
 314	WhaleGenie/Mcp/McpRunTools.cs	pending review
 629	WhaleGenie/Models/ActionDefinition.cs	keep: 动作定义模型
 658203	WhaleGenie/Models/ActionDisplay.json	keep: 动作显示目录数据
-1906	WhaleGenie/Models/MacroCheck.cs	split: 超过 700 行，技术债
+433	WhaleGenie/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 459	WhaleGenie/Models/TriggerEntry.cs	keep: 触发器数据模型的一族，按职责拆分后单一职责
 511	WhaleGenie/Models/VariableChoices.cs	keep: 变量候选模型
 301	WhaleGenie/Runtime/AppTray.cs	pending review
