@@ -52,12 +52,10 @@
 489	WhaleGenie.Core/Devices/Platform/OpenCvDetectDevice.cs	keep: 单一检测适配器与 YOLO 解码
 420	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.Actions.cs	keep: 浏览器设备的一族，按页面操作拆分后单一职责
 337	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.Pick.cs	keep: 浏览器设备的一族，按页面操作拆分后单一职责
-722	WhaleGenie.Core/Devices/Platform/ViiperInputDevice.cs	split: 超过 700 行，技术债
 301	WhaleGenie.Core/Devices/Platform/ViiperKeys.cs	pending review
 401	WhaleGenie.Core/Devices/Platform/WindowsClipboardDevice.cs	pending review
 385	WhaleGenie.Core/Devices/Platform/WindowsKeyStrokes.cs	pending review
 579	WhaleGenie.Core/Devices/Platform/WindowsProcessDevice.cs	keep: 单一进程适配器
-702	WhaleGenie.Core/Devices/Platform/WindowsSystemDevice.cs	split: 超过 700 行，技术债
 479	WhaleGenie.Core/Devices/Platform/WindowsTray.cs	pending review
 484	WhaleGenie.Core/Devices/Platform/WindowsWindowDevice.cs	pending review
 303	WhaleGenie.Core/Devices/UiTypes.cs	keep: 设备值类型的一族，按领域拆分后单一职责
@@ -132,7 +130,6 @@
 553	WhaleGenie/Localization/LocalSettings.cs	keep: 本机设置模型
 5316	WhaleGenie/Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 333	WhaleGenie/Mcp/ActionKnowledge.cs	pending review
-772	WhaleGenie/Mcp/McpControlTools.cs	split: 超过 700 行，技术债
 379	WhaleGenie/Mcp/McpDraftStore.cs	pending review
 314	WhaleGenie/Mcp/McpRunTools.cs	pending review
 629	WhaleGenie/Models/ActionDefinition.cs	keep: 动作定义模型
