@@ -412,7 +412,7 @@ public class ClassAuditTests
         {
             var text = File.ReadAllText(path);
             var codeFile = path + ".cs";   // axaml 的代码后置是 `X.axaml.cs`，不是 `X.cs`
-            var code = File.Exists(codeFile) ? File.ReadAllText(codeFile) : string.Empty;
+            var code = File.Exists(codeFile) ? ViewSource.Beside(path) : string.Empty;
             var fromCode = ClassesAddedInCode(code);
 
             // 每个元素（含选择器里的类型）身上有哪些类：`Classes="…"` 与 `Classes.名字=` 都算

@@ -79,8 +79,7 @@ public class TrialRunAsideTests
     [Fact]
     public void Every_trial_of_the_form_puts_this_programs_windows_away_first()
     {
-        var source = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "ActionEditorView.axaml.cs"));
+        var source = ViewSource.All("ActionEditorView.axaml.cs");
 
         Assert.Contains("using (AppWindows.StepAside(HostWindow))", source, StringComparison.Ordinal);
         Assert.Contains("ScreenReady.Wait();", source, StringComparison.Ordinal);

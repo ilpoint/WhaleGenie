@@ -274,8 +274,7 @@ public partial class ActionDialogTests
             var regionRow = region.Rows.First(row => row.First.Definition.Name == "x");
 
             Assert.Equal(Strings.Get("Add.PickRegion"), regionRow.RegionPickerLabel);
-            Assert.Contains("RegionPickerWindow.PickDragAsync", File.ReadAllText(
-                Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml.cs")),
+            Assert.Contains("RegionPickerWindow.PickDragAsync", ViewSource.All("ActionEditorView.axaml.cs"),
                 StringComparison.Ordinal);
             window.Close();
         });
@@ -313,8 +312,7 @@ public partial class ActionDialogTests
     [Fact]
     public void A_window_bound_region_picker_starts_with_nothing_selected()
     {
-        var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "ActionEditorView.axaml.cs"));
+        var code = ViewSource.All("ActionEditorView.axaml.cs");
 
         Assert.Contains(
             "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows,",
@@ -327,8 +325,7 @@ public partial class ActionDialogTests
     [Fact]
     public void The_window_bounds_picker_moves_the_target_window()
     {
-        var code = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "ActionEditorView.axaml.cs"));
+        var code = ViewSource.All("ActionEditorView.axaml.cs");
 
         Assert.Contains(
             "RegionPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Windows, initial,",

@@ -195,8 +195,10 @@
 1077	WhaleGenie/ViewModels/ValuePickerViewModel.cs	split: 超过 700 行，技术债
 315	WhaleGenie/ViewModels/VariableWallViewModel.cs	pending review
 379	WhaleGenie/ViewModels/WindowPreviewViewModel.cs	pending review
+369	WhaleGenie/Views/ActionEditorView.Elements.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
+327	WhaleGenie/Views/ActionEditorView.RegionPickers.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
 1639	WhaleGenie/Views/ActionEditorView.axaml	split: 超过 700 行，技术债
-2239	WhaleGenie/Views/ActionEditorView.axaml.cs	split: 超过 700 行，技术债
+324	WhaleGenie/Views/ActionEditorView.axaml.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
 605	WhaleGenie/Views/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	WhaleGenie/Views/ElementPickerWindow.cs	split: 超过 500 行，评估后可推迟
 1288	WhaleGenie/Views/LookPickWindow.axaml.cs	split: 超过 700 行，技术债
