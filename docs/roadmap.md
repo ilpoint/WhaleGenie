@@ -30,7 +30,7 @@
   大型机器目录、查表数据与共享运行状态属于这一类，不应为了阈值切碎装载入口或状态。但超过 700 行
   的代码属于技术债，须尽快按关注点拆分。
 
-清单现有 205 个文件：56 个 `keep`，79 个 `split`（其中 68 个超过 700 行，属于技术债），2 个文案
+清单现有 210 个文件：62 个 `keep`，78 个 `split`（其中 67 个超过 700 行，属于技术债），2 个文案
 查表 `exempt`，68 个 300–500 行仍待检查。优先处理技术债，再按读取集收益分批，而不是按行数排队；
 每批一次只动一组关注点，同步修正引用与契约测试后单独提交：
 
@@ -38,8 +38,8 @@
    `ActionEditorView.axaml.cs`（预览试运行、键位、拾取、文件浏览）。
 2. 视图模型：`MacroEditorViewModel`、`AddActionViewModel`、`StepParameterViewModel`、`SettingsViewModel`。
 3. 设备层与 MCP：`IDeviceLayer`（按设备族拆接口，保留聚合接口）、`McpControlTools`。
-4. 测试：`MacroRunnerTests`、`ActionDialogTests` 按动作族或执行关注点分文件（`DeviceActionTests`
-   已按 27 个动作族拆分）。
+4. 测试：`ActionDialogTests` 按动作族或执行关注点分文件（`DeviceActionTests` 已按 27 个动作族、
+   `MacroRunnerTests` 已按 8 个执行关注点拆分）。
 5. 界面模板：`ActionEditorView.axaml`、`MacroEditorWindow.axaml`、`SettingsWindow.axaml` 按页拆控件。
 
 完成一批后，从清单删除旧路径或更新行数；超过 700 行的文件在每次提交时都会再次提示，直到拆分。

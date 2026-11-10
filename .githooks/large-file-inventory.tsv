@@ -29,7 +29,12 @@
 308	WhaleGenie.Core.Tests/DeviceActionTests.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
 393	WhaleGenie.Core.Tests/ExpressionTests.cs	pending review
 308	WhaleGenie.Core.Tests/InputLimitTests.cs	pending review
-3556	WhaleGenie.Core.Tests/MacroRunnerTests.cs	split: 超过 700 行，技术债
+595	WhaleGenie.Core.Tests/MacroRunnerTests.Calls.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
+388	WhaleGenie.Core.Tests/MacroRunnerTests.Declarations.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
+515	WhaleGenie.Core.Tests/MacroRunnerTests.Failure.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
+568	WhaleGenie.Core.Tests/MacroRunnerTests.Flow.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
+614	WhaleGenie.Core.Tests/MacroRunnerTests.TryCatch.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
+477	WhaleGenie.Core.Tests/MacroRunnerTests.Values.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
 355	WhaleGenie.Core.Tests/MessageInputDeviceTests.cs	pending review
 439	WhaleGenie.Core.Tests/RecordingTests.cs	pending review
 937	WhaleGenie.Core.Tests/RunLookTests.cs	split: 超过 700 行，技术债
