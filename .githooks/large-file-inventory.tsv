@@ -105,9 +105,7 @@
 370	WhaleGenie.Tests/KeyRunTests.cs	pending review
 572	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
 655	WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
-865	WhaleGenie.Tests/LookPickTests.cs	split: 超过 700 行，技术债
 759	WhaleGenie.Tests/MacroEditorChromeTests.cs	split: 超过 700 行，技术债
-865	WhaleGenie.Tests/MacroEditorWorkspaceTests.cs	split: 超过 700 行，技术债
 709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
 592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
 345	WhaleGenie.Tests/McpRunTests.cs	pending review
@@ -135,7 +133,6 @@
 499	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 543	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	pending review
-851	WhaleGenie.Tests/WheelMenuTests.cs	split: 超过 700 行，技术债
 790	WhaleGenie.Tests/WindowPreviewTests.cs	split: 超过 700 行，技术债
 734	WhaleGenie.Tests/WindowRulePickerTests.cs	split: 超过 700 行，技术债
 4278	WhaleGenie/Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
