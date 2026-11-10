@@ -37,7 +37,6 @@
 477	WhaleGenie.Core.Tests/MacroRunnerTests.Values.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
 355	WhaleGenie.Core.Tests/MessageInputDeviceTests.cs	pending review
 439	WhaleGenie.Core.Tests/RecordingTests.cs	pending review
-937	WhaleGenie.Core.Tests/RunLookTests.cs	split: 超过 700 行，技术债
 341	WhaleGenie.Core.Tests/SampleFiles.cs	pending review
 420	WhaleGenie.Core.Tests/ScriptBridgeTests.cs	pending review
 449	WhaleGenie.Core.Tests/StepOutcomeTests.cs	pending review
@@ -108,7 +107,6 @@
 572	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
 655	WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
 865	WhaleGenie.Tests/LookPickTests.cs	split: 超过 700 行，技术债
-921	WhaleGenie.Tests/LookWindowTests.cs	split: 超过 700 行，技术债
 759	WhaleGenie.Tests/MacroEditorChromeTests.cs	split: 超过 700 行，技术债
 865	WhaleGenie.Tests/MacroEditorWorkspaceTests.cs	split: 超过 700 行，技术债
 709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
