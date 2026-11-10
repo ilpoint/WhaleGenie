@@ -47,7 +47,6 @@
 538	WhaleGenie.Core/Devices/IBrowserDevice.cs	keep: 设备族契约或其空实现，单一职责
 510	WhaleGenie.Core/Devices/NullDeviceLayer.cs	keep: 设备族契约或其空实现，单一职责
 475	WhaleGenie.Core/Devices/Platform/BrowserPickerScript.cs	keep: 一段拾取脚本及其转义
-1076	WhaleGenie.Core/Devices/Platform/FlaUiDevice.cs	split: 超过 700 行，技术债
 429	WhaleGenie.Core/Devices/Platform/InputHookRecorder.cs	pending review
 405	WhaleGenie.Core/Devices/Platform/LocalFileDevice.cs	pending review
 605	WhaleGenie.Core/Devices/Platform/MessageInputDevice.cs	keep: 单一消息输入适配器
