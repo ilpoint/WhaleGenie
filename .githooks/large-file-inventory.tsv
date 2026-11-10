@@ -212,7 +212,6 @@
 809	WhaleGenie/Views/SettingsWindow.axaml	split: 超过 700 行，技术债
 569	WhaleGenie/Views/SettingsWindow.axaml.cs	split: 超过 500 行，评估后可推迟
 950	WhaleGenie/Views/ValuePickerWindow.axaml	split: 超过 700 行，技术债
-1026	WhaleGenie/Views/ValuePickerWindow.axaml.cs	split: 超过 700 行，技术债
 329	WhaleGenie/Views/WheelActionWindow.cs	pending review
 332	WhaleGenie/Views/WheelCanvas.cs	pending review
 450	WhaleGenie/Views/WheelMenuEditorView.cs	pending review
