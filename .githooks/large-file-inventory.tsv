@@ -174,7 +174,10 @@
 572	WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 327	WhaleGenie/ViewModels/ActionPaletteViewModel.cs	pending review
-2601	WhaleGenie/ViewModels/AddActionViewModel.cs	split: 超过 700 行，技术债
+461	WhaleGenie/ViewModels/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+327	WhaleGenie/ViewModels/AddActionViewModel.Parameters.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+370	WhaleGenie/ViewModels/AddActionViewModel.Preview.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+318	WhaleGenie/ViewModels/AddActionViewModel.Settings.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 532	WhaleGenie/ViewModels/ConditionEditorViewModel.cs	split: 超过 500 行，评估后可推迟
 476	WhaleGenie/ViewModels/GlobalVariablesViewModel.cs	pending review
 364	WhaleGenie/ViewModels/LocalVariablesViewModel.cs	pending review
