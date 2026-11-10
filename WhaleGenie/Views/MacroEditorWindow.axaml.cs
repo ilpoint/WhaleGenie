@@ -123,41 +123,6 @@ public partial class MacroEditorWindow : AppWindow
 
     private MacroInterfaceView? _interfaceView;
 
-    /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
-    private Canvas? _dropLayer;
-    private Border? _dropMarker;
-    private TextBlock? _dropHint;
-    private string _dropHintKey = "Editor.DropAtPosition";
-
-    /// <summary>Where the pointer went down, so a click can be told apart from a drag.</summary>
-    private Point _dragOrigin;
-
-    /// <summary>The row under the pointer when it went down; null when the press missed the rows.</summary>
-    private StepRow? _pressedRow;
-
-    private bool _draggingSteps;
-
-    /// <summary>The list the dragged steps would land in, and where in it.</summary>
-    private IList<MacroStep>? _dropList;
-    private int _dropIndex = -1;
-
-    /// <summary>
-    /// True while the add-action window is open, so a double-click that lands twice does not stack
-    /// two forms on top of each other. The window is modal; a second one would sit on the first.
-    /// </summary>
-    private bool _actionEditorOpen;
-
-    private double _dropMarkerY;
-
-    /// <summary>How far the drop line is indented, which is what says "inside this block".</summary>
-    private double _dropMarkerIndent;
-
-    /// <summary>Whether the seam under the pointer accepts what is being dragged.</summary>
-    private bool _dropAllowed = true;
-
-    /// <summary>Why that seam refuses it, empty while the drop is allowed.</summary>
-    private string _dropRefusal = string.Empty;
-
     public MacroEditorWindow()
         : this(null, null, null)
     {
@@ -459,31 +424,5 @@ public partial class MacroEditorWindow : AppWindow
         // The wheel is a trigger of its own: a notch up or down can start a macro.
         AddHandler(PointerWheelChangedEvent, OnPreviewPointerWheel, RoutingStrategies.Tunnel);
     }
-
-    /// <summary>
-    /// Everything held when a key was pressed: what the event itself carries, plus the modifiers
-    /// this window saw go down, so a modifier pressed before the capture started still counts.
-    /// </summary>
-    private KeyModifiers Held(KeyEventArgs e)
-    {
-        var held = e.KeyModifiers;
-        foreach (var modifier in _captureModifiers)
-        {
-            held |= HotkeyNameMapper.ModifierFlag(modifier);
-        }
-
-        return held;
-    }
-
-    /// <summary>
-    /// The binding a key press makes: the modifiers held at that moment, then the key itself. Each
-    /// modifier is written without its side — either Ctrl answers it — which is how a recorded
-    /// combination is written too; a lone modifier, where the two sides are two different keys,
-    /// keeps its side in <see cref="DescribeKey"/>.
-    /// </summary>
-    private static string Chord(Key key, KeyModifiers held)
-        => HotkeyNameMapper.Chord(key, held);
-
-    private static string DescribeKey(Key key) => HotkeyNameMapper.Name(key);
 
 }

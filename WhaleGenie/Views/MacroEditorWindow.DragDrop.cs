@@ -515,4 +515,39 @@ public partial class MacroEditorWindow : AppWindow
         _session.Pending = new PendingSubMacro(editor, page);
         return editor.Name;
     }
+
+    /// <summary>Layer the drag marker is drawn on, over the step list.</summary>
+    private Canvas? _dropLayer;
+    private Border? _dropMarker;
+    private TextBlock? _dropHint;
+    private string _dropHintKey = "Editor.DropAtPosition";
+
+    /// <summary>Where the pointer went down, so a click can be told apart from a drag.</summary>
+    private Point _dragOrigin;
+
+    /// <summary>The row under the pointer when it went down; null when the press missed the rows.</summary>
+    private StepRow? _pressedRow;
+
+    private bool _draggingSteps;
+
+    /// <summary>The list the dragged steps would land in, and where in it.</summary>
+    private IList<MacroStep>? _dropList;
+    private int _dropIndex = -1;
+
+    /// <summary>
+    /// True while the add-action window is open, so a double-click that lands twice does not stack
+    /// two forms on top of each other. The window is modal; a second one would sit on the first.
+    /// </summary>
+    private bool _actionEditorOpen;
+
+    private double _dropMarkerY;
+
+    /// <summary>How far the drop line is indented, which is what says "inside this block".</summary>
+    private double _dropMarkerIndent;
+
+    /// <summary>Whether the seam under the pointer accepts what is being dragged.</summary>
+    private bool _dropAllowed = true;
+
+    /// <summary>Why that seam refuses it, empty while the drop is allowed.</summary>
+    private string _dropRefusal = string.Empty;
 }

@@ -27,11 +27,10 @@
 - **保持原样**：单一职责、内部强耦合、很少与别处同时修改；即使超过检查线，也记入清单后保留。
   大型机器目录、查表数据与共享运行状态属于这一类，不应为了阈值切碎装载入口或状态。
 
-现有 107 个文件已全部评估：92 个保留，15 个判定应按关注点拆分。拆分按读取集收益分批，而不是
+现有 107 个文件已全部评估：93 个保留，14 个判定应按关注点拆分。拆分按读取集收益分批，而不是
 按字节数排队；每批一次只动一组关注点，同步修正引用与契约测试后单独提交：
 
-1. 窗口代码后置：`MainWindow.axaml.cs`（会话保存、贴边面板、菜单、热键、轮盘）、
-   `MacroEditorWindow.axaml.cs`（文档、变量、热键、剪贴板、预览）、
+1. 窗口代码后置：`MainWindow.axaml.cs`（热键、运行入口、文件菜单、设置与帮助、编辑器提交、宏卡片）、
    `ActionEditorView.axaml.cs`（预览试运行、键位、拾取、文件浏览）。
 2. 视图模型：`MacroEditorViewModel`、`AddActionViewModel`、`StepParameterViewModel`、`SettingsViewModel`。
 3. 设备层与 MCP：`IDeviceLayer`（按设备族拆接口，保留聚合接口）、`McpControlTools`。
