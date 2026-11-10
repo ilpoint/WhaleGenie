@@ -185,7 +185,6 @@
 331	WhaleGenie/ViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 731	WhaleGenie/ViewModels/SlotRecipe.cs	split: 超过 700 行，技术债
 536	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型
-1077	WhaleGenie/ViewModels/ValuePickerViewModel.cs	split: 超过 700 行，技术债
 315	WhaleGenie/ViewModels/VariableWallViewModel.cs	pending review
 379	WhaleGenie/ViewModels/WindowPreviewViewModel.cs	pending review
 369	WhaleGenie/Views/ActionEditorView.Elements.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
