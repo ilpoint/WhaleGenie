@@ -87,7 +87,7 @@
   「看看效果」两颗按钮由 `NarrowRowViewModel.OnPage` 决定画不画。
 - 桌面的窄条件读成 `UiCondition`（`UiConditionHow` + 值），从步骤的 `narrow` 行读；
   `FlaUiDevice.Matches` 逐条比，`Search` 在有窄条件时走「先按选择器缩，再逐项比」那条路。
-  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在[手册](../manual.md)的失败键表里。
+  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在[手册](../manual/17-failures.md)的失败键表里。
 - 动作名：`uia.*` 说「界面」、`browser.*` 说「网页」；`No_two_actions_are_called_the_same_thing`
   直接读 `Strings.Chinese` / `Strings.English` 两张表来查重，不要改全局语言——测试并行跑，
   换语言会改到别人正在读的表。

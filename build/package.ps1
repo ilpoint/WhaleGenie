@@ -119,6 +119,9 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     $packagedManual = Join-Path $app 'doc'
     [System.IO.Directory]::CreateDirectory($packagedManual) | Out-Null
     Copy-Item -Path (Join-Path $PSScriptRoot '..\docs\manual.md') -Destination $packagedManual
+    $packagedChapters = Join-Path $packagedManual 'manual'
+    [System.IO.Directory]::CreateDirectory($packagedChapters) | Out-Null
+    Copy-Item -Path (Join-Path $PSScriptRoot '..\docs\manual\*.md') -Destination $packagedChapters
 
     # 单文件之外只剩原生库（OpenCV、ffmpeg、Skia、HarfBuzz、uiohook、libVIIPER），全部进 lib。
     Get-ChildItem $app -File -Filter *.dll | Move-Item -Destination $lib

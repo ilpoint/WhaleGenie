@@ -70,6 +70,8 @@ public class HelpMenuTests
         var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
         Assert.Contains("doc\\manual.md", script, StringComparison.Ordinal);
         Assert.Contains("Join-Path $app 'doc'", script, StringComparison.Ordinal);
+        Assert.Contains("..\\docs\\manual\\*.md", script, StringComparison.Ordinal);
+        Assert.Contains("Join-Path $packagedManual 'manual'", script, StringComparison.Ordinal);
     }
 
     [Theory]

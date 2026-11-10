@@ -66,7 +66,7 @@ Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离
   自带运行时包无需预装。
 
 Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回其他画面获取方式
-（见[使用说明](docs/manual.md)中的「画面从哪来、怎么取」），程序仍可运行。
+（见[使用说明](docs/manual/13-capture-and-detection.md#画面从哪来怎么取)中的「画面从哪来、怎么取」），程序仍可运行。
 
 从 [Releases](https://github.com/ilpoint/WhaleGenie/releases) 下载。解压后为 `WhaleGenie` 文件夹，
 `WhaleGenie.exe` 位于最外层，双击运行。
