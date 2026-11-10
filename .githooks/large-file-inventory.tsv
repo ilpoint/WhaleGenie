@@ -64,18 +64,22 @@
 484	WhaleGenie.Core/Devices/Platform/WindowsWindowDevice.cs	pending review
 689	WhaleGenie.Core/Execution/ActionSemantics.cs	keep: 动作语义模型的一整套枚举与记录
 428374	WhaleGenie.Core/Execution/ActionSemantics.json	keep: 机器可读动作目录，MCP、检查与测试共用一份
+541	WhaleGenie.Core/Execution/MacroRunner.Attempts.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 592	WhaleGenie.Core/Execution/MacroRunner.Browser.cs	keep: 已按动作族分出的局部实现
+419	WhaleGenie.Core/Execution/MacroRunner.Calls.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 1086	WhaleGenie.Core/Execution/MacroRunner.Detection.cs	split: 超过 700 行，技术债
+308	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 1148	WhaleGenie.Core/Execution/MacroRunner.Files.cs	split: 超过 700 行，技术债
 1420	WhaleGenie.Core/Execution/MacroRunner.Input.cs	split: 超过 700 行，技术债
+304	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 431	WhaleGenie.Core/Execution/MacroRunner.Ocr.cs	pending review
 358	WhaleGenie.Core/Execution/MacroRunner.Process.cs	pending review
+517	WhaleGenie.Core/Execution/MacroRunner.Run.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 925	WhaleGenie.Core/Execution/MacroRunner.Script.cs	split: 超过 700 行，技术债
 478	WhaleGenie.Core/Execution/MacroRunner.System.cs	pending review
 364	WhaleGenie.Core/Execution/MacroRunner.Uia.cs	pending review
 1095	WhaleGenie.Core/Execution/MacroRunner.Vision.cs	split: 超过 700 行，技术债
 618	WhaleGenie.Core/Execution/MacroRunner.Window.cs	keep: 已按动作族分出的局部实现
-3165	WhaleGenie.Core/Execution/MacroRunner.cs	split: 超过 700 行，技术债
 300	WhaleGenie.Core/Execution/OcrReading.cs	pending review
 454	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 1330	WhaleGenie.Core/Expressions/ExpressionFunctions.cs	split: 超过 700 行，技术债
