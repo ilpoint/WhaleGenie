@@ -94,7 +94,6 @@
 440	WhaleGenie.Tests/ActionDialogTests.Picking.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 467	WhaleGenie.Tests/ActionDialogTests.Records.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 482	WhaleGenie.Tests/ActionDialogTests.Windows.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
-736	WhaleGenie.Tests/ActionPageTests.cs	split: 超过 700 行，技术债
 300	WhaleGenie.Tests/ActionPaletteCategoryTests.cs	pending review
 694	WhaleGenie.Tests/ClassAuditTests.cs	keep: 架构约束审计
 488	WhaleGenie.Tests/ConditionEditorTests.cs	pending review
@@ -104,7 +103,6 @@
 370	WhaleGenie.Tests/KeyRunTests.cs	pending review
 572	WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
 655	WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
-759	WhaleGenie.Tests/MacroEditorChromeTests.cs	split: 超过 700 行，技术债
 709	WhaleGenie.Tests/MacroPackageFormatTests.cs	split: 超过 700 行，技术债
 592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
 345	WhaleGenie.Tests/McpRunTests.cs	pending review
@@ -117,7 +115,6 @@
 390	WhaleGenie.Tests/PickerTests.cs	pending review
 374	WhaleGenie.Tests/ProjectSaveTests.cs	pending review
 372	WhaleGenie.Tests/ProjectTriggerTests.cs	pending review
-767	WhaleGenie.Tests/RecoveryTests.cs	split: 超过 700 行，技术债
 480	WhaleGenie.Tests/RegionPickerTests.cs	pending review
 366	WhaleGenie.Tests/ReturnsPageTests.cs	pending review
 357	WhaleGenie.Tests/RunBreakpointTests.cs	pending review
@@ -132,7 +129,7 @@
 499	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 543	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	pending review
-790	WhaleGenie.Tests/WindowPreviewTests.cs	split: 超过 700 行，技术债
+328	WhaleGenie.Tests/WindowPreviewTests.Steps.cs	keep: 窗口预览测试的一族，按列表/取景/排除拆分后单一职责
 734	WhaleGenie.Tests/WindowRulePickerTests.cs	split: 超过 700 行，技术债
 4278	WhaleGenie/Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 553	WhaleGenie/Localization/LocalSettings.cs	keep: 本机设置模型
