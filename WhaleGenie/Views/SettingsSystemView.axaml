@@ -6,6 +6,7 @@
         xmlns:models="using:WhaleGenie.Models"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         x:Class="WhaleGenie.Views.SettingsSystemView"
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
         x:DataType="vm:SettingsViewModel">
 
     <Design.DataContext>

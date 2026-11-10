@@ -65,7 +65,7 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>Adds the next branch of a switch; the new row opens its values for typing.</summary>
-    private void OnAddBranch(object? sender, RoutedEventArgs e)
+    internal void OnAddBranch(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepRow { IsAddRow: true } row })
         {
@@ -77,7 +77,7 @@ public partial class MacroEditorWindow : AppWindow
     /// Turns a branch's values into the line that is typed in their place. A branch is one line of
     /// values — several of them separated by ";" — so this is all the form that field needs.
     /// </summary>
-    private void OnEditCaseValues(object? sender, RoutedEventArgs e)
+    internal void OnEditCaseValues(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: StepRow { IsCase: true } row })
         {
@@ -90,7 +90,7 @@ public partial class MacroEditorWindow : AppWindow
     /// A branch that was just added opens for typing the moment its row exists: the box is built
     /// with the row, so this is where the caret can go without the list being touched again.
     /// </summary>
-    private void OnCaseValueBoxAttached(object? sender, VisualTreeAttachmentEventArgs e)
+    internal void OnCaseValueBoxAttached(object? sender, VisualTreeAttachmentEventArgs e)
     {
         if (sender is TextBox { DataContext: StepRow { IsEditingValues: true } row } box)
         {
@@ -124,7 +124,7 @@ public partial class MacroEditorWindow : AppWindow
     /// form: put a name where the caret is, or hand the whole line to the expression editor through
     /// the picker's own "write it as an expression" entry.
     /// </summary>
-    private async void OnPickCaseValuesVariable(object? sender, RoutedEventArgs e)
+    internal async void OnPickCaseValuesVariable(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepRow { IsCase: true } row })
         {
@@ -169,7 +169,7 @@ public partial class MacroEditorWindow : AppWindow
     /// Enter keeps the values and leaves the line, Escape puts back what was there. Both end the
     /// edit, because a branch is read as a table: the row is its values, not a form left open.
     /// </summary>
-    private void OnCaseValuesKeyDown(object? sender, KeyEventArgs e)
+    internal void OnCaseValuesKeyDown(object? sender, KeyEventArgs e)
     {
         if (sender is not TextBox { DataContext: StepRow row } || e.Key is not (Key.Enter or Key.Escape))
         {
@@ -182,7 +182,7 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>Leaving the line is keeping what was typed: there is no "cancel" to be had by leaving.</summary>
-    private void OnCaseValuesLostFocus(object? sender, RoutedEventArgs e)
+    internal void OnCaseValuesLostFocus(object? sender, RoutedEventArgs e)
     {
         // A picker opening over the row takes the focus with it; that is not the user leaving.
         if (_pickingCaseValues || sender is not TextBox { DataContext: StepRow row } box
@@ -207,31 +207,31 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>Context-menu commands for the step list, so they are not keyboard-only.</summary>
-    private void OnStepContextEdit(object? sender, RoutedEventArgs e)
+    internal void OnStepContextEdit(object? sender, RoutedEventArgs e)
         => _viewModel.EditSelectedCommand.Execute(null);
 
-    private void OnStepContextCopy(object? sender, RoutedEventArgs e) => _ = CopySelectionAsync();
+    internal void OnStepContextCopy(object? sender, RoutedEventArgs e) => _ = CopySelectionAsync();
 
-    private void OnStepContextCut(object? sender, RoutedEventArgs e) => _ = CutSelectionAsync();
+    internal void OnStepContextCut(object? sender, RoutedEventArgs e) => _ = CutSelectionAsync();
 
-    private void OnStepContextPaste(object? sender, RoutedEventArgs e) => _ = PasteAsync();
+    internal void OnStepContextPaste(object? sender, RoutedEventArgs e) => _ = PasteAsync();
 
-    private void OnStepContextDelete(object? sender, RoutedEventArgs e)
+    internal void OnStepContextDelete(object? sender, RoutedEventArgs e)
         => _viewModel.DeleteSelectedCommand.Execute(null);
 
-    private void OnStepContextMoveUp(object? sender, RoutedEventArgs e)
+    internal void OnStepContextMoveUp(object? sender, RoutedEventArgs e)
         => _viewModel.MoveSelectedUpCommand.Execute(null);
 
-    private void OnStepContextMoveDown(object? sender, RoutedEventArgs e)
+    internal void OnStepContextMoveDown(object? sender, RoutedEventArgs e)
         => _viewModel.MoveSelectedDownCommand.Execute(null);
 
-    private void OnStepContextGroup(object? sender, RoutedEventArgs e)
+    internal void OnStepContextGroup(object? sender, RoutedEventArgs e)
         => _viewModel.GroupSelectedCommand.Execute(null);
 
-    private void OnStepContextLift(object? sender, RoutedEventArgs e)
+    internal void OnStepContextLift(object? sender, RoutedEventArgs e)
         => _viewModel.LiftSelectedCommand.Execute(null);
 
-    private void OnStepContextToggleEnabled(object? sender, RoutedEventArgs e)
+    internal void OnStepContextToggleEnabled(object? sender, RoutedEventArgs e)
         => _viewModel.ToggleStepEnabledCommand.Execute(null);
 
     private void ShowDropMarker()

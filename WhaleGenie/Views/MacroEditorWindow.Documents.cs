@@ -113,7 +113,7 @@ public partial class MacroEditorWindow : AppWindow
     /// callable, and the pictures it looks for. Triggers stay behind on purpose — they belong to
     /// the project that runs the macro, and the project it lands in gives it a way to be started.
     /// </summary>
-    private async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
+    internal async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
     {
         var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : BuildRootSnapshot();
         var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
@@ -255,7 +255,7 @@ public partial class MacroEditorWindow : AppWindow
         };
         editor.Changed += (_, _) =>
         {
-            SavedNotice.IsVisible = false;
+            _settings.FindControl<TextBlock>("SavedNotice")!.IsVisible = false;
             _rootViewModel.IsDirty = true;
             RefreshDocuments();
             KeepRecovery();
@@ -390,7 +390,7 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    private void OnDocumentTabChanged(object? sender, SelectionChangedEventArgs e)
+    internal void OnDocumentTabChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_switchingDocuments
             || sender is not ListBox { SelectedItem: MacroDocumentPageViewModel page })
@@ -401,13 +401,13 @@ public partial class MacroEditorWindow : AppWindow
         SelectDocument(page);
     }
 
-    private void OnDocumentTabClosePressed(object? sender, PointerPressedEventArgs e)
+    internal void OnDocumentTabClosePressed(object? sender, PointerPressedEventArgs e)
     {
         _pageBeforeTabClose = _documentPages.FirstOrDefault(candidate =>
             ReferenceEquals(candidate.Editor, _viewModel));
     }
 
-    private void OnCloseDocumentTab(object? sender, RoutedEventArgs e)
+    internal void OnCloseDocumentTab(object? sender, RoutedEventArgs e)
     {
         if (sender is not Button { DataContext: MacroDocumentPageViewModel page } || page.IsCurrent)
         {
@@ -432,7 +432,7 @@ public partial class MacroEditorWindow : AppWindow
         RefreshPalette();
     }
 
-    private async void OnDeleteSubMacro(object? sender, RoutedEventArgs e)
+    internal async void OnDeleteSubMacro(object? sender, RoutedEventArgs e)
     {
         var page = _documentPages.FirstOrDefault(candidate =>
             !candidate.IsCurrent && ReferenceEquals(candidate.Editor, _viewModel));
@@ -537,7 +537,7 @@ public partial class MacroEditorWindow : AppWindow
         _mustStayUnsaved = false;
         StopRecovery();
         Saved?.Invoke(result);
-        SavedNotice.IsVisible = true;
+        _settings.FindControl<TextBlock>("SavedNotice")!.IsVisible = true;
 
         if (closeAfterSave)
         {

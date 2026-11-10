@@ -28,7 +28,10 @@ namespace WhaleGenie.Views;
 public partial class MacroEditorWindow : AppWindow
 {
     /// <summary>What this editor is working on: the project, the macro, the lifted ones, the pages.</summary>
+    private readonly MacroDocumentView _document;
     private readonly MacroEditorSession _session;
+    private readonly MacroRecordingView _recording;
+    private readonly MacroSettingsView _settings;
 
     private readonly MacroEditorViewModel _rootViewModel;
     private MacroEditorViewModel _viewModel;
@@ -123,6 +126,18 @@ public partial class MacroEditorWindow : AppWindow
 
     private MacroInterfaceView? _interfaceView;
 
+    /// <summary>
+    /// A control the window reaches for by name, on its own frame or on one of the two views it
+    /// shows. Splitting the settings drawer and the document column into views of their own left
+    /// their names in a scope of their own; this keeps one lookup for the code that draws them and
+    /// for the checks that read them.
+    /// </summary>
+    internal T? FindControl<T>(string name) where T : Control =>
+        FindOn<T>(this, name) ?? FindOn<T>(_settings, name) ?? FindOn<T>(_document, name) ?? FindOn<T>(_recording, name);
+
+    private static T? FindOn<T>(Control? scope, string name) where T : Control =>
+        scope is null ? null : NameScope.GetNameScope(scope)?.Find<T>(name) as T;
+
     public MacroEditorWindow()
         : this(null, null, null)
     {
@@ -138,6 +153,9 @@ public partial class MacroEditorWindow : AppWindow
         bool callableOnly = false, MacroView? newView = null)
     {
         InitializeComponent();
+        _settings = this.FindControl<MacroSettingsView>("MacroSettings")!;
+        _document = this.FindControl<MacroDocumentView>("MacroDocument")!;
+        _recording = this.FindControl<MacroRecordingView>("MacroRecording")!;
 
         _session = new MacroEditorSession(existing,
             [.. project ?? (existing is null ? [] : [existing])],
@@ -286,7 +304,7 @@ public partial class MacroEditorWindow : AppWindow
         // before that change.
         _viewModel.Changed += (_, _) =>
         {
-            SavedNotice.IsVisible = false;
+            _settings.FindControl<TextBlock>("SavedNotice")!.IsVisible = false;
             RefreshDocuments();
             KeepRecovery();
         };
@@ -337,7 +355,7 @@ public partial class MacroEditorWindow : AppWindow
         Strings.Current.LanguageChanged += UpdateTitleBarButtons;
         Closed += (_, _) => Strings.Current.LanguageChanged -= UpdateTitleBarButtons;
 
-        var stepList = this.FindControl<TreeView>("StepList");
+        var stepList = _document.FindControl<TreeView>("StepList")!;
         if (stepList is not null)
         {
             _stepList = stepList;
@@ -406,9 +424,9 @@ public partial class MacroEditorWindow : AppWindow
             stepList.AddHandler(DragDrop.DropEvent, OnActionDropped);
         }
 
-        _dropLayer = this.FindControl<Canvas>("DropLayer");
-        _dropMarker = this.FindControl<Border>("DropMarker");
-        _dropHint = this.FindControl<TextBlock>("DropHintText");
+        _dropLayer = _document.DropLayer;
+        _dropMarker = _document.DropMarker;
+        _dropHint = _document.DropHintText;
 
         // Tunnelling so the key reaches us before the focused control consumes it.
         AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);

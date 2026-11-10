@@ -30,7 +30,7 @@ public partial class MacroEditorWindow : AppWindow
 {
     // Bindings and the controller preview: the settings pages that take a key or button, the
     // controller read while waiting, and the preview surface that shows what a trigger catches.
-    private async void OnOpenHotstringKeyboard(object? sender, RoutedEventArgs e)
+    internal async void OnOpenHotstringKeyboard(object? sender, RoutedEventArgs e)
     {
         if (_hotstringKeyboard is { } open)
         {
@@ -56,10 +56,10 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    private void OnCaptureHotstringEnd(object? sender, RoutedEventArgs e)
+    internal void OnCaptureHotstringEnd(object? sender, RoutedEventArgs e)
         => _viewModel.BeginHotstringEndCapture();
 
-    private void OnSetInterfaceHotkey(object? sender, RoutedEventArgs e)
+    internal void OnSetInterfaceHotkey(object? sender, RoutedEventArgs e)
     {
         if (_viewModel.BeginKeyCapture(binding =>
             {
@@ -72,7 +72,7 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>Switches the settings drawer between its two halves.</summary>
-    private void OnSettingsPageClicked(object? sender, RoutedEventArgs e)
+    internal void OnSettingsPageClicked(object? sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: string tag })
         {
@@ -87,7 +87,7 @@ public partial class MacroEditorWindow : AppWindow
     /// field uses, so a combination is written the same way; the answer goes to the macro rather
     /// than to the selected trigger entry.
     /// </summary>
-    private void OnSetToggleKey(object? sender, RoutedEventArgs e)
+    internal void OnSetToggleKey(object? sender, RoutedEventArgs e)
     {
         if (_viewModel.BeginKeyCapture(binding =>
             {
@@ -99,7 +99,7 @@ public partial class MacroEditorWindow : AppWindow
         }
     }
 
-    private void OnAddTriggerMenu(object? sender, RoutedEventArgs e)
+    internal void OnAddTriggerMenu(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MacroEditorViewModel viewModel
             && sender is MenuItem { Tag: TriggerKind kind })

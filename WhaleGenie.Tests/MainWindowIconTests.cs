@@ -27,8 +27,8 @@ public class MainWindowIconTests
     public void Every_run_debug_entry_wears_the_bug_play_icon()
     {
         var main = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
-        var editor = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "MacroEditorWindow.axaml"));
+        var editor = ViewSource.MarkupAnd("MacroEditorWindow.axaml", "MacroSettingsView.axaml",
+            "MacroDocumentView.axaml", "MacroRecordingView.axaml");
 
         Assert.Contains("vm:AppIcons.BugPlay",
             Block(main, "Name=\"RunDebugButton\""), StringComparison.Ordinal);

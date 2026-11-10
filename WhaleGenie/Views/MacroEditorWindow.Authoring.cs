@@ -248,16 +248,16 @@ public partial class MacroEditorWindow : AppWindow
     {
         var model = new MacroInterfaceViewModel(_viewModel);
         _interfaceView = new MacroInterfaceView { DataContext = model };
-        MacroInterfaceHost.Content = _interfaceView;
+        _settings.FindControl<ContentControl>("MacroInterfaceHost")!.Content = _interfaceView;
     }
     /// <summary>Shows the recording controls over the step list.</summary>
     private void OnShowRecording(object? sender, RoutedEventArgs e)
     {
-        RecordingPanel.IsVisible = true;
+        _recording.RecordingPanel.IsVisible = true;
     }
 
-    private void OnCloseRecording(object? sender, RoutedEventArgs e)
-        => RecordingPanel.IsVisible = false;
+    internal void OnCloseRecording(object? sender, RoutedEventArgs e)
+        => _recording.RecordingPanel.IsVisible = false;
 
     /// <summary>
     /// Puts the reason a save was refused in front of the person who asked for it. A close prompt
@@ -266,8 +266,8 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     private void OnSaveBlocked()
     {
-        MacroSettingsDrawer.IsVisible = true;
-        RecordingPanel.IsVisible = false;
+        _settings.MacroSettingsDrawer.IsVisible = true;
+        _recording.RecordingPanel.IsVisible = false;
 
         // The reason is written on one of the two pages, so the drawer opens the one that holds it:
         // a declaration problem is on the interface page, everything else on the first.
