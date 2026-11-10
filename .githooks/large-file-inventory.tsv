@@ -52,7 +52,8 @@
 605	WhaleGenie.Core/Devices/Platform/MessageInputDevice.cs	keep: 单一消息输入适配器
 377	WhaleGenie.Core/Devices/Platform/NuGetStore.cs	pending review
 489	WhaleGenie.Core/Devices/Platform/OpenCvDetectDevice.cs	keep: 单一检测适配器与 YOLO 解码
-2118	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.cs	split: 超过 700 行，技术债
+420	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.Actions.cs	keep: 浏览器设备的一族，按页面操作拆分后单一职责
+337	WhaleGenie.Core/Devices/Platform/PlaywrightBrowserDevice.Pick.cs	keep: 浏览器设备的一族，按页面操作拆分后单一职责
 826	WhaleGenie.Core/Devices/Platform/ScriptDevice.cs	split: 超过 700 行，技术债
 722	WhaleGenie.Core/Devices/Platform/ViiperInputDevice.cs	split: 超过 700 行，技术债
 301	WhaleGenie.Core/Devices/Platform/ViiperKeys.cs	pending review
