@@ -22,6 +22,14 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        // A line that came from somewhere else — the picker, a drop, a step being opened — is read
+        // once into the value the pieces are built from. While the pieces are the ones writing, the
+        // value is already theirs and is not read back out of the line they just wrote.
+        if (!_composing)
+        {
+            _written = Formula.FromLine(value);
+        }
+
         // The pieces are the same value said another way, so they are read again on every change:
         // what the field keeps and what it draws cannot drift apart if one is derived. While the
         // pieces are the ones writing, this is the change they just made and they stay as they are.

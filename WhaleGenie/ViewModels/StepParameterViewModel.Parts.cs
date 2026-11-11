@@ -17,6 +17,14 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     private bool _composing;
 
+    /// <summary>
+    /// The value as the pieces come to it. A field edited as pieces keeps its value here and writes
+    /// the line from it, rather than reading its own line back: the pieces are what the person is
+    /// working with, and a line is only ever how the same value is said to whatever still asks for
+    /// one — the value picker, a check, a log.
+    /// </summary>
+    private ExpressionNode _written = Formula.Nothing;
+
     /// <summary>Where the last edit was made, so a name picked from the wall lands beside it.</summary>
     private ValuePart? _activePart;
 
@@ -66,7 +74,7 @@ public partial class StepParameterViewModel : ViewModelBase
         _activePart = null;
         _activeCaret = 0;
 
-        var written = Formula.FromLine(Text);
+        var written = _written;
         if (written is not (TextNode or VariableNode or ConcatNode))
         {
             return;
@@ -135,10 +143,13 @@ public partial class StepParameterViewModel : ViewModelBase
             .OfType<ExpressionNode>()
             .ToList();
 
+        _written = Formula.Run(parts);
         _composing = true;
         try
         {
-            Text = FormulaText.Write(Formula.Run(parts));
+            // The line is said from the value rather than the other way round. What still asks for
+            // one — a check, a log, the value picker — reads it here; nothing writes back into it.
+            Text = FormulaText.Write(_written);
         }
         finally
         {

@@ -56,7 +56,12 @@ public partial class StepParameterViewModel : ViewModelBase
     /// this is the place that knows what the field is for. Past this point a value is a shape: the
     /// engine and the file both take it as it is.
     /// </summary>
-    private ExpressionNode WrittenValue() => FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
+    private ExpressionNode WrittenValue()
+        => ShowsParts
+            // The pieces already are the value: a field with a name in it is edited as the shape it
+            // holds, so the shape is what the step keeps. Nothing is read back out of the line.
+            ? _written
+            : FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
 
     /// <summary>Loads a value that was stored on an existing step.</summary>
     public void ApplyValue(StepParameter stored)
