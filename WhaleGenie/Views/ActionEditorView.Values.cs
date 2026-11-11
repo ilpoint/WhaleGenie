@@ -107,10 +107,11 @@ public partial class ActionEditorView : UserControl
         // The caret belongs to the box the button sits in or beside. The chip lives inside the box's
         // own template now, so the nearest box ancestor is the one being filled in; a button laid
         // out beside the box still finds it under the row.
+        // Where the caret is, when the field is still one box. A field edited as pieces has no such
+        // box: it remembered where the person was instead, and that is what the name goes beside.
         var caret = (button.FindAncestorOfType<AutoCompleteBox>(true)
                 ?? button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
-                    .OfType<AutoCompleteBox>().FirstOrDefault())?.CaretIndex
-            ?? (parameter.Text ?? string.Empty).Length;
+                    .OfType<AutoCompleteBox>().FirstOrDefault())?.CaretIndex;
 
         // A field whose whole value is read opens the one window anywhere in the cell, with the
         // caret where it was; a field that only fills names in opens it on the list of names.
@@ -118,7 +119,7 @@ public partial class ActionEditorView : UserControl
         {
             if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
                     parameter.Variables, startOnFormula: true, target: parameter.Label,
-                    startCaret: caret) is { } written)
+                    startCaret: caret ?? parameter.CurrentText.Length) is { } written)
             {
                 parameter.WriteValue(written);
             }
@@ -132,7 +133,9 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        parameter.InsertVariable(picked, caret);
+        // A name goes in as a piece of the value rather than as the line it is written as: the
+        // field keeps a shape, so nothing about the way a formula spells a name reaches the user.
+        parameter.InsertName(picked.TrimStart('$'), caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)

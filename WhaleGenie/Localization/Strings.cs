@@ -1690,6 +1690,8 @@ public sealed class Strings : INotifyPropertyChanged
         // ----------------------------------------------------- expression builder
         ["Add.Value"] = "Value",
         ["Add.ValueHint"] = "Pick a variable for this cell, or work it out with a function.",
+        ["Add.RemoveValue"] = "×",
+        ["Add.RemoveValueHint"] = "Take this name out of the value.",
         ["ValuePicker.Target"] = "For {0}",
         ["ValuePicker.Structure"] = "Structure",
         ["ValuePicker.Structure.Hint"] = "Click the left or right half of a piece to put the cursor before or after it. A dashed box is a place still to fill.",
@@ -4036,6 +4038,8 @@ public sealed class Strings : INotifyPropertyChanged
         // ----------------------------------------------------- expression builder
         ["Add.Value"] = "取值",
         ["Add.ValueHint"] = "给这一格选一个变量，或者用函数把它算出来。",
+        ["Add.RemoveValue"] = "×",
+        ["Add.RemoveValueHint"] = "把这个名字从这一格里去掉。",
         ["ValuePicker.Target"] = "填给：{0}",
         ["ValuePicker.Structure"] = "结构",
         ["ValuePicker.Structure.Hint"] = "点一块的左半边或右半边，光标落在它前面或后面。虚线框是还没填的位置。",

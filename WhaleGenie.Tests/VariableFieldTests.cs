@@ -36,54 +36,113 @@ public class VariableFieldTests
     }
 
     /// <summary>
-    /// A value that names something reads as the pieces it is made of: the words, and each name
+    /// A value that names something is edited as the pieces it is made of: the words, and each name
     /// taking a box of its own. What tells a reader that a word is a variable is then the shape of
-    /// it, not a sign written in front — nothing has to be typed to make one and nothing escaped
-    /// to write about one.
+    /// it, not a sign written in front — nothing has to be typed to make one.
     /// </summary>
     [Fact]
-    public void A_value_with_a_name_in_it_reads_as_pieces_with_the_name_set_apart()
+    public void A_value_with_a_name_in_it_is_edited_as_pieces()
     {
         Ui.Run(() =>
         {
             var field = Parameter(Open("system.notify"), "notificationText");
-            Assert.False(field.ShowsTokens);
+            Assert.False(field.ShowsParts);
 
             field.Text = "你好，$name！";
-            Assert.True(field.ShowsTokens);
-            Assert.Equal(["你好，", "name", "！"], field.Tokens.Select(token => token.Text));
-            Assert.Equal([false, true, false], field.Tokens.Select(token => token.IsName));
-
-            // Typing in it is the other half: while the line is open the box is shown instead.
-            field.IsEditing = true;
-            Assert.False(field.ShowsTokens);
-            field.IsEditing = false;
-            Assert.True(field.ShowsTokens);
+            Assert.True(field.ShowsParts);
+            Assert.Equal(["你好，", "name", "！"], Spoken(field));
+            Assert.Equal([false, true, false], field.Parts.Take(3).Select(part => part is NamePart));
 
             // A value that names nothing is a box like any other: there is nothing a box cannot show.
             field.Text = "你好";
-            Assert.False(field.ShowsTokens);
+            Assert.False(field.ShowsParts);
         });
     }
 
     /// <summary>
-    /// A whole value read as one formula is not a sentence with names in it: it reads as one piece
-    /// said in words, because that is what it is.
+    /// What is typed in one of the runs is text, and it is the value: the pieces write themselves
+    /// back, so there is no second copy of the value to keep in step.
     /// </summary>
     [Fact]
-    public void A_formula_reads_as_one_piece_said_in_words()
+    public void Typing_in_a_run_writes_the_value_back()
+    {
+        Ui.Run(() =>
+        {
+            var field = Parameter(Open("system.notify"), "notificationText");
+            field.Text = "你好，$name！";
+
+            var first = field.Parts.OfType<TextPart>().First();
+            first.Text = "再见，";
+
+            Assert.Equal("再见，$name！", field.Text);
+            Assert.True(field.ShowsParts);
+        });
+    }
+
+    /// <summary>
+    /// A name picked from the wall goes in where the person was writing, splitting the run they
+    /// were in. It never goes through the text, so no spelling of a name is ever typed.
+    /// </summary>
+    [Fact]
+    public void A_name_goes_in_where_the_person_was_writing()
+    {
+        Ui.Run(() =>
+        {
+            var field = Parameter(Open("system.notify"), "notificationText");
+            field.Text = "你好，$name！";
+
+            field.RememberPlace(field.Parts.OfType<TextPart>().First(), 2);
+            field.InsertName("count");
+
+            Assert.Equal("你好$count，$name！", field.Text);
+            Assert.Equal(["你好", "count", "，", "name", "！"], Spoken(field));
+        });
+    }
+
+    /// <summary>
+    /// Taking a name out joins the runs of text it stood between, so a value that is back to plain
+    /// text stops being edited as pieces at all.
+    /// </summary>
+    [Fact]
+    public void Taking_a_name_out_joins_the_text_around_it()
+    {
+        Ui.Run(() =>
+        {
+            var field = Parameter(Open("system.notify"), "notificationText");
+            field.Text = "a$name b";
+
+            var name = Assert.Single(field.Parts.OfType<NamePart>());
+            name.Remove.Execute(null);
+
+            Assert.Equal("a b", field.Text);
+            Assert.False(field.ShowsParts);
+        });
+    }
+
+    /// <summary>
+    /// A whole value read as one formula is not a sentence with names in it, so it keeps the one box
+    /// it has always been edited in.
+    /// </summary>
+    [Fact]
+    public void A_formula_is_edited_as_one_box()
     {
         Ui.Run(() =>
         {
             var field = Parameter(Open("system.notify"), "notificationText");
             field.Text = "$count + 1";
 
-            var token = Assert.Single(field.Tokens);
-            Assert.False(token.IsName);
-            Assert.Contains("count", token.Text);
-            Assert.DoesNotContain("$", token.Text);
+            Assert.False(field.ShowsParts);
         });
     }
+
+    /// <summary>What the pieces say, by the words a reader sees.</summary>
+    private static IEnumerable<string> Spoken(StepParameterViewModel field)
+        => field.Parts.Select(part => part switch
+        {
+            NamePart name => name.Name,
+            TextPart text => text.Text,
+            _ => string.Empty,
+        }).Where(text => text.Length > 0);
 
     [Fact]
     public void A_declared_record_parameter_is_offered_to_a_record_field()

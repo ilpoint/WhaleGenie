@@ -108,27 +108,39 @@
             windows that are open right now. -->
         <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto"
             ColumnSpacing="6">
-            <!-- 一格值有两种样子。平时它是读法：文字是文字，名字各占一块，看的人不必
-                先学会一个记号才知道哪个词是变量。点一下才换成要敲的那一行——那是在改，
-                不是在读。 -->
+            <!-- 一格值有两种样子。值是"文字里夹着名字"时，它就按那个样子编辑：文字是能直接
+                改的窄框，名字各占一块、可以摘掉，中间没有哪个字符表示"变量从这里开始"。
+                值是整条公式时它仍是一只框——公式不是一句话，它的碎片不是词。 -->
             <Grid Grid.Column="0">
-                <Border Classes="TokenField" IsVisible="{Binding ShowsTokens}"
-                    PointerPressed="OnBeginEdit">
+                <Border Classes="TokenField" IsVisible="{Binding ShowsParts}">
                     <Grid ColumnDefinitions="*,Auto">
-                        <ItemsControl Grid.Column="0" ItemsSource="{Binding Tokens}"
+                        <ItemsControl Grid.Column="0" ItemsSource="{Binding Parts}"
                             VerticalAlignment="Center">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel Orientation="Horizontal" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:ParameterToken">
-                                    <Border Classes="Token" Classes.Name="{Binding IsName}">
-                                        <TextBlock Text="{Binding Text}" />
+                            <ItemsControl.DataTemplates>
+                                <DataTemplate DataType="vm:TextPart">
+                                    <views:InlineTextBox Classes="Part"
+                                        Text="{Binding Text, Mode=TwoWay}"
+                                        LostFocus="OnPartLostFocus"
+                                        KeyDown="OnPartKeyDown" />
+                                </DataTemplate>
+                                <DataTemplate DataType="vm:NamePart">
+                                    <Border Classes="Token Name" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <TextBlock Text="{Binding Name}"
+                                                VerticalAlignment="Center" />
+                                            <Button Classes="TokenClose"
+                                                Command="{Binding Remove}"
+                                                Content="{Binding [Add.RemoveValue], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.RemoveValueHint], Source={x:Static loc:Strings.Current}}" />
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
+                            </ItemsControl.DataTemplates>
                         </ItemsControl>
                         <!-- 取值按钮跟到读法这一侧：一格值不点开也该能换掉。 -->
                         <Button Grid.Column="1" Classes="ValueChip" Click="OnPickVariable"
@@ -139,14 +151,13 @@
 
                 <!-- 取值按钮贴在框里：「这一格怎么填」和「填哪一格」是同一件事，按钮就不该
                     站在行末，让人先猜它说的是哪一格。 -->
-                <AutoCompleteBox Name="ValueBox" Classes="Field HasChip"
-                    IsVisible="{Binding !ShowsTokens}"
+                <AutoCompleteBox Classes="Field HasChip"
+                    IsVisible="{Binding !ShowsParts}"
                     ItemsSource="{Binding ExpressionSuggestions}"
                     Text="{Binding Text}"
                     PlaceholderText="{Binding Placeholder}"
                     MinimumPrefixLength="1"
-                    FilterMode="Contains"
-                    LostFocus="OnEndEdit">
+                    FilterMode="Contains">
                     <AutoCompleteBox.InnerRightContent>
                         <Button Classes="ValueChip" Click="OnPickVariable"
                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
@@ -154,6 +165,7 @@
                     </AutoCompleteBox.InnerRightContent>
                 </AutoCompleteBox>
             </Grid>
+
             <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                 IsVisible="{Binding IsPath}"
                 Content="{Binding PathButton}"
@@ -164,7 +176,6 @@
                 Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
                 ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
                 Click="OnPickWindow" />
-
         </Grid>
 
         <!-- A UI Automation selector: written out by hand, or taken off the screen by

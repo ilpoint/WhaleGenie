@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -19,29 +21,61 @@ public partial class ParameterScalarView : UserControl
     private ActionEditorView? Host => this.FindAncestorOfType<ActionEditorView>();
 
     /// <summary>
-    /// Turns the field from what the value reads like into the line it is edited as. The box only
-    /// exists while it is being typed in, so it is focused once it has been shown.
+    /// Remembers where the person was, so a name picked from the wall lands where they were
+    /// writing rather than at the end of the value.
     /// </summary>
-    private void OnBeginEdit(object? sender, PointerPressedEventArgs e)
+    private void OnPartLostFocus(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Control { DataContext: StepParameterViewModel field })
+        if (sender is TextBox { DataContext: TextPart part } box
+            && DataContext is StepParameterViewModel field)
+        {
+            field.RememberPlace(part, box.CaretIndex);
+        }
+    }
+
+    /// <summary>
+    /// Backspace at the very start of a run and Delete at its very end reach across pieces: the
+    /// name beside it goes, and the two runs of text join where it stood.
+    /// </summary>
+    private void OnPartKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (sender is not TextBox { DataContext: TextPart part } box
+            || DataContext is not StepParameterViewModel field)
         {
             return;
         }
 
-        field.IsEditing = true;
+        var end = box.Text?.Length ?? 0;
+        var place = e.Key switch
+        {
+            Key.Back when box.CaretIndex == 0 => field.JoinBack(part),
+            Key.Delete when box.CaretIndex >= end => field.JoinForward(part),
+            _ => null,
+        };
+
+        if (place is not { } moved)
+        {
+            return;
+        }
+
         e.Handled = true;
-        Dispatcher.UIThread.Post(() => this.FindControl<AutoCompleteBox>("ValueBox")?.Focus());
+        FocusPart(moved.Part, moved.Caret);
     }
 
-    /// <summary>Turns it back: a field nobody is typing in shows what the step will do, not the spelling.</summary>
-    private void OnEndEdit(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: StepParameterViewModel field })
+    /// <summary>Puts the caret back in the run the edit landed in, once the rows have been rebuilt.</summary>
+    private void FocusPart(ValuePart part, int caret)
+        => Dispatcher.UIThread.Post(() =>
         {
-            field.IsEditing = false;
-        }
-    }
+            var box = this.GetVisualDescendants().OfType<TextBox>()
+                .FirstOrDefault(candidate => ReferenceEquals(candidate.DataContext, part));
+            if (box is null)
+            {
+                return;
+            }
+
+            box.Focus();
+            box.CaretIndex = Math.Clamp(caret, 0, box.Text?.Length ?? 0);
+        });
 
     private void OnBrowsePath(object? sender, RoutedEventArgs e) => Host?.OnBrowsePath(sender, e);
 

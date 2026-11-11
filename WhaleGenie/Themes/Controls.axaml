@@ -242,6 +242,7 @@
       STATIC Border.Section
       STATIC Border.Sunken
       STATIC Border.Token
+      STATIC TextBox.Part
       STATIC Border.Tag
       STATIC ListBox.List
       STATIC ListBox.List.Bare
@@ -630,6 +631,36 @@
     </Style>
     <Style Selector="Border.Token.Name > TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!-- 一格值里的一段文字：它是框，但看起来只是字。名字之间的空隙就是这样写出来的。 -->
+    <Style Selector="TextBox.Part">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.TokenClose">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Button.TokenClose:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+    <Style Selector="Border.Token.Name:pointerover Button.TokenClose">
+        <Setter Property="Opacity" Value="1" />
     </Style>
 
     <!-- 一块地方装着读法本身：它不像输入框，但点一下就是输入框。 -->
