@@ -37,6 +37,10 @@ public static class FormulaJson
                 return null;
             case TextNode text:
                 return JsonValue.Create(text.Text);
+            case FaultNode fault:
+                // A value nobody could read is kept as the line it was, so the mistake survives the
+                // round trip and can be put right in the editor rather than being lost on save.
+                return JsonValue.Create(fault.Text);
             case NumberNode number:
                 return double.TryParse(number.Text, NumberStyles.Any, CultureInfo.InvariantCulture,
                     out var written)

@@ -19,7 +19,7 @@ public class StepFileTests
     /// written, which is the opposite of clicking wherever the user left the mouse.
     /// </summary>
     [Fact]
-    public void A_number_written_as_an_expression_is_written_as_it_says()
+    public void A_number_written_as_an_expression_is_written_as_the_name_it_reads()
     {
         // Reading a step back runs it past the action catalogue, which builds its icons with
         // Avalonia geometry, so the round trip belongs on the user-interface thread.
@@ -27,8 +27,11 @@ public class StepFileTests
         {
             var step = Click("$sys.mouseX", "$sys.mouseY");
 
+            // The file says which name it reads rather than the line that reads it: a line would
+            // be a second language for the same fact, and the reader of a file would have to know
+            // it to tell a name from a piece of text.
             var parameters = (JsonObject)step.ToJson()["params"]!;
-            Assert.Equal("$sys.mouseX", parameters["x"]!.GetValue<string>());
+            Assert.Equal("sys.mouseX", parameters["x"]!["name"]!.GetValue<string>());
 
             var read = MacroStep.FromJson(step.ToJson());
             Assert.Equal("$sys.mouseX", Value(read, "x"));

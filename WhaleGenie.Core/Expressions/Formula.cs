@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 
 namespace WhaleGenie.Core.Expressions;
 
@@ -38,6 +39,26 @@ public static class Formula
             : Text(written);
     }
 
+    /// <summary>
+    /// The value a line stands for while a field is still being written: a formula when it reads as
+    /// one, a run of text with the names left where they stand when it does not. This is the
+    /// lenient reading — a half-typed <c>${</c> stays the text it looks like rather than stopping
+    /// someone mid-word — and it is only for a line that is being typed or read back from an older
+    /// file. A value that has been saved is a shape already and never comes through here.
+    /// </summary>
+    public static ExpressionNode FromLine(string? text)
+    {
+        var written = text ?? string.Empty;
+        if (written.Length == 0)
+        {
+            return Nothing;
+        }
+
+        return Expression.TryParse(written, out var tree, out _) && tree is not null
+            ? tree
+            : FormulaText.Read(written, ActionReadMode.Text);
+    }
+
     /// <summary>One variable read by name. A record's field is part of the name, as it always was.</summary>
     public static ExpressionNode Name(string name) => new VariableNode(name);
 
@@ -68,6 +89,7 @@ public static class Formula
     /// </summary>
     public static string Speak(ExpressionNode? value) => value switch
     {
+        FaultNode fault => fault.Text,
         TextNode text => text.Text,
         NumberNode number => number.Text,
         ConstantNode constant => constant.Word,

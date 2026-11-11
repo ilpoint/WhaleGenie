@@ -33,7 +33,7 @@ public class ValueReadTests
     public async Task A_text_field_fills_a_name_in_where_it_stands()
     {
         var (result, devices) = await RunAsync(
-            Step("file.listFiles", Param("folder", "."), Param("pattern", "$name-*.txt")),
+            Step("file.listFiles", Param("folder", "."), Fields.Run("pattern", "$name-*.txt")),
             ("name", "notes"));
 
         Assert.True(result.Succeeded, result.Key);

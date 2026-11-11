@@ -54,6 +54,15 @@ public sealed record CallNode(string Name, IReadOnlyList<ExpressionNode> Argumen
 public sealed record ListNode(IReadOnlyList<ExpressionNode> Items) : ExpressionNode;
 
 /// <summary>
+/// A value that could not be read: the line it was written as, and what was wrong with it. A field
+/// holds one when the text it came from says something the language cannot make sense of — a
+/// formula that does not parse, a brace that never closes. Keeping the mistake as a value rather
+/// than raising it where the file is read is what lets the step that holds it be the thing that
+/// fails, with its own name on the failure, instead of a whole macro refusing to open.
+/// </summary>
+public sealed record FaultNode(string Text, string Message) : ExpressionNode;
+
+/// <summary>
 /// A place in the tree nothing has been put in yet. Reading a formula never produces one — text
 /// with a space in it does not read at all — so this is the editor's own shape: it stands for a box
 /// the user has not filled in, and the writer leaves it as a placeholder.

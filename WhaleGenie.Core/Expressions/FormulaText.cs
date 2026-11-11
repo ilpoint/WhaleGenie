@@ -43,7 +43,14 @@ public static class FormulaText
             return Expression.References(whole);
         }
 
-        return Expression.References(ReadRun(text ?? string.Empty));
+        try
+        {
+            return Expression.References(ReadRun(text ?? string.Empty));
+        }
+        catch (ExpressionException)
+        {
+            return [];
+        }
     }
 
     /// <summary>
@@ -187,12 +194,19 @@ public static class FormulaText
     public static ExpressionNode Read(string? text, ActionReadMode mode)
     {
         var written = text ?? string.Empty;
-        return mode switch
+        try
         {
-            ActionReadMode.VariableName => ReadName(written),
-            ActionReadMode.WholeValue => ReadWhole(written),
-            _ => ReadRun(written),
-        };
+            return mode switch
+            {
+                ActionReadMode.VariableName => ReadName(written),
+                ActionReadMode.WholeValue => ReadWhole(written),
+                _ => ReadRun(written),
+            };
+        }
+        catch (ExpressionException fault)
+        {
+            return new FaultNode(written, fault.Message);
+        }
     }
 
     /// <summary>
@@ -211,6 +225,7 @@ public static class FormulaText
     {
         null => string.Empty,
         TextNode text => WriteLiteral(text.Text),
+        FaultNode fault => fault.Text,
         ConcatNode run => WriteRun(run),
         _ => Expression.Render(value),
     };
@@ -278,18 +293,15 @@ public static class FormulaText
     }
 
     /// <summary>
-    /// A field that names a variable. The name is what it says, so a word that is a name becomes a
-    /// reference and anything else stays the text it was written as.
+    /// A field that names a variable. The name is what it says, so it stays text: a field that
+    /// declares a name is not reading one, and a reference here would make the macro look as if it
+    /// read a variable it is only about to write. Anything that does read it — the runner, when the
+    /// step asks what the name holds — looks the name up itself.
     /// </summary>
     private static ExpressionNode ReadName(string text)
     {
         var name = text.Trim();
-        if (name.StartsWith('$'))
-        {
-            name = name[1..].Trim();
-        }
-
-        return VariableName.IsName(name) ? Formula.Name(name) : Formula.Text(text);
+        return Formula.Text(name.StartsWith('$') ? name[1..].Trim() : name);
     }
 
     /// <summary>

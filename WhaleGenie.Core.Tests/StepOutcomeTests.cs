@@ -216,7 +216,7 @@ public class StepOutcomeTests
         // macro that writes brackets in one should not be stopped by them.
         var store = await RunAsync(
         [
-            Step("control.note", "aaaa", Param("note", "$((")),
+            Step("control.note", "aaaa", Fields.Run("note", "$((")),
             Set("bbbb", "n", "1"),
         ]);
 

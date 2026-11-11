@@ -85,6 +85,12 @@ internal static class ExpressionWriter
                     + " " + binary.Operator + " "
                     + Loose(right, rightPrecedence, precedence, true, !ReadsTheSame(binary.Operator));
 
+            case FaultNode fault:
+                // A value that could not be read keeps the line it was written as, so the editor
+                // hands back what the person typed rather than a tidied version of it.
+                precedence = Atom;
+                return fault.Text;
+
             case HoleNode:
                 precedence = Atom;
                 return hole;

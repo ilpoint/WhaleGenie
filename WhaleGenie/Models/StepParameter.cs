@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 
@@ -21,7 +22,28 @@ public class StepParameter
 
     public required ActionParameterKind Kind { get; init; }
 
-    public string Value { get; set; } = string.Empty;
+    /// <summary>
+    /// What the field holds, as the shape it was written in. A field is not a line of text: a piece
+    /// of prose with a name in it, a number, and a formula are three shapes, and keeping them apart
+    /// is what stops the editor having to guess which one a line means.
+    /// </summary>
+    public ExpressionNode Written { get; set; } = Formula.Nothing;
+
+    /// <summary>
+    /// The same value as the line the editor shows and a person types. Reading it writes the shape
+    /// back out; setting it reads the line in. Both go through the one conversion in
+    /// <c>FormulaText</c>, so a field never holds a second copy of its own value.
+    /// </summary>
+    /// <remarks>
+    /// This pair is where the editor still speaks lines. A value that came from a file is a shape
+    /// already, and a text box that is being typed into is a line until it is saved, so the two
+    /// meet here rather than at every call site.
+    /// </remarks>
+    public string Value
+    {
+        get => FormulaText.Write(Written);
+        set => Written = Formula.FromLine(value);
+    }
 
     /// <summary>
     /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%
@@ -81,15 +103,33 @@ public class StepParameter
     {
         ActionParameterKind.Number => NumberJson(),
         ActionParameterKind.Bool => JsonValue.Create(
-            string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
+            string.Equals(Formula.Plain(Written), "true", StringComparison.OrdinalIgnoreCase)),
         ActionParameterKind.Steps => BuildArray(Steps),
         ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
             or ActionParameterKind.Returns or ActionParameterKind.Arguments
             or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => RowsJson(),
-        ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
-            => JsonNode.Parse(Value),
-        _ => JsonValue.Create(Value),
+        ActionParameterKind.WindowRule when Formula.Plain(Written).TrimStart().StartsWith('{')
+            => JsonNode.Parse(Formula.Plain(Written)),
+        _ => ScalarJson(),
     };
+
+    /// <summary>
+    /// One value as the file keeps it: the text it is where nothing is named, and the tagged shape
+    /// it is where the field names anything. Text stays text so a hand-edited macro still reads the
+    /// way it was written; anything with a name or a formula in it is kept as a shape, because a
+    /// line would have to say which of the two a <c>$</c> meant.
+    /// </summary>
+    private JsonNode? ScalarJson()
+    {
+        if (Formula.IsNothing(Written))
+        {
+            return JsonValue.Create(string.Empty);
+        }
+
+        return Formula.IsPlain(Written)
+            ? JsonValue.Create(Formula.Plain(Written))
+            : FormulaJson.Write(Written);
+    }
 
     /// <summary>
     /// A number field as the file holds it: the number it says, or the text of the expression it
@@ -98,14 +138,16 @@ public class StepParameter
     /// </summary>
     private JsonNode? NumberJson()
     {
-        if (Value.Trim().Length == 0)
+        if (Formula.IsNothing(Written))
         {
             return JsonValue.Create(0m);
         }
 
-        return decimal.TryParse(Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+        var written = Formula.Plain(Written);
+        return decimal.TryParse(written, NumberStyles.Number, CultureInfo.InvariantCulture,
+            out var number)
             ? JsonValue.Create(number)
-            : JsonValue.Create(Value);
+            : ScalarJson();
     }
 
     /// <summary>
@@ -167,13 +209,13 @@ public class StepParameter
             {
                 Name = name,
                 Kind = ActionParameterKind.WindowRule,
-                Value = record.ToJsonString(),
+                Written = Formula.Text(record.ToJsonString()),
             },
             _ => new StepParameter
             {
                 Name = name,
                 Kind = definition?.Kind ?? ActionParameterKind.Text,
-                Value = ReadValue(node),
+                Written = ValueOf(node),
                 Jitter = jitter,
             },
         };
@@ -194,16 +236,18 @@ public class StepParameter
         return row;
     }
 
-    /// <summary>Reads a scalar node back as the text the editors work with.</summary>
-    private static string ReadValue(JsonNode? node)
-    {
-        if (node is not JsonValue value)
-        {
-            return string.Empty;
-        }
+    /// <summary>
+    /// One value read back out of the file. A node written as text is read as the line it is — an
+    /// older macro, or a hand edit, says <c>$name</c> and means the name — and a node written as a
+    /// tagged shape is that shape.
+    /// </summary>
+    private static ExpressionNode ValueOf(JsonNode? node)
+        => node is JsonValue value && value.TryGetValue<string>(out var text)
+            ? Formula.FromLine(text)
+            : FormulaJson.Read(node);
 
-        return value.TryGetValue<string>(out var text) ? text : value.ToJsonString();
-    }
+    /// <summary>Reads a scalar node back as the text the editors work with.</summary>
+    private static string ReadValue(JsonNode? node) => FormulaText.Write(ValueOf(node));
 
     /// <summary>Writes a nested step list as a JSON array.</summary>
     public static JsonArray BuildArray(IEnumerable<MacroStep> steps)
