@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -313,7 +314,7 @@ public class StepPlacementTests
             {
                 Name = "values",
                 Kind = ActionParameterKind.Text,
-                Value = value,
+                Written = Formula.FromLine(value),
             },
             Body("body", body));
 

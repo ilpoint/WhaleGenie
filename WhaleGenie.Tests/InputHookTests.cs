@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
@@ -57,7 +58,7 @@ public class InputHookTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Value = "800",
+                        Written = Formula.FromLine("800"),
                     },
                 ],
             });
@@ -117,7 +118,7 @@ public class InputHookTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Value = "800",
+                        Written = Formula.FromLine("800"),
                     },
                 ],
             });

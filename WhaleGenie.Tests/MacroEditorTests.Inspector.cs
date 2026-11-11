@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -256,13 +257,13 @@ public partial class MacroEditorTests
                     {
                         Name = "macro",
                         Kind = ActionParameterKind.Macro,
-                        Value = "被调用",
+                        Written = Formula.FromLine("被调用"),
                     },
                     new StepParameter
                     {
                         Name = "arg.旧",
                         Kind = ActionParameterKind.Expression,
-                        Value = "1",
+                        Written = Formula.FromLine("1"),
                     },
                 ],
             });

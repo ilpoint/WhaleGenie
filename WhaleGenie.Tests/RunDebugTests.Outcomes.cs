@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -153,7 +154,7 @@ public partial class RunDebugTests
     private static MacroStep Encode(string text) => new()
     {
         Type = "data.base64Encode",
-        Parameters = [new StepParameter { Name = "dataText", Kind = ActionParameterKind.Text, Value = text }],
+        Parameters = [new StepParameter { Name = "dataText", Kind = ActionParameterKind.Text, Written = Formula.FromLine(text) }],
     };
 
     /// <summary>A step that sets a variable, so a run has something to do that cannot fail.</summary>
@@ -162,9 +163,9 @@ public partial class RunDebugTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = value },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) },
         ],
     };
 
@@ -178,7 +179,7 @@ public partial class RunDebugTests
             {
                 Name = "condition",
                 Kind = ActionParameterKind.Expression,
-                Value = $"{variable} > {value}",
+                Written = Formula.FromLine($"{variable} > {value}"),
             },
         ],
     };

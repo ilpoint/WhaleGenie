@@ -505,7 +505,7 @@ public partial class MacroEditorWindow : AppWindow
                 && string.Equals(target.Value?.Trim(), oldName,
                     StringComparison.OrdinalIgnoreCase))
             {
-                target.Value = newName;
+                target.Written = Formula.Text(newName);
             }
 
             foreach (var parameter in step.StepLists)

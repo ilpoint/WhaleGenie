@@ -30,20 +30,12 @@ public partial class StepParameter
     public ExpressionNode Written { get; set; } = Formula.Nothing;
 
     /// <summary>
-    /// The same value as the line the editor shows and a person types. Reading it writes the shape
-    /// back out; setting it reads the line in. Both go through the one conversion in
-    /// <c>FormulaText</c>, so a field never holds a second copy of its own value.
+    /// The value as the line it is said as. This is a rendering: the checks, the labels and the
+    /// editor read it when they want the value put into words, and nothing is read back out of it
+    /// — the shape above is the value. A field is written once, where it is filled in, and from
+    /// there on it is carried as it stands.
     /// </summary>
-    /// <remarks>
-    /// This pair is where the editor still speaks lines. A value that came from a file is a shape
-    /// already, and a text box that is being typed into is a line until it is saved, so the two
-    /// meet here rather than at every call site.
-    /// </remarks>
-    public string Value
-    {
-        get => FormulaText.Write(Written);
-        set => Written = Formula.FromLine(value);
-    }
+    public string Value => FormulaText.Write(Written);
 
     /// <summary>
     /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%

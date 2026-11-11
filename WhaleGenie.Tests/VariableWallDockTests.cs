@@ -5,6 +5,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -119,8 +120,8 @@ public class VariableWallDockTests
         Meta = new StepMeta(),
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "total" },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = "1" },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("total") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine("1") },
         ],
     };
 
@@ -128,6 +129,6 @@ public class VariableWallDockTests
     {
         Type = "control.log",
         Meta = new StepMeta { Comment = label },
-        Parameters = [new StepParameter { Name = "message", Kind = ActionParameterKind.Text, Value = expression }],
+        Parameters = [new StepParameter { Name = "message", Kind = ActionParameterKind.Text, Written = Formula.FromLine(expression) }],
     };
 }

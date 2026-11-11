@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -68,7 +69,7 @@ public partial class StepTreeTests
                 {
                     Name = "condition",
                     Kind = ActionParameterKind.Expression,
-                    Value = "false",
+                    Written = Formula.FromLine("false"),
                 });
             editor.AddStep(conditional);
 

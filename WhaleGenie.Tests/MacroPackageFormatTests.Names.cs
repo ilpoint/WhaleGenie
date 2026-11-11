@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -87,7 +88,7 @@ public partial class MacroPackageFormatTests
                 {
                     Name = "notificationText",
                     Kind = ActionParameterKind.Text,
-                    Value = text,
+                    Written = Formula.FromLine(text),
                 },
             ],
         };

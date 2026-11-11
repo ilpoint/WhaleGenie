@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -70,7 +71,7 @@ public partial class MacroEditorChromeTests
                 {
                     Name = "macro",
                     Kind = ActionParameterKind.Macro,
-                    Value = "child",
+                    Written = Formula.FromLine("child"),
                 },
             ],
         });
@@ -95,9 +96,9 @@ public partial class MacroEditorChromeTests
             Meta = StepMeta.New,
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Value = "local" },
-                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Value = value },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("local") },
+                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.FromLine(value) },
             ],
         };
 }

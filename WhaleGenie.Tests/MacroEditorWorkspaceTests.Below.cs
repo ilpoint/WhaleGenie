@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -31,7 +32,7 @@ public partial class MacroEditorWorkspaceTests
                 {
                     Name = "times",
                     Kind = ActionParameterKind.Number,
-                    Value = "2",
+                    Written = Formula.FromLine("2"),
                 },
                 new StepParameter
                 {
@@ -140,7 +141,7 @@ public partial class MacroEditorWorkspaceTests
         {
             Name = "macro",
             Kind = ActionParameterKind.Macro,
-            Value = macro,
+            Written = Formula.FromLine(macro),
         });
 
     private static DragEventArgs Drag(Control target, RoutedEvent<DragEventArgs> what,

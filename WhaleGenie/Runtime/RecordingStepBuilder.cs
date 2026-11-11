@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Models;
 
@@ -131,7 +132,9 @@ public static class RecordingStepBuilder
             {
                 Name = name,
                 Kind = kind,
-                Value = value,
+                // What was recorded is the value itself: a key, a mode, a count. It is read once,
+                // here, so the step that comes out of a recording is a step like any other.
+                Written = Formula.FromText(value),
             });
         }
 

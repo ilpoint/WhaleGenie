@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -147,7 +148,7 @@ public class JitterTests
                 {
                     Name = "ms",
                     Kind = ActionParameterKind.Number,
-                    Value = "500",
+                    Written = Formula.FromLine("500"),
                     Jitter = 0.2m,
                 },
             ],
@@ -176,7 +177,7 @@ public class JitterTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Value = "500",
+                        Written = Formula.FromLine("500"),
                         Jitter = 0.2m,
                     },
                 ],

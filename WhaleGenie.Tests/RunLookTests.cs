@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
@@ -45,7 +46,7 @@ public class RunLookTests
 
     /// <summary>One of the four numbers a capture step works on, written the way the file writes it.</summary>
     private static StepParameter Number(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Number, Value = value };
+        => new() { Name = name, Kind = ActionParameterKind.Number, Written = Formula.FromLine(value) };
 
     [Fact]
     public void A_step_that_looked_at_the_screen_gets_a_picture_on_its_row()
@@ -67,7 +68,7 @@ public class RunLookTests
                     {
                         Name = "confidence",
                         Kind = ActionParameterKind.Number,
-                        Value = "90",
+                        Written = Formula.FromLine("90"),
                     },
                     Handed("match", "match"),
                 ],
@@ -121,7 +122,7 @@ public class RunLookTests
                     {
                         Name = "confidence",
                         Kind = ActionParameterKind.Number,
-                        Value = "90",
+                        Written = Formula.FromLine("90"),
                     },
                     Handed("match", "match"),
                 ],
@@ -285,7 +286,7 @@ public class RunLookTests
                     {
                         Name = "title",
                         Kind = ActionParameterKind.Text,
-                        Value = "Notepad",
+                        Written = Formula.FromLine("Notepad"),
                     },
                     Handed("image", "shot"),
                 ],
@@ -366,7 +367,7 @@ public class RunLookTests
             {
                 Name = "title",
                 Kind = ActionParameterKind.Text,
-                Value = "Notepad",
+                Written = Formula.FromLine("Notepad"),
             },
             Handed("image", "shot"),
         ],

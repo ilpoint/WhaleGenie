@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -205,7 +206,7 @@ public class StepIdTests
         {
             Name = "condition",
             Kind = ActionParameterKind.Expression,
-            Value = "true",
+            Written = Formula.FromLine("true"),
         });
 
     /// <summary>Everything written inside a step's child lists.</summary>

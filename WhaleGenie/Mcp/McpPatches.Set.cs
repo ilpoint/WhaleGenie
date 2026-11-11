@@ -107,19 +107,22 @@ internal static partial class McpPatches
             }
         }
 
-        var text = Written(value);
+        // The value is read the way this field is read, once, here: an expression field takes what
+        // it is given as an expression, a text field as the words themselves, a window rule as the
+        // object it is written as. Nothing downstream reads the line again.
+        var written = FormulaText.Read(Written(value), declared.ReadMode);
         if (existing is null)
         {
             step.Parameters.Add(new StepParameter
             {
                 Name = name,
                 Kind = declared.Kind,
-                Value = text,
+                Written = written,
             });
         }
         else
         {
-            existing.Value = text;
+            existing.Written = written;
         }
 
         touches.Add(new Touch("set", step));

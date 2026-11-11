@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using Avalonia.Media;
 using WhaleGenie.Localization;
+using WhaleGenie.Core.Expressions;
 
 using WhaleGenie.Models;
 using WhaleGenie.Views;
@@ -145,7 +146,7 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
                 return;
             }
 
-            values.Value = value ?? string.Empty;
+            values.Written = Formula.Text(value ?? string.Empty);
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValues)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesText)));
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeadLabel)));

@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -110,7 +111,7 @@ public partial class RunDebugTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Value = "0",
+                        Written = Formula.FromLine("0"),
                     },
                 ],
             });

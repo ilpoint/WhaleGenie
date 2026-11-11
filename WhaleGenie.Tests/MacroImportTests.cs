@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -223,7 +224,7 @@ public class MacroImportTests
             Type = "control.delay",
             Parameters =
             [
-                new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Value = "$次数" },
+                new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.FromLine("$次数") },
             ],
         });
         return macro;

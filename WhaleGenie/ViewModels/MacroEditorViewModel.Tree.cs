@@ -118,7 +118,7 @@ public partial class MacroEditorViewModel
     {
         Name = parameter.Name,
         Kind = parameter.Kind,
-        Value = parameter.Value,
+        Written = parameter.Written,
         Jitter = parameter.Jitter,
         Steps = parameter.Steps.Select(Clone).ToList(),
         Rows = parameter.Rows.Select(row => row.Copy()).ToList(),

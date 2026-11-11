@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -114,7 +115,7 @@ public partial class ActionDialogTests
                     {
                         Name = "style",
                         Kind = ActionParameterKind.Choice,
-                        Value = "smooth",
+                        Written = Formula.FromLine("smooth"),
                     },
                 ],
             });
@@ -138,7 +139,7 @@ public partial class ActionDialogTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Value = "F5" },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Written = Formula.FromLine("F5") },
                 ],
             });
 

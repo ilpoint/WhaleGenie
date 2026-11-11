@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -96,7 +97,7 @@ public class MacroNameTests
             {
                 Type = "control.delay",
                 Parameters =
-                [new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Value = "5" }]
+                [new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.FromLine("5") }]
             });
             MacroPackage.Save(path, [incoming], [], "test");
 

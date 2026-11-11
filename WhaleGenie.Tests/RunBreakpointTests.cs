@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -93,7 +94,7 @@ public class RunBreakpointTests
                     {
                         Name = "condition",
                         Kind = ActionParameterKind.Expression,
-                        Value = "$n == 1",
+                        Written = Formula.FromLine("$n == 1"),
                     },
                     new StepParameter
                     {
@@ -331,9 +332,9 @@ public class RunBreakpointTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = value },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) },
         ],
     };
 

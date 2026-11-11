@@ -30,13 +30,13 @@ public class VariableRenameTests
             Type = "control.setVariable",
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "old" },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "global" },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("old") },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("global") },
                 new StepParameter
                 {
                     Name = "value",
                     Kind = ActionParameterKind.Expression,
-                    Value = "field($record, \"old\") + $old",
+                    Written = Formula.FromLine("field($record, \"old\") + $old"),
                 },
             ],
         };
@@ -56,8 +56,8 @@ public class VariableRenameTests
             Type = "control.setVariable",
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "old" },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("old") },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
             ],
         });
         macro.Steps.Add(new MacroStep
@@ -69,7 +69,7 @@ public class VariableRenameTests
                 {
                     Name = "script",
                     Kind = ActionParameterKind.Text,
-                    Value = "WhaleGenie.GetProperty(\"old\")",
+                    Written = Formula.FromLine("WhaleGenie.GetProperty(\"old\")"),
                 },
             ],
         });
@@ -87,9 +87,9 @@ public class VariableRenameTests
             Type = "control.setVariable",
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "old" },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
-                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Value = "7" },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("old") },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
+                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.FromLine("7") },
             ],
         });
         editor.Steps.Add(new MacroStep
@@ -101,7 +101,7 @@ public class VariableRenameTests
                 {
                     Name = "message",
                     Kind = ActionParameterKind.Expression,
-                    Value = "$old + 1",
+                    Written = Formula.FromLine("$old + 1"),
                 },
             ],
         });

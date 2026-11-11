@@ -5,6 +5,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -38,7 +39,7 @@ public class LocalVariablesTests
             {
                 Name = "text",
                 Kind = ActionParameterKind.Text,
-                Value = expression,
+                Written = Formula.FromLine(expression),
             },
         ],
     };

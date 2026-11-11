@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -164,7 +165,7 @@ public partial class ActionDialogTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Value = "F5" },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Formula.FromLine("F5") },
                 ],
                 Meta = new StepMeta
                 {
@@ -318,7 +319,7 @@ public partial class ActionDialogTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Value = "300000",
+                        Written = Formula.FromLine("300000"),
                     },
                 ],
             });

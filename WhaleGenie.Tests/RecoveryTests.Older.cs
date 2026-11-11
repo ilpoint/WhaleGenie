@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -45,7 +46,7 @@ public partial class RecoveryTests
         macro.Steps.Add(new MacroStep
         {
             Type = "input.keyPress",
-            Parameters = [new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Value = "A" }],
+            Parameters = [new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Formula.FromLine("A") }],
         });
         return macro;
     }

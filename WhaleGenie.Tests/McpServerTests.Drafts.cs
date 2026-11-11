@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
@@ -49,7 +50,7 @@ public partial class McpServerTests
                         {
                             Name = "ms",
                             Kind = ActionParameterKind.Number,
-                            Value = "1000",
+                            Written = Formula.FromLine("1000"),
                         },
                     ],
                 });

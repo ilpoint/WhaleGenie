@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -178,5 +179,5 @@ public partial class StepTreeTests
     }
 
     private static StepParameter InputMode(string value)
-        => new() { Name = "inputMode", Kind = ActionParameterKind.Text, Value = value };
+        => new() { Name = "inputMode", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) };
 }

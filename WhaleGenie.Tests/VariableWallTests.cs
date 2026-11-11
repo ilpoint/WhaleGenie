@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -412,7 +413,7 @@ public class VariableWallTests
     }
 
     private static StepParameter Text(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
+        => new() { Name = name, Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) };
 
     private static MacroStep Writes(string name, string id = "")
         => new()

@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -329,7 +330,7 @@ public partial class ActionDialogTests
             {
                 Name = "window",
                 Kind = ActionParameterKind.WindowRule,
-                Value = rule,
+                Written = Formula.FromLine(rule),
             },
         ],
     };

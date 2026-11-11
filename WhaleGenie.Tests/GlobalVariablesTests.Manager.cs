@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -115,7 +116,7 @@ public partial class GlobalVariablesTests
                         {
                             Name = "message",
                             Kind = ActionParameterKind.Expression,
-                            Value = "$oldGlobal + 1",
+                            Written = Formula.FromLine("$oldGlobal + 1"),
                         },
                     ],
                 });

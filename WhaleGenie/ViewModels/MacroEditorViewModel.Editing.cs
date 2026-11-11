@@ -457,7 +457,7 @@ public partial class MacroEditorViewModel
             {
                 Name = "macro",
                 Kind = ActionParameterKind.Macro,
-                Value = lifted.Name,
+                Written = Formula.Text(lifted.Name),
             },
         };
 

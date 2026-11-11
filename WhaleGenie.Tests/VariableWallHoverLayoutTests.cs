@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -72,8 +73,8 @@ public class VariableWallHoverLayoutTests
         Meta = new StepMeta { Comment = label },
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "value1" },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = "1" },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("value1") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine("1") },
         ],
     };
 }

@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Tests;
@@ -77,9 +78,9 @@ public class StepFileTests
         Type = "input.mouseClick",
         Parameters =
         [
-            new StepParameter { Name = "button", Kind = ActionParameterKind.Choice, Value = "left" },
-            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Value = x },
-            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Value = y },
+            new StepParameter { Name = "button", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("left") },
+            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine(x) },
+            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine(y) },
         ],
     };
 }

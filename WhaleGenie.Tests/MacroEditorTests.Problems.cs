@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -53,7 +54,7 @@ public partial class MacroEditorTests
                 Type = "control.repeat",
                 Parameters =
                 [
-                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Value = "3" },
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("3") },
                     new StepParameter
                     {
                         Name = "body",

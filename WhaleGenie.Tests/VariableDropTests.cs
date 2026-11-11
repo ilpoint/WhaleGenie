@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -132,9 +133,9 @@ public class VariableDropTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Variable, Value = "answer" },
-                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Value = "local" },
-                    new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Value = "1" },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Variable, Written = Formula.FromLine("answer") },
+                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("local") },
+                    new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.FromLine("1") },
                 ],
             });
             var window = new MacroEditorWindow(macro, [macro]);

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
@@ -223,7 +224,7 @@ public class McpDraftTests
                     {
                         Name = "values",
                         Kind = ActionParameterKind.Text,
-                        Value = "a",
+                        Written = Formula.FromLine("a"),
                     },
                     new StepParameter
                     {

@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -40,7 +41,7 @@ public partial class ActionEditorView : UserControl
                      string.Equals(field.Name, "window", StringComparison.Ordinal)
                      && WindowRule.TryParse(field.Value, out var rule) && rule.Follow))
         {
-            field.Value = viewModel.WindowAbove;
+            field.Written = Formula.Text(viewModel.WindowAbove);
         }
 
         return built;

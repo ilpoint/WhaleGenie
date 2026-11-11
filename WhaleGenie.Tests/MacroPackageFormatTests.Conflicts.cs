@@ -71,19 +71,19 @@ public partial class MacroPackageFormatTests
                     {
                         Name = "inputMode",
                         Kind = ActionParameterKind.Choice,
-                        Value = "background",
+                        Written = Formula.FromLine("background"),
                     },
                     new StepParameter
                     {
                         Name = "window",
                         Kind = ActionParameterKind.WindowRule,
-                        Value = rule.ToJson().ToJsonString(),
+                        Written = Formula.FromLine(rule.ToJson().ToJsonString()),
                     },
                     new StepParameter
                     {
                         Name = "key",
                         Kind = ActionParameterKind.Key,
-                        Value = "F5",
+                        Written = Formula.FromLine("F5"),
                     },
                 ],
             });

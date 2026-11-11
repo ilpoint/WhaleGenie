@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using Xunit;
@@ -101,7 +102,7 @@ public class MacroBundleTests
                 Type = "control.delay",
                 Parameters =
                 [
-                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Value = "$次数" },
+                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.FromLine("$次数") },
                 ],
             });
 
@@ -214,7 +215,7 @@ public class MacroBundleTests
     private static MacroStep Call(string name) => new()
     {
         Type = "control.runMacro",
-        Parameters = [new StepParameter { Name = "macro", Kind = ActionParameterKind.Text, Value = name }],
+        Parameters = [new StepParameter { Name = "macro", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) }],
     };
 
     private static string TempFolder()

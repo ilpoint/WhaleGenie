@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -33,15 +34,15 @@ public partial class RecoveryTests
                 [
                     new StepParameter
                     {
-                        Name = "button", Kind = ActionParameterKind.Choice, Value = "left",
+                        Name = "button", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("left"),
                     },
                     new StepParameter
                     {
-                        Name = "x", Kind = ActionParameterKind.Number, Value = "$sys.mouseX",
+                        Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine("$sys.mouseX"),
                     },
                     new StepParameter
                     {
-                        Name = "y", Kind = ActionParameterKind.Number, Value = "$sys.mouseY",
+                        Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine("$sys.mouseY"),
                     },
                 ],
             });

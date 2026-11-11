@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -178,7 +179,7 @@ public partial class ActionDialogTests
                 Type = "browser.evaluate",
                 Parameters =
                 [
-                    new StepParameter { Name = "script", Kind = ActionParameterKind.Text, Value = "() => 1" },
+                    new StepParameter { Name = "script", Kind = ActionParameterKind.Text, Written = Formula.FromLine("() => 1") },
                     new StepParameter
                     {
                         Name = "returns",

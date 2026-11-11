@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -103,10 +104,10 @@ public partial class LookWindowTests
         Type = "ocr.recognize",
         Parameters =
         [
-            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Value = "0" },
-            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Value = "0" },
-            new StepParameter { Name = "width", Kind = ActionParameterKind.Number, Value = "120" },
-            new StepParameter { Name = "height", Kind = ActionParameterKind.Number, Value = "20" },
+            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine("0") },
+            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine("0") },
+            new StepParameter { Name = "width", Kind = ActionParameterKind.Number, Written = Formula.FromLine("120") },
+            new StepParameter { Name = "height", Kind = ActionParameterKind.Number, Written = Formula.FromLine("20") },
         ],
     };
 

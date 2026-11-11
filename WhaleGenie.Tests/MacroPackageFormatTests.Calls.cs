@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -40,7 +41,7 @@ public partial class MacroPackageFormatTests
                     {
                         Name = FieldNames.Macro,
                         Kind = ActionParameterKind.Macro,
-                        Value = "整理",
+                        Written = Formula.FromLine("整理"),
                     },
                     new StepParameter
                     {

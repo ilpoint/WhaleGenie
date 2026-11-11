@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 
@@ -34,7 +35,7 @@ public class PublicMacroLibraryTests
                 {
                     Name = "macro",
                     Kind = ActionParameterKind.Macro,
-                    Value = "helper",
+                    Written = Formula.FromLine("helper"),
                 }));
             macro.SubMacros.Add(child);
 
@@ -114,7 +115,7 @@ public class PublicMacroLibraryTests
                 {
                     Name = "image",
                     Kind = ActionParameterKind.Image,
-                    Value = "button.png",
+                    Written = Formula.FromLine("button.png"),
                 }));
             var projectAssets = Path.Combine(folder, "project.assets");
 
