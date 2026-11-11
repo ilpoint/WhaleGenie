@@ -105,7 +105,7 @@
 592	WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
 345	WhaleGenie.Tests/McpRunTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 324	WhaleGenie.Tests/McpServerTests.Patches.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
-323	WhaleGenie.Tests/McpServerTests.StepPatch.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
+325	WhaleGenie.Tests/McpServerTests.StepPatch.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
 317	WhaleGenie.Tests/NumberBoxTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 527	WhaleGenie.Tests/PickerAsideTests.cs	keep: 拾取器让位的单一测试
 385	WhaleGenie.Tests/PickerDeviceTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -158,7 +158,7 @@
 461	WhaleGenie/ViewModels/MacroEditorViewModel.TriggerSettings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 662	WhaleGenie/ViewModels/MacroInterfaceViewModel.cs	keep: 宏接口声明：参数与结果同构的增删排序，一套规则两处复用
 529	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
-331	WhaleGenie/ViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
+332	WhaleGenie/ViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 410	WhaleGenie/ViewModels/SlotReader.cs	keep: 槽位配方的一族，按读取/标记/折行拆分后单一职责
 536	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型
 315	WhaleGenie/ViewModels/VariableWallViewModel.cs	keep: 一个界面的状态与命令
