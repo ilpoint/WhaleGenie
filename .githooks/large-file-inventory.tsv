@@ -211,4 +211,4 @@
 339	WhaleGenie/Views/MacroEditorWindow.Keyboard.cs	keep: 键与指针的捕获、组合键的写法
 531	WhaleGenie/Views/MacroSettingsGeneralView.axaml	keep: 通用设置一页，触发列表与选中项的参数同属一次编辑
 78	WhaleGenie/Views/MacroSettingsSpecificView.axaml	keep: 特定设置一页：界面与开关键
-301	WhaleGenie/ViewModels/StepParameterViewModel.Parts.cs	keep: 一格值的碎片与它们的编辑，读法、写回与跨段删除同属这一件事
+312	WhaleGenie/ViewModels/StepParameterViewModel.Parts.cs	keep: 一格值的碎片与它们的编辑，读法、写回与跨段删除同属这一件事
