@@ -163,13 +163,14 @@ public partial class StepParameter
     }
 
     /// <summary>
-    /// One value read back out of the file. A node written as text is read as the line it is — an
-    /// older macro, or a hand edit, says <c>$name</c> and means the name — and a node written as a
-    /// tagged shape is that shape.
+    /// One value read back out of the file. A node written as text is the text it is — the file
+    /// writes a string only for a value that names nothing, because anything with a name or a
+    /// formula in it is written as the shape it is — and a node written as a tagged shape is that
+    /// shape. Nothing is parsed here: a file is not a place a formula is typed.
     /// </summary>
     private static ExpressionNode ValueOf(JsonNode? node)
         => node is JsonValue value && value.TryGetValue<string>(out var text)
-            ? Formula.FromLine(text)
+            ? Formula.Text(text)
             : FormulaJson.Read(node);
 
     /// <summary>Writes a nested step list as a JSON array.</summary>
