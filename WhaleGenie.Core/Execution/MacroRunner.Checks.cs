@@ -85,8 +85,8 @@ public sealed partial class MacroRunner
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in step.Rows("returns"))
         {
-            var key = row.GetValueOrDefault(FieldNames.Key)?.Trim() ?? string.Empty;
-            var name = row.GetValueOrDefault(FieldNames.Name)?.Trim() ?? string.Empty;
+            var key = Word(row, FieldNames.Key);
+            var name = Word(row, FieldNames.Name);
             if (key.Length == 0 || name.Length == 0)
             {
                 continue;

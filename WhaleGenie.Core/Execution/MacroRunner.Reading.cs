@@ -31,16 +31,17 @@ public sealed partial class MacroRunner
     private Value ReadValue(ExecutableStep step, string name)
     {
         // A field nobody answered is "nothing was said" in every read mode. A number step that
-        // leaves a setting out gets its catalogue default, not an empty text that fails to parse.
-        if (step.Text(name).Trim().Length == 0)
+        // leaves a setting out gets its catalogue default, not an empty value that fails to parse.
+        var written = step.Written(name);
+        if (Formula.IsNothing(written))
         {
             return Value.Null;
         }
 
         return ReadModeOf(step, name) switch
         {
-            ActionReadMode.VariableName => ReadName(step.Text(name)),
-            ActionReadMode.WholeValue => Read(step.Text(name)),
+            ActionReadMode.VariableName => ReadName(written),
+            ActionReadMode.WholeValue => Read(written),
             _ => Value.FromText(ReadText(step, name)),
         };
     }
@@ -51,10 +52,10 @@ public sealed partial class MacroRunner
     /// </summary>
     private string ReadText(ExecutableStep step, string name)
     {
-        var written = step.Text(name);
+        var written = step.Written(name);
         return ReadModeOf(step, name) == ActionReadMode.Text
-            ? Interpolate(written)
-            : written;
+            ? Read(written).AsText()
+            : FormulaText.Write(written);
     }
 
     private static ActionReadMode ReadModeOf(ExecutableStep step, string name)
@@ -65,9 +66,14 @@ public sealed partial class MacroRunner
     /// holds is the value. A name nothing defines stays the text it was written as, so a step that
     /// waits on a handle no run ever set reports that rather than failing to resolve.
     /// </summary>
-    private Value ReadName(string text)
+    private Value ReadName(ExpressionNode written)
     {
-        var name = text.Trim().TrimStart('$');
+        if (written is VariableNode variable)
+        {
+            return Variables.TryGet(variable.Name, out var held) ? held : Value.FromText(variable.Name);
+        }
+
+        var name = Read(written).AsText().Trim();
         if (name.Length == 0)
         {
             return Value.Null;
@@ -76,10 +82,13 @@ public sealed partial class MacroRunner
         return Variables.TryGet(name, out var value) ? value : Value.FromText(name);
     }
 
+    /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
+    private Value Read(ExpressionNode written) => Expression.Evaluate(written, Variables);
+
     /// <summary>
-    /// Reads text that stands for one value. The line is read into its shape first and the shape
-    /// is worked out — the runner itself has no language, so there is no second place a formula
-    /// could be read differently from the way the editor wrote it.
+    /// Reads a line that stands for one value. Only the places that still hold a line — a default
+    /// written in the catalogue, an argument the run dialog typed — come through here; a field of a
+    /// step is already a shape.
     /// </summary>
     private Value Read(string text)
         => Expression.Evaluate(FormulaText.Read(text, ActionReadMode.WholeValue), Variables);
@@ -90,6 +99,25 @@ public sealed partial class MacroRunner
     /// </summary>
     private string Interpolate(string text)
         => Expression.Evaluate(FormulaText.Read(text, ActionReadMode.Text), Variables).AsText();
+
+    /// <summary>The text a field comes to, with the names in it worked out where they stand.</summary>
+    private string Text(ExecutableStep step, string name) => Read(step.Written(name)).AsText();
+
+    /// <summary>One column of one row, worked out where it stands.</summary>
+    private string Text(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written) ? Read(written).AsText() : string.Empty;
+
+    /// <summary>
+    /// One column of one row as the word it says. Only a column that names something — a key, a
+    /// kind, the name a result is kept under — is read this way; a column holding a name rather
+    /// than a piece of text answers with the name it holds.
+    /// </summary>
+    private static string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => FormulaText.Write(row.GetValueOrDefault(column)).Trim();
+
+    /// <summary>True when a column of a row holds anything at all.</summary>
+    private static bool Said(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => !Formula.IsNothing(row.GetValueOrDefault(column));
 
     /// <summary>
     /// A number a step names, read the way every other field is: as a value. A field nobody
@@ -158,7 +186,7 @@ public sealed partial class MacroRunner
 
     /// <summary>True when the step wrote anything at all into a number field.</summary>
     private static bool Given(ExecutableStep step, string name)
-        => step.Text(name).Trim().Length > 0;
+        => !Formula.IsNothing(step.Written(name));
 
     /// <summary>What a blank cell of this field means, from the catalogue.</summary>
     private static ActionEmptyMeans Empties(ExecutableStep step, string name)

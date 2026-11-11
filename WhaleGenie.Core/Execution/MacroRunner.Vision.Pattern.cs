@@ -122,9 +122,9 @@ public sealed partial class MacroRunner
         var around = new List<ColourStep>(rows.Count);
         foreach (var row in rows)
         {
-            var dx = Column(row, "dx").Trim();
-            var dy = Column(row, "dy").Trim();
-            var colour = Column(row, "colour").Trim();
+            var dx = Word(row, "dx");
+            var dy = Word(row, "dy");
+            var colour = Word(row, "colour");
             var entry = $"{dx},{dy},{colour}";
             if (dx.Length == 0 || dy.Length == 0 || colour.Length == 0)
             {
@@ -151,8 +151,8 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>Whether this place is asked to be none of the colours it names, rather than one of them.</summary>
-    private static bool MustNotHold(IReadOnlyDictionary<string, string> row)
-        => string.Equals(Column(row, "mustNot").Trim(), "true", StringComparison.OrdinalIgnoreCase);
+    private static bool MustNotHold(IReadOnlyDictionary<string, ExpressionNode> row)
+        => string.Equals(Word(row, "mustNot"), "true", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// How far this one colour may sit from what was written, or nothing when the row leaves it to
@@ -160,9 +160,9 @@ public sealed partial class MacroRunner
     /// drifts; one number for both is then either too loose for the anchor or too tight for the
     /// rest, which is why the step may say a different number per point.
     /// </summary>
-    private double? PatternTolerance(IReadOnlyDictionary<string, string> row, string entry)
+    private double? PatternTolerance(IReadOnlyDictionary<string, ExpressionNode> row, string entry)
     {
-        var token = Column(row, "tolerance").Trim();
+        var token = Word(row, "tolerance");
         if (token.Length == 0)
         {
             return null;

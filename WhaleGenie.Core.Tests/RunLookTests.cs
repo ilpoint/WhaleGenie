@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
@@ -68,7 +69,7 @@ public partial class RunLookTests
         => new()
         {
             Name = "images",
-            Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
+            Rows = [.. written.Select(text =>
                 Cells.Of(("image", text)))],
         };
 

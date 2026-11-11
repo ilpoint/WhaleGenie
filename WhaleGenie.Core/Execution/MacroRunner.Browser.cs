@@ -48,7 +48,7 @@ public sealed partial class MacroRunner
         var conditions = new List<PageCondition>();
         foreach (var row in step.Rows("narrow"))
         {
-            var how = row.TryGetValue("how", out var way) ? way.Trim() : string.Empty;
+            var how = Word(row, "how");
             if (how.Length == 0)
             {
                 continue;
@@ -59,7 +59,7 @@ public sealed partial class MacroRunner
                 throw new StepFailure(RunKeys.BrowserBadFilter, how);
             }
 
-            var value = row.TryGetValue("value", out var said) ? said : string.Empty;
+            var value = row.GetValueOrDefault("value") ?? Formula.Nothing;
             conditions.Add(new PageCondition(kind, Read(value).AsText()));
         }
 

@@ -60,7 +60,7 @@ public sealed partial class MacroRunner
         {
             supplied.TryGetValue(argument.Name.Trim(), out var input);
             called.Set(argument.Name, ReadArgument(argument,
-                input?.Value ?? string.Empty, input?.Given ?? false));
+                input?.Value ?? Formula.Nothing, input?.Given ?? false));
         }
 
         // A declared result is empty until this attempt writes it. Putting it into the local table
@@ -98,7 +98,7 @@ public sealed partial class MacroRunner
         var supplied = new Dictionary<string, CallArgument>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in step.Rows(FieldNames.Arguments))
         {
-            var name = (row.GetValueOrDefault(FieldNames.Name) ?? string.Empty).Trim();
+            var name = Word(row, FieldNames.Name);
             if (name.Length == 0)
             {
                 continue;
@@ -109,9 +109,8 @@ public sealed partial class MacroRunner
                 throw new StepFailure(RunKeys.UndeclaredArgument, name);
             }
 
-            var value = (row.GetValueOrDefault(FieldNames.Value) ?? string.Empty).Trim();
-            var given = string.Equals(
-                (row.GetValueOrDefault(FieldNames.Given) ?? string.Empty).Trim(), "true",
+            var value = row.GetValueOrDefault(FieldNames.Value) ?? Formula.Nothing;
+            var given = string.Equals(Word(row, FieldNames.Given), "true",
                 StringComparison.OrdinalIgnoreCase);
             if (!supplied.TryAdd(name, new CallArgument(value, given)))
             {
@@ -123,7 +122,7 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>What one row of a call's argument list says about the argument it names.</summary>
-    private sealed record CallArgument(string Value, bool Given);
+    private sealed record CallArgument(ExpressionNode Value, bool Given);
 
     /// <summary>
     /// Fills the run's own table from the declaration before the first step. A top-level run has no
@@ -180,7 +179,11 @@ public sealed partial class MacroRunner
                 }
 
                 var input = supplied.TryGetValue(name, out var found) ? found : null;
-                var written = input?.Text.Trim() ?? string.Empty;
+                // A run started from the dialog supplies lines a person typed, so this is one of
+                // the few places a line becomes a value: a field of a step already is one.
+                var written = input is null
+                    ? Formula.Nothing
+                    : FormulaText.Read(input.Text, ActionReadMode.WholeValue);
                 var explicitlyEmpty = input?.Given ?? false;
                 var value = ReadArgument(argument, written, explicitlyEmpty);
                 values.Add((name, value));
@@ -242,16 +245,16 @@ public sealed partial class MacroRunner
     /// value that was not supplied takes the default, or fails when the declaration says it is
     /// required.
     /// </summary>
-    private Value ReadArgument(MacroArgument argument, string written, bool given)
+    private Value ReadArgument(MacroArgument argument, ExpressionNode written, bool given)
     {
         // Two answers to one question: the field says a value, the marker beside it says no value.
         // Picking one would be guessing which the author meant, so neither is used.
-        if (given && written.Length > 0)
+        if (given && !Formula.IsNothing(written))
         {
             throw new StepFailure(RunKeys.GivenWithValue, argument.Name);
         }
 
-        if (written.Length == 0 && !given)
+        if (Formula.IsNothing(written) && !given)
         {
             if (argument.Required)
             {
@@ -263,7 +266,7 @@ public sealed partial class MacroRunner
             return fallback;
         }
 
-        var value = written.Length > 0 ? Read(written) : Value.FromText(string.Empty);
+        var value = Formula.IsNothing(written) ? Value.FromText(string.Empty) : Read(written);
         CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
         return value;
     }
@@ -292,21 +295,16 @@ public sealed partial class MacroRunner
     /// A region row says where to look in one of two ways: a name, or four numbers. Both at once
     /// would be two answers to one question, and the reader would have to guess which one wins.
     /// </summary>
-    private static bool HasTextAndNumbers(IReadOnlyDictionary<string, string> row)
-    {
-        var named = row.TryGetValue("text", out var text)
-            && !string.IsNullOrWhiteSpace(text);
-        var numbered = new[] { "x", "y", "width", "height" }.Any(column =>
-            row.TryGetValue(column, out var value) && !string.IsNullOrWhiteSpace(value));
-        return named && numbered;
-    }
+    private static bool HasTextAndNumbers(IReadOnlyDictionary<string, ExpressionNode> row)
+        => Said(row, "text")
+            && new[] { "x", "y", "width", "height" }.Any(column => Said(row, column));
     /// <summary>
     /// Checks a row list against the columns its field declares. A column nobody reads would be
     /// skipped in silence, which looks like the action ignoring what the row said; one the field
     /// requires but the row leaves out is a row that cannot say what it was meant to say.
     /// </summary>
     private static void CheckRowColumns(ActionParameterSemantics facts,
-        IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+        IReadOnlyList<IReadOnlyDictionary<string, ExpressionNode>> rows)
     {
         foreach (var row in rows)
         {
@@ -359,10 +357,8 @@ public sealed partial class MacroRunner
         var wanted = new List<(string Result, string Name)>();
         foreach (var row in step.Rows("returns"))
         {
-            var result = row.TryGetValue(FieldNames.Key, out var key) ? key.Trim() : string.Empty;
-            var name = row.TryGetValue(FieldNames.Name, out var written)
-                ? written.Trim()
-                : string.Empty;
+            var result = Word(row, FieldNames.Key);
+            var name = Word(row, FieldNames.Name);
             if (result.Length == 0 || name.Length == 0)
             {
                 continue;

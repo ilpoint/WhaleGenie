@@ -83,7 +83,7 @@ public sealed partial class MacroRunner
         var conditions = new List<UiCondition>();
         foreach (var row in step.Rows("narrow"))
         {
-            var how = (row.GetValueOrDefault(FieldNames.How) ?? string.Empty).Trim();
+            var how = Word(row, FieldNames.How);
             if (how.Length == 0)
             {
                 continue;
@@ -95,7 +95,7 @@ public sealed partial class MacroRunner
             }
 
             var value = kind is UiConditionHow.NameHas or UiConditionHow.NameHasNot
-                ? Interpolate(row.GetValueOrDefault(FieldNames.Value) ?? string.Empty).Trim()
+                ? Text(row, FieldNames.Value).Trim()
                 : string.Empty;
 
             if (kind is (UiConditionHow.NameHas or UiConditionHow.NameHasNot) && value.Length == 0)

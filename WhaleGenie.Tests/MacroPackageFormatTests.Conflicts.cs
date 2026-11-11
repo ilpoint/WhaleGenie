@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -98,7 +99,8 @@ public partial class MacroPackageFormatTests
             var executable = Assert.Single(new[] { step }.ToExecutable());
             var executableWindow = Assert.Single(executable.Parameters,
                 parameter => parameter.Name == "window");
-            Assert.True(WindowRule.TryParse(executableWindow.Text, out var executableRule));
+            Assert.True(WindowRule.TryParse(FormulaText.Write(executableWindow.Written),
+                out var executableRule));
             Assert.Equal(rule, executableRule);
         }
         finally

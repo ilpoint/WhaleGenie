@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
@@ -180,8 +181,8 @@ public partial class RunLookTests
     /// A step that looks for a picture, with the places to look given the way the dialog gives
     /// them: one row per rectangle.
     /// </summary>
-        /// <summary>One place to look, written the way a row of the field is written.</summary>
-    private static IReadOnlyDictionary<string, string> Region(
+    /// <summary>One place to look, written the way a row of the field is written.</summary>
+    private static IReadOnlyDictionary<string, ExpressionNode> Region(
         (int X, int Y, int Width, int Height) region)
         => Cells.Of(
             ("x", region.X.ToString(CultureInfo.InvariantCulture)),
@@ -189,11 +190,11 @@ public partial class RunLookTests
             ("width", region.Width.ToString(CultureInfo.InvariantCulture)),
             ("height", region.Height.ToString(CultureInfo.InvariantCulture)));
 
-private static ExecutableStep Find(string image = @"C:\images\ok.png",
-        params (int X, int Y, int Width, int Height)[] regions)
-        => Step("vision.findImage", Pictures(image), Param("confidence", "90"),
-            Fields.Rows("region", [.. regions.Select(Region)]),
-            Hit("match", "match"));
+    private static ExecutableStep Find(string image = @"C:\images\ok.png",
+            params (int X, int Y, int Width, int Height)[] regions)
+            => Step("vision.findImage", Pictures(image), Param("confidence", "90"),
+                Fields.Rows("region", [.. regions.Select(Region)]),
+                Hit("match", "match"));
 
     private static FakeDeviceLayer Screen(int width = 200, int height = 100,
         ImageMatch? match = null)

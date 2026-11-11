@@ -33,7 +33,9 @@ internal static class SampleFiles
     {
         var hasWindow = parameters.Any(parameter => parameter.Name == "window");
         var how = hasWindow
-            ? parameters.FirstOrDefault(parameter => parameter.Name == "how")?.Text
+            ? parameters.FirstOrDefault(parameter => parameter.Name == "how") is { } asked
+                ? FormulaText.Write(asked.Written)
+                : null
             : null;
         var written = new List<ExecutableParameter>(parameters.Length);
         foreach (var parameter in parameters)
@@ -49,7 +51,7 @@ internal static class SampleFiles
                 continue;
             }
 
-            var text = parameter.Text ?? string.Empty;
+            var text = FormulaText.Write(parameter.Written);
             if (text.TrimStart().StartsWith('$'))
             {
                 written.Add(parameter);
@@ -109,7 +111,7 @@ internal static class SampleFiles
         {
             Name = "region",
             Rows = [.. rectangles.Select(rectangle =>
-                (IReadOnlyDictionary<string, string>)Cells.Of(("x", rectangle.X.ToString(CultureInfo.InvariantCulture)), ("y", rectangle.Y.ToString(CultureInfo.InvariantCulture)), ("width", rectangle.Width.ToString(CultureInfo.InvariantCulture)), ("height", rectangle.Height.ToString(CultureInfo.InvariantCulture))))],
+                Cells.Of(("x", rectangle.X.ToString(CultureInfo.InvariantCulture)), ("y", rectangle.Y.ToString(CultureInfo.InvariantCulture)), ("width", rectangle.Width.ToString(CultureInfo.InvariantCulture)), ("height", rectangle.Height.ToString(CultureInfo.InvariantCulture))))],
         };
 
     /// <summary>
@@ -123,7 +125,7 @@ internal static class SampleFiles
         {
             Name = "points",
             Rows = [.. offsets.Select(offset =>
-                (IReadOnlyDictionary<string, string>)Cells.Of(("dx", offset.Dx), ("dy", offset.Dy), ("colour", offset.Colour), ("tolerance", offset.Tolerance)))],
+                Cells.Of(("dx", offset.Dx), ("dy", offset.Dy), ("colour", offset.Colour), ("tolerance", offset.Tolerance)))],
         };
 
     /// <summary>The same, for the colours that use the tolerance filled in for the base colour.</summary>
@@ -133,7 +135,7 @@ internal static class SampleFiles
         {
             Name = "points",
             Rows = [.. offsets.Select(offset =>
-                (IReadOnlyDictionary<string, string>)Cells.Of(("dx", offset.Dx), ("dy", offset.Dy), ("colour", offset.Colour)))],
+                Cells.Of(("dx", offset.Dx), ("dy", offset.Dy), ("colour", offset.Colour)))],
         };
 
     /// <summary>A place to look that names a variable instead of giving four numbers.</summary>
@@ -215,7 +217,7 @@ internal static class SampleFiles
         .. extra.Select(part => $"{part}={name}.{part}"),
     ]);
 
-    private static IReadOnlyDictionary<string, string> Result(string written)
+    private static IReadOnlyDictionary<string, ExpressionNode> Result(string written)
     {
         var cut = written.IndexOf('=');
         return Cells.Of(("key", cut < 0 ? written : written[..cut]), ("name", cut < 0 ? written : written[(cut + 1)..]));

@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -54,7 +55,7 @@ public partial class ActionDialogTests
             var executable = Assert.Single(new[] { step }.ToExecutable());
             var posted = Assert.Single(executable.Parameters,
                 parameter => parameter.Name == "window");
-            Assert.True(WindowRule.TryParse(posted.Text, out var reached));
+            Assert.True(WindowRule.TryParse(FormulaText.Write(posted.Written), out var reached));
             Assert.Equal(rule, reached);
         });
     }

@@ -62,7 +62,7 @@ public sealed partial class MacroRunner
             for (var index = 0; index < rows.Count; index++)
             {
                 token.ThrowIfCancellationRequested();
-                var keys = Chord(Column(rows[index], "keys"));
+                var keys = Chord(Word(rows[index], "keys"));
                 if (keys.Count == 0)
                 {
                     // A row that was added and never filled in is left out rather than sent as a

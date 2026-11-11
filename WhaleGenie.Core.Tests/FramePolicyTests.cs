@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
@@ -35,7 +36,7 @@ public class FramePolicyTests
         => new()
         {
             Name = "images",
-            Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
+            Rows = [.. written.Select(text =>
                 Cells.Of(("image", text)))],
         };
 

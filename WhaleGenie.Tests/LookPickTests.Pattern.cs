@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -154,10 +155,7 @@ public partial class LookPickTests
                        Name = "points",
                        Rows =
                        [
-                           new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
-        },
+                           Cells.Of(("dx", "1"), ("dy", "0"), ("colour", "#00FF00")),
                        ],
                    }]
                 : [Fields.Text("color", "#FF0000")],

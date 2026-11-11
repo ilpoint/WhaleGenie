@@ -41,11 +41,9 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task A_return_key_the_action_does_not_declare_stops_the_step_before_it_runs()
     {
-        var returns = Fields.Rows("returns", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    [FieldNames.Key] = "missing",
-                    [FieldNames.Name] = "取回",
-                });
+        var returns = Fields.Rows("returns", Cells.Of(
+            (FieldNames.Key, "missing"),
+            (FieldNames.Name, "取回")));
 
         var (result, _) = await RunAsync(
         [

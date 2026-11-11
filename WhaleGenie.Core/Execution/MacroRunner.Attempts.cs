@@ -104,9 +104,7 @@ public sealed partial class MacroRunner
     {
         foreach (var row in step.Rows("returns"))
         {
-            var name = row.TryGetValue(FieldNames.Name, out var written)
-                ? written.Trim()
-                : string.Empty;
+            var name = Word(row, FieldNames.Name);
             if (name.Length > 0)
             {
                 Variables.Set(name, Value.Null);

@@ -34,16 +34,16 @@ public partial class MacroRunnerTests
     private static ExecutableParameter ArgRow(string name, string text, bool? given)
         => new() { Name = FieldNames.Arguments, Rows = [Row(name, text, given)] };
 
-    private static IReadOnlyDictionary<string, string> Row(string name, string text, bool? given)
+    private static IReadOnlyDictionary<string, ExpressionNode> Row(string name, string text, bool? given)
     {
-        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        var row = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            [FieldNames.Name] = name,
-            [FieldNames.Value] = text,
+            [FieldNames.Name] = Cells.Line(name),
+            [FieldNames.Value] = Cells.Line(text),
         };
         if (given is { } written)
         {
-            row[FieldNames.Given] = written ? "true" : "false";
+            row[FieldNames.Given] = Cells.Line(written ? "true" : "false");
         }
 
         return row;

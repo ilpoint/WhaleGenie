@@ -47,8 +47,8 @@ public class ReferencePictureTests
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("images");
             Assert.Equal(2, rows.Count);
-            Assert.Equal("ok.png", rows[0]["image"]);
-            Assert.Equal("$shot", rows[1]["image"]);
+            Assert.Equal("ok.png", Cells.Spoken(rows[0], "image"));
+            Assert.Equal("$shot", Cells.Spoken(rows[1], "image"));
         });
     }
 
@@ -124,7 +124,7 @@ public class ReferencePictureTests
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("images");
             Assert.Equal(["third.png", "first.png", "second.png"],
-                rows.Select(row => row["image"]));
+                rows.Select(row => Cells.Spoken(row, "image")));
         });
     }
 

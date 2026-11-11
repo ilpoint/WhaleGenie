@@ -65,8 +65,9 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>What the regions of a step say, for a failure that has to show what it could not read.</summary>
-    private static string Written(IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
-        => string.Join("; ", rows.Select(row => string.Join(',', row.Values)));
+    private static string Written(IReadOnlyList<IReadOnlyDictionary<string, ExpressionNode>> rows)
+        => string.Join("; ", rows.Select(row =>
+            string.Join(',', row.Values.Select(FormulaText.Write))));
 
     /// <summary>
     /// What one region of a step comes to. A rectangle written out says where it is; a region that
@@ -75,7 +76,7 @@ public sealed partial class MacroRunner
     /// rectangle held in a variable gets to be used.
     /// </summary>
     private IEnumerable<(ImageFrame Frame, ScreenPoint Origin)> Areas(ExecutableStep step,
-        IReadOnlyDictionary<string, string> row)
+        IReadOnlyDictionary<string, ExpressionNode> row)
     {
         if (!row.TryGetValue("text", out var written))
         {
@@ -83,12 +84,11 @@ public sealed partial class MacroRunner
             yield break;
         }
 
-        // A picture taken earlier is looked up by the name the step wrote rather than through the
+        // A picture taken earlier is looked up by the name the step says rather than through the
         // variables: what a variable holds is a note about the picture, and it is the picture
-        // itself that is searched.
-        var raw = written.Trim();
-        var name = raw.StartsWith('$') ? raw[1..].Trim() : raw;
-        if (_images.TryGetValue(name, out var picture))
+        // itself that is searched. The name is the shape's own, so nothing is taken off the front
+        // of a word to find it.
+        if (Name(written) is { } name && _images.TryGetValue(name, out var picture))
         {
             yield return (picture, new ScreenPoint(0, 0));
             yield break;
@@ -97,16 +97,16 @@ public sealed partial class MacroRunner
         // A record is one rectangle with a name for each of its sides, which is what a hit hands
         // over: naming that record here is how "look again at what you just found" is written
         // without the macro spelling the four numbers out again.
-        if (Read(raw) is { IsRecord: true } record && Held(step, record) is { } held)
+        if (Read(written) is { IsRecord: true } record && Held(step, record) is { } held)
         {
             yield return held;
             yield break;
         }
 
-        // Anything else is a rectangle, written out or held in a variable. It is only interpolated
-        // rather than read as a whole expression: the commas of a written rectangle would stop an
+        // Anything else is a rectangle, written out or held in a variable. It is only read for its
+        // text rather than as a whole expression: the commas of a written rectangle would stop an
         // expression at its first number.
-        var named = Interpolate(raw).Trim();
+        var named = Read(written).AsText().Trim();
 
         // Several rectangles are separated by a semicolon or a line break, so a variable holding a
         // list of them goes on working the way it always did.
@@ -166,7 +166,7 @@ public sealed partial class MacroRunner
 
     /// <summary>One region written as four numbers, captured where on the screen it says.</summary>
     private (ImageFrame Frame, ScreenPoint Origin) Rectangle(ExecutableStep step,
-        IReadOnlyDictionary<string, string> row)
+        IReadOnlyDictionary<string, ExpressionNode> row)
     {
         var x = Cell(row, "x");
         var y = Cell(row, "y");
@@ -181,21 +181,29 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>What a row of a list parameter says in one column, or nothing when it has none.</summary>
-    private static string Column(IReadOnlyDictionary<string, string> row, string column)
-        => row.TryGetValue(column, out var written) ? written : string.Empty;
+    private static ExpressionNode Column(IReadOnlyDictionary<string, ExpressionNode> row,
+        string column)
+        => row.GetValueOrDefault(column) ?? Formula.Nothing;
+
+    /// <summary>
+    /// The name a shape is, when it is one reference and nothing else. A region that names a
+    /// picture an earlier step took says that name rather than what the name holds.
+    /// </summary>
+    private static string? Name(ExpressionNode written)
+        => written is VariableNode variable ? variable.Name : null;
 
     /// <summary>One number of a row of a list parameter, as its field was filled in.</summary>
-    private int Cell(IReadOnlyDictionary<string, string> row, string column)
+    private int Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => (int)Math.Round(Read(Column(row, column)).AsNumber());
 
     /// <summary>
     /// One number of a row that may be left empty, where empty means the run's own value: a row
     /// only has to spell out the hold or the gap that is not the one everywhere else.
     /// </summary>
-    private int Cell(IReadOnlyDictionary<string, string> row, string column, int fallback)
-        => Column(row, column).Trim().Length > 0
-            ? (int)Math.Round(Read(Column(row, column)).AsNumber())
-            : fallback;
+    private int Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column, int fallback)
+        => Formula.IsNothing(Column(row, column))
+            ? fallback
+            : (int)Math.Round(Read(Column(row, column)).AsNumber());
 
     /// <summary>One written rectangle, such as one a variable holds.</summary>
     private (ImageFrame Frame, ScreenPoint Origin) Written(ExecutableStep step, string rectangle)

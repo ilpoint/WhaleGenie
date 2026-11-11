@@ -30,7 +30,9 @@ public partial class DeviceActionTests
     {
         var hasWindow = parameters.Any(parameter => parameter.Name == "window");
         var how = hasWindow
-            ? parameters.FirstOrDefault(parameter => parameter.Name == "how")?.Text
+            ? parameters.FirstOrDefault(parameter => parameter.Name == "how") is { } asked
+                ? FormulaText.Write(asked.Written)
+                : null
             : null;
         var written = new List<ExecutableParameter>(parameters.Length);
         foreach (var parameter in parameters)
@@ -46,7 +48,7 @@ public partial class DeviceActionTests
                 continue;
             }
 
-            var text = parameter.Text ?? string.Empty;
+            var text = FormulaText.Write(parameter.Written);
             if (text.TrimStart().StartsWith('$'))
             {
                 written.Add(parameter);
@@ -159,11 +161,11 @@ public partial class DeviceActionTests
 
     /// <summary>A parameter that holds a list of rows: the places to look, the presses of a run.</summary>
     private static ExecutableParameter Rows(string name,
-        params IReadOnlyDictionary<string, string>[] rows)
+        params IReadOnlyDictionary<string, ExpressionNode>[] rows)
         => Fields.Rows(name, rows);
 
     /// <summary>One row of what a browser step narrows the page down by, as the dialog writes it.</summary>
-    private static IReadOnlyDictionary<string, string> Narrow(string how, string value = "")
+    private static IReadOnlyDictionary<string, ExpressionNode> Narrow(string how, string value = "")
         => Cells.Of(("how", how), ("value", value));
 
     /// <summary>
@@ -174,27 +176,27 @@ public partial class DeviceActionTests
         => new()
         {
             Name = "images",
-            Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
+            Rows = [.. written.Select(text =>
                 Cells.Of(("image", text)))],
         };
 
     /// <summary>One press of a key run, with its own hold or gap where it has one.</summary>
-    private static IReadOnlyDictionary<string, string> Press(string keys, int? holdMs = null,
+    private static IReadOnlyDictionary<string, ExpressionNode> Press(string keys, int? holdMs = null,
         int? gapMs = null)
     {
-        var row = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        var row = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["keys"] = keys,
+            ["keys"] = Cells.Line(keys),
         };
 
         if (holdMs is { } hold)
         {
-            row["holdMs"] = hold.ToString(CultureInfo.InvariantCulture);
+            row["holdMs"] = Cells.Line(hold.ToString(CultureInfo.InvariantCulture));
         }
 
         if (gapMs is { } gap)
         {
-            row["gapMs"] = gap.ToString(CultureInfo.InvariantCulture);
+            row["gapMs"] = Cells.Line(gap.ToString(CultureInfo.InvariantCulture));
         }
 
         return row;

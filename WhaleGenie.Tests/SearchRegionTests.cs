@@ -51,11 +51,11 @@ public class SearchRegionTests
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("region");
             Assert.Equal(2, rows.Count);
-            Assert.Equal("10", rows[0]["x"]);
-            Assert.Equal("20", rows[0]["y"]);
-            Assert.Equal("30", rows[0]["width"]);
-            Assert.Equal("40", rows[0]["height"]);
-            Assert.Equal("$shot", rows[1]["text"]);
+            Assert.Equal("10", Cells.Spoken(rows[0], "x"));
+            Assert.Equal("20", Cells.Spoken(rows[0], "y"));
+            Assert.Equal("30", Cells.Spoken(rows[0], "width"));
+            Assert.Equal("40", Cells.Spoken(rows[0], "height"));
+            Assert.Equal("$shot", Cells.Spoken(rows[1], "text"));
         });
     }
 
@@ -89,10 +89,10 @@ public class SearchRegionTests
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("region");
             var written = Assert.Single(rows);
-            Assert.Equal("$left", written["x"]);
-            Assert.Equal("20", written["y"]);
-            Assert.Equal("30", written["width"]);
-            Assert.Equal("40", written["height"]);
+            Assert.Equal("$left", Cells.Spoken(written, "x"));
+            Assert.Equal("20", Cells.Spoken(written, "y"));
+            Assert.Equal("30", Cells.Spoken(written, "width"));
+            Assert.Equal("40", Cells.Spoken(written, "height"));
         });
     }
 

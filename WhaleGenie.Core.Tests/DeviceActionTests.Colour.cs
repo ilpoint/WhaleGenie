@@ -415,9 +415,10 @@ public partial class DeviceActionTests
                 Name = "points",
                 Rows =
                 [
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
+            ["dx"] = Cells.Line("1"), ["dy"] = Cells.Line("0"),
+            ["colour"] = Cells.Line("#00FF00"),
         },
                 ],
             };

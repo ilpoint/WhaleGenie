@@ -124,11 +124,20 @@ public partial class RunViewModel
             .ToDictionary(parameter => parameter.Name, parameter => parameter.LocalLabel,
                 StringComparer.OrdinalIgnoreCase);
 
-        var parts = step.Parameters
-            .Where(parameter => parameter.Text.Trim().Length > 0)
-            .Select(parameter => $"{(labels?.GetValueOrDefault(parameter.Name) ?? parameter.Name)}" +
-                                 $" = {parameter.Text.Trim()}")
-            .ToList();
+        var parts = new List<string>();
+        foreach (var parameter in step.Parameters)
+        {
+            // A field nobody answered says nothing here: the row is a summary of what the step was
+            // given, so an empty field would only add a name with nothing after it.
+            var line = FormulaText.Write(parameter.Written).Trim();
+            if (line.Length == 0)
+            {
+                continue;
+            }
+
+            var label = labels?.GetValueOrDefault(parameter.Name) ?? parameter.Name;
+            parts.Add($"{label} = {line}");
+        }
 
         // The step's own name goes first: it is what a breakpoint, a failure key and the log call
         // this step by, so the row has to say it too.

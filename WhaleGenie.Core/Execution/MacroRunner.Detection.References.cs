@@ -33,7 +33,7 @@ public sealed partial class MacroRunner
         var wanted = new List<WantedPicture>();
         foreach (var row in step.Rows("images"))
         {
-            var written = row.TryGetValue("image", out var text) ? text.Trim() : string.Empty;
+            var written = Word(row, "image");
             if (written.Length > 0)
             {
                 wanted.Add(new WantedPicture(written, Picture(written)));

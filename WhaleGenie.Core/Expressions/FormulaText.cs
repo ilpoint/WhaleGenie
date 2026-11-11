@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
@@ -192,6 +193,88 @@ public static class FormulaText
             ActionReadMode.WholeValue => ReadWhole(written),
             _ => ReadRun(written),
         };
+    }
+
+    /// <summary>
+    /// The line a shape is written as. This is the other half of <see cref="Read"/>, and it is a
+    /// rendering: it goes to a log, a failure message, or a place that still speaks lines, and
+    /// nothing reads a value back out of it — the shape is the value.
+    ///
+    /// <para>
+    /// A run is written as its pieces standing next to each other, which is what it was read from;
+    /// a formula is written back with the brackets and the spacing that make it read the same way
+    /// again. A piece of text keeps every character it holds, so a dollar in it is doubled: that is
+    /// how the reader is told it is a dollar rather than the start of a name.
+    /// </para>
+    /// </summary>
+    public static string Write(ExpressionNode? value) => value switch
+    {
+        null => string.Empty,
+        TextNode text => WriteLiteral(text.Text),
+        ConcatNode run => WriteRun(run),
+        _ => Expression.Render(value),
+    };
+
+    /// <summary>
+    /// A piece of text as the reader will take it back: a dollar is doubled where it would
+    /// otherwise be read as the start of a name, a brace or another doubled dollar, and left alone
+    /// everywhere else, so a price or a shell variable keeps the shape it was written in.
+    /// </summary>
+    private static string WriteLiteral(string text)
+    {
+        if (!text.Contains('$', StringComparison.Ordinal))
+        {
+            return text;
+        }
+
+        var builder = new StringBuilder(text.Length + 4);
+        for (var index = 0; index < text.Length; index++)
+        {
+            var character = text[index];
+            if (character != '$')
+            {
+                builder.Append(character);
+                continue;
+            }
+
+            var next = index + 1 < text.Length ? text[index + 1] : '\0';
+            if (next == '{' || next == '$' || VariableName.IsStart(next))
+            {
+                builder.Append("$$");
+                continue;
+            }
+
+            builder.Append('$');
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// A run of pieces as the one line it was written as. A name followed by something that would
+    /// otherwise be read as part of it goes in braces, which is the only reason those braces exist.
+    /// </summary>
+    private static string WriteRun(ConcatNode run)
+    {
+        var written = run.Parts
+            .Select(part => part is VariableNode variable ? "$" + variable.Name : Write(part))
+            .ToList();
+
+        for (var index = 0; index + 1 < written.Count; index++)
+        {
+            if (run.Parts[index] is not VariableNode variable)
+            {
+                continue;
+            }
+
+            var next = written[index + 1];
+            if (next.Length > 0 && VariableName.IsPart(next[0]))
+            {
+                written[index] = "${" + variable.Name + "}";
+            }
+        }
+
+        return string.Concat(written);
     }
 
     /// <summary>

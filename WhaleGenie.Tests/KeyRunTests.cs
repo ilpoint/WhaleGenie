@@ -50,10 +50,10 @@ public class KeyRunTests
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("keySequence");
             Assert.Equal(2, rows.Count);
-            Assert.Equal("Ctrl+A", rows[0]["keys"]);
-            Assert.Equal("B", rows[1]["keys"]);
-            Assert.Equal("30", rows[1]["holdMs"]);
-            Assert.Equal("0", rows[1]["gapMs"]);
+            Assert.Equal("Ctrl+A", Cells.Spoken(rows[0], "keys"));
+            Assert.Equal("B", Cells.Spoken(rows[1], "keys"));
+            Assert.Equal("30", Cells.Spoken(rows[1], "holdMs"));
+            Assert.Equal("0", Cells.Spoken(rows[1], "gapMs"));
         });
     }
 

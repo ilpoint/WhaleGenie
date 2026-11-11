@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Runtime;
@@ -25,17 +26,37 @@ public static class MacroStepConverter
         Type = step.Type,
         Id = step.Id.Length > 0 ? step.Id : "s" + counter.Next(),
         Meta = step.Meta,
-        Parameters = [.. step.Parameters.Select(parameter => Convert(parameter, counter))],
+        Parameters = [.. step.Parameters.Select(parameter => Convert(step.Type, parameter, counter))],
     };
 
-    private static ExecutableParameter Convert(StepParameter parameter, Counter counter) => new()
-    {
-        Name = parameter.Name,
-        Text = parameter.Value,
-        Jitter = parameter.Jitter,
-        Steps = [.. parameter.Steps.Select(step => Convert(step, counter))],
-        Rows = [.. parameter.Rows.Select(row => (IReadOnlyDictionary<string, string>)row.Columns)],
-    };
+    /// <summary>
+    /// One parameter as the engine sees it. The line the file holds is read into its shape here —
+    /// the one place a line becomes a value — because past this point nothing reads a line.
+    /// </summary>
+    private static ExecutableParameter Convert(string type, StepParameter parameter,
+        Counter counter) => new()
+        {
+            Name = parameter.Name,
+            Written = FormulaText.Read(parameter.Value, ModeOf(type, parameter.Name)),
+            Jitter = parameter.Jitter,
+            Steps = [.. parameter.Steps.Select(step => Convert(step, counter))],
+            Rows = [.. parameter.Rows.Select(Row)],
+        };
+
+    /// <summary>
+    /// How the catalogue says a field is read. A field the catalogue does not know is read as one
+    /// value, which is what a hand-written step's cell has always been.
+    /// </summary>
+    private static ActionReadMode ModeOf(string type, string name)
+        => ActionSemanticsCatalog.Find(type)?.Parameter(name)?.ReadMode ?? ActionReadMode.WholeValue;
+
+    /// <summary>
+    /// One row of a list parameter. Every column says a piece of what the row is, so a name written
+    /// in one is read where it stands.
+    /// </summary>
+    private static IReadOnlyDictionary<string, ExpressionNode> Row(StepParameterRow row)
+        => row.Columns.ToDictionary(column => column.Key,
+            column => FormulaText.Read(column.Value, ActionReadMode.Text));
 
     /// <summary>Hands out the running number a step's identity is built from.</summary>
     private sealed class Counter

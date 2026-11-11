@@ -166,7 +166,11 @@ public partial class RunViewModel
         Type = "control.if",
         Parameters =
         [
-            new ExecutableParameter { Name = "condition", Text = expression.Trim() },
+            new ExecutableParameter
+            {
+                Name = "condition",
+                Written = FormulaText.Read(expression.Trim(), ActionReadMode.WholeValue),
+            },
         ],
     };
 
