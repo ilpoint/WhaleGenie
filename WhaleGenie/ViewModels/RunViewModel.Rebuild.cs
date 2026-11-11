@@ -213,8 +213,9 @@ public partial class RunViewModel
                         // A list parameter keeps its values in rows: whichever of them names a
                         // variable is one the macro reads, the same as any plain field that starts
                         // with a "$".
-                        foreach (var value in
-                            parameter.IsRowList ? parameter.RowValues : [parameter.Value])
+                        foreach (var value in parameter.IsRowList
+                            ? parameter.RowValues.Select(FormulaText.Write)
+                            : [parameter.Value])
                         {
                             Plain(step, parameter, value);
                         }

@@ -143,7 +143,7 @@ public partial class RegionRowViewModel : ViewModelBase
         var named = OrVariable.Trim();
         if (named.Length > 0)
         {
-            row.Columns["text"] = named;
+            row.Set("text", named);
             return row;
         }
 
@@ -180,7 +180,7 @@ public partial class RegionRowViewModel : ViewModelBase
         var written = cell.Text.Trim();
         if (written.Length > 0)
         {
-            row.Columns[column] = written;
+            row.Set(column, written);
         }
     }
 

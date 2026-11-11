@@ -223,7 +223,7 @@ internal sealed partial class McpSelfCheck
                         ["stepId"] = callId,
                         ["param"] = FieldNames.Arguments,
                         ["match"] = new JsonObject { [FieldNames.Name] = "数量" },
-                        ["values"] = new JsonObject { [FieldNames.Value] = "$n" },
+                        ["values"] = new JsonObject { [FieldNames.Value] = "乙" },
                     }),
             }, token).ConfigureAwait(false);
             var rowBytes = _report.Calls.Skip(rowsFrom).Sum(call => call.RequestBytes);
@@ -240,7 +240,7 @@ internal sealed partial class McpSelfCheck
 
             // Two rows, one changed and one added, both read back where a run would find them.
             var done = !rows.Failed
-                && Mentions(reread, "$n")
+                && Mentions(reread, "乙")
                 && Mentions(reread, "标签");
             Add("patch.row", rows.Failed ? McpCheckResult.Fail
                     : done ? McpCheckResult.Pass : McpCheckResult.Missing,

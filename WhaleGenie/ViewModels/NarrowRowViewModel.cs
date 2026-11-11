@@ -119,10 +119,10 @@ public partial class NarrowRowViewModel : ViewModelBase
         }
 
         var row = new StepParameterRow();
-        row.Columns["how"] = Way.Value;
+        row.Set("how", Way.Value);
         if (value.Length > 0)
         {
-            row.Columns["value"] = value;
+            row.Set("value", value);
         }
 
         return row;

@@ -55,8 +55,7 @@ public static class MacroStepConverter
     /// in one is read where it stands.
     /// </summary>
     private static IReadOnlyDictionary<string, ExpressionNode> Row(StepParameterRow row)
-        => row.Columns.ToDictionary(column => column.Key,
-            column => FormulaText.Read(column.Value, ActionReadMode.Text));
+        => row.Cells;
 
     /// <summary>Hands out the running number a step's identity is built from.</summary>
     private sealed class Counter

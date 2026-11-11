@@ -100,7 +100,7 @@ public partial class MacroPackageFormatTests
         {
             if (value is not null)
             {
-                row.Columns[column] = value;
+                row.Set(column, value);
             }
         }
 

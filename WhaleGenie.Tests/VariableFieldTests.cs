@@ -102,7 +102,7 @@ public class VariableFieldTests
                 region.AddRegion();
                 Assert.Single(region.Regions);
                 Assert.True(region.HasRegions);
-                Assert.Empty(region.Regions[0].ToRow().Columns);
+                Assert.Empty(region.Regions[0].ToRow().Cells);
 
                 // What the region picker dragged out lands in the row that asked for it.
                 region.Regions[0].Put(10, 20, 30, 40);

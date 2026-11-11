@@ -68,13 +68,13 @@ public static class VariableRename
                 {
                     foreach (var row in parameter.Rows)
                     {
-                        foreach (var column in row.Columns.Keys.ToList())
+                        foreach (var column in row.Cells.Keys.ToList())
                         {
-                            row.Columns[column] = row.Columns[column] is var value
-                                && parameter.Kind is ActionParameterKind.Returns
+                            var cell = row.Cells[column];
+                            row.Cells[column] = parameter.Kind is ActionParameterKind.Returns
                                 && string.Equals(column, "name", StringComparison.Ordinal)
-                                ? RenameName(value, oldName, newName)
-                                : RenameValue(value, oldName, newName);
+                                ? RenameDeclared(cell, oldName, newName)
+                                : RenameCell(cell, oldName, newName);
                         }
                     }
 
@@ -112,6 +112,21 @@ public static class VariableRename
 
         return FormulaText.Rename(value, ActionReadMode.Text, oldName, newName);
     }
+
+    /// <summary>A cell renamed the way any other value is: only its references change.</summary>
+    private static ExpressionNode RenameCell(ExpressionNode cell, string oldName, string newName)
+        => Expression.Rename(cell, oldName, newName);
+
+    /// <summary>
+    /// A cell that declares a name rather than reading one — a result's name, a returned field —
+    /// is text, so it is compared as the word it is.
+    /// </summary>
+    private static ExpressionNode RenameDeclared(ExpressionNode cell, string oldName,
+        string newName)
+        => cell is TextNode text
+            && string.Equals(text.Text.Trim(), oldName, StringComparison.Ordinal)
+                ? Formula.Text(newName)
+                : cell;
 
     private static string RenameName(string value, string oldName, string newName)
     {

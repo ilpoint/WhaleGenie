@@ -191,7 +191,9 @@ public partial class McpServerTests
                     .GetProperty("arguments").EnumerateArray().ToArray();
                 Assert.Equal(2, table.Length);
                 Assert.Equal("次数", table[0].GetProperty("name").GetString());
-                Assert.Equal("$n", table[0].GetProperty("value").GetString());
+                // A client writes a line; the macro keeps the shape it stands for, so a reader
+                // never has to know how a name is spelled to see that it is one.
+                Assert.Equal("n", table[0].GetProperty("value").GetProperty("name").GetString());
                 Assert.Equal("备注", table[1].GetProperty("name").GetString());
 
                 // A row is named by what it says, so two rows saying the same thing can be neither

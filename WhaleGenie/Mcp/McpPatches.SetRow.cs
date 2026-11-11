@@ -69,7 +69,7 @@ internal static partial class McpPatches
 
         foreach (var (column, value) in values)
         {
-            found[0].Columns[column] = value;
+            found[0].Set(column, value);
         }
 
         touches.Add(new Touch("setRow", step!));

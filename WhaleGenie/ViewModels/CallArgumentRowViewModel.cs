@@ -143,7 +143,7 @@ public partial class CallArgumentRowViewModel : ViewModelBase
 
         if (Given)
         {
-            row.Columns[FieldNames.Given] = "true";
+            row.Set(FieldNames.Given, "true");
         }
 
         return row;

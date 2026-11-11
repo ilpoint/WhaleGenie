@@ -33,7 +33,7 @@ public static partial class MacroCheck
         if (parameter.IsRowList)
         {
             return [.. parameter.RowValues
-                .SelectMany(value => FormulaText.Names(value, ActionReadMode.Text))
+                .SelectMany(Expression.References)
                 .Distinct(StringComparer.OrdinalIgnoreCase)];
         }
 

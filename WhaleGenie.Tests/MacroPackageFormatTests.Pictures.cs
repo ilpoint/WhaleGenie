@@ -87,8 +87,7 @@ public partial class MacroPackageFormatTests
 
             // 读回来之后，这一格指的必须是解出来的那个文件，而且内容一样。
             var loaded = MacroPackage.Load(path, Path.Combine(exported, "out.assets"));
-            var value = loaded.Macros[0].Steps[0].Parameters[0].Rows[0]
-                .Columns["image"];
+            var value = loaded.Macros[0].Steps[0].Parameters[0].Rows[0].Text("image");
             var file = ImageAssets.Resolve(value, Path.Combine(exported, "out.assets"));
             Assert.NotNull(file);
             Assert.Equal(bytes, File.ReadAllBytes(file!));

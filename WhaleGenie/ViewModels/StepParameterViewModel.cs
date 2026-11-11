@@ -211,5 +211,5 @@ public partial class StepParameterViewModel : ViewModelBase
     /// True when the run holds a press. A row that is there but says nothing is not one, so a run
     /// counts as filled in when it holds keys rather than rows.
     /// </summary>
-    private bool HasKeyPress => KeyRows.Any(row => row.ToRow().Columns.Count > 0);
+    private bool HasKeyPress => KeyRows.Any(row => row.ToRow().Cells.Count > 0);
 }

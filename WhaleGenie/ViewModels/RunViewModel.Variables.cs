@@ -163,7 +163,9 @@ public partial class RunViewModel
                 default:
                     // A list parameter keeps its values in rows, and a row may name the variable
                     // that says where to look — a picture an earlier Capture took, most often.
-                    foreach (var value in parameter.IsRowList ? parameter.RowValues : [parameter.Value])
+                    foreach (var value in parameter.IsRowList
+                        ? parameter.RowValues.Select(FormulaText.Write)
+                        : [parameter.Value])
                     {
                         Note(value, defined, names);
                     }

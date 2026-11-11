@@ -112,7 +112,7 @@ public static partial class MacroCheck
 
                 foreach (var row in parameter.Rows)
                 {
-                    foreach (var column in row.Columns.Keys)
+                    foreach (var column in row.Cells.Keys)
                     {
                         if (!definition.Semantics.Columns.Any(known =>
                                 string.Equals(known.Name, column, StringComparison.OrdinalIgnoreCase)))
@@ -130,8 +130,7 @@ public static partial class MacroCheck
                     }
                     foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
                     {
-                        if (!row.Columns.TryGetValue(column.Name, out var value)
-                            || string.IsNullOrWhiteSpace(value))
+                        if (Formula.IsNothing(row.Cell(column.Name)))
                         {
                             Add(step, MacroProblemCode.MissingRowColumn, Strings.Format("Editor.Problem.MissingRowColumn",
                                 definition.LocalLabel, column.Name));

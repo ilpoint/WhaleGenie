@@ -88,8 +88,8 @@ public class StepParameter
         or ActionParameterKind.Arguments or ActionParameterKind.Narrow
         or ActionParameterKind.ColourPoints;
 
-    /// <summary>Everything written in the rows of a list parameter, by row.</summary>
-    public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
+    /// <summary>Every value written in the rows of a list parameter, by row.</summary>
+    public IEnumerable<ExpressionNode> RowValues => Rows.SelectMany(row => row.Cells.Values);
 
     /// <summary>Writes the value as the JSON type the runtime expects.</summary>
     /// <remarks>
@@ -161,17 +161,19 @@ public class StepParameter
         foreach (var row in Rows)
         {
             var written = new JsonObject();
-            foreach (var (column, value) in row.Columns)
+            foreach (var (column, value) in row.Cells)
             {
-                if (value.Length == 0)
+                if (Formula.IsNothing(value))
                 {
                     continue;
                 }
 
-                written[column] = decimal.TryParse(value, NumberStyles.Number,
-                    CultureInfo.InvariantCulture, out var number)
+                var said = Formula.Plain(value);
+                written[column] = Formula.IsPlain(value)
+                    && decimal.TryParse(said, NumberStyles.Number, CultureInfo.InvariantCulture,
+                        out var number)
                         ? JsonValue.Create(number)
-                        : JsonValue.Create(value);
+                        : FormulaJson.Write(value);
             }
 
             if (written.Count > 0)
@@ -229,7 +231,7 @@ public class StepParameter
         {
             if (value is not null)
             {
-                row.Columns[column] = ReadValue(value);
+                row.Cells[column] = ValueOf(value);
             }
         }
 
@@ -245,9 +247,6 @@ public class StepParameter
         => node is JsonValue value && value.TryGetValue<string>(out var text)
             ? Formula.FromLine(text)
             : FormulaJson.Read(node);
-
-    /// <summary>Reads a scalar node back as the text the editors work with.</summary>
-    private static string ReadValue(JsonNode? node) => FormulaText.Write(ValueOf(node));
 
     /// <summary>Writes a nested step list as a JSON array.</summary>
     public static JsonArray BuildArray(IEnumerable<MacroStep> steps)
@@ -270,11 +269,38 @@ public class StepParameter
 /// </summary>
 public class StepParameterRow
 {
-    /// <summary>What each column of this row says, by column name.</summary>
-    public Dictionary<string, string> Columns { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// What each column of this row holds, by column name. A cell is a shape for the same reason a
+    /// value is: a name in one is a name rather than a spelling, and nothing has to guess whether a
+    /// <c>$</c> in it is a reference or a punctuation mark.
+    /// </summary>
+    public Dictionary<string, ExpressionNode> Cells { get; init; }
+        = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>What a column says, or nothing when the row has no such column.</summary>
-    public string Text(string column) => Columns.TryGetValue(column, out var value) ? value : string.Empty;
+    /// <summary>
+    /// The columns as a file writes them, for a row built in one go. Setting this reads each line
+    /// into its shape, so a fixture written in the file's words needs no other change.
+    /// </summary>
+    public Dictionary<string, string> Columns
+    {
+        init
+        {
+            foreach (var (column, line) in value)
+            {
+                Cells[column] = Formula.FromLine(line);
+            }
+        }
+    }
+
+    /// <summary>What a column holds, or nothing when the row has no such column.</summary>
+    public ExpressionNode Cell(string column)
+        => Cells.TryGetValue(column, out var value) ? value : Formula.Nothing;
+
+    /// <summary>The line a column says, for the places that still speak lines.</summary>
+    public string Text(string column) => FormulaText.Write(Cell(column));
+
+    /// <summary>Puts a line in a column, reading it into its shape.</summary>
+    public void Set(string column, string line) => Cells[column] = Formula.FromLine(line);
 
     /// <summary>A row that says one thing in one column, which is how a named region is written.</summary>
     public static StepParameterRow Of(string column, string value) => new()
@@ -285,7 +311,7 @@ public class StepParameterRow
     /// <summary>A copy, so a duplicated step does not share its rows with the step it came from.</summary>
     public StepParameterRow Copy() => new()
     {
-        Columns = new Dictionary<string, string>(Columns, StringComparer.OrdinalIgnoreCase),
+        Cells = new Dictionary<string, ExpressionNode>(Cells, StringComparer.OrdinalIgnoreCase),
     };
 }
 

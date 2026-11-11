@@ -170,11 +170,12 @@ public static partial class MacroCheck
                     yield return parameter.Value;
                 }
 
-                foreach (var cell in parameter.Rows.SelectMany(row => row.Columns.Values))
+                foreach (var cell in parameter.Rows.SelectMany(row => row.Cells.Values))
                 {
-                    if (cell.Trim().Length > 0)
+                    var line = FormulaText.Write(cell).Trim();
+                    if (line.Length > 0)
                     {
-                        yield return cell;
+                        yield return line;
                     }
                 }
             }

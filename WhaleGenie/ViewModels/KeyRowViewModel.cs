@@ -79,7 +79,7 @@ public partial class KeyRowViewModel : ViewModelBase
         var keys = Keys.Trim();
         if (keys.Length > 0)
         {
-            row.Columns["keys"] = keys;
+            row.Set("keys", keys);
         }
 
         Keep(row, "holdMs", HoldMs);
@@ -99,7 +99,7 @@ public partial class KeyRowViewModel : ViewModelBase
     {
         if (value is not null)
         {
-            row.Columns[column] = value.Value.ToString(CultureInfo.InvariantCulture);
+            row.Set(column, value.Value.ToString(CultureInfo.InvariantCulture));
         }
     }
 
