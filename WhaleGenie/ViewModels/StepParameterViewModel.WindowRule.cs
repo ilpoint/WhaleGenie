@@ -25,9 +25,13 @@ public partial class StepParameterViewModel : ViewModelBase
         get
         {
             var written = Text?.Trim() ?? string.Empty;
-            if (written.StartsWith('$'))
+
+            // A field that names a variable says the name. Which one it is comes from the value the
+            // field already holds, not from a sign in front of it: a window title and a name are
+            // two different shapes, and the shape is what the field keeps.
+            if (_written is VariableNode variable)
             {
-                return written;
+                return Formula.Speak(variable);
             }
 
             if (!WindowRule.TryParse(written, out var rule))
