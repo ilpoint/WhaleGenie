@@ -78,6 +78,7 @@
 300	WhaleGenie.Core/Execution/OcrReading.cs	keep: 一类动作的执行，失败键与日志只在这一点
 454	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 396	WhaleGenie.Core/Expressions/ExpressionReader.cs	keep: 表达式树的一族，按读/写/编译拆分后单一职责
+403	WhaleGenie.Core/Expressions/FormulaText.cs	keep: 一行文本与一个形状之间的全部换算，读、查、改名同属这一件事
 331	WhaleGenie.Core/Expressions/VariableText.cs	keep: 表达式语言的一层，读写与求值相邻
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	keep: 录制事件到动作的翻译状态机，按住与拖拽的状态只有这一处
 410	WhaleGenie.GraphicsCapture.Tests/ScreenGrabberTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
