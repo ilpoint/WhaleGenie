@@ -1,6 +1,9 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
@@ -14,6 +17,31 @@ public partial class ParameterScalarView : UserControl
     public ParameterScalarView() => InitializeComponent();
 
     private ActionEditorView? Host => this.FindAncestorOfType<ActionEditorView>();
+
+    /// <summary>
+    /// Turns the field from what the value reads like into the line it is edited as. The box only
+    /// exists while it is being typed in, so it is focused once it has been shown.
+    /// </summary>
+    private void OnBeginEdit(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Control { DataContext: StepParameterViewModel field })
+        {
+            return;
+        }
+
+        field.IsEditing = true;
+        e.Handled = true;
+        Dispatcher.UIThread.Post(() => this.FindControl<AutoCompleteBox>("ValueBox")?.Focus());
+    }
+
+    /// <summary>Turns it back: a field nobody is typing in shows what the step will do, not the spelling.</summary>
+    private void OnEndEdit(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StepParameterViewModel field })
+        {
+            field.IsEditing = false;
+        }
+    }
 
     private void OnBrowsePath(object? sender, RoutedEventArgs e) => Host?.OnBrowsePath(sender, e);
 

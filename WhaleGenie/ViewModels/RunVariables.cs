@@ -30,7 +30,7 @@ namespace WhaleGenie.ViewModels;
 public sealed record WatchedVariable(string Name, string Scope, string Type, string Value)
 {
     /// <summary>How it is named on the panel: the Chinese name beside the code name where it has one.</summary>
-    public string Display => VariableCatalog.Display(Name, false);
+    public string Display => VariableCatalog.Display(Name);
 
     /// <summary>
     /// What it holds, as one word of the interface language. A variable nothing has written yet has
@@ -73,7 +73,7 @@ public sealed class RunGlobalVariable
     public required string CurrentValue { get; init; }
     public required bool PersistValue { get; init; }
 
-    public string Display => VariableCatalog.Display(Name, false);
+    public string Display => VariableCatalog.Display(Name);
     public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);
     public string PersistenceText => PersistValue ? Strings.Get("VarWall.Persistent") : string.Empty;
 }

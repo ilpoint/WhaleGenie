@@ -70,7 +70,7 @@ public partial class VariableDefinition : ObservableObject
     /// has one, and the name the macro writes otherwise. What is written into a field is still the
     /// code name — this is what the tables that list variables show.
     /// </summary>
-    public string Display => VariableCatalog.Display(Name, false);
+    public string Display => VariableCatalog.Display(Name);
 
     /// <summary>True when this variable holds a list of values rather than a single value.</summary>
     public bool IsList => Type is "list";

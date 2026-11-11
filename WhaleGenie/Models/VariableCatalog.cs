@@ -81,15 +81,11 @@ public static class VariableCatalog
     /// <summary>
     /// How a variable is named on screen: the Chinese name with the code name beside it where it has
     /// one — 剪贴板 (sys.clipboard) — and the code name alone otherwise, so a reader who has met
-    /// either of the two recognises the other. <paramref name="token"/> writes the code name the way
-    /// a formula writes it, with the dollar sign, which is what the places a name goes into a field
-    /// have always shown.
+    /// either of the two recognises the other. The code name is written as the name it is: the sign
+    /// that reads it belongs to a line of formula, not to the name.
     /// </summary>
-    public static string Display(string name, bool token)
-    {
-        var written = token ? "$" + name : name;
-        return Label(name) is { Length: > 0 } chinese ? $"{chinese} ({written})" : written;
-    }
+    public static string Display(string name)
+        => Label(name) is { Length: > 0 } chinese ? $"{chinese} ({name})" : name;
 
     /// <summary>
     /// What a variable is called inside a sentence: the Chinese name where it has one and the name

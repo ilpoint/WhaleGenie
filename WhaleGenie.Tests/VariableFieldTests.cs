@@ -35,6 +35,56 @@ public class VariableFieldTests
         });
     }
 
+    /// <summary>
+    /// A value that names something reads as the pieces it is made of: the words, and each name
+    /// taking a box of its own. What tells a reader that a word is a variable is then the shape of
+    /// it, not a sign written in front — nothing has to be typed to make one and nothing escaped
+    /// to write about one.
+    /// </summary>
+    [Fact]
+    public void A_value_with_a_name_in_it_reads_as_pieces_with_the_name_set_apart()
+    {
+        Ui.Run(() =>
+        {
+            var field = Parameter(Open("system.notify"), "notificationText");
+            Assert.False(field.ShowsTokens);
+
+            field.Text = "你好，$name！";
+            Assert.True(field.ShowsTokens);
+            Assert.Equal(["你好，", "name", "！"], field.Tokens.Select(token => token.Text));
+            Assert.Equal([false, true, false], field.Tokens.Select(token => token.IsName));
+
+            // Typing in it is the other half: while the line is open the box is shown instead.
+            field.IsEditing = true;
+            Assert.False(field.ShowsTokens);
+            field.IsEditing = false;
+            Assert.True(field.ShowsTokens);
+
+            // A value that names nothing is a box like any other: there is nothing a box cannot show.
+            field.Text = "你好";
+            Assert.False(field.ShowsTokens);
+        });
+    }
+
+    /// <summary>
+    /// A whole value read as one formula is not a sentence with names in it: it reads as one piece
+    /// said in words, because that is what it is.
+    /// </summary>
+    [Fact]
+    public void A_formula_reads_as_one_piece_said_in_words()
+    {
+        Ui.Run(() =>
+        {
+            var field = Parameter(Open("system.notify"), "notificationText");
+            field.Text = "$count + 1";
+
+            var token = Assert.Single(field.Tokens);
+            Assert.False(token.IsName);
+            Assert.Contains("count", token.Text);
+            Assert.DoesNotContain("$", token.Text);
+        });
+    }
+
     [Fact]
     public void A_declared_record_parameter_is_offered_to_a_record_field()
     {
@@ -380,7 +430,10 @@ public class VariableFieldTests
         var start = markup.IndexOf("IsVisible=\"{Binding OffersVariables}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering variables in a field that takes them");
 
-        var block = markup[start..markup.IndexOf("</Grid>", start, StringComparison.Ordinal)];
+        // The section runs to the next field, not to the next closing tag: the field is drawn as a
+        // reading and a box inside one another, so the first </Grid> closes the inner one.
+        var block = markup[start..markup.IndexOf("<!-- A UI Automation selector",
+            start, StringComparison.Ordinal)];
         Assert.Contains("AutoCompleteBox", block, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ExpressionSuggestions}\"", block, StringComparison.Ordinal);
 

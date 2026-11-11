@@ -96,7 +96,7 @@ public class VariableWallTests
             wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.System);
             var clipboard = wall.Shown.First(choice => choice.Name == "sys.clipboard");
 
-            Assert.Equal("剪贴板 ($sys.clipboard)", clipboard.Display);
+            Assert.Equal("剪贴板 (sys.clipboard)", clipboard.Display);
             Assert.Equal("$sys.clipboard", clipboard.Token);
 
             string? chosen = null;
@@ -104,9 +104,10 @@ public class VariableWallTests
             wall.ChooseCommand.Execute(clipboard);
             Assert.Equal("$sys.clipboard", chosen);
 
-            // A macro's own variable has no second name to show.
+            // A macro's own variable has no second name to show, and no sign in front of it: the
+            // sign belongs to the line a formula is written as, not to the name.
             var own = Local("rows");
-            Assert.Equal("$rows", own.Display);
+            Assert.Equal("rows", own.Display);
         }));
     }
 

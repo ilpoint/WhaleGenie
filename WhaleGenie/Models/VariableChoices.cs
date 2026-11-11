@@ -108,10 +108,11 @@ public sealed class VariableChoice
 
     /// <summary>
     /// How the button names it: the Chinese name with the code name beside it where WhaleGenie gave
-    /// it one — 剪贴板 ($sys.clipboard) — and the name a formula writes otherwise. What choosing it
-    /// puts in the field is still <see cref="Token"/>; this is only what to read.
+    /// it one — 剪贴板 (sys.clipboard) — and the code name alone otherwise. What choosing it puts in
+    /// the field is still <see cref="Token"/>; this is only what to read, and what to read is the
+    /// name rather than the way a formula happens to spell it.
     /// </summary>
-    public string Display => VariableCatalog.Display(Name, true);
+    public string Display => VariableCatalog.Display(Name);
 
     /// <summary>
     /// The hue this kind of name is drawn in. It is the same palette the function wall uses, so a

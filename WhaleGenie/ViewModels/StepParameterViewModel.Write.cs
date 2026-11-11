@@ -22,6 +22,10 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        // The chips are the same value said another way, so they are read again on every change:
+        // what the box keeps and what the field draws cannot drift apart if one is derived.
+        RefreshTokens();
+
         // A condition written by something other than the rows — an expression typed in the raw
         // view, a value read back from a file — has to be read into the rows again, or the two
         // views would be showing different conditions.

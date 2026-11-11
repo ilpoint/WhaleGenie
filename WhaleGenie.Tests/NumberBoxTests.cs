@@ -63,8 +63,10 @@ public class NumberBoxTests
 
             var box = window.GetVisualDescendants().OfType<FANumberBox>()
                 .First(one => ReferenceEquals(one.DataContext, ms));
+            // 每个字段都摆着自己那枚片，只是同一格里只亮一枚：这一格按数字读，读法那一半不亮。
             var chip = window.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.Classes.Contains("ValueChip")
+                    && button.IsEffectivelyVisible
                     && ReferenceEquals(button.DataContext, ms));
 
             Assert.True(chip.IsEffectivelyVisible, "the number field has no chip");
