@@ -309,7 +309,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "written as left,top,width,height, the same four a result hands over, since a place "
             + "is its top left corner and how far it reaches, is looked at where it says. Filling "
             + "this in empties the four numbers.",
-        ["Add.RegionOrVariablePlaceholder"] = "$shot",
+        ["Add.RegionOrVariablePlaceholder"] = "shot",
         ["Add.RegionEmpty"] = "Looking at the whole screen.",
         ["Add.EmptyReachesTheEdge"] =
             "Leave this field empty to extend it to the edge of the reference area.",
@@ -336,7 +336,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.FieldTakesFormula"] =
             "This field accepts an expression; the expression is evaluated when the macro runs.",
         ["Add.FieldIsText"] =
-            "This field is read as text; a $name is replaced by the variable's value.",
+            "This field is read as text; a name is replaced by the variable's value.",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
         ["Add.ImageMoveUp"] = "Move up",
@@ -423,7 +423,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["LookPick.EntryTitle"] = "Edit a point",
         ["LookPick.AddTitle"] = "Add a point",
         ["LookPick.EntryHint"] = "Offsets are counted from the middle of what was found. Any of the "
-            + "three may be a formula or a variable, such as 12+3 or $dx. The colour may name "
+            + "three may be a formula or a variable, such as 12+3 or dx. The colour may name "
             + "several, with a bar between them: #E04A3F|#B03A33 means either one will do.",
         ["LookPick.ExpressionHint"] = "Build a formula",
         ["LookPick.EntryX"] = "Offset X",
@@ -1360,11 +1360,11 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ReturnShapeImage"] = "image",
         ["Add.ReturnShapeText"] = "\"text\"",
         ["Add.ReturnShapeColumn"] = "column",
-        ["Add.ReturnShapeTip"] = "{0} fields. Read one with field($name, \"field\").",
+        ["Add.ReturnShapeTip"] = "{0} fields. Read one with field(name, \"field\").",
         ["Add.ReturnShapeTipBare"] = "One value: {0}",
         ["Add.ReturnShapeTipTable"] =
             "One record per row, keyed by the column names that were read. Read a cell with "
-            + "field(get($name, 0), \"column\").",
+            + "field(get(name, 0), \"column\").",
         ["Add.ClipboardPreview"] = "On the clipboard now",
         ["Add.ClipboardPreviewHint"] =
             "This is the picture the step will take. The clipboard is read when the action opens, "
@@ -1397,7 +1397,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["LocalVariables.RenameHint"] = "Renaming rewrites every place in this macro that reads it. "
             + "The new name may not be one something else already uses.",
         ["LocalVariables.Initial"] = "Starts at",
-        ["LocalVariables.InitialPlaceholder"] = "A value, or an expression such as $count + 1",
+        ["LocalVariables.InitialPlaceholder"] = "A value, or an expression such as count + 1",
         ["LocalVariables.InitialHint"] = "Written into this macro's own table at the start of every "
             + "run, in the order the values are declared. An expression is read at that moment, so it "
             + "may name a parameter, a built-in or a shared value. Left empty it starts empty.",
@@ -1440,8 +1440,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Condition.Nested"] = "This condition nests, so it is edited as a tree.",
         ["Condition.Raw"] = "This condition cannot be read as rows. Edit it as written, or clear it "
             + "and build it from rows.",
-        ["Condition.NoRows"] = "No condition yet. Add one below, for example $found > 3.",
-        ["Condition.LeftPlaceholder"] = "e.g. $found",
+        ["Condition.NoRows"] = "No condition yet. Add one below, for example found > 3.",
+        ["Condition.LeftPlaceholder"] = "e.g. found",
         ["Condition.RightPlaceholder"] = "e.g. 3 or true",
         ["Condition.Remove"] = "Remove",
         ["Condition.Is"] = "is",
@@ -1513,7 +1513,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JitterUnit"] = "%",
         ["Add.JitterHint"] = "How far the time may move each run, as a percentage of it.",
         ["Add.JitterRange"] = "Each run: {0} to {1}",
-        ["Add.FormulaPlaceholder"] = "$count + 1",
+        ["Add.FormulaPlaceholder"] = "count + 1",
         ["Add.BlockSettings"] = "These settings belong to the whole block: a failure inside it that "
             + "no step handled counts as this block failing. Retrying the block runs it again from its "
             + "first step, so steps that already succeeded run a second time.",
@@ -2051,7 +2051,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BreakpointTitle"] = "Breakpoint",
         ["Run.BreakpointClear"] = "Clear",
         ["Run.BreakpointWhenLabel"] = "Stop when",
-        ["Run.BreakpointExpressionWatermark"] = "for example $i == 5",
+        ["Run.BreakpointExpressionWatermark"] = "for example i == 5",
         ["Run.BreakpointExpressionHint"] = "The question is asked before the step runs, so it cannot read this step's own results. A condition that cannot be worked out does not stop the run; it says so in the log.",
         ["Run.BreakpointHitsLabel"] = "On which arrival",
         ["Run.BreakpointHitsUnit"] = "th time",
@@ -2519,7 +2519,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["GlobalVariables.Definition"] = "Variable definition",
         ["GlobalVariables.NameHint"] = "A name may begin with a letter, digit or underscore. After that, use only letters, digits, underscores and dots.",
         ["GlobalVariables.HasProblemHint"] = "This variable has a setting that needs attention.",
-        ["GlobalVariables.DefaultPlaceholder"] = "A literal or an expression such as $count + 1",
+        ["GlobalVariables.DefaultPlaceholder"] = "A literal or an expression such as count + 1",
         ["GlobalVariables.CurrentHint"] = "What the running program holds, or the value saved for it, or the default. Runs write it, so it is shown here and not edited.",
         ["GlobalVariables.Uses"] = "References",
         ["GlobalVariables.NoUses"] = "No step in the current macro reads this variable.",
@@ -2544,7 +2544,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.Parameters"] = "Parameters",
         ["MacroInterface.Results"] = "Results",
         ["MacroInterface.Hint"] = "What a call to this macro has to fill in, and what it may hand back. A call is checked against these names and kinds.",
-        ["MacroInterface.DefaultHint"] = "A default is used when a call leaves the field empty. It is read as one value at the call site, so a variable or expression is allowed. The Variables button lists the global and system values every caller has; a caller's own local name can still be typed as $name. A parameter with a default cannot also be required.",
+        ["MacroInterface.DefaultHint"] = "A default is used when a call leaves the field empty. It is read as one value at the call site, so a variable or expression is allowed. The Variables button lists the global and system values every caller has; a caller's own local name can still be typed as name. A parameter with a default cannot also be required.",
         ["MacroInterface.Name"] = "Name",
         ["MacroInterface.Type"] = "Kind",
         ["MacroInterface.Default"] = "Default",
@@ -2559,7 +2559,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.DefaultFieldName"] = "field",
         ["MacroInterface.FieldsHint"] =
             "What this record holds, one row per field. Writing them down is what lets "
-            + "\"$record.name\" be checked while the macro is written; left empty, the fields are "
+            + "\"record.name\" be checked while the macro is written; left empty, the fields are "
             + "whatever the value happens to hold, and nothing can be checked.",
         ["MacroInterface.DefaultResultName"] = "result",
         ["MacroInterface.AddResult"] = "Add result",
@@ -2775,7 +2775,7 @@ public sealed class Strings : INotifyPropertyChanged
             + "图片的变量，会在那张图里查找；装着「左,上,宽,高」的变量，按它写的位置查看。"
             + "这四个数与结果里的 left、top、width、height 是同一组，一处地方就是左上角加宽高。"
             + "此格填写内容后，四个数字即被清空。",
-        ["Add.RegionOrVariablePlaceholder"] = "$shot",
+        ["Add.RegionOrVariablePlaceholder"] = "shot",
         ["Add.RegionEmpty"] = "没填就是看整个屏幕。",
         ["Add.EmptyReachesTheEdge"] = "此字段留空表示延伸到参照区域的边缘。",
         ["Add.EmptyUsesDefault"] = "此字段留空表示使用动作的默认值。",
@@ -2795,7 +2795,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.CallArgumentDefault"] = "默认值 {0}：留空就用它。",
         ["Add.CallArgumentUndeclared"] = "被调用的宏已经没有这个形参了；值原样留在这里，不会悄悄丢掉。",
         ["Add.FieldTakesFormula"] = "此字段可填写表达式；表达式在宏运行时计算。",
-        ["Add.FieldIsText"] = "此字段按文本读取；$名字 会替换为变量值。",
+        ["Add.FieldIsText"] = "此字段按文本读取；名字 会替换为变量值。",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",
         ["Add.ImageMoveUp"] = "上移",
@@ -2869,7 +2869,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["LookPick.AddHint"] = "手动新增一处",
         ["LookPick.EntryTitle"] = "编辑一处",
         ["LookPick.AddTitle"] = "新增一处",
-        ["LookPick.EntryHint"] = "偏移相对命中中心。三处均可填算式或变量，如 12+3、$dx；"
+        ["LookPick.EntryHint"] = "偏移相对命中中心。三处均可填算式或变量，如 12+3、dx；"
             + "颜色那一格可以写几种，用竖线隔开，如 #E04A3F|#B03A33，命中任一即可。",
         ["LookPick.ExpressionHint"] = "构建表达式",
         ["LookPick.EntryX"] = "偏移 X",
@@ -3747,9 +3747,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.ReturnShapeImage"] = "图片",
         ["Add.ReturnShapeText"] = "\"文字\"",
         ["Add.ReturnShapeColumn"] = "列名",
-        ["Add.ReturnShapeTip"] = "共 {0} 项。取其中一项：field($变量, \"字段名\")。",
+        ["Add.ReturnShapeTip"] = "共 {0} 项。取其中一项：field(变量, \"字段名\")。",
         ["Add.ReturnShapeTipBare"] = "一个值：{0}",
-        ["Add.ReturnShapeTipTable"] = "一行一条记录，键就是读到的列名。取一格：field(get($变量, 0), \"列名\")。",
+        ["Add.ReturnShapeTipTable"] = "一行一条记录，键就是读到的列名。取一格：field(get(变量, 0), \"列名\")。",
         ["Add.ClipboardPreview"] = "此刻剪贴板上的图片",
         ["Add.ClipboardPreviewHint"] = "这就是这一步会取走的那张图。打开这个动作时读一次，之后复制了别的内容按「刷新」。",
         ["Add.ClipboardPreviewRefresh"] = "刷新",
@@ -3774,7 +3774,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["LocalVariables.DeleteMessage"] = "从这次编辑里去掉「{0}」的声明？还读到它的步骤会被标成读了没人定义的名字。",
         ["LocalVariables.RenameHint"] = "改名会连同本宏里读到它的地方一起改。已经被别的变量用着的名字不能再用。",
         ["LocalVariables.Initial"] = "初始值",
-        ["LocalVariables.InitialPlaceholder"] = "直接填值，或写表达式，例如 $count + 1",
+        ["LocalVariables.InitialPlaceholder"] = "直接填值，或写表达式，例如 count + 1",
         ["LocalVariables.InitialHint"] = "每次运行开始时，按声明的先后顺序写进这个宏自己的变量表。"
             + "表达式就在那一刻求值，所以可以写形参、系统变量或全局变量。留空就从空值开始。",
         ["LocalVariables.StepHint"] = "这个名字是某一步写出来的，装着什么由那一步决定，这里只改名字。",
@@ -3813,8 +3813,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Condition.AddInside"] = "在这里加一条",
         ["Condition.Nested"] = "这条条件有嵌套，按条件树编辑。",
         ["Condition.Raw"] = "这条条件拆不成行，只能按原文改；清空之后可以从行重新搭。",
-        ["Condition.NoRows"] = "还没有条件。按下面的「添加条件」写第一条，例如 $found > 3。",
-        ["Condition.LeftPlaceholder"] = "例如 $found",
+        ["Condition.NoRows"] = "还没有条件。按下面的「添加条件」写第一条，例如 found > 3。",
+        ["Condition.LeftPlaceholder"] = "例如 found",
         ["Condition.RightPlaceholder"] = "例如 3 或 true",
         ["Condition.Remove"] = "删除",
         ["Condition.Is"] = "等于",
@@ -3883,7 +3883,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.JitterUnit"] = "%",
         ["Add.JitterHint"] = "每次运行时在这个时长上下浮动的比例。",
         ["Add.JitterRange"] = "每次在 {0} – {1} 之间",
-        ["Add.FormulaPlaceholder"] = "$count + 1",
+        ["Add.FormulaPlaceholder"] = "count + 1",
         ["Add.BlockSettings"] = "这是整段的设置：内部未处理的失败都算作这一段失败；重试、超时与"
             + "失败后的处理均按这里的设置执行。这一块的重试是整块重来：从第一条步骤重新执行，"
             + "已经成功过的子步骤会再做一遍。",
@@ -4761,7 +4761,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BreakpointTitle"] = "断点条件",
         ["Run.BreakpointClear"] = "清除",
         ["Run.BreakpointWhenLabel"] = "停下来的条件",
-        ["Run.BreakpointExpressionWatermark"] = "例如：$i == 5",
+        ["Run.BreakpointExpressionWatermark"] = "例如：i == 5",
         ["Run.BreakpointExpressionHint"] = "条件在这一步执行之前判断，读不到这一步自己的结果。写错的条件不会让运行停下，只在日志里说明。",
         ["Run.BreakpointHitsLabel"] = "第几次经过时停",
         ["Run.BreakpointHitsUnit"] = "次",
@@ -5190,7 +5190,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["GlobalVariables.Definition"] = "变量定义",
         ["GlobalVariables.NameHint"] = "变量名可以用汉字、字母、数字或下划线开头，后面只能再用这些字符和点。",
         ["GlobalVariables.HasProblemHint"] = "这个变量有需要处理的设置。",
-        ["GlobalVariables.DefaultPlaceholder"] = "直接填值，或写表达式，例如 $count + 1",
+        ["GlobalVariables.DefaultPlaceholder"] = "直接填值，或写表达式，例如 count + 1",
         ["GlobalVariables.CurrentHint"] = "运行中的程序此刻装着什么，或者为它保存下来的值，再或者默认值。它由运行写入，这里只显示，不能改。",
         ["GlobalVariables.Uses"] = "引用",
         ["GlobalVariables.NoUses"] = "当前宏没有步骤读取这个变量。",
@@ -5215,7 +5215,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.Parameters"] = "形参",
         ["MacroInterface.Results"] = "结果",
         ["MacroInterface.Hint"] = "调用这个宏时要填的值，以及它可以交回的值。调用会按这里的名字与类型检查。",
-        ["MacroInterface.DefaultHint"] = "默认值在调用处留空时使用；它按一个值读，所以可以写变量或表达式。「变量」里列出每个调用方都有的全局变量与系统变量；调用方自己的局部变量可以直接写 $名字。填了默认值的形参不能再勾必填。",
+        ["MacroInterface.DefaultHint"] = "默认值在调用处留空时使用；它按一个值读，所以可以写变量或表达式。「变量」里列出每个调用方都有的全局变量与系统变量；调用方自己的局部变量可以直接写 名字。填了默认值的形参不能再勾必填。",
         ["MacroInterface.Name"] = "名字",
         ["MacroInterface.Type"] = "类型",
         ["MacroInterface.Default"] = "默认值",
@@ -5229,7 +5229,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.FieldName"] = "字段名",
         ["MacroInterface.DefaultFieldName"] = "字段",
         ["MacroInterface.FieldsHint"] =
-            "这条记录里有什么，一行一个字段。写下来以后「$记录.字段」在写宏时就能核对；"
+            "这条记录里有什么，一行一个字段。写下来以后「记录.字段」在写宏时就能核对；"
             + "留空表示没说，字段随值而定，也就什么都核对不了。",
         ["MacroInterface.DefaultResultName"] = "结果",
         ["MacroInterface.AddResult"] = "添加结果",

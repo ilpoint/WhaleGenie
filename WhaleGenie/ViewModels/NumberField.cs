@@ -37,7 +37,8 @@ internal static class NumberField
             return (string.Empty, false);
         }
 
-        if (!Expression.TryEvaluate(source, new KnownVariables(known), out var value, out var error))
+        if (!Expression.TryEvaluate(source, new KnownVariables(known), out var value, out var error,
+                bare: true))
         {
             return Certain(error!.Code)
                 ? (ExpressionText.Describe(error), true)
@@ -46,10 +47,15 @@ internal static class NumberField
 
         // Without variables the answer is exact, so it is worth showing. With variables
         // there is nothing to run yet, so the box only confirms that the text reads.
-        return (source.Contains('$')
+        return (Names(source)
             ? Strings.Get("Add.ExpressionValid")
             : Strings.Format("Add.ExpressionResult", value.AsText()), false);
     }
+
+    /// <summary>True when the formula reads a variable, so what it comes to is only known at the run.</summary>
+    private static bool Names(string source)
+        => Expression.TryParse(source, out var tree, out _, bare: true)
+            && Expression.References(tree).Count > 0;
 
     /// <summary>
     /// Whether a failure is one the macro can be blamed for here and now: the text does not read,

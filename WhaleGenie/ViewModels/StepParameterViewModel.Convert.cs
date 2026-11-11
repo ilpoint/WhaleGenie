@@ -71,7 +71,8 @@ public partial class StepParameterViewModel : ViewModelBase
     /// text that may have a name or a formula inside it, so it is read as the text it looks like.
     /// </summary>
     private bool ReadAsFormula => Definition.Kind
-        is ActionParameterKind.Expression or ActionParameterKind.Condition;
+            is ActionParameterKind.Expression or ActionParameterKind.Condition
+        || (IsNumber && UseFormula);
 
     /// <summary>Loads a value that was stored on an existing step.</summary>
     public void ApplyValue(StepParameter stored)
@@ -212,7 +213,11 @@ public partial class StepParameterViewModel : ViewModelBase
 
                 break;
             default:
-                Text = raw;
+                // A formula is written as the formula it is, so a name in it reads as itself. A
+                // field of text keeps the line it was written as, and shows its names as pieces.
+                Text = ReadAsFormula && stored.Written is not (TextNode or ConcatNode)
+                    ? Expression.Render(stored.Written, bare: true)
+                    : raw;
                 break;
         }
     }

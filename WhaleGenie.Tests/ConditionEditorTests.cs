@@ -30,16 +30,16 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("$a == 1 and $b > 2");
+            var editor = Editor("a == 1 and b > 2");
 
             Assert.False(editor.IsRaw);
             Assert.False(editor.Nests);
             Assert.Equal(2, editor.Rows.Count);
-            Assert.Equal("$a", editor.Rows[0].Left);
+            Assert.Equal("a", editor.Rows[0].Left);
             Assert.Equal(ConditionCompare.Equal, editor.Rows[0].Compare);
             Assert.Equal("1", editor.Rows[0].Right);
             Assert.Equal(ConditionCompare.Greater, editor.Rows[1].Compare);
-            Assert.Equal("$a == 1 and $b > 2", editor.Text);
+            Assert.Equal("a == 1 and b > 2", editor.Text);
         });
     }
 
@@ -48,7 +48,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("($a == 1 or $b == 2) and $c == 3");
+            var editor = Editor("(a == 1 or b == 2) and c == 3");
 
             Assert.False(editor.IsRaw);
             Assert.True(editor.Nests);
@@ -56,7 +56,7 @@ public class ConditionEditorTests
             Assert.True(editor.Rows[0].IsGroup);
             Assert.Equal(Join.Any, editor.Rows[0].Join);
             Assert.Equal(2, editor.Rows[0].Children.Count);
-            Assert.Equal("($a == 1 or $b == 2) and $c == 3", editor.Text);
+            Assert.Equal("(a == 1 or b == 2) and c == 3", editor.Text);
         });
     }
 
@@ -68,15 +68,15 @@ public class ConditionEditorTests
             var editor = Editor(string.Empty);
             editor.AddRow();
             editor.AddRow();
-            editor.Rows[0].Left = "$a";
+            editor.Rows[0].Left = "a";
             editor.Rows[0].Right = "1";
-            editor.Rows[1].Left = "$b";
+            editor.Rows[1].Left = "b";
             editor.Rows[1].Right = "2";
 
-            Assert.Equal("$a == 1 and $b == 2", editor.Text);
+            Assert.Equal("a == 1 and b == 2", editor.Text);
 
             editor.OperatorIndex = 1;
-            Assert.Equal("$a == 1 or $b == 2", editor.Text);
+            Assert.Equal("a == 1 or b == 2", editor.Text);
         });
     }
 
@@ -87,14 +87,14 @@ public class ConditionEditorTests
         {
             var editor = Editor(string.Empty);
             editor.AddRow();
-            editor.Rows[0].Left = "$found";
+            editor.Rows[0].Left = "found";
             editor.Rows[0].Compare = ConditionCompare.Holds;
 
             Assert.False(editor.Rows[0].NeedsValue);
-            Assert.Equal("$found", editor.Text);
+            Assert.Equal("found", editor.Text);
 
             editor.Rows[0].Compare = ConditionCompare.Fails;
-            Assert.Equal("not $found", editor.Text);
+            Assert.Equal("not found", editor.Text);
         });
     }
 
@@ -105,14 +105,14 @@ public class ConditionEditorTests
         {
             var editor = Editor(string.Empty);
             editor.AddRow();
-            editor.Rows[0].Left = "$a";
+            editor.Rows[0].Left = "a";
             editor.Rows[0].Right = "1";
             editor.AddRow();
-            editor.Rows[1].Left = "$b";
+            editor.Rows[1].Left = "b";
 
             // The second comparison has nothing to compare with, so it is not written; the step
             // then says it has a condition, which it does.
-            Assert.Equal("$a == 1", editor.Text);
+            Assert.Equal("a == 1", editor.Text);
         });
     }
 
@@ -121,14 +121,14 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("$a +");
+            var editor = Editor("a +");
 
             Assert.True(editor.IsRaw);
-            Assert.Equal("$a +", editor.Text);
+            Assert.Equal("a +", editor.Text);
 
             // Fixing it in the raw box brings the rows back without touching what was typed.
-            editor.RawText = "$a == 1";
-            Assert.Equal("$a == 1", editor.Text);
+            editor.RawText = "a == 1";
+            Assert.Equal("a == 1", editor.Text);
         });
     }
 
@@ -137,7 +137,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("$a == 1 and not $b and $c >= 3");
+            var editor = Editor("a == 1 and not b and c >= 3");
             var first = editor.Text;
 
             editor.Read(first);
@@ -154,7 +154,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("$a == 1 and $b == 2");
+            var editor = Editor("a == 1 and b == 2");
             var before = editor.Text;
 
             editor.Show(tree: true);
@@ -162,11 +162,11 @@ public class ConditionEditorTests
             Assert.False(editor.ShowTable);
 
             editor.Rows[0].Right = "9";
-            Assert.Equal("$a == 9 and $b == 2", editor.Text);
+            Assert.Equal("a == 9 and b == 2", editor.Text);
             Assert.NotEqual(before, editor.Text);
 
             editor.Show(tree: false);
-            Assert.Equal("$a == 9 and $b == 2", editor.Text);
+            Assert.Equal("a == 9 and b == 2", editor.Text);
         });
     }
 
@@ -175,11 +175,11 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("$a == 1 and $b == 2");
+            var editor = Editor("a == 1 and b == 2");
             editor.Remove(editor.Rows[0]);
 
             Assert.Single(editor.Rows);
-            Assert.Equal("$b == 2", editor.Text);
+            Assert.Equal("b == 2", editor.Text);
         });
     }
 
@@ -188,18 +188,18 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("$a == 1");
+            var editor = Editor("a == 1");
             editor.AddGroup();
             var group = editor.Rows[1];
             editor.AddRow(group);
             editor.AddRow(group);
-            group.Children[0].Left = "$b";
+            group.Children[0].Left = "b";
             group.Children[0].Right = "2";
-            group.Children[1].Left = "$c";
+            group.Children[1].Left = "c";
             group.Children[1].Right = "3";
 
             Assert.True(editor.Nests);
-            Assert.Equal("$a == 1 and ($b == 2 or $c == 3)", editor.Text);
+            Assert.Equal("a == 1 and (b == 2 or c == 3)", editor.Text);
         });
     }
 
@@ -223,15 +223,15 @@ public class ConditionEditorTests
             Assert.False(editor.IsRaw);
 
             editor.AddRow();
-            editor.Rows[0].Left = "$found";
+            editor.Rows[0].Left = "found";
             editor.Rows[0].Compare = ConditionCompare.Holds;
 
-            Assert.Equal("$found", parameter.Text);
+            Assert.Equal("found", parameter.Text);
 
             // A step read back from a file hands its condition in the same way.
-            parameter.Text = "$count > 3";
+            parameter.Text = "count > 3";
             Assert.False(editor.IsRaw);
-            Assert.Equal("$count", Assert.Single(editor.Rows).Left);
+            Assert.Equal("count", Assert.Single(editor.Rows).Left);
             window.Close();
         });
     }
@@ -250,7 +250,7 @@ public class ConditionEditorTests
             var parameter = form.Parameters.Single(item => item.Definition.Name == "condition");
             var editor = parameter.ConditionEditor!;
             editor.AddRow();
-            editor.Rows[0].Left = "$found";
+            editor.Rows[0].Left = "found";
             editor.Rows[0].Right = "3";
             editor.Show(tree: false);
             Dispatcher.UIThread.RunJobs();
@@ -331,7 +331,7 @@ public class ConditionEditorTests
         Ui.Run(() =>
         {
             var editor = Editor(string.Empty);
-            editor.Rows[0].Left = "$found";
+            editor.Rows[0].Left = "found";
 
             Assert.True(editor.HasInput);
 
@@ -350,14 +350,14 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("contains($title, \"记\") and startsWith($name, \"a\")");
+            var editor = Editor("contains(title, \"记\") and startsWith(name, \"a\")");
 
             Assert.False(editor.IsRaw);
             Assert.Equal(2, editor.Rows.Count);
             Assert.Equal(ConditionCompare.Contains, editor.Rows[0].Compare);
-            Assert.Equal("$title", editor.Rows[0].Left);
+            Assert.Equal("title", editor.Rows[0].Left);
             Assert.Equal(ConditionCompare.StartsWith, editor.Rows[1].Compare);
-            Assert.Equal("contains($title, \"记\") and startsWith($name, \"a\")", editor.Text);
+            Assert.Equal("contains(title, \"记\") and startsWith(name, \"a\")", editor.Text);
         });
     }
 
@@ -369,10 +369,10 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("not contains($title, \"记\")");
+            var editor = Editor("not contains(title, \"记\")");
 
             Assert.Equal(ConditionCompare.NotContains, Assert.Single(editor.Rows).Compare);
-            Assert.Equal("not contains($title, \"记\")", editor.Text);
+            Assert.Equal("not contains(title, \"记\")", editor.Text);
         });
     }
 
@@ -385,17 +385,17 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var empty = Editor("length($title) == 0");
+            var empty = Editor("length(title) == 0");
             var row = Assert.Single(empty.Rows);
             Assert.Equal(ConditionCompare.Empty, row.Compare);
-            Assert.Equal("$title", row.Left);
-            Assert.Equal("length($title) == 0", empty.Text);
+            Assert.Equal("title", row.Left);
+            Assert.Equal("length(title) == 0", empty.Text);
 
-            var many = Editor("count($items) == 3");
+            var many = Editor("count(items) == 3");
             var counted = Assert.Single(many.Rows);
             Assert.Equal(ConditionCompare.CountIs, counted.Compare);
             Assert.Equal("3", counted.Right);
-            Assert.Equal("count($items) == 3", many.Text);
+            Assert.Equal("count(items) == 3", many.Text);
         });
     }
 
@@ -408,16 +408,16 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("not ($a == 1 or $b == 2)");
+            var editor = Editor("not (a == 1 or b == 2)");
 
             Assert.False(editor.IsRaw);
             Assert.Equal(Join.None, editor.Root.Join);
             Assert.Equal(2, editor.Rows.Count);
-            Assert.Equal("not ($a == 1 or $b == 2)", editor.Text);
+            Assert.Equal("not (a == 1 or b == 2)", editor.Text);
 
-            var written = Editor("$a == 1 or $b == 2");
+            var written = Editor("a == 1 or b == 2");
             written.OperatorIndex = 2;
-            Assert.Equal("not ($a == 1 or $b == 2)", written.Text);
+            Assert.Equal("not (a == 1 or b == 2)", written.Text);
         });
     }
 
@@ -454,15 +454,15 @@ public class ConditionEditorTests
             var editor = Editor(string.Empty);
             var row = editor.Rows[0];
 
-            editor.InsertVariable(row, right: false, "$found", caret: null);
+            editor.InsertVariable(row, right: false, "found", caret: null);
             editor.InsertVariable(row, right: true, "3", caret: null);
-            Assert.Equal("$found == 3", editor.Text);
+            Assert.Equal("found == 3", editor.Text);
 
             // Where the caret was is where the name goes: a cell holds one value, so what is
             // already written is kept rather than replaced.
-            var written = Editor("$a == 1");
+            var written = Editor("a == 1");
             written.InsertVariable(written.Rows[0], right: false, "note.", caret: 0);
-            Assert.Equal("note.$a", written.Rows[0].Left);
+            Assert.Equal("note.a", written.Rows[0].Left);
         });
     }
 
@@ -479,10 +479,10 @@ public class ConditionEditorTests
             var row = editor.Rows[0];
             row.Compare = ConditionCompare.NotContains;
 
-            editor.InsertVariable(row, right: true, "$sys.date", caret: null);
+            editor.InsertVariable(row, right: true, "sys.date", caret: null);
 
             Assert.Equal(ConditionCompare.NotContains, row.Compare);
-            Assert.Equal("$sys.date", row.Right);
+            Assert.Equal("sys.date", row.Right);
         });
     }
 }

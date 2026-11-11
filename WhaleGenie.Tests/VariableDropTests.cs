@@ -102,27 +102,6 @@ public class VariableDropTests
     }
 
     [Fact]
-    public void A_field_replaces_a_whole_value_but_inserts_into_text()
-    {
-        Ui.Run(() =>
-        {
-            var conditional = new AddActionViewModel(ActionCatalog.Definitions, [], []);
-            conditional.SelectAction("control.if");
-            var condition = conditional.Parameters.Single(parameter =>
-                parameter.Definition.Name == "condition");
-            condition.ApplyVariableDrop("$ok");
-            Assert.Equal("$ok", condition.Text);
-
-            conditional.SelectAction("control.note");
-            var message = conditional.Parameters.Single(parameter =>
-                parameter.Definition.Name == "note");
-            message.Text = "before after";
-            message.ApplyVariableDrop("$name", 7);
-            Assert.Equal("before $nameafter", message.Text);
-        });
-    }
-
-    [Fact]
     public void The_macro_editor_right_panel_has_a_variable_center_above_its_settings()
     {
         Ui.Run(() =>

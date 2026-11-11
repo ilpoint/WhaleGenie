@@ -38,9 +38,9 @@ public class RunBreakpointTests
             var panel = window.OwnedWindows.OfType<BreakpointWindow>().Single();
             var form = (BreakpointViewModel)panel.DataContext!;
             Assert.Contains("n", form.Variables);
-            Assert.Contains("$n", form.ExpressionSuggestions);
+            Assert.Contains("n", form.ExpressionSuggestions);
 
-            form.Expression = "$n > 3";
+            form.Expression = "n > 3";
             form.HitTimes = 2;
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -51,11 +51,11 @@ public class RunBreakpointTests
             Assert.Empty(window.OwnedWindows.OfType<BreakpointWindow>());
             Assert.True(row.HasBreakpoint);
             var rule = viewModel.BreakpointRuleOf(row.Id)!;
-            Assert.Equal("$n > 3", rule.Expression);
+            Assert.Equal("n > 3", rule.Expression);
             Assert.Equal(2, rule.HitTimes);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
-            Assert.Contains("$n > 3", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("n > 3", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.Contains("2", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.True(row.HasCondition);
 
@@ -63,7 +63,7 @@ public class RunBreakpointTests
             Click(window, row, "condition");
             var again = (BreakpointViewModel)window.OwnedWindows.OfType<BreakpointWindow>().Single()
                 .DataContext!;
-            Assert.Equal("$n > 3", again.Expression);
+            Assert.Equal("n > 3", again.Expression);
             Assert.Equal(2, again.HitTimes);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();

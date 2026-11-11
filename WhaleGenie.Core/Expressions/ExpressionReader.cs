@@ -12,9 +12,15 @@ namespace WhaleGenie.Core.Expressions;
 /// <summary>Turns expression text into the tree the editor edits and the evaluator runs.</summary>
 internal static class ExpressionReader
 {
-    public static ExpressionNode Read(string source)
+    /// <summary>
+    /// Reads written text into the tree it stands for. <paramref name="bare"/> says what a word on
+    /// its own means: a name, which is what a word in a formula is, or — in a line that may be a
+    /// sentence rather than a formula — nothing the language knows, which is how such a line is
+    /// told apart from one that was meant as a formula and got it wrong.
+    /// </summary>
+    public static ExpressionNode Read(string source, bool bare = false)
     {
-        var parser = new Parser(Tokenizer.Read(source));
+        var parser = new Parser(Tokenizer.Read(source), bare);
         var node = parser.ReadOr();
         if (parser.Current.Kind != TokenKind.End)
         {
@@ -100,8 +106,17 @@ file static class Tokenizer
             if (char.IsLetter(character) || character == '_')
             {
                 var start = index;
-                while (index < source.Length && (char.IsLetterOrDigit(source[index]) || source[index] == '_'))
+                while (index < source.Length
+                    && (char.IsLetterOrDigit(source[index]) || source[index] is '_' or '.'))
                 {
+                    // A dot joins a name to the field it reads — <c>where.age</c> is one name — and
+                    // starts the next word rather than continuing this one everywhere else.
+                    if (source[index] == '.'
+                        && (index + 1 >= source.Length || !char.IsLetter(source[index + 1])))
+                    {
+                        break;
+                    }
+
                     index++;
                 }
 
@@ -179,11 +194,13 @@ file static class Tokenizer
 file sealed class Parser
 {
     private readonly List<Token> _tokens;
+    private readonly bool _bare;
     private int _index;
 
-    public Parser(List<Token> tokens)
+    public Parser(List<Token> tokens, bool bare)
     {
         _tokens = tokens;
+        _bare = bare;
     }
 
     public Token Current => _tokens[_index];
@@ -280,7 +297,7 @@ file sealed class Parser
                 _index++;
                 return TakeSymbol("(")
                     ? Call(token.Text, ReadArguments())
-                    : Constant(token.Text);
+                    : Word(token.Text);
 
             case TokenKind.Symbol when token.Text == "(":
                 _index++;
@@ -357,11 +374,18 @@ file sealed class Parser
         return new CallNode(name, arguments);
     }
 
-    private static ExpressionNode Constant(string word) => word.ToLowerInvariant() switch
+    /// <summary>
+    /// A word that is not followed by a bracket. Three of them are the constants the language
+    /// spells out. The rest are names when the line being read is a formula, and are the reason a
+    /// line is not one when it is not: a word the language does not know is exactly what a sentence
+    /// is made of.
+    /// </summary>
+    private ExpressionNode Word(string word) => word.ToLowerInvariant() switch
     {
         "true" => new ConstantNode("true"),
         "false" => new ConstantNode("false"),
         "null" => new ConstantNode("null"),
+        _ when _bare => new VariableNode(word),
         _ => throw ExpressionException.Syntax($"unknown word \"{word}\""),
     };
 

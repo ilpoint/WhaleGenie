@@ -223,11 +223,11 @@ public static class Expression
     /// editor uses to show a live error under the field.
     /// </summary>
     public static bool TryEvaluate(string? source, IVariableResolver? variables,
-        out Value value, out ExpressionException? error)
+        out Value value, out ExpressionException? error, bool bare = false)
     {
         try
         {
-            value = EvaluateChecked(source, variables);
+            value = EvaluateChecked(source, variables, bare);
             error = null;
             return true;
         }
@@ -243,9 +243,9 @@ public static class Expression
     /// Reads a formula into the tree the editor shows. The tree is the language's own shape, so
     /// what the editor puts in front of the user and what the engine runs are the same thing.
     /// </summary>
-    public static ExpressionNode Parse(string? source)
+    public static ExpressionNode Parse(string? source, bool bare = false)
     {
-        if (!TryParse(source, out var tree, out var error))
+        if (!TryParse(source, out var tree, out var error, bare))
         {
             throw error!;
         }
@@ -253,9 +253,13 @@ public static class Expression
         return tree!;
     }
 
-    /// <summary>Reads a formula into a tree, reporting failure instead of throwing.</summary>
+    /// <summary>
+    /// Reads a formula into a tree, reporting failure instead of throwing.
+    /// <paramref name="bare"/> says whether a word of its own is a name, which is what a formula
+    /// says and what a line that may still be prose does not.
+    /// </summary>
     public static bool TryParse(string? source, out ExpressionNode? tree,
-        out ExpressionException? error)
+        out ExpressionException? error, bool bare = false)
     {
         if (string.IsNullOrWhiteSpace(source))
         {
@@ -266,7 +270,7 @@ public static class Expression
 
         try
         {
-            tree = ExpressionReader.Read(source);
+            tree = ExpressionReader.Read(source, bare);
             error = null;
             return true;
         }
@@ -282,17 +286,17 @@ public static class Expression
     /// Writes a tree back out as a formula. A place nothing was put in is written as
     /// <paramref name="hole"/>, which is what the editor shows and never what the engine reads.
     /// </summary>
-    public static string Render(ExpressionNode tree, string hole = "▢")
-        => ExpressionWriter.Write(tree, hole);
+    public static string Render(ExpressionNode tree, string hole = "▢", bool bare = false)
+        => ExpressionWriter.Write(tree, hole, bare);
 
-    private static Value EvaluateChecked(string? source, IVariableResolver? variables)
+    private static Value EvaluateChecked(string? source, IVariableResolver? variables, bool bare)
     {
         if (string.IsNullOrWhiteSpace(source))
         {
             return Value.Null;
         }
 
-        var tree = ExpressionReader.Read(source);
+        var tree = ExpressionReader.Read(source, bare);
         return ExpressionCompiler.Compile(tree, variables ?? EmptyVariableResolver.Instance)();
     }
 }

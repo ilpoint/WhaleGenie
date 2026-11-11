@@ -313,9 +313,9 @@ public class VariableFieldTests
             Assert.Equal("count", naming.Text);
 
             var reading = Parameter(Open("control.if"), "condition");
-            reading.ApplyVariableDrop("$count");
-            Assert.Equal("$count", reading.Text);
-            Assert.Contains("$count", reading.ExpressionSuggestions);
+            reading.InsertVariable("count", reading.Text.Length);
+            Assert.Equal("count", reading.Text);
+            Assert.Contains("count", reading.ExpressionSuggestions);
         });
     }
 
@@ -349,12 +349,11 @@ public class VariableFieldTests
             viewModel.SelectAction("control.setVariable");
             Assert.Equal(["count", "notes"], Parameter(viewModel, "name").NameChoices);
 
-            // A value being read: every scope, in the form the reader writes a variable in. A path
-            // is one of these, and neither a provided value nor a step's ending is something to
-            // spell from memory.
+            // A value being read: every scope, by the name it has. A path is one of these, and
+            // neither a provided value nor a step's ending is something to spell from memory.
             viewModel.SelectAction("file.writeText");
             Assert.Equal(
-                ["$count", "$notes", "$step.k3f9.outcome", "$sys.date", "$sys.mouseX"],
+                ["count", "notes", "step.k3f9.outcome", "sys.date", "sys.mouseX"],
                 Parameter(viewModel, "path").NameChoices.Order(StringComparer.Ordinal));
         });
     }
@@ -385,8 +384,8 @@ public class VariableFieldTests
 
             viewModel.SelectAction("file.writeText");
             var path = Parameter(viewModel, "path");
-            Assert.Contains("$sys.macroFolder", path.NameChoices);
-            Assert.Contains("$step.k3f9.error", path.NameChoices);
+            Assert.Contains("sys.macroFolder", path.NameChoices);
+            Assert.Contains("step.k3f9.error", path.NameChoices);
             Assert.Contains("$sys.macroFolder", path.ExpressionSuggestions);
             Assert.Contains("$step.k3f9.error", path.ExpressionSuggestions);
 
@@ -439,7 +438,7 @@ public class VariableFieldTests
             viewModel.SelectAction("clipboard.writeImage");
             var picture = Parameter(viewModel, "imageSource");
             Assert.True(picture.IsImage);
-            Assert.Equal(["$count", "$shot"], picture.NameChoices);
+            Assert.Equal(["count", "shot"], picture.NameChoices);
 
             // Every row of a list has to say it, not only the one the dialog happens to show first.
             viewModel.SelectAction("vision.findImage");
@@ -448,7 +447,7 @@ public class VariableFieldTests
             list.AddPicture();
             Assert.Equal(2, list.Pictures.Count);
             Assert.All(list.Pictures,
-                row => Assert.Equal(["$count", "$shot"], row.Suggestions));
+                row => Assert.Equal(["count", "shot"], row.Suggestions));
         });
     }
 

@@ -31,10 +31,21 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </remarks>
     public void InsertVariable(string token, int caret)
     {
-        var text = Definition.NamesVariable && token.StartsWith('$') ? token[1..] : token;
+        var name = token.Trim().TrimStart('$');
+
+        // A field of text keeps a name as a piece of itself rather than as a spelling, so a picked
+        // name goes in as a piece; a formula says a name as the name it is; and a field holding one
+        // value that may be prose marks it, because there a word is only a word.
+        if (Definition.ReadMode is ActionReadMode.Text && !Definition.NamesVariable)
+        {
+            InsertName(name, caret);
+            return;
+        }
+
+        var written = ReadAsFormula || Definition.NamesVariable ? name : "$" + name;
         var current = Text ?? string.Empty;
         var at = Math.Clamp(caret, 0, current.Length);
-        Text = current[..at] + text + current[at..];
+        Text = current[..at] + written + current[at..];
     }
 
     /// <summary>What the button beside the field should say.</summary>

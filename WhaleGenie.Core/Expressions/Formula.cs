@@ -63,7 +63,7 @@ public static class Formula
             return Nothing;
         }
 
-        return Expression.TryParse(written, out var tree, out var fault) && tree is not null
+        return Expression.TryParse(written, out var tree, out var fault, bare: true) && tree is not null
             ? tree
             : new FaultNode(written, fault?.Message ?? string.Empty);
     }

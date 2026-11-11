@@ -312,7 +312,7 @@ public partial class ActionDialogTests
             Assert.True(expression.IsCondition);
             Assert.False(expression.IsExpression);
             Assert.NotNull(expression.ConditionEditor);
-            Assert.Contains("$spot", expression.ExpressionSuggestions);
+            Assert.Contains("spot", expression.ExpressionSuggestions);
             Assert.Contains("contains(", expression.ExpressionSuggestions);
         });
     }

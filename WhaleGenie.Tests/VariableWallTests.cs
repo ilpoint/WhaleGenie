@@ -312,7 +312,8 @@ public class VariableWallTests
             field.Text = @"C:\logs\.txt";
             field.InsertVariable("$name", 8);
 
-            Assert.Equal(@"C:\logs\$name.txt", field.Text);
+            // A dot right after a name would be read as part of it, so the line says where it ends.
+            Assert.Equal(@"C:\logs\${name}.txt", field.Text);
         });
     }
 

@@ -196,11 +196,11 @@ public partial class RunDebugTests
                 HitTimes = 4,
             };
 
-            Assert.Contains("$total", panel.ExpressionSuggestions);
+            Assert.Contains("total", panel.ExpressionSuggestions);
             Assert.Contains(panel.ExpressionSuggestions,
                 suggestion => suggestion.EndsWith("(", StringComparison.Ordinal));
 
-            panel.Expression = "$total >";
+            panel.Expression = "total >";
             Assert.True(panel.ShowExpressionError);
             Assert.False(panel.ShowExpressionSuccess);
 

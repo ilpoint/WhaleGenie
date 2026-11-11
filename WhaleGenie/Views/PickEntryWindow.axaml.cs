@@ -438,7 +438,7 @@ public partial class PickEntryWindow : AppWindow
         => _variables.Count == 0
             ? null
             : Strings.Format("LookPick.EntryVariableTip",
-                string.Join("、", _variables.Take(6).Select(choice => "$" + choice.Name)));
+                string.Join("、", _variables.Take(6).Select(choice => choice.Name)));
 
     private TextBox Box(string name) => this.FindControl<TextBox>(name)!;
 

@@ -173,9 +173,36 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         if (!ShowsParts)
         {
-            // A field holding one formula or one piece of text has no pieces to put a name between,
-            // so it takes the name the way it always did: as the line it is written as.
-            InsertVariable("$" + name, caret ?? (Text ?? string.Empty).Length);
+            // The first name makes the field a run of pieces. What was typed becomes the text on
+            // one side of it and the name the piece beside it, built here rather than written as a
+            // spelling and read back.
+            var current = Text ?? string.Empty;
+            var split = Math.Clamp(caret ?? current.Length, 0, current.Length);
+            var built = new System.Collections.Generic.List<ExpressionNode>();
+            if (current[..split].Length > 0)
+            {
+                built.Add(Formula.Text(current[..split]));
+            }
+
+            built.Add(Formula.Name(name));
+            if (current[split..].Length > 0)
+            {
+                built.Add(Formula.Text(current[split..]));
+            }
+
+            _written = Formula.Run(built);
+            _composing = true;
+            try
+            {
+                Text = FormulaText.Write(_written);
+            }
+            finally
+            {
+                _composing = false;
+            }
+
+            RebuildParts();
+            OnPropertyChanged(nameof(ShowsParts));
             return;
         }
 

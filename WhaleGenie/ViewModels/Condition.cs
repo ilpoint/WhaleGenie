@@ -47,7 +47,7 @@ public static class Condition
     public static bool TryRead(string text, out ConditionShape shape)
     {
         shape = null!;
-        if (!Expression.TryParse(text, out var tree, out _) || tree is null)
+        if (!Expression.TryParse(text, out var tree, out _, bare: true) || tree is null)
         {
             return false;
         }
@@ -62,7 +62,7 @@ public static class Condition
 
     /// <summary>Writes a condition as the expression the engine reads.</summary>
     public static string Render(ConditionShape shape)
-        => Build(shape) is { } tree ? Expression.Render(tree) : string.Empty;
+        => Build(shape) is { } tree ? Piece(tree) : string.Empty;
 
     private static ConditionShape Read(ExpressionNode tree)
     {
@@ -128,8 +128,8 @@ public static class Condition
             && call.Arguments.Count == 2)
         {
             return new ConditionShape.Row(
-                Expression.Render(call.Arguments[0]), called.Compare,
-                Expression.Render(call.Arguments[1]));
+                Piece(call.Arguments[0]), called.Compare,
+                Piece(call.Arguments[1]));
         }
 
         if (tree is UnaryNode { Operator: "not" } unary)
@@ -142,12 +142,12 @@ public static class Condition
                     && choice.Shape is ComparisonShape.Call) is { } kept)
             {
                 return new ConditionShape.Row(
-                    Expression.Render(denied.Arguments[0]), Denial(kept.Compare),
-                    Expression.Render(denied.Arguments[1]));
+                    Piece(denied.Arguments[0]), Denial(kept.Compare),
+                    Piece(denied.Arguments[1]));
             }
 
             return new ConditionShape.Row(
-                Expression.Render(unary.Operand), ConditionCompare.Fails, string.Empty);
+                Piece(unary.Operand), ConditionCompare.Fails, string.Empty);
         }
 
         if (tree is BinaryNode { } binary
@@ -158,7 +158,7 @@ public static class Condition
             // comparison they would read as a left side nobody typed.
             if (binary.Left is CallNode wrapped && wrapped.Arguments.Count == 1)
             {
-                var inside = Expression.Render(wrapped.Arguments[0]);
+                var inside = Piece(wrapped.Arguments[0]);
                 if (string.Equals(wrapped.Name, "length", System.StringComparison.OrdinalIgnoreCase)
                     && IsZero(binary.Right))
                 {
@@ -171,15 +171,15 @@ public static class Condition
                     && binary.Operator == "==")
                 {
                     return new ConditionShape.Row(inside, ConditionCompare.CountIs,
-                        Expression.Render(binary.Right));
+                        Piece(binary.Right));
                 }
             }
 
             return new ConditionShape.Row(
-                Expression.Render(binary.Left), comparison.Compare, Expression.Render(binary.Right));
+                Piece(binary.Left), comparison.Compare, Piece(binary.Right));
         }
 
-        return new ConditionShape.Row(Expression.Render(tree), ConditionCompare.Holds, string.Empty);
+        return new ConditionShape.Row(Piece(tree), ConditionCompare.Holds, string.Empty);
     }
 
     /// <summary>The row that says a call did not hold, in the way that has words of its own.</summary>
@@ -260,6 +260,12 @@ public static class Condition
         return choice.Shape is ComparisonShape.NegatedCall ? new UnaryNode("not", call) : call;
     }
 
+    /// <summary>
+    /// A piece of a condition as the text the box holds. A formula says a name as the name it is,
+    /// so this is what the person reads and what the box hands back.
+    /// </summary>
+    private static string Piece(ExpressionNode node) => Expression.Render(node, bare: true);
+
     private static CallNode LengthOf(ExpressionNode value) => new("length", [value]);
 
     private static CallNode CountOf(ExpressionNode value) => new("count", [value]);
@@ -267,5 +273,5 @@ public static class Condition
     private static NumberNode Zero() => new("0", 0);
 
     private static ExpressionNode? Parse(string text)
-        => Expression.TryParse(text, out var tree, out _) && tree is not null ? tree : null;
+        => Expression.TryParse(text, out var tree, out _, bare: true) && tree is not null ? tree : null;
 }

@@ -53,16 +53,14 @@ public partial class StepParameterViewModel : ViewModelBase
 
         // A box that writes a variable name offers only names a macro may write. Every other box
         // reads, and a read may also name what WhaleGenie provides or what an earlier step left
-        // behind. A bare-name field takes the name itself, while a value box takes the reader's
-        // form with the dollar sign.
+        // behind. A name is offered as the name itself wherever it is offered: how it is written
+        // where it lands — a piece of a text, or a word of a formula — is decided when it lands.
         var writesName = definition.NamesVariable
             && MacroStep.DefinesVariable(definition.OwnerKey, definition.Name);
         var offered = writesName
             ? Variables.Where(choice => choice.Scope != VariableScope.System && !choice.IsStepResult)
             : Variables;
-        NameChoices = definition.NamesVariable
-            ? [.. offered.Select(choice => choice.Name)]
-            : [.. offered.Select(choice => "$" + choice.Name)];
+        NameChoices = [.. offered.Select(choice => choice.Name)];
 
         // A field that may name variables offers them; one that is read as a whole value offers the
         // functions as well, because a function name is something the expression reader understands
@@ -84,7 +82,14 @@ public partial class StepParameterViewModel : ViewModelBase
         var suggestions = new List<string>();
         if (knowsFunctions || definition.AcceptsVariables)
         {
-            suggestions.AddRange(named.Select(name => "$" + name));
+            // A formula says a name as itself. A box that holds text rather than a formula marks
+            // one, because there a word is only a word.
+            var bare = definition.Kind
+                is ActionParameterKind.Expression or ActionParameterKind.Condition
+                    or ActionParameterKind.Number;
+            suggestions.AddRange(bare
+                ? named
+                : named.Select(name => "$" + name));
             if (knowsFunctions)
             {
                 suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));

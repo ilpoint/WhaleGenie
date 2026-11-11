@@ -139,7 +139,7 @@ internal static class ActionStrings
     /// </summary>
     private const string PageTargetHint =
         "选择器一行一条：从上往下依次试，第一条能认出元素的就是这一步用的；多写一条是页面改版之后仍然"
-        + "找得到的办法。换下一条只在这一条认不到元素的时候生效，认到了却点不动不换。其中的 $变量 会"
+        + "找得到的办法。换下一条只在这一条认不到元素的时候生效，认到了却点不动不换。其中的 变量 会"
         + "替换成它的值。四种按页面上的字认的写法另有名字：label= 表单标签、placeholder= 占位文字、"
         + "alt= 图片说明、title= 提示文字，都按“包含”比、忽略大小写。元素在框架里时，先写 "
         + "frame=<框架的选择器> >> 。";
@@ -167,7 +167,7 @@ internal static class ActionStrings
     /// </summary>
     private const string UiNarrowHint =
         "元素除选择器已确定的属性外还需满足的条件；每行一条，同时成立。可限定元素可见、可用，"
-        + "或名称包含（不包含）指定文本；值中可使用 $变量。";
+        + "或名称包含（不包含）指定文本；值中可使用 变量。";
 
     /// <summary>
     /// The hint every action that lists several reference pictures shares for its picker: which of
@@ -282,26 +282,26 @@ internal static class ActionStrings
         "这次找到的那一处，一条记录：「x」「y」是正中的位置（动作要点或移到的那个点），「left」"
         + "「top」是矩形左上角（搜索区域从那里开始量），「width」「height」是宽高，「score」是这一处"
         + "的相似度（越大越像，1 表示完全一样），「box」是整块矩形，写成 左,上,宽,高，填进搜索区域"
-        + "那一行的变量格即可看同一处。取其中一项用 field($变量, \"x\")。没找到时为空。";
+        + "那一行的变量格即可看同一处。取其中一项用 field(变量, \"x\")。没找到时为空。";
 
     /// <summary>The same hint for the colour searches, whose hit is a single pixel.</summary>
     private const string HitRecordHintColour =
         "这次找到的那个像素，一条记录：「x」「y」是它的位置，「left」「top」是同一个位置，「width」"
         + "「height」是 1，「score」是这个像素与要找的颜色的接近程度（1 表示完全一样），「box」写成"
-        + "左,上,宽,高。取其中一项用 field($变量, \"x\")。没找到时为空。";
+        + "左,上,宽,高。取其中一项用 field(变量, \"x\")。没找到时为空。";
 
     /// <summary>The same hint for the text searches, whose hit also carries what was read.</summary>
     private const string HitRecordHintText =
         "这次读到的那一处，一条记录：「x」「y」是正中的位置（点文字落的就是这里），「left」「top」是"
         + "矩形左上角（搜索区域从那里开始量），「width」「height」是宽高，「text」是这一处读到的文字，"
         + "「score」是识别模型给的读数分数（越大越有把握），「box」是整块矩形，写成 左,上,宽,高。"
-        + "取其中一项用 field($变量, \"x\")。没找到时为空。";
+        + "取其中一项用 field(变量, \"x\")。没找到时为空。";
 
     /// <summary>The same hint for the element searches, whose hit carries the element's own text.</summary>
     private const string HitRecordHintElement =
         "这次找到的那个元素，一条记录：「x」「y」是它的正中（后面的步骤按它量位置、点它），「left」"
         + "「top」是它左上角，「width」「height」是它的宽高，「text」是元素自带的文本，「box」是整块"
-        + "矩形，写成 左,上,宽,高。取其中一项用 field($变量, \"x\")。没找到时为空。";
+        + "矩形，写成 左,上,宽,高。取其中一项用 field(变量, \"x\")。没找到时为空。";
 
     /// <summary>The hint the "every match" results of the search actions share.</summary>
     private const string EveryHitHint =
@@ -353,7 +353,7 @@ internal static class ActionStrings
         + "「top」是框的左上角（检测范围从那里开始量），「width」「height」是框的宽高，「score」是"
         + "模型的把握（越大越有把握），「class」是模型给的类序号（从 0 算），「label」是标签文件给"
         + "它的名字（标签文件里没有这一类时为空），「box」是整块矩形，写成 左,上,宽,高。取其中一项用 "
-        + "field($变量, \"x\")。没找到时为空。";
+        + "field(变量, \"x\")。没找到时为空。";
 
     /// <summary>The same hint for the region a detection step reads, under the name that field goes by.</summary>
     private const string DetectRegionHint =
@@ -392,7 +392,7 @@ internal static class ActionStrings
         ["control.waitUntil.name"] = "等待直到",
         ["control.waitUntil.desc"] = "反复判断一个条件，成立之后再继续往下走。",
         ["control.waitUntil.condition.label"] = "条件",
-        ["control.waitUntil.condition.hint"] = "布尔表达式，例如 $found 或 $count > 3；每一轮都重新计算。"
+        ["control.waitUntil.condition.hint"] = "布尔表达式，例如 found 或 count > 3；每一轮都重新计算。"
             + "等多久由这一步的「超时」决定（默认 10 分钟，填 0 表示不限），到点判为失败。",
         ["control.waitUntil.intervalMs.label"] = "检查间隔",
         ["control.waitUntil.intervalMs.hint"] = "两次判断之间隔多久，单位是毫秒，范围 0 到 60000，默认 200；留空按屏幕刷新一次的时间。",
@@ -449,7 +449,7 @@ internal static class ActionStrings
         ["control.forEach.name"] = "遍历",
         ["control.forEach.desc"] = "对列表或变量中的每一项各执行一次子步骤。有一批值要逐个处理时用它。",
         ["control.forEach.items.label"] = "列表项",
-        ["control.forEach.items.hint"] = "一个列表，或保存列表的 $变量。例如 [1, 2, 3]、split($text, \",\") 或 $names。",
+        ["control.forEach.items.hint"] = "一个列表，或保存列表的 变量。例如 [1, 2, 3]、split(text, \",\") 或 names。",
         ["control.forEach.itemVariable.label"] = "当前项变量",
         ["control.forEach.itemVariable.hint"] = "接收当前这一项的变量名，默认 item，子步骤里可以读它。",
         ["control.forEach.indexVariable.label"] = "序号变量",
@@ -526,7 +526,7 @@ internal static class ActionStrings
         ["control.try.body.label"] = "尝试步骤",
         ["control.try.body.hint"] = "先尝试执行的子步骤。",
         ["control.try.catchWhen.label"] = "何时捕获",
-        ["control.try.catchWhen.hint"] = "可选布尔表达式，在 $caught.key 与 $caught.detail 可见时计算一次。"
+        ["control.try.catchWhen.hint"] = "可选布尔表达式，在 caught.key 与 caught.detail 可见时计算一次。"
             + "留空即接住所有失败；表达式不成立时把原来的失败交给上层，收尾步骤照常执行。",
         ["control.try.catch.label"] = "捕获步骤",
         ["control.try.catch.hint"] = "尝试失败时执行的子步骤。",
@@ -552,12 +552,12 @@ internal static class ActionStrings
 
         ["control.setVariable.name"] = "设置变量",
         ["control.setVariable.desc"] = "把一个值存进变量，后面的步骤按名字取用；值可以是一个数字、"
-            + "一段文字或一个算式，例如 $count + 1。",
+            + "一段文字或一个算式，例如 count + 1。",
         ["control.setVariable.name.label"] = "变量名",
         ["control.setVariable.name.hint"] = "局部变量在这里命名；选全局范围时，写一个新名字会在保存这一步时创建全局变量。",
         ["control.setVariable.value.label"] = "值",
-        ["control.setVariable.value.hint"] = "要保存的值：数字、文本、$变量，或公式，例如 $count + 1、"
-            + "upper($name) 或 list(1, 2, 3)。",
+        ["control.setVariable.value.hint"] = "要保存的值：数字、文本、变量，或公式，例如 count + 1、"
+            + "upper(name) 或 list(1, 2, 3)。",
         ["control.setVariable.scope.label"] = "作用范围",
         ["control.setVariable.scope.hint"] = "这个值放在哪一层，默认局部变量。局部变量只属于本宏；全局变量由"
             + "所有宏共享，可在下面直接新建或编辑。",
@@ -571,7 +571,7 @@ internal static class ActionStrings
         ["control.incrementGlobal.name.hint"] = "要增加的全局变量，必须先在变量中心创建。"
             + "它的值由所有宏共享，程序运行期间一直保留，不写进项目文件。",
         ["control.incrementGlobal.amount.label"] = "增加多少",
-        ["control.incrementGlobal.amount.hint"] = "每次加上的数，可以是负数或公式，例如 $step；默认 1。",
+        ["control.incrementGlobal.amount.hint"] = "每次加上的数，可以是负数或公式，例如 step；默认 1。",
         ["control.incrementGlobal.returns.label"] = "要留下的结果",
         ["control.incrementGlobal.returns.hint"] = ReturnsHintText,
         ["control.incrementGlobal.return.value.label"] = "新计数",
@@ -630,7 +630,7 @@ internal static class ActionStrings
         ["control.fail.reason.label"] = "失败原因",
         ["control.fail.reason.hint"] = "哪里不对，写进日志，也写进步骤自己的错误值，后面的步骤读得到。",
         ["control.fail.failureKey.label"] = "失败键",
-        ["control.fail.failureKey.hint"] = "可选，供捕获条件用 $caught.key 比较；必须以 User. 开头。留空时报 Run.StepFailedByMacro。",
+        ["control.fail.failureKey.hint"] = "可选，供捕获条件用 caught.key 比较；必须以 User. 开头。留空时报 Run.StepFailedByMacro。",
 
         ["control.note.name"] = "说明",
         ["control.note.desc"] = "在宏中间写一行说明，运行时不做事。",
@@ -917,7 +917,7 @@ internal static class ActionStrings
         ["file.readCsv.matchColumn.hint"] = "只读这一列的单元格等于下面那个值的行，列名写法与上面一样。"
             + "默认留空，表示每一行都读。",
         ["file.readCsv.matchValue.label"] = "等于",
-        ["file.readCsv.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 $变量。",
+        ["file.readCsv.matchValue.hint"] = "这些行里那个单元格要等于的值，也可以写成 变量。",
         ["file.readCsv.filterMode.label"] = "匹配方式",
         ["file.readCsv.filterMode.hint"] = "单元格与这个值怎么比：比文字的几档是等于、包含、以…开头、以…结尾、"
             + "正则匹配（与别处用的是同一批词，都不区分大小写，「等于」比之前去掉两端的空格），另有不等于、"
@@ -1099,7 +1099,7 @@ internal static class ActionStrings
         ["process.waitExit.name"] = "等待程序结束",
         ["process.waitExit.desc"] = "等待本宏启动的某个程序结束。",
         ["process.waitExit.window.label"] = "程序",
-        ["process.waitExit.window.hint"] = "要等它结束的程序，通常直接填「启动程序」交回的 $program；"
+        ["process.waitExit.window.hint"] = "要等它结束的程序，通常直接填「启动程序」交回的 program；"
             + "按进程名认时，没有窗口的控制台程序也能等。开等之前它就得在运行。",
 
         ["process.exists.name"] = "程序是否在运行",
@@ -1137,7 +1137,7 @@ internal static class ActionStrings
             + "以 # 开头的行会被忽略。",
         ["command.run.standardInput.label"] = "标准输入",
         ["command.run.standardInput.hint"] = "命令从标准输入读取的内容。默认留空，表示不提供任何输入；内容按 UTF-8 发送，"
-            + "其中的 $变量 会替换为该变量的值。",
+            + "其中的 变量 会替换为该变量的值。",
         ["command.run.streamOutput.label"] = "输出实时写入日志",
         ["command.run.streamOutput.hint"] = "命令运行期间，它打印的每一行会立即写入运行日志，便于观察耗时较长的构建或脚本的进度。"
             + "默认不勾选；结果变量里仍然是完整输出。",
@@ -1191,7 +1191,7 @@ internal static class ActionStrings
             + "x、y（这块显示器的中心），然后是 left、top、width、height、right、bottom、primary，"
             + "以及 box，也就是那块矩形写成"
             + "「左,上,宽,高」，区域那一格可以直接用它。主显示器左边的显示器 left 是负数，"
-            + "瞄准它时那正是要填的数。取其中一块的一项用 field(get($变量, 0), \"left\")，"
+            + "瞄准它时那正是要填的数。取其中一块的一项用 field(get(变量, 0), \"left\")，"
             + "全部走一遍用 forEach。",
 
         ["system.environment.name"] = "环境变量",
@@ -2302,7 +2302,7 @@ internal static class ActionStrings
         ["vision.findImage.name"] = "查找图片",
         ["vision.findImage.desc"] = "在屏幕上寻找一张参考图片。",
         ["vision.findImage.images.label"] = "图片文件",
-        ["vision.findImage.images.hint"] = "参考图片：文件路径，或截图动作保存的变量（如 $shot）。",
+        ["vision.findImage.images.hint"] = "参考图片：文件路径，或截图动作保存的变量（如 shot）。",
         ["vision.findImage.confidence.label"] = "置信度（%）",
         ["vision.findImage.confidence.hint"] = "要求的相似度下限，写成 0 到 100 的百分数，默认 90；屏幕上的样子画得略有不同时调低。",
         ["vision.findImage.region.label"] = "搜索区域",
@@ -2409,8 +2409,8 @@ internal static class ActionStrings
         ["ocr.recognize.contentPattern.label"] = ContentPatternLabel,
         ["ocr.recognize.contentPattern.hint"] = ContentPatternHint,
         ["ocr.recognize.table.label"] = "按表格读",
-        ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：$变量是表格（每行一项、每项是一条"
-            + "记录，键是格子的列号 A、B、C），$变量.text 是同样的内容按行拼成的文本（行与行之间换行、"
+        ["ocr.recognize.table.hint"] = "按屏幕上的位置分行分列：变量是表格（每行一项、每项是一条"
+            + "记录，键是格子的列号 A、B、C），变量.text 是同样的内容按行拼成的文本（行与行之间换行、"
             + "单元格之间制表符）。没有表格线也能用，靠的是文字的位置。",
         ["ocr.recognize.preprocess.label"] = "画面预处理",
         ["ocr.recognize.preprocess.hint"] = "识别前的画面处理：灰度化去掉颜色；黑白在灰度化后"
@@ -2676,13 +2676,13 @@ internal static class ActionStrings
         ["uia.read.return.element.hint"] = "这个元素自己说出的内容，一条记录：enabled 与 visible、"
             + "value、name、automationId、controlType，然后是 x、y（它的中心），以及 left、top、"
             + "width、height 与 box。"
-            + "取其中一项用 field($变量, \"value\")。value 是元素持有的内容，输入框里的文字、"
+            + "取其中一项用 field(变量, \"value\")。value 是元素持有的内容，输入框里的文字、"
             + "按钮上的标题，元素本身不持有内容时为空。",
 
         ["uia.waitElement.return.element.label"] = "等到的元素",
         ["uia.waitElement.return.element.hint"] = "让这一次等待结束的那个元素，与「读取界面元素」同一种记录："
             + "enabled 与 visible、value、name、automationId、controlType，然后是 x、y（它的中心），"
-            + "以及 left、top、width、height 与 box。取其中一项用 field($变量, \"value\")；"
+            + "以及 left、top、width、height 与 box。取其中一项用 field(变量, \"value\")；"
             + "等一个输入框出现再看它里面写着什么，一条步骤就够了，读到的就是让等待结束的那一个。",
 
         ["uia.select.name"] = "选择界面列表项",
@@ -2705,7 +2705,7 @@ internal static class ActionStrings
         ["uia.select.matchIndex.label"] = "第几个命中",
         ["uia.select.matchIndex.hint"] = "选择器可能匹配到多个控件，这里填要操作的是第几个。" + MatchIndexHint,
         ["uia.select.item.label"] = "选项文字",
-        ["uia.select.item.hint"] = "要选中的那一项显示的文字，也可以由 $变量 提供（比如刚从别处读回来的值）。留空就填下面的序号。",
+        ["uia.select.item.hint"] = "要选中的那一项显示的文字，也可以由 变量 提供（比如刚从别处读回来的值）。留空就填下面的序号。",
         ["uia.select.itemIndex.label"] = "选项序号",
         ["uia.select.itemIndex.hint"] = "要选第几项，从 1 开始数；默认 0，表示用上面写的文字来选。",
 
@@ -2806,7 +2806,7 @@ internal static class ActionStrings
         ["uia.focusWindow.name"] = "窗口置前",
         ["uia.focusWindow.desc"] = "把某个窗口切换到最前面。",
         ["uia.focusWindow.window.label"] = WindowMatchTextLabel,
-        ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 $变量。可以用“拾取窗口”从当前打开的窗口里选一个。",
+        ["uia.focusWindow.window.hint"] = "窗口标题，或保存标题的 变量。可以用“拾取窗口”从当前打开的窗口里选一个。",
 
         // ---------------------------------------------------------------- browser
         ["browser.open.name"] = "打开浏览器",
@@ -2827,7 +2827,7 @@ internal static class ActionStrings
         ["browser.open.profile.hint"] = "给这个浏览器自己的登录状态起一个名字，以后用这个名字打开的就是"
             + "已经登录过的那一份：登录状态与 Cookie 都留在里面。默认留空，表示每次都是全新的浏览器。名字是"
             + "程序旁边 browsers 文件夹里的一格（写不进去时改用 %LOCALAPPDATA%\\WhaleGenie\\browsers，"
-            + "见「程序自己的文件放哪儿」），其中的 $变量 会替换成它的值。同一时刻只开一份浏览器，所以"
+            + "见「程序自己的文件放哪儿」），其中的 变量 会替换成它的值。同一时刻只开一份浏览器，所以"
             + "这一步写了别的档案名会先关掉前一份再打开新的。",
 
         ["browser.goTo.name"] = "转到网址",
@@ -3582,7 +3582,7 @@ internal static class ActionStrings
         ["process.info.return.program.hint"] =
             "这个程序，一条记录：「info」（程序所在的文件，Windows 不肯说时为空）、「id」（进程号）、"
             + "「name」（名称）、「memoryMb」（占用的内存，单位是兆字节）、「cpuSeconds」（累计用掉的处理器"
-            + "时间，单位是秒）。取其中一项用 field($变量, \"id\")。",
+            + "时间，单位是秒）。取其中一项用 field(变量, \"id\")。",
         ["process.info.returns.label"] = "要留下的结果",
         ["process.info.returns.hint"] = ReturnsHintText,
 
@@ -3667,7 +3667,7 @@ internal static class ActionStrings
             + "行的变量格里，下一步就在那个窗口里找），再加上「process」（程序名，不含 .exe）与「class」"
             + "（窗口类名，说明窗口的种类而不是里面的文档，记事本改了名也还是 Notepad），这两格要勾上"
             + "「每个窗口都读程序名与类名（慢）」才有，没读的留空。读其中一条的一个字段用 "
-            + "field(get($变量, 0), \"title\")，逐个走一遍用 forEach。",
+            + "field(get(变量, 0), \"title\")，逐个走一遍用 forEach。",
         ["window.list.returns.label"] = "要留下的结果",
         ["window.list.returns.hint"] = ReturnsHintText,
 
@@ -3681,7 +3681,7 @@ internal static class ActionStrings
             + "的那一点）、「left」「top」「width」「height」（矩形四个"
             + "数）、「box」（同一个矩形，写成 左,上,宽,高，整条记录直接填进搜索区域那一行的变量格即可看同一"
             + "块）与「clientBox」（窗口边框以内、标题栏以下的那一块，写成 左,上,宽,高，识别方式选「窗口客户"
-            + "区」的这一步看的就是它）。取其中一项用 field($变量, \"left\")。给的是窗口被看见的那个矩形："
+            + "区」的这一步看的就是它）。取其中一项用 field(变量, \"left\")。给的是窗口被看见的那个矩形："
             + "Windows 留着用来拉伸的那圈边框不画出来也不算，最大化的窗口按它在屏幕上的样子量。",
         ["window.info.returns.label"] = "要留下的结果",
         ["window.info.returns.hint"] = ReturnsHintText,
@@ -3695,7 +3695,7 @@ internal static class ActionStrings
             + "「top」（左上角在屏幕上的位置，单位是屏幕像素，和搜索区域"
             + "的「左上角 X」「左上角 Y」同一个口径）、「width」「height」（大小，单位是像素；给的是图片自己"
             + "的大小，贴着屏幕边缘截时可能比要的小）、「box」（整块写成 左,上,宽,高，填进搜索区域那一行的"
-            + "变量格即可看同一块）。取其中一项用 field($变量, \"left\")。",
+            + "变量格即可看同一块）。取其中一项用 field(变量, \"left\")。",
         ["vision.capture.returns.label"] = "要留下的结果",
         ["vision.capture.returns.hint"] = ReturnsHintText,
 
@@ -3707,7 +3707,7 @@ internal static class ActionStrings
             "窗口在哪里，一条记录：「x」「y」（窗口矩形的中心，也就是动作要点的那一点）、「left」「top」"
             + "（窗口左上角在屏幕上的位置，单位是屏幕像素）、「width」"
             + "「height」（窗口的大小，单位是像素）、「box」（整块写成 左,上,宽,高，填进搜索区域那一行的"
-            + "变量格即可在窗口里找）。取其中一项用 field($变量, \"left\")。",
+            + "变量格即可在窗口里找）。取其中一项用 field(变量, \"left\")。",
         ["vision.captureWindow.returns.label"] = "要留下的结果",
         ["vision.captureWindow.returns.hint"] = ReturnsHintText,
 
@@ -3783,7 +3783,7 @@ internal static class ActionStrings
         // uia.readTable
         ["uia.readTable.return.table.label"] = "表格",
         ["uia.readTable.return.table.hint"] = "读到的行，每行是一条记录：键就是表格列标题那一行写的"
-            + "列名，用 field(get($变量, 0), \"金额\") 按名字取一个单元格；没有列标题时列名是 A、B、C，"
+            + "列名，用 field(get(变量, 0), \"金额\") 按名字取一个单元格；没有列标题时列名是 A、B、C，"
             + "列名为空或与前面重名的列也用它的列号。",
         ["uia.readTable.returns.label"] = "要留下的结果",
         ["uia.readTable.returns.hint"] = ReturnsHintText,
@@ -3806,7 +3806,7 @@ internal static class ActionStrings
         ["browser.readTable.return.table.label"] = "表格",
         ["browser.readTable.return.table.hint"] = "读到的行，每行是一条记录：键就是表格列标题那一行写的"
             + "列名。页面把列名写在 thead 或第一行的 th 里才算列标题，否则列名是 A、B、C；"
-            + "用 field(get($变量, 0), \"金额\") 按名字取一个单元格。",
+            + "用 field(get(变量, 0), \"金额\") 按名字取一个单元格。",
         ["browser.readTable.returns.label"] = "要留下的结果",
         ["browser.readTable.returns.hint"] = ReturnsHintText,
 

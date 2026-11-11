@@ -130,33 +130,6 @@ public partial class StepParameterViewModel : ViewModelBase
         NumberValue = value;
     }
 
-    /// <summary>Writes a variable the way this field reads a value, optionally at the text caret.</summary>
-    public void ApplyVariableDrop(string value, int? caret = null)
-    {
-        if (Definition.ReadMode is ActionReadMode.Text)
-        {
-            var current = Text ?? string.Empty;
-            var at = Math.Clamp(caret ?? current.Length, 0, current.Length);
-            Text = current[..at] + value + current[at..];
-            return;
-        }
-
-        if (Definition.Kind is ActionParameterKind.WindowRule)
-        {
-            UseWindowVariable(value);
-            return;
-        }
-
-        if (Definition.Kind is ActionParameterKind.Number or ActionParameterKind.Expression
-            or ActionParameterKind.Record or ActionParameterKind.Point
-            or ActionParameterKind.Rect)
-        {
-            UseFormula = true;
-        }
-
-        Text = value;
-    }
-
     /// <summary>
     /// Empties the field whichever way it was written, so that the other way of answering the same
     /// question — a record here, the numbers beside it, or the other way round — can take over

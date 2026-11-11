@@ -39,7 +39,7 @@ public sealed partial class BreakpointViewModel : ObservableObject
         // condition is written with the same words wherever it is written.
         ExpressionSuggestions =
         [
-            .. Variables.Select(name => "$" + name),
+            .. Variables,
             .. WhaleGenie.Core.Expressions.Expression.Functions
                 .Select(function => function.Name + "("),
         ];

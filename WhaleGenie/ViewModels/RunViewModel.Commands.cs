@@ -169,7 +169,8 @@ public partial class RunViewModel
             new ExecutableParameter
             {
                 Name = "condition",
-                Written = FormulaText.Read(expression.Trim(), ActionReadMode.WholeValue),
+                // A breakpoint asks a question, so its line is read as the formula it is.
+                Written = Formula.FromFormula(expression.Trim()),
             },
         ],
     };
