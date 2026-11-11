@@ -255,7 +255,7 @@ public partial class MacroEditorWindow : AppWindow
         };
         editor.Changed += (_, _) =>
         {
-            _settings.FindControl<TextBlock>("SavedNotice")!.IsVisible = false;
+            _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
             _rootViewModel.IsDirty = true;
             RefreshDocuments();
             KeepRecovery();
@@ -537,7 +537,7 @@ public partial class MacroEditorWindow : AppWindow
         _mustStayUnsaved = false;
         StopRecovery();
         Saved?.Invoke(result);
-        _settings.FindControl<TextBlock>("SavedNotice")!.IsVisible = true;
+        _settings.Find<TextBlock>("SavedNotice")!.IsVisible = true;
 
         if (closeAfterSave)
         {

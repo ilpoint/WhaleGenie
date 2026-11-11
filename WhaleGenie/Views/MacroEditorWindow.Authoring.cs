@@ -248,7 +248,7 @@ public partial class MacroEditorWindow : AppWindow
     {
         var model = new MacroInterfaceViewModel(_viewModel);
         _interfaceView = new MacroInterfaceView { DataContext = model };
-        _settings.FindControl<ContentControl>("MacroInterfaceHost")!.Content = _interfaceView;
+        _settings.Find<ContentControl>("MacroInterfaceHost")!.Content = _interfaceView;
     }
     /// <summary>Shows the recording controls over the step list.</summary>
     private void OnShowRecording(object? sender, RoutedEventArgs e)

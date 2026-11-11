@@ -133,7 +133,8 @@ public partial class MacroEditorWindow : AppWindow
     /// for the checks that read them.
     /// </summary>
     internal T? FindControl<T>(string name) where T : Control =>
-        FindOn<T>(this, name) ?? FindOn<T>(_settings, name) ?? FindOn<T>(_document, name) ?? FindOn<T>(_recording, name);
+        FindOn<T>(this, name) ?? _settings?.Find<T>(name)
+        ?? FindOn<T>(_document, name) ?? FindOn<T>(_recording, name);
 
     private static T? FindOn<T>(Control? scope, string name) where T : Control =>
         scope is null ? null : NameScope.GetNameScope(scope)?.Find<T>(name) as T;
@@ -304,7 +305,7 @@ public partial class MacroEditorWindow : AppWindow
         // before that change.
         _viewModel.Changed += (_, _) =>
         {
-            _settings.FindControl<TextBlock>("SavedNotice")!.IsVisible = false;
+            _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
             RefreshDocuments();
             KeepRecovery();
         };
