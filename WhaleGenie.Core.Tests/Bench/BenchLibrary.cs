@@ -23,9 +23,9 @@ internal sealed class BenchLibrary : IMacroLibrary
                     Type = "control.setVariable",
                     Parameters =
                     [
-                        new ExecutableParameter { Name = "name", Text = BenchFixtures.CalledResult },
-                        new ExecutableParameter { Name = "scope", Text = "local" },
-                        new ExecutableParameter { Name = "value", Text = "1" },
+                        Fields.Text("name", BenchFixtures.CalledResult),
+                        Fields.Text("scope", "local"),
+                        Fields.Text("value", "1"),
                     ],
                 },
             ]

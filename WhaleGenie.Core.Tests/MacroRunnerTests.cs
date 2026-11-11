@@ -16,7 +16,7 @@ public partial class MacroRunnerTests
         => new() { Type = type, Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     /// <summary>
     /// What a call passes: one row per argument, the way a saved step writes it. An argument with
@@ -57,10 +57,10 @@ public partial class MacroRunnerTests
     private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => new() { Name = name, Steps = steps };
+        => Fields.Steps(name, steps);
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Text = TestConditions.Expression(step) };
+        => Fields.Text(name, TestConditions.Expression(step));
 
     private static ExecutableStep Set(string name, string value)
         => Step("control.setVariable", Param("name", name), Param("scope", "local"), Param("value", value));

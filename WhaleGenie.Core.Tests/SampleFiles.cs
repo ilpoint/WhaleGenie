@@ -97,7 +97,7 @@ internal static class SampleFiles
 
     /// <summary>One parameter of a step.</summary>
     public static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     /// <summary>
     /// Where a step looks, written the way the dialog writes it: one row per place, each row giving
@@ -109,14 +109,7 @@ internal static class SampleFiles
         {
             Name = "region",
             Rows = [.. rectangles.Select(rectangle =>
-                (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(
-                    StringComparer.OrdinalIgnoreCase)
-                {
-                    ["x"] = rectangle.X.ToString(CultureInfo.InvariantCulture),
-                    ["y"] = rectangle.Y.ToString(CultureInfo.InvariantCulture),
-                    ["width"] = rectangle.Width.ToString(CultureInfo.InvariantCulture),
-                    ["height"] = rectangle.Height.ToString(CultureInfo.InvariantCulture),
-                })],
+                (IReadOnlyDictionary<string, string>)Cells.Of(("x", rectangle.X.ToString(CultureInfo.InvariantCulture)), ("y", rectangle.Y.ToString(CultureInfo.InvariantCulture)), ("width", rectangle.Width.ToString(CultureInfo.InvariantCulture)), ("height", rectangle.Height.ToString(CultureInfo.InvariantCulture))))],
         };
 
     /// <summary>
@@ -130,14 +123,7 @@ internal static class SampleFiles
         {
             Name = "points",
             Rows = [.. offsets.Select(offset =>
-                (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(
-                    StringComparer.OrdinalIgnoreCase)
-                {
-                    ["dx"] = offset.Dx,
-                    ["dy"] = offset.Dy,
-                    ["colour"] = offset.Colour,
-                    ["tolerance"] = offset.Tolerance,
-                })],
+                (IReadOnlyDictionary<string, string>)Cells.Of(("dx", offset.Dx), ("dy", offset.Dy), ("colour", offset.Colour), ("tolerance", offset.Tolerance)))],
         };
 
     /// <summary>The same, for the colours that use the tolerance filled in for the base colour.</summary>
@@ -147,13 +133,7 @@ internal static class SampleFiles
         {
             Name = "points",
             Rows = [.. offsets.Select(offset =>
-                (IReadOnlyDictionary<string, string>)new Dictionary<string, string>(
-                    StringComparer.OrdinalIgnoreCase)
-                {
-                    ["dx"] = offset.Dx,
-                    ["dy"] = offset.Dy,
-                    ["colour"] = offset.Colour,
-                })],
+                (IReadOnlyDictionary<string, string>)Cells.Of(("dx", offset.Dx), ("dy", offset.Dy), ("colour", offset.Colour)))],
         };
 
     /// <summary>A place to look that names a variable instead of giving four numbers.</summary>
@@ -163,10 +143,7 @@ internal static class SampleFiles
             Name = "region",
             Rows =
             [
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["text"] = named,
-                },
+                Cells.Of(("text", named)),
             ],
         };
 
@@ -241,11 +218,7 @@ internal static class SampleFiles
     private static IReadOnlyDictionary<string, string> Result(string written)
     {
         var cut = written.IndexOf('=');
-        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["key"] = cut < 0 ? written : written[..cut],
-            ["name"] = cut < 0 ? written : written[(cut + 1)..],
-        };
+        return Cells.Of(("key", cut < 0 ? written : written[..cut]), ("name", cut < 0 ? written : written[(cut + 1)..]));
     }
 
     /// <summary>

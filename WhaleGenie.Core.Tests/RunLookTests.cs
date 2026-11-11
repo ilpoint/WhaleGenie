@@ -44,13 +44,13 @@ public partial class RunLookTests
         => SampleFiles.Within(milliseconds, step);
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => new() { Name = name, Steps = steps };
+        => Fields.Steps(name, steps);
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Text = TestConditions.Expression(step) };
+        => Fields.Text(name, TestConditions.Expression(step));
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
@@ -69,10 +69,7 @@ public partial class RunLookTests
         {
             Name = "images",
             Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["image"] = text,
-                })],
+                Cells.Of(("image", text)))],
         };
 
     /// <summary>See <see cref="SampleFiles.Capture"/>: a step that copies one part of the screen.</summary>

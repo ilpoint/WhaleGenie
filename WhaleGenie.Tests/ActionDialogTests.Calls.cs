@@ -300,12 +300,11 @@ public partial class ActionDialogTests
                         [
                             new StepParameterRow
                             {
-                                Columns = new Dictionary<string, string>(
-                                    StringComparer.OrdinalIgnoreCase)
-                                {
-                                    ["key"] = "method",
-                                    ["name"] = "取法",
-                                },
+                                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["key"] = "method",
+            ["name"] = "取法",
+        },
                             },
                         ],
                     },

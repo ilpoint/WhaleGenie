@@ -22,7 +22,7 @@ public class FramePolicyTests
         => SampleFiles.Step(type, parameters);
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     private static ExecutableParameter Region(int x, int y, int width, int height)
         => SampleFiles.Region((x, y, width, height));
@@ -36,10 +36,7 @@ public class FramePolicyTests
         {
             Name = "images",
             Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["image"] = text,
-                })],
+                Cells.Of(("image", text)))],
         };
 
     private static ExecutableStep Find(params ExecutableParameter[] rest)
@@ -47,7 +44,7 @@ public class FramePolicyTests
 
     private static ExecutableStep Body(params ExecutableStep[] steps)
         => Step("control.repeat", Param("times", "4"), Param("intervalMs", "0"),
-            new ExecutableParameter { Name = "body", Steps = steps });
+            Fields.Steps("body", steps));
 
     [Fact]
     public async Task A_run_takes_no_more_pictures_a_second_than_the_cap_allows()

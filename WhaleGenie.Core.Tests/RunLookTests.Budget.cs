@@ -180,21 +180,19 @@ public partial class RunLookTests
     /// A step that looks for a picture, with the places to look given the way the dialog gives
     /// them: one row per rectangle.
     /// </summary>
-    private static ExecutableStep Find(string image = @"C:\images\ok.png",
+        /// <summary>One place to look, written the way a row of the field is written.</summary>
+    private static IReadOnlyDictionary<string, string> Region(
+        (int X, int Y, int Width, int Height) region)
+        => Cells.Of(
+            ("x", region.X.ToString(CultureInfo.InvariantCulture)),
+            ("y", region.Y.ToString(CultureInfo.InvariantCulture)),
+            ("width", region.Width.ToString(CultureInfo.InvariantCulture)),
+            ("height", region.Height.ToString(CultureInfo.InvariantCulture)));
+
+private static ExecutableStep Find(string image = @"C:\images\ok.png",
         params (int X, int Y, int Width, int Height)[] regions)
         => Step("vision.findImage", Pictures(image), Param("confidence", "90"),
-            new ExecutableParameter
-            {
-                Name = "region",
-                Rows = [.. regions.Select(region => (IReadOnlyDictionary<string, string>)
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["x"] = region.X.ToString(CultureInfo.InvariantCulture),
-                        ["y"] = region.Y.ToString(CultureInfo.InvariantCulture),
-                        ["width"] = region.Width.ToString(CultureInfo.InvariantCulture),
-                        ["height"] = region.Height.ToString(CultureInfo.InvariantCulture),
-                    })],
-            },
+            Fields.Rows("region", [.. regions.Select(Region)]),
             Hit("match", "match"));
 
     private static FakeDeviceLayer Screen(int width = 200, int height = 100,

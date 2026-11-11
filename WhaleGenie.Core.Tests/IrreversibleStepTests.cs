@@ -20,10 +20,10 @@ public class IrreversibleStepTests
         => new() { Type = type, Id = "aaaa", Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => new() { Name = name, Steps = steps };
+        => Fields.Steps(name, steps);
 
     [Fact]
     public async Task A_step_that_cannot_be_undone_does_nothing_when_the_person_says_no()

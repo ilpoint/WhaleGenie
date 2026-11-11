@@ -208,13 +208,9 @@ public class WhereColumnTests
             Type = "control.setVariable",
             Parameters =
             [
-                new ExecutableParameter { Name = "name", Text = "kept" },
-                new ExecutableParameter { Name = "scope", Text = "local" },
-                new ExecutableParameter
-                {
-                    Name = "value",
-                    Text = "where($rows, \"age\", \">\", 40)",
-                },
+                Fields.Text("name", "kept"),
+                Fields.Text("scope", "local"),
+                Fields.Text("value", "where($rows, \"age\", \">\", 40)"),
             ],
         };
 

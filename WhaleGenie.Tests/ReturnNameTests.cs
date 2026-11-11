@@ -223,12 +223,11 @@ public class ReturnNameTests
                             [
                                 new StepParameterRow
                                 {
-                                    Columns = new Dictionary<string, string>(
-                                        StringComparer.OrdinalIgnoreCase)
-                                    {
-                                        ["key"] = "text",
-                                        ["name"] = "老名字",
-                                    },
+                                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["key"] = "text",
+            ["name"] = "老名字",
+        },
                                 },
                             ],
                         },

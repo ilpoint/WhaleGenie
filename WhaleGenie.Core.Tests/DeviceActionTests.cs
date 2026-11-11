@@ -79,7 +79,7 @@ public partial class DeviceActionTests
         => SampleFiles.Within(milliseconds, step, onError, id);
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     /// <summary>窗口格写成「沿用上一次用的窗口」时，文件里那一小段标记。</summary>
     private static string Following => WindowRule.FollowPrevious.ToJson().ToJsonString();
@@ -123,7 +123,7 @@ public partial class DeviceActionTests
         => store.Local.Values[name].AsList().Select(window => window.Field("title")!.AsText());
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => new() { Name = name, Steps = steps };
+        => Fields.Steps(name, steps);
 
     /// <summary>See <see cref="SampleFiles.Region"/>: the places a step looks at, one row per place.</summary>
     private static ExecutableParameter Region(params (int X, int Y, int Width, int Height)[] rectangles)
@@ -160,15 +160,11 @@ public partial class DeviceActionTests
     /// <summary>A parameter that holds a list of rows: the places to look, the presses of a run.</summary>
     private static ExecutableParameter Rows(string name,
         params IReadOnlyDictionary<string, string>[] rows)
-        => new() { Name = name, Rows = rows };
+        => Fields.Rows(name, rows);
 
     /// <summary>One row of what a browser step narrows the page down by, as the dialog writes it.</summary>
     private static IReadOnlyDictionary<string, string> Narrow(string how, string value = "")
-        => new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["how"] = how,
-            ["value"] = value,
-        };
+        => Cells.Of(("how", how), ("value", value));
 
     /// <summary>
     /// The pictures a step looks for, written the way the dialog writes them: one row each, tried
@@ -179,10 +175,7 @@ public partial class DeviceActionTests
         {
             Name = "images",
             Rows = [.. written.Select(text => (IReadOnlyDictionary<string, string>)
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["image"] = text,
-                })],
+                Cells.Of(("image", text)))],
         };
 
     /// <summary>One press of a key run, with its own hold or gap where it has one.</summary>
@@ -208,7 +201,7 @@ public partial class DeviceActionTests
     }
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Text = TestConditions.Expression(step) };
+        => Fields.Text(name, TestConditions.Expression(step));
 
     private static async Task<(RunResult Result, FakeDeviceLayer Devices, VariableStore Store)> RunAsync(
         ExecutableStep[] steps, FakeDeviceLayer? devices = null)

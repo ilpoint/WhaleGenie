@@ -159,9 +159,9 @@ internal static class ActionBench
             Type = "control.repeat",
             Parameters =
             [
-                new ExecutableParameter { Name = "times", Text = "1" },
-                new ExecutableParameter { Name = "intervalMs", Text = "0" },
-                new ExecutableParameter { Name = "body", Steps = [step] },
+                Fields.Text("times", "1"),
+                Fields.Text("intervalMs", "0"),
+                Fields.Steps("body", step),
             ],
         },
         BenchWrapper.Switch => new ExecutableStep
@@ -169,9 +169,9 @@ internal static class ActionBench
             Type = "control.switch",
             Parameters =
             [
-                new ExecutableParameter { Name = "switchValue", Text = "bench" },
-                new ExecutableParameter { Name = "switchMode", Text = "equals" },
-                new ExecutableParameter { Name = "cases", Steps = [WithValue(step, "bench")] },
+                Fields.Text("switchValue", "bench"),
+                Fields.Text("switchMode", "equals"),
+                Fields.Steps("cases", WithValue(step, "bench")),
             ],
         },
         BenchWrapper.Catch => new ExecutableStep
@@ -179,20 +179,13 @@ internal static class ActionBench
             Type = "control.try",
             Parameters =
             [
-                new ExecutableParameter
-                {
-                    Name = "body",
-                    Steps =
-                    [
-                        new ExecutableStep
+                Fields.Steps("body", new ExecutableStep
                         {
                             Type = "control.fail",
-                            Parameters = [new ExecutableParameter { Name = "reason", Text = "bench" }],
-                        },
-                    ],
-                },
-                new ExecutableParameter { Name = "catchWhen", Text = "true" },
-                new ExecutableParameter { Name = "catch", Steps = [step] },
+                            Parameters = [Fields.Text("reason", "bench")],
+                        }),
+                Fields.Text("catchWhen", "true"),
+                Fields.Steps("catch", step),
             ],
         },
         _ => step,
@@ -207,7 +200,7 @@ internal static class ActionBench
         Parameters =
         [
             .. step.Parameters.Select(parameter => parameter.Name == "values"
-                ? new ExecutableParameter { Name = parameter.Name, Text = value }
+                ? Fields.Text(parameter.Name, value)
                 : parameter),
         ],
     };

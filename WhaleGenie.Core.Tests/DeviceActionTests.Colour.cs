@@ -337,12 +337,7 @@ public partial class DeviceActionTests
                 Name = "points",
                 Rows =
                 [
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["dx"] = dx,
-                        ["dy"] = dy,
-                        ["colour"] = colours,
-                    },
+                    Cells.Of(("dx", dx), ("dy", dy), ("colour", colours)),
                 ],
             };
 
@@ -380,13 +375,7 @@ public partial class DeviceActionTests
                 Name = "points",
                 Rows =
                 [
-                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["dx"] = dx,
-                        ["dy"] = dy,
-                        ["colour"] = colour,
-                        ["mustNot"] = "true",
-                    },
+                    Cells.Of(("dx", dx), ("dy", dy), ("colour", colour), ("mustNot", "true")),
                 ],
             };
 
@@ -427,9 +416,9 @@ public partial class DeviceActionTests
                 Rows =
                 [
                     new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
-                    },
+        {
+            ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
+        },
                 ],
             };
 

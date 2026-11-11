@@ -22,7 +22,7 @@ public class PictureAndHashTests
         => new() { Type = type, Id = "aaaa", Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)

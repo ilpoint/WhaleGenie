@@ -75,11 +75,11 @@ public class KeyRunTests
                     StepParameterRow.Of("keys", "Ctrl+A"),
                     new StepParameterRow
                     {
-                        Columns = new Dictionary<string, string>
-                        {
-                            ["keys"] = "B",
-                            ["holdMs"] = "30",
-                        },
+                        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["keys"] = "B",
+            ["holdMs"] = "30",
+        },
                     },
                 ],
             });

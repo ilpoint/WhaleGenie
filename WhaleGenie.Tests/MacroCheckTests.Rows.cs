@@ -41,11 +41,11 @@ public partial class MacroCheckTests
                 new StepParameterRow
                 {
                     Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["key"] = "path",
-                        ["name"] = "part",
-                        ["bogus"] = "x",
-                    },
+        {
+            ["key"] = "path",
+            ["name"] = "part",
+            ["bogus"] = "x",
+        },
                 },
             ],
         };
@@ -92,12 +92,12 @@ public partial class MacroCheckTests
                 new StepParameterRow
                 {
                     Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["x"] = "0",
-                        ["y"] = "0",
-                        ["width"] = "20",
-                        ["height"] = "20",
-                    },
+        {
+            ["x"] = "0",
+            ["y"] = "0",
+            ["width"] = "20",
+            ["height"] = "20",
+        },
                 },
             ],
         };
@@ -133,11 +133,11 @@ public partial class MacroCheckTests
                 new StepParameterRow
                 {
                     Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                    {
-                        ["text"] = "game",
-                        ["x"] = "0",
-                        ["y"] = "0",
-                    },
+        {
+            ["text"] = "game",
+            ["x"] = "0",
+            ["y"] = "0",
+        },
                 },
             ],
         };

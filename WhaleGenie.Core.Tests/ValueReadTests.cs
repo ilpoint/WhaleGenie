@@ -13,7 +13,7 @@ public class ValueReadTests
         => new() { Type = type, Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     private static async Task<(RunResult Result, FakeDeviceLayer Devices)> RunAsync(
         ExecutableStep step, params (string Name, string Value)[] variables)
@@ -110,12 +110,8 @@ public class ValueReadTests
             .RunAsync([
                 Step("control.if",
                     Param("condition", "$total == 7"),
-                    new ExecutableParameter
-                    {
-                        Name = "then",
-                        Steps = [Step("control.setVariable", Param("name", "seen"),
-                            Param("scope", "local"), Param("value", "yes"))],
-                    }),
+                    Fields.Steps("then", Step("control.setVariable", Param("name", "seen"),
+                            Param("scope", "local"), Param("value", "yes")))),
             ]);
 
         Assert.True(result.Succeeded, result.Key);
@@ -136,12 +132,8 @@ public class ValueReadTests
             .RunAsync([
                 Step("control.if",
                     Param("condition", "1 = 2"),
-                    new ExecutableParameter
-                    {
-                        Name = "then",
-                        Steps = [Step("control.setVariable", Param("name", "ran"),
-                            Param("scope", "local"), Param("value", "yes"))],
-                    }),
+                    Fields.Steps("then", Step("control.setVariable", Param("name", "ran"),
+                            Param("scope", "local"), Param("value", "yes")))),
             ]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -163,12 +155,8 @@ public class ValueReadTests
             .RunAsync([
                 Step("control.if",
                     Param("condition", "$state"),
-                    new ExecutableParameter
-                    {
-                        Name = "then",
-                        Steps = [Step("control.setVariable", Param("name", "ran"),
-                            Param("scope", "local"), Param("value", "yes"))],
-                    }),
+                    Fields.Steps("then", Step("control.setVariable", Param("name", "ran"),
+                            Param("scope", "local"), Param("value", "yes")))),
             ]);
 
         Assert.True(result.Succeeded, result.Key);

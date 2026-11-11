@@ -365,10 +365,10 @@ public class VariableWallTests
             new StepParameterRow
             {
                 Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["key"] = key,
-                    ["name"] = name,
-                },
+        {
+            ["key"] = key,
+            ["name"] = name,
+        },
             },
         ],
     };

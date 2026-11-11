@@ -148,19 +148,19 @@ public partial class LookPickTests
         {
             Type = type,
             Parameters = withPoints
-                ? [new() { Name = "color", Text = "#FF0000" },
+                ? [Fields.Text("color", "#FF0000"),
                    new()
                    {
                        Name = "points",
                        Rows =
                        [
                            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                           {
-                               ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
-                           },
+        {
+            ["dx"] = "1", ["dy"] = "0", ["colour"] = "#00FF00",
+        },
                        ],
                    }]
-                : [new() { Name = "color", Text = "#FF0000" }],
+                : [Fields.Text("color", "#FF0000")],
         };
 
         var empty = ActionEditorView.WhatThePickerLooksFor(Step("vision.findColors", false));

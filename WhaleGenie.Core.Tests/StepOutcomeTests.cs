@@ -16,7 +16,7 @@ public class StepOutcomeTests
         => new() { Type = type, Id = id, Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
@@ -26,10 +26,10 @@ public class StepOutcomeTests
     private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => new() { Name = name, Steps = steps };
+        => Fields.Steps(name, steps);
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Text = TestConditions.Expression(step) };
+        => Fields.Text(name, TestConditions.Expression(step));
 
     private static ExecutableStep Set(string id, string name, string value)
         => Step("control.setVariable", id, Param("name", name), Param("scope", "local"),

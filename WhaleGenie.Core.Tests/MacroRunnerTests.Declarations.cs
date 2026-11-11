@@ -15,19 +15,7 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task A_row_that_names_a_column_the_list_does_not_have_stops_the_step()
     {
-        var returns = new ExecutableParameter
-        {
-            Name = "returns",
-            Rows =
-            [
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["key"] = "path",
-                    ["name"] = "part",
-                    ["bogus"] = "x",
-                },
-            ],
-        };
+        var returns = Fields.Rows("returns", Cells.Of(("key", "path"), ("name", "part"), ("bogus", "x")));
 
         var (result, _) = await RunAsync(
             [Step("file.path", Param("operation", "name"), Param("path", "a.txt"), returns)]);
@@ -40,17 +28,7 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task A_row_that_leaves_out_a_required_column_stops_the_step()
     {
-        var returns = new ExecutableParameter
-        {
-            Name = "returns",
-            Rows =
-            [
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["key"] = "path",
-                },
-            ],
-        };
+        var returns = Fields.Rows("returns", Cells.Of(("key", "path")));
 
         var (result, _) = await RunAsync(
             [Step("file.path", Param("operation", "name"), Param("path", "a.txt"), returns)]);
@@ -63,18 +41,11 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task A_return_key_the_action_does_not_declare_stops_the_step_before_it_runs()
     {
-        var returns = new ExecutableParameter
-        {
-            Name = "returns",
-            Rows =
-            [
-                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        var returns = Fields.Rows("returns", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     [FieldNames.Key] = "missing",
                     [FieldNames.Name] = "取回",
-                },
-            ],
-        };
+                });
 
         var (result, _) = await RunAsync(
         [
@@ -89,15 +60,7 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task Two_results_cannot_be_written_to_the_same_name()
     {
-        var returns = new ExecutableParameter
-        {
-            Name = "returns",
-            Rows =
-            [
-                ReturnsRow("text", "取回"),
-                ReturnsRow("lines", "取回"),
-            ],
-        };
+        var returns = Fields.Rows("returns", ReturnsRow("text", "取回"), ReturnsRow("lines", "取回"));
 
         var (result, _) = await RunAsync([Step("file.readText", Param("path", "a.txt"),
             returns)]);
@@ -110,11 +73,7 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task A_return_name_the_macro_language_cannot_read_stops_the_step()
     {
-        var returns = new ExecutableParameter
-        {
-            Name = "returns",
-            Rows = [ReturnsRow("text", "two words")],
-        };
+        var returns = Fields.Rows("returns", ReturnsRow("text", "two words"));
 
         var (result, _) = await RunAsync([Step("file.readText", Param("path", "a.txt"),
             returns)]);

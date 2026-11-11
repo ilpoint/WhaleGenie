@@ -273,31 +273,24 @@ internal static class BenchFixtures
         if (action.Key == "control.try")
         {
             parameters.RemoveAll(parameter => parameter.Name == "body");
-            parameters.Add(new ExecutableParameter
-            {
-                Name = "body",
-                Steps =
-                [
-                    new ExecutableStep
+            parameters.Add(Fields.Steps("body", new ExecutableStep
                     {
                         Type = "control.fail",
-                        Parameters = [new ExecutableParameter { Name = "reason", Text = "bench" }],
-                    },
-                ],
-            });
+                        Parameters = [Fields.Text("reason", "bench")],
+                    }));
         }
 
         if (action.Returns.Count > 0)
         {
-            parameters.Add(new ExecutableParameter
-            {
-                Name = "returns",
-                Rows = [.. action.Returns.Select(result => new Dictionary<string, string>
-                {
-                    [FieldNames.Key] = result.Key,
-                    [FieldNames.Name] = Name(result.Key),
-                })],
-            });
+            parameters.Add(Fields.Rows("returns",
+            [
+                .. action.Returns.Select(result => (IReadOnlyDictionary<string, string>)
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        [FieldNames.Key] = result.Key,
+                        [FieldNames.Name] = Name(result.Key),
+                    }),
+            ]));
         }
 
         var step = new ExecutableStep
@@ -342,63 +335,55 @@ internal static class BenchFixtures
     {
         if (ByAction.TryGetValue((action, parameter.Name), out var chosen))
         {
-            return new ExecutableParameter { Name = parameter.Name, Text = chosen };
+            return Fields.Text(parameter.Name, chosen);
         }
 
         if (parameter.Shape is not (ActionValueShape.Rows or ActionValueShape.Steps)
             && ByName.TryGetValue(parameter.Name, out var named))
         {
-            return new ExecutableParameter { Name = parameter.Name, Text = named };
+            return Fields.Text(parameter.Name, named);
         }
 
         switch (parameter.Shape)
         {
             case ActionValueShape.Steps:
-                return new ExecutableParameter { Name = parameter.Name, Steps = [] };
+                return Fields.Steps(parameter.Name);
 
             case ActionValueShape.Rows:
-                return new ExecutableParameter { Name = parameter.Name, Rows = [Row(parameter)] };
+                return Fields.Rows(parameter.Name, Row(parameter));
 
             case ActionValueShape.Flag:
-                return new ExecutableParameter { Name = parameter.Name, Text = Wrote(parameter) ? parameter.DefaultValue : "false" };
+                return Fields.Text(parameter.Name, Wrote(parameter) ? parameter.DefaultValue : "false");
 
             case ActionValueShape.Number:
-                return new ExecutableParameter { Name = parameter.Name, Text = Wrote(parameter) ? parameter.DefaultValue : Number(parameter) };
+                return Fields.Text(parameter.Name, Wrote(parameter) ? parameter.DefaultValue : Number(parameter));
 
             case ActionValueShape.Choice:
-                return new ExecutableParameter
-                {
-                    Name = parameter.Name,
-                    Text = Wrote(parameter) ? parameter.DefaultValue : parameter.Options.FirstOrDefault() ?? string.Empty,
-                };
+                return Fields.Text(parameter.Name, Wrote(parameter) ? parameter.DefaultValue : parameter.Options.FirstOrDefault() ?? string.Empty);
 
             case ActionValueShape.WindowRule:
-                return new ExecutableParameter { Name = parameter.Name, Text = Wrote(parameter) ? parameter.DefaultValue : WindowText };
+                return Fields.Text(parameter.Name, Wrote(parameter) ? parameter.DefaultValue : WindowText);
 
             case ActionValueShape.Image:
-                return new ExecutableParameter { Name = parameter.Name, Text = Picture };
+                return Fields.Text(parameter.Name, Picture);
 
             // A point or a rectangle written in the cell is an alternative to the numbers beside it,
             // not a second way of saying the same thing; the numbers are what a step normally uses.
             case ActionValueShape.Point:
             case ActionValueShape.Rect:
                 return parameter.Required
-                    ? new ExecutableParameter
-                    {
-                        Name = parameter.Name,
-                        Text = parameter.Shape == ActionValueShape.Point ? "10,10" : "0,0,80,40",
-                    }
+                    ? Fields.Text(parameter.Name, parameter.Shape == ActionValueShape.Point ? "10,10" : "0,0,80,40")
                     : null;
 
             case ActionValueShape.List:
             case ActionValueShape.Record:
-                return new ExecutableParameter { Name = parameter.Name, Text = "bench" };
+                return Fields.Text(parameter.Name, "bench");
 
             default:
                 var text = Text(parameter);
                 if (text.Length > 0)
                 {
-                    return new ExecutableParameter { Name = parameter.Name, Text = text };
+                    return Fields.Text(parameter.Name, text);
                 }
 
                 if (parameter.Required)
