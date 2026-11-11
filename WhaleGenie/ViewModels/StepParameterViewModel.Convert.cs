@@ -64,11 +64,14 @@ public partial class StepParameterViewModel : ViewModelBase
             : FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
 
     /// <summary>
-    /// True when this field holds one formula rather than a run of text with names in it. The two
-    /// read a written line differently — in a formula a word is the name it is, in a run it is the
-    /// word it looks like — so which one is being edited decides how the line becomes a value.
+    /// True when this field holds one formula and nothing else, which is what decides how a written
+    /// line becomes a value: in a formula a word is the name it is, and a line that does not read is
+    /// the mistake it is rather than prose that quietly means something else. A field that merely
+    /// allows a formula in it — the body of a notification, a path — is not one of these: it holds
+    /// text that may have a name or a formula inside it, so it is read as the text it looks like.
     /// </summary>
-    private bool ReadAsFormula => TakesFormula && !IsNumber;
+    private bool ReadAsFormula => Definition.Kind
+        is ActionParameterKind.Expression or ActionParameterKind.Condition;
 
     /// <summary>Loads a value that was stored on an existing step.</summary>
     public void ApplyValue(StepParameter stored)

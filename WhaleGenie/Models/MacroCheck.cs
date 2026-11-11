@@ -301,8 +301,10 @@ public static partial class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
+                // A name field holds the name as the word it is. Anything else in one — a run of
+                // pieces, a formula — means the name is worked out while the macro runs.
                 if (step.DefinesVariable(parameter)
-                    && parameter.Value.Trim().StartsWith('$'))
+                    && parameter.Written is not TextNode)
                 {
                     return true;
                 }

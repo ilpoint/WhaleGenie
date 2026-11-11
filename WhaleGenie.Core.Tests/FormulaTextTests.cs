@@ -100,25 +100,22 @@ public class FormulaTextTests
     public void A_braced_formula_is_worked_out_into_text()
     {
         Assert.Equal("1 + 2 = 3", Fill("1 + 2 = ${1 + 2}"));
-        Assert.Equal(["1 + 2"], FormulaText.Formulas("${1 + 2}"));
         Assert.Equal(["x"], Names("${$x + 1}"));
-    }
-
-    [Fact]
-    public void A_brace_that_is_only_a_name_is_still_a_name()
-    {
-        Assert.Empty(FormulaText.Formulas("${name}"));
-        Assert.Equal("Ada", Fill("${name}", ("name", "Ada")));
-        Assert.Empty(FormulaText.Formulas("${123}"));
-        Assert.Equal("Ada", Fill("${123}", ("123", "Ada")));
     }
 
     [Fact]
     public void A_right_brace_inside_a_quoted_formula_does_not_end_it()
     {
-        const string written = "${pick(\"}\")}";
+        // A brace inside a quoted piece belongs to that piece: the place a formula stands in ends
+        // at the brace that closes it, not at the first one that shows up.
+        Assert.Equal("}}", Fill("${upper(\"}\")}}"));
+    }
 
-        Assert.Equal(["pick(\"}\")"], FormulaText.Formulas(written));
+    [Fact]
+    public void A_brace_that_is_only_a_name_is_still_a_name()
+    {
+        Assert.Equal("Ada", Fill("${name}", ("name", "Ada")));
+        Assert.Equal("Ada", Fill("${123}", ("123", "Ada")));
     }
 
     private static string Written(string line, ActionReadMode mode)

@@ -211,13 +211,13 @@ public partial class RunViewModel
                         break;
                     default:
                         // A list parameter keeps its values in rows: whichever of them names a
-                        // variable is one the macro reads, the same as any plain field that starts
-                        // with a "$".
-                        foreach (var value in parameter.IsRowList
-                            ? parameter.RowValues.Select(FormulaText.Write)
-                            : [parameter.Value])
+                        // variable is one the macro reads, the same as any plain field that holds
+                        // one name and nothing else.
+                        foreach (var written in parameter.IsRowList
+                            ? parameter.RowValues
+                            : [parameter.Written])
                         {
-                            Plain(step, parameter, value);
+                            Plain(step, parameter, written);
                         }
 
                         break;
@@ -227,21 +227,19 @@ public partial class RunViewModel
 
         /// <summary>
         /// One value the macro reads: a whole-value expression may name several variables anywhere
-        /// inside it, a plain field names one when it starts with a "$", and a field that always
-        /// names a variable counts even when nothing defines it — which is worth showing while
-        /// debugging.
+        /// inside it, a plain field names the one it holds, and a field that always names a
+        /// variable counts even when nothing defines it — which is worth showing while debugging.
         /// </summary>
-        void Plain(MacroStep step, StepParameter parameter, string value)
+        void Plain(MacroStep step, StepParameter parameter, ExpressionNode written)
         {
-            var text = value.Trim();
-            if (text.Length == 0)
+            if (Formula.IsNothing(written))
             {
                 return;
             }
 
             if (parameter.Kind is ActionParameterKind.Expression)
             {
-                foreach (var reference in Expression.ReferencedNames(text))
+                foreach (var reference in Expression.References(written))
                 {
                     names.Add(reference);
                 }
@@ -249,14 +247,17 @@ public partial class RunViewModel
                 return;
             }
 
-            if (text.StartsWith('$'))
+            if (written is VariableNode variable && variable.Name.Trim() is { Length: > 0 } held)
             {
-                var reference = text[1..].Trim();
-                if (reference.Length > 0)
-                {
-                    names.Add(reference);
-                }
+                names.Add(held);
+                return;
+            }
 
+            // A plain field holds a word rather than a value, so it names a variable when that word
+            // is one of the names in view.
+            var text = Formula.Plain(written).Trim();
+            if (text.Length == 0)
+            {
                 return;
             }
 

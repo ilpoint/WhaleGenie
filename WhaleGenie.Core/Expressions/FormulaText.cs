@@ -54,39 +54,6 @@ public static class FormulaText
     }
 
     /// <summary>
-    /// The braced parts of a run that are formulas rather than names. The editor parses these
-    /// while a macro is being written, so a broken one is marked there rather than at the run.
-    /// </summary>
-    public static IReadOnlyList<string> Formulas(string? text)
-    {
-        var found = new List<string>();
-        var source = text ?? string.Empty;
-        for (var index = 0; index < source.Length; index++)
-        {
-            if (source[index] != '$' || index + 1 >= source.Length || source[index + 1] != '{')
-            {
-                continue;
-            }
-
-            var close = Closing(source, index + 2);
-            if (close < 0)
-            {
-                continue;
-            }
-
-            var inside = source[(index + 2)..close];
-            if (inside.Length > 0 && !VariableName.IsName(inside))
-            {
-                found.Add(inside);
-            }
-
-            index = close;
-        }
-
-        return found;
-    }
-
-    /// <summary>
     /// One name in a field rewritten, with everything else left exactly as it was written. This
     /// keeps the spacing, the quotes and the braces of the line, which is what makes a rename
     /// touch one name rather than tidy up a formula nobody asked to have tidied.

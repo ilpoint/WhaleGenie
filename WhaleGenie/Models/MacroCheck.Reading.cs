@@ -16,9 +16,9 @@ namespace WhaleGenie.Models;
 public static partial class MacroCheck
 {
     /// <summary>
-    /// The variable names one parameter reads, taken from the catalogue's read mode rather than
-    /// from its editor kind. A whole value may name several variables anywhere inside it; text
-    /// names them where they stand but leaves <c>$$</c> alone; a bare-name field is one name.
+    /// The variable names one parameter reads, taken from the value it holds rather than from the
+    /// line it is written as. A whole value may name several variables anywhere inside it, a run of
+    /// text names them where they stand, and a field that only names a variable reads that one.
     /// A field that writes a name reads nothing.
     /// </summary>
     public static IReadOnlyList<string> ReadsOf(MacroStep step, StepParameter parameter)
@@ -41,17 +41,19 @@ public static partial class MacroCheck
         if (definition is null)
         {
             // A macro call's arguments are not in the catalogue; the file reads them as one value.
-            return Expression.ReferencedNames(parameter.Value);
+            return Expression.References(parameter.Written);
         }
 
-        return definition.ReadMode switch
+        // A field that names a variable holds the name as the word it is, and reading it means
+        // looking that name up; a field written as something computed names whatever it computes.
+        if (definition.ReadMode is ActionReadMode.VariableName)
         {
-            ActionReadMode.VariableName => parameter.Value.Trim().TrimStart('$') is { Length: > 0 } name
+            return parameter.Written is TextNode text && text.Text.Trim() is { Length: > 0 } name
                 ? [name]
-                : [],
-            ActionReadMode.WholeValue => Expression.ReferencedNames(parameter.Value),
-            _ => FormulaText.Names(parameter.Value, ActionReadMode.Text),
-        };
+                : Expression.References(parameter.Written);
+        }
+
+        return Expression.References(parameter.Written);
     }
 
     /// <summary>A yes/no field the way the engine reads one: anything but "false" is on.</summary>

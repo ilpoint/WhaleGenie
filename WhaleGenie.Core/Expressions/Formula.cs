@@ -40,24 +40,14 @@ public static class Formula
     }
 
     /// <summary>
-    /// The value a line stands for while a field is still being written: a formula when it reads as
-    /// one, a run of text with the names left where they stand when it does not. This is the
-    /// lenient reading — a half-typed <c>${</c> stays the text it looks like rather than stopping
-    /// someone mid-word — and it is only for a line that is being typed or read back from an older
-    /// file. A value that has been saved is a shape already and never comes through here.
+    /// The value a line stands for while a field is still being written: the formula when it reads
+    /// as one, a run of text with the names left where they stand when it does not, and the broken
+    /// formula it is when it opens as one. A line that opens by naming a variable was written as a
+    /// value, so a mistake in it is kept as a mistake rather than quietly becoming the words it
+    /// looks like; that is the one thing the lenient reading must not do.
     /// </summary>
     public static ExpressionNode FromLine(string? text)
-    {
-        var written = text ?? string.Empty;
-        if (written.Length == 0)
-        {
-            return Nothing;
-        }
-
-        return Expression.TryParse(written, out var tree, out _) && tree is not null
-            ? tree
-            : FormulaText.Read(written, ActionReadMode.Text);
-    }
+        => text is { Length: > 0 } ? FormulaText.Read(text, ActionReadMode.WholeValue) : Nothing;
 
     /// <summary>
     /// The value a line typed into a formula field stands for: the formula it is. A line that does

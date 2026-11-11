@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -96,16 +97,18 @@ public static class WindowRuleChoices
     /// </summary>
     private static string? WindowText(MacroStep step)
     {
+        // Only a rule written out is one: a field that names a variable, or one that says nothing,
+        // is answered by whatever the variable holds at the run, so it is left to the chain.
         var written = step.Parameters
             .FirstOrDefault(parameter => string.Equals(parameter.Name, "window", StringComparison.Ordinal))
-            ?.Value.Trim();
+            ?.Written;
 
-        if (string.IsNullOrEmpty(written) || written.StartsWith('$'))
+        if (written is not TextNode text || text.Text.Trim() is not { Length: > 0 } line)
         {
             return null;
         }
 
-        return WindowRule.TryParse(written, out var rule) && rule.Follow ? null : written;
+        return WindowRule.TryParse(line, out var rule) && rule.Follow ? null : line;
     }
 
     /// <summary>Every step in the order it is read, the ones inside a block included, in place.</summary>

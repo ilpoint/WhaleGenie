@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using Xunit;
 
@@ -19,7 +20,7 @@ public class StepIdRepairTests
     {
         var macro = Macro(
             Step("abcd", "control.delay", """{"ms":"1"}"""),
-            Step("abcd", "control.if", """{"condition":"$step.abcd.outcome == \"ok\""}"""));
+            Step("abcd", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")));
 
         var renamed = StepIds.Settle(macro.Steps);
 
@@ -39,8 +40,8 @@ public class StepIdRepairTests
     public void The_block_that_was_already_there_keeps_its_own_condition()
     {
         var macro = Macro(
-            Step("abcd", "control.if", """{"condition":"$step.abcd.outcome == \"ok\""}"""),
-            Step("abcd", "control.if", """{"condition":"$step.abcd.outcome == \"ok\""}"""));
+            Step("abcd", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")),
+            Step("abcd", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")));
 
         var renamed = Assert.Single(StepIds.Settle(macro.Steps));
 
@@ -70,7 +71,7 @@ public class StepIdRepairTests
     {
         var macro = Macro(
             Step("abcd", "control.delay", """{"ms":"1"}"""),
-            Step("efgh", "control.if", """{"condition":"$step.abcd.outcome == \"ok\""}"""));
+            Step("efgh", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")));
 
         Assert.Empty(StepIds.Settle(macro.Steps));
         Assert.Equal("$step.abcd.outcome == \"ok\"", Value(macro.Steps[1], "condition"));
@@ -89,6 +90,19 @@ public class StepIdRepairTests
             ["id"] = id,
             ["type"] = type,
             ["params"] = JsonNode.Parse(parameters),
+        };
+
+    /// <summary>
+    /// A step whose one parameter holds the value it is written as. A parameter written as a bare
+    /// string in a file is text and nothing else, so a condition — which is a shape — is written the
+    /// way the editor writes one.
+    /// </summary>
+    private static JsonObject Step(string id, string type, string name, ExpressionNode written)
+        => new()
+        {
+            ["id"] = id,
+            ["type"] = type,
+            ["params"] = new JsonObject { [name] = FormulaJson.Write(written) },
         };
 
     private static string Value(MacroStep step, string parameter)

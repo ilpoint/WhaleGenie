@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -41,52 +40,36 @@ public static partial class MacroCheck
         }
 
         /// <summary>
-        /// A whole-cell value that starts with a dollar sign is read as an expression, so one that
-        /// the language cannot parse would stop the run. Plain text and the escaped dollar are left
-        /// alone: those are values, not formulae.
+        /// A value the reader could not read. A value is a shape, and a shape that could not be
+        /// read is the one node that says so, so the check looks for that node rather than for a
+        /// sign at the start of a line: the reading has already happened by the time a step is
+        /// inspected, and this asks it how it went.
         /// </summary>
         private void CheckExpressions(MacroStep step)
         {
             foreach (var parameter in step.Parameters)
             {
                 if (parameter.IsRowList
-                    || step.ParameterDefinition(parameter) is not { } definition)
+                    || step.ParameterDefinition(parameter) is null)
                 {
                     continue;
                 }
 
-                if (definition.ReadMode is ActionReadMode.Text)
-                {
-                    foreach (var expression in FormulaText.Formulas(parameter.Value))
-                    {
-                        if (!Expression.TryParse(expression, out _, out var fault))
-                        {
-                            Add(step, MacroProblemCode.BadExpression, Strings.Format("Editor.Problem.BadExpression",
-                                fault?.Detail ?? expression));
-                        }
-                    }
-
-                    continue;
-                }
-
-                if (definition.ReadMode is not ActionReadMode.WholeValue)
-                {
-                    continue;
-                }
-
-                var written = parameter.Value.Trim();
-                if (!written.StartsWith('$') || written.StartsWith("$$", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (!Expression.TryParse(written, out _, out var error))
+                if (Fault(parameter.Written) is { } fault)
                 {
                     Add(step, MacroProblemCode.BadExpression, Strings.Format("Editor.Problem.BadExpression",
-                        error?.Detail ?? written));
+                        fault.Message));
                 }
             }
         }
+
+        /// <summary>The first part of a value that did not read, or null when all of it did.</summary>
+        private static FaultNode? Fault(ExpressionNode node) => node switch
+        {
+            FaultNode fault => fault,
+            ConcatNode run => run.Parts.Select(Fault).OfType<FaultNode>().FirstOrDefault(),
+            _ => null,
+        };
 
         /// <summary>
         /// A field read of a record whose declaration names its fields. <c>field($point, "x")</c>
@@ -99,61 +82,38 @@ public static partial class MacroCheck
         {
             foreach (var value in Values(step))
             {
-                foreach (var tree in Trees(value))
+                foreach (var call in Calls(value))
                 {
-                    foreach (var call in Calls(tree))
+                    if (!string.Equals(call.Name, FieldFunction,
+                            StringComparison.OrdinalIgnoreCase)
+                        || call.Arguments.Count != 2
+                        || call.Arguments[0] is not VariableNode variable
+                        || call.Arguments[1] is not TextNode name)
                     {
-                        if (!string.Equals(call.Name, FieldFunction,
-                                StringComparison.OrdinalIgnoreCase)
-                            || call.Arguments.Count != 2
-                            || call.Arguments[0] is not VariableNode variable
-                            || call.Arguments[1] is not TextNode name)
-                        {
-                            continue;
-                        }
-
-                        if (!recordFields.TryGetValue(variable.Name, out var declared)
-                            || declared.Any(field => string.Equals(field, name.Text,
-                                StringComparison.OrdinalIgnoreCase)))
-                        {
-                            continue;
-                        }
-
-                        Add(step, MacroProblemCode.UnknownField, Strings.Format("Editor.Problem.UnknownField",
-                            name.Text, variable.Name, string.Join(", ", declared)));
+                        continue;
                     }
+
+                    if (!recordFields.TryGetValue(variable.Name, out var declared)
+                        || declared.Any(field => string.Equals(field, name.Text,
+                            StringComparison.OrdinalIgnoreCase)))
+                    {
+                        continue;
+                    }
+
+                    Add(step, MacroProblemCode.UnknownField, Strings.Format("Editor.Problem.UnknownField",
+                        name.Text, variable.Name, string.Join(", ", declared)));
                 }
             }
         }
 
-        /// <summary>
-        /// The formulas a value holds: the whole of it when it is one, and each braced part of it
-        /// when it is text. A field read is written either way — <c>field($p, "x")</c> on its own,
-        /// or inside a line that says what it is for.
-        /// </summary>
-        private static IEnumerable<ExpressionNode> Trees(string value)
-        {
-            if (Expression.TryParse(value, out var whole, out _) && whole is not null)
-            {
-                yield return whole;
-            }
-
-            foreach (var part in FormulaText.Formulas(value))
-            {
-                if (Expression.TryParse(part, out var tree, out _) && tree is not null)
-                {
-                    yield return tree;
-                }
-            }
-        }
-
-        /// <summary>Every call in a formula, including the ones inside another call's arguments.</summary>
+        /// <summary>Every call in a value, including the ones inside another call's arguments.</summary>
         private static IEnumerable<CallNode> Calls(ExpressionNode node) => node switch
         {
             CallNode call => [call, .. call.Arguments.SelectMany(Calls)],
             UnaryNode unary => Calls(unary.Operand),
             BinaryNode binary => [.. Calls(binary.Left), .. Calls(binary.Right)],
             ListNode list => list.Items.SelectMany(Calls),
+            ConcatNode run => run.Parts.SelectMany(Calls),
             _ => [],
         };
 
@@ -161,21 +121,20 @@ public static partial class MacroCheck
         /// Every value the step holds, whether a box of its own or a cell of a row: a field read in
         /// the fifth row of a call's arguments is as wrong as one in a plain field.
         /// </summary>
-        private static IEnumerable<string> Values(MacroStep step)
+        private static IEnumerable<ExpressionNode> Values(MacroStep step)
         {
             foreach (var parameter in step.Parameters)
             {
-                if (parameter.Value.Trim().Length > 0)
+                if (!Formula.IsNothing(parameter.Written))
                 {
-                    yield return parameter.Value;
+                    yield return parameter.Written;
                 }
 
                 foreach (var cell in parameter.Rows.SelectMany(row => row.Cells.Values))
                 {
-                    var line = FormulaText.Write(cell).Trim();
-                    if (line.Length > 0)
+                    if (!Formula.IsNothing(cell))
                     {
-                        yield return line;
+                        yield return cell;
                     }
                 }
             }
@@ -192,18 +151,13 @@ public static partial class MacroCheck
 
             foreach (var parameter in step.Parameters)
             {
-                if (step.ParameterDefinition(parameter) is not { } definition)
+                if (step.ParameterDefinition(parameter) is not { } definition
+                    || Formula.IsNothing(parameter.Written))
                 {
                     continue;
                 }
 
-                var value = parameter.Value.Trim();
-                if (value.Length == 0)
-                {
-                    continue;
-                }
-
-                if (WholeName(value) is { } name && known.TryGetValue(name, out var type))
+                if (parameter.Written is VariableNode whole && known.TryGetValue(whole.Name, out var type))
                 {
                     if (definition.Shape == ActionValueShape.Number
                         && type == ActionReturnType.Record)
@@ -218,7 +172,7 @@ public static partial class MacroCheck
                              && type != ActionReturnType.List)
                     {
                         Add(step, MacroProblemCode.NotARecord, Strings.Format("Editor.Problem.NotARecord",
-                            definition.LocalLabel, name));
+                            definition.LocalLabel, whole.Name));
                     }
                 }
 
@@ -233,7 +187,7 @@ public static partial class MacroCheck
                     continue;
                 }
 
-                foreach (var referenced in FormulaText.Names(value, ActionReadMode.Text))
+                foreach (var referenced in Expression.References(parameter.Written))
                 {
                     if (known.TryGetValue(referenced, out var kind)
                         && kind == ActionReturnType.Record)
