@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using WhaleGenie.Core.Variables;
 
 
 namespace WhaleGenie.Core.Expressions;
@@ -82,12 +83,12 @@ file static class Tokenizer
             {
                 index++;
                 var start = index;
-                if (index >= source.Length || !VariableText.IsNameStart(source[index]))
+                if (index >= source.Length || !VariableName.IsStart(source[index]))
                 {
                     throw ExpressionException.Syntax("a variable name is missing after \"$\"");
                 }
 
-                while (index < source.Length && VariableText.IsNameCharacter(source[index]))
+                while (index < source.Length && VariableName.IsPart(source[index]))
                 {
                     index++;
                 }

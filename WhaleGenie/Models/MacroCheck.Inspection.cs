@@ -66,15 +66,15 @@ public static partial class MacroCheck
                 defined.UnionWith(own.Parameters
                     .Select(parameter => parameter.Name.Trim())
                     .Where(name => name.Length > 0)
-                    .Where(VariableText.IsName));
+                    .Where(VariableName.IsName));
                 defined.UnionWith(own.Results
                     .Select(result => result.Name.Trim())
                     .Where(name => name.Length > 0)
-                    .Where(VariableText.IsName));
+                    .Where(VariableName.IsName));
                 defined.UnionWith(own.OwnLocals
                     .Select(local => local.Name.Trim())
                     .Where(name => name.Length > 0)
-                    .Where(VariableText.IsName));
+                    .Where(VariableName.IsName));
             }
 
             // A step that loads variables from a file, or runs a script with the macro in reach, can

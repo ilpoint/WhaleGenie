@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -131,7 +132,7 @@ public partial class AddActionViewModel
             }
 
             var name = draft.Name.Trim();
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 return Strings.Format("GlobalVariables.BadName", name);
             }

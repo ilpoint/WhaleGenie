@@ -201,7 +201,7 @@ public static partial class MacroCheck
             {
                 foreach (var (key, name) in step.ReturnedResults(parameter))
                 {
-                    if (!VariableText.IsName(name))
+                    if (!VariableName.IsName(name))
                     {
                         Add(step, MacroProblemCode.BadResultName, Strings.Format("Editor.Problem.BadResultName", name));
                     }

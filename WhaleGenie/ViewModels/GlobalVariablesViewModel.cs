@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -341,7 +342,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
             {
                 row.Resolver = context;
                 if (VariableValues.TryRead(row.Type, row.DefaultValue, context, out var value, out _)
-                    && VariableText.IsName(row.Name.Trim()))
+                    && VariableName.IsName(row.Name.Trim()))
                 {
                     context.Global.Set(row.Name.Trim(), value);
                 }
@@ -363,7 +364,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
                 var display = name.Length > 0 ? name : row.DisplayName;
                 var nameProblem = name.Length == 0
                     ? Strings.Get("GlobalVariables.NameRequired")
-                    : !VariableText.IsName(name)
+                    : !VariableName.IsName(name)
                         ? Strings.Format("GlobalVariables.BadName", name)
                         : Reserved(name)
                             ? Strings.Format("GlobalVariables.ReservedName", name)

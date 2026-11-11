@@ -41,7 +41,7 @@ public partial class RunViewModel
             foreach (var parameter in _callable.Parameters)
             {
                 var name = parameter.Name.Trim();
-                if (!VariableText.IsName(name))
+                if (!VariableName.IsName(name))
                 {
                     continue;
                 }

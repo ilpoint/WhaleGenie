@@ -92,7 +92,7 @@ public sealed partial class MacroRunner
                 continue;
             }
 
-            if (!VariableText.IsName(name) || !keys.Add(key) || !names.Add(name))
+            if (!VariableName.IsName(name) || !keys.Add(key) || !names.Add(name))
             {
                 throw new StepFailure(RunKeys.BadResult, name);
             }

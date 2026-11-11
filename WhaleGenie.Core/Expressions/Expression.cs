@@ -62,135 +62,110 @@ public static class Expression
     }
 
     /// <summary>
-    /// The variable names an expression reads, in the order they appear and without
-    /// duplicates. Text that is not yet a valid expression still yields whatever names it
-    /// holds, which is what the Variable Center needs while a macro is still being written.
+    /// The variable names a line of a field reads. A line is read as a whole value, which is what
+    /// the places that ask this question are looking at: a formula, or a declaration's value.
     /// </summary>
     public static IReadOnlyList<string> ReferencedNames(string? source)
+        => FormulaText.Names(source, ActionReadMode.WholeValue);
+
+    /// <summary>One name in a line rewritten, with everything else left as it was written.</summary>
+    public static string RenameVariable(string? source, string oldName, string newName)
+        => FormulaText.Rename(source, ActionReadMode.WholeValue, oldName, newName);
+
+    /// <summary>
+    /// The variable names a tree reads, in the order they appear and without duplicates. A name
+    /// inside a run of text counts the same as one standing on its own, because both are the same
+    /// shape once the field has been read.
+    /// </summary>
+    public static IReadOnlyList<string> References(ExpressionNode? tree)
     {
         var names = new List<string>();
-        if (string.IsNullOrEmpty(source))
-        {
-            return names;
-        }
-
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var index = 0; index < source.Length; index++)
+        Collect(tree, name =>
         {
-            if (source[index] != '$')
-            {
-                continue;
-            }
-
-            if (index + 1 < source.Length && source[index + 1] == '$')
-            {
-                index++;
-                continue;
-            }
-
-            var start = index + 1;
-            if (start >= source.Length || !VariableText.IsNameStart(source[start]))
-            {
-                continue;
-            }
-
-            var end = start;
-            while (end < source.Length && VariableText.IsNameCharacter(source[end]))
-            {
-                end++;
-            }
-
-            var name = source[start..end];
             if (seen.Add(name))
             {
                 names.Add(name);
             }
-
-            index = end - 1;
-        }
+        });
 
         return names;
     }
 
-    /// <summary>
-    /// Renames references to one variable without touching quoted text, function names or field
-    /// strings. The expression keeps its original spacing and punctuation.
-    /// </summary>
-    public static string RenameVariable(string? source, string oldName, string newName)
+    private static void Collect(ExpressionNode? node, Action<string> found)
     {
-        if (string.IsNullOrEmpty(source) || oldName.Length == 0
-            || string.Equals(oldName, newName, StringComparison.Ordinal))
+        switch (node)
         {
-            return source ?? string.Empty;
+            case VariableNode variable:
+                found(variable.Name);
+                break;
+            case ConcatNode run:
+                foreach (var part in run.Parts)
+                {
+                    Collect(part, found);
+                }
+
+                break;
+            case ListNode list:
+                foreach (var item in list.Items)
+                {
+                    Collect(item, found);
+                }
+
+                break;
+            case CallNode call:
+                foreach (var argument in call.Arguments)
+                {
+                    Collect(argument, found);
+                }
+
+                break;
+            case UnaryNode unary:
+                Collect(unary.Operand, found);
+                break;
+            case BinaryNode binary:
+                Collect(binary.Left, found);
+                Collect(binary.Right, found);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Renames every reference to one variable and nothing else. A piece of quoted text that
+    /// happens to spell the name is left alone, because it is a shape rather than a spelling: the
+    /// tree says which nodes are references, so nothing has to be guessed from the characters.
+    /// </summary>
+    public static ExpressionNode Rename(ExpressionNode tree, string oldName, string newName)
+    {
+        if (oldName.Length == 0 || string.Equals(oldName, newName, StringComparison.Ordinal))
+        {
+            return tree;
         }
 
-        var written = new System.Text.StringBuilder(source.Length);
-        var quoted = '\0';
-        var escaped = false;
-        for (var at = 0; at < source.Length; at++)
+        return tree switch
         {
-            var character = source[at];
-            if (quoted != '\0')
+            VariableNode variable when string.Equals(variable.Name, oldName, StringComparison.Ordinal)
+                => variable with { Name = newName },
+            ConcatNode run => run with
             {
-                written.Append(character);
-                if (escaped)
-                {
-                    escaped = false;
-                }
-                else if (character == '\\')
-                {
-                    escaped = true;
-                }
-                else if (character == quoted)
-                {
-                    quoted = '\0';
-                }
-
-                continue;
-            }
-
-            if (character is '"' or '\'')
+                Parts = [.. run.Parts.Select(part => Rename(part, oldName, newName))],
+            },
+            ListNode list => list with
             {
-                quoted = character;
-                written.Append(character);
-                continue;
-            }
-
-            if (character == '$' && at + 1 < source.Length && source[at + 1] == '$')
+                Items = [.. list.Items.Select(item => Rename(item, oldName, newName))],
+            },
+            CallNode call => call with
             {
-                written.Append("$$");
-                at++;
-                continue;
-            }
-
-            if (character == '$' && at + 1 < source.Length
-                && VariableText.IsNameStart(source[at + 1]))
+                Arguments = [.. call.Arguments.Select(argument => Rename(argument, oldName, newName))],
+            },
+            UnaryNode unary => unary with { Operand = Rename(unary.Operand, oldName, newName) },
+            BinaryNode binary => binary with
             {
-                var start = at + 1;
-                var end = start;
-                while (end < source.Length && VariableText.IsNameCharacter(source[end]))
-                {
-                    end++;
-                }
-
-                var name = source[start..end];
-                if (string.Equals(name, oldName, StringComparison.Ordinal))
-                {
-                    written.Append('$').Append(newName);
-                }
-                else
-                {
-                    written.Append(source, at, end - at);
-                }
-
-                at = end - 1;
-                continue;
-            }
-
-            written.Append(character);
-        }
-
-        return written.ToString();
+                Left = Rename(binary.Left, oldName, newName),
+                Right = Rename(binary.Right, oldName, newName),
+            },
+            _ => tree,
+        };
     }
 
     /// <summary>Evaluates an expression, throwing when it cannot be read.</summary>
@@ -202,6 +177,32 @@ public static class Expression
         }
 
         return value;
+    }
+
+    /// <summary>
+    /// Works out a tree a field already holds. Nothing is read here: the shape a field keeps is
+    /// the shape the engine runs, which is what leaves a run of text with a name in it and a
+    /// formula with no way of being confused for one another.
+    /// </summary>
+    public static Value Evaluate(ExpressionNode tree, IVariableResolver? variables = null)
+        => ExpressionCompiler.Compile(tree, variables ?? EmptyVariableResolver.Instance)();
+
+    /// <summary>Works out a tree, reporting failure instead of throwing.</summary>
+    public static bool TryEvaluate(ExpressionNode tree, IVariableResolver? variables,
+        out Value value, out ExpressionException? error)
+    {
+        try
+        {
+            value = Evaluate(tree, variables);
+            error = null;
+            return true;
+        }
+        catch (ExpressionException failure)
+        {
+            value = Value.Null;
+            error = failure;
+            return false;
+        }
     }
 
     /// <summary>

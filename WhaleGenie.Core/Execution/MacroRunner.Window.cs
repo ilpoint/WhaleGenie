@@ -486,7 +486,7 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>True when the text is one variable name and nothing else.</summary>
-    private static bool WindowName(string name) => VariableText.IsName(name);
+    private static bool WindowName(string name) => VariableName.IsName(name);
 
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
     private string WindowText(ExecutableStep step) => WindowRuleOf(step).MatchValue.Trim();

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -111,7 +112,7 @@ public sealed record MacroSignature(
                 continue;
             }
 
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 problems.Add((MacroSignatureFault.InvalidName, name));
                 continue;

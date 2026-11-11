@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -298,7 +299,7 @@ public sealed partial class LocalVariablesViewModel : ViewModelBase
                 var display = name.Length > 0 ? name : row.DisplayName;
                 var nameProblem = name.Length == 0
                     ? Strings.Get("LocalVariables.NameRequired")
-                    : !VariableText.IsName(name)
+                    : !VariableName.IsName(name)
                         ? Strings.Format("Editor.Problem.InvalidVariableName", name)
                         : Reserved(name)
                             ? Strings.Format("LocalVariables.ReservedName", name)

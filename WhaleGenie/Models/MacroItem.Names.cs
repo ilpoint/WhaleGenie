@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 
@@ -102,7 +103,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         foreach (var parameter in Parameters)
         {
             var name = parameter.Name.Trim();
-            if (VariableText.IsName(name))
+            if (VariableName.IsName(name))
             {
                 names.Add(name);
             }
@@ -111,7 +112,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         foreach (var result in Results)
         {
             var name = result.Name.Trim();
-            if (VariableText.IsName(name))
+            if (VariableName.IsName(name))
             {
                 names.Add(name);
             }
@@ -122,7 +123,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         foreach (var local in Locals)
         {
             var name = local.Name.Trim();
-            if (VariableText.IsName(name))
+            if (VariableName.IsName(name))
             {
                 names.Add(name);
             }

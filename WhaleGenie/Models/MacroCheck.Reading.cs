@@ -33,7 +33,7 @@ public static partial class MacroCheck
         if (parameter.IsRowList)
         {
             return [.. parameter.RowValues
-                .SelectMany(VariableText.Referenced)
+                .SelectMany(value => FormulaText.Names(value, ActionReadMode.Text))
                 .Distinct(StringComparer.OrdinalIgnoreCase)];
         }
 
@@ -50,7 +50,7 @@ public static partial class MacroCheck
                 ? [name]
                 : [],
             ActionReadMode.WholeValue => Expression.ReferencedNames(parameter.Value),
-            _ => VariableText.Referenced(parameter.Value),
+            _ => FormulaText.Names(parameter.Value, ActionReadMode.Text),
         };
     }
 
@@ -160,7 +160,7 @@ public static partial class MacroCheck
         {
             foreach (var parameter in own.Parameters)
             {
-                if (parameter.Name.Trim() is { Length: > 0 } name && VariableText.IsName(name))
+                if (parameter.Name.Trim() is { Length: > 0 } name && VariableName.IsName(name))
                 {
                     known[name] = parameter.Type;
                 }
@@ -171,7 +171,7 @@ public static partial class MacroCheck
             foreach (var result in own.Results)
             {
                 if (result.Name.Trim() is { Length: > 0 } name
-                    && VariableText.IsName(name)
+                    && VariableName.IsName(name)
                     && !known.ContainsKey(name))
                 {
                     known[name] = result.Type;
@@ -183,7 +183,7 @@ public static partial class MacroCheck
             foreach (var local in own.OwnLocals)
             {
                 if (local.Name.Trim() is { Length: > 0 } name
-                    && VariableText.IsName(name)
+                    && VariableName.IsName(name)
                     && !known.ContainsKey(name))
                 {
                     known[name] = local.Type;
@@ -238,7 +238,7 @@ public static partial class MacroCheck
 
         void Add(string name, ActionReturnType type, IEnumerable<MacroField> declared)
         {
-            if (!VariableText.IsName(name) || fields.ContainsKey(name))
+            if (!VariableName.IsName(name) || fields.ContainsKey(name))
             {
                 return;
             }
@@ -323,7 +323,7 @@ public static partial class MacroCheck
         }
 
         var name = text[1..];
-        return VariableText.IsName(name) ? name : null;
+        return VariableName.IsName(name) ? name : null;
     }
 
     private static IEnumerable<(string Result, string Name)> Wanted(MacroStep step)

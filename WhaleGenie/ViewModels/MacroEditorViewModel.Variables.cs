@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -51,7 +52,7 @@ public partial class MacroEditorViewModel
     {
         var old = oldName.Trim();
         var next = newName.Trim();
-        if (!VariableText.IsName(next))
+        if (!VariableName.IsName(next))
         {
             problem = Strings.Format("Editor.Problem.InvalidVariableName", next);
             return false;
@@ -170,7 +171,7 @@ public partial class MacroEditorViewModel
         foreach (var row in rows)
         {
             var name = row.Name.Trim();
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 return Strings.Format("Editor.Problem.InvalidVariableName", name);
             }
@@ -190,7 +191,7 @@ public partial class MacroEditorViewModel
         VariableRename.RenameSteps(Steps, oldName, newName, global: true);
         foreach (var parameter in DeclaredParameters)
         {
-            parameter.Default = VariableText.Rename(parameter.Default, oldName, newName);
+            parameter.Default = FormulaText.Rename(parameter.Default, ActionReadMode.WholeValue, oldName, newName);
         }
 
         NotifyStepsChanged();

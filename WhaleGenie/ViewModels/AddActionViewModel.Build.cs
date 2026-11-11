@@ -11,6 +11,7 @@ using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -188,7 +189,7 @@ public partial class AddActionViewModel
         var name = GlobalVariableDraft?.Name.Trim() ?? string.Empty;
         if (GlobalVariableDraft is not { } draft
             || ShowsGlobalPersistence is false
-            || !VariableText.IsName(name))
+            || !VariableName.IsName(name))
         {
             return;
         }

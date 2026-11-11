@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -136,7 +137,7 @@ public partial class GlobalVariablesWindow : AppWindow
         {
             var candidate = _viewModel.Rows[index];
             var name = candidate.Name.Trim();
-            if (!VariableText.IsName(name) || !seen.Add(name))
+            if (!VariableName.IsName(name) || !seen.Add(name))
             {
                 continue;
             }

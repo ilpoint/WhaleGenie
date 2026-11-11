@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -259,7 +260,7 @@ public static class UserFailureKeys
     {
         var key = (written ?? string.Empty).Trim();
         return key.StartsWith(Prefix, StringComparison.Ordinal)
-            && VariableText.IsName(key[Prefix.Length..]);
+            && VariableName.IsName(key[Prefix.Length..]);
     }
 }
 

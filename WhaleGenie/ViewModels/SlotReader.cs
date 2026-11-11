@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 
@@ -181,10 +182,10 @@ internal sealed class SlotReader
     private SlotNode Name(int at, int to)
     {
         var end = at + 1;
-        if (end < to && VariableText.IsNameStart(_text[end]))
+        if (end < to && VariableName.IsStart(_text[end]))
         {
             end++;
-            while (end < to && VariableText.IsNameCharacter(_text[end]))
+            while (end < to && VariableName.IsPart(_text[end]))
             {
                 end++;
             }

@@ -1,20 +1,30 @@
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
 
 /// <summary>
 /// Text fields fill in names where they stand. The rule is narrow on purpose: a dollar sign in
 /// front of something that is not a name belongs to the text, and two dollar signs are how one
-/// literal dollar is written.
+/// literal dollar is written. Reading the line turns each name into a piece of its own, so what
+/// the run works out is a shape rather than a line it has to cut up again.
 /// </summary>
-public class VariableTextTests
+public class FormulaTextTests
 {
     private static string Fill(string text, params (string Name, string Value)[] variables)
     {
-        var values = variables.ToDictionary(pair => pair.Name, pair => pair.Value,
-            StringComparer.OrdinalIgnoreCase);
-        return VariableText.Replace(text, name => values.GetValueOrDefault(name));
+        var bag = new VariableBag();
+        foreach (var (name, value) in variables)
+        {
+            bag.Set(name, Value.FromText(value));
+        }
+
+        return Expression.Evaluate(FormulaText.Read(text, ActionReadMode.Text), bag).AsText();
     }
+
+    private static IReadOnlyList<string> Names(string text)
+        => FormulaText.Names(text, ActionReadMode.Text);
 
     [Theory]
     [InlineData("$", "$")]
@@ -31,9 +41,9 @@ public class VariableTextTests
     [InlineData("_2")]
     public void A_name_may_begin_with_a_digit_or_an_underscore(string name)
     {
-        Assert.True(VariableText.IsName(name));
+        Assert.True(VariableName.IsName(name));
         Assert.Equal("Ada", Fill($"${name}", (name, "Ada")));
-        Assert.Equal([name], VariableText.Referenced($"${name}"));
+        Assert.Equal([name], Names($"${name}"));
     }
 
     [Theory]
@@ -42,7 +52,7 @@ public class VariableTextTests
     [InlineData("2 name")]
     [InlineData("2-name")]
     public void A_name_still_needs_valid_characters(string name)
-        => Assert.False(VariableText.IsName(name));
+        => Assert.False(VariableName.IsName(name));
 
     [Fact]
     public void A_known_name_is_filled_in_where_it_stands()
@@ -55,14 +65,14 @@ public class VariableTextTests
     {
         Assert.Equal("$name and Ada", Fill("$$name and $name", ("name", "Ada")));
         Assert.Equal("$123 and Ada", Fill("$$123 and $123", ("123", "Ada")));
-        Assert.Equal(["name"], VariableText.Referenced("$name but not $$name"));
+        Assert.Equal(["name"], Names("$name but not $$name"));
     }
 
     [Fact]
-    public void An_unknown_name_stays_as_it_was_written()
+    public void A_name_nothing_defines_reads_as_the_name()
     {
-        Assert.Equal("Hello $missing", Fill("Hello $missing", ("name", "Ada")));
-        Assert.Equal(["missing"], VariableText.Referenced("Hello $missing"));
+        Assert.Equal("Hello missing", Fill("Hello $missing", ("name", "Ada")));
+        Assert.Equal(["missing"], Names("Hello $missing"));
     }
 
     [Fact]
@@ -73,47 +83,41 @@ public class VariableTextTests
     }
 
     [Fact]
-    public void A_name_in_braces_is_found_and_a_missing_one_stays_as_written()
+    public void A_name_in_braces_is_found_and_a_missing_one_reads_as_the_name()
     {
-        Assert.Equal(["name"], VariableText.Referenced("a ${name} b"));
-        Assert.Equal("Hello ${missing}", Fill("Hello ${missing}", ("name", "Ada")));
+        Assert.Equal(["name"], Names("a ${name} b"));
+        Assert.Equal("Hello missing", Fill("Hello ${missing}", ("name", "Ada")));
     }
 
     [Fact]
     public void Unclosed_braces_are_text()
     {
         Assert.Equal("Hello ${missing", Fill("Hello ${missing", ("name", "Ada")));
-        Assert.Empty(VariableText.Referenced("Hello ${missing"));
+        Assert.Empty(Names("Hello ${missing"));
     }
 
     [Fact]
-    public void A_braced_expression_is_worked_out_into_text()
+    public void A_braced_formula_is_worked_out_into_text()
     {
-        var filled = VariableText.Replace("1 + 2 = ${1 + 2}", _ => null,
-            expression => Expression.Evaluate(expression).AsText());
-
-        Assert.Equal("1 + 2 = 3", filled);
-        Assert.Equal(["1 + 2"], VariableText.Expressions("${1 + 2}"));
-        Assert.Equal(["x"], VariableText.Referenced("${$x + 1}"));
+        Assert.Equal("1 + 2 = 3", Fill("1 + 2 = ${1 + 2}"));
+        Assert.Equal(["1 + 2"], FormulaText.Formulas("${1 + 2}"));
+        Assert.Equal(["x"], Names("${$x + 1}"));
     }
 
     [Fact]
     public void A_brace_that_is_only_a_name_is_still_a_name()
     {
-        Assert.Empty(VariableText.Expressions("${name}"));
-        Assert.Equal("Ada", VariableText.Replace("${name}", _ => "Ada",
-            _ => throw new InvalidOperationException("a name is not an expression")));
-        Assert.Empty(VariableText.Expressions("${123}"));
-        Assert.Equal("Ada", VariableText.Replace("${123}", _ => "Ada",
-            _ => throw new InvalidOperationException("a numeric name is not an expression")));
+        Assert.Empty(FormulaText.Formulas("${name}"));
+        Assert.Equal("Ada", Fill("${name}", ("name", "Ada")));
+        Assert.Empty(FormulaText.Formulas("${123}"));
+        Assert.Equal("Ada", Fill("${123}", ("123", "Ada")));
     }
 
     [Fact]
-    public void A_right_brace_inside_a_quoted_expression_does_not_end_it()
+    public void A_right_brace_inside_a_quoted_formula_does_not_end_it()
     {
         const string written = "${pick(\"}\")}";
 
-        Assert.Equal("pick(\"}\")", VariableText.Replace(written, _ => null, expression => expression));
-        Assert.Equal(["pick(\"}\")"], VariableText.Expressions(written));
+        Assert.Equal(["pick(\"}\")"], FormulaText.Formulas(written));
     }
 }

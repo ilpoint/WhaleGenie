@@ -49,6 +49,14 @@ internal static class ExpressionWriter
                 precedence = Atom;
                 return "$" + variable.Name;
 
+            case ConcatNode run:
+                precedence = Additive;
+                return string.Join(" + ", run.Parts.Select(part =>
+                {
+                    var written = Piece(part, hole, out var partPrecedence);
+                    return Loose(written, partPrecedence, Additive, false, false);
+                }));
+
             case ConstantNode constant:
                 precedence = Atom;
                 return constant.Word;

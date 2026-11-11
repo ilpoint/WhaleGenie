@@ -1,4 +1,5 @@
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -14,9 +15,11 @@ public class VariableRenameTests
         Assert.Equal("$new + $other + \"$old\"",
             Expression.RenameVariable("$old + $other + \"$old\"", "old", "new"));
         Assert.Equal("before $new ${new} ${$new + 1} $$old",
-            VariableText.Rename("before $old ${old} ${$old + 1} $$old", "old", "new"));
+            FormulaText.Rename("before $old ${old} ${$old + 1} $$old",
+                ActionReadMode.Text, "old", "new"));
         Assert.Equal("$new + $$123", Expression.RenameVariable("$123 + $$123", "123", "new"));
-        Assert.Equal("before $new", VariableText.Rename("before $123", "123", "new"));
+        Assert.Equal("before $new",
+            FormulaText.Rename("before $123", ActionReadMode.Text, "123", "new"));
     }
 
     [Fact]

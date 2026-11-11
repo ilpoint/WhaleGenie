@@ -22,7 +22,19 @@ public sealed record NumberNode(string Text, double Value) : ExpressionNode;
 /// <summary>A piece of text, held unescaped; the writer adds the quotes and the backslashes.</summary>
 public sealed record TextNode(string Text) : ExpressionNode;
 
-/// <summary>A name the macro holds, written without the dollar sign that reads it.</summary>
+/// <summary>
+/// Pieces standing next to each other and read as one run: what a field holds when it is prose
+/// with a name somewhere in it. The language never writes one — a run is read from the text as a
+/// whole, and a formula is one value rather than a run of them — so only the editor makes these,
+/// from what the person typed and what they picked out of the variable window.
+///
+/// This is what makes a name inside a sentence a shape rather than a spelling: there is no
+/// character in the run that says "a variable starts here", so no character can be typed by
+/// accident, and no text that merely looks like a name can be mistaken for one.
+/// </summary>
+public sealed record ConcatNode(IReadOnlyList<ExpressionNode> Parts) : ExpressionNode;
+
+/// <summary>A name the macro holds.</summary>
 public sealed record VariableNode(string Name) : ExpressionNode;
 
 /// <summary>One of the words that stand for a value on its own: true, false or null.</summary>

@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
 
 
@@ -44,7 +45,7 @@ internal static partial class McpPatches
                 "name is the word the macro reads the value by, such as 数量.", true, null);
         }
 
-        if (!VariableText.IsName(name))
+        if (!VariableName.IsName(name))
         {
             return Refused(McpErrors.BadArgument, $"\"{name}\" cannot be read back as a variable.",
                 "A name is letters, digits and underscores, and does not start with a digit.",

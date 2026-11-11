@@ -188,7 +188,7 @@ public static partial class MacroCheck
         foreach (var result in own.Results)
         {
             var name = result.Name.Trim();
-            if (!VariableText.IsName(name)
+            if (!VariableName.IsName(name)
                 || own.Parameter(name) is not null
                 || open
                 || written.Contains(name))
@@ -205,7 +205,7 @@ public static partial class MacroCheck
         foreach (var parameter in own.Parameters)
         {
             var name = parameter.Name.Trim();
-            if (parameter.Required || name.Length == 0 || !VariableText.IsName(name))
+            if (parameter.Required || name.Length == 0 || !VariableName.IsName(name))
             {
                 continue;
             }
@@ -234,7 +234,7 @@ public static partial class MacroCheck
         foreach (var local in own.OwnLocals)
         {
             var name = local.Name.Trim();
-            if (name.Length == 0 || !VariableText.IsName(name))
+            if (name.Length == 0 || !VariableName.IsName(name))
             {
                 continue;
             }

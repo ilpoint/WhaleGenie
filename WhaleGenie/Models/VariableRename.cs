@@ -86,7 +86,7 @@ public static class VariableRename
                     ActionReadMode.VariableName when global || !globalTarget =>
                         RenameName(parameter.Value, oldName, newName),
                     ActionReadMode.WholeValue => RenameWholeValue(parameter.Value, oldName, newName),
-                    _ => VariableText.Rename(parameter.Value, oldName, newName),
+                    _ => FormulaText.Rename(parameter.Value, ActionReadMode.Text, oldName, newName),
                 };
             }
         }
@@ -95,7 +95,7 @@ public static class VariableRename
     private static string RenameWholeValue(string value, string oldName, string newName)
         => Expression.TryParse(value, out _, out _)
             ? Expression.RenameVariable(value, oldName, newName)
-            : VariableText.Rename(value, oldName, newName);
+            : FormulaText.Rename(value, ActionReadMode.Text, oldName, newName);
 
     /// <summary>
     /// A value cell with one name inside it changed, written the way a whole-value field writes
@@ -110,7 +110,7 @@ public static class VariableRename
             return RenameWholeValue(value, oldName, newName);
         }
 
-        return VariableText.Rename(value, oldName, newName);
+        return FormulaText.Rename(value, ActionReadMode.Text, oldName, newName);
     }
 
     private static string RenameName(string value, string oldName, string newName)

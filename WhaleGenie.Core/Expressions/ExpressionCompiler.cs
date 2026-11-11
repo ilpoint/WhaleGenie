@@ -21,6 +21,7 @@ internal static class ExpressionCompiler
             TextNode text => () => Value.FromText(text.Text),
             ConstantNode constant => Compiled(constant.Word),
             VariableNode variable => () => Resolve(variables, variable.Name),
+            ConcatNode run => Compiled(run, variables),
             ListNode list => Compiled(list, variables),
             CallNode call => Compiled(call, variables),
             UnaryNode unary => Compiled(unary, variables),
@@ -39,6 +40,39 @@ internal static class ExpressionCompiler
     {
         var items = list.Items.Select(item => Compile(item, variables)).ToList();
         return () => Value.FromList(items.Select(item => item()));
+    }
+
+    /// <summary>
+    /// A run of pieces as the one piece of text it reads as. Every part is worked out as its own
+    /// value first, so a name that holds a number lands in the sentence as the number it holds
+    /// rather than as the way the field happens to spell it.
+    ///
+    /// A name standing on its own in a run is read leniently: a name nothing defines reads as the
+    /// name itself, so a misspelling shows up in the sentence the writer was composing instead of
+    /// stopping a run that had nothing to do with it. A formula in the run is still worked out
+    /// strictly, because a formula that cannot be worked out is a mistake rather than a word.
+    /// </summary>
+    private static Func<Value> Compiled(ConcatNode run, IVariableResolver variables)
+    {
+        var parts = run.Parts
+            .Select(part => Compile(part, part is VariableNode ? new Lenient(variables) : variables))
+            .ToList();
+        return () => Value.FromText(string.Concat(parts.Select(part => part().AsText())));
+    }
+
+    /// <summary>A resolver that answers with the name itself when nothing defines it.</summary>
+    private sealed class Lenient(IVariableResolver inner) : IVariableResolver
+    {
+        public bool TryGet(string name, out Value value)
+        {
+            if (inner.TryGet(name, out value))
+            {
+                return true;
+            }
+
+            value = Value.FromText(name);
+            return true;
+        }
     }
 
     private static Func<Value> Compiled(CallNode call, IVariableResolver variables)

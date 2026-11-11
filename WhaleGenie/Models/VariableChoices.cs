@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -282,7 +283,7 @@ public static class VariableChoices
         foreach (var parameter in parameters ?? [])
         {
             var name = parameter.Name.Trim();
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 continue;
             }
@@ -304,7 +305,7 @@ public static class VariableChoices
         foreach (var result in results ?? [])
         {
             var name = result.Name.Trim();
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 continue;
             }
@@ -328,7 +329,7 @@ public static class VariableChoices
         foreach (var local in locals ?? [])
         {
             var name = local.Name.Trim();
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 continue;
             }

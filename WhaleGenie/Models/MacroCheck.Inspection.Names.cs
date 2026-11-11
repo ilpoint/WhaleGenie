@@ -57,7 +57,7 @@ public static partial class MacroCheck
 
                 if (definition.ReadMode is ActionReadMode.Text)
                 {
-                    foreach (var expression in VariableText.Expressions(parameter.Value))
+                    foreach (var expression in FormulaText.Formulas(parameter.Value))
                     {
                         if (!Expression.TryParse(expression, out _, out var fault))
                         {
@@ -138,7 +138,7 @@ public static partial class MacroCheck
                 yield return whole;
             }
 
-            foreach (var part in VariableText.Expressions(value))
+            foreach (var part in FormulaText.Formulas(value))
             {
                 if (Expression.TryParse(part, out var tree, out _) && tree is not null)
                 {
@@ -232,7 +232,7 @@ public static partial class MacroCheck
                     continue;
                 }
 
-                foreach (var referenced in VariableText.Referenced(value))
+                foreach (var referenced in FormulaText.Names(value, ActionReadMode.Text))
                 {
                     if (known.TryGetValue(referenced, out var kind)
                         && kind == ActionReturnType.Record)
