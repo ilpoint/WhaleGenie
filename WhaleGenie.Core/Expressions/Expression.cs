@@ -134,6 +134,12 @@ public static class Expression
     /// Renames every reference to one variable and nothing else. A piece of quoted text that
     /// happens to spell the name is left alone, because it is a shape rather than a spelling: the
     /// tree says which nodes are references, so nothing has to be guessed from the characters.
+    ///
+    /// <para>
+    /// A field read off the name goes with it: renaming <c>where</c> also renames <c>where.age</c>,
+    /// because that is the same value read one field further in. A name that merely begins with the
+    /// same letters is a different name and stays.
+    /// </para>
     /// </summary>
     public static ExpressionNode Rename(ExpressionNode tree, string oldName, string newName)
     {
@@ -144,8 +150,8 @@ public static class Expression
 
         return tree switch
         {
-            VariableNode variable when string.Equals(variable.Name, oldName, StringComparison.Ordinal)
-                => variable with { Name = newName },
+            VariableNode variable when ReadOff(variable.Name, oldName)
+                => variable with { Name = newName + variable.Name[oldName.Length..] },
             ConcatNode run => run with
             {
                 Parts = [.. run.Parts.Select(part => Rename(part, oldName, newName))],
@@ -167,6 +173,13 @@ public static class Expression
             _ => tree,
         };
     }
+
+    /// <summary>True when a name is the one, or a field read off it: <c>where</c> or <c>where.age</c>.</summary>
+    private static bool ReadOff(string name, string of)
+        => string.Equals(name, of, StringComparison.Ordinal)
+            || (name.Length > of.Length
+                && name[of.Length] == '.'
+                && string.CompareOrdinal(name, 0, of, 0, of.Length) == 0);
 
     /// <summary>Evaluates an expression, throwing when it cannot be read.</summary>
     public static Value Evaluate(string? source, IVariableResolver? variables = null)

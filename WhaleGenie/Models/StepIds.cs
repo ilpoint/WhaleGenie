@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Models;
 
@@ -133,9 +134,11 @@ public static class StepIds
     {
         foreach (var parameter in step.Parameters)
         {
-            if (ReadsReferences(step.Type, parameter.Name) && parameter.Value.Length > 0)
+            if (ReadsReferences(step.Type, parameter.Name) && !Formula.IsNothing(parameter.Written))
             {
-                parameter.Value = Rewrite(parameter.Value, renamed);
+                parameter.Written = renamed.Aggregate(parameter.Written,
+                    (written, rename) => Expression.Rename(written,
+                        StepPrefix + rename.Old, StepPrefix + rename.New));
             }
 
             foreach (var child in parameter.Steps)
@@ -152,52 +155,6 @@ public static class StepIds
     private static bool ReadsReferences(string type, string parameter)
         => ActionSemanticsCatalog.Find(type)?.Parameter(parameter) is
         { AcceptsVariables: true, ReadMode: ActionReadMode.WholeValue };
-
-    /// <summary>
-    /// The text with every <c>step.&lt;old&gt;</c> that names a moved step replaced by the new id.
-    /// The id has to be a name of its own: <c>step.abcdx</c> is not <c>step.abcd</c>.
-    /// </summary>
-    private static string Rewrite(string text, IReadOnlyList<Rename> renamed)
-    {
-        var result = text;
-        foreach (var rename in renamed)
-        {
-            result = Replace(result, StepPrefix + rename.Old, StepPrefix + rename.New);
-        }
-
-        return result;
-    }
-
-    private static string Replace(string text, string old, string replacement)
-    {
-        var at = text.IndexOf(old, StringComparison.OrdinalIgnoreCase);
-        if (at < 0)
-        {
-            return text;
-        }
-
-        var builder = new System.Text.StringBuilder(text.Length);
-        var from = 0;
-        while (at >= 0)
-        {
-            var after = at + old.Length;
-            var endsName = after == text.Length || !char.IsLetterOrDigit(text[after]);
-
-            if (!endsName)
-            {
-                // Part of a longer name that happens to start the same way.
-                from = after;
-                at = text.IndexOf(old, from, StringComparison.OrdinalIgnoreCase);
-                continue;
-            }
-
-            builder.Append(text, from, at - from).Append(replacement);
-            from = after;
-            at = text.IndexOf(old, from, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return builder.Append(text, from, text.Length - from).ToString();
-    }
 
     /// <summary>
     /// Writes one id onto a step. The field is init-only so that nothing can quietly change the

@@ -61,7 +61,7 @@ public static class VariableRename
                         StringComparison.OrdinalIgnoreCase);
                 if (step.DefinesVariable(parameter) && (global || !globalTarget))
                 {
-                    parameter.Value = RenameName(parameter.Value, oldName, newName);
+                    parameter.Written = RenameDeclared(parameter.Written, oldName, newName);
                 }
 
                 if (parameter.IsRowList)
@@ -81,13 +81,14 @@ public static class VariableRename
                     continue;
                 }
 
-                parameter.Value = step.ParameterDefinition(parameter)?.ReadMode switch
-                {
-                    ActionReadMode.VariableName when global || !globalTarget =>
-                        RenameName(parameter.Value, oldName, newName),
-                    ActionReadMode.WholeValue => RenameWholeValue(parameter.Value, oldName, newName),
-                    _ => FormulaText.Rename(parameter.Value, ActionReadMode.Text, oldName, newName),
-                };
+                // A field that names a variable declares one, so the word itself changes; every
+                // other field reads one, and the tree says where. Nothing is spelled out and read
+                // back: a name inside a piece of text is a name because the value says so.
+                parameter.Written = step.ParameterDefinition(parameter)?.ReadMode
+                    is ActionReadMode.VariableName && (global || !globalTarget)
+                        ? RenameDeclared(parameter.Written, oldName, newName)
+                        : Expression.Rename(parameter.Written, oldName, newName);
+
             }
         }
     }
@@ -127,16 +128,6 @@ public static class VariableRename
             && string.Equals(text.Text.Trim(), oldName, StringComparison.Ordinal)
                 ? Formula.Text(newName)
                 : cell;
-
-    private static string RenameName(string value, string oldName, string newName)
-    {
-        var written = value.Trim();
-        var dollar = written.StartsWith('$');
-        var name = dollar ? written[1..].Trim() : written;
-        return string.Equals(name, oldName, StringComparison.Ordinal)
-            ? (dollar ? "$" : string.Empty) + newName
-            : value;
-    }
 
     private static IEnumerable<MacroStep> Every(IEnumerable<MacroStep> steps)
     {
