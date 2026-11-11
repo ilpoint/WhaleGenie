@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 
 
 namespace WhaleGenie.Mcp;
@@ -33,7 +34,9 @@ internal sealed partial class McpSelfCheck
             ["steps"] = new JsonArray(
                 Step("control.if", new JsonObject
                 {
-                    ["condition"] = "$sys.screenWidth > 1",
+                    // A condition is a shape in the file, so the scenario writes one.
+                    ["condition"] = FormulaJson.Write(Formula.FromFormula(
+                        "sys.screenWidth > 1")),
                     ["then"] = new JsonArray(Step("control.delay", new JsonObject { ["ms"] = "200" })),
                     ["else"] = new JsonArray(),
                 }),

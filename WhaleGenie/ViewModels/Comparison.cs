@@ -151,17 +151,17 @@ public static class Comparisons
     public static IReadOnlyList<ConditionCompareChoice> All { get; } =
     [
         new(ConditionCompare.Equal, ComparisonFamily.Number, "Condition.Is",
-            ComparisonShape.Operator, "$a == 1", true),
+            ComparisonShape.Operator, "a == 1", true),
         new(ConditionCompare.NotEqual, ComparisonFamily.Number, "Condition.IsNot",
-            ComparisonShape.Operator, "$a != 1", true),
+            ComparisonShape.Operator, "a != 1", true),
         new(ConditionCompare.Greater, ComparisonFamily.Number, "Condition.Greater",
-            ComparisonShape.Operator, "$a > 1", true),
+            ComparisonShape.Operator, "a > 1", true),
         new(ConditionCompare.Less, ComparisonFamily.Number, "Condition.Less",
-            ComparisonShape.Operator, "$a < 1", true),
+            ComparisonShape.Operator, "a < 1", true),
         new(ConditionCompare.AtLeast, ComparisonFamily.Number, "Condition.AtLeast",
-            ComparisonShape.Operator, "$a >= 1", true),
+            ComparisonShape.Operator, "a >= 1", true),
         new(ConditionCompare.AtMost, ComparisonFamily.Number, "Condition.AtMost",
-            ComparisonShape.Operator, "$a <= 1", true),
+            ComparisonShape.Operator, "a <= 1", true),
 
         new(ConditionCompare.Contains, ComparisonFamily.Text, "Condition.Contains",
             ComparisonShape.Call, "contains($a, x)", true),
@@ -182,7 +182,7 @@ public static class Comparisons
             ComparisonShape.HowMany, "count($a) == 3", true),
 
         new(ConditionCompare.Holds, ComparisonFamily.Truth, "Condition.Holds",
-            ComparisonShape.Bare, "$a", false),
+            ComparisonShape.Bare, "a", false),
         new(ConditionCompare.Fails, ComparisonFamily.Truth, "Condition.Fails",
             ComparisonShape.NegatedBare, "not $a", false),
     ];
