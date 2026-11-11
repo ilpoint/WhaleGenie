@@ -28,7 +28,7 @@ public partial class MacroStep : INotifyPropertyChanged
             // list needs to be told again: the row already carries the action's name and icon.
             if (Type == "control.if")
             {
-                var condition = Text("condition").Trim();
+                var condition = Said("condition").Trim();
                 return condition.Length == 0 ? Strings.Get("Editor.IfNoCondition") : condition;
             }
 
@@ -106,8 +106,8 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var value = Text("switchValue").Trim();
-            var mode = Text("switchMode").Trim();
+            var value = Said("switchValue").Trim();
+            var mode = Said("switchMode").Trim();
             var how = mode.Length == 0
                 ? string.Empty
                 : Strings.Get($"control.switch.switchMode.option.{mode}", mode);
@@ -133,7 +133,7 @@ public partial class MacroStep : INotifyPropertyChanged
         "control.while" => FlowWhile,
         "control.waitUntil" => FlowWaitUntil,
         "control.try" => FlowTry,
-        "control.ask" or "control.input" => Text("message").Trim(),
+        "control.ask" or "control.input" => Said("message").Trim(),
         "control.runMacro" => FlowCall,
         _ => null,
     };
@@ -142,14 +142,14 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var times = Text("times").Trim();
+            var times = Said("times").Trim();
             if (times.Length == 0)
             {
                 return string.Empty;
             }
 
             var sentence = Strings.Format("Editor.FlowRepeat", times);
-            var interval = Text("intervalMs").Trim();
+            var interval = Said("intervalMs").Trim();
             if (interval.Length > 0 && SpansTime(interval))
             {
                 sentence = Strings.Format("Editor.FlowInterval", sentence, interval);
@@ -163,15 +163,15 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var from = Text("rangeFrom").Trim();
-            var to = Text("rangeTo").Trim();
+            var from = Said("rangeFrom").Trim();
+            var to = Said("rangeTo").Trim();
             if (from.Length == 0 || to.Length == 0)
             {
                 return string.Empty;
             }
 
             var sentence = Strings.Format("Editor.FlowFor", from, to);
-            var step = WholeNumber(Text("stepSize").Trim());
+            var step = WholeNumber(Said("stepSize").Trim());
             if (step > 0)
             {
                 sentence = Strings.Format("Editor.FlowForUp", sentence, step.Value);
@@ -181,7 +181,7 @@ public partial class MacroStep : INotifyPropertyChanged
                 sentence = Strings.Format("Editor.FlowForDown", sentence, -step.Value);
             }
 
-            var name = Text("name").Trim();
+            var name = Said("name").Trim();
             if (name.Length > 0)
             {
                 sentence = Strings.Format("Editor.FlowForNamed", sentence, name);
@@ -195,14 +195,14 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var items = Text("items").Trim();
+            var items = Said("items").Trim();
             if (items.Length == 0)
             {
                 return Strings.Get("Editor.FlowNoItems");
             }
 
             var sentence = Strings.Format("Editor.FlowForEach", items);
-            if (string.Equals(Text("reverse").Trim(), "true", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Said("reverse").Trim(), "true", StringComparison.OrdinalIgnoreCase))
             {
                 sentence = Strings.Format("Editor.FlowReverse", sentence);
             }
@@ -215,18 +215,18 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var condition = Text("condition").Trim();
+            var condition = Said("condition").Trim();
             if (condition.Length == 0)
             {
                 return Strings.Get("Editor.IfNoCondition");
             }
 
-            var limit = Text("maxIterations").Trim();
+            var limit = Said("maxIterations").Trim();
             var sentence = limit.Length == 0
                 ? condition
                 : Strings.Format("Editor.FlowAtMost", condition, limit);
 
-            var interval = Text("intervalMs").Trim();
+            var interval = Said("intervalMs").Trim();
             if (interval.Length > 0 && SpansTime(interval))
             {
                 sentence = Strings.Format("Editor.FlowInterval", sentence, interval);
@@ -240,7 +240,7 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var condition = Text("condition").Trim();
+            var condition = Said("condition").Trim();
             return condition.Length == 0
                 ? Strings.Get("Editor.IfNoCondition")
                 : WithResults(condition);
@@ -260,7 +260,7 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         get
         {
-            var macro = Text("macro").Trim();
+            var macro = Said("macro").Trim();
             return macro.Length == 0 ? Strings.Get("Editor.FlowNoMacro") : WithResults(macro);
         }
     }

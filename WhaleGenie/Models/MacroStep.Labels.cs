@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 
@@ -27,8 +28,19 @@ public partial class MacroStep : INotifyPropertyChanged
                 parameter.Value);
         }
 
-        return parameter.Value;
+        return Formula.Speak(parameter.Written);
     }
+
+    /// <summary>
+    /// What a named parameter says, in the words a person reads it in: the prose as written, a
+    /// name between corner marks so it is told apart from the words around it, a formula with its
+    /// spacing. This is the form every row and every sentence about a step uses — never the form a
+    /// value is read back out of, which is why a name in it needs no sign in front of it.
+    /// </summary>
+    public string Said(string name)
+        => Parameters.FirstOrDefault(parameter => parameter.Name == name) is { } parameter
+            ? Formula.Speak(parameter.Written)
+            : string.Empty;
 
     /// <summary>The catalogue entry for a parameter of this step, or null when it is unknown.</summary>
     public ActionParameter? ParameterDefinition(StepParameter parameter)

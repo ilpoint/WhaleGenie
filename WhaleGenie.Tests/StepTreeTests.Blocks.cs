@@ -140,7 +140,8 @@ public partial class StepTreeTests
             // The row stands for the sentence the step is. "control.if · 条件 = …" is the
             // catalogue's way of naming things, not the reader's, and the row already says which
             // action it is by its name and icon.
-            Assert.Equal("$a == 1", choice.Detail);
+            // 值按读出来的样子写：名字用角标括起来，不写前缀 —— 那一行是给人念的，不是给机器读的。
+            Assert.Equal("「a」 == 1", choice.Detail);
 
             // "满足时 / 否则" rather than "满足时步骤 / 不满足时步骤": where a list sits already says
             // it is a list, and the short word is the one a person says out loud.
@@ -180,22 +181,22 @@ public partial class StepTreeTests
 
             Assert.Equal(
                 Strings.Format("Editor.FlowReverse",
-                    Strings.Format("Editor.FlowForEach", "$list")),
+                    Strings.Format("Editor.FlowForEach", "「list」")),
                 Step("control.forEach", Text("items", "$list"), Text("reverse", "true")).Detail);
 
             Assert.Equal(
-                Strings.Format("Editor.FlowAtMost", "$count < 10", "1000"),
+                Strings.Format("Editor.FlowAtMost", "「count」 < 10", "1000"),
                 Step("control.while", Text("condition", "$count < 10"),
                     Text("maxIterations", "1000")).Detail);
 
             // 有间隔时多一句，与「重复」同一个说法：两轮之间等多久，不是这个循环在比什么。
             Assert.Equal(
                 Strings.Format("Editor.FlowInterval",
-                    Strings.Format("Editor.FlowAtMost", "$count < 10", "1000"), "500"),
+                    Strings.Format("Editor.FlowAtMost", "「count」 < 10", "1000"), "500"),
                 Step("control.while", Text("condition", "$count < 10"),
                     Text("maxIterations", "1000"), Text("intervalMs", "500")).Detail);
 
-            Assert.Equal("$found",
+            Assert.Equal("「found」",
                 Step("control.waitUntil", Text("condition", "$found")).Detail);
         });
     }
