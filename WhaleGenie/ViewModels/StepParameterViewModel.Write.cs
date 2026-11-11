@@ -27,7 +27,10 @@ public partial class StepParameterViewModel : ViewModelBase
         // value is already theirs and is not read back out of the line they just wrote.
         if (!_composing)
         {
-            _written = Formula.FromLine(value);
+            // A field that holds one formula reads its line as a formula, so a word in it is the
+            // name it is; a field that holds a run of text reads the same line as the text it looks
+            // like, so a word there is a word.
+            _written = ReadAsFormula ? Formula.FromFormula(value) : Formula.FromLine(value);
         }
 
         // The pieces are the same value said another way, so they are read again on every change:

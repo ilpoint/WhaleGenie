@@ -57,11 +57,18 @@ public partial class StepParameterViewModel : ViewModelBase
     /// engine and the file both take it as it is.
     /// </summary>
     private ExpressionNode WrittenValue()
-        => ShowsParts
-            // The pieces already are the value: a field with a name in it is edited as the shape it
-            // holds, so the shape is what the step keeps. Nothing is read back out of the line.
+        => ShowsParts || ReadAsFormula
+            // The value the field already holds is the value the step keeps: a run is the pieces it
+            // was built from, a formula is the tree it read as. Nothing is read back out of the line.
             ? _written
             : FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
+
+    /// <summary>
+    /// True when this field holds one formula rather than a run of text with names in it. The two
+    /// read a written line differently — in a formula a word is the name it is, in a run it is the
+    /// word it looks like — so which one is being edited decides how the line becomes a value.
+    /// </summary>
+    private bool ReadAsFormula => TakesFormula && !IsNumber;
 
     /// <summary>Loads a value that was stored on an existing step.</summary>
     public void ApplyValue(StepParameter stored)

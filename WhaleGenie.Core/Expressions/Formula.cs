@@ -59,6 +59,25 @@ public static class Formula
             : FormulaText.Read(written, ActionReadMode.Text);
     }
 
+    /// <summary>
+    /// The value a line typed into a formula field stands for: the formula it is. A line that does
+    /// not read is kept as the broken value it is rather than falling back to prose — a condition
+    /// is not a sentence, and a half-typed one belongs in the field where it can be put right, not
+    /// in the macro as the words it looks like.
+    /// </summary>
+    public static ExpressionNode FromFormula(string? text)
+    {
+        var written = text ?? string.Empty;
+        if (written.Trim().Length == 0)
+        {
+            return Nothing;
+        }
+
+        return Expression.TryParse(written, out var tree, out var fault) && tree is not null
+            ? tree
+            : new FaultNode(written, fault?.Message ?? string.Empty);
+    }
+
     /// <summary>One variable read by name. A record's field is part of the name, as it always was.</summary>
     public static ExpressionNode Name(string name) => new VariableNode(name);
 
