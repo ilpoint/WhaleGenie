@@ -24,7 +24,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         Name = Definition.Name,
         Kind = Definition.Kind,
-        Value = CurrentText.Trim(),
+        Written = WrittenValue(),
         // A blank field carries nothing to move, so a give typed beside nothing is dropped with it.
         Jitter = IsIncluded && JitterPercent is > 0m
             ? Math.Min(100m, JitterPercent.Value) / 100m
@@ -48,6 +48,15 @@ public partial class StepParameterViewModel : ViewModelBase
             _ => [],
         },
     };
+
+    /// <summary>
+    /// The value as the shape the step keeps. The field is read the way its own definition says it
+    /// is read — a name is a name, a whole value is an expression or a piece of text, a field of
+    /// text has the names in it filled in where they stand — and it is read once, here, because
+    /// this is the place that knows what the field is for. Past this point a value is a shape: the
+    /// engine and the file both take it as it is.
+    /// </summary>
+    private ExpressionNode WrittenValue() => FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
 
     /// <summary>Loads a value that was stored on an existing step.</summary>
     public void ApplyValue(StepParameter stored)
