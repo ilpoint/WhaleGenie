@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Expressions;
 
@@ -69,7 +70,14 @@ public static class Formula
     }
 
     /// <summary>One variable read by name. A record's field is part of the name, as it always was.</summary>
-    public static ExpressionNode Name(string name) => new VariableNode(name);
+    public static ExpressionNode Name(string name, string id = "") => new VariableNode(name, id);
+
+    /// <summary>
+    /// The name a shape names, with the identity it is bound to. A shape that is text names the
+    /// text; it has no identity of its own. This is the reader for the fields a step writes a
+    /// variable into, where <see cref="FormulaText.Write"/> would put a dollar in front of the name.
+    /// </summary>
+    public static VariableKey NameOf(ExpressionNode? value) => VariableKey.From(value);
 
     /// <summary>
     /// Several pieces standing next to each other. One piece is that piece: a run of one is a

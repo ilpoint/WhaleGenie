@@ -250,6 +250,16 @@ public class ExpressionTreeTests
         }
     }
 
+    [Fact]
+    public void Renaming_a_name_keeps_its_id()
+    {
+        Assert.Equal(new VariableNode("total", "a7k2m9"),
+            Expression.Rename(Formula.Name("count", "a7k2m9"), "count", "total"));
+
+        Assert.Equal(new VariableNode("place.age", "a7k2m9"),
+            Expression.Rename(Formula.Name("where.age", "a7k2m9"), "where", "place"));
+    }
+
     private static void Same(IReadOnlyList<ExpressionNode> left, IReadOnlyList<ExpressionNode> right)
     {
         Assert.Equal(left.Count, right.Count);
