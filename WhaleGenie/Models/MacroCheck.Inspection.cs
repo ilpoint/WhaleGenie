@@ -20,6 +20,7 @@ public static partial class MacroCheck
     {
         private readonly bool browserShared;
         private readonly HashSet<string> defined;
+        private readonly HashSet<string> definedIds;
         private readonly Dictionary<string, ActionReturnType> known;
         private readonly bool namesAreOpen;
         private readonly string? ownName;
@@ -47,6 +48,7 @@ public static partial class MacroCheck
             }
 
             defined = DefinedVariables(tree);
+            definedIds = DefinedIds(tree, own);
             known = KnownTypes(tree, own, reachable);
             recordFields = KnownFields(tree, own, reachable);
 

@@ -170,6 +170,34 @@ public static class VariableIds
         }
     }
 
+    /// <summary>
+    /// Makes every reference bound to one identity read a new name. This is the rename path: the
+    /// declaration changes its label, and the references follow because they carry the identity,
+    /// not because they happen to spell the old label.
+    /// </summary>
+    public static void Rebind(IEnumerable<MacroStep> steps, string id, string newName)
+    {
+        if (id.Length == 0)
+        {
+            return;
+        }
+
+        foreach (var step in Walk(steps))
+        {
+            MapStep(step, variable =>
+            {
+                if (!string.Equals(variable.Id, id, StringComparison.Ordinal))
+                {
+                    return variable;
+                }
+
+                var dot = variable.Name.IndexOf('.');
+                var suffix = dot >= 0 ? variable.Name[dot..] : string.Empty;
+                return variable with { Name = newName + suffix };
+            });
+        }
+    }
+
     private static void SettleStep(MacroStep step, HashSet<string> taken, HashSet<string> seen,
         List<Rename> renamed)
     {

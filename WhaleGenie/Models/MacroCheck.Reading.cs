@@ -98,9 +98,68 @@ public static partial class MacroCheck
     /// defines anywhere counts, because whether a step runs before the one that reads it is a
     /// question the steps alone cannot answer.
     /// </summary>
-    private static HashSet<string> DefinedVariables(IReadOnlyList<MacroStep> steps)
+    /// <summary>
+    /// The identities a macro may read: the shared declarations, its own parameters, results and
+    /// locals, and the names its steps declare. A reference carrying an identity outside this set
+    /// points at a declaration that is gone or was never here.
+    /// </summary>
+    private static HashSet<string> DefinedIds(IReadOnlyList<MacroStep> steps, MacroCallable? own)
     {
-        var defined = new HashSet<string>(
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var global in VariableCatalog.Globals.Where(global => global.Id.Length > 0))
+        {
+            ids.Add(global.Id);
+        }
+
+        if (own is not null)
+        {
+            foreach (var parameter in own.Parameters.Where(parameter => parameter.Id.Length > 0))
+            {
+                ids.Add(parameter.Id);
+            }
+
+            foreach (var result in own.Results.Where(result => result.Id.Length > 0))
+            {
+                ids.Add(result.Id);
+            }
+
+            foreach (var local in own.OwnLocals.Where(local => local.Id.Length > 0))
+            {
+                ids.Add(local.Id);
+            }
+        }
+
+        foreach (var step in Every(steps))
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Kind is ActionParameterKind.Returns)
+                {
+                    foreach (var row in parameter.Rows)
+                    {
+                        var id = Formula.NameOf(row.Cell(FieldNames.Name)).Id;
+                        if (id.Length > 0)
+                        {
+                            ids.Add(id);
+                        }
+                    }
+                }
+                else if (step.DefinesVariable(parameter))
+                {
+                    var id = Formula.NameOf(parameter.Written).Id;
+                    if (id.Length > 0)
+                    {
+                        ids.Add(id);
+                    }
+                }
+            }
+        }
+
+        return ids;
+    }
+
+    private static HashSet<string> DefinedVariables(IReadOnlyList<MacroStep> steps)
+    {        var defined = new HashSet<string>(
             VariableCatalog.SystemVariables.Select(variable => variable.Name),
             StringComparer.OrdinalIgnoreCase);
         defined.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));

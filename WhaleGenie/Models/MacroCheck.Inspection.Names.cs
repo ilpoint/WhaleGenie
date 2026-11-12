@@ -36,6 +36,35 @@ public static partial class MacroCheck
                         Add(step, MacroProblemCode.UndefinedVariable, Strings.Format("Editor.Problem.UndefinedVariable", name));
                     }
                 }
+
+                foreach (var id in IdsOf(parameter))
+                {
+                    if (!definedIds.Contains(id))
+                    {
+                        Add(step, MacroProblemCode.UnknownVariableReference,
+                            Strings.Get("Editor.Problem.UnknownVariableReference"));
+                    }
+                }
+            }
+        }
+
+        /// <summary>The identities written in one field, including the cells of a row list.</summary>
+        private static IEnumerable<string> IdsOf(StepParameter parameter)
+        {
+            foreach (var id in Expression.ReferenceIds(parameter.Written))
+            {
+                yield return id;
+            }
+
+            foreach (var row in parameter.Rows)
+            {
+                foreach (var cell in row.Cells.Values)
+                {
+                    foreach (var id in Expression.ReferenceIds(cell))
+                    {
+                        yield return id;
+                    }
+                }
             }
         }
 

@@ -973,6 +973,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UndeclaredResult"] =
             "\"{1}\" does not offer to hand back \"{0}\", so this call gets nothing.",
         ["Editor.Problem.UndefinedVariable"] = "Nothing defines \"${0}\", so it reads as nothing.",
+        ["Editor.Problem.UnknownVariableReference"] = "This reference points at a declaration that is not here; it will be read by its name.",
         ["Editor.Problem.PostedMove"] = "Background input does not move the pointer, so this step "
             + "cannot move by an offset here. Use in-front or driver input, or write the place out "
             + "with Mouse Move.",
@@ -3368,6 +3369,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
         ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
         ["Editor.Problem.UndefinedVariable"] = "没有定义“${0}”，读到的会是空的。",
+        ["Editor.Problem.UnknownVariableReference"] = "这条引用指向的声明不在这里，会按名字读取。",
         ["Editor.Problem.PostedMove"] = "「后台消息」这一档不做相对移动：它只把消息投给窗口，屏幕上的"
             + "指针不会动。改用前台或驱动级，或者用「鼠标移动到」把位置按绝对坐标写全。",
         ["Editor.Problem.WaitWithoutTimeout"] = "这一步会等待，但没有设置自己的超时；重试或外层限时"

@@ -47,6 +47,7 @@ public static class MacroProblemCode
     public const string UndeclaredArgument = nameof(UndeclaredArgument);
     public const string UndeclaredResult = nameof(UndeclaredResult);
     public const string UndefinedVariable = nameof(UndefinedVariable);
+    public const string UnknownVariableReference = nameof(UnknownVariableReference);
     public const string UnguardedRecursion = nameof(UnguardedRecursion);
     public const string UnknownAction = nameof(UnknownAction);
     public const string UnknownField = nameof(UnknownField);

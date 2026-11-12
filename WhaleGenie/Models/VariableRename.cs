@@ -33,6 +33,10 @@ public static class VariableRename
 
     public static void RenameGlobal(IEnumerable<MacroItem> macros, string oldName, string newName)
     {
+        var id = VariableCatalog.Globals.FirstOrDefault(global =>
+            string.Equals(global.Name.Trim(), oldName, StringComparison.OrdinalIgnoreCase))?.Id
+            ?? string.Empty;
+
         foreach (var macro in macros)
         {
             RenameSteps(macro.Steps, oldName, newName, global: true);
@@ -40,6 +44,11 @@ public static class VariableRename
             {
                 parameter.Default = RenameValue(parameter.Default, oldName, newName);
             }
+
+            // The name pass above keeps the old behaviour for references that came in without an
+            // identity. The identity pass then puts every bound reference back on the name of the
+            // declaration it actually belongs to, which is what a same-named local cannot steal.
+            VariableIds.Rebind(macro.Steps, id, newName);
         }
     }
 
