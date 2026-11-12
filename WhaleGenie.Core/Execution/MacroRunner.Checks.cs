@@ -115,7 +115,7 @@ public sealed partial class MacroRunner
     /// </summary>
     internal static bool ReturnFits(ActionReturnSemantics declared, Value value)
     {
-        if (!MacroValues.Fits(declared.Type, value))
+        if (!ValueRules.Accepts(declared.Type, value))
         {
             return false;
         }
@@ -146,7 +146,7 @@ public sealed partial class MacroRunner
         foreach (var field in declared)
         {
             var found = value.Field(field.Name);
-            if (found is null || !MacroValues.Fits(field.Type, found))
+            if (found is null || !ValueRules.Accepts(field.Type, found))
             {
                 return false;
             }

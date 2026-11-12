@@ -663,26 +663,11 @@ public sealed class VariableBag : IVariableResolver
             || (value.Kind is ValueKind.Text && value.Text.Length == 0)
             || !_types.TryGetValue(name, out var kind)
             || kind is ValueKind.Text
-            || Holds(kind, value))
+            || ValueRules.Accepts(kind, value))
         {
             return;
         }
 
         throw new VariableTypeException(name, kind, value.Kind);
     }
-
-    /// <summary>Whether the value can stand for the declared kind, read the way a reader would.</summary>
-    private static bool Holds(ValueKind kind, Value value) => kind switch
-    {
-        ValueKind.Number => value.IsNumber
-            || double.TryParse(value.AsText(), NumberStyles.Float,
-                CultureInfo.InvariantCulture, out _),
-        ValueKind.Bool => value.Kind is ValueKind.Bool
-            || bool.TryParse(value.AsText(), out _),
-        ValueKind.Date => value.IsDate
-            || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces, out _),
-        ValueKind.Image => value.IsImage,
-        _ => value.Kind == kind,
-    };
 }

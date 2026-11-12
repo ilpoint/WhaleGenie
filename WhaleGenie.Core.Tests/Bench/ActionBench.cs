@@ -240,7 +240,7 @@ internal static class ActionBench
             }
 
             kept++;
-            if (!MacroValues.Fits(declared.Type, value))
+            if (!ValueRules.Accepts(declared.Type, value))
             {
                 problems.Add($"结果 {declared.Key} 应为 {declared.Type}，写出来的是 {value.Kind}");
             }

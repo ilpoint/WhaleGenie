@@ -222,7 +222,7 @@ public static partial class MacroCheck
             }
 
             if (ConstantValue(parameter.Default) is { } value
-                && !MacroValues.Fits(parameter.Type, value))
+                && !ValueRules.Accepts(parameter.Type, value))
             {
                 warnings.Add(Strings.Format("Editor.Problem.BadDefaultType", own.Name, name,
                     Strings.Get("ActionType." + parameter.Type, parameter.Type.ToString())));
@@ -247,7 +247,7 @@ public static partial class MacroCheck
                 warnings.Add(Strings.Format("Editor.Problem.BadExpression", error?.Detail ?? initial));
             }
 
-            if (ConstantValue(local.Initial) is { } value && !MacroValues.Fits(local.Type, value))
+            if (ConstantValue(local.Initial) is { } value && !ValueRules.Accepts(local.Type, value))
             {
                 warnings.Add(Strings.Format("Editor.Problem.BadInitialType", own.Name, name,
                     Strings.Get("ActionType." + local.Type, local.Type.ToString())));

@@ -316,26 +316,7 @@ internal static class PersistentVariables
                 VariableValues.DesignContext());
 
     private static bool Fits(string type, Value value)
-    {
-        if (value.IsNull)
-        {
-            return true;
-        }
-
-        return VariableTypes.KindOf(type) switch
-        {
-            ValueKind.Number => value.IsNumber
-                || double.TryParse(value.AsText(), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out _),
-            ValueKind.Bool => value.Kind is ValueKind.Bool || bool.TryParse(value.AsText(), out _),
-            ValueKind.List => value.IsList,
-            ValueKind.Date => value.IsDate
-                || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
-                    System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _),
-            ValueKind.Image => value.IsImage,
-            _ => true,
-        };
-    }
+        => ValueRules.Accepts(VariableTypes.KindOf(type), value);
 
     private static void Load()
     {

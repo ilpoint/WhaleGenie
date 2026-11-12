@@ -301,7 +301,7 @@ public sealed partial class MacroRunner
         var written = initial.Trim();
         if (written.Length == 0)
         {
-            return MacroValues.Empty(type);
+            return ValueRules.Empty(type);
         }
 
         var value = Read(written);
@@ -358,7 +358,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private static void CheckValueFits(ValueKind declared, Value value, string name, string key)
     {
-        if (!MacroValues.Fits(declared, value))
+        if (!ValueRules.Accepts(declared, value))
         {
             throw new StepFailure(key, name + ": " + value.Kind);
         }

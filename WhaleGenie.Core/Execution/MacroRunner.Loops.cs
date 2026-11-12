@@ -288,7 +288,7 @@ public sealed partial class MacroRunner
     /// shared comparison so the spacing and case switches mean the same thing here as elsewhere.
     /// </summary>
     private bool CaseEquals(ExecutableStep step, Value value, string wanted)
-        => value.NumericEquals(Value.FromText(wanted))
+        => ValueRules.Same(value, Value.FromText(wanted))
            || TextCompare.Matches(value.AsText(), wanted, TextCompare.Exactly,
                OptionsOf(step, TextCompare.Exactly));
 

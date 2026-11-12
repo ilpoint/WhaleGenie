@@ -255,89 +255,45 @@ public sealed class Value : IEquatable<Value>
             : number.ToString("0.######", CultureInfo.InvariantCulture);
     }
 
-    /// <summary>Numeric comparison, so 1 equals 1.0 and "1" equals 1.</summary>
-    public bool NumericEquals(Value other)
-    {
-        try
-        {
-            return AsNumber().Equals(other.AsNumber());
-        }
-        catch (ExpressionException)
-        {
-            return string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
+    /// <summary>
+    /// True when two values are the same value of the same kind. A number is not the line that
+    /// writes it as a number and a picture is not its name: asking whether they are equal is a
+    /// different question from asking whether one can stand for the other, and
+    /// <see cref="ValueRules.Same"/> is where that second question is answered.
+    /// </summary>
     public bool Equals(Value? other)
     {
-        if (other is null)
+        if (other is null || Kind != other.Kind)
         {
             return false;
         }
 
-        if (Kind is ValueKind.List || other.Kind is ValueKind.List)
+        return Kind switch
         {
-            return Kind == other.Kind && _items.SequenceEqual(other._items);
-        }
-
-        if (Kind is ValueKind.Record || other.Kind is ValueKind.Record)
-        {
-            // Field names are compared as written while everything a user types is read without
-            // caring about case: what a record writes itself as has to be the text the comparison
-            // of two records agrees on, because that text is also their hash.
-            return Kind == other.Kind
-                && _fields.Count == other._fields.Count
+            ValueKind.Null => true,
+            ValueKind.Number => _number.Equals(other._number),
+            ValueKind.Bool => _flag == other._flag,
+            ValueKind.Text or ValueKind.Image =>
+                string.Equals(_text, other._text, StringComparison.OrdinalIgnoreCase),
+            ValueKind.Date => _date.UtcTicks == other._date.UtcTicks,
+            ValueKind.List => _items.SequenceEqual(other._items),
+            ValueKind.Record => _fields.Count == other._fields.Count
                 && _fields.Zip(other._fields).All(pair =>
                     string.Equals(pair.First.Name, pair.Second.Name, StringComparison.Ordinal)
-                    && Equals(pair.First.Value, pair.Second.Value));
-        }
-
-        if (Kind is ValueKind.Number && other.Kind is ValueKind.Number)
-        {
-            return _number.Equals(other._number);
-        }
-
-        if (Kind is ValueKind.Bool && other.Kind is ValueKind.Bool)
-        {
-            return _flag == other._flag;
-        }
-
-        if (Kind is ValueKind.Null && other.Kind is ValueKind.Null)
-        {
-            return true;
-        }
-
-        if (Kind is ValueKind.Date || other.Kind is ValueKind.Date)
-        {
-            // Two moments are the same moment when they name the same instant, whatever offset they
-            // were written with. A date held against text is compared as the text it is written as,
-            // which is what makes $today = "2026-11-12" read the way it looks.
-            return Kind is ValueKind.Date && other.Kind is ValueKind.Date
-                ? _date.UtcTicks == other._date.UtcTicks
-                : string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (Kind is ValueKind.Image || other.Kind is ValueKind.Image)
-        {
-            // A picture is the handle it is known by, and only another picture is the same one:
-            // a line of text that happens to read like a handle is not a picture.
-            return Kind is ValueKind.Image
-                && other.Kind is ValueKind.Image
-                && string.Equals(_text, other._text, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
+                    && Equals(pair.First.Value, pair.Second.Value)),
+            _ => false,
+        };
     }
 
     public override bool Equals(object? obj) => Equals(obj as Value);
 
+    /// <summary>
+    /// One line for the value, so two that are equal always hash alike: a number by its exact
+    /// digits, a moment by its instant, a line by its letters, and a list or a record by what it
+    /// holds. <see cref="ValueRules.Canonical"/> is the same idea written out.
+    /// </summary>
     public override int GetHashCode()
-    {
-        // Two offsets of one instant are one moment, and the text they would hash as is not.
-        return Kind is ValueKind.Date
-            ? _date.UtcTicks.GetHashCode()
-            : AsText().GetHashCode(StringComparison.OrdinalIgnoreCase);
-    }
+        => StringComparer.Ordinal.GetHashCode(ValueRules.Canonical(this));
 
     public override string ToString() => AsText();
 }

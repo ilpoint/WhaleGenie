@@ -79,7 +79,7 @@ public sealed partial class MacroRunner
         }
 
         var wanted = ReadValue(condition, "wantedValue");
-        return items.Any(item => item.NumericEquals(wanted)
+        return items.Any(item => ValueRules.Same(item, wanted)
             || string.Equals(item.AsText(), wanted.AsText(), StringComparison.OrdinalIgnoreCase));
     }
 
@@ -249,7 +249,7 @@ public sealed partial class MacroRunner
     {
         var left = ReadValue(step, "variable");
         var right = ReadValue(step, "compareValue");
-        var same = left.NumericEquals(right)
+        var same = ValueRules.Same(left, right)
             || Compare(step, left, right, TextCompare.Exactly);
 
         return ReadText(step, "compareOperator") switch

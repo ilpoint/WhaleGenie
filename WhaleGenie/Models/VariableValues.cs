@@ -150,5 +150,5 @@ public static class VariableValues
     /// editor's preview read it from the same place, so a preview cannot promise a number where the
     /// run starts from an empty value.
     /// </summary>
-    private static Value Empty(string type) => MacroValues.Empty(ActionReturn.TypeOf(type));
+    private static Value Empty(string type) => ValueRules.Empty(ActionReturn.TypeOf(type));
 }

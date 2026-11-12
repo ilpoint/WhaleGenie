@@ -139,7 +139,7 @@ public static partial class MacroCheck
                 }
 
                 if (ConstantValue(input.Value) is { } value
-                    && !MacroValues.Fits(declared.Type, value))
+                    && !ValueRules.Accepts(declared.Type, value))
                 {
                     Add(step, MacroProblemCode.ArgumentType, Strings.Format("Editor.Problem.ArgumentType", name,
                         Strings.Get("ActionType." + declared.Type, declared.Type.ToString())));

@@ -185,9 +185,9 @@ internal static class ExpressionCompiler
         switch (operation)
         {
             case "==":
-                return Value.FromBool(left.Equals(right));
+                return Value.FromBool(ValueRules.Same(left, right));
             case "!=":
-                return Value.FromBool(!left.Equals(right));
+                return Value.FromBool(!ValueRules.Same(left, right));
         }
 
         // A date is compared as a moment, not as the line it is written as: two offsets of one

@@ -101,10 +101,10 @@ internal static partial class FunctionLibrary
 
     private static IEnumerable<Value> Unique(IReadOnlyList<Value> items)
     {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in items)
         {
-            if (seen.Add(item.AsText()))
+            if (seen.Add(ValueRules.Canonical(item)))
             {
                 yield return item;
             }
