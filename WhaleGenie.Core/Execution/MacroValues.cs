@@ -46,6 +46,19 @@ public static class MacroValues
     }
 
     /// <summary>
+    /// The kind of value a declaration of this type holds, which is what a table the run was told
+    /// the type of checks a write against. Text and image map to text because every value has a
+    /// text reading; a record is not a kind a table can hold on its own, so it is text too.
+    /// </summary>
+    public static ValueKind KindOf(ActionReturnType type) => type switch
+    {
+        ActionReturnType.Number => ValueKind.Number,
+        ActionReturnType.Flag => ValueKind.Bool,
+        ActionReturnType.List => ValueKind.List,
+        _ => ValueKind.Text,
+    };
+
+    /// <summary>
     /// The value a name of this kind holds when nothing was written for it: zero, false, an empty
     /// list, an empty line. A declaration that leaves its value empty starts at that rather than at
     /// nothing at all, so a number that was never filled in adds up instead of failing. One place

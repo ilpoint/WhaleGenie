@@ -62,6 +62,7 @@ public sealed partial class MacroRunner
             // A declaration of the called macro, so a second one claiming the same name is refused
             // rather than quietly sharing the slot.
             called.Declare(argument.Id);
+            called.DeclareType(argument.Name.Trim(), MacroValues.KindOf(argument.Type));
             called.Set(new VariableKey(argument.Name.Trim(), argument.Id),
                 ReadArgument(argument, input?.Value ?? Formula.Nothing, input?.Given ?? false));
         }
@@ -73,6 +74,9 @@ public sealed partial class MacroRunner
         foreach (var result in signature.Results)
         {
             var resultName = result.Name.Trim();
+            // Declared, but not given a type: a result is judged when it is handed back, by the
+            // key the failure table already names for it. Checking it here would report the same
+            // mistake twice and with the less specific of the two keys.
             called.Declare(result.Id);
             if (resultName.Length > 0)
             {
@@ -157,6 +161,7 @@ public sealed partial class MacroRunner
         {
             var name = argument.Name.Trim();
             Variables.Local.Declare(argument.Id);
+            Variables.Local.DeclareType(name, MacroValues.KindOf(argument.Type));
             if (name.Length > 0)
             {
                 Variables.Local.Remove(new VariableKey(name, argument.Id));
@@ -241,6 +246,7 @@ public sealed partial class MacroRunner
         {
             var name = local.Name.Trim();
             Variables.Local.Declare(local.Id);
+            Variables.Local.DeclareType(name, MacroValues.KindOf(local.Type));
             if (name.Length > 0)
             {
                 Variables.Local.Set(new VariableKey(name, local.Id),

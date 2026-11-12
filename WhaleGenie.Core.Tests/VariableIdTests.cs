@@ -160,6 +160,61 @@ public class VariableBagIdTests
         Assert.False(bag.ContainsId("loop77"));
         Assert.Equal(1d, bag.Values["count"].AsNumber());
     }
+
+    [Fact]
+    public void A_declared_number_refuses_words()
+    {
+        var bag = new VariableBag();
+        bag.DeclareType("count", ValueKind.Number);
+
+        var refusal = Assert.Throws<VariableTypeException>(() =>
+            bag.Set("count", Value.FromText("many")));
+
+        Assert.Equal("count", refusal.Name);
+        Assert.Equal(ValueKind.Number, refusal.Expected);
+        Assert.Equal(ValueKind.Text, refusal.Actual);
+        Assert.False(bag.Contains("count"));
+    }
+
+    /// <summary>
+    /// A line that reads as the declared kind is the kind. The call path already judges "3" a
+    /// number, and a write that refused it would make the same value pass one gate and fail the
+    /// next.
+    /// </summary>
+    [Fact]
+    public void A_declared_name_takes_a_line_that_reads_as_its_kind()
+    {
+        var bag = new VariableBag();
+        bag.DeclareType("count", ValueKind.Number);
+
+        bag.Set("count", Value.FromText("3"));
+
+        Assert.Equal(3d, bag.Values["count"].AsNumber());
+    }
+
+    [Fact]
+    public void A_text_name_takes_every_kind()
+    {
+        var bag = new VariableBag();
+        bag.DeclareType("note", ValueKind.Text);
+
+        bag.Set("note", Value.FromNumber(3));
+        bag.Set("note", Value.FromList([Value.FromText("a")]));
+
+        Assert.True(bag.Values["note"].IsList);
+    }
+
+    /// <summary>Empty means "nothing was written here yet", which is not a value of the wrong kind.</summary>
+    [Fact]
+    public void Nothing_written_yet_is_allowed_for_every_kind()
+    {
+        var bag = new VariableBag();
+        bag.DeclareType("count", ValueKind.Number);
+
+        bag.Set("count", Value.Null);
+
+        Assert.True(bag.Contains("count"));
+    }
 }
 
 /// <summary>The three scopes a run reads from, with the identity looked at before the spelling.</summary>

@@ -512,4 +512,44 @@ public partial class MacroRunnerTests
         Assert.Equal(RunStatus.Stopped, result.Status);
         Assert.False(store.TryGet("after", out _));
     }
+
+    /// <summary>
+    /// The declaration is the contract, and it is kept where the value is written: the step that
+    /// put words into a number is the one that fails, while the step is still the answer.
+    /// </summary>
+    [Fact]
+    public async Task A_number_that_is_given_words_stops_the_step_that_wrote_them()
+    {
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("n", string.Empty, ActionReturnType.Number, "n00001")]);
+
+        var (result, _) = await RunAsync([Set("n", "many words")], startSignature: signature);
+
+        Assert.Equal(RunKeys.VariableTypeMismatch, result.Key);
+    }
+
+    [Fact]
+    public async Task A_number_declaration_takes_a_line_that_reads_as_one()
+    {
+        var store = Store();
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("n", string.Empty, ActionReturnType.Number, "n00001")]);
+
+        var (result, _) = await RunAsync([Set("n", "3")], variables: store,
+            startSignature: signature);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(3d, N(store, "n"));
+    }
+
+    [Fact]
+    public async Task A_text_declaration_takes_a_number_without_complaint()
+    {
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("note", string.Empty, ActionReturnType.Text, "t00001")]);
+
+        var (result, _) = await RunAsync([Set("note", "1")], startSignature: signature);
+
+        Assert.True(result.Succeeded, result.Key);
+    }
 }

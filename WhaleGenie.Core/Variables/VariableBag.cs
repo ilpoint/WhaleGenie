@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Variables;
@@ -638,18 +639,32 @@ public sealed class VariableBag : IVariableResolver
     /// Refuses a value a declared name cannot hold. Nothing declared says nothing; text holds
     /// whatever it is given, because a text variable is how a macro keeps something whose shape it
     /// has not decided. The empty value is always allowed: it is how a result nobody has written
-    /// yet reads, and it is not a value of the wrong kind.
+    /// yet reads, and it is not a value of the wrong kind. A line that reads as the declared kind
+    /// is allowed too — "3" in a number is a number a step wrote down, and refusing it would make
+    /// the same value pass a call and fail the write behind it.
     /// </summary>
     private void EnsureFits(string name, Value value)
     {
         if (value.IsNull
+            || (value.Kind is ValueKind.Text && value.Text.Length == 0)
             || !_types.TryGetValue(name, out var kind)
             || kind is ValueKind.Text
-            || value.Kind == kind)
+            || Holds(kind, value))
         {
             return;
         }
 
         throw new VariableTypeException(name, kind, value.Kind);
     }
+
+    /// <summary>Whether the value can stand for the declared kind, read the way a reader would.</summary>
+    private static bool Holds(ValueKind kind, Value value) => kind switch
+    {
+        ValueKind.Number => value.IsNumber
+            || double.TryParse(value.AsText(), NumberStyles.Float,
+                CultureInfo.InvariantCulture, out _),
+        ValueKind.Bool => value.Kind is ValueKind.Bool
+            || bool.TryParse(value.AsText(), out _),
+        _ => value.Kind == kind,
+    };
 }
