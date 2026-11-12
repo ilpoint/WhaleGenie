@@ -244,7 +244,7 @@ public sealed partial class MacroRunner
     {
         var times = Math.Max(0, Number(step, "times"));
         var interval = Pace(Number(step, "intervalMs"));
-        using var scope = EnterLoop(VariableStore.LoopIndexName);
+        using var scope = EnterLoop(VariableKey.Of(VariableStore.LoopIndexName));
 
         for (var round = 0; round < times; round++)
         {
@@ -274,7 +274,7 @@ public sealed partial class MacroRunner
         RequireCondition(step, "condition");
         var limit = Math.Max(1, Number(step, "maxIterations"));
         var interval = Pace(Number(step, "intervalMs"));
-        using var scope = EnterLoop(VariableStore.LoopIndexName);
+        using var scope = EnterLoop(VariableKey.Of(VariableStore.LoopIndexName));
 
         for (var round = 0; round < limit; round++)
         {

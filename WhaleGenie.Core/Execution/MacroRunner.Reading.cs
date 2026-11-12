@@ -53,10 +53,21 @@ public sealed partial class MacroRunner
     private string ReadText(ExecutableStep step, string name)
     {
         var written = step.Written(name);
-        return ReadModeOf(step, name) == ActionReadMode.Text
-            ? Read(written).AsText()
-            : FormulaText.Write(written);
+        return ReadModeOf(step, name) switch
+        {
+            ActionReadMode.Text => Read(written).AsText(),
+            ActionReadMode.VariableName => ReadNameKey(step, name).Name,
+            _ => FormulaText.Write(written),
+        };
     }
+
+    /// <summary>
+    /// The name a field writes and the identity it is bound to. A name written into a step is not
+    /// read through the formula writer, because that writer puts a dollar in front of a bare name;
+    /// the shape says which name it is, and the id says which declaration.
+    /// </summary>
+    private VariableKey ReadNameKey(ExecutableStep step, string name)
+        => Formula.NameOf(step.Written(name));
 
     private static ActionReadMode ReadModeOf(ExecutableStep step, string name)
         => ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.ReadMode ?? ActionReadMode.Text;
@@ -68,18 +79,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private Value ReadName(ExpressionNode written)
     {
-        if (written is VariableNode variable)
-        {
-            return Variables.TryGet(variable.Name, out var held) ? held : Value.FromText(variable.Name);
-        }
-
-        var name = Read(written).AsText().Trim();
-        if (name.Length == 0)
+        var key = Formula.NameOf(written);
+        if (key.Name.Length == 0)
         {
             return Value.Null;
         }
 
-        return Variables.TryGet(name, out var value) ? value : Value.FromText(name);
+        return Variables.TryGet(key, out var held) ? held : Value.FromText(key.Name);
     }
 
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>

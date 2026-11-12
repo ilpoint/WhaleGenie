@@ -38,7 +38,8 @@ public sealed partial class MacroRunner
         }
 
         var declared = definition.Return(key);
-        var name = step.Return(key);
+        var resultKey = step.ReturnKey(key);
+        var name = resultKey.Name;
         if (declared is null)
         {
             if (name.Length > 0)
@@ -58,7 +59,7 @@ public sealed partial class MacroRunner
 
         if (name.Length > 0)
         {
-            Variables.Set(name, value);
+            Variables.Set(resultKey, value);
         }
 
         if (_worked is { } worked)

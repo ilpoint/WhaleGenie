@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -76,7 +77,13 @@ public sealed class ExecutableStep
     /// for the macro to avoid reading, so this is the one place that answers "does this step hand
     /// that over, and what is it called".
     /// </summary>
-    public string Return(string key)
+    public string Return(string key) => ReturnKey(key).Name;
+
+    /// <summary>
+    /// The name and identity a result is handed over under. The name field is a shape like any
+    /// other, so the identity a declaration carries travels with the result without a second table.
+    /// </summary>
+    public VariableKey ReturnKey(string key)
     {
         // The results may be written as more than one list — a step the editor saved carries one, a
         // step built by hand may carry a list per result — so every row of every one of them counts.
@@ -89,13 +96,13 @@ public sealed class ExecutableStep
                         StringComparison.OrdinalIgnoreCase))
                 {
                     return row.TryGetValue(FieldNames.Name, out var name)
-                        ? FormulaText.Write(name).Trim()
-                        : string.Empty;
+                        ? Formula.NameOf(name)
+                        : VariableKey.Of(string.Empty);
                 }
             }
         }
 
-        return string.Empty;
+        return VariableKey.Of(string.Empty);
     }
 
     /// <summary>The slack a named parameter carries, as a fraction of it, or zero.</summary>

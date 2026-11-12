@@ -30,7 +30,7 @@ public sealed partial class MacroRunner
     /// half-finished run.
     /// </summary>
     private (string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
-        List<(string Result, string Name)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
+        List<(string Result, VariableKey Key)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
     {
         var name = ReadValue(step, "macro").AsText().Trim();
         var steps = name.Length == 0 ? null : _macros.Steps(name);
@@ -59,8 +59,8 @@ public sealed partial class MacroRunner
         foreach (var argument in signature.Arguments)
         {
             supplied.TryGetValue(argument.Name.Trim(), out var input);
-            called.Set(argument.Name, ReadArgument(argument,
-                input?.Value ?? Formula.Nothing, input?.Given ?? false));
+            called.Set(new VariableKey(argument.Name.Trim(), argument.Id),
+                ReadArgument(argument, input?.Value ?? Formula.Nothing, input?.Given ?? false));
         }
 
         // A declared result is empty until this attempt writes it. Putting it into the local table
@@ -72,7 +72,7 @@ public sealed partial class MacroRunner
             var resultName = result.Name.Trim();
             if (resultName.Length > 0)
             {
-                called.SetIfAbsent(resultName, Value.Null);
+                called.SetIfAbsent(new VariableKey(resultName, result.Id), Value.Null);
             }
         }
 
@@ -154,7 +154,7 @@ public sealed partial class MacroRunner
             var name = argument.Name.Trim();
             if (name.Length > 0)
             {
-                Variables.Local.Remove(name);
+                Variables.Local.Remove(new VariableKey(name, argument.Id));
             }
         }
 
@@ -163,13 +163,13 @@ public sealed partial class MacroRunner
             var name = result.Name.Trim();
             if (name.Length > 0)
             {
-                Variables.Local.Remove(name);
+                Variables.Local.Remove(new VariableKey(name, result.Id));
             }
         }
 
         try
         {
-            var values = new List<(string Name, Value Value)>();
+            var values = new List<(VariableKey Key, Value Value)>();
             foreach (var argument in signature.Arguments)
             {
                 var name = argument.Name.Trim();
@@ -186,12 +186,12 @@ public sealed partial class MacroRunner
                     : FormulaText.Read(input.Text, ActionReadMode.WholeValue);
                 var explicitlyEmpty = input?.Given ?? false;
                 var value = ReadArgument(argument, written, explicitlyEmpty);
-                values.Add((name, value));
+                values.Add((new VariableKey(name, argument.Id), value));
             }
 
-            foreach (var (name, value) in values)
+            foreach (var (key, value) in values)
             {
-                Variables.Local.Set(name, value);
+                Variables.Local.Set(key, value);
             }
 
             // The macro's own declarations, in the order they were written: an initial value may
@@ -203,7 +203,7 @@ public sealed partial class MacroRunner
                 var name = result.Name.Trim();
                 if (name.Length > 0)
                 {
-                    Variables.Local.SetIfAbsent(name, Value.Null);
+                    Variables.Local.SetIfAbsent(new VariableKey(name, result.Id), Value.Null);
                 }
             }
 
@@ -232,7 +232,8 @@ public sealed partial class MacroRunner
             var name = local.Name.Trim();
             if (name.Length > 0)
             {
-                Variables.Local.Set(name, ReadDeclared(name, local.Initial, local.Type));
+                Variables.Local.Set(new VariableKey(name, local.Id),
+                    ReadDeclared(name, local.Initial, local.Type));
             }
         }
     }
@@ -351,15 +352,17 @@ public sealed partial class MacroRunner
     /// <c>returns</c>, each row carrying the called macro's own name for the value and the name the
     /// caller wants it under. A name the called macro does not offer is a mistake in the call.
     /// </summary>
-    private static List<(string Result, string Name)> WantedResults(ExecutableStep step,
+    private static List<(string Result, VariableKey Key)> WantedResults(ExecutableStep step,
         MacroSignature signature)
     {
-        var wanted = new List<(string Result, string Name)>();
+        var wanted = new List<(string Result, VariableKey Key)>();
         foreach (var row in step.Rows("returns"))
         {
             var result = Word(row, FieldNames.Key);
-            var name = Word(row, FieldNames.Name);
-            if (result.Length == 0 || name.Length == 0)
+            var name = row.TryGetValue(FieldNames.Name, out var written)
+                ? Formula.NameOf(written)
+                : VariableKey.Of(string.Empty);
+            if (result.Length == 0 || name.Name.Length == 0)
             {
                 continue;
             }
@@ -380,11 +383,11 @@ public sealed partial class MacroRunner
     /// macro offers but never set comes back empty rather than missing, so the step after the call
     /// reads this call's answer and not whatever an earlier pass left behind.
     /// </summary>
-    private void Take(List<(string Result, string Name)> wanted, VariableBag produced)
+    private void Take(List<(string Result, VariableKey Key)> wanted, VariableBag produced)
     {
-        foreach (var (result, name) in wanted)
+        foreach (var (result, key) in wanted)
         {
-            Variables.Local.Set(name,
+            Variables.Local.Set(key,
                 produced.TryGet(result, out var value) && value is not null ? value : Value.Null);
         }
     }
@@ -393,8 +396,8 @@ public sealed partial class MacroRunner
     /// Checks what a finished run is about to hand over against the kinds its signature declared.
     /// A result it never wrote is empty rather than wrong, so that one is left to the caller.
     /// </summary>
-    private static void CheckResults(MacroSignature signature, List<(string Result, string Name)> wanted,
-        VariableBag produced)
+    private static void CheckResults(MacroSignature signature,
+        List<(string Result, VariableKey Key)> wanted, VariableBag produced)
     {
         foreach (var (result, _) in wanted)
         {

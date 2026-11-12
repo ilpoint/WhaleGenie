@@ -62,11 +62,14 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.BadList, error?.Detail ?? ReadText(step, "items"));
         }
 
-        var itemName = ReadText(step, "itemVariable").Trim();
+        var itemKey = ReadNameKey(step, "itemVariable");
+        var itemName = itemKey.Name.Trim();
         if (itemName.Length == 0)
         {
             itemName = "item";
         }
+
+        itemKey = itemKey with { Name = itemName };
 
         var order = string.Equals(ReadText(step, "reverse"), "true", StringComparison.OrdinalIgnoreCase)
             ? items.Reverse()
@@ -74,19 +77,21 @@ public sealed partial class MacroRunner
 
         // The round number is only worth having when the step asked for it by name: a variable
         // nobody asked for is one more thing to puzzle over in the variable list.
-        var indexName = ReadText(step, "indexVariable").Trim();
+        var indexKey = ReadNameKey(step, "indexVariable");
+        var indexName = indexKey.Name.Trim();
+        indexKey = indexKey with { Name = indexName };
         var interval = Pace(Number(step, "intervalMs"));
         var index = 0;
-        using var indexScope = EnterLoop(VariableStore.LoopIndexName);
-        using var nameScope = EnterLoop(true, itemName, indexName);
+        using var indexScope = EnterLoop(VariableKey.Of(VariableStore.LoopIndexName));
+        using var nameScope = EnterLoop(true, itemKey, indexKey);
         foreach (var item in order)
         {
             token.ThrowIfCancellationRequested();
             Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(index));
-            Variables.Set(itemName, item);
+            Variables.Set(itemKey, item);
             if (indexName.Length > 0)
             {
-                Variables.Set(indexName, Value.FromNumber(index));
+                Variables.Set(indexKey, Value.FromNumber(index));
             }
 
             var signal = await RunBody(step, depth, token);
@@ -128,21 +133,24 @@ public sealed partial class MacroRunner
 
         // The counter is a variable the step itself names, and a loop with no counter has nothing
         // to run its body against, so an empty field falls back to the name every for-loop uses.
-        var counter = ReadText(step, "name").Trim();
+        var counterKey = ReadNameKey(step, "name");
+        var counter = counterKey.Name.Trim();
         if (counter.Length == 0)
         {
             counter = "i";
         }
+
+        counterKey = counterKey with { Name = counter };
         var interval = Pace(Number(step, "intervalMs"));
         var round = 0;
-        using var indexScope = EnterLoop(VariableStore.LoopIndexName);
-        using var nameScope = EnterLoop(true, counter);
+        using var indexScope = EnterLoop(VariableKey.Of(VariableStore.LoopIndexName));
+        using var nameScope = EnterLoop(true, counterKey);
 
         for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
         {
             token.ThrowIfCancellationRequested();
             Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
-            Variables.Set(counter, Value.FromNumber(value));
+            Variables.Set(counterKey, Value.FromNumber(value));
 
             var signal = await RunBody(step, depth, token);
             if (signal is Signal.Return or Signal.Stop or Signal.Failed)

@@ -20,6 +20,9 @@ public readonly record struct VariableKey(string Name, string Id = "")
     {
         VariableNode variable => new VariableKey(variable.Name, variable.Id),
         TextNode text => new VariableKey(text.Text.Trim()),
+        // A field that names a variable may read as a number: the language allows a name of
+        // digits, and the reader keeps a number as the number it is.
+        NumberNode number => new VariableKey(number.Text.Trim()),
         _ => new VariableKey(string.Empty),
     };
 }

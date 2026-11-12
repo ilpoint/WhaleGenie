@@ -69,79 +69,90 @@ public sealed partial class MacroRunner
     /// not erase the outer one's item. A name no loop around it was using is the macro's own to
     /// read afterwards, and a counter stays readable while the round number does not.
     /// </summary>
-    private LoopScope EnterLoop(params string[] names) => EnterLoop(false, names);
+    private LoopScope EnterLoop(params VariableKey[] keys) => EnterLoop(false, keys);
 
-    private LoopScope EnterLoop(bool keepLast, params string[] names)
+    private LoopScope EnterLoop(bool keepLast, params VariableKey[] keys)
     {
-        var taken = names.Where(name => name.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        var taken = keys.Where(key => key.Name.Length > 0)
+            .GroupBy(LoopKey)
+            .Select(group => group.First())
             .ToList();
-        var saved = new List<(string Name, bool Had, Value? Value)>();
-        foreach (var name in taken)
+        var saved = new List<(VariableKey Key, bool Had, Value? Value)>();
+        foreach (var key in taken)
         {
-            if (_activeLoopNames.ContainsKey(name))
+            var id = LoopKey(key);
+            if (_activeLoopNames.ContainsKey(id))
             {
-                var had = Variables.Local.TryGet(name, out var value);
-                saved.Add((name, had, had ? value : null));
+                var had = Variables.Local.TryGet(key, out var value);
+                saved.Add((key, had, had ? value : null));
             }
 
-            _activeLoopNames[name] = _activeLoopNames.GetValueOrDefault(name) + 1;
+            _activeLoopNames[id] = _activeLoopNames.GetValueOrDefault(id) + 1;
         }
 
         return new LoopScope(Variables.Local, this, taken, saved, keepLast);
     }
 
     /// <summary>
+    /// The key a loop name is counted under. A bound name is counted by its identity, so a local
+    /// value that happens to share its spelling does not make the loop think it is nested; an
+    /// unbound name is counted without letter case, as it always was.
+    /// </summary>
+    private static string LoopKey(VariableKey key)
+        => key.HasId ? "i:" + key.Id : "n:" + key.Name.ToLowerInvariant();
+
+    /// <summary>
     /// Which loop names are in use right now, and how many loops deep. A name taken by an inner
     /// loop is put back when that loop ends; one the inner loop was the first to use is left alone.
     /// </summary>
-    private readonly Dictionary<string, int> _activeLoopNames = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _activeLoopNames = new(StringComparer.Ordinal);
 
     private readonly struct LoopScope : IDisposable
     {
         private readonly VariableBag _values;
         private readonly MacroRunner _runner;
-        private readonly List<string> _names;
-        private readonly List<(string Name, bool Had, Value? Value)> _saved;
+        private readonly List<VariableKey> _keys;
+        private readonly List<(VariableKey Key, bool Had, Value? Value)> _saved;
         private readonly bool _keepLast;
 
-        public LoopScope(VariableBag values, MacroRunner runner, List<string> names,
-            List<(string Name, bool Had, Value? Value)> saved, bool keepLast)
+        public LoopScope(VariableBag values, MacroRunner runner, List<VariableKey> keys,
+            List<(VariableKey Key, bool Had, Value? Value)> saved, bool keepLast)
         {
             _values = values;
             _runner = runner;
-            _names = names;
+            _keys = keys;
             _saved = saved;
             _keepLast = keepLast;
         }
 
         public void Dispose()
         {
-            foreach (var (name, had, value) in _saved)
+            foreach (var (key, had, value) in _saved)
             {
                 if (had)
                 {
-                    _values.Set(name, value!);
+                    _values.Set(key, value!);
                 }
                 else
                 {
-                    _values.Remove(name);
+                    _values.Remove(key);
                 }
             }
 
-            foreach (var name in _names)
+            foreach (var key in _keys)
             {
-                var left = _runner._activeLoopNames[name] - 1;
+                var id = LoopKey(key);
+                var left = _runner._activeLoopNames[id] - 1;
                 if (left > 0)
                 {
-                    _runner._activeLoopNames[name] = left;
+                    _runner._activeLoopNames[id] = left;
                 }
                 else
                 {
-                    _runner._activeLoopNames.Remove(name);
-                    if (!_keepLast && !_saved.Exists(saved => saved.Name == name))
+                    _runner._activeLoopNames.Remove(id);
+                    if (!_keepLast && !_saved.Exists(saved => LoopKey(saved.Key) == id))
                     {
-                        _values.Remove(name);
+                        _values.Remove(key);
                     }
                 }
             }
