@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using WhaleGenie.Core.Variables;
 
 
 namespace WhaleGenie.Core.Expressions;
@@ -20,7 +21,7 @@ internal static class ExpressionCompiler
             NumberNode number => () => Value.FromNumber(number.Value),
             TextNode text => () => Value.FromText(text.Text),
             ConstantNode constant => Compiled(constant.Word),
-            VariableNode variable => () => Resolve(variables, variable.Name),
+            VariableNode variable => () => Resolve(variables, variable),
             ConcatNode run => Compiled(run, variables),
             ListNode list => Compiled(list, variables),
             CallNode call => Compiled(call, variables),
@@ -72,6 +73,17 @@ internal static class ExpressionCompiler
             }
 
             value = Value.FromText(name);
+            return true;
+        }
+
+        public bool TryGet(VariableKey key, out Value value)
+        {
+            if (inner.TryGet(key, out value))
+            {
+                return true;
+            }
+
+            value = Value.FromText(key.Name);
             return true;
         }
     }
@@ -126,10 +138,10 @@ internal static class ExpressionCompiler
         }
     }
 
-    private static Value Resolve(IVariableResolver variables, string name)
-        => variables.TryGet(name, out var value)
+    private static Value Resolve(IVariableResolver variables, VariableNode variable)
+        => variables.TryGet(VariableKey.From(variable), out var value)
             ? value
-            : throw ExpressionException.UnknownVariable(name);
+            : throw ExpressionException.UnknownVariable(variable.Name);
 
     private static Value Add(Value left, Value right)
     {

@@ -107,11 +107,36 @@ public sealed class VariableStore : IVariableResolver
             || System.TryGet(name, out value);
     }
 
+    /// <summary>
+    /// Reads a bound name by identity before anything else. A local value that happens to share the
+    /// spelling of a global one must not shadow the declaration the reference was bound to; that is
+    /// the whole point of carrying the identity. An identity nothing holds falls back to the name,
+    /// because a run still has to read a line whose declaration was removed.
+    /// </summary>
+    public bool TryGet(VariableKey key, out Value value)
+    {
+        if (key.HasId)
+        {
+            if (Local.TryGetById(key.Id, out value) || Global.TryGetById(key.Id, out value))
+            {
+                return true;
+            }
+        }
+
+        return TryGet(key.Name, out value);
+    }
+
     /// <summary>Writes a value into one scope.</summary>
     public void Set(string name, Value value, VariableTarget target = VariableTarget.Local)
     {
         var bag = target is VariableTarget.Global ? Global : Local;
         bag.Set(name, value);
+    }
+
+    public void Set(VariableKey key, Value value, VariableTarget target = VariableTarget.Local)
+    {
+        var bag = target is VariableTarget.Global ? Global : Local;
+        bag.Set(key, value);
     }
 
     public void SetText(string name, string? text, VariableTarget target = VariableTarget.Local)
