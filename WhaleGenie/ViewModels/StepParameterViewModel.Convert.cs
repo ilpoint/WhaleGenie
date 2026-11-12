@@ -57,11 +57,14 @@ public partial class StepParameterViewModel : ViewModelBase
     /// engine and the file both take it as it is.
     /// </summary>
     private ExpressionNode WrittenValue()
-        => ShowsParts || ReadAsFormula
-            // The value the field already holds is the value the step keeps: a run is the pieces it
-            // was built from, a formula is the tree it read as. Nothing is read back out of the line.
-            ? _written
-            : FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
+        => Definition.NamesVariable
+            ? new VariableNode(CurrentText.Trim(), _boundId)
+            : ShowsParts || ReadAsFormula
+                // The value the field already holds is the value the step keeps: a run is the pieces
+                // it was built from, a formula is the tree it read as. Nothing is read back out of
+                // the line.
+                ? _written
+                : FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
 
     /// <summary>
     /// True when this field holds one formula and nothing else, which is what decides how a written
@@ -223,10 +226,12 @@ public partial class StepParameterViewModel : ViewModelBase
                 _written = stored.Written;
                 if (Definition.NamesVariable)
                 {
+                    var key = Formula.NameOf(stored.Written);
+                    _boundId = key.Id;
                     _composing = true;
                     try
                     {
-                        Text = Formula.NameOf(stored.Written).Name;
+                        Text = key.Name;
                     }
                     finally
                     {

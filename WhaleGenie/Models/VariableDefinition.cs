@@ -29,6 +29,9 @@ public partial class VariableDefinition : ObservableObject
     public static IReadOnlyList<string> TypeNames { get; } =
         ["text", "number", "bool", "color", "date", "list"];
 
+    /// <summary>The stable identity a reference binds to; empty on a system value, which has none.</summary>
+    public string Id { get; set; } = string.Empty;
+
     public required string Name { get; set; }
 
     public VariableScope Scope { get; set; }

@@ -182,6 +182,11 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["type"] = parameter.Type.ToString(),
             };
 
+            if (parameter.Id.Length > 0)
+            {
+                written["id"] = parameter.Id;
+            }
+
             // Only a record has fields, and only a record whose author said which ones is worth
             // writing down: an empty list would say "a record with nothing in it" rather than "not
             // said", and the two are different answers.
@@ -210,6 +215,11 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["type"] = result.Type.ToString(),
             };
 
+            if (result.Id.Length > 0)
+            {
+                written["id"] = result.Id;
+            }
+
             if (FieldsJson(result.Fields) is { } fields)
             {
                 written["fields"] = fields;
@@ -232,13 +242,20 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         foreach (var local in Locals)
         {
             // See ArgumentsJson: an empty row is an unfinished declaration, not something to drop.
-            array.Add(new JsonObject
+            var written = new JsonObject
             {
                 ["name"] = local.Name.Trim(),
                 ["type"] = local.Type.ToString(),
                 ["initial"] = local.Initial,
                 [FieldNames.Description] = local.Description,
-            });
+            };
+
+            if (local.Id.Length > 0)
+            {
+                written["id"] = local.Id;
+            }
+
+            array.Add(written);
         }
 
         return array;

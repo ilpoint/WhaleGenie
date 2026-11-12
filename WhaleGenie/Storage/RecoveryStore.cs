@@ -153,6 +153,7 @@ public static class RecoveryStore
                 ["type"] = variable.Type,
                 ["default"] = variable.DefaultValue,
                 ["description"] = variable.Description,
+                ["id"] = variable.Id,
             });
         }
 
@@ -276,6 +277,7 @@ public static class RecoveryStore
 
             globals.Add(new VariableDefinition
             {
+                Id = variable["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                 Name = name,
                 Scope = VariableScope.Global,
                 Type = variable["type"]?.GetValue<string>() is { Length: > 0 } type ? type : "text",
@@ -285,6 +287,11 @@ public static class RecoveryStore
         }
 
         var triggers = ResumeTriggers(project, macros);
+        VariableIds.SettleGlobals(globals);
+        foreach (var macro in macros)
+        {
+            VariableIds.Bind(macro, globals);
+        }
 
         RecoveryEditor? editor = null;
         if (root["editor"] is JsonObject editorEntry && editorEntry["macro"] is JsonObject macroNode)
@@ -294,6 +301,7 @@ public static class RecoveryStore
                 Macro = MacroItem.FromJson(macroNode),
                 Replaces = editorEntry["replaces"]?.GetValue<string>() ?? string.Empty,
             };
+            VariableIds.Bind(editor.Macro, globals);
         }
 
         var contents = new RecoveryContents

@@ -53,5 +53,18 @@ public partial class MacroStep : INotifyPropertyChanged
     /// dialog that fills one in — which is the same question the engine asks of the step it runs.
     /// </remarks>
     public string Text(string name)
-        => Parameters.FirstOrDefault(parameter => parameter.Name == name)?.Value ?? string.Empty;
+    {
+        var parameter = Parameters.FirstOrDefault(parameter => parameter.Name == name);
+        if (parameter is null)
+        {
+            return string.Empty;
+        }
+
+        // A field that writes a variable name shows the name, not the dollar the formula writer
+        // puts in front of a reference. The shape holds the name and its identity; this is the
+        // reader for the places that ask a step what it says.
+        return ParameterDefinition(parameter) is { NamesVariable: true }
+            ? Formula.NameOf(parameter.Written).Name
+            : parameter.Value;
+    }
 }

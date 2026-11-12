@@ -26,7 +26,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         {
             if (Wall.Looking is { } chosen)
             {
-                CloseRequested?.Invoke(new ValuePick(Formula.Name(chosen.Name), true));
+                CloseRequested?.Invoke(new ValuePick(Formula.Name(chosen.Name, chosen.Id), true));
             }
 
             return;

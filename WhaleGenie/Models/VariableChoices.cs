@@ -15,6 +15,9 @@ namespace WhaleGenie.Models;
 /// </summary>
 public sealed class VariableChoice
 {
+    /// <summary>The declaration this choice names, empty for a value the program or a run provides.</summary>
+    public string Id { get; init; } = string.Empty;
+
     /// <summary>The name as it is written down, without the dollar sign that reads it.</summary>
     public required string Name { get; init; }
 
@@ -245,6 +248,7 @@ public static class VariableChoices
         [
             .. VariableCatalog.Globals.Select(variable => new VariableChoice
             {
+                Id = variable.Id,
                 Name = variable.Name,
                 Scope = VariableScope.Global,
                 Type = variable.Type,
@@ -291,6 +295,7 @@ public static class VariableChoices
 
             rows.Add(new VariableChoice
             {
+                Id = parameter.Id,
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = ActionReturn.TypeNameOf(parameter.Type),
@@ -313,6 +318,7 @@ public static class VariableChoices
 
             rows.Add(new VariableChoice
             {
+                Id = result.Id,
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = ActionReturn.TypeNameOf(result.Type),
@@ -338,6 +344,7 @@ public static class VariableChoices
             var type = ActionReturn.TypeNameOf(local.Type);
             rows.Add(new VariableChoice
             {
+                Id = local.Id,
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = type,

@@ -70,6 +70,16 @@ public static partial class MacroPackage
     {
         triggers.Attach(macros);
 
+        // A macro the editor has just built has names but no identities yet. Settling here is
+        // idempotent: a macro that came from a file keeps every id it has, and a new declaration
+        // gets one before the file is written rather than on the next load.
+        foreach (var macro in macros)
+        {
+            VariableIds.Settle(macro);
+        }
+
+        VariableIds.SettleGlobals(globals);
+
         // A macro with a fatal declaration problem cannot be called, so writing it into a package
         // would only carry a broken interface forward. The editor blocks the same faults; this is
         // the guard for every other way a package can be written.

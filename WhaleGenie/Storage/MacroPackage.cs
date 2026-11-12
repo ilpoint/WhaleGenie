@@ -48,9 +48,12 @@ public static partial class MacroPackage
     /// wheel, and a package that has one is read by a build that knows the node. 26 is the version
     /// where a macro declares the local values it starts every run with: a 25 build would drop the
     /// <c>locals</c> node and run the same macro without its initial values, which is a different
-    /// macro than the one that was saved.
+    /// macro than the one that was saved. 27 is the version where a name carries the identity of
+    /// the declaration it reads: a 26 build would read the name and drop the identity, and a
+    /// reference would silently fall back to matching by spelling, which is the very thing this
+    /// version exists to stop.
     /// </summary>
-    public const int FormatVersion = 26;
+    public const int FormatVersion = 27;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

@@ -138,7 +138,8 @@ public partial class ActionEditorView : UserControl
 
         // A name goes in as a piece of the value rather than as the line it is written as: the
         // field keeps a shape, so nothing about the way a formula spells a name reaches the user.
-        parameter.InsertName(Formula.NameOf(picked.Value).Name, caret);
+        var key = Formula.NameOf(picked.Value);
+        parameter.InsertName(key.Name, key.Id, caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)

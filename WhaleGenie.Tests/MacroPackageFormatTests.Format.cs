@@ -28,6 +28,12 @@ public partial class MacroPackageFormatTests
     [InlineData(18)]
     [InlineData(19)]
     [InlineData(20)]
+    [InlineData(21)]
+    [InlineData(22)]
+    [InlineData(23)]
+    [InlineData(24)]
+    [InlineData(25)]
+    [InlineData(26)]
     [InlineData(9)]
     public void A_package_from_an_older_format_is_refused(int version)
     {

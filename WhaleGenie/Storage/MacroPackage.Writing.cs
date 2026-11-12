@@ -56,6 +56,7 @@ public static partial class MacroPackage
                 ["type"] = variable.Type,
                 ["default"] = variable.DefaultValue,
                 ["description"] = variable.Description,
+                ["id"] = variable.Id,
             });
         }
 

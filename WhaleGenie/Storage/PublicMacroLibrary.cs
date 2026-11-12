@@ -25,7 +25,7 @@ public sealed record PublicMacroEntry(string Id, int Version, MacroItem Macro);
 public static class PublicMacroLibrary
 {
     public const string FormatId = "whalegenie.public-macro.library";
-    public const int FormatVersion = 1;
+    public const int FormatVersion = 2;
 
     private const string ManifestEntry = "manifest.json";
     private const string MacrosFolder = "macros/";

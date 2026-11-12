@@ -71,6 +71,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 macro.Parameters.Add(new MacroParameter
                 {
+                    Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Default = declared["default"]?.GetValue<string>() ?? string.Empty,
                     Required = ReadBool(declared["required"], true),
@@ -87,6 +88,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 macro.Results.Add(new MacroResult
                 {
+                    Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
@@ -101,6 +103,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 macro.Locals.Add(new MacroLocalVariable
                 {
+                    Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Type = ReadEnum(declared, "type", ActionReturnType.Text),
                     Initial = declared["initial"]?.GetValue<string>() ?? string.Empty,
@@ -147,6 +150,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             }
         }
 
+        VariableIds.Settle(macro);
         return macro;
     }
 

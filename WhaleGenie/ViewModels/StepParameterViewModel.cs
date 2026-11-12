@@ -27,6 +27,13 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
+    /// <summary>
+    /// The declaration a field that writes a variable name is bound to. The text box only shows
+    /// the name, so the identity is kept beside it until the person changes the spelling; a changed
+    /// name is a different declaration, or one a later bind has to find by its unique spelling.
+    /// </summary>
+    private string _boundId = string.Empty;
+
     private WindowPreviewViewModel? _windowPreview;
 
     /// <summary>

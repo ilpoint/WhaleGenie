@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 
@@ -60,7 +61,7 @@ public partial class MacroStep : INotifyPropertyChanged
     {
         foreach (var row in parameter.Rows)
         {
-            var name = row.Text(FieldNames.Name).Trim();
+            var name = Formula.NameOf(row.Cell(FieldNames.Name)).Name.Trim();
             if (name.Length > 0)
             {
                 yield return (row.Text(FieldNames.Key).Trim(), name);

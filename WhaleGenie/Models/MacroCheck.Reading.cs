@@ -335,7 +335,7 @@ public static partial class MacroCheck
             foreach (var row in parameter.Rows)
             {
                 var result = row.Text(FieldNames.Key).Trim();
-                var name = row.Text(FieldNames.Name).Trim();
+                var name = Formula.NameOf(row.Cell(FieldNames.Name)).Name.Trim();
                 if (result.Length > 0 && name.Length > 0)
                 {
                     yield return (result, name);
