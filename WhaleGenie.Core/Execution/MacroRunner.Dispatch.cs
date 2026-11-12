@@ -252,7 +252,7 @@ public sealed partial class MacroRunner
         for (var round = 0; round < times; round++)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
+            scope.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
             var signal = await RunBody(step, depth, token);
             if (signal is Signal.Return or Signal.Stop or Signal.Failed)
             {
@@ -282,7 +282,7 @@ public sealed partial class MacroRunner
         for (var round = 0; round < limit; round++)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
+            scope.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
             if (!Check(step, "condition", token))
             {
                 Give(step, "ended", Value.FromText("condition"));

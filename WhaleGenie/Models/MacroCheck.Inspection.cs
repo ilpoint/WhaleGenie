@@ -19,7 +19,6 @@ public static partial class MacroCheck
     private sealed partial class Inspection
     {
         private readonly bool browserShared;
-        private readonly HashSet<string> declared;
         private readonly HashSet<string> defined;
         private readonly HashSet<string> definedIds;
         private readonly Dictionary<string, ValueKind> known;
@@ -52,23 +51,6 @@ public static partial class MacroCheck
             definedIds = DefinedIds(tree, own);
             known = KnownTypes(tree, own, reachable);
             recordFields = KnownFields(tree, own, reachable);
-
-            // What the macro declares, kept apart from what its steps write: a loop's own name may
-            // reuse a name a step left behind — that value is put back when the loop ends — but a
-            // declared name is a promise the loop would overwrite for as long as it runs.
-            declared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            if (own is not null)
-            {
-                foreach (var name in own.Parameters.Select(parameter => parameter.Name.Trim())
-                    .Concat(own.Results.Select(result => result.Name.Trim()))
-                    .Concat(own.OwnLocals.Select(local => local.Name.Trim())))
-                {
-                    if (name.Length > 0 && VariableName.IsName(name))
-                    {
-                        declared.Add(name);
-                    }
-                }
-            }
 
             // A background run's results exist only once it has been waited for. These two say which
             // handle carries which names, and which of those names is still owed a wait: reading one
@@ -188,7 +170,6 @@ public static partial class MacroCheck
                 CheckCondition(step);
                 CheckUserFailureKey(step);
                 CheckGlobalTarget(step);
-                CheckLoopIndex(step, loops);
                 CheckCall(step, guarded);
                 CheckNames(step, namesAreOpen);
                 CheckWait(step, bounded);
@@ -217,13 +198,6 @@ public static partial class MacroCheck
                         Add(step, MacroProblemCode.LoopVariableShadowed, Strings.Format("Editor.Problem.LoopVariableShadowed", name));
                     }
 
-                    // A counter that borrows a declared name does not shadow a value for the length
-                    // of a block: it replaces one the macro promised, so every step inside the loop
-                    // that meant the declaration reads a round number instead.
-                    if (declared.Contains(name))
-                    {
-                        Add(step, MacroProblemCode.LoopVariableShadowsDeclaration, Strings.Format("Editor.Problem.LoopVariableShadowsDeclaration", name));
-                    }
                 }
 
                 // Every list of child steps is walked from inside the loop it sits in, whichever

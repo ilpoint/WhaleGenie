@@ -45,18 +45,6 @@ public partial class MacroCheckTests
     }
 
     [Fact]
-    public void The_loop_round_outside_a_loop_is_reported()
-    {
-        var loose = Set("after", "$sys.loopIndex");
-
-        var problem = Assert.Single(Inspect(loose));
-
-        Assert.Same(loose, problem.Step);
-        Assert.Equal(Strings.Get("Editor.Problem.LoopIndexOutsideLoop"), problem.Message);
-        Assert.Empty(Inspect(Repeat(Set("seen", "$sys.loopIndex"))));
-    }
-
-    [Fact]
     public void A_break_inside_a_loop_is_left_alone()
         => Assert.Empty(Inspect(Repeat(Step("control.break"))));
 

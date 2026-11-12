@@ -287,15 +287,25 @@ public partial class MacroRunnerTests
                 inner,
                 Set("restored", "$sys.loopIndex")));
 
-        var (result, _) = await RunAsync(
-            [outer, Set("after", "$sys.loopIndex")], variables: store);
+        var (result, _) = await RunAsync([outer], variables: store);
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(2, N(store, "outerSeen"));
         Assert.Equal(1, N(store, "innerSeen"));
         Assert.Equal(2, N(store, "restored"));
-        Assert.Equal(string.Empty, store.Local.Values["after"].AsText());
         Assert.False(store.Local.Contains(VariableStore.LoopIndexName));
+    }
+
+    /// <summary>
+    /// The round number is the loop's own binding, so outside a loop there is no such name at all.
+    /// Reading it there is reading a name nothing wrote, which is the same failure as any other.
+    /// </summary>
+    [Fact]
+    public async Task Reading_the_loop_round_outside_a_loop_fails()
+    {
+        var (result, _) = await RunAsync([Set("after", "$sys.loopIndex")]);
+
+        Assert.Equal(RunKeys.BadExpression, result.Key);
     }
 
     /// <summary>
@@ -474,7 +484,9 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task Counting_from_one_to_three_runs_three_times()
     {
-        var store = Store(("sum", 0), ("i", 0));
+        // The counter is the loop's own: it is not seeded first, because a name the macro
+        // already held would be put back when the loop ended.
+        var store = Store(("sum", 0));
         var loop = Step("control.for",
             Param("rangeFrom", "1"),
             Param("rangeTo", "3"),

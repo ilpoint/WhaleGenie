@@ -71,30 +71,6 @@ public static partial class MacroCheck
             Add(step, code, Strings.Get(key));
         }
 
-        private void CheckLoopIndex(MacroStep step, int loops)
-        {
-            if (loops > 0)
-            {
-                return;
-            }
-
-            foreach (var parameter in step.Parameters)
-            {
-                if (parameter.Kind is ActionParameterKind.Steps
-                    || step.ParameterDefinition(parameter) is { ForeignText: true })
-                {
-                    continue;
-                }
-
-                if (ReadsOf(step, parameter).Contains(VariableStore.LoopIndexName,
-                        StringComparer.OrdinalIgnoreCase))
-                {
-                    Add(step, MacroProblemCode.LoopIndexOutsideLoop, Strings.Get("Editor.Problem.LoopIndexOutsideLoop"));
-                    return;
-                }
-            }
-        }
-
         private void CheckSwitch(MacroStep step)
         {
             if (step.Type != "control.switch")

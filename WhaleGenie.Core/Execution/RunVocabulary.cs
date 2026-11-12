@@ -241,6 +241,9 @@ public static class RunKeys
     /// <summary>A value was written that the declared name cannot hold.</summary>
     public const string VariableTypeMismatch = "Run.VariableTypeMismatch";
 
+    /// <summary>The run's own table has reached the number of names it may hold.</summary>
+    public const string VariableTableFull = "Run.VariableTableFull";
+
     public const string WaitColorTimeout = "Run.WaitColorTimeout";
     public const string WaitTimeout = "Run.WaitTimeout";
     public const string WindowFailed = "Run.WindowFailed";

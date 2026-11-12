@@ -959,7 +959,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.GlobalMustExist"] = "Global variable \"{0}\" does not exist; create it in the Variable Center.",
         ["Editor.Problem.InvalidVariableName"] = "This is not a readable variable name: {0}",
         ["Editor.Problem.VariableNameTaken"] = "That variable name is already in use: {0}",
-        ["Editor.Problem.LoopIndexOutsideLoop"] = "The loop round is read outside a loop, so it will be empty there.",
         ["Editor.Problem.NoMacro"] = "This step does not say which macro to run.",
         ["Editor.Problem.SharedBrowser"] = "Another macro of this project uses the browser too. "
             + "The browser keeps one current page for the whole program, so two macros running at "
@@ -2096,6 +2095,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.LetGoFailed"] = "Could not let go of {0}: {1}",
         ["Log.Message"] = "{0}",
         ["Run.Unsupported"] = "The engine does not support this action yet: {0}",
+        ["Run.VariableTableFull"] = "This run is already holding {0} names, which is as many as it may keep. A name built while the macro runs is kept until the run ends: clear the names that are done with, or reuse one name each round.",
         ["Run.VariableNameConflict"] = "Two declarations in this macro are called \"{0}\". One name holds one value, so the run cannot tell which one to read; rename one of them.",
         ["Run.VariableTypeMismatch"] = "The value written to \"{0}\" is not the type it was declared as. A number takes numbers, a list takes lists, and a flag takes true or false.",
         ["Run.BadExpression"] = "The value is not a valid expression: {0}",
@@ -2475,7 +2475,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.CleanupFailed"] = "The clean-up after a stop did not finish: {0}",
         ["Log.CancelledRun"] = "The background run of “{0}” was asked to stop and is over.",
         ["Editor.Problem.LoopVariableShadowed"] = "\"{0}\" is already used by a loop around this one, so the outer value is lost when this loop ends: give this loop's variable another name.",
-        ["Editor.Problem.LoopVariableShadowsDeclaration"] = "The loop counts its rounds in \"{0}\", and this macro declares a name called the same. While the loop runs, that name holds the round number instead of what was declared: give one of them another name.",
         ["Editor.Problem.UnknownAction"] = "This step's action is not in the catalogue any more: delete the step, or pick the action again.",
         ["Editor.Problem.UnknownParameter"] = "\"{0}\" is not a field of this action any more: delete this entry.",
         ["Editor.Problem.PlaceAndNumbers"] = "\"{0}\" and the numbers beside it are both filled in: keep one way of saying where, the other is ignored.",
@@ -3363,7 +3362,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.GlobalMustExist"] = "全局变量“{0}”不存在，请先在变量中心创建。",
         ["Editor.Problem.InvalidVariableName"] = "这不是可读取的变量名：{0}",
         ["Editor.Problem.VariableNameTaken"] = "这个变量名已经被占用：{0}",
-        ["Editor.Problem.LoopIndexOutsideLoop"] = "循环轮次只在循环体里有效；写在这里读到的是空的。",
         ["Editor.Problem.NoMacro"] = "这一步没有选要执行的宏。",
         ["Editor.Problem.SharedBrowser"] = "这个项目里还有别的宏也用浏览器。整个程序只有一份浏览器与当前页，"
             + "两条宏同时运行时会轮流使用；其中一条切换标签页，另一条看到的页面也会随之改变。",
@@ -4811,6 +4809,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.LetGoFailed"] = "无法松开 {0}：{1}",
         ["Log.Message"] = "{0}",
         ["Run.Unsupported"] = "引擎尚不支持这个动作：{0}",
+        ["Run.VariableTableFull"] = "这次运行自己的变量表已经装到上限（{0} 个名字）。运行期拼出来的名字会一直留到运行结束；用「清除变量」放掉不再需要的名字，或改成每轮复用同一个名字。",
         ["Run.VariableNameConflict"] = "这个宏里有两个声明都叫「{0}」。一个名字只有一个值，运行没法知道该读哪一个；请给其中一个改名。",
         ["Run.VariableTypeMismatch"] = "写进「{0}」的值与它声明的类型不符。数字变量只收数字，列表只收列表，布尔只收真假。",
         ["Run.BadExpression"] = "这个值不是有效的表达式：{0}",
@@ -5153,7 +5152,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.CleanupFailed"] = "停止之后的收尾没能做完：{0}",
         ["Log.CancelledRun"] = "「{0}」的后台运行被取消，已经结束。",
         ["Editor.Problem.LoopVariableShadowed"] = "「{0}」外层循环也在用，内层结束之后外层的值就没有了：给内层换一个名字。",
-        ["Editor.Problem.LoopVariableShadowsDeclaration"] = "循环用「{0}」记自己的轮次，而这个宏也声明了同名的变量。循环运行期间，那个名字里装的是轮次而不是声明该有的值：请给其中一个改名。",
         ["Editor.Problem.UnknownAction"] = "这一步的动作已经不在目录里了：删掉这一步，或者重新选一个动作。",
         ["Editor.Problem.UnknownParameter"] = "「{0}」不是这个动作的字段（可能已经改名或删除）：删掉这一项。",
         ["Editor.Problem.PlaceAndNumbers"] = "「{0}」和旁边的数字都填了：只留一种写法，另一种会被忽略。",
@@ -5272,7 +5270,6 @@ public sealed class Strings : INotifyPropertyChanged
         // What the built-in variables are called in Chinese: a short name to read, with the name a
         // formula writes beside it. The English half is the code name itself, so only Chinese is
         // written here; a macro's own variables have no name but the one their author gave them.
-        ["Variable.sys.loopIndex.label"] = "循环轮次",
         ["Variable.sys.macroName.label"] = "宏名字",
         ["Variable.sys.macroFolder.label"] = "宏文件夹",
         ["Variable.sys.activeWindow.label"] = "前台窗口",
@@ -5301,7 +5298,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Variable.caught.detail.label"] = "捕获的失败详情",
 
         // system variable descriptions
-        ["Variable.sys.loopIndex.desc"] = "当前循环体执行到第几轮，只在循环体内部可见。",
         ["Variable.sys.macroName.desc"] = "正在运行的宏的名字，子宏中读到的是子宏自身的名字。",
         ["Variable.sys.macroFolder.desc"] = "文件动作写相对路径时，从哪个文件夹算起。",
         ["Variable.sys.activeWindow.desc"] = "当前在最前面的那个窗口的标题。",

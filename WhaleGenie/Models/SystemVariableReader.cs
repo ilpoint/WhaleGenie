@@ -44,8 +44,7 @@ public sealed class SystemVariableReader : ILiveVariables
     {
         // The round number is written by the runner for the loop that is running. The machine has
         // no answer for it, and a made-up zero outside a loop would look like a real round.
-        if (!Known.TryGetValue(name, out var definition)
-            || string.Equals(name, VariableStore.LoopIndexName, StringComparison.OrdinalIgnoreCase))
+        if (!Known.TryGetValue(name, out var definition))
         {
             value = Value.Null;
             return false;

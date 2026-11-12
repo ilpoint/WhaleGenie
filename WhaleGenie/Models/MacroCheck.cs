@@ -72,8 +72,7 @@ public static partial class MacroCheck
         MacroProblemCode.DuplicateResultName, MacroProblemCode.UndeclaredResult, MacroProblemCode.UndeclaredActionResult, MacroProblemCode.BadUserFailureKey,
 
         // A name the engine will refuse to write, or a loop that names a counter it is not inside.
-        MacroProblemCode.ReservedVariable, MacroProblemCode.GlobalMustExist, MacroProblemCode.LoopIndexOutsideLoop,
-        MacroProblemCode.LoopVariableShadowsDeclaration,
+        MacroProblemCode.ReservedVariable, MacroProblemCode.GlobalMustExist,
 
         // A step standing where the engine will not take it, or a jump out of a loop it is not in.
         MacroProblemCode.WrongStepKind, MacroProblemCode.CaseOutsideSwitch, MacroProblemCode.HiddenStep, MacroProblemCode.BreakOutsideLoop, MacroProblemCode.ContinueOutsideLoop,

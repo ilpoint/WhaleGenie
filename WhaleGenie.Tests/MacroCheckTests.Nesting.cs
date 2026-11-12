@@ -27,22 +27,6 @@ public partial class MacroCheckTests
     }
 
     /// <summary>
-    /// 循环计数器借用了宏里声明过的名字：循环运行期间，那个名字里装的是轮次，而不是声明该有的值。
-    /// </summary>
-    [Fact]
-    public void A_loop_that_counts_in_a_declared_name_is_marked()
-    {
-        var loop = Step("control.forEach", Text("items", "[]"), Text("itemVariable", "count"),
-            Steps("body"));
-
-        var problems = Ui.Run(() => MacroCheck.Inspect([loop], Callable("甲", ["count"]), []));
-
-        var problem = Assert.Single(problems, candidate => candidate.Step == loop);
-        Assert.Equal(Strings.Format("Editor.Problem.LoopVariableShadowsDeclaration", "count"),
-            problem.Message);
-    }
-
-    /// <summary>
     /// 两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。
     /// </summary>
     [Fact]

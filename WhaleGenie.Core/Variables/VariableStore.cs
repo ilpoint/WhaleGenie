@@ -138,14 +138,6 @@ public sealed class VariableStore : IVariableResolver
             return true;
         }
 
-        // Outside a loop the name exists but has no value. Falling through to the seeded system
-        // value would make it read as round zero, which is a number no loop has reached.
-        if (string.Equals(name, LoopIndexName, StringComparison.OrdinalIgnoreCase))
-        {
-            value = Value.Null;
-            return true;
-        }
-
         return (Live is { } live && live.TryGet(name, out value))
             || System.TryGet(name, out value);
     }
@@ -196,11 +188,6 @@ public sealed class VariableStore : IVariableResolver
         var all = new Dictionary<string, Value>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in System.Values)
         {
-            if (string.Equals(name, LoopIndexName, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
             // The watch list says what a macro reads while it runs, so the ones that move are read
             // again here rather than reported at the value they had when the run began.
             all[name] = Live is { } live && live.TryGet(name, out var current) ? current : value;

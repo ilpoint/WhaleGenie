@@ -18,8 +18,6 @@ public static class VariableCatalog
     /// <summary>Built-in variables, read-only inside a macro.</summary>
     public static IReadOnlyList<VariableDefinition> SystemVariables { get; } =
     [
-        SystemVariable("sys.loopIndex", "number",
-            "Which round of the innermost loop is running. Only visible inside a loop body.", "0"),
         SystemVariable("sys.macroName", "text",
             "The name of the macro that is running right now. A macro called by another one answers "
             + "with its own name.", string.Empty),

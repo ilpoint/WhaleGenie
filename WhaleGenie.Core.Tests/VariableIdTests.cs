@@ -19,7 +19,9 @@ public class VariableBagIdTests
 
         Assert.True(bag.TryGet(new VariableKey("total", "a7k2m9"), out var value));
         Assert.Equal(7d, value.AsNumber());
-        Assert.Equal("count", bag.NameOf("a7k2m9"));
+        // One identity is written down under one name: the second write moved the name, and the
+        // old one goes with it.
+        Assert.Equal("total", bag.NameOf("a7k2m9"));
         Assert.Single(bag.Values);
     }
 
@@ -89,7 +91,7 @@ public class VariableBagIdTests
     public void Another_declaration_cannot_take_a_name_this_one_holds()
     {
         var bag = new VariableBag();
-        bag.Declare("a7k2m9");
+        bag.Declare("a7k2m9", "total", ValueKind.Number);
         bag.Set(new VariableKey("total", "a7k2m9"), Value.FromNumber(1));
 
         var refusal = Assert.Throws<VariableConflictException>(() =>
@@ -121,7 +123,7 @@ public class VariableBagIdTests
     public void A_declaration_is_forgotten_when_the_run_starts_over()
     {
         var bag = new VariableBag();
-        bag.Declare("a7k2m9");
+        bag.Declare("a7k2m9", "total", ValueKind.Number);
         bag.Set(new VariableKey("total", "a7k2m9"), Value.FromNumber(1));
 
         bag.ResetDeclarations();
@@ -147,17 +149,25 @@ public class VariableBagIdTests
         Assert.Equal(1d, value.AsNumber());
     }
 
+    /// <summary>
+    /// A loop borrows a name and never the value under it: the binding it replaced is put back when
+    /// the loop ends, and the identity the loop minted goes with it.
+    /// </summary>
     [Fact]
-    public void Restoring_a_name_puts_its_identity_back()
+    public void A_block_that_shadows_a_name_puts_the_binding_back()
     {
         var bag = new VariableBag();
         bag.Set(new VariableKey("count", "a7k2m9"), Value.FromNumber(1));
-        bag.Set(new VariableKey("count", "loop77"), Value.FromNumber(9));
 
-        bag.Restore("count", "a7k2m9", Value.FromNumber(1));
+        var loopId = bag.NewId();
+        var previous = bag.Bind("count", loopId);
+        bag.Set(new VariableKey("count", loopId), Value.FromNumber(9));
+        Assert.Equal(9d, bag.Values["count"].AsNumber());
+
+        bag.Unbind("count", loopId, previous);
 
         Assert.Equal("a7k2m9", bag.IdOf("count"));
-        Assert.False(bag.ContainsId("loop77"));
+        Assert.False(bag.ContainsId(loopId));
         Assert.Equal(1d, bag.Values["count"].AsNumber());
     }
 
@@ -165,7 +175,7 @@ public class VariableBagIdTests
     public void A_declared_number_refuses_words()
     {
         var bag = new VariableBag();
-        bag.DeclareType("count", ValueKind.Number);
+        bag.Declare("v1", "count", ValueKind.Number);
 
         var refusal = Assert.Throws<VariableTypeException>(() =>
             bag.Set("count", Value.FromText("many")));
@@ -173,7 +183,7 @@ public class VariableBagIdTests
         Assert.Equal("count", refusal.Name);
         Assert.Equal(ValueKind.Number, refusal.Expected);
         Assert.Equal(ValueKind.Text, refusal.Actual);
-        Assert.False(bag.Contains("count"));
+        Assert.True(bag.Values["count"].IsNull);
     }
 
     /// <summary>
@@ -185,7 +195,7 @@ public class VariableBagIdTests
     public void A_declared_name_takes_a_line_that_reads_as_its_kind()
     {
         var bag = new VariableBag();
-        bag.DeclareType("count", ValueKind.Number);
+        bag.Declare("v1", "count", ValueKind.Number);
 
         bag.Set("count", Value.FromText("3"));
 
@@ -196,7 +206,7 @@ public class VariableBagIdTests
     public void A_text_name_takes_every_kind()
     {
         var bag = new VariableBag();
-        bag.DeclareType("note", ValueKind.Text);
+        bag.Declare("v1", "note", ValueKind.Text);
 
         bag.Set("note", Value.FromNumber(3));
         bag.Set("note", Value.FromList([Value.FromText("a")]));
@@ -209,7 +219,7 @@ public class VariableBagIdTests
     public void Nothing_written_yet_is_allowed_for_every_kind()
     {
         var bag = new VariableBag();
-        bag.DeclareType("count", ValueKind.Number);
+        bag.Declare("v1", "count", ValueKind.Number);
 
         bag.Set("count", Value.Null);
 

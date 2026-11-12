@@ -73,92 +73,73 @@ public sealed partial class MacroRunner
 
     private LoopScope EnterLoop(bool keepLast, params VariableKey[] keys)
     {
-        var taken = keys.Where(key => key.Name.Length > 0)
-            .GroupBy(LoopKey)
+        var taken = keys.Where(key => key.Name.Trim().Length > 0)
+            .GroupBy(key => key.Name.Trim(), StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .ToList();
-        var saved = new List<(string Key, string Name, string Id, Value Value)>();
+        var values = Variables.Local;
+        var bound = new List<(string Name, string Id, string Previous)>();
         foreach (var key in taken)
         {
-            var identity = LoopKey(key);
+            var name = key.Name.Trim();
 
-            // A name is put back when a loop around this one is already using it — the inner loop
-            // only borrowed it — or when the value belongs to a declaration, which was never the
-            // loop's to keep. A name this loop is the first to use stays afterwards, which is what
-            // makes a counter readable once the loop is over.
-            var slot = key.HasId && Variables.Local.NameOf(key.Id) is { Length: > 0 } bound
-                ? bound
-                : key.Name;
-            if (Variables.Local.TryGet(slot, out var value)
-                && (_activeLoopNames.ContainsKey(identity)
-                    || Variables.Local.IsDeclared(Variables.Local.IdOf(slot))))
-            {
-                saved.Add((identity, slot, Variables.Local.IdOf(slot), value));
-            }
-
-            _activeLoopNames[identity] = _activeLoopNames.GetValueOrDefault(identity) + 1;
+            // A loop's variable is its own: it borrows the name and never the identity, so a
+            // declaration that already answers to it is shadowed for the length of the block
+            // rather than written. Leaving the block puts the binding back.
+            var id = values.NewId();
+            bound.Add((name, id, values.Bind(name, id)));
         }
 
-        return new LoopScope(Variables.Local, this, taken, saved, keepLast);
+        return new LoopScope(values, bound, keepLast);
     }
 
     /// <summary>
-    /// The key a loop name is counted under. A bound name is counted by its identity, so a local
-    /// value that happens to share its spelling does not make the loop think it is nested; an
-    /// unbound name is counted without letter case, as it always was.
+    /// The names a loop writes for its own rounds, and what each of them meant before the loop took
+    /// it. A name the loop introduced stays afterwards — that is what makes a counter readable once
+    /// the loop is over — while one it shadowed is put back the way it was.
     /// </summary>
-    private static string LoopKey(VariableKey key)
-        => key.HasId ? "i:" + key.Id : "n:" + key.Name.ToLowerInvariant();
-
-    /// <summary>
-    /// Which loop names are in use right now, and how many loops deep. A name taken by an inner
-    /// loop is put back when that loop ends; one the inner loop was the first to use is left alone.
-    /// </summary>
-    private readonly Dictionary<string, int> _activeLoopNames = new(StringComparer.Ordinal);
-
     private readonly struct LoopScope : IDisposable
     {
         private readonly VariableBag _values;
-        private readonly MacroRunner _runner;
-        private readonly List<VariableKey> _keys;
-        private readonly List<(string Key, string Name, string Id, Value Value)> _saved;
+        private readonly List<(string Name, string Id, string Previous)> _bound;
         private readonly bool _keepLast;
 
-        public LoopScope(VariableBag values, MacroRunner runner, List<VariableKey> keys,
-            List<(string Key, string Name, string Id, Value Value)> saved, bool keepLast)
+        public LoopScope(VariableBag values, List<(string Name, string Id, string Previous)> bound,
+            bool keepLast)
         {
             _values = values;
-            _runner = runner;
-            _keys = keys;
-            _saved = saved;
+            _bound = bound;
             _keepLast = keepLast;
+        }
+
+        /// <summary>
+        /// Writes one of the loop's own names. The identity the loop minted is what is written, so a
+        /// step that rebound the name inside the body cannot send the next round somewhere else.
+        /// </summary>
+        public void Set(string name, Value value)
+        {
+            foreach (var (bound, id, _) in _bound)
+            {
+                if (string.Equals(bound, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    _values.Set(new VariableKey(bound, id), value);
+                    return;
+                }
+            }
+
+            _values.Set(name, value);
         }
 
         public void Dispose()
         {
-            foreach (var (_, name, id, value) in _saved)
+            foreach (var (name, id, previous) in _bound)
             {
-                // The identity goes back with the value: the loop wrote over a name that belonged
-                // to a declaration, and what reads it afterwards has to find the declaration again.
-                _values.Restore(name, id, value);
-            }
+                if (_keepLast && previous.Length == 0)
+                {
+                    continue;
+                }
 
-            foreach (var key in _keys)
-            {
-                var id = LoopKey(key);
-                var left = _runner._activeLoopNames[id] - 1;
-                if (left > 0)
-                {
-                    _runner._activeLoopNames[id] = left;
-                }
-                else
-                {
-                    _runner._activeLoopNames.Remove(id);
-                    if (!_keepLast && !_saved.Exists(saved => saved.Key == id))
-                    {
-                        _values.Remove(key);
-                    }
-                }
+                _values.Unbind(name, id, previous);
             }
         }
     }
@@ -170,6 +151,9 @@ public sealed partial class MacroRunner
 
     /// <summary>How many names a run may keep before it says so, once.</summary>
     private const int LocalNameWarning = 50_000;
+
+    /// <summary>How many names a run may keep at all.</summary>
+    private const int LocalNameLimit = 200_000;
 
     /// <summary>
     /// The keys and mouse buttons the macro has pressed and not yet let go, with the device each
@@ -369,6 +353,7 @@ public sealed partial class MacroRunner
         // A declaration belongs to the macro that wrote it. A store the debug window keeps between
         // runs would otherwise still be holding the names of whatever ran last.
         Variables.Local.ResetDeclarations();
+        Variables.Local.Capacity = LocalNameLimit;
 
         // A run that brought its own ceiling spaces its events along a line of its own; without one
         // it answers to the program setting exactly as before. Either way the answer is put back

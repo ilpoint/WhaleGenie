@@ -87,11 +87,11 @@ public sealed partial class MacroRunner
         foreach (var item in order)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(index));
-            Variables.Set(itemKey, item);
+            indexScope.Set(VariableStore.LoopIndexName, Value.FromNumber(index));
+            nameScope.Set(itemKey.Name, item);
             if (indexName.Length > 0)
             {
-                Variables.Set(indexKey, Value.FromNumber(index));
+                nameScope.Set(indexKey.Name, Value.FromNumber(index));
             }
 
             var signal = await RunBody(step, depth, token);
@@ -149,8 +149,8 @@ public sealed partial class MacroRunner
         for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
         {
             token.ThrowIfCancellationRequested();
-            Variables.Local.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
-            Variables.Set(counterKey, Value.FromNumber(value));
+            indexScope.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
+            nameScope.Set(counterKey.Name, Value.FromNumber(value));
 
             var signal = await RunBody(step, depth, token);
             if (signal is Signal.Return or Signal.Stop or Signal.Failed)

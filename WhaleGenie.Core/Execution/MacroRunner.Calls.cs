@@ -61,8 +61,7 @@ public sealed partial class MacroRunner
             supplied.TryGetValue(argument.Name.Trim(), out var input);
             // A declaration of the called macro, so a second one claiming the same name is refused
             // rather than quietly sharing the slot.
-            called.Declare(argument.Id);
-            called.DeclareType(argument.Name.Trim(), argument.Type);
+            called.Declare(argument.Id, argument.Name.Trim(), argument.Type);
             called.Set(new VariableKey(argument.Name.Trim(), argument.Id),
                 ReadArgument(argument, input?.Value ?? Formula.Nothing, input?.Given ?? false));
         }
@@ -77,7 +76,7 @@ public sealed partial class MacroRunner
             // Declared, but not given a type: a result is judged when it is handed back, by the
             // key the failure table already names for it. Checking it here would report the same
             // mistake twice and with the less specific of the two keys.
-            called.Declare(result.Id);
+            called.Declare(result.Id, resultName, result.Type);
             if (resultName.Length > 0)
             {
                 called.SetIfAbsent(new VariableKey(resultName, result.Id), Value.Null);
@@ -160,8 +159,7 @@ public sealed partial class MacroRunner
         foreach (var argument in signature.Arguments)
         {
             var name = argument.Name.Trim();
-            Variables.Local.Declare(argument.Id);
-            Variables.Local.DeclareType(name, argument.Type);
+            Variables.Local.Declare(argument.Id, name, argument.Type);
             if (name.Length > 0)
             {
                 Variables.Local.Remove(new VariableKey(name, argument.Id));
@@ -171,7 +169,7 @@ public sealed partial class MacroRunner
         foreach (var result in signature.Results)
         {
             var name = result.Name.Trim();
-            Variables.Local.Declare(result.Id);
+            Variables.Local.Declare(result.Id, name, result.Type);
             if (name.Length > 0)
             {
                 Variables.Local.Remove(new VariableKey(name, result.Id));
@@ -245,8 +243,7 @@ public sealed partial class MacroRunner
         foreach (var local in signature.Locals)
         {
             var name = local.Name.Trim();
-            Variables.Local.Declare(local.Id);
-            Variables.Local.DeclareType(name, local.Type);
+            Variables.Local.Declare(local.Id, name, local.Type);
             if (name.Length > 0)
             {
                 Variables.Local.Set(new VariableKey(name, local.Id),

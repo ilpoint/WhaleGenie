@@ -27,9 +27,7 @@ public static class MacroProblemCode
     public const string GivenWithValue = nameof(GivenWithValue);
     public const string GlobalMustExist = nameof(GlobalMustExist);
     public const string HiddenStep = nameof(HiddenStep);
-    public const string LoopIndexOutsideLoop = nameof(LoopIndexOutsideLoop);
     public const string LoopVariableShadowed = nameof(LoopVariableShadowed);
-    public const string LoopVariableShadowsDeclaration = nameof(LoopVariableShadowsDeclaration);
     public const string MacroNotFound = nameof(MacroNotFound);
     public const string MissingArgument = nameof(MissingArgument);
     public const string MissingCondition = nameof(MissingCondition);

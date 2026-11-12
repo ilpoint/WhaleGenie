@@ -480,6 +480,11 @@ public sealed partial class MacroRunner
         {
             throw new StepFailure(RunKeys.VariableTypeMismatch, failure.Name);
         }
+        catch (VariableTableFullException failure)
+        {
+            throw new StepFailure(RunKeys.VariableTableFull,
+                failure.Capacity.ToString(CultureInfo.InvariantCulture));
+        }
         catch (RegexTimeoutException failure)
         {
             throw new StepFailure(RunKeys.RegexTimeout, failure.Pattern);
