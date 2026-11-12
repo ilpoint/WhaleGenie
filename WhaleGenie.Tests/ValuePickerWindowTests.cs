@@ -10,7 +10,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 using Xunit;
@@ -24,9 +26,15 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ValuePickerWindowTests
 {
+    private static readonly IReadOnlyList<VariableChoice> Known =
+    [
+        new VariableChoice { Name = "count", Scope = VariableScope.Local, Type = "number" },
+    ];
+
     private static ValuePickerWindow Window(string formula)
     {
-        var form = new ValuePickerViewModel(formula, [], namesOnly: false);
+        var form = new ValuePickerViewModel(formula, Known, ActionReadMode.WholeValue,
+            bareNames: true);
         var window = new ValuePickerWindow(form);
         window.Show();
         Dispatcher.UIThread.RunJobs();
@@ -81,7 +89,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + 1");
+            var window = Window("$count + 1");
 
             var pieces = Pieces(window);
             Assert.NotEmpty(pieces);
@@ -124,6 +132,72 @@ public class ValuePickerWindowTests
             Dispatcher.UIThread.RunJobs();
             Assert.NotNull(form.BlockReasonTip);
             Assert.NotNull(ToolTip.GetTip(confirm));
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    [Fact]
+    public void Confirm_is_enabled_while_the_cell_is_empty()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(string.Empty);
+            var confirm = window.GetVisualDescendants().OfType<Button>()
+                .Single(one => Equals(one.Content, Strings.Get("ValuePicker.InsertButton")));
+
+            Assert.True(confirm.IsEnabled);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    [Fact]
+    public void A_letter_typed_while_the_band_has_focus_reaches_the_small_field()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a +");
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var band = Assert.IsAssignableFrom<ContentControl>(window.FindControl<ContentControl>("Band"));
+            band.Focus();
+            Dispatcher.UIThread.RunJobs();
+
+            band.RaiseEvent(new TextInputEventArgs
+            {
+                RoutedEvent = InputElement.TextInputEvent,
+                Text = "1",
+                Source = band,
+            });
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("1", form.TypingText);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    [Fact]
+    public void Undo_inside_the_small_field_does_not_change_the_formula()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window("$a + 1");
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var input = Assert.IsAssignableFrom<TextBox>(window.FindControl<TextBox>("ValueInput"));
+            input.Focus();
+            Dispatcher.UIThread.RunJobs();
+
+            input.RaiseEvent(new KeyEventArgs
+            {
+                RoutedEvent = InputElement.KeyDownEvent,
+                Key = Key.Z,
+                KeyModifiers = KeyModifiers.Control,
+                Source = input,
+            });
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("$a + 1", form.Text);
 
             Ui.CloseAndDiscard(window);
         });

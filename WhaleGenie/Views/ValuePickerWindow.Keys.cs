@@ -26,6 +26,13 @@ public partial class ValuePickerWindow : AppWindow
     /// </summary>
     private void OnWindowTunnelKey(object? sender, KeyEventArgs e)
     {
+        // A field or a list with the focus owns its keys, undo included: the small field keeps its
+        // own history, and taking Ctrl+Z there would undo the formula instead of what was typed.
+        if (KeysOwnedElsewhere(e))
+        {
+            return;
+        }
+
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
             if (e.Key == Key.Z && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
@@ -47,7 +54,7 @@ public partial class ValuePickerWindow : AppWindow
             return;
         }
 
-        if (e.KeyModifiers != KeyModifiers.None || KeysOwnedElsewhere(e))
+        if (e.KeyModifiers != KeyModifiers.None)
         {
             return;
         }

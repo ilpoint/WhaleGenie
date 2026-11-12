@@ -62,7 +62,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private int InsertAtCaret(string token)
     {
-        var at = Math.Clamp(Caret, 0, Text.Length);
+        var at = Snap(Math.Clamp(Caret, 0, Text.Length));
         if (token.Length == 0)
         {
             return at;
@@ -141,7 +141,12 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
         var seam = SeamOf(anchor, dropAfter);
         var noOp = piece is { } moved && Inside(seam, moved);
-        return new DropPreview(anchor, dropAfter, Allowed: !noOp, noOp);
+        if (!TryPlanMove(piece, target, after, out var plan))
+        {
+            return new DropPreview(anchor, dropAfter, Allowed: false, noOp);
+        }
+
+        return new DropPreview(anchor, dropAfter, Allowed: TryBuildMove(plan, out _), noOp);
     }
 
     /// <summary>
@@ -152,28 +157,49 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     public bool MoveOnto(SlotNode? piece, SlotNode? target, bool after)
     {
-        if (!TryPlanMove(piece, target, after, out var plan))
+        if (!TryPlanMove(piece, target, after, out var plan) || !TryBuildMove(plan, out var next))
         {
             return false;
         }
 
-        var span = Cut(plan.Piece.Start, plan.Piece.Length);
-        var at = Math.Clamp(SeamAfterCut(plan.Seam, span), 0, Text.Length);
+        Text = next;
+        return true;
+    }
+
+    /// <summary>
+    /// The formula a move would leave, or null when it would turn a formula that read into one that
+    /// does not. Nothing is written here: the drop preview and the drop itself ask the same question.
+    /// </summary>
+    private bool TryBuildMove(in MovePlan plan, out string next)
+    {
+        next = Text;
+        var without = CutText(Text, plan.Piece.Start, plan.Piece.Length, out var span);
+        var at = Math.Clamp(SeamAfterCut(plan.Seam, span), 0, without.Length);
 
         var lead = plan.Lead;
         var trail = plan.Trail;
-        if (lead.Length == 0 && at > 0 && Glues(Text[at - 1], plan.Raw[0]))
+        if (lead.Length == 0 && at > 0 && Glues(without[at - 1], plan.Raw[0]))
         {
             lead = " ";
         }
 
-        if (trail.Length == 0 && at < Text.Length && Glues(plan.Raw[^1], Text[at]))
+        if (trail.Length == 0 && at < without.Length && Glues(plan.Raw[^1], without[at]))
         {
             trail = " ";
         }
 
         // A move never means to leave spaces hanging off either end of the line.
-        Text = Text.Insert(at, lead + plan.Raw + trail).Trim();
+        var built = without.Insert(at, lead + plan.Raw + trail).Trim();
+
+        // A formula that already did not read may be on its way somewhere: refusing every move in a
+        // half-written line would make the band feel stuck. Only a move that breaks a working
+        // formula is refused.
+        if (ReadsAsField(Text) && !ReadsAsField(built))
+        {
+            return false;
+        }
+
+        next = built;
         return true;
     }
 

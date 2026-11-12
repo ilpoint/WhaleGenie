@@ -85,6 +85,24 @@ public partial class ValuePickerWindow : AppWindow
         e.Handled = true;
     }
 
+    /// <summary>
+    /// A letter typed while the band has the focus goes to the standing field. The band draws the
+    /// formula but is not a text box, so without this the key would reach nothing and the person
+    /// would think the window had stopped taking input.
+    /// </summary>
+    private void OnBandTextInput(object? sender, TextInputEventArgs e)
+    {
+        if (!Band.IsFocused || e.Text is not { Length: > 0 } text)
+        {
+            return;
+        }
+
+        _viewModel.AppendTyped(text);
+        ValueInput.Focus();
+        ValueInput.CaretIndex = ValueInput.Text?.Length ?? 0;
+        e.Handled = true;
+    }
+
     private void InsertTyped()
     {
         if (_viewModel.TypedToken() is not { } token)

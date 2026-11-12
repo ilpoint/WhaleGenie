@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -18,8 +19,8 @@ public partial class ValuePickerTests
     [Fact]
     public void SlotStackingExpandsForManyArguments()
     {
-        var many = OnlyCall(new ValuePickerViewModel("concat($a, $b, $c, $d)", Variables(), false));
-        var few = OnlyCall(new ValuePickerViewModel("concat($a, $b)", Variables(), false));
+        var many = OnlyCall(new ValuePickerViewModel("concat($a, $b, $c, $d)", Variables(), ActionReadMode.WholeValue));
+        var few = OnlyCall(new ValuePickerViewModel("concat($a, $b)", Variables(), ActionReadMode.WholeValue));
 
         Assert.True(many.Stacked);
         Assert.False(few.Stacked);
@@ -33,7 +34,7 @@ public partial class ValuePickerTests
     [Fact]
     public void SlotStackingKeepsANestedCallOnOneLineWhenItFits()
     {
-        var call = OnlyCall(new ValuePickerViewModel("get(list(1, 2), 2)", Variables(), false));
+        var call = OnlyCall(new ValuePickerViewModel("get(list(1, 2), 2)", Variables(), ActionReadMode.WholeValue));
         Assert.False(call.Stacked);
         Assert.True(call.Compact);
     }
@@ -42,8 +43,8 @@ public partial class ValuePickerTests
     [Fact]
     public void SlotStackingKeepsShortFormulaOnOneLine()
     {
-        Assert.False(OnlyCall(new ValuePickerViewModel("upper($a)", Variables(), false)).Stacked);
-        var plain = new ValuePickerViewModel("1 + 2", Variables(), false);
+        Assert.False(OnlyCall(new ValuePickerViewModel("upper($a)", Variables(), ActionReadMode.WholeValue)).Stacked);
+        var plain = new ValuePickerViewModel("1 + 2", Variables(), ActionReadMode.WholeValue);
         Assert.Empty(Root(plain).Items.OfType<SlotCall>());
     }
 
@@ -52,7 +53,7 @@ public partial class ValuePickerTests
     public void SlotStackingUsesAvailableWidth()
     {
         // Long enough that the smaller per-character estimate still crosses a 200 pixel band.
-        var form = new ValuePickerViewModel("concat($alpha, $beta)", Variables(), false);
+        var form = new ValuePickerViewModel("concat($alpha, $beta)", Variables(), ActionReadMode.WholeValue);
         var call = OnlyCall(form);
 
         form.RefreshStacking(200);
@@ -67,7 +68,7 @@ public partial class ValuePickerTests
     public void OnlyOneLevelOfCallsFoldsAtATime()
     {
         // Four arguments are what makes the outer call fold now; the nested calls must stay compact.
-        var form = new ValuePickerViewModel("concat(upper($a), lower($b), 1, 2)", Variables(), false);
+        var form = new ValuePickerViewModel("concat(upper($a), lower($b), 1, 2)", Variables(), ActionReadMode.WholeValue);
         form.RefreshStacking(1080);
 
         var outer = OnlyCall(form);
@@ -81,7 +82,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_stacked_call_reads_top_to_bottom()
     {
-        var call = OnlyCall(new ValuePickerViewModel("concat($a, $b, $c, $d)", Variables(), false));
+        var call = OnlyCall(new ValuePickerViewModel("concat($a, $b, $c, $d)", Variables(), ActionReadMode.WholeValue));
         Assert.True(call.Stacked);
 
         Assert.True(ValuePickerViewModel.AfterFor(call, rightHalf: false, lowerHalf: true));

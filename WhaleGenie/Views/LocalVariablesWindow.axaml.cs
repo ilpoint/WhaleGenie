@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -127,7 +128,7 @@ public partial class LocalVariablesWindow : AppWindow
         }
 
         if (await ValuePickerWindow.ShowFor(this, row.Initial, _expressionVariables,
-                startOnFormula: true) is { } built)
+                ActionReadMode.WholeValue, startOnFormula: true) is { } built)
         {
             row.Initial = built;
         }

@@ -70,7 +70,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// allows a formula in it — the body of a notification, a path — is not one of these: it holds
     /// text that may have a name or a formula inside it, so it is read as the text it looks like.
     /// </summary>
-    private bool ReadAsFormula => Definition.Kind
+    public bool ReadAsFormula => Definition.Kind
             is ActionParameterKind.Expression or ActionParameterKind.Condition
         || (IsNumber && UseFormula);
 

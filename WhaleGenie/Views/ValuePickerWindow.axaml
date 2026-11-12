@@ -332,25 +332,25 @@
                     <!-- 常驻的一行小输入框：数字与文字直接敲进去，写到结构带的光标处。 -->
                     <Border Grid.Row="1" Grid.ColumnSpan="2"
                             Background="{DynamicResource SurfaceField}" CornerRadius="5" Padding="8,6">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Classes="Op" Classes.on="{Binding IsTypingNumber}" Click="OnNumber"
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+                            <Button Grid.Column="0" Classes="Op" Classes.on="{Binding IsTypingNumber}" Click="OnNumber"
                                     Content="{Binding [ValuePicker.Value.Number], Source={x:Static loc:Strings.Current}}" />
-                            <Button Classes="Op" Classes.on="{Binding IsTypingText}" Click="OnText"
+                            <Button Grid.Column="1" Classes="Op" Classes.on="{Binding IsTypingText}" Click="OnText"
                                     Content="{Binding [ValuePicker.Value.Text], Source={x:Static loc:Strings.Current}}" />
-                            <TextBox Name="ValueInput" Width="220" KeyDown="OnValueInputKeyDown"
+                            <TextBox Grid.Column="2" Name="ValueInput" MinWidth="220" KeyDown="OnValueInputKeyDown"
                                      PlaceholderText="{Binding [ValuePicker.Value.Field], Source={x:Static loc:Strings.Current}}"
                                      Text="{Binding TypingText, Mode=TwoWay}"
                                      FontFamily="{DynamicResource UiCodeFont}" FontSize="12.5" />
-                            <Button Classes="Op" MinWidth="52" IsEnabled="{Binding CanInsertTyped}"
+                            <Button Grid.Column="3" Classes="Op" MinWidth="52" IsEnabled="{Binding CanInsertTyped}"
                                     Click="OnInsertTyped"
                                     Content="{Binding [ValuePicker.Value.Insert], Source={x:Static loc:Strings.Current}}" />
-                            <TextBlock Text="{Binding TypingNote}" IsVisible="{Binding HasTypingNote}"
-                                       FontSize="11" VerticalAlignment="Center"
+                            <TextBlock Grid.Column="4" Text="{Binding TypingNote}" IsVisible="{Binding HasTypingNote}"
+                                       TextWrapping="Wrap" FontSize="11" VerticalAlignment="Center"
                                        Foreground="{DynamicResource Danger}" />
-                            <TextBlock FontSize="11" VerticalAlignment="Center"
+                            <TextBlock Grid.Column="5" FontSize="11" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextTertiary}"
                                        Text="{Binding [ValuePicker.Value.EnterHint], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
+                        </Grid>
                     </Border>
                 </Grid>
                 </Border>

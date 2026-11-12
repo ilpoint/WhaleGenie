@@ -190,7 +190,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                namesOnly: true) is not { Length: > 0 } picked)
+                ActionReadMode.VariableName) is not { Length: > 0 } picked)
         {
             return;
         }

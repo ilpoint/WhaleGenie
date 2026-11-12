@@ -39,7 +39,7 @@ public partial class BreakpointWindow : AppWindow
         }
 
         if (await ValuePickerWindow.ShowFor(this, form.Expression, form.Choices,
-            startOnFormula: true) is { } built)
+            ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { } built)
         {
             form.Expression = built;
         }

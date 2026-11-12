@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -18,7 +19,7 @@ namespace WhaleGenie.Views;
 public partial class ValuePickerWindow : AppWindow
 {
     public ValuePickerWindow()
-        : this(new ValuePickerViewModel(null, [], namesOnly: false))
+        : this(new ValuePickerViewModel(null, [], ActionReadMode.WholeValue))
     {
     }
 
@@ -47,6 +48,10 @@ public partial class ValuePickerWindow : AppWindow
         // Undo has to be keyed in front of everything else: a text box keeps its own history and
         // would swallow the keys before a bubbling handler ever sees them.
         AddHandler(KeyDownEvent, OnWindowTunnelKey, RoutingStrategies.Tunnel);
+
+        // The band is not a text box, so a letter typed while it has the focus has nowhere to go
+        // unless the window forwards it to the small field.
+        AddHandler(TextInputEvent, OnBandTextInput, RoutingStrategies.Bubble);
 
         // Every edit hands the band a new tree, so the piece the pointer was over no longer exists,
         // and the standing line has to be measured against the new tree as well.
@@ -97,15 +102,18 @@ public partial class ValuePickerWindow : AppWindow
     public int StartCaret { get; init; } = -1;
 
     /// <summary>
-    /// Opens the window on a cell. A cell that only holds a name passes <paramref name="namesOnly"/>:
-    /// a formula there is written down as the name itself, so offering one would be a promise the
-    /// step cannot keep.
+    /// Opens the window on a cell. A cell that only holds a name passes
+    /// <see cref="ActionReadMode.VariableName"/>: a formula there is written down as the name
+    /// itself, so offering one would be a promise the step cannot keep. Every other cell says how
+    /// it is read, and the window checks the line the same way the field will read it.
     /// </summary>
     public static async Task<string?> ShowFor(Window owner, string? seed,
-        IReadOnlyList<VariableChoice>? variables, bool namesOnly = false, bool startOnFormula = false,
-        string? target = null, int startCaret = -1, Action<MacroStep>? lookAtStep = null)
+        IReadOnlyList<VariableChoice>? variables,
+        ActionReadMode readMode = ActionReadMode.WholeValue, bool bareNames = false,
+        bool startOnFormula = false, string? target = null, int startCaret = -1,
+        Action<MacroStep>? lookAtStep = null)
     {
-        var viewModel = new ValuePickerViewModel(seed, variables, namesOnly, target);
+        var viewModel = new ValuePickerViewModel(seed, variables, readMode, bareNames, target);
         if (lookAtStep is not null)
         {
             viewModel.Jumped += lookAtStep;

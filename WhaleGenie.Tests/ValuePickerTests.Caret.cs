@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -14,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_starts_at_the_end_of_the_formula()
     {
-        var form = new ValuePickerViewModel("$a + 1", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a + 1", Variables(), ActionReadMode.WholeValue);
 
         Assert.Equal(form.Text.Length, form.Caret);
     }
@@ -22,7 +23,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_is_clamped_to_the_formula()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a", Variables(), ActionReadMode.WholeValue);
 
         form.SetCaret(-20);
         Assert.Equal(0, form.Caret);
@@ -35,7 +36,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_shorter_formula_pulls_the_caret_back_with_it()
     {
-        var form = new ValuePickerViewModel("$a + $b + $c", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a + $b + $c", Variables(), ActionReadMode.WholeValue);
         form.SetCaret(form.Text.Length);
 
         form.Text = "$a";
@@ -47,7 +48,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_piece_written_at_the_caret_leaves_the_rest_alone()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
         form.SetCaret(2);
 
         form.Place("$c");
@@ -59,7 +60,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Two_word_pieces_meeting_at_the_caret_get_a_space()
     {
-        var form = new ValuePickerViewModel("count", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("count", Variables(), ActionReadMode.WholeValue);
         form.SetCaret(0);
 
         form.Place("$a");
@@ -71,7 +72,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_function_card_leaves_the_caret_between_its_brackets()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
 
         form.PlaceCall("upper");
 
@@ -82,7 +83,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_next_piece_goes_inside_a_call_the_card_just_wrote()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
         form.PlaceCall("upper");
 
         form.Place("$a");
@@ -94,7 +95,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Filling_the_ghost_writes_its_comma_and_grows_another_one()
     {
-        var form = new ValuePickerViewModel("concat($a)", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a)", Variables(), ActionReadMode.WholeValue);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         form.SetCaret(call.Ghost!.Start);
@@ -110,7 +111,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_single_bracket_is_written_as_one_character()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a", Variables(), ActionReadMode.WholeValue);
         form.SetCaret(0);
 
         form.Place("(");
@@ -122,11 +123,36 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_survives_a_rebuilt_band()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
         form.SetCaret(2);
 
         form.Text = "$a + $b + $c";
 
         Assert.Equal(2, form.Caret);
+    }
+
+    /// <summary>A place inside a name is not a place the band can draw, so the line goes to an edge.</summary>
+    [Fact]
+    public void A_caret_asked_for_inside_a_piece_lands_on_its_edge()
+    {
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+
+        form.SetCaret(1);
+        Assert.Equal(0, form.Caret);
+
+        form.SetCaret(6);
+        Assert.Equal(5, form.Caret);
+    }
+
+    /// <summary>Writing at a caret that was never a seam must not split the piece it landed in.</summary>
+    [Fact]
+    public void An_insert_never_splits_a_token()
+    {
+        var form = new ValuePickerViewModel("photos", Variables(), ActionReadMode.WholeValue);
+        form.SetCaret(3);
+
+        form.Place("$x");
+
+        Assert.Contains(Root(form).Items.OfType<SlotValue>(), one => one.Text == "photos");
     }
 }

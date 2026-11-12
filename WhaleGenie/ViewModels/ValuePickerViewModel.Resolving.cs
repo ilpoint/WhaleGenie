@@ -148,10 +148,20 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private CutSpan Cut(int start, int length)
     {
-        var original = Text;
-        var at = Math.Clamp(start, 0, Text.Length);
-        var end = Math.Clamp(at + length, at, Text.Length);
-        var text = Text.Remove(at, end - at);
+        var text = CutText(Text, start, length, out var span);
+        Text = text;
+        return span;
+    }
+
+    /// <summary>
+    /// The text a cut leaves, without writing it down yet. A move has to check the result before
+    /// it changes the formula, so the cut and the tidy-up are one pure step here.
+    /// </summary>
+    private static string CutText(string original, int start, int length, out CutSpan span)
+    {
+        var at = Math.Clamp(start, 0, original.Length);
+        var end = Math.Clamp(at + length, at, original.Length);
+        var text = original.Remove(at, end - at);
 
         var before = at - 1;
         while (before >= 0 && text[before] == ' ')
@@ -200,8 +210,8 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             text = text.Insert(at, " ");
         }
 
-        Text = text;
-        return Difference(original, Text);
+        span = Difference(original, text);
+        return text;
     }
 
     /// <summary>

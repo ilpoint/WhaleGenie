@@ -39,7 +39,33 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>Moves the insertion point, clamped to the formula that is there now.</summary>
-    public void SetCaret(int at) => Caret = at;
+    public void SetCaret(int at) => Caret = Snap(at);
+
+    /// <summary>
+    /// The nearest place a piece can be written at. A caret asked for inside a name is not a place
+    /// the band can draw, and writing there would split the name; the line goes to the nearer edge,
+    /// and a tie goes left so it never jumps past the piece it was pointed at.
+    /// </summary>
+    private int Snap(int at)
+    {
+        var clamped = Math.Clamp(at, 0, Text.Length);
+        var seams = Seams();
+        if (seams.Count == 0)
+        {
+            return clamped;
+        }
+
+        var best = seams[0];
+        foreach (var seam in seams)
+        {
+            if (Math.Abs(seam - clamped) < Math.Abs(best - clamped))
+            {
+                best = seam;
+            }
+        }
+
+        return best;
+    }
 
     /// <summary>
     /// Every offset a piece begins or ends at, plus both ends of the line, in order. These are the
@@ -54,10 +80,16 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         var seams = new SortedSet<int> { 0, Text.Length };
-        foreach (var piece in Recipe.Walk().Where(one => one.Length > 0))
+        foreach (var piece in Recipe.Walk())
         {
+            // A place with nothing in it is still a place: the space between the brackets of an
+            // empty call is where its first argument goes, and it has no characters to measure.
             seams.Add(piece.Start);
             seams.Add(piece.Start + piece.Length);
+            if (piece is SlotCall { Ghost: { } ghost })
+            {
+                seams.Add(ghost.Start);
+            }
         }
 
         return [.. seams];
@@ -84,9 +116,11 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>Keeps the insertion point legal after the text changed under it.</summary>
-    private void ClampCaret() => Caret = _caret;
+    private void ClampCaret() => Caret = Snap(_caret);
 
-    public bool CanConfirm => NamesOnly ? Wall.Looking is not null : _reads;
+    public bool CanConfirm => NamesOnly
+        ? Wall.Looking is not null
+        : _reads || Text.Trim().Length == 0;
 
     /// <summary>One short line next to the confirm button saying why it is grey.</summary>
     [ObservableProperty]

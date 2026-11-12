@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -58,6 +57,18 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Adds what was typed while the band had the focus. The band is a picture of the formula, not
+    /// a text box, so a letter typed there belongs to the standing field rather than being lost.
+    /// </summary>
+    public void AppendTyped(string text)
+    {
+        if (text.Length > 0)
+        {
+            TypingText += text;
+        }
+    }
+
+    /// <summary>
     /// What the strip would put into the formula, or null while what is typed is not something the
     /// language holds. Text goes in quoted, with the quotes and backslashes it contains escaped the
     /// way the language reads them back.
@@ -66,12 +77,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     {
         if (!IsTypingNumber)
         {
-            return Quoted(TypingText);
+            return TypingText.Length > 0 ? Quoted(TypingText) : null;
         }
 
         var written = TypingText.Trim();
         return written.Length > 0
-               && double.TryParse(written, NumberStyles.Any, CultureInfo.InvariantCulture, out _)
+               && Language.TryParse(written, out var tree, out _, bare: true)
+               && tree is NumberNode or UnaryNode { Operator: "-", Operand: NumberNode }
             ? written
             : null;
     }

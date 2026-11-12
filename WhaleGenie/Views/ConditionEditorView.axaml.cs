@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
@@ -57,6 +58,7 @@ public partial class ConditionEditorView : UserControl
     {
         var seed = right ? node.Right : node.Left;
         if (await ValuePickerWindow.ShowFor(owner, seed, editor.Variables,
+                ActionReadMode.WholeValue, bareNames: true,
                 startOnFormula: startOnFormula, startCaret: CaretIn(node) ?? -1) is { } written)
         {
             editor.WriteExpression(node, right, written);

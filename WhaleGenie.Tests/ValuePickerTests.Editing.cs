@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -14,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Taking_a_piece_away_takes_its_comma_too()
     {
-        var form = new ValuePickerViewModel("concat($a, $b, $c)", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a, $b, $c)", Variables(), ActionReadMode.WholeValue);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.True(form.RemoveArgument(call.Arguments[1].Items[0]));
@@ -26,7 +27,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Taking_the_first_piece_away_keeps_the_rest_whole()
     {
-        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), ActionReadMode.WholeValue);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.True(form.RemoveArgument(call.Arguments[0].Items[0]));
@@ -38,7 +39,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_sign_can_be_taken_away_on_its_own()
     {
-        var form = new ValuePickerViewModel("$a and $b", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a and $b", Variables(), ActionReadMode.WholeValue);
 
         Assert.True(form.RemoveArgument(Root(form).Items[1]));
 
@@ -52,7 +53,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_function_card_does_not_take_over_a_piece()
     {
-        var form = new ValuePickerViewModel("$title", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$title", Variables(), ActionReadMode.WholeValue);
 
         form.PlaceCall("upper");
 
@@ -63,7 +64,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_piece_goes_on_the_end_of_the_line()
     {
-        var form = new ValuePickerViewModel("$a +", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a +", Variables(), ActionReadMode.WholeValue);
 
         form.Place("1");
 
@@ -74,7 +75,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_piece_dropped_on_the_first_argument_goes_in_front_of_it()
     {
-        var form = new ValuePickerViewModel("concat($a, $b, $c)", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a, $b, $c)", Variables(), ActionReadMode.WholeValue);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.True(form.MoveOnto(call.Arguments[2].Items[0], call.Arguments[0].Items[0], after: false));
@@ -86,7 +87,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_piece_can_be_dragged_from_one_call_into_another()
     {
-        var form = new ValuePickerViewModel("concat($a, $b) and join($c)", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a, $b) and join($c)", Variables(), ActionReadMode.WholeValue);
         var calls = Root(form).Items.OfType<SlotCall>().ToList();
 
         Assert.True(form.MoveOnto(calls[1].Arguments[0].Items[0], calls[0].Arguments[1].Items[0], false));
@@ -98,7 +99,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Undo_and_redo_walk_the_line()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a", Variables(), ActionReadMode.WholeValue);
 
         form.Text = "$a and $b";
         form.Text = "$a and $b and $c";

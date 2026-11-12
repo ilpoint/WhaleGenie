@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -18,11 +19,18 @@ namespace WhaleGenie.ViewModels;
 // Making the picker: what it starts from, and the parts it is built out of.
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
-    public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables, bool namesOnly,
-        string? target = null)
+    public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables,
+        ActionReadMode readMode, bool bareNames = false, string? target = null)
     {
-        NamesOnly = namesOnly;
+        _readMode = readMode;
+        _bareNames = bareNames;
+        NamesOnly = readMode == ActionReadMode.VariableName;
         Target = target ?? string.Empty;
+
+        foreach (var variable in variables ?? [])
+        {
+            _knownNames.Add(variable.Name);
+        }
 
         // The function table is what the structure band reads a line with, so it is in hand before
         // the line is set: setting the text is what asks the band to read it.

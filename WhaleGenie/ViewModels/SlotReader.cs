@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 
@@ -11,31 +9,39 @@ namespace WhaleGenie.ViewModels;
 
 // Reading a written formula into those pieces.
 /// <summary>
-/// Reads the formula as a run of pieces rather than as a tree: a name, a number, a string, a sign, a
-/// bracket, or a call with its arguments split at the commas that stand outside any bracket. There
+/// Reads the formula as a run of pieces rather than as a tree: a name, a number, a string, a sign,
+/// a bracket, or a call with its arguments split at the commas that stand outside any bracket. There
 /// is no "does not read" here — a character nobody knows is still a piece, shown where it stands and
 /// removable like anything else. What the engine makes of the line is said under the band, not by
 /// dropping half of it.
+///
+/// <para>
+/// The pieces are cut by the engine's own scanner. A piece therefore begins and ends where a token
+/// begins and ends, which is what keeps the band and the parser from disagreeing about the line.
+/// </para>
 /// </summary>
 internal sealed class SlotReader
 {
-    /// <summary>Signs, longest first so <c>&gt;=</c> is never read as <c>&gt;</c> then <c>=</c>.</summary>
-    private static readonly string[] Signs =
-        ["==", "!=", ">=", "<=", "&&", "||", "+", "-", "*", "/", "%", ">", "<", "!", "="];
-
     private readonly string _text;
+    private readonly IReadOnlyList<ExpressionToken> _tokens;
     private readonly IReadOnlyDictionary<string, ExpressionFunction> _functions;
+    private readonly bool _bareNames;
 
-    private SlotReader(string text, IReadOnlyDictionary<string, ExpressionFunction> functions)
+    private SlotReader(string text, IReadOnlyList<ExpressionToken> tokens,
+        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bareNames)
     {
         _text = text;
+        _tokens = tokens;
         _functions = functions;
+        _bareNames = bareNames;
     }
 
-    public static SlotNode Read(string text, IReadOnlyDictionary<string, ExpressionFunction> functions)
+    public static SlotNode Read(string text, IReadOnlyDictionary<string, ExpressionFunction> functions,
+        bool bareNames = false)
     {
-        var root = new SlotReader(text, functions)
-            .Sequence(0, text.Length, Strings.Get("ValuePicker.Hole"));
+        var tokens = ExpressionTokens.Scan(text, strict: false);
+        var root = new SlotReader(text, tokens, functions, bareNames)
+            .Sequence(0, tokens.Count - 1, Strings.Get("ValuePicker.Hole"));
 
         foreach (var piece in root.Walk())
         {
@@ -48,34 +54,29 @@ internal sealed class SlotReader
         return root;
     }
 
-    /// <summary>One run of pieces between two offsets. Commas belong to the call, not to the run.</summary>
+    /// <summary>One run of pieces between two token indices. Commas belong to the call, not to the run.</summary>
     private SlotSequence Sequence(int from, int to, string argument)
     {
         var items = new List<SlotNode>();
         var at = from;
         while (at < to)
         {
-            at = Spaces(at, to);
-            if (at >= to)
-            {
-                break;
-            }
-
-            if (_text[at] == ',')
+            var token = _tokens[at];
+            if (token.Kind is ExpressionTokenKind.Symbol && token.Text == ",")
             {
                 at++;
                 continue;
             }
 
-            var token = Token(at, to);
-            if (token is null)
+            var piece = Piece(at, to, out var next);
+            if (piece is null)
             {
                 at++;
                 continue;
             }
 
-            items.Add(token);
-            at = Math.Max(at + 1, token.Start + token.Length);
+            items.Add(piece);
+            at = Math.Max(at + 1, next);
         }
 
         // An argument with nothing in it is still a place: it is what a call shows while an argument
@@ -86,148 +87,111 @@ internal sealed class SlotReader
             {
                 Text = argument,
                 Hint = argument,
-                Start = from,
+                Start = StartOf(from),
                 Length = 0,
                 Required = true,
             });
         }
 
-        return new SlotSequence { Items = items, Start = from, Length = Math.Max(0, to - from) };
-    }
-
-    private SlotNode? Token(int at, int to)
-    {
-        var character = _text[at];
-
-        if (char.IsDigit(character)
-            || (character == '.' && at + 1 < to && char.IsDigit(_text[at + 1])))
+        return new SlotSequence
         {
-            return Number(at, to);
-        }
-
-        if (character is '"' or '\'')
-        {
-            return Text(at, to, character);
-        }
-
-        if (character == '$')
-        {
-            return Name(at, to);
-        }
-
-        if (character is '(' or ')' or '[' or ']')
-        {
-            return new SlotBracket { Text = character.ToString(), Start = at, Length = 1 };
-        }
-
-        if (char.IsLetter(character) || character == '_')
-        {
-            return Word(at, to);
-        }
-
-        foreach (var sign in Signs)
-        {
-            if (at + sign.Length <= to
-                && string.CompareOrdinal(_text, at, sign, 0, sign.Length) == 0)
-            {
-                return new SlotOperator { Text = sign, Start = at, Length = sign.Length };
-            }
-        }
-
-        // A character nobody knows is still a piece. Dropping it would make the band a picture of a
-        // shorter formula than the field holds.
-        return new SlotOperator { Text = character.ToString(), Start = at, Length = 1 };
-    }
-
-    private SlotNode Number(int at, int to)
-    {
-        var end = at;
-        while (end < to && (char.IsDigit(_text[end]) || _text[end] == '.'))
-        {
-            end++;
-        }
-
-        return new SlotValue { Text = _text[at..end], Tone = "maths", Start = at, Length = end - at };
-    }
-
-    private SlotNode Text(int at, int to, char quote)
-    {
-        var end = at + 1;
-        while (end < to)
-        {
-            if (_text[end] == '\\')
-            {
-                end += 2;
-                continue;
-            }
-
-            if (_text[end] == quote)
-            {
-                end++;
-                break;
-            }
-
-            end++;
-        }
-
-        return new SlotValue
-        {
-            Text = _text[at..Math.Min(end, to)],
-            Tone = "maths",
-            Start = at,
-            Length = Math.Min(end, to) - at,
+            Items = items,
+            Start = StartOf(from),
+            Length = Math.Max(0, EndOf(to) - StartOf(from)),
         };
     }
 
-    private SlotNode Name(int at, int to)
+    /// <summary>One token as a piece, and where the next piece begins.</summary>
+    private SlotNode? Piece(int at, int to, out int next)
     {
-        var end = at + 1;
-        if (end < to && VariableName.IsStart(_text[end]))
+        var token = _tokens[at];
+        next = at + 1;
+
+        switch (token.Kind)
         {
-            end++;
-            while (end < to && VariableName.IsPart(_text[end]))
-            {
-                end++;
-            }
+            case ExpressionTokenKind.Number:
+                return new SlotValue
+                {
+                    Text = token.Text,
+                    Tone = "maths",
+                    Start = token.Start,
+                    Length = token.Length,
+                };
+
+            case ExpressionTokenKind.Text:
+                return new SlotValue
+                {
+                    Text = _text.Substring(token.Start, token.Length),
+                    Tone = "maths",
+                    Start = token.Start,
+                    Length = token.Length,
+                };
+
+            case ExpressionTokenKind.Variable:
+                return new SlotValue
+                {
+                    Text = _text.Substring(token.Start, token.Length),
+                    Tone = "lists",
+                    IsName = true,
+                    Start = token.Start,
+                    Length = token.Length,
+                };
+
+            case ExpressionTokenKind.Name:
+                if (next < to
+                    && _tokens[next].Kind is ExpressionTokenKind.Symbol
+                    && _tokens[next].Text == "(")
+                {
+                    return Call(at, to, out next);
+                }
+
+                if (ExpressionTokens.IsOperatorWord(token.Text))
+                {
+                    return new SlotOperator
+                    {
+                        Text = token.Text,
+                        Start = token.Start,
+                        Length = token.Length,
+                    };
+                }
+
+                var constant = token.Text is "true" or "false" or "null";
+                return new SlotValue
+                {
+                    Text = token.Text,
+                    Tone = constant ? "other" : "lists",
+                    IsName = !constant && _bareNames,
+                    Start = token.Start,
+                    Length = token.Length,
+                };
+
+            case ExpressionTokenKind.Symbol:
+                return token.Text is "(" or ")" or "[" or "]"
+                    ? new SlotBracket
+                    {
+                        Text = token.Text,
+                        Start = token.Start,
+                        Length = token.Length,
+                    }
+                    : new SlotOperator
+                    {
+                        Text = token.Text,
+                        Start = token.Start,
+                        Length = token.Length,
+                    };
+
+            case ExpressionTokenKind.Unknown:
+                return new SlotOperator
+                {
+                    Text = token.Text,
+                    Start = token.Start,
+                    Length = token.Length,
+                };
+
+            default:
+                next = at;
+                return null;
         }
-
-        return new SlotValue
-        {
-            Text = _text[at..end],
-            Tone = "lists",
-            Start = at,
-            Length = end - at,
-        };
-    }
-
-    private SlotNode Word(int at, int to)
-    {
-        var end = at + 1;
-        while (end < to && (char.IsLetterOrDigit(_text[end]) || _text[end] == '_'))
-        {
-            end++;
-        }
-
-        var word = _text[at..end];
-        var after = Spaces(end, to);
-
-        if (after < to && _text[after] == '(')
-        {
-            return Call(at, end, after, to);
-        }
-
-        if (word is "and" or "or" or "not")
-        {
-            return new SlotOperator { Text = word, Start = at, Length = end - at };
-        }
-
-        return new SlotValue
-        {
-            Text = word,
-            Tone = word is "true" or "false" or "null" ? "other" : "lists",
-            Start = at,
-            Length = end - at,
-        };
     }
 
     /// <summary>
@@ -235,64 +199,48 @@ internal sealed class SlotReader
     /// outside every bracket inside it. What is inside an argument is read the same way as the whole,
     /// so a call in an argument is just another piece in that run.
     /// </summary>
-    private SlotNode Call(int start, int nameEnd, int paren, int to)
+    private SlotNode Call(int nameIndex, int to, out int next)
     {
-        var name = _text[start..nameEnd];
-        var close = Closing(paren, to);
-        var end = close >= 0 ? close + 1 : to;
-        var inside = paren + 1;
-        var limit = close >= 0 ? close : to;
+        var nameToken = _tokens[nameIndex];
+        var name = nameToken.Text;
+        var open = nameIndex + 1;
+        var close = Closing(open, to);
+        var insideFrom = open + 1;
+        var insideTo = close >= 0 ? close : to;
 
         var arguments = new List<SlotSequence>();
-        var from = inside;
+        var from = insideFrom;
         var depth = 0;
-        var quote = '\0';
-
-        for (var index = inside; index < limit; index++)
+        for (var index = insideFrom; index < insideTo; index++)
         {
-            var character = _text[index];
-            if (quote != '\0')
+            var token = _tokens[index];
+            if (token.Kind is not ExpressionTokenKind.Symbol)
             {
-                if (character == '\\')
-                {
-                    index++;
-                }
-                else if (character == quote)
-                {
-                    quote = '\0';
-                }
-
                 continue;
             }
 
-            if (character is '"' or '\'')
-            {
-                quote = character;
-                continue;
-            }
-
-            if (character is '(' or '[')
+            if (token.Text is "(" or "[")
             {
                 depth++;
                 continue;
             }
 
-            if (character is ')' or ']')
+            if (token.Text is ")" or "]")
             {
                 depth--;
                 continue;
             }
 
-            if (character == ',' && depth == 0)
+            if (depth == 0 && token.Text == ",")
             {
                 arguments.Add(Sequence(from, index, ArgumentName(name, arguments.Count)));
                 from = index + 1;
             }
         }
 
-        if (inside < limit || arguments.Count > 0)
+        if (insideFrom < insideTo || arguments.Count > 0)
         {
-            arguments.Add(Sequence(from, limit, ArgumentName(name, arguments.Count)));
+            arguments.Add(Sequence(from, insideTo, ArgumentName(name, arguments.Count)));
         }
 
         for (var index = 1; index < arguments.Count; index++)
@@ -320,6 +268,7 @@ internal sealed class SlotReader
                     : Strings.Get("ValuePicker.Arg.Optional");
         }
 
+        var ghostAt = close >= 0 ? _tokens[close].Start : _text.Length;
         var ghost = entry is not null && arguments.Count >= entry.MaxArguments
             ? null
             : new SlotEmpty
@@ -328,61 +277,47 @@ internal sealed class SlotReader
                 Hint = entry is not null && arguments.Count < entry.Parameters.Count
                     ? ArgumentName(name, arguments.Count)
                     : Strings.Get("ValuePicker.Slot.AddHint"),
-                Start = limit,
+                Start = ghostAt,
                 Before = arguments.Count == 0 ? string.Empty : ", ",
                 IsGhost = true,
                 Required = entry is null ? arguments.Count == 0 : arguments.Count < entry.MinArguments,
             };
 
+        next = close >= 0 ? close + 1 : to;
+        var end = close >= 0 ? _tokens[close].End : _text.Length;
         return new SlotCall
         {
             Name = name,
             Tone = ToneOf(name),
             Arguments = arguments,
             Ghost = ghost,
-            Start = start,
-            Length = Math.Max(0, end - start),
+            Start = nameToken.Start,
+            Length = Math.Max(0, end - nameToken.Start),
         };
     }
 
     /// <summary>The closing bracket that matches this one, or -1 when the text never closes it.</summary>
-    private int Closing(int paren, int to)
+    private int Closing(int open, int to)
     {
         var depth = 0;
-        var quote = '\0';
-        for (var index = paren; index < to; index++)
+        for (var index = open; index < to; index++)
         {
-            var character = _text[index];
-            if (quote != '\0')
+            var token = _tokens[index];
+            if (token.Kind is not ExpressionTokenKind.Symbol)
             {
-                if (character == '\\')
-                {
-                    index++;
-                }
-                else if (character == quote)
-                {
-                    quote = '\0';
-                }
-
                 continue;
             }
 
-            if (character is '"' or '\'')
-            {
-                quote = character;
-                continue;
-            }
-
-            if (character is '(' or '[')
+            if (token.Text is "(" or "[")
             {
                 depth++;
             }
-            else if (character is ')' or ']')
+            else if (token.Text is ")" or "]")
             {
                 depth--;
                 if (depth == 0)
                 {
-                    return character == ')' ? index : -1;
+                    return token.Text == ")" ? index : -1;
                 }
             }
         }
@@ -390,15 +325,9 @@ internal sealed class SlotReader
         return -1;
     }
 
-    private int Spaces(int at, int to)
-    {
-        while (at < to && char.IsWhiteSpace(_text[at]))
-        {
-            at++;
-        }
+    private int StartOf(int at) => at < _tokens.Count ? _tokens[at].Start : _text.Length;
 
-        return at;
-    }
+    private int EndOf(int to) => to > 0 && to <= _tokens.Count ? _tokens[to - 1].End : 0;
 
     /// <summary>What the place at this position is called: the argument's own name where there is one.</summary>
     private string ArgumentName(string function, int index)

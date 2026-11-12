@@ -17,7 +17,7 @@ namespace WhaleGenie.ViewModels;
 internal static class SlotDiagnostics
 {
     public static void Mark(SlotNode? recipe, ExpressionException? error,
-        IReadOnlyDictionary<string, ExpressionFunction> table)
+        IReadOnlyDictionary<string, ExpressionFunction> table, IReadOnlySet<string> known)
     {
         if (recipe is null)
         {
@@ -69,6 +69,29 @@ internal static class SlotDiagnostics
                 Problem(call.Arguments[entry.MaxArguments],
                     Strings.Get("ValuePicker.Problem.ExtraArgument"));
             }
+        }
+        foreach (var value in recipe.Walk().OfType<SlotValue>())
+        {
+            if (!value.IsName)
+            {
+                continue;
+            }
+
+            var name = value.Text.TrimStart('$');
+            if (name.Length == 0 || known.Contains(name))
+            {
+                continue;
+            }
+
+            // A field of a record is read off the name before the dot; the record itself is what
+            // has to be declared, not the field.
+            var dot = name.IndexOf('.');
+            if (dot > 0 && known.Contains(name[..dot]))
+            {
+                continue;
+            }
+
+            Problem(value, Strings.Get("ValuePicker.Problem.Undeclared"));
         }
     }
 

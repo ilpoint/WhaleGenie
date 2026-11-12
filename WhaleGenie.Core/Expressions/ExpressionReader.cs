@@ -20,7 +20,7 @@ internal static class ExpressionReader
     /// </summary>
     public static ExpressionNode Read(string source, bool bare = false)
     {
-        var parser = new Parser(Tokenizer.Read(source), bare);
+        var parser = new Parser(source, bare);
         var node = parser.ReadOr();
         if (parser.Current.Kind != TokenKind.End)
         {
@@ -43,149 +43,6 @@ file enum TokenKind
 
 file readonly record struct Token(TokenKind Kind, string Text, double Number);
 
-/// <summary>Splits expression text into the tokens the reader walks over.</summary>
-file static class Tokenizer
-{
-    public static List<Token> Read(string source)
-    {
-        var tokens = new List<Token>();
-        var index = 0;
-
-        while (index < source.Length)
-        {
-            var character = source[index];
-            if (char.IsWhiteSpace(character))
-            {
-                index++;
-                continue;
-            }
-
-            if (char.IsDigit(character)
-                || (character == '.' && index + 1 < source.Length && char.IsDigit(source[index + 1])))
-            {
-                var start = index;
-                while (index < source.Length && (char.IsDigit(source[index]) || source[index] == '.'))
-                {
-                    index++;
-                }
-
-                var text = source[start..index];
-                if (!double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var number))
-                {
-                    throw ExpressionException.Syntax($"\"{text}\" is not a number");
-                }
-
-                tokens.Add(new Token(TokenKind.Number, text, number));
-                continue;
-            }
-
-            if (character is '"' or '\'')
-            {
-                index = ReadText(source, index, character, tokens);
-                continue;
-            }
-
-            if (character == '$')
-            {
-                index++;
-                var start = index;
-                if (index >= source.Length || !VariableName.IsStart(source[index]))
-                {
-                    throw ExpressionException.Syntax("a variable name is missing after \"$\"");
-                }
-
-                while (index < source.Length && VariableName.IsPart(source[index]))
-                {
-                    index++;
-                }
-
-                tokens.Add(new Token(TokenKind.Variable, source[start..index], 0));
-                continue;
-            }
-
-            if (char.IsLetter(character) || character == '_')
-            {
-                var start = index;
-                while (index < source.Length
-                    && (char.IsLetterOrDigit(source[index]) || source[index] is '_' or '.'))
-                {
-                    // A dot joins a name to the field it reads — <c>where.age</c> is one name — and
-                    // starts the next word rather than continuing this one everywhere else.
-                    if (source[index] == '.'
-                        && (index + 1 >= source.Length || !char.IsLetter(source[index + 1])))
-                    {
-                        break;
-                    }
-
-                    index++;
-                }
-
-                tokens.Add(new Token(TokenKind.Name, source[start..index], 0));
-                continue;
-            }
-
-            var pair = index + 1 < source.Length ? source.Substring(index, 2) : string.Empty;
-            if (pair is "==" or "!=" or "<=" or ">=" or "&&" or "||")
-            {
-                tokens.Add(new Token(TokenKind.Symbol, pair, 0));
-                index += 2;
-                continue;
-            }
-
-            if ("+-*/%(),[]<>!=".Contains(character))
-            {
-                if (character == '=')
-                {
-                    throw ExpressionException.Syntax("\"=\" on its own; write \"==\" to compare");
-                }
-
-                tokens.Add(new Token(TokenKind.Symbol, character.ToString(), 0));
-                index++;
-                continue;
-            }
-
-            throw ExpressionException.Syntax($"unexpected character \"{character}\"");
-        }
-
-        tokens.Add(new Token(TokenKind.End, string.Empty, 0));
-        return tokens;
-    }
-
-    private static int ReadText(string source, int index, char quote, List<Token> tokens)
-    {
-        var builder = new StringBuilder();
-        index++;
-
-        while (index < source.Length)
-        {
-            var current = source[index];
-            if (current == '\\' && index + 1 < source.Length)
-            {
-                builder.Append(source[index + 1] switch
-                {
-                    'n' => '\n',
-                    't' => '\t',
-                    'r' => '\r',
-                    var escaped => escaped,
-                });
-                index += 2;
-                continue;
-            }
-
-            if (current == quote)
-            {
-                tokens.Add(new Token(TokenKind.Text, builder.ToString(), 0));
-                return index + 1;
-            }
-
-            builder.Append(current);
-            index++;
-        }
-
-        throw ExpressionException.Syntax("a closing quote is missing");
-    }
-}
-
 /// <summary>
 /// Walks the tokens into a tree. Written the way the language reads: <c>or</c> opens the loosest
 /// level and each step down binds more tightly, so a formula written without brackets still comes
@@ -197,10 +54,35 @@ file sealed class Parser
     private readonly bool _bare;
     private int _index;
 
-    public Parser(List<Token> tokens, bool bare)
+    public Parser(string source, bool bare)
     {
-        _tokens = tokens;
+        _tokens = ReadTokens(source);
         _bare = bare;
+    }
+
+    /// <summary>
+    /// The scanner's tokens in the shape the parser walks. The scanner is the one place the lexical
+    /// rules live; this only names the kinds the parser switches on.
+    /// </summary>
+    private static List<Token> ReadTokens(string source)
+    {
+        var tokens = new List<Token>();
+        foreach (var token in ExpressionTokens.Scan(source))
+        {
+            var kind = token.Kind switch
+            {
+                ExpressionTokenKind.Number => TokenKind.Number,
+                ExpressionTokenKind.Text => TokenKind.Text,
+                ExpressionTokenKind.Variable => TokenKind.Variable,
+                ExpressionTokenKind.Name => TokenKind.Name,
+                ExpressionTokenKind.Symbol => TokenKind.Symbol,
+                ExpressionTokenKind.End => TokenKind.End,
+                _ => throw new InvalidOperationException($"Unexpected token {token.Kind}."),
+            };
+            tokens.Add(new Token(kind, token.Text, token.Number));
+        }
+
+        return tokens;
     }
 
     public Token Current => _tokens[_index];

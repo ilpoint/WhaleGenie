@@ -333,7 +333,7 @@ public partial class ActionEditorView : UserControl
         // The expression editor is not offered: a selector field is read as text with the names in
         // it filled in, so a formula built here would be written down as part of the selector.
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                namesOnly: true) is not { Length: > 0 } picked)
+                ActionReadMode.VariableName) is not { Length: > 0 } picked)
         {
             return;
         }

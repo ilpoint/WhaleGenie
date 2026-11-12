@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -31,7 +32,8 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return;
         }
 
-        if (_reads)
+        // An empty line is a value too: it is how a cell is cleared without leaving the window.
+        if (_reads || Text.Trim().Length == 0)
         {
             CloseRequested?.Invoke(Text.Trim());
         }
@@ -51,39 +53,27 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         var written = Text.Trim();
-        ExpressionException? problem = null;
-        if (written.Length == 0)
-        {
-            _reads = false;
-            NoteIsProblem = false;
-            Note = Strings.Get("ValuePicker.Note.Empty");
-            Saying = string.Empty;
-        }
-        else if (Language.TryParse(written, out var parsed, out var error))
-        {
-            _reads = true;
-            NoteIsProblem = false;
-            Note = Strings.Get("ValuePicker.Note.Reads");
-            Saying = ExpressionText.InChinese
-                ? Strings.Get("ValuePicker.ReadsAs") + ExpressionPhrase.Say(parsed!, VariableCatalog.Spoken)
-                : string.Empty;
-        }
-        else
-        {
-            _reads = false;
-            NoteIsProblem = true;
-            problem = error;
-            Note = error is null
-                ? Strings.Get("ExprBuilder.CannotRead")
-                : ExpressionText.Describe(error);
-            Saying = string.Empty;
-        }
+        var reads = TryReadLine(written, out var parsed, out var problem, out var fault);
+        _reads = reads;
+        NoteIsProblem = written.Length > 0 && !_reads;
+        Note = written.Length == 0
+            ? Strings.Get("ValuePicker.Note.Empty")
+            : _reads
+                ? Strings.Get("ValuePicker.Note.Reads")
+                : problem is not null
+                    ? ExpressionText.Describe(problem)
+                    : fault is { Length: > 0 }
+                        ? fault
+                        : Strings.Get("ExprBuilder.CannotRead");
+        Saying = _reads && _bareNames && parsed is not null && ExpressionText.InChinese
+            ? Strings.Get("ValuePicker.ReadsAs") + ExpressionPhrase.Say(parsed, VariableCatalog.Spoken)
+            : string.Empty;
 
         RebuildRecipe();
-        SlotDiagnostics.Mark(Recipe, problem, _table);
-        BlockReason = written.Length == 0
-            ? Strings.Get("ValuePicker.Confirm.Empty")
-            : _reads ? string.Empty : Strings.Get("ValuePicker.Confirm.Unreadable");
+        SlotDiagnostics.Mark(Recipe, problem, _table, _knownNames);
+        BlockReason = _reads || written.Length == 0
+            ? string.Empty
+            : Strings.Get("ValuePicker.Confirm.Unreadable");
 
         OnPropertyChanged(nameof(Reads));
         OnPropertyChanged(nameof(CanConfirm));
@@ -92,12 +82,74 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Reads one line the way the field will read it. This is the only place the window decides
+    /// whether a line reads, so the band and the field cannot answer differently.
+    /// </summary>
+    private bool TryReadLine(string written, out ExpressionNode? parsed,
+        out ExpressionException? problem, out string? fault)
+    {
+        parsed = null;
+        problem = null;
+        fault = null;
+
+        if (written.Length == 0)
+        {
+            return false;
+        }
+
+        if (_readMode is ActionReadMode.Text)
+        {
+            var tree = FormulaText.Read(written, ActionReadMode.Text);
+            if (tree is FaultNode bad)
+            {
+                fault = bad.Message;
+            }
+            else
+            {
+                parsed = tree;
+            }
+        }
+        else if (_bareNames)
+        {
+            if (Language.TryParse(written, out parsed, out problem, bare: true))
+            {
+                problem = null;
+            }
+        }
+        else if (Language.TryParse(written, out parsed, out problem))
+        {
+            problem = null;
+        }
+        else
+        {
+            // A line that is not a formula may still be the text the field holds. Only a line
+            // that opens as a value and then fails — a half-written "$name +" — is a mistake
+            // rather than prose.
+            var tree = Formula.FromLine(written);
+            if (tree is FaultNode bad)
+            {
+                fault = bad.Message;
+            }
+            else
+            {
+                parsed = tree;
+                problem = null;
+            }
+        }
+
+        return parsed is not null;
+    }
+
+    /// <summary>True when a line the window would hand back reads as the field reads it.</summary>
+    private bool ReadsAsField(string written) => TryReadLine(written, out _, out _, out _);
+
+    /// <summary>
     /// Reads the line into the shape the band draws. An empty formula is one empty place rather than
     /// nothing at all: the page says "a value goes here" instead of looking broken.
     /// </summary>
     private void RebuildRecipe()
     {
-        Recipe = NamesOnly ? null : SlotReader.Read(Text, _table);
+        Recipe = NamesOnly ? null : SlotReader.Read(Text, _table, _bareNames);
         RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));
         ClampCaret();

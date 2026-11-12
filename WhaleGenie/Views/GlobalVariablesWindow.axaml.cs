@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
@@ -108,7 +109,7 @@ public partial class GlobalVariablesWindow : AppWindow
     private async void OnDefaultExpression(VariableDefinitionDraft row)
     {
         if (await ValuePickerWindow.ShowFor(this, row.DefaultValue,
-                ExpressionVariablesBefore(row), startOnFormula: true) is { } built)
+                ExpressionVariablesBefore(row), ActionReadMode.WholeValue, startOnFormula: true) is { } built)
         {
             row.DefaultValue = built;
         }

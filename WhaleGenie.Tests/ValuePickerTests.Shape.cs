@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -13,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_is_one_place_to_start_from()
     {
-        var form = new ValuePickerViewModel(null, Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel(null, Variables(), ActionReadMode.WholeValue);
 
         var root = Root(form);
 
@@ -28,7 +30,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_run_is_the_pieces_in_the_order_they_stand()
     {
-        var form = new ValuePickerViewModel("$a + 1", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a + 1", Variables(), ActionReadMode.WholeValue);
 
         var items = Root(form).Items;
 
@@ -44,7 +46,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_call_holds_one_run_per_argument()
     {
-        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), ActionReadMode.WholeValue);
 
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
@@ -61,7 +63,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_call_inside_an_argument_is_a_piece_of_that_run()
     {
-        var form = new ValuePickerViewModel("concat($a, upper($b))", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("concat($a, upper($b))", Variables(), ActionReadMode.WholeValue);
 
         var outer = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
         var inner = Assert.IsType<SlotCall>(Assert.Single(outer.Arguments[1].Items));
@@ -74,7 +76,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_argument_written_empty_is_a_place_waiting()
     {
-        var form = new ValuePickerViewModel("contains($title, )", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("contains($title, )", Variables(), ActionReadMode.WholeValue);
 
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
@@ -87,7 +89,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_call_with_nothing_in_it_says_so_and_still_offers_the_place_to_fill()
     {
-        var form = new ValuePickerViewModel("upper()", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("upper()", Variables(), ActionReadMode.WholeValue);
 
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
@@ -104,7 +106,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_bracket_on_its_own_is_still_a_piece()
     {
-        var form = new ValuePickerViewModel("123 (", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("123 (", Variables(), ActionReadMode.WholeValue);
 
         var items = Root(form).Items;
 
@@ -118,11 +120,52 @@ public partial class ValuePickerTests
     [Fact]
     public void A_character_nobody_knows_is_a_piece_too()
     {
-        var form = new ValuePickerViewModel("$a ? $b", Variables(), namesOnly: false);
+        var form = new ValuePickerViewModel("$a ? $b", Variables(), ActionReadMode.WholeValue);
 
         var items = Root(form).Items;
 
         Assert.Equal(3, items.Count);
         Assert.Equal("?", Assert.IsType<SlotOperator>(items[1]).Text);
+    }
+
+    /// <summary>
+    /// The band and the engine cut the line in the same places. A piece edge that the scanner does
+    /// not know about would be a place the two could disagree about what a word is.
+    /// </summary>
+    [Fact]
+    public void Every_band_edge_is_an_engine_token_edge()
+    {
+        var form = new ValuePickerViewModel("concat($a, upper($b)) + 1", Variables(),
+            ActionReadMode.WholeValue, bareNames: true);
+        var edges = ExpressionTokens.Scan(form.Text)
+            .SelectMany(token => new[] { token.Start, token.End })
+            .ToHashSet();
+
+        Assert.All(form.Seams(), seam => Assert.Contains(seam, edges));
+        Assert.All(form.Recipe!.Walk().Where(piece => piece.Length > 0), piece =>
+        {
+            Assert.Contains(piece.Start, edges);
+            Assert.Contains(piece.Start + piece.Length, edges);
+        });
+    }
+
+    /// <summary>A leaf piece is one token, never a stretch of two welded together.</summary>
+    [Fact]
+    public void A_piece_never_spans_two_engine_tokens()
+    {
+        var form = new ValuePickerViewModel("concat($a, upper($b)) + 1", Variables(),
+            ActionReadMode.WholeValue, bareNames: true);
+        var tokens = ExpressionTokens.Scan(form.Text);
+
+        Assert.All(
+            form.Recipe!.Walk().Where(piece =>
+                piece.Length > 0 && piece is SlotValue or SlotOperator or SlotBracket),
+            piece =>
+            {
+                var covered = tokens
+                    .Count(token => token.Start < piece.Start + piece.Length
+                        && token.End > piece.Start);
+                Assert.Equal(1, covered);
+            });
     }
 }

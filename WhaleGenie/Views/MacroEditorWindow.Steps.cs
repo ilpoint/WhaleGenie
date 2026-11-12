@@ -140,8 +140,8 @@ public partial class MacroEditorWindow : AppWindow
             var line = FindCaseValueBox(row);
             var caret = line?.SelectionStart ?? row.CaseValuesText.Length;
             if (await ValuePickerWindow.ShowFor(this, row.CaseValuesText,
-                    _viewModel.CollectVariables(), startOnFormula: true,
-                    startCaret: caret) is not { } written)
+                    _viewModel.CollectVariables(), ActionReadMode.WholeValue,
+                    startOnFormula: true, startCaret: caret) is not { } written)
             {
                 return;
             }

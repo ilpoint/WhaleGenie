@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
@@ -31,7 +32,7 @@ public partial class MacroInterfaceView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(owner, row.Default,
-                Model?.ValueVariables ?? [], startOnFormula: true) is { } built)
+                Model?.ValueVariables ?? [], ActionReadMode.WholeValue, startOnFormula: true) is { } built)
         {
             row.Default = built;
         }
