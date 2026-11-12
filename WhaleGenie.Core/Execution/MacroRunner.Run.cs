@@ -77,17 +77,26 @@ public sealed partial class MacroRunner
             .GroupBy(LoopKey)
             .Select(group => group.First())
             .ToList();
-        var saved = new List<(VariableKey Key, bool Had, Value? Value)>();
+        var saved = new List<(string Key, string Name, string Id, Value Value)>();
         foreach (var key in taken)
         {
-            var id = LoopKey(key);
-            if (_activeLoopNames.ContainsKey(id))
+            var identity = LoopKey(key);
+
+            // A name is put back when a loop around this one is already using it — the inner loop
+            // only borrowed it — or when the value belongs to a declaration, which was never the
+            // loop's to keep. A name this loop is the first to use stays afterwards, which is what
+            // makes a counter readable once the loop is over.
+            var slot = key.HasId && Variables.Local.NameOf(key.Id) is { Length: > 0 } bound
+                ? bound
+                : key.Name;
+            if (Variables.Local.TryGet(slot, out var value)
+                && (_activeLoopNames.ContainsKey(identity)
+                    || Variables.Local.IsDeclared(Variables.Local.IdOf(slot))))
             {
-                var had = Variables.Local.TryGet(key, out var value);
-                saved.Add((key, had, had ? value : null));
+                saved.Add((identity, slot, Variables.Local.IdOf(slot), value));
             }
 
-            _activeLoopNames[id] = _activeLoopNames.GetValueOrDefault(id) + 1;
+            _activeLoopNames[identity] = _activeLoopNames.GetValueOrDefault(identity) + 1;
         }
 
         return new LoopScope(Variables.Local, this, taken, saved, keepLast);
@@ -112,11 +121,11 @@ public sealed partial class MacroRunner
         private readonly VariableBag _values;
         private readonly MacroRunner _runner;
         private readonly List<VariableKey> _keys;
-        private readonly List<(VariableKey Key, bool Had, Value? Value)> _saved;
+        private readonly List<(string Key, string Name, string Id, Value Value)> _saved;
         private readonly bool _keepLast;
 
         public LoopScope(VariableBag values, MacroRunner runner, List<VariableKey> keys,
-            List<(VariableKey Key, bool Had, Value? Value)> saved, bool keepLast)
+            List<(string Key, string Name, string Id, Value Value)> saved, bool keepLast)
         {
             _values = values;
             _runner = runner;
@@ -127,16 +136,11 @@ public sealed partial class MacroRunner
 
         public void Dispose()
         {
-            foreach (var (key, had, value) in _saved)
+            foreach (var (_, name, id, value) in _saved)
             {
-                if (had)
-                {
-                    _values.Set(key, value!);
-                }
-                else
-                {
-                    _values.Remove(key);
-                }
+                // The identity goes back with the value: the loop wrote over a name that belonged
+                // to a declaration, and what reads it afterwards has to find the declaration again.
+                _values.Restore(name, id, value);
             }
 
             foreach (var key in _keys)
@@ -150,7 +154,7 @@ public sealed partial class MacroRunner
                 else
                 {
                     _runner._activeLoopNames.Remove(id);
-                    if (!_keepLast && !_saved.Exists(saved => LoopKey(saved.Key) == id))
+                    if (!_keepLast && !_saved.Exists(saved => saved.Key == id))
                     {
                         _values.Remove(key);
                     }

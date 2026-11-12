@@ -488,6 +488,30 @@ public partial class MacroRunnerTests
         Assert.Equal(3, N(store, "i"));
     }
 
+    /// <summary>
+    /// A counter is meant to stay readable after its loop, but a name the macro declared was not
+    /// the loop's to keep: the declared value goes back when the loop ends. The editor refuses a
+    /// macro of this shape, so this is the guard behind that refusal.
+    /// </summary>
+    [Fact]
+    public async Task A_loop_that_counts_in_a_declared_name_puts_the_declared_value_back()
+    {
+        var store = Store();
+        var signature = new MacroSignature([], [],
+            [new MacroLocal("i", "7", ActionReturnType.Number, "i00001")]);
+        var loop = Step("control.for",
+            Param("rangeFrom", "1"),
+            Param("rangeTo", "3"),
+            Param("intervalMs", "0"),
+            Param("name", "i"),
+            Body("body"));
+
+        var (result, _) = await RunAsync([loop], variables: store, startSignature: signature);
+
+        Assert.True(result.Succeeded, result.Key);
+        Assert.Equal(7, N(store, "i"));
+    }
+
     [Fact]
     public async Task A_counting_loop_can_go_downwards()
     {

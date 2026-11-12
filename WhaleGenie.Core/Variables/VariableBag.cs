@@ -412,6 +412,20 @@ public sealed class VariableBag : IVariableResolver
         }
     }
 
+    /// <summary>True when this identity is one a declaration of this run owns.</summary>
+    public bool IsDeclared(string id)
+    {
+        if (id.Length == 0)
+        {
+            return false;
+        }
+
+        lock (_gate)
+        {
+            return _declared.Contains(id);
+        }
+    }
+
     /// <summary>Forgets every declaration and type, for a run that is starting from its own macro.</summary>
     public void ResetDeclarations()
     {
