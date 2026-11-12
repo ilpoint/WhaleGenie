@@ -19,6 +19,9 @@ internal static class ExpressionCompiler
         => node switch
         {
             NumberNode number => () => Value.FromNumber(number.Value),
+            DateNode date => () => ValueRules.TryParse(date.Text, ValueKind.Date, out var read)
+                ? read
+                : throw ExpressionException.TypeMismatch($"\"{date.Text}\" is not a date"),
             TextNode text => () => Value.FromText(text.Text),
             ConstantNode constant => Compiled(constant.Word),
             VariableNode variable => () => Resolve(variables, variable),

@@ -29,6 +29,7 @@ public static class FormulaJson
     private const string RightKey = "right";
     private const string OperandKey = "of";
     private const string ListKey = "list";
+    private const string DateKey = "date";
 
     /// <summary>The value as a JSON node, or null when there is nothing to write.</summary>
     public static JsonNode? Write(ExpressionNode? value)
@@ -44,6 +45,8 @@ public static class FormulaJson
                 // A value nobody could read is kept as the line it was, so the mistake survives the
                 // round trip and can be put right in the editor rather than being lost on save.
                 return JsonValue.Create(fault.Text);
+            case DateNode date:
+                return new JsonObject { [DateKey] = date.Text };
             case NumberNode number:
                 return double.TryParse(number.Text, NumberStyles.Any, CultureInfo.InvariantCulture,
                     out var written)
@@ -160,6 +163,11 @@ public static class FormulaJson
         if (written[RunKey] is JsonArray run)
         {
             return Formula.Run(run.Select(Read));
+        }
+
+        if (written[DateKey] is JsonValue moment && moment.TryGetValue<string>(out var stamped))
+        {
+            return new DateNode(stamped);
         }
 
         if (written[ListKey] is JsonArray list)

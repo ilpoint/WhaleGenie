@@ -23,6 +23,9 @@ public readonly record struct VariableKey(string Name, string Id = "")
         // A field that names a variable may read as a number: the language allows a name of
         // digits, and the reader keeps a number as the number it is.
         NumberNode number => new VariableKey(number.Text.Trim()),
+        // A date is written down but is not a name; a field that names a variable keeps its words
+        // so the reader can say the name is not one.
+        DateNode date => new VariableKey(date.Text.Trim()),
         _ => new VariableKey(string.Empty),
     };
 }

@@ -19,6 +19,12 @@ public abstract record ExpressionNode;
 /// <summary>A number, kept as it was written so the text can be handed back unchanged.</summary>
 public sealed record NumberNode(string Text, double Value) : ExpressionNode;
 
+/// <summary>
+/// A date written down, kept as it was written so the text can be handed back unchanged. It is a
+/// value rather than three numbers and two subtractions, which is what <c>2026-11-12</c> used to be.
+/// </summary>
+public sealed record DateNode(string Text) : ExpressionNode;
+
 /// <summary>A piece of text, held unescaped; the writer adds the quotes and the backslashes.</summary>
 public sealed record TextNode(string Text) : ExpressionNode;
 

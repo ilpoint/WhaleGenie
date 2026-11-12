@@ -109,6 +109,7 @@ public static class Formula
         FaultNode fault => fault.Text,
         TextNode text => text.Text,
         NumberNode number => number.Text,
+        DateNode date => date.Text,
         ConstantNode constant => constant.Word,
         VariableNode variable => "「" + variable.Name + "」",
         ConcatNode run => string.Concat(run.Parts.Select(Speak)),
@@ -124,7 +125,7 @@ public static class Formula
     public static bool IsPlain(ExpressionNode? value) => value switch
     {
         null => true,
-        TextNode or NumberNode or ConstantNode => true,
+        TextNode or NumberNode or DateNode or ConstantNode => true,
         ConcatNode run => run.Parts.All(IsPlain),
         _ => false,
     };
@@ -138,6 +139,7 @@ public static class Formula
     {
         TextNode text => text.Text,
         NumberNode number => number.Text,
+        DateNode date => date.Text,
         ConstantNode constant => constant.Word,
         ConcatNode run => string.Concat(run.Parts.Select(Plain)),
         _ => string.Empty,

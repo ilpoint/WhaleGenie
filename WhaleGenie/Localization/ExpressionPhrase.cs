@@ -27,6 +27,7 @@ public static class ExpressionPhrase
     {
         HoleNode => Strings.Get("Expr.Say.Hole"),
         NumberNode number => number.Text,
+        DateNode date => date.Text,
         TextNode text => text.Text,
         VariableNode variable => nameOf(variable.Name),
         ConstantNode constant => Strings.Get($"Expr.Say.Value.{Constant(constant.Word)}"),
@@ -155,7 +156,7 @@ public static class ExpressionPhrase
     /// a variable, one of the words for true and false, or a place still to fill.
     /// </summary>
     private static bool Plain(ExpressionNode argument)
-        => argument is NumberNode or TextNode or VariableNode or ConstantNode or HoleNode;
+        => argument is NumberNode or DateNode or TextNode or VariableNode or ConstantNode or HoleNode;
 
     /// <summary>True when everything a piece names was written, so the piece has something to say.</summary>
     private static bool Complete(string piece, IReadOnlyList<ExpressionNode> arguments, int rest)

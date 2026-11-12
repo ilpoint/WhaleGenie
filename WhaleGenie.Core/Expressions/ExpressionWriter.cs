@@ -42,6 +42,10 @@ internal static class ExpressionWriter
     {
         switch (node)
         {
+            case DateNode date:
+                precedence = Atom;
+                return date.Text;
+
             case NumberNode number:
                 precedence = Atom;
                 return number.Text;

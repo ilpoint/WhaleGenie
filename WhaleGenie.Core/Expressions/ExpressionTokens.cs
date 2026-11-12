@@ -11,6 +11,10 @@ namespace WhaleGenie.Core.Expressions;
 public enum ExpressionTokenKind
 {
     Number,
+
+    /// <summary>A date written in the language's one shape, such as <c>2026-11-12</c>.</summary>
+    Date,
+
     Text,
     Variable,
     Name,
@@ -57,6 +61,16 @@ public static class ExpressionTokens
             if (char.IsDigit(character)
                 || (character == '.' && index + 1 < source.Length && char.IsDigit(source[index + 1])))
             {
+                // A date is one value, not three numbers with two subtractions between them. It is
+                // read before the number branch so 2026-11-12 cannot become 2003.
+                if (TryReadDate(source, index, out var dateEnd, out var dateText))
+                {
+                    tokens.Add(new ExpressionToken(ExpressionTokenKind.Date, index,
+                        dateEnd - index, dateText, 0));
+                    index = dateEnd;
+                    continue;
+                }
+
                 var start = index;
                 while (index < source.Length && (char.IsDigit(source[index]) || source[index] == '.'))
                 {
@@ -255,5 +269,111 @@ public static class ExpressionTokens
         tokens.Add(new ExpressionToken(ExpressionTokenKind.Text, start, source.Length - start,
             builder.ToString(), 0));
         return source.Length;
+    }
+
+    /// <summary>
+    /// Reads the one shape a date is written in: four digits of year, a month, a day, and then
+    /// optionally a time after a space or a <c>T</c>. A shorter year, a missing part, a day that
+    /// does not exist, or a date with something stuck to its end — <c>2026-11-12.csv</c> — is not a
+    /// date, and is left to the reader as the numbers and signs it was written as.
+    /// </summary>
+    private static bool TryReadDate(string source, int start, out int end, out string text)
+    {
+        end = start;
+        text = string.Empty;
+
+        if (start + 10 > source.Length)
+        {
+            return false;
+        }
+
+        for (var at = start; at < start + 4; at++)
+        {
+            if (!char.IsAsciiDigit(source[at]))
+            {
+                return false;
+            }
+        }
+
+        if (source[start + 4] != '-')
+        {
+            return false;
+        }
+
+        var monthAt = start + 5;
+        var monthEnd = Digits(source, monthAt, 2);
+        if (monthEnd == monthAt || monthEnd >= source.Length || source[monthEnd] != '-')
+        {
+            return false;
+        }
+
+        var dayAt = monthEnd + 1;
+        var dayEnd = Digits(source, dayAt, 2);
+        if (dayEnd == dayAt)
+        {
+            return false;
+        }
+
+        var year = int.Parse(source[start..(start + 4)], CultureInfo.InvariantCulture);
+        var month = int.Parse(source[monthAt..monthEnd], CultureInfo.InvariantCulture);
+        var day = int.Parse(source[dayAt..dayEnd], CultureInfo.InvariantCulture);
+        if (year < 1 || month is < 1 or > 12 || day < 1 || day > DateTime.DaysInMonth(year, month))
+        {
+            return false;
+        }
+
+        var stop = dayEnd;
+        if (stop < source.Length && source[stop] is ' ' or 'T')
+        {
+            var timeAt = stop + 1;
+            var timeEnd = Digits(source, timeAt, 2);
+            if (timeEnd - timeAt == 2 && timeEnd < source.Length && source[timeEnd] == ':')
+            {
+                var minuteAt = timeEnd + 1;
+                var minuteEnd = Digits(source, minuteAt, 2);
+                var hour = int.Parse(source[timeAt..timeEnd], CultureInfo.InvariantCulture);
+                var minute = int.Parse(source[minuteAt..minuteEnd], CultureInfo.InvariantCulture);
+                if (minuteEnd - minuteAt == 2 && hour < 24 && minute < 60)
+                {
+                    var secondsEnd = minuteEnd;
+                    if (secondsEnd + 3 <= source.Length
+                        && source[secondsEnd] == ':'
+                        && Digits(source, secondsEnd + 1, 2) == secondsEnd + 3)
+                    {
+                        var second = int.Parse(source[(secondsEnd + 1)..(secondsEnd + 3)],
+                            CultureInfo.InvariantCulture);
+                        if (second < 60)
+                        {
+                            secondsEnd += 3;
+                        }
+                    }
+
+                    stop = secondsEnd;
+                }
+            }
+        }
+
+        // A date is a value of its own only when nothing is stuck to it: 2026-11-12.csv names a
+        // file, and 2026-11-12abc is a name somebody typed.
+        if (stop < source.Length && (char.IsLetterOrDigit(source[stop]) || source[stop] is '_' or '.'))
+        {
+            return false;
+        }
+
+        end = stop;
+        text = source[start..stop];
+        return true;
+    }
+
+    /// <summary>The place after one or two digits, or the place it started at when there are none.</summary>
+    private static int Digits(string source, int at, int most)
+    {
+        var end = at;
+        while (end < source.Length && end - at < most && char.IsAsciiDigit(source[end]))
+        {
+            end++;
+        }
+
+        return end;
     }
 }

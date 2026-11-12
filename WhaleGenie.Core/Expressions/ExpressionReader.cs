@@ -34,6 +34,7 @@ internal static class ExpressionReader
 file enum TokenKind
 {
     Number,
+    Date,
     Text,
     Variable,
     Name,
@@ -72,6 +73,7 @@ file sealed class Parser
             var kind = token.Kind switch
             {
                 ExpressionTokenKind.Number => TokenKind.Number,
+                ExpressionTokenKind.Date => TokenKind.Date,
                 ExpressionTokenKind.Text => TokenKind.Text,
                 ExpressionTokenKind.Variable => TokenKind.Variable,
                 ExpressionTokenKind.Name => TokenKind.Name,
@@ -166,6 +168,10 @@ file sealed class Parser
             case TokenKind.Number:
                 _index++;
                 return new NumberNode(token.Text, token.Number);
+
+            case TokenKind.Date:
+                _index++;
+                return new DateNode(token.Text);
 
             case TokenKind.Text:
                 _index++;
