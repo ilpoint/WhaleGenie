@@ -165,6 +165,12 @@ public sealed partial class MacroRunner
 
     private StepFailure? _failure;
 
+    /// <summary>Whether this run has already said that its own table is growing without a ceiling.</summary>
+    private bool _localGrowthWarned;
+
+    /// <summary>How many names a run may keep before it says so, once.</summary>
+    private const int LocalNameWarning = 50_000;
+
     /// <summary>
     /// The keys and mouse buttons the macro has pressed and not yet let go, with the device each
     /// was pressed on so it is let go the same way — a key posted at one window has to be released
@@ -358,6 +364,7 @@ public sealed partial class MacroRunner
         _lastFrame = 0;
         _agreed.Clear();
         _steps = steps;
+        _localGrowthWarned = false;
 
         // A declaration belongs to the macro that wrote it. A store the debug window keeps between
         // runs would otherwise still be holding the names of whatever ran last.

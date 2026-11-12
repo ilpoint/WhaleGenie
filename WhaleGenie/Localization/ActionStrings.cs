@@ -564,6 +564,17 @@ internal static class ActionStrings
         ["control.setVariable.scope.option.local"] = "局部变量（仅本宏）",
         ["control.setVariable.scope.option.global"] = "全局变量（所有宏共享）",
 
+        ["control.clearVariable.name"] = "清除变量",
+        ["control.clearVariable.desc"] = "把一个名字清空：局部变量从本宏的表里删掉，之后读它和从没写过一样；"
+            + "全局变量属于项目、不能删，所以清除是把它的声明初值写回去。",
+        ["control.clearVariable.name.label"] = "变量名",
+        ["control.clearVariable.name.hint"] = "要清空的名字。清一个不存在的局部变量不会报错；"
+            + "全局变量必须先在变量中心创建。",
+        ["control.clearVariable.scope.label"] = "作用范围",
+        ["control.clearVariable.scope.hint"] = "清哪一层，默认局部变量。全局变量清除后回到它声明的初始值。",
+        ["control.clearVariable.scope.option.local"] = "局部变量（仅本宏）",
+        ["control.clearVariable.scope.option.global"] = "全局变量（所有宏共享）",
+
         ["control.incrementGlobal.name"] = "增加全局变量",
         ["control.incrementGlobal.desc"] = "给一个全局变量加上一个数，读取和写回是同一步；"
             + "多条宏同时加也不会丢掉其中一次，加完的数可以从返回值里接住。",

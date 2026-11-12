@@ -31,6 +31,9 @@ public static class MacroVariables
         }
 
         store.Live = system;
+        store.GlobalDefault = name => VariableCatalog.FindGlobal(name) is { } definition
+            ? VariableValues.Read(definition.Type, definition.DefaultValue, store)
+            : null;
 
         // A global's declared value is what it starts at, not what every run puts back. A second
         // run starting while the first is still going must see what the first wrote, so a name that

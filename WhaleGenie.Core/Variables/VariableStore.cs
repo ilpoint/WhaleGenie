@@ -66,6 +66,13 @@ public sealed class VariableStore : IVariableResolver
     /// <summary>Values every macro shares.</summary>
     public VariableBag Global { get; }
 
+    /// <summary>
+    /// Where a global's declared starting value comes from, for the steps that put one back. The
+    /// engine does not know the variable catalogue, so the program hands in the reader; without
+    /// one, clearing a global writes the empty value rather than guessing at a declaration.
+    /// </summary>
+    public Func<string, Value?>? GlobalDefault { get; set; }
+
     /// <summary>Values only the running macro sees.</summary>
     public VariableBag Local { get; private set; } = new();
 

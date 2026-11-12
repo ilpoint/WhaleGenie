@@ -1300,6 +1300,57 @@
     "Returns": []
   },
   {
+    "Key": "control.clearVariable",
+    "DisplayName": "Clear Variable",
+    "Description": "Empty a name again, so reading it fails until a step writes it.",
+    "Parameters": [
+      {
+        "Name": "name",
+        "Label": "Variable name",
+        "Hint": "The name to clear. A local one is taken out of this macro's table; a global one goes back to the value its declaration starts with.",
+        "Placeholder": "count",
+        "Kind": "Variable",
+        "OptionLabels": [],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      },
+      {
+        "Name": "scope",
+        "Label": "Scope",
+        "Hint": "Which layer to clear. A global variable belongs to the project and cannot be removed, so clearing one writes its declared value back.",
+        "Placeholder": "",
+        "Kind": "Choice",
+        "OptionLabels": [
+          "Local (this macro)",
+          "Global (shared)"
+        ],
+        "ForeignText": false,
+        "Advanced": false,
+        "EnabledBySibling": "",
+        "AppliesWhen": "",
+        "AppliesWhenValues": [],
+        "AppliesWhenAlso": "",
+        "AppliesWhenAlsoValues": [],
+        "PathIntent": 0,
+        "PathFilter": "",
+        "Increment": 1,
+        "Tall": false,
+        "AddLabelKey": ""
+      }
+    ],
+    "Returns": []
+  },
+  {
     "Key": "control.incrementGlobal",
     "DisplayName": "Add to Global Variable",
     "Description": "Add a number to a global variable as one step, so two macros adding at once do not lose an addition.",

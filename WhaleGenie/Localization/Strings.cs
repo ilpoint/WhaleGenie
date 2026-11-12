@@ -2378,6 +2378,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.CopiedToClipboard"] = "Copied {0} characters to the clipboard.",
         ["Log.ReadClipboard"] = "Read the clipboard, {0} characters long.",
         ["Log.ClearedClipboard"] = "Emptied the clipboard.",
+        ["Log.ClearedVariable"] = "Cleared {0}.",
+        ["Log.VariableTableLarge"] = "This run is keeping {0} names in its own table. A name built while the macro runs is kept until the run ends, so a loop that writes a new name every round keeps growing it.",
         ["Log.ReadClipboardImage"] = "Took the picture on the clipboard ({0}).",
         ["Log.NoClipboardImage"] =
             "There is no picture on the clipboard; this step handed no picture over.",
@@ -5063,6 +5065,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.CopiedToClipboard"] = "已复制 {0} 个字符到剪贴板。",
         ["Log.ReadClipboard"] = "已读取剪贴板，共 {0} 个字符。",
         ["Log.ClearedClipboard"] = "已清空剪贴板。",
+        ["Log.ClearedVariable"] = "已清除变量「{0}」。",
+        ["Log.VariableTableLarge"] = "这次运行自己的变量表已经有 {0} 个名字。运行期拼出来的名字会一直留到运行结束，每轮都写一个新名字的循环会让它一直增长。",
         ["Log.ReadClipboardImage"] = "已读取剪贴板上的图片（{0}）。",
         ["Log.NoClipboardImage"] = "剪贴板上没有图片，这一步没有交出图片。",
         ["Log.CopiedImageToClipboard"] = "已把 {0} 的图片复制到剪贴板。",

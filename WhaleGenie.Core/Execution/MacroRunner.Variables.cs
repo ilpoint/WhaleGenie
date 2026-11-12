@@ -35,7 +35,56 @@ public sealed partial class MacroRunner
         var target = Target(step, key);
         var value = ReadValue(step, "value");
         Variables.Set(key, value, target);
+        NoteLocalGrowth(depth);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
+    }
+
+    /// <summary>
+    /// Empties a name again. A local one is taken out of the table, so reading it afterwards is the
+    /// same failure as reading a name nothing ever wrote. A global belongs to the project and cannot
+    /// be removed from inside a macro, so clearing one writes its declared starting value back.
+    /// </summary>
+    private void ClearVariable(ExecutableStep step, int depth)
+    {
+        var key = ReadNameKey(step, "name");
+        var name = key.Name.Trim();
+        if (name.Length == 0)
+        {
+            throw new StepFailure(RunKeys.MissingVariable);
+        }
+
+        key = key with { Name = name };
+        if (string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!Variables.Global.Contains(key))
+            {
+                throw new StepFailure(RunKeys.GlobalMustExist, name);
+            }
+
+            Variables.Global.Set(key, Variables.GlobalDefault?.Invoke(name) ?? Value.Null);
+            Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedVariable, name);
+            return;
+        }
+
+        Variables.Local.Remove(key);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedVariable, name);
+    }
+
+    /// <summary>
+    /// Says once, in the log, that a run is keeping more names than a macro usually needs. A name
+    /// built while the macro runs — a row number in its spelling — is kept until the run ends, and
+    /// a loop that writes a new one every round grows the table without a ceiling. Nothing is
+    /// trimmed: cutting names out would lose values a macro may still read.
+    /// </summary>
+    private void NoteLocalGrowth(int depth)
+    {
+        if (_localGrowthWarned || Variables.Local.Count <= LocalNameWarning)
+        {
+            return;
+        }
+
+        _localGrowthWarned = true;
+        Log(LogLevel.Warn, depth, string.Empty, LogKeys.VariableTableLarge, Variables.Local.Count);
     }
 
     /// <summary>The key a Fail step reports, either the engine's default or the macro's own.</summary>

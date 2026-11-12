@@ -175,6 +175,9 @@ public sealed partial class MacroRunner
             case "control.setVariable":
                 SetVariable(step, depth);
                 return Signal.Normal;
+            case "control.clearVariable":
+                ClearVariable(step, depth);
+                return Signal.Normal;
             case "control.incrementGlobal":
                 IncrementGlobal(step, depth);
                 return Signal.Normal;

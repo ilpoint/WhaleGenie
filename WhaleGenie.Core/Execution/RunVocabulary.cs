@@ -309,6 +309,7 @@ public static class LogKeys
     public const string CancelledRun = "Log.CancelledRun";
     public const string CleanupFailed = "Log.CleanupFailed";
     public const string ClearedClipboard = "Log.ClearedClipboard";
+    public const string ClearedVariable = "Log.ClearedVariable";
     public const string ClickedColour = "Log.ClickedColour";
 
     public const string ClickedElement = "Log.ClickedElement";
@@ -425,6 +426,7 @@ public static class LogKeys
     public const string TextMissing = "Log.TextMissing";
     public const string UnknownCondition = "Log.UnknownCondition";
     public const string Unzipped = "Log.Unzipped";
+    public const string VariableTableLarge = "Log.VariableTableLarge";
     public const string Volume = "Log.Volume";
     public const string WaitedFor = "Log.WaitedFor";
     public const string WaitedRun = "Log.WaitedRun";
