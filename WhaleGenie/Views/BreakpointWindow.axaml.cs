@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -39,9 +40,9 @@ public partial class BreakpointWindow : AppWindow
         }
 
         if (await ValuePickerWindow.ShowFor(this, form.Expression, form.Choices,
-            ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { } built)
+            ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { Chosen: true } built)
         {
-            form.Expression = built;
+            form.Expression = FormulaText.Write(built.Value);
         }
     }
 

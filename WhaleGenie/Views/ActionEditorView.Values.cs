@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -37,9 +38,9 @@ public partial class ActionEditorView : UserControl
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
                 parameter.Variables, parameter.Definition.ReadMode, parameter.ReadAsFormula,
-                startOnFormula: true, target: parameter.Label) is { } built)
+                startOnFormula: true, target: parameter.Label) is { Chosen: true } built)
         {
-            parameter.WriteValue(built);
+            parameter.WriteValue(built.Value);
         }
     }
 
@@ -56,9 +57,9 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Text, cell.Variables,
-                ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { } built)
+                ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { Chosen: true } built)
         {
-            cell.Write(built);
+            cell.Write(built.Value);
         }
     }
 
@@ -79,7 +80,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionReadMode.VariableName, lookAtStep: LookAtStep) is not { Length: > 0 } picked)
+                ActionReadMode.VariableName, lookAtStep: LookAtStep) is not { Chosen: true } picked)
         {
             return;
         }
@@ -89,7 +90,7 @@ public partial class ActionEditorView : UserControl
         var caret = (button.FindAncestorOfType<TextBox>(true)
                 ?? button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
                     .OfType<TextBox>().FirstOrDefault())?.CaretIndex;
-        row.InsertVariable(picked, caret ?? row.OrVariable.Length);
+        row.InsertVariable(Formula.NameOf(picked.Value).Name, caret ?? row.OrVariable.Length);
     }
 
     /// <summary>
@@ -121,23 +122,23 @@ public partial class ActionEditorView : UserControl
             if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
                     parameter.Variables, parameter.Definition.ReadMode, parameter.ReadAsFormula,
                     startOnFormula: true, target: parameter.Label,
-                    startCaret: caret ?? parameter.CurrentText.Length) is { } written)
+                    startCaret: caret ?? parameter.CurrentText.Length) is { Chosen: true } written)
             {
-                parameter.WriteValue(written);
+                parameter.WriteValue(written.Value);
             }
 
             return;
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionReadMode.VariableName, target: parameter.Label) is not { Length: > 0 } picked)
+                ActionReadMode.VariableName, target: parameter.Label) is not { Chosen: true } picked)
         {
             return;
         }
 
         // A name goes in as a piece of the value rather than as the line it is written as: the
         // field keeps a shape, so nothing about the way a formula spells a name reaches the user.
-        parameter.InsertName(picked.TrimStart('$'), caret);
+        parameter.InsertName(Formula.NameOf(picked.Value).Name, caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)
@@ -151,9 +152,9 @@ public partial class ActionEditorView : UserControl
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
         if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultValue,
-                variables, ActionReadMode.WholeValue, startOnFormula: true) is { } built)
+                variables, ActionReadMode.WholeValue, startOnFormula: true) is { Chosen: true } built)
         {
-            draft.DefaultValue = built;
+            draft.DefaultValue = FormulaText.Write(built.Value);
         }
     }
 

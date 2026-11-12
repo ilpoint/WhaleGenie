@@ -1,4 +1,5 @@
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.ViewModels;
 using Xunit;
 
@@ -51,7 +52,7 @@ public partial class ValuePickerTests
     public void An_empty_cell_can_be_confirmed_so_the_window_can_clear_it()
     {
         var form = new ValuePickerViewModel(null, Variables(), ActionReadMode.WholeValue);
-        string? closed = null;
+        ValuePick? closed = null;
         form.CloseRequested += value => closed = value;
 
         Assert.True(form.CanConfirm);
@@ -59,7 +60,8 @@ public partial class ValuePickerTests
 
         form.Confirm();
 
-        Assert.Equal(string.Empty, closed);
+        Assert.True(closed!.Chosen);
+        Assert.Equal(Formula.Nothing, closed.Value);
     }
 
     /// <summary>

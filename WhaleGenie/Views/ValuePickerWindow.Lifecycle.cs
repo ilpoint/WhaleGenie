@@ -107,7 +107,7 @@ public partial class ValuePickerWindow : AppWindow
     /// itself, so offering one would be a promise the step cannot keep. Every other cell says how
     /// it is read, and the window checks the line the same way the field will read it.
     /// </summary>
-    public static async Task<string?> ShowFor(Window owner, string? seed,
+    public static async Task<ValuePick> ShowFor(Window owner, string? seed,
         IReadOnlyList<VariableChoice>? variables,
         ActionReadMode readMode = ActionReadMode.WholeValue, bool bareNames = false,
         bool startOnFormula = false, string? target = null, int startCaret = -1,
@@ -125,7 +125,7 @@ public partial class ValuePickerWindow : AppWindow
             StartCaret = startCaret,
         };
 
-        return await window.ShowDialog<string?>(owner);
+        return await window.ShowDialog<ValuePick>(owner) ?? ValuePick.Cancelled;
     }
 
     /// <summary>

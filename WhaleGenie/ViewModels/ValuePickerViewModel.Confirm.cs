@@ -26,7 +26,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         {
             if (Wall.Looking is { } chosen)
             {
-                CloseRequested?.Invoke(chosen.Token);
+                CloseRequested?.Invoke(new ValuePick(Formula.Name(chosen.Name), true));
             }
 
             return;
@@ -35,14 +35,15 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         // An empty line is a value too: it is how a cell is cleared without leaving the window.
         if (_reads || Text.Trim().Length == 0)
         {
-            CloseRequested?.Invoke(Text.Trim());
+            CloseRequested?.Invoke(new ValuePick(_parsed ?? Formula.Nothing, true));
         }
     }
 
     /// <summary>Hands back one name, for a cell that holds nothing else.</summary>
-    public void Choose(string token) => CloseRequested?.Invoke(token);
+    public void Choose(string token)
+        => CloseRequested?.Invoke(new ValuePick(Formula.Name(token.TrimStart('$')), true));
 
-    public void Cancel() => CloseRequested?.Invoke(null);
+    public void Cancel() => CloseRequested?.Invoke(ValuePick.Cancelled);
 
     /// <summary>Why the formula does not read, or that it does. Empty is not a mistake yet.</summary>
     private void CheckText()
@@ -54,6 +55,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
         var written = Text.Trim();
         var reads = TryReadLine(written, out var parsed, out var problem, out var fault);
+        _parsed = parsed;
         _reads = reads;
         NoteIsProblem = written.Length > 0 && !_reads;
         Note = written.Length == 0

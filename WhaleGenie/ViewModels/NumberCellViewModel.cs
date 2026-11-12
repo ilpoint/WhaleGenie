@@ -110,6 +110,8 @@ public partial class NumberCellViewModel : ViewModelBase
     /// a plain number is a number and anything else is an expression, and this decides that from
     /// what is written rather than from what was here a moment ago.
     /// </summary>
+    public void Write(ExpressionNode value) => Write(Expression.Render(value, bare: true));
+
     public void Write(string? value)
     {
         var written = (value ?? string.Empty).Trim();

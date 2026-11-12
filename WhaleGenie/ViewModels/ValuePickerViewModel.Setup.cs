@@ -78,8 +78,8 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         CheckText();
     }
 
-    /// <summary>Raised with what the cell should hold, or null when the window was left alone.</summary>
-    public event Action<string?>? CloseRequested;
+    /// <summary>Raised with what the cell should hold, or a cancelled pick when it was left alone.</summary>
+    public event Action<ValuePick>? CloseRequested;
 
     /// <summary>Raised with a step somebody asked to be shown, so the editor behind can look.</summary>
     public event Action<MacroStep>? Jumped;

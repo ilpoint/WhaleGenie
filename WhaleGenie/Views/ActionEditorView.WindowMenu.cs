@@ -13,6 +13,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -190,12 +191,12 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionReadMode.VariableName) is not { Length: > 0 } picked)
+                ActionReadMode.VariableName) is not { Chosen: true } picked)
         {
             return;
         }
 
-        parameter.UseWindowVariable(picked);
+        parameter.UseWindowVariable(Formula.NameOf(picked.Value).Name);
     }
 
     /// <summary>One line of the window menu: what it says, what it does, and whether it is the one in force.</summary>

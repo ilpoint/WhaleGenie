@@ -141,12 +141,12 @@ public partial class MacroEditorWindow : AppWindow
             var caret = line?.SelectionStart ?? row.CaseValuesText.Length;
             if (await ValuePickerWindow.ShowFor(this, row.CaseValuesText,
                     _viewModel.CollectVariables(), ActionReadMode.WholeValue,
-                    startOnFormula: true, startCaret: caret) is not { } written)
+                    startOnFormula: true, startCaret: caret) is not { Chosen: true } written)
             {
                 return;
             }
 
-            row.CaseValuesText = written;
+            row.CaseValuesText = FormulaText.Write(written.Value);
         }
         finally
         {

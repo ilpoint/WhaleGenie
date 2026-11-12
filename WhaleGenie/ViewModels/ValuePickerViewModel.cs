@@ -60,4 +60,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     private bool _reads;
     private int _caret;
+
+    /// <summary>The shape the last check read the line into, which is what confirming hands back.</summary>
+    private ExpressionNode? _parsed;
 }

@@ -121,6 +121,37 @@ public partial class StepParameterViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Puts a shape in the field, keeping the identity each name carries. The text is rebuilt from
+    /// the shape rather than the shape being read out of the text again, so a window that handed
+    /// over a bound name does not lose the binding on the way in.
+    /// </summary>
+    public void WriteValue(ExpressionNode value)
+    {
+        if (!IsNumber)
+        {
+            _written = value;
+            _composing = true;
+            try
+            {
+                Text = ReadAsFormula ? Expression.Render(value, bare: true) : FormulaText.Write(value);
+            }
+            finally
+            {
+                _composing = false;
+            }
+
+            RebuildParts();
+            return;
+        }
+
+        // A number is one box or the other: let the ordinary write decide which, then keep the
+        // original shape as the value so the round trip does not lose what the window carried.
+        WriteValue(Expression.Render(value, bare: true));
+        _written = value;
+        RebuildParts();
+    }
+
+    /// <summary>
     /// Puts a plain number in the field, dropping an expression that was there. This is what the
     /// screen picker writes when it takes the pointer's place.
     /// </summary>
