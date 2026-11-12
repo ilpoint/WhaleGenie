@@ -682,6 +682,7 @@ public sealed class VariableBag : IVariableResolver
         ValueKind.Date => value.IsDate
             || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out _),
+        ValueKind.Image => value.IsImage,
         _ => value.Kind == kind,
     };
 }

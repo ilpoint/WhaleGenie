@@ -409,7 +409,7 @@
       },
       {
         "Name": "reverse",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -1681,7 +1681,7 @@
       {
         "Name": "skipBlankLines",
         "Group": "reading",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -1693,7 +1693,7 @@
       {
         "Name": "trimLines",
         "Group": "reading",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -1879,7 +1879,7 @@
       {
         "Name": "timestamp",
         "Group": "entry",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -1989,7 +1989,7 @@
       },
       {
         "Name": "toRecycleBin",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2327,7 +2327,7 @@
       {
         "Name": "overwrite",
         "Group": "clash",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2366,7 +2366,7 @@
       {
         "Name": "includeTopFolder",
         "Group": "source",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2417,7 +2417,7 @@
       },
       {
         "Name": "recurse",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2484,7 +2484,7 @@
       {
         "Name": "recurse",
         "Group": "picking",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2588,7 +2588,7 @@
       {
         "Name": "descending",
         "Group": "order",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2600,7 +2600,7 @@
       {
         "Name": "relative",
         "Group": "order",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2836,7 +2836,7 @@
       {
         "Name": "skipBlankLines",
         "Group": "reading",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2848,7 +2848,7 @@
       {
         "Name": "trimCells",
         "Group": "reading",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -2875,7 +2875,7 @@
       {
         "Name": "hasHeader",
         "Group": "reading",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -3071,7 +3071,7 @@
       {
         "Name": "align",
         "Group": "writing",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -3128,7 +3128,7 @@
       {
         "Name": "quoteAll",
         "Group": "writing",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -3862,7 +3862,7 @@
       {
         "Name": "hidden",
         "Group": "options",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -3874,7 +3874,7 @@
       {
         "Name": "runAsAdmin",
         "Group": "options",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -4259,7 +4259,7 @@
       },
       {
         "Name": "force",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -4375,7 +4375,7 @@
       {
         "Name": "streamOutput",
         "Group": "options",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -5884,7 +5884,7 @@
       },
       {
         "Name": "details",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -6268,7 +6268,7 @@
       {
         "Name": "swallow",
         "Group": "found",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7116,7 +7116,7 @@
       {
         "Name": "useCursor",
         "Group": "where",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7172,7 +7172,7 @@
       {
         "Name": "moveBack",
         "Group": "press",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7361,7 +7361,7 @@
       {
         "Name": "useCursor",
         "Group": "where",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7417,7 +7417,7 @@
       {
         "Name": "moveBack",
         "Group": "press",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7592,7 +7592,7 @@
       {
         "Name": "useCursor",
         "Group": "where",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7768,7 +7768,7 @@
       {
         "Name": "useCursor",
         "Group": "where",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -7944,7 +7944,7 @@
       {
         "Name": "useCursor",
         "Group": "where",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -10914,7 +10914,7 @@
       {
         "Name": "missingIsFailure",
         "Group": "found",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -11477,7 +11477,7 @@
       {
         "Name": "missingIsFailure",
         "Group": "found",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -13396,7 +13396,7 @@
       {
         "Name": "table",
         "Group": "read",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -13648,7 +13648,7 @@
       {
         "Name": "caseSensitive",
         "Group": "target",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -13660,7 +13660,7 @@
       {
         "Name": "trim",
         "Group": "target",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -13672,7 +13672,7 @@
       {
         "Name": "multiline",
         "Group": "target",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -14107,7 +14107,7 @@
       {
         "Name": "caseSensitive",
         "Group": "target",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -14119,7 +14119,7 @@
       {
         "Name": "trim",
         "Group": "target",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -14131,7 +14131,7 @@
       {
         "Name": "multiline",
         "Group": "target",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -15567,7 +15567,7 @@
       {
         "Name": "clearFirst",
         "Group": "entry",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -16586,7 +16586,7 @@
       {
         "Name": "headless",
         "Group": "options",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -16703,7 +16703,7 @@
       {
         "Name": "force",
         "Group": "press",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -17414,7 +17414,7 @@
       {
         "Name": "checked",
         "Group": "state",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": true,
@@ -18342,7 +18342,7 @@
       {
         "Name": "sendsInput",
         "Group": "code",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -18472,7 +18472,7 @@
       {
         "Name": "sendsInput",
         "Group": "code",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -18670,7 +18670,7 @@
       {
         "Name": "sendsInput",
         "Group": "code",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,
@@ -18776,7 +18776,7 @@
       {
         "Name": "sendsInput",
         "Group": "code",
-        "Shape": "Flag",
+        "Shape": "Bool",
         "ReadMode": "Text",
         "Picker": "None",
         "Required": false,

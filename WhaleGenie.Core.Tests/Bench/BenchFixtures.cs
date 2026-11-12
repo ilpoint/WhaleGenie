@@ -274,10 +274,10 @@ internal static class BenchFixtures
         {
             parameters.RemoveAll(parameter => parameter.Name == "body");
             parameters.Add(Fields.Steps("body", new ExecutableStep
-                    {
-                        Type = "control.fail",
-                        Parameters = [Fields.Text("reason", "bench")],
-                    }));
+            {
+                Type = "control.fail",
+                Parameters = [Fields.Text("reason", "bench")],
+            }));
         }
 
         if (action.Returns.Count > 0)
@@ -352,7 +352,7 @@ internal static class BenchFixtures
             case ActionValueShape.Rows:
                 return Fields.Rows(parameter.Name, Row(parameter));
 
-            case ActionValueShape.Flag:
+            case ActionValueShape.Bool:
                 return Fields.Text(parameter.Name, Wrote(parameter) ? parameter.DefaultValue : "false");
 
             case ActionValueShape.Number:

@@ -58,7 +58,7 @@ public sealed partial class MacroRunner
                 _images.Remove(name);
             }
 
-            Give(step, "image", Value.FromText(string.Empty));
+            Give(step, "image", Value.FromImage(string.Empty));
             Log(LogLevel.Warn, depth, step.Type, LogKeys.NoClipboardImage);
             return;
         }
@@ -72,7 +72,7 @@ public sealed partial class MacroRunner
         // is nothing on the screen to mark and nothing to score.
         Saw(step, LookKind.Clipboard, picture, default, [], 0);
 
-        Give(step, "image", Value.FromText($"<image {picture.Width}x{picture.Height}>"));
+        Give(step, "image", Value.FromImage($"<image {picture.Width}x{picture.Height}>"));
         Give(step, FieldNames.Width, Value.FromNumber(picture.Width));
         Give(step, FieldNames.Height, Value.FromNumber(picture.Height));
         Log(LogLevel.Info, depth, step.Type, LogKeys.ReadClipboardImage,

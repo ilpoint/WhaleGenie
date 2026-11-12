@@ -30,6 +30,10 @@ public static class JsonValues
                 // is $date, so a saved date returns as a date instead of as the line it was written
                 // as — which is what a persistent global needs to survive a restart.
                 return new JsonObject { ["$date"] = Value.TextOf(value.Date) };
+            case ValueKind.Image:
+                // The handle, not the pixels: a picture belongs to the run that took it, and what
+                // is written down is how to name it.
+                return new JsonObject { ["$image"] = value.AsText() };
             case ValueKind.Record:
                 {
                     var made = new JsonObject();
@@ -59,6 +63,7 @@ public static class JsonValues
         null => Value.Null,
         JsonArray array => Value.FromList(array.Select(FromJson)),
         JsonObject stamped when Moment(stamped) is { } moment => Value.FromDate(moment),
+        JsonObject picture when Handle(picture) is { } handle => Value.FromImage(handle),
         JsonObject obj => Value.FromRecord(obj.Select(pair => (pair.Key, FromJson(pair.Value)))),
         JsonValue value => Scalar(value),
         _ => Value.Null,
@@ -75,6 +80,13 @@ public static class JsonValues
             && DateTimeOffset.TryParse(written, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var moment)
                 ? moment
+                : null;
+
+    /// <summary>The handle an object stands for, or none. Only a lone <c>$image</c> is a picture.</summary>
+    private static string? Handle(JsonObject node)
+        => node.Count == 1 && node["$image"] is JsonValue stamp
+            && stamp.TryGetValue<string>(out var written)
+                ? written
                 : null;
 
     /// <summary>A value written out as the JSON text it is worth.</summary>

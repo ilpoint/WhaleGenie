@@ -77,7 +77,7 @@ public static class VariableDropResolver
             _ when target.Shape is ActionValueShape.List => "list",
             _ when target.Shape is ActionValueShape.Record => "record",
             _ when target.Shape is ActionValueShape.Image => "image",
-            _ when target.Shape is ActionValueShape.Flag => "bool",
+            _ when target.Shape is ActionValueShape.Bool => "bool",
             _ when target.Shape is ActionValueShape.Number => "number",
             _ => string.Empty,
         };

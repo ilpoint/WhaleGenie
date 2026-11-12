@@ -36,7 +36,7 @@ public sealed partial class MacroRunner
         // The picture is kept under the name of the image result, and only there: a step that was
         // told not to hand the picture over leaves nothing for a later step to search in, which is
         // what leaving that result unticked means.
-        var name = Give(step, "image", Value.FromText($"<image {frame.Width}x{frame.Height}>"));
+        var name = Give(step, "image", Value.FromImage($"<image {frame.Width}x{frame.Height}>"));
         if (name.Length > 0)
         {
             _images[name] = frame;

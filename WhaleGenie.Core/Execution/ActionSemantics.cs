@@ -44,7 +44,7 @@ public enum ActionValueShape
 {
     Text,
     Number,
-    Flag,
+    Bool,
     Choice,
     Steps,
     Rows,
@@ -316,7 +316,7 @@ public sealed class ActionParameterSemantics
            && DefaultValue.Length == 0
            && EmptyMeans is null
            && Shape is not (ActionValueShape.Steps or ActionValueShape.Rows
-               or ActionValueShape.Flag);
+               or ActionValueShape.Bool);
 }
 
 /// <summary>What a column of a row list is for.</summary>

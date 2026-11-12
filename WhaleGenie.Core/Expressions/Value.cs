@@ -26,6 +26,14 @@ public enum ValueKind
     /// a listing are records: several answers about one thing, which belong together.
     /// </summary>
     Record,
+
+    /// <summary>
+    /// A picture the run is holding: a capture, or what the clipboard had on it. The value is the
+    /// handle the picture is known by rather than its pixels, which live with the run and are let go
+    /// of when it ends. It is its own kind so a picture is not mistaken for the line that describes
+    /// it, and so a step that wants a picture says so.
+    /// </summary>
+    Image,
 }
 
 /// <summary>
@@ -66,6 +74,13 @@ public sealed class Value : IEquatable<Value>
     public static Value FromDate(DateTimeOffset date)
         => new(ValueKind.Date, 0, false, string.Empty, null, date: date);
 
+    /// <summary>
+    /// A picture, written as the handle it is known by. The handle is what a log line, a file of
+    /// results and a comparison can carry; the pixels stay with the run that took them.
+    /// </summary>
+    public static Value FromImage(string handle)
+        => new(ValueKind.Image, 0, false, handle ?? string.Empty, null);
+
     public static Value FromText(string? text) => new(ValueKind.Text, 0, false, text ?? string.Empty, null);
 
     public static Value FromList(IEnumerable<Value> items) => new(ValueKind.List, 0, false, string.Empty, [.. items]);
@@ -86,6 +101,8 @@ public sealed class Value : IEquatable<Value>
     public bool IsDate => Kind is ValueKind.Date;
 
     public bool IsRecord => Kind is ValueKind.Record;
+
+    public bool IsImage => Kind is ValueKind.Image;
 
     /// <summary>The raw number when <see cref="Kind"/> is <see cref="ValueKind.Number"/>.</summary>
     public double Number => _number;
@@ -158,6 +175,8 @@ public sealed class Value : IEquatable<Value>
                 // A date has an order, not a size: turning it into a number would make "add a day"
                 // and "add 86400" look like the same idea, and one of them is wrong twice a year.
                 throw ExpressionException.TypeMismatch("a date is not a number");
+            case ValueKind.Image:
+                throw ExpressionException.TypeMismatch("a picture is not a number");
             default:
                 return 0;
         }
@@ -174,6 +193,7 @@ public sealed class Value : IEquatable<Value>
         ValueKind.List => _items.Count > 0,
         ValueKind.Record => _fields.Count > 0,
         ValueKind.Date => true,
+        ValueKind.Image => true,
         _ => false,
     };
 
@@ -218,6 +238,7 @@ public sealed class Value : IEquatable<Value>
         ValueKind.Date => TextOf(_date),
         ValueKind.List => string.Join(", ", _items.Select(item => item.AsText())),
         ValueKind.Record => JsonValues.Written(this),
+        ValueKind.Image => _text,
         _ => string.Empty,
     };
 
@@ -294,6 +315,15 @@ public sealed class Value : IEquatable<Value>
             return Kind is ValueKind.Date && other.Kind is ValueKind.Date
                 ? _date.UtcTicks == other._date.UtcTicks
                 : string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (Kind is ValueKind.Image || other.Kind is ValueKind.Image)
+        {
+            // A picture is the handle it is known by, and only another picture is the same one:
+            // a line of text that happens to read like a handle is not a picture.
+            return Kind is ValueKind.Image
+                && other.Kind is ValueKind.Image
+                && string.Equals(_text, other._text, StringComparison.OrdinalIgnoreCase);
         }
 
         return string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);

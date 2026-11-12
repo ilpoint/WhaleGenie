@@ -125,7 +125,7 @@ public partial class ActionContractTests
     private static ActionValueShape ShapeOf(ActionParameterKind kind) => kind switch
     {
         ActionParameterKind.Number => ActionValueShape.Number,
-        ActionParameterKind.Bool => ActionValueShape.Flag,
+        ActionParameterKind.Bool => ActionValueShape.Bool,
         ActionParameterKind.Choice => ActionValueShape.Choice,
         ActionParameterKind.Steps => ActionValueShape.Steps,
         ActionParameterKind.Region or ActionParameterKind.KeySequence

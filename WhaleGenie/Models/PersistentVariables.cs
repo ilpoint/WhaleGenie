@@ -332,6 +332,7 @@ internal static class PersistentVariables
             ValueKind.Date => value.IsDate
                 || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
                     System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _),
+            ValueKind.Image => value.IsImage,
             _ => true,
         };
     }

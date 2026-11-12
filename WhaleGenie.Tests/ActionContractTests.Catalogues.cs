@@ -92,7 +92,7 @@ public partial class ActionContractTests
                 {
                     _ when value.Length == 0 => true,
                     ActionValueShape.Choice => sibling.Options.Contains(value, StringComparer.Ordinal),
-                    ActionValueShape.Flag => value is "true" or "false",
+                    ActionValueShape.Bool => value is "true" or "false",
                     // A number or text field can be compared with any literal; the sibling only
                     // has to exist for the question to be asked.
                     _ => true,
