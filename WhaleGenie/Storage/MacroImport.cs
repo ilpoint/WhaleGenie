@@ -218,7 +218,9 @@ public static class MacroImport
                     existing.Type = decision.Arriving.Type;
                     existing.DefaultValue = decision.Arriving.DefaultValue;
                     existing.Description = decision.Arriving.Description;
-                    existing.PersistValue = decision.Arriving.PersistValue;
+                    // Whether this is kept between runs belongs to the person who checked the box,
+                    // and a package says nothing about it: taking the arriving value would read as
+                    // "unchecked" and quietly delete the value they had saved.
                     overwritten.Add(name);
                     break;
 

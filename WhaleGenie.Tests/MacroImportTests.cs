@@ -97,7 +97,13 @@ public class MacroImportTests
         {
             WithGlobals(() =>
             {
-                VariableCatalog.Globals.Add(Global("次数", "number", "5"));
+                var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+                    Guid.NewGuid().ToString("N"));
+                using var persistent = PersistentVariables.UsePathForTests(
+                    Path.Combine(folder, "persistent-variables.json"));
+                var kept = Global("次数", "number", "5");
+                kept.PersistValue = true;
+                VariableCatalog.Globals.Add(kept);
                 var macro = Reads("循环");
                 var contents = Contents([macro], [Global("次数", "number", "1")]);
 
@@ -108,6 +114,9 @@ public class MacroImportTests
 
                 var existing = Assert.Single(VariableCatalog.Globals);
                 Assert.Equal("1", existing.DefaultValue);
+                // Whether a value is kept between runs is the person's choice, and a package says
+                // nothing about it: overwriting the declaration must not clear the checkbox.
+                Assert.True(existing.PersistValue);
                 Assert.Equal("$次数", macro.Steps[0].Parameters[0].Value);
             });
         });

@@ -8,11 +8,10 @@ namespace WhaleGenie.Core.Expressions;
 /// one and putting a record into a file all go through it, so a record read back from a file is the
 /// same record that went in.
 /// </summary>
-internal static class JsonValues
+public static class JsonValues
 {
     /// <summary>A value written as JSON, so it can go into a document or into a file.</summary>
-    public static JsonNode? Node(Value value)
-    {
+    public static JsonNode? Node(Value value)    {
         switch (value.Kind)
         {
             case ValueKind.Null:
