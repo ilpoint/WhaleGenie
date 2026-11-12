@@ -53,7 +53,7 @@ public static partial class MacroPackage
             manifestVariables.Add(new JsonObject
             {
                 ["name"] = variable.Name,
-                ["type"] = variable.Type,
+                ["type"] = variable.Type.ToString(),
                 ["default"] = variable.DefaultValue,
                 ["description"] = variable.Description,
                 ["id"] = variable.Id,

@@ -44,7 +44,7 @@ public static class MacroVariables
         {
             declared.Add(definition.Name);
             store.Global.Declare(definition.Id);
-            store.Global.DeclareType(definition.Name, VariableTypes.KindOf(definition.Type));
+            store.Global.DeclareType(definition.Name, definition.Type);
             store.Global.SetIfAbsent(definition.Name,
                 VariableValues.Read(definition.Type, definition.DefaultValue, store));
         }

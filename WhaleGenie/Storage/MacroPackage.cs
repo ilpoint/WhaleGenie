@@ -53,7 +53,7 @@ public static partial class MacroPackage
     /// reference would silently fall back to matching by spelling, which is the very thing this
     /// version exists to stop.
     /// </summary>
-    public const int FormatVersion = 27;
+    public const int FormatVersion = 28;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

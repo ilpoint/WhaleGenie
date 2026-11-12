@@ -87,13 +87,13 @@ public static class VariableDropResolver
             return VariableDropResolution.Reject();
         }
 
-        if (string.Equals(variable.Type, exact, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(VariableTypes.Name(variable.Type ?? ValueKind.Text), exact,
+                StringComparison.OrdinalIgnoreCase))
         {
             return Direct(variable);
         }
 
-        if (!string.Equals(variable.Type, "record", StringComparison.OrdinalIgnoreCase)
-            || exact is not ("number" or "bool" or "text"))
+        if (variable.Type is not ValueKind.Record || exact is not ("number" or "bool" or "text"))
         {
             return VariableDropResolution.Reject();
         }
@@ -120,7 +120,7 @@ public static class VariableDropResolver
 
     private static bool HasFields(VariableDragPayload variable, IReadOnlyList<string> wanted)
     {
-        if (!string.Equals(variable.Type, "record", StringComparison.OrdinalIgnoreCase))
+        if (variable.Type is not ValueKind.Record)
         {
             return false;
         }

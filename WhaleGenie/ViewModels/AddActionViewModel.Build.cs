@@ -201,7 +201,7 @@ public partial class AddActionViewModel
             {
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = draft.Type,
+                Type = VariableTypes.KindOf(draft.Type),
                 DefaultValue = draft.DefaultValue.Trim(),
                 Description = draft.Description.Trim(),
             };
@@ -209,7 +209,7 @@ public partial class AddActionViewModel
         }
         else
         {
-            existing.Type = draft.Type;
+            existing.Type = VariableTypes.KindOf(draft.Type);
             existing.DefaultValue = draft.DefaultValue.Trim();
             existing.Description = draft.Description.Trim();
         }

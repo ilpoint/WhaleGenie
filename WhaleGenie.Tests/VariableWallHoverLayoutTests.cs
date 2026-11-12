@@ -54,7 +54,7 @@ public class VariableWallHoverLayoutTests
             {
                 Name = $"value{index}",
                 Scope = VariableScope.Local,
-                Type = "text",
+                Type = ValueKind.Text,
                 Description = "写订单表时用到的值。",
                 Source = "读订单表",
                 Uses = index == 1

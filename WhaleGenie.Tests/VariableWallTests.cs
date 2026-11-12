@@ -22,20 +22,20 @@ namespace WhaleGenie.Tests;
 public class VariableWallTests
 {
     private static VariableChoice Local(string name) =>
-        new() { Name = name, Scope = VariableScope.Local, Type = "text" };
+        new() { Name = name, Scope = VariableScope.Local, Type = ValueKind.Text };
 
     private static VariableChoice Global(string name, bool persistent = false) =>
         new()
         {
             Name = name,
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
             Description = "总数",
             IsPersistent = persistent,
         };
 
     private static VariableChoice System(string name) =>
-        new() { Name = name, Scope = VariableScope.System, Type = "text", Description = "今天" };
+        new() { Name = name, Scope = VariableScope.System, Type = ValueKind.Text, Description = "今天" };
 
     private static VariableChoice Outcome(string name) =>
         new()
@@ -210,7 +210,7 @@ public class VariableWallTests
         {
             Name = "hit",
             Scope = VariableScope.Global,
-            Type = "record",
+            Type = ValueKind.Record,
             ContentReader = () => "{ x: 12, y: 8 }",
             Fields =
             [
@@ -230,7 +230,7 @@ public class VariableWallTests
         {
             Name = "answer",
             Scope = VariableScope.Local,
-            Type = "text",
+            Type = ValueKind.Text,
         };
         Assert.Contains(Strings.Get("VarWall.NoRuntimeValue"), local.HoverText,
             StringComparison.Ordinal);
@@ -339,7 +339,7 @@ public class VariableWallTests
         Assert.False(result.IsStepResult);
         Assert.Equal(VariableGroup.Local, result.Group);
         // What it holds comes from the result the step was told to hand over.
-        Assert.Equal("list", result.Type);
+        Assert.Equal(ValueKind.List, result.Type);
         Assert.True(ending.IsStepResult);
         Assert.Equal(VariableGroup.StepResult, ending.Group);
 

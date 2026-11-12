@@ -23,7 +23,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         OriginalName = source?.Name ?? string.Empty;
         Id = source?.Id ?? string.Empty;
         Name = source?.Name ?? string.Empty;
-        Type = source?.Type ?? "text";
+        Type = source is { } given ? VariableTypes.Name(given.Type) : "text";
         OriginalType = Type;
         DefaultValue = source?.DefaultValue ?? string.Empty;
         OriginalDefaultValue = DefaultValue;
@@ -120,15 +120,17 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         }
     }
 
-    public string DefaultPreview => VariableValues.Preview(Type, DefaultValue, Resolver);
-    public bool DefaultHasError => VariableValues.HasError(Type, DefaultValue, Resolver);
+    public string DefaultPreview =>
+        VariableValues.Preview(VariableTypes.KindOf(Type), DefaultValue, Resolver);
+    public bool DefaultHasError =>
+        VariableValues.HasError(VariableTypes.KindOf(Type), DefaultValue, Resolver);
 
     public VariableDefinition ToDefinition() => new()
     {
         Id = Id,
         Name = Name.Trim(),
         Scope = VariableScope.Global,
-        Type = Type,
+        Type = VariableTypes.KindOf(Type),
         DefaultValue = DefaultValue.Trim(),
         Description = Description.Trim(),
         PersistValue = PersistValue,
@@ -183,6 +185,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     }
 
     private static IReadOnlyList<ActionParameterOption> TypeChoices() =>
-        [.. VariableDefinition.TypeNames.Select(type =>
-            new ActionParameterOption(type, Strings.Get($"Variable.Type.{type}", type)))];
+        [.. VariableTypes.Declarable.Select(kind => new ActionParameterOption(
+            VariableTypes.Name(kind),
+            Strings.Get($"Variable.Type.{VariableTypes.Name(kind)}", VariableTypes.Name(kind))))];
 }

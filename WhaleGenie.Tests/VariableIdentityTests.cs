@@ -145,7 +145,7 @@ public class VariableIdentityTests
             Id = "a7k2m9",
             Name = "count",
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
         })
         {
             Name = "total",

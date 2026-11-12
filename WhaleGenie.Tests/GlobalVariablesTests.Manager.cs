@@ -34,7 +34,7 @@ public partial class GlobalVariablesTests
             {
                 Name = "editedByManager",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "1",
             });
             try
@@ -100,7 +100,7 @@ public partial class GlobalVariablesTests
             {
                 Name = "oldGlobal",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "4",
             });
             SharedVariables.Current.SetNumber("oldGlobal", 6);

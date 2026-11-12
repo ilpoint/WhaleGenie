@@ -23,8 +23,8 @@ public sealed class VariableChoice
 
     public required VariableScope Scope { get; init; }
 
-    /// <summary>What it holds: text, number, flag, colour, date or list.</summary>
-    public string Type { get; init; } = string.Empty;
+    /// <summary>What it holds, which is what the badge beside its name says.</summary>
+    public ValueKind? Type { get; init; }
 
     /// <summary>The fields a record holds, in catalogue order; empty when the shape is unknown.</summary>
     public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
@@ -75,8 +75,8 @@ public sealed class VariableChoice
     public IReadOnlyList<string> FieldLines =>
     [
         .. Fields.Select(part =>
-            $"{part.Name}: {Strings.Get($"Variable.Type.{ActionReturn.TypeNameOf(part.Type)}",
-                ActionReturn.TypeNameOf(part.Type))}"),
+            $"{part.Name}: {Strings.Get($"Variable.Type.{VariableTypes.Name(part.Type)}",
+                VariableTypes.Name(part.Type))}"),
     ];
 
     public bool HasFields => FieldLines.Count > 0;
@@ -158,7 +158,8 @@ public sealed class VariableChoice
                 new[]
                     {
                         Display,
-                        Strings.Get($"Variable.Type.{Type}", Type),
+                        Strings.Get($"Variable.Type.{VariableTypes.Name(Type ?? ValueKind.Text)}",
+                            VariableTypes.Name(Type ?? ValueKind.Text)),
                         Strings.Get($"VarWall.Group.{Group}"),
                     }
                     .Where(part => part.Length > 0));
@@ -299,7 +300,7 @@ public static class VariableChoices
                 Id = parameter.Id,
                 Name = name,
                 Scope = VariableScope.Local,
-                Type = ActionReturn.TypeNameOf(parameter.Type),
+                Type = parameter.Type,
                 Fields = FieldsOf(parameter.Fields),
                 Description = parameter.Description,
                 Source = Strings.Get("VarWall.Parameter"),
@@ -322,7 +323,7 @@ public static class VariableChoices
                 Id = result.Id,
                 Name = name,
                 Scope = VariableScope.Local,
-                Type = ActionReturn.TypeNameOf(result.Type),
+                Type = result.Type,
                 Fields = FieldsOf(result.Fields),
                 Description = result.Description,
                 Source = Strings.Get("VarWall.Result"),
@@ -342,7 +343,7 @@ public static class VariableChoices
                 continue;
             }
 
-            var type = ActionReturn.TypeNameOf(local.Type);
+            var type = local.Type;
             rows.Add(new VariableChoice
             {
                 Id = local.Id,
@@ -353,7 +354,7 @@ public static class VariableChoices
                 Source = Strings.Get("VarWall.Declared"),
                 Origin = VariableOrigin.DeclaredLocal,
                 Uses = UsesOf(uses, name),
-                ContentReader = () => VariableValues.Preview(type, local.Initial),
+                ContentReader = () => VariableValues.Preview(local.Type, local.Initial),
             });
         }
     }
@@ -472,7 +473,7 @@ public static class VariableChoices
                             Id = name.Id,
                             Name = name.Name,
                             Scope = VariableScope.Local,
-                            Type = result?.TypeName ?? "text",
+                            Type = result?.Type ?? ValueKind.Text,
                             Fields = result?.Fields ?? [],
                             Description = result?.LocalHint ?? string.Empty,
                             Source = step.PickerLabel,
@@ -518,7 +519,7 @@ public static class VariableChoices
                 {
                     Name = MacroRunner.OutcomeName(step.Id),
                     Scope = VariableScope.Local,
-                    Type = "text",
+                    Type = ValueKind.Text,
                     Description = Strings.Get("VarWall.Outcome"),
                     Source = step.PickerLabel,
                     IsStepResult = true,

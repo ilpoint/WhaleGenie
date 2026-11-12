@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -27,7 +28,7 @@ public partial class GlobalVariablesTests
                 {
                     Name = "base",
                     Scope = VariableScope.Global,
-                    Type = "number",
+                    Type = ValueKind.Number,
                     DefaultValue = "2",
                 },
             ], []);
@@ -75,14 +76,14 @@ public partial class GlobalVariablesTests
         {
             Name = "baseCount",
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
             DefaultValue = "4",
         };
         var derived = new VariableDefinition
         {
             Name = "derivedCount",
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
             DefaultValue = "$baseCount + 1",
         };
         VariableCatalog.Globals.Add(source);
@@ -119,7 +120,7 @@ public partial class GlobalVariablesTests
             {
                 Name = "baseCount",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "3",
             },
         ]);

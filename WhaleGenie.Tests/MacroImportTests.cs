@@ -243,7 +243,7 @@ public class MacroImportTests
     {
         Name = name,
         Scope = VariableScope.Global,
-        Type = type,
+        Type = VariableTypes.KindOf(type),
         DefaultValue = value,
     };
 

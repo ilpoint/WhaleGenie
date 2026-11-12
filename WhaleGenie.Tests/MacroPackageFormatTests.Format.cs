@@ -34,6 +34,7 @@ public partial class MacroPackageFormatTests
     [InlineData(24)]
     [InlineData(25)]
     [InlineData(26)]
+    [InlineData(27)]
     [InlineData(9)]
     public void A_package_from_an_older_format_is_refused(int version)
     {

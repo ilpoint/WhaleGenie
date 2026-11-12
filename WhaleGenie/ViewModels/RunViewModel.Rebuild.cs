@@ -52,7 +52,7 @@ public partial class RunViewModel
             Globals.Add(new RunGlobalVariable
             {
                 Name = shared.Name,
-                Type = shared.Type,
+                Type = VariableTypes.Name(shared.Type),
                 DefaultValue = shared.DefaultValue,
                 Description = shared.Description,
                 PersistValue = shared.PersistValue,
@@ -296,14 +296,14 @@ public partial class RunViewModel
             _ => Strings.Get("Variable.UnknownHint"),
         };
 
-    private static string TypeOf(Usage usage,
+    private static ValueKind TypeOf(Usage usage,
         IReadOnlyDictionary<string, VariableDefinition> system,
         IReadOnlyDictionary<string, VariableDefinition> globals)
         => usage.Scope switch
         {
             VariableScope.System when system.TryGetValue(usage.Name, out var builtIn) => builtIn.Type,
             VariableScope.Global when globals.TryGetValue(usage.Name, out var shared) => shared.Type,
-            _ => "text",
+            _ => ValueKind.Text,
         };
 
     private static string ValueOf(Usage usage,

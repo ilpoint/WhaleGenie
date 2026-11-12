@@ -47,7 +47,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
         IReadOnlyList<VariableUse>? uses = null) => new(
             originalName: source?.Name.Trim() ?? string.Empty,
             name: source?.Name.Trim() ?? string.Empty,
-            type: source?.Type is { } kind ? ActionReturn.TypeNameOf(kind) : "text",
+            type: source?.Type is { } kind ? VariableTypes.Name(kind) : "text",
             initial: source?.Initial ?? string.Empty,
             description: source?.Description ?? string.Empty,
             isDeclared: true,
@@ -58,7 +58,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     public static LocalVariableDraft FromStep(VariableChoice choice) => new(
         originalName: choice.Name,
         name: choice.Name,
-        type: choice.Type,
+        type: VariableTypes.Name(choice.Type ?? ValueKind.Text),
         initial: string.Empty,
         description: choice.Description,
         isDeclared: false,
@@ -142,14 +142,16 @@ public sealed partial class LocalVariableDraft : ObservableObject
     }
 
     /// <summary>What the initial value comes to, read the way a run reads it.</summary>
-    public string InitialPreview => VariableValues.Preview(Type, Initial, Resolver);
+    public string InitialPreview =>
+        VariableValues.Preview(VariableTypes.KindOf(Type), Initial, Resolver);
 
-    public bool HasInitialError => VariableValues.HasError(Type, Initial, Resolver);
+    public bool HasInitialError =>
+        VariableValues.HasError(VariableTypes.KindOf(Type), Initial, Resolver);
 
     public MacroLocalVariable ToLocal() => new()
     {
         Name = Name.Trim(),
-        Type = ActionReturn.TypeOf(Type),
+        Type = VariableTypes.KindOf(Type),
         Initial = Initial,
         Description = Description.Trim(),
     };
@@ -205,6 +207,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     }
 
     private static IReadOnlyList<ActionParameterOption> TypeChoices() =>
-        [.. VariableDefinition.TypeNames.Select(type =>
-            new ActionParameterOption(type, Strings.Get($"Variable.Type.{type}", type)))];
+        [.. VariableTypes.Declarable.Select(kind => new ActionParameterOption(
+            VariableTypes.Name(kind),
+            Strings.Get($"Variable.Type.{VariableTypes.Name(kind)}", VariableTypes.Name(kind))))];
 }

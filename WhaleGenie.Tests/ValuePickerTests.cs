@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -16,8 +17,8 @@ public partial class ValuePickerTests
 {
     private static IReadOnlyList<VariableChoice> Variables() =>
     [
-        new VariableChoice { Name = "count", Scope = VariableScope.Local, Type = "number" },
-        new VariableChoice { Name = "title", Scope = VariableScope.Local, Type = "text" },
+        new VariableChoice { Name = "count", Scope = VariableScope.Local, Type = ValueKind.Number },
+        new VariableChoice { Name = "title", Scope = VariableScope.Local, Type = ValueKind.Text },
     ];
 
     private static SlotSequence Root(ValuePickerViewModel form) => Assert.IsType<SlotSequence>(form.Recipe);

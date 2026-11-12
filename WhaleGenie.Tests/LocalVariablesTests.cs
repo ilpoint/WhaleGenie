@@ -81,7 +81,7 @@ public class LocalVariablesTests
 
         Assert.Equal(VariableOrigin.DeclaredLocal, row.Origin);
         Assert.Equal(VariableGroup.Local, row.Group);
-        Assert.Equal("number", row.Type);
+        Assert.Equal(ValueKind.Number, row.Type);
 
         // "No value until the macro runs" would be a lie: this one is written before the first
         // step, so the wall can say what it holds.
@@ -187,7 +187,7 @@ public class LocalVariablesTests
             {
                 Name = "total",
                 Scope = VariableScope.Local,
-                Type = "number",
+                Type = ValueKind.Number,
                 Origin = VariableOrigin.Local,
                 Source = "设置变量",
             };

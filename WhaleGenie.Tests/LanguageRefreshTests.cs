@@ -1,3 +1,4 @@
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -123,7 +124,7 @@ public class LanguageRefreshTests
                 {
                     Name = "total",
                     Scope = VariableScope.Global,
-                    Type = "number",
+                    Type = ValueKind.Number,
                 },
             ]);
             button = model.NewLabel;

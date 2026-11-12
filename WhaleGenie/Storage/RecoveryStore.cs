@@ -150,7 +150,7 @@ public static class RecoveryStore
             variables.Add(new JsonObject
             {
                 ["name"] = variable.Name,
-                ["type"] = variable.Type,
+                ["type"] = variable.Type.ToString(),
                 ["default"] = variable.DefaultValue,
                 ["description"] = variable.Description,
                 ["id"] = variable.Id,
@@ -280,7 +280,8 @@ public static class RecoveryStore
                 Id = variable["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = variable["type"]?.GetValue<string>() is { Length: > 0 } type ? type : "text",
+                Type = VariableTypes.KindOf(
+                    variable["type"]?.GetValue<string>()),
                 DefaultValue = variable["default"]?.GetValue<string>() ?? string.Empty,
                 Description = variable["description"]?.GetValue<string>() ?? string.Empty,
             });

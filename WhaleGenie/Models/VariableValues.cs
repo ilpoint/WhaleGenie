@@ -30,7 +30,7 @@ public static class VariableValues
         return store;
     }
 
-    public static bool TryRead(string type, string written, IVariableResolver? variables,
+    public static bool TryRead(ValueKind type, string written, IVariableResolver? variables,
         out Value value, out string error)
     {
         var text = (written ?? string.Empty).Trim();
@@ -48,13 +48,6 @@ public static class VariableValues
             return ConvertToType(type, value, out value, out error);
         }
 
-        if (type is "color" && text[0] != '$')
-        {
-            value = Value.FromText(text);
-            error = string.Empty;
-            return true;
-        }
-
         if (Expression.TryEvaluate(text, variables, out var evaluated, out var expressionError))
         {
             return ConvertToType(type, evaluated, out value, out error);
@@ -69,52 +62,53 @@ public static class VariableValues
 
         value = type switch
         {
-            "number" => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
-                out var number)
+            ValueKind.Number => double.TryParse(text, NumberStyles.Float,
+                CultureInfo.InvariantCulture, out var number)
                 ? Value.FromNumber(number)
                 : Value.Null,
-            "bool" => bool.TryParse(text, out var flag)
+            ValueKind.Bool => bool.TryParse(text, out var flag)
                 ? Value.FromBool(flag)
                 : Value.Null,
-            "list" => ListText.TryParse(text, variables, out var items, out _)
+            ValueKind.List => ListText.TryParse(text, variables, out var items, out _)
                 ? Value.FromList(items)
                 : Value.Null,
-            "date" => DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture,
+            ValueKind.Date => DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var moment)
                 ? Value.FromDate(moment)
                 : Value.Null,
             _ => Value.FromText(text),
         };
 
-        error = value.IsNull && type is "number" or "bool" or "list" or "date"
+        error = value.IsNull && type is ValueKind.Number or ValueKind.Bool
+            or ValueKind.List or ValueKind.Date
             ? text
             : string.Empty;
         return error.Length == 0;
     }
 
-    public static Value Read(string type, string written, IVariableResolver? variables = null)
+    public static Value Read(ValueKind type, string written, IVariableResolver? variables = null)
         => TryRead(type, written, variables, out var value, out _) ? value : Empty(type);
 
-    public static string Preview(string type, string written, IVariableResolver? variables = null)
+    public static string Preview(ValueKind type, string written, IVariableResolver? variables = null)
         => written.Trim().Length == 0
             ? string.Empty
             : TryRead(type, written, variables, out var value, out var error)
                 ? value.AsText()
                 : error;
 
-    public static bool HasError(string type, string written, IVariableResolver? variables = null)
+    public static bool HasError(ValueKind type, string written, IVariableResolver? variables = null)
         => !TryRead(type, written, variables, out _, out _);
 
-    private static bool ConvertToType(string type, Value source, out Value value, out string error)
+    private static bool ConvertToType(ValueKind type, Value source, out Value value, out string error)
     {
         try
         {
             value = type switch
             {
-                "number" => Value.FromNumber(source.AsNumber()),
-                "bool" => Value.FromBool(source.AsBool()),
-                "list" => Value.FromList(source.AsList()),
-                "date" => Moment(source),
+                ValueKind.Number => Value.FromNumber(source.AsNumber()),
+                ValueKind.Bool => Value.FromBool(source.AsBool()),
+                ValueKind.List => Value.FromList(source.AsList()),
+                ValueKind.Date => Moment(source),
                 _ => Value.FromText(source.AsText()),
             };
             error = string.Empty;
@@ -150,5 +144,5 @@ public static class VariableValues
     /// editor's preview read it from the same place, so a preview cannot promise a number where the
     /// run starts from an empty value.
     /// </summary>
-    private static Value Empty(string type) => ValueRules.Empty(ActionReturn.TypeOf(type));
+    private static Value Empty(ValueKind type) => ValueRules.Empty(type);
 }

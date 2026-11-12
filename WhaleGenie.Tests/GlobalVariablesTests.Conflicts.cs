@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -29,7 +30,7 @@ public partial class GlobalVariablesTests
             {
                 Name = "unchanged",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "1",
             };
             VariableCatalog.Globals.Add(definition);
@@ -97,7 +98,7 @@ public partial class GlobalVariablesTests
             {
                 Name = "liveOnly",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "1",
             });
             SharedVariables.Current.SetNumber("liveOnly", 1);

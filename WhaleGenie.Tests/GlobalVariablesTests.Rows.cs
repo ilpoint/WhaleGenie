@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -79,7 +80,7 @@ public partial class GlobalVariablesTests
             {
                 Name = "hidden",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "not a number",
             },
         ]);

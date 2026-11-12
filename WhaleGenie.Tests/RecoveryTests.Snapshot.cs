@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -47,7 +48,7 @@ public partial class RecoveryTests
             {
                 Name = "notes",
                 Scope = VariableScope.Global,
-                Type = "text",
+                Type = ValueKind.Text,
                 DefaultValue = "hi",
                 Description = "what to say",
             };

@@ -84,7 +84,7 @@ public partial class StepParameterViewModel : ViewModelBase
         var recordField = definition.Shape
             is ActionValueShape.Record or ActionValueShape.Point or ActionValueShape.Rect;
         var named = recordField
-            ? Variables.Where(choice => choice.Type == "record").Select(choice => choice.Name)
+            ? Variables.Where(choice => choice.Type == ValueKind.Record).Select(choice => choice.Name)
             : KnownNames;
         var suggestions = new List<string>();
         if (knowsFunctions || definition.AcceptsVariables)

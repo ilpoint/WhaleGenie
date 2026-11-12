@@ -124,14 +124,15 @@ public sealed class SystemVariableReader : ILiveVariables
             ? CultureInfo.GetCultureInfo("zh-CN")
             : CultureInfo.GetCultureInfo("en-US");
 
-    private static Value Convert(string type, string text) => type switch
+    private static Value Convert(ValueKind type, string text) => type switch
     {
-        "number" => double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture,
+        ValueKind.Number => double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture,
             out var number)
             ? Value.FromNumber(number)
             : Value.FromNumber(0),
-        "bool" => Value.FromBool(string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)),
-        "list" => ListText.TryParse(text, out var items, out _)
+        ValueKind.Bool => Value.FromBool(
+            string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)),
+        ValueKind.List => ListText.TryParse(text, out var items, out _)
             ? Value.FromList(items)
             : Value.FromList([]),
         _ => Value.FromText(text),

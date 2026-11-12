@@ -27,7 +27,7 @@ public class PersistentVariableTests
         {
             Name = "oldTotal",
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
             PersistValue = true,
         };
         VariableCatalog.Globals.Add(definition);
@@ -42,7 +42,7 @@ public class PersistentVariableTests
             {
                 Name = "newTotal",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
             };
             VariableCatalog.Globals.Add(renamed);
             PersistentVariables.ApplyTo([renamed]);
@@ -84,7 +84,7 @@ public class PersistentVariableTests
             {
                 Name = "total",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "1",
             };
             VariableCatalog.Globals.Add(definition);
@@ -101,7 +101,7 @@ public class PersistentVariableTests
             {
                 Name = "total",
                 Scope = VariableScope.Global,
-                Type = "number",
+                Type = ValueKind.Number,
                 DefaultValue = "1",
             };
             VariableCatalog.Globals.Add(reopened);
@@ -156,7 +156,7 @@ public class PersistentVariableTests
         {
             Name = "amount",
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
             DefaultValue = "3",
         };
 
@@ -191,7 +191,7 @@ public class PersistentVariableTests
         {
             Name = "ordinary",
             Scope = VariableScope.Global,
-            Type = "text",
+            Type = ValueKind.Text,
         };
 
         Assert.False(definition.PersistValue);
@@ -362,7 +362,7 @@ public class PersistentVariableTests
         Id = id,
         Name = name,
         Scope = VariableScope.Global,
-        Type = type,
+        Type = VariableTypes.KindOf(type),
     };
 
     private static string TempPath(out string folder)

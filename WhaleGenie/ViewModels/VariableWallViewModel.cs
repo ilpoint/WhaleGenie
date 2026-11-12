@@ -282,7 +282,8 @@ public partial class VariableWallViewModel : ViewModelBase
         return search.Length == 0
             || choice.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
             || choice.Display.Contains(search, StringComparison.OrdinalIgnoreCase)
-            || choice.Type.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || (choice.Type is { } kind
+                && VariableTypes.Name(kind).Contains(search, StringComparison.OrdinalIgnoreCase))
             || choice.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
             || choice.Source.Contains(search, StringComparison.OrdinalIgnoreCase);
     }

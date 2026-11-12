@@ -229,36 +229,7 @@ public sealed class ActionReturn
     public string LocalHint => Strings.Get($"{OwnerKey}.return.{Key}.hint", Hint);
 
     /// <summary>What the variable pickers call this kind of value.</summary>
-    public string TypeName => TypeNameOf(Type);
-
-    /// <summary>
-    /// The same name for a declared macro value, so a record parameter is offered to record fields
-    /// and a flag is shown under the word the variable tables use.
-    /// </summary>
-    public static string TypeNameOf(ValueKind type) => type switch
-    {
-        ValueKind.Number => "number",
-        ValueKind.Bool => "bool",
-        ValueKind.List => "list",
-        ValueKind.Record => "record",
-        ValueKind.Image => "image",
-        _ => "text",
-    };
-
-    /// <summary>
-    /// The kind a name stands for, so a value written the way the variable tables spell it goes
-    /// back to the kind the engine reads it as. Anything unrecognised is text, the one kind every
-    /// value can be read as.
-    /// </summary>
-    public static ValueKind TypeOf(string name) => name switch
-    {
-        "number" => ValueKind.Number,
-        "bool" => ValueKind.Bool,
-        "list" => ValueKind.List,
-        "record" => ValueKind.Record,
-        "image" => ValueKind.Image,
-        _ => ValueKind.Text,
-    };
+    public string TypeName => VariableTypes.Name(Type);
 }
 
 /// <summary>

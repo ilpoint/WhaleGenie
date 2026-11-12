@@ -44,8 +44,8 @@ public sealed class VariableFieldPickerWindow : AppWindow
                     new TextBlock { Text = field.Name, Classes = { "Body" } },
                     new TextBlock
                     {
-                        Text = Strings.Get($"Variable.Type.{ActionReturn.TypeNameOf(field.Type)}",
-                            ActionReturn.TypeNameOf(field.Type)),
+                        Text = Strings.Get($"Variable.Type.{VariableTypes.Name(field.Type)}",
+                            VariableTypes.Name(field.Type)),
                         Classes = { "Caption" },
                     },
                 },

@@ -25,7 +25,7 @@ internal static class PersistentVariables
     /// <summary>The shape this build writes. Version 1 kept names and the text values read as.</summary>
     private const int FileVersion = 2;
 
-    private sealed record Saved(string Id, string Name, string Type, Value Value);
+    private sealed record Saved(string Id, string Name, ValueKind Type, Value Value);
 
     private static readonly object Gate = new();
     private static readonly Dictionary<string, Saved> ByKey = new(StringComparer.Ordinal);
@@ -315,8 +315,8 @@ internal static class PersistentVariables
             : VariableValues.Read(definition.Type, definition.DefaultValue,
                 VariableValues.DesignContext());
 
-    private static bool Fits(string type, Value value)
-        => ValueRules.Accepts(VariableTypes.KindOf(type), value);
+    private static bool Fits(ValueKind type, Value value)
+        => ValueRules.Accepts(type, value);
 
     private static void Load()
     {
@@ -379,19 +379,19 @@ internal static class PersistentVariables
         if (version < 2)
         {
             // Version 1 kept the value's text and nothing about its type. What kind it is comes
-            // from the declaration when the project opens, which is why the type is left empty.
+            // from the declaration when the project opens, so it is read as the text it is.
             var text = entry["value"];
             var legacy = text is JsonValue value && value.TryGetValue<string>(out var written)
                 ? Value.FromText(written)
                 : JsonValues.FromJson(text);
-            Store(new Saved(string.Empty, name, string.Empty, legacy));
+            Store(new Saved(string.Empty, name, ValueKind.Text, legacy));
             return;
         }
 
         Store(new Saved(
             entry["id"]?.GetValue<string>() ?? string.Empty,
             name,
-            entry["type"]?.GetValue<string>() ?? "text",
+            VariableTypes.KindOf(entry["type"]?.GetValue<string>()),
             JsonValues.FromJson(entry["value"])));
     }
 
@@ -424,7 +424,7 @@ internal static class PersistentVariables
                 {
                     ["id"] = saved.Id,
                     ["name"] = saved.Name,
-                    ["type"] = saved.Type,
+                    ["type"] = saved.Type.ToString(),
                     ["value"] = JsonValues.Node(saved.Value),
                 })
                 .ToList();

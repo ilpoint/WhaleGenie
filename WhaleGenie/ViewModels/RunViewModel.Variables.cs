@@ -106,11 +106,11 @@ public partial class RunViewModel
     /// nothing about its type until something is written, so the value that is there answers
     /// instead; with neither, the type is left blank rather than guessed.
     /// </summary>
-    private static string TypeOf(string declared, Value? held)
+    private static string TypeOf(ValueKind? declared, Value? held)
     {
-        if (declared.Length > 0)
+        if (declared is { } kind)
         {
-            return declared;
+            return VariableTypes.Name(kind);
         }
 
         return held switch

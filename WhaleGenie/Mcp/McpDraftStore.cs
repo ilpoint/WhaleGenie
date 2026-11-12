@@ -156,7 +156,7 @@ public sealed class McpDraft
             {
                 id = variable.Id,
                 name = variable.Name,
-                type = variable.Type,
+                type = VariableTypes.Name(variable.Type),
                 @default = variable.DefaultValue,
                 description = variable.Description,
                 persistent = variable.PersistValue,
@@ -188,7 +188,7 @@ public sealed class McpDraft
                 Id = Text(variable["id"]).Trim(),
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = Default(Text(variable["type"]), "text"),
+                Type = VariableTypes.KindOf(Default(Text(variable["type"]), "text")),
                 DefaultValue = Text(variable["default"]),
                 Description = Text(variable["description"]),
                 PersistValue = variable["persistent"] is JsonValue flag

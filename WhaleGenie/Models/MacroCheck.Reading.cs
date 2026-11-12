@@ -209,13 +209,7 @@ public static partial class MacroCheck
         var known = new Dictionary<string, ValueKind>(StringComparer.OrdinalIgnoreCase);
         foreach (var variable in VariableCatalog.SystemVariables)
         {
-            known[variable.Name] = variable.Type switch
-            {
-                "number" => ValueKind.Number,
-                "bool" => ValueKind.Bool,
-                "list" => ValueKind.List,
-                _ => ValueKind.Text,
-            };
+            known[variable.Name] = variable.Type;
         }
 
         if (own is not null)

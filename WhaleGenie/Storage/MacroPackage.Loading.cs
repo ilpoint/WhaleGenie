@@ -108,7 +108,7 @@ public static partial class MacroPackage
                 Id = ReadString(variable, "id").Trim(),
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = DefaultIfEmpty(ReadString(variable, "type"), "text"),
+                Type = VariableTypes.KindOf(ReadString(variable, "type")),
                 DefaultValue = ReadString(variable, "default"),
                 Description = ReadString(variable, "description"),
             });

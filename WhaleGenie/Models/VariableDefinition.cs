@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
@@ -25,10 +26,6 @@ public enum VariableScope
 /// <summary>One variable the editor knows about, shown in the Variable Center and the pickers.</summary>
 public partial class VariableDefinition : ObservableObject
 {
-    /// <summary>Names offered by the type dropdown; the display text is translated.</summary>
-    public static IReadOnlyList<string> TypeNames { get; } =
-        ["text", "number", "bool", "color", "date", "list"];
-
     /// <summary>The stable identity a reference binds to; empty on a system value, which has none.</summary>
     public string Id { get; set; } = string.Empty;
 
@@ -36,8 +33,8 @@ public partial class VariableDefinition : ObservableObject
 
     public VariableScope Scope { get; set; }
 
-    /// <summary>One of <see cref="TypeNames"/>: text, number, bool, colour, date or list.</summary>
-    public string Type { get; set; } = "text";
+    /// <summary>What this variable holds. Text is the one kind every value can be read as.</summary>
+    public ValueKind Type { get; set; } = ValueKind.Text;
 
     public string Description { get; set; } = string.Empty;
 
@@ -76,7 +73,7 @@ public partial class VariableDefinition : ObservableObject
     public string Display => VariableCatalog.Display(Name);
 
     /// <summary>True when this variable holds a list of values rather than a single value.</summary>
-    public bool IsList => Type is "list";
+    public bool IsList => Type is ValueKind.List;
 
     /// <summary>
     /// How the starting value reads to the user. A list shows what is inside it, so its
@@ -91,9 +88,9 @@ public partial class VariableDefinition : ObservableObject
     public bool ShowDefaultSummary => IsList && !DefaultHasError;
 
     /// <summary>Reads a starting value the way the Variable Center shows it.</summary>
-    public static string Preview(string type, string value)
+    public static string Preview(ValueKind type, string value)
     {
-        if (type is not "list")
+        if (type is not ValueKind.List)
         {
             return VariableValues.Preview(type, value, VariableValues.DesignContext());
         }
@@ -109,11 +106,12 @@ public partial class VariableDefinition : ObservableObject
     }
 
     /// <summary>True when a starting value cannot be read for the given type.</summary>
-    public static bool HasError(string type, string value)
+    public static bool HasError(ValueKind type, string value)
         => VariableValues.HasError(type, value, VariableValues.DesignContext());
 
     /// <summary>Type name in the current interface language.</summary>
-    public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);
+    public string LocalType => Strings.Get($"Variable.Type.{VariableTypes.Name(Type)}",
+        VariableTypes.Name(Type));
 
     /// <summary>Scope name in the current interface language.</summary>
     public string LocalScope => Strings.Get($"Variable.Scope.{Scope}", Scope.ToString());
@@ -123,20 +121,24 @@ public partial class VariableDefinition : ObservableObject
 
     /// <summary>Type choices for the editor dropdown, with translated text.</summary>
     public IReadOnlyList<ActionParameterOption> TypeOptions { get; } =
-        [.. TypeNames.Select(name => new ActionParameterOption(name, Strings.Get($"Variable.Type.{name}", name)))];
+        [.. VariableTypes.Declarable.Select(kind => new ActionParameterOption(
+            VariableTypes.Name(kind),
+            Strings.Get($"Variable.Type.{VariableTypes.Name(kind)}", VariableTypes.Name(kind))))];
 
     /// <summary>The chosen type, bound to the dropdown in the Variable Center.</summary>
     public ActionParameterOption SelectedType
     {
-        get => TypeOptions.FirstOrDefault(option => option.Value == Type) ?? TypeOptions[0];
+        get => TypeOptions.FirstOrDefault(option => option.Value == VariableTypes.Name(Type))
+            ?? TypeOptions[0];
         set
         {
-            if (Type == value.Value)
+            var kind = VariableTypes.KindOf(value.Value);
+            if (Type == kind)
             {
                 return;
             }
 
-            Type = value.Value;
+            Type = kind;
             OnPropertyChanged(nameof(SelectedType));
             OnPropertyChanged(nameof(IsList));
             OnPropertyChanged(nameof(DefaultPreview));

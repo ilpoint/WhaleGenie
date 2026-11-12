@@ -139,7 +139,7 @@ public partial class MacroEditorWindow : AppWindow
             {
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = draft.Type,
+                Type = VariableTypes.KindOf(draft.Type),
                 DefaultValue = draft.DefaultValue.Trim(),
                 Description = draft.Description.Trim(),
             };

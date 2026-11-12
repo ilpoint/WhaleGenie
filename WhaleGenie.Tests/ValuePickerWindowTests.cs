@@ -11,6 +11,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -28,7 +29,7 @@ public class ValuePickerWindowTests
 {
     private static readonly IReadOnlyList<VariableChoice> Known =
     [
-        new VariableChoice { Name = "count", Scope = VariableScope.Local, Type = "number" },
+        new VariableChoice { Name = "count", Scope = VariableScope.Local, Type = ValueKind.Number },
     ];
 
     private static ValuePickerWindow Window(string formula)

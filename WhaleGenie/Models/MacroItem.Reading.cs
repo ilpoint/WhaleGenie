@@ -154,17 +154,9 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         return macro;
     }
 
-    /// <summary>
-    /// The kind a declaration holds. A package written before every type was one vocabulary says
-    /// "Flag" for a bool; it means the same thing and is read as one.
-    /// </summary>
+    /// <summary>The kind a declaration holds, written the way <see cref="VariableTypes.Name"/> spells it.</summary>
     private static ValueKind ReadKind(JsonObject? node)
-    {
-        var written = node?["type"]?.GetValue<string>();
-        return written is "Flag"
-            ? ValueKind.Bool
-            : System.Enum.TryParse<ValueKind>(written, out var parsed) ? parsed : ValueKind.Text;
-    }
+        => VariableTypes.KindOf(node?["type"]?.GetValue<string>());
 
     private static T ReadEnum<T>(JsonObject? node, string name, T fallback) where T : struct, System.Enum
         => System.Enum.TryParse<T>(node?[name]?.GetValue<string>(), out var parsed) ? parsed : fallback;

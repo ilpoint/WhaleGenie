@@ -109,8 +109,8 @@ public class VariableWallDockTests
 
     private static IReadOnlyList<VariableChoice> Few() =>
     [
-        new VariableChoice { Name = "total", Scope = VariableScope.Local, Type = "number", Description = "合计。" },
-        new VariableChoice { Name = "rows", Scope = VariableScope.Local, Type = "record", Description = "行。" },
+        new VariableChoice { Name = "total", Scope = VariableScope.Local, Type = ValueKind.Number, Description = "合计。" },
+        new VariableChoice { Name = "rows", Scope = VariableScope.Local, Type = ValueKind.Record, Description = "行。" },
     ];
 
     /// <summary>The step that makes the variable; a step that defines it does not read it.</summary>

@@ -83,14 +83,14 @@ public class MacroBundleTests
         {
             Name = "次数",
             Scope = VariableScope.Global,
-            Type = "number",
+            Type = ValueKind.Number,
             DefaultValue = "1",
         });
         VariableCatalog.Globals.Add(new VariableDefinition
         {
             Name = "无关紧要",
             Scope = VariableScope.Global,
-            Type = "text",
+            Type = ValueKind.Text,
             DefaultValue = "x",
         });
 

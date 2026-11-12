@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -34,7 +35,7 @@ public partial class MacroEditorWorkspaceTests
             {
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = "text",
+                Type = ValueKind.Text,
             };
             VariableCatalog.Globals.Add(existing);
             var macro = new MacroItem { Name = "probe" };
@@ -124,7 +125,7 @@ public partial class MacroEditorWorkspaceTests
 
                 var saved = Assert.Single(VariableCatalog.Globals,
                     variable => variable.Name == name);
-                Assert.Equal("number", saved.Type);
+                Assert.Equal(ValueKind.Number, saved.Type);
                 Assert.Equal("2", saved.DefaultValue);
                 Assert.True(saved.PersistValue);
                 Assert.True(SharedVariables.Current.TryGet(name, out var current));

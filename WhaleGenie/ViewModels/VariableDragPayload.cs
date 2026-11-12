@@ -17,7 +17,7 @@ public sealed record VariableDragField(string Name, ValueKind Type);
 /// </summary>
 public sealed record VariableDragPayload(
     string Name,
-    string Type,
+    ValueKind? Type,
     IReadOnlyList<VariableDragField> Fields)
 {
     private static readonly DataFormat<VariableDragPayload> Format =
@@ -65,7 +65,7 @@ public sealed record VariableDragPayload(
             }
 
             return text.Length > 0
-                ? new VariableDragPayload(text, string.Empty, [])
+                ? new VariableDragPayload(text, null, [])
                 : null;
         }
 

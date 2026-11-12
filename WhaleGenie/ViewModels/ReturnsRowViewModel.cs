@@ -70,7 +70,7 @@ public partial class ReturnsRowViewModel : ViewModelBase
 
             // `field` 在 C# 14 里是属性访问器的上下文关键字，这里不能拿它当参数名。
             var fields = string.Join(", ",
-                Result.Fields.Select(part => $"{part.Name}: {ActionReturn.TypeNameOf(part.Type)}"));
+                Result.Fields.Select(part => $"{part.Name}: {VariableTypes.Name(part.Type)}"));
             return $"{fields}\n{Strings.Format("Add.ReturnShapeTip", Result.Fields.Count)}";
         }
     }

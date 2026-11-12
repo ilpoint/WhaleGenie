@@ -133,7 +133,7 @@ public static class VariableCatalog
         {
             Name = name,
             Scope = VariableScope.System,
-            Type = type,
+            Type = VariableTypes.KindOf(type),
             Description = description,
             DefaultValue = defaultValue,
         };

@@ -150,7 +150,7 @@ public sealed class McpResources(McpLiveProject live)
             .Select(variable => new
             {
                 name = variable.Name,
-                type = variable.Type.ToString(),
+                type = VariableTypes.Name(variable.Type),
                 @default = variable.DefaultValue,
                 description = variable.Description,
             })

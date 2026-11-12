@@ -19,7 +19,7 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("control.if")!
             .Parameters.Single(field => field.Name == "condition");
-        var variable = new VariableDragPayload("found", "bool", []);
+        var variable = new VariableDragPayload("found", ValueKind.Bool, []);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
 
@@ -32,7 +32,7 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("input.mouseClick")!
             .Parameters.Single(field => field.Name == "place");
-        var variable = new VariableDragPayload("hit", "record",
+        var variable = new VariableDragPayload("hit", ValueKind.Record,
         [
             new VariableDragField("x", ValueKind.Number),
             new VariableDragField("y", ValueKind.Number),
@@ -50,7 +50,7 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("control.delay")!
             .Parameters.Single(field => field.Name == "ms");
-        var variable = new VariableDragPayload("hit", "record",
+        var variable = new VariableDragPayload("hit", ValueKind.Record,
         [
             new VariableDragField("x", ValueKind.Number),
             new VariableDragField("y", ValueKind.Number),
@@ -67,7 +67,7 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("control.delay")!
             .Parameters.Single(field => field.Name == "ms");
-        var variable = new VariableDragPayload("program", "record",
+        var variable = new VariableDragPayload("program", ValueKind.Record,
         [
             new VariableDragField("memoryMb", ValueKind.Number),
             new VariableDragField("name", ValueKind.Text),
@@ -82,7 +82,7 @@ public class VariableDropTests
     [Fact]
     public void A_variable_drag_keeps_its_shape_and_fields()
     {
-        var original = new VariableDragPayload("hit", "record",
+        var original = new VariableDragPayload("hit", ValueKind.Record,
         [
             new VariableDragField("x", ValueKind.Number),
             new VariableDragField("found", ValueKind.Bool),
@@ -97,7 +97,7 @@ public class VariableDropTests
         Assert.Contains(VariableDragPayload.InProcessFormat,
             transfer.Items.Single().Formats);
         Assert.Equal("hit", read.Name);
-        Assert.Equal("record", read.Type);
+        Assert.Equal(ValueKind.Record, read.Type);
         Assert.Equal(["x", "found"], read.Fields.Select(field => field.Name));
     }
 
