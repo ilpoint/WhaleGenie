@@ -57,7 +57,8 @@ public partial class MainWindow : AppWindow
         // layer is the program's own, so the trials and the runs started from here use the one layer
         // whose text recognition models are already loaded.
         var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath,
-            SharedDevices.Current, viewModel.Triggers, callableOnly: false, newView);
+            SharedDevices.Current, viewModel.Triggers, callableOnly: false, newView,
+            viewModel.Persisted);
 
         // Recovered work is unsaved by definition, so closing that editor has to ask about it rather
         // than let it go without a word.

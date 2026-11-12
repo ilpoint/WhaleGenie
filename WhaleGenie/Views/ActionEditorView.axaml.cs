@@ -191,12 +191,15 @@ public partial class ActionEditorView : UserControl
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
         IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
-        string? windowAbove = null)
+        string? windowAbove = null, PersistedVariables? persisted = null)
     {
         InitializeComponent();
 
         var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId,
-            windowRules, followsWindowAbove, windowAbove);
+            windowRules, followsWindowAbove, windowAbove)
+        {
+            Persisted = persisted ?? new PersistedVariables(),
+        };
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 
         // Picking a position has to know where the window a step is anchored to sits right now,

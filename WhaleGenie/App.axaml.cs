@@ -72,9 +72,6 @@ public partial class App : Application
     /// <summary>What a project needs whatever kind of run this is.</summary>
     private static void PrepareProject()
     {
-        // Values a macro wrote are read back by the project before it is handed to an MCP client.
-        PersistentVariables.Initialize();
-
         // How this machine reads the screen is what a capture answers with, so it is told here
         // rather than when a window happens to open.
         CaptureSetup.Load();
@@ -192,7 +189,7 @@ public partial class App : Application
 
         desktop.Exit += (_, _) =>
         {
-            PersistentVariables.Flush();
+            services.GetRequiredService<PersistedVariables>().Dispose();
             window.Tray?.Dispose();
 
             // The trigger service the container owns watches the machine through the device layer,

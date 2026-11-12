@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -8,7 +7,6 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.Models;
 
 namespace WhaleGenie.Models;
 
@@ -19,72 +17,86 @@ namespace WhaleGenie.Models;
 /// value is stored as JSON rather than as the text it reads as, because a list with a comma in one
 /// of its items and a number with more than six decimals both survive JSON and neither survives a
 /// line meant for a person to read.
+///
+/// <para>
+/// This is a service, not a static class: the program builds one for the real file, a test builds
+/// one for a temporary file, and a caller that wants none builds one with no path at all. What it
+/// watches is handed in, so nothing here reaches for a global table on its own.
+/// </para>
 /// </summary>
-internal static class PersistentVariables
+public sealed class PersistedVariables : IDisposable
 {
     /// <summary>The shape this build writes. Version 1 kept names and the text values read as.</summary>
     private const int FileVersion = 2;
 
     private sealed record Saved(string Id, string Name, ValueKind Type, Value Value);
 
-    private static readonly object Gate = new();
-    private static readonly Dictionary<string, Saved> ByKey = new(StringComparer.Ordinal);
-    private static readonly Dictionary<string, string> KeyByName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly string _path;
+    private readonly object _gate = new();
+    private readonly Dictionary<string, Saved> _byKey = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _keyByName = new(StringComparer.OrdinalIgnoreCase);
 
-    private static string _path = DefaultPath;
-    private static Timer? _timer;
-    private static bool _initialized;
-    private static bool _applying;
-    private static bool _backedUp;
+    private VariableBag? _shared;
+    private Timer? _timer;
+    private bool _loaded;
+    private bool _applying;
+    private bool _backedUp;
 
     /// <summary>
     /// True when the file on disk was written by a newer build. It is left exactly as it is: an
     /// older program that overwrote it would drop values this one cannot read yet.
     /// </summary>
-    private static bool _readOnly;
+    private bool _readOnly;
 
-    internal static string FilePath => _path;
+    /// <param name="path">
+    /// Where the values are kept, or null to keep them nowhere: a caller that only needs the shape
+    /// — a test, or a window editing a library that has no project — gets an empty store that never
+    /// reads or writes a file.
+    /// </param>
+    public PersistedVariables(string? path = null) => _path = path ?? string.Empty;
 
-    private static string DefaultPath => Path.Combine(
+    /// <summary>A file in this user's local application data, beside the other settings.</summary>
+    public static string DefaultPath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "WhaleGenie", "persistent-variables.json");
 
-    internal static void Initialize()
+    /// <summary>Where these values are kept; empty when they are kept nowhere.</summary>
+    public string FilePath => _path;
+
+    /// <summary>
+    /// Reads the file and starts watching the table for values a run writes. Called once by the
+    /// program; a store with no path keeps nothing and has nothing to watch.
+    /// </summary>
+    public void Initialize(VariableBag? shared = null)
     {
-        lock (Gate)
+        lock (_gate)
         {
-            if (_initialized)
+            if (_loaded)
             {
                 return;
             }
 
-            _initialized = true;
+            _loaded = true;
+            _shared = shared;
             Load();
         }
 
-        SharedVariables.Current.Changed += OnGlobalChanged;
-    }
-
-    internal static bool TryGet(string name, out string value)
-    {
-        lock (Gate)
+        if (shared is not null)
         {
-            if (KeyByName.TryGetValue(name, out var key)
-                && ByKey.TryGetValue(key, out var saved))
-            {
-                value = saved.Value.AsText();
-                return true;
-            }
+            shared.Changed += OnGlobalChanged;
         }
-
-        value = string.Empty;
-        return false;
     }
 
-    /// <summary>Applies saved values and checkbox states to the globals of a project being opened.</summary>
-    internal static void ApplyTo(IEnumerable<VariableDefinition> definitions)
+    /// <summary>
+    /// The values a project's declarations have saved, and whether each one is kept. Opening a
+    /// project gets a list and decides what to do with it: nothing here writes into a declaration
+    /// or into a table while somebody else is opening one.
+    /// </summary>
+    public IReadOnlyList<(string Name, Value Value, bool Persisted)> ApplyTo(
+        IEnumerable<VariableDefinition> definitions)
     {
         Initialize();
+        var applied = new List<(string, Value, bool)>();
         _applying = true;
         try
         {
@@ -93,21 +105,23 @@ internal static class PersistentVariables
                 var saved = Find(definition.Name, definition.Id);
                 if (saved is null)
                 {
-                    definition.PersistValue = false;
+                    applied.Add((definition.Name, Value.Null, false));
                     continue;
                 }
 
-                definition.PersistValue = true;
-                SharedVariables.Current.Set(definition.Name, Fit(definition, saved.Value));
+                applied.Add((definition.Name, Fit(definition, saved.Value), true));
             }
         }
         finally
         {
             _applying = false;
         }
+
+        return applied;
     }
 
-    internal static void PersistChanged(VariableDefinition definition, bool enabled)
+    /// <summary>Keeps a global's current value, or stops keeping it.</summary>
+    public void PersistChanged(VariableDefinition definition, bool enabled)
     {
         if (_applying || definition.Scope is not VariableScope.Global)
         {
@@ -116,7 +130,7 @@ internal static class PersistentVariables
 
         if (!enabled)
         {
-            lock (Gate)
+            lock (_gate)
             {
                 Remove(definition.Name);
             }
@@ -125,14 +139,14 @@ internal static class PersistentVariables
             return;
         }
 
-        if (!SharedVariables.Current.TryGet(definition.Name, out var value))
+        if (_shared is null || !_shared.TryGet(definition.Name, out var value))
         {
             value = VariableValues.Read(definition.Type, definition.DefaultValue,
                 VariableValues.DesignContext());
-            SharedVariables.Current.SetIfAbsent(definition.Name, value);
+            _shared?.SetIfAbsent(definition.Name, value);
         }
 
-        lock (Gate)
+        lock (_gate)
         {
             Store(new Saved(definition.Id, definition.Name, definition.Type, value));
         }
@@ -140,9 +154,10 @@ internal static class PersistentVariables
         Schedule();
     }
 
-    internal static void Flush()
+    /// <summary>Writes whatever has changed now, instead of waiting for the quiet moment.</summary>
+    public void Flush()
     {
-        lock (Gate)
+        lock (_gate)
         {
             _timer?.Change(Timeout.Infinite, Timeout.Infinite);
             Save();
@@ -154,9 +169,9 @@ internal static class PersistentVariables
     /// entry is keyed on, so a rename only has to change the label; an entry kept under a name —
     /// one written by a build that had no identities — is moved as well.
     /// </summary>
-    internal static void Rename(string oldName, string newName, string id = "")
+    public void Rename(string oldName, string newName, string id = "")
     {
-        lock (Gate)
+        lock (_gate)
         {
             var saved = Find(oldName, id);
             if (saved is null)
@@ -166,23 +181,24 @@ internal static class PersistentVariables
 
             var renamed = saved with { Name = newName };
             var oldKey = KeyOf(saved);
-            KeyByName.Remove(saved.Name);
+            _keyByName.Remove(saved.Name);
             Store(renamed);
 
             // An entry kept under a name rather than an identity moves to a new key; one kept
             // under an identity only changed its label.
             if (!string.Equals(oldKey, KeyOf(renamed), StringComparison.Ordinal))
             {
-                ByKey.Remove(oldKey);
+                _byKey.Remove(oldKey);
             }
         }
 
         Schedule();
     }
 
-    internal static void Forget(string name)
+    /// <summary>Stops keeping a name, because the project no longer declares it.</summary>
+    public void Forget(string name)
     {
-        lock (Gate)
+        lock (_gate)
         {
             Remove(name);
         }
@@ -190,50 +206,64 @@ internal static class PersistentVariables
         Schedule();
     }
 
-    internal static IDisposable UsePathForTests(string path)
+    /// <summary>What a name is held as, for the windows that show it before a run writes one.</summary>
+    public bool TryGet(string name, out string value)
     {
-        var previous = _path;
-        lock (Gate)
+        lock (_gate)
+        {
+            if (_keyByName.TryGetValue(name, out var key)
+                && _byKey.TryGetValue(key, out var saved))
+            {
+                value = saved.Value.AsText();
+                return true;
+            }
+        }
+
+        value = string.Empty;
+        return false;
+    }
+
+    public void Dispose()
+    {
+        if (_shared is not null)
+        {
+            _shared.Changed -= OnGlobalChanged;
+            _shared = null;
+        }
+
+        lock (_gate)
         {
             _timer?.Dispose();
             _timer = null;
-            ByKey.Clear();
-            KeyByName.Clear();
-            _path = path;
-            _readOnly = false;
-            _backedUp = false;
-            Load();
+            Save();
         }
-
-        return new RestorePath(previous);
     }
 
-    private static void OnGlobalChanged(string name)
+    private void OnGlobalChanged(string name)
     {
-        if (!SharedVariables.Current.TryGet(name, out var value))
+        if (_shared is null || !_shared.TryGet(name, out var value))
         {
             return;
         }
 
-        lock (Gate)
+        lock (_gate)
         {
-            if (!KeyByName.TryGetValue(name, out var key)
-                || !ByKey.TryGetValue(key, out var saved))
+            if (!_keyByName.TryGetValue(name, out var key) || !_byKey.TryGetValue(key, out var saved))
             {
                 return;
             }
 
-            ByKey[key] = saved with { Value = value };
+            _byKey[key] = saved with { Value = value };
         }
 
         Schedule();
     }
 
-    private static void Schedule()
+    private void Schedule()
     {
-        lock (Gate)
+        lock (_gate)
         {
-            if (_readOnly)
+            if (_readOnly || _path.Length == 0)
             {
                 return;
             }
@@ -247,11 +277,11 @@ internal static class PersistentVariables
     /// The entry a declaration's value was kept under: its identity first, the name second. A build
     /// that had no identities wrote the name alone, and that file must still open.
     /// </summary>
-    private static Saved? Find(string name, string id)
+    private Saved? Find(string name, string id)
     {
         if (id.Length > 0)
         {
-            if (ByKey.TryGetValue("i:" + id, out var byIdentity))
+            if (_byKey.TryGetValue("i:" + id, out var byIdentity))
             {
                 return byIdentity;
             }
@@ -259,48 +289,49 @@ internal static class PersistentVariables
             // A file written before identities existed keys its entries by name. One of those is
             // adopted by the declaration that now carries the name; an entry that belongs to a
             // different identity is another project's value and is left alone.
-            return KeyByName.TryGetValue(name, out var key)
-                && ByKey.TryGetValue(key, out var byName)
+            return _keyByName.TryGetValue(name, out var key)
+                && _byKey.TryGetValue(key, out var byName)
                 && byName.Id.Length == 0
                     ? byName
                     : null;
         }
 
-        return KeyByName.TryGetValue(name, out var legacy) && ByKey.TryGetValue(legacy, out var found)
-            ? found
-            : null;
+        return _keyByName.TryGetValue(name, out var legacy)
+            && _byKey.TryGetValue(legacy, out var found)
+                ? found
+                : null;
     }
 
     private static string KeyOf(Saved saved)
         => saved.Id.Length > 0 ? "i:" + saved.Id : "n:" + saved.Name.ToLowerInvariant();
 
     /// <summary>Files one entry, taking over whatever the same name or identity held before.</summary>
-    private static void Store(Saved saved)
+    private void Store(Saved saved)
     {
         var key = KeyOf(saved);
 
-        if (KeyByName.TryGetValue(saved.Name, out var previous)
+        if (_keyByName.TryGetValue(saved.Name, out var previous)
             && !string.Equals(previous, key, StringComparison.Ordinal))
         {
-            ByKey.Remove(previous);
+            _byKey.Remove(previous);
         }
 
         if (saved.Id.Length > 0
-            && ByKey.TryGetValue(key, out var older)
+            && _byKey.TryGetValue(key, out var older)
             && !string.Equals(older.Name, saved.Name, StringComparison.OrdinalIgnoreCase))
         {
-            KeyByName.Remove(older.Name);
+            _keyByName.Remove(older.Name);
         }
 
-        ByKey[key] = saved;
-        KeyByName[saved.Name] = key;
+        _byKey[key] = saved;
+        _keyByName[saved.Name] = key;
     }
 
-    private static void Remove(string name)
+    private void Remove(string name)
     {
-        if (KeyByName.Remove(name, out var key))
+        if (_keyByName.Remove(name, out var key))
         {
-            ByKey.Remove(key);
+            _byKey.Remove(key);
         }
     }
 
@@ -315,11 +346,15 @@ internal static class PersistentVariables
             : VariableValues.Read(definition.Type, definition.DefaultValue,
                 VariableValues.DesignContext());
 
-    private static bool Fits(ValueKind type, Value value)
-        => ValueRules.Accepts(type, value);
+    private static bool Fits(ValueKind type, Value value) => ValueRules.Accepts(type, value);
 
-    private static void Load()
+    private void Load()
     {
+        if (_path.Length == 0)
+        {
+            return;
+        }
+
         try
         {
             if (!File.Exists(_path))
@@ -363,12 +398,12 @@ internal static class PersistentVariables
         }
         catch (Exception)
         {
-            ByKey.Clear();
-            KeyByName.Clear();
+            _byKey.Clear();
+            _keyByName.Clear();
         }
     }
 
-    private static void ReadEntry(JsonObject entry, int version)
+    private void ReadEntry(JsonObject entry, int version)
     {
         var name = entry["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
         if (name.Length == 0)
@@ -395,11 +430,11 @@ internal static class PersistentVariables
             JsonValues.FromJson(entry["value"])));
     }
 
-    private static void Save()
+    private void Save()
     {
         try
         {
-            if (_readOnly)
+            if (_readOnly || _path.Length == 0)
             {
                 return;
             }
@@ -418,13 +453,13 @@ internal static class PersistentVariables
                 _backedUp = true;
             }
 
-            var variables = ByKey.Values
+            var variables = _byKey.Values
                 .OrderBy(saved => saved.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(saved => new JsonObject
                 {
                     ["id"] = saved.Id,
                     ["name"] = saved.Name,
-                    ["type"] = saved.Type.ToString(),
+                    ["type"] = VariableTypes.Name(saved.Type),
                     ["value"] = JsonValues.Node(saved.Value),
                 })
                 .ToList();
@@ -441,24 +476,6 @@ internal static class PersistentVariables
         catch (Exception)
         {
             // A bad local settings file must not stop the macro or the program from running.
-        }
-    }
-
-    private sealed class RestorePath(string path) : IDisposable
-    {
-        public void Dispose()
-        {
-            lock (Gate)
-            {
-                _timer?.Dispose();
-                _timer = null;
-                ByKey.Clear();
-                KeyByName.Clear();
-                _path = path;
-                _readOnly = false;
-                _backedUp = false;
-                Load();
-            }
         }
     }
 }

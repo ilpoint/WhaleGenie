@@ -24,8 +24,9 @@ public partial class GlobalVariablesTests
         {
             var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
                 Guid.NewGuid().ToString("N"));
-            using var persistence = PersistentVariables.UsePathForTests(
+            using var persistence = new PersistedVariables(
                 Path.Combine(folder, "persistent-variables.json"));
+            persistence.Initialize(SharedVariables.Current);
             var previousGlobals = VariableCatalog.Globals.ToList();
             var previousValues = SharedVariables.Current.Values;
             VariableCatalog.Globals.Clear();
@@ -40,7 +41,7 @@ public partial class GlobalVariablesTests
             try
             {
                 var macro = new MacroItem { Name = "managerSave" };
-                var window = new MacroEditorWindow(macro, [macro]);
+                var window = new MacroEditorWindow(macro, [macro], persisted: persistence);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
                 window.FindControl<Button>("ManageGlobalsButton")!
@@ -61,8 +62,8 @@ public partial class GlobalVariablesTests
                 // table from the default, which is the value a run would start it at.
                 Assert.Equal(9, SharedVariables.Current.Values["editedByManager"].AsNumber());
                 Assert.True(VariableCatalog.FindGlobal("editedByManager")!.PersistValue);
-                PersistentVariables.Flush();
-                Assert.True(PersistentVariables.TryGet("editedByManager", out var saved));
+                persistence.Flush();
+                Assert.True(persistence.TryGet("editedByManager", out var saved));
                 Assert.Equal("9", saved);
 
                 // 关窗时问的“要不要保存”必须在这里答完：编辑器把问题排进队列，走了不管就会在

@@ -149,6 +149,4 @@ public partial class VariableDefinition : ObservableObject
 
     public override string ToString() => Name;
 
-    partial void OnPersistValueChanged(bool value)
-        => PersistentVariables.PersistChanged(this, value);
 }

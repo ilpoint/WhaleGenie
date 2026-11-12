@@ -175,8 +175,8 @@ public partial class AddActionViewModel
 
         var existing = VariableCatalog.FindGlobal(name);
         GlobalVariableDraft = existing is not null
-            ? new VariableDefinitionDraft(existing)
-            : new VariableDefinitionDraft
+            ? new VariableDefinitionDraft(existing, persisted: Persisted)
+            : new VariableDefinitionDraft(persisted: Persisted)
             {
                 Name = name,
                 Type = "text",
@@ -204,6 +204,7 @@ public partial class AddActionViewModel
                 Type = VariableTypes.KindOf(draft.Type),
                 DefaultValue = draft.DefaultValue.Trim(),
                 Description = draft.Description.Trim(),
+                PersistValue = draft.PersistValue,
             };
             VariableCatalog.Globals.Add(existing);
         }
@@ -212,7 +213,12 @@ public partial class AddActionViewModel
             existing.Type = VariableTypes.KindOf(draft.Type);
             existing.DefaultValue = draft.DefaultValue.Trim();
             existing.Description = draft.Description.Trim();
+            existing.PersistValue = draft.PersistValue;
         }
+
+        // A value kept between runs is written when the box is ticked here, not when the step is
+        // saved: the person asked for it at this moment.
+        Persisted.PersistChanged(existing, draft.PersistValue);
 
         existing.PersistValue = draft.PersistValue;
         VariableCatalog.NotifyGlobalsChanged();

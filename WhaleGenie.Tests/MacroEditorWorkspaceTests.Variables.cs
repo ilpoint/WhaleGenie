@@ -29,8 +29,9 @@ public partial class MacroEditorWorkspaceTests
             var name = "existingGlobal";
             var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
                 Guid.NewGuid().ToString("N"));
-            using var persistence = PersistentVariables.UsePathForTests(
+            using var persistence = new PersistedVariables(
                 Path.Combine(folder, "persistent-variables.json"));
+            persistence.Initialize(SharedVariables.Current);
             var existing = new VariableDefinition
             {
                 Name = name,
@@ -39,7 +40,7 @@ public partial class MacroEditorWorkspaceTests
             };
             VariableCatalog.Globals.Add(existing);
             var macro = new MacroItem { Name = "probe" };
-            var window = new MacroEditorWindow(macro, [macro]);
+            var window = new MacroEditorWindow(macro, [macro], persisted: persistence);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -68,7 +69,7 @@ public partial class MacroEditorWorkspaceTests
             Assert.Contains(root.VariableCenter.Wall.Shown,
                 choice => choice.Name == name);
 
-            PersistentVariables.Flush();
+            persistence.Flush();
             VariableCatalog.Globals.Remove(existing);
             SharedVariables.Current.Remove(name);
             Ui.CloseAndAnswer(window);
@@ -83,15 +84,16 @@ public partial class MacroEditorWorkspaceTests
             var name = "2createdInsideAction";
             var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
                 Guid.NewGuid().ToString("N"));
-            using var persistence = PersistentVariables.UsePathForTests(
+            using var persistence = new PersistedVariables(
                 Path.Combine(folder, "persistent-variables.json"));
+            persistence.Initialize(SharedVariables.Current);
             var previous = VariableCatalog.Globals.ToList();
             try
             {
                 VariableCatalog.Globals.Clear();
                 SharedVariables.Current.Remove(name);
                 var macro = new MacroItem { Name = "probe" };
-                var window = new MacroEditorWindow(macro, [macro]);
+                var window = new MacroEditorWindow(macro, [macro], persisted: persistence);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
@@ -131,8 +133,8 @@ public partial class MacroEditorWorkspaceTests
                 Assert.True(SharedVariables.Current.TryGet(name, out var current));
                 Assert.Equal(2, current.AsNumber());
 
-                PersistentVariables.Flush();
-                Assert.True(PersistentVariables.TryGet(name, out _));
+                persistence.Flush();
+                Assert.True(persistence.TryGet(name, out _));
                 Ui.CloseAndAnswer(window);
             }
             finally

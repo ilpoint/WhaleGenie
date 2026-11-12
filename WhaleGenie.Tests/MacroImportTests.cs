@@ -99,8 +99,9 @@ public class MacroImportTests
             {
                 var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
                     Guid.NewGuid().ToString("N"));
-                using var persistent = PersistentVariables.UsePathForTests(
+                using var persistent = new PersistedVariables(
                     Path.Combine(folder, "persistent-variables.json"));
+                persistent.Initialize(SharedVariables.Current);
                 var kept = Global("次数", "number", "5");
                 kept.PersistValue = true;
                 VariableCatalog.Globals.Add(kept);

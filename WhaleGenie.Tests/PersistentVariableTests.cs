@@ -18,7 +18,8 @@ public class PersistentVariableTests
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
             Guid.NewGuid().ToString("N"));
         var path = Path.Combine(folder, "persistent-variables.json");
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         var previousGlobals = VariableCatalog.Globals.ToList();
         var previousValues = SharedVariables.Current.Values;
         VariableCatalog.Globals.Clear();
@@ -32,11 +33,12 @@ public class PersistentVariableTests
         };
         VariableCatalog.Globals.Add(definition);
         SharedVariables.Current.SetNumber("oldTotal", 8);
-        PersistentVariables.Flush();
+        store.PersistChanged(definition, true);
+        store.Flush();
         try
         {
             VariableCatalog.Globals.Remove(definition);
-            PersistentVariables.Rename("oldTotal", "newTotal");
+            store.Rename("oldTotal", "newTotal");
             SharedVariables.Current.Rename("oldTotal", "newTotal");
             var renamed = new VariableDefinition
             {
@@ -45,7 +47,7 @@ public class PersistentVariableTests
                 Type = ValueKind.Number,
             };
             VariableCatalog.Globals.Add(renamed);
-            PersistentVariables.ApplyTo([renamed]);
+            Apply(store, [renamed]);
 
             Assert.True(SharedVariables.Current.TryGet("newTotal", out var value));
             Assert.Equal(8, value.AsNumber());
@@ -72,7 +74,8 @@ public class PersistentVariableTests
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests", Guid.NewGuid().ToString("N"));
         var path = Path.Combine(folder, "persistent-variables.json");
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
 
         var previousGlobals = VariableCatalog.Globals.ToList();
         var previousValues = SharedVariables.Current.Values;
@@ -89,9 +92,10 @@ public class PersistentVariableTests
             };
             VariableCatalog.Globals.Add(definition);
             definition.PersistValue = true;
+            store.PersistChanged(definition, true);
             SharedVariables.Current.SetNumber("total", 5);
             SharedVariables.Current.SetNumber("total", 7);
-            PersistentVariables.Flush();
+            store.Flush();
 
             Assert.True(File.Exists(path));
             VariableCatalog.Globals.Clear();
@@ -105,14 +109,14 @@ public class PersistentVariableTests
                 DefaultValue = "1",
             };
             VariableCatalog.Globals.Add(reopened);
-            PersistentVariables.ApplyTo([reopened]);
+            Apply(store, [reopened]);
 
             Assert.True(reopened.PersistValue);
             Assert.True(SharedVariables.Current.TryGet("total", out var restored));
             Assert.Equal(7, restored.AsNumber());
 
-            reopened.PersistValue = false;
-            PersistentVariables.Flush();
+            store.PersistChanged(reopened, false);
+            store.Flush();
             Assert.DoesNotContain("total", File.ReadAllText(path), StringComparison.Ordinal);
         }
         finally
@@ -151,7 +155,8 @@ public class PersistentVariableTests
               ]
             }
             """);
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         var definition = new VariableDefinition
         {
             Name = "amount",
@@ -162,7 +167,7 @@ public class PersistentVariableTests
 
         try
         {
-            PersistentVariables.ApplyTo([definition]);
+            Apply(store, [definition]);
 
             Assert.True(definition.PersistValue);
             Assert.True(SharedVariables.Current.TryGet("amount", out var value));
@@ -170,7 +175,7 @@ public class PersistentVariableTests
         }
         finally
         {
-            PersistentVariables.Flush();
+            store.Flush();
             SharedVariables.Current.Clear();
             foreach (var (name, value) in previousValues)
             {
@@ -207,18 +212,20 @@ public class PersistentVariableTests
     {
         var path = TempPath(out var folder);
         var previous = SharedVariables.Current.Values;
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         try
         {
             var definition = Global("aaa111", "names", "list");
             definition.PersistValue = true;
+            store.PersistChanged(definition, true);
             SharedVariables.Current.Set("names",
                 Value.FromList([Value.FromText("a, b"), Value.FromText("c")]));
-            PersistentVariables.Flush();
+            store.Flush();
 
             SharedVariables.Current.Clear();
             var reopened = Global("aaa111", "names", "list");
-            PersistentVariables.ApplyTo([reopened]);
+            Apply(store, [reopened]);
 
             Assert.True(SharedVariables.Current.TryGet("names", out var restored));
             Assert.Equal(2, restored.Items.Count);
@@ -226,7 +233,7 @@ public class PersistentVariableTests
         }
         finally
         {
-            Finish(folder, previous);
+            Finish(store, folder, previous);
         }
     }
 
@@ -235,24 +242,26 @@ public class PersistentVariableTests
     {
         var path = TempPath(out var folder);
         var previous = SharedVariables.Current.Values;
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         try
         {
             var definition = Global("bbb222", "ratio", "number");
             definition.PersistValue = true;
+            store.PersistChanged(definition, true);
             SharedVariables.Current.SetNumber("ratio", 0.123456789);
-            PersistentVariables.Flush();
+            store.Flush();
 
             SharedVariables.Current.Clear();
             var reopened = Global("bbb222", "ratio", "number");
-            PersistentVariables.ApplyTo([reopened]);
+            Apply(store, [reopened]);
 
             Assert.True(SharedVariables.Current.TryGet("ratio", out var restored));
             Assert.Equal(0.123456789, restored.AsNumber(), 12);
         }
         finally
         {
-            Finish(folder, previous);
+            Finish(store, folder, previous);
         }
     }
 
@@ -273,12 +282,13 @@ public class PersistentVariableTests
             }
             """);
         var previous = SharedVariables.Current.Values;
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         try
         {
             var definition = Global("ccc333", "amount", "number");
             definition.DefaultValue = "3";
-            PersistentVariables.ApplyTo([definition]);
+            Apply(store, [definition]);
 
             Assert.True(definition.PersistValue);
             Assert.True(SharedVariables.Current.TryGet("amount", out var value));
@@ -286,7 +296,7 @@ public class PersistentVariableTests
         }
         finally
         {
-            Finish(folder, previous);
+            Finish(store, folder, previous);
         }
     }
 
@@ -304,11 +314,12 @@ public class PersistentVariableTests
             }
             """);
         var previous = SharedVariables.Current.Values;
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         try
         {
             var definition = Global("ddd444", "good", "number");
-            PersistentVariables.ApplyTo([definition]);
+            Apply(store, [definition]);
 
             Assert.True(definition.PersistValue);
             Assert.True(SharedVariables.Current.TryGet("good", out var value));
@@ -316,7 +327,7 @@ public class PersistentVariableTests
         }
         finally
         {
-            Finish(folder, previous);
+            Finish(store, folder, previous);
         }
     }
 
@@ -329,23 +340,25 @@ public class PersistentVariableTests
     {
         var path = TempPath(out var folder);
         var previous = SharedVariables.Current.Values;
-        using var scoped = PersistentVariables.UsePathForTests(path);
+        using var store = new PersistedVariables(path);
+        store.Initialize(SharedVariables.Current);
         try
         {
             var first = Global("eee555", "count", "number");
             first.PersistValue = true;
             SharedVariables.Current.SetNumber("count", 10);
-            PersistentVariables.Flush();
+            store.PersistChanged(first, true);
+            store.Flush();
 
             SharedVariables.Current.Clear();
             var second = Global("fff666", "count", "number");
-            PersistentVariables.ApplyTo([second]);
+            Apply(store, [second]);
 
             Assert.False(second.PersistValue);
             Assert.False(SharedVariables.Current.Contains("count"));
 
             var reopened = Global("eee555", "count", "number");
-            PersistentVariables.ApplyTo([reopened]);
+            Apply(store, [reopened]);
 
             Assert.True(reopened.PersistValue);
             Assert.True(SharedVariables.Current.TryGet("count", out var restored));
@@ -353,7 +366,7 @@ public class PersistentVariableTests
         }
         finally
         {
-            Finish(folder, previous);
+            Finish(store, folder, previous);
         }
     }
 
@@ -372,9 +385,24 @@ public class PersistentVariableTests
         return Path.Combine(folder, "persistent-variables.json");
     }
 
-    private static void Finish(string folder, IReadOnlyDictionary<string, Value> previous)
+    /// <summary>Puts the values a store holds back into the shared table, the way a project opening does.</summary>
+    private static void Apply(PersistedVariables store, VariableDefinition[] definitions)
     {
-        PersistentVariables.Flush();
+        foreach (var (name, value, persisted) in store.ApplyTo(definitions))
+        {
+            var definition = definitions.First(candidate => candidate.Name == name);
+            definition.PersistValue = persisted;
+            if (persisted)
+            {
+                SharedVariables.Current.Set(name, value);
+            }
+        }
+    }
+
+    private static void Finish(PersistedVariables store, string folder,
+        IReadOnlyDictionary<string, Value> previous)
+    {
+        store.Flush();
         SharedVariables.Current.Clear();
         foreach (var (name, value) in previous)
         {

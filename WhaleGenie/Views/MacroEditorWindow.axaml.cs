@@ -151,7 +151,7 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
         string? packagePath = null, IDeviceLayer? devices = null, ProjectTriggers? triggers = null,
-        bool callableOnly = false, MacroView? newView = null)
+        bool callableOnly = false, MacroView? newView = null, PersistedVariables? persisted = null)
     {
         InitializeComponent();
         _settings = this.FindControl<MacroSettingsView>("MacroSettings")!;
@@ -162,7 +162,7 @@ public partial class MacroEditorWindow : AppWindow
             [.. project ?? (existing is null ? [] : [existing])],
             ImageAssets.FolderFor(packagePath));
         _devices = devices;
-        _rootViewModel = new MacroEditorViewModel();
+        _rootViewModel = new MacroEditorViewModel { Persisted = persisted ?? new PersistedVariables() };
         _rootViewModel.SystemReader = new SystemVariableReader(Layer);
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;

@@ -212,7 +212,7 @@ public partial class MacroEditorViewModel
                 return value.AsText();
             }
 
-            if (PersistentVariables.TryGet(name, out var saved))
+            if (Persisted.TryGet(name, out var saved))
             {
                 return saved;
             }

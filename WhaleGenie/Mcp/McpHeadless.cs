@@ -150,6 +150,7 @@ internal static class McpHeadless
 
         // Never wait for the interface thread from here: a tool call can be waiting for that same
         // thread while this runs, and the two would hold each other forever.
+        var persisted = serving.Project.Persisted;
         _ = Task.Run(async () =>
         {
             try
@@ -163,7 +164,7 @@ internal static class McpHeadless
 
             try
             {
-                PersistentVariables.Flush();
+                persisted.Flush();
             }
             catch
             {

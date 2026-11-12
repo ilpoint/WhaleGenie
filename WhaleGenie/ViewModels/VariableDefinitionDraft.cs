@@ -18,7 +18,7 @@ namespace WhaleGenie.ViewModels;
 public sealed partial class VariableDefinitionDraft : ObservableObject
 {
     public VariableDefinitionDraft(VariableDefinition? source = null,
-        IReadOnlyList<VariableUse>? uses = null)
+        IReadOnlyList<VariableUse>? uses = null, PersistedVariables? persisted = null)
     {
         OriginalName = source?.Name ?? string.Empty;
         Id = source?.Id ?? string.Empty;
@@ -31,9 +31,15 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         OriginalDescription = Description;
         PersistValue = source?.PersistValue ?? false;
         OriginalPersistValue = PersistValue;
-        CurrentValue = source is { Scope: VariableScope.Global } ? CurrentText(source) : string.Empty;
+        Persisted = persisted ?? new PersistedVariables();
+        CurrentValue = source is { Scope: VariableScope.Global }
+            ? CurrentText(source, Persisted)
+            : string.Empty;
         Uses = uses ?? [];
     }
+
+    /// <summary>Where a value kept on this machine is read from and written to.</summary>
+    public PersistedVariables Persisted { get; }
 
     public string OriginalName { get; }
 
@@ -172,14 +178,14 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         OnPropertyChanged(nameof(HasProblem));
     }
 
-    private static string CurrentText(VariableDefinition definition)
+    private static string CurrentText(VariableDefinition definition, PersistedVariables persisted)
     {
         if (SharedVariables.Current.TryGet(definition.Name, out var live))
         {
             return live.AsText();
         }
 
-        return PersistentVariables.TryGet(definition.Name, out var saved)
+        return persisted.TryGet(definition.Name, out var saved)
             ? saved
             : definition.DefaultValue;
     }

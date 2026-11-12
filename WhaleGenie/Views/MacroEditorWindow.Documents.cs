@@ -53,7 +53,7 @@ public partial class MacroEditorWindow : AppWindow
         foreach (var child in children)
         {
             var nested = child.SubMacros.ToList();
-            var editor = new MacroEditorViewModel { IsSubMacro = true };
+            var editor = new MacroEditorViewModel { IsSubMacro = true, Persisted = _rootViewModel.Persisted };
             if (_devices is { } devices)
             {
                 editor.Windows = devices.Windows;
@@ -72,7 +72,7 @@ public partial class MacroEditorWindow : AppWindow
 
     private void AddBlankSubMacro()
     {
-        var editor = new MacroEditorViewModel { IsSubMacro = true };
+        var editor = new MacroEditorViewModel { IsSubMacro = true, Persisted = _rootViewModel.Persisted };
         editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {
@@ -137,7 +137,7 @@ public partial class MacroEditorWindow : AppWindow
 
     private void AddExistingSubMacro(MacroItem macro)
     {
-        var editor = new MacroEditorViewModel { IsSubMacro = true };
+        var editor = new MacroEditorViewModel { IsSubMacro = true, Persisted = _rootViewModel.Persisted };
         editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {

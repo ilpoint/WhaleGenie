@@ -25,6 +25,9 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class AddActionViewModel : ViewModelBase
 {
+    /// <summary>Where a global created here keeps its value between runs.</summary>
+    public PersistedVariables Persisted { get; init; } = new();
+
     private IReadOnlyList<VariableChoice> _variables;
     private IReadOnlyList<MacroCallable> _macros;
     private IReadOnlyList<ActionDefinition> _availableActions = [];

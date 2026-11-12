@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Mcp;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -24,9 +25,15 @@ internal static class AppServices
     /// <summary>A run with a window on top of it, which is the ordinary way the program is started.</summary>
     internal static ServiceProvider Build(bool windowed = true)
     {
+        // Values a macro wrote are read back before the project is handed to anyone, so the store
+        // is made and opened here rather than when a window happens to ask for one.
+        var persisted = new PersistedVariables(PersistedVariables.DefaultPath);
+        persisted.Initialize(SharedVariables.Current);
+
         // The MCP flyout is a recipe now, not a server: the program no longer listens on anything,
         // so nothing in the container has to be built for it.
-        var services = Wiring(_ => new MainViewModel(_ => new McpServerViewModel()));
+        var services = Wiring(
+            _ => new MainViewModel(_ => new McpServerViewModel(), persisted), persisted);
 
         if (windowed)
         {
@@ -48,13 +55,15 @@ internal static class AppServices
     /// never wire up.
     /// </summary>
     internal static ServiceProvider Minimal(MainViewModel project)
-        => Wiring(_ => project).BuildServiceProvider();
+        => Wiring(_ => project, project.Persisted).BuildServiceProvider();
 
-    private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project)
+    private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project,
+        PersistedVariables persisted)
     {
         var services = new ServiceCollection();
 
         services.AddSingleton(sp => project(sp));
+        services.AddSingleton(persisted);
 
         // One device layer for the whole run: a window, a trigger and an MCP call all work on this
         // machine, and the models it loads are loaded once.

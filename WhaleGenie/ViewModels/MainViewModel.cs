@@ -15,9 +15,14 @@ public partial class MainViewModel : ViewModelBase
     private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
     private McpServerViewModel? _mcp;
 
-    public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null)
+    /// <summary>The values kept on this machine for the project's global declarations.</summary>
+    public PersistedVariables Persisted { get; }
+
+    public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null,
+        PersistedVariables? persisted = null)
     {
         _makeMcp = mcp;
+        Persisted = persisted ?? new PersistedVariables();
         SelectedView = LocalSettings.LoadView();
 
         // 启动时是否已经在听触发，由设置决定；默认关着，和按热键启用之前一样。
@@ -409,7 +414,7 @@ public partial class MainViewModel : ViewModelBase
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Attach([.. Macros]);
 
-        LoadSharedVariables(contents.Globals, replace: true);
+        LoadSharedVariables(contents.Globals, replace: true, Persisted);
 
         CurrentPath = path;
         IsDirty = false;
@@ -421,7 +426,8 @@ public partial class MainViewModel : ViewModelBase
     /// first, which is what opening a project means; add keeps what is there and only brings in the
     /// names the project does not have yet, which is what importing a package means.
     /// </summary>
-    private static void LoadSharedVariables(IReadOnlyList<VariableDefinition> globals, bool replace)
+    private static void LoadSharedVariables(IReadOnlyList<VariableDefinition> globals,
+        bool replace, PersistedVariables persisted)
     {
         if (replace)
         {
@@ -441,7 +447,7 @@ public partial class MainViewModel : ViewModelBase
         // The values a macro wrote last time live outside the package. They are put back once the
         // declarations are known, which is what makes a reopened project start with them; doing it
         // here rather than at each caller is what keeps a path from forgetting it.
-        PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        ApplyPersisted(persisted);
     }
 
     /// <summary>
@@ -459,7 +465,7 @@ public partial class MainViewModel : ViewModelBase
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Attach([.. Macros]);
 
-        LoadSharedVariables(contents.Globals, replace: true);
+        LoadSharedVariables(contents.Globals, replace: true, Persisted);
 
         CurrentPath = contents.PackagePath;
         MarkDirty();
@@ -522,8 +528,29 @@ public partial class MainViewModel : ViewModelBase
         {
             VariableCatalog.Globals.Add(global);
         }
-        PersistentVariables.ApplyTo(VariableCatalog.Globals);
+        ApplyPersisted(Persisted);
 
         MarkDirty();
+    }
+
+    /// <summary>
+    /// Puts back the values kept for this project's global declarations. A declaration whose value
+    /// is not kept is left at the value it declares, and its checkbox says so.
+    /// </summary>
+    private static void ApplyPersisted(PersistedVariables persisted)
+    {
+        foreach (var (name, value, kept) in persisted.ApplyTo(VariableCatalog.Globals))
+        {
+            if (VariableCatalog.FindGlobal(name) is not { } definition)
+            {
+                continue;
+            }
+
+            definition.PersistValue = kept;
+            if (kept)
+            {
+                WhaleGenie.Models.SharedVariables.Current.Set(name, value);
+            }
+        }
     }
 }

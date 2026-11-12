@@ -35,6 +35,9 @@ public enum MacroSettingsPage
 
 public partial class MacroEditorViewModel : ViewModelBase
 {
+    /// <summary>The values kept on this machine, shared with the project that opened this editor.</summary>
+    public PersistedVariables Persisted { get; init; } = new();
+
     /// <summary>Raised when the editor should close, with the macro to save or <c>null</c> when cancelled.</summary>
     public event Action<MacroItem?>? CloseRequested;
 

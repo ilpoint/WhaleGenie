@@ -115,7 +115,7 @@ public partial class MacroEditorWindow : AppWindow
                 page.RenameGlobalReferences(draft.OriginalName, next);
             }
 
-            PersistentVariables.Rename(draft.OriginalName, next,
+            _rootViewModel.Persisted.Rename(draft.OriginalName, next,
                 VariableCatalog.FindGlobal(draft.OriginalName)?.Id ?? string.Empty);
             SharedVariables.Current.Rename(draft.OriginalName, next);
         }
@@ -127,24 +127,18 @@ public partial class MacroEditorWindow : AppWindow
                      .Select(variable => variable.Name)
                      .ToList())
         {
-            PersistentVariables.Forget(removed);
+            _rootViewModel.Persisted.Forget(removed);
             SharedVariables.Current.Remove(removed);
         }
 
         VariableCatalog.Globals.Clear();
         foreach (var draft in drafts)
         {
-            var name = draft.Name.Trim();
-            var definition = new VariableDefinition
-            {
-                Name = name,
-                Scope = VariableScope.Global,
-                Type = VariableTypes.KindOf(draft.Type),
-                DefaultValue = draft.DefaultValue.Trim(),
-                Description = draft.Description.Trim(),
-            };
+            // The draft carries the identity the declaration already had, so saving an edited
+            // variable does not make every reference to it stale.
+            var definition = draft.ToDefinition();
             VariableCatalog.Globals.Add(definition);
-            definition.PersistValue = draft.PersistValue;
+            _rootViewModel.Persisted.PersistChanged(definition, definition.PersistValue);
         }
 
         VariableCatalog.NotifyGlobalsChanged();
