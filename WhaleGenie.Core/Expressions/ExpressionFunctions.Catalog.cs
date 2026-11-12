@@ -96,10 +96,12 @@ internal static partial class FunctionLibrary
             args => Value.FromNumber(Math.Sqrt(N(args, 0)))),
         Fn(MathsGroup, "pow", "pow(number, power)", "Raise a number to a power.", 2, 2,
             args => Value.FromNumber(Math.Pow(N(args, 0), N(args, 1)))),
-        Fn(MathsGroup, "min", "min(number, ...)", "The smallest of the arguments.", 1, Any,
-            args => Value.FromNumber(args.Select(argument => argument().AsNumber()).Min())),
-        Fn(MathsGroup, "max", "max(number, ...)", "The largest of the arguments.", 1, Any,
-            args => Value.FromNumber(args.Select(argument => argument().AsNumber()).Max())),
+        Fn(MathsGroup, "min", "min(number, ...)",
+            "The smallest of the arguments; the earliest one when they are dates.", 1, Any,
+            args => Pick(args, smallest: true)),
+        Fn(MathsGroup, "max", "max(number, ...)",
+            "The largest of the arguments; the latest one when they are dates.", 1, Any,
+            args => Pick(args, smallest: false)),
         Fn(MathsGroup, "sum", "sum(list)", "Add up every number in a list.", 1, 1,
             args => Value.FromNumber(L(args, 0).Sum(item => item.AsNumber()))),
         Fn(MathsGroup, "random", "random([min, max])", "A random number; with bounds, a whole number in that range.", 0, 2,
@@ -153,9 +155,9 @@ internal static partial class FunctionLibrary
 
         // -------------------------------------------------------------------- dates
         Fn(DatesGroup, "now", "now()", "The current date and time, as yyyy-MM-dd HH:mm:ss.", 0, 0,
-            args => Value.FromText(Stamp(DateTimeOffset.Now))),
+            args => Value.FromDate(DateTimeOffset.Now)),
         Fn(DatesGroup, "today", "today()", "Today's date, as yyyy-MM-dd.", 0, 0,
-            args => Value.FromText(DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))),
+            args => Value.FromDate(new DateTimeOffset(DateTime.Today))),
         Fn(DatesGroup, "year", "year(date)", "The year of a date.", 1, 1,
             args => Value.FromNumber(Moment(S(args, 0)).Year)),
         Fn(DatesGroup, "month", "month(date)", "The month of a date, 1 to 12.", 1, 1,
@@ -174,7 +176,7 @@ internal static partial class FunctionLibrary
         Fn(DatesGroup, "dateAdd", "dateAdd(date, amount, unit)",
             "A date moved forward or back; the unit is seconds, minutes, hours, days, weeks, "
             + "months or years.", 3, 3,
-            args => Value.FromText(Stamp(Shifted(args)))),
+            args => Value.FromDate(Shifted(args))),
         Fn(DatesGroup, "dateDiff", "dateDiff(from, to, unit)",
             "How far apart two dates are, counted in the unit.", 3, 3,
             args => Value.FromNumber(Distance(args))),
@@ -185,7 +187,7 @@ internal static partial class FunctionLibrary
             "Read a date out of text written in a pattern such as yyyy/MM/dd. The answer is a date "
             + "like every other date function reads and writes, so it can go straight into "
             + "dateAdd, dateDiff or a comparison.", 2, 2,
-            args => Value.FromText(Parsed(args))),
+            args => Value.FromDate(Parsed(args))),
 
         // -------------------------------------------------------------------- json
         Fn(RecordsGroup, "jsonGet", "jsonGet(json, path)",

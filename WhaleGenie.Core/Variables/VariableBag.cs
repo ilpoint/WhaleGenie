@@ -679,6 +679,9 @@ public sealed class VariableBag : IVariableResolver
                 CultureInfo.InvariantCulture, out _),
         ValueKind.Bool => value.Kind is ValueKind.Bool
             || bool.TryParse(value.AsText(), out _),
+        ValueKind.Date => value.IsDate
+            || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out _),
         _ => value.Kind == kind,
     };
 }

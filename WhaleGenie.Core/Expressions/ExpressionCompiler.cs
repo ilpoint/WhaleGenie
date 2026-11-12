@@ -190,6 +190,22 @@ internal static class ExpressionCompiler
                 return Value.FromBool(!left.Equals(right));
         }
 
+        // A date is compared as a moment, not as the line it is written as: two offsets of one
+        // instant are one moment, and a date beside a date-shaped line is compared in time order.
+        if ((left.Kind is ValueKind.Date || right.Kind is ValueKind.Date)
+            && left.TryDate(out var moment)
+            && right.TryDate(out var otherMoment))
+        {
+            var timing = moment.UtcTicks.CompareTo(otherMoment.UtcTicks);
+            return Value.FromBool(operation switch
+            {
+                "<" => timing < 0,
+                "<=" => timing <= 0,
+                ">" => timing > 0,
+                _ => timing >= 0,
+            });
+        }
+
         if (TryNumber(left, out var first) && TryNumber(right, out var second))
         {
             return Value.FromBool(operation switch

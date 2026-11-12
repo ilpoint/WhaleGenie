@@ -73,9 +73,30 @@ internal static partial class FunctionLibrary
     {
         IEnumerable<Value> ordered = items.All(item => item.IsNumber)
             ? items.OrderBy(item => item.Number)
-            : items.OrderBy(item => item.AsText(), StringComparer.OrdinalIgnoreCase);
+            : items.All(item => item.IsDate)
+                ? items.OrderBy(item => item.Date.UtcTicks)
+                : items.OrderBy(item => item.AsText(), StringComparer.OrdinalIgnoreCase);
 
         return descending ? ordered.Reverse() : ordered;
+    }
+
+    /// <summary>
+    /// The smallest or largest of the arguments. When every one of them is a date the answer is a
+    /// date, in time order; otherwise they are numbers, which is what min and max have always meant.
+    /// </summary>
+    private static Value Pick(IReadOnlyList<Func<Value>> args, bool smallest)
+    {
+        var values = args.Select(argument => argument()).ToList();
+        if (values.All(value => value.IsDate))
+        {
+            return smallest
+                ? values.MinBy(value => value.Date.UtcTicks)!
+                : values.MaxBy(value => value.Date.UtcTicks)!;
+        }
+
+        return Value.FromNumber(smallest
+            ? values.Select(value => value.AsNumber()).Min()
+            : values.Select(value => value.AsNumber()).Max());
     }
 
     private static IEnumerable<Value> Unique(IReadOnlyList<Value> items)

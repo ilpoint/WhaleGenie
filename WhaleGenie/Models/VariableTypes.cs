@@ -19,6 +19,7 @@ public static class VariableTypes
         "number" => ValueKind.Number,
         "bool" => ValueKind.Bool,
         "list" => ValueKind.List,
+        "date" => ValueKind.Date,
         _ => ValueKind.Text,
     };
 }

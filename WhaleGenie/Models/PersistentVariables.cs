@@ -329,6 +329,9 @@ internal static class PersistentVariables
                     CultureInfo.InvariantCulture, out _),
             ValueKind.Bool => value.Kind is ValueKind.Bool || bool.TryParse(value.AsText(), out _),
             ValueKind.List => value.IsList,
+            ValueKind.Date => value.IsDate
+                || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AllowWhiteSpaces, out _),
             _ => true,
         };
     }

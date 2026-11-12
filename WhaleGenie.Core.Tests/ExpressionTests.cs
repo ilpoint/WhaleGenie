@@ -248,10 +248,10 @@ public class ExpressionTests
         => Assert.Equal(expected, Text(source));
 
     [Theory]
-    [InlineData("dateAdd(\"2024-03-01\", 45, \"days\")", "2024-04-15 00:00:00")]
-    [InlineData("dateAdd(\"2024-01-31\", 1, \"months\")", "2024-02-29 00:00:00")]
+    [InlineData("dateAdd(\"2024-03-01\", 45, \"days\")", "2024-04-15")]
+    [InlineData("dateAdd(\"2024-01-31\", 1, \"months\")", "2024-02-29")]
     [InlineData("dateAdd(\"2024-03-01 09:00:00\", -90, \"minutes\")", "2024-03-01 07:30:00")]
-    [InlineData("dateAdd(\"2024-03-01\", 2, \"weeks\")", "2024-03-15 00:00:00")]
+    [InlineData("dateAdd(\"2024-03-01\", 2, \"weeks\")", "2024-03-15")]
     public void A_date_can_be_moved_forward_or_back(string source, string expected)
         => Assert.Equal(expected, Text(source));
 
@@ -280,11 +280,36 @@ public class ExpressionTests
     }
 
     [Theory]
-    [InlineData("parseDate(\"01/03/2024\", \"dd/MM/yyyy\")", "2024-03-01 00:00:00")]
+    [InlineData("parseDate(\"01/03/2024\", \"dd/MM/yyyy\")", "2024-03-01")]
     [InlineData("parseDate(\"2024.03.01 09:30\", \"yyyy.MM.dd HH:mm\")", "2024-03-01 09:30:00")]
-    [InlineData("parseDate(\" 2024-03-01 \", \"yyyy-MM-dd\")", "2024-03-01 00:00:00")]
+    [InlineData("parseDate(\" 2024-03-01 \", \"yyyy-MM-dd\")", "2024-03-01")]
     public void A_date_written_in_a_pattern_is_read_back(string source, string expected)
         => Assert.Equal(expected, Text(source));
+
+    /// <summary>
+    /// A date is its own kind, so two of them have an order before anybody asks for one. The text a
+    /// date is written as still compares equal to it, which is what makes a date read against a
+    /// line written in a report behave the way it looks.
+    /// </summary>
+    [Theory]
+    [InlineData("parseDate(\"2024-03-01\", \"yyyy-MM-dd\") < parseDate(\"2024-03-02\", \"yyyy-MM-dd\")",
+        "true")]
+    [InlineData("parseDate(\"2024-03-02\", \"yyyy-MM-dd\") > \"2024-03-01\"", "true")]
+    [InlineData("parseDate(\"2024-03-01\", \"yyyy-MM-dd\") == \"2024-03-01\"", "true")]
+    [InlineData("parseDate(\"2024-03-01\", \"yyyy-MM-dd\") == parseDate(\"2024-03-01\", \"yyyy-MM-dd\")",
+        "true")]
+    [InlineData("min(parseDate(\"2024-03-05\", \"yyyy-MM-dd\"), parseDate(\"2024-03-01\", \"yyyy-MM-dd\"))",
+        "2024-03-01")]
+    [InlineData("max(parseDate(\"2024-03-05\", \"yyyy-MM-dd\"), parseDate(\"2024-03-01\", \"yyyy-MM-dd\"))",
+        "2024-03-05")]
+    public void Dates_are_compared_and_ordered_as_moments(string source, string expected)
+        => Assert.Equal(expected, Text(source));
+
+    [Fact]
+    public void A_list_of_dates_sorts_in_time_order()
+        => Assert.Equal("2024-03-01, 2024-03-05",
+            Text("sort([parseDate(\"2024-03-05\", \"yyyy-MM-dd\"), "
+                + "parseDate(\"2024-03-01\", \"yyyy-MM-dd\")])"));
 
     [Fact]
     public void A_date_is_read_and_written_round_the_same_pattern()

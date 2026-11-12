@@ -48,7 +48,7 @@ public static class VariableValues
             return ConvertToType(type, value, out value, out error);
         }
 
-        if (type is "date" or "color" && text[0] != '$')
+        if (type is "color" && text[0] != '$')
         {
             value = Value.FromText(text);
             error = string.Empty;
@@ -79,10 +79,14 @@ public static class VariableValues
             "list" => ListText.TryParse(text, variables, out var items, out _)
                 ? Value.FromList(items)
                 : Value.Null,
+            "date" => DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out var moment)
+                ? Value.FromDate(moment)
+                : Value.Null,
             _ => Value.FromText(text),
         };
 
-        error = value.IsNull && type is "number" or "bool" or "list"
+        error = value.IsNull && type is "number" or "bool" or "list" or "date"
             ? text
             : string.Empty;
         return error.Length == 0;
@@ -110,6 +114,7 @@ public static class VariableValues
                 "number" => Value.FromNumber(source.AsNumber()),
                 "bool" => Value.FromBool(source.AsBool()),
                 "list" => Value.FromList(source.AsList()),
+                "date" => Moment(source),
                 _ => Value.FromText(source.AsText()),
             };
             error = string.Empty;
@@ -121,6 +126,23 @@ public static class VariableValues
             error = failure.Detail;
             return false;
         }
+    }
+
+    /// <summary>
+    /// A value read as a moment. A date stays one; a line is read as a date when it is written like
+    /// one, so a value kept by an older build still opens rather than stopping the project.
+    /// </summary>
+    private static Value Moment(Value source)
+    {
+        if (source.IsDate)
+        {
+            return source;
+        }
+
+        return DateTimeOffset.TryParse(source.AsText(), CultureInfo.InvariantCulture,
+            DateTimeStyles.AllowWhiteSpaces, out var moment)
+            ? Value.FromDate(moment)
+            : throw ExpressionException.TypeMismatch($"\"{source.AsText()}\" is not a date");
     }
 
     /// <summary>

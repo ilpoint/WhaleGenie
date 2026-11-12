@@ -77,22 +77,18 @@ internal static partial class FunctionLibrary
     /// is stamped the way every date function writes, not in the pattern it was read in, so the
     /// answer can be handed straight to the next one.
     /// </summary>
-    private static string Parsed(IReadOnlyList<Func<Value>> args)
+    private static DateTimeOffset Parsed(IReadOnlyList<Func<Value>> args)
     {
         var text = S(args, 0).Trim();
         var pattern = S(args, 1);
         if (DateTimeOffset.TryParseExact(text, pattern, CultureInfo.InvariantCulture,
                 DateTimeStyles.AllowWhiteSpaces, out var exact))
         {
-            return Stamp(Anchored(exact));
+            return Anchored(exact);
         }
 
         throw ExpressionException.TypeMismatch($"\"{text}\" is not a date written as \"{pattern}\"");
     }
-
-    /// <summary>A date written back in the one shape every date function reads.</summary>
-    private static string Stamp(DateTimeOffset moment)
-        => moment.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
     /// <summary>The day of the week counted the ISO way, so Monday is 1 and Sunday is 7.</summary>
     private static int Weekday(DateTimeOffset moment)

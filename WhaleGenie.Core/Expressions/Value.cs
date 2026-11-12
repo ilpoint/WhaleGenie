@@ -11,6 +11,13 @@ public enum ValueKind
     Null,
     Number,
     Bool,
+
+    /// <summary>
+    /// A moment: a day, or a day and a time. It is its own kind rather than text because two dates
+    /// have an order before a comparison, and because "add a day" is not "add 1 to a line".
+    /// </summary>
+    Date,
+
     Text,
     List,
 
@@ -30,16 +37,18 @@ public sealed class Value : IEquatable<Value>
     private readonly double _number;
     private readonly bool _flag;
     private readonly string _text;
+    private readonly DateTimeOffset _date;
     private readonly List<Value> _items;
     private readonly List<(string Name, Value Value)> _fields;
 
     private Value(ValueKind kind, double number, bool flag, string text, List<Value>? items,
-        List<(string Name, Value Value)>? fields = null)
+        List<(string Name, Value Value)>? fields = null, DateTimeOffset date = default)
     {
         Kind = kind;
         _number = number;
         _flag = flag;
         _text = text;
+        _date = date;
         _items = items ?? [];
         _fields = fields ?? [];
     }
@@ -52,6 +61,10 @@ public sealed class Value : IEquatable<Value>
     public static Value FromNumber(double number) => new(ValueKind.Number, number, false, string.Empty, null);
 
     public static Value FromBool(bool flag) => new(ValueKind.Bool, 0, flag, string.Empty, null);
+
+    /// <summary>A moment, kept with the offset it was read at so its own wall time survives.</summary>
+    public static Value FromDate(DateTimeOffset date)
+        => new(ValueKind.Date, 0, false, string.Empty, null, date: date);
 
     public static Value FromText(string? text) => new(ValueKind.Text, 0, false, text ?? string.Empty, null);
 
@@ -70,6 +83,8 @@ public sealed class Value : IEquatable<Value>
 
     public bool IsNumber => Kind is ValueKind.Number;
 
+    public bool IsDate => Kind is ValueKind.Date;
+
     public bool IsRecord => Kind is ValueKind.Record;
 
     /// <summary>The raw number when <see cref="Kind"/> is <see cref="ValueKind.Number"/>.</summary>
@@ -77,6 +92,9 @@ public sealed class Value : IEquatable<Value>
 
     /// <summary>The raw flag when <see cref="Kind"/> is <see cref="ValueKind.Bool"/>.</summary>
     public bool Flag => _flag;
+
+    /// <summary>The moment when <see cref="Kind"/> is <see cref="ValueKind.Date"/>.</summary>
+    public DateTimeOffset Date => _date;
 
     /// <summary>The raw text when <see cref="Kind"/> is <see cref="ValueKind.Text"/>.</summary>
     public string Text => _text;
@@ -136,6 +154,10 @@ public sealed class Value : IEquatable<Value>
                 throw ExpressionException.TypeMismatch("a list is not a number");
             case ValueKind.Record:
                 throw ExpressionException.TypeMismatch("a record is not a number");
+            case ValueKind.Date:
+                // A date has an order, not a size: turning it into a number would make "add a day"
+                // and "add 86400" look like the same idea, and one of them is wrong twice a year.
+                throw ExpressionException.TypeMismatch("a date is not a number");
             default:
                 return 0;
         }
@@ -151,8 +173,41 @@ public sealed class Value : IEquatable<Value>
             && !string.Equals(_text, "0", StringComparison.Ordinal),
         ValueKind.List => _items.Count > 0,
         ValueKind.Record => _fields.Count > 0,
+        ValueKind.Date => true,
         _ => false,
     };
+
+    /// <summary>
+    /// The value as a moment, for the comparisons and list orders that have to put dates in time
+    /// order. Text is read as a date when it is written like one; anything else is not a date, and
+    /// the caller keeps whatever it did before rather than treating a number as a day.
+    /// </summary>
+    public bool TryDate(out DateTimeOffset date)
+    {
+        if (Kind is ValueKind.Date)
+        {
+            date = _date;
+            return true;
+        }
+
+        if (Kind is ValueKind.Text)
+        {
+            return DateTimeOffset.TryParse(_text, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out date);
+        }
+
+        date = default;
+        return false;
+    }
+
+    /// <summary>
+    /// A moment as the text it is read and written by. A day with no time on it says only the day:
+    /// a report that asks for "today" should not print a midnight nobody meant.
+    /// </summary>
+    public static string TextOf(DateTimeOffset moment)
+        => moment.TimeOfDay == TimeSpan.Zero
+            ? moment.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : moment.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
     /// <summary>The value written out the way a user would read it.</summary>
     public string AsText() => Kind switch
@@ -160,6 +215,7 @@ public sealed class Value : IEquatable<Value>
         ValueKind.Number => FormatNumber(_number),
         ValueKind.Bool => _flag ? "true" : "false",
         ValueKind.Text => _text,
+        ValueKind.Date => TextOf(_date),
         ValueKind.List => string.Join(", ", _items.Select(item => item.AsText())),
         ValueKind.Record => JsonValues.Written(this),
         _ => string.Empty,
@@ -230,12 +286,28 @@ public sealed class Value : IEquatable<Value>
             return true;
         }
 
+        if (Kind is ValueKind.Date || other.Kind is ValueKind.Date)
+        {
+            // Two moments are the same moment when they name the same instant, whatever offset they
+            // were written with. A date held against text is compared as the text it is written as,
+            // which is what makes $today = "2026-11-12" read the way it looks.
+            return Kind is ValueKind.Date && other.Kind is ValueKind.Date
+                ? _date.UtcTicks == other._date.UtcTicks
+                : string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
+        }
+
         return string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
     }
 
     public override bool Equals(object? obj) => Equals(obj as Value);
 
-    public override int GetHashCode() => AsText().GetHashCode(StringComparison.OrdinalIgnoreCase);
+    public override int GetHashCode()
+    {
+        // Two offsets of one instant are one moment, and the text they would hash as is not.
+        return Kind is ValueKind.Date
+            ? _date.UtcTicks.GetHashCode()
+            : AsText().GetHashCode(StringComparison.OrdinalIgnoreCase);
+    }
 
     public override string ToString() => AsText();
 }
