@@ -217,7 +217,7 @@ public sealed partial class MacroRunner
     {
         var (name, steps, signature, wanted, called) = ResolveCall(step);
 
-        var caller = Variables.SwapLocal(called);
+        Variables.PushLocal(called);
         _callDepth++;
         PrepareOutcomes(steps);
 
@@ -263,7 +263,7 @@ public sealed partial class MacroRunner
             _caught = outerCaught;
             _loops = outerLoops;
             _callDepth--;
-            var produced = Variables.SwapLocal(caller);
+            var produced = Variables.PopLocal();
             if (finished)
             {
                 CheckResults(signature, wanted, produced);

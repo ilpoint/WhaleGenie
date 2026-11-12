@@ -173,11 +173,31 @@ public partial class RunWindow : AppWindow
     /// <summary>The form this window is driving.</summary>
     private RunViewModel? Form => DataContext as RunViewModel;
 
-    private void OnVariablesChanged() =>
-        Dispatcher.UIThread.Post(() => Form?.Rebuild());
+    /// <summary>
+    /// True while a rebuild is already waiting for the interface thread. One rebuild shows every
+    /// value there is, so a run that writes a thousand values asks for one refresh rather than a
+    /// thousand: the last one queued would have shown the same table anyway.
+    /// </summary>
+    private bool _rebuildPosted;
 
-    private void OnVariableChanged(string _) =>
-        Dispatcher.UIThread.Post(() => Form?.Rebuild());
+    private void OnVariablesChanged() => PostRebuild();
+
+    private void OnVariableChanged(string _) => PostRebuild();
+
+    private void PostRebuild()
+    {
+        if (_rebuildPosted)
+        {
+            return;
+        }
+
+        _rebuildPosted = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _rebuildPosted = false;
+            Form?.Rebuild();
+        });
+    }
 
     /// <summary>
     /// Takes one row's value away. What lands on the clipboard is the value beside the button that

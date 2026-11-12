@@ -73,21 +73,54 @@ public sealed class VariableStore : IVariableResolver
     /// </summary>
     public Func<string, Value?>? GlobalDefault { get; set; }
 
+    /// <summary>
+    /// The tables of the calls that are running, outermost first. A call pushes its own table and
+    /// pops it when it returns, so a reader always sees one frame whole rather than whichever one
+    /// happened to be current when it asked.
+    /// </summary>
+    private readonly List<VariableBag> _frames = [new()];
+
+    private readonly object _framesGate = new();
+
     /// <summary>Values only the running macro sees.</summary>
-    public VariableBag Local { get; private set; } = new();
+    public VariableBag Local
+    {
+        get
+        {
+            lock (_framesGate)
+            {
+                return _frames[^1];
+            }
+        }
+    }
 
     /// <summary>
-    /// Hands the running macro's values over to <paramref name="next"/> and gives back the table
-    /// that was in use, so the caller can have its own back when the call is over. A macro called
-    /// by another one runs on a table of its own — that is what "only the running macro sees"
-    /// means — so what it works with is what it was handed, and what it leaves behind is whatever
-    /// the call asked to have back.
+    /// Runs a called macro on a table of its own and gives back the table that was in use, so the
+    /// caller can have its own back when the call is over. A macro called by another one runs on a
+    /// table of its own — that is what "only the running macro sees" means — so what it works with
+    /// is what it was handed, and what it leaves behind is whatever the call asked to have back.
     /// </summary>
-    public VariableBag SwapLocal(VariableBag next)
+    public void PushLocal(VariableBag next)
     {
-        var previous = Local;
-        Local = next;
-        return previous;
+        lock (_framesGate)
+        {
+            _frames.Add(next);
+        }
+    }
+
+    /// <summary>Ends a call and answers with the table it was running on.</summary>
+    public VariableBag PopLocal()
+    {
+        lock (_framesGate)
+        {
+            var top = _frames[^1];
+            if (_frames.Count > 1)
+            {
+                _frames.RemoveAt(_frames.Count - 1);
+            }
+
+            return top;
+        }
     }
 
     /// <summary>
@@ -97,7 +130,10 @@ public sealed class VariableStore : IVariableResolver
     /// </summary>
     public bool TryGet(string name, out Value value)
     {
-        if (Local.TryGet(name, out value) || Global.TryGet(name, out value))
+        // One frame for the whole question: the call under way may finish between the two lookups,
+        // and half of a caller's table beside half of a callee's is a value nobody wrote.
+        var local = Local;
+        if (local.TryGet(name, out value) || Global.TryGet(name, out value))
         {
             return true;
         }
@@ -122,9 +158,10 @@ public sealed class VariableStore : IVariableResolver
     /// </summary>
     public bool TryGet(VariableKey key, out Value value)
     {
+        var local = Local;
         if (key.HasId)
         {
-            if (Local.TryGetById(key.Id, out value) || Global.TryGetById(key.Id, out value))
+            if (local.TryGetById(key.Id, out value) || Global.TryGetById(key.Id, out value))
             {
                 return true;
             }
@@ -155,6 +192,7 @@ public sealed class VariableStore : IVariableResolver
     /// <summary>Every visible value in one dictionary, which is what a watcher shows.</summary>
     public IReadOnlyDictionary<string, Value> Flatten()
     {
+        var local = Local;
         var all = new Dictionary<string, Value>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in System.Values)
         {
@@ -173,7 +211,7 @@ public sealed class VariableStore : IVariableResolver
             all[name] = value;
         }
 
-        foreach (var (name, value) in Local.Values)
+        foreach (var (name, value) in local.Values)
         {
             all[name] = value;
         }

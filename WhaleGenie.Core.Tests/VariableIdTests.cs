@@ -254,4 +254,29 @@ public class VariableStoreIdTests
         Assert.True(store.TryGet(new VariableKey("sys.clipboard"), out var value));
         Assert.Equal("hello", value.AsText());
     }
+
+    /// <summary>
+    /// A call runs on a table of its own and hands the caller's back on the way out. The frames are
+    /// a stack rather than one field, so a reader looking at the table during a call sees one frame
+    /// whole instead of whichever one was current between two lookups.
+    /// </summary>
+    [Fact]
+    public void A_call_runs_on_its_own_frame_and_gives_the_callers_back()
+    {
+        var store = new VariableStore();
+        store.Local.Set("count", Value.FromNumber(1));
+        var caller = store.Local;
+
+        var called = new VariableBag();
+        called.SetNumber("count", 2);
+        store.PushLocal(called);
+
+        Assert.Equal(2d, store.Local.Values["count"].AsNumber());
+
+        var produced = store.PopLocal();
+
+        Assert.Same(called, produced);
+        Assert.Same(caller, store.Local);
+        Assert.Equal(1d, store.Local.Values["count"].AsNumber());
+    }
 }
