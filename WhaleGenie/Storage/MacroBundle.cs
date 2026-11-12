@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
@@ -102,8 +103,11 @@ public static class MacroBundle
     public static IReadOnlyList<VariableDefinition> UsedGlobals(IEnumerable<MacroItem> macros,
         IReadOnlyList<VariableDefinition> pool)
     {
+        var ids = ReadIds(macros.SelectMany(AllSteps));
         var used = ReadNames(macros.SelectMany(AllSteps));
-        return [.. pool.Where(variable => used.Contains(variable.Name.Trim()))];
+        return [.. pool.Where(variable =>
+            (variable.Id.Length > 0 && ids.Contains(variable.Id))
+            || used.Contains(variable.Name.Trim()))];
     }
 
     /// <summary>
@@ -133,6 +137,41 @@ public static class MacroBundle
         }
 
         return [.. missing];
+    }
+
+    /// <summary>The identities the steps read, so a global follows a rename rather than a spelling.</summary>
+    private static HashSet<string> ReadIds(IEnumerable<MacroStep> steps)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var step in steps)
+        {
+            foreach (var parameter in step.Parameters)
+            {
+                if (parameter.Kind == ActionParameterKind.Steps || step.DefinesVariable(parameter)
+                    || step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                foreach (var id in Expression.ReferenceIds(parameter.Written))
+                {
+                    ids.Add(id);
+                }
+
+                foreach (var row in parameter.Rows)
+                {
+                    foreach (var cell in row.Cells.Values)
+                    {
+                        foreach (var id in Expression.ReferenceIds(cell))
+                        {
+                            ids.Add(id);
+                        }
+                    }
+                }
+            }
+        }
+
+        return ids;
     }
 
     /// <summary>The names the steps read, taken field by field the way the engine reads one.</summary>

@@ -31,12 +31,15 @@ public static class VariableRename
         return found;
     }
 
-    public static void RenameGlobal(IEnumerable<MacroItem> macros, string oldName, string newName)
+    public static void RenameGlobal(IEnumerable<MacroItem> macros, string oldName, string newName,
+        string id = "")
     {
-        var id = VariableCatalog.Globals.FirstOrDefault(global =>
-            string.Equals(global.Name.Trim(), oldName, StringComparison.OrdinalIgnoreCase))?.Id
-            ?? string.Empty;
-
+        if (id.Length == 0)
+        {
+            id = VariableCatalog.Globals.FirstOrDefault(global =>
+                string.Equals(global.Name.Trim(), oldName, StringComparison.OrdinalIgnoreCase))?.Id
+                ?? string.Empty;
+        }
         foreach (var macro in macros)
         {
             RenameSteps(macro.Steps, oldName, newName, global: true);

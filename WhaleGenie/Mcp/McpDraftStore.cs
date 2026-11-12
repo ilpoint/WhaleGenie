@@ -154,6 +154,7 @@ public sealed class McpDraft
         {
             return [.. Globals.Select(variable => new
             {
+                id = variable.Id,
                 name = variable.Name,
                 type = variable.Type,
                 @default = variable.DefaultValue,
@@ -172,7 +173,7 @@ public sealed class McpDraft
             if (item is not JsonObject variable)
             {
                 throw new McpFailure(McpErrors.BadArgument, "Every global has to be an object.",
-                    "A declaration is {name, type, default, description}.");
+                    "A declaration is {name, id, type, default, description, persistent}.");
             }
 
             var name = Text(variable["name"]).Trim();
@@ -184,13 +185,18 @@ public sealed class McpDraft
 
             globals.Add(new VariableDefinition
             {
+                Id = Text(variable["id"]).Trim(),
                 Name = name,
                 Scope = VariableScope.Global,
                 Type = Default(Text(variable["type"]), "text"),
                 DefaultValue = Text(variable["default"]),
                 Description = Text(variable["description"]),
+                PersistValue = variable["persistent"] is JsonValue flag
+                    && flag.TryGetValue<bool>(out var persistent) && persistent,
             });
         }
+
+        VariableIds.SettleGlobals(globals);
 
         lock (_gate)
         {

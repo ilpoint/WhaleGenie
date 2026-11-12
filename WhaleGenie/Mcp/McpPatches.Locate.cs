@@ -125,6 +125,21 @@ internal static partial class McpPatches
         _ => value.ToJsonString(),
     };
 
+    /// <summary>
+    /// A value as the field holds it. An object tagged with a value shape is already a shape — the
+    /// client may send the <c>{"name","id"}</c> a document holds — and is read as that shape rather
+    /// than flattened into a line that merely looks like JSON. A window rule is an object too, but
+    /// it is the record the file writes whole, so it keeps the line path it always had.
+    /// </summary>
+    private static ExpressionNode ReadShape(JsonNode? value, ActionReadMode mode)
+        => value is JsonObject shape && IsValueShape(shape)
+            ? FormulaJson.Read(shape)
+            : FormulaText.Read(Written(value), mode);
+
+    private static bool IsValueShape(JsonObject shape)
+        => shape.ContainsKey("name") || shape.ContainsKey("run") || shape.ContainsKey("call")
+            || shape.ContainsKey("list") || shape.ContainsKey("op");
+
     private static Refusal NoStep(JsonObject operation)
     {
         var id = Text(operation["stepId"]).Trim();

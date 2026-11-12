@@ -195,10 +195,26 @@ public static class MacroImport
             switch (decision.Choice)
             {
                 case GlobalChoice.UseProject:
+                    if (decision.Arriving.Id.Length > 0 && existing.Id.Length > 0)
+                    {
+                        foreach (var macro in added)
+                        {
+                            VariableIds.Remap(macro, decision.Arriving.Id, existing.Id);
+                        }
+                    }
+
                     kept.Add(name);
                     break;
 
                 case GlobalChoice.Overwrite:
+                    if (decision.Arriving.Id.Length > 0 && existing.Id.Length > 0)
+                    {
+                        foreach (var macro in added)
+                        {
+                            VariableIds.Remap(macro, decision.Arriving.Id, existing.Id);
+                        }
+                    }
+
                     existing.Type = decision.Arriving.Type;
                     existing.DefaultValue = decision.Arriving.DefaultValue;
                     existing.Description = decision.Arriving.Description;
@@ -215,7 +231,7 @@ public static class MacroImport
                         scripts.Add($"{macro} · {name}");
                     }
 
-                    VariableRename.RenameGlobal(added, name, target);
+                    VariableRename.RenameGlobal(added, name, target, decision.Arriving.Id);
                     VariableCatalog.Globals.Add(Clone(decision.Arriving, target));
                     taken.Add(target);
                     renamed.Add($"{name} → {target}");
@@ -228,6 +244,7 @@ public static class MacroImport
 
     private static VariableDefinition Clone(VariableDefinition source, string name) => new()
     {
+        Id = source.Id,
         Name = name,
         Scope = VariableScope.Global,
         Type = source.Type,

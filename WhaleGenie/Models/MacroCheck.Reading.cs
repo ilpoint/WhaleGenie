@@ -159,7 +159,8 @@ public static partial class MacroCheck
     }
 
     private static HashSet<string> DefinedVariables(IReadOnlyList<MacroStep> steps)
-    {        var defined = new HashSet<string>(
+    {
+        var defined = new HashSet<string>(
             VariableCatalog.SystemVariables.Select(variable => variable.Name),
             StringComparer.OrdinalIgnoreCase);
         defined.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));
