@@ -184,6 +184,8 @@
 | `Run.UnknownSystemField` | 无法识别这个系统字段：{0} |
 | `Run.UnknownVolumeAction` | 无法识别这个音量动作：{0} |
 | `Run.Unsupported` | 引擎尚不支持这个动作：{0} |
+| `Run.VariableNameConflict` | 这个宏里有两个声明都叫「{0}」。一个名字只有一个值，运行没法知道该读哪一个；请给其中一个改名。 |
+| `Run.VariableTypeMismatch` | 写进「{0}」的值与它声明的类型不符。数字变量只收数字，列表只收列表，布尔只收真假。 |
 | `Run.WaitColorTimeout` | 一直没有等到颜色 {0}。 |
 | `Run.WaitTimeout` | 等待超时，{0} 始终没有成立。 |
 | `Run.WindowFailed` | 这个窗口不接受该操作：{0} |

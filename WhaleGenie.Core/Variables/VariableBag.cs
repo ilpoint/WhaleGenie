@@ -16,13 +16,31 @@ namespace WhaleGenie.Core.Variables;
 /// is answered from the index first, so renaming the declaration changes the label without losing
 /// the value. A name nothing declared has no identity, and the name remains the whole answer.
 /// </para>
+///
+/// <para>
+/// One name is one slot. An identity does not make a second slot: it only says which declaration a
+/// reference belongs to, so a rename can follow it. What identities do buy is the one thing a name
+/// cannot say — whether two writes mean the same variable. A write whose identity is not the one
+/// the name is bound to, when either of them is a declaration of this run, is refused rather than
+/// quietly taking the slot; a write from one step output into a name another step output already
+/// holds is still the ordinary overwrite every macro relies on.
+/// </para>
 /// </summary>
 public sealed class VariableBag : IVariableResolver
 {
     private sealed record Entry(Value Value, string Id);
 
     private readonly Dictionary<string, Entry> _byName = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The identity index. Every name in it is one in <see cref="_byName"/>.</summary>
     private readonly Dictionary<string, string> _byId = new(StringComparer.Ordinal);
+
+    /// <summary>Identities this run has declared, so a clash can be told from an ordinary overwrite.</summary>
+    private readonly HashSet<string> _declared = new(StringComparer.Ordinal);
+
+    /// <summary>What each declared name holds, for the runs that were told a type.</summary>
+    private readonly Dictionary<string, ValueKind> _types = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly object _gate = new();
 
     /// <summary>Raised after a value is written or removed, with the name that moved.</summary>
@@ -45,6 +63,18 @@ public sealed class VariableBag : IVariableResolver
                 }
 
                 return copy;
+            }
+        }
+    }
+
+    /// <summary>How many names this scope holds right now, which is what a run watches for growth.</summary>
+    public int Count
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _byName.Count;
             }
         }
     }
@@ -137,22 +167,28 @@ public sealed class VariableBag : IVariableResolver
 
     public void Set(string name, Value value)
     {
+        var changed = false;
         lock (_gate)
         {
+            EnsureFits(name, value);
+            _byName.TryGetValue(name, out var existing);
             // A name that is already there keeps the identity it has: a script writing the name a
             // declaration reads updates that declaration rather than growing a second entry.
-            var entry = _byName.TryGetValue(name, out var existing)
-                ? existing with { Value = value }
-                : new Entry(value, string.Empty);
-            _byName[name] = entry;
+            changed = existing is null || !existing.Value.Equals(value);
+            Put(name, existing?.Id ?? string.Empty, value);
         }
 
-        Changed?.Invoke(name);
+        if (changed)
+        {
+            Changed?.Invoke(name);
+        }
     }
 
     /// <summary>
-    /// Writes a value under an identity. A known identity writes the entry it names; an identity
-    /// that is new to a name already here is claimed by that entry; anything else makes a new one.
+    /// Writes a value under an identity. A known identity writes the entry it names; a name nothing
+    /// has claimed yet takes the identity it is given. A name that belongs to a declaration of this
+    /// run is refused when a different identity tries to take it — that is two declarations sharing
+    /// one name, and the value one of them wrote would otherwise be read by the other.
     /// </summary>
     public void Set(VariableKey key, Value value)
     {
@@ -165,26 +201,24 @@ public sealed class VariableBag : IVariableResolver
         string changed;
         lock (_gate)
         {
-            if (_byId.TryGetValue(key.Id, out var name))
+            if (_byId.TryGetValue(key.Id, out var bound))
             {
-                _byName[name] = _byName[name] with { Value = value };
-                changed = name;
-            }
-            else if (_byName.TryGetValue(key.Name, out var existing))
-            {
-                if (existing.Id.Length > 0 && !string.Equals(existing.Id, key.Id, StringComparison.Ordinal))
-                {
-                    _byId.Remove(existing.Id);
-                }
-
-                _byName[key.Name] = existing with { Value = value, Id = key.Id };
-                _byId[key.Id] = key.Name;
-                changed = key.Name;
+                EnsureFits(bound, value);
+                Put(bound, key.Id, value);
+                changed = bound;
             }
             else
             {
-                _byName[key.Name] = new Entry(value, key.Id);
-                _byId[key.Id] = key.Name;
+                EnsureFits(key.Name, value);
+                if (_byName.TryGetValue(key.Name, out var existing)
+                    && existing.Id.Length > 0
+                    && !string.Equals(existing.Id, key.Id, StringComparison.Ordinal)
+                    && (_declared.Contains(existing.Id) || _declared.Contains(key.Id)))
+                {
+                    throw new VariableConflictException(key.Name, existing.Id);
+                }
+
+                Put(key.Name, key.Id, value);
                 changed = key.Name;
             }
         }
@@ -201,7 +235,12 @@ public sealed class VariableBag : IVariableResolver
         bool added;
         lock (_gate)
         {
-            added = _byName.TryAdd(name, new Entry(value, string.Empty));
+            EnsureFits(name, value);
+            added = !_byName.ContainsKey(name);
+            if (added)
+            {
+                Put(name, string.Empty, value);
+            }
         }
 
         if (added)
@@ -222,12 +261,12 @@ public sealed class VariableBag : IVariableResolver
         bool added;
         lock (_gate)
         {
-            added = !_byName.ContainsKey(key.Name)
-                && _byName.TryAdd(key.Name, new Entry(value, key.Id));
-            if (added)
-            {
-                _byId[key.Id] = key.Name;
-            }
+            EnsureFits(key.Name, value);
+            // An identity already in the bag already holds a value, wherever it is written down:
+            // the declaration it belongs to may have been renamed since. There is nothing to add.
+            added = !_byId.ContainsKey(key.Id)
+                && !_byName.ContainsKey(key.Name)
+                && PutNew(key.Name, key.Id, value);
         }
 
         if (added)
@@ -249,11 +288,7 @@ public sealed class VariableBag : IVariableResolver
         bool removed;
         lock (_gate)
         {
-            removed = _byName.Remove(name, out var entry);
-            if (removed && entry!.Id.Length > 0)
-            {
-                _byId.Remove(entry.Id);
-            }
+            removed = RemoveEntry(name);
         }
 
         if (removed)
@@ -293,16 +328,28 @@ public sealed class VariableBag : IVariableResolver
                 return false;
             }
 
+            if (entry.Id.Length > 0
+                && _byId.TryGetValue(entry.Id, out var bound)
+                && string.Equals(bound, oldName, StringComparison.OrdinalIgnoreCase))
+            {
+                _byId.Remove(entry.Id);
+            }
+
             _byName[newName] = entry;
             if (entry.Id.Length > 0)
             {
                 _byId[entry.Id] = newName;
             }
 
-            Changed?.Invoke(newName);
-            Changed?.Invoke(oldName);
-            return true;
+            if (_types.Remove(oldName, out var kind))
+            {
+                _types[newName] = kind;
+            }
         }
+
+        Changed?.Invoke(newName);
+        Changed?.Invoke(oldName);
+        return true;
     }
 
     /// <summary>Renames the entry an identity belongs to, which is what a declaration rename does.</summary>
@@ -320,6 +367,10 @@ public sealed class VariableBag : IVariableResolver
 
             _byName[newName] = entry;
             _byId[id] = newName;
+            if (_types.Remove(oldName, out var kind))
+            {
+                _types[newName] = kind;
+            }
         }
 
         Changed?.Invoke(newName);
@@ -343,6 +394,73 @@ public sealed class VariableBag : IVariableResolver
     }
 
     /// <summary>
+    /// Says an identity belongs to a declaration of this run. Only a declared identity is worth
+    /// refusing: one left behind by a rename or an import is allowed to take the slot, because the
+    /// alternative is a value nobody can write any more.
+    /// </summary>
+    public void Declare(string id)
+    {
+        if (id.Length == 0)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            _declared.Add(id);
+        }
+    }
+
+    /// <summary>Forgets every declaration and type, for a run that is starting from its own macro.</summary>
+    public void ResetDeclarations()
+    {
+        lock (_gate)
+        {
+            _declared.Clear();
+            _types.Clear();
+        }
+    }
+
+    /// <summary>Records what a declared name holds. Text accepts anything, so it need not be said.</summary>
+    public void DeclareType(string name, ValueKind kind)
+    {
+        var written = name.Trim();
+        if (written.Length == 0)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            _types[written] = kind;
+        }
+    }
+
+    /// <summary>The kind a declared name holds, or false when nothing said.</summary>
+    public bool TryTypeOf(string name, out ValueKind kind)
+    {
+        lock (_gate)
+        {
+            return _types.TryGetValue(name, out kind);
+        }
+    }
+
+    /// <summary>
+    /// Puts a value back the way it was before a block took its name, identity included. This is
+    /// the undo of a loop's own variables: the slot may have been holding a declaration, and the
+    /// loop's counter wrote over it.
+    /// </summary>
+    public void Restore(string name, string id, Value value)
+    {
+        lock (_gate)
+        {
+            Put(name, id, value);
+        }
+
+        Changed?.Invoke(name);
+    }
+
+    /// <summary>
     /// Adds to a number under the same lock that reads it, so two runs adding to one global cannot
     /// both read the old value and write the same sum. False means the name is not there; a value
     /// that is not a number is reported by <see cref="Value.AsNumber"/> rather than written.
@@ -358,7 +476,9 @@ public sealed class VariableBag : IVariableResolver
             }
 
             sum = entry.Value.AsNumber() + amount;
-            _byName[name] = entry with { Value = Value.FromNumber(sum) };
+            var updated = Value.FromNumber(sum);
+            EnsureFits(name, updated);
+            Put(name, entry.Id, updated);
         }
 
         Changed?.Invoke(name);
@@ -378,7 +498,9 @@ public sealed class VariableBag : IVariableResolver
             }
 
             sum = entry.Value.AsNumber() + amount;
-            _byName[name] = entry with { Value = Value.FromNumber(sum) };
+            var updated = Value.FromNumber(sum);
+            EnsureFits(name, updated);
+            Put(name, entry.Id, updated);
         }
 
         Changed?.Invoke(name);
@@ -404,7 +526,8 @@ public sealed class VariableBag : IVariableResolver
             }
 
             updated = change(entry.Value);
-            _byName[name] = entry with { Value = updated };
+            EnsureFits(name, updated);
+            Put(name, entry.Id, updated);
             found = true;
         }
 
@@ -429,7 +552,8 @@ public sealed class VariableBag : IVariableResolver
             }
 
             updated = change(entry.Value);
-            _byName[name] = entry with { Value = updated };
+            EnsureFits(name, updated);
+            Put(name, entry.Id, updated);
         }
 
         Changed?.Invoke(name);
@@ -452,5 +576,80 @@ public sealed class VariableBag : IVariableResolver
         {
             return _byId.TryGetValue(id, out var name) ? name : string.Empty;
         }
+    }
+
+    /// <summary>
+    /// The one place a name's value and its identity are written together. Every caller holds the
+    /// lock; keeping the two indexes in step here is what makes the rest of the class safe to read.
+    /// </summary>
+    private void Put(string name, string id, Value value)
+    {
+        if (_byName.TryGetValue(name, out var previous)
+            && previous.Id.Length > 0
+            && !string.Equals(previous.Id, id, StringComparison.Ordinal)
+            && _byId.TryGetValue(previous.Id, out var bound)
+            && string.Equals(bound, name, StringComparison.OrdinalIgnoreCase))
+        {
+            _byId.Remove(previous.Id);
+        }
+
+        _byName[name] = new Entry(value, id);
+        if (id.Length > 0)
+        {
+            _byId[id] = name;
+        }
+    }
+
+    /// <summary>Adds a name that is known to be free, and reports whether it was added.</summary>
+    private bool PutNew(string name, string id, Value value)
+    {
+        if (_byName.ContainsKey(name))
+        {
+            return false;
+        }
+
+        _byName[name] = new Entry(value, id);
+        if (id.Length > 0)
+        {
+            _byId[id] = name;
+        }
+
+        return true;
+    }
+
+    private bool RemoveEntry(string name)
+    {
+        if (!_byName.Remove(name, out var entry))
+        {
+            return false;
+        }
+
+        if (entry.Id.Length > 0
+            && _byId.TryGetValue(entry.Id, out var bound)
+            && string.Equals(bound, name, StringComparison.OrdinalIgnoreCase))
+        {
+            _byId.Remove(entry.Id);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Refuses a value a declared name cannot hold. Nothing declared says nothing; text holds
+    /// whatever it is given, because a text variable is how a macro keeps something whose shape it
+    /// has not decided. The empty value is always allowed: it is how a result nobody has written
+    /// yet reads, and it is not a value of the wrong kind.
+    /// </summary>
+    private void EnsureFits(string name, Value value)
+    {
+        if (value.IsNull
+            || !_types.TryGetValue(name, out var kind)
+            || kind is ValueKind.Text
+            || value.Kind == kind)
+        {
+            return;
+        }
+
+        throw new VariableTypeException(name, kind, value.Kind);
     }
 }

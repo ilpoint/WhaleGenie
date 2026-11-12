@@ -355,6 +355,10 @@ public sealed partial class MacroRunner
         _agreed.Clear();
         _steps = steps;
 
+        // A declaration belongs to the macro that wrote it. A store the debug window keeps between
+        // runs would otherwise still be holding the names of whatever ran last.
+        Variables.Local.ResetDeclarations();
+
         // A run that brought its own ceiling spaces its events along a line of its own; without one
         // it answers to the program setting exactly as before. Either way the answer is put back
         // when the run ends, so a stopped run leaves nothing behind for the next.

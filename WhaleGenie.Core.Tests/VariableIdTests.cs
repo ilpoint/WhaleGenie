@@ -84,6 +84,82 @@ public class VariableBagIdTests
         Assert.True(bag.Values.ContainsKey("count"));
         Assert.False(bag.Values.ContainsKey("a7k2m9"));
     }
+
+    [Fact]
+    public void Another_declaration_cannot_take_a_name_this_one_holds()
+    {
+        var bag = new VariableBag();
+        bag.Declare("a7k2m9");
+        bag.Set(new VariableKey("total", "a7k2m9"), Value.FromNumber(1));
+
+        var refusal = Assert.Throws<VariableConflictException>(() =>
+            bag.Set(new VariableKey("total", "b8m3n1"), Value.FromNumber(2)));
+
+        Assert.Equal("total", refusal.Name);
+        Assert.Equal("a7k2m9", refusal.DeclaredId);
+        Assert.True(bag.TryGet(new VariableKey("total", "a7k2m9"), out var value));
+        Assert.Equal(1d, value.AsNumber());
+    }
+
+    /// <summary>
+    /// Two steps naming their own result the same thing is how a macro overwrites a value, and it
+    /// must keep working: neither identity is a declaration, so neither can own the name.
+    /// </summary>
+    [Fact]
+    public void Two_step_outputs_with_one_name_still_overwrite()
+    {
+        var bag = new VariableBag();
+        bag.Set(new VariableKey("rows", "stepA1"), Value.FromNumber(1));
+        bag.Set(new VariableKey("rows", "stepB2"), Value.FromNumber(2));
+
+        Assert.Equal(2d, bag.Values["rows"].AsNumber());
+        Assert.Equal("stepB2", bag.IdOf("rows"));
+        Assert.False(bag.ContainsId("stepA1"));
+    }
+
+    [Fact]
+    public void A_declaration_is_forgotten_when_the_run_starts_over()
+    {
+        var bag = new VariableBag();
+        bag.Declare("a7k2m9");
+        bag.Set(new VariableKey("total", "a7k2m9"), Value.FromNumber(1));
+
+        bag.ResetDeclarations();
+        bag.Set(new VariableKey("total", "b8m3n1"), Value.FromNumber(2));
+
+        Assert.Equal(2d, bag.Values["total"].AsNumber());
+    }
+
+    /// <summary>
+    /// A renamed declaration keeps its identity under a new name. Seeding a result placeholder
+    /// asks about a name the identity has already left, and must not grow a second entry for it.
+    /// </summary>
+    [Fact]
+    public void An_identity_written_under_another_name_is_not_added_twice()
+    {
+        var bag = new VariableBag();
+        bag.Set(new VariableKey("count", "a7k2m9"), Value.FromNumber(1));
+
+        Assert.False(bag.SetIfAbsent(new VariableKey("total", "a7k2m9"), Value.FromNumber(2)));
+        Assert.False(bag.Contains("total"));
+        Assert.Single(bag.Values);
+        Assert.True(bag.TryGet(new VariableKey("total", "a7k2m9"), out var value));
+        Assert.Equal(1d, value.AsNumber());
+    }
+
+    [Fact]
+    public void Restoring_a_name_puts_its_identity_back()
+    {
+        var bag = new VariableBag();
+        bag.Set(new VariableKey("count", "a7k2m9"), Value.FromNumber(1));
+        bag.Set(new VariableKey("count", "loop77"), Value.FromNumber(9));
+
+        bag.Restore("count", "a7k2m9", Value.FromNumber(1));
+
+        Assert.Equal("a7k2m9", bag.IdOf("count"));
+        Assert.False(bag.ContainsId("loop77"));
+        Assert.Equal(1d, bag.Values["count"].AsNumber());
+    }
 }
 
 /// <summary>The three scopes a run reads from, with the identity looked at before the spelling.</summary>

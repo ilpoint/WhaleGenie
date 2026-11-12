@@ -111,7 +111,6 @@ public static class RunKeys
     public const string FileNotFound = "Run.FileNotFound";
     public const string FolderNotFound = "Run.FolderNotFound";
     public const string GlobalMustExist = "Run.GlobalMustExist";
-
     /// <summary>An argument was both given a value and marked as supplied empty.</summary>
     public const string GivenWithValue = "Run.GivenWithValue";
     public const string ImageNotFound = "Run.ImageNotFound";
@@ -236,6 +235,13 @@ public static class RunKeys
     public const string UnknownSystemField = "Run.UnknownSystemField";
     public const string UnknownVolumeAction = "Run.UnknownVolumeAction";
     public const string Unsupported = "Run.Unsupported";
+
+    /// <summary>Two declarations of this run want one name, so neither can own the value.</summary>
+    public const string VariableNameConflict = "Run.VariableNameConflict";
+
+    /// <summary>A value was written that the declared name cannot hold.</summary>
+    public const string VariableTypeMismatch = "Run.VariableTypeMismatch";
+
     public const string WaitColorTimeout = "Run.WaitColorTimeout";
     public const string WaitTimeout = "Run.WaitTimeout";
     public const string WindowFailed = "Run.WindowFailed";

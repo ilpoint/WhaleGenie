@@ -59,6 +59,9 @@ public sealed partial class MacroRunner
         foreach (var argument in signature.Arguments)
         {
             supplied.TryGetValue(argument.Name.Trim(), out var input);
+            // A declaration of the called macro, so a second one claiming the same name is refused
+            // rather than quietly sharing the slot.
+            called.Declare(argument.Id);
             called.Set(new VariableKey(argument.Name.Trim(), argument.Id),
                 ReadArgument(argument, input?.Value ?? Formula.Nothing, input?.Given ?? false));
         }
@@ -70,6 +73,7 @@ public sealed partial class MacroRunner
         foreach (var result in signature.Results)
         {
             var resultName = result.Name.Trim();
+            called.Declare(result.Id);
             if (resultName.Length > 0)
             {
                 called.SetIfAbsent(new VariableKey(resultName, result.Id), Value.Null);
@@ -152,6 +156,7 @@ public sealed partial class MacroRunner
         foreach (var argument in signature.Arguments)
         {
             var name = argument.Name.Trim();
+            Variables.Local.Declare(argument.Id);
             if (name.Length > 0)
             {
                 Variables.Local.Remove(new VariableKey(name, argument.Id));
@@ -161,6 +166,7 @@ public sealed partial class MacroRunner
         foreach (var result in signature.Results)
         {
             var name = result.Name.Trim();
+            Variables.Local.Declare(result.Id);
             if (name.Length > 0)
             {
                 Variables.Local.Remove(new VariableKey(name, result.Id));
@@ -217,6 +223,10 @@ public sealed partial class MacroRunner
         {
             return new StepFailure(RunKeys.BadExpression, failure.Detail);
         }
+        catch (VariableConflictException failure)
+        {
+            return new StepFailure(RunKeys.VariableNameConflict, failure.Name);
+        }
     }
 
     /// <summary>
@@ -230,6 +240,7 @@ public sealed partial class MacroRunner
         foreach (var local in signature.Locals)
         {
             var name = local.Name.Trim();
+            Variables.Local.Declare(local.Id);
             if (name.Length > 0)
             {
                 Variables.Local.Set(new VariableKey(name, local.Id),
