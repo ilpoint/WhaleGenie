@@ -21,6 +21,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         IReadOnlyList<VariableUse>? uses = null)
     {
         OriginalName = source?.Name ?? string.Empty;
+        Id = source?.Id ?? string.Empty;
         Name = source?.Name ?? string.Empty;
         Type = source?.Type ?? "text";
         OriginalType = Type;
@@ -35,6 +36,13 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     }
 
     public string OriginalName { get; }
+
+    /// <summary>
+    /// The identity this declaration already had, kept so that editing its name, type or default
+    /// does not make every reference to it stale. A draft of a variable that does not exist yet
+    /// carries none, and one is given when the project next settles its declarations.
+    /// </summary>
+    public string Id { get; }
     public string OriginalType { get; }
     public string OriginalDefaultValue { get; }
     public string OriginalDescription { get; }
@@ -117,6 +125,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
 
     public VariableDefinition ToDefinition() => new()
     {
+        Id = Id,
         Name = Name.Trim(),
         Scope = VariableScope.Global,
         Type = Type,

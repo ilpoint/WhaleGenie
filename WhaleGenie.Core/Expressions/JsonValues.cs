@@ -11,7 +11,8 @@ namespace WhaleGenie.Core.Expressions;
 public static class JsonValues
 {
     /// <summary>A value written as JSON, so it can go into a document or into a file.</summary>
-    public static JsonNode? Node(Value value)    {
+    public static JsonNode? Node(Value value)
+    {
         switch (value.Kind)
         {
             case ValueKind.Null:

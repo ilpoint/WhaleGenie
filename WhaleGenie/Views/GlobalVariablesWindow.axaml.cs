@@ -145,6 +145,7 @@ public partial class GlobalVariablesWindow : AppWindow
 
             choices.Add(new VariableChoice
             {
+                Id = candidate.Id,
                 Name = name,
                 Scope = VariableScope.Global,
                 Type = candidate.Type,

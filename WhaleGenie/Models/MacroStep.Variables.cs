@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 
@@ -58,13 +59,22 @@ public partial class MacroStep : INotifyPropertyChanged
     /// it goes by.
     /// </summary>
     public IEnumerable<(string Key, string Name)> ReturnedResults(StepParameter parameter)
+        => ReturnedNameKeys(parameter).Select(result => (result.Key, result.Name.Name));
+
+    /// <summary>
+    /// The same rows with the identity each name is bound to. A picker that offers one of these
+    /// names has to carry the identity with it, or the reference it writes is bound by spelling and
+    /// loses the declaration the next time two names happen to match.
+    /// </summary>
+    public IEnumerable<(string Key, VariableKey Name)> ReturnedNameKeys(StepParameter parameter)
     {
         foreach (var row in parameter.Rows)
         {
-            var name = Formula.NameOf(row.Cell(FieldNames.Name)).Name.Trim();
+            var key = Formula.NameOf(row.Cell(FieldNames.Name));
+            var name = key.Name.Trim();
             if (name.Length > 0)
             {
-                yield return (row.Text(FieldNames.Key).Trim(), name);
+                yield return (row.Text(FieldNames.Key).Trim(), key with { Name = name });
             }
         }
     }

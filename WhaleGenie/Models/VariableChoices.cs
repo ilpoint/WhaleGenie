@@ -175,6 +175,7 @@ public sealed class VariableChoice
     /// </summary>
     internal VariableChoice WithContent(Func<string, VariableScope, string?> content) => new()
     {
+        Id = Id,
         Name = Name,
         Scope = Scope,
         Type = Type,
@@ -461,43 +462,53 @@ public static class VariableChoices
                 // from. Nothing ticked means the step leaves no result behind.
                 if (parameter.Kind is ActionParameterKind.Returns)
                 {
-                    foreach (var (key, name) in step.ReturnedResults(parameter))
+                    foreach (var (key, name) in step.ReturnedNameKeys(parameter))
                     {
                         var result = step.Definition?.Returns.FirstOrDefault(
                             candidate => string.Equals(candidate.Key, key,
                                 StringComparison.OrdinalIgnoreCase));
                         rows.Add(new VariableChoice
                         {
-                            Name = name,
+                            Id = name.Id,
+                            Name = name.Name,
                             Scope = VariableScope.Local,
                             Type = result?.TypeName ?? "text",
                             Fields = result?.Fields ?? [],
                             Description = result?.LocalHint ?? string.Empty,
                             Source = step.PickerLabel,
                             Origin = VariableOrigin.Local,
-                            Uses = UsesOf(uses, name),
+                            Uses = UsesOf(uses, name.Name),
                         });
                     }
 
                     continue;
                 }
 
-                if (!step.DefinesVariable(parameter)
-                    || parameter.Value.Trim().Length == 0)
+                if (!step.DefinesVariable(parameter))
+                {
+                    continue;
+                }
+
+                // A name field is read as the name it is, not as the line a formula would spell it
+                // with: a bound name renders as "$total", and the wall must offer "total".
+                var declared = Formula.NameOf(parameter.Written);
+                var declaredName = declared.Name.Trim();
+                if (declaredName.Length == 0)
                 {
                     continue;
                 }
 
                 rows.Add(new VariableChoice
                 {
-                    Name = parameter.Value.Trim(),
+                    Id = declared.Id,
+                    Name = declaredName,
                     Scope = VariableScope.Local,
                     Description = step.Definition?.Parameters
                         .FirstOrDefault(candidate => candidate.Name == parameter.Name)
                         ?.LocalHint ?? string.Empty,
                     Source = step.PickerLabel,
                     Origin = VariableOrigin.Local,
-                    Uses = UsesOf(uses, parameter.Value.Trim()),
+                    Uses = UsesOf(uses, declaredName),
                 });
             }
 
