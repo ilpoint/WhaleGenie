@@ -109,8 +109,8 @@ internal static partial class McpPatches
     }
 
     /// <summary>The declared type of a declaration, or null when the operation did not name one.</summary>
-    private static (ActionReturnType Value, Refusal? Refusal)? Typed(JsonObject operation)
-        => Enum<ActionReturnType>(ActionReturnType.Text, operation, "type");
+    private static (ValueKind Value, Refusal? Refusal)? Typed(JsonObject operation)
+        => Enum<ValueKind>(ValueKind.Text, operation, "type");
 
     /// <summary>The fields of a record declaration, or null when the operation did not name any.</summary>
     private static (List<MacroField>? Value, Refusal? Refusal)? Reading(JsonObject operation)
@@ -138,10 +138,10 @@ internal static partial class McpPatches
                     "Every field of a record needs a name of its own.", true, new { name }));
             }
 
-            var type = System.Enum.TryParse<ActionReturnType>(Text(field["type"]).Trim(),
+            var type = System.Enum.TryParse<ValueKind>(Text(field["type"]).Trim(),
                 ignoreCase: true, out var parsed)
                 ? parsed
-                : ActionReturnType.Text;
+                : ValueKind.Text;
             read.Add(new MacroField { Name = name, Type = type });
         }
 

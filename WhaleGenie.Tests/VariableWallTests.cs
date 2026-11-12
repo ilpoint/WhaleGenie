@@ -121,13 +121,13 @@ public class VariableWallTests
                 [new MacroParameter
                 {
                     Name = "次数",
-                    Type = ActionReturnType.Number,
+                    Type = ValueKind.Number,
                     Description = "要做多少遍。",
                 }],
                 [new MacroResult
                 {
                     Name = "答案",
-                    Type = ActionReturnType.Record,
+                    Type = ValueKind.Record,
                     Description = "整理完留下的答案。",
                 }]);
             var wall = new VariableWallViewModel(variables);
@@ -214,8 +214,8 @@ public class VariableWallTests
             ContentReader = () => "{ x: 12, y: 8 }",
             Fields =
             [
-                new ActionReturnField { Name = "x", Type = ActionReturnType.Number },
-                new ActionReturnField { Name = "name", Type = ActionReturnType.Text },
+                new ActionReturnField { Name = "x", Type = ValueKind.Number },
+                new ActionReturnField { Name = "name", Type = ValueKind.Text },
             ],
         };
 

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -32,13 +33,13 @@ public partial class MacroCheckTests
     /// names none is not, because checking against names nobody wrote down would be a guess.
     /// </summary>
     private static MacroCallable WithRecord(string name,
-        params (string Name, ActionReturnType Type)[] fields)
+        params (string Name, ValueKind Type)[] fields)
         => new(name,
             [
                 new MacroParameter
                 {
                     Name = "点",
-                    Type = ActionReturnType.Record,
+                    Type = ValueKind.Record,
                     Required = true,
                     Fields = [.. fields.Select(field => new MacroField
                     {
@@ -52,7 +53,7 @@ public partial class MacroCheckTests
     public void A_field_a_declared_record_has_is_left_alone()
         => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
             [Set("左", "field($点, \"x\")")],
-            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            WithRecord("自己", ("x", ValueKind.Number), ("y", ValueKind.Number)),
             [])));
 
     [Fact]
@@ -62,7 +63,7 @@ public partial class MacroCheckTests
 
         var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
             [step],
-            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            WithRecord("自己", ("x", ValueKind.Number), ("y", ValueKind.Number)),
             [])));
 
         // The mark names the field that is not there and the ones that are: "wrong field" without
@@ -89,11 +90,11 @@ public partial class MacroCheckTests
                 new MacroResult
                 {
                     Name = "命中",
-                    Type = ActionReturnType.Record,
+                    Type = ValueKind.Record,
                     Fields =
                     [
-                        new MacroField { Name = "left", Type = ActionReturnType.Number },
-                        new MacroField { Name = "top", Type = ActionReturnType.Number },
+                        new MacroField { Name = "left", Type = ValueKind.Number },
+                        new MacroField { Name = "top", Type = ValueKind.Number },
                     ],
                 },
             ]);

@@ -4,13 +4,14 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
 
 /// <summary>One choice in the kind dropdowns of the macro interface.</summary>
-public sealed record MacroTypeChoice(ActionReturnType Value, string Label);
+public sealed record MacroTypeChoice(ValueKind Value, string Label);
 
 /// <summary>
 /// The macro's own parameters and results: what a call has to fill in, and what the macro may hand
@@ -48,12 +49,13 @@ public partial class MacroInterfaceViewModel : ViewModelBase
 
     private static IReadOnlyList<MacroTypeChoice> BuildTypes() =>
     [
-        new(ActionReturnType.Text, Strings.Get("MacroInterface.Type.Text")),
-        new(ActionReturnType.Number, Strings.Get("MacroInterface.Type.Number")),
-        new(ActionReturnType.Flag, Strings.Get("MacroInterface.Type.Flag")),
-        new(ActionReturnType.List, Strings.Get("MacroInterface.Type.List")),
-        new(ActionReturnType.Record, Strings.Get("MacroInterface.Type.Record")),
-        new(ActionReturnType.Image, Strings.Get("MacroInterface.Type.Image")),
+        new(ValueKind.Text, Strings.Get("MacroInterface.Type.Text")),
+        new(ValueKind.Number, Strings.Get("MacroInterface.Type.Number")),
+        new(ValueKind.Bool, Strings.Get("MacroInterface.Type.Flag")),
+        new(ValueKind.List, Strings.Get("MacroInterface.Type.List")),
+        new(ValueKind.Record, Strings.Get("MacroInterface.Type.Record")),
+        new(ValueKind.Date, Strings.Get("MacroInterface.Type.Date")),
+        new(ValueKind.Image, Strings.Get("MacroInterface.Type.Image")),
     ];
 
     /// <summary>
@@ -292,7 +294,7 @@ public sealed partial class MacroParameterRow : ViewModelBase
     public bool HasFields => Fields.Count > 0;
 
     /// <summary>True when the declaration says its value is a record, which is the only kind with fields.</summary>
-    public bool IsRecord => Model.Type == ActionReturnType.Record;
+    public bool IsRecord => Model.Type == ValueKind.Record;
 
     /// <summary>>Reads the model's field list back into rows, after an edit or a language switch.</summary>
     internal void LoadFields()
@@ -480,7 +482,7 @@ public sealed partial class MacroResultRow : ViewModelBase
 
     public bool HasFields => Fields.Count > 0;
 
-    public bool IsRecord => Model.Type == ActionReturnType.Record;
+    public bool IsRecord => Model.Type == ValueKind.Record;
 
     internal void LoadFields()
     {

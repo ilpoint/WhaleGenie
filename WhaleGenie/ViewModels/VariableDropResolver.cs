@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
-
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -139,13 +139,14 @@ public static class VariableDropResolver
         _ => [],
     };
 
-    private static string TypeName(ActionReturnType type) => type switch
+    private static string TypeName(ValueKind type) => type switch
     {
-        ActionReturnType.Number => "number",
-        ActionReturnType.Flag => "bool",
-        ActionReturnType.List => "list",
-        ActionReturnType.Record => "record",
-        ActionReturnType.Image => "image",
+        ValueKind.Number => "number",
+        ValueKind.Bool => "bool",
+        ValueKind.List => "list",
+        ValueKind.Record => "record",
+        ValueKind.Image => "image",
+        ValueKind.Date => "date",
         _ => "text",
     };
 }

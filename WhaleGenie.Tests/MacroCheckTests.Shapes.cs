@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -89,7 +90,7 @@ public partial class MacroCheckTests
     public void A_call_argument_of_the_wrong_kind_is_reported()
     {
         var target = new MacroCallable("整理",
-            [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }], []);
+            [new MacroParameter { Name = "窗口", Type = ValueKind.Record }], []);
         var call = Step("control.runMacro", Text("macro", "整理"),
             Arguments(("窗口", "$sys.date")));
 

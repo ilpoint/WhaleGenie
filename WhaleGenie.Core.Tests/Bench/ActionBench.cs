@@ -240,7 +240,7 @@ internal static class ActionBench
             }
 
             kept++;
-            if (!Fits(declared.Type, value))
+            if (!MacroValues.Fits(declared.Type, value))
             {
                 problems.Add($"结果 {declared.Key} 应为 {declared.Type}，写出来的是 {value.Kind}");
             }
@@ -287,16 +287,6 @@ internal static class ActionBench
         _ = devices;
         return new Arrival(note, [BenchFixtures.Name(result)]);
     }
-
-    /// <summary>Whether a value is the kind a declared result says it is.</summary>
-    private static bool Fits(ActionReturnType type, Value value) => type switch
-    {
-        ActionReturnType.Number => value.Kind == ValueKind.Number,
-        ActionReturnType.Flag => value.Kind == ValueKind.Bool,
-        ActionReturnType.List => value.Kind == ValueKind.List,
-        ActionReturnType.Record => value.Kind == ValueKind.Record,
-        _ => value.Kind is ValueKind.Text or ValueKind.Number or ValueKind.Bool,
-    };
 
     /// <summary>
     /// What the declaration says about the machine against what the machine was actually asked for.

@@ -291,7 +291,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             .. fields.OfType<JsonObject>().Select(field => new MacroField
             {
                 Name = field["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
-                Type = ReadEnum(field, "type", ActionReturnType.Text),
+                Type = ReadEnum(field, "type", ValueKind.Text),
             }),
         ];
     }

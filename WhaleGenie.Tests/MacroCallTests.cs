@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 
@@ -23,7 +24,7 @@ public class MacroCallTests
             Default = "3",
             Required = false,
             Description = "要做多少遍。",
-            Type = ActionReturnType.Number,
+            Type = ValueKind.Number,
         });
         macro.Parameters.Add(new MacroParameter
         {
@@ -35,7 +36,7 @@ public class MacroCallTests
         {
             Name = "答案",
             Description = "整理完留下的数。",
-            Type = ActionReturnType.Number,
+            Type = ValueKind.Number,
         });
         return macro;
     }
@@ -49,14 +50,14 @@ public class MacroCallTests
         Assert.Equal("3", optional.Default);
         Assert.False(optional.Required);
         Assert.Equal("要做多少遍。", optional.Description);
-        Assert.Equal(ActionReturnType.Number, optional.Type);
+        Assert.Equal(ValueKind.Number, optional.Type);
 
         var wanted = Assert.Single(callable.Parameters, parameter => parameter.Name == "标签");
         Assert.True(wanted.Required);
         Assert.Equal(string.Empty, wanted.Default);
-        Assert.Equal(ActionReturnType.Text, wanted.Type);
-        Assert.Equal(ActionReturnType.Number, callable.Signature.Argument("次数")!.Type);
-        Assert.Equal(ActionReturnType.Number, callable.Signature.Result("答案")!.Type);
+        Assert.Equal(ValueKind.Text, wanted.Type);
+        Assert.Equal(ValueKind.Number, callable.Signature.Argument("次数")!.Type);
+        Assert.Equal(ValueKind.Number, callable.Signature.Result("答案")!.Type);
     }
 
     [Fact]
@@ -67,7 +68,7 @@ public class MacroCallTests
         var result = Assert.Single(callable.Results);
         Assert.Equal("答案", result.Name);
         Assert.Equal("整理完留下的数。", result.Description);
-        Assert.Equal(ActionReturnType.Number, result.Type);
+        Assert.Equal(ValueKind.Number, result.Type);
     }
 
     [Fact]
@@ -166,7 +167,7 @@ public class MacroCallTests
             Assert.Equal("次数", read.Parameters[0].Name);
             Assert.False(read.Parameters[0].Required);
             Assert.Equal("答案", read.Results[0].Name);
-            Assert.Equal(ActionReturnType.Number, read.Results[0].Type);
+            Assert.Equal(ValueKind.Number, read.Results[0].Type);
             Assert.Equal(["次数", "标签"], read.Callable.Signature.Arguments.Select(a => a.Name));
             Assert.Equal(["答案"], read.Callable.Signature.Results.Select(result => result.Name));
         }

@@ -62,7 +62,7 @@ public sealed partial class MacroRunner
             // A declaration of the called macro, so a second one claiming the same name is refused
             // rather than quietly sharing the slot.
             called.Declare(argument.Id);
-            called.DeclareType(argument.Name.Trim(), MacroValues.KindOf(argument.Type));
+            called.DeclareType(argument.Name.Trim(), argument.Type);
             called.Set(new VariableKey(argument.Name.Trim(), argument.Id),
                 ReadArgument(argument, input?.Value ?? Formula.Nothing, input?.Given ?? false));
         }
@@ -161,7 +161,7 @@ public sealed partial class MacroRunner
         {
             var name = argument.Name.Trim();
             Variables.Local.Declare(argument.Id);
-            Variables.Local.DeclareType(name, MacroValues.KindOf(argument.Type));
+            Variables.Local.DeclareType(name, argument.Type);
             if (name.Length > 0)
             {
                 Variables.Local.Remove(new VariableKey(name, argument.Id));
@@ -246,7 +246,7 @@ public sealed partial class MacroRunner
         {
             var name = local.Name.Trim();
             Variables.Local.Declare(local.Id);
-            Variables.Local.DeclareType(name, MacroValues.KindOf(local.Type));
+            Variables.Local.DeclareType(name, local.Type);
             if (name.Length > 0)
             {
                 Variables.Local.Set(new VariableKey(name, local.Id),
@@ -296,7 +296,7 @@ public sealed partial class MacroRunner
     /// cannot be read is raised the way any other bad value is, so the failure names the same key
     /// wherever the value was written.
     /// </summary>
-    private Value ReadDeclared(string name, string initial, ActionReturnType type)
+    private Value ReadDeclared(string name, string initial, ValueKind type)
     {
         var written = initial.Trim();
         if (written.Length == 0)
@@ -356,7 +356,7 @@ public sealed partial class MacroRunner
     /// Text accepts anything because every value has a text reading; an empty value is allowed for
     /// any kind because a result that was not handed over is empty rather than wrong.
     /// </summary>
-    private static void CheckValueFits(ActionReturnType declared, Value value, string name, string key)
+    private static void CheckValueFits(ValueKind declared, Value value, string name, string key)
     {
         if (!MacroValues.Fits(declared, value))
         {
@@ -426,7 +426,7 @@ public sealed partial class MacroRunner
             var value = produced.TryGet(result, out var written) && written is not null
                 ? written
                 : Value.Null;
-            CheckValueFits(declared.Type, value, result, RunKeys.BadResultType);
+            CheckValueFits(declared.Type, value, result, RunKeys.VariableTypeMismatch);
         }
     }
     /// <summary>The entries of a field written one to a line, whichever line ending was used.</summary>

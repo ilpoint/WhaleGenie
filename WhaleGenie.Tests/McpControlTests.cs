@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Mcp;
 using WhaleGenie.ViewModels;

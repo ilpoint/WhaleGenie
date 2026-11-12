@@ -57,7 +57,6 @@ public static class RunKeys
     public const string BadPosition = "Run.BadPosition";
     public const string BadRegion = "Run.BadRegion";
     public const string BadResult = "Run.BadResult";
-    public const string BadResultType = "Run.BadResultType";
     public const string BadRegistryData = "Run.BadRegistryData";
     public const string BadRegistryName = "Run.BadRegistryName";
     public const string BadRowColumn = "Run.BadRowColumn";

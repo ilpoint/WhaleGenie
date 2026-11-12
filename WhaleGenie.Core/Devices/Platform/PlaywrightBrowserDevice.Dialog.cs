@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.Playwright;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Devices.Platform;
 

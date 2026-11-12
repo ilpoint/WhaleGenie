@@ -8,6 +8,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
+using WhaleGenie.Core.Expressions;
 
 
 namespace WhaleGenie.Core.Devices.Platform;

@@ -107,7 +107,7 @@ public partial class MacroRunnerTests
     public async Task A_default_of_the_wrong_kind_stops_the_call()
     {
         var library = new Library(("甲", new MacroSignature(
-            [new MacroArgument("数量", "不是数", false, ActionReturnType.Number)], [], []), []));
+            [new MacroArgument("数量", "不是数", false, ValueKind.Number)], [], []), []));
 
         var (result, _) = await RunAsync([Call("甲")], macros: library);
 
@@ -120,7 +120,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("甲",
-            new MacroSignature([new MacroArgument("数量", "", true, ActionReturnType.Number)],
+            new MacroSignature([new MacroArgument("数量", "", true, ValueKind.Number)],
                 [new MacroReturn("痕迹")], []),
             [Set("痕迹", "$数量")]));
 
@@ -225,7 +225,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("甲",
-            new MacroSignature([new MacroArgument("数量", "", true, ActionReturnType.Number)],
+            new MacroSignature([new MacroArgument("数量", "", true, ValueKind.Number)],
                 [new MacroReturn("结果")], []),
             [Set("结果", "$数量")]));
 
@@ -243,7 +243,7 @@ public partial class MacroRunnerTests
         var store = Store();
         var library = new Library(("甲", MacroSignature.Empty with
         {
-            Results = [new MacroReturn("结果", ActionReturnType.Number)],
+            Results = [new MacroReturn("结果", ValueKind.Number)],
         }, [Set("结果", "不是数")]));
 
         var (result, _) = await RunAsync([Step("control.runMacro", Param("macro", "甲"),
@@ -251,7 +251,7 @@ public partial class MacroRunnerTests
             macros: library);
 
         Assert.Equal(RunStatus.Failed, result.Status);
-        Assert.Equal(RunKeys.BadResultType, result.Key);
+        Assert.Equal(RunKeys.VariableTypeMismatch, result.Key);
         Assert.Equal(string.Empty, store.Local.Values["取回"].AsText());
     }
 

@@ -1487,7 +1487,7 @@
     "Returns": [
       {
         "Key": "confirmed",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": true
       }
     ]
@@ -1958,7 +1958,7 @@
     "Returns": [
       {
         "Key": "exists",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": true
       }
     ]
@@ -4109,7 +4109,7 @@
     "Returns": [
       {
         "Key": "running",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": true
       }
     ]
@@ -4599,7 +4599,7 @@
           },
           {
             "Name": "primary",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "box",
@@ -5501,7 +5501,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": true
       }
     ]
@@ -5581,11 +5581,11 @@
           },
           {
             "Name": "minimized",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "maximized",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "x",
@@ -5625,15 +5625,15 @@
           },
           {
             "Name": "caseSensitive",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "trim",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "multiline",
-            "Type": "Flag"
+            "Type": "Bool"
           }
         ]
       }
@@ -5941,11 +5941,11 @@
           },
           {
             "Name": "minimized",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "maximized",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "x",
@@ -5985,15 +5985,15 @@
           },
           {
             "Name": "caseSensitive",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "trim",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "multiline",
-            "Type": "Flag"
+            "Type": "Bool"
           }
         ]
       }
@@ -6069,11 +6069,11 @@
           },
           {
             "Name": "minimized",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "maximized",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "x",
@@ -6113,15 +6113,15 @@
           },
           {
             "Name": "caseSensitive",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "trim",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "multiline",
-            "Type": "Flag"
+            "Type": "Bool"
           }
         ]
       }
@@ -6309,7 +6309,7 @@
       },
       {
         "Key": "injected",
-        "Type": "Flag"
+        "Type": "Bool"
       }
     ]
   },
@@ -9296,7 +9296,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       },
@@ -10779,7 +10779,7 @@
     "Returns": [
       {
         "Key": "matches",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": true
       },
       {
@@ -10984,7 +10984,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       },
@@ -11547,7 +11547,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       },
@@ -12313,7 +12313,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       },
@@ -13838,7 +13838,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       },
@@ -14672,7 +14672,7 @@
     "Returns": [
       {
         "Key": "exists",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": true
       }
     ]
@@ -14826,7 +14826,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       },
@@ -15108,11 +15108,11 @@
         "Fields": [
           {
             "Name": "enabled",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "visible",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "value",
@@ -15733,11 +15733,11 @@
         "Fields": [
           {
             "Name": "enabled",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "visible",
-            "Type": "Flag"
+            "Type": "Bool"
           },
           {
             "Name": "value",
@@ -18436,7 +18436,7 @@
       },
       {
         "Key": "success",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": false
       },
       {
@@ -18554,7 +18554,7 @@
       },
       {
         "Key": "success",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": false
       },
       {
@@ -18634,7 +18634,7 @@
       },
       {
         "Key": "success",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": false
       },
       {
@@ -18740,7 +18740,7 @@
       },
       {
         "Key": "success",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": false
       },
       {
@@ -18858,7 +18858,7 @@
       },
       {
         "Key": "success",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": false
       },
       {
@@ -18927,7 +18927,7 @@
       },
       {
         "Key": "success",
-        "Type": "Flag",
+        "Type": "Bool",
         "Primary": false
       },
       {
@@ -19046,7 +19046,7 @@
     "Returns": [
       {
         "Key": "found",
-        "Type": "Flag",
+        "Type": "Bool",
         "Fields": [],
         "Primary": true
       }

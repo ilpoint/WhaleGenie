@@ -54,7 +54,7 @@ public sealed partial class MacroRunner
 
         if (!ReturnFits(declared, value))
         {
-            throw new StepFailure(RunKeys.BadResultType, key);
+            throw new StepFailure(RunKeys.VariableTypeMismatch, key);
         }
 
         if (name.Length > 0)

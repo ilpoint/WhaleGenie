@@ -96,19 +96,19 @@ public partial class MacroPackageFormatTests
             macro.Parameters.Add(new MacroParameter
             {
                 Name = "点",
-                Type = ActionReturnType.Record,
+                Type = ValueKind.Record,
                 Required = true,
                 Fields =
                 [
-                    new MacroField { Name = "x", Type = ActionReturnType.Number },
-                    new MacroField { Name = "y", Type = ActionReturnType.Number },
+                    new MacroField { Name = "x", Type = ValueKind.Number },
+                    new MacroField { Name = "y", Type = ValueKind.Number },
                 ],
             });
             macro.Results.Add(new MacroResult
             {
                 Name = "框",
-                Type = ActionReturnType.Record,
-                Fields = [new MacroField { Name = "left", Type = ActionReturnType.Number }],
+                Type = ValueKind.Record,
+                Fields = [new MacroField { Name = "left", Type = ValueKind.Number }],
             });
 
             MacroPackage.Save(path, [macro], [], "test");
@@ -116,7 +116,7 @@ public partial class MacroPackageFormatTests
             var loaded = Assert.Single(MacroPackage.Load(path).Macros);
             var argument = Assert.Single(loaded.Parameters);
             Assert.Equal(["x", "y"], argument.Fields.Select(field => field.Name));
-            Assert.All(argument.Fields, field => Assert.Equal(ActionReturnType.Number, field.Type));
+            Assert.All(argument.Fields, field => Assert.Equal(ValueKind.Number, field.Type));
 
             var result = Assert.Single(loaded.Results);
             Assert.Equal(["left"], result.Fields.Select(field => field.Name));

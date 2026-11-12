@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -100,7 +101,7 @@ public partial class MacroEditorTests
             macro.Parameters.Add(new MacroParameter
             {
                 Name = "数",
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
                 Required = true,
             });
 
@@ -120,14 +121,14 @@ public partial class MacroEditorTests
             Assert.NotNull(lifted);
             var argument = Assert.Single(lifted!.Parameters);
             Assert.Equal("数", argument.Name);
-            Assert.Equal(ActionReturnType.Number, argument.Type);
+            Assert.Equal(ValueKind.Number, argument.Type);
             Assert.True(argument.Required);
 
             // Nothing said what the written name holds — a plain assignment is text until something
             // declares otherwise — so it is declared text rather than guessed at.
             var result = Assert.Single(lifted.Results);
             Assert.Equal("中间", result.Name);
-            Assert.Equal(ActionReturnType.Text, result.Type);
+            Assert.Equal(ValueKind.Text, result.Type);
         });
     }
 }

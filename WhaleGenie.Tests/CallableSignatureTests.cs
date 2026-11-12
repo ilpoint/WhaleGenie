@@ -1,5 +1,6 @@
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -22,7 +23,7 @@ public class CallableSignatureTests
                 Name = " 次数 ",
                 Default = "3",
                 Required = false,
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
                 Description = "要做多少遍。",
             },
             new MacroParameter { Name = "标签", Required = true },
@@ -32,7 +33,7 @@ public class CallableSignatureTests
             new MacroResult
             {
                 Name = "答案",
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
                 Description = "整理完留下的数。",
             },
             new MacroResult { Name = " " },
@@ -98,7 +99,7 @@ public class CallableSignatureTests
         // still sees it and refuses the declaration.
         Assert.Equal(["答案"], page.Select(result => result.Name));
         Assert.Equal(2, call.Signature.Results.Count);
-        Assert.Equal(ActionReturnType.Number, page[0].Type);
+        Assert.Equal(ValueKind.Number, page[0].Type);
         Assert.Contains("整理完留下的数。", page[0].Hint, System.StringComparison.Ordinal);
     }
 }

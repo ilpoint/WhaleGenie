@@ -189,7 +189,7 @@ public static partial class MacroCheck
                 if (parameter.Written is VariableNode whole && known.TryGetValue(whole.Name, out var type))
                 {
                     if (definition.Shape == ActionValueShape.Number
-                        && type == ActionReturnType.Record)
+                        && type == ValueKind.Record)
                     {
                         Add(step, MacroProblemCode.RecordWhereNumber, Strings.Format("Editor.Problem.RecordWhereNumber",
                             definition.LocalLabel));
@@ -197,8 +197,8 @@ public static partial class MacroCheck
                     else if (definition.Shape
                              is ActionValueShape.Point or ActionValueShape.Rect
                                  or ActionValueShape.Record
-                             && type != ActionReturnType.Record
-                             && type != ActionReturnType.List)
+                             && type != ValueKind.Record
+                             && type != ValueKind.List)
                     {
                         Add(step, MacroProblemCode.NotARecord, Strings.Format("Editor.Problem.NotARecord",
                             definition.LocalLabel, whole.Name));
@@ -219,7 +219,7 @@ public static partial class MacroCheck
                 foreach (var referenced in Expression.References(parameter.Written))
                 {
                     if (known.TryGetValue(referenced, out var kind)
-                        && kind == ActionReturnType.Record)
+                        && kind == ValueKind.Record)
                     {
                         Add(step, MacroProblemCode.RecordInText, Strings.Format("Editor.Problem.RecordInText", referenced,
                             definition.LocalLabel));

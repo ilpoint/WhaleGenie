@@ -34,9 +34,9 @@ public class VariableDropTests
             .Parameters.Single(field => field.Name == "place");
         var variable = new VariableDragPayload("hit", "record",
         [
-            new VariableDragField("x", ActionReturnType.Number),
-            new VariableDragField("y", ActionReturnType.Number),
-            new VariableDragField("basis", ActionReturnType.Text),
+            new VariableDragField("x", ValueKind.Number),
+            new VariableDragField("y", ValueKind.Number),
+            new VariableDragField("basis", ValueKind.Text),
         ]);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
@@ -52,8 +52,8 @@ public class VariableDropTests
             .Parameters.Single(field => field.Name == "ms");
         var variable = new VariableDragPayload("hit", "record",
         [
-            new VariableDragField("x", ActionReturnType.Number),
-            new VariableDragField("y", ActionReturnType.Number),
+            new VariableDragField("x", ValueKind.Number),
+            new VariableDragField("y", ValueKind.Number),
         ]);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
@@ -69,8 +69,8 @@ public class VariableDropTests
             .Parameters.Single(field => field.Name == "ms");
         var variable = new VariableDragPayload("program", "record",
         [
-            new VariableDragField("memoryMb", ActionReturnType.Number),
-            new VariableDragField("name", ActionReturnType.Text),
+            new VariableDragField("memoryMb", ValueKind.Number),
+            new VariableDragField("name", ValueKind.Text),
         ]);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
@@ -84,8 +84,8 @@ public class VariableDropTests
     {
         var original = new VariableDragPayload("hit", "record",
         [
-            new VariableDragField("x", ActionReturnType.Number),
-            new VariableDragField("found", ActionReturnType.Flag),
+            new VariableDragField("x", ValueKind.Number),
+            new VariableDragField("found", ValueKind.Bool),
         ]);
 
         var transfer = original.Transfer();

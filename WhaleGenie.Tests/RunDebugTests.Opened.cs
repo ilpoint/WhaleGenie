@@ -91,7 +91,7 @@ public partial class RunDebugTests
             {
                 Name = "数量",
                 Required = true,
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
                 Description = "要做多少次。",
             });
             macro.Parameters.Add(new MacroParameter
@@ -99,7 +99,7 @@ public partial class RunDebugTests
                 Name = "倍数",
                 Required = false,
                 Default = "3",
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
             });
             macro.Steps.Add(new MacroStep
             {

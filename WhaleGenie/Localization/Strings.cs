@@ -2174,7 +2174,6 @@ public sealed class Strings : INotifyPropertyChanged
             + "and height in it (a hit, a window and a picture taken earlier all do): {0}",
         ["Run.BadResult"] = "The step's return request is invalid: \"{0}\" is not a declared result, "
             + "or its result key or destination name is repeated or unreadable.",
-        ["Run.BadResultType"] = "The value the run hands back for \"{0}\" is not the kind its declaration promised.",
         ["Run.BadRowColumn"] = "A row of \"{0}\" names a column this list does not have, or leaves out one it needs.",
         ["Run.BadRegistryData"] = "\"{0}\" is not a number a 32 bit registry value can hold.",
         ["Run.BadRegistryName"] = "\"{0}\" is not a key path the registry can use: write the path under the root, with no root name and no backslash at either end.",
@@ -2575,6 +2574,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.Type.Text"] = "Text",
         ["MacroInterface.Type.Number"] = "Number",
         ["MacroInterface.Type.Flag"] = "True/false",
+        ["MacroInterface.Type.Date"] = "Date",
         ["MacroInterface.Type.List"] = "List",
         ["MacroInterface.Type.Record"] = "Record",
         ["MacroInterface.Type.Image"] = "Image",
@@ -4879,7 +4879,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BadRegion"] = "交给它的那条记录里没有 left、top、width、height（命中、窗口、之前截下"
             + "的画面都会带着这四个数）：{0}",
         ["Run.BadResult"] = "这一步的返回值设置无效：「{0}」不是它声明的结果，或者结果键、目标变量名重复、读不出来。",
-        ["Run.BadResultType"] = "这次运行交回的「{0}」与它声明的类型不符。",
         ["Run.BadRowColumn"] = "「{0}」的某一行写了这个列表没有的列，或者缺了它要的列。",
         ["Run.BadRegistryData"] = "「{0}」不是一个 32 位注册表值能放下的数字。",
         ["Run.BadRegistryName"] = "「{0}」不是注册表能用的键路径：写根之下的那一串，不要带根名，两端也不要带反斜杠。",
@@ -5251,6 +5250,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["MacroInterface.Type.Text"] = "文本",
         ["MacroInterface.Type.Number"] = "数字",
         ["MacroInterface.Type.Flag"] = "真假",
+        ["MacroInterface.Type.Date"] = "日期",
         ["MacroInterface.Type.List"] = "列表",
         ["MacroInterface.Type.Record"] = "记录",
         ["MacroInterface.Type.Image"] = "图片",

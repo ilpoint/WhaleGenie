@@ -132,7 +132,7 @@ public sealed partial class MacroRunner
             return true;
         }
 
-        var items = declared.Type is ActionReturnType.List ? value.Items : [value];
+        var items = declared.Type is ValueKind.List ? value.Items : [value];
         return items.All(item => item.IsNull || RecordFits(declared.Fields, item));
     }
 

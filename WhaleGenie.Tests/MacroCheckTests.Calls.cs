@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -76,7 +77,7 @@ public partial class MacroCheckTests
             {
                 Name = "数量",
                 Required = true,
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
             }], []);
         var call = Step("control.runMacro",
             Text("macro", "另一个"), Arguments(("数量", "不是数")));
@@ -98,7 +99,7 @@ public partial class MacroCheckTests
                 Name = "数量",
                 Required = false,
                 Default = "不是数",
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
             }], []);
 
         var messages = MacroCheck.DeclarationProblems(called);
@@ -117,7 +118,7 @@ public partial class MacroCheckTests
                 Name = "数量",
                 Required = false,
                 Default = "$ + 1",
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
             }], []);
 
         var messages = MacroCheck.DeclarationProblems(called);

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Mcp;
 

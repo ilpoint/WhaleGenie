@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -120,11 +121,11 @@ public partial class ActionContractTests
             foreach (var result in action.Returns)
             {
                 var field = $"{action.Key}.{result.Key}";
-                if (result.Type == ActionReturnType.Record)
+                if (result.Type == ValueKind.Record)
                 {
                     Assert.NotEmpty(result.Fields);
                 }
-                else if (result.Type != ActionReturnType.List)
+                else if (result.Type != ValueKind.List)
                 {
                     Assert.Empty(result.Fields);
                 }
@@ -132,7 +133,7 @@ public partial class ActionContractTests
                 Assert.All(result.Fields, declared =>
                 {
                     Assert.Contains(declared.Name, constants);
-                    Assert.NotEqual(ActionReturnType.Image, declared.Type);
+                    Assert.NotEqual(ValueKind.Image, declared.Type);
                 });
             }
         }

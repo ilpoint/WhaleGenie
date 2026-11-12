@@ -17,7 +17,7 @@ public class VariableIdentityTests
     private static MacroItem Document()
     {
         var macro = new MacroItem { Name = "m" };
-        macro.Locals.Add(new MacroLocalVariable { Name = "count", Type = ActionReturnType.Number });
+        macro.Locals.Add(new MacroLocalVariable { Name = "count", Type = ValueKind.Number });
         macro.Steps.Add(new MacroStep
         {
             Type = "control.setVariable",

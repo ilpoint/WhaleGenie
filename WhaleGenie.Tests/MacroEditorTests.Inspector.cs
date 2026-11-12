@@ -61,12 +61,12 @@ public partial class MacroEditorTests
 
             var row = Assert.Single(model.Parameters);
             row.Name = "数量";
-            row.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Number);
+            row.SelectedType = model.Types.First(type => type.Value == ValueKind.Number);
             Dispatcher.UIThread.RunJobs();
 
             var declared = Assert.Single(viewModel.DeclaredParameters);
             Assert.Equal("数量", declared.Name);
-            Assert.Equal(ActionReturnType.Number, declared.Type);
+            Assert.Equal(ValueKind.Number, declared.Type);
             Assert.True(viewModel.IsDirty);
         });
     }
@@ -90,19 +90,19 @@ public partial class MacroEditorTests
 
             // Fields only mean something for a record, so the rows wait for the kind to say so.
             Assert.False(row.IsRecord);
-            row.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Record);
+            row.SelectedType = model.Types.First(type => type.Value == ValueKind.Record);
             Assert.True(row.IsRecord);
 
             row.AddFieldCommand.Execute(null);
             var field = Assert.Single(row.Fields);
             field.Name = "x";
-            field.SelectedType = model.Types.First(type => type.Value == ActionReturnType.Number);
+            field.SelectedType = model.Types.First(type => type.Value == ValueKind.Number);
             Dispatcher.UIThread.RunJobs();
 
             var declared = Assert.Single(viewModel.DeclaredParameters);
             var written = Assert.Single(declared.Fields);
             Assert.Equal("x", written.Name);
-            Assert.Equal(ActionReturnType.Number, written.Type);
+            Assert.Equal(ValueKind.Number, written.Type);
 
             // A field row is a declaration edit like any other: the variable wall and the check that
             // reads field(...) both answer differently once it is written down.

@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Input;
 using WhaleGenie.Core.Execution;
-
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
 
 /// <summary>One field a record variable can hand to a scalar parameter.</summary>
-public sealed record VariableDragField(string Name, ActionReturnType Type);
+public sealed record VariableDragField(string Name, ValueKind Type);
 
 /// <summary>
 /// A variable on its way to a field. The custom format carries the value shape and record fields;

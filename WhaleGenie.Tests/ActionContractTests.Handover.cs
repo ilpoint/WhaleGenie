@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -57,7 +58,7 @@ public partial class ActionContractTests
         var started = ActionSemanticsCatalog.Find("process.start")!
             .Returns.Single(result => result.Key == "program");
 
-        Assert.Equal(ActionReturnType.Record, started.Type);
+        Assert.Equal(ValueKind.Record, started.Type);
         Assert.Equal(["id", "process", "title", "handle", "how"],
             started.Fields.Select(field => field.Name));
         Assert.DoesNotContain(started.Fields, field => field.Name == "memoryMb");

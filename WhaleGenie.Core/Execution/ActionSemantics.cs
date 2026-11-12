@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -23,17 +24,6 @@ public enum ActionCategory
     Uia,
     Browser,
     Script,
-}
-
-/// <summary>What an action's result holds, which is what the variable pickers call it.</summary>
-public enum ActionReturnType
-{
-    Text,
-    Number,
-    Flag,
-    List,
-    Record,
-    Image,
 }
 
 /// <summary>
@@ -362,7 +352,7 @@ public sealed class ActionReturnField
 {
     public required string Name { get; init; }
 
-    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+    public ValueKind Type { get; init; } = ValueKind.Text;
 }
 
 /// <summary>One result an action can hand over.</summary>
@@ -370,7 +360,7 @@ public sealed class ActionReturnSemantics
 {
     public required string Key { get; init; }
 
-    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+    public ValueKind Type { get; init; } = ValueKind.Text;
 
     /// <summary>
     /// The fields of the record this result holds, or — for a list of records — of each item in it.
@@ -563,13 +553,13 @@ public static class ActionSemanticsCatalog
                 }
 
                 if (result.Fields.Count > 0
-                    && result.Type is not (ActionReturnType.Record or ActionReturnType.List))
+                    && result.Type is not (ValueKind.Record or ValueKind.List))
                 {
                     throw new InvalidOperationException(
                         $"{action.Key}.{result.Key}: only a record has fields.");
                 }
 
-                if (result.Type == ActionReturnType.Record && result.Fields.Count == 0)
+                if (result.Type == ValueKind.Record && result.Fields.Count == 0)
                 {
                     throw new InvalidOperationException(
                         $"{action.Key}.{result.Key}: a record does not say what its fields are.");
@@ -577,7 +567,7 @@ public static class ActionSemanticsCatalog
 
                 // A table is a list whose fields come from the data, so the two ways of saying what
                 // a result holds cannot both be used: one of them would have to be ignored.
-                if (result.Table && result.Type is not ActionReturnType.List)
+                if (result.Table && result.Type is not ValueKind.List)
                 {
                     throw new InvalidOperationException(
                         $"{action.Key}.{result.Key}: only a list is a table.");

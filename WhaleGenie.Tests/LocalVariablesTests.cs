@@ -22,7 +22,7 @@ namespace WhaleGenie.Tests;
 public class LocalVariablesTests
 {
     private static MacroLocalVariable Local(string name, string initial = "",
-        ActionReturnType type = ActionReturnType.Text) => new()
+        ValueKind type = ValueKind.Text) => new()
         {
             Name = name,
             Type = type,
@@ -52,7 +52,7 @@ public class LocalVariablesTests
         try
         {
             var macro = new MacroItem { Name = "probe" };
-            macro.Locals.Add(Local("total", "5", ActionReturnType.Number));
+            macro.Locals.Add(Local("total", "5", ValueKind.Number));
             macro.Locals.Add(Local("label", "共 $total 件"));
 
             var path = Path.Combine(folder, "probe.wgmacro");
@@ -61,7 +61,7 @@ public class LocalVariablesTests
 
             Assert.Equal(2, read.Locals.Count);
             Assert.Equal("total", read.Locals[0].Name);
-            Assert.Equal(ActionReturnType.Number, read.Locals[0].Type);
+            Assert.Equal(ValueKind.Number, read.Locals[0].Type);
             Assert.Equal("5", read.Locals[0].Initial);
             Assert.Equal("共 $total 件", read.Locals[1].Initial);
         }
@@ -75,7 +75,7 @@ public class LocalVariablesTests
     public void A_declared_local_shows_what_it_starts_at()
     {
         var rows = VariableChoices.For([], null, null,
-            [Local("total", "5", ActionReturnType.Number)]);
+            [Local("total", "5", ValueKind.Number)]);
 
         var row = Assert.Single(rows, choice => choice.Name == "total");
 
@@ -92,7 +92,7 @@ public class LocalVariablesTests
     public void A_step_reading_a_declared_local_is_not_reading_a_name_nothing_defines()
     {
         var own = new MacroCallable("probe", [], [], [Reads("$total")],
-            [Local("total", "5", ActionReturnType.Number)]);
+            [Local("total", "5", ValueKind.Number)]);
 
         var problems = MacroCheck.Inspect(own.OwnSteps, own, [own]);
 
@@ -143,8 +143,8 @@ public class LocalVariablesTests
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();
-            editor.DeclaredLocals.Add(Local("a", "1", ActionReturnType.Number));
-            editor.DeclaredLocals.Add(Local("b", "2", ActionReturnType.Number));
+            editor.DeclaredLocals.Add(Local("a", "1", ValueKind.Number));
+            editor.DeclaredLocals.Add(Local("b", "2", ValueKind.Number));
             editor.Steps.Add(Reads("$a + $b"));
 
             var first = LocalVariableDraft.Declared(editor.DeclaredLocals[0]);
@@ -192,7 +192,7 @@ public class LocalVariablesTests
                 Source = "设置变量",
             };
             var window = new LocalVariablesWindow(
-                [Local("count", "1", ActionReturnType.Number)], [written], []);
+                [Local("count", "1", ValueKind.Number)], [written], []);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 

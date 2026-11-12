@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Models;
 
@@ -28,7 +29,7 @@ public sealed class MacroParameter
     public string Description { get; set; } = string.Empty;
 
     /// <summary>What kind of value the call is asked for, so a mismatch can be seen before the run.</summary>
-    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+    public ValueKind Type { get; set; } = ValueKind.Text;
 
     /// <summary>
     /// What a record of this kind holds. Empty for every other kind, and empty for a record whose
@@ -45,7 +46,7 @@ public sealed class MacroField
     public string Name { get; set; } = string.Empty;
 
     /// <summary>What kind of value the field holds.</summary>
-    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+    public ValueKind Type { get; set; } = ValueKind.Text;
 }
 
 /// <summary>
@@ -65,7 +66,7 @@ public sealed class MacroResult
     public string Description { get; set; } = string.Empty;
 
     /// <summary>What kind of value it is, so the variable pickers can say what a name is good for.</summary>
-    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+    public ValueKind Type { get; set; } = ValueKind.Text;
 
     /// <summary>What a record result holds, field by field; empty for every other kind.</summary>
     public List<MacroField> Fields { get; set; } = [];
@@ -87,7 +88,7 @@ public sealed class MacroLocalVariable
     public string Name { get; set; } = string.Empty;
 
     /// <summary>What kind of value it holds, which is what decides how the initial value is read.</summary>
-    public ActionReturnType Type { get; set; } = ActionReturnType.Text;
+    public ValueKind Type { get; set; } = ValueKind.Text;
 
     /// <summary>
     /// What it starts every run at: a written value or an expression, read the way any other value

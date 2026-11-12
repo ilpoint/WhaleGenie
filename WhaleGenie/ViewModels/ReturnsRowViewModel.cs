@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -83,13 +84,13 @@ public partial class ReturnsRowViewModel : ViewModelBase
     /// </summary>
     private static string Shape(ActionReturn result) => result.Type switch
     {
-        ActionReturnType.Flag => Strings.Get("Add.ReturnShapeFlag"),
-        ActionReturnType.Number => "0",
-        ActionReturnType.Image => Strings.Get("Add.ReturnShapeImage"),
-        ActionReturnType.Text => Strings.Get("Add.ReturnShapeText"),
-        ActionReturnType.List when result.Table
+        ValueKind.Bool => Strings.Get("Add.ReturnShapeFlag"),
+        ValueKind.Number => "0",
+        ValueKind.Image => Strings.Get("Add.ReturnShapeImage"),
+        ValueKind.Text => Strings.Get("Add.ReturnShapeText"),
+        ValueKind.List when result.Table
             => $"[{{{Strings.Get("Add.ReturnShapeColumn")}: {Strings.Get("Add.ReturnShapeText")}}}, …]",
-        ActionReturnType.List => result.Fields.Count == 0
+        ValueKind.List => result.Fields.Count == 0
             ? $"[{Strings.Get("Add.ReturnShapeText")}, …]"
             : $"[{{{Fields(result)}}}, …]",
         _ => $"{{{Fields(result)}}}",

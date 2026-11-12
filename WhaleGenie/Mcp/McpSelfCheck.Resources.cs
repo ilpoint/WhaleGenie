@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 
 
 namespace WhaleGenie.Mcp;

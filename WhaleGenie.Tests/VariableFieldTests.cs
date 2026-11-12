@@ -1,5 +1,6 @@
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -150,7 +151,7 @@ public class VariableFieldTests
         Ui.Run(() =>
         {
             var declared = VariableChoices.For([],
-                [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }],
+                [new MacroParameter { Name = "窗口", Type = ValueKind.Record }],
                 []);
             var viewModel = new AddActionViewModel(ActionCatalog.Definitions, declared, []);
             viewModel.SelectAction("input.mouseMove");
@@ -171,11 +172,11 @@ public class VariableFieldTests
                     new MacroParameter
                     {
                         Name = "点",
-                        Type = ActionReturnType.Record,
+                        Type = ValueKind.Record,
                         Fields =
                         [
-                            new MacroField { Name = "x", Type = ActionReturnType.Number },
-                            new MacroField { Name = "y", Type = ActionReturnType.Number },
+                            new MacroField { Name = "x", Type = ValueKind.Number },
+                            new MacroField { Name = "y", Type = ValueKind.Number },
                         ],
                     },
                 ], []);
@@ -185,7 +186,7 @@ public class VariableFieldTests
             var record = Assert.Single(choices, choice => choice.Name == "点");
             Assert.True(record.HasFields);
             Assert.Equal(["x", "y"], record.Fields.Select(field => field.Name));
-            Assert.All(record.Fields, field => Assert.Equal(ActionReturnType.Number, field.Type));
+            Assert.All(record.Fields, field => Assert.Equal(ValueKind.Number, field.Type));
         });
     }
 

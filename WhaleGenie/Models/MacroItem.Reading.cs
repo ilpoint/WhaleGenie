@@ -76,7 +76,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                     Default = declared["default"]?.GetValue<string>() ?? string.Empty,
                     Required = ReadBool(declared["required"], true),
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
-                    Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                    Type = ReadKind(declared),
                     Fields = ReadFields(declared),
                 });
             }
@@ -91,7 +91,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                     Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
-                    Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                    Type = ReadKind(declared),
                     Fields = ReadFields(declared),
                 });
             }
@@ -105,7 +105,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 {
                     Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
-                    Type = ReadEnum(declared, "type", ActionReturnType.Text),
+                    Type = ReadKind(declared),
                     Initial = declared["initial"]?.GetValue<string>() ?? string.Empty,
                     Description = declared[FieldNames.Description]?.GetValue<string>()
                         ?? string.Empty,
@@ -152,6 +152,18 @@ public partial class MacroItem : ObservableObject, ILanguageAware
 
         VariableIds.Settle(macro);
         return macro;
+    }
+
+    /// <summary>
+    /// The kind a declaration holds. A package written before every type was one vocabulary says
+    /// "Flag" for a bool; it means the same thing and is read as one.
+    /// </summary>
+    private static ValueKind ReadKind(JsonObject? node)
+    {
+        var written = node?["type"]?.GetValue<string>();
+        return written is "Flag"
+            ? ValueKind.Bool
+            : System.Enum.TryParse<ValueKind>(written, out var parsed) ? parsed : ValueKind.Text;
     }
 
     private static T ReadEnum<T>(JsonObject? node, string name, T fallback) where T : struct, System.Enum

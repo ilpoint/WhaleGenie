@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -60,7 +61,7 @@ public class ReturnsPageTests
 
             Assert.Equal("ended", row.Key);
             Assert.True(row.Ticked);
-            Assert.Equal(ActionReturnType.Text, row.Result.Type);
+            Assert.Equal(ValueKind.Text, row.Result.Type);
             Assert.Contains("condition", row.Hint, StringComparison.Ordinal);
             Assert.Contains("limit", row.Hint, StringComparison.Ordinal);
         });
@@ -83,8 +84,8 @@ public class ReturnsPageTests
             var hit = viewModel.ReturnsRows.First(row => row.Key == "match");
             var every = viewModel.ReturnsRows.First(row => row.Key == "every");
             Assert.True(hit.Ticked);
-            Assert.Equal(ActionReturnType.Record, hit.Result.Type);
-            Assert.Equal(ActionReturnType.List, every.Result.Type);
+            Assert.Equal(ValueKind.Record, hit.Result.Type);
+            Assert.Equal(ValueKind.List, every.Result.Type);
 
             // 记录里多带的两个名字写在说明里，取法与别的记录一样是 field()。
             Assert.Contains("label", hit.Result.LocalHint, StringComparison.Ordinal);
@@ -106,8 +107,8 @@ public class ReturnsPageTests
 
             Assert.True(hit.Ticked);
             Assert.False(every.Ticked);
-            Assert.Equal(ActionReturnType.Record, hit.Result.Type);
-            Assert.Equal(ActionReturnType.List, every.Result.Type);
+            Assert.Equal(ValueKind.Record, hit.Result.Type);
+            Assert.Equal(ValueKind.List, every.Result.Type);
 
             // What was not ticked is not written, and what was ticked is.
             var written = viewModel.BuildStep().Parameters

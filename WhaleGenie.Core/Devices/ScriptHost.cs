@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Devices;
 

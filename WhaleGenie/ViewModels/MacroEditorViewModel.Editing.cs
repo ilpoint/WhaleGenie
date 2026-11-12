@@ -443,9 +443,9 @@ public partial class MacroEditorViewModel
     /// What a name was seen to hold, or text when nothing said. Text is the honest answer for a name
     /// whose value nothing declares: a wrong guess here would be a type the call site enforces.
     /// </summary>
-    private static ActionReturnType TypeOf(IReadOnlyDictionary<string, ActionReturnType> types,
+    private static ValueKind TypeOf(IReadOnlyDictionary<string, ValueKind> types,
         string name)
-        => types.TryGetValue(name, out var type) ? type : ActionReturnType.Text;
+        => types.TryGetValue(name, out var type) ? type : ValueKind.Text;
 
     /// <summary>The call left where the stretch was: it hands in this macro's values and takes back
     /// every name the stretch writes, each under the name it already had.</summary>

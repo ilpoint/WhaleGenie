@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -362,7 +363,7 @@ public partial class ActionDialogTests
             {
                 Name = "答案",
                 Description = "整理完留下的数。",
-                Type = ActionReturnType.Number,
+                Type = ValueKind.Number,
             }]),
         new MacroCallable("清空", [], []),
     ];

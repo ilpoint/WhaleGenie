@@ -126,7 +126,7 @@ public partial class MacroRunnerTests
     public async Task A_declared_local_starts_every_run_at_the_value_it_declares()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("total", "5", ActionReturnType.Number)]);
+            [new MacroLocal("total", "5", ValueKind.Number)]);
         var store = Store();
 
         var (first, _) = await RunAsync([Set("total", "9")], variables: store,
@@ -145,10 +145,10 @@ public partial class MacroRunnerTests
     public async Task A_declared_local_reads_a_parameter_and_the_ones_declared_before_it()
     {
         var signature = new MacroSignature(
-            [new MacroArgument("base", "", true, ActionReturnType.Number)], [],
+            [new MacroArgument("base", "", true, ValueKind.Number)], [],
             [
-                new MacroLocal("doubled", "$base * 2", ActionReturnType.Number),
-                new MacroLocal("plus", "$doubled + 1", ActionReturnType.Number),
+                new MacroLocal("doubled", "$base * 2", ValueKind.Number),
+                new MacroLocal("plus", "$doubled + 1", ValueKind.Number),
             ]);
         var store = Store();
 
@@ -165,8 +165,8 @@ public partial class MacroRunnerTests
     {
         var signature = new MacroSignature([], [],
             [
-                new MacroLocal("count", "", ActionReturnType.Number),
-                new MacroLocal("items", "", ActionReturnType.List),
+                new MacroLocal("count", "", ValueKind.Number),
+                new MacroLocal("items", "", ValueKind.List),
             ]);
         var store = Store();
 
@@ -211,7 +211,7 @@ public partial class MacroRunnerTests
     public async Task A_starting_value_that_cannot_be_the_kind_it_declares_stops_the_run()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("count", "many", ActionReturnType.Number)]);
+            [new MacroLocal("count", "many", ValueKind.Number)]);
 
         var (result, _) = await RunAsync([Set("seen", "1")], startSignature: signature);
 
@@ -233,12 +233,12 @@ public partial class MacroRunnerTests
     private static Value RecordOf(IReadOnlyList<ActionReturnField> fields)
         => Value.FromRecord(fields.Select(field => (field.Name, SampleValue(field.Type))));
 
-    private static Value SampleValue(ActionReturnType type) => type switch
+    private static Value SampleValue(ValueKind type) => type switch
     {
-        ActionReturnType.Number => Value.FromNumber(1),
-        ActionReturnType.Flag => Value.FromBool(true),
-        ActionReturnType.List => Value.FromList([]),
-        ActionReturnType.Record => Value.FromRecord([]),
+        ValueKind.Number => Value.FromNumber(1),
+        ValueKind.Bool => Value.FromBool(true),
+        ValueKind.List => Value.FromList([]),
+        ValueKind.Record => Value.FromRecord([]),
         _ => Value.FromText(string.Empty),
     };
 

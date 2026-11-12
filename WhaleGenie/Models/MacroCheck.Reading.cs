@@ -203,18 +203,18 @@ public static partial class MacroCheck
     /// declarations say: a result the catalogue calls a record is a record, a line of writing is
     /// text, and a name nothing declares is left unknown rather than guessed at.
     /// </summary>
-    private static Dictionary<string, ActionReturnType> KnownTypes(IReadOnlyList<MacroStep> steps,
+    private static Dictionary<string, ValueKind> KnownTypes(IReadOnlyList<MacroStep> steps,
         MacroCallable? own, Dictionary<string, MacroCallable?> reachable)
     {
-        var known = new Dictionary<string, ActionReturnType>(StringComparer.OrdinalIgnoreCase);
+        var known = new Dictionary<string, ValueKind>(StringComparer.OrdinalIgnoreCase);
         foreach (var variable in VariableCatalog.SystemVariables)
         {
             known[variable.Name] = variable.Type switch
             {
-                "number" => ActionReturnType.Number,
-                "bool" => ActionReturnType.Flag,
-                "list" => ActionReturnType.List,
-                _ => ActionReturnType.Text,
+                "number" => ValueKind.Number,
+                "bool" => ValueKind.Bool,
+                "list" => ValueKind.List,
+                _ => ValueKind.Text,
             };
         }
 
@@ -298,7 +298,7 @@ public static partial class MacroCheck
     {
         var fields = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
 
-        void Add(string name, ActionReturnType type, IEnumerable<MacroField> declared)
+        void Add(string name, ValueKind type, IEnumerable<MacroField> declared)
         {
             if (!VariableName.IsName(name) || fields.ContainsKey(name))
             {
@@ -308,7 +308,7 @@ public static partial class MacroCheck
             var named = declared.Select(field => field.Name.Trim())
                 .Where(field => field.Length > 0)
                 .ToList();
-            if (type == ActionReturnType.Record && named.Count > 0)
+            if (type == ValueKind.Record && named.Count > 0)
             {
                 fields[name] = named;
             }
@@ -354,7 +354,7 @@ public static partial class MacroCheck
     /// True when a value of one kind cannot stand for a value the called macro declared: a record
     /// is not a line of text, a line of text is not a record, and a list is not a number.
     /// </summary>
-    private static bool ObviouslyWrong(ActionReturnType declared, ActionReturnType actual)
+    private static bool ObviouslyWrong(ValueKind declared, ValueKind actual)
     {
         if (declared == actual)
         {
@@ -362,12 +362,12 @@ public static partial class MacroCheck
         }
 
         var composite = actual
-            is ActionReturnType.Record or ActionReturnType.List or ActionReturnType.Image;
+            is ValueKind.Record or ValueKind.List or ValueKind.Image;
         return declared switch
         {
-            ActionReturnType.Record => !composite,
-            ActionReturnType.Text => composite,
-            ActionReturnType.Number or ActionReturnType.Flag => composite,
+            ValueKind.Record => !composite,
+            ValueKind.Text => composite,
+            ValueKind.Number or ValueKind.Bool => composite,
             _ => false,
         };
     }
@@ -433,7 +433,7 @@ public static partial class MacroCheck
     /// arguments it now takes; without this it would call every one of them text, and the call site
     /// would then say a number is being passed where text is expected.
     /// </summary>
-    public static IReadOnlyDictionary<string, ActionReturnType> TypesOf(IEnumerable<MacroStep> steps,
+    public static IReadOnlyDictionary<string, ValueKind> TypesOf(IEnumerable<MacroStep> steps,
         MacroCallable? own, IEnumerable<MacroCallable> macros)
     {
         IReadOnlyList<MacroStep> tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];

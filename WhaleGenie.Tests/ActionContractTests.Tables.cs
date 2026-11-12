@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -38,7 +39,7 @@ public partial class ActionContractTests
                     continue;
                 }
 
-                Assert.Equal(ActionReturnType.List, result.Type);
+                Assert.Equal(ValueKind.List, result.Type);
                 Assert.Empty(result.Fields);
                 found.Add($"{action.Key}.{result.Key}");
             }

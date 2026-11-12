@@ -13,9 +13,10 @@ public static class MacroValues
     /// <summary>
     /// True when the value can stand for the declared kind. Empty is allowed for every kind: it
     /// means "this attempt did not supply a value", and a result that was never written is empty
-    /// rather than wrong. Text and image accept anything because every value has a text reading.
+    /// rather than wrong. Text accepts anything because every value has a text reading; a picture
+    /// is the one kind that is not also text, because a line that reads like a handle is not one.
     /// </summary>
-    public static bool Fits(ActionReturnType declared, Value value)
+    public static bool Fits(ValueKind declared, Value value)
     {
         if (value.IsNull)
         {
@@ -27,36 +28,23 @@ public static class MacroValues
             return true;
         }
 
-        if (declared is ActionReturnType.Text or ActionReturnType.Image)
-        {
-            return true;
-        }
-
         return declared switch
         {
-            ActionReturnType.Number => value.IsNumber
+            ValueKind.Text => true,
+            ValueKind.Image => value.IsImage,
+            ValueKind.Number => value.IsNumber
                 || double.TryParse(value.AsText(), NumberStyles.Float,
                     CultureInfo.InvariantCulture, out _),
-            ActionReturnType.Flag => value.Kind is ValueKind.Bool
+            ValueKind.Bool => value.Kind is ValueKind.Bool
                 || bool.TryParse(value.AsText(), out _),
-            ActionReturnType.List => value.IsList,
-            ActionReturnType.Record => value.IsRecord,
+            ValueKind.List => value.IsList,
+            ValueKind.Record => value.IsRecord,
+            ValueKind.Date => value.IsDate
+                || DateTimeOffset.TryParse(value.AsText(), CultureInfo.InvariantCulture,
+                    DateTimeStyles.AllowWhiteSpaces, out _),
             _ => false,
         };
     }
-
-    /// <summary>
-    /// The kind of value a declaration of this type holds, which is what a table the run was told
-    /// the type of checks a write against. Text and image map to text because every value has a
-    /// text reading; a record is not a kind a table can hold on its own, so it is text too.
-    /// </summary>
-    public static ValueKind KindOf(ActionReturnType type) => type switch
-    {
-        ActionReturnType.Number => ValueKind.Number,
-        ActionReturnType.Flag => ValueKind.Bool,
-        ActionReturnType.List => ValueKind.List,
-        _ => ValueKind.Text,
-    };
 
     /// <summary>
     /// The value a name of this kind holds when nothing was written for it: zero, false, an empty
@@ -64,11 +52,12 @@ public static class MacroValues
     /// nothing at all, so a number that was never filled in adds up instead of failing. One place
     /// decides it for the run and for the editor's preview.
     /// </summary>
-    public static Value Empty(ActionReturnType kind) => kind switch
+    public static Value Empty(ValueKind kind) => kind switch
     {
-        ActionReturnType.Number => Value.FromNumber(0),
-        ActionReturnType.Flag => Value.FromBool(false),
-        ActionReturnType.List => Value.FromList([]),
+        ValueKind.Number => Value.FromNumber(0),
+        ValueKind.Bool => Value.FromBool(false),
+        ValueKind.List => Value.FromList([]),
+        ValueKind.Image => Value.FromImage(string.Empty),
         _ => Value.FromText(string.Empty),
     };
 }

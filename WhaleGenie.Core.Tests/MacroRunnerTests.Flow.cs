@@ -498,7 +498,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature([], [],
-            [new MacroLocal("i", "7", ActionReturnType.Number, "i00001")]);
+            [new MacroLocal("i", "7", ValueKind.Number, "i00001")]);
         var loop = Step("control.for",
             Param("rangeFrom", "1"),
             Param("rangeTo", "3"),

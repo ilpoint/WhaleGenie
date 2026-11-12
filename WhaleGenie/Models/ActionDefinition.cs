@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -194,7 +195,7 @@ public sealed class ActionReturn
     public string Hint { get; init; } = string.Empty;
 
     /// <summary>What kind of value it is.</summary>
-    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+    public ValueKind Type { get; init; } = ValueKind.Text;
 
     /// <summary>The fields of a record result, or the fields of each record in a list result.</summary>
     public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
@@ -234,13 +235,13 @@ public sealed class ActionReturn
     /// The same name for a declared macro value, so a record parameter is offered to record fields
     /// and a flag is shown under the word the variable tables use.
     /// </summary>
-    public static string TypeNameOf(ActionReturnType type) => type switch
+    public static string TypeNameOf(ValueKind type) => type switch
     {
-        ActionReturnType.Number => "number",
-        ActionReturnType.Flag => "bool",
-        ActionReturnType.List => "list",
-        ActionReturnType.Record => "record",
-        ActionReturnType.Image => "image",
+        ValueKind.Number => "number",
+        ValueKind.Bool => "bool",
+        ValueKind.List => "list",
+        ValueKind.Record => "record",
+        ValueKind.Image => "image",
         _ => "text",
     };
 
@@ -249,14 +250,14 @@ public sealed class ActionReturn
     /// back to the kind the engine reads it as. Anything unrecognised is text, the one kind every
     /// value can be read as.
     /// </summary>
-    public static ActionReturnType TypeOf(string name) => name switch
+    public static ValueKind TypeOf(string name) => name switch
     {
-        "number" => ActionReturnType.Number,
-        "bool" => ActionReturnType.Flag,
-        "list" => ActionReturnType.List,
-        "record" => ActionReturnType.Record,
-        "image" => ActionReturnType.Image,
-        _ => ActionReturnType.Text,
+        "number" => ValueKind.Number,
+        "bool" => ValueKind.Bool,
+        "list" => ValueKind.List,
+        "record" => ValueKind.Record,
+        "image" => ValueKind.Image,
+        _ => ValueKind.Text,
     };
 }
 

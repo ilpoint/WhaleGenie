@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -45,7 +46,7 @@ public static class CallableSignature
 /// a record without them is a bag of names nobody can check before the run.
 /// </summary>
 public sealed record CalledArgument(
-    string Name, ActionReturnType Type, bool Required, string Default, string Description,
+    string Name, ValueKind Type, bool Required, string Default, string Description,
     IReadOnlyList<CalledField> Fields)
 {
     /// <summary>The same, read off a declaration row.</summary>
@@ -90,7 +91,7 @@ public sealed record CalledArgument(
 
 /// <summary>One value a macro offers to hand back, as the results page and the tools describe it.</summary>
 public sealed record CalledResult(
-    string Name, ActionReturnType Type, string Description, IReadOnlyList<CalledField> Fields)
+    string Name, ValueKind Type, string Description, IReadOnlyList<CalledField> Fields)
 {
     /// <summary>The same, read off a declaration row.</summary>
     public static CalledResult Of(MacroResult result)
@@ -115,7 +116,7 @@ public sealed record CalledResult(
 }
 
 /// <summary>One field of a record a macro declares, as the call site and the tools describe it.</summary>
-public sealed record CalledField(string Name, ActionReturnType Type)
+public sealed record CalledField(string Name, ValueKind Type)
 {
     /// <summary>The fields a declaration names, in order, skipping rows with no name.</summary>
     public static IReadOnlyList<CalledField> Of(IReadOnlyList<MacroField> fields)
