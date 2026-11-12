@@ -189,6 +189,10 @@ public partial class StepParameterViewModel : ViewModelBase
                     UseFormula = true;
                     Text = raw;
                 }
+
+                // The text is only what the box shows; the shape is what the step keeps, and it is
+                // the shape that remembers which declaration each name is bound to.
+                _written = stored.Written;
                 break;
             case ActionParameterKind.Bool:
                 Flag = string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase);
@@ -213,11 +217,38 @@ public partial class StepParameterViewModel : ViewModelBase
 
                 break;
             default:
-                // A formula is written as the formula it is, so a name in it reads as itself. A
-                // field of text keeps the line it was written as, and shows its names as pieces.
-                Text = ReadAsFormula && stored.Written is not (TextNode or ConcatNode)
-                    ? Expression.Render(stored.Written, bare: true)
-                    : raw;
+                // The shape is what the step keeps. The text is only how the box shows it, so the
+                // box is filled from the shape rather than the shape being read out of the text
+                // again — the second reading is where a bound name would lose its binding.
+                _written = stored.Written;
+                if (Definition.NamesVariable)
+                {
+                    _composing = true;
+                    try
+                    {
+                        Text = Formula.NameOf(stored.Written).Name;
+                    }
+                    finally
+                    {
+                        _composing = false;
+                    }
+
+                    break;
+                }
+
+                _composing = true;
+                try
+                {
+                    Text = ReadAsFormula && stored.Written is not (TextNode or ConcatNode)
+                        ? Expression.Render(stored.Written, bare: true)
+                        : FormulaText.Write(stored.Written);
+                }
+                finally
+                {
+                    _composing = false;
+                }
+
+                RebuildParts();
                 break;
         }
     }
