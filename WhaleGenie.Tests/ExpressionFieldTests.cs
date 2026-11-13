@@ -20,6 +20,7 @@ public class ExpressionFieldTests
 {
     private static readonly Dictionary<string, string[]> ValueFields = new(StringComparer.Ordinal)
     {
+        ["control.case"] = ["values"],
         ["control.switch"] = ["switchValue"],
         ["control.stop"] = ["reason"],
         ["control.fail"] = ["reason"],

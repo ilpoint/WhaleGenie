@@ -287,7 +287,7 @@ public partial class MacroEditorViewModel
             Meta = StepMeta.New,
             Parameters =
             [
-                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable },
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Text },
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps },
             ],
         };

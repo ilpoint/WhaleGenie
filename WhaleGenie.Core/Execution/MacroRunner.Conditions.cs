@@ -32,10 +32,13 @@ public sealed partial class MacroRunner
         // be worked out is otherwise used as the words it is, and words are true — so "1 = 2", the
         // usual typo for "==", quietly ran the branch it was written to skip. Anything shaped like
         // a comparison gets the expression reader's own complaint instead.
-        var written = step.Text(name).Trim();
-        if (written.Length > 0
-            && !Expression.TryEvaluate(written, Variables, out _, out var error)
-            && written.Any(character => character is '=' or '<' or '>' or '!'))
+        // Only a condition kept as words is asked this: a comparison already written as a tree is
+        // worked out by the run itself, and a name that cannot be read fails there with its own
+        // complaint.
+        if (step.Written(name) is TextNode { Text: var words }
+            && words.Trim().Length > 0
+            && !Expression.TryEvaluate(words, Variables, out _, out var error)
+            && words.Any(character => character is '=' or '<' or '>' or '!'))
         {
             throw error!;
         }

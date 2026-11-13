@@ -14,7 +14,17 @@ public partial class MacroRunnerTests
 {
 
     private static ExecutableStep Case(string values, params ExecutableStep[] steps)
-        => Step("control.case", Param("values", values), Body("body", steps));
+        => Step("control.case",
+            new ExecutableParameter { Name = "values", Written = CaseValues(values) },
+            Body("body", steps));
+
+    /// <summary>The values one branch answers to, each of them its own piece of the list.</summary>
+    private static ExpressionNode CaseValues(string values)
+        => new ListNode([.. values
+            .Split(';')
+            .Select(part => part.Trim())
+            .Where(part => part.Length > 0)
+            .Select(Formula.Text)]);
 
     [Fact]
     public async Task A_switch_runs_the_first_case_that_matches()

@@ -362,8 +362,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private WindowRule WindowRuleOf(ExecutableStep step, string field = "window")
     {
-        var written = step.Text(field).Trim();
-        if (written.Length == 0)
+        var source = step.Written(field);
+        var written = Formula.Plain(source).Trim();
+        if (written.Length == 0 && Formula.IsNothing(source))
         {
             return WindowRule.Empty;
         }
@@ -380,7 +381,8 @@ public sealed partial class MacroRunner
         }
         else
         {
-            throw new StepFailure(RunKeys.BadWindowRule, written);
+            throw new StepFailure(RunKeys.BadWindowRule,
+                written.Length > 0 ? written : Formula.Speak(source));
         }
 
         if (rule.Follow)
@@ -476,18 +478,15 @@ public sealed partial class MacroRunner
     /// </summary>
     private Value WindowValue(ExecutableStep step, string field)
     {
-        var written = step.Text(field).Trim();
-        if (written.Length > 1 && written[0] == '$' && WindowName(written[1..])
-            && Variables.TryGet(written[1..], out var value))
+        var written = step.Written(field);
+        if (written is VariableNode name && VariableName.IsName(name.Name)
+            && Variables.TryGet(new VariableKey(name.Name, name.Id), out var value))
         {
             return value;
         }
 
-        return Value.FromText(ReadText(step, field));
+        return Read(written);
     }
-
-    /// <summary>True when the text is one variable name and nothing else.</summary>
-    private static bool WindowName(string name) => VariableName.IsName(name);
 
     /// <summary>What a step wrote into its window field, with the variables in it resolved.</summary>
     private string WindowText(ExecutableStep step) => WindowRuleOf(step).MatchValue.Trim();

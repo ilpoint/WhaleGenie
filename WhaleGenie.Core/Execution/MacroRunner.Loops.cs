@@ -230,15 +230,23 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// The values a case answers to, separated by a semicolon or a line break. They are read
-    /// through the same $name substitution as everywhere else, so a case value can name a variable.
+    /// The values a case answers to. A branch holds a list of them, and each is worked out where it
+    /// stands, so a case value names a variable the same way any other value does.
     /// </summary>
     private IReadOnlyList<string> Labels(ExecutableStep branch)
-        => [.. branch.Text("values")
-            .Split([';', '\n', '\r'],
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(label => Interpolate(label).Trim())
+    {
+        var written = branch.Written("values");
+        IReadOnlyList<ExpressionNode> items = written switch
+        {
+            ListNode list => list.Items,
+            _ when Formula.IsNothing(written) => [],
+            _ => [written],
+        };
+
+        return [.. items
+            .Select(item => Read(item).AsText().Trim())
             .Where(label => label.Length > 0)];
+    }
 
     /// <summary>Compares the switch's value against one case value the way the step chose.</summary>
     private bool CaseMatches(ExecutableStep step, Value value, string wanted, string mode)

@@ -47,17 +47,17 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Reads one parameter as text. Only a field the catalogue calls text has names filled in:
-    /// a choice, a number or a name being written is handed over exactly as it stands.
+    /// Reads one parameter as text. A field that names a variable answers with the name it writes;
+    /// every other field answers with what it comes to, worked out rather than written back into a
+    /// line and read again.
     /// </summary>
     private string ReadText(ExecutableStep step, string name)
     {
         var written = step.Written(name);
         return ReadModeOf(step, name) switch
         {
-            ActionReadMode.Text => Read(written).AsText(),
             ActionReadMode.VariableName => ReadNameKey(step, name).Name,
-            _ => FormulaText.Write(written),
+            _ => Read(written).AsText(),
         };
     }
 
@@ -98,13 +98,6 @@ public sealed partial class MacroRunner
     /// </summary>
     private Value Read(string text)
         => Expression.Evaluate(FormulaText.Read(text, ActionReadMode.WholeValue), Variables);
-
-    /// <summary>
-    /// A piece of text with the names in it filled in where they stand. It is a run rather than a
-    /// formula, which is what keeps a rectangle's commas and a selector's brackets text.
-    /// </summary>
-    private string Interpolate(string text)
-        => Expression.Evaluate(FormulaText.Read(text, ActionReadMode.Text), Variables).AsText();
 
     /// <summary>The text a field comes to, with the names in it worked out where they stand.</summary>
     private string Text(ExecutableStep step, string name) => Read(step.Written(name)).AsText();

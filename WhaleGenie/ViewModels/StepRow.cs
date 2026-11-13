@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Avalonia.Media;
-using WhaleGenie.Localization;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
-
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Views;
 
@@ -107,9 +107,40 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// </summary>
     public bool IsCase => IsSection && Step.Type == "control.case";
 
-    /// <summary>The values this branch catches, as written.</summary>
-    public string CaseValues => Step.Parameters
-        .FirstOrDefault(parameter => parameter.Name == "values")?.Value.Trim() ?? string.Empty;
+    /// <summary>
+    /// The values this branch catches, as the line the row shows. Each value keeps the shape it was
+    /// written in; the line is a rendering, not what the branch holds.
+    /// </summary>
+    public string CaseValues => ValuesParameter() is { } values ? CaseLine(values.Written) : string.Empty;
+
+    /// <summary>
+    /// One branch's values as the line a person reads: a name still says the name it is, and a run
+    /// of values is separated the way it is typed.
+    /// </summary>
+    private static string CaseLine(ExpressionNode written) => written switch
+    {
+        ListNode list => string.Join("; ",
+            list.Items.Select(item => FormulaText.Write(item).Trim())
+                .Where(item => item.Length > 0)),
+        _ => FormulaText.Write(written).Trim(),
+    };
+
+    /// <summary>The parameter a branch keeps its values in, made when asked for and missing.</summary>
+    private StepParameter? ValuesParameter(bool create = false)
+    {
+        var values = Step.Parameters.FirstOrDefault(parameter => parameter.Name == "values");
+        if (values is null && create)
+        {
+            values = new StepParameter
+            {
+                Name = "values",
+                Kind = ActionParameterKind.Text,
+            };
+            Step.Parameters.Add(values);
+        }
+
+        return values;
+    }
 
     /// <summary>True when this branch says which values it answers to.</summary>
     public bool HasCaseValues => CaseValues.Length > 0;
@@ -122,43 +153,52 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
 
     /// <summary>
     /// The values as they are being typed. A branch is one line of text — several values separated
-    /// by ";", which the runner reads the same way — so changing it is typing on the row rather
-    /// than opening the step's whole form for its one field.
+    /// by ";", which is how the row says them — so changing it is typing on the row rather than
+    /// opening the step's whole form for its one field. What each value becomes is decided here,
+    /// once: a piece is read the way a text field is read, so a name written in it stays a name.
     /// </summary>
     public string CaseValuesText
     {
         get => CaseValues;
         set
         {
-            var values = Step.Parameters.FirstOrDefault(parameter => parameter.Name == "values");
-            if (values is null)
+            var values = ValuesParameter(create: true)!;
+            var items = (value ?? string.Empty)
+                .Split([';', '\n', '\r'],
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(piece => FormulaText.Read(piece, ActionReadMode.Text))
+                .ToList();
+            var written = items.Count switch
             {
-                values = new StepParameter
-                {
-                    Name = "values",
-                    Kind = ActionParameterKind.Text,
-                };
-                Step.Parameters.Add(values);
-            }
+                0 => Formula.Nothing,
+                1 => items[0],
+                _ => new ListNode(items),
+            };
 
-            if (values.Value == value)
+            if (values.Written == written)
             {
                 return;
             }
 
-            values.Written = Formula.Text(value ?? string.Empty);
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValues)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesText)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeadLabel)));
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCaseValues)));
+            values.Written = written;
+            NotifyValues();
         }
+    }
+
+    /// <summary>Tells the row what it says changed, so the line and its board are redrawn.</summary>
+    private void NotifyValues()
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValues)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeadLabel)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCaseValues)));
     }
 
     /// <summary>True while this row's values are being typed in place.</summary>
     public bool IsEditingValues => _editingValues;
 
-    /// <summary>What the values said before the typing began, so Escape can put them back.</summary>
-    private string _valuesBeforeEdit = string.Empty;
+    /// <summary>What the values were before the typing began, so Escape can put them back.</summary>
+    private ExpressionNode? _valuesBeforeEdit;
 
     private bool _editingValues;
 
@@ -170,7 +210,7 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
             return;
         }
 
-        _valuesBeforeEdit = CaseValues;
+        _valuesBeforeEdit = ValuesParameter()?.Written;
         _editingValues = true;
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEditingValues)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ShowsCaseValues)));
@@ -188,9 +228,12 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
         }
 
         _editingValues = false;
-        if (!keep)
+        if (!keep && ValuesParameter() is { } values)
         {
-            CaseValuesText = _valuesBeforeEdit;
+            // Put back the shapes themselves rather than the line they were shown as: a name that
+            // went through the line would come back as a name without the identity it carried.
+            values.Written = _valuesBeforeEdit ?? Formula.Nothing;
+            NotifyValues();
         }
 
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsEditingValues)));
