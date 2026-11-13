@@ -40,7 +40,7 @@ public class RunBreakpointTests
             Assert.Contains("n", form.Variables);
             Assert.Contains("n", form.ExpressionSuggestions);
 
-            form.Expression = "n > 3";
+            form.Expression = Formula.Binary(">", Formula.Name("n"), Formula.Number(3));
             form.HitTimes = 2;
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -63,7 +63,7 @@ public class RunBreakpointTests
             Click(window, row, "condition");
             var again = (BreakpointViewModel)window.OwnedWindows.OfType<BreakpointWindow>().Single()
                 .DataContext!;
-            Assert.Equal("n > 3", again.Expression);
+            Assert.Equal("n > 3", Expression.Render(again.Expression, bare: true));
             Assert.Equal(2, again.HitTimes);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();

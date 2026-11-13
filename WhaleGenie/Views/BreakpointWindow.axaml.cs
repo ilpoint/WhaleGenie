@@ -39,10 +39,10 @@ public partial class BreakpointWindow : AppWindow
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(this, form.Expression, form.Choices,
+        if (await ValuePickerWindow.ShowFor(this, form.ExpressionSeed, form.Choices,
             ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { Chosen: true } built)
         {
-            form.Expression = FormulaText.Write(built.Value);
+            form.Expression = built.Value;
         }
     }
 

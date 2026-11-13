@@ -138,7 +138,7 @@ public partial class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
             var row = viewModel.Steps.First();
-            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = Formula.FromFormula("$nowhere == 1") });
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = Formula.Binary("==", Formula.Name("nowhere"), Formula.Number(1)) });
 
             Assert.False(viewModel.StopsHere(row.Id));
             Assert.Contains(viewModel.Lines, line => line.Text.Contains("断点", StringComparison.Ordinal));
@@ -201,11 +201,11 @@ public partial class RunDebugTests
             Assert.Contains(panel.ExpressionSuggestions,
                 suggestion => suggestion.EndsWith("(", StringComparison.Ordinal));
 
-            panel.Expression = "total >";
+            panel.Expression = Formula.Binary(">", Formula.Name("total"), Formula.Hole);
             Assert.True(panel.ShowExpressionError);
             Assert.False(panel.ShowExpressionSuccess);
 
-            panel.Expression = "$total > 3";
+            panel.Expression = Formula.Binary(">", Formula.Name("total"), Formula.Number(3));
             Assert.False(panel.ShowExpressionError);
             Assert.True(panel.ShowExpressionSuccess);
 

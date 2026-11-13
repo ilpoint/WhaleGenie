@@ -40,7 +40,7 @@ public partial class RunDebugTests
             StepIds.Settle([sets, guarded]);
             var viewModel = new RunViewModel([sets, guarded], NullDeviceLayer.Instance);
             var row = viewModel.Steps.First(step => step.Id == guarded.Id);
-            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = Formula.FromFormula("$n > 3") });
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = Formula.Binary(">", Formula.Name("n"), Formula.Number(3)) });
 
             viewModel.RunCommand.Execute(null);
             var wentPast = await Until(() => !viewModel.IsBusy);
@@ -55,7 +55,7 @@ public partial class RunDebugTests
             StepIds.Settle([setsAgain, held]);
             var second = new RunViewModel([setsAgain, held], NullDeviceLayer.Instance);
             var stopped = second.Steps.First(step => step.Id == held.Id);
-            second.SetBreakpointRule(stopped, new BreakpointRule { Expression = Formula.FromFormula("$n > 0") });
+            second.SetBreakpointRule(stopped, new BreakpointRule { Expression = Formula.Binary(">", Formula.Name("n"), Formula.Number(0)) });
 
             second.RunCommand.Execute(null);
             var paused = await Until(() => second.IsPaused);

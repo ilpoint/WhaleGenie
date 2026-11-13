@@ -25,6 +25,8 @@ public sealed partial class BreakpointViewModel : ObservableObject
         Cancel,
     }
 
+    private ExpressionNode _expression = Formula.Nothing;
+
     public BreakpointViewModel(BreakpointRule? current, IReadOnlyList<VariableChoice> variables)
     {
         // The names come first: the box checks itself as soon as it is given a value, and it checks
@@ -33,9 +35,7 @@ public sealed partial class BreakpointViewModel : ObservableObject
         Variables = [.. variables.Select(choice => choice.Name).OrderBy(name => name,
             StringComparer.OrdinalIgnoreCase)];
         HitTimes = current?.HitTimes ?? 1;
-        Expression = current is null
-            ? string.Empty
-            : WhaleGenie.Core.Expressions.Expression.Render(current.Expression, bare: true);
+        _expression = current?.Expression ?? Formula.Nothing;
 
         // The same names and the same functions the action form offers in a condition field: a
         // condition is written with the same words wherever it is written.
@@ -71,7 +71,53 @@ public sealed partial class BreakpointViewModel : ObservableObject
 
     public bool ShowExpressionSuccess => !HasExpressionError && ExpressionMessage.Length > 0;
 
-    partial void OnExpressionChanged(string value) => CheckExpression();
+    /// <summary>
+    /// The condition as the shape it will be kept as. This is the one value the panel owns: the
+    /// line in the box is drawn from it and is never read back into it.
+    /// </summary>
+    public ExpressionNode Expression
+    {
+        get => _expression;
+        set
+        {
+            if (Equals(_expression, value))
+            {
+                return;
+            }
+
+            _expression = value;
+            OnPropertyChanged(nameof(Expression));
+            OnPropertyChanged(nameof(ExpressionLine));
+            CheckExpression();
+        }
+    }
+
+    /// <summary>
+    /// What the box shows, said for a person. Typing here is a plain value: the words are kept as
+    /// they are, with nothing in them read as a name or a formula. A condition made of pieces is
+    /// edited in the value window instead, so changing its words cannot quietly flatten a tree.
+    /// </summary>
+    public string ExpressionLine
+    {
+        get => Formula.Speak(_expression);
+        set
+        {
+            if (!Formula.IsPlain(_expression))
+            {
+                return;
+            }
+
+            Expression = Formula.Text(value ?? string.Empty);
+        }
+    }
+
+    /// <summary>
+    /// The condition as the formula line the value window starts from. Rendered out, never read
+    /// back: the window's own answer is a shape, and it replaces <see cref="Expression"/> whole.
+    /// </summary>
+    public string ExpressionSeed => Formula.IsNothing(_expression)
+        ? string.Empty
+        : WhaleGenie.Core.Expressions.Expression.Render(_expression, bare: true);
 
     /// <summary>
     /// The one check every expression field in the program gets: what it comes to when that can be
@@ -79,13 +125,10 @@ public sealed partial class BreakpointViewModel : ObservableObject
     /// </summary>
     private void CheckExpression()
     {
-        var (message, failed) = NumberField.Check(Expression, Variables);
+        var (message, failed) = NumberField.Check(ExpressionSeed, Variables);
         ExpressionMessage = message;
         HasExpressionError = failed;
     }
-
-    [ObservableProperty]
-    public partial string Expression { get; set; } = string.Empty;
 
     /// <summary>
     /// How many arrivals count before the run stops. Kept as a decimal because the box that edits it
@@ -104,7 +147,7 @@ public sealed partial class BreakpointViewModel : ObservableObject
     public BreakpointRule? Rule => How is Ending.Save
         ? new BreakpointRule
         {
-            Expression = Formula.FromFormula(Expression.Trim()),
+            Expression = _expression,
             HitTimes = Math.Max(1, (int)HitTimes),
         }
         : null;

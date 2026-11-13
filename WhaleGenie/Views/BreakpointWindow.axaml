@@ -34,7 +34,7 @@
                 <!-- The same box the action form uses for a condition: names and functions complete
                      as they are typed, and the chip that opens the builder sits inside it — 「这一格
                      怎么填」和「填哪一格」是同一件事，按钮就不该站在行末。 -->
-                <AutoCompleteBox Name="ExpressionBox" Classes="Field HasChip" Text="{Binding Expression}"
+                <AutoCompleteBox Name="ExpressionBox" Classes="Field HasChip" Text="{Binding ExpressionLine}"
                                  ItemsSource="{Binding ExpressionSuggestions}"
                                  MinimumPrefixLength="1" FilterMode="Contains"
                                  FontSize="12.5"
