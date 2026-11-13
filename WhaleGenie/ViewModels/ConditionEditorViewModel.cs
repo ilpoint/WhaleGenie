@@ -255,13 +255,16 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
         var at = Math.Clamp(caret ?? text.Length, 0, text.Length);
         var written = text[..at] + token + text[at..];
 
+        // The wall offers names, not lines. A caret in the middle of a cell is a completion of the
+        // name it holds, so the cell ends up holding one name shape — there is no line to parse
+        // and no sign in front of the name to strip.
         if (right)
         {
-            node.Right = written;
+            node.RightNode = Formula.Name(written);
         }
         else
         {
-            node.Left = written;
+            node.LeftNode = Formula.Name(written);
         }
     }
 

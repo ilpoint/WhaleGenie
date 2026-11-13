@@ -67,10 +67,10 @@ public class ConditionEditorTests
             var editor = Editor(string.Empty);
             editor.AddRow();
             editor.AddRow();
-            editor.Rows[0].Left = "a";
-            editor.Rows[0].Right = "1";
-            editor.Rows[1].Left = "b";
-            editor.Rows[1].Right = "2";
+            editor.Rows[0].LeftNode = Formula.Name("a");
+            editor.Rows[0].RightNode = Formula.Number(1);
+            editor.Rows[1].LeftNode = Formula.Name("b");
+            editor.Rows[1].RightNode = Formula.Number(2);
 
             Assert.Equal("a == 1 and b == 2", editor.Text);
 
@@ -86,7 +86,7 @@ public class ConditionEditorTests
         {
             var editor = Editor(string.Empty);
             editor.AddRow();
-            editor.Rows[0].Left = "found";
+            editor.Rows[0].LeftNode = Formula.Name("found");
             editor.Rows[0].Compare = ConditionCompare.Holds;
 
             Assert.False(editor.Rows[0].NeedsValue);
@@ -104,10 +104,10 @@ public class ConditionEditorTests
         {
             var editor = Editor(string.Empty);
             editor.AddRow();
-            editor.Rows[0].Left = "a";
-            editor.Rows[0].Right = "1";
+            editor.Rows[0].LeftNode = Formula.Name("a");
+            editor.Rows[0].RightNode = Formula.Number(1);
             editor.AddRow();
-            editor.Rows[1].Left = "b";
+            editor.Rows[1].LeftNode = Formula.Name("b");
 
             // The second comparison has nothing to compare with, so it is not written; the step
             // then says it has a condition, which it does.
@@ -161,7 +161,7 @@ public class ConditionEditorTests
             Assert.True(editor.ShowTree);
             Assert.False(editor.ShowTable);
 
-            editor.Rows[0].Right = "9";
+            editor.Rows[0].RightNode = Formula.Number(9);
             Assert.Equal("a == 9 and b == 2", editor.Text);
             Assert.NotEqual(before, editor.Text);
 
@@ -193,10 +193,10 @@ public class ConditionEditorTests
             var group = editor.Rows[1];
             editor.AddRow(group);
             editor.AddRow(group);
-            group.Children[0].Left = "b";
-            group.Children[0].Right = "2";
-            group.Children[1].Left = "c";
-            group.Children[1].Right = "3";
+            group.Children[0].LeftNode = Formula.Name("b");
+            group.Children[0].RightNode = Formula.Number(2);
+            group.Children[1].LeftNode = Formula.Name("c");
+            group.Children[1].RightNode = Formula.Number(3);
 
             Assert.True(editor.Nests);
             Assert.Equal("a == 1 and (b == 2 or c == 3)", editor.Text);
@@ -222,7 +222,7 @@ public class ConditionEditorTests
             var editor = parameter.ConditionEditor!;
 
             editor.AddRow();
-            editor.Rows[0].Left = "found";
+            editor.Rows[0].LeftNode = Formula.Name("found");
             editor.Rows[0].Compare = ConditionCompare.Holds;
 
             Assert.Equal("found", parameter.Text);

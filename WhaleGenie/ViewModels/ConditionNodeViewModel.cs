@@ -92,8 +92,9 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
     });
 
     /// <summary>
-    /// What the left of a comparison is, as the box says it. Typing reads the line once into the
-    /// shape beside it, which is what the row keeps.
+    /// What the left of a comparison is, as the box says it. Typing keeps the words as the shape
+    /// beside it: nothing typed here is parsed, and a name or a formula goes in through the value
+    /// window as a shape. The line is a rendering, not a second value to keep in step.
     /// </summary>
     public string Left
     {
@@ -102,7 +103,7 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         {
             if (SetProperty(ref _left, value))
             {
-                _leftNode = Formula.FromFormula(value);
+                _leftNode = Formula.Text(value ?? string.Empty);
                 Changed();
             }
         }
@@ -126,6 +127,10 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
                 _left = text;
                 OnPropertyChanged(nameof(Left));
             }
+
+            // The shape is the value, so a shape arriving from the value window has to say the
+            // condition changed just as typing a line does.
+            Changed();
         }
     }
 
@@ -139,7 +144,7 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         {
             if (SetProperty(ref _right, value))
             {
-                _rightNode = Formula.FromFormula(value);
+                _rightNode = Formula.Text(value ?? string.Empty);
                 Changed();
             }
         }
@@ -160,6 +165,8 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
                 _right = text;
                 OnPropertyChanged(nameof(Right));
             }
+
+            Changed();
         }
     }
 
