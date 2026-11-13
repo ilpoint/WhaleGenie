@@ -33,10 +33,11 @@ public sealed partial class MacroRunner
         var wanted = new List<WantedPicture>();
         foreach (var row in step.Rows("images"))
         {
-            var written = Word(row, "image");
-            if (written.Length > 0)
+            var written = row.GetValueOrDefault("image") ?? Formula.Nothing;
+            var name = ShapeWord(written);
+            if (name.Length > 0)
             {
-                wanted.Add(new WantedPicture(written, Picture(written)));
+                wanted.Add(new WantedPicture(name, Picture(written)));
             }
         }
 
@@ -52,13 +53,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private ImageFrame Reference(ExecutableStep step)
     {
-        var text = ReadText(step, "imageSource").Trim();
-        if (text.Length == 0)
+        var written = step.Written("imageSource");
+        if (Formula.IsNothing(written))
         {
             throw new StepFailure(RunKeys.MissingImage, string.Empty);
         }
 
-        return Picture(text);
+        return Picture(written);
     }
 
     /// <summary>
@@ -67,18 +68,16 @@ public sealed partial class MacroRunner
     /// again — in a loop, or every time it polls while it waits — uses the one it already has
     /// instead of reading and decoding the file again.
     /// </summary>
-    private ImageFrame Picture(string text)
+    private ImageFrame Picture(ExpressionNode value)
     {
-        // A picture an earlier Capture saved, named with or without the dollar sign so it reads
-        // the same as every other field a variable can go in.
-        var named = text.StartsWith('$') ? text[1..].Trim() : text;
-        if (_images.TryGetValue(named, out var captured))
+        // A picture an earlier Capture saved is looked up by the word the field wrote, whether the
+        // shape is a name or plain text. Anything that is not one already is worked out as a path.
+        if (_images.TryGetValue(ShapeWord(value), out var captured))
         {
             return captured;
         }
 
-        // Otherwise it is a file, either written out or held in a variable.
-        var path = Read(text).AsText();
+        var path = Read(value).AsText();
         var written = Written(path);
         if (written is { } stamp
             && _references.TryGetValue(path, out var kept)
@@ -87,7 +86,8 @@ public sealed partial class MacroRunner
             return kept.Frame;
         }
 
-        var picture = _devices.Vision.Load(path) ?? throw new StepFailure(RunKeys.MissingImage, text);
+        var picture = _devices.Vision.Load(path)
+            ?? throw new StepFailure(RunKeys.MissingImage, Formula.Speak(value));
         if (written is not null)
         {
             _references[path] = (written.Value, picture);

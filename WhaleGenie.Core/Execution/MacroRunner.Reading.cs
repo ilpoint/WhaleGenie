@@ -114,6 +114,24 @@ public sealed partial class MacroRunner
     private static string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => FormulaText.Write(row.GetValueOrDefault(column)).Trim();
 
+    /// <summary>
+    /// The word a shape holds, read from the shape itself rather than from a line rendered and
+    /// read back. A name answers with the name, a run with the words it is made of, and anything
+    /// else with the plain value it was written as. There is no sign in front of a name to strip.
+    /// </summary>
+    /// <remarks>
+    /// The other <see cref="Word(System.Collections.Generic.IReadOnlyDictionary{string, ExpressionNode}, string)"/>
+    /// overload still renders a line, because the columns it serves can hold a formula that has to
+    /// be worked out by the caller; changing them all at once is a different question.
+    /// </remarks>
+    private static string ShapeWord(ExpressionNode? value) => value switch
+    {
+        null => string.Empty,
+        VariableNode variable => variable.Name.Trim(),
+        ConcatNode run => string.Concat(run.Parts.Select(ShapeWord)),
+        _ => Formula.Plain(value).Trim(),
+    };
+
     /// <summary>True when a column of a row holds anything at all.</summary>
     private static bool Said(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => !Formula.IsNothing(row.GetValueOrDefault(column));
