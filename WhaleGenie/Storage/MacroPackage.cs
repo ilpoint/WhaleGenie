@@ -51,9 +51,11 @@ public static partial class MacroPackage
     /// macro than the one that was saved. 27 is the version where a name carries the identity of
     /// the declaration it reads: a 26 build would read the name and drop the identity, and a
     /// reference would silently fall back to matching by spelling, which is the very thing this
-    /// version exists to stop.
+    /// version exists to stop. 30 refuses a package written by a build that still read a
+    /// hand-edited <c>$name</c> line as a reference: here that line is plain words, and opening it
+    /// would silently change what the step means rather than telling the author about it.
     /// </summary>
-    public const int FormatVersion = 29;
+    public const int FormatVersion = 30;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";
