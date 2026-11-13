@@ -15,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_is_one_place_to_start_from()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel((string?)null, Variables(), ActionValueForm.Value);
 
         var root = Root(form);
 

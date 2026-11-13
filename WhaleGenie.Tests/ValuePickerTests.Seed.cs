@@ -48,8 +48,8 @@ public partial class ValuePickerTests
     [Fact]
     public void A_shape_that_says_nothing_opens_an_empty_window()
     {
-        Assert.Equal(string.Empty, ValuePickerWindow.SeedLine(null, bareNames: false));
-        Assert.Equal(string.Empty, ValuePickerWindow.SeedLine(Formula.Nothing, bareNames: true));
+        Assert.Equal(string.Empty, ValuePickerViewModel.SeedLine(null, bareNames: false));
+        Assert.Equal(string.Empty, ValuePickerViewModel.SeedLine(Formula.Nothing, bareNames: true));
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public partial class ValuePickerTests
     {
         var shape = Formula.Name("count");
 
-        Assert.Equal("$count", ValuePickerWindow.SeedLine(shape, bareNames: false));
-        Assert.Equal("count", ValuePickerWindow.SeedLine(shape, bareNames: true));
+        Assert.Equal("$count", ValuePickerViewModel.SeedLine(shape, bareNames: false));
+        Assert.Equal("count", ValuePickerViewModel.SeedLine(shape, bareNames: true));
     }
 
     [Fact]
@@ -136,9 +136,40 @@ public partial class ValuePickerTests
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_shape_opened_and_left_alone_keeps_the_identity_a_line_cannot_carry(bool bareNames)
+    {
+        var shape = Formula.Name("count", "a7k2m9");
+        var form = new ValuePickerViewModel(shape, Variables(), ActionValueForm.Value, bareNames);
+        ValuePick? answer = null;
+        form.CloseRequested += pick => answer = pick;
+
+        form.Confirm();
+
+        var handed = Assert.IsType<ValuePick>(answer).Value;
+        Assert.Equal(shape, handed);
+        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(handed).Id);
+    }
+
+    [Fact]
+    public void An_edit_replaces_the_shape_the_window_started_from()
+    {
+        var form = new ValuePickerViewModel(Formula.Name("count", "a7k2m9"),
+            Variables(), ActionValueForm.Value);
+        ValuePick? answer = null;
+        form.CloseRequested += pick => answer = pick;
+
+        form.Text = "1";
+        form.Confirm();
+
+        Assert.Equal(Formula.Number(1), Assert.IsType<ValuePick>(answer).Value);
+    }
+
     private static ExpressionNode PickWithoutEditing(ExpressionNode seed, bool bareNames)
     {
-        var form = new ValuePickerViewModel(ValuePickerWindow.SeedLine(seed, bareNames),
+        var form = new ValuePickerViewModel(ValuePickerViewModel.SeedLine(seed, bareNames),
             Variables(), ActionValueForm.Value, bareNames);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;

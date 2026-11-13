@@ -127,4 +127,52 @@ public class ValueDraftTests
         Assert.NotNull(call.Ghost);
         Assert.True(call.Ghost!.Required);
     }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Every_piece_has_a_place_in_a_stable_order(bool bare)
+    {
+        var value = Formula.Binary("+",
+            Formula.Call("upper", Formula.Name("who", "a7k2m9")),
+            Formula.Number(2));
+        var (root, end) = SlotReader.Shape(value,
+            Expression.Functions.ToDictionary(function => function.Name,
+                StringComparer.OrdinalIgnoreCase), bare);
+
+        Assert.True(end > 0);
+        Assert.All(root.Walk(), piece =>
+        {
+            Assert.True(piece.Start >= 0, "A piece cannot start before the run.");
+            Assert.True(piece.Start + piece.Length <= end, "A piece cannot pass the end of the run.");
+            Assert.NotNull(piece.Path);
+        });
+
+        // Leaves are drawn in the order they stand, so a caret walking the band walks the value.
+        var leaves = root.Walk().Where(piece => piece is SlotValue or SlotOperator).ToList();
+        Assert.NotEmpty(leaves);
+        for (var index = 1; index < leaves.Count; index++)
+        {
+            Assert.True(leaves[index].Start >= leaves[index - 1].Start,
+                "A later piece cannot be drawn before an earlier one.");
+        }
+
+        // A sign belongs to the operator that holds it, so its walk names that operator. A value
+        // names its own place in the tree.
+        Assert.All(root.Walk().OfType<SlotValue>(),
+            piece => Assert.False(piece.Path!.IsRoot,
+                "A value names where it stands, not the value as a whole."));
+    }
+
+    [Fact]
+    public void A_shape_carries_the_identity_of_its_names_into_the_band()
+    {
+        var draft = new ValueDraft(Formula.Name("count", "a7k2m9"));
+
+        var piece = Assert.IsType<SlotValue>(draft.Recipe);
+        Assert.Equal("count", piece.Text);
+        Assert.DoesNotContain("$", piece.Text);
+        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(piece.Source).Id);
+        Assert.Equal(NodePath.Root, piece.Path);
+    }
 }

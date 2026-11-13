@@ -33,9 +33,11 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         // An empty line is a value too: it is how a cell is cleared without leaving the window.
+        // The shape is what goes back, not a second reading of the line: a name bound to a
+        // declaration keeps the identity the line could not carry.
         if (_reads || Text.Trim().Length == 0)
         {
-            CloseRequested?.Invoke(new ValuePick(_parsed ?? Formula.Nothing, true));
+            CloseRequested?.Invoke(new ValuePick(_draft.Value, true));
         }
     }
 
@@ -57,6 +59,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         var reads = TryReadLine(written, out var parsed, out var problem, out var fault);
         _parsed = parsed;
         _reads = reads;
+        _draft.Replace(parsed ?? Formula.Nothing);
         NoteIsProblem = written.Length > 0 && !_reads;
         Note = written.Length == 0
             ? Strings.Get("ValuePicker.Note.Empty")

@@ -48,7 +48,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_has_one_place_and_no_step()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel((string?)null, Variables(), ActionValueForm.Value);
 
         Assert.Equal(new[] { 0 }, form.Seams());
         Assert.False(form.StepCaret(-1));
@@ -90,7 +90,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_has_nothing_to_clear()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel((string?)null, Variables(), ActionValueForm.Value);
 
         Assert.False(form.CanClear);
     }

@@ -19,6 +19,32 @@ namespace WhaleGenie.ViewModels;
 // Making the picker: what it starts from, and the parts it is built out of.
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
+    /// <summary>
+    /// Opens the window on a shape. The line is drawn once for the editor, then the shape itself is
+    /// put back as the value: a line cannot carry the identity a name is bound to, and confirming
+    /// hands the shape over rather than reading the line again.
+    /// </summary>
+    public ValuePickerViewModel(ExpressionNode seed, IReadOnlyList<VariableChoice>? variables,
+        ActionValueForm valueForm, bool bareNames = false, string? target = null)
+        : this(SeedLine(seed, bareNames), variables, valueForm, bareNames, target)
+    {
+        _draft.Replace(seed);
+    }
+
+    /// <summary>
+    /// The one place a shape is drawn as a line, and only because the window still edits one. The
+    /// line is written in the spelling the window will read it back with: bare names when it reads
+    /// bare names, the marked spelling otherwise. A shape that says nothing opens an empty window
+    /// rather than one holding the quoted empty word a renderer would draw for it. This is a bridge
+    /// to be removed when the window keeps the shape itself while editing.
+    /// </summary>
+    internal static string SeedLine(ExpressionNode? seed, bool bareNames)
+        => seed is null || Formula.IsNothing(seed)
+            ? string.Empty
+            : bareNames
+                ? Language.Render(seed, bare: true)
+                : FormulaText.Write(seed);
+
     public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables,
         ActionValueForm valueForm, bool bareNames = false, string? target = null)
     {
@@ -36,6 +62,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         // the line is set: setting the text is what asks the band to read it.
         _functions = [.. Language.Functions.Select(function => new ExpressionFunctionChoice(function))];
         _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
+        _draft = new ValueDraft(Formula.Nothing, _table, _bareNames);
 
         Text = seed ?? string.Empty;
         _caret = Text.Length;

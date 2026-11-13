@@ -21,15 +21,17 @@ namespace WhaleGenie.ViewModels;
 public sealed class ValueDraft : ViewModelBase
 {
     private readonly IReadOnlyDictionary<string, ExpressionFunction> _functions;
+    private readonly bool _bare;
     private readonly Stack<ExpressionNode> _before = new();
     private readonly Stack<ExpressionNode> _after = new();
     private ExpressionNode _value;
     private NodePath _caret = NodePath.Root;
 
     public ValueDraft(ExpressionNode value,
-        IReadOnlyDictionary<string, ExpressionFunction>? functions = null)
+        IReadOnlyDictionary<string, ExpressionFunction>? functions = null, bool bare = false)
     {
         _value = value;
+        _bare = bare;
         _functions = functions
             ?? Expression.Functions.ToDictionary(function => function.Name,
                 StringComparer.OrdinalIgnoreCase);
@@ -41,6 +43,9 @@ public sealed class ValueDraft : ViewModelBase
 
     /// <summary>The shapes drawn in the structure band, derived from <see cref="Value"/>.</summary>
     public SlotNode Recipe { get; private set; } = null!;
+
+    /// <summary>One past the last place the band draws, which bounds its caret.</summary>
+    public int End { get; private set; }
 
     /// <summary>Where the next piece goes. A path into the tree, not an offset into a line.</summary>
     public NodePath Caret => _caret;
@@ -67,6 +72,22 @@ public sealed class ValueDraft : ViewModelBase
 
         _caret = path;
         OnPropertyChanged(nameof(Caret));
+    }
+
+    /// <summary>
+    /// Takes a shape that was read somewhere else as the value, without calling it an edit. A line
+    /// somebody typed is remembered by the line's own history; marking it here too would put two
+    /// steps in the undo stack for one keystroke.
+    /// </summary>
+    public void Replace(ExpressionNode value)
+    {
+        if (Equals(_value, value))
+        {
+            return;
+        }
+
+        _value = value;
+        Rebuild();
     }
 
     /// <summary>Puts a shape where the caret stands, keeping everything already there.</summary>
@@ -135,7 +156,7 @@ public sealed class ValueDraft : ViewModelBase
 
     private void Rebuild()
     {
-        Recipe = SlotReader.ReadShape(_value, _functions);
+        (Recipe, End) = SlotReader.Shape(_value, _functions, _bare);
         OnPropertyChanged(nameof(Recipe));
         OnPropertyChanged(nameof(Value));
         OnPropertyChanged(nameof(Speak));

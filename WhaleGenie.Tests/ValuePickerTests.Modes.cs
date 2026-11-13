@@ -51,7 +51,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_cell_can_be_confirmed_so_the_window_can_clear_it()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel((string?)null, Variables(), ActionValueForm.Value);
         ValuePick? closed = null;
         form.CloseRequested += value => closed = value;
 

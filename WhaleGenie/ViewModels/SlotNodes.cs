@@ -21,11 +21,15 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public abstract partial class SlotNode : ViewModelBase
 {
-    /// <summary>Where this piece begins in the formula, counted from the first character.</summary>
-    public int Start { get; init; }
+    /// <summary>
+    /// Where this piece begins in the drawn shape. A shape has no characters to count, so this is
+    /// the stable order the band draws its pieces in: a caret, a cross and a drop all name a place
+    /// by the piece's <see cref="Path"/>, and the offset is only what the geometry measures.
+    /// </summary>
+    public int Start { get; set; }
 
-    /// <summary>How many characters it covers. An empty place covers none.</summary>
-    public int Length { get; init; }
+    /// <summary>How much of that order it covers. An empty place covers none.</summary>
+    public int Length { get; set; }
 
     /// <summary>
     /// The walk from the value's root to the shape this piece draws. A piece built from a shape
