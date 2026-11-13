@@ -51,11 +51,11 @@ public class RunBreakpointTests
             Assert.Empty(window.OwnedWindows.OfType<BreakpointWindow>());
             Assert.True(row.HasBreakpoint);
             var rule = viewModel.BreakpointRuleOf(row.Id)!;
-            Assert.Equal("n > 3", rule.Expression);
+            Assert.Equal("n > 3", Expression.Render(rule.Expression, bare: true));
             Assert.Equal(2, rule.HitTimes);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
-            Assert.Contains("n > 3", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("「n」 > 3", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.Contains("2", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.True(row.HasCondition);
 

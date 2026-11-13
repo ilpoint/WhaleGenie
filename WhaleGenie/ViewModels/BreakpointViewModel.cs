@@ -33,7 +33,9 @@ public sealed partial class BreakpointViewModel : ObservableObject
         Variables = [.. variables.Select(choice => choice.Name).OrderBy(name => name,
             StringComparer.OrdinalIgnoreCase)];
         HitTimes = current?.HitTimes ?? 1;
-        Expression = current?.Expression ?? string.Empty;
+        Expression = current is null
+            ? string.Empty
+            : WhaleGenie.Core.Expressions.Expression.Render(current.Expression, bare: true);
 
         // The same names and the same functions the action form offers in a condition field: a
         // condition is written with the same words wherever it is written.
@@ -102,7 +104,7 @@ public sealed partial class BreakpointViewModel : ObservableObject
     public BreakpointRule? Rule => How is Ending.Save
         ? new BreakpointRule
         {
-            Expression = Expression.Trim(),
+            Expression = Formula.FromFormula(Expression.Trim()),
             HitTimes = Math.Max(1, (int)HitTimes),
         }
         : null;

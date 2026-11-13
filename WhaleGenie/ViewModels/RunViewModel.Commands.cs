@@ -161,7 +161,7 @@ public partial class RunViewModel
     /// `if` action is where a condition already lives, so a condition written here reads exactly the
     /// way one written in the macro does.
     /// </summary>
-    private static ExecutableStep ConditionStep(string expression) => new()
+    private static ExecutableStep ConditionStep(ExpressionNode expression) => new()
     {
         Type = "control.if",
         Parameters =
@@ -169,8 +169,8 @@ public partial class RunViewModel
             new ExecutableParameter
             {
                 Name = "condition",
-                // A breakpoint asks a question, so its line is read as the formula it is.
-                Written = Formula.FromFormula(expression.Trim()),
+                // A breakpoint asks a question, and the shape it was written in is the question.
+                Written = expression,
             },
         ],
     };

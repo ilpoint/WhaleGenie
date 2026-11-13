@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -137,7 +138,7 @@ public partial class RunDebugTests
 
             var viewModel = (RunViewModel)window.DataContext!;
             var row = viewModel.Steps.First();
-            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = "$nowhere == 1" });
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = Formula.FromFormula("$nowhere == 1") });
 
             Assert.False(viewModel.StopsHere(row.Id));
             Assert.Contains(viewModel.Lines, line => line.Text.Contains("断点", StringComparison.Ordinal));
@@ -212,7 +213,7 @@ public partial class RunDebugTests
             Assert.Equal(BreakpointViewModel.Ending.Save, panel.How);
             Assert.NotNull(panel.Rule);
             Assert.Equal(4, panel.Rule!.HitTimes);
-            Assert.Equal("$total > 3", panel.Rule.Expression);
+            Assert.Equal("total > 3", Expression.Render(panel.Rule.Expression, bare: true));
         });
     }
 }

@@ -1,3 +1,4 @@
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -9,14 +10,14 @@ namespace WhaleGenie.Models;
 /// </summary>
 public sealed record BreakpointRule
 {
-    /// <summary>The expression that has to hold, or empty when the breakpoint asks nothing.</summary>
-    public string Expression { get; init; } = string.Empty;
+    /// <summary>The expression that has to hold, or nothing when the breakpoint asks nothing.</summary>
+    public ExpressionNode Expression { get; init; } = Formula.Nothing;
 
     /// <summary>How many arrivals count before it stops; 1 means every time.</summary>
     public int HitTimes { get; init; } = 1;
 
     /// <summary>True while this breakpoint asks a question about the values in play.</summary>
-    public bool WaitsForExpression => Expression.Trim().Length > 0;
+    public bool WaitsForExpression => !Formula.IsNothing(Expression);
 
     /// <summary>True while this breakpoint skips the first few arrivals.</summary>
     public bool WaitsForHits => HitTimes > 1;
@@ -27,9 +28,9 @@ public sealed record BreakpointRule
     /// <summary>The rule as the row says it, or empty when the breakpoint stops every time.</summary>
     public string Note => (WaitsForHits, WaitsForExpression) switch
     {
-        (true, true) => Strings.Format("Run.BreakpointNoteBoth", HitTimes, Expression.Trim()),
+        (true, true) => Strings.Format("Run.BreakpointNoteBoth", HitTimes, Formula.Speak(Expression).Trim()),
         (true, false) => Strings.Format("Run.BreakpointNoteHits", HitTimes),
-        (false, true) => Expression.Trim(),
+        (false, true) => Formula.Speak(Expression).Trim(),
         _ => string.Empty,
     };
 }

@@ -40,7 +40,7 @@ public partial class RunDebugTests
             StepIds.Settle([sets, guarded]);
             var viewModel = new RunViewModel([sets, guarded], NullDeviceLayer.Instance);
             var row = viewModel.Steps.First(step => step.Id == guarded.Id);
-            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = "$n > 3" });
+            viewModel.SetBreakpointRule(row, new BreakpointRule { Expression = Formula.FromFormula("$n > 3") });
 
             viewModel.RunCommand.Execute(null);
             var wentPast = await Until(() => !viewModel.IsBusy);
@@ -55,7 +55,7 @@ public partial class RunDebugTests
             StepIds.Settle([setsAgain, held]);
             var second = new RunViewModel([setsAgain, held], NullDeviceLayer.Instance);
             var stopped = second.Steps.First(step => step.Id == held.Id);
-            second.SetBreakpointRule(stopped, new BreakpointRule { Expression = "$n > 0" });
+            second.SetBreakpointRule(stopped, new BreakpointRule { Expression = Formula.FromFormula("$n > 0") });
 
             second.RunCommand.Execute(null);
             var paused = await Until(() => second.IsPaused);
@@ -76,7 +76,7 @@ public partial class RunDebugTests
         Assert.False(answer.notYet, "the run went past the breakpoint it should have stopped at");
         Assert.True(answer.Stopped);
         Assert.True(answer.has);
-        Assert.Contains("$n > 3", answer.note, System.StringComparison.Ordinal);
+        Assert.Contains("「n」 > 3", answer.note, System.StringComparison.Ordinal);
     }
 
     /// <summary>
