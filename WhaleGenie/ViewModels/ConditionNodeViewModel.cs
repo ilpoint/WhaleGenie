@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Views;
@@ -90,7 +91,10 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         _ => "Condition.All",
     });
 
-    /// <summary>What the left of a comparison is: a variable, an expression or a literal.</summary>
+    /// <summary>
+    /// What the left of a comparison is, as the box says it. Typing reads the line once into the
+    /// shape beside it, which is what the row keeps.
+    /// </summary>
     public string Left
     {
         get => _left;
@@ -98,12 +102,34 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         {
             if (SetProperty(ref _left, value))
             {
+                _leftNode = Formula.FromFormula(value);
                 Changed();
             }
         }
     }
 
     private string _left = string.Empty;
+
+    /// <summary>
+    /// The left side as the shape it is. Setting it says the line again from the shape, so a name
+    /// that arrived with an identity keeps it rather than being read back as a word.
+    /// </summary>
+    public ExpressionNode LeftNode
+    {
+        get => _leftNode;
+        set
+        {
+            _leftNode = value;
+            var text = Said(value);
+            if (_left != text)
+            {
+                _left = text;
+                OnPropertyChanged(nameof(Left));
+            }
+        }
+    }
+
+    private ExpressionNode _leftNode = Formula.Nothing;
 
     /// <summary>What the right of a comparison is, when the comparison has one.</summary>
     public string Right
@@ -113,12 +139,35 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
         {
             if (SetProperty(ref _right, value))
             {
+                _rightNode = Formula.FromFormula(value);
                 Changed();
             }
         }
     }
 
     private string _right = string.Empty;
+
+    /// <summary>The right side as the shape it is.</summary>
+    public ExpressionNode RightNode
+    {
+        get => _rightNode;
+        set
+        {
+            _rightNode = value;
+            var text = Said(value);
+            if (_right != text)
+            {
+                _right = text;
+                OnPropertyChanged(nameof(Right));
+            }
+        }
+    }
+
+    private ExpressionNode _rightNode = Formula.Nothing;
+
+    /// <summary>A side as the line the box shows it as.</summary>
+    private static string Said(ExpressionNode value)
+        => Formula.IsNothing(value) ? string.Empty : Expression.Render(value, bare: true);
 
     /// <summary>How this line compares the two sides.</summary>
     public ConditionCompare Compare

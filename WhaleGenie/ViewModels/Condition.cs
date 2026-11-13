@@ -12,7 +12,8 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public abstract record ConditionShape
 {
-    public sealed record Row(string Left, ConditionCompare Compare, string Right) : ConditionShape;
+    public sealed record Row(ExpressionNode Left, ConditionCompare Compare, ExpressionNode Right)
+        : ConditionShape;
 
     public sealed record Group(Join Join, IReadOnlyList<ConditionShape> Children) : ConditionShape;
 }
@@ -56,6 +57,16 @@ public static class Condition
         return true;
     }
 
+    /// <summary>
+    /// Reads a condition that is already the shape it was written in. Every shape is one the rows
+    /// can say, so this always answers: the row that holds a whole expression says it as one side.
+    /// </summary>
+    public static bool TryRead(ExpressionNode tree, out ConditionShape shape)
+    {
+        shape = Read(tree);
+        return true;
+    }
+
     /// <summary>The pieces a condition is made of, whichever way it is being shown.</summary>
     public static IReadOnlyList<ConditionShape> Children(ConditionShape shape)
         => shape is ConditionShape.Group group ? group.Children : [shape];
@@ -63,6 +74,9 @@ public static class Condition
     /// <summary>Writes a condition as the expression the engine reads.</summary>
     public static string Render(ConditionShape shape)
         => Build(shape) is { } tree ? Piece(tree) : string.Empty;
+
+    /// <summary>The condition as the shape a step keeps.</summary>
+    public static ExpressionNode? ToNode(ConditionShape shape) => Build(shape);
 
     private static ConditionShape Read(ExpressionNode tree)
     {
@@ -128,8 +142,7 @@ public static class Condition
             && call.Arguments.Count == 2)
         {
             return new ConditionShape.Row(
-                Piece(call.Arguments[0]), called.Compare,
-                Piece(call.Arguments[1]));
+                call.Arguments[0], called.Compare, call.Arguments[1]);
         }
 
         if (tree is UnaryNode { Operator: "not" } unary)
@@ -142,12 +155,11 @@ public static class Condition
                     && choice.Shape is ComparisonShape.Call) is { } kept)
             {
                 return new ConditionShape.Row(
-                    Piece(denied.Arguments[0]), Denial(kept.Compare),
-                    Piece(denied.Arguments[1]));
+                    denied.Arguments[0], Denial(kept.Compare), denied.Arguments[1]);
             }
 
             return new ConditionShape.Row(
-                Piece(unary.Operand), ConditionCompare.Fails, string.Empty);
+                unary.Operand, ConditionCompare.Fails, Formula.Text(string.Empty));
         }
 
         if (tree is BinaryNode { } binary
@@ -158,28 +170,28 @@ public static class Condition
             // comparison they would read as a left side nobody typed.
             if (binary.Left is CallNode wrapped && wrapped.Arguments.Count == 1)
             {
-                var inside = Piece(wrapped.Arguments[0]);
+                var inside = wrapped.Arguments[0];
                 if (string.Equals(wrapped.Name, "length", System.StringComparison.OrdinalIgnoreCase)
                     && IsZero(binary.Right))
                 {
                     return new ConditionShape.Row(inside,
                         binary.Operator == "==" ? ConditionCompare.Empty : ConditionCompare.NotEmpty,
-                        string.Empty);
+                        Formula.Text(string.Empty));
                 }
 
                 if (string.Equals(wrapped.Name, "count", System.StringComparison.OrdinalIgnoreCase)
                     && binary.Operator == "==")
                 {
                     return new ConditionShape.Row(inside, ConditionCompare.CountIs,
-                        Piece(binary.Right));
+                        binary.Right);
                 }
             }
 
             return new ConditionShape.Row(
-                Piece(binary.Left), comparison.Compare, Piece(binary.Right));
+                binary.Left, comparison.Compare, binary.Right);
         }
 
-        return new ConditionShape.Row(Piece(tree), ConditionCompare.Holds, string.Empty);
+        return new ConditionShape.Row(tree, ConditionCompare.Holds, Formula.Text(string.Empty));
     }
 
     /// <summary>The row that says a call did not hold, in the way that has words of its own.</summary>
@@ -220,12 +232,22 @@ public static class Condition
 
     private static ExpressionNode? BuildRow(ConditionShape.Row row)
     {
-        if (Parse(row.Left) is not { } left)
+        // A side that was typed but does not read is kept as the broken line it is: dropping it
+        // would lose what the person wrote the moment they saved, and a run should say why it
+        // cannot read the condition rather than quietly running without one.
+        if (row.Left is FaultNode leftFault)
+        {
+            return leftFault;
+        }
+
+        if (Formula.IsNothing(row.Left))
         {
             // A half-filled line is left out rather than written as a broken condition: the step
             // then says it has no condition yet, which is the truth, instead of failing to run.
             return null;
         }
+
+        var left = row.Left;
 
         var choice = Comparisons.Of(row.Compare);
         if (!choice.NeedsValue)
@@ -240,10 +262,17 @@ public static class Condition
             };
         }
 
-        if (Parse(row.Right) is not { } right)
+        if (row.Right is FaultNode rightFault)
+        {
+            return rightFault;
+        }
+
+        if (Formula.IsNothing(row.Right))
         {
             return null;
         }
+
+        var right = row.Right;
 
         if (choice.Shape is ComparisonShape.Operator)
         {
@@ -272,6 +301,4 @@ public static class Condition
 
     private static NumberNode Zero() => new("0", 0);
 
-    private static ExpressionNode? Parse(string text)
-        => Expression.TryParse(text, out var tree, out _, bare: true) && tree is not null ? tree : null;
 }

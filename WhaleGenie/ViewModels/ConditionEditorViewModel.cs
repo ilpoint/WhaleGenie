@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Views;
@@ -21,20 +22,21 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     private readonly Action _changed;
     private bool _writing;
 
-    public ConditionEditorViewModel(string? text, Action changed, IReadOnlyList<string>? suggestions = null,
+    public ConditionEditorViewModel(ExpressionNode? written, Action changed,
+        IReadOnlyList<string>? suggestions = null,
         IReadOnlyList<VariableChoice>? variables = null)
     {
         _changed = changed;
         Suggestions = suggestions ?? [];
         Variables = variables ?? [];
         Root = ConditionNodeViewModel.Group(Join.All, Changed);
-        Read(text ?? string.Empty);
+        Read(written ?? Formula.Nothing);
 
         // A condition with nothing in it opens as one empty comparison rather than as no rows at
         // all: three boxes with a word in each say what a condition is made of, while an empty
         // space under a heading leaves a person to guess. The row is empty, so what the step holds
         // is still the empty text it started with.
-        if (!IsRaw && Rows.Count == 0)
+        if (Rows.Count == 0)
         {
             _writing = true;
             try
@@ -69,9 +71,7 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     /// and nothing in it, which is a step somebody has not got to yet rather than a mistake; a row
     /// half filled in is.
     /// </summary>
-    public bool HasInput => IsRaw
-        ? RawText.Trim().Length > 0
-        : Root.Children.Any(AnyInput);
+    public bool HasInput => Root.Children.Any(AnyInput);
 
     private static bool AnyInput(ConditionNodeViewModel node)
         => node.IsGroup
@@ -124,74 +124,38 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     /// </summary>
     public bool Nests => Rows.Any(row => row.IsGroup);
 
-    /// <summary>
-    /// True when the text the step held could not be read as conditions — a function call, an
-    /// odd shape — so it is kept as it was and edited as text rather than guessed at.
-    /// </summary>
-    public bool IsRaw
-    {
-        get => _raw;
-        private set
-        {
-            if (SetProperty(ref _raw, value))
-            {
-                OnPropertyChanged(nameof(ShowTable));
-                OnPropertyChanged(nameof(ShowTree));
-            }
-        }
-    }
-
-    private bool _raw;
-
-    /// <summary>The condition as it was written, for the case the conditions cannot be read back.</summary>
-    public string RawText
-    {
-        get => _rawText;
-        set
-        {
-            if (SetProperty(ref _rawText, value))
-            {
-                _changed();
-            }
-        }
-    }
-
-    private string _rawText = string.Empty;
-
     /// <summary>The condition written out as the expression the engine reads.</summary>
-    public string Text => IsRaw ? RawText : Condition.Render(ShapeOf(Root));
+    public string Text => Condition.Render(ShapeOf(Root));
+
+    /// <summary>
+    /// The condition as the shape a step keeps. This is what the field takes: the rows are made of
+    /// shapes, so handing the step a line would read every name in it back as a word.
+    /// </summary>
+    public ExpressionNode Written => Condition.ToNode(ShapeOf(Root)) ?? Formula.Nothing;
 
     /// <summary>The model read back as the neutral shape the writer takes.</summary>
     private static ConditionShape ShapeOf(ConditionNodeViewModel node)
         => node.IsGroup
             ? new ConditionShape.Group(node.Join, [.. node.Children.Select(ShapeOf)])
-            : new ConditionShape.Row(node.Left, node.Compare, node.Right);
+            : new ConditionShape.Row(node.LeftNode, node.Compare, node.RightNode);
 
     /// <summary>True when the condition has nothing in it yet.</summary>
     public bool IsEmpty => Rows.Count == 0;
 
-    /// <summary>Reads a condition back into the model, or keeps it as text when it does not read.</summary>
-    public void Read(string text)
+    /// <summary>Reads a condition back into the model. Every shape is one the rows can say.</summary>
+    public void Read(ExpressionNode written)
     {
         _writing = true;
         try
         {
-            RawText = text;
             Root.Children.Clear();
-            if (text.Trim().Length == 0)
+            if (Formula.IsNothing(written))
             {
-                IsRaw = false;
                 Root.Join = Join.All;
                 return;
             }
 
-            if (!Condition.TryRead(text, out var shape))
-            {
-                IsRaw = true;
-                return;
-            }
-
-            IsRaw = false;
+            Condition.TryRead(written, out var shape);
             Root.Join = shape is ConditionShape.Group group ? group.Join : Join.All;
             foreach (var child in Condition.Children(shape))
             {
@@ -226,9 +190,9 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     private ConditionNodeViewModel RowNode(ConditionShape.Row shape)
     {
         var row = ConditionNodeViewModel.Row(Changed);
-        row.Left = shape.Left;
+        row.LeftNode = shape.Left;
         row.Compare = shape.Compare;
-        row.Right = shape.Right;
+        row.RightNode = shape.Right;
         return row;
     }
 
@@ -302,15 +266,15 @@ public sealed partial class ConditionEditorViewModel : ViewModelBase
     }
 
     /// <summary>Puts an expression the builder worked out into one side of a row.</summary>
-    public void WriteExpression(ConditionNodeViewModel node, bool right, string expression)
+    public void WriteExpression(ConditionNodeViewModel node, bool right, ExpressionNode expression)
     {
         if (right)
         {
-            node.Right = expression;
+            node.RightNode = expression;
         }
         else
         {
-            node.Left = expression;
+            node.LeftNode = expression;
         }
     }
 

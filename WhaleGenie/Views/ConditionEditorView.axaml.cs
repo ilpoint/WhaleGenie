@@ -62,7 +62,7 @@ public partial class ConditionEditorView : UserControl
                 ActionReadMode.WholeValue, bareNames: true,
                 startOnFormula: startOnFormula, startCaret: CaretIn(node) ?? -1) is { Chosen: true } written)
         {
-            editor.WriteExpression(node, right, FormulaText.Write(written.Value));
+            editor.WriteExpression(node, right, written.Value);
         }
     }
 

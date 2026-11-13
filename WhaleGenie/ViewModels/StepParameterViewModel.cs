@@ -112,7 +112,7 @@ public partial class StepParameterViewModel : ViewModelBase
 
         if (IsCondition)
         {
-            ConditionEditor = new ConditionEditorViewModel(Text, WriteCondition, ExpressionSuggestions,
+            ConditionEditor = new ConditionEditorViewModel(WrittenValue(), WriteCondition, ExpressionSuggestions,
                 Variables);
         }
         Flag = string.Equals(definition.DefaultValue, "true", StringComparison.OrdinalIgnoreCase);

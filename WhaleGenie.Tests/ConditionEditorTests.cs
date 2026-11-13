@@ -2,6 +2,7 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -21,7 +22,7 @@ public class ConditionEditorTests
     {
         ConditionEditorViewModel? editor = null;
         var changed = 0;
-        editor = new ConditionEditorViewModel(text, () => changed++);
+        editor = new ConditionEditorViewModel(Formula.FromFormula(text), () => changed++);
         return editor;
     }
 
@@ -32,7 +33,6 @@ public class ConditionEditorTests
         {
             var editor = Editor("a == 1 and b > 2");
 
-            Assert.False(editor.IsRaw);
             Assert.False(editor.Nests);
             Assert.Equal(2, editor.Rows.Count);
             Assert.Equal("a", editor.Rows[0].Left);
@@ -50,7 +50,6 @@ public class ConditionEditorTests
         {
             var editor = Editor("(a == 1 or b == 2) and c == 3");
 
-            Assert.False(editor.IsRaw);
             Assert.True(editor.Nests);
             Assert.Equal(2, editor.Rows.Count);
             Assert.True(editor.Rows[0].IsGroup);
@@ -123,11 +122,12 @@ public class ConditionEditorTests
         {
             var editor = Editor("a +");
 
-            Assert.True(editor.IsRaw);
+            // A half-typed side is kept as the line it is, so saving does not lose it.
             Assert.Equal("a +", editor.Text);
+            Assert.Single(editor.Rows);
 
-            // Fixing it in the raw box brings the rows back without touching what was typed.
-            editor.RawText = "a == 1";
+            // Finishing it brings the comparison back without touching anything else.
+            editor.Read(Formula.FromFormula("a == 1"));
             Assert.Equal("a == 1", editor.Text);
         });
     }
@@ -140,7 +140,7 @@ public class ConditionEditorTests
             var editor = Editor("a == 1 and not b and c >= 3");
             var first = editor.Text;
 
-            editor.Read(first);
+            editor.Read(Formula.FromFormula(first));
 
             Assert.Equal(first, editor.Text);
             Assert.Equal(3, editor.Rows.Count);
@@ -220,7 +220,6 @@ public class ConditionEditorTests
             var parameter = form.Parameters.First(item => item.Definition.Name == "condition");
             Assert.True(parameter.IsCondition);
             var editor = parameter.ConditionEditor!;
-            Assert.False(editor.IsRaw);
 
             editor.AddRow();
             editor.Rows[0].Left = "found";
@@ -230,7 +229,6 @@ public class ConditionEditorTests
 
             // A step read back from a file hands its condition in the same way.
             parameter.Text = "count > 3";
-            Assert.False(editor.IsRaw);
             Assert.Equal("count", Assert.Single(editor.Rows).Left);
             window.Close();
         });
@@ -310,7 +308,6 @@ public class ConditionEditorTests
         {
             var editor = Editor(string.Empty);
 
-            Assert.False(editor.IsRaw);
             Assert.False(editor.IsEmpty);
             var row = Assert.Single(editor.Rows);
             Assert.Equal(string.Empty, row.Left);
@@ -352,7 +349,6 @@ public class ConditionEditorTests
         {
             var editor = Editor("contains(title, \"记\") and startsWith(name, \"a\")");
 
-            Assert.False(editor.IsRaw);
             Assert.Equal(2, editor.Rows.Count);
             Assert.Equal(ConditionCompare.Contains, editor.Rows[0].Compare);
             Assert.Equal("title", editor.Rows[0].Left);
@@ -410,7 +406,6 @@ public class ConditionEditorTests
         {
             var editor = Editor("not (a == 1 or b == 2)");
 
-            Assert.False(editor.IsRaw);
             Assert.Equal(Join.None, editor.Root.Join);
             Assert.Equal(2, editor.Rows.Count);
             Assert.Equal("not (a == 1 or b == 2)", editor.Text);

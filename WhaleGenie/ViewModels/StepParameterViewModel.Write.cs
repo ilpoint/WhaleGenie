@@ -60,7 +60,7 @@ public partial class StepParameterViewModel : ViewModelBase
         if (IsCondition && ConditionEditor is { } condition && !_writingCondition
             && condition.Text != value)
         {
-            condition.Read(value);
+            condition.Read(_written);
         }
 
         if (IsWindowRule)

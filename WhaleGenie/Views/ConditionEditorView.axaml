@@ -45,7 +45,7 @@
 
     <StackPanel Spacing="6">
         <!-- 顶上一行：右边是视图开关；左边只在条件嵌套时说话，而这一句话只说一次。 -->
-        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding !IsRaw}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <TextBlock Grid.Column="0" Classes="Hint" VerticalAlignment="Center"
                        TextWrapping="Wrap"
                        Text="{Binding [Condition.Nested], Source={x:Static loc:Strings.Current}}"
@@ -59,14 +59,6 @@
                               Command="{Binding ShowTreeViewCommand}" />
             </StackPanel>
         </Grid>
-
-        <!-- 拆不成行的那一段：原文照改。 -->
-        <StackPanel Spacing="4" IsVisible="{Binding IsRaw}">
-            <TextBox Classes="Field" Text="{Binding RawText}"
-                     AcceptsReturn="True" MinHeight="56" TextWrapping="Wrap" />
-            <TextBlock Classes="Hint" TextWrapping="Wrap"
-                       Text="{Binding [Condition.Raw], Source={x:Static loc:Strings.Current}}" />
-        </StackPanel>
 
         <!-- 行表：一层，顶上"全部成立 / 任一成立 / 全都不成立"。一行比较就是一句话，三格按读的
              顺序摆，行末两枚小片负责把这一格填上。 -->
