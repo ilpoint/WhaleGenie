@@ -70,7 +70,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("window.info", Param("window", "Notepad"), Returns("window=win")),
-            Step("window.activate", Param("window", "$win")),
+            Step("window.activate", Fields.Reference("window", "win")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -167,7 +167,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("window.activate", Param("window", "$spot"), Param("how", "processEquals")),
+            Step("window.activate", Fields.Reference("window", "spot"), Param("how", "processEquals")),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);

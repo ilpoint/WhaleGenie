@@ -32,7 +32,7 @@ public partial class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("b"));
         var branch = Step("control.switch",
-            Param("switchValue", "$kind"),
+            Fields.Reference("switchValue", "kind"),
             Param("switchMode", "equals"),
             Body("cases",
                 Case("a; b", Set("hit", "one")),
@@ -51,7 +51,7 @@ public partial class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("z"));
         var branch = Step("control.switch",
-            Param("switchValue", "$kind"),
+            Fields.Reference("switchValue", "kind"),
             Param("switchMode", "equals"),
             Body("cases",
                 Case("a; b", Set("hit", "one")),
@@ -69,7 +69,7 @@ public partial class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("Running fast"));
         var branch = Step("control.switch",
-            Param("switchValue", "$kind"),
+            Fields.Reference("switchValue", "kind"),
             Param("switchMode", "contains"),
             Body("cases", Case("run", Set("hit", "yes"))));
 
@@ -83,7 +83,7 @@ public partial class MacroRunnerTests
     {
         var store = Store(("n", 2));
         var branch = Step("control.switch",
-            Param("switchValue", "$n"),
+            Fields.Reference("switchValue", "n"),
             Param("switchMode", "equals"),
             Body("cases",
                 Case("1", Set("hit", "one")),
@@ -102,17 +102,17 @@ public partial class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "endsWith"),
+            Step("control.switch", Fields.Reference("switchValue", "kind"), Param("switchMode", "endsWith"),
                 Body("cases",
                     Case("slow", Set("hit", "slow")),
                     Case("fast", Set("hit", "fast")))),
-            Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "notEquals"),
+            Step("control.switch", Fields.Reference("switchValue", "kind"), Param("switchMode", "notEquals"),
                 Body("cases", Case("Stopped", Set("other", "yes")))),
-            Step("control.switch", Param("switchValue", "$kind"), Param("switchMode", "notContains"),
+            Step("control.switch", Fields.Reference("switchValue", "kind"), Param("switchMode", "notContains"),
                 Body("cases", Case("slow", Set("plain", "yes")))),
-            Step("control.switch", Param("switchValue", "$n"), Param("switchMode", "greaterThan"),
+            Step("control.switch", Fields.Reference("switchValue", "n"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("1", Set("big", "yes")))),
-            Step("control.switch", Param("switchValue", "$n"), Param("switchMode", "lessOrEqual"),
+            Step("control.switch", Fields.Reference("switchValue", "n"), Param("switchMode", "lessOrEqual"),
                 Body("cases", Case("2", Set("small", "yes")))),
         ], variables: store);
 
@@ -134,10 +134,10 @@ public partial class MacroRunnerTests
         var (result, _) = await RunAsync(
         [
             // "b" comes after "a", so a text branch that only knows letters still lines up.
-            Step("control.switch", Param("switchValue", "$word"), Param("switchMode", "greaterThan"),
+            Step("control.switch", Fields.Reference("switchValue", "word"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("apple", Set("after", "yes")))),
             // 10 is bigger than 9 as a number, and would have come first read as text.
-            Step("control.switch", Param("switchValue", "$ten"), Param("switchMode", "greaterThan"),
+            Step("control.switch", Fields.Reference("switchValue", "ten"), Param("switchMode", "greaterThan"),
                 Body("cases", Case("9", Set("bigger", "yes")))),
         ], variables: store);
 
@@ -152,7 +152,7 @@ public partial class MacroRunnerTests
         var store = Store();
         store.Local.Set("kind", Value.FromText("z"));
         var branch = Step("control.switch",
-            Param("switchValue", "$kind"),
+            Fields.Reference("switchValue", "kind"),
             Body("cases", Case("a", Set("hit", "one"))));
 
         var (result, _) = await RunAsync([branch], variables: store);

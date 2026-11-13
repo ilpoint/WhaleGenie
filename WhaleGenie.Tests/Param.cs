@@ -30,6 +30,38 @@ internal static class Fields
             Jitter = jitter,
         };
 
+
+    /// <summary>One field holding a name and nothing else.</summary>
+    public static ExecutableParameter Reference(string name, string variable, decimal jitter = 0m)
+        => new()
+        {
+            Name = name,
+            Written = WhaleGenie.Core.Expressions.Formula.Name(variable),
+            Jitter = jitter,
+        };
+
+    /// <summary>One field holding a formula, with the names it reads written as themselves.</summary>
+    public static ExecutableParameter Computed(string name, string text, decimal jitter = 0m)
+        => new()
+        {
+            Name = name,
+            Written = WhaleGenie.Core.Expressions.Formula.FromFormula(text),
+            Jitter = jitter,
+        };
+
+    /// <summary>Several pieces standing next to each other: text, a name, text again.</summary>
+    public static ExecutableParameter Parts(string name, params ExpressionNode[] parts)
+        => new() { Name = name, Written = WhaleGenie.Core.Expressions.Formula.Run(parts) };
+
+    /// <summary>Text with no names in it at all.</summary>
+    public static ExecutableParameter Literal(string name, string text, decimal jitter = 0m)
+        => new()
+        {
+            Name = name,
+            Written = WhaleGenie.Core.Expressions.Formula.Text(text),
+            Jitter = jitter,
+        };
+
     /// <summary>A yes/no field, written the way the file writes one.</summary>
     public static ExecutableParameter Flag(string name, bool value)
         => Text(name, value ? "true" : "false");

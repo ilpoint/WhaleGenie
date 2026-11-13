@@ -532,7 +532,7 @@ public partial class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("process.start", Param("programFile", "tool.exe"), Returns("program=started")),
-            Within(1000, Step("process.waitExit", Param("window", "$started"),
+            Within(1000, Step("process.waitExit", Fields.Reference("window", "started"),
                 Returns("exitCode=code"))),
         ], devices);
 

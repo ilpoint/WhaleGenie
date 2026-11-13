@@ -380,7 +380,7 @@ public partial class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "wanted"), Param("value", "Fast")),
             Step("uia.select", Param("uiSelector", "ComboBox[automationId='rate']"),
-                Param("item", "$wanted"), Param("itemIndex", "3")),
+                Fields.Reference("item", "wanted"), Param("itemIndex", "3")),
         ], devices);
 
         // The text field is kept as written even when the number is what decides, so a step can

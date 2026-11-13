@@ -198,7 +198,7 @@ public partial class MacroRunnerTests
         var (result, _) = await RunAsync(
             [Step("control.setVariable",
                 Param("name", "total"), Param("scope", "local"),
-                Param("value", "$count + 3"))],
+                Fields.Computed("value", "count + 3"))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -211,10 +211,10 @@ public partial class MacroRunnerTests
         var store = Store(("n", 10), ("m", 3));
         var (result, _) = await RunAsync(
             [
-                Step("control.setVariable", Param("name", "minus"), Param("value", "$n - $m")),
-                Step("control.setVariable", Param("name", "times"), Param("value", "$n * $m")),
-                Step("control.setVariable", Param("name", "over"), Param("value", "$n / 4")),
-                Step("control.setVariable", Param("name", "rest"), Param("value", "$n % $m")),
+                Step("control.setVariable", Param("name", "minus"), Fields.Computed("value", "n - m")),
+                Step("control.setVariable", Param("name", "times"), Fields.Computed("value", "n * m")),
+                Step("control.setVariable", Param("name", "over"), Fields.Computed("value", "n / 4")),
+                Step("control.setVariable", Param("name", "rest"), Fields.Computed("value", "n % m")),
             ],
             variables: store);
 
@@ -259,7 +259,7 @@ public partial class MacroRunnerTests
         var store = Store(("zero", 0));
         var (result, _) = await RunAsync(
             [Step("control.setVariable",
-                Param("name", "x"), Param("value", "$zero / 0"))],
+                Param("name", "x"), Fields.Computed("value", "zero / 0"))],
             variables: store);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -275,7 +275,7 @@ public partial class MacroRunnerTests
             [
                 Step("data.base64Encode", Param("dataText", "你好, Ada"),
                     Returns("encoded")),
-                Step("data.base64Decode", Param("dataText", "$encoded"),
+                Step("data.base64Decode", Fields.Reference("dataText", "encoded"),
                     Returns("decoded=back")),
             ],
             variables: store);
@@ -382,7 +382,7 @@ public partial class MacroRunnerTests
         store.Local.SetText("item", "c");
 
         var (result, _) = await RunAsync(
-            [Step("control.listAdd", Param("name", "names"), Param("value", "$item"))],
+            [Step("control.listAdd", Param("name", "names"), Fields.Reference("value", "item"))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -469,7 +469,7 @@ public partial class MacroRunnerTests
     public async Task A_broken_braced_expression_fails_the_step()
     {
         var (result, _) = await RunAsync(
-            [Step("control.log", Param("message", "${1 +}"), Param("level", "info"))]);
+            [Step("control.log", Fields.Computed("message", "1 +"), Param("level", "info"))]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal(RunKeys.BadExpression, result.Key);

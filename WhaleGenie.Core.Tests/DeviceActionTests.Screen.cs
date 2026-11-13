@@ -31,7 +31,7 @@ public partial class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.getPixel", Param("place", "$spot"),
+            Step("vision.getPixel", Fields.Reference("place", "spot"),
                 Returns("color=tone")),
         ], devices);
 
@@ -53,7 +53,7 @@ public partial class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.capture", Param("rect", "$spot"),
+            Step("vision.capture", Fields.Reference("rect", "spot"),
                 Returns("place=cut")),
         ], devices);
 
@@ -124,7 +124,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("vision.capture", Param("rect", "$spot"),
+            Step("vision.capture", Fields.Reference("rect", "spot"),
                 Param("anchorMode", "window"), Param("window", "Notepad"),
                 Returns("image=cut")),
             Step("vision.capture", Param("x", "10"), Param("y", "20"), Param("width", "30"),
@@ -295,7 +295,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png")),
-            Step("control.log", Param("message", "$match + 1")),
+            Step("control.log", Fields.Computed("message", "match + 1")),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -350,7 +350,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("input.mouseClick", Param("x", "$spot"), Param("y", "5")),
+            Step("input.mouseClick", Fields.Reference("x", "spot"), Param("y", "5")),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);

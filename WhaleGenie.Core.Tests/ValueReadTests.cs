@@ -45,7 +45,7 @@ public class ValueReadTests
     public async Task A_text_field_leaves_a_doubled_dollar_as_one_dollar()
     {
         var (result, devices) = await RunAsync(
-            Step("file.listFiles", Param("folder", "."), Param("pattern", "$$name-*.txt")),
+            Step("file.listFiles", Param("folder", "."), Fields.Literal("pattern", "$name-*.txt")),
             ("name", "notes"));
 
         Assert.True(result.Succeeded, result.Key);
@@ -77,7 +77,7 @@ public class ValueReadTests
         var result = await new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer())
             .RunAsync([
                 Step("control.setVariable", Param("name", "answer"), Param("scope", "local"),
-                    Param("value", "$$100 off")),
+                    Fields.Literal("value", "$100 off")),
             ]);
 
         Assert.True(result.Succeeded, result.Key);
@@ -109,7 +109,7 @@ public class ValueReadTests
         var result = await new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer())
             .RunAsync([
                 Step("control.if",
-                    Param("condition", "$total == 7"),
+                    Fields.Computed("condition", "total == 7"),
                     Fields.Steps("then", Step("control.setVariable", Param("name", "seen"),
                             Param("scope", "local"), Param("value", "yes")))),
             ]);
@@ -154,7 +154,7 @@ public class ValueReadTests
         var result = await new MacroRunner(store, new SilentRunHost(), new FakeDeviceLayer())
             .RunAsync([
                 Step("control.if",
-                    Param("condition", "$state"),
+                    Fields.Reference("condition", "state"),
                     Fields.Steps("then", Step("control.setVariable", Param("name", "ran"),
                             Param("scope", "local"), Param("value", "yes")))),
             ]);

@@ -31,9 +31,9 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("input.mouseDoubleClick", Param("button", "left"), Param("place", "$spot")),
-            Step("input.mouseDown", Param("button", "left"), Param("place", "$spot")),
-            Step("input.mouseUp", Param("button", "left"), Param("place", "$spot")),
+            Step("input.mouseDoubleClick", Param("button", "left"), Fields.Reference("place", "spot")),
+            Step("input.mouseDown", Param("button", "left"), Fields.Reference("place", "spot")),
+            Step("input.mouseUp", Param("button", "left"), Fields.Reference("place", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -233,7 +233,7 @@ public partial class DeviceActionTests
 
         var result = await new MacroRunner(store, new SilentRunHost(), devices)
             .RunAsync([Step("input.mouseClick", Param("inputMode", "background"),
-                Param("window", "$win"), Param("button", "left"),
+                Fields.Reference("window", "win"), Param("button", "left"),
                 Param("x", "5"), Param("y", "6"))]);
 
         Assert.True(result.Succeeded, result.Key);
@@ -329,7 +329,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseDrag",
-                Param("startPlace", "$spot"),
+                Fields.Reference("startPlace", "spot"),
                 Param("endX", "300"), Param("endY", "400"),
                 Param("durationMs", "0"), Param("dragSteps", "4")),
         ], devices);
@@ -355,8 +355,8 @@ public partial class DeviceActionTests
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("window.info", Param("window", "Notepad"), Returns("window=to")),
             Step("input.mouseDrag",
-                Param("startPlace", "$spot"),
-                Param("endPlace", "$to"),
+                Fields.Reference("startPlace", "spot"),
+                Fields.Reference("endPlace", "to"),
                 Param("durationMs", "0"), Param("dragSteps", "4")),
         ], devices);
 
@@ -377,7 +377,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseScroll", Param("direction", "down"), Param("amount", "2"),
-                Param("place", "$spot")),
+                Fields.Reference("place", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -399,7 +399,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseDrag",
-                Param("startPlace", "$spot"),
+                Fields.Reference("startPlace", "spot"),
                 Param("endX", "30"), Param("endY", "40"),
                 Param("durationMs", "0"), Param("dragSteps", "2"),
                 Param("anchorMode", "window"), Param("window", "Notepad")),
@@ -448,7 +448,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("input.mouseMove", Param("x", "$spot"), Param("y", "40")),
+            Step("input.mouseMove", Fields.Reference("x", "spot"), Param("y", "40")),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -532,7 +532,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseClick", Param("button", "left"),
-                Param("place", "$spot")),
+                Fields.Reference("place", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -555,7 +555,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("input.mouseMove", Param("place", "$spot"),
+            Step("input.mouseMove", Fields.Reference("place", "spot"),
                 Param("anchorMode", "window"), Param("window", "Notepad")),
             Step("input.mouseMove", Param("x", "30"), Param("y", "40"),
                 Param("anchorMode", "window"), Param("window", "Notepad")),
@@ -582,7 +582,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
             Step("input.mouseClick", Param("button", "left"), Param("x", "100"), Param("y", "200"),
-                Param("place", "$spot")),
+                Fields.Reference("place", "spot")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);

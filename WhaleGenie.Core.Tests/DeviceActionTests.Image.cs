@@ -527,7 +527,7 @@ public partial class DeviceActionTests
             Step("control.setVariable", Param("name", "name"), Param("value", "ok")),
             Step("control.if",
                 When("condition", Step("condition.expression",
-                    Param("expression", "$count > 3 and contains($name, \"o\")"))),
+                    Fields.Computed("expression", "count > 3 and contains(name, \"o\")"))),
                 Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
                 Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
         ], devices);
@@ -544,7 +544,7 @@ public partial class DeviceActionTests
             Step("control.setVariable", Param("name", "count"), Param("value", "1")),
             Step("control.if",
                 When("condition", Step("condition.expression",
-                    Param("expression", "$count > 3 or $count == 0"))),
+                    Fields.Computed("expression", "count > 3 or count == 0"))),
                 Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
                 Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
         ], devices);
@@ -559,7 +559,8 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("control.if",
-                When("condition", Step("condition.expression", Param("expression", "$count +"))),
+                Fields.Computed("condition", TestConditions.Expression(
+                    Step("condition.expression", Fields.Computed("expression", "count +")))),
                 Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes")))),
         ], devices);
 

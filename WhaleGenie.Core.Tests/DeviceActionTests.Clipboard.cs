@@ -131,7 +131,7 @@ public partial class DeviceActionTests
             // macro does after reading a folder.
             Step("control.setVariable", Param("name", "chosen"),
                 Param("value", "list(\"G:/fake/a.txt\", \"G:/fake/b.txt\")")),
-            Step("clipboard.writeFiles", Param("files", "$chosen")),
+            Step("clipboard.writeFiles", Fields.Reference("files", "chosen")),
         ], devices);
 
         Assert.True(result.Succeeded);

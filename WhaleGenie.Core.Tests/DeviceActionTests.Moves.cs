@@ -175,7 +175,7 @@ public partial class DeviceActionTests
         var (result, devices, store) = await RunAsync(
         [
             Step("control.setVariable", Param("name", "spot"), Param("value", "5")),
-            Step("input.mouseMove", Param("x", "$spot + 1"), Param("y", "$spot * 2"),
+            Step("input.mouseMove", Fields.Computed("x", "spot + 1"), Fields.Computed("y", "spot * 2"),
                 Param("durationMs", "0")),
         ]);
 

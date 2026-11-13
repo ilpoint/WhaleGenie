@@ -373,7 +373,7 @@ public partial class DeviceActionTests
         [
             Step("window.info", Param("window", "Notepad"), Returns("window=place")),
             Step("window.move", Param("window", "Notepad"),
-                Param("rect", "$place")),
+                Fields.Reference("rect", "place")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -397,7 +397,7 @@ public partial class DeviceActionTests
         [
             Step("window.info", Param("window", "Notepad"), Returns("window=place")),
             Step("window.move", Param("window", "Notepad"), Param("x", "100"), Param("y", "50"),
-                Param("width", "640"), Param("height", "300"), Param("rect", "$place")),
+                Param("width", "640"), Param("height", "300"), Fields.Reference("rect", "place")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);

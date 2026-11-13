@@ -391,7 +391,7 @@ public partial class MacroRunnerTests
         var store = Store();
         store.Local.SetText("kind", "b");
         var branch = Step("control.switch",
-            Param("switchValue", "$kind"), Param("switchMode", "equals"),
+            Fields.Reference("switchValue", "kind"), Param("switchMode", "equals"),
             Body("cases",
                 Step("control.case", Param("values", "a"), Body("body", Set("ran", "a"))),
                 Step("control.case", Param("values", "b"),
@@ -472,7 +472,7 @@ public partial class MacroRunnerTests
             new[] { Value.FromText("a"), Value.FromText("b") }));
 
         var loop = Step("control.forEach",
-            Param("items", "$names"),
+            Fields.Reference("items", "names"),
             Param("reverse", "true"),
             Body("body", Set("last", "$item")));
 

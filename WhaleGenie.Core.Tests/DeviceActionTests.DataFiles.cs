@@ -81,7 +81,7 @@ public partial class DeviceActionTests
             Step("file.readCsv", Param("path", "names.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Param("shape", "values"), Returns("rows=names")),
             Step("control.listSet", Param("name", "names"), Param("listIndex", "1"), Param("value", "Betty")),
-            Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$names"),
+            Step("file.writeCsv", Param("path", "out.csv"), Fields.Reference("rows", "names"),
                 Param("separator", "comma")),
         ], devices);
 
@@ -97,7 +97,7 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Returns("rows=rows")),
-            Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "out.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma")),
         ], devices);
 
@@ -244,10 +244,10 @@ public partial class DeviceActionTests
                 Param("hasHeader", "false"), Returns("rows=first")),
             Step("file.readCsv", Param("path", "second.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Returns("rows=second")),
-            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$first"),
+            Step("file.writeCsv", Param("path", "log.csv"), Fields.Reference("rows", "first"),
                 Param("header", "name,age"), Param("separator", "comma"),
                 Param("writeMode", "append")),
-            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$second"),
+            Step("file.writeCsv", Param("path", "log.csv"), Fields.Reference("rows", "second"),
                 Param("header", "name,age"), Param("separator", "comma"),
                 Param("writeMode", "append")),
         ], devices);
@@ -270,7 +270,7 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Returns("rows=rows")),
-            Step("file.writeCsv", Param("path", "out.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "out.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma")),
         ], devices);
 
@@ -287,7 +287,7 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Returns("rows=rows")),
-            Step("file.writeCsv", Param("path", "unix.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "unix.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma"), Param("lineEnding", "unix"),
                 Param("quoteAll", "true")),
         ], devices);
@@ -305,9 +305,9 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Returns("rows=rows")),
-            Step("file.writeCsv", Param("path", "bare.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "bare.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma")),
-            Step("file.writeCsv", Param("path", "shown.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "shown.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma"), Param("emptyCells", "quoted")),
             Step("file.readCsv", Param("path", "shown.csv"), Param("separator", "comma"),
                 Param("hasHeader", "false"), Returns("rows=back")),
@@ -336,7 +336,7 @@ public partial class DeviceActionTests
             // names out again for the file to be added to by name.
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
                 Param("hasHeader", "true"), Returns("rows=rows")),
-            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "log.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma"), Param("writeMode", "append"), Param("align", "true")),
         ], devices);
 
@@ -357,7 +357,7 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Param("separator", "comma"),
                 Param("hasHeader", "true"), Returns("rows=rows")),
-            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "log.csv"), Fields.Reference("rows", "rows"),
                 Param("separator", "comma"), Param("writeMode", "append"), Param("align", "true")),
         ], devices);
 
@@ -376,7 +376,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("control.setVariable", Param("name", "rows"), Param("value", "[[\"A1\", 2]]")),
-            Step("file.writeCsv", Param("path", "log.csv"), Param("rows", "$rows"),
+            Step("file.writeCsv", Param("path", "log.csv"), Fields.Reference("rows", "rows"),
                 Param("header", "订单号"), Param("separator", "comma"),
                 Param("writeMode", "append"), Param("align", "true")),
         ], devices);
