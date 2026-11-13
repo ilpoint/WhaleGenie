@@ -97,9 +97,12 @@
   返回的任务。`WindowStackingTests` 曾漏掉这两个步骤，把循环留给后续无关用例；新增模态用例照此写。
 - 已知共享状态抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`、
   `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`、
-  `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one` 与
-  `LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
+  `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`、
+  `LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types` 与
+  `RunLookTests.A_run_that_keeps_looking_does_not_hold_every_picture_it_ever_took`
   涉及进程级状态；遇到时比较单跑与全量结果并检查 `[RestoreSharedState]`，不要仅凭重跑放行。
+  最后一条在目录收敛那轮的全量里出现过一次：单跑通过、整类 6/6、二次全量全绿，
+  且改动本身是纯枚举与字段名改名，与该用例无因果关系。
 
 - 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
 - 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或
