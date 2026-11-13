@@ -242,7 +242,7 @@
       STATIC Border.Section
       STATIC Border.Sunken
       STATIC Border.Token
-      STATIC TextBox.Part
+      STATIC SelectableTextBlock.Part
       STATIC Border.Tag
       STATIC ListBox.List
       STATIC ListBox.List.Bare
@@ -633,15 +633,10 @@
         <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
     </Style>
 
-    <!-- 一格值里的一段文字：它是框，但看起来只是字。名字之间的空隙就是这样写出来的。 -->
-    <Style Selector="TextBox.Part">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Padding" Value="0" />
+    <!-- 一格值里的一段文字：只读显示，看起来只是字。名字各占一块，中间不需要空框来填。 -->
+    <Style Selector="SelectableTextBlock.Part">
         <Setter Property="MinWidth" Value="6" />
-        <Setter Property="MinHeight" Value="0" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>

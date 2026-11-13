@@ -477,8 +477,9 @@ public class VariableFieldTests
 
     /// <summary>
     /// The flags only mean something if the dialog's markup uses them, so the one place the
-    /// parameter editors are written down is read here: a value field gets a list of the variables
-    /// over it, and a whole-value field gets the expression editor beside it.
+    /// parameter editors are written down is read here: a value field is read-only and shows the
+    /// shape as rich text, with the value window as its one way in. A box that takes a typed line
+    /// would need a sign to tell a name from a word, so this check fails if one comes back.
     /// </summary>
     [Fact]
     public void The_dialog_puts_the_variables_on_the_fields_that_take_them()
@@ -493,13 +494,24 @@ public class VariableFieldTests
         // reading and a box inside one another, so the first </Grid> closes the inner one.
         var block = markup[start..markup.IndexOf("<!-- A UI Automation selector",
             start, StringComparison.Ordinal)];
-        Assert.Contains("AutoCompleteBox", block, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding ExpressionSuggestions}\"", block, StringComparison.Ordinal);
+
+        // No line is typed into a value field. An AutoCompleteBox or a suggestion list would mean
+        // a person can spell a name into a box again, which is exactly what the shape made needless.
+        Assert.DoesNotContain("AutoCompleteBox", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExpressionSuggestions", block, StringComparison.Ordinal);
+        Assert.Contains("IsReadOnly=\"True\"", block, StringComparison.Ordinal);
+
+        // What the field shows is the shape: words and names as their own pieces, or a one-way
+        // line drawn from it for a person to read. Neither is ever read back into a value.
+        Assert.Contains("ItemsSource=\"{Binding Parts}\"", block, StringComparison.Ordinal);
+        Assert.Contains("DataType=\"vm:NamePart\"", block, StringComparison.Ordinal);
+        Assert.Contains("SelectableTextBlock", block, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding DisplayLine, Mode=OneWay}\"", block, StringComparison.Ordinal);
 
         // One door inside the box rather than two buttons beside it: a name and a formula are the
         // same window now, and the button sits in the field it fills.
         Assert.Contains("Classes=\"Field HasChip\"", block, StringComparison.Ordinal);
-        Assert.Contains("AutoCompleteBox.InnerRightContent", block, StringComparison.Ordinal);
+        Assert.Contains("TextBox.InnerRightContent", block, StringComparison.Ordinal);
         Assert.Contains("Classes=\"ValueChip\"", block, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnPickVariable\"", block, StringComparison.Ordinal);
         Assert.DoesNotContain("Click=\"OnOpenExpressionBuilder\"", block, StringComparison.Ordinal);

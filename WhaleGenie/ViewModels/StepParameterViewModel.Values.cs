@@ -21,7 +21,15 @@ public partial class StepParameterViewModel : ViewModelBase
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(KeyFieldDisplay))]
+    [NotifyPropertyChangedFor(nameof(DisplayLine))]
     public partial string Text { get; set; }
+
+    /// <summary>
+    /// The value as a person reads it in the field. Nothing is ever read back from this line: the
+    /// field is read-only, and every value is put in through the value window as a shape. Names
+    /// are said with their own typography rather than a sign in front of them.
+    /// </summary>
+    public string DisplayLine => Formula.Speak(Written);
 
     /// <summary>The key or chord shown on the keyboard field's button.</summary>
     public string KeyFieldDisplay => Text.Trim().Length > 0

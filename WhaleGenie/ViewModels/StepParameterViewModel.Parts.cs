@@ -25,6 +25,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     private ExpressionNode _written = Formula.Nothing;
 
+    /// <summary>The value this field keeps. Every line drawn in the editor comes from it.</summary>
+    public ExpressionNode Written => _written;
+
     /// <summary>Where the last edit was made, so a name picked from the wall lands beside it.</summary>
     private ValuePart? _activePart;
 

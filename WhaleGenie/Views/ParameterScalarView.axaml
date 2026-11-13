@@ -38,8 +38,14 @@
         </Grid>
 
         <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <TextBox Classes="Field" Text="{Binding Text}"
-                PlaceholderText="{Binding Placeholder}" />
+            <TextBox Classes="Field" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
             <!-- A path is the one value the machine can offer a list of. -->
             <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                 IsVisible="{Binding IsPath}"
@@ -123,10 +129,9 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.DataTemplates>
                                 <DataTemplate DataType="vm:TextPart">
-                                    <views:InlineTextBox Classes="Part"
-                                        Text="{Binding Text, Mode=TwoWay}"
-                                        LostFocus="OnPartLostFocus"
-                                        KeyDown="OnPartKeyDown" />
+                                    <!-- 值不再从框里敲进去：文字片只是显示，改值走取值窗口。 -->
+                                    <SelectableTextBlock Classes="Part" Text="{Binding Text}"
+                                        VerticalAlignment="Center" />
                                 </DataTemplate>
                                 <DataTemplate DataType="vm:NamePart">
                                     <Border Classes="Token Name" VerticalAlignment="Center">
@@ -149,21 +154,16 @@
                     </Grid>
                 </Border>
 
-                <!-- 取值按钮贴在框里：「这一格怎么填」和「填哪一格」是同一件事，按钮就不该
-                    站在行末，让人先猜它说的是哪一格。 -->
-                <AutoCompleteBox Classes="Field HasChip"
-                    IsVisible="{Binding !ShowsParts}"
-                    ItemsSource="{Binding ExpressionSuggestions}"
-                    Text="{Binding Text}"
-                    PlaceholderText="{Binding Placeholder}"
-                    MinimumPrefixLength="1"
-                    FilterMode="Contains">
-                    <AutoCompleteBox.InnerRightContent>
+                <!-- 写名字的格子也只读：名字从取值窗口或变量墙来，框只把它显示出来。 -->
+                <TextBox Classes="Field HasChip" IsVisible="{Binding !ShowsParts}"
+                    Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                    PlaceholderText="{Binding Placeholder}">
+                    <TextBox.InnerRightContent>
                         <Button Classes="ValueChip" Click="OnPickVariable"
                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                    </AutoCompleteBox.InnerRightContent>
-                </AutoCompleteBox>
+                    </TextBox.InnerRightContent>
+                </TextBox>
             </Grid>
 
             <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
@@ -181,8 +181,14 @@
         <!-- A UI Automation selector: written out by hand, or taken off the screen by
             pointing at the control. -->
         <Grid IsVisible="{Binding IsSelector}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-            <TextBox Classes="Field" Text="{Binding Text}"
-                PlaceholderText="{Binding Placeholder}" />
+            <TextBox Classes="Field" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
             <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                 Content="{Binding [Add.PickElement], Source={x:Static loc:Strings.Current}}"
                 ToolTip.Tip="{Binding [Add.PickElementHint], Source={x:Static loc:Strings.Current}}"
@@ -200,7 +206,7 @@
         <StackPanel IsVisible="{Binding IsBrowserTarget}" Spacing="6">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
                 <TextBox Classes="Field" Classes.HasChip="{Binding OffersPageVariables}"
-                    Text="{Binding Text}"
+                    Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
                     PlaceholderText="{Binding Placeholder}">
                     <TextBox.InnerRightContent>
@@ -253,7 +259,7 @@
         <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <TextBox Classes="Field" Classes.HasChip="{Binding OffersFormula}"
                 Classes.Code="{Binding IsCode}"
-                Text="{Binding Text}"
+                Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                 AcceptsReturn="True" TextWrapping="{Binding Wrap}"
                 Height="{Binding MultilineHeight}"
                 PlaceholderText="{Binding Placeholder}">
@@ -288,14 +294,11 @@
                 SimpleNumberFormat="0.###"
                 HorizontalAlignment="Stretch" />
 
-            <AutoCompleteBox Grid.Column="0" Classes="Field"
+            <TextBox Grid.Column="0" Classes="Field"
                 Classes.HasChip="{Binding OffersExpressionBuilder}"
                 IsVisible="{Binding IsNumberFormula}"
-                ItemsSource="{Binding ExpressionSuggestions}"
-                Text="{Binding Text}"
-                PlaceholderText="{Binding FormulaPlaceholder}"
-                MinimumPrefixLength="1"
-                FilterMode="Contains" />
+                Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding FormulaPlaceholder}" />
 
             <!-- A length of time also says which unit the number is written in. -->
             <ComboBox Grid.Column="1" Classes="Field"
@@ -375,7 +378,7 @@
         <!-- Colour parameters open the screen magnifier, and may be a variable holding one. -->
         <Grid IsVisible="{Binding IsColor}"
             ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
-            <TextBox Classes="Field HasChip" Text="{Binding Text}"
+            <TextBox Classes="Field HasChip" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                 PlaceholderText="{Binding Placeholder}">
                 <TextBox.InnerRightContent>
                     <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
@@ -384,7 +387,7 @@
                 </TextBox.InnerRightContent>
             </TextBox>
             <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
-                Background="{Binding Text, Converter={StaticResource HexBrush}}"
+                Background="{Binding DisplayLine, Converter={StaticResource HexBrush}}"
                 BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
             <Button Grid.Column="2" Classes="Secondary" Name="PickColourButton"
                 Width="38" Height="33" Padding="0"
