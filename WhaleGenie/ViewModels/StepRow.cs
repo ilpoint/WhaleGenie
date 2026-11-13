@@ -120,10 +120,30 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     private static string CaseLine(ExpressionNode written) => written switch
     {
         ListNode list => string.Join("; ",
-            list.Items.Select(item => FormulaText.Write(item).Trim())
+            list.Items.Select(item => Formula.Speak(item).Trim())
                 .Where(item => item.Length > 0)),
-        _ => FormulaText.Write(written).Trim(),
+        _ => Formula.Speak(written).Trim(),
     };
+
+    /// <summary>
+    /// The values as the shape the branch keeps. The value window hands a shape over and takes one
+    /// back through here, so neither side has to flatten it into a line and read it again.
+    /// </summary>
+    public ExpressionNode CaseValuesNode
+    {
+        get => ValuesParameter()?.Written ?? Formula.Nothing;
+        set
+        {
+            var values = ValuesParameter(create: true)!;
+            if (Equals(values.Written, value))
+            {
+                return;
+            }
+
+            values.Written = value;
+            NotifyValues();
+        }
+    }
 
     /// <summary>The parameter a branch keeps its values in, made when asked for and missing.</summary>
     private StepParameter? ValuesParameter(bool create = false)
@@ -142,6 +162,15 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
         return values;
     }
 
+    /// <summary>
+    /// The values as the formula line the value window starts from. Rendered out, never read back;
+    /// a branch that says nothing opens a window that says nothing, rather than one holding the
+    /// quoted empty word a renderer would draw for it.
+    /// </summary>
+    public string CaseValuesSeed => Formula.IsNothing(CaseValuesNode)
+        ? string.Empty
+        : Expression.Render(CaseValuesNode, bare: true);
+
     /// <summary>True when this branch says which values it answers to.</summary>
     public bool HasCaseValues => CaseValues.Length > 0;
 
@@ -154,8 +183,9 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// <summary>
     /// The values as they are being typed. A branch is one line of text — several values separated
     /// by ";", which is how the row says them — so changing it is typing on the row rather than
-    /// opening the step's whole form for its one field. What each value becomes is decided here,
-    /// once: a piece is read the way a text field is read, so a name written in it stays a name.
+    /// opening the step's whole form for its one field. Each piece is kept as the words it is: a
+    /// name or a formula goes in through the value window and arrives as a shape, so nothing typed
+    /// here is parsed and no sign in front of a name is needed.
     /// </summary>
     public string CaseValuesText
     {
@@ -166,7 +196,7 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
             var items = (value ?? string.Empty)
                 .Split([';', '\n', '\r'],
                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(piece => FormulaText.Read(piece, ActionReadMode.Text))
+                .Select(piece => Formula.Text(piece))
                 .ToList();
             var written = items.Count switch
             {
@@ -190,6 +220,8 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValues)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesText)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesNode)));
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesSeed)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeadLabel)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCaseValues)));
     }

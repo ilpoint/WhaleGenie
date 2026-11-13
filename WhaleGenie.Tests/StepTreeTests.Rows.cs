@@ -150,9 +150,10 @@ public partial class StepTreeTests
             var picker = Assert.Single(window.OwnedWindows.OfType<ValuePickerWindow>());
             var form = (ValuePickerViewModel)picker.DataContext!;
 
-            // Picking a name puts it in the line where the caret is — a branch value is text, and a
-            // name in it is the same thing the step's own form writes. The row is chosen the way a
-            // keyboard chooses it; the click that leads to the same thing is a pointer test of its own.
+            // Picking a name puts it in the line where the caret is — the window hands the branch
+            // a shape, and the row says the name itself, with no sign in front of it. The row is
+            // chosen the way a keyboard chooses it; the click that leads to the same thing is a
+            // pointer test of its own.
             var picked = form.Wall.Shown.First();
             form.Wall.Looking = picked;
             form.Place(picked.Token);
@@ -160,7 +161,7 @@ public partial class StepTreeTests
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Contains(picked.Token, row.CaseValuesText);
+            Assert.Contains(picked.Name, row.CaseValuesText);
 
             // Closing the picker leaves the line open: the person was picking a name for it, not
             // leaving it.
