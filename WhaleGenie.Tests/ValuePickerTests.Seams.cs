@@ -27,7 +27,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Taking_a_sign_out_from_between_two_numbers_does_not_weld_them()
     {
-        var form = new ValuePickerViewModel("1-2", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("1-2", Variables(), ActionValueForm.Value);
 
         Assert.True(form.RemoveArgument(Root(form).Items[1]));
 
@@ -38,7 +38,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_cross_shows_only_where_the_pointer_is()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
         var value = Root(form).Items[0];
 
         Assert.True(value.CanRemove);
@@ -58,7 +58,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_preview_says_where_the_piece_would_land()
     {
-        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("concat($a, $b)", Variables(), ActionValueForm.Value);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         var onto = form.PreviewMove(call.Arguments[1].Items[0], call.Arguments[0].Items[0], after: false);
@@ -78,7 +78,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_drop_in_a_run_points_at_its_last_piece()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
         var root = Root(form);
         var last = root.Items.Last(one => one.Length > 0);
 
@@ -92,7 +92,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_folded_run_reads_top_to_bottom()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
         var root = Root(form);
         var value = root.Items[0];
 

@@ -44,7 +44,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// How the cell this window fills is read by the engine. The window checks a line with the
     /// same reader the field will use, so a line it calls readable cannot be stored as a mistake.
     /// </summary>
-    private readonly ActionReadMode _readMode;
+    private readonly ActionValueForm _valueForm;
 
     /// <summary>
     /// True when a word of its own is a variable name rather than text, which is what a formula

@@ -15,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Arguments_carry_a_name_a_position_and_whether_they_are_optional()
     {
-        var form = new ValuePickerViewModel("substring($a, 1)", Variables(), ActionReadMode.WholeValue, bareNames: true);
+        var form = new ValuePickerViewModel("substring($a, 1)", Variables(), ActionValueForm.Value, bareNames: true);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.Equal(2, call.Arguments.Count);
@@ -30,7 +30,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_missing_required_argument_is_marked_on_the_place_it_belongs_to()
     {
-        var form = new ValuePickerViewModel("substring($a)", Variables(), ActionReadMode.WholeValue, bareNames: true);
+        var form = new ValuePickerViewModel("substring($a)", Variables(), ActionValueForm.Value, bareNames: true);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
         var ghost = Assert.IsType<SlotEmpty>(call.Ghost);
 
@@ -45,7 +45,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_unknown_function_is_marked_on_its_call()
     {
-        var form = new ValuePickerViewModel("nope($a)", Variables(), ActionReadMode.WholeValue, bareNames: true);
+        var form = new ValuePickerViewModel("nope($a)", Variables(), ActionValueForm.Value, bareNames: true);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.True(call.HasProblem);
@@ -57,7 +57,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_good_formula_clears_the_marks_and_the_reason()
     {
-        var form = new ValuePickerViewModel("nope($a)", Variables(), ActionReadMode.WholeValue, bareNames: true);
+        var form = new ValuePickerViewModel("nope($a)", Variables(), ActionValueForm.Value, bareNames: true);
         Assert.Contains(form.Recipe!.Walk(), one => one.HasProblem);
 
         form.Text = "upper($count)";
@@ -73,7 +73,7 @@ public partial class ValuePickerTests
     [InlineData("missing + 1")]
     public void A_name_no_variable_declares_is_marked(string formula)
     {
-        var form = new ValuePickerViewModel(formula, Variables(), ActionReadMode.WholeValue,
+        var form = new ValuePickerViewModel(formula, Variables(), ActionValueForm.Value,
             bareNames: true);
         var name = Root(form).Items.OfType<SlotValue>().First(one => one.IsName);
 
@@ -85,7 +85,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_declared_name_is_not_marked()
     {
-        var form = new ValuePickerViewModel("$count + 1", Variables(), ActionReadMode.WholeValue,
+        var form = new ValuePickerViewModel("$count + 1", Variables(), ActionValueForm.Value,
             bareNames: true);
 
         Assert.DoesNotContain(form.Recipe!.Walk(), one => one.HasProblem);
@@ -95,7 +95,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_word_in_a_text_field_is_not_a_name()
     {
-        var form = new ValuePickerViewModel("missing", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("missing", Variables(), ActionValueForm.Value);
 
         Assert.DoesNotContain(form.Recipe!.Walk(), one => one.HasProblem);
     }

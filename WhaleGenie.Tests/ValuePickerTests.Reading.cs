@@ -18,7 +18,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_line_steps_between_piece_edges_rather_than_characters()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
 
         Assert.Equal(new[] { 0, 2, 3, 4, 5, 7 }, form.Seams());
 
@@ -33,7 +33,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_step_past_either_end_stays_where_it_is()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a", Variables(), ActionValueForm.Value);
 
         form.SetCaret(0);
         Assert.False(form.StepCaret(-1));
@@ -48,7 +48,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_has_one_place_and_no_step()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
 
         Assert.Equal(new[] { 0 }, form.Seams());
         Assert.False(form.StepCaret(-1));
@@ -59,7 +59,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_written_piece_leaves_the_line_on_a_seam()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
         form.SetCaret(2);
 
         form.Place("$c");
@@ -71,7 +71,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_whole_formula_goes_at_once_and_undo_brings_it_back()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
         Assert.True(form.CanClear);
 
         form.Clear();
@@ -90,7 +90,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_has_nothing_to_clear()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
 
         Assert.False(form.CanClear);
     }
@@ -99,7 +99,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_function_group_on_show_is_the_marked_one()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$a", Variables(), ActionValueForm.Value);
 
         Assert.True(form.FunctionGroups[0].IsSelected);
         Assert.Single(form.FunctionGroups, filter => filter.IsSelected);

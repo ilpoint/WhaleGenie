@@ -99,9 +99,9 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return false;
         }
 
-        if (_readMode is ActionReadMode.Text)
+        if (_valueForm is ActionValueForm.Text or ActionValueForm.Run)
         {
-            var tree = FormulaText.Read(written, ActionReadMode.Text);
+            var tree = FormulaText.Read(written, ActionValueForm.Text);
             if (tree is FaultNode bad)
             {
                 fault = bad.Message;

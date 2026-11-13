@@ -18,7 +18,7 @@
 
 | 契约 | 主要用例 |
 | --- | --- |
-| 字段读法、形状、单位、空值、范围、位置与矩形 | `ExpressionFieldTests`、`ActionContractTests`、`ValueReadTests`、`ActionPageTests` |
+| 字段值形态、控件形状、单位、空值、范围、位置与矩形 | `ExpressionFieldTests`、`ActionContractTests`、`ActionPageTests` |
 | 参数约束、行列表、类型检查和设计期诊断 | `MacroRunnerTests`、`MacroCheckTests`、`ActionContractTests` |
 | 宏声明、直接运行、调用参数和结果交付 | `MacroSignatureTests`、`MacroCallTests`、`RunDebugTests` |
 | 输入副作用、互斥门和宏调用图 | `ActionContractTests`、`DeviceActionTests`、`MacroRunnerTests` |

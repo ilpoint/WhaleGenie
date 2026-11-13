@@ -33,7 +33,7 @@ public partial class MacroInterfaceView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(owner, row.Default,
-                Model?.ValueVariables ?? [], ActionReadMode.WholeValue, startOnFormula: true) is { Chosen: true } built)
+                Model?.ValueVariables ?? [], ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
             row.Default = FormulaText.Write(built.Value);
         }

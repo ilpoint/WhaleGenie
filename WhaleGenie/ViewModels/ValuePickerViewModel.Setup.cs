@@ -20,11 +20,11 @@ namespace WhaleGenie.ViewModels;
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
     public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables,
-        ActionReadMode readMode, bool bareNames = false, string? target = null)
+        ActionValueForm valueForm, bool bareNames = false, string? target = null)
     {
-        _readMode = readMode;
+        _valueForm = valueForm;
         _bareNames = bareNames;
-        NamesOnly = readMode == ActionReadMode.VariableName;
+        NamesOnly = valueForm == ActionValueForm.Name;
         Target = target ?? string.Empty;
 
         foreach (var variable in variables ?? [])

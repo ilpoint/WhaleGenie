@@ -29,15 +29,15 @@ public static class FormulaText
     /// The names a field reads, in the order they appear. A name standing in braces as a formula
     /// counts too, because the formula may read one.
     /// </summary>
-    public static IReadOnlyList<string> Names(string? text, ActionReadMode mode)
+    public static IReadOnlyList<string> Names(string? text, ActionValueForm mode)
     {
-        if (mode == ActionReadMode.VariableName)
+        if (mode == ActionValueForm.Name)
         {
             var name = (text ?? string.Empty).Trim().TrimStart('$');
             return VariableName.IsName(name) ? [name] : [];
         }
 
-        if (mode == ActionReadMode.WholeValue
+        if (mode == ActionValueForm.Value
             && Expression.TryParse(text, out var whole, out _) && whole is not null)
         {
             return Expression.References(whole);
@@ -58,7 +58,7 @@ public static class FormulaText
     /// keeps the spacing, the quotes and the braces of the line, which is what makes a rename
     /// touch one name rather than tidy up a formula nobody asked to have tidied.
     /// </summary>
-    public static string Rename(string? text, ActionReadMode mode, string oldName, string newName)
+    public static string Rename(string? text, ActionValueForm mode, string oldName, string newName)
     {
         var source = text ?? string.Empty;
         if (source.Length == 0 || oldName.Length == 0
@@ -67,7 +67,7 @@ public static class FormulaText
             return source;
         }
 
-        if (mode == ActionReadMode.VariableName)
+        if (mode == ActionValueForm.Name)
         {
             var written = source.Trim();
             var sign = written.StartsWith('$');
@@ -158,15 +158,15 @@ public static class FormulaText
     /// The value a field's line stands for, read the way the catalogue says that field is read: a
     /// name being written, one value, or a run of text with names in it.
     /// </summary>
-    public static ExpressionNode Read(string? text, ActionReadMode mode)
+    public static ExpressionNode Read(string? text, ActionValueForm mode)
     {
         var written = text ?? string.Empty;
         try
         {
             return mode switch
             {
-                ActionReadMode.VariableName => ReadName(written),
-                ActionReadMode.WholeValue => ReadWhole(written),
+                ActionValueForm.Name => ReadName(written),
+                ActionValueForm.Value => ReadWhole(written),
                 _ => ReadRun(written),
             };
         }

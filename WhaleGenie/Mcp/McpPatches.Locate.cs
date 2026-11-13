@@ -131,7 +131,7 @@ internal static partial class McpPatches
     /// than flattened into a line that merely looks like JSON. A window rule is an object too, but
     /// it is the record the file writes whole, so it keeps the line path it always had.
     /// </summary>
-    private static ExpressionNode ReadShape(JsonNode? value, ActionReadMode mode)
+    private static ExpressionNode ReadShape(JsonNode? value, ActionValueForm mode)
         => value is JsonObject shape && IsValueShape(shape)
             ? FormulaJson.Read(shape)
             : FormulaText.Read(Written(value), mode);

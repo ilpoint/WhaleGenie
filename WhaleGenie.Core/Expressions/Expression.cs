@@ -66,11 +66,11 @@ public static class Expression
     /// the places that ask this question are looking at: a formula, or a declaration's value.
     /// </summary>
     public static IReadOnlyList<string> ReferencedNames(string? source)
-        => FormulaText.Names(source, ActionReadMode.WholeValue);
+        => FormulaText.Names(source, ActionValueForm.Value);
 
     /// <summary>One name in a line rewritten, with everything else left as it was written.</summary>
     public static string RenameVariable(string? source, string oldName, string newName)
-        => FormulaText.Rename(source, ActionReadMode.WholeValue, oldName, newName);
+        => FormulaText.Rename(source, ActionValueForm.Value, oldName, newName);
 
     /// <summary>
     /// The variable names a tree reads, in the order they appear and without duplicates. A name

@@ -16,10 +16,10 @@ public class VariableRenameTests
             Expression.RenameVariable("$old + $other + \"$old\"", "old", "new"));
         Assert.Equal("before $new ${new} ${$new + 1} $$old",
             FormulaText.Rename("before $old ${old} ${$old + 1} $$old",
-                ActionReadMode.Text, "old", "new"));
+                ActionValueForm.Text, "old", "new"));
         Assert.Equal("$new + $$123", Expression.RenameVariable("$123 + $$123", "123", "new"));
         Assert.Equal("before $new",
-            FormulaText.Rename("before $123", ActionReadMode.Text, "123", "new"));
+            FormulaText.Rename("before $123", ActionValueForm.Text, "123", "new"));
     }
 
     [Fact]

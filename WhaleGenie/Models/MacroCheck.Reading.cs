@@ -46,7 +46,7 @@ public static partial class MacroCheck
 
         // A field that names a variable holds the name as the word it is, and reading it means
         // looking that name up; a field written as something computed names whatever it computes.
-        if (definition.ReadMode is ActionReadMode.VariableName)
+        if (definition.ValueForm is ActionValueForm.Name)
         {
             return parameter.Written is TextNode text && text.Text.Trim() is { Length: > 0 } name
                 ? [name]

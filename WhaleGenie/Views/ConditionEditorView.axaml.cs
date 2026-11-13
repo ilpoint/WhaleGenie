@@ -59,7 +59,7 @@ public partial class ConditionEditorView : UserControl
     {
         var seed = right ? node.Right : node.Left;
         if (await ValuePickerWindow.ShowFor(owner, seed, editor.Variables,
-                ActionReadMode.WholeValue, bareNames: true,
+                ActionValueForm.Value, bareNames: true,
                 startOnFormula: startOnFormula, startCaret: CaretIn(node) ?? -1) is { Chosen: true } written)
         {
             editor.WriteExpression(node, right, written.Value);

@@ -96,8 +96,8 @@ public static class VariableRename
                 // A field that names a variable declares one, so the word itself changes; every
                 // other field reads one, and the tree says where. Nothing is spelled out and read
                 // back: a name inside a piece of text is a name because the value says so.
-                parameter.Written = step.ParameterDefinition(parameter)?.ReadMode
-                    is ActionReadMode.VariableName && (global || !globalTarget)
+                parameter.Written = step.ParameterDefinition(parameter)?.ValueForm
+                    is ActionValueForm.Name && (global || !globalTarget)
                         ? RenameDeclared(parameter.Written, oldName, newName)
                         : Expression.Rename(parameter.Written, oldName, newName);
 
@@ -108,7 +108,7 @@ public static class VariableRename
     private static string RenameWholeValue(string value, string oldName, string newName)
         => Expression.TryParse(value, out _, out _)
             ? Expression.RenameVariable(value, oldName, newName)
-            : FormulaText.Rename(value, ActionReadMode.Text, oldName, newName);
+            : FormulaText.Rename(value, ActionValueForm.Text, oldName, newName);
 
     /// <summary>
     /// A value cell with one name inside it changed, written the way a whole-value field writes
@@ -123,7 +123,7 @@ public static class VariableRename
             return RenameWholeValue(value, oldName, newName);
         }
 
-        return FormulaText.Rename(value, ActionReadMode.Text, oldName, newName);
+        return FormulaText.Rename(value, ActionValueForm.Text, oldName, newName);
     }
 
     /// <summary>A cell renamed the way any other value is: only its references change.</summary>

@@ -16,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_number_typed_in_the_strip_goes_in_as_it_reads()
     {
-        var form = new ValuePickerViewModel("$count >", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("$count >", Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = "3.5";
@@ -29,7 +29,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Text_is_put_in_between_quotes_with_what_is_inside_it_escaped()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: false);
         form.TypingText = "他说\"好\"";
@@ -45,7 +45,7 @@ public partial class ValuePickerTests
     [InlineData("+5")]
     public void A_number_that_does_not_read_says_so_and_cannot_be_put_in(string typed)
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = typed;
@@ -62,7 +62,7 @@ public partial class ValuePickerTests
     [InlineData("-5")]
     public void Every_number_that_can_be_inserted_reads_as_one_number(string typed)
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = typed;
@@ -77,7 +77,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_text_has_nothing_to_insert()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: false);
 
@@ -89,7 +89,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_strip_offers_single_brackets_and_no_quote()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
 
         var tokens = form.Operators.Select(one => one.Token).ToList();
 
@@ -108,7 +108,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Moving_a_number_in_front_of_a_sum_is_refused_because_it_no_longer_reads()
     {
-        var form = new ValuePickerViewModel("1 + 2", Variables(), ActionReadMode.WholeValue,
+        var form = new ValuePickerViewModel("1 + 2", Variables(), ActionValueForm.Value,
             bareNames: true);
         var items = Root(form).Items;
 
@@ -121,7 +121,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Moving_a_name_in_front_of_a_sum_is_refused_because_it_no_longer_reads()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionReadMode.WholeValue,
+        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value,
             bareNames: true);
         var items = Root(form).Items;
 
@@ -134,7 +134,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Moving_a_string_beside_another_is_refused_because_it_no_longer_reads()
     {
-        var form = new ValuePickerViewModel("\"x\" + \"y\"", Variables(), ActionReadMode.WholeValue,
+        var form = new ValuePickerViewModel("\"x\" + \"y\"", Variables(), ActionValueForm.Value,
             bareNames: true);
         var items = Root(form).Items;
 
@@ -150,7 +150,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Dropping_a_piece_where_it_already_stands_does_nothing()
     {
-        var form = new ValuePickerViewModel("f(a, b, c)", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("f(a, b, c)", Variables(), ActionValueForm.Value);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.False(form.MoveOnto(call.Arguments[1].Items[0], call.Arguments[0].Items[0], after: true));
@@ -161,7 +161,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_piece_dropped_on_the_ghost_joins_the_arguments()
     {
-        var form = new ValuePickerViewModel("concat($a) join($b)", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("concat($a) join($b)", Variables(), ActionValueForm.Value);
         var root = Root(form);
         var call = root.Items.OfType<SlotCall>().First();
 
@@ -177,7 +177,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_piece_dropped_in_the_gap_joins_the_end_of_that_run()
     {
-        var form = new ValuePickerViewModel("upper($a) lower($b)", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel("upper($a) lower($b)", Variables(), ActionValueForm.Value);
         var root = Root(form);
 
         Assert.True(form.MoveOnto(root.Items[0], root, after: true));

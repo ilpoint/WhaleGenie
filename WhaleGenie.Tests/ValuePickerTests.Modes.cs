@@ -16,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_formula_field_accepts_a_bare_name_as_its_seed()
     {
-        var form = new ValuePickerViewModel("count", Variables(), ActionReadMode.WholeValue,
+        var form = new ValuePickerViewModel("count", Variables(), ActionValueForm.Value,
             bareNames: true);
 
         Assert.True(form.Reads);
@@ -30,7 +30,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_value_field_takes_a_sentence_it_cannot_read_as_a_formula()
     {
-        var form = new ValuePickerViewModel(@"C:\a b", Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(@"C:\a b", Variables(), ActionValueForm.Value);
 
         Assert.True(form.Reads);
         Assert.True(form.CanConfirm);
@@ -41,7 +41,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_name_field_never_reports_a_reading_problem()
     {
-        var form = new ValuePickerViewModel("count", Variables(), ActionReadMode.VariableName);
+        var form = new ValuePickerViewModel("count", Variables(), ActionValueForm.Name);
 
         Assert.False(form.NoteIsProblem);
         Assert.Equal(string.Empty, form.Note);
@@ -51,7 +51,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_cell_can_be_confirmed_so_the_window_can_clear_it()
     {
-        var form = new ValuePickerViewModel(null, Variables(), ActionReadMode.WholeValue);
+        var form = new ValuePickerViewModel(null, Variables(), ActionValueForm.Value);
         ValuePick? closed = null;
         form.CloseRequested += value => closed = value;
 
@@ -80,7 +80,7 @@ public partial class ValuePickerTests
         string seed, bool bareNames, bool textMode, bool reads)
     {
         var form = new ValuePickerViewModel(seed, Variables(),
-            textMode ? ActionReadMode.Text : ActionReadMode.WholeValue, bareNames);
+            textMode ? ActionValueForm.Text : ActionValueForm.Value, bareNames);
 
         Assert.Equal(reads, form.Reads);
         Assert.Equal(reads, form.CanConfirm);

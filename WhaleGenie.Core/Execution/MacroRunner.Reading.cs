@@ -38,10 +38,10 @@ public sealed partial class MacroRunner
             return Value.Null;
         }
 
-        return ReadModeOf(step, name) switch
+        return ValueFormOf(step, name) switch
         {
-            ActionReadMode.VariableName => ReadName(written),
-            ActionReadMode.WholeValue => Read(written),
+            ActionValueForm.Name => ReadName(written),
+            ActionValueForm.Value => Read(written),
             _ => Value.FromText(ReadText(step, name)),
         };
     }
@@ -54,9 +54,9 @@ public sealed partial class MacroRunner
     private string ReadText(ExecutableStep step, string name)
     {
         var written = step.Written(name);
-        return ReadModeOf(step, name) switch
+        return ValueFormOf(step, name) switch
         {
-            ActionReadMode.VariableName => ReadNameKey(step, name).Name,
+            ActionValueForm.Name => ReadNameKey(step, name).Name,
             _ => Read(written).AsText(),
         };
     }
@@ -69,8 +69,8 @@ public sealed partial class MacroRunner
     private VariableKey ReadNameKey(ExecutableStep step, string name)
         => Formula.NameOf(step.Written(name));
 
-    private static ActionReadMode ReadModeOf(ExecutableStep step, string name)
-        => ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.ReadMode ?? ActionReadMode.Text;
+    private static ActionValueForm ValueFormOf(ExecutableStep step, string name)
+        => ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.ValueForm ?? ActionValueForm.Text;
 
     /// <summary>
     /// A field that names a variable rather than holding one: the name is looked up, and what it
@@ -97,7 +97,7 @@ public sealed partial class MacroRunner
     /// step is already a shape.
     /// </summary>
     private Value Read(string text)
-        => Expression.Evaluate(FormulaText.Read(text, ActionReadMode.WholeValue), Variables);
+        => Expression.Evaluate(FormulaText.Read(text, ActionValueForm.Value), Variables);
 
     /// <summary>The text a field comes to, with the names in it worked out where they stand.</summary>
     private string Text(ExecutableStep step, string name) => Read(step.Written(name)).AsText();

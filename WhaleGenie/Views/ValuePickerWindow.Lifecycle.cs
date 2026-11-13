@@ -19,7 +19,7 @@ namespace WhaleGenie.Views;
 public partial class ValuePickerWindow : AppWindow
 {
     public ValuePickerWindow()
-        : this(new ValuePickerViewModel(null, [], ActionReadMode.WholeValue))
+        : this(new ValuePickerViewModel(null, [], ActionValueForm.Value))
     {
     }
 
@@ -103,17 +103,17 @@ public partial class ValuePickerWindow : AppWindow
 
     /// <summary>
     /// Opens the window on a cell. A cell that only holds a name passes
-    /// <see cref="ActionReadMode.VariableName"/>: a formula there is written down as the name
+    /// <see cref="ActionValueForm.Name"/>: a formula there is written down as the name
     /// itself, so offering one would be a promise the step cannot keep. Every other cell says how
     /// it is read, and the window checks the line the same way the field will read it.
     /// </summary>
     public static async Task<ValuePick> ShowFor(Window owner, string? seed,
         IReadOnlyList<VariableChoice>? variables,
-        ActionReadMode readMode = ActionReadMode.WholeValue, bool bareNames = false,
+        ActionValueForm valueForm = ActionValueForm.Value, bool bareNames = false,
         bool startOnFormula = false, string? target = null, int startCaret = -1,
         Action<MacroStep>? lookAtStep = null)
     {
-        var viewModel = new ValuePickerViewModel(seed, variables, readMode, bareNames, target);
+        var viewModel = new ValuePickerViewModel(seed, variables, valueForm, bareNames, target);
         if (lookAtStep is not null)
         {
             viewModel.Jumped += lookAtStep;

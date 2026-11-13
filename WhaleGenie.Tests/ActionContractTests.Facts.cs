@@ -65,8 +65,8 @@ public partial class ActionContractTests
         string[] engineFacts =
         [
             "AcceptsFormula", "Category", "DefaultValue", "Hidden", "NamesVariable", "Options", "Picker",
-            "ReadMode", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
-            "ChildKeys", "AcceptsVariables", "TimeoutSource", "TimeoutField",
+            "ValueForm", "Required", "SendsInput", "Shape", "StepTimeoutMs", "Waits",
+            "ChildKeys", "TimeoutSource", "TimeoutField",
             "Unit", "EmptyMeans", "Minimum", "Maximum", "EmptiesToEdge", "IsDuration",
             "SignatureSource", "Irreversible", "IrreversibleWhen", "Table",
         ];

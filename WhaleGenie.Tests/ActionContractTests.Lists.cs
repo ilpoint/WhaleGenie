@@ -76,7 +76,7 @@ public partial class ActionContractTests
             var field = ActionSemanticsCatalog.Find(key)!.Parameter(name);
             Assert.NotNull(field);
             Assert.Equal(shape, field.Shape);
-            Assert.Equal(ActionReadMode.WholeValue, field.ReadMode);
+            Assert.Equal(ActionValueForm.Value, field.ValueForm);
             Assert.False(field.Required);
         }
 

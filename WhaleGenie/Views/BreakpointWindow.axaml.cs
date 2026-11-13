@@ -40,7 +40,7 @@ public partial class BreakpointWindow : AppWindow
         }
 
         if (await ValuePickerWindow.ShowFor(this, form.ExpressionSeed, form.Choices,
-            ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { Chosen: true } built)
+            ActionValueForm.Value, bareNames: true, startOnFormula: true) is { Chosen: true } built)
         {
             form.Expression = built.Value;
         }

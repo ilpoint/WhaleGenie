@@ -54,7 +54,7 @@ public class ExpressionDateLiteralTests
     [Fact]
     public void A_date_survives_the_round_trip_through_text_and_json()
     {
-        var tree = FormulaText.Read("2026-11-12", ActionReadMode.WholeValue);
+        var tree = FormulaText.Read("2026-11-12", ActionValueForm.Value);
 
         Assert.IsType<DateNode>(tree);
         Assert.Equal("2026-11-12", FormulaText.Write(tree));

@@ -31,13 +31,13 @@ public class FieldNameTests
             foreach (var group in fields.GroupBy(field => field.Parameter.Name, StringComparer.Ordinal))
             {
                 var forms = group
-                    .Select(field => (field.Parameter.Kind, field.Parameter.Shape, field.Parameter.ReadMode))
+                    .Select(field => (field.Parameter.Kind, field.Parameter.Shape, field.Parameter.ValueForm))
                     .Distinct()
                     .ToList();
                 if (forms.Count > 1)
                 {
                     problems.Add($"{group.Key} is drawn or read in {forms.Count} ways: "
-                        + string.Join(", ", forms.Select(form => $"{form.Kind}/{form.Shape}/{form.ReadMode}")));
+                        + string.Join(", ", forms.Select(form => $"{form.Kind}/{form.Shape}/{form.ValueForm}")));
                 }
 
                 var variations = group

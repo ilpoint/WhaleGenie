@@ -39,7 +39,7 @@ public sealed record McpActionField(string Name, string Type);
 /// </summary>
 public sealed record McpActionParameter(
     string Name, string Label, string Kind, bool Required, string Default, string Hint,
-    string ReadMode, string Shape, IReadOnlyList<string> Options,
+    string ValueForm, string Shape, IReadOnlyList<string> Options,
     IReadOnlyList<string> ChildKeys, IReadOnlyList<string> Fields,
     IReadOnlyList<McpActionColumn> Columns, string? Unit,
     string? EmptyMeans, decimal? Minimum, decimal? Maximum, bool Conditional, string MissingKey,
@@ -275,7 +275,7 @@ public static class ActionKnowledge
                     parameter.Required,
                     parameter.LocalDefault,
                     parameter.LocalHint,
-                    parameter.ReadMode.ToString(),
+                    parameter.ValueForm.ToString(),
                     parameter.Shape.ToString(),
                     [.. parameter.Options],
                     [.. parameter.ChildKeys],

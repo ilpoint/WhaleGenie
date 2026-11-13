@@ -154,7 +154,7 @@ public static class StepIds
     /// </summary>
     private static bool ReadsReferences(string type, string parameter)
         => ActionSemanticsCatalog.Find(type)?.Parameter(parameter) is
-        { AcceptsVariables: true, ReadMode: ActionReadMode.WholeValue };
+        { ValueForm: ActionValueForm.Value };
 
     /// <summary>
     /// Writes one id onto a step. The field is init-only so that nothing can quietly change the

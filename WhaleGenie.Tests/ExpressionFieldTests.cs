@@ -92,8 +92,8 @@ public class ExpressionFieldTests
                     or ActionParameterKind.Expression or ActionParameterKind.Condition
                     or ActionParameterKind.Color)
                 {
-                    Assert.Equal(WhaleGenie.Core.Execution.ActionReadMode.WholeValue,
-                        parameter.ReadMode);
+                    Assert.Equal(WhaleGenie.Core.Execution.ActionValueForm.Value,
+                        parameter.ValueForm);
                     continue;
                 }
 

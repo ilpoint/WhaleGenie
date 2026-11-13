@@ -280,7 +280,7 @@ public class ActionParameter
     public string Group => Semantics.Group;
 
     /// <summary>How the whole cell is read by the engine.</summary>
-    public ActionReadMode ReadMode => Semantics.ReadMode;
+    public ActionValueForm ValueForm => Semantics.ValueForm;
 
     /// <summary>What the value becomes after the read.</summary>
     public ActionValueShape Shape => Semantics.Shape;
@@ -419,23 +419,14 @@ public class ActionParameter
     /// True when the value always names a variable rather than holding a literal. The
     /// Variable Center uses it to spot a name a macro uses but nothing defines.
     /// </summary>
-    public bool NamesVariable => Semantics.ReadMode == ActionReadMode.VariableName;
+    public bool NamesVariable => Semantics.ValueForm == ActionValueForm.Name;
 
     /// <summary>
-    /// True when the text may name variables, so the editor offers them while the field is typed
-    /// in. It is what keeps a hint that says "written out or held in a variable" honest: without
-    /// it the field is a plain box and the name has to be spelled from memory. The value itself is
-    /// still text — the engine fills <c>$name</c> in rather than working anything out.
+    /// True when the field holds one whole value: a literal, a name, a call, or an operation on
+    /// them. Such a field is offered the expression editor, because what it builds there is
+    /// exactly what the engine reads. A reading of <see cref="ValueForm"/>, not a second fact.
     /// </summary>
-    public bool AcceptsVariables => Semantics.AcceptsVariables;
-
-    /// <summary>
-    /// True when the whole value is read as one: a variable, a formula, or plain text. Such a
-    /// field is offered the expression editor, because what it builds there is exactly what the
-    /// engine reads. False for text that is only filled in, where a formula would be taken
-    /// literally and quietly mean something else.
-    /// </summary>
-    public bool AcceptsFormula => Semantics.ReadMode == ActionReadMode.WholeValue;
+    public bool AcceptsFormula => Semantics.ValueForm == ActionValueForm.Value;
 
     /// <summary>
     /// True when the box this parameter is edited in offers the names of variables. It is what a
@@ -444,7 +435,7 @@ public class ActionParameter
     /// the expression editor can build, a box that holds a variable by name, and a picture, which
     /// is a file or the name of what an earlier Capture saved.
     /// </summary>
-    public bool OffersNames => AcceptsVariables || AcceptsFormula
+    public bool OffersNames => ValueForm is ActionValueForm.Run or ActionValueForm.Value
         || Kind is ActionParameterKind.Variable or ActionParameterKind.Image
             or ActionParameterKind.Images;
 

@@ -49,7 +49,7 @@ public static class Formula
     /// looks like; that is the one thing the lenient reading must not do.
     /// </summary>
     public static ExpressionNode FromLine(string? text)
-        => text is { Length: > 0 } ? FormulaText.Read(text, ActionReadMode.WholeValue) : Nothing;
+        => text is { Length: > 0 } ? FormulaText.Read(text, ActionValueForm.Value) : Nothing;
 
     /// <summary>
     /// The value a line typed into a formula field stands for: the formula it is. A line that does

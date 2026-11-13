@@ -64,7 +64,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 // it was built from, a formula is the tree it read as. Nothing is read back out of
                 // the line.
                 ? _written
-                : FormulaText.Read(CurrentText.Trim(), Definition.ReadMode);
+                : FormulaText.Read(CurrentText.Trim(), Definition.ValueForm);
 
     /// <summary>
     /// True when this field holds one formula and nothing else, which is what decides how a written

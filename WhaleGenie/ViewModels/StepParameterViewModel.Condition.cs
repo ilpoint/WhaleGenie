@@ -36,7 +36,8 @@ public partial class StepParameterViewModel : ViewModelBase
         // A field of text keeps a name as a piece of itself rather than as a spelling, so a picked
         // name goes in as a piece; a formula says a name as the name it is; and a field holding one
         // value that may be prose marks it, because there a word is only a word.
-        if (Definition.ReadMode is ActionReadMode.Text && !Definition.NamesVariable)
+        if ((Definition.ValueForm is ActionValueForm.Text or ActionValueForm.Run)
+            && !Definition.NamesVariable)
         {
             InsertName(name, caret);
             return;

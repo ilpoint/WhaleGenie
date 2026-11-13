@@ -109,7 +109,7 @@ public partial class GlobalVariablesWindow : AppWindow
     private async void OnDefaultExpression(VariableDefinitionDraft row)
     {
         if (await ValuePickerWindow.ShowFor(this, row.DefaultValue,
-                ExpressionVariablesBefore(row), ActionReadMode.WholeValue, startOnFormula: true) is { Chosen: true } built)
+                ExpressionVariablesBefore(row), ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
             row.DefaultValue = FormulaText.Write(built.Value);
         }

@@ -208,7 +208,7 @@ public static partial class MacroCheck
                 // A record named inside text becomes JSON where the user meant a title or a line:
                 // a field read as one value keeps the record whole, and the window fields read it
                 // as a window, so those are left alone.
-                if (definition.ReadMode != ActionReadMode.Text
+                if (definition.ValueForm is not (ActionValueForm.Text or ActionValueForm.Run)
                     || definition.Shape is ActionValueShape.Point or ActionValueShape.Rect
                         or ActionValueShape.Record
                     || definition.Picker == ActionPickerKind.Window)

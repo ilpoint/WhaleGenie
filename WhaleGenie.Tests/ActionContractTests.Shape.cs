@@ -97,20 +97,19 @@ public partial class ActionContractTests
                     SameValue(problems, field, "shape", ShapeOf(parameter.Kind), facts.Shape);
                     SameValue(problems, field, "required", parameter.Required, facts.Required);
                     SameValue(problems, field, "default", parameter.DefaultValue, facts.DefaultValue);
-                    SameValue(problems, field, "variables", parameter.AcceptsVariables,
-                        facts.AcceptsVariables);
+                    SameValue(problems, field, "value form", parameter.ValueForm, facts.ValueForm);
                     Same(problems, field, "options", parameter.Options, facts.Options);
                     Same(problems, field, "child keys", parameter.ChildKeys, facts.ChildKeys);
 
-                    if (parameter.NamesVariable != (facts.ReadMode == ActionReadMode.VariableName))
+                    if (parameter.NamesVariable != (facts.ValueForm == ActionValueForm.Name))
                     {
                         problems.Add($"{field}: the editor and the engine disagree about writing a name");
                     }
 
                     if (parameter.AcceptsFormula
-                        != (facts.ReadMode == ActionReadMode.WholeValue))
+                        != (facts.ValueForm == ActionValueForm.Value))
                     {
-                        problems.Add($"{field}: the editor's formula fact differs from the engine read mode");
+                        problems.Add($"{field}: the editor's formula fact differs from the engine value form");
                     }
 
                     var picker = facts.Picker;

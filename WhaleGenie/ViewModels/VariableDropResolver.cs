@@ -41,12 +41,12 @@ public static class VariableDropResolver
             return VariableDropResolution.Reject();
         }
 
-        if (target.ReadMode is ActionReadMode.Text)
+        if (target.ValueForm is ActionValueForm.Text or ActionValueForm.Run)
         {
             return Direct(variable, target.NamesVariable);
         }
 
-        if (target.ReadMode is ActionReadMode.VariableName)
+        if (target.ValueForm is ActionValueForm.Name)
         {
             return new VariableDropResolution(VariableDropStatus.Direct, variable.Name);
         }

@@ -191,7 +191,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionReadMode.VariableName) is not { Chosen: true } picked)
+                ActionValueForm.Name) is not { Chosen: true } picked)
         {
             return;
         }

@@ -117,22 +117,6 @@ public enum ActionEmptyMeans
     Unset,
 }
 
-/// <summary>
-/// How the whole cell is read. The three cases are exhaustive, so a field cannot be read one way
-/// by the engine and another way by the editor.
-/// </summary>
-public enum ActionReadMode
-{
-    /// <summary>Text with <c>$name</c> replaced where it appears; <c>$$</c> is one literal dollar.</summary>
-    Text,
-
-    /// <summary>The whole cell is one value: a literal, a variable in <c>$name</c> form, or a formula.</summary>
-    WholeValue,
-
-    /// <summary>The whole cell is a bare variable name being written.</summary>
-    VariableName,
-}
-
 /// <summary>Which picker, if any, can fill this parameter from something on the machine.</summary>
 public enum ActionPickerKind
 {
@@ -183,7 +167,7 @@ public sealed class ActionParameterSemantics
 
     public ActionValueShape Shape { get; init; } = ActionValueShape.Text;
 
-    public ActionReadMode ReadMode { get; init; } = ActionReadMode.Text;
+    public ActionValueForm ValueForm { get; init; } = ActionValueForm.Text;
 
     public ActionPickerKind Picker { get; init; }
 
@@ -248,12 +232,6 @@ public sealed class ActionParameterSemantics
     /// the declaration lives on the choice rather than on the action.
     /// </summary>
     public IReadOnlyList<string> IrreversibleWhen { get; init; } = [];
-
-    /// <summary>
-    /// True when the text field offers variable names while it is typed in. The read itself is
-    /// still <see cref="ActionReadMode.Text"/>; this only says the names are worth suggesting.
-    /// </summary>
-    public bool AcceptsVariables { get; init; }
 
     /// <summary>
     /// The columns a row of this field may hold. A list written by hand that names a column the

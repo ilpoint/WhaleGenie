@@ -37,7 +37,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
-                parameter.Variables, parameter.Definition.ReadMode, parameter.ReadAsFormula,
+                parameter.Variables, parameter.Definition.ValueForm, parameter.ReadAsFormula,
                 startOnFormula: true, target: parameter.Label) is { Chosen: true } built)
         {
             parameter.WriteValue(built.Value);
@@ -57,7 +57,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Text, cell.Variables,
-                ActionReadMode.WholeValue, bareNames: true, startOnFormula: true) is { Chosen: true } built)
+                ActionValueForm.Value, bareNames: true, startOnFormula: true) is { Chosen: true } built)
         {
             cell.Write(built.Value);
         }
@@ -80,7 +80,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionReadMode.VariableName, lookAtStep: LookAtStep) is not { Chosen: true } picked)
+                ActionValueForm.Name, lookAtStep: LookAtStep) is not { Chosen: true } picked)
         {
             return;
         }
@@ -120,7 +120,7 @@ public partial class ActionEditorView : UserControl
         if (parameter.OffersFormula)
         {
             if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
-                    parameter.Variables, parameter.Definition.ReadMode, parameter.ReadAsFormula,
+                    parameter.Variables, parameter.Definition.ValueForm, parameter.ReadAsFormula,
                     startOnFormula: true, target: parameter.Label,
                     startCaret: caret ?? parameter.CurrentText.Length) is { Chosen: true } written)
             {
@@ -131,7 +131,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionReadMode.VariableName, target: parameter.Label) is not { Chosen: true } picked)
+                ActionValueForm.Name, target: parameter.Label) is not { Chosen: true } picked)
         {
             return;
         }
@@ -153,7 +153,7 @@ public partial class ActionEditorView : UserControl
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
         if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultValue,
-                variables, ActionReadMode.WholeValue, startOnFormula: true) is { Chosen: true } built)
+                variables, ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
             draft.DefaultValue = FormulaText.Write(built.Value);
         }

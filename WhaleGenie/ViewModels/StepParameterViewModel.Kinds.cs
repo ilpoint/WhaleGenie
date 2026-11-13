@@ -117,7 +117,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool OffersVariables => !IsWindowRule && (IsText || IsWindow)
         && !IsSelector
         && !IsBrowserTarget
-        && (Definition.AcceptsVariables || Definition.AcceptsFormula);
+        && (Definition.ValueForm is ActionValueForm.Run or ActionValueForm.Value);
 
     /// <summary>
     /// 这一格的左边要不要摆一个 $：整格按文本读，写进去的 $名字 会被换掉。认算式的那种格不摆，
@@ -132,7 +132,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// value.
     /// </summary>
     public bool OffersPageVariables => IsBrowserTarget
-        && (Definition.AcceptsVariables || Definition.AcceptsFormula);
+        && (Definition.ValueForm is ActionValueForm.Run or ActionValueForm.Value);
 
     /// <summary>
     /// True when the picker beside this field may also open the expression editor, which it does for

@@ -87,7 +87,7 @@ public partial class StepParameterViewModel : ViewModelBase
             ? Variables.Where(choice => choice.Type == ValueKind.Record).Select(choice => choice.Name)
             : KnownNames;
         var suggestions = new List<string>();
-        if (knowsFunctions || definition.AcceptsVariables)
+        if (knowsFunctions || definition.ValueForm is ActionValueForm.Run)
         {
             // A formula says a name as itself. A box that holds text rather than a formula marks
             // one, because there a word is only a word.

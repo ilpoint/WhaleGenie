@@ -20,11 +20,11 @@ public class FormulaTextTests
             bag.Set(name, Value.FromText(value));
         }
 
-        return Expression.Evaluate(FormulaText.Read(text, ActionReadMode.Text), bag).AsText();
+        return Expression.Evaluate(FormulaText.Read(text, ActionValueForm.Text), bag).AsText();
     }
 
     private static IReadOnlyList<string> Names(string text)
-        => FormulaText.Names(text, ActionReadMode.Text);
+        => FormulaText.Names(text, ActionValueForm.Text);
 
     [Theory]
     [InlineData("$", "$")]
@@ -118,7 +118,7 @@ public class FormulaTextTests
         Assert.Equal("Ada", Fill("${123}", ("123", "Ada")));
     }
 
-    private static string Written(string line, ActionReadMode mode)
+    private static string Written(string line, ActionValueForm mode)
         => FormulaText.Write(FormulaText.Read(line, mode));
 
     [Theory]
@@ -130,29 +130,29 @@ public class FormulaTextTests
     [InlineData("a $ b")]
     [InlineData("$% off")]
     public void A_line_of_text_is_written_back_as_itself(string line)
-        => Assert.Equal(line, Written(line, ActionReadMode.Text));
+        => Assert.Equal(line, Written(line, ActionValueForm.Text));
 
     [Fact]
     public void A_dollar_in_text_is_written_back_doubled_so_it_reads_as_one()
     {
-        Assert.Equal("$$123 and $123", Written("$$123 and $123", ActionReadMode.Text));
-        Assert.Equal("$123 and $$name", Written("$123 and $$name", ActionReadMode.Text));
+        Assert.Equal("$$123 and $123", Written("$$123 and $123", ActionValueForm.Text));
+        Assert.Equal("$123 and $$name", Written("$123 and $$name", ActionValueForm.Text));
     }
 
     [Fact]
     public void A_name_beside_text_keeps_the_braces_that_end_it()
     {
-        Assert.Equal("${name}.txt", Written("${name}.txt", ActionReadMode.Text));
-        Assert.Equal("$name!", Written("$name!", ActionReadMode.Text));
+        Assert.Equal("${name}.txt", Written("${name}.txt", ActionValueForm.Text));
+        Assert.Equal("$name!", Written("$name!", ActionValueForm.Text));
     }
 
     [Fact]
     public void A_formula_is_written_back_so_it_reads_the_same_way()
     {
-        Assert.Equal("$a + 1", Written("$a + 1", ActionReadMode.WholeValue));
+        Assert.Equal("$a + 1", Written("$a + 1", ActionValueForm.Value));
         Assert.Equal("field($record, \"x\") + $b",
-            Written("field($record, \"x\") + $b", ActionReadMode.WholeValue));
-        Assert.Equal("($a + $b) * 2", Written("($a + $b) * 2", ActionReadMode.WholeValue));
+            Written("field($record, \"x\") + $b", ActionValueForm.Value));
+        Assert.Equal("($a + $b) * 2", Written("($a + $b) * 2", ActionValueForm.Value));
     }
 
     [Theory]
@@ -162,8 +162,8 @@ public class FormulaTextTests
     [InlineData("1 + 2 = ${1 + 2}")]
     public void Writing_a_line_and_reading_it_again_gives_the_same_shape(string line)
     {
-        var once = FormulaText.Read(line, ActionReadMode.WholeValue);
-        var twice = FormulaText.Read(FormulaText.Write(once), ActionReadMode.WholeValue);
+        var once = FormulaText.Read(line, ActionValueForm.Value);
+        var twice = FormulaText.Read(FormulaText.Write(once), ActionValueForm.Value);
 
         Assert.Equal(FormulaText.Write(once), FormulaText.Write(twice));
     }
