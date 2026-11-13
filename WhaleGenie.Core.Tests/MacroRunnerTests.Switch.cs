@@ -181,7 +181,7 @@ public partial class MacroRunnerTests
     {
         var store = Store(("a", 1), ("b", 2));
         var branch = Step("control.if",
-            Param("condition", "($a > 5) or ($b == 2)"),
+            Param("condition", Formula.Binary("or", Formula.Binary(">", Formula.Name("a"), Formula.Number(5)), Formula.Binary("==", Formula.Name("b"), Formula.Number(2)))),
             Body("then", Set("hit", "yes")));
         var (_, _) = await RunAsync([branch], variables: store);
 
@@ -196,9 +196,9 @@ public partial class MacroRunnerTests
 
         var (_, _) = await RunAsync(
             [
-                Step("control.if", Param("condition", "contains($name, \"ad\")"),
+                Step("control.if", Param("condition", Formula.Call("contains", Formula.Name("name"), Formula.Text("ad"))),
                     Body("then", Set("c", "1"))),
-                Step("control.if", Param("condition", "match($name, \"^A.*a$\")"),
+                Step("control.if", Param("condition", Formula.Call("match", Formula.Name("name"), Formula.Text("^A.*a$"))),
                     Body("then", Set("r", "1"))),
             ],
             variables: store);
@@ -218,17 +218,17 @@ public partial class MacroRunnerTests
         store.Local.SetText("padded", "a ");
         store.Local.SetText("mixed", "Save");
 
-        ExecutableStep Compare(string name, string expression)
-            => Step("control.if", Param("condition", expression),
+        ExecutableStep Compare(string name, ExpressionNode condition)
+            => Step("control.if", Param("condition", condition),
                 Body("then", Set(name, "1")));
 
         var (result, _) = await RunAsync(
             [
-                Compare("strict", "compare($padded, \"equals\", \"a\", true, false)"),
-                Compare("trimmed", "compare($padded, \"equals\", \"a\", true, true)"),
-                Step("control.if", Param("condition", "compare($mixed, \"contains\", \"save\")"),
+                Compare("strict", Formula.Call("compare", Formula.Name("padded"), Formula.Text("equals"), Formula.Text("a"), Formula.Constant("true"), Formula.Constant("false"))),
+                Compare("trimmed", Formula.Call("compare", Formula.Name("padded"), Formula.Text("equals"), Formula.Text("a"), Formula.Constant("true"), Formula.Constant("true"))),
+                Step("control.if", Param("condition", Formula.Call("compare", Formula.Name("mixed"), Formula.Text("contains"), Formula.Text("save"))),
                     Body("then", Set("folded", "1"))),
-                Step("control.if", Param("condition", "compare($mixed, \"contains\", \"save\", true)"),
+                Step("control.if", Param("condition", Formula.Call("compare", Formula.Name("mixed"), Formula.Text("contains"), Formula.Text("save"), Formula.Constant("true"))),
                     Body("then", Set("exactCase", "1"))),
             ],
             variables: store);
@@ -257,7 +257,7 @@ public partial class MacroRunnerTests
             Type = "control.if",
             Parameters =
             [
-                Param("condition", "compare($long, \"regex\", \"(a+)+$\")"),
+                Param("condition", Formula.Call("compare", Formula.Name("long"), Formula.Text("regex"), Formula.Text("(a+)+$"))),
                 Body("then", Set("never", "1")),
             ],
             Meta = new StepMeta { OnError = StepErrorAction.Continue },

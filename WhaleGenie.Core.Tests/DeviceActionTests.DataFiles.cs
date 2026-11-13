@@ -375,7 +375,7 @@ public partial class DeviceActionTests
         // would land in whatever column happens to be second.
         var (result, _, _) = await RunAsync(
         [
-            Step("control.setVariable", Param("name", "rows"), Param("value", "[[\"A1\", 2]]")),
+            Step("control.setVariable", Param("name", "rows"), Param("value", Formula.List(Formula.List(Formula.Text("A1"), Formula.Number(2))))),
             Step("file.writeCsv", Param("path", "log.csv"), Fields.Reference("rows", "rows"),
                 Param("header", "订单号"), Param("separator", "comma"),
                 Param("writeMode", "append"), Param("align", "true")),

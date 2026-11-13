@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
@@ -21,6 +22,10 @@ public class IrreversibleStepTests
 
     private static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
+
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
         => Fields.Steps(name, steps);

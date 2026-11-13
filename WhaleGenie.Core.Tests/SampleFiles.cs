@@ -101,6 +101,10 @@ internal static class SampleFiles
     public static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
 
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    public static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
+
     /// <summary>
     /// Where a step looks, written the way the dialog writes it: one row per place, each row giving
     /// its rectangle by column name.
@@ -139,14 +143,16 @@ internal static class SampleFiles
         };
 
     /// <summary>A place to look that names a variable instead of giving four numbers.</summary>
-    public static ExecutableParameter RegionFrom(string named)
+    public static ExecutableParameter RegionFrom(string named) => RegionFrom(Cells.Line(named));
+
+    public static ExecutableParameter RegionFrom(ExpressionNode written)
         => new()
         {
             Name = "region",
-            Rows =
-            [
-                Cells.Of(("text", named)),
-            ],
+            Rows = [new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["text"] = written,
+            }],
         };
 
     /// <summary>

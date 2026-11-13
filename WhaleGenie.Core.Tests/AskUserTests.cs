@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
@@ -17,6 +18,10 @@ public class AskUserTests
 
     private static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
+
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
@@ -18,6 +19,10 @@ public class StepOutcomeTests
     private static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
 
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
+
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
         => SampleFiles.Returns(results);
@@ -29,11 +34,14 @@ public class StepOutcomeTests
         => Fields.Steps(name, steps);
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => Fields.Text(name, TestConditions.Expression(step));
+        => Fields.Run(name, TestConditions.Expression(step));
 
     private static ExecutableStep Set(string id, string name, string value)
+        => Set(id, name, Cells.Line(value));
+
+    private static ExecutableStep Set(string id, string name, ExpressionNode value)
         => Step("control.setVariable", id, Param("name", name), Param("scope", "local"),
-            Param("value", value));
+            Fields.Computed("value", value));
 
     /// <summary>A step that fails however it is run: a key press with no keyboard to press it on.</summary>
     private static ExecutableStep Broken(string id, StepErrorAction action = StepErrorAction.Stop)
@@ -212,11 +220,11 @@ public class StepOutcomeTests
     [Fact]
     public async Task A_note_does_nothing_and_still_reads_ok()
     {
-        // The text is deliberately not a valid expression: a note is taken as it stands, and a
-        // macro that writes brackets in one should not be stopped by them.
+        // A note is prose, so brackets and signs in it are characters rather than a formula to
+        // work out: the field holds text, and nothing reads a language back out of it.
         var store = await RunAsync(
         [
-            Step("control.note", "aaaa", Fields.Run("note", "$((")),
+            Step("control.note", "aaaa", Fields.Text("note", "$((")),
             Set("bbbb", "n", "1"),
         ]);
 
@@ -264,7 +272,7 @@ public class StepOutcomeTests
             Step("control.try", "aaaa",
                 Returns("error=why"),
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", "$step.bbbb.outcome")),
+                Body("catch", Set("cccc", "seen", Formula.Name("step.bbbb.outcome"))),
                 Body("finally", Set("dddd", "tidied", "1"))),
         ]);
 
@@ -288,7 +296,7 @@ public class StepOutcomeTests
         [
             Step("control.try", "aaaa",
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", "$caught.key"))),
+                Body("catch", Set("cccc", "seen", Formula.Name("caught.key")))),
         ]);
 
         Assert.Equal("failed", Outcome(store, "bbbb"));

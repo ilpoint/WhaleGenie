@@ -85,7 +85,7 @@ public partial class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
             Step("process.start", Param("programFile", "tool.exe"),
-                Param("environment", "LANG=zh_CN.UTF-8\n#TOKEN=off\n\nUSER=$who")),
+                Fields.Run("environment", Formula.Run([Formula.Text("LANG=zh_CN.UTF-8\n#TOKEN=off\n\nUSER="), Formula.Name("who")]))),
         ], devices);
 
         // Only the lines that name something are passed on, and a value can be built out of a
@@ -94,18 +94,18 @@ public partial class DeviceActionTests
     }
 
     [Fact]
-    public async Task An_environment_value_is_interpolated_once()
+    public async Task A_dollar_written_as_text_stays_a_dollar()
     {
         var devices = new FakeDeviceLayer();
         await RunAsync(
         [
             Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
             Step("process.start", Param("programFile", "tool.exe"),
-                Param("environment", "USER=$$who")),
+                Param("environment", "USER=$who")),
         ], devices);
 
-        // The doubled dollar is the escape, so the value is the literal $who and is not read a
-        // second time by the environment reader.
+        // A dollar in prose is a character like any other: there is no escape to write, and the
+        // environment reader does not look for names in a value that names none.
         Assert.Contains(devices.Calls, call => call.EndsWith("|env USER=$who"));
     }
 
@@ -145,7 +145,7 @@ public partial class DeviceActionTests
         await RunAsync(
         [
             Step("control.setVariable", Param("name", "who"), Param("value", "Ann")),
-            Step("command.run", Param("commandFile", "python"), Param("standardInput", "hello\n$who")),
+            Step("command.run", Param("commandFile", "python"), Fields.Run("standardInput", Formula.Run([Formula.Text("hello\n"), Formula.Name("who")]))),
         ], devices);
 
         // The line ending the macro wrote is kept, and a value can be written into the input the

@@ -527,7 +527,9 @@ public partial class DeviceActionTests
             Step("control.setVariable", Param("name", "name"), Param("value", "ok")),
             Step("control.if",
                 When("condition", Step("condition.expression",
-                    Fields.Computed("expression", "count > 3 and contains(name, \"o\")"))),
+                    Fields.Computed("expression", Formula.Binary("and",
+                        Formula.Binary(">", Formula.Name("count"), Formula.Number(3)),
+                        Formula.Call("contains", Formula.Name("name"), Formula.Text("o")))))),
                 Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
                 Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
         ], devices);
@@ -544,7 +546,9 @@ public partial class DeviceActionTests
             Step("control.setVariable", Param("name", "count"), Param("value", "1")),
             Step("control.if",
                 When("condition", Step("condition.expression",
-                    Fields.Computed("expression", "count > 3 or count == 0"))),
+                    Fields.Computed("expression", Formula.Binary("or",
+                        Formula.Binary(">", Formula.Name("count"), Formula.Number(3)),
+                        Formula.Binary("==", Formula.Name("count"), Formula.Number(0)))))),
                 Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes"))),
                 Body("else", Step("control.setVariable", Param("name", "hit"), Param("value", "no")))),
         ], devices);
@@ -560,7 +564,8 @@ public partial class DeviceActionTests
         [
             Step("control.if",
                 Fields.Computed("condition", TestConditions.Expression(
-                    Step("condition.expression", Fields.Computed("expression", "count +")))),
+                    Step("condition.expression", Fields.Computed("expression",
+                        Formula.Binary("+", Formula.Name("count"), Formula.Hole))))),
                 Body("then", Step("control.setVariable", Param("name", "hit"), Param("value", "yes")))),
         ], devices);
 

@@ -70,7 +70,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Capture(0, 0, 10, 10, Parts("image", "shot")),
-            Step("vision.findImage", Pictures("$shot"), Param("confidence", "90"),
+            Step("vision.findImage", Pictures(Formula.Name("shot")), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
         ], devices);
 
@@ -99,7 +99,7 @@ public partial class DeviceActionTests
         [
             Step("control.setVariable", Param("name", "box"), Param("value", "10,20,30,40")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                RegionFrom("$box"), Hit("match", "where")),
+                RegionFrom(Formula.Name("box")), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -121,7 +121,7 @@ public partial class DeviceActionTests
         [
             Capture(0, 0, 2, 1, Parts("image", "shot")),
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
-                RegionFrom("$shot"), Hit("match", "where")),
+                RegionFrom(Formula.Name("shot")), Hit("match", "where")),
         ], devices);
 
         Assert.True(result.Succeeded, result.Key);
@@ -175,7 +175,9 @@ public partial class DeviceActionTests
         var (result, devices, store) = await RunAsync(
         [
             Step("control.setVariable", Param("name", "spot"), Param("value", "5")),
-            Step("input.mouseMove", Fields.Computed("x", "spot + 1"), Fields.Computed("y", "spot * 2"),
+            Step("input.mouseMove",
+                Fields.Computed("x", Formula.Binary("+", Formula.Name("spot"), Formula.Number(1))),
+                Fields.Computed("y", Formula.Binary("*", Formula.Name("spot"), Formula.Number(2))),
                 Param("durationMs", "0")),
         ]);
 
@@ -194,8 +196,8 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("a.png"), Param("confidence", "90"),
                 Param("region", ""), Hit("match", "where")),
-            Step("input.mouseMove", Param("x", "field($where, \"x\") + 3"),
-                Param("y", "field($where, \"y\")"),
+            Step("input.mouseMove", Param("x", Formula.Binary("+", Formula.Call("field", Formula.Name("where"), Formula.Text("x")), Formula.Number(3))),
+                Param("y", Formula.Call("field", Formula.Name("where"), Formula.Text("y"))),
                 Param("durationMs", "0")),
         ], devices);
 

@@ -48,7 +48,7 @@ public partial class MacroRunnerTests
     public async Task A_variable_can_hold_an_expression_of_other_variables()
     {
         var store = Store(("a", 2), ("b", 3));
-        var (_, _) = await RunAsync([Set("total", "$a * $b + 1")], variables: store);
+        var (_, _) = await RunAsync([Set("total", Formula.Binary("+", Formula.Binary("*", Formula.Name("a"), Formula.Name("b")), Formula.Number(1)))], variables: store);
 
         Assert.Equal(7, N(store, "total"));
     }
@@ -253,7 +253,7 @@ public partial class MacroRunnerTests
     public async Task For_each_walks_a_list_and_numbers_the_rounds()
     {
         var store = Store();
-        var seen = Body("body", Set("last", "$item"), Set("rounds", "$rounds + 1"));
+        var seen = Body("body", Set("last", Formula.Name("item")), Set("rounds", Formula.Binary("+", Formula.Name("rounds"), Formula.Number(1))));
         store.Local.SetNumber("rounds", 0);
 
         var loop = Step("control.forEach",
@@ -275,7 +275,7 @@ public partial class MacroRunnerTests
         var inner = Step("control.forEach",
             Param("items", "[10, 20]"),
             Param("itemVariable", "item"),
-            Body("body", Set("innerSeen", "$sys.loopIndex")));
+            Body("body", Set("innerSeen", Formula.Name("sys.loopIndex"))));
         var outer = Step("control.for",
             Param("rangeFrom", "1"),
             Param("rangeTo", "3"),
@@ -283,9 +283,9 @@ public partial class MacroRunnerTests
             Param("intervalMs", "0"),
             Param("name", "i"),
             Body("body",
-                Set("outerSeen", "$sys.loopIndex"),
+                Set("outerSeen", Formula.Name("sys.loopIndex")),
                 inner,
-                Set("restored", "$sys.loopIndex")));
+                Set("restored", Formula.Name("sys.loopIndex"))));
 
         var (result, _) = await RunAsync([outer], variables: store);
 
@@ -303,7 +303,7 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task Reading_the_loop_round_outside_a_loop_fails()
     {
-        var (result, _) = await RunAsync([Set("after", "$sys.loopIndex")]);
+        var (result, _) = await RunAsync([Set("after", Formula.Name("sys.loopIndex"))]);
 
         Assert.Equal(RunKeys.BadExpression, result.Key);
     }
@@ -369,10 +369,10 @@ public partial class MacroRunnerTests
         var store = Store();
         var inner = Step("control.forEach", Param("items", "[10, 20]"),
             Param("itemVariable", "item"),
-            Body("body", Set("innerLast", "$item")));
+            Body("body", Set("innerLast", Formula.Name("item"))));
         var outer = Step("control.forEach", Param("items", "[1, 2]"),
             Param("itemVariable", "item"),
-            Body("body", Set("outerBefore", "$item"), inner, Set("outerAfter", "$item")));
+            Body("body", Set("outerBefore", Formula.Name("item")), inner, Set("outerAfter", Formula.Name("item"))));
 
         var (result, _) = await RunAsync([outer], variables: store);
 
@@ -474,7 +474,7 @@ public partial class MacroRunnerTests
         var loop = Step("control.forEach",
             Fields.Reference("items", "names"),
             Param("reverse", "true"),
-            Body("body", Set("last", "$item")));
+            Body("body", Set("last", Formula.Name("item"))));
 
         var (_, _) = await RunAsync([loop], variables: store);
 
@@ -492,7 +492,7 @@ public partial class MacroRunnerTests
             Param("rangeTo", "3"),
             Param("intervalMs", "0"),
             Param("name", "i"),
-            Body("body", Set("sum", "$sum + $i")));
+            Body("body", Set("sum", Formula.Binary("+", Formula.Name("sum"), Formula.Name("i")))));
 
         var (_, _) = await RunAsync([loop], variables: store);
 
@@ -532,7 +532,7 @@ public partial class MacroRunnerTests
             Param("rangeFrom", "5"),
             Param("rangeTo", "1"),
             Param("stepSize", "-1"),
-            Body("body", Set("rounds", "$rounds + 1")));
+            Body("body", Set("rounds", Formula.Binary("+", Formula.Name("rounds"), Formula.Number(1)))));
 
         var (_, _) = await RunAsync([loop], variables: store);
 
@@ -547,7 +547,7 @@ public partial class MacroRunnerTests
             Param("rangeFrom", "5"),
             Param("rangeTo", "1"),
             Param("stepSize", "0"),
-            Body("body", Set("rounds", "$rounds + 1")));
+            Body("body", Set("rounds", Formula.Binary("+", Formula.Name("rounds"), Formula.Number(1)))));
 
         var (_, _) = await RunAsync([loop], variables: store);
 
@@ -559,7 +559,7 @@ public partial class MacroRunnerTests
     {
         var store = Store(("n", 0));
         var body = Body("body",
-            Set("n", "$n + 1"),
+            Set("n", Formula.Binary("+", Formula.Name("n"), Formula.Number(1))),
             Step("control.if",
                 When("condition", Step("condition.compare",
                     Param("variable", "i"), Param("compareOperator", "greaterOrEqual"), Param("compareValue", "2"))),
@@ -579,7 +579,7 @@ public partial class MacroRunnerTests
             Param("items", "[10, 20, 30]"),
             Param("itemVariable", "item"),
             Param("indexVariable", "round"),
-            Body("body", Set("seen", "$round")));
+            Body("body", Set("seen", Formula.Name("round"))));
 
         var (_, _) = await RunAsync([loop], variables: store);
 
@@ -594,7 +594,7 @@ public partial class MacroRunnerTests
         var loop = Step("control.forEach",
             Param("items", "[10, 20]"),
             Param("itemVariable", "item"),
-            Body("body", Set("seen", "$item")));
+            Body("body", Set("seen", Formula.Name("item"))));
 
         var (_, _) = await RunAsync([loop], variables: store);
 

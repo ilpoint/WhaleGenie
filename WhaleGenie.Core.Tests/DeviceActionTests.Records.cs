@@ -507,7 +507,7 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
             Step("input.mouseDrag",
-                Param("startPlace", "get($table, 0)"),
+                Param("startPlace", Formula.Call("get", Formula.Name("table"), Formula.Number(0))),
                 Param("endX", "300"), Param("endY", "0"),
                 Param("durationMs", "0"), Param("dragSteps", "3")),
         ], devices);

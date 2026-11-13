@@ -198,7 +198,8 @@ public partial class MacroRunnerTests
         var (result, _) = await RunAsync(
             [Step("control.setVariable",
                 Param("name", "total"), Param("scope", "local"),
-                Fields.Computed("value", "count + 3"))],
+                Fields.Computed("value",
+                    Formula.Binary("+", Formula.Name("count"), Formula.Number(3))))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -211,10 +212,14 @@ public partial class MacroRunnerTests
         var store = Store(("n", 10), ("m", 3));
         var (result, _) = await RunAsync(
             [
-                Step("control.setVariable", Param("name", "minus"), Fields.Computed("value", "n - m")),
-                Step("control.setVariable", Param("name", "times"), Fields.Computed("value", "n * m")),
-                Step("control.setVariable", Param("name", "over"), Fields.Computed("value", "n / 4")),
-                Step("control.setVariable", Param("name", "rest"), Fields.Computed("value", "n % m")),
+                Step("control.setVariable", Param("name", "minus"),
+                    Fields.Computed("value", Formula.Binary("-", Formula.Name("n"), Formula.Name("m")))),
+                Step("control.setVariable", Param("name", "times"),
+                    Fields.Computed("value", Formula.Binary("*", Formula.Name("n"), Formula.Name("m")))),
+                Step("control.setVariable", Param("name", "over"),
+                    Fields.Computed("value", Formula.Binary("/", Formula.Name("n"), Formula.Number(4)))),
+                Step("control.setVariable", Param("name", "rest"),
+                    Fields.Computed("value", Formula.Binary("%", Formula.Name("n"), Formula.Name("m")))),
             ],
             variables: store);
 
@@ -232,7 +237,7 @@ public partial class MacroRunnerTests
         store.Local.SetText("name", "Ada");
         var (result, _) = await RunAsync(
             [Step("control.setVariable",
-                Param("name", "greeting"), Param("value", "\"Hello \" + $name"))],
+                Param("name", "greeting"), Param("value", Formula.Binary("+", Formula.Text("Hello "), Formula.Name("name"))))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -246,7 +251,7 @@ public partial class MacroRunnerTests
         store.Local.SetText("name", "Ada");
         var (result, _) = await RunAsync(
             [Step("control.setVariable",
-                Param("name", "line"), Param("value", "concat(upper($name), $count)"))],
+                Param("name", "line"), Param("value", Formula.Call("concat", Formula.Call("upper", Formula.Name("name")), Formula.Name("count"))))],
             variables: store);
 
         Assert.True(result.Succeeded);
@@ -259,7 +264,8 @@ public partial class MacroRunnerTests
         var store = Store(("zero", 0));
         var (result, _) = await RunAsync(
             [Step("control.setVariable",
-                Param("name", "x"), Fields.Computed("value", "zero / 0"))],
+                Param("name", "x"), Fields.Computed("value",
+                    Formula.Binary("/", Formula.Name("zero"), Formula.Number(0))))],
             variables: store);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -327,7 +333,7 @@ public partial class MacroRunnerTests
         var (result, _) = await RunAsync(
             [
             Step("control.setVariable", Param("name", "names"), Param("scope", "local"),
-                Param("value", "list(\"a\")")),
+                Param("value", Formula.List(Formula.Text("a")))),
                 Step("control.listAdd", Param("name", "names"), Param("value", "b")),
                 Step("control.listInsert", Param("name", "names"), Param("listIndex", "0"), Param("value", "z")),
                 Step("control.listRemoveAt", Param("name", "names"), Param("listIndex", "-1")),
@@ -412,7 +418,7 @@ public partial class MacroRunnerTests
     public async Task A_value_written_as_an_expression_has_to_work()
     {
         var store = Store();
-        var (result, _) = await RunAsync([Set("a", "$missing + 1")], variables: store);
+        var (result, _) = await RunAsync([Set("a", Formula.Binary("+", Formula.Name("missing"), Formula.Number(1)))], variables: store);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal("Run.BadExpression", result.Key);
@@ -444,7 +450,7 @@ public partial class MacroRunnerTests
         store.Local.SetText("who", "Ada");
 
         var (_, host) = await RunAsync(
-            [Step("control.log", Param("message", "hello $who"), Param("level", "warn"))],
+            [Step("control.log", Fields.Run("message", Formula.Run([Formula.Text("hello "), Formula.Name("who")])), Param("level", "warn"))],
             variables: store);
 
         var line = host.Entries.Last(entry => entry.Key == "Log.Message");
@@ -458,7 +464,7 @@ public partial class MacroRunnerTests
         var store = Store(("n", 3));
 
         var (_, host) = await RunAsync(
-            [Step("control.log", Param("message", "n is ${$n + 1}"), Param("level", "info"))],
+            [Step("control.log", Fields.Run("message", Formula.Run([Formula.Text("n is "), Formula.Binary("+", Formula.Name("n"), Formula.Number(1))])), Param("level", "info"))],
             variables: store);
 
         var line = host.Entries.Last(entry => entry.Key == "Log.Message");
@@ -466,10 +472,11 @@ public partial class MacroRunnerTests
     }
 
     [Fact]
-    public async Task A_broken_braced_expression_fails_the_step()
+    public async Task A_place_left_unfilled_fails_the_step()
     {
         var (result, _) = await RunAsync(
-            [Step("control.log", Fields.Computed("message", "1 +"), Param("level", "info"))]);
+            [Step("control.log", Fields.Computed("message",
+                Formula.Binary("+", Formula.Number(1), Formula.Hole)), Param("level", "info"))]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
         Assert.Equal(RunKeys.BadExpression, result.Key);

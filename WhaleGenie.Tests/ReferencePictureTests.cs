@@ -48,7 +48,7 @@ public class ReferencePictureTests
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("images");
             Assert.Equal(2, rows.Count);
             Assert.Equal("ok.png", Cells.Spoken(rows[0], "image"));
-            Assert.Equal("$shot", Cells.Spoken(rows[1], "image"));
+            Assert.Equal("shot", Cells.Spoken(rows[1], "image"));
         });
     }
 

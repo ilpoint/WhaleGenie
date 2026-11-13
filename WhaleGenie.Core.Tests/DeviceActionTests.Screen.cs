@@ -79,7 +79,7 @@ public partial class DeviceActionTests
         var (result, _, store) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Hit("match", "spot")),
-            Step("ocr.recognize", RegionFrom("$spot"),
+            Step("ocr.recognize", RegionFrom(Formula.Name("spot")),
                 Returns("text=words")),
         ], devices);
 
@@ -158,7 +158,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
-            Step("ocr.recognize", RegionFrom("get($table, 0)"),
+            Step("ocr.recognize", RegionFrom(Formula.Call("get", Formula.Name("table"), Formula.Number(0))),
                 Returns("text=words")),
         ], devices);
 
@@ -295,7 +295,8 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png")),
-            Step("control.log", Fields.Computed("message", "match + 1")),
+            Step("control.log", Fields.Computed("message",
+                Formula.Binary("+", Formula.Name("match"), Formula.Number(1)))),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -312,7 +313,7 @@ public partial class DeviceActionTests
     {
         var (result, devices, _) = await RunAsync(
         [
-            Step("input.mouseMove", Param("x", "field($match, \"x\")"), Param("y", "40")),
+            Step("input.mouseMove", Param("x", Formula.Call("field", Formula.Name("match"), Formula.Text("x"))), Param("y", "40")),
         ]);
 
         Assert.Equal(RunStatus.Failed, result.Status);
@@ -375,7 +376,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("a.png"), Region((0, 0, 40, 30)),
                 Hit("match", "spot")),
-            Step("vision.findImage", Pictures("b.png"), RegionFrom("$spot"),
+            Step("vision.findImage", Pictures("b.png"), RegionFrom(Formula.Name("spot")),
                 Hit("match", "again")),
         ], devices);
 
@@ -401,7 +402,7 @@ public partial class DeviceActionTests
         [
             Step("vision.findImage", Pictures("a.png"), Region((0, 0, 40, 30)),
                 Hit("match", "spot")),
-            Step("vision.findImage", Pictures("b.png"), RegionFrom("$spot"),
+            Step("vision.findImage", Pictures("b.png"), RegionFrom(Formula.Name("spot")),
                 Param("anchorMode", "window"), Param("window", "Notepad"),
                 Hit("match", "again")),
         ], devices);

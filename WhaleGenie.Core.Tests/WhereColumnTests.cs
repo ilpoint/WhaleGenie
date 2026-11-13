@@ -210,7 +210,7 @@ public class WhereColumnTests
             [
                 Fields.Text("name", "kept"),
                 Fields.Text("scope", "local"),
-                Fields.Text("value", "where($rows, \"age\", \">\", 40)"),
+                Fields.Computed("value", Formula.Call("where", Formula.Name("rows"), Formula.Text("age"), Formula.Text(">"), Formula.Number(40))),
             ],
         };
 

@@ -186,7 +186,7 @@ public partial class MacroRunnerTests
             [
                 new MacroLocal("base", "10"),
                 new MacroLocal("derived", "$base + 1"),
-            ]), [Set("结果", "$derived")]));
+            ]), [Set("结果", Formula.Name("derived"))]));
 
         var (result, _) = await RunAsync([Call("内部", Returns("结果=结果"))],
             variables: store, macros: library);

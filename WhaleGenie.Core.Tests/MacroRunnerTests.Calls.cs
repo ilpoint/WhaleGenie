@@ -22,9 +22,9 @@ public partial class MacroRunnerTests
 
         var (result, _) = await RunAsync(
         [
-            Call("双击", Args(("n", "$n")), Returns("n=n")),
-            Set("中间", "$n"),
-            Call("清空", Args(("n", "$n")), Returns("n=n")),
+            Call("双击", Args(("n", Formula.Name("n"))), Returns("n=n")),
+            Set("中间", Formula.Name("n")),
+            Call("清空", Args(("n", Formula.Name("n"))), Returns("n=n")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -36,11 +36,11 @@ public partial class MacroRunnerTests
     public async Task A_called_macro_reads_what_it_is_passed_and_gives_back_what_is_asked_for()
     {
         var store = Store(("我的数", 41));
-        var library = new Library(Takes("加一", ["输入"], ["结果"], Set("结果", "$输入 + 1")));
+        var library = new Library(Takes("加一", ["输入"], ["结果"], Set("结果", Formula.Binary("+", Formula.Name("输入"), Formula.Number(1)))));
 
         var (result, _) = await RunAsync(
         [
-            Call("加一", Args(("输入", "$我的数")), Returns("结果=结果")),
+            Call("加一", Args(("输入", Formula.Name("我的数"))), Returns("结果=结果")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -52,7 +52,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("倍数", new MacroSignature(
-            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")], []), [Set("结果", "$倍数 * 2")]));
+            [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")], []), [Set("结果", Formula.Binary("*", Formula.Name("倍数"), Formula.Number(2)))]));
 
         var (result, _) = await RunAsync(
             [Call("倍数", Returns("结果=结果"))], variables: store, macros: library);
@@ -67,7 +67,7 @@ public partial class MacroRunnerTests
         var store = Store();
         var library = new Library(("倍数", new MacroSignature(
             [new MacroArgument("倍数", "5", false)], [new MacroReturn("结果")], []),
-            [Set("结果", "$倍数 * 2")]));
+            [Set("结果", Formula.Binary("*", Formula.Name("倍数"), Formula.Number(2)))]));
 
         var (result, _) = await RunAsync(
             [Call("倍数", Returns("结果=结果"))],
@@ -122,7 +122,7 @@ public partial class MacroRunnerTests
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("数量", "", true, ValueKind.Number)],
                 [new MacroReturn("痕迹")], []),
-            [Set("痕迹", "$数量")]));
+            [Set("痕迹", Formula.Name("数量"))]));
 
         var (result, _) = await RunAsync(
             [Step("control.runMacro", Param("macro", "甲"), ArgRow("数量", "", true),
@@ -170,7 +170,7 @@ public partial class MacroRunnerTests
     public async Task An_argument_with_both_a_value_and_the_empty_marker_stops_the_call()
     {
         var store = Store();
-        var library = new Library(Takes("甲", ["次数"], [], Set("痕迹", "$次数")));
+        var library = new Library(Takes("甲", ["次数"], [], Set("痕迹", Formula.Name("次数"))));
 
         // The field says a value and the marker beside it says none. Which one the author meant is
         // a guess, so the call stops instead of picking.
@@ -190,7 +190,7 @@ public partial class MacroRunnerTests
         var store = Store();
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("数量", "", true)], [new MacroReturn("痕迹")], []),
-            [Set("痕迹", "$数量")]));
+            [Set("痕迹", Formula.Name("数量"))]));
 
         var (result, _) = await RunAsync(
         [
@@ -208,7 +208,7 @@ public partial class MacroRunnerTests
         var store = Store();
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("数量", "7", false)], [new MacroReturn("痕迹")], []),
-            [Set("痕迹", "$数量")]));
+            [Set("痕迹", Formula.Name("数量"))]));
 
         var (result, _) = await RunAsync(
         [
@@ -227,7 +227,7 @@ public partial class MacroRunnerTests
         var library = new Library(("甲",
             new MacroSignature([new MacroArgument("数量", "", true, ValueKind.Number)],
                 [new MacroReturn("结果")], []),
-            [Set("结果", "$数量")]));
+            [Set("结果", Formula.Name("数量"))]));
 
         var (result, _) = await RunAsync(
             [Step("control.runMacro", Param("macro", "甲"), Args(("数量", "不是数")))],
@@ -292,7 +292,7 @@ public partial class MacroRunnerTests
     [Fact]
     public async Task A_called_macro_cannot_read_the_callers_own_values()
     {
-        var library = new Library(Takes("读", [], ["结果"], Set("结果", "$只有调用者有 + 1")));
+        var library = new Library(Takes("读", [], ["结果"], Set("结果", Formula.Binary("+", Formula.Name("只有调用者有"), Formula.Number(1)))));
 
         var (result, _) = await RunAsync(
         [
@@ -336,12 +336,12 @@ public partial class MacroRunnerTests
     public async Task An_argument_keeps_the_kind_of_value_it_was_given()
     {
         var store = Store();
-        var library = new Library(Takes("数个数", ["项目"], ["个数"], Set("个数", "count($项目)")));
+        var library = new Library(Takes("数个数", ["项目"], ["个数"], Set("个数", Formula.Call("count", Formula.Name("项目")))));
 
         var (result, _) = await RunAsync(
         [
-            Set("项目", "list(1, 2, 3)"),
-            Call("数个数", Args(("项目", "$项目")), Returns("个数=个数")),
+            Set("项目", Formula.List(Formula.Number(1), Formula.Number(2), Formula.Number(3))),
+            Call("数个数", Args(("项目", Formula.Name("项目"))), Returns("个数=个数")),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -353,7 +353,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("甲", new MacroSignature([], [new MacroReturn("结果")], []),
-            [Set("副本", "$结果")]));
+            [Set("副本", Formula.Name("结果"))]));
 
         var (result, _) = await RunAsync(
             [Call("甲", Returns("结果=取回"))], variables: store, macros: library);
@@ -375,7 +375,7 @@ public partial class MacroRunnerTests
             []));
 
         var (result, _) = await RunAsync(
-            [Call("甲", Args(("n", "$source")), Returns("n=n"))], variables: store,
+            [Call("甲", Args(("n", Formula.Name("source"))), Returns("n=n"))], variables: store,
             macros: library);
 
         // The in-out name is the declared one: the argument arrives as n and the same n comes back.
@@ -394,7 +394,7 @@ public partial class MacroRunnerTests
             [new MacroArgument("数量", string.Empty, true)], [], []);
 
         var (result, _) = await RunAsync(
-            [Set("结果", "$数量 * 2")], variables: store, startSignature: signature,
+            [Set("结果", Formula.Binary("*", Formula.Name("数量"), Formula.Number(2)))], variables: store, startSignature: signature,
             startArguments: [new MacroStartArgument("数量", "5", Given: false)]);
 
         Assert.True(result.Succeeded, result.Key);
@@ -409,7 +409,7 @@ public partial class MacroRunnerTests
             [new MacroArgument("数量", "5", false)], [], []);
 
         var (result, _) = await RunAsync(
-            [Set("结果", "$数量 * 2")], variables: store, startSignature: signature);
+            [Set("结果", Formula.Binary("*", Formula.Name("数量"), Formula.Number(2)))], variables: store, startSignature: signature);
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(10, N(store, "结果"));
@@ -439,7 +439,7 @@ public partial class MacroRunnerTests
             [new MacroArgument("数量", "5", false)], [], []);
 
         var (result, _) = await RunAsync(
-            [Set("结果", "$数量")], variables: store, startSignature: signature,
+            [Set("结果", Formula.Name("数量"))], variables: store, startSignature: signature,
             startArguments: [new MacroStartArgument("数量", string.Empty, Given: true)]);
 
         Assert.True(result.Succeeded, result.Key);
@@ -454,7 +454,7 @@ public partial class MacroRunnerTests
             [new MacroReturn("答案")], []);
 
         var (result, _) = await RunAsync(
-            [Set("副本", "$答案")], variables: store, startSignature: signature);
+            [Set("副本", Formula.Name("答案"))], variables: store, startSignature: signature);
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Equal(string.Empty, store.Local.Values["副本"].AsText());
@@ -539,7 +539,7 @@ public partial class MacroRunnerTests
             Set("记录", "0"),
             Step("control.repeat", Param("times", "3"), Body("body",
                 Call("子循环"),
-                Set("记录", "$记录 * 10 + $sys.loopIndex"))),
+                Set("记录", Formula.Binary("+", Formula.Binary("*", Formula.Name("记录"), Formula.Number(10)), Formula.Name("sys.loopIndex"))))),
         ], variables: store, macros: library);
 
         Assert.True(result.Succeeded);
@@ -556,13 +556,13 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var library = new Library(("对账", new MacroSignature([], [new MacroReturn("看到的")], []),
-            [Set("看到的", "$sys.macroName")]));
+            [Set("看到的", Formula.Name("sys.macroName"))]));
 
         var (result, _) = await RunAsync(
         [
-            Set("外手", "$sys.macroName"),
+            Set("外手", Formula.Name("sys.macroName")),
             Call("对账", Returns("看到的=里手")),
-            Set("回来", "$sys.macroName"),
+            Set("回来", Formula.Name("sys.macroName")),
         ], variables: store, macros: library, runName: "外层");
 
         Assert.True(result.Succeeded, result.Key);
@@ -582,7 +582,7 @@ public partial class MacroRunnerTests
             Set("轮", "0"),
             Step("control.repeat", Param("times", "3"), Body("body",
                 Call("半途"),
-                Set("轮", "$轮 + 1"))),
+                Set("轮", Formula.Binary("+", Formula.Name("轮"), Formula.Number(1))))),
         ], variables: store, macros: library);
 
         // The called macro starts outside every loop, whatever the caller is inside: its break

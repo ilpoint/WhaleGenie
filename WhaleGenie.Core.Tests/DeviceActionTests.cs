@@ -83,6 +83,10 @@ public partial class DeviceActionTests
     private static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
 
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
+
     /// <summary>窗口格写成「沿用上一次用的窗口」时，文件里那一小段标记。</summary>
     private static string Following => WindowRule.FollowPrevious.ToJson().ToJsonString();
 
@@ -143,6 +147,9 @@ public partial class DeviceActionTests
     /// <summary>See <see cref="SampleFiles.RegionFrom"/>: a place that names a variable.</summary>
     private static ExecutableParameter RegionFrom(string named) => SampleFiles.RegionFrom(named);
 
+    private static ExecutableParameter RegionFrom(ExpressionNode written)
+        => SampleFiles.RegionFrom(written);
+
     /// <summary>See <see cref="SampleFiles.Capture"/>: a step that copies one part of the screen.</summary>
     private static ExecutableStep Capture(int x, int y, int width, int height,
         params ExecutableParameter[] rest) => SampleFiles.Capture(x, y, width, height, rest);
@@ -173,11 +180,17 @@ public partial class DeviceActionTests
     /// in the order they are listed.
     /// </summary>
     private static ExecutableParameter Pictures(params string[] written)
+        => Pictures([.. written.Select(text => (ExpressionNode)Cells.Line(text))]);
+
+    private static ExecutableParameter Pictures(params ExpressionNode[] written)
         => new()
         {
             Name = "images",
-            Rows = [.. written.Select(text =>
-                Cells.Of(("image", text)))],
+            Rows = [.. written.Select(value =>
+                new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["image"] = value,
+                })],
         };
 
     /// <summary>One press of a key run, with its own hold or gap where it has one.</summary>
@@ -203,7 +216,7 @@ public partial class DeviceActionTests
     }
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => Fields.Text(name, TestConditions.Expression(step));
+        => Fields.Run(name, TestConditions.Expression(step));
 
     private static async Task<(RunResult Result, FakeDeviceLayer Devices, VariableStore Store)> RunAsync(
         ExecutableStep[] steps, FakeDeviceLayer? devices = null)

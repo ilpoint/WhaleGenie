@@ -18,6 +18,10 @@ public partial class MacroRunnerTests
     private static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
 
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
+
     /// <summary>
     /// What a call passes: one row per argument, the way a saved step writes it. An argument with
     /// no row is one the call left out, so it takes its declared default — which is why a test that
@@ -30,16 +34,28 @@ public partial class MacroRunnerTests
             Rows = [.. arguments.Select(argument => Row(argument.Name, argument.Text, null))],
         };
 
+    /// <summary>The same rows, but with each value already a shape rather than a line.</summary>
+    private static ExecutableParameter Args(params (string Name, ExpressionNode Value)[] arguments)
+        => new()
+        {
+            Name = FieldNames.Arguments,
+            Rows = [.. arguments.Select(argument => Row(argument.Name, argument.Value, null))],
+        };
+
     /// <summary>One argument row, saying whether the empty value is the value.</summary>
     private static ExecutableParameter ArgRow(string name, string text, bool? given)
         => new() { Name = FieldNames.Arguments, Rows = [Row(name, text, given)] };
 
     private static IReadOnlyDictionary<string, ExpressionNode> Row(string name, string text, bool? given)
+        => Row(name, Cells.Line(text), given);
+
+    private static IReadOnlyDictionary<string, ExpressionNode> Row(string name, ExpressionNode value,
+        bool? given)
     {
         var row = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
             [FieldNames.Name] = Cells.Line(name),
-            [FieldNames.Value] = Cells.Line(text),
+            [FieldNames.Value] = value,
         };
         if (given is { } written)
         {
@@ -60,12 +76,18 @@ public partial class MacroRunnerTests
         => Fields.Steps(name, steps);
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => Fields.Text(name, TestConditions.Expression(step));
+        => Fields.Run(name, TestConditions.Expression(step));
 
     private static ExecutableStep Set(string name, string value)
         => Step("control.setVariable", Param("name", name), Param("scope", "local"), Param("value", value));
 
-    private static ExecutableStep AddOne(string name) => Set(name, "$" + name + " + 1");
+    /// <summary>A variable given a shape rather than a line: a reference, a call, or an operation.</summary>
+    private static ExecutableStep Set(string name, ExpressionNode value)
+        => Step("control.setVariable", Param("name", name), Param("scope", "local"),
+            Fields.Computed("value", value));
+
+    private static ExecutableStep AddOne(string name)
+        => Set(name, Formula.Binary("+", Formula.Name(name), Formula.Number(1)));
 
     /// <summary>
     /// A step that fails however it is run: a key press with no device layer behind it reports

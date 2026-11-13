@@ -211,7 +211,10 @@ public partial class DeviceActionTests
             Step("control.setVariable", Param("name", "side"), Param("value", "#00FF00")),
             Step("vision.findColors", Param("color", "#FF0000"),
                 // $dx + 1 是零加一，落在右边那一格：变量与算式都算数。
-                Points(("$dx + 1", "$dy", "$side"), ("0", "1", "#0000FF")), Param("tolerance", "1"),
+                Fields.Rows("points",
+                Cells.Of(("dx", Formula.Binary("+", Formula.Name("dx"), Formula.Number(1))),
+                    ("dy", Formula.Name("dy")), ("colour", Formula.Name("side"))),
+                Cells.Of(("dx", "0"), ("dy", "1"), ("colour", "#0000FF"))), Param("tolerance", "1"),
                 Region((0, 0, 3, 3)),
                 Hit("match", "spot"), Returns("found=yes")),
         ], devices);

@@ -251,7 +251,7 @@ public partial class MacroRunnerTests
         using var stop = new CancellationTokenSource();
         var running = RunAsync(
         [
-            Step("control.setVariable", Param("name", "order"), Param("value", "list()")),
+            Step("control.setVariable", Param("name", "order"), Param("value", Formula.List())),
             Try(
                 Body("body",
                     Try(
@@ -484,7 +484,7 @@ public partial class MacroRunnerTests
                     Param("variable", "caught.key"),
                     Param("compareOperator", "equals"),
                     Param("compareValue", "Run.StepFailedByMacro"))),
-                Body("catch", Set("seen", "$caught.key"), Set("detail", "$caught.detail")),
+                Body("catch", Set("seen", Formula.Name("caught.key")), Set("detail", Formula.Name("caught.detail"))),
                 Body("finally", Set("tidied", "1"))),
             Set("after", "1"),
         ], variables: store);
@@ -514,7 +514,7 @@ public partial class MacroRunnerTests
                     Param("variable", "caught.key"),
                     Param("compareOperator", "equals"),
                     Param("compareValue", "User.NoScreen"))),
-                Body("catch", Set("seen", "$caught.key"))),
+                Body("catch", Set("seen", Formula.Name("caught.key")))),
         ], variables: store);
 
         Assert.True(result.Succeeded, result.Key);
@@ -573,11 +573,11 @@ public partial class MacroRunnerTests
             Try(
                 Body("body", Fails),
                 Body("catch",
-                    Set("outer", "$caught.key"),
+                    Set("outer", Formula.Name("caught.key")),
                     Try(
                         Body("body", Step("control.fail", Param("reason", "inner"))),
-                        Body("catch", Set("inner", "$caught.key"))),
-                    Set("outerAgain", "$caught.key"))),
+                        Body("catch", Set("inner", Formula.Name("caught.key")))),
+                    Set("outerAgain", Formula.Name("caught.key")))),
         ], variables: store);
 
         Assert.True(result.Succeeded, result.Key);

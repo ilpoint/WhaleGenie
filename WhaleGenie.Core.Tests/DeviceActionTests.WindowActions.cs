@@ -420,7 +420,7 @@ public partial class DeviceActionTests
         [
             Step("file.readCsv", Param("path", "in.csv"), Returns("rows=table")),
             Step("window.move", Param("window", "Notepad"),
-                Param("rect", "get($table, 0)")),
+                Param("rect", Formula.Call("get", Formula.Name("table"), Formula.Number(0)))),
         ], devices);
 
         Assert.Equal(RunStatus.Failed, result.Status);

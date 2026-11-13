@@ -157,7 +157,7 @@ internal static class BenchFixtures
         ["extension"] = "ps1",
         ["packages"] = "requests",
         ["name"] = ListName,
-        ["items"] = "$" + ListName,
+        ["items"] = ListName,
         ["listIndex"] = "1",
         ["item"] = "bench",
         ["note"] = "bench",
@@ -187,7 +187,7 @@ internal static class BenchFixtures
         ["columns"] = "a,b",
         ["matchColumn"] = "a",
         ["matchValue"] = "1",
-        ["rows"] = "$" + RowsName,
+        ["rows"] = RowsName,
         ["header"] = "a,b",
         ["query"] = "a",
         ["writeValue"] = "1",
@@ -341,7 +341,9 @@ internal static class BenchFixtures
         if (parameter.Shape is not (ActionValueShape.Rows or ActionValueShape.Steps)
             && ByName.TryGetValue(parameter.Name, out var named))
         {
-            return Fields.Text(parameter.Name, named);
+            return parameter.Name is "items" or "rows"
+                ? Fields.Reference(parameter.Name, named)
+                : Fields.Text(parameter.Name, named);
         }
 
         switch (parameter.Shape)

@@ -130,7 +130,7 @@ public partial class DeviceActionTests
             // A list is built as an expression value and handed straight over, which is what a
             // macro does after reading a folder.
             Step("control.setVariable", Param("name", "chosen"),
-                Param("value", "list(\"G:/fake/a.txt\", \"G:/fake/b.txt\")")),
+                Param("value", Formula.Call("list", Formula.Text("G:/fake/a.txt"), Formula.Text("G:/fake/b.txt")))),
             Step("clipboard.writeFiles", Fields.Reference("files", "chosen")),
         ], devices);
 

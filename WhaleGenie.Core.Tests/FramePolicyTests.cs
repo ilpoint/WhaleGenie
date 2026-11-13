@@ -25,6 +25,10 @@ public class FramePolicyTests
     private static ExecutableParameter Param(string name, string text = "")
         => Fields.Text(name, text);
 
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
+
     private static ExecutableParameter Region(int x, int y, int width, int height)
         => SampleFiles.Region((x, y, width, height));
 

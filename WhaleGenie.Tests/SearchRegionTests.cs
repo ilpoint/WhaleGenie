@@ -55,7 +55,7 @@ public class SearchRegionTests
             Assert.Equal("20", Cells.Spoken(rows[0], "y"));
             Assert.Equal("30", Cells.Spoken(rows[0], "width"));
             Assert.Equal("40", Cells.Spoken(rows[0], "height"));
-            Assert.Equal("$shot", Cells.Spoken(rows[1], "text"));
+            Assert.Equal("shot", Cells.Spoken(rows[1], "text"));
         });
     }
 
@@ -89,7 +89,7 @@ public class SearchRegionTests
 
             var rows = Assert.Single(new[] { saved! }.ToExecutable()).Rows("region");
             var written = Assert.Single(rows);
-            Assert.Equal("$left", Cells.Spoken(written, "x"));
+            Assert.Equal("left", Cells.Spoken(written, "x"));
             Assert.Equal("20", Cells.Spoken(written, "y"));
             Assert.Equal("30", Cells.Spoken(written, "width"));
             Assert.Equal("40", Cells.Spoken(written, "height"));
