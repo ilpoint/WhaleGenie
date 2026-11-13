@@ -112,20 +112,12 @@ public sealed partial class BreakpointViewModel : ObservableObject
     }
 
     /// <summary>
-    /// The condition as the formula line the value window starts from. Rendered out, never read
-    /// back: the window's own answer is a shape, and it replaces <see cref="Expression"/> whole.
-    /// </summary>
-    public string ExpressionSeed => Formula.IsNothing(_expression)
-        ? string.Empty
-        : WhaleGenie.Core.Expressions.Expression.Render(_expression, bare: true);
-
-    /// <summary>
     /// The one check every expression field in the program gets: what it comes to when that can be
     /// worked out here, and why it cannot be read when the mistake is certain.
     /// </summary>
     private void CheckExpression()
     {
-        var (message, failed) = NumberField.Check(ExpressionSeed, Variables);
+        var (message, failed) = NumberField.Check(_expression, Variables);
         ExpressionMessage = message;
         HasExpressionError = failed;
     }

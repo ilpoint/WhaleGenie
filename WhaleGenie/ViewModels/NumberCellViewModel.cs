@@ -19,6 +19,9 @@ public partial class NumberCellViewModel : ViewModelBase
     /// <summary>True while a whole value is being put in at once, rather than typed a character at a time.</summary>
     private bool _writing;
 
+    /// <summary>The value this cell keeps. The boxes and their line are drawn from it.</summary>
+    private ExpressionNode _shape = Formula.Nothing;
+
     /// <summary>
     /// One number of a place to look: what it is called, one line saying what it counts from, and
     /// what the box says while it is empty. The last one is given rather than worked out because
@@ -60,6 +63,9 @@ public partial class NumberCellViewModel : ViewModelBase
     /// writing an expression there looks like.
     /// </summary>
     public string Placeholder => _placeholder ?? Strings.Get("Add.FormulaPlaceholder");
+
+    /// <summary>The shape the value window starts from, which is the value this cell keeps.</summary>
+    public ExpressionNode Seed => _shape;
 
     /// <summary>What this number says, whether it is a plain number or a formula.</summary>
     [ObservableProperty]
@@ -110,12 +116,16 @@ public partial class NumberCellViewModel : ViewModelBase
     /// a plain number is a number and anything else is an expression, and this decides that from
     /// what is written rather than from what was here a moment ago.
     /// </summary>
-    public void Write(ExpressionNode value) => Write(Expression.Render(value, bare: true));
+    public void Write(ExpressionNode value) => Put(Expression.Render(value, bare: true), value);
 
     public void Write(string? value)
+        => Put(value, Formula.FromFormula((value ?? string.Empty).Trim()));
+
+    private void Put(string? value, ExpressionNode shape)
     {
         var written = (value ?? string.Empty).Trim();
         var formula = written.Length > 0 && !NumberField.IsNumberText(written);
+        _shape = shape;
         _writing = true;
         try
         {
@@ -142,6 +152,7 @@ public partial class NumberCellViewModel : ViewModelBase
         _writing = true;
         try
         {
+            _shape = Formula.Number((double)value);
             IsFormula = false;
             Number = value;
             Text = value.ToString("0.####", CultureInfo.InvariantCulture);
@@ -184,6 +195,7 @@ public partial class NumberCellViewModel : ViewModelBase
         _writing = true;
         try
         {
+            _shape = Formula.Nothing;
             Text = string.Empty;
             Number = null;
             IsFormula = false;
@@ -206,6 +218,10 @@ public partial class NumberCellViewModel : ViewModelBase
         {
             return;
         }
+
+        // Typing is the one place a line becomes a shape: the box is edited a character at a time,
+        // and the value the cell keeps follows what the person wrote.
+        _shape = Formula.FromFormula(value);
 
         // What is in the box decides which box it is: a plain number is the numbered one, and
         // clearing it goes back there, so the way back from a formula is simply to empty it.
@@ -231,8 +247,9 @@ public partial class NumberCellViewModel : ViewModelBase
         _writing = true;
         try
         {
-            Text = value is { } number
-                ? number.ToString("0.####", CultureInfo.InvariantCulture)
+            _shape = value is { } number ? Formula.Number((double)number) : Formula.Nothing;
+            Text = value is { } written
+                ? written.ToString("0.####", CultureInfo.InvariantCulture)
                 : string.Empty;
         }
         finally

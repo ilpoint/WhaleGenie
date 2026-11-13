@@ -57,7 +57,7 @@ public partial class ConditionEditorView : UserControl
     private async Task OpenValue(ConditionNodeViewModel node, ConditionEditorViewModel editor,
         Window owner, bool right, bool startOnFormula)
     {
-        var seed = right ? node.Right : node.Left;
+        var seed = right ? node.RightNode : node.LeftNode;
         if (await ValuePickerWindow.ShowFor(owner, seed, editor.Variables,
                 ActionValueForm.Value, bareNames: true,
                 startOnFormula: startOnFormula, startCaret: CaretIn(node) ?? -1) is { Chosen: true } written)

@@ -32,7 +32,7 @@ public partial class MacroInterfaceView : UserControl
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(owner, row.DefaultSeed,
+        if (await ValuePickerWindow.ShowFor(owner, row.Default,
                 Model?.ValueVariables ?? [], ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
             row.Default = built.Value;

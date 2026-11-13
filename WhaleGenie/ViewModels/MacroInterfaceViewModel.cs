@@ -429,7 +429,6 @@ public sealed partial class MacroParameterRow : ViewModelBase
             Model.Default = value;
             OnPropertyChanged(nameof(Default));
             OnPropertyChanged(nameof(DefaultValue));
-            OnPropertyChanged(nameof(DefaultSeed));
             _changed();
         }
     }
@@ -438,14 +437,6 @@ public sealed partial class MacroParameterRow : ViewModelBase
     /// What the box shows. Only out: a value is written through the value window, never typed here.
     /// </summary>
     public string DefaultValue => Formula.Speak(Model.Default);
-
-    /// <summary>
-    /// The line the value window starts from. Rendered out and never read back; an empty declaration
-    /// opens a window holding nothing rather than a quoted empty word.
-    /// </summary>
-    public string DefaultSeed => Formula.IsNothing(Model.Default)
-        ? string.Empty
-        : Expression.Render(Model.Default, bare: true);
 
     public bool Required
     {

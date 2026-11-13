@@ -126,7 +126,6 @@ public sealed partial class LocalVariableDraft : ObservableObject
             _initial = value;
             OnPropertyChanged(nameof(Initial));
             OnPropertyChanged(nameof(InitialValue));
-            OnPropertyChanged(nameof(InitialSeed));
             OnPropertyChanged(nameof(InitialPreview));
             OnPropertyChanged(nameof(HasInitialError));
             OnPropertyChanged(nameof(IsChanged));
@@ -143,14 +142,6 @@ public sealed partial class LocalVariableDraft : ObservableObject
     /// What the box shows. Only out: a value is written through the value window, never typed here.
     /// </summary>
     public string InitialValue => Formula.Speak(_initial);
-
-    /// <summary>
-    /// The line the value window starts from. Rendered out and never read back; an empty declaration
-    /// opens a window holding nothing rather than a quoted empty word.
-    /// </summary>
-    public string InitialSeed => Formula.IsNothing(_initial)
-        ? string.Empty
-        : Expression.Render(_initial, bare: true);
 
     [ObservableProperty]
     public partial string Description { get; set; } = string.Empty;

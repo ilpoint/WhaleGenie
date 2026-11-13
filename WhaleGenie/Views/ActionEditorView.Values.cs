@@ -36,7 +36,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
+        if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
                 parameter.Variables, parameter.Definition.ValueForm, parameter.ReadAsFormula,
                 startOnFormula: true, target: parameter.Label) is { Chosen: true } built)
         {
@@ -56,7 +56,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Text, cell.Variables,
+        if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Seed, cell.Variables,
                 ActionValueForm.Value, bareNames: true, startOnFormula: true) is { Chosen: true } built)
         {
             cell.Write(built.Value);
@@ -119,10 +119,10 @@ public partial class ActionEditorView : UserControl
         // caret where it was; a field that only fills names in opens it on the list of names.
         if (parameter.OffersFormula)
         {
-            if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentText,
+            if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
                     parameter.Variables, parameter.Definition.ValueForm, parameter.ReadAsFormula,
                     startOnFormula: true, target: parameter.Label,
-                    startCaret: caret ?? parameter.CurrentText.Length) is { Chosen: true } written)
+                    startCaret: caret ?? -1) is { Chosen: true } written)
             {
                 parameter.WriteValue(written.Value);
             }
@@ -152,7 +152,7 @@ public partial class ActionEditorView : UserControl
         var variables = ((AddActionViewModel)DataContext).CollectVariables()
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
-        if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultSeed,
+        if (await ValuePickerWindow.ShowFor(HostWindow!, draft.Default,
                 variables, ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
             draft.Default = built.Value;

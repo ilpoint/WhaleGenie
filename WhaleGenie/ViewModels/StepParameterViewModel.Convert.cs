@@ -24,7 +24,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         Name = Definition.Name,
         Kind = Definition.Kind,
-        Written = WrittenValue(),
+        Written = CurrentShape,
         // A blank field carries nothing to move, so a give typed beside nothing is dropped with it.
         Jitter = IsIncluded && JitterPercent is > 0m
             ? Math.Min(100m, JitterPercent.Value) / 100m
@@ -50,13 +50,14 @@ public partial class StepParameterViewModel : ViewModelBase
     };
 
     /// <summary>
-    /// The value as the shape the step keeps. The field is read the way its own definition says it
-    /// is read — a name is a name, a whole value is an expression or a piece of text, a field of
-    /// text has the names in it filled in where they stand — and it is read once, here, because
-    /// this is the place that knows what the field is for. Past this point a value is a shape: the
-    /// engine and the file both take it as it is.
+    /// The value as the shape the step keeps, and the shape the value window starts from. The field
+    /// is read the way its own definition says it is read — a name is a name, a whole value is an
+    /// expression or a piece of text, a field of text has the names in it filled in where they
+    /// stand — and it is read once, here, because this is the place that knows what the field is
+    /// for. Past this point a value is a shape: the engine, the file and the window all take it as
+    /// it is.
     /// </summary>
-    private ExpressionNode WrittenValue()
+    public ExpressionNode CurrentShape
         => Definition.NamesVariable
             ? new VariableNode(CurrentText.Trim(), _boundId)
             : ShowsParts || ReadAsFormula

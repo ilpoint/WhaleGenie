@@ -162,15 +162,6 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
         return values;
     }
 
-    /// <summary>
-    /// The values as the formula line the value window starts from. Rendered out, never read back;
-    /// a branch that says nothing opens a window that says nothing, rather than one holding the
-    /// quoted empty word a renderer would draw for it.
-    /// </summary>
-    public string CaseValuesSeed => Formula.IsNothing(CaseValuesNode)
-        ? string.Empty
-        : Expression.Render(CaseValuesNode, bare: true);
-
     /// <summary>True when this branch says which values it answers to.</summary>
     public bool HasCaseValues => CaseValues.Length > 0;
 
@@ -221,7 +212,6 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValues)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesText)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesNode)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CaseValuesSeed)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HeadLabel)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasCaseValues)));
     }

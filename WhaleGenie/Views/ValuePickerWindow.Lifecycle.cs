@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -102,18 +103,19 @@ public partial class ValuePickerWindow : AppWindow
     public int StartCaret { get; init; } = -1;
 
     /// <summary>
-    /// Opens the window on a cell. A cell that only holds a name passes
-    /// <see cref="ActionValueForm.Name"/>: a formula there is written down as the name
-    /// itself, so offering one would be a promise the step cannot keep. Every other cell says how
-    /// it is read, and the window checks the line the same way the field will read it.
+    /// Opens the window on a cell. The cell hands over the shape it holds, never a line written out
+    /// for the window: the shape is what the field keeps and what the window gives back. A cell that
+    /// only holds a name passes <see cref="ActionValueForm.Name"/>: a formula there is written down
+    /// as the name itself, so offering one would be a promise the step cannot keep.
     /// </summary>
-    public static async Task<ValuePick> ShowFor(Window owner, string? seed,
+    public static async Task<ValuePick> ShowFor(Window owner, ExpressionNode? seed,
         IReadOnlyList<VariableChoice>? variables,
         ActionValueForm valueForm = ActionValueForm.Value, bool bareNames = false,
         bool startOnFormula = false, string? target = null, int startCaret = -1,
         Action<MacroStep>? lookAtStep = null)
     {
-        var viewModel = new ValuePickerViewModel(seed, variables, valueForm, bareNames, target);
+        var viewModel = new ValuePickerViewModel(SeedLine(seed, bareNames),
+            variables, valueForm, bareNames, target);
         if (lookAtStep is not null)
         {
             viewModel.Jumped += lookAtStep;
@@ -127,6 +129,22 @@ public partial class ValuePickerWindow : AppWindow
 
         return await window.ShowDialog<ValuePick>(owner) ?? ValuePick.Cancelled;
     }
+
+    /// <summary>
+    /// The one place this window's entry point draws a shape as a line, and only because the window
+    /// still edits one. The line is written in the spelling the window will read it back with: bare
+    /// names when it reads bare names, the marked spelling otherwise. A shape that says nothing
+    /// opens an empty window rather than one holding the quoted empty word a renderer would draw
+    /// for it. Nothing here is read back into a value — what the window hands back is a shape, and
+    /// the line is forgotten. A line cannot carry the identity a bound name has, so this projection
+    /// is a bridge to be removed when the window keeps the shape itself.
+    /// </summary>
+    internal static string SeedLine(ExpressionNode? seed, bool bareNames)
+        => seed is null || Formula.IsNothing(seed)
+            ? string.Empty
+            : bareNames
+                ? Expression.Render(seed, bare: true)
+                : FormulaText.Write(seed);
 
     /// <summary>
     /// Writes one piece at the insertion point. The window stays open either way: a formula is built

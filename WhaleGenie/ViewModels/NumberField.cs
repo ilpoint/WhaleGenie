@@ -52,6 +52,31 @@ internal static class NumberField
             : Strings.Format("Add.ExpressionResult", value.AsText()), false);
     }
 
+    /// <summary>
+    /// The same check for a field that already keeps a shape. Nothing is written out to be read
+    /// back: the tree is worked out as it stands, and the line under the box says the same thing it
+    /// would say for the line that tree came from.
+    /// </summary>
+    public static (string Message, bool Failed) Check(ExpressionNode written,
+        IReadOnlyList<string> known)
+    {
+        if (Formula.IsNothing(written))
+        {
+            return (string.Empty, false);
+        }
+
+        if (!Expression.TryEvaluate(written, new KnownVariables(known), out var value, out var error))
+        {
+            return Certain(error!.Code)
+                ? (ExpressionText.Describe(error), true)
+                : (Strings.Get("Add.ExpressionWhenRun"), false);
+        }
+
+        return Expression.References(written).Count > 0
+            ? (Strings.Get("Add.ExpressionValid"), false)
+            : (Strings.Format("Add.ExpressionResult", value.AsText()), false);
+    }
+
     /// <summary>True when the formula reads a variable, so what it comes to is only known at the run.</summary>
     private static bool Names(string source)
         => Expression.TryParse(source, out var tree, out _, bare: true)

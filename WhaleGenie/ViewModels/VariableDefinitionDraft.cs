@@ -101,7 +101,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
             _default = value;
             OnPropertyChanged(nameof(Default));
             OnPropertyChanged(nameof(DefaultValue));
-            OnPropertyChanged(nameof(DefaultSeed));
             OnPropertyChanged(nameof(DefaultPreview));
             OnPropertyChanged(nameof(DefaultHasError));
             OnPropertyChanged(nameof(IsChanged));
@@ -119,14 +118,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         get => Formula.Speak(_default);
         set => Default = Formula.Text(value ?? string.Empty);
     }
-
-    /// <summary>
-    /// The formula line the value window starts from. Rendered out, never read back; an empty
-    /// declaration opens a window that says nothing rather than one holding a quoted empty word.
-    /// </summary>
-    public string DefaultSeed => Formula.IsNothing(_default)
-        ? string.Empty
-        : Expression.Render(_default, bare: true);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsChanged))]
