@@ -28,6 +28,16 @@ public abstract partial class SlotNode : ViewModelBase
     public int Length { get; init; }
 
     /// <summary>
+    /// The walk from the value's root to the shape this piece draws. A piece built from a shape
+    /// tree knows where it stands in that tree, so a caret, a removal and a drop all name the same
+    /// place without measuring characters in a line. Null on a piece read from a line of text.
+    /// </summary>
+    public NodePath? Path { get; init; }
+
+    /// <summary>The shape this piece stands for, or null for a place that holds nothing yet.</summary>
+    public ExpressionNode? Source { get; init; }
+
+    /// <summary>
     /// What stands in front of it inside its parent: the comma between two arguments. Written on the
     /// child because the child is what a template draws, and a function body is one row of children.
     /// </summary>

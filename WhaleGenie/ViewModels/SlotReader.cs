@@ -20,7 +20,7 @@ namespace WhaleGenie.ViewModels;
 /// begins and ends, which is what keeps the band and the parser from disagreeing about the line.
 /// </para>
 /// </summary>
-internal sealed class SlotReader
+internal sealed partial class SlotReader
 {
     private readonly string _text;
     private readonly IReadOnlyList<ExpressionToken> _tokens;
