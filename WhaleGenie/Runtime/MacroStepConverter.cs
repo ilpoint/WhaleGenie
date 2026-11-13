@@ -35,13 +35,13 @@ public static class MacroStepConverter
     /// nothing reads it again here — a second reading would be a second place to get it wrong.
     /// </summary>
     private static ExecutableParameter Convert(StepParameter parameter, Counter counter) => new()
-        {
-            Name = parameter.Name,
-            Written = parameter.Written,
-            Jitter = parameter.Jitter,
-            Steps = [.. parameter.Steps.Select(step => Convert(step, counter))],
-            Rows = [.. parameter.Rows.Select(Row)],
-        };
+    {
+        Name = parameter.Name,
+        Written = parameter.Written,
+        Jitter = parameter.Jitter,
+        Steps = [.. parameter.Steps.Select(step => Convert(step, counter))],
+        Rows = [.. parameter.Rows.Select(Row)],
+    };
 
     /// <summary>
     /// One row of a list parameter. Every column says a piece of what the row is, so a name written

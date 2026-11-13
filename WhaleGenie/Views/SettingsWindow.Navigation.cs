@@ -22,7 +22,7 @@ public partial class SettingsWindow
 {
     /// <summary>
     /// Which page is open: the tabs at the top, the list on the left, and the
-/// selection the two of them share.
+    /// selection the two of them share.
     /// </summary>
     /// <summary>Shows the page the panel's selection stands for.</summary>
     private void OnNavSelectionChanged(object? sender, FANavigationViewSelectionChangedEventArgs e)

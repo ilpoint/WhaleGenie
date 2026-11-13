@@ -22,7 +22,7 @@ public partial class SettingsWindow
 {
     /// <summary>
     /// The menu rules: choosing one, moving it, and dragging it to a new place in the
-/// list.
+    /// list.
     /// </summary>
     // The row being dragged and where the drag started, kept for the length of one gesture.
     private MenuRuleRow? _ruleDragSource;

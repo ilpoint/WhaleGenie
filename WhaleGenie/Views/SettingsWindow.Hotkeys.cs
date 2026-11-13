@@ -22,7 +22,7 @@ public partial class SettingsWindow
 {
     /// <summary>
     /// Keys typed into the settings window: they belong to the interface rather than to a
-/// macro, so a capture can hold a combination without setting one off.
+    /// macro, so a capture can hold a combination without setting one off.
     /// </summary>
     private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
     {

@@ -90,7 +90,7 @@ public class McpRunTests : IDisposable
                         ["draftId"] = draft,
                     })).RootElement;
 
-                Assert.Equal("Completed", answer.GetProperty("status").GetString());                Assert.Equal(1, answer.GetProperty("steps").GetInt32());
+                Assert.Equal("Completed", answer.GetProperty("status").GetString()); Assert.Equal(1, answer.GetProperty("steps").GetInt32());
 
                 var outcome = answer.GetProperty("outcomes").EnumerateArray()
                     .Single(item => item.GetProperty("stepId").GetString() == stepId);
