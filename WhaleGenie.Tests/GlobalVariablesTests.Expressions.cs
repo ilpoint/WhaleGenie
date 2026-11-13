@@ -84,7 +84,7 @@ public partial class GlobalVariablesTests
             Name = "derivedCount",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
-            DefaultValue = "$baseCount + 1",
+            Default = Formula.Binary("+", Formula.Name("baseCount"), Formula.Number(1)),
         };
         VariableCatalog.Globals.Add(source);
         VariableCatalog.Globals.Add(derived);
@@ -127,7 +127,7 @@ public partial class GlobalVariablesTests
         manager.NewCommand.Execute(null);
         manager.Selected!.Name = "derivedCount";
         manager.Selected.Type = "number";
-        manager.Selected.DefaultValue = "$baseCount + 2";
+        manager.Selected.Default = Formula.Binary("+", Formula.Name("baseCount"), Formula.Number(2));
 
         Assert.False(manager.Selected.DefaultHasError);
         Assert.Equal("5", manager.Selected.DefaultPreview);

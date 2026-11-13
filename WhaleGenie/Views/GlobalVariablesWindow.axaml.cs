@@ -108,10 +108,10 @@ public partial class GlobalVariablesWindow : AppWindow
 
     private async void OnDefaultExpression(VariableDefinitionDraft row)
     {
-        if (await ValuePickerWindow.ShowFor(this, row.DefaultValue,
+        if (await ValuePickerWindow.ShowFor(this, row.DefaultSeed,
                 ExpressionVariablesBefore(row), ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
-            row.DefaultValue = FormulaText.Write(built.Value);
+            row.Default = built.Value;
         }
     }
 

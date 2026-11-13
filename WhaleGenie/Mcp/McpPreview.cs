@@ -244,7 +244,7 @@ public static class McpPreview
 
     private static bool SameDefinition(VariableDefinition was, VariableDefinition now)
         => was.Type == now.Type
-            && string.Equals(was.DefaultValue, now.DefaultValue, StringComparison.Ordinal)
+            && Equals(was.Default, now.Default)
             && string.Equals(was.Description, now.Description, StringComparison.Ordinal)
             && was.Scope == now.Scope
             && was.PersistValue == now.PersistValue;

@@ -220,7 +220,7 @@ public partial class MacroEditorViewModel
             var definition = VariableCatalog.FindGlobal(name);
             return definition is null
                 ? null
-                : VariableDefinition.Preview(definition.Type, definition.DefaultValue);
+                : VariableDefinition.Preview(definition.Type, definition.Default);
         }
 
         if (scope is VariableScope.System)

@@ -50,14 +50,15 @@ public partial class VariableDefinition : ObservableObject
     public partial ExpressionNode Default { get; set; } = Formula.Nothing;
 
     /// <summary>
-    /// The starting value as the line a form shows. Setting it reads the line into a shape, which is
-    /// what a person typing into the field does; a value that arrives as a shape is set through
-    /// <see cref="Default"/> instead, so nothing it carries is lost on the way in.
+    /// The starting value as the line a form shows. This is a rendering, never a second value:
+    /// words typed into the field are kept as the words they are, with nothing in them parsed and
+    /// no sign in front of a name. A name or a formula arrives as a shape through
+    /// <see cref="Default"/> instead.
     /// </summary>
     public string DefaultValue
     {
-        get => FormulaText.Write(Default);
-        set => Default = Formula.FromText(value);
+        get => Formula.Speak(Default);
+        set => Default = Formula.Text(value ?? string.Empty);
     }
 
     /// <summary>Macro that owns a local variable; empty for system and global variables.</summary>
@@ -91,13 +92,23 @@ public partial class VariableDefinition : ObservableObject
     /// How the starting value reads to the user. A list shows what is inside it, so its
     /// contents can be checked without opening the macro that fills it in.
     /// </summary>
-    public string DefaultPreview => Preview(Type, DefaultValue);
+    public string DefaultPreview => Preview(Type, Default);
 
     /// <summary>True while <see cref="DefaultPreview"/> explains a problem.</summary>
-    public bool DefaultHasError => HasError(Type, DefaultValue);
+    public bool DefaultHasError => HasError(Type, Default);
 
     /// <summary>True while the preview shows what the list holds rather than a problem.</summary>
     public bool ShowDefaultSummary => IsList && !DefaultHasError;
+
+    /// <summary>Reads a starting value that is already the shape it was written as.</summary>
+    public static string Preview(ValueKind type, ExpressionNode shape)
+        => type is not ValueKind.List
+            ? VariableValues.Preview(type, shape, VariableValues.DesignContext())
+            : Preview(type, Formula.Speak(shape));
+
+    /// <summary>True when a shape cannot be read for the given type.</summary>
+    public static bool HasError(ValueKind type, ExpressionNode shape)
+        => VariableValues.HasError(type, shape, VariableValues.DesignContext());
 
     /// <summary>Reads a starting value the way the Variable Center shows it.</summary>
     public static string Preview(ValueKind type, string value)

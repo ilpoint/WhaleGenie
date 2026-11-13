@@ -341,7 +341,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
             foreach (var row in Rows)
             {
                 row.Resolver = context;
-                if (VariableValues.TryRead(VariableTypes.KindOf(row.Type), row.DefaultValue, context,
+                if (VariableValues.TryRead(VariableTypes.KindOf(row.Type), row.Default, context,
                         out var value, out _)
                     && VariableName.IsName(row.Name.Trim()))
                 {

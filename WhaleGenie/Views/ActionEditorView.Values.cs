@@ -152,10 +152,10 @@ public partial class ActionEditorView : UserControl
         var variables = ((AddActionViewModel)DataContext).CollectVariables()
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
-        if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultValue,
+        if (await ValuePickerWindow.ShowFor(HostWindow!, draft.DefaultSeed,
                 variables, ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
-            draft.DefaultValue = FormulaText.Write(built.Value);
+            draft.Default = built.Value;
         }
     }
 

@@ -60,7 +60,7 @@ public partial class RunViewModel
                     ? value.AsText()
                     : String.IsNullOrWhiteSpace(shared.DefaultValue)
                         ? Strings.Get("Variable.NotSet")
-                        : VariableDefinition.Preview(shared.Type, shared.DefaultValue),
+                        : VariableDefinition.Preview(shared.Type, shared.Default),
             });
         }
 
@@ -72,7 +72,7 @@ public partial class RunViewModel
                 Scope = variable.Scope,
                 Type = variable.Type,
                 Description = variable.Description,
-                DefaultValue = variable.DefaultValue,
+                Default = variable.Default,
             };
 
             // What a macro would read right now, which is what this page is about: the value a step
@@ -314,7 +314,7 @@ public partial class RunViewModel
         {
             VariableScope.System when live.TryGetValue(usage.Name, out var current) => current,
             VariableScope.Global when globals.TryGetValue(usage.Name, out var shared)
-                && shared.DefaultValue.Length > 0 => VariableDefinition.Preview(shared.Type, shared.DefaultValue),
+                && shared.DefaultValue.Length > 0 => VariableDefinition.Preview(shared.Type, shared.Default),
             _ => Strings.Get("Variable.NotSet"),
         };
 

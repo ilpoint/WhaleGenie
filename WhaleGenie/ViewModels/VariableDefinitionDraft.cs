@@ -25,7 +25,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         Name = source?.Name ?? string.Empty;
         Type = source is { } given ? VariableTypes.Name(given.Type) : "text";
         OriginalType = Type;
-        DefaultValue = source?.DefaultValue ?? string.Empty;
+        Default = source?.Default ?? Formula.Nothing;
         OriginalDefaultValue = DefaultValue;
         Description = source?.Description ?? string.Empty;
         OriginalDescription = Description;
@@ -87,11 +87,46 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsChanged))]
     public partial string Type { get; set; } = "text";
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DefaultPreview))]
-    [NotifyPropertyChangedFor(nameof(DefaultHasError))]
-    [NotifyPropertyChangedFor(nameof(IsChanged))]
-    public partial string DefaultValue { get; set; } = string.Empty;
+    /// <summary>The starting value as the shape the declaration will keep. The only value here.</summary>
+    public ExpressionNode Default
+    {
+        get => _default;
+        set
+        {
+            if (Equals(_default, value))
+            {
+                return;
+            }
+
+            _default = value;
+            OnPropertyChanged(nameof(Default));
+            OnPropertyChanged(nameof(DefaultValue));
+            OnPropertyChanged(nameof(DefaultSeed));
+            OnPropertyChanged(nameof(DefaultPreview));
+            OnPropertyChanged(nameof(DefaultHasError));
+            OnPropertyChanged(nameof(IsChanged));
+        }
+    }
+
+    private ExpressionNode _default = Formula.Nothing;
+
+    /// <summary>
+    /// What the box shows and what a person types. Words typed in are kept as words; a name or a
+    /// formula goes in through the value window and arrives as a shape. Nothing is parsed.
+    /// </summary>
+    public string DefaultValue
+    {
+        get => Formula.Speak(_default);
+        set => Default = Formula.Text(value ?? string.Empty);
+    }
+
+    /// <summary>
+    /// The formula line the value window starts from. Rendered out, never read back; an empty
+    /// declaration opens a window that says nothing rather than one holding a quoted empty word.
+    /// </summary>
+    public string DefaultSeed => Formula.IsNothing(_default)
+        ? string.Empty
+        : Expression.Render(_default, bare: true);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsChanged))]
@@ -127,9 +162,9 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     }
 
     public string DefaultPreview =>
-        VariableValues.Preview(VariableTypes.KindOf(Type), DefaultValue, Resolver);
+        VariableValues.Preview(VariableTypes.KindOf(Type), Default, Resolver);
     public bool DefaultHasError =>
-        VariableValues.HasError(VariableTypes.KindOf(Type), DefaultValue, Resolver);
+        VariableValues.HasError(VariableTypes.KindOf(Type), Default, Resolver);
 
     public VariableDefinition ToDefinition() => new()
     {
@@ -137,7 +172,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         Name = Name.Trim(),
         Scope = VariableScope.Global,
         Type = VariableTypes.KindOf(Type),
-        DefaultValue = DefaultValue.Trim(),
+        Default = Default,
         Description = Description.Trim(),
         PersistValue = PersistValue,
     };
