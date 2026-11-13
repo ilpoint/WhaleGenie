@@ -32,7 +32,7 @@ public static class MacroVariables
 
         store.Live = system;
         store.GlobalDefault = name => VariableCatalog.FindGlobal(name) is { } definition
-            ? VariableValues.Read(definition.Type, definition.DefaultValue, store)
+            ? VariableValues.Read(definition.Type, definition.Default, store)
             : null;
 
         // A global's declared value is what it starts at, not what every run puts back. A second
@@ -45,7 +45,7 @@ public static class MacroVariables
             declared.Add(definition.Name);
             store.Global.Declare(definition.Id, definition.Name, definition.Type);
             store.Global.SetIfAbsent(definition.Name,
-                VariableValues.Read(definition.Type, definition.DefaultValue, store));
+                VariableValues.Read(definition.Type, definition.Default, store));
         }
 
         foreach (var name in store.Global.Values.Keys)

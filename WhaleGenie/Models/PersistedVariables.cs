@@ -343,7 +343,7 @@ public sealed class PersistedVariables : IDisposable
     private static Value Fit(VariableDefinition definition, Value saved)
         => Fits(definition.Type, saved)
             ? saved
-            : VariableValues.Read(definition.Type, definition.DefaultValue,
+            : VariableValues.Read(definition.Type, definition.Default,
                 VariableValues.DesignContext());
 
     private static bool Fits(ValueKind type, Value value) => ValueRules.Accepts(type, value);

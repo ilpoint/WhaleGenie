@@ -62,7 +62,7 @@ public sealed class SystemVariableReader : ILiveVariables
         }
         catch (Exception)
         {
-            return Convert(definition.Type, definition.DefaultValue);
+            return VariableValues.Read(definition.Type, definition.Default);
         }
     }
 
