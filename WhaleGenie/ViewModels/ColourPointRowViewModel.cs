@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -93,13 +94,13 @@ public partial class ColourPointRowViewModel : ViewModelBase
     /// <summary>This row the way the step stores it, by the column names the catalogue declares.</summary>
     public StepParameterRow ToRow() => new()
     {
-        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["dx"] = Dx.Trim(),
-            ["dy"] = Dy.Trim(),
-            ["colour"] = Colour.Trim(),
-            ["mustNot"] = MustNot ? "true" : string.Empty,
-            ["tolerance"] = Tolerance.Trim(),
+            ["dx"] = Formula.Text(Dx.Trim()),
+            ["dy"] = Formula.Text(Dy.Trim()),
+            ["colour"] = Formula.Text(Colour.Trim()),
+            ["mustNot"] = MustNot ? Formula.Constant("true") : Formula.Nothing,
+            ["tolerance"] = Formula.Text(Tolerance.Trim()),
         },
     };
 

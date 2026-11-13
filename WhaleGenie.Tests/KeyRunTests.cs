@@ -6,6 +6,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -72,13 +73,13 @@ public class KeyRunTests
                 Kind = ActionParameterKind.KeySequence,
                 Rows =
                 [
-                    StepParameterRow.Of("keys", "Ctrl+A"),
+                    StepParameterRow.Of("keys", Formula.Text("Ctrl+A")),
                     new StepParameterRow
                     {
-                        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["keys"] = "B",
-            ["holdMs"] = "30",
+            ["keys"] = Formula.Text("B"),
+            ["holdMs"] = Formula.Text("30"),
         },
                     },
                 ],

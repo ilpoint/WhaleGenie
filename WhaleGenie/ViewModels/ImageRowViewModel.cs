@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 
@@ -125,7 +126,12 @@ public partial class ImageRowViewModel : ViewModelBase
     private void MoveDown() => Move?.Invoke(this, 1);
 
     /// <summary>This row the way the step stores it: one picture, under the column the engine reads.</summary>
-    public StepParameterRow ToRow() => StepParameterRow.Of("image", Text.Trim());
+    public StepParameterRow ToRow()
+    {
+        var row = new StepParameterRow();
+        row.SetLine("image", Text.Trim());
+        return row;
+    }
 
     /// <summary>One picture back out of the macro file.</summary>
     public static ImageRowViewModel From(StepParameterRow row) => new() { Text = row.Text("image") };

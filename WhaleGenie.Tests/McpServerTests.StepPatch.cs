@@ -170,7 +170,7 @@ public partial class McpServerTests
                                 ["stepId"] = callId,
                                 ["param"] = "arguments",
                                 ["match"] = new JsonObject { ["name"] = "次数" },
-                                ["values"] = new JsonObject { ["value"] = "$n" },
+                                ["values"] = new JsonObject { ["value"] = new JsonObject { ["name"] = "n" } },
                             },
                             new JsonObject
                             {
@@ -191,8 +191,8 @@ public partial class McpServerTests
                     .GetProperty("arguments").EnumerateArray().ToArray();
                 Assert.Equal(2, table.Length);
                 Assert.Equal("次数", table[0].GetProperty("name").GetString());
-                // A client writes a line; the macro keeps the shape it stands for, so a reader
-                // never has to know how a name is spelled to see that it is one.
+                // A client sends the shape; the macro keeps it as it is, so a reader never has
+                // to know how a name would have been spelled to see that it is one.
                 Assert.Equal("n", table[0].GetProperty("value").GetProperty("name").GetString());
                 Assert.Equal("备注", table[1].GetProperty("name").GetString());
 

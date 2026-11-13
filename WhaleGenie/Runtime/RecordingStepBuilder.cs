@@ -132,9 +132,10 @@ public static class RecordingStepBuilder
             {
                 Name = name,
                 Kind = kind,
-                // What was recorded is the value itself: a key, a mode, a count. It is read once,
-                // here, so the step that comes out of a recording is a step like any other.
-                Written = Formula.FromText(value),
+                // What was recorded is the value itself: a key, a mode, a count. It is a piece of
+                // text, not a line to be parsed — a recorded key that happens to look like a
+                // formula is still that key.
+                Written = Formula.Text(value),
             });
         }
 

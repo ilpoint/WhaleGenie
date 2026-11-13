@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -253,15 +254,15 @@ public class SearchRegionTests
                             [
                                 new StepParameterRow
                                 {
-                                    Columns = new(StringComparer.OrdinalIgnoreCase)
+                                    Cells = new(StringComparer.OrdinalIgnoreCase)
                                     {
-                                        ["x"] = "10",
-                                        ["y"] = "20",
-                                        ["width"] = "30",
-                                        ["height"] = "40",
+                                        ["x"] = Formula.Text("10"),
+                                        ["y"] = Formula.Text("20"),
+                                        ["width"] = Formula.Text("30"),
+                                        ["height"] = Formula.Text("40"),
                                     },
                                 },
-                                StepParameterRow.Of("text", "$shot"),
+                                StepParameterRow.Of("text", Formula.Name("shot")),
                             ],
                         },
                     ],

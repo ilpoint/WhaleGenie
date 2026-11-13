@@ -92,9 +92,9 @@ internal static partial class McpPatches
 
     /// <summary>One row's worth of columns, refusing names the catalogue does not declare.</summary>
     private static Refusal? Columns(JsonNode? node, ActionParameter declared,
-        out Dictionary<string, string> columns)
+        out Dictionary<string, ExpressionNode> columns)
     {
-        columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        columns = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase);
         if (node is not JsonObject written)
         {
             return Refused(McpErrors.BadArgument, "This operation needs an object of columns.",
@@ -117,17 +117,21 @@ internal static partial class McpPatches
 
         foreach (var (column, value) in written)
         {
-            columns[column] = Cell(value);
+            columns[column] = CellShape(value);
         }
 
         return null;
     }
 
-    /// <summary>The rows that say exactly what the given columns say, in the order they are written.</summary>
+    /// <summary>
+    /// The rows that say exactly what the given columns say, in the order they are written. A
+    /// client matching on <c>3</c> or <c>"3"</c> means the same row, so both are said as words on
+    /// this one comparison and nothing is read back out of them.
+    /// </summary>
     private static List<StepParameterRow> Matching(List<StepParameterRow> rows,
-        Dictionary<string, string> match)
+        Dictionary<string, ExpressionNode> match)
         => [.. rows.Where(row => match.All(column =>
-            string.Equals(row.Text(column.Key).Trim(), column.Value.Trim(),
+            string.Equals(row.Text(column.Key).Trim(), FormulaText.Write(column.Value).Trim(),
                 StringComparison.OrdinalIgnoreCase)))];
 
     /// <summary>True for the parameters that hold a table of rows rather than one value.</summary>

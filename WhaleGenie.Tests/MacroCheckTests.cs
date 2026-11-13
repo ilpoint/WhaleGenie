@@ -51,15 +51,15 @@ public partial class MacroCheckTests
 
     /// <summary>The results a step hands over, one row each, named the way the file writes them.</summary>
     /// <summary>What a call passes, one row per argument, written the way a call is written.</summary>
-    private static StepParameter Arguments(params (string Name, string Value)[] arguments)
+    private static StepParameter Arguments(params (string Name, ExpressionNode Value)[] arguments)
         => ArgumentRows(arguments, given: false);
 
     /// <summary>The same rows, each saying the empty value is the value it passes.</summary>
-    private static StepParameter ArgumentsGiven(params (string Name, string Value)[] arguments)
+    private static StepParameter ArgumentsGiven(params (string Name, ExpressionNode Value)[] arguments)
         => ArgumentRows(arguments, given: true);
 
     private static StepParameter ArgumentRows(
-        (string Name, string Value)[] arguments, bool given)
+        (string Name, ExpressionNode Value)[] arguments, bool given)
         => new()
         {
             Name = FieldNames.Arguments,
@@ -68,11 +68,11 @@ public partial class MacroCheckTests
             [
                 .. arguments.Select(argument => new StepParameterRow
                 {
-                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
                     {
-                        [FieldNames.Name] = argument.Name,
+                        [FieldNames.Name] = Formula.Text(argument.Name),
                         [FieldNames.Value] = argument.Value,
-                        [FieldNames.Given] = given ? "true" : "false",
+                        [FieldNames.Given] = given ? Formula.Constant("true") : Formula.Constant("false"),
                     },
                 }),
             ],
@@ -91,10 +91,10 @@ public partial class MacroCheckTests
             [
                 .. results.Select(result => new StepParameterRow
                 {
-                    Columns = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                    Cells = new Dictionary<string, ExpressionNode>(System.StringComparer.OrdinalIgnoreCase)
                     {
-                        ["key"] = result.Key,
-                        ["name"] = result.Name,
+                        ["key"] = Formula.Text(result.Key),
+                        ["name"] = Formula.Text(result.Name),
                     },
                 }),
             ],

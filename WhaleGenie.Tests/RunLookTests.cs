@@ -35,10 +35,10 @@ public class RunLookTests
         [
             new StepParameterRow
             {
-                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = key,
-            ["name"] = name,
+            ["key"] = Formula.Text(key),
+            ["name"] = Formula.Text(name),
         },
             },
         ],
@@ -62,7 +62,7 @@ public class RunLookTests
                     {
                         Name = "images",
                         Kind = ActionParameterKind.Images,
-                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                        Rows = [StepParameterRow.Of("image", Formula.Text(@"C:\images\ok.png"))],
                     },
                     new StepParameter
                     {
@@ -116,7 +116,7 @@ public class RunLookTests
                     {
                         Name = "images",
                         Kind = ActionParameterKind.Images,
-                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                        Rows = [StepParameterRow.Of("image", Formula.Text(@"C:\images\ok.png"))],
                     },
                     new StepParameter
                     {
@@ -185,7 +185,7 @@ public class RunLookTests
                     {
                         Name = "images",
                         Kind = ActionParameterKind.Images,
-                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                        Rows = [StepParameterRow.Of("image", Formula.Text(@"C:\images\ok.png"))],
                     },
                     Number("confidence", "90"),
                     Handed("match", "match"),

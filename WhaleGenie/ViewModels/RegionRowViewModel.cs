@@ -5,6 +5,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -143,7 +144,7 @@ public partial class RegionRowViewModel : ViewModelBase
         var named = OrVariable.Trim();
         if (named.Length > 0)
         {
-            row.Set("text", named);
+            row.SetLine("text", named);
             return row;
         }
 
@@ -180,7 +181,7 @@ public partial class RegionRowViewModel : ViewModelBase
         var written = cell.Text.Trim();
         if (written.Length > 0)
         {
-            row.Set(column, written);
+            row.SetLine(column, written);
         }
     }
 

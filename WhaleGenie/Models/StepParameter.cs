@@ -101,35 +101,33 @@ public class StepParameterRow
     public Dictionary<string, ExpressionNode> Cells { get; init; }
         = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// The columns as a file writes them, for a row built in one go. Setting this reads each line
-    /// into its shape, so a fixture written in the file's words needs no other change.
-    /// </summary>
-    public Dictionary<string, string> Columns
-    {
-        init
-        {
-            foreach (var (column, line) in value)
-            {
-                Cells[column] = Formula.FromLine(line);
-            }
-        }
-    }
-
     /// <summary>What a column holds, or nothing when the row has no such column.</summary>
     public ExpressionNode Cell(string column)
         => Cells.TryGetValue(column, out var value) ? value : Formula.Nothing;
 
-    /// <summary>The line a column says, for the places that still speak lines.</summary>
+    /// <summary>
+    /// The line a column says, for the places that still speak lines. Only out: a column is a
+    /// shape, and this rendering is never read back into one.
+    /// </summary>
     public string Text(string column) => FormulaText.Write(Cell(column));
 
-    /// <summary>Puts a line in a column, reading it into its shape.</summary>
-    public void Set(string column, string line) => Cells[column] = Formula.FromLine(line);
+    /// <summary>Puts a shape in a column. The only way a column gets a value.</summary>
+    public void Set(string column, ExpressionNode value) => Cells[column] = value;
+
+    /// <summary>
+    /// Puts a line typed into an editor into a column. This is the one place a person's words
+    /// become a shape; a value that came from the picker or the file is a shape already and uses
+    /// <see cref="Set"/>. It is named on its own so the line never looks like the value.
+    /// </summary>
+    public void SetLine(string column, string line) => Cells[column] = Formula.FromLine(line);
 
     /// <summary>A row that says one thing in one column, which is how a named region is written.</summary>
-    public static StepParameterRow Of(string column, string value) => new()
+    public static StepParameterRow Of(string column, ExpressionNode value) => new()
     {
-        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [column] = value },
+        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+        {
+            [column] = value,
+        },
     };
 
     /// <summary>A copy, so a duplicated step does not share its rows with the step it came from.</summary>

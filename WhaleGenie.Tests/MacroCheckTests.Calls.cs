@@ -19,7 +19,7 @@ public partial class MacroCheckTests
     public void A_call_that_fills_in_a_name_the_called_macro_never_declared_is_reported()
     {
         var passed = Step("control.runMacro",
-            Text("macro", "另一个"), Arguments(("别的", "1")));
+            Text("macro", "另一个"), Arguments(("别的", Formula.Number(1))));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], passed);
         var problem = Assert.Single(problems, candidate =>
@@ -49,7 +49,7 @@ public partial class MacroCheckTests
     public void A_given_marker_for_an_undeclared_argument_is_marked()
     {
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), ArgumentsGiven(("别的", "")));
+            Text("macro", "另一个"), ArgumentsGiven(("别的", Formula.Nothing)));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
 
@@ -61,7 +61,7 @@ public partial class MacroCheckTests
     public void A_given_marker_beside_a_value_is_marked()
     {
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), ArgumentsGiven(("次数", "1")));
+            Text("macro", "另一个"), ArgumentsGiven(("次数", Formula.Number(1))));
 
         var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
 
@@ -80,7 +80,7 @@ public partial class MacroCheckTests
                 Type = ValueKind.Number,
             }], []);
         var call = Step("control.runMacro",
-            Text("macro", "另一个"), Arguments(("数量", "不是数")));
+            Text("macro", "另一个"), Arguments(("数量", Formula.Text("不是数"))));
 
         var problems = Against("自己", [called], call);
 

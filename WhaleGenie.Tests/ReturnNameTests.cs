@@ -223,10 +223,10 @@ public class ReturnNameTests
                             [
                                 new StepParameterRow
                                 {
-                                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = "text",
-            ["name"] = "老名字",
+            ["key"] = Formula.Text("text"),
+            ["name"] = Formula.Text("老名字"),
         },
                                 },
                             ],

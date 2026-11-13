@@ -140,6 +140,17 @@ public class FormulaJsonTests
         Assert.Equal(Formula.Nothing, Formula.Run([Formula.Text(string.Empty)]));
     }
 
+    [Fact]
+    public void A_json_scalar_is_the_shape_it_is_not_a_line_to_read_back()
+    {
+        // A number and a truth value keep their kind through the file, and a string that happens
+        // to look like a formula stays the words it is. Nothing is parsed here.
+        Assert.Equal(Formula.Number(3.5), FormulaJson.Read(JsonValue.Create(3.5)));
+        Assert.Equal(Formula.Constant("true"), FormulaJson.Read(JsonValue.Create(true)));
+        Assert.Equal(Formula.Constant("false"), FormulaJson.Read(JsonValue.Create(false)));
+        Assert.Equal(Formula.Text("$n + 1"), FormulaJson.Read(JsonValue.Create("$n + 1")));
+    }
+
     private static string Evaluate(ExpressionNode tree, params (string Name, string Value)[] variables)
     {
         var bag = new WhaleGenie.Core.Variables.VariableBag();

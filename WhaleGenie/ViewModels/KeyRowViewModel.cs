@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -79,7 +80,7 @@ public partial class KeyRowViewModel : ViewModelBase
         var keys = Keys.Trim();
         if (keys.Length > 0)
         {
-            row.Set("keys", keys);
+            row.Set("keys", Formula.Text(keys));
         }
 
         Keep(row, "holdMs", HoldMs);
@@ -99,7 +100,7 @@ public partial class KeyRowViewModel : ViewModelBase
     {
         if (value is not null)
         {
-            row.Set(column, value.Value.ToString(CultureInfo.InvariantCulture));
+            row.Set(column, Formula.Number((double)value.Value));
         }
     }
 

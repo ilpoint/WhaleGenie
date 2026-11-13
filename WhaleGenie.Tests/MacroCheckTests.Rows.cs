@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -40,11 +41,11 @@ public partial class MacroCheckTests
             [
                 new StepParameterRow
                 {
-                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = "path",
-            ["name"] = "part",
-            ["bogus"] = "x",
+            ["key"] = Formula.Text("path"),
+            ["name"] = Formula.Text("part"),
+            ["bogus"] = Formula.Text("x"),
         },
                 },
             ],
@@ -91,12 +92,12 @@ public partial class MacroCheckTests
             [
                 new StepParameterRow
                 {
-                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["x"] = "0",
-            ["y"] = "0",
-            ["width"] = "20",
-            ["height"] = "20",
+            ["x"] = Formula.Text("0"),
+            ["y"] = Formula.Text("0"),
+            ["width"] = Formula.Text("20"),
+            ["height"] = Formula.Text("20"),
         },
                 },
             ],
@@ -132,11 +133,11 @@ public partial class MacroCheckTests
             [
                 new StepParameterRow
                 {
-                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["text"] = "game",
-            ["x"] = "0",
-            ["y"] = "0",
+            ["text"] = Formula.Text("game"),
+            ["x"] = Formula.Text("0"),
+            ["y"] = Formula.Text("0"),
         },
                 },
             ],

@@ -473,10 +473,10 @@ public partial class MacroEditorViewModel
                     .Where(argument => argument.Name.Trim().Length > 0)
                     .Select(argument => new StepParameterRow
                     {
-                        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
                         {
-                            [FieldNames.Name] = argument.Name.Trim(),
-                            [FieldNames.Value] = "$" + argument.Name.Trim(),
+                            [FieldNames.Name] = Formula.Text(argument.Name.Trim()),
+                            [FieldNames.Value] = Formula.Name(argument.Name.Trim()),
                         },
                     }),
             ],
@@ -490,10 +490,10 @@ public partial class MacroEditorViewModel
             [
                 .. lifted.Results.Select(result => new StepParameterRow
                 {
-                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
                     {
-                        [FieldNames.Key] = result.Name,
-                        [FieldNames.Name] = result.Name,
+                        [FieldNames.Key] = Formula.Text(result.Name),
+                        [FieldNames.Name] = Formula.Text(result.Name),
                     },
                 }),
             ],

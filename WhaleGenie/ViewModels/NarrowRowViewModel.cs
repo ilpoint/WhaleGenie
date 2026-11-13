@@ -4,6 +4,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -119,10 +120,10 @@ public partial class NarrowRowViewModel : ViewModelBase
         }
 
         var row = new StepParameterRow();
-        row.Set("how", Way.Value);
+        row.Set("how", Formula.Text(Way.Value));
         if (value.Length > 0)
         {
-            row.Set("value", value);
+            row.Set("value", Formula.Text(value));
         }
 
         return row;

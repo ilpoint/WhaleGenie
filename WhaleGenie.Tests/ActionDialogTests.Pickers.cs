@@ -188,10 +188,10 @@ public partial class ActionDialogTests
                         [
                             new StepParameterRow
                             {
-                                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                                Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = "result",
-            ["name"] = "video",
+            ["key"] = Formula.Text("result"),
+            ["name"] = Formula.Text("video"),
         },
                             },
                         ],

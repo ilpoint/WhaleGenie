@@ -301,10 +301,10 @@ public partial class ActionDialogTests
                         [
                             new StepParameterRow
                             {
-                                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                                Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = "method",
-            ["name"] = "取法",
+            ["key"] = Formula.Text("method"),
+            ["name"] = Formula.Text("取法"),
         },
                             },
                         ],

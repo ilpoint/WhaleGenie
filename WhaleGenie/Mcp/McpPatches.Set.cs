@@ -107,10 +107,9 @@ internal static partial class McpPatches
             }
         }
 
-        // The value is read the way this field is read, once, here: an expression field takes what
-        // it is given as an expression, a text field as the words themselves, a window rule as the
-        // object it is written as. Nothing downstream reads the line again.
-        var written = ReadShape(value, declared.ValueForm);
+        // The client sends a shape or a scalar, and it is kept as that shape. Nothing downstream
+        // reads a line back into a value.
+        var written = ReadShape(value);
         if (existing is null)
         {
             step.Parameters.Add(new StepParameter

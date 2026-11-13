@@ -186,10 +186,10 @@ public partial class RunDebugTests
 
     private static StepParameterRow Row(string key, string name) => new()
     {
-        Columns = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        Cells = new Dictionary<string, ExpressionNode>(System.StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = key,
-            ["name"] = name,
+            ["key"] = Formula.Text(key),
+            ["name"] = Formula.Text(name),
         },
     };
 

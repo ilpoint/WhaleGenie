@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -111,7 +112,7 @@ public partial class MacroPackageFormatTests
                 {
                     Name = "images",
                     Kind = ActionParameterKind.Images,
-                    Rows = [StepParameterRow.Of("image", picture)],
+                    Rows = [StepParameterRow.Of("image", Formula.Text(picture))],
                 },
             ],
         });

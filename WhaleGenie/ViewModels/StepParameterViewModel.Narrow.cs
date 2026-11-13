@@ -96,10 +96,10 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     private IEnumerable<StepParameterRow> Kept() => _keptResults.Select(kept => new StepParameterRow
     {
-        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            [FieldNames.Key] = kept.Key,
-            [FieldNames.Name] = kept.Value,
+            [FieldNames.Key] = Formula.Text(kept.Key),
+            [FieldNames.Name] = Formula.Text(kept.Value),
         },
     });
 

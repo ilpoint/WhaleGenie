@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -340,7 +341,7 @@ public class PickerTests
                         Kind = ActionParameterKind.Images,
                         Rows =
                         [
-                            StepParameterRow.Of("image", picture),
+                            StepParameterRow.Of("image", Formula.Text(picture)),
                         ],
                     },
                 ],

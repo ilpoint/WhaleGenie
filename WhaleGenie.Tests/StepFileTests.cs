@@ -72,6 +72,42 @@ public class StepFileTests
     private static string Value(MacroStep step, string name)
         => step.Parameters.First(parameter => parameter.Name == name).Value;
 
+    [Fact]
+    public void A_row_cell_is_a_shape_and_only_a_typed_line_becomes_one()
+    {
+        // The shape a picker hands over keeps the identity of the name it is bound to. A column
+        // filled from a line is the one exception, and it says so in the name of the method.
+        var row = StepParameterRow.Of("value", Formula.Name("count", "a7k2m9"));
+        row.Set("given", Formula.Constant("true"));
+        row.SetLine("note", "共 $count 件");
+
+        Assert.Equal(Formula.Name("count", "a7k2m9"), row.Cell("value"));
+        Assert.Equal(Formula.Constant("true"), row.Cell("given"));
+        var note = Assert.IsType<ConcatNode>(row.Cell("note"));
+        Assert.Equal(
+            new ExpressionNode[] { Formula.Text("共 "), Formula.Name("count"), Formula.Text(" 件") },
+            note.Parts);
+
+        // What goes into the file is the shape, not a line someone would have to read back.
+        var parameter = new StepParameter
+        {
+            Name = "arguments",
+            Kind = ActionParameterKind.Arguments,
+            Rows = [row],
+        };
+        var written = Assert.IsType<JsonArray>(parameter.ToJson());
+        var cell = Assert.IsType<JsonObject>(written[0]);
+        var value = Assert.IsType<JsonObject>(cell["value"]);
+        Assert.Equal("count", Assert.IsAssignableFrom<JsonValue>(value["name"]).GetValue<string>());
+        Assert.Equal("a7k2m9", Assert.IsAssignableFrom<JsonValue>(value["id"]).GetValue<string>());
+        Assert.True(Assert.IsAssignableFrom<JsonValue>(cell["given"]).GetValue<bool>());
+
+        var restored = StepParameter.FromJson("arguments", written,
+            ActionCatalog.Find("control.runMacro"));
+        Assert.Equal(Formula.Name("count", "a7k2m9"), restored.Rows[0].Cell("value"));
+        Assert.Equal(Formula.Constant("true"), restored.Rows[0].Cell("given"));
+    }
+
     /// <summary>A mouse click with the two halves of its place written as they say.</summary>
     private static MacroStep Click(string x, string y) => new()
     {

@@ -99,7 +99,7 @@ public partial class MacroCheckTests
                 },
             ]);
 
-        var call = Step("control.runMacro", Text("macro", "找图"), Arguments(("图", "a.png")),
+        var call = Step("control.runMacro", Text("macro", "找图"), Arguments(("图", Formula.Text("a.png"))),
             Results("命中"));
 
         // Reading a field of a record a call handed back is checked against the called macro's

@@ -92,7 +92,7 @@ public partial class MacroCheckTests
         var target = new MacroCallable("整理",
             [new MacroParameter { Name = "窗口", Type = ValueKind.Record }], []);
         var call = Step("control.runMacro", Text("macro", "整理"),
-            Arguments(("窗口", "$sys.date")));
+            Arguments(("窗口", Formula.Name("sys.date"))));
 
         var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [target]));
         var problem = Assert.Single(problems, candidate => candidate.Step == call);

@@ -70,7 +70,7 @@ internal static partial class McpPatches
 
         rows.Add(new StepParameterRow
         {
-            Columns = new Dictionary<string, string>(values, StringComparer.OrdinalIgnoreCase),
+            Cells = new Dictionary<string, ExpressionNode>(values, StringComparer.OrdinalIgnoreCase),
         });
 
         touches.Add(new Touch("addRow", step!));

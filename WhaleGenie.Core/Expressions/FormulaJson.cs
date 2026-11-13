@@ -123,7 +123,19 @@ public static class FormulaJson
                     return Formula.Text(text);
                 }
 
-                return Formula.FromText(value.ToJsonString());
+                // A JSON number or truth value is the shape it is. Nothing is spelled out as a
+                // line and parsed back: the file is not a place a formula is typed.
+                if (value.TryGetValue<double>(out var number))
+                {
+                    return Formula.Number(number);
+                }
+
+                if (value.TryGetValue<bool>(out var flag))
+                {
+                    return Formula.Constant(flag ? "true" : "false");
+                }
+
+                return Formula.Text(value.ToJsonString());
             default:
                 throw new InvalidDataException(
                     $"A value is written as a shape that is not one: {node.ToJsonString()}");

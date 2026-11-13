@@ -35,8 +35,8 @@ internal sealed partial class McpSelfCheck
                 Step("control.if", new JsonObject
                 {
                     // A condition is a shape in the file, so the scenario writes one.
-                    ["condition"] = FormulaJson.Write(Formula.FromFormula(
-                        "sys.screenWidth > 1")),
+                    ["condition"] = FormulaJson.Write(Formula.Binary(">",
+                        Formula.Name("sys.screenWidth"), Formula.Number(1))),
                     ["then"] = new JsonArray(Step("control.delay", new JsonObject { ["ms"] = "200" })),
                     ["else"] = new JsonArray(),
                 }),

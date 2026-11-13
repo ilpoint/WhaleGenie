@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -134,16 +135,19 @@ public partial class CallArgumentRowViewModel : ViewModelBase
 
         var row = new StepParameterRow
         {
-            Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
             {
-                [FieldNames.Name] = Name,
-                [FieldNames.Value] = value,
+                [FieldNames.Name] = Formula.Text(Name),
             },
         };
 
+        // The value box is where a person writes a line, so the name in it is read once here. A
+        // value that arrived as a shape is put in with Set instead.
+        row.SetLine(FieldNames.Value, value);
+
         if (Given)
         {
-            row.Set(FieldNames.Given, "true");
+            row.Set(FieldNames.Given, Formula.Constant("true"));
         }
 
         return row;

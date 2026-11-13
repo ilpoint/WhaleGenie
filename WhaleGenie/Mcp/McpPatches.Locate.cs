@@ -114,31 +114,23 @@ internal static partial class McpPatches
             ? Math.Clamp(at, 0, count)
             : count;
 
-    /// <summary>The value as the field holds it: text, or the number the text says.</summary>
-    private static string Written(JsonNode? value) => value switch
-    {
-        null => string.Empty,
-        JsonValue number when number.TryGetValue<decimal>(out var written)
-            => written.ToString(CultureInfo.InvariantCulture),
-        JsonValue flag when flag.TryGetValue<bool>(out var answer) => answer ? "true" : "false",
-        JsonValue text when text.TryGetValue<string>(out var written) => written,
-        _ => value.ToJsonString(),
-    };
-
     /// <summary>
     /// A value as the field holds it. An object tagged with a value shape is already a shape — the
-    /// client may send the <c>{"name","id"}</c> a document holds — and is read as that shape rather
-    /// than flattened into a line that merely looks like JSON. A window rule is an object too, but
-    /// it is the record the file writes whole, so it keeps the line path it always had.
+    /// client may send the <c>{"name","id"}</c> a document holds — and is read as that shape; a
+    /// scalar is the text, number or truth value it is. A window rule is an object too, but it is
+    /// the record the file writes whole, so it stays exactly as it was sent. Nothing here is a
+    /// line to be parsed back into a value: a client that means a formula sends the shape.
     /// </summary>
-    private static ExpressionNode ReadShape(JsonNode? value, ActionValueForm mode)
-        => value is JsonObject shape && IsValueShape(shape)
-            ? FormulaJson.Read(shape)
-            : FormulaText.Read(Written(value), mode);
+    private static ExpressionNode ReadShape(JsonNode? value) => value switch
+    {
+        JsonObject shape when IsValueShape(shape) => FormulaJson.Read(shape),
+        JsonObject record => Formula.Text(record.ToJsonString()),
+        _ => CellShape(value),
+    };
 
     private static bool IsValueShape(JsonObject shape)
         => shape.ContainsKey("name") || shape.ContainsKey("run") || shape.ContainsKey("call")
-            || shape.ContainsKey("list") || shape.ContainsKey("op");
+            || shape.ContainsKey("list") || shape.ContainsKey("op") || shape.ContainsKey("date");
 
     private static Refusal NoStep(JsonObject operation)
     {
@@ -164,27 +156,19 @@ internal static partial class McpPatches
         };
 
     /// <summary>
-    /// One cell of a row, as the file writes it. A number and a truth value are written the way the
-    /// editor writes them rather than refused, because a client sending <c>3</c> for a count means
-    /// the same thing as one sending <c>"3"</c>.
+    /// One cell of a row, as the client sends it. A string is text and nothing else; a number is a
+    /// number, and a truth value is the word the language gives it. A tagged shape object is read
+    /// as that shape. Nothing is pressed into a line and parsed back.
     /// </summary>
-    private static string Cell(JsonNode? node)
+    private static ExpressionNode CellShape(JsonNode? node) => node switch
     {
-        if (node is not JsonValue value)
-        {
-            return string.Empty;
-        }
-
-        if (value.TryGetValue<string>(out var text))
-        {
-            return text;
-        }
-
-        if (value.TryGetValue<decimal>(out var number))
-        {
-            return number.ToString(CultureInfo.InvariantCulture);
-        }
-
-        return value.TryGetValue<bool>(out var flag) && flag ? "true" : string.Empty;
-    }
+        null => Formula.Nothing,
+        JsonObject shape when IsValueShape(shape) => FormulaJson.Read(shape),
+        JsonValue value when value.TryGetValue<string>(out var text) => Formula.Text(text),
+        JsonValue value when value.TryGetValue<decimal>(out var number)
+            => Formula.Number((double)number),
+        JsonValue value when value.TryGetValue<bool>(out var flag)
+            => Formula.Constant(flag ? "true" : "false"),
+        _ => Formula.Text(node.ToJsonString()),
+    };
 }

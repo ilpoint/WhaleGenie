@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -214,7 +215,7 @@ public partial class StepTreeTests
                 {
                     Name = "returns",
                     Kind = ActionParameterKind.Returns,
-                    Rows = [StepParameterRow.Of("name", "$err"), StepParameterRow.Of("name", "$why")],
+                    Rows = [StepParameterRow.Of("name", Formula.Name("err")), StepParameterRow.Of("name", Formula.Name("why"))],
                 });
 
             // The three lists are the block; the row says how many steps each holds, which is the

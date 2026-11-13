@@ -345,10 +345,10 @@ private void CloseWindow(ExecutableStep step, int depth)
 
     private static StepParameterRow Row(string key, string name) => new()
     {
-        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
         {
-            ["key"] = key,
-            ["name"] = name,
+            ["key"] = Formula.Text(key),
+            ["name"] = Formula.Text(name),
         },
     };
 

@@ -210,10 +210,10 @@ public partial class ReturnsRowViewModel : ViewModelBase
     public StepParameterRow? ToRow() => Ticked && Name.Trim().Length > 0
         ? new StepParameterRow
         {
-            Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
             {
-                [FieldNames.Key] = Key,
-                [FieldNames.Name] = Name.Trim(),
+                [FieldNames.Key] = Formula.Text(Key),
+                [FieldNames.Name] = Formula.Text(Name.Trim()),
             },
         }
         : null;
