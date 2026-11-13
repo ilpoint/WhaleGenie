@@ -75,36 +75,31 @@
                     <DataTemplate x:DataType="vm:ConditionNodeViewModel">
                         <Grid Classes="ConditionRow" Margin="0,0,0,4"
                               ColumnDefinitions="*,104,*,Auto" ColumnSpacing="4">
-                            <AutoCompleteBox Grid.Column="0" Classes="Field HasChip"
-                                             ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
-                                             Text="{Binding Left}"
-                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).LeftPlaceholder}"
-                                             MinimumPrefixLength="1"
-                                             FilterMode="Contains"
-                                             Tag="left" GotFocus="OnCellFocused">
+                            <TextBox Grid.Column="0" Classes="Field HasChip"
+                                     Text="{Binding Left, Mode=OneWay}" IsReadOnly="True"
+                                     PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).LeftPlaceholder}"
+                                     Tag="left" GotFocus="OnCellFocused">
                                 <!-- 一枚按钮贴在框里：这一格填什么，由这一格自己回答。 -->
-                                <AutoCompleteBox.InnerRightContent>
+                                <TextBox.InnerRightContent>
                                     <Button Classes="ValueChip" Tag="left" Click="OnPickVariable"
                                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                                </AutoCompleteBox.InnerRightContent>
-                            </AutoCompleteBox>
+                                </TextBox.InnerRightContent>
+                            </TextBox>
                             <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding Choices}"
                                       SelectedItem="{Binding Choice, Mode=TwoWay}" />
-                            <AutoCompleteBox Grid.Column="2" Classes="Field HasChip" IsVisible="{Binding NeedsValue}"
-                                             ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
-                                             Text="{Binding Right}"
-                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RightPlaceholder}"
-                                             MinimumPrefixLength="1"
-                                             FilterMode="Contains"
-                                             Tag="right" GotFocus="OnCellFocused">
-                                <AutoCompleteBox.InnerRightContent>
+                            <TextBox Grid.Column="2" Classes="Field HasChip" IsVisible="{Binding NeedsValue}"
+                                     Text="{Binding Right, Mode=OneWay}" IsReadOnly="True"
+                                     PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RightPlaceholder}"
+                                     Tag="right" GotFocus="OnCellFocused">
+                                <!-- 一枚按钮贴在框里：这一格填什么，由这一格自己回答。 -->
+                                <TextBox.InnerRightContent>
                                     <Button Classes="ValueChip" Tag="right" Click="OnPickVariable"
                                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                                </AutoCompleteBox.InnerRightContent>
-                            </AutoCompleteBox>
+                                </TextBox.InnerRightContent>
+                            </TextBox>
                             <Button Grid.Column="3" Classes="Ghost ConditionRemove"
                                     ToolTip.Tip="{Binding [Condition.Remove], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RemoveCommand}"
@@ -176,36 +171,31 @@
                         <!-- 比较这一行：和行表里的一模一样。 -->
                         <Grid Classes="ConditionRow" IsVisible="{Binding IsRow}"
                               ColumnDefinitions="*,104,*,Auto" ColumnSpacing="4">
-                            <AutoCompleteBox Grid.Column="0" Classes="Field HasChip"
-                                             ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
-                                             Text="{Binding Left}"
-                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).LeftPlaceholder}"
-                                             MinimumPrefixLength="1"
-                                             FilterMode="Contains"
-                                             Tag="left" GotFocus="OnCellFocused">
+                            <TextBox Grid.Column="0" Classes="Field HasChip"
+                                     Text="{Binding Left, Mode=OneWay}" IsReadOnly="True"
+                                     PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).LeftPlaceholder}"
+                                     Tag="left" GotFocus="OnCellFocused">
                                 <!-- 一枚按钮贴在框里：这一格填什么，由这一格自己回答。 -->
-                                <AutoCompleteBox.InnerRightContent>
+                                <TextBox.InnerRightContent>
                                     <Button Classes="ValueChip" Tag="left" Click="OnPickVariable"
                                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                                </AutoCompleteBox.InnerRightContent>
-                            </AutoCompleteBox>
+                                </TextBox.InnerRightContent>
+                            </TextBox>
                             <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
                                       ItemsSource="{Binding Choices}"
                                       SelectedItem="{Binding Choice, Mode=TwoWay}" />
-                            <AutoCompleteBox Grid.Column="2" Classes="Field HasChip" IsVisible="{Binding NeedsValue}"
-                                             ItemsSource="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).Suggestions}"
-                                             Text="{Binding Right}"
-                                             PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RightPlaceholder}"
-                                             MinimumPrefixLength="1"
-                                             FilterMode="Contains"
-                                             Tag="right" GotFocus="OnCellFocused">
-                                <AutoCompleteBox.InnerRightContent>
+                            <TextBox Grid.Column="2" Classes="Field HasChip" IsVisible="{Binding NeedsValue}"
+                                     Text="{Binding Right, Mode=OneWay}" IsReadOnly="True"
+                                     PlaceholderText="{Binding $parent[UserControl].((vm:ConditionEditorViewModel)DataContext).RightPlaceholder}"
+                                     Tag="right" GotFocus="OnCellFocused">
+                                <!-- 一枚按钮贴在框里：这一格填什么，由这一格自己回答。 -->
+                                <TextBox.InnerRightContent>
                                     <Button Classes="ValueChip" Tag="right" Click="OnPickVariable"
                                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                                </AutoCompleteBox.InnerRightContent>
-                            </AutoCompleteBox>
+                                </TextBox.InnerRightContent>
+                            </TextBox>
                             <Button Grid.Column="3" Classes="Ghost ConditionRemove"
                                     ToolTip.Tip="{Binding [Condition.Remove], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding $parent[TreeView].((vm:ConditionEditorViewModel)DataContext).RemoveCommand}"

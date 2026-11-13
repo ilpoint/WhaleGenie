@@ -255,10 +255,12 @@ public class ConditionEditorTests
 
             var row = window.GetVisualDescendants().OfType<Grid>()
                 .First(grid => grid.Classes.Contains("ConditionRow") && grid.IsEffectivelyVisible);
-            var boxes = row.GetVisualDescendants().OfType<AutoCompleteBox>()
+            var boxes = row.GetVisualDescendants().OfType<TextBox>()
                 .Where(box => box.IsEffectivelyVisible)
                 .ToList();
             Assert.Equal(2, boxes.Count);
+            Assert.All(boxes, box => Assert.True(box.IsReadOnly,
+                "a condition cell must not take a typed line"));
             Assert.All(boxes, box => Assert.True(box.Bounds.Width > 60,
                 $"一侧只有 {box.Bounds.Width:0} 宽"));
 

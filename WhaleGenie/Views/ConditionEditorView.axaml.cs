@@ -72,7 +72,7 @@ public partial class ConditionEditorView : UserControl
     /// </summary>
     private int? CaretIn(ConditionNodeViewModel node)
     {
-        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is AutoCompleteBox box
+        if (TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is TextBox box
             && ReferenceEquals(box.DataContext, node))
         {
             return box.CaretIndex;

@@ -522,13 +522,17 @@ public class VariableFieldTests
         Assert.True(named >= 0, "the dialog stopped offering variables in the field that names one");
 
         var naming = markup[named..markup.IndexOf("</Grid>", named, StringComparison.Ordinal)];
-        Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", naming, StringComparison.Ordinal);
+        // A name is chosen in the value window too, never spelled into a box. The name field
+        // shows the bare name (not the 「name」 a reading of a formula would draw), read-only.
+        Assert.Contains("IsReadOnly=\"True\"", naming, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text, Mode=OneWay}\"", naming, StringComparison.Ordinal);
+        Assert.DoesNotContain("AutoCompleteBox", naming, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnPickVariable\"", naming, StringComparison.Ordinal);
 
         // The same one door: the field that names a value keeps its chip inside the box, and the
         // expression button that used to stand beside it is gone.
         Assert.Contains("Classes=\"Field HasChip\"", naming, StringComparison.Ordinal);
-        Assert.Contains("AutoCompleteBox.InnerRightContent", naming, StringComparison.Ordinal);
+        Assert.Contains("TextBox.InnerRightContent", naming, StringComparison.Ordinal);
         Assert.Contains("Classes=\"ValueChip\"", naming, StringComparison.Ordinal);
         Assert.DoesNotContain("Click=\"OnOpenExpressionBuilder\"", naming, StringComparison.Ordinal);
 

@@ -111,9 +111,9 @@ public partial class ActionEditorView : UserControl
         // out beside the box still finds it under the row.
         // Where the caret is, when the field is still one box. A field edited as pieces has no such
         // box: it remembered where the person was instead, and that is what the name goes beside.
-        var caret = (button.FindAncestorOfType<AutoCompleteBox>(true)
+        var caret = (button.FindAncestorOfType<TextBox>(true)
                 ?? button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
-                    .OfType<AutoCompleteBox>().FirstOrDefault())?.CaretIndex;
+                    .OfType<TextBox>().FirstOrDefault())?.CaretIndex;
 
         // A field whose whole value is read opens the one window anywhere in the cell, with the
         // caret where it was; a field that only fills names in opens it on the list of names.

@@ -47,7 +47,7 @@ public class ValueChipTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
-            var field = window.FindControl<AutoCompleteBox>("ExpressionBox")!;
+            var field = window.FindControl<TextBox>("ExpressionBox")!;
             var chip = field.GetVisualDescendants().OfType<Button>()
                 .Single(button => button.Classes.Contains("ValueChip"));
 

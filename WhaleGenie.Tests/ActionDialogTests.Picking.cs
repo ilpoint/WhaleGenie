@@ -399,7 +399,7 @@ public partial class ActionDialogTests
     }
 
     [Fact]
-    public void A_value_field_does_not_open_every_variable_when_it_is_clicked()
+    public void A_value_field_is_read_only_and_opens_no_list_when_clicked()
     {
         Ui.Run(() =>
         {
@@ -408,23 +408,18 @@ public partial class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "switchValue");
             Dispatcher.UIThread.RunJobs();
 
-            // The box that actually edits the operand: the same parameter also carries a hidden
-            // one, and picking by DataContext alone finds whichever came first in the template.
-            var picker = window.GetVisualDescendants().OfType<AutoCompleteBox>()
+            // A value field takes no typed line: the one way in is the chip that opens the value
+            // window. Clicking the field must not cover the form with a list of every name either.
+            var field = window.GetVisualDescendants().OfType<TextBox>()
                 .First(box => box.IsEffectivelyVisible && ReferenceEquals(box.DataContext, value));
-            var at = picker.TranslatePoint(
-                new Point(picker.Bounds.Width / 2, picker.Bounds.Height / 2), window)!.Value;
+            Assert.True(field.IsReadOnly);
+            var at = field.TranslatePoint(
+                new Point(field.Bounds.Width / 2, field.Bounds.Height / 2), window)!.Value;
 
             window.MouseDown(at, Avalonia.Input.MouseButton.Left,
                 Avalonia.Input.RawInputModifiers.LeftMouseButton);
             window.MouseUp(at, Avalonia.Input.MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
-
-            // Clicking a field is how one starts typing into it. Opening the list there covers the
-            // form with every name the macro knows, over the very field that was clicked — the
-            // names are offered while typing, and the button beside the box opens the whole list
-            // for anyone who would rather pick than remember.
-            Assert.False(picker.IsDropDownOpen);
 
             value.Text = "count";
             Dispatcher.UIThread.RunJobs();
@@ -432,7 +427,8 @@ public partial class ActionDialogTests
                 Avalonia.Input.RawInputModifiers.LeftMouseButton);
             window.MouseUp(at, Avalonia.Input.MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
-            Assert.False(picker.IsDropDownOpen);
+            Assert.True(field.IsReadOnly);
+            Assert.Equal("count", field.Text);
 
             Ui.CloseAndAnswer(window);
         });

@@ -62,19 +62,16 @@
         </ComboBox>
 
         <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
-            <AutoCompleteBox Classes="Field HasChip"
-                ItemsSource="{Binding NameChoices}"
-                Text="{Binding Text}"
-                PlaceholderText="{Binding Placeholder}"
-                MinimumPrefixLength="{Binding NamePrefix}"
-                FilterMode="Contains">
-                <AutoCompleteBox.InnerRightContent>
-                    <!-- 一格一个入口：整值字段走公式，写名字的格子只列名字，由 OnPickVariable 自己分。 -->
+            <TextBox Classes="Field HasChip"
+                Text="{Binding Text, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <!-- 一格一个入口：名字与公式都从取值窗口来，框只负责显示。 -->
                     <Button Classes="ValueChip" Click="OnPickVariable"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                </AutoCompleteBox.InnerRightContent>
-            </AutoCompleteBox>
+                </TextBox.InnerRightContent>
+            </TextBox>
             <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
                 IsVisible="{Binding IsPath}"
                 Content="{Binding PathButton}"
@@ -101,18 +98,15 @@
         </ContentControl>
 
         <StackPanel IsVisible="{Binding IsExpression}">
-            <AutoCompleteBox Classes="Field HasChip"
-                ItemsSource="{Binding ExpressionSuggestions}"
-                Text="{Binding Text}"
-                PlaceholderText="{Binding Placeholder}"
-                MinimumPrefixLength="1"
-                FilterMode="Contains">
-                <AutoCompleteBox.InnerRightContent>
+            <TextBox Classes="Field HasChip"
+                Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
                     <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                </AutoCompleteBox.InnerRightContent>
-            </AutoCompleteBox>
+                </TextBox.InnerRightContent>
+            </TextBox>
             <TextBlock Classes="Hint" Margin="2,5,0,0"
                 TextWrapping="Wrap"
                 Foreground="{DynamicResource Danger}"

@@ -45,13 +45,10 @@
                                HorizontalAlignment="Stretch"
                                Value="{Binding Number, Converter={StaticResource Number}}" />
 
-                <AutoCompleteBox Grid.Column="1" Classes="Field HasChip"
-                                 IsVisible="{Binding IsFormula}"
-                                 ItemsSource="{Binding Suggestions}"
-                                 Text="{Binding Text}"
-                                 PlaceholderText="{Binding Placeholder}"
-                                 MinimumPrefixLength="1"
-                                 FilterMode="Contains" />
+                <TextBox Grid.Column="1" Classes="Field HasChip"
+                         IsVisible="{Binding IsFormula}"
+                         Text="{Binding Text, Mode=OneWay}" IsReadOnly="True"
+                         PlaceholderText="{Binding Placeholder}" />
 
                 <Button Grid.Column="1" Classes="ValueChip" HorizontalAlignment="Right"
                         Tag="{Binding}"
