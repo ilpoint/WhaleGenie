@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -54,7 +55,7 @@ public static partial class MacroPackage
             {
                 ["name"] = variable.Name,
                 ["type"] = variable.Type.ToString(),
-                ["default"] = variable.DefaultValue,
+                ["default"] = FormulaJson.Write(variable.Default),
                 ["description"] = variable.Description,
                 ["id"] = variable.Id,
             });

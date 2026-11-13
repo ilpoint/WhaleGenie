@@ -27,7 +27,7 @@ public static class MacroVariables
         foreach (var definition in VariableCatalog.SystemVariables)
         {
             store.System.Set(definition.Name,
-                VariableValues.Read(definition.Type, definition.DefaultValue, store));
+                VariableValues.Read(definition.Type, definition.Default, store));
         }
 
         store.Live = system;

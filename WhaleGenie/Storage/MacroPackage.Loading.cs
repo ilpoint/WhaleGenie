@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -109,7 +110,7 @@ public static partial class MacroPackage
                 Name = name,
                 Scope = VariableScope.Global,
                 Type = VariableTypes.KindOf(ReadString(variable, "type")),
-                DefaultValue = ReadString(variable, "default"),
+                Default = FormulaJson.Read(variable["default"]),
                 Description = ReadString(variable, "description"),
             });
         }

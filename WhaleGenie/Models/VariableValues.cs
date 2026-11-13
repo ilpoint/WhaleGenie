@@ -24,7 +24,7 @@ public static class VariableValues
 
         foreach (var variable in VariableCatalog.SystemVariables)
         {
-            store.System.Set(variable.Name, Read(variable.Type, variable.DefaultValue, store));
+            store.System.Set(variable.Name, Read(variable.Type, variable.Default, store));
         }
 
         return store;
@@ -85,6 +85,49 @@ public static class VariableValues
             : string.Empty;
         return error.Length == 0;
     }
+
+    /// <summary>
+    /// Reads a declared value that is already the shape it was written in. Nothing is parsed here:
+    /// the shape is worked out and the result is made the declared kind, which is the same rule the
+    /// line above follows once the line has been read.
+    /// </summary>
+    public static bool TryRead(ValueKind type, ExpressionNode written, IVariableResolver? variables,
+        out Value value, out string error)
+    {
+        if (Formula.IsNothing(written))
+        {
+            value = Empty(type);
+            error = string.Empty;
+            return true;
+        }
+
+        try
+        {
+            return ConvertToType(type, Expression.Evaluate(written, variables), out value, out error);
+        }
+        catch (ExpressionException failure)
+        {
+            value = Value.Null;
+            error = failure.Detail;
+            return false;
+        }
+    }
+
+    public static Value Read(ValueKind type, ExpressionNode written,
+        IVariableResolver? variables = null)
+        => TryRead(type, written, variables, out var value, out _) ? value : Empty(type);
+
+    public static string Preview(ValueKind type, ExpressionNode written,
+        IVariableResolver? variables = null)
+        => Formula.IsNothing(written)
+            ? string.Empty
+            : TryRead(type, written, variables, out var value, out var error)
+                ? value.AsText()
+                : error;
+
+    public static bool HasError(ValueKind type, ExpressionNode written,
+        IVariableResolver? variables = null)
+        => !TryRead(type, written, variables, out _, out _);
 
     public static Value Read(ValueKind type, string written, IVariableResolver? variables = null)
         => TryRead(type, written, variables, out var value, out _) ? value : Empty(type);

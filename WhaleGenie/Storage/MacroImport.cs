@@ -216,7 +216,7 @@ public static class MacroImport
                     }
 
                     existing.Type = decision.Arriving.Type;
-                    existing.DefaultValue = decision.Arriving.DefaultValue;
+                    existing.Default = decision.Arriving.Default;
                     existing.Description = decision.Arriving.Description;
                     // Whether this is kept between runs belongs to the person who checked the box,
                     // and a package says nothing about it: taking the arriving value would read as
@@ -250,7 +250,7 @@ public static class MacroImport
         Name = name,
         Scope = VariableScope.Global,
         Type = source.Type,
-        DefaultValue = source.DefaultValue,
+        Default = source.Default,
         Description = source.Description,
         PersistValue = source.PersistValue,
     };

@@ -106,6 +106,6 @@ public sealed class McpLiveProject(MainViewModel project)
             Scope = VariableScope.Global,
             Type = variable.Type,
             Description = variable.Description,
-            DefaultValue = variable.DefaultValue,
+            Default = variable.Default,
         };
 }

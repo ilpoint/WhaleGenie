@@ -39,14 +39,26 @@ public partial class VariableDefinition : ObservableObject
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
-    /// Value the variable starts with, kept as text. A list is written as <c>[1, 2, 3]</c>,
-    /// as an expression that builds one, or as plain items separated by commas.
+    /// Value the variable starts with, as the shape it was written in. A name is a name and a list
+    /// is a list; nothing has to read this back out of a line before it can be used.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DefaultValue))]
     [NotifyPropertyChangedFor(nameof(DefaultPreview))]
     [NotifyPropertyChangedFor(nameof(DefaultHasError))]
     [NotifyPropertyChangedFor(nameof(ShowDefaultSummary))]
-    public partial string DefaultValue { get; set; } = string.Empty;
+    public partial ExpressionNode Default { get; set; } = Formula.Nothing;
+
+    /// <summary>
+    /// The starting value as the line a form shows. Setting it reads the line into a shape, which is
+    /// what a person typing into the field does; a value that arrives as a shape is set through
+    /// <see cref="Default"/> instead, so nothing it carries is lost on the way in.
+    /// </summary>
+    public string DefaultValue
+    {
+        get => FormulaText.Write(Default);
+        set => Default = Formula.FromText(value);
+    }
 
     /// <summary>Macro that owns a local variable; empty for system and global variables.</summary>
     public string Owner { get; set; } = string.Empty;

@@ -141,7 +141,7 @@ public sealed class PersistedVariables : IDisposable
 
         if (_shared is null || !_shared.TryGet(definition.Name, out var value))
         {
-            value = VariableValues.Read(definition.Type, definition.DefaultValue,
+            value = VariableValues.Read(definition.Type, definition.Default,
                 VariableValues.DesignContext());
             _shared?.SetIfAbsent(definition.Name, value);
         }

@@ -5,6 +5,7 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
@@ -151,7 +152,7 @@ public static class RecoveryStore
             {
                 ["name"] = variable.Name,
                 ["type"] = variable.Type.ToString(),
-                ["default"] = variable.DefaultValue,
+                ["default"] = FormulaJson.Write(variable.Default),
                 ["description"] = variable.Description,
                 ["id"] = variable.Id,
             });
@@ -282,7 +283,7 @@ public static class RecoveryStore
                 Scope = VariableScope.Global,
                 Type = VariableTypes.KindOf(
                     variable["type"]?.GetValue<string>()),
-                DefaultValue = variable["default"]?.GetValue<string>() ?? string.Empty,
+                Default = FormulaJson.Read(variable["default"]),
                 Description = variable["description"]?.GetValue<string>() ?? string.Empty,
             });
         }
