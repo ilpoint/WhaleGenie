@@ -68,8 +68,8 @@
                                           Content="{Binding [MacroInterface.Required], Source={x:Static loc:Strings.Current}}" />
 
                                 <TextBox Grid.Row="2" Grid.ColumnSpan="2"
-                                         Classes="HasChip"
-                                         Text="{Binding Default}"
+                                         Classes="HasChip" IsReadOnly="True"
+                                         Text="{Binding DefaultValue, Mode=OneWay}"
                                          PlaceholderText="{Binding [MacroInterface.Default], Source={x:Static loc:Strings.Current}}">
                                     <TextBox.InnerRightContent>
                                         <Button Classes="ValueChip" Click="OnOpenDefaultExpression"

@@ -276,7 +276,7 @@ public sealed partial class MacroRunner
                 throw new StepFailure(RunKeys.MissingArgument, argument.Name);
             }
 
-            var fallback = argument.Default.Trim().Length > 0 ? Read(argument.Default) : Value.Null;
+            var fallback = Formula.IsNothing(argument.Default) ? Value.Null : Read(argument.Default);
             CheckValueFits(argument.Type, fallback, argument.Name, RunKeys.BadArgumentType);
             return fallback;
         }
@@ -293,15 +293,14 @@ public sealed partial class MacroRunner
     /// cannot be read is raised the way any other bad value is, so the failure names the same key
     /// wherever the value was written.
     /// </summary>
-    private Value ReadDeclared(string name, string initial, ValueKind type)
+    private Value ReadDeclared(string name, ExpressionNode initial, ValueKind type)
     {
-        var written = initial.Trim();
-        if (written.Length == 0)
+        if (Formula.IsNothing(initial))
         {
             return ValueRules.Empty(type);
         }
 
-        var value = Read(written);
+        var value = Read(initial);
         CheckValueFits(type, value, name, RunKeys.BadInitial);
         return value;
     }

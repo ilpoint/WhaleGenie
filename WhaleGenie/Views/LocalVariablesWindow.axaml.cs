@@ -128,10 +128,10 @@ public partial class LocalVariablesWindow : AppWindow
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(this, row.Initial, _expressionVariables,
+        if (await ValuePickerWindow.ShowFor(this, row.InitialSeed, _expressionVariables,
                 ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
-            row.Initial = FormulaText.Write(built.Value);
+            row.Initial = built.Value;
         }
     }
 

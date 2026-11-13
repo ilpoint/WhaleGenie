@@ -43,9 +43,11 @@ internal static partial class McpPatches
     /// <summary>What a declaration can say, whichever kind of declaration it is.</summary>
     private static Refusal? Fill(MacroParameter argument, JsonObject operation)
     {
-        if (Said(operation, "default") is { } fallback)
+        // A default is a shape. A client may send the same object a document holds, or a plain
+        // scalar: both are read as the shape they are, with no line to parse back.
+        if (operation.TryGetPropertyValue("default", out var fallback))
         {
-            argument.Default = fallback;
+            argument.Default = FormulaJson.Read(fallback);
         }
 
         if (Flag(operation, "required") is { } required)
@@ -75,7 +77,7 @@ internal static partial class McpPatches
 
         // A value that is required and has a default is two answers to one question: the call must
         // give it, and the call may leave it out.
-        return argument.Required && argument.Default.Length > 0
+        return argument.Required && !Formula.IsNothing(argument.Default)
             ? Refused(McpErrors.BadArgument,
                 $"\"{argument.Name}\" cannot be both required and defaulted.",
                 "Drop required, or drop default.", true, new { name = argument.Name })

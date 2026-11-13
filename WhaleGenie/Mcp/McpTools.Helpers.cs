@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -46,7 +47,8 @@ public sealed partial class McpTools
                 name = argument.Name,
                 type = argument.Type.ToString(),
                 required = argument.Required,
-                @default = argument.Default,
+                @default = Formula.Speak(argument.Default),
+                defaultShape = FormulaJson.Write(argument.Default),
                 description = argument.Description,
                 fields = argument.Fields
                     .Select(field => new { name = field.Name, type = field.Type.ToString() })

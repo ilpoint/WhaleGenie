@@ -197,7 +197,7 @@ public partial class MacroEditorViewModel
         VariableRename.RenameSteps(Steps, oldName, newName, global: true);
         foreach (var parameter in DeclaredParameters)
         {
-            parameter.Default = FormulaText.Rename(parameter.Default, ActionValueForm.Value, oldName, newName);
+            parameter.Default = VariableRename.RenameValue(parameter.Default, oldName, newName);
         }
 
         NotifyStepsChanged();

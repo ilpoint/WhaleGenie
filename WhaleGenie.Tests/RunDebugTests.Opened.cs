@@ -98,7 +98,7 @@ public partial class RunDebugTests
             {
                 Name = "倍数",
                 Required = false,
-                Default = "3",
+                Default = Formula.Number(3),
                 Type = ValueKind.Number,
             });
             macro.Steps.Add(new MacroStep

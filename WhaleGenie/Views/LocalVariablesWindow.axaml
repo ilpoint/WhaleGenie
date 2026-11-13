@@ -119,8 +119,8 @@
                                     <TextBlock Text="{Binding [LocalVariables.Initial], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
-                                        <TextBox Name="InitialBox" Classes="HasChip"
-                                                 Text="{Binding Selected.Initial}"
+                                        <TextBox Name="InitialBox" Classes="HasChip" IsReadOnly="True"
+                                                 Text="{Binding Selected.InitialValue, Mode=OneWay}"
                                                  PlaceholderText="{Binding [LocalVariables.InitialPlaceholder], Source={x:Static loc:Strings.Current}}">
                                             <TextBox.InnerRightContent>
                                                 <Button Classes="ValueChip" Click="OnOpenInitialExpression"

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
@@ -21,7 +22,7 @@ public class MacroCallTests
         macro.Parameters.Add(new MacroParameter
         {
             Name = "次数",
-            Default = "3",
+            Default = Formula.Number(3),
             Required = false,
             Description = "要做多少遍。",
             Type = ValueKind.Number,
@@ -47,17 +48,29 @@ public class MacroCallTests
         var callable = MacroItem.FromJson(Declaring().ToJson()).Callable;
 
         var optional = Assert.Single(callable.Parameters, parameter => parameter.Name == "次数");
-        Assert.Equal("3", optional.Default);
+        Assert.Equal(Formula.Number(3), optional.Default);
         Assert.False(optional.Required);
         Assert.Equal("要做多少遍。", optional.Description);
         Assert.Equal(ValueKind.Number, optional.Type);
 
         var wanted = Assert.Single(callable.Parameters, parameter => parameter.Name == "标签");
         Assert.True(wanted.Required);
-        Assert.Equal(string.Empty, wanted.Default);
+        Assert.True(Formula.IsNothing(wanted.Default));
         Assert.Equal(ValueKind.Text, wanted.Type);
         Assert.Equal(ValueKind.Number, callable.Signature.Argument("次数")!.Type);
         Assert.Equal(ValueKind.Number, callable.Signature.Result("答案")!.Type);
+    }
+
+    [Fact]
+    public void A_default_is_written_to_the_file_as_a_shape_not_a_line()
+    {
+        var arguments = Assert.IsType<JsonArray>(Declaring().ToJson()["arguments"]);
+
+        // A number is a JSON number, and a declaration left empty writes nothing at all. Neither
+        // is a line of text waiting to be read back into a value.
+        Assert.Equal(3, Assert.IsAssignableFrom<JsonValue>(arguments[0]!["default"]).GetValue<double>());
+        Assert.True(arguments[1]!["default"] is null
+            || arguments[1]!["default"]!.GetValueKind() == System.Text.Json.JsonValueKind.Null);
     }
 
     [Fact]

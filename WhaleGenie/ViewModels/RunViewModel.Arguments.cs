@@ -52,7 +52,7 @@ public partial class RunViewModel
                     TypeLabel = Strings.Get("ActionType." + parameter.Type,
                         parameter.Type.ToString()),
                     Required = parameter.Required,
-                    Default = parameter.Default,
+                    Default = Formula.Speak(parameter.Default),
                     Description = parameter.Description,
                 };
                 row.Changed += OnArgumentChanged;

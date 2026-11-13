@@ -90,7 +90,7 @@ public sealed partial class McpTools
 
     [McpServerTool(Name = "whalegenie_get_macro_signature", ReadOnly = true,
             Title = "What a macro takes and gives back"),
-     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, description) and the results it hands back, plus a call template. A control.runMacro step passes each argument as one row of params.arguments (columns name, value, given) and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
+     Description("Returns what one macro of the draft declares: its arguments (name, type, required, default, defaultShape, description) and the results it hands back, plus a call template. default is the value said for a person to read; defaultShape is the shape the declaration keeps, which is what a declare patch writes back. A control.runMacro step passes each argument as one row of params.arguments (columns name, value, given) and asks for results in returns rows of key and name; those names come from the called macro, not from the action catalogue, so this is where they are read.")]
     public Task<CallToolResult> GetMacroSignature(
         [Description("The draft id.")] string draftId,
         [Description("The macro name.")] string name)

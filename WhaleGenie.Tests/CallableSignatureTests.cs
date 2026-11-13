@@ -21,7 +21,7 @@ public class CallableSignatureTests
             new MacroParameter
             {
                 Name = " 次数 ",
-                Default = "3",
+                Default = Formula.Number(3),
                 Required = false,
                 Type = ValueKind.Number,
                 Description = "要做多少遍。",

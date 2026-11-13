@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Tests.Bench;
 
@@ -34,7 +35,7 @@ internal sealed class BenchLibrary : IMacroLibrary
     public MacroSignature? Signature(string name)
         => Same(name)
             ? new MacroSignature(
-                [new MacroArgument(BenchFixtures.CalledArgument, string.Empty, false)],
+                [new MacroArgument(BenchFixtures.CalledArgument, Formula.Nothing, false)],
                 [new MacroReturn(BenchFixtures.CalledResult)], [])
             : null;
 

@@ -42,11 +42,11 @@ public static class CallableSignature
 
 /// <summary>
 /// One value a macro asks a call to fill in, as the call site and the tools describe it. A record
-/// carries the fields it holds, because `$record.name` is a name somebody has to be able to look up:
-/// a record without them is a bag of names nobody can check before the run.
+/// carries the fields it holds, because a record field is a name somebody has to be able to look
+/// up: a record without them is a bag of names nobody can check before the run.
 /// </summary>
 public sealed record CalledArgument(
-    string Name, ValueKind Type, bool Required, string Default, string Description,
+    string Name, ValueKind Type, bool Required, ExpressionNode Default, string Description,
     IReadOnlyList<CalledField> Fields)
 {
     /// <summary>The same, read off a declaration row.</summary>
@@ -79,9 +79,9 @@ public sealed record CalledArgument(
             {
                 parts.Add(Strings.Get("Add.CallArgumentRequired"));
             }
-            else if (Default.Trim().Length > 0)
+            else if (!Formula.IsNothing(Default))
             {
-                parts.Add(Strings.Format("Add.CallArgumentDefault", Default));
+                parts.Add(Strings.Format("Add.CallArgumentDefault", Formula.Speak(Default)));
             }
 
             return string.Join(" ", parts);

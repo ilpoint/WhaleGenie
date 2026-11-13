@@ -8,7 +8,7 @@ namespace WhaleGenie.Views;
 
 /// <summary>
 /// The form part of a macro's own interface: its parameters and results, and the one tool a
-/// default value needs. The dialog only reports text; the row that opened it keeps it.
+/// default value needs. The picker hands back a shape; the row that opened it keeps that shape.
 /// </summary>
 public partial class MacroInterfaceView : UserControl
 {
@@ -32,10 +32,10 @@ public partial class MacroInterfaceView : UserControl
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(owner, row.Default,
+        if (await ValuePickerWindow.ShowFor(owner, row.DefaultSeed,
                 Model?.ValueVariables ?? [], ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
-            row.Default = FormulaText.Write(built.Value);
+            row.Default = built.Value;
         }
     }
 }

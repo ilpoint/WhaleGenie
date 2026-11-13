@@ -53,9 +53,12 @@ public static partial class MacroPackage
     /// reference would silently fall back to matching by spelling, which is the very thing this
     /// version exists to stop. 30 refuses a package written by a build that still read a
     /// hand-edited <c>$name</c> line as a reference: here that line is plain words, and opening it
-    /// would silently change what the step means rather than telling the author about it.
+    /// would silently change what the step means rather than telling the author about it. 31 is the
+    /// version where a macro's argument defaults and local initial values became shapes: a 30
+    /// package wrote them as lines, and read as shapes they would turn into plain words rather than
+    /// the references and operations their author wrote, so the package is refused instead.
     /// </summary>
-    public const int FormatVersion = 30;
+    public const int FormatVersion = 31;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

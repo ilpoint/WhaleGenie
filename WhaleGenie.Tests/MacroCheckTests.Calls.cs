@@ -98,7 +98,7 @@ public partial class MacroCheckTests
             {
                 Name = "数量",
                 Required = false,
-                Default = "不是数",
+                Default = Formula.Text("不是数"),
                 Type = ValueKind.Number,
             }], []);
 
@@ -117,7 +117,7 @@ public partial class MacroCheckTests
             {
                 Name = "数量",
                 Required = false,
-                Default = "$ + 1",
+                Default = Formula.Binary("+", Formula.Hole, Formula.Number(1)),
                 Type = ValueKind.Number,
             }], []);
 

@@ -176,7 +176,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             var written = new JsonObject
             {
                 ["name"] = parameter.Name.Trim(),
-                ["default"] = parameter.Default,
+                ["default"] = FormulaJson.Write(parameter.Default),
                 ["required"] = parameter.Required,
                 ["description"] = parameter.Description,
                 ["type"] = parameter.Type.ToString(),
@@ -246,7 +246,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 ["name"] = local.Name.Trim(),
                 ["type"] = local.Type.ToString(),
-                ["initial"] = local.Initial,
+                ["initial"] = FormulaJson.Write(local.Initial),
                 [FieldNames.Description] = local.Description,
             };
 

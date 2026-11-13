@@ -48,6 +48,11 @@ public static class VariableRename
                 parameter.Default = RenameValue(parameter.Default, oldName, newName);
             }
 
+            foreach (var local in macro.Locals)
+            {
+                local.Initial = RenameValue(local.Initial, oldName, newName);
+            }
+
             // The name pass above keeps the old behaviour for references that came in without an
             // identity. The identity pass then puts every bound reference back on the name of the
             // declaration it actually belongs to, which is what a same-named local cannot steal.
@@ -105,26 +110,12 @@ public static class VariableRename
         }
     }
 
-    private static string RenameWholeValue(string value, string oldName, string newName)
-        => Expression.TryParse(value, out _, out _)
-            ? Expression.RenameVariable(value, oldName, newName)
-            : FormulaText.Rename(value, ActionValueForm.Text, oldName, newName);
-
     /// <summary>
-    /// A value cell with one name inside it changed, written the way a whole-value field writes
-    /// one: an expression is rewritten through the expression parser, plain text through the
-    /// interpolation rules. A declaration's starting value is that same kind of cell.
+    /// A declared value with one name inside it changed. The value is a shape, so the tree says
+    /// which pieces are names: nothing has to be spelled out as a line and read back to find them.
     /// </summary>
-    public static string RenameValue(string value, string oldName, string newName)
-    {
-        var trimmed = value.Trim();
-        if (trimmed.StartsWith('$'))
-        {
-            return RenameWholeValue(value, oldName, newName);
-        }
-
-        return FormulaText.Rename(value, ActionValueForm.Text, oldName, newName);
-    }
+    public static ExpressionNode RenameValue(ExpressionNode value, string oldName, string newName)
+        => Expression.Rename(value, oldName, newName);
 
     /// <summary>A cell renamed the way any other value is: only its references change.</summary>
     private static ExpressionNode RenameCell(ExpressionNode cell, string oldName, string newName)

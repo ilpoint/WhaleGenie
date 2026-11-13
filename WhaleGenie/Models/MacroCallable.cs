@@ -19,8 +19,8 @@ public sealed class MacroParameter
     /// <summary>The name the called macro reads this value by.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>What is used when the call leaves this value out.</summary>
-    public string Default { get; set; } = string.Empty;
+    /// <summary>What is used when the call leaves this value out. A shape, kept as it is stored.</summary>
+    public ExpressionNode Default { get; set; } = Formula.Nothing;
 
     /// <summary>True when a call has to fill this value in.</summary>
     public bool Required { get; set; } = true;
@@ -42,7 +42,7 @@ public sealed class MacroParameter
 /// <summary>One field of a record a macro declares: the name it is read by and what it holds.</summary>
 public sealed class MacroField
 {
-    /// <summary>The name `$record.name` reads.</summary>
+    /// <summary>The name a record field is read by.</summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>What kind of value the field holds.</summary>
@@ -91,10 +91,10 @@ public sealed class MacroLocalVariable
     public ValueKind Type { get; set; } = ValueKind.Text;
 
     /// <summary>
-    /// What it starts every run at: a written value or an expression, read the way any other value
-    /// field is. Left empty it starts empty, not at the kind's empty value written into the file.
+    /// What it starts every run at: a written value or an expression, held as the shape it keeps.
+    /// Left empty it starts empty, not at the kind's empty value written into the file.
     /// </summary>
-    public string Initial { get; set; } = string.Empty;
+    public ExpressionNode Initial { get; set; } = Formula.Nothing;
 
     /// <summary>What it is for, shown on the variable wall and under the field that declares it.</summary>
     public string Description { get; set; } = string.Empty;

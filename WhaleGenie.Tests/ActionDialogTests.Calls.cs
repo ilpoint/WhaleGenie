@@ -352,7 +352,7 @@ public partial class ActionDialogTests
                 new MacroParameter
                 {
                     Name = "次数",
-                    Default = "3",
+                    Default = Formula.Number(3),
                     Required = false,
                     Description = "要做多少遍。",
                 },

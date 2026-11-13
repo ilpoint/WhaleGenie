@@ -126,7 +126,7 @@ public partial class MacroRunnerTests
     public async Task A_declared_local_starts_every_run_at_the_value_it_declares()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("total", "5", ValueKind.Number)]);
+            [new MacroLocal("total", Formula.Number(5), ValueKind.Number)]);
         var store = Store();
 
         var (first, _) = await RunAsync([Set("total", "9")], variables: store,
@@ -145,10 +145,10 @@ public partial class MacroRunnerTests
     public async Task A_declared_local_reads_a_parameter_and_the_ones_declared_before_it()
     {
         var signature = new MacroSignature(
-            [new MacroArgument("base", "", true, ValueKind.Number)], [],
+            [new MacroArgument("base", Formula.Nothing, true, ValueKind.Number)], [],
             [
-                new MacroLocal("doubled", "$base * 2", ValueKind.Number),
-                new MacroLocal("plus", "$doubled + 1", ValueKind.Number),
+                new MacroLocal("doubled", Formula.Binary("*", Formula.Name("base"), Formula.Number(2)), ValueKind.Number),
+                new MacroLocal("plus", Formula.Binary("+", Formula.Name("doubled"), Formula.Number(1)), ValueKind.Number),
             ]);
         var store = Store();
 
@@ -165,8 +165,8 @@ public partial class MacroRunnerTests
     {
         var signature = new MacroSignature([], [],
             [
-                new MacroLocal("count", "", ValueKind.Number),
-                new MacroLocal("items", "", ValueKind.List),
+                new MacroLocal("count", Formula.Nothing, ValueKind.Number),
+                new MacroLocal("items", Formula.Nothing, ValueKind.List),
             ]);
         var store = Store();
 
@@ -184,8 +184,8 @@ public partial class MacroRunnerTests
         store.Local.Set("base", Value.FromNumber(100));
         var library = new Library(("内部", new MacroSignature([], [new MacroReturn("结果")],
             [
-                new MacroLocal("base", "10"),
-                new MacroLocal("derived", "$base + 1"),
+                new MacroLocal("base", Formula.Number(10)),
+                new MacroLocal("derived", Formula.Binary("+", Formula.Name("base"), Formula.Number(1))),
             ]), [Set("结果", Formula.Name("derived"))]));
 
         var (result, _) = await RunAsync([Call("内部", Returns("结果=结果"))],
@@ -199,7 +199,7 @@ public partial class MacroRunnerTests
     public async Task A_declaration_that_repeats_a_name_stops_the_run_before_it_starts()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("n", "1"), new MacroLocal("n", "2")]);
+            [new MacroLocal("n", Formula.Number(1)), new MacroLocal("n", Formula.Number(2))]);
 
         var (result, _) = await RunAsync([Set("seen", "1")], startSignature: signature);
 
@@ -211,7 +211,7 @@ public partial class MacroRunnerTests
     public async Task A_starting_value_that_cannot_be_the_kind_it_declares_stops_the_run()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("count", "many", ValueKind.Number)]);
+            [new MacroLocal("count", Formula.Text("many"), ValueKind.Number)]);
 
         var (result, _) = await RunAsync([Set("seen", "1")], startSignature: signature);
 
@@ -249,7 +249,7 @@ public partial class MacroRunnerTests
     private static (string Name, MacroSignature Signature, ExecutableStep[] Steps) Takes(
         string name, string[] arguments, string[] results, params ExecutableStep[] steps)
         => (name, new MacroSignature(
-            [.. arguments.Select(argument => new MacroArgument(argument, string.Empty, true))],
+            [.. arguments.Select(argument => new MacroArgument(argument, Formula.Nothing, true))],
             [.. results.Select(name => new MacroReturn(name))], []), steps);
 
     /// <summary>The same for a macro that asks for nothing, which is a macro called for what it does.</summary>

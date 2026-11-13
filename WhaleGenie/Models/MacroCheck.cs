@@ -210,22 +210,8 @@ public static partial class MacroCheck
                 continue;
             }
 
-            // A default that starts with $ is read as an expression, the same as any whole-value
-            // field. A broken one would only fail the calls that leave the parameter out, so it is
-            // better to point at it while the interface is being written.
-            var defaultText = parameter.Default.Trim();
-            if (defaultText.StartsWith('$') && !defaultText.StartsWith("$$", StringComparison.Ordinal)
-                && !Expression.TryParse(defaultText, out _, out var error))
-            {
-                warnings.Add(Strings.Format("Editor.Problem.BadExpression", error?.Detail ?? defaultText));
-            }
-
-            if (ConstantValue(parameter.Default) is { } value
-                && !ValueRules.Accepts(parameter.Type, value))
-            {
-                warnings.Add(Strings.Format("Editor.Problem.BadDefaultType", own.Name, name,
-                    Strings.Get("ActionType." + parameter.Type, parameter.Type.ToString())));
-            }
+            CheckDeclared(parameter.Default, parameter.Type, own.Name, name,
+                "Editor.Problem.BadDefaultType", warnings);
         }
 
         // An initial value is read at the start of every run, so one that cannot be read — or that
@@ -239,27 +225,64 @@ public static partial class MacroCheck
                 continue;
             }
 
-            var initial = local.Initial.Trim();
-            if (initial.StartsWith('$') && !initial.StartsWith("$$", StringComparison.Ordinal)
-                && !Expression.TryParse(initial, out _, out var error))
-            {
-                warnings.Add(Strings.Format("Editor.Problem.BadExpression", error?.Detail ?? initial));
-            }
-
-            if (ConstantValue(local.Initial) is { } value && !ValueRules.Accepts(local.Type, value))
-            {
-                warnings.Add(Strings.Format("Editor.Problem.BadInitialType", own.Name, name,
-                    Strings.Get("ActionType." + local.Type, local.Type.ToString())));
-            }
+            CheckDeclared(local.Initial, local.Type, own.Name, name,
+                "Editor.Problem.BadInitialType", warnings);
         }
 
         return warnings;
     }
 
     /// <summary>
-    /// What a constant value field reads as, or null when it depends on a variable or a function
-    /// whose answer is only known while the macro runs. It follows the same rules as the engine's
-    /// value reader for the cases a check can settle on its own.
+    /// Says what a declared value that cannot stand on its own would do at a run. A shape with a
+    /// place still empty is unfinished, and a constant that plainly cannot be the declared kind
+    /// would fail the run before its first step; both are worth saying while the declaration is
+    /// being written. A value that reads a name is left alone — its answer is only known at the run.
+    /// </summary>
+    private static void CheckDeclared(ExpressionNode written, ValueKind type,
+        string macro, string name, string typeProblem, List<string> warnings)
+    {
+        if (Formula.IsNothing(written))
+        {
+            return;
+        }
+
+        if (HoldsHole(written))
+        {
+            warnings.Add(Strings.Format("Editor.Problem.BadExpression", Formula.Speak(written)));
+            return;
+        }
+
+        if (DeclaredValue(written) is { } value && !ValueRules.Accepts(type, value))
+        {
+            warnings.Add(Strings.Format(typeProblem, macro, name,
+                Strings.Get("ActionType." + type, type.ToString())));
+        }
+    }
+
+    private static bool HoldsHole(ExpressionNode node) => node switch
+    {
+        HoleNode => true,
+        ConcatNode run => run.Parts.Any(HoldsHole),
+        ListNode list => list.Items.Any(HoldsHole),
+        CallNode call => call.Arguments.Any(HoldsHole),
+        UnaryNode unary => HoldsHole(unary.Operand),
+        BinaryNode binary => HoldsHole(binary.Left) || HoldsHole(binary.Right),
+        _ => false,
+    };
+
+    /// <summary>
+    /// What a constant declared value reads as, or null when it depends on a name whose answer is
+    /// only known while the macro runs. Nothing is parsed here: the shape is worked out directly.
+    /// </summary>
+    private static Value? DeclaredValue(ExpressionNode written)
+        => Formula.IsNothing(written) || Expression.References(written).Count > 0
+            ? null
+            : Expression.TryEvaluate(written, null, out var value, out _) ? value : null;
+
+    /// <summary>
+    /// What a constant value a call passes reads as, or null when it depends on a name or a function
+    /// whose answer is only known while the macro runs. A call row still holds its value as a line,
+    /// so this one follows the line reader; declared values use <see cref="DeclaredValue"/>.
     /// </summary>
     private static Value? ConstantValue(string text)
     {
@@ -276,8 +299,6 @@ public static partial class MacroCheck
             return value;
         }
 
-        // Text that is not an expression is still a value the engine can read; a number is read as
-        // a number, and everything else stays text.
         return double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture,
             out var number)
             ? Value.FromNumber(number)

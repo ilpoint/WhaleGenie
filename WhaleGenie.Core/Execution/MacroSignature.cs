@@ -11,7 +11,7 @@ namespace WhaleGenie.Core.Execution;
 /// a call that names something the macro never declared is a mistake rather than a value nobody
 /// happens to read.
 /// </summary>
-public sealed record MacroArgument(string Name, string Default, bool Required,
+public sealed record MacroArgument(string Name, ExpressionNode Default, bool Required,
     ValueKind Type = ValueKind.Text, string Id = "");
 
 /// <summary>One value a macro offers to hand back: the name and what kind of value it is.</summary>
@@ -23,7 +23,7 @@ public sealed record MacroReturn(string Name, ValueKind Type = ValueKind.Text,
 /// <paramref name="Initial"/> is written into the macro's own table before the first step — on every
 /// run, not only when the name happens to be missing.
 /// </summary>
-public sealed record MacroLocal(string Name, string Initial,
+public sealed record MacroLocal(string Name, ExpressionNode Initial,
     ValueKind Type = ValueKind.Text, string Id = "");
 
 /// <summary>
@@ -61,7 +61,7 @@ public sealed record MacroSignature(
     /// itself. A call that passed a value under a duplicate name would have one of the two
     /// silently overwritten, and a parameter named like a built-in would read as the built-in
     /// inside the called macro. A name the macro language cannot read is just as unusable: a
-    /// caller has no way to write it, so <c>$name</c> never works inside the called macro.
+    /// caller has no way to name it, so no reference inside the called macro can reach it.
     /// </summary>
     public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
     {
@@ -85,7 +85,7 @@ public sealed record MacroSignature(
         foreach (var argument in Arguments)
         {
             var name = argument.Name.Trim();
-            if (name.Length > 0 && argument.Required && argument.Default.Trim().Length > 0)
+            if (name.Length > 0 && argument.Required && !Formula.IsNothing(argument.Default))
             {
                 problems.Add((MacroSignatureFault.RequiredWithDefault, name));
             }

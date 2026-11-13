@@ -73,7 +73,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 {
                     Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
-                    Default = declared["default"]?.GetValue<string>() ?? string.Empty,
+                    Default = FormulaJson.Read(declared["default"]),
                     Required = ReadBool(declared["required"], true),
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadKind(declared),
@@ -106,7 +106,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                     Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Type = ReadKind(declared),
-                    Initial = declared["initial"]?.GetValue<string>() ?? string.Empty,
+                    Initial = FormulaJson.Read(declared["initial"]),
                     Description = declared[FieldNames.Description]?.GetValue<string>()
                         ?? string.Empty,
                 });

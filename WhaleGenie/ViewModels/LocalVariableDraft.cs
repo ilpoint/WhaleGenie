@@ -24,7 +24,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     private bool _initializing;
 
     private LocalVariableDraft(
-        string originalName, string name, string type, string initial, string description,
+        string originalName, string name, string type, ExpressionNode initial, string description,
         bool isDeclared, string source, IReadOnlyList<VariableUse>? uses)
     {
         _initializing = true;
@@ -48,7 +48,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
             originalName: source?.Name.Trim() ?? string.Empty,
             name: source?.Name.Trim() ?? string.Empty,
             type: source?.Type is { } kind ? VariableTypes.Name(kind) : "text",
-            initial: source?.Initial ?? string.Empty,
+            initial: source?.Initial ?? Formula.Nothing,
             description: source?.Description ?? string.Empty,
             isDeclared: true,
             source: Strings.Get("LocalVariables.Declared"),
@@ -59,7 +59,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
         originalName: choice.Name,
         name: choice.Name,
         type: VariableTypes.Name(choice.Type ?? ValueKind.Text),
-        initial: string.Empty,
+        initial: Formula.Nothing,
         description: choice.Description,
         isDeclared: false,
         source: choice.Source,
@@ -67,7 +67,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
 
     public string OriginalName { get; }
     public string OriginalType { get; }
-    public string OriginalInitial { get; }
+    public ExpressionNode OriginalInitial { get; }
     public string OriginalDescription { get; }
 
     /// <summary>True for a value this macro declares; false for one a step wrote.</summary>
@@ -90,7 +90,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
         || !string.Equals(Name.Trim(), OriginalName.Trim(), StringComparison.Ordinal)
         || IsDeclared
         && (!string.Equals(Type, OriginalType, StringComparison.Ordinal)
-            || !string.Equals(Initial.Trim(), OriginalInitial.Trim(), StringComparison.Ordinal)
+            || !Equals(Initial, OriginalInitial)
             || !string.Equals(Description.Trim(), OriginalDescription.Trim(), StringComparison.Ordinal));
 
     public string NameProblem { get; private set; } = string.Empty;
@@ -112,10 +112,45 @@ public sealed partial class LocalVariableDraft : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasInitialError))]
     public partial string Type { get; set; } = "text";
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(InitialPreview))]
-    [NotifyPropertyChangedFor(nameof(HasInitialError))]
-    public partial string Initial { get; set; } = string.Empty;
+    /// <summary>The starting value as the shape the declaration will keep. The only value here.</summary>
+    public ExpressionNode Initial
+    {
+        get => _initial;
+        set
+        {
+            if (Equals(_initial, value))
+            {
+                return;
+            }
+
+            _initial = value;
+            OnPropertyChanged(nameof(Initial));
+            OnPropertyChanged(nameof(InitialValue));
+            OnPropertyChanged(nameof(InitialSeed));
+            OnPropertyChanged(nameof(InitialPreview));
+            OnPropertyChanged(nameof(HasInitialError));
+            OnPropertyChanged(nameof(IsChanged));
+            if (!_initializing)
+            {
+                RefreshValues();
+            }
+        }
+    }
+
+    private ExpressionNode _initial = Formula.Nothing;
+
+    /// <summary>
+    /// What the box shows. Only out: a value is written through the value window, never typed here.
+    /// </summary>
+    public string InitialValue => Formula.Speak(_initial);
+
+    /// <summary>
+    /// The line the value window starts from. Rendered out and never read back; an empty declaration
+    /// opens a window holding nothing rather than a quoted empty word.
+    /// </summary>
+    public string InitialSeed => Formula.IsNothing(_initial)
+        ? string.Empty
+        : Expression.Render(_initial, bare: true);
 
     [ObservableProperty]
     public partial string Description { get; set; } = string.Empty;
@@ -191,14 +226,6 @@ public sealed partial class LocalVariableDraft : ObservableObject
     }
 
     partial void OnTypeChanged(string value)
-    {
-        if (!_initializing)
-        {
-            RefreshValues();
-        }
-    }
-
-    partial void OnInitialChanged(string value)
     {
         if (!_initializing)
         {

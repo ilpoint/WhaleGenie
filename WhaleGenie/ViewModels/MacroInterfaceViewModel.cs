@@ -346,7 +346,7 @@ public sealed partial class MacroParameterRow : ViewModelBase
     }
 
     /// <summary>
-    /// A field edit is a declaration edit: the variable wall and the check that reads `$rec.field`
+    /// A field edit is a declaration edit: the variable wall and the checks that read its fields
     /// both answer differently the moment a field name changes.
     /// </summary>
     private void OnFieldChanged()
@@ -415,21 +415,37 @@ public sealed partial class MacroParameterRow : ViewModelBase
         }
     }
 
-    public string Default
+    /// <summary>The default as the shape the declaration will keep. The only value here.</summary>
+    public ExpressionNode Default
     {
         get => Model.Default;
         set
         {
-            if (Model.Default == value)
+            if (Equals(Model.Default, value))
             {
                 return;
             }
 
             Model.Default = value;
-            OnPropertyChanged();
+            OnPropertyChanged(nameof(Default));
+            OnPropertyChanged(nameof(DefaultValue));
+            OnPropertyChanged(nameof(DefaultSeed));
             _changed();
         }
     }
+
+    /// <summary>
+    /// What the box shows. Only out: a value is written through the value window, never typed here.
+    /// </summary>
+    public string DefaultValue => Formula.Speak(Model.Default);
+
+    /// <summary>
+    /// The line the value window starts from. Rendered out and never read back; an empty declaration
+    /// opens a window holding nothing rather than a quoted empty word.
+    /// </summary>
+    public string DefaultSeed => Formula.IsNothing(Model.Default)
+        ? string.Empty
+        : Expression.Render(Model.Default, bare: true);
 
     public bool Required
     {

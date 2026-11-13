@@ -1,5 +1,6 @@
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Tests;
 
@@ -23,7 +24,7 @@ public class MacroSignatureTests
     [InlineData("$name")]
     public void A_declared_name_has_to_be_readable_as_a_variable(string name)
     {
-        var problem = Assert.Single(Signature(new MacroArgument(name, string.Empty, false)).Problems());
+        var problem = Assert.Single(Signature(new MacroArgument(name, Formula.Nothing, false)).Problems());
 
         Assert.Equal(MacroSignatureFault.InvalidName, problem.Fault);
         Assert.Equal(name, problem.Name);
@@ -32,18 +33,18 @@ public class MacroSignatureTests
     [Fact]
     public void Dots_and_chinese_are_part_of_a_readable_name()
     {
-        Assert.Empty(Signature(new MacroArgument("a.b", string.Empty, false)).Problems());
-        Assert.Empty(Signature(new MacroArgument("次数", string.Empty, false)).Problems());
-        Assert.Empty(Signature(new MacroArgument("_start", string.Empty, false)).Problems());
-        Assert.Empty(Signature(new MacroArgument("1count", string.Empty, false)).Problems());
-        Assert.Empty(Signature(new MacroArgument("123", string.Empty, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("a.b", Formula.Nothing, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("次数", Formula.Nothing, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("_start", Formula.Nothing, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("1count", Formula.Nothing, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("123", Formula.Nothing, false)).Problems());
     }
 
     [Fact]
     public void A_name_ending_in_a_dot_marks_nothing_by_itself()
     {
         // An argument is a row naming it now, so a name that looks like a marker is only a name.
-        Assert.Empty(Signature(new MacroArgument("x.given", string.Empty, false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("x.given", Formula.Nothing, false)).Problems());
         Assert.Empty(WithResult(new MacroReturn("x.given")).Problems());
     }
 
@@ -51,17 +52,17 @@ public class MacroSignatureTests
     public void A_required_argument_may_not_have_a_default()
     {
         var problem = Assert.Single(Signature(
-            new MacroArgument("次数", "3", Required: true)).Problems());
+            new MacroArgument("次数", Formula.Number(3), Required: true)).Problems());
 
         Assert.Equal(MacroSignatureFault.RequiredWithDefault, problem.Fault);
         Assert.Equal("次数", problem.Name);
-        Assert.Empty(Signature(new MacroArgument("次数", "3", Required: false)).Problems());
+        Assert.Empty(Signature(new MacroArgument("次数", Formula.Number(3), Required: false)).Problems());
     }
 
     [Fact]
     public void An_empty_name_is_reported_before_its_other_faults()
     {
-        var problem = Assert.Single(Signature(new MacroArgument("", "3", Required: true)).Problems());
+        var problem = Assert.Single(Signature(new MacroArgument("", Formula.Number(3), Required: true)).Problems());
 
         Assert.Equal(MacroSignatureFault.EmptyName, problem.Fault);
     }
@@ -70,8 +71,8 @@ public class MacroSignatureTests
     public void Duplicate_names_are_read_without_caring_about_case()
     {
         var problems = Signature(
-            new MacroArgument("Name", string.Empty, false),
-            new MacroArgument("name", string.Empty, false)).Problems();
+            new MacroArgument("Name", Formula.Nothing, false),
+            new MacroArgument("name", Formula.Nothing, false)).Problems();
 
         var problem = Assert.Single(problems);
         Assert.Equal(MacroSignatureFault.DuplicateName, problem.Fault);
@@ -82,7 +83,7 @@ public class MacroSignatureTests
     {
         // The same name on both sides is an in-out value: the call hands it in and takes it back.
         var problems = new MacroSignature(
-            [new MacroArgument("n", string.Empty, false)],
+            [new MacroArgument("n", Formula.Nothing, false)],
             [new MacroReturn("n")], []).Problems();
 
         Assert.Empty(problems);
@@ -94,7 +95,7 @@ public class MacroSignatureTests
     [InlineData("step.abcd.outcome")]
     public void A_name_the_run_keeps_is_refused(string name)
     {
-        var problem = Assert.Single(Signature(new MacroArgument(name, string.Empty, false)).Problems());
+        var problem = Assert.Single(Signature(new MacroArgument(name, Formula.Nothing, false)).Problems());
 
         Assert.Equal(MacroSignatureFault.ReservedName, problem.Fault);
     }
@@ -103,9 +104,9 @@ public class MacroSignatureTests
     public void Problems_are_kept_in_the_order_the_declarations_are_read()
     {
         var problems = Signature(
-            new MacroArgument("", string.Empty, false),
-            new MacroArgument(".bad", string.Empty, false),
-            new MacroArgument("a b", string.Empty, false)).Problems();
+            new MacroArgument("", Formula.Nothing, false),
+            new MacroArgument(".bad", Formula.Nothing, false),
+            new MacroArgument("a b", Formula.Nothing, false)).Problems();
 
         Assert.Equal(
             [MacroSignatureFault.EmptyName, MacroSignatureFault.InvalidName,

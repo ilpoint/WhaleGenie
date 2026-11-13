@@ -110,4 +110,29 @@ public class VariableRenameTests
         Assert.Equal("new", editor.Steps[0].Text("name"));
         Assert.Equal("$new + 1", editor.Steps[1].Text("message"));
     }
+
+    [Fact]
+    public void A_global_rename_updates_the_shapes_a_declaration_keeps()
+    {
+        var macro = new MacroItem { Name = "declaring" };
+        macro.Parameters.Add(new MacroParameter
+        {
+            Name = "count",
+            Required = false,
+            Default = Formula.Binary("+", Formula.Name("old"), Formula.Number(1)),
+        });
+        macro.Locals.Add(new MacroLocalVariable
+        {
+            Name = "total",
+            Initial = Formula.Run([Formula.Text("共 "), Formula.Name("old"), Formula.Text(" 件")]),
+        });
+
+        VariableRename.RenameGlobal([macro], "old", "new");
+
+        Assert.Equal(Formula.Binary("+", Formula.Name("new"), Formula.Number(1)),
+            macro.Parameters[0].Default);
+        var run = Assert.IsType<ConcatNode>(macro.Locals[0].Initial);
+        Assert.Equal(new ExpressionNode[] { Formula.Text("共 "), Formula.Name("new"), Formula.Text(" 件") },
+            run.Parts);
+    }
 }
