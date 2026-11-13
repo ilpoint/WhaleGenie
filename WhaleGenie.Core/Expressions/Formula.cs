@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
@@ -94,6 +95,34 @@ public static class Formula
             _ => new ConcatNode(items),
         };
     }
+
+    /// <summary>
+    /// A number as its own shape. A caller that already knows the value need not also spell it, so
+    /// this is the short way; the overload below keeps the spelling when a field must hand it back
+    /// unchanged (a number typed as <c>1.0</c> stays that way in a step list).
+    /// </summary>
+    public static ExpressionNode Number(double value)
+        => new NumberNode(value.ToString(CultureInfo.InvariantCulture), value);
+
+    public static ExpressionNode Number(string text, double value) => new NumberNode(text, value);
+
+    public static ExpressionNode Date(string text) => new DateNode(text);
+
+    public static ExpressionNode Constant(string word) => new ConstantNode(word);
+
+    public static ExpressionNode Call(string name, params ExpressionNode[] arguments)
+        => new CallNode(name, arguments);
+
+    public static ExpressionNode Unary(string op, ExpressionNode operand)
+        => new UnaryNode(op, operand);
+
+    public static ExpressionNode Binary(string op, ExpressionNode left, ExpressionNode right)
+        => new BinaryNode(op, left, right);
+
+    public static ExpressionNode List(params ExpressionNode[] items) => new ListNode(items);
+
+    /// <summary>The one place in a tree nothing has been put in yet.</summary>
+    public static ExpressionNode Hole => HoleNode.Instance;
 
     /// <summary>True when the field said nothing at all.</summary>
     public static bool IsNothing(ExpressionNode? value) => value is null or TextNode { Text: "" };
