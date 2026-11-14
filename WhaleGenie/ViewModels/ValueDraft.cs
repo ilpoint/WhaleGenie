@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
 
@@ -55,7 +56,7 @@ public sealed class ValueDraft : ViewModelBase
     /// The value said for a person to read. This goes to a log or a failure message and is never
     /// read back: the shape is the value.
     /// </summary>
-    public string Speak => Formula.Speak(_value);
+    public string Speak => ExpressionPhrase.Display(_value);
 
     public bool CanUndo => _before.Count > 0;
 

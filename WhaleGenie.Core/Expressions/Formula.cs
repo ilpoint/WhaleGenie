@@ -94,26 +94,30 @@ public static class Formula
     };
 
     /// <summary>
-    /// The value as it is read by a person: the words as written, a name between corner marks so
-    /// it is told apart from the prose around it. This is the form a step list, a run log and a
-    /// complaint about a step use — never a form anything is read back from, which is what keeps
-    /// the marks out of the language.
+    /// The value as a short line a person can read. The engine says a name as the name itself:
+    /// the marks that tell it apart from the words around it belong to the interface, which passes
+    /// them in. Nothing is ever read back from this line — it is drawn from a shape, never into one.
     /// </summary>
-    public static string Speak(ExpressionNode? value) => value switch
+    public static string Speak(ExpressionNode? value, string nameOpen = "", string nameClose = "")
     {
-        TextNode text => text.Text,
-        NumberNode number => number.Text,
-        DateNode date => date.Text,
-        ConstantNode constant => constant.Word,
-        VariableNode variable => "「" + variable.Name + "」",
-        ConcatNode run => string.Concat(run.Parts.Select(Speak)),
-        ListNode list => "[" + string.Join(", ", list.Items.Select(Speak)) + "]",
-        CallNode call => call.Name + "(" + string.Join(", ", call.Arguments.Select(Speak)) + ")",
-        UnaryNode unary => unary.Operator == "not" ? "not " + Speak(unary.Operand)
-            : "-" + Speak(unary.Operand),
-        BinaryNode binary => Speak(binary.Left) + " " + binary.Operator + " " + Speak(binary.Right),
-        _ => string.Empty,
-    };
+        string Say(ExpressionNode? node) => node switch
+        {
+            TextNode text => text.Text,
+            NumberNode number => number.Text,
+            DateNode date => date.Text,
+            ConstantNode constant => constant.Word,
+            VariableNode variable => nameOpen + variable.Name + nameClose,
+            ConcatNode run => string.Concat(run.Parts.Select(Say)),
+            ListNode list => "[" + string.Join(", ", list.Items.Select(Say)) + "]",
+            CallNode call => call.Name + "(" + string.Join(", ", call.Arguments.Select(Say)) + ")",
+            UnaryNode unary => unary.Operator == "not" ? "not " + Say(unary.Operand)
+                : "-" + Say(unary.Operand),
+            BinaryNode binary => Say(binary.Left) + " " + binary.Operator + " " + Say(binary.Right),
+            _ => string.Empty,
+        };
+
+        return Say(value);
+    }
 
     /// <summary>True when the value names nothing: it is text, a number, or pieces of those.</summary>
     public static bool IsPlain(ExpressionNode? value) => value switch

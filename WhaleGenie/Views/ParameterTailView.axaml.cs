@@ -17,7 +17,7 @@ public partial class ParameterTailView : UserControl
 
     private void OnBrowsePath(object? sender, RoutedEventArgs e) => Host?.OnBrowsePath(sender, e);
 
-    private void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e) => Host?.OnOpenExpressionBuilder(sender, e);
+    private void OnOpenValuePicker(object? sender, RoutedEventArgs e) => Host?.OnOpenValuePicker(sender, e);
 
     private void OnPickVariable(object? sender, RoutedEventArgs e) => Host?.OnPickVariable(sender, e);
 

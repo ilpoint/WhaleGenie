@@ -129,7 +129,7 @@ public partial class RunViewModel
         {
             // A field nobody answered says nothing here: the row is a summary of what the step was
             // given, so an empty field would only add a name with nothing after it.
-            var line = Formula.Speak(parameter.Written).Trim();
+            var line = ExpressionPhrase.Display(parameter.Written).Trim();
             if (line.Length == 0)
             {
                 continue;

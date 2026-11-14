@@ -2586,6 +2586,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.SystemReadOnly"] = "\"{0}\" is a system variable, which a macro can only read.",
         ["Add.GlobalMustExist"] =
             "Global variable \"{0}\" does not exist. Create it in a macro editor's Variable Center first.",
+        // The corner marks around a name in a short line: a visual mark, not a translated word.
+        ["Expr.Mark.NameOpen"] = "「",
+        ["Expr.Mark.NameClose"] = "」",
     };
 
     internal static readonly Dictionary<string, string> Chinese = new()
@@ -5322,5 +5325,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Variable.sys.machineName.desc"] = "计算机名。",
         ["Variable.sys.userName.desc"] = "当前登录用户名。",
         ["Variable.sys.clipboard.desc"] = "剪贴板中的文本。",
+        ["Expr.Mark.NameOpen"] = "「",
+        ["Expr.Mark.NameClose"] = "」",
     };
 }

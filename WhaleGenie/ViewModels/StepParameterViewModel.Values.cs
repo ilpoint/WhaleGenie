@@ -29,7 +29,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// field is read-only, and every value is put in through the value window as a shape. Names
     /// are said with their own typography rather than a sign in front of them.
     /// </summary>
-    public string DisplayLine => Formula.Speak(Written);
+    public string DisplayLine => ExpressionPhrase.Display(Written);
 
     /// <summary>The key or chord shown on the keyboard field's button.</summary>
     public string KeyFieldDisplay => Text.Trim().Length > 0

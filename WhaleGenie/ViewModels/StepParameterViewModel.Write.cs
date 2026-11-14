@@ -113,7 +113,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 ? Formula.NameOf(value).Name
                 : ReadAsFormula || IsNumber
                     ? Expression.Render(value)
-                    : Formula.Speak(value);
+                    : ExpressionPhrase.Display(value);
 
     /// <summary>A plain number belongs in the numbered box; everything else in the formula one.</summary>
     private static bool IsPlainNumber(ExpressionNode value)

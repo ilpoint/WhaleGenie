@@ -46,7 +46,7 @@ public partial class ConditionEditorView : UserControl
             return;
         }
 
-        await OpenValue(node, editor, owner, (button.Tag as string) == "right", startOnFormula: true);
+        await OpenValue(node, editor, owner, (button.Tag as string) == "right");
     }
 
     /// <summary>
@@ -55,12 +55,12 @@ public partial class ConditionEditorView : UserControl
     /// same thing here, so both buttons come through here and neither is a different window.
     /// </summary>
     private async Task OpenValue(ConditionNodeViewModel node, ConditionEditorViewModel editor,
-        Window owner, bool right, bool startOnFormula)
+        Window owner, bool right)
     {
         var seed = right ? node.RightNode : node.LeftNode;
         if (await ValuePickerWindow.ShowFor(owner, seed, editor.Variables,
                 ActionValueForm.Value,
-                startOnFormula: startOnFormula, startCaret: CaretIn(node) ?? -1) is { Chosen: true } written)
+                startCaret: CaretIn(node) ?? -1) is { Chosen: true } written)
         {
             editor.WriteExpression(node, right, written.Value);
         }

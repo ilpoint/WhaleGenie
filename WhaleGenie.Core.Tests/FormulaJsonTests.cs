@@ -91,7 +91,7 @@ public class FormulaJsonTests
 
         var read = FormulaJson.Read(written);
         Assert.Equal(["who"], Expression.References(read));
-        Assert.Equal("你好，「who」！", Formula.Speak(read));
+        Assert.Equal("你好，「who」！", Formula.Speak(read, "「", "」"));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class FormulaJsonTests
         var value = Formula.Run(
             [Formula.Text("取 "), Formula.Name("clipboard"), Formula.Text(" 里的 "), Formula.Name("item")]);
 
-        Assert.Equal("取 「clipboard」 里的 「item」", Formula.Speak(value));
+        Assert.Equal("取 「clipboard」 里的 「item」", Formula.Speak(value, "「", "」"));
     }
 
     [Fact]

@@ -87,7 +87,7 @@ public static partial class MacroCheck
                 if (Hole(parameter.Written) is not null)
                 {
                     Add(step, MacroProblemCode.BadExpression, Strings.Format("Editor.Problem.BadExpression",
-                        Formula.Speak(parameter.Written)));
+                        ExpressionPhrase.Display(parameter.Written)));
                 }
             }
         }

@@ -81,7 +81,7 @@ public sealed record CalledArgument(
             }
             else if (!Formula.IsNothing(Default))
             {
-                parts.Add(Strings.Format("Add.CallArgumentDefault", Formula.Speak(Default)));
+                parts.Add(Strings.Format("Add.CallArgumentDefault", ExpressionPhrase.Display(Default)));
             }
 
             return string.Join(" ", parts);

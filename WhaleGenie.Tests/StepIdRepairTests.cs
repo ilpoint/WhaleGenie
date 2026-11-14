@@ -40,7 +40,7 @@ public class StepIdRepairTests
             Step("efgh", "control.if", "condition", Formula.Binary("==", Formula.Name("step.abcd.outcome"), Formula.Text("ok"))));
 
         Assert.Empty(StepIds.Settle(macro.Steps));
-        Assert.Equal("「step.abcd.outcome」 == ok", Value(macro.Steps[1], "condition"));
+        Assert.Equal("step.abcd.outcome == ok", Value(macro.Steps[1], "condition"));
     }
 
     private static MacroItem Macro(params JsonObject[] steps)

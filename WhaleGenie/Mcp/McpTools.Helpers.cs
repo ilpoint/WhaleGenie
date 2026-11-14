@@ -13,6 +13,7 @@ using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -47,7 +48,7 @@ public sealed partial class McpTools
                 name = argument.Name,
                 type = argument.Type.ToString(),
                 required = argument.Required,
-                @default = Formula.Speak(argument.Default),
+                @default = ExpressionPhrase.Display(argument.Default),
                 defaultShape = FormulaJson.Write(argument.Default),
                 description = argument.Description,
                 fields = argument.Fields

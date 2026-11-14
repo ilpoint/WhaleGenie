@@ -436,7 +436,7 @@ public sealed partial class MacroParameterRow : ViewModelBase
     /// <summary>
     /// What the box shows. Only out: a value is written through the value window, never typed here.
     /// </summary>
-    public string DefaultValue => Formula.Speak(Model.Default);
+    public string DefaultValue => ExpressionPhrase.Display(Model.Default);
 
     public bool Required
     {

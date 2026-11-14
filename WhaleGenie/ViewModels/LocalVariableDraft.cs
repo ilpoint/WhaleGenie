@@ -141,7 +141,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     /// <summary>
     /// What the box shows. Only out: a value is written through the value window, never typed here.
     /// </summary>
-    public string InitialValue => Formula.Speak(_initial);
+    public string InitialValue => ExpressionPhrase.Display(_initial);
 
     [ObservableProperty]
     public partial string Description { get; set; } = string.Empty;

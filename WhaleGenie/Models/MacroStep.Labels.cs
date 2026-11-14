@@ -28,7 +28,7 @@ public partial class MacroStep : INotifyPropertyChanged
                 parameter.Value);
         }
 
-        return Formula.Speak(parameter.Written);
+        return ExpressionPhrase.Display(parameter.Written);
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public partial class MacroStep : INotifyPropertyChanged
     /// </summary>
     public string Said(string name)
         => Parameters.FirstOrDefault(parameter => parameter.Name == name) is { } parameter
-            ? Formula.Speak(parameter.Written)
+            ? ExpressionPhrase.Display(parameter.Written)
             : string.Empty;
 
     /// <summary>The catalogue entry for a parameter of this step, or null when it is unknown.</summary>

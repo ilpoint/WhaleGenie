@@ -28,9 +28,9 @@ public sealed record BreakpointRule
     /// <summary>The rule as the row says it, or empty when the breakpoint stops every time.</summary>
     public string Note => (WaitsForHits, WaitsForExpression) switch
     {
-        (true, true) => Strings.Format("Run.BreakpointNoteBoth", HitTimes, Formula.Speak(Expression).Trim()),
+        (true, true) => Strings.Format("Run.BreakpointNoteBoth", HitTimes, ExpressionPhrase.Display(Expression).Trim()),
         (true, false) => Strings.Format("Run.BreakpointNoteHits", HitTimes),
-        (false, true) => Formula.Speak(Expression).Trim(),
+        (false, true) => ExpressionPhrase.Display(Expression).Trim(),
         _ => string.Empty,
     };
 }

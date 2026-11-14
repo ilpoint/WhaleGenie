@@ -115,7 +115,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     /// </summary>
     public string DefaultValue
     {
-        get => Formula.Speak(_default);
+        get => ExpressionPhrase.Display(_default);
         set => Default = Formula.Text(value ?? string.Empty);
     }
 

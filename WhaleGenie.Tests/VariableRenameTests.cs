@@ -31,7 +31,7 @@ public class VariableRenameTests
         VariableRename.RenameSteps([step], "old", "new", global: true);
 
         Assert.Equal("new", step.Text("name"));
-        Assert.Equal("field(「record」, old) + 「new」", step.Text("value"));
+        Assert.Equal("field(record, old) + new", step.Text("value"));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class VariableRenameTests
 
         Assert.True(editor.RenameLocalVariable("old", "new", out var problem), problem);
         Assert.Equal("new", editor.Steps[0].Text("name"));
-        Assert.Equal("「new」 + 1", editor.Steps[1].Text("message"));
+        Assert.Equal("new + 1", editor.Steps[1].Text("message"));
     }
 
     [Fact]

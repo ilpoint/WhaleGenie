@@ -32,7 +32,7 @@ public partial class BreakpointWindow : AppWindow
     }
 
     /// <summary>The builder the action form opens for a condition, opened on the same expression.</summary>
-    private async void OnOpenExpressionBuilder(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void OnOpenValuePicker(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is not BreakpointViewModel form)
         {
@@ -40,7 +40,7 @@ public partial class BreakpointWindow : AppWindow
         }
 
         if (await ValuePickerWindow.ShowFor(this, form.Expression, form.Choices,
-            ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
+            ActionValueForm.Value) is { Chosen: true } built)
         {
             form.Expression = built.Value;
         }

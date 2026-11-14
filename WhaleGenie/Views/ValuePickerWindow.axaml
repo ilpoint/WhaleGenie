@@ -116,17 +116,6 @@
             </Border>
         </DataTemplate>
 
-        <!-- 括号：本身就是一块，单独可删可拖。 -->
-        <DataTemplate DataType="vm:SlotBracket" x:DataType="vm:SlotBracket">
-            <Border Classes="SlotToken SlotBracket SlotPiece"
-                    ToolTip.Tip="{Binding HoverHint}">
-                <Panel>
-                    <TextBlock Classes="SlotSign" Text="{Binding Text}" />
-                    <Border Classes="SlotProblemEdge" IsVisible="{Binding HasProblem}" />
-                </Panel>
-            </Border>
-        </DataTemplate>
-
         <!-- 值：名字、数字、一段文字，各按各的族上色。 -->
         <DataTemplate DataType="vm:SlotValue" x:DataType="vm:SlotValue">
             <Border Classes="SlotToken SlotValue SlotPiece"

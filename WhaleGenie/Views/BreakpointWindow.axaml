@@ -40,7 +40,7 @@
                          PlaceholderText="{Binding [Run.BreakpointExpressionWatermark], Source={x:Static loc:Strings.Current}}">
                     <TextBox.InnerRightContent>
                         <Button Name="BuildExpressionButton" Classes="ValueChip"
-                                Click="OnOpenExpressionBuilder"
+                                Click="OnOpenValuePicker"
                                 Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                                 ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                     </TextBox.InnerRightContent>

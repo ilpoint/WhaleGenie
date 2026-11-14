@@ -244,17 +244,6 @@
             </Style.Animations>
         </Style>
 
-        <!-- 括号这块本身：悬停出边。 -->
-        <Style Selector="Border.SlotBracket">
-            <Setter Property="MinWidth" Value="22" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-        </Style>
-        <Style Selector="Border.SlotBracket:pointerover">
-            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
-        </Style>
-
         <!-- 撤销/恢复那样的小方按钮：没有底，指上去才有一层。 -->
         <Style Selector="Button.SlotStep">
             <Setter Property="Width" Value="22" />

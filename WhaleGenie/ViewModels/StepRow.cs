@@ -120,9 +120,9 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     private static string CaseLine(ExpressionNode written) => written switch
     {
         ListNode list => string.Join("; ",
-            list.Items.Select(item => Formula.Speak(item).Trim())
+            list.Items.Select(item => ExpressionPhrase.Display(item).Trim())
                 .Where(item => item.Length > 0)),
-        _ => Formula.Speak(written).Trim(),
+        _ => ExpressionPhrase.Display(written).Trim(),
     };
 
     /// <summary>

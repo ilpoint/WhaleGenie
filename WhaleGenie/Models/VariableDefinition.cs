@@ -57,7 +57,7 @@ public partial class VariableDefinition : ObservableObject
     /// </summary>
     public string DefaultValue
     {
-        get => Formula.Speak(Default);
+        get => ExpressionPhrase.Display(Default);
         set => Default = Formula.Text(value ?? string.Empty);
     }
 

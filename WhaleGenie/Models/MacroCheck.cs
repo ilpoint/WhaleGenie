@@ -248,7 +248,7 @@ public static partial class MacroCheck
 
         if (HoldsHole(written))
         {
-            warnings.Add(Strings.Format("Editor.Problem.BadExpression", Formula.Speak(written)));
+            warnings.Add(Strings.Format("Editor.Problem.BadExpression", ExpressionPhrase.Display(written)));
             return;
         }
 

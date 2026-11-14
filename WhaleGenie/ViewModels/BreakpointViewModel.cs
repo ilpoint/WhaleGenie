@@ -99,7 +99,7 @@ public sealed partial class BreakpointViewModel : ObservableObject
     /// </summary>
     public string ExpressionLine
     {
-        get => Formula.Speak(_expression);
+        get => ExpressionPhrase.Display(_expression);
         set
         {
             if (!Formula.IsPlain(_expression))

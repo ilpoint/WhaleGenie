@@ -4,6 +4,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 
@@ -168,7 +169,7 @@ public partial class ImageRowViewModel : ViewModelBase
         _composing = true;
         try
         {
-            Text = Formula.Speak(value);
+            Text = ExpressionPhrase.Display(value);
         }
         finally
         {

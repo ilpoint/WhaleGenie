@@ -17,6 +17,13 @@ namespace WhaleGenie.Localization;
 public static class ExpressionPhrase
 {
     /// <summary>
+    /// The shape as one short line on the screen, with a name between the corner marks the text
+    /// table keeps for it. The engine's own reading stays neutral; only the interface marks names.
+    /// </summary>
+    public static string Display(ExpressionNode tree)
+        => Formula.Speak(tree, Strings.Get("Expr.Mark.NameOpen"), Strings.Get("Expr.Mark.NameClose"));
+
+    /// <summary>
     /// The formula said out loud. <paramref name="nameOf"/> says what a variable is called to the
     /// reader; without it the name written in the formula stands for itself.
     /// </summary>

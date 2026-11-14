@@ -182,16 +182,6 @@ public sealed class SlotOperator : SlotNode
     public required string Text { get; set; }
 }
 
-/// <summary>
-/// One bracket character as a piece of its own. A bracket is a token like any other here: it can be
-/// clicked, swapped, dragged and taken away with its own cross, so a pair that was written by hand
-/// can be pulled apart and put back around something else.
-/// </summary>
-public sealed class SlotBracket : SlotNode
-{
-    public required string Text { get; init; }
-}
-
 /// <summary>A name, a number, a piece of text or one of the words that stand for a value.</summary>
 public sealed class SlotValue : SlotNode
 {

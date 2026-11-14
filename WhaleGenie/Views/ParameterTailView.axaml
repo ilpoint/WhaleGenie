@@ -102,7 +102,7 @@
                 Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                 PlaceholderText="{Binding Placeholder}">
                 <TextBox.InnerRightContent>
-                    <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                 </TextBox.InnerRightContent>

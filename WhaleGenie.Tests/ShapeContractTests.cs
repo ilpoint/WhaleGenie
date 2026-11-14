@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -53,7 +54,8 @@ public class ShapeContractTests
         var name = Formula.Name("count", "a7k2m9");
 
         Assert.Equal("count", Formula.Word(name));
-        Assert.Equal("「count」", Formula.Speak(name));
+        Assert.Equal("「count」", ExpressionPhrase.Display(name));
+        Assert.Equal("count", Formula.Speak(name));
         Assert.Equal("共 count", Formula.Word(Formula.Run([Formula.Text("共 "), name])));
     }
 

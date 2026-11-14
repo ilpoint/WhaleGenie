@@ -31,7 +31,7 @@ public partial class StepParameterViewModel : ViewModelBase
             // two different shapes, and the shape is what the field keeps.
             if (_written is VariableNode variable)
             {
-                return Formula.Speak(variable);
+                return ExpressionPhrase.Display(variable);
             }
 
             if (!WindowRule.TryParse(written, out var rule))

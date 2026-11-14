@@ -96,9 +96,6 @@ public partial class ValuePickerWindow : AppWindow
         };
     }
 
-    /// <summary>True when the window was opened from the formula side of a cell.</summary>
-    public bool StartOnFormula { get; init; }
-
     /// <summary>Where the caret was in the cell, or -1 when nobody said.</summary>
     public int StartCaret { get; init; } = -1;
 
@@ -111,7 +108,7 @@ public partial class ValuePickerWindow : AppWindow
     public static async Task<ValuePick> ShowFor(Window owner, ExpressionNode? seed,
         IReadOnlyList<VariableChoice>? variables,
         ActionValueForm valueForm = ActionValueForm.Value,
-        bool startOnFormula = false, string? target = null, int startCaret = -1,
+        string? target = null, int startCaret = -1,
         Action<MacroStep>? lookAtStep = null)
     {
         var viewModel = new ValuePickerViewModel(seed ?? Formula.Nothing, variables, valueForm, target);
@@ -122,7 +119,6 @@ public partial class ValuePickerWindow : AppWindow
 
         var window = new ValuePickerWindow(viewModel)
         {
-            StartOnFormula = startOnFormula,
             StartCaret = startCaret,
         };
 

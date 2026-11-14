@@ -67,7 +67,7 @@ public sealed partial class MacroRunner
     /// <summary>What the regions of a step say, for a failure that has to show what it could not read.</summary>
     private static string Written(IReadOnlyList<IReadOnlyDictionary<string, ExpressionNode>> rows)
         => string.Join("; ", rows.Select(row =>
-            string.Join(',', row.Values.Select(Formula.Speak))));
+            string.Join(',', row.Values.Select(value => Formula.Speak(value)))));
 
     /// <summary>
     /// What one region of a step comes to. A rectangle written out says where it is; a region that

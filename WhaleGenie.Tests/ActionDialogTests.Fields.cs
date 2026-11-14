@@ -245,7 +245,7 @@ public partial class ActionDialogTests
             viewModel.SaveCommand.Execute(null);
 
             Assert.NotNull(saved);
-            Assert.Equal("「count」 + 1",
+            Assert.Equal("count + 1",
                 saved!.Parameters.First(parameter => parameter.Name == "x").Value);
 
             var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions,

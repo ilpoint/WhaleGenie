@@ -129,7 +129,7 @@ public partial class LocalVariablesWindow : AppWindow
         }
 
         if (await ValuePickerWindow.ShowFor(this, row.Initial, _expressionVariables,
-                ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
+                ActionValueForm.Value) is { Chosen: true } built)
         {
             row.Initial = built.Value;
         }

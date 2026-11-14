@@ -199,7 +199,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     {
         SlotValue value => value.Text,
         SlotOperator sign => sign.Text,
-        SlotBracket bracket => bracket.Text,
         SlotEmpty empty => empty.Text,
         SlotCall call => call.Name,
         _ => string.Empty,

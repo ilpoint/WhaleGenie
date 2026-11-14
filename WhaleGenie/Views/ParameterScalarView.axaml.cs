@@ -42,7 +42,7 @@ public partial class ParameterScalarView : UserControl
 
     private void OnAddBrowserWay(object? sender, RoutedEventArgs e) => Host?.OnAddBrowserWay(sender, e);
 
-    private void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e) => Host?.OnOpenExpressionBuilder(sender, e);
+    private void OnOpenValuePicker(object? sender, RoutedEventArgs e) => Host?.OnOpenValuePicker(sender, e);
 
     private void OnPickParameterColor(object? sender, RoutedEventArgs e) => Host?.OnPickParameterColor(sender, e);
 }

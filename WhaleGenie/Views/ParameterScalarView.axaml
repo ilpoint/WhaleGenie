@@ -41,7 +41,7 @@
             <TextBox Classes="Field" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                 PlaceholderText="{Binding Placeholder}">
                 <TextBox.InnerRightContent>
-                    <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                 </TextBox.InnerRightContent>
@@ -184,7 +184,7 @@
             <TextBox Classes="Field" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                 PlaceholderText="{Binding Placeholder}">
                 <TextBox.InnerRightContent>
-                    <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                 </TextBox.InnerRightContent>
@@ -267,7 +267,7 @@
                     <!-- 多行框里的片贴右上角：跟着框高居中会漂在文字中间，像另一段内容。 -->
                     <Button Classes="ValueChip" Margin="0,6,4,0" VerticalAlignment="Top"
                         IsVisible="{Binding OffersFormula}"
-                        Click="OnOpenExpressionBuilder"
+                        Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                 </TextBox.InnerRightContent>
@@ -337,7 +337,7 @@
                 IsVisible="{Binding OffersExpressionBuilder}"
                 Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                 ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}"
-                Click="OnOpenExpressionBuilder" />
+                Click="OnOpenValuePicker" />
         </Grid>
 
         <!-- 百分比：滑条与数字框说的是同一个值。滑条负责"大概这么多"，数字框负责精确的那一下；
@@ -381,7 +381,7 @@
             <TextBox Classes="Field HasChip" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                 PlaceholderText="{Binding Placeholder}">
                 <TextBox.InnerRightContent>
-                    <Button Classes="ValueChip" Click="OnOpenExpressionBuilder"
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                 </TextBox.InnerRightContent>

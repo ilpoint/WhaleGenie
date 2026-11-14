@@ -29,7 +29,7 @@ public partial class ActionEditorView : UserControl
     /// Opens the value window on the field that asked for it and keeps what it returns. A field laid
     /// out with buttons of its own still reaches the same window as the one with the button inside.
     /// </summary>
-    internal async void OnOpenExpressionBuilder(object? sender, RoutedEventArgs e)
+    internal async void OnOpenValuePicker(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: StepParameterViewModel parameter })
         {
@@ -38,7 +38,7 @@ public partial class ActionEditorView : UserControl
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
                 parameter.Variables, parameter.Definition.ValueForm,
-                startOnFormula: true, target: parameter.Label) is { Chosen: true } built)
+                target: parameter.Label) is { Chosen: true } built)
         {
             parameter.WriteValue(built.Value);
         }
@@ -57,7 +57,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Seed, cell.Variables,
-                ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
+                ActionValueForm.Value) is { Chosen: true } built)
         {
             cell.Write(built.Value);
         }
@@ -121,7 +121,7 @@ public partial class ActionEditorView : UserControl
         {
             if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
                     parameter.Variables, parameter.Definition.ValueForm,
-                    startOnFormula: true, target: parameter.Label,
+                    target: parameter.Label,
                     startCaret: caret ?? -1) is { Chosen: true } written)
             {
                 parameter.WriteValue(written.Value);
@@ -153,7 +153,7 @@ public partial class ActionEditorView : UserControl
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
         if (await ValuePickerWindow.ShowFor(HostWindow!, draft.Default,
-                variables, ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
+                variables, ActionValueForm.Value) is { Chosen: true } built)
         {
             draft.Default = built.Value;
         }
