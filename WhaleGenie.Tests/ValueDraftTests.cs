@@ -175,4 +175,75 @@ public class ValueDraftTests
         Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(piece.Source).Id);
         Assert.Equal(NodePath.Root, piece.Path);
     }
+
+    [Fact]
+    public void Putting_a_piece_one_past_the_end_adds_it_instead_of_rewriting_the_last()
+    {
+        var draft = new ValueDraft(Formula.Run([Formula.Text("a "), Formula.Name("who")]));
+        draft.SetCaret(NodePath.Root.Append(2));
+
+        draft.Put(Formula.Text("!"));
+
+        var run = Assert.IsType<ConcatNode>(draft.Value);
+        Assert.Equal(3, run.Parts.Count);
+        Assert.Equal(new TextNode("a "), run.Parts[0]);
+        Assert.Equal(new VariableNode("who"), run.Parts[1]);
+        Assert.Equal(new TextNode("!"), run.Parts[2]);
+    }
+
+    [Fact]
+    public void Filling_a_calls_ghost_becomes_its_next_argument()
+    {
+        var draft = new ValueDraft(Formula.Call("concat", Formula.Name("a")));
+        draft.SetCaret(NodePath.Root.Append(1));
+
+        draft.Put(Formula.Name("b"));
+
+        var call = Assert.IsType<CallNode>(draft.Value);
+        Assert.Equal(2, call.Arguments.Count);
+        Assert.Equal(new VariableNode("a"), call.Arguments[0]);
+        Assert.Equal(new VariableNode("b"), call.Arguments[1]);
+    }
+
+    [Fact]
+    public void Setting_one_argument_leaves_its_neighbours_alone()
+    {
+        var draft = new ValueDraft(Formula.Call("concat", Formula.Name("a"), Formula.Number(2)));
+
+        draft.Set(NodePath.Root.Append(0), Formula.Name("total"));
+
+        var call = Assert.IsType<CallNode>(draft.Value);
+        Assert.Equal(new VariableNode("total"), call.Arguments[0]);
+        Assert.Equal(new NumberNode("2", 2), call.Arguments[1]);
+    }
+
+    [Fact]
+    public void A_hole_left_by_a_removal_can_be_filled_again()
+    {
+        var draft = new ValueDraft(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
+        draft.Remove(NodePath.Root.Append(0));
+        Assert.True(draft.HasHole());
+
+        draft.Set(NodePath.Root.Append(0), Formula.Name("total"));
+
+        Assert.False(draft.HasHole());
+        Assert.Equal(new VariableNode("total"), Assert.IsType<BinaryNode>(draft.Value).Left);
+    }
+
+    [Fact]
+    public void A_walk_past_the_end_names_nothing()
+    {
+        Assert.Null(ShapeTree.At(Formula.Number(1), NodePath.Root.Append(3)));
+        Assert.Equal(Formula.Number(1), ShapeTree.At(Formula.Number(1), NodePath.Root));
+    }
+
+    [Fact]
+    public void Two_walks_to_the_same_place_are_the_same_place()
+    {
+        Assert.Equal(NodePath.Root.Append(0).Append(2), new NodePath(new[] { 0, 2 }));
+        Assert.Equal(NodePath.Root, new NodePath([]));
+        Assert.NotEqual(NodePath.Root, NodePath.Root.Append(0));
+        Assert.Equal(NodePath.Root, NodePath.Root.Append(1).Parent);
+        Assert.Null(NodePath.Root.Parent);
+    }
 }

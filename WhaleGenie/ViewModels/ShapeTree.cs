@@ -77,14 +77,11 @@ internal static class ShapeTree
         var rest = Tail(path);
         return root switch
         {
-            ConcatNode run => Formula.Run(InsertAt(run.Parts, head,
-                piece => Insert(piece, rest, value), value)),
-            ListNode list => new ListNode(InsertAt(list.Items, head,
-                piece => Insert(piece, rest, value), value)),
+            ConcatNode run => Formula.Run(InsertAt(run.Parts, head, rest, value)),
+            ListNode list => new ListNode(InsertAt(list.Items, head, rest, value)),
             CallNode call => call with
             {
-                Arguments = InsertAt(call.Arguments, head,
-                    piece => Insert(piece, rest, value), value),
+                Arguments = InsertAt(call.Arguments, head, rest, value),
             },
             _ => Formula.Run([root, value]),
         };
@@ -122,19 +119,22 @@ internal static class ShapeTree
     }
 
     private static IReadOnlyList<ExpressionNode> InsertAt(IReadOnlyList<ExpressionNode> items,
-        int at, System.Func<ExpressionNode, ExpressionNode> change, ExpressionNode value)
+        int at, NodePath rest, ExpressionNode value)
     {
         var next = items.ToList();
         if (at >= 0 && at < next.Count)
         {
             next.Insert(at, value);
         }
-        else if (at > 0 && at - 1 < next.Count)
+        else if (!rest.IsRoot && at > 0 && at - 1 < next.Count)
         {
-            next[at - 1] = change(next[at - 1]);
+            // The walk carries on into a piece that is there, so the change belongs inside it.
+            next[at - 1] = Insert(next[at - 1], rest, value);
         }
         else
         {
+            // One past the last piece is the ghost at the end of a call, or the end of a run:
+            // putting something there adds it, it never rewrites the piece before it.
             next.Add(value);
         }
 
