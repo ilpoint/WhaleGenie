@@ -90,6 +90,19 @@ public sealed record MacroSignature(
             }
         }
 
+        // An in-out name is one value going in and coming back out, so the two declarations have
+        // to agree on what kind it is. Two kinds would make the write on one side decide what the
+        // read on the other side gets, which is the same contradiction one name cannot hold.
+        foreach (var result in Results.DistinctBy(result => result.Name.Trim(),
+                     StringComparer.OrdinalIgnoreCase))
+        {
+            var name = result.Name.Trim();
+            if (Argument(name) is { } argument && argument.Type != result.Type)
+            {
+                problems.Add((MacroSignatureFault.TypeMismatch, name));
+            }
+        }
+
         return problems;
     }
 
@@ -149,4 +162,7 @@ public enum MacroSignatureFault
 
     /// <summary>A required argument also has a default, so omitting it has two answers.</summary>
     RequiredWithDefault,
+
+    /// <summary>A result and an argument share a name but not a kind, so one value has two shapes.</summary>
+    TypeMismatch,
 }

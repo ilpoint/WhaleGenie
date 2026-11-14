@@ -24,8 +24,8 @@ public sealed class SystemVariableReader : ILiveVariables
 {
     /// <summary>The names this knows, so a name that is not one of them is left alone.</summary>
     private static readonly Dictionary<string, VariableDefinition> Known =
-        VariableCatalog.SystemVariables.ToDictionary(variable => variable.Name,
-            StringComparer.OrdinalIgnoreCase);
+        VariableCatalog.SystemVariables.Where(variable => variable.Seeded)
+            .ToDictionary(variable => variable.Name, StringComparer.OrdinalIgnoreCase);
 
     private readonly IDeviceLayer _devices;
 

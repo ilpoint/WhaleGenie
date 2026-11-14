@@ -24,7 +24,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     private bool _initializing;
 
     private LocalVariableDraft(
-        string originalName, string name, string type, ExpressionNode initial, string description,
+        string originalName, string name, ValueKind type, ExpressionNode initial, string description,
         bool isDeclared, string source, IReadOnlyList<VariableUse>? uses)
     {
         _initializing = true;
@@ -47,7 +47,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
         IReadOnlyList<VariableUse>? uses = null) => new(
             originalName: source?.Name.Trim() ?? string.Empty,
             name: source?.Name.Trim() ?? string.Empty,
-            type: source?.Type is { } kind ? VariableTypes.Name(kind) : "text",
+            type: source?.Type ?? ValueKind.Text,
             initial: source?.Initial ?? Formula.Nothing,
             description: source?.Description ?? string.Empty,
             isDeclared: true,
@@ -58,7 +58,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     public static LocalVariableDraft FromStep(VariableChoice choice) => new(
         originalName: choice.Name,
         name: choice.Name,
-        type: VariableTypes.Name(choice.Type ?? ValueKind.Text),
+        type: choice.Type ?? ValueKind.Text,
         initial: Formula.Nothing,
         description: choice.Description,
         isDeclared: false,
@@ -66,7 +66,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
         choice.Uses);
 
     public string OriginalName { get; }
-    public string OriginalType { get; }
+    public ValueKind OriginalType { get; }
     public ExpressionNode OriginalInitial { get; }
     public string OriginalDescription { get; }
 
@@ -89,7 +89,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     public bool IsChanged => IsNew
         || !string.Equals(Name.Trim(), OriginalName.Trim(), StringComparison.Ordinal)
         || IsDeclared
-        && (!string.Equals(Type, OriginalType, StringComparison.Ordinal)
+        && (Type != OriginalType
             || !Equals(Initial, OriginalInitial)
             || !string.Equals(Description.Trim(), OriginalDescription.Trim(), StringComparison.Ordinal));
 
@@ -110,7 +110,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     [NotifyPropertyChangedFor(nameof(LocalType))]
     [NotifyPropertyChangedFor(nameof(InitialPreview))]
     [NotifyPropertyChangedFor(nameof(HasInitialError))]
-    public partial string Type { get; set; } = "text";
+    public partial ValueKind Type { get; set; } = ValueKind.Text;
 
     /// <summary>The starting value as the shape the declaration will keep. The only value here.</summary>
     public ExpressionNode Initial
@@ -151,33 +151,34 @@ public sealed partial class LocalVariableDraft : ObservableObject
         ? Strings.Get("Variable.New")
         : Name.Trim();
 
-    public string LocalType => Type.Length > 0
-        ? Strings.Get($"Variable.Type.{Type}", Type)
-        : string.Empty;
+    public string LocalType => Strings.Get($"Variable.Type.{VariableTypes.Name(Type)}",
+        VariableTypes.Name(Type));
 
     public ActionParameterOption SelectedType
     {
-        get => TypeOptions.FirstOrDefault(option => option.Value == Type) ?? TypeOptions[0];
+        get => TypeOptions.FirstOrDefault(option => option.Value == VariableTypes.Name(Type))
+            ?? TypeOptions[0];
         set
         {
-            if (Type != value.Value)
+            var kind = VariableTypes.KindOf(value.Value);
+            if (Type != kind)
             {
-                Type = value.Value;
+                Type = kind;
             }
         }
     }
 
     /// <summary>What the initial value comes to, read the way a run reads it.</summary>
     public string InitialPreview =>
-        VariableValues.Preview(VariableTypes.KindOf(Type), Initial, Resolver);
+        VariableValues.Preview(Type, Initial, Resolver);
 
     public bool HasInitialError =>
-        VariableValues.HasError(VariableTypes.KindOf(Type), Initial, Resolver);
+        VariableValues.HasError(Type, Initial, Resolver);
 
     public MacroLocalVariable ToLocal() => new()
     {
         Name = Name.Trim(),
-        Type = VariableTypes.KindOf(Type),
+        Type = Type,
         Initial = Initial,
         Description = Description.Trim(),
     };
@@ -216,7 +217,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
         OnPropertyChanged(nameof(Source));
     }
 
-    partial void OnTypeChanged(string value)
+    partial void OnTypeChanged(ValueKind value)
     {
         if (!_initializing)
         {

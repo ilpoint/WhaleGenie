@@ -57,6 +57,13 @@ public partial class VariableDefinition : ObservableObject
     /// <summary>Macro that owns a local variable; empty for system and global variables.</summary>
     public string Owner { get; set; } = string.Empty;
 
+    /// <summary>
+    /// True when the program puts a starting value into the table for this name. False for a value
+    /// only a run can provide — the round number of a loop — which is undefined outside the run
+    /// that writes it rather than starting at the kind's empty value.
+    /// </summary>
+    public bool Seeded { get; set; } = true;
+
     /// <summary>Whether this global's current value is kept for this user between program runs.</summary>
     [ObservableProperty]
     public partial bool PersistValue { get; set; }
@@ -124,34 +131,6 @@ public partial class VariableDefinition : ObservableObject
 
     /// <summary>Macro that owns a local variable, or the word for none for the other scopes.</summary>
     public string LocalOwner => Owner.Length == 0 ? Strings.Get("Common.None") : Owner;
-
-    /// <summary>Type choices for the editor dropdown, with translated text.</summary>
-    public IReadOnlyList<ActionParameterOption> TypeOptions { get; } =
-        [.. VariableTypes.Declarable.Select(kind => new ActionParameterOption(
-            VariableTypes.Name(kind),
-            Strings.Get($"Variable.Type.{VariableTypes.Name(kind)}", VariableTypes.Name(kind))))];
-
-    /// <summary>The chosen type, bound to the dropdown in the Variable Center.</summary>
-    public ActionParameterOption SelectedType
-    {
-        get => TypeOptions.FirstOrDefault(option => option.Value == VariableTypes.Name(Type))
-            ?? TypeOptions[0];
-        set
-        {
-            var kind = VariableTypes.KindOf(value.Value);
-            if (Type == kind)
-            {
-                return;
-            }
-
-            Type = kind;
-            OnPropertyChanged(nameof(SelectedType));
-            OnPropertyChanged(nameof(IsList));
-            OnPropertyChanged(nameof(DefaultPreview));
-            OnPropertyChanged(nameof(DefaultHasError));
-            OnPropertyChanged(nameof(ShowDefaultSummary));
-        }
-    }
 
     public override string ToString() => Name;
 

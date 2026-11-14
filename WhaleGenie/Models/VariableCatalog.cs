@@ -60,6 +60,10 @@ public static class VariableCatalog
         SystemVariable("sys.userName", "text", "Name of the logged-in user.", string.Empty),
         SystemVariable("sys.clipboard", "text", "Current clipboard text.", string.Empty),
 
+        SystemVariable("sys.loopIndex", "number",
+            "The round of the loop that is running, from 0. It has no value outside one.", string.Empty,
+            seeded: false),
+
         SystemVariable("caught.key", "text",
             "The failure key being filtered inside a try step. Empty outside that check.", string.Empty),
         SystemVariable("caught.detail", "text",
@@ -114,7 +118,7 @@ public static class VariableCatalog
     public static void NotifyGlobalsChanged() => GlobalsChanged?.Invoke();
 
     private static VariableDefinition SystemVariable(string name, string type, string description,
-        string defaultValue)
+        string defaultValue, bool seeded = true)
         => new()
         {
             Name = name,
@@ -122,5 +126,6 @@ public static class VariableCatalog
             Type = VariableTypes.KindOf(type),
             Description = description,
             Default = Formula.Text(defaultValue),
+            Seeded = seeded,
         };
 }

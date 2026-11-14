@@ -224,7 +224,7 @@ public class LocalVariablesTests
             var model = (LocalVariablesViewModel)window.DataContext!;
             model.NewCommand.Execute(null);
             model.Selected!.Name = "count";
-            model.Selected.Type = "number";
+            model.Selected.Type = ValueKind.Number;
             model.Selected.Initial = Formula.Number(3);
             Dispatcher.UIThread.RunJobs();
 

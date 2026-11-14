@@ -42,8 +42,7 @@ public static class FormulaJson
             case DateNode date:
                 return new JsonObject { [DateKey] = date.Text };
             case NumberNode number:
-                return double.TryParse(number.Text, NumberStyles.Any, CultureInfo.InvariantCulture,
-                    out var written)
+                return ValueRules.TryNumber(number.Text, out var written)
                     ? JsonValue.Create(written)
                     : JsonValue.Create(number.Text);
             case ConstantNode constant:

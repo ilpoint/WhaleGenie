@@ -67,12 +67,28 @@ public class MacroSignatureTests
     [Fact]
     public void The_run_keeps_a_parameter_and_a_result_from_sharing_a_name()
     {
-        // The same name on both sides is an in-out value: the call hands it in and takes it back.
+        // The same name on both sides is an in-out value: the call hands it in and takes it back,
+        // so the two declarations describe one value and have to describe it the same way.
         var problems = new MacroSignature(
             [new MacroArgument("n", Formula.Nothing, false)],
             [new MacroReturn("n")], []).Problems();
 
         Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void An_in_out_name_may_not_hold_two_kinds()
+    {
+        var problem = Assert.Single(new MacroSignature(
+            [new MacroArgument("n", Formula.Nothing, false, ValueKind.Number)],
+            [new MacroReturn("n", ValueKind.Text)], []).Problems());
+
+        Assert.Equal(MacroSignatureFault.TypeMismatch, problem.Fault);
+        Assert.Equal("n", problem.Name);
+
+        Assert.Empty(new MacroSignature(
+            [new MacroArgument("n", Formula.Nothing, false, ValueKind.Number)],
+            [new MacroReturn("n", ValueKind.Number)], []).Problems());
     }
 
     [Theory]

@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
@@ -24,7 +25,7 @@ public static class VariableValues
             store.Global.Set(name, value);
         }
 
-        foreach (var variable in VariableCatalog.SystemVariables)
+        foreach (var variable in VariableCatalog.SystemVariables.Where(variable => variable.Seeded))
         {
             store.System.Set(variable.Name, Read(variable.Type, variable.Default, store));
         }

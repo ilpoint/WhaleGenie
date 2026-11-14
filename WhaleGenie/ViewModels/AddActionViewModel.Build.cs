@@ -179,7 +179,7 @@ public partial class AddActionViewModel
             : new VariableDefinitionDraft(persisted: Persisted)
             {
                 Name = name,
-                Type = "text",
+                Type = ValueKind.Text,
             };
         GlobalVariableDraft.Resolver = VariableValues.DesignContext();
     }
@@ -201,7 +201,7 @@ public partial class AddActionViewModel
             {
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = VariableTypes.KindOf(draft.Type),
+                Type = draft.Type,
                 Default = draft.Default,
                 Description = draft.Description.Trim(),
                 PersistValue = draft.PersistValue,
@@ -210,7 +210,7 @@ public partial class AddActionViewModel
         }
         else
         {
-            existing.Type = VariableTypes.KindOf(draft.Type);
+            existing.Type = draft.Type;
             existing.Default = draft.Default;
             existing.Description = draft.Description.Trim();
             existing.PersistValue = draft.PersistValue;

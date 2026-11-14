@@ -334,6 +334,8 @@ public static partial class MacroCheck
                 Strings.Format("Editor.Problem.InvalidDeclarationName", own.Name, problem.Name),
             MacroSignatureFault.RequiredWithDefault =>
                 Strings.Format("Editor.Problem.RequiredWithDefault", own.Name, problem.Name),
+            MacroSignatureFault.TypeMismatch =>
+                Strings.Format("Editor.Problem.DeclarationTypeMismatch", own.Name, problem.Name),
             _ => Strings.Format("Editor.Problem.BadDeclaration", own.Name, problem.Name),
         };
 

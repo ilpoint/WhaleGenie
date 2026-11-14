@@ -14,6 +14,15 @@ namespace WhaleGenie.Core.Expressions;
 public static class ValueRules
 {
     /// <summary>
+    /// The one grammar a line is read as a number by. No thousands separators: a comma separates the
+    /// items of a list in this language, so "1,000" is two pieces of writing rather than a number
+    /// with a decoration in it. Exponent and sign are allowed, because a number may be written small.
+    /// </summary>
+    public static bool TryNumber(string? text, out double number)
+        => double.TryParse((text ?? string.Empty).Trim(), NumberStyles.Float,
+            CultureInfo.InvariantCulture, out number);
+
+    /// <summary>
     /// True when the value can stand for the kind. Empty is allowed for every kind: it means "this
     /// attempt did not supply a value", and a result that was never written is empty rather than
     /// wrong. Text accepts anything because every value has a text reading; a picture does not,
@@ -30,9 +39,7 @@ public static class ValueRules
         {
             ValueKind.Text => true,
             ValueKind.Image => value.IsImage,
-            ValueKind.Number => value.IsNumber
-                || double.TryParse(value.AsText(), NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out _),
+            ValueKind.Number => value.IsNumber || TryNumber(value.AsText(), out _),
             ValueKind.Bool => value.Kind is ValueKind.Bool
                 || bool.TryParse(value.AsText(), out _)
                 || value.AsText() is "0" or "1",
@@ -68,8 +75,7 @@ public static class ValueRules
         switch (kind)
         {
             case ValueKind.Number:
-                if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
-                        out var number))
+                if (TryNumber(text, out var number))
                 {
                     value = Value.FromNumber(number);
                     return true;
@@ -156,8 +162,7 @@ public static class ValueRules
             case ValueKind.Text:
                 {
                     var text = value.Text;
-                    if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
-                            out var number))
+                    if (TryNumber(text, out var number))
                     {
                         return "n:" + number.ToString("R", CultureInfo.InvariantCulture);
                     }

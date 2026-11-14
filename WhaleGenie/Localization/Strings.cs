@@ -2485,6 +2485,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.BadExpression"] = "This value cannot be read as an expression: {0}",
         ["Editor.Problem.BadDeclaration"] = "\"{0}\" declares \"{1}\" twice, or under a name the run keeps: its calls cannot use it.",
         ["Editor.Problem.InvalidDeclarationName"] = "\"{0}\" declares \"{1}\", which cannot be read as a variable name: use letters, digits, underscores and dots, starting with a letter, digit or underscore.",
+        ["Editor.Problem.DeclarationTypeMismatch"] = "{0}: \"{1}\" is declared as both an argument and a result with different types. One name holds one value, so the two have to agree.",
         ["Editor.Problem.RequiredWithDefault"] = "\"{0}\" declares \"{1}\" as both required and given a default: leave one of the two empty.",
         ["Editor.Problem.CallImpact"] = "{0} call(s) in this project no longer fit these declarations by name or required value ({1}): open those macros and fix them, or change the declaration back.",
         ["Editor.Problem.ResultNeverWritten"] = "\"{0}\" declares the result \"{1}\", but no step writes that name: a call asking for it will always receive an empty value. Ignore this if a script or a computed name writes it.",
@@ -5162,6 +5163,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.BadExpression"] = "这里不是有效的表达式：{0}",
         ["Editor.Problem.BadDeclaration"] = "「{0}」的声明「{1}」重名，或者用了运行保留的名字：调用它的步骤用不了。",
         ["Editor.Problem.InvalidDeclarationName"] = "「{0}」的声明「{1}」不能当变量名读：只能用字母、数字、下划线和点，并且以字母、数字或下划线开头。",
+        ["Editor.Problem.DeclarationTypeMismatch"] = "{0}：「{1}」在形参和结果里各声明了一次，类型却不同。一个名字只有一个值，两处必须一致。",
         ["Editor.Problem.RequiredWithDefault"] = "「{0}」的形参「{1}」既是必填又有默认值：留空时不知道用哪一个，二选一。",
         ["Editor.Problem.CallImpact"] = "项目里还有 {0} 个调用的名字或必填值与这份声明不一致（{1}）：打开那些宏逐个修正，或者把声明改回去。",
         ["Editor.Problem.ResultNeverWritten"] = "「{0}」声明了结果「{1}」，但没有任何步骤写入这个名字：调用处取回它只会得到空值。如果由脚本或计算出来的名字写入，可以忽略这一条。",
@@ -5293,6 +5295,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Variable.sys.machineName.label"] = "计算机名",
         ["Variable.sys.userName.label"] = "登录用户名",
         ["Variable.sys.clipboard.label"] = "剪贴板",
+        ["Variable.sys.loopIndex.label"] = "循环序号",
         ["Variable.caught.key.label"] = "捕获的失败键",
         ["Variable.caught.detail.label"] = "捕获的失败详情",
 
@@ -5321,6 +5324,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Variable.sys.machineName.desc"] = "计算机名。",
         ["Variable.sys.userName.desc"] = "当前登录用户名。",
         ["Variable.sys.clipboard.desc"] = "剪贴板中的文本。",
+        ["Variable.sys.loopIndex.desc"] = "正在运行的循环走到第几轮，从 0 开始；不在循环里时没有这个值。",
         ["Expr.Mark.NameOpen"] = "「",
         ["Expr.Mark.NameClose"] = "」",
     };

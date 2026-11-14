@@ -161,7 +161,7 @@ public sealed class Value : IEquatable<Value>
             case ValueKind.Bool:
                 return _flag ? 1 : 0;
             case ValueKind.Text:
-                if (double.TryParse(_text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+                if (ValueRules.TryNumber(_text, out var parsed))
                 {
                     return parsed;
                 }

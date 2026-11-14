@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
 
@@ -24,7 +25,7 @@ public static class MacroVariables
 
         // The declared values are what a machine that cannot answer falls back on; the reader, when
         // there is one, is asked before them every time a step reads a built-in variable.
-        foreach (var definition in VariableCatalog.SystemVariables)
+        foreach (var definition in VariableCatalog.SystemVariables.Where(definition => definition.Seeded))
         {
             store.System.Set(definition.Name,
                 VariableValues.Read(definition.Type, definition.Default, store));

@@ -147,7 +147,7 @@ public partial class GlobalVariablesWindow : AppWindow
             {
                 Name = name,
                 Scope = VariableScope.Global,
-                Type = VariableTypes.KindOf(candidate.Type),
+                Type = candidate.Type,
                 Description = candidate.Description,
                 IsPersistent = candidate.PersistValue,
                 Origin = VariableOrigin.Global,

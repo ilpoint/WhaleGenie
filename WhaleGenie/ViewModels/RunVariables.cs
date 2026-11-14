@@ -27,7 +27,7 @@ namespace WhaleGenie.ViewModels;
 /// and what it holds right now. It is listed from the moment the macro is loaded, so the list says
 /// what the run works with rather than only what it has reached.
 /// </summary>
-public sealed record WatchedVariable(string Name, string Scope, string Type, string Value)
+public sealed record WatchedVariable(string Name, string Scope, ValueKind? Type, string Value)
 {
     /// <summary>How it is named on the panel: the Chinese name beside the code name where it has one.</summary>
     public string Display => VariableCatalog.Display(Name);
@@ -36,7 +36,9 @@ public sealed record WatchedVariable(string Name, string Scope, string Type, str
     /// What it holds, as one word of the interface language. A variable nothing has written yet has
     /// no type to show, and a dash says that rather than leaving the column looking broken.
     /// </summary>
-    public string LocalType => Type.Length == 0 ? "—" : Strings.Get($"Variable.Type.{Type}", Type);
+    public string LocalType => Type is { } kind
+        ? Strings.Get($"Variable.Type.{VariableTypes.Name(kind)}", VariableTypes.Name(kind))
+        : "—";
 }
 
 /// <summary>The three pages the variables half is divided into.</summary>
@@ -67,13 +69,14 @@ public sealed class MacroVariableGroup
 public sealed class RunGlobalVariable
 {
     public required string Name { get; init; }
-    public required string Type { get; init; }
+    public required ValueKind Type { get; init; }
     public required string DefaultValue { get; init; }
     public required string Description { get; init; }
     public required string CurrentValue { get; init; }
     public required bool PersistValue { get; init; }
 
     public string Display => VariableCatalog.Display(Name);
-    public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);
+    public string LocalType => Strings.Get($"Variable.Type.{VariableTypes.Name(Type)}",
+        VariableTypes.Name(Type));
     public string PersistenceText => PersistValue ? Strings.Get("VarWall.Persistent") : string.Empty;
 }

@@ -126,7 +126,7 @@ public partial class GlobalVariablesTests
         ]);
         manager.NewCommand.Execute(null);
         manager.Selected!.Name = "derivedCount";
-        manager.Selected.Type = "number";
+        manager.Selected.Type = ValueKind.Number;
         manager.Selected.Default = Formula.Binary("+", Formula.Name("baseCount"), Formula.Number(2));
 
         Assert.False(manager.Selected.DefaultHasError);

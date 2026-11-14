@@ -52,7 +52,7 @@ public partial class RunViewModel
             Globals.Add(new RunGlobalVariable
             {
                 Name = shared.Name,
-                Type = VariableTypes.Name(shared.Type),
+                Type = shared.Type,
                 DefaultValue = shared.DefaultValue,
                 Description = shared.Description,
                 PersistValue = shared.PersistValue,

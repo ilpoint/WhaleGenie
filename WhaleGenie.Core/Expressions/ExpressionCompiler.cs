@@ -226,7 +226,6 @@ internal static class ExpressionCompiler
             return true;
         }
 
-        return double.TryParse(value.AsText(), NumberStyles.Any, CultureInfo.InvariantCulture,
-            out number);
+        return ValueRules.TryNumber(value.AsText(), out number);
     }
 }

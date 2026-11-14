@@ -22,7 +22,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     {
         OriginalName = source?.Name ?? string.Empty;
         Name = source?.Name ?? string.Empty;
-        Type = source is { } given ? VariableTypes.Name(given.Type) : "text";
+        Type = source?.Type ?? ValueKind.Text;
         OriginalType = Type;
         Default = source?.Default ?? Formula.Nothing;
         OriginalDefaultValue = DefaultValue;
@@ -42,17 +42,17 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
 
     public string OriginalName { get; }
 
-    public string OriginalType { get; }
+    public ValueKind OriginalType { get; }
     public string OriginalDefaultValue { get; }
     public string OriginalDescription { get; }
     public bool OriginalPersistValue { get; }
     public bool IsNew => OriginalName.Length == 0;
-    public bool TypeChanged => !string.Equals(Type, OriginalType, StringComparison.Ordinal);
+    public bool TypeChanged => Type != OriginalType;
     public IReadOnlyList<VariableUse> Uses { get; }
     public IVariableResolver? Resolver { get; set; } = SharedVariables.Current;
     public bool IsChanged => IsNew
         || !string.Equals(Name.Trim(), OriginalName.Trim(), StringComparison.Ordinal)
-        || !string.Equals(Type, OriginalType, StringComparison.Ordinal)
+        || Type != OriginalType
         || !string.Equals(DefaultValue.Trim(), OriginalDefaultValue.Trim(), StringComparison.Ordinal)
         || !string.Equals(Description.Trim(), OriginalDescription.Trim(), StringComparison.Ordinal)
         || PersistValue != OriginalPersistValue;
@@ -78,7 +78,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     [NotifyPropertyChangedFor(nameof(DefaultHasError))]
     [NotifyPropertyChangedFor(nameof(LocalType))]
     [NotifyPropertyChangedFor(nameof(IsChanged))]
-    public partial string Type { get; set; } = "text";
+    public partial ValueKind Type { get; set; } = ValueKind.Text;
 
     /// <summary>The starting value as the shape the declaration will keep. The only value here.</summary>
     public ExpressionNode Default
@@ -127,30 +127,33 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     public string DisplayName => Name.Trim().Length == 0
         ? Strings.Get("Variable.New")
         : Name.Trim();
-    public string LocalType => Strings.Get($"Variable.Type.{Type}", Type);
+    public string LocalType => Strings.Get($"Variable.Type.{VariableTypes.Name(Type)}",
+        VariableTypes.Name(Type));
 
     public ActionParameterOption SelectedType
     {
-        get => TypeOptions.FirstOrDefault(option => option.Value == Type) ?? TypeOptions[0];
+        get => TypeOptions.FirstOrDefault(option => option.Value == VariableTypes.Name(Type))
+            ?? TypeOptions[0];
         set
         {
-            if (Type != value.Value)
+            var kind = VariableTypes.KindOf(value.Value);
+            if (Type != kind)
             {
-                Type = value.Value;
+                Type = kind;
             }
         }
     }
 
     public string DefaultPreview =>
-        VariableValues.Preview(VariableTypes.KindOf(Type), Default, Resolver);
+        VariableValues.Preview(Type, Default, Resolver);
     public bool DefaultHasError =>
-        VariableValues.HasError(VariableTypes.KindOf(Type), Default, Resolver);
+        VariableValues.HasError(Type, Default, Resolver);
 
     public VariableDefinition ToDefinition() => new()
     {
         Name = Name.Trim(),
         Scope = VariableScope.Global,
-        Type = VariableTypes.KindOf(Type),
+        Type = Type,
         Default = Default,
         Description = Description.Trim(),
         PersistValue = PersistValue,

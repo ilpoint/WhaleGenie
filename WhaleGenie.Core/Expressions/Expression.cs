@@ -67,53 +67,20 @@ public static class Expression
     {
         var names = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        Collect(tree, name =>
+        if (tree is not null)
         {
-            if (seen.Add(name))
+            Map(tree, variable =>
             {
-                names.Add(name);
-            }
-        });
+                if (seen.Add(variable.Name))
+                {
+                    names.Add(variable.Name);
+                }
+
+                return variable;
+            });
+        }
 
         return names;
-    }
-
-    private static void Collect(ExpressionNode? node, Action<string> found)
-    {
-        switch (node)
-        {
-            case VariableNode variable:
-                found(variable.Name);
-                break;
-            case ConcatNode run:
-                foreach (var part in run.Parts)
-                {
-                    Collect(part, found);
-                }
-
-                break;
-            case ListNode list:
-                foreach (var item in list.Items)
-                {
-                    Collect(item, found);
-                }
-
-                break;
-            case CallNode call:
-                foreach (var argument in call.Arguments)
-                {
-                    Collect(argument, found);
-                }
-
-                break;
-            case UnaryNode unary:
-                Collect(unary.Operand, found);
-                break;
-            case BinaryNode binary:
-                Collect(binary.Left, found);
-                Collect(binary.Right, found);
-                break;
-        }
     }
 
     /// <summary>
@@ -134,31 +101,42 @@ public static class Expression
             return tree;
         }
 
-        return tree switch
+        return Map(tree, variable => ReadOff(variable.Name, oldName)
+            ? variable with { Name = newName + variable.Name[oldName.Length..] }
+            : variable);
+    }
+
+    /// <summary>
+    /// One node with the same shape and every name in it put through <paramref name="change"/>.
+    /// This is the only place the tree's branches are written down: reading the names a tree holds
+    /// and renaming one both come through here, so a node type added to the language is handled by
+    /// both at once. <c>ExpressionCoverageTests</c> fails when a node type has no sample, which is
+    /// what keeps a new branch from being forgotten.
+    /// </summary>
+    private static ExpressionNode Map(ExpressionNode tree, Func<VariableNode, VariableNode> change)
+        => tree switch
         {
-            VariableNode variable when ReadOff(variable.Name, oldName)
-                => variable with { Name = newName + variable.Name[oldName.Length..] },
+            VariableNode variable => change(variable),
             ConcatNode run => run with
             {
-                Parts = [.. run.Parts.Select(part => Rename(part, oldName, newName))],
+                Parts = [.. run.Parts.Select(part => Map(part, change))],
             },
             ListNode list => list with
             {
-                Items = [.. list.Items.Select(item => Rename(item, oldName, newName))],
+                Items = [.. list.Items.Select(item => Map(item, change))],
             },
             CallNode call => call with
             {
-                Arguments = [.. call.Arguments.Select(argument => Rename(argument, oldName, newName))],
+                Arguments = [.. call.Arguments.Select(argument => Map(argument, change))],
             },
-            UnaryNode unary => unary with { Operand = Rename(unary.Operand, oldName, newName) },
+            UnaryNode unary => unary with { Operand = Map(unary.Operand, change) },
             BinaryNode binary => binary with
             {
-                Left = Rename(binary.Left, oldName, newName),
-                Right = Rename(binary.Right, oldName, newName),
+                Left = Map(binary.Left, change),
+                Right = Map(binary.Right, change),
             },
             _ => tree,
         };
-    }
 
     /// <summary>True when a name is the one, or a field read off it: <c>where</c> or <c>where.age</c>.</summary>
     private static bool ReadOff(string name, string of)

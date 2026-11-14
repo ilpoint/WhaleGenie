@@ -102,26 +102,12 @@ public partial class RunViewModel
     };
 
     /// <summary>
-    /// What a watched variable holds, in the catalogue's own words. A variable a step creates says
-    /// nothing about its type until something is written, so the value that is there answers
-    /// instead; with neither, the type is left blank rather than guessed.
+    /// What a watched variable holds. A variable a step creates says nothing about its type until
+    /// something is written, so the value that is there answers instead; with neither, the type is
+    /// left blank rather than guessed.
     /// </summary>
-    private static string TypeOf(ValueKind? declared, Value? held)
-    {
-        if (declared is { } kind)
-        {
-            return VariableTypes.Name(kind);
-        }
-
-        return held switch
-        {
-            null => string.Empty,
-            { IsList: true } => "list",
-            { IsRecord: true } => "record",
-            { IsNumber: true } => "number",
-            _ => "text",
-        };
-    }
+    private static ValueKind? TypeOf(ValueKind? declared, Value? held)
+        => declared ?? (held is { IsNull: false } value ? value.Kind : null);
 
     /// <summary>
     /// The names worth watching: everything the macro creates for itself, plus everything it

@@ -182,7 +182,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
             draft = new VariableDefinitionDraft
             {
                 Name = string.Empty,
-                Type = "text",
+                Type = ValueKind.Text,
             };
             AddDraft(draft);
         }
@@ -310,7 +310,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
                  || kind == GlobalVariableFilterKind.Temporary && !row.PersistValue)
                 && (search.Length == 0
                     || row.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
-                    || row.Type.Contains(search, StringComparison.OrdinalIgnoreCase)
+                    || row.LocalType.Contains(search, StringComparison.OrdinalIgnoreCase)
                     || row.LocalType.Contains(search, StringComparison.OrdinalIgnoreCase)
                     || row.Description.Contains(search, StringComparison.OrdinalIgnoreCase)))
             .ToList();
@@ -341,7 +341,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
             foreach (var row in Rows)
             {
                 row.Resolver = context;
-                if (VariableValues.TryRead(VariableTypes.KindOf(row.Type), row.Default, context,
+                if (VariableValues.TryRead(row.Type, row.Default, context,
                         out var value, out _)
                     && VariableName.IsName(row.Name.Trim()))
                 {

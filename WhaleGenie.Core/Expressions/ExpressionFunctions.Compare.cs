@@ -58,9 +58,7 @@ internal static partial class FunctionLibrary
             return true;
         }
 
-        if (value.Kind is ValueKind.Text
-            && double.TryParse(value.Text, NumberStyles.Any, CultureInfo.InvariantCulture,
-                out var parsed))
+        if (value.Kind is ValueKind.Text && ValueRules.TryNumber(value.Text, out var parsed))
         {
             number = parsed;
             return true;
