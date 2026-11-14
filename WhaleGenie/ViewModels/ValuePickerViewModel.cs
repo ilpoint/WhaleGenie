@@ -41,18 +41,6 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     private readonly Dictionary<string, ExpressionFunction> _table;
 
     /// <summary>
-    /// How the cell this window fills is read by the engine. The window checks a line with the
-    /// same reader the field will use, so a line it calls readable cannot be stored as a mistake.
-    /// </summary>
-    private readonly ActionValueForm _valueForm;
-
-    /// <summary>
-    /// True when a word of its own is a variable name rather than text, which is what a formula
-    /// field says and what a line that may still be prose does not.
-    /// </summary>
-    private readonly bool _bareNames;
-
-    /// <summary>
     /// Every name the cell could be reading, so a piece can say when nothing declares it. It is
     /// the same list the wall offers, which is why it is built here rather than guessed from text.
     /// </summary>
@@ -66,7 +54,4 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// shape; a line is only a way of typing into it, never a second thing to keep in step.
     /// </summary>
     private ValueDraft _draft = null!;
-
-    /// <summary>True while the line is being redrawn from the shape, so it is not read back.</summary>
-    private bool _composing;
 }

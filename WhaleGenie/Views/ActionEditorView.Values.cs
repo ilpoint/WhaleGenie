@@ -37,7 +37,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
-                parameter.Variables, parameter.Definition.ValueForm, parameter.ReadAsFormula,
+                parameter.Variables, parameter.Definition.ValueForm,
                 startOnFormula: true, target: parameter.Label) is { Chosen: true } built)
         {
             parameter.WriteValue(built.Value);
@@ -57,7 +57,7 @@ public partial class ActionEditorView : UserControl
         }
 
         if (await ValuePickerWindow.ShowFor(HostWindow!, cell.Seed, cell.Variables,
-                ActionValueForm.Value, bareNames: true, startOnFormula: true) is { Chosen: true } built)
+                ActionValueForm.Value, startOnFormula: true) is { Chosen: true } built)
         {
             cell.Write(built.Value);
         }
@@ -120,7 +120,7 @@ public partial class ActionEditorView : UserControl
         if (parameter.OffersFormula)
         {
             if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
-                    parameter.Variables, parameter.Definition.ValueForm, parameter.ReadAsFormula,
+                    parameter.Variables, parameter.Definition.ValueForm,
                     startOnFormula: true, target: parameter.Label,
                     startCaret: caret ?? -1) is { Chosen: true } written)
             {

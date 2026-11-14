@@ -20,7 +20,7 @@ namespace WhaleGenie.Views;
 public partial class ValuePickerWindow : AppWindow
 {
     public ValuePickerWindow()
-        : this(new ValuePickerViewModel((string?)null, [], ActionValueForm.Value))
+        : this(new ValuePickerViewModel(Formula.Nothing, [], ActionValueForm.Value))
     {
     }
 
@@ -110,13 +110,11 @@ public partial class ValuePickerWindow : AppWindow
     /// </summary>
     public static async Task<ValuePick> ShowFor(Window owner, ExpressionNode? seed,
         IReadOnlyList<VariableChoice>? variables,
-        ActionValueForm valueForm = ActionValueForm.Value, bool bareNames = false,
+        ActionValueForm valueForm = ActionValueForm.Value,
         bool startOnFormula = false, string? target = null, int startCaret = -1,
         Action<MacroStep>? lookAtStep = null)
     {
-        var viewModel = seed is null
-            ? new ValuePickerViewModel((string?)null, variables, valueForm, bareNames, target)
-            : new ValuePickerViewModel(seed, variables, valueForm, bareNames, target);
+        var viewModel = new ValuePickerViewModel(seed ?? Formula.Nothing, variables, valueForm, target);
         if (lookAtStep is not null)
         {
             viewModel.Jumped += lookAtStep;

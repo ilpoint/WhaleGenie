@@ -15,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_formula_is_one_place_to_start_from()
     {
-        var form = new ValuePickerViewModel((string?)null, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         var root = Root(form);
 
@@ -26,7 +26,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_call_holds_one_run_per_argument()
     {
-        var form = new ValuePickerViewModel("concat(a, b)", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(ValuePickerTests.Seed("concat(a, b)"), Variables(), ActionValueForm.Value);
 
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
@@ -43,7 +43,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_call_inside_an_argument_is_a_piece_of_that_run()
     {
-        var form = new ValuePickerViewModel("concat(a, upper(b))", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(ValuePickerTests.Seed("concat(a, upper(b))"), Variables(), ActionValueForm.Value);
 
         var outer = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
         var inner = Assert.IsType<SlotCall>(Assert.Single(outer.Arguments[1].Items));

@@ -72,7 +72,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             : _reads
                 ? Strings.Get("ValuePicker.Note.Reads")
                 : Strings.Get("ExprBuilder.CannotRead");
-        Saying = _reads && _bareNames && ExpressionText.InChinese
+        Saying = _reads && ExpressionText.InChinese
             ? Strings.Get("ValuePicker.ReadsAs") + ExpressionPhrase.Say(_draft.Value, VariableCatalog.Spoken)
             : string.Empty;
 
@@ -100,78 +100,14 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         _ => false,
     };
 
-    /// <summary>
-    /// The one place a typed line becomes a shape. Typing is an input from a person, so the line is
-    /// read once, here; nothing downstream reads it again.
-    /// </summary>
-    private ExpressionNode ReadLine(string written)
-    {
-        var line = written.Trim();
-        if (line.Length == 0)
-        {
-            return Formula.Nothing;
-        }
-
-        TryReadLine(line, out var parsed, out _, out _);
-        // A line that did not read is kept as the broken shape it is, not folded into an empty
-        // value: an empty field is a deliberate answer, a half-written formula is not one yet.
-        return parsed ?? Formula.Hole;
-    }
-
-    /// <summary>
-    /// Reads one typed line the way the field will read it. This is the only place the window
-    /// decides what a line means, and it is used only for lines a person typed.
-    /// </summary>
-    /// <summary>
-    /// Reads one line a person typed. A text field holds the words as they are; every other field
-    /// is a formula box, where a name is said as the name itself, text is quoted, and a half-written
-    /// line is an empty place no cell can confirm. This is the only place a line becomes a shape.
-    /// </summary>
-    private bool TryReadLine(string written, out ExpressionNode? parsed,
-        out ExpressionException? problem, out string? fault)
-    {
-        parsed = null;
-        problem = null;
-        fault = null;
-
-        if (written.Length == 0)
-        {
-            return false;
-        }
-
-        parsed = _valueForm is ActionValueForm.Text or ActionValueForm.Run
-            ? Formula.Text(written)
-            : Expression.Read(written);
-        if (ReferenceEquals(parsed, Formula.Hole))
-        {
-            fault = Strings.Get("ExprBuilder.CannotRead");
-            return false;
-        }
-
-        return true;
-    }
-
     /// <summary>The shape drawn as the line under the band. A picture, never the value.</summary>
     private string DraftLine()
-        => _draft.IsEmpty
-            ? string.Empty
-            : _bareNames
-                ? Language.Render(_draft.Value)
-                : Formula.Speak(_draft.Value);
+        => _draft.IsEmpty ? string.Empty : Language.Render(_draft.Value);
 
     /// <summary>Redraws the line and the band after an edit that changed the shape.</summary>
     private void RefreshFromDraft()
     {
-        _composing = true;
-        try
-        {
-            Text = DraftLine();
-        }
-        finally
-        {
-            _composing = false;
-        }
-
+        Text = DraftLine();
         CheckText();
         SyncCaret();
         OnPropertyChanged(nameof(CanUndo));

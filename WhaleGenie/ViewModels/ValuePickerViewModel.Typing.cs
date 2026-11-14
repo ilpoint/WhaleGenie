@@ -1,16 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
-
-// The language itself, spelled out: the property below is the text being edited, which hides the
-// static class of the same name inside this file.
-using Language = WhaleGenie.Core.Expressions.Expression;
 
 namespace WhaleGenie.ViewModels;
 
@@ -80,10 +77,16 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return TypingText.Length > 0 ? Quoted(TypingText) : null;
         }
 
+        // The standing field takes one number, not a line to be parsed: the shape editor decides
+        // where that number goes, and a whole formula is built by putting pieces in one at a time.
+        // Only the plain literal shapes are numbers here — no exponent, no thousands separator and
+        // no leading plus, which is a sign the band puts in as a piece of its own.
         var written = TypingText.Trim();
         return written.Length > 0
-               && Language.TryParse(written, out var tree, out _)
-               && tree is NumberNode or UnaryNode { Operator: "-", Operand: NumberNode }
+               && written[0] != '+'
+               && double.TryParse(written,
+                   NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                   CultureInfo.InvariantCulture, out _)
             ? written
             : null;
     }

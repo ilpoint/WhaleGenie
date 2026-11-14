@@ -34,8 +34,7 @@ public class ValuePickerWindowTests
 
     private static ValuePickerWindow Window(string formula)
     {
-        var form = new ValuePickerViewModel(formula, Known, ActionValueForm.Value,
-            bareNames: true);
+        var form = new ValuePickerViewModel(ValuePickerTests.Seed(formula), Known, ActionValueForm.Value);
         var window = new ValuePickerWindow(form);
         window.Show();
         Dispatcher.UIThread.RunJobs();

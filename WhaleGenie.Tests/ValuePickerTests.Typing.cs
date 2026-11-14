@@ -16,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_number_typed_in_the_strip_goes_in_as_it_reads()
     {
-        var form = new ValuePickerViewModel("count >", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(ValuePickerTests.Seed("count >"), Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = "3.5";
@@ -29,7 +29,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Text_is_put_in_between_quotes_with_what_is_inside_it_escaped()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: false);
         form.TypingText = "他说\"好\"";
@@ -45,7 +45,7 @@ public partial class ValuePickerTests
     [InlineData("+5")]
     public void A_number_that_does_not_read_says_so_and_cannot_be_put_in(string typed)
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = typed;
@@ -62,7 +62,7 @@ public partial class ValuePickerTests
     [InlineData("-5")]
     public void Every_number_that_can_be_inserted_reads_as_one_number(string typed)
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = typed;
@@ -77,7 +77,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_empty_text_has_nothing_to_insert()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: false);
 
@@ -89,7 +89,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_strip_offers_single_brackets_and_no_quote()
     {
-        var form = new ValuePickerViewModel(string.Empty, Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         var tokens = form.Operators.Select(one => one.Token).ToList();
 

@@ -110,12 +110,14 @@ public partial class ValuePickerTests
     }
 
     [Fact]
-    public void A_typed_line_becomes_the_shape_once_and_the_line_is_only_a_picture()
+    public void Pieces_put_in_one_at_a_time_grow_the_shape_and_the_line_follows_it()
     {
-        var form = Form();
+        var form = Form("a");
 
-        form.Text = "a + 1";
+        form.Place(" + ");
+        form.Place("1");
 
+        Assert.Equal("a + 1", form.Text);
         Assert.Equal(Formula.Binary("+", Formula.Name("a"), Formula.Number(1)), Answer(form));
     }
 
@@ -133,8 +135,8 @@ public partial class ValuePickerTests
         Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(), value => value.Text == "b");
     }
 
-    private static ValuePickerViewModel Form(string seed = "", bool bare = false)
-        => new(seed, Variables(), ActionValueForm.Value, bare);
+    private static ValuePickerViewModel Form(string seed = "")
+        => new(ValuePickerTests.Seed(seed), Variables(), ActionValueForm.Value);
 
     private static ExpressionNode Answer(ValuePickerViewModel form)
     {

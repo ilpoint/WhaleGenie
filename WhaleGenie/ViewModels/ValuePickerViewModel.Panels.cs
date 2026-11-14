@@ -46,9 +46,17 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public bool HasTarget => TargetLine.Length > 0;
 
-    /// <summary>What the cell holds now, and what will go back into it.</summary>
-    [ObservableProperty]
-    public partial string Text { get; set; } = string.Empty;
+    /// <summary>
+    /// The shape drawn as one line under the band. It is a picture for the eye, never an input:
+    /// the window has no way to read a line back into the value it keeps.
+    /// </summary>
+    private string _text = string.Empty;
+
+    public string Text
+    {
+        get => _text;
+        private set => SetProperty(ref _text, value);
+    }
 
     /// <summary>One line under the formula: whether it reads, or why it does not.</summary>
     [ObservableProperty]

@@ -168,7 +168,7 @@ public class VariableDropTests
     [Fact]
     public void A_name_chosen_for_a_cell_keeps_the_identity_of_its_declaration()
     {
-        var form = new ValuePickerViewModel((string?)null, [], ActionValueForm.Name);
+        var form = new ValuePickerViewModel(Formula.Nothing, [], ActionValueForm.Name);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;
 

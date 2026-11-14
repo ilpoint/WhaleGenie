@@ -124,7 +124,7 @@
 508	WhaleGenie.Tests/TrayTests.cs	keep: 托盘行为的一组用例，共用一套假通知区
 456	WhaleGenie.Tests/TriggerKindTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 347	WhaleGenie.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
-492	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
+491	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
 516	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 502	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -162,7 +162,7 @@
 529	WhaleGenie/ViewModels/MainViewModel.cs	keep: 主界面状态模型
 333	WhaleGenie/ViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 602	WhaleGenie/ViewModels/StepRow.cs	keep: 步骤行模型，行为/条件/结果/分支值同属一行的编辑状态，内聚
-308	WhaleGenie/ViewModels/ValuePickerViewModel.Confirm.cs	keep: 取值窗口的形状检查与结构带重绘，同属一次编辑后的刷新
+207	WhaleGenie/ViewModels/ValuePickerViewModel.Confirm.cs	keep: 取值窗口的形状检查与结构带重绘，同属一次编辑后的刷新
 316	WhaleGenie/ViewModels/VariableWallViewModel.cs	keep: 变量墙一页的状态与命令，单一职责
 382	WhaleGenie/ViewModels/WindowPreviewViewModel.cs	keep: 一个界面的状态与命令
 369	WhaleGenie/Views/ActionEditorView.Elements.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责

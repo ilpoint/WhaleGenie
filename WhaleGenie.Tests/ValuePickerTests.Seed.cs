@@ -6,59 +6,55 @@ using Xunit;
 
 namespace WhaleGenie.Tests;
 
-// What reaches the value window: a shape, never a line somebody has to read back into one.
-// The window itself still edits a line, so the window's entry point draws the shape out once and
-// the same reader takes it back. These cases hold that round trip to its promise in both spellings.
+// What reaches the value window: a shape, never a line that has to be read back into one.
+// The line under the band is only a picture of the shape, so these cases hold the window to
+// handing the shape back exactly as it came in, identity included.
 public partial class ValuePickerTests
 {
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void A_shape_seed_opens_as_the_same_shape(bool bareNames)
+    [Fact]
+    public void A_shape_seed_opens_as_the_same_shape()
     {
         var shape = Formula.Binary("+", Formula.Name("count"), Formula.Number(2));
 
-        Assert.Equal(shape, PickWithoutEditing(shape, bareNames));
-    }
-
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void A_call_seed_keeps_its_function_and_its_arguments(bool bareNames)
-    {
-        var shape = Formula.Call("upper", Formula.Name("title"));
-
-        AssertSameShape(shape, PickWithoutEditing(shape, bareNames));
+        Assert.Equal(shape, PickWithoutEditing(shape));
     }
 
     [Fact]
-    public void A_run_seed_keeps_its_words_and_its_names_when_the_window_reads_marks()
+    public void A_call_seed_keeps_its_function_and_its_arguments()
     {
-        var shape = Formula.Run([
+        var shape = Formula.Call("upper", Formula.Name("title"));
+
+        AssertSameShape(shape, PickWithoutEditing(shape));
+    }
+
+    [Fact]
+    public void A_run_seed_keeps_its_words_and_its_names()
+    {
+        var shape = Formula.Run(
+        [
             Formula.Text("共 "),
             Formula.Name("count"),
             Formula.Text(" 件"),
         ]);
 
-        // A bare-name window reads a formula, not a sentence: a run of words with names in it is
-        // at home in the marked spelling, where the line is read back as the run it came from.
-        AssertSameShape(shape, PickWithoutEditing(shape, bareNames: false));
+        AssertSameShape(shape, PickWithoutEditing(shape));
     }
 
     [Fact]
     public void A_shape_that_says_nothing_opens_an_empty_window()
     {
-        Assert.Equal(string.Empty, ValuePickerViewModel.SeedLine(null, bareNames: false));
-        Assert.Equal(string.Empty, ValuePickerViewModel.SeedLine(Formula.Nothing, bareNames: true));
+        var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
+
+        Assert.Equal(string.Empty, form.Text);
     }
 
     [Fact]
-    public void The_two_spellings_are_the_ones_their_readers_take_back()
+    public void The_line_under_the_band_is_drawn_from_the_shape()
     {
-        var shape = Formula.Name("count");
+        var form = new ValuePickerViewModel(Formula.Name("count"), Variables(),
+            ActionValueForm.Value);
 
-        Assert.Equal("「count」", ValuePickerViewModel.SeedLine(shape, bareNames: false));
-        Assert.Equal("count", ValuePickerViewModel.SeedLine(shape, bareNames: true));
+        Assert.Equal("count", form.Text);
     }
 
     [Fact]
@@ -136,13 +132,11 @@ public partial class ValuePickerTests
         }
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void A_shape_opened_and_left_alone_keeps_the_identity_a_line_cannot_carry(bool bareNames)
+    [Fact]
+    public void A_shape_opened_and_left_alone_keeps_the_identity_a_line_cannot_carry()
     {
         var shape = Formula.Name("count", "a7k2m9");
-        var form = new ValuePickerViewModel(shape, Variables(), ActionValueForm.Value, bareNames);
+        var form = new ValuePickerViewModel(shape, Variables(), ActionValueForm.Value);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;
 
@@ -161,15 +155,16 @@ public partial class ValuePickerTests
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;
 
-        form.Text = "1";
+        form.Clear();
+        form.Place("1");
         form.Confirm();
 
         Assert.Equal(Formula.Number(1), Assert.IsType<ValuePick>(answer).Value);
     }
 
-    private static ExpressionNode PickWithoutEditing(ExpressionNode seed, bool bareNames)
+    private static ExpressionNode PickWithoutEditing(ExpressionNode seed)
     {
-        var form = new ValuePickerViewModel(seed, Variables(), ActionValueForm.Value, bareNames);
+        var form = new ValuePickerViewModel(seed, Variables(), ActionValueForm.Value);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;
 

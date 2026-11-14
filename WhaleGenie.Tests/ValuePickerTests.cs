@@ -22,4 +22,11 @@ public partial class ValuePickerTests
     ];
 
     private static SlotSequence Root(ValuePickerViewModel form) => Assert.IsType<SlotSequence>(form.Recipe);
+
+    /// <summary>
+    /// A fixture's way of writing a shape down in one line. The window never sees this string: a
+    /// test uses it only to state the shape it wants to open on, which is what the product hands
+    /// the window in real life.
+    /// </summary>
+    public static ExpressionNode Seed(string formula) => Expression.Read(formula);
 }
