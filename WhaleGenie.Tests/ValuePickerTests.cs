@@ -28,5 +28,5 @@ public partial class ValuePickerTests
     /// test uses it only to state the shape it wants to open on, which is what the product hands
     /// the window in real life.
     /// </summary>
-    public static ExpressionNode Seed(string formula) => Expression.Read(formula);
+    public static ExpressionNode Seed(ExpressionNode shape) => shape;
 }

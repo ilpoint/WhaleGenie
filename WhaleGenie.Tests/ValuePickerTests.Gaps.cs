@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -15,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_small_field_opens_in_number_mode()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("a")), Variables(), ActionValueForm.Value);
 
         Assert.True(form.IsTypingNumber);
         Assert.False(form.IsTypingText);
@@ -25,7 +26,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Switching_the_field_mode_clears_what_was_typed()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("a")), Variables(), ActionValueForm.Value);
         form.TypingText = "12.5";
 
         form.SetTypingMode(number: false);
@@ -39,7 +40,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Clearing_the_field_leaves_it_ready_for_the_next_value()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("a")), Variables(), ActionValueForm.Value);
         form.TypingText = "42";
 
         form.ClearTyped();

@@ -16,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_number_typed_in_the_strip_goes_in_as_it_reads()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("count >"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Formula.Binary(">", Formula.Name("count"), Formula.Hole), Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = "3.5";
@@ -69,8 +69,10 @@ public partial class ValuePickerTests
 
         var token = form.TypedToken();
         Assert.NotNull(token);
-        Assert.True(Expression.TryParse(token, out var tree, out _));
-        Assert.True(tree is NumberNode or UnaryNode { Operator: "-", Operand: NumberNode });
+
+        form.Place(token);
+        var shape = Answer(form);
+        Assert.True(shape is NumberNode or UnaryNode { Operator: "-", Operand: NumberNode });
     }
 
     /// <summary>An empty piece of text is not a material: there is nothing to put in.</summary>

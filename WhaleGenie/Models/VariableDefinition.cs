@@ -102,35 +102,25 @@ public partial class VariableDefinition : ObservableObject
 
     /// <summary>Reads a starting value that is already the shape it was written as.</summary>
     public static string Preview(ValueKind type, ExpressionNode shape)
-        => type is not ValueKind.List
-            ? VariableValues.Preview(type, shape, VariableValues.DesignContext())
-            : Preview(type, Formula.Speak(shape));
+    {
+        if (type is not ValueKind.List)
+        {
+            return VariableValues.Preview(type, shape, VariableValues.DesignContext());
+        }
+
+        if (!ListText.TryRead(shape, VariableValues.DesignContext(), out var items, out var error))
+        {
+            return ExpressionText.Describe(error!);
+        }
+
+        return items.Count == 0
+            ? Strings.Get("Variable.EmptyList")
+            : Strings.Format("Variable.ListPreview", items.Count, ListText.Summarize(items));
+    }
 
     /// <summary>True when a shape cannot be read for the given type.</summary>
     public static bool HasError(ValueKind type, ExpressionNode shape)
         => VariableValues.HasError(type, shape, VariableValues.DesignContext());
-
-    /// <summary>Reads a starting value the way the Variable Center shows it.</summary>
-    public static string Preview(ValueKind type, string value)
-    {
-        if (type is not ValueKind.List)
-        {
-            return VariableValues.Preview(type, value, VariableValues.DesignContext());
-        }
-
-        if (value.Trim().Length == 0)
-        {
-            return Strings.Get("Variable.EmptyList");
-        }
-
-        return ListText.TryParse(value, out var items, out var error)
-            ? Strings.Format("Variable.ListPreview", items.Count, ListText.Summarize(items))
-            : ExpressionText.Describe(error!);
-    }
-
-    /// <summary>True when a starting value cannot be read for the given type.</summary>
-    public static bool HasError(ValueKind type, string value)
-        => VariableValues.HasError(type, value, VariableValues.DesignContext());
 
     /// <summary>Type name in the current interface language.</summary>
     public string LocalType => Strings.Get($"Variable.Type.{VariableTypes.Name(Type)}",

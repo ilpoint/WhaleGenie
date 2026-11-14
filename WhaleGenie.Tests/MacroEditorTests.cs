@@ -42,7 +42,7 @@ public partial class MacroEditorTests
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static MacroStep Set(string name, string value)
+    private static MacroStep Set(string name, ExpressionNode value)
         => new()
         {
             Type = "control.setVariable",
@@ -51,7 +51,7 @@ public partial class MacroEditorTests
             [
                 new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
                 new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Fields.Shape("local") },
-                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Expression.Read(value) },
+                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = value },
             ],
         };
 }

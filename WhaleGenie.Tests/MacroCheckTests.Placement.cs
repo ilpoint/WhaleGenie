@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -115,7 +116,7 @@ public partial class MacroCheckTests
     {
         var trying = Step("control.try",
             Steps("body", Pressing()),
-            When("catchWhen", "caught.key == \"Run.ElementNotFound\""),
+            When("catchWhen", Formula.Binary("==", Formula.Name("caught.key"), Formula.Text("Run.ElementNotFound"))),
             Steps("catch"),
             Steps("finally"));
 

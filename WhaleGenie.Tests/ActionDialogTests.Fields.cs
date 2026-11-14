@@ -272,7 +272,7 @@ public partial class ActionDialogTests
         {
             var x = Number("input.mouseMove", "x", "hit");
 
-            x.WriteValue(Expression.Read("field(hit, \"x\")"));
+            x.WriteValue(Formula.Call("field", Formula.Name("hit"), Formula.Text("x")));
 
             Assert.False(x.HasExpressionError);
             Assert.False(x.ShowExpressionError);
@@ -291,11 +291,11 @@ public partial class ActionDialogTests
         {
             var x = Number("input.mouseMove", "x", "hit");
 
-            x.WriteValue(Expression.Read("count +"));
+            x.WriteValue(Formula.Hole);
             Assert.True(x.HasExpressionError);
             Assert.NotEqual(string.Empty, x.ExpressionMessage);
 
-            x.WriteValue(Expression.Read("field(nowhere, \"x\")"));
+            x.WriteValue(Formula.Call("field", Formula.Name("nowhere"), Formula.Text("x")));
             Assert.True(x.HasExpressionError);
             Assert.NotEqual(Strings.Get("Add.ExpressionWhenRun"), x.ExpressionMessage);
         });

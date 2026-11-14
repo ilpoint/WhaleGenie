@@ -16,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_formula_field_accepts_a_bare_name_as_its_seed()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("count"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("count")), Variables(), ActionValueForm.Value);
 
         Assert.True(form.Reads);
         Assert.True(form.CanConfirm);
@@ -26,7 +26,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_name_field_never_reports_a_reading_problem()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("count"), Variables(), ActionValueForm.Name);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("count")), Variables(), ActionValueForm.Name);
 
         Assert.False(form.NoteIsProblem);
         Assert.Equal(string.Empty, form.Note);

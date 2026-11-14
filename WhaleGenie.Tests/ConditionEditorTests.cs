@@ -18,11 +18,11 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class ConditionEditorTests
 {
-    private static ConditionEditorViewModel Editor(string text)
+    private static ConditionEditorViewModel Editor(ExpressionNode shape)
     {
         ConditionEditorViewModel? editor = null;
         var changed = 0;
-        editor = new ConditionEditorViewModel(Expression.Read(text), () => changed++);
+        editor = new ConditionEditorViewModel(shape, () => changed++);
         return editor;
     }
 
@@ -31,7 +31,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("a == 1 and b > 2");
+            var editor = Editor(Formula.Binary("and", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Binary(">", Formula.Name("b"), Formula.Number("2", 2d))));
 
             Assert.False(editor.Nests);
             Assert.Equal(2, editor.Rows.Count);
@@ -48,7 +48,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("(a == 1 or b == 2) and c == 3");
+            var editor = Editor(Formula.Binary("and", Formula.Binary("or", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Binary("==", Formula.Name("b"), Formula.Number("2", 2d))), Formula.Binary("==", Formula.Name("c"), Formula.Number("3", 3d))));
 
             Assert.True(editor.Nests);
             Assert.Equal(2, editor.Rows.Count);
@@ -64,7 +64,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
             editor.AddRow();
             editor.AddRow();
             editor.Rows[0].LeftNode = Formula.Name("a");
@@ -84,7 +84,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
             editor.AddRow();
             editor.Rows[0].LeftNode = Formula.Name("found");
             editor.Rows[0].Compare = ConditionCompare.Holds;
@@ -102,7 +102,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
             editor.AddRow();
             editor.Rows[0].LeftNode = Formula.Name("a");
             editor.Rows[0].RightNode = Formula.Number(1);
@@ -119,10 +119,10 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("a == 1 and not b and c >= 3");
+            var editor = Editor(Formula.Binary("and", Formula.Binary("and", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Unary("not", Formula.Name("b"))), Formula.Binary(">=", Formula.Name("c"), Formula.Number("3", 3d))));
             var first = editor.Text;
 
-            editor.Read(Expression.Read(first));
+            editor.Read(editor.Written);
 
             Assert.Equal(first, editor.Text);
             Assert.Equal(3, editor.Rows.Count);
@@ -136,7 +136,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("a == 1 and b == 2");
+            var editor = Editor(Formula.Binary("and", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Binary("==", Formula.Name("b"), Formula.Number("2", 2d))));
             var before = editor.Text;
 
             editor.Show(tree: true);
@@ -157,7 +157,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("a == 1 and b == 2");
+            var editor = Editor(Formula.Binary("and", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Binary("==", Formula.Name("b"), Formula.Number("2", 2d))));
             editor.Remove(editor.Rows[0]);
 
             Assert.Single(editor.Rows);
@@ -170,7 +170,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("a == 1");
+            var editor = Editor(Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)));
             editor.AddGroup();
             var group = editor.Rows[1];
             editor.AddRow(group);
@@ -210,7 +210,7 @@ public class ConditionEditorTests
             Assert.Equal("found", parameter.Text);
 
             // A step read back from a file hands its condition in the same way.
-            parameter.WriteValue(Expression.Read("count > 3"));
+            parameter.WriteValue(Formula.Binary(">", Formula.Name("count"), Formula.Number("3", 3d)));
             Assert.Equal("count", Assert.Single(editor.Rows).Left);
             window.Close();
         });
@@ -290,7 +290,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
 
             Assert.False(editor.IsEmpty);
             var row = Assert.Single(editor.Rows);
@@ -311,7 +311,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
             editor.Rows[0].Left = "found";
 
             Assert.True(editor.HasInput);
@@ -331,7 +331,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("contains(title, \"记\") and startsWith(name, \"a\")");
+            var editor = Editor(Formula.Binary("and", Formula.Call("contains", Formula.Name("title"), Formula.Text("记")), Formula.Call("startsWith", Formula.Name("name"), Formula.Text("a"))));
 
             Assert.Equal(2, editor.Rows.Count);
             Assert.Equal(ConditionCompare.Contains, editor.Rows[0].Compare);
@@ -349,7 +349,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("not contains(title, \"记\")");
+            var editor = Editor(Formula.Unary("not", Formula.Call("contains", Formula.Name("title"), Formula.Text("记"))));
 
             Assert.Equal(ConditionCompare.NotContains, Assert.Single(editor.Rows).Compare);
             Assert.Equal("not contains(title, \"记\")", editor.Text);
@@ -365,13 +365,13 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var empty = Editor("length(title) == 0");
+            var empty = Editor(Formula.Binary("==", Formula.Call("length", Formula.Name("title")), Formula.Number("0", 0d)));
             var row = Assert.Single(empty.Rows);
             Assert.Equal(ConditionCompare.Empty, row.Compare);
             Assert.Equal("title", row.Left);
             Assert.Equal("length(title) == 0", empty.Text);
 
-            var many = Editor("count(items) == 3");
+            var many = Editor(Formula.Binary("==", Formula.Call("count", Formula.Name("items")), Formula.Number("3", 3d)));
             var counted = Assert.Single(many.Rows);
             Assert.Equal(ConditionCompare.CountIs, counted.Compare);
             Assert.Equal("3", counted.Right);
@@ -388,13 +388,13 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor("not (a == 1 or b == 2)");
+            var editor = Editor(Formula.Unary("not", Formula.Binary("or", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Binary("==", Formula.Name("b"), Formula.Number("2", 2d)))));
 
             Assert.Equal(Join.None, editor.Root.Join);
             Assert.Equal(2, editor.Rows.Count);
             Assert.Equal("not (a == 1 or b == 2)", editor.Text);
 
-            var written = Editor("a == 1 or b == 2");
+            var written = Editor(Formula.Binary("or", Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)), Formula.Binary("==", Formula.Name("b"), Formula.Number("2", 2d))));
             written.OperatorIndex = 2;
             Assert.Equal("not (a == 1 or b == 2)", written.Text);
         });
@@ -430,7 +430,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
             var row = editor.Rows[0];
 
             editor.InsertVariable(row, right: false, "found", caret: null);
@@ -439,7 +439,7 @@ public class ConditionEditorTests
 
             // Where the caret was is where the name goes: a cell holds one value, so what is
             // already written is kept rather than replaced.
-            var written = Editor("a == 1");
+            var written = Editor(Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)));
             written.InsertVariable(written.Rows[0], right: false, "note.", caret: 0);
             Assert.Equal("note.a", written.Rows[0].Left);
         });
@@ -454,7 +454,7 @@ public class ConditionEditorTests
     {
         Ui.Run(() =>
         {
-            var editor = Editor(string.Empty);
+            var editor = Editor(Formula.Nothing);
             var row = editor.Rows[0];
             row.Compare = ConditionCompare.NotContains;
 

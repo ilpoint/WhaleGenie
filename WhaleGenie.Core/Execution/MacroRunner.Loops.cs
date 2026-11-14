@@ -57,9 +57,10 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> RunForEach(ExecutableStep step, int depth, CancellationToken token)
     {
-        if (!ListText.TryParse(ReadText(step, "items"), Variables, out var items, out var error))
+        var writtenItems = step.Written("items");
+        if (!ListText.TryRead(writtenItems, Variables, out var items, out var error))
         {
-            throw new StepFailure(RunKeys.BadList, error?.Detail ?? ReadText(step, "items"));
+            throw new StepFailure(RunKeys.BadList, error?.Detail ?? Formula.Speak(writtenItems));
         }
 
         var itemKey = ReadNameKey(step, "itemVariable");

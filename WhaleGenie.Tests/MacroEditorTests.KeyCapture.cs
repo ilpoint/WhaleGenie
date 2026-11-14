@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -53,7 +54,7 @@ public partial class MacroEditorTests
             bare.Close();
 
             var macro = new MacroItem { Name = "probe" };
-            macro.Steps.Add(Set("total", "7"));
+            macro.Steps.Add(Set("total", Formula.Number("7", 7d)));
             StepIds.Settle(macro.Steps);
 
             var window = new MacroEditorWindow(macro, [macro]);

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -14,7 +15,7 @@ public partial class MacroCheckTests
     public void A_script_that_can_write_variables_makes_names_open()
     {
         var script = Step("script.python", Text("script", "print('hi')"));
-        var reading = Set("副本", "madeByScript");
+        var reading = Set("副本", Formula.Name("madeByScript"));
 
         Assert.Empty(Inspect(script, reading));
     }
@@ -22,7 +23,7 @@ public partial class MacroCheckTests
     [Fact]
     public void A_result_no_step_writes_is_reminded()
     {
-        var own = Callable("自己", results: ["答案"], steps: [Set("别的", "1")]);
+        var own = Callable("自己", results: ["答案"], steps: [Set("别的", Formula.Number("1", 1d))]);
 
         var warning = Assert.Single(MacroCheck.DeclarationProblems(own));
 
@@ -44,7 +45,7 @@ public partial class MacroCheckTests
     [Fact]
     public void A_variable_nothing_defines_is_reported()
     {
-        var reader = Set("结果", "没定义的 + 1");
+        var reader = Set("结果", Formula.Binary("+", Formula.Name("没定义的"), Formula.Number("1", 1d)));
 
         var problem = Assert.Single(Inspect(reader));
 
@@ -52,7 +53,7 @@ public partial class MacroCheckTests
     }
     [Fact]
     public void A_variable_the_macro_defines_itself_is_left_alone()
-        => Assert.Empty(Inspect(Set("计数", "0"), Set("结果", "计数 + 1")));
+        => Assert.Empty(Inspect(Set("计数", Formula.Number("0", 0d)), Set("结果", Formula.Binary("+", Formula.Name("计数"), Formula.Number("1", 1d)))));
 
     /// <summary>
     /// 宏自己的形参就是它读得到的名字：调用方把值交给这个名字，宏里的步骤照名字读。少了这一条，
@@ -62,7 +63,7 @@ public partial class MacroCheckTests
     [Fact]
     public void A_macro_may_read_the_names_it_declares()
     {
-        var reading = Step("control.log", Value("message", "谁"));
+        var reading = Step("control.log", Value("message", Formula.Name("谁")));
         var own = Callable("自己", parameters: ["谁"]);
 
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
@@ -71,18 +72,18 @@ public partial class MacroCheckTests
 
     [Fact]
     public void A_system_variable_is_left_alone()
-        => Assert.Empty(Inspect(Set("结果", "sys.date")));
+        => Assert.Empty(Inspect(Set("结果", Formula.Name("sys.date"))));
     [Fact]
     public void A_name_a_called_macro_brings_back_is_left_alone()
         => Assert.Empty(Against("自己", [Callable("另一个", results: ["答案"])],
             Call("另一个", "答案"),
-            Set("结果", "答案 + 1")));
+            Set("结果", Formula.Binary("+", Formula.Name("答案"), Formula.Number("1", 1d)))));
     [Fact]
     public void Loading_variables_from_a_file_silences_the_check()
     {
         // A file can hold any name at all, so nothing can be said about what the macro may read.
         var load = Step("file.loadVariables", Text("path", "state.json"));
 
-        Assert.Empty(Inspect(load, Set("结果", "来自文件")));
+        Assert.Empty(Inspect(load, Set("结果", Formula.Name("来自文件"))));
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -14,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_is_clamped_to_the_formula()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("a")), Variables(), ActionValueForm.Value);
 
         form.SetCaret(-20);
         Assert.Equal(0, form.Caret);
@@ -27,7 +28,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Clearing_the_shape_pulls_the_caret_back_with_it()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a + b + c"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Binary("+", Formula.Binary("+", Formula.Name("a"), Formula.Name("b")), Formula.Name("c"))), Variables(), ActionValueForm.Value);
         form.SetCaret(form.Text.Length);
 
         form.Clear();
@@ -39,7 +40,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Filling_the_ghost_writes_its_comma_and_grows_another_one()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("concat(a)"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Call("concat", Formula.Name("a"))), Variables(), ActionValueForm.Value);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         form.SetCaret(call.Ghost!.Start);
@@ -54,7 +55,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_survives_a_rebuilt_band()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a + b"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Binary("+", Formula.Name("a"), Formula.Name("b"))), Variables(), ActionValueForm.Value);
         form.SetCaret(2);
 
         form.Place(" + ");
@@ -66,7 +67,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_insert_never_splits_a_token()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("photos"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("photos")), Variables(), ActionValueForm.Value);
         form.SetCaret(3);
 
         form.Place("x");

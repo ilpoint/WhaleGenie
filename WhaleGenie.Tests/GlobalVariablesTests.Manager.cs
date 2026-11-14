@@ -117,7 +117,7 @@ public partial class GlobalVariablesTests
                         {
                             Name = "message",
                             Kind = ActionParameterKind.Expression,
-                            Written = Expression.Read("oldGlobal + 1"),
+                            Written = Formula.Binary("+", Formula.Name("oldGlobal"), Formula.Number("1", 1d)),
                         },
                     ],
                 });

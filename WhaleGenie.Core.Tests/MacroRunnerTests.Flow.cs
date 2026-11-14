@@ -257,7 +257,7 @@ public partial class MacroRunnerTests
         store.Local.SetNumber("rounds", 0);
 
         var loop = Step("control.forEach",
-            Param("items", "[10, 20, 30]"),
+            Param("items", Formula.List(Formula.Number(10), Formula.Number(20), Formula.Number(30))),
             Param("itemVariable", "item"),
             seen);
 
@@ -273,7 +273,7 @@ public partial class MacroRunnerTests
     {
         var store = Store(("outerSeen", -1), ("restored", -1));
         var inner = Step("control.forEach",
-            Param("items", "[10, 20]"),
+            Param("items", Formula.List(Formula.Number(10), Formula.Number(20))),
             Param("itemVariable", "item"),
             Body("body", Set("innerSeen", Formula.Name("sys.loopIndex"))));
         var outer = Step("control.for",
@@ -329,7 +329,7 @@ public partial class MacroRunnerTests
         {
             "control.repeat" => Step(action, Param("times", "3"), Param("intervalMs", "0"), body,
                 Returns("ended=ended")),
-            "control.forEach" => Step(action, Param("items", "[1, 2, 3]"),
+            "control.forEach" => Step(action, Param("items", Formula.List(Formula.Number(1), Formula.Number(2), Formula.Number(3))),
                 Param("itemVariable", "item"), body, Returns("ended=ended")),
             _ => Step(action, Param("rangeFrom", "1"), Param("rangeTo", "3"),
                 Param("stepSize", "1"), Param("intervalMs", "0"), Param("name", "i"), body,
@@ -367,10 +367,10 @@ public partial class MacroRunnerTests
     public async Task An_inner_loop_does_not_keep_the_outer_item()
     {
         var store = Store();
-        var inner = Step("control.forEach", Param("items", "[10, 20]"),
+        var inner = Step("control.forEach", Param("items", Formula.List(Formula.Number(10), Formula.Number(20))),
             Param("itemVariable", "item"),
             Body("body", Set("innerLast", Formula.Name("item"))));
-        var outer = Step("control.forEach", Param("items", "[1, 2]"),
+        var outer = Step("control.forEach", Param("items", Formula.List(Formula.Number(1), Formula.Number(2))),
             Param("itemVariable", "item"),
             Body("body", Set("outerBefore", Formula.Name("item")), inner, Set("outerAfter", Formula.Name("item"))));
 
@@ -452,7 +452,7 @@ public partial class MacroRunnerTests
     {
         var store = Store(("rounds", 0));
         var loop = Step("control.forEach",
-            Param("items", "[10, 20]"),
+            Param("items", Formula.List(Formula.Number(10), Formula.Number(20))),
             Param("itemVariable", "item"),
             Param("intervalMs", "10000"),
             Body("body", AddOne("rounds")));
@@ -576,7 +576,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var loop = Step("control.forEach",
-            Param("items", "[10, 20, 30]"),
+            Param("items", Formula.List(Formula.Number(10), Formula.Number(20), Formula.Number(30))),
             Param("itemVariable", "item"),
             Param("indexVariable", "round"),
             Body("body", Set("seen", Formula.Name("round"))));
@@ -592,7 +592,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var loop = Step("control.forEach",
-            Param("items", "[10, 20]"),
+            Param("items", Formula.List(Formula.Number(10), Formula.Number(20))),
             Param("itemVariable", "item"),
             Body("body", Set("seen", Formula.Name("item"))));
 

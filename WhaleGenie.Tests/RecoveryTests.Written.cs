@@ -38,11 +38,11 @@ public partial class RecoveryTests
                     },
                     new StepParameter
                     {
-                        Name = "x", Kind = ActionParameterKind.Number, Written = Expression.Read("sys.mouseX"),
+                        Name = "x", Kind = ActionParameterKind.Number, Written = Formula.Name("sys.mouseX"),
                     },
                     new StepParameter
                     {
-                        Name = "y", Kind = ActionParameterKind.Number, Written = Expression.Read("sys.mouseY"),
+                        Name = "y", Kind = ActionParameterKind.Number, Written = Formula.Name("sys.mouseY"),
                     },
                 ],
             });

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -26,7 +27,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_cross_shows_only_where_the_pointer_is()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a + b"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Binary("+", Formula.Name("a"), Formula.Name("b"))), Variables(), ActionValueForm.Value);
         var value = Root(form).Items[0];
 
         Assert.True(value.CanRemove);
@@ -42,7 +43,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_folded_run_reads_top_to_bottom()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a + b"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Binary("+", Formula.Name("a"), Formula.Name("b"))), Variables(), ActionValueForm.Value);
         var root = Root(form);
         var value = root.Items[0];
 

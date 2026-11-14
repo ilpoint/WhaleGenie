@@ -21,8 +21,8 @@ public partial class MacroCheckTests
     private static StepParameter Steps(string name, params MacroStep[] steps)
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
-    private static StepParameter When(string name, string expression)
-        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = Expression.Read(expression) };
+    private static StepParameter When(string name, ExpressionNode expression)
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = expression };
 
     private static StepParameter Text(string name, string value)
         => new() { Name = name, Kind = ActionParameterKind.Text, Written = Fields.Shape(value) };
@@ -30,13 +30,13 @@ public partial class MacroCheckTests
     private static StepParameter Name(string name, string value)
         => new() { Name = name, Kind = ActionParameterKind.Variable, Written = Fields.Shape(value) };
 
-    private static StepParameter Value(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = Expression.Read(value) };
+    private static StepParameter Value(string name, ExpressionNode value)
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = value };
 
     private static StepParameter Flag(string name, bool value)
         => new() { Name = name, Kind = ActionParameterKind.Bool, Written = Fields.Shape(value ? "true" : "false") };
 
-    private static MacroStep Set(string name, string value)
+    private static MacroStep Set(string name, ExpressionNode value)
         => Step("control.setVariable", Text("name", name), Text("scope", "local"), Value("value", value));
 
     private static MacroStep Repeat(params MacroStep[] body)

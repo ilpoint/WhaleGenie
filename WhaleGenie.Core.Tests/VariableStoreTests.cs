@@ -61,7 +61,7 @@ public class VariableStoreTests
         Assert.Equal(11, second.AsNumber());
 
         // And through an expression, which is how the fields of a step read it.
-        Assert.Equal("12", Expression.Evaluate("sys.tick", store).AsText());
+        Assert.Equal("12", Expression.Evaluate(Formula.Name("sys.tick"), store).AsText());
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public class VariableStoreTests
         store.SetNumber("count", 4);
         store.Set("names", Value.FromList(new[] { Value.FromText("a"), Value.FromText("b") }));
 
-        Assert.Equal("4/2", Expression.Evaluate("count + \"/\" + length(names)", store).AsText());
+        Assert.Equal("4/2", Expression.Evaluate(Formula.Binary("+", Formula.Binary("+", Formula.Name("count"), Formula.Text("/")), Formula.Call("length", Formula.Name("names"))), store).AsText());
     }
 
     [Fact]

@@ -102,7 +102,7 @@ public class MacroBundleTests
                 Type = "control.delay",
                 Parameters =
                 [
-                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Expression.Read("次数") },
+                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.Name("次数") },
                 ],
             });
 

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -15,7 +16,7 @@ public partial class MacroCheckTests
     {
         var name = "missingGlobalForCheck";
         var step = Step("control.setVariable", Text("name", name), Text("scope", "global"),
-            Value("value", "1"));
+            Value("value", Formula.Number("1", 1d)));
 
         Assert.Contains(Inspect(step),
             problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
@@ -40,7 +41,7 @@ public partial class MacroCheckTests
     [Fact]
     public void One_step_can_be_wrong_more_than_once_and_each_reason_is_said()
     {
-        var step = Set("结果", "甲 + 乙");
+        var step = Set("结果", Formula.Binary("+", Formula.Name("甲"), Formula.Name("乙")));
 
         var problems = Inspect(step);
 

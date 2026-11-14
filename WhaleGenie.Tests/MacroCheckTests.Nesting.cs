@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -58,13 +59,13 @@ public partial class MacroCheckTests
 
         var withCase = Step("control.switch",
             Text("switchValue", "1"), Text("switchMode", "equals"),
-            Steps("cases", Step("control.case", Text("values", "1"), Steps("body", Set("结果", "1")))),
+            Steps("cases", Step("control.case", Text("values", "1"), Steps("body", Set("结果", Formula.Number("1", 1d))))),
             Steps("otherwise"));
         Assert.Empty(Inspect(withCase));
 
         var withOtherwise = Step("control.switch",
             Text("switchValue", "1"), Text("switchMode", "equals"),
-            Steps("cases"), Steps("otherwise", Set("结果", "1")));
+            Steps("cases"), Steps("otherwise", Set("结果", Formula.Number("1", 1d))));
         Assert.Empty(Inspect(withOtherwise));
     }
 
@@ -74,7 +75,7 @@ public partial class MacroCheckTests
     [InlineData("step.abcd.outcome")]
     public void A_variable_using_a_name_the_run_keeps_is_reported(string name)
     {
-        var step = Set(name, "1");
+        var step = Set(name, Formula.Number("1", 1d));
 
         var problem = Assert.Single(Inspect(step));
 
@@ -84,7 +85,7 @@ public partial class MacroCheckTests
 
     [Fact]
     public void An_ordinary_variable_name_is_left_alone()
-        => Assert.Empty(Inspect(Set("count", "1")));
+        => Assert.Empty(Inspect(Set("count", Formula.Number("1", 1d))));
 
     [Fact]
     public void A_fail_step_reports_only_user_keys_it_can_read_back()

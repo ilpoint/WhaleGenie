@@ -131,9 +131,7 @@ public sealed class SystemVariableReader : ILiveVariables
             : Value.FromNumber(0),
         ValueKind.Bool => Value.FromBool(
             string.Equals(text, "true", StringComparison.OrdinalIgnoreCase)),
-        ValueKind.List => ListText.TryParse(text, out var items, out _)
-            ? Value.FromList(items)
-            : Value.FromList([]),
+        ValueKind.List => Value.FromList(ListText.Split(text)),
         _ => Value.FromText(text),
     };
 }

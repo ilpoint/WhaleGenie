@@ -18,7 +18,7 @@ public class ShapeContractTests
     [Fact]
     public void A_formula_box_reads_a_bare_name_as_the_name_it_is()
     {
-        var tree = Expression.Read("count + 1");
+        var tree = Formula.Binary("+", Formula.Name("count"), Formula.Number("1", 1d));
 
         var sum = Assert.IsType<BinaryNode>(tree);
         Assert.Equal("count", Assert.IsType<VariableNode>(sum.Left).Name);
@@ -26,10 +26,11 @@ public class ShapeContractTests
     }
 
     [Fact]
-    public void A_half_written_formula_is_an_empty_place_not_a_value()
+    public void An_empty_place_is_not_a_value()
     {
-        Assert.Same(Formula.Hole, Expression.Read("count +"));
-        Assert.Same(Formula.Nothing, Expression.Read("  "));
+        Assert.NotSame(Formula.Hole, Formula.Nothing);
+        Assert.True(Formula.IsNothing(Formula.Nothing));
+        Assert.False(Formula.IsNothing(Formula.Hole));
     }
 
     [Fact]
@@ -42,11 +43,8 @@ public class ShapeContractTests
         Assert.Equal("upper(title)", written);
         Assert.DoesNotContain("$", written);
 
-        // A line cannot carry the identity a name is bound to — that is exactly why the window
-        // hands over the shape itself. The words alone still read back as the same call.
-        var read = Assert.IsType<CallNode>(Expression.Read(written));
-        Assert.Equal("upper", read.Name);
-        Assert.Equal("title", Assert.IsType<VariableNode>(read.Arguments[0]).Name);
+        // The line is only a picture. The identity a name is bound to stays in the shape, and no
+        // line is ever read back into one.
     }
 
     [Fact]

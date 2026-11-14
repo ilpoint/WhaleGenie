@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -15,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Undo_and_redo_walk_the_shape()
     {
-        var form = new ValuePickerViewModel(ValuePickerTests.Seed("a"), Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel(Seed(Formula.Name("a")), Variables(), ActionValueForm.Value);
 
         form.Place(" + ");
         form.Place("b");

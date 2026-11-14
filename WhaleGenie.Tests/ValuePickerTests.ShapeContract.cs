@@ -28,7 +28,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_operator_grows_a_binary_and_the_next_piece_fills_its_hole()
     {
-        var form = Form("count");
+        var form = Form(Formula.Name("count"));
 
         form.Place(" + ");
         Assert.False(form.CanConfirm, "An unfinished binary shape cannot be handed over yet.");
@@ -54,7 +54,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Taking_a_piece_away_leaves_a_hole_rather_than_a_torn_tree()
     {
-        var form = Form("concat(a, b)");
+        var form = Form(Formula.Call("concat", Formula.Name("a"), Formula.Name("b")));
         var first = form.Recipe!.Walk().OfType<SlotValue>()
             .First(value => value.Text == "a");
 
@@ -68,7 +68,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Undo_brings_back_the_shape_and_redo_takes_it_away_again()
     {
-        var form = Form("a");
+        var form = Form(Formula.Name("a"));
         form.Place(" + ");
 
         Assert.True(form.CanUndo);
@@ -87,7 +87,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Clearing_is_one_step_in_the_same_shape_history()
     {
-        var form = Form("a");
+        var form = Form(Formula.Name("a"));
 
         form.Clear();
 
@@ -100,7 +100,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_band_is_drawn_from_the_shape_and_names_stand_in_this_windows_spelling()
     {
-        var form = Form("a + 1");
+        var form = Form(Formula.Binary("+", Formula.Name("a"), Formula.Number("1", 1d)));
 
         Assert.All(form.Recipe!.Walk(), piece => Assert.NotNull(piece.Path));
         Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(),
@@ -112,7 +112,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Pieces_put_in_one_at_a_time_grow_the_shape_and_the_line_follows_it()
     {
-        var form = Form("a");
+        var form = Form(Formula.Name("a"));
 
         form.Place(" + ");
         form.Place("1");
@@ -124,7 +124,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_drag_moves_a_piece_to_another_place_in_the_shape()
     {
-        var form = Form("concat(a, b)");
+        var form = Form(Formula.Call("concat", Formula.Name("a"), Formula.Name("b")));
         var values = form.Recipe!.Walk().OfType<SlotValue>().ToList();
         var first = values.First(value => value.Text == "a");
         var last = values.Last(value => value.Text == "b");
@@ -135,8 +135,8 @@ public partial class ValuePickerTests
         Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(), value => value.Text == "b");
     }
 
-    private static ValuePickerViewModel Form(string seed = "")
-        => new(ValuePickerTests.Seed(seed), Variables(), ActionValueForm.Value);
+    private static ValuePickerViewModel Form(ExpressionNode? seed = null)
+        => new(seed ?? Formula.Nothing, Variables(), ActionValueForm.Value);
 
     private static ExpressionNode Answer(ValuePickerViewModel form)
     {

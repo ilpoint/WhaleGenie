@@ -139,7 +139,7 @@ public partial class StepTreeTests
             {
                 Name = "condition",
                 Kind = ActionParameterKind.Expression,
-                Written = Expression.Read("a == 1"),
+                Written = Formula.Binary("==", Formula.Name("a"), Formula.Number("1", 1d)),
             };
             var choice = Step("control.if", condition);
             var editor = new MacroEditorViewModel();

@@ -30,48 +30,6 @@ public static class VariableValues
         return store;
     }
 
-    public static bool TryRead(ValueKind type, string written, IVariableResolver? variables,
-        out Value value, out string error)
-    {
-        var text = (written ?? string.Empty).Trim();
-        if (text.Length == 0)
-        {
-            value = Empty(type);
-            error = string.Empty;
-            return true;
-        }
-
-        if (Expression.TryEvaluate(text, variables, out var evaluated, out var expressionError))
-        {
-            return ConvertToType(type, evaluated, out value, out error);
-        }
-
-        value = type switch
-        {
-            ValueKind.Number => double.TryParse(text, NumberStyles.Float,
-                CultureInfo.InvariantCulture, out var number)
-                ? Value.FromNumber(number)
-                : Value.Null,
-            ValueKind.Bool => bool.TryParse(text, out var flag)
-                ? Value.FromBool(flag)
-                : Value.Null,
-            ValueKind.List => ListText.TryParse(text, variables, out var items, out _)
-                ? Value.FromList(items)
-                : Value.Null,
-            ValueKind.Date => DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces, out var moment)
-                ? Value.FromDate(moment)
-                : Value.Null,
-            _ => Value.FromText(text),
-        };
-
-        error = value.IsNull && type is ValueKind.Number or ValueKind.Bool
-            or ValueKind.List or ValueKind.Date
-            ? text
-            : string.Empty;
-        return error.Length == 0;
-    }
-
     /// <summary>
     /// Reads a declared value that is already the shape it was written in. Nothing is parsed here:
     /// the shape is worked out and the result is made the declared kind, which is the same rule the
@@ -113,19 +71,6 @@ public static class VariableValues
 
     public static bool HasError(ValueKind type, ExpressionNode written,
         IVariableResolver? variables = null)
-        => !TryRead(type, written, variables, out _, out _);
-
-    public static Value Read(ValueKind type, string written, IVariableResolver? variables = null)
-        => TryRead(type, written, variables, out var value, out _) ? value : Empty(type);
-
-    public static string Preview(ValueKind type, string written, IVariableResolver? variables = null)
-        => written.Trim().Length == 0
-            ? string.Empty
-            : TryRead(type, written, variables, out var value, out var error)
-                ? value.AsText()
-                : error;
-
-    public static bool HasError(ValueKind type, string written, IVariableResolver? variables = null)
         => !TryRead(type, written, variables, out _, out _);
 
     private static bool ConvertToType(ValueKind type, Value source, out Value value, out string error)

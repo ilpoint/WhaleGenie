@@ -62,8 +62,8 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         var empty = _draft.IsEmpty;
-        // A half-typed line is read once into a fault shape. It is just as unfinished as a hole,
-        // and a cell cannot take either until somebody fills it in.
+        // A piece that still reads as a fault is just as unfinished as a hole, and a cell
+        // cannot take either until somebody fills it in.
         var hole = _draft.HasHole() || HoldsFault(_draft.Value);
         _reads = !hole && !empty;
         NoteIsProblem = hole;

@@ -102,7 +102,7 @@ public class RunStepOutcomeTests
                     {
                         Name = "value",
                         Kind = ActionParameterKind.Text,
-                        Written = Expression.Read("step." + broken.Id + ".outcome"),
+                        Written = Formula.Name("step." + broken.Id + ".outcome"),
                     },
                 ],
             };

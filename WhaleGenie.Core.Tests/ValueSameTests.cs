@@ -12,19 +12,25 @@ namespace WhaleGenie.Core.Tests;
 public class ValueSameTests
 {
     [Theory]
-    [InlineData("1 == \"1.0\"", true)]
-    [InlineData("\"1\" == 1", true)]
-    [InlineData("\"1\" == \"1.0\"", false)]
-    [InlineData("true == \"TRUE\"", true)]
-    [InlineData("false == \"0\"", true)]
-    [InlineData("parseDate(\"2026-03-01\", \"yyyy-MM-dd\") == \"2026-03-01\"", true)]
-    [InlineData("parseDate(\"2026-03-01\", \"yyyy-MM-dd\") == \"2026-03-02\"", false)]
-    [InlineData("1 == \"one\"", false)]
-    [InlineData("[1, 2] == [1, 2]", true)]
-    [InlineData("[1, 2] == [1, 3]", false)]
+    [MemberData(nameof(A_value_is_compared_by_kind_and_a_line_is_read_as_the_other_sideCases))]
     public void A_value_is_compared_by_kind_and_a_line_is_read_as_the_other_side(
-        string source, bool expected)
-        => Assert.Equal(expected, Expression.Evaluate(source).AsBool());
+            ExpressionNode source, bool expected)
+            => Assert.Equal(expected, Expression.Evaluate(source).AsBool());
+
+    public static TheoryData<ExpressionNode, bool> A_value_is_compared_by_kind_and_a_line_is_read_as_the_other_sideCases() => new()
+    {
+        { Formula.Binary("==", Formula.Number("1", 1d), Formula.Text("1.0")), true },
+        { Formula.Binary("==", Formula.Text("1"), Formula.Number("1", 1d)), true },
+        { Formula.Binary("==", Formula.Text("1"), Formula.Text("1.0")), false },
+        { Formula.Binary("==", Formula.Constant("true"), Formula.Text("TRUE")), true },
+        { Formula.Binary("==", Formula.Constant("false"), Formula.Text("0")), true },
+        { Formula.Binary("==", Formula.Call("parseDate", Formula.Text("2026-03-01"), Formula.Text("yyyy-MM-dd")), Formula.Text("2026-03-01")), true },
+        { Formula.Binary("==", Formula.Call("parseDate", Formula.Text("2026-03-01"), Formula.Text("yyyy-MM-dd")), Formula.Text("2026-03-02")), false },
+        { Formula.Binary("==", Formula.Number("1", 1d), Formula.Text("one")), false },
+        { Formula.Binary("==", Formula.List(Formula.Number("1", 1d), Formula.Number("2", 2d)), Formula.List(Formula.Number("1", 1d), Formula.Number("2", 2d))), true },
+        { Formula.Binary("==", Formula.List(Formula.Number("1", 1d), Formula.Number("2", 2d)), Formula.List(Formula.Number("1", 1d), Formula.Number("3", 3d))), false },
+    };
+
 
     /// <summary>
     /// Two values that are the same value hash alike, which is what lets a set answer the same
@@ -49,5 +55,5 @@ public class ValueSameTests
     [Fact]
     public void Unique_uses_the_same_rule_as_equality()
         => Assert.Equal("1, 2",
-            Expression.Evaluate("unique([1, \"1\", \"1.0\", 2])").AsText());
+            Expression.Evaluate(Formula.Call("unique", Formula.List(Formula.Number("1", 1d), Formula.Text("1"), Formula.Text("1.0"), Formula.Number("2", 2d)))).AsText());
 }

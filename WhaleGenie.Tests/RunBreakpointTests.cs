@@ -94,7 +94,7 @@ public class RunBreakpointTests
                     {
                         Name = "condition",
                         Kind = ActionParameterKind.Expression,
-                        Written = Expression.Read("n == 1"),
+                        Written = Formula.Binary("==", Formula.Name("n"), Formula.Number("1", 1d)),
                     },
                     new StepParameter
                     {

@@ -5,15 +5,11 @@ using System.Threading;
 namespace WhaleGenie.Core.Expressions;
 
 /// <summary>
-/// Reads and evaluates the small expression language the editor offers. The grammar stays
-/// narrow on purpose: literals, names, the usual operators and a table of functions. A name is
-/// written as itself and a piece of text is quoted, so nothing has to be guessed from a line.
-/// That is enough for the values a macro needs without turning into a script host.
+/// Works out the values a field holds. A field keeps a shape, built a piece at a time in the
+/// editor; there is no line of text that is read back into one, so nothing here has to guess what
+/// a word means from the characters around it. <see cref="Render"/> draws a shape as a line for
+/// the places that show one, and is the only direction text travels — out, never in.
 /// </summary>
-/// <remarks>
-/// Examples: <c>count + 1</c>, <c>upper(name)</c>, <c>split(text, ",")</c>,
-/// <c>append(names, "Ada")</c>, <c>if(count &gt; 3, "many", "few")</c>.
-/// </remarks>
 public static class Expression
 {
     /// <summary>One row an expression left out, said as a log key and its arguments.</summary>
@@ -60,22 +56,6 @@ public static class Expression
         }
 
         stack.Peek().Add(new Diagnostic(key, arguments));
-    }
-
-    /// <summary>
-    /// The one place a line a person typed into a formula box becomes a shape. A name is said as
-    /// the name itself and text is quoted; a half-written line is an empty place, which no cell
-    /// can confirm until it is filled. Nothing else reads a line back into a value.
-    /// </summary>
-    public static ExpressionNode Read(string? source)
-    {
-        var written = (source ?? string.Empty).Trim();
-        if (written.Length == 0)
-        {
-            return Formula.Nothing;
-        }
-
-        return TryParse(written, out var tree, out _) && tree is not null ? tree : Formula.Hole;
     }
 
     /// <summary>
@@ -244,17 +224,6 @@ public static class Expression
                 && name[of.Length] == '.'
                 && string.CompareOrdinal(name, 0, of, 0, of.Length) == 0);
 
-    /// <summary>Evaluates an expression, throwing when it cannot be read.</summary>
-    public static Value Evaluate(string? source, IVariableResolver? variables = null)
-    {
-        if (!TryEvaluate(source, variables, out var value, out var error))
-        {
-            throw error!;
-        }
-
-        return value;
-    }
-
     /// <summary>
     /// Works out a tree a field already holds. Nothing is read here: the shape a field keeps is
     /// the shape the engine runs, which is what leaves a run of text with a name in it and a
@@ -282,83 +251,10 @@ public static class Expression
     }
 
     /// <summary>
-    /// Evaluates an expression and reports failure instead of throwing, which is what the
-    /// editor uses to show a live error under the field.
-    /// </summary>
-    public static bool TryEvaluate(string? source, IVariableResolver? variables,
-        out Value value, out ExpressionException? error)
-    {
-        try
-        {
-            value = EvaluateChecked(source, variables);
-            error = null;
-            return true;
-        }
-        catch (ExpressionException failure)
-        {
-            value = Value.Null;
-            error = failure;
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Reads a formula into the tree the editor shows. The tree is the language's own shape, so
-    /// what the editor puts in front of the user and what the engine runs are the same thing.
-    /// </summary>
-    public static ExpressionNode Parse(string? source)
-    {
-        if (!TryParse(source, out var tree, out var error))
-        {
-            throw error!;
-        }
-
-        return tree!;
-    }
-
-    /// <summary>
-    /// Reads a formula into a tree, reporting failure instead of throwing. A word of its own is a
-    /// name, and a piece of text is quoted: there is only one way to write either.
-    /// </summary>
-    public static bool TryParse(string? source, out ExpressionNode? tree,
-        out ExpressionException? error)
-    {
-        if (string.IsNullOrWhiteSpace(source))
-        {
-            tree = null;
-            error = ExpressionException.Syntax("the formula is empty");
-            return false;
-        }
-
-        try
-        {
-            tree = ExpressionReader.Read(source);
-            error = null;
-            return true;
-        }
-        catch (ExpressionException failure)
-        {
-            tree = null;
-            error = failure;
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Writes a tree back out as a formula. A place nothing was put in is written as
-    /// <paramref name="hole"/>, which is what the editor shows and never what the engine reads.
+    /// Writes a tree out as a line to look at. A place nothing was put in is written as
+    /// <paramref name="hole"/>. This is the only text this class produces: it is drawn from a
+    /// shape for the interface, and no line is ever read back into one.
     /// </summary>
     public static string Render(ExpressionNode tree, string hole = "▢")
         => ExpressionWriter.Write(tree, hole);
-
-    private static Value EvaluateChecked(string? source, IVariableResolver? variables)
-    {
-        if (string.IsNullOrWhiteSpace(source))
-        {
-            return Value.Null;
-        }
-
-        var tree = ExpressionReader.Read(source);
-        return ExpressionCompiler.Compile(tree, variables ?? EmptyVariableResolver.Instance)();
-    }
 }

@@ -37,7 +37,7 @@ public class StepIdRepairTests
     {
         var macro = Macro(
             Step("abcd", "control.delay", """{"ms":"1"}"""),
-            Step("efgh", "control.if", "condition", Expression.Read("step.abcd.outcome == \"ok\"")));
+            Step("efgh", "control.if", "condition", Formula.Binary("==", Formula.Name("step.abcd.outcome"), Formula.Text("ok"))));
 
         Assert.Empty(StepIds.Settle(macro.Steps));
         Assert.Equal("「step.abcd.outcome」 == ok", Value(macro.Steps[1], "condition"));

@@ -41,7 +41,7 @@ public partial class MacroEditorTests
                 Required = true,
             });
 
-            var counted = Set("中间", "数 + 1");
+            var counted = Set("中间", Formula.Binary("+", Formula.Name("数"), Formula.Number("1", 1d)));
             macro.Steps.Add(counted);
 
             var window = new MacroEditorWindow(macro, [macro]);

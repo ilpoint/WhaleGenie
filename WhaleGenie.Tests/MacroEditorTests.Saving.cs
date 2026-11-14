@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -68,7 +69,7 @@ public partial class MacroEditorTests
                 var (window, viewModel) = Open();
                 viewModel.AppendSteps(
                 [
-                    Set("total", "1"),
+                    Set("total", Formula.Number("1", 1d)),
                     new MacroStep
                     {
                         Type = "control.sequence",
@@ -79,7 +80,7 @@ public partial class MacroEditorTests
                             {
                                 Name = "steps",
                                 Kind = ActionParameterKind.Steps,
-                                Steps = [Set("inner", "total")],
+                                Steps = [Set("inner", Formula.Name("total"))],
                             },
                         ],
                     },

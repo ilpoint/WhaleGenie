@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -25,7 +26,7 @@ public partial class MacroCheckTests
     {
         var loose = Step("control.continue");
 
-        var problem = Assert.Single(Inspect(loose, Set("after", "1")));
+        var problem = Assert.Single(Inspect(loose, Set("after", Formula.Number("1", 1d))));
 
         Assert.Same(loose, problem.Step);
     }
@@ -54,7 +55,7 @@ public partial class MacroCheckTests
         // An if branch and a plain block both let a break reach the loop around them, so neither
         // is a place where "no loop above it" is true.
         var ifStep = Step("control.if",
-            When("condition", "true"),
+            When("condition", Formula.Constant("true")),
             Steps("then", Step("control.sequence", Steps("steps", Step("control.break")))));
 
         Assert.Empty(Inspect(Repeat(ifStep)));

@@ -44,7 +44,7 @@ public class StepGuideTests
                     [
                         Step("input.mouseMove"),
                         Step("control.if",
-                            new StepParameter { Name = "condition", Kind = ActionParameterKind.Text, Written = Expression.Read("a") },
+                            new StepParameter { Name = "condition", Kind = ActionParameterKind.Text, Written = Formula.Name("a") },
                             new StepParameter
                             {
                                 Name = "then",
@@ -262,7 +262,7 @@ public class StepGuideTests
                     Steps = [Step("control.note")],
                 });
             editor.AddStep(Step("control.switch",
-                new StepParameter { Name = "switchValue", Kind = ActionParameterKind.Variable, Written = Expression.Read("mode") },
+                new StepParameter { Name = "switchValue", Kind = ActionParameterKind.Variable, Written = Formula.Name("mode") },
                 new StepParameter
                 {
                     Name = "cases",
