@@ -122,6 +122,7 @@
 348	WhaleGenie.Tests/TemplatePartTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 508	WhaleGenie.Tests/TrayTests.cs	keep: 托盘行为的一组用例，共用一套假通知区
 456	WhaleGenie.Tests/TriggerKindTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
+347	WhaleGenie.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
 529	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
 610	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 546	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
