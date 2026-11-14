@@ -275,6 +275,27 @@ public class VariableBindingTests
         Assert.Single(bag.Values["rows"].Items);
     }
 
+    /// <summary>
+    /// A name around which one caller left spaces is the name: the table stores one spelling, so a
+    /// declared name and a written name cannot end up as two entries that shadow each other.
+    /// </summary>
+    [Fact]
+    public void A_name_is_stored_without_the_space_around_it()
+    {
+        var bag = new VariableBag();
+        bag.Declare(" count ", ValueKind.Number);
+        bag.Set(" count ", Value.FromNumber(3));
+
+        Assert.Equal(1, bag.Count);
+        Assert.True(bag.IsDeclared("count"));
+        Assert.True(bag.TryGet("count", out var value));
+        Assert.Equal(3d, value.AsNumber());
+
+        Assert.True(bag.Rename(" count ", " total "));
+        Assert.True(bag.Contains("total"));
+        Assert.False(bag.Contains("count"));
+    }
+
     [Fact]
     public void A_declaration_is_forgotten_when_the_run_starts_over()
     {

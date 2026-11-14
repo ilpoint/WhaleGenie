@@ -93,7 +93,7 @@ public sealed class VariableBag : IVariableResolver
     {
         lock (_gate)
         {
-            if (_entries.TryGetValue(name, out var entry))
+            if (_entries.TryGetValue(Key(name), out var entry))
             {
                 value = entry.Value;
                 return true;
@@ -108,17 +108,18 @@ public sealed class VariableBag : IVariableResolver
     {
         lock (_gate)
         {
-            return _entries.ContainsKey(name);
+            return _entries.ContainsKey(Key(name));
         }
     }
 
     public void Set(string name, Value value)
     {
+        var key = Key(name);
         var changed = false;
         lock (_gate)
         {
-            var entry = RequireLocked(name);
-            EnsureFits(entry.Kind, name, value);
+            var entry = RequireLocked(key);
+            EnsureFits(entry.Kind, key, value);
             changed = !entry.Value.Equals(value);
             entry.Value = value;
             entry.Written = true;
@@ -126,7 +127,7 @@ public sealed class VariableBag : IVariableResolver
 
         if (changed)
         {
-            Changed?.Invoke(name);
+            Changed?.Invoke(key);
         }
     }
 
@@ -138,20 +139,21 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool SetIfAbsent(string name, Value value)
     {
+        var key = Key(name);
         lock (_gate)
         {
-            if (_entries.TryGetValue(name, out var existing) && existing.Written)
+            if (_entries.TryGetValue(key, out var existing) && existing.Written)
             {
                 return false;
             }
 
-            var entry = existing ?? RequireLocked(name);
-            EnsureFits(entry.Kind, name, value);
+            var entry = existing ?? RequireLocked(key);
+            EnsureFits(entry.Kind, key, value);
             entry.Value = value;
             entry.Written = true;
         }
 
-        Changed?.Invoke(name);
+        Changed?.Invoke(key);
         return true;
     }
 
@@ -170,7 +172,7 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public void Declare(string name, ValueKind kind)
     {
-        var written = name.Trim();
+        var written = Key(name);
         if (written.Length == 0)
         {
             return;
@@ -215,15 +217,16 @@ public sealed class VariableBag : IVariableResolver
 
     public bool Remove(string name)
     {
+        var key = Key(name);
         bool removed;
         lock (_gate)
         {
-            removed = _entries.Remove(name);
+            removed = _entries.Remove(key);
         }
 
         if (removed)
         {
-            Changed?.Invoke(name);
+            Changed?.Invoke(key);
         }
 
         return removed;
@@ -237,10 +240,11 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool Clear(string name)
     {
+        var key = Key(name);
         bool emptied;
         lock (_gate)
         {
-            if (!_entries.TryGetValue(name, out var entry))
+            if (!_entries.TryGetValue(key, out var entry))
             {
                 return false;
             }
@@ -253,13 +257,13 @@ public sealed class VariableBag : IVariableResolver
             }
             else
             {
-                emptied = _entries.Remove(name);
+                emptied = _entries.Remove(key);
             }
         }
 
         if (emptied)
         {
-            Changed?.Invoke(name);
+            Changed?.Invoke(key);
         }
 
         return emptied;
@@ -271,19 +275,20 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool Rename(string oldName, string newName)
     {
-        var next = newName.Trim();
-        if (next.Length == 0 || string.Equals(oldName, next, StringComparison.Ordinal))
+        var previous = Key(oldName);
+        var next = Key(newName);
+        if (next.Length == 0 || string.Equals(previous, next, StringComparison.Ordinal))
         {
             return false;
         }
 
         lock (_gate)
         {
-            if (!_entries.Remove(oldName, out var entry) || _entries.ContainsKey(next))
+            if (!_entries.Remove(previous, out var entry) || _entries.ContainsKey(next))
             {
                 if (entry is not null)
                 {
-                    _entries[oldName] = entry;
+                    _entries[previous] = entry;
                 }
 
                 return false;
@@ -293,7 +298,7 @@ public sealed class VariableBag : IVariableResolver
         }
 
         Changed?.Invoke(next);
-        Changed?.Invoke(oldName);
+        Changed?.Invoke(previous);
         return true;
     }
 
@@ -302,7 +307,7 @@ public sealed class VariableBag : IVariableResolver
     {
         lock (_gate)
         {
-            return _entries.TryGetValue(name, out var entry) && entry.Kind is not null;
+            return _entries.TryGetValue(Key(name), out var entry) && entry.Kind is not null;
         }
     }
 
@@ -344,21 +349,22 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool TryAddNumber(string name, double amount, out double sum)
     {
+        var key = Key(name);
         lock (_gate)
         {
-            if (!_entries.TryGetValue(name, out var entry))
+            if (!_entries.TryGetValue(key, out var entry))
             {
                 sum = 0;
                 return false;
             }
 
             sum = entry.Value.AsNumber() + amount;
-            EnsureFits(entry.Kind, name, Value.FromNumber(sum));
+            EnsureFits(entry.Kind, key, Value.FromNumber(sum));
             entry.Value = Value.FromNumber(sum);
             entry.Written = true;
         }
 
-        Changed?.Invoke(name);
+        Changed?.Invoke(key);
         return true;
     }
 
@@ -371,17 +377,18 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public bool TryUpdate(string name, Func<Value, Value> change, out Value updated)
     {
+        var key = Key(name);
         bool found;
         lock (_gate)
         {
-            if (!_entries.TryGetValue(name, out var entry))
+            if (!_entries.TryGetValue(key, out var entry))
             {
                 updated = Value.Null;
                 return false;
             }
 
             updated = change(entry.Value);
-            EnsureFits(entry.Kind, name, updated);
+            EnsureFits(entry.Kind, key, updated);
             entry.Value = updated;
             entry.Written = true;
             found = true;
@@ -389,7 +396,7 @@ public sealed class VariableBag : IVariableResolver
 
         if (found)
         {
-            Changed?.Invoke(name);
+            Changed?.Invoke(key);
         }
 
         return found;
@@ -402,16 +409,17 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public VariableMark Mark(string name)
     {
+        var key = Key(name);
         lock (_gate)
         {
-            if (_entries.TryGetValue(name, out var entry))
+            if (_entries.TryGetValue(key, out var entry))
             {
                 return new VariableMark(existed: true, entry.Value, entry.Kind, entry.Written);
             }
 
             // The block writes this name in every round, so it is made here rather than at the
             // first write: the ceiling counts it from the moment the block starts.
-            RequireLocked(name);
+            RequireLocked(key);
             return new VariableMark(existed: false, Value.Null, kind: null, written: false);
         }
     }
@@ -422,16 +430,17 @@ public sealed class VariableBag : IVariableResolver
     /// </summary>
     public void Restore(string name, VariableMark mark)
     {
+        var key = Key(name);
         lock (_gate)
         {
             // Putting back what was already there never needs room: the name held it a moment ago.
             if (!mark.Existed)
             {
-                _entries.Remove(name);
+                _entries.Remove(key);
             }
             else
             {
-                _entries[name] = new Entry
+                _entries[key] = new Entry
                 {
                     Value = mark.Value,
                     Kind = mark.Kind,
@@ -440,8 +449,15 @@ public sealed class VariableBag : IVariableResolver
             }
         }
 
-        Changed?.Invoke(name);
+        Changed?.Invoke(key);
     }
+
+    /// <summary>
+    /// The one spelling a name is stored under. Callers already trim what a field holds; doing it
+    /// here as well is what keeps a name from being two entries — one declared and one written —
+    /// just because one caller left a space around it.
+    /// </summary>
+    private static string Key(string name) => name.Trim();
 
     /// <summary>
     /// The entry a name has, making one when the scope still has room. Every way of putting a name

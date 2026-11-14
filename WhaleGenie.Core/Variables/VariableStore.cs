@@ -120,16 +120,21 @@ public sealed class VariableStore : IVariableResolver
     /// </summary>
     public bool TryGet(string name, out Value value)
     {
+        // One spelling for the whole question: a name with a space around it is the same name, and
+        // the live source is asked with that spelling too, or a built-in would fall back to the
+        // value it was seeded with instead of the one the machine answers.
+        var key = name.Trim();
+
         // One frame for the whole question: the call under way may finish between the two lookups,
         // and half of a caller's table beside half of a callee's is a value nobody wrote.
         var local = Local;
-        if (local.TryGet(name, out value) || Global.TryGet(name, out value))
+        if (local.TryGet(key, out value) || Global.TryGet(key, out value))
         {
             return true;
         }
 
-        return (Live is { } live && live.TryGet(name, out value))
-            || System.TryGet(name, out value);
+        return (Live is { } live && live.TryGet(key, out value))
+            || System.TryGet(key, out value);
     }
 
     /// <summary>Writes a value the running macro keeps. A caller that means a global names it.</summary>
