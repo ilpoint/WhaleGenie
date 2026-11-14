@@ -27,7 +27,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_shorter_formula_pulls_the_caret_back_with_it()
     {
-        var form = new ValuePickerViewModel("$a + $b + $c", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a + b + c", Variables(), ActionValueForm.Value);
         form.SetCaret(form.Text.Length);
 
         form.Text = "a";
@@ -38,7 +38,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Filling_the_ghost_writes_its_comma_and_grows_another_one()
     {
-        var form = new ValuePickerViewModel("concat($a)", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("concat(a)", Variables(), ActionValueForm.Value);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         form.SetCaret(call.Ghost!.Start);
@@ -53,10 +53,10 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_survives_a_rebuilt_band()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a + b", Variables(), ActionValueForm.Value);
         form.SetCaret(2);
 
-        form.Text = "$a + $b + $c";
+        form.Text = "a + b + c";
 
         Assert.Equal(2, form.Caret);
     }

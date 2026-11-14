@@ -51,14 +51,14 @@ public class RecordValueTests
         var bag = Bag(("hit", Hit()));
 
         Assert.True(Expression.Evaluate("hit", bag).IsRecord);
-        Assert.Equal("30", Expression.Evaluate("field($hit, \"x\")", bag).AsText());
-        Assert.Equal("20,30,20,20", Expression.Evaluate("field($hit, \"box\")", bag).AsText());
+        Assert.Equal("30", Expression.Evaluate("field(hit, \"x\")", bag).AsText());
+        Assert.Equal("20,30,20,20", Expression.Evaluate("field(hit, \"box\")", bag).AsText());
 
         // Names are read without caring about case, which is how every other name in a macro is read.
-        Assert.Equal("0.93", Expression.Evaluate("field($hit, \"SCORE\")", bag).AsText());
+        Assert.Equal("0.93", Expression.Evaluate("field(hit, \"SCORE\")", bag).AsText());
 
         // A record counts its fields, so length says how much there is to read.
-        Assert.Equal("8", Expression.Evaluate("length($hit)", bag).AsText());
+        Assert.Equal("8", Expression.Evaluate("length(hit)", bag).AsText());
 
         // An object read out of JSON is the same kind of value, so its fields are read the same way.
         Assert.Equal("2", Expression.Evaluate(
@@ -70,7 +70,7 @@ public class RecordValueTests
     {
         var bag = Bag(("hit", Hit()), ("plain", Value.FromText("hello")));
 
-        var missing = Failure("field($hit, \"score2\")", bag);
+        var missing = Failure("field(hit, \"score2\")", bag);
         Assert.Equal(ExpressionErrorCode.TypeMismatch, missing.Code);
         Assert.Contains("score2", missing.Detail, System.StringComparison.Ordinal);
         foreach (var name in new[] { "x", "y", "left", "top", "width", "height", "score", "box" })
@@ -79,7 +79,7 @@ public class RecordValueTests
         }
 
         // A value that is not a record at all says so rather than quietly reading as nothing.
-        Assert.Equal(ExpressionErrorCode.TypeMismatch, Failure("field($plain, \"x\")", bag).Code);
+        Assert.Equal(ExpressionErrorCode.TypeMismatch, Failure("field(plain, \"x\")", bag).Code);
         Assert.Equal(ExpressionErrorCode.TypeMismatch, Failure("field(1, \"x\")", bag).Code);
     }
 
@@ -105,7 +105,7 @@ public class RecordValueTests
         // Text read back out of a record is the text that went in: the commas and the quotes of it
         // are the JSON's business, not the macro's.
         Assert.Equal("say \"hi\", then go",
-            Expression.Evaluate("field(jsonGet($hit, \"\"), \"text\")", bag).AsText());
+            Expression.Evaluate("field(jsonGet(hit, \"\"), \"text\")", bag).AsText());
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class RecordValueTests
         ]);
         var bag = Bag(("hit", hit));
 
-        var back = Expression.Evaluate("jsonGet(toJson($hit), \"\")", bag);
+        var back = Expression.Evaluate("jsonGet(toJson(hit), \"\")", bag);
 
         Assert.True(back.IsRecord);
         Assert.Equal(hit, back);
@@ -132,11 +132,11 @@ public class RecordValueTests
 
         // Each field keeps the kind of value it had, so a number read back is still a number.
         var reading = Bag(("back", back), ("tags", back.Field("tags")!));
-        Assert.Equal(30, Expression.Evaluate("field($back, \"x\")", reading).AsNumber());
+        Assert.Equal(30, Expression.Evaluate("field(back, \"x\")", reading).AsNumber());
         Assert.Equal("记事本",
-            Expression.Evaluate("field(field($back, \"nested\"), \"title\")", reading).AsText());
+            Expression.Evaluate("field(field(back, \"nested\"), \"title\")", reading).AsText());
         Assert.Equal("1, a", Expression.Evaluate("tags", reading).AsText());
-        Assert.Equal(2, Expression.Evaluate("count($tags)", reading).AsNumber());
+        Assert.Equal(2, Expression.Evaluate("count(tags)", reading).AsNumber());
     }
 
     [Fact]
@@ -148,13 +148,13 @@ public class RecordValueTests
         Assert.True(Expression.Evaluate("hits", bag).IsList);
         Assert.Equal(2, Expression.Evaluate("hits", bag).AsList().Count);
         Assert.Equal("Cancel",
-            Expression.Evaluate("field(get($hits, 1), \"text\")", bag).AsText());
+            Expression.Evaluate("field(get(hits, 1), \"text\")", bag).AsText());
 
         // Written into a file, a list of records is an array of objects.
         Assert.Equal("[{\"text\":\"Save\"},{\"text\":\"Cancel\"}]",
-            Expression.Evaluate("toJson($hits)", bag).AsText());
-        Assert.True(Expression.Evaluate("jsonGet(toJson($hits), \"\")", bag).IsList);
+            Expression.Evaluate("toJson(hits)", bag).AsText());
+        Assert.True(Expression.Evaluate("jsonGet(toJson(hits), \"\")", bag).IsList);
         Assert.Equal(Expression.Evaluate("hits", bag),
-            Expression.Evaluate("jsonGet(toJson($hits), \"\")", bag));
+            Expression.Evaluate("jsonGet(toJson(hits), \"\")", bag));
     }
 }

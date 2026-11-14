@@ -17,6 +17,14 @@ public class ExpressionTests
         return Assert.IsType<ExpressionException>(error);
     }
 
+    [Fact]
+    public void A_name_needs_no_marker_and_a_dollar_is_not_one()
+    {
+        Assert.Equal("count", Assert.IsType<VariableNode>(Expression.Read("count")).Name);
+        Assert.False(Expression.TryParse("$count + 1", out _, out _));
+        Assert.IsType<HoleNode>(Expression.Read("$count + 1"));
+    }
+
     [Theory]
     [InlineData("1 + 2", "3")]
     [InlineData("2 * 3 + 1", "7")]
@@ -172,7 +180,7 @@ public class ExpressionTests
 
     [Fact]
     public void Unknown_variable_is_reported()
-        => Assert.Equal(ExpressionErrorCode.UnknownVariable, Failure("$missing + 1").Code);
+        => Assert.Equal(ExpressionErrorCode.UnknownVariable, Failure("missing + 1").Code);
 
     [Fact]
     public void Unknown_function_is_reported()
@@ -204,11 +212,9 @@ public class ExpressionTests
         var bag = new VariableBag();
         bag.SetText("name", "ada");
         bag.SetNumber("count", 3);
-        bag.SetNumber("123", 4);
 
-        Assert.Equal("ADA-3", Expression.Evaluate("upper($name) + \"-\" + $count", bag).AsText());
-        Assert.True(Expression.Evaluate("$count >= 3 and $name == \"ADA\"", bag).AsBool());
-        Assert.Equal("5", Expression.Evaluate("$123 + 1", bag).AsText());
+        Assert.Equal("ADA-3", Expression.Evaluate("upper(name) + \"-\" + count", bag).AsText());
+        Assert.True(Expression.Evaluate("count >= 3 and name == \"ADA\"", bag).AsBool());
         Assert.Equal("1", Expression.Evaluate("123 - 122", bag).AsText());
     }
 
@@ -218,7 +224,7 @@ public class ExpressionTests
         var bag = new VariableBag();
         bag.Set("names", Value.FromList([Value.FromText("Ada"), Value.FromText("Grace")]));
 
-        var grown = Expression.Evaluate("append($names, \"Alan\")", bag);
+        var grown = Expression.Evaluate("append(names, \"Alan\")", bag);
         Assert.Equal(new[] { "Ada", "Grace", "Alan" }, grown.Items.Select(item => item.AsText()));
     }
 
@@ -276,7 +282,7 @@ public class ExpressionTests
 
         var today = Expression.Evaluate("today()").AsText();
         Assert.Equal(today + " 09:30:00",
-            Expression.Evaluate("formatDate($clock, \"yyyy-MM-dd HH:mm:ss\")", bag).AsText());
+            Expression.Evaluate("formatDate(clock, \"yyyy-MM-dd HH:mm:ss\")", bag).AsText());
     }
 
     [Theory]

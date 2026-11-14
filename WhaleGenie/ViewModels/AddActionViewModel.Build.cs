@@ -52,7 +52,7 @@ public partial class AddActionViewModel
         // everywhere else as if it were the real one. A counter, a list and an item of a loop all
         // name a variable the same way, so the question is asked of every field that has the step
         // create one rather than of a list of actions kept here. What a field reads is not one of
-        // these: reading $sys.date is what those values are for.
+        // these: reading sys.date is what those values are for.
         foreach (var parameter in Parameters.Where(parameter => parameter.IsIncluded))
         {
             var written = parameter.CurrentText.Trim();

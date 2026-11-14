@@ -116,7 +116,7 @@ public sealed partial class MacroRunner
     /// Hands over what a search found as one record: where it was, the four sides of the rectangle
     /// it was found in, how sure the reading was, and the writing that was read where there was any.
     /// All of it about one hit, so it travels together under the names a macro reads with
-    /// <c>field($hit, "x")</c> rather than as a variable of its own for each part.
+    /// <c>field(hit, "x")</c> rather than as a variable of its own for each part.
     ///
     /// The rectangle is named by its top-left corner, because that is the corner a search region
     /// counts from: what a hit hands over has to be usable as where to look next without the macro

@@ -119,7 +119,7 @@ public partial class MacroEditorWindow : AppWindow
             .FirstOrDefault(box => box.Name == "CaseValueBox" && ReferenceEquals(box.DataContext, row));
 
     /// <summary>
-    /// A branch's values are read as text with the names in them replaced, so "1; 2" and "$key" are
+    /// A branch's values are read as text with the names in them replaced, so "1; 2" and "key" are
     /// the same kind of thing. The button therefore does what the same button does on the step's own
     /// form: put a name where the caret is, or hand the whole line to the expression editor through
     /// the picker's own "write it as an expression" entry.

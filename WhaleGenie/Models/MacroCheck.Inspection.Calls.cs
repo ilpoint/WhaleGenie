@@ -92,7 +92,8 @@ public static partial class MacroCheck
                 return;
             }
 
-            var filled = new Dictionary<string, (string Value, bool Given)>(StringComparer.OrdinalIgnoreCase);
+            var filled = new Dictionary<string, (ExpressionNode Value, bool Given)>(
+                StringComparer.OrdinalIgnoreCase);
             foreach (var row in ArgumentRows(step))
             {
                 var (passed, value, given) = Argument(row);
@@ -128,12 +129,12 @@ public static partial class MacroCheck
                     continue;
                 }
 
-                if (input.Given && input.Value.Length > 0)
+                if (input.Given && !Formula.IsNothing(input.Value))
                 {
                     Add(step, MacroProblemCode.GivenWithValue, Strings.Format("Editor.Problem.GivenWithValue", name));
                 }
 
-                if (input.Value.Length == 0)
+                if (Formula.IsNothing(input.Value))
                 {
                     continue;
                 }

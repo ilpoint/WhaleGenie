@@ -23,7 +23,7 @@ public class VariableRenameTests
                 {
                     Name = "value",
                     Kind = ActionParameterKind.Expression,
-                    Written = Expression.Read("field($record, \"old\") + $old"),
+                    Written = Expression.Read("field(record, \"old\") + old"),
                 },
             ],
         };
@@ -88,7 +88,7 @@ public class VariableRenameTests
                 {
                     Name = "message",
                     Kind = ActionParameterKind.Expression,
-                    Written = Expression.Read("$old + 1"),
+                    Written = Expression.Read("old + 1"),
                 },
             ],
         });

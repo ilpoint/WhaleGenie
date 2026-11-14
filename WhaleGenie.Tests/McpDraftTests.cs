@@ -87,7 +87,7 @@ public class McpDraftTests
                         ["type"] = "control.if",
                         ["params"] = new JsonObject
                         {
-                            ["condition"] = "$sys.screenWidth > 1",
+                            ["condition"] = "sys.screenWidth > 1",
                             ["then"] = new JsonArray(new JsonObject
                             {
                                 ["type"] = "control.delay",

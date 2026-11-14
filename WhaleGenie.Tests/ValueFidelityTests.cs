@@ -131,7 +131,7 @@ public class ValueFidelityTests
     }
 
     [Fact]
-    public void Names_are_offered_as_names_not_as_marked_lines()
+    public void Names_are_offered_as_bare_names_not_as_spoken_pieces()
     {
         var definition = Definition("system.notify", "notificationText");
         var field = new StepParameterViewModel(definition,
@@ -140,7 +140,6 @@ public class ValueFidelityTests
         ]);
 
         Assert.Contains("count", field.ExpressionSuggestions);
-        Assert.DoesNotContain("$count", field.ExpressionSuggestions);
         Assert.DoesNotContain("「count」", field.ExpressionSuggestions);
     }
 }

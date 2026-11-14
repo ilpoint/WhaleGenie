@@ -106,7 +106,7 @@ public partial class LookPickTests
     [InlineData(" 1 , 2 , #AABBCC ", "1,2,#AABBCC")]
     [InlineData("(2+3)*2,-(1+1),#00ff00", "10,-2,#00FF00")]
     // 变量原样留下：它值多少要等宏跑起来才知道。
-    [InlineData("$dx,$dy,$side", "$dx,$dy,$side")]
+    [InlineData("dx,dy,side", "dx,dy,side")]
     public void A_line_is_read_as_numbers_and_one_colour(string written, string expected)
     {
         Assert.True(ColourPointLine.TryParse(written, out var entry));

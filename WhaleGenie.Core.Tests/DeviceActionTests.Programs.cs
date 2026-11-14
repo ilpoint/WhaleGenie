@@ -94,7 +94,7 @@ public partial class DeviceActionTests
     }
 
     [Fact]
-    public async Task A_dollar_written_as_text_stays_a_dollar()
+    public async Task A_dollar_in_a_text_value_is_just_a_character()
     {
         var devices = new FakeDeviceLayer();
         await RunAsync(
@@ -104,8 +104,8 @@ public partial class DeviceActionTests
                 Param("environment", "USER=$who")),
         ], devices);
 
-        // A dollar in prose is a character like any other: there is no escape to write, and the
-        // environment reader does not look for names in a value that names none.
+        // A dollar in a text value is a character like any other: the language has no marker in
+        // front of a name, so nothing here looks for one and no escape is needed to write it.
         Assert.Contains(devices.Calls, call => call.EndsWith("|env USER=$who"));
     }
 

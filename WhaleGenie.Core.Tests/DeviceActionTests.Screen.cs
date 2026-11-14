@@ -305,7 +305,7 @@ public partial class DeviceActionTests
 
     /// <summary>
     /// 数字格里的算式算不出来时，这一步按 Run.BadExpression 失败，而不是把答案当成 0 接着往下走：
-    /// X 写成 field($match, "x") 而 $match 这个名字根本不存在时，以前指针会去 (0, 40)——发错的
+    /// X 写成 field(match, "x") 而 match 这个名字根本不存在时，以前指针会去 (0, 40)——发错的
     /// 位置，而且没有任何一处说为什么。文本字段里的同一句话一直是当场失败的，数字字段现在也一样。
     /// </summary>
     [Fact]
@@ -339,8 +339,8 @@ public partial class DeviceActionTests
     }
 
     /// <summary>
-    /// 找图没找到时，它交出的那条记录是一段空文本；把这段空文本当数字用（读 $spot，或者
-    /// field($spot, "x")）是宏写错了。以前这一格悄悄当成 0，于是"没找到就点到 (0, 5)"；现在
+    /// 找图没找到时，它交出的那条记录是一段空文本；把这段空文本当数字用（读 spot，或者
+    /// field(spot, "x")）是宏写错了。以前这一格悄悄当成 0，于是"没找到就点到 (0, 5)"；现在
     /// 当场失败，一个鼠标消息都不发。
     /// </summary>
     [Fact]

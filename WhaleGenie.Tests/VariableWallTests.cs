@@ -84,7 +84,7 @@ public class VariableWallTests
 
     /// <summary>
     /// WhaleGenie's own variables are the ones whose names nobody chose, so those are the ones a
-    /// button says in Chinese with the code name beside it: 剪贴板 ($sys.clipboard). A macro's own
+    /// button says in Chinese with the code name beside it: 剪贴板 (sys.clipboard). A macro's own
     /// variables keep the name their author gave them, and what a button puts in a field is still
     /// the code name either way.
     /// </summary>

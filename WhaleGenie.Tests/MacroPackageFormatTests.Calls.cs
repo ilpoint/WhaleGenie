@@ -79,7 +79,7 @@ public partial class MacroPackageFormatTests
 
     /// <summary>
     /// A record argument may say which fields it holds, and a package has to bring them back: the
-    /// names are what `$record.field` is checked against, so losing them would make a checked macro
+    /// names are what `record.field` is checked against, so losing them would make a checked macro
     /// an unchecked one after a save.
     /// </summary>
     [Fact]

@@ -40,7 +40,7 @@ public partial class MacroCheckTests
     [Fact]
     public void One_step_can_be_wrong_more_than_once_and_each_reason_is_said()
     {
-        var step = Set("结果", "$甲 + $乙");
+        var step = Set("结果", "甲 + 乙");
 
         var problems = Inspect(step);
 

@@ -375,7 +375,7 @@ public static class VariableChoices
     /// Walks the steps again, this time looking for the names they read rather than the ones they
     /// make. A name is read wherever a field may hold one: a whole value that is an expression, or
     /// text with a name written into the middle of it. What a field that names a variable *defines*
-    /// is not a read, and neither is a script's own `$` — that one belongs to the other language.
+    /// is not a read, and neither is a script's own variable syntax — that one belongs to the other language.
     /// </summary>
     private static void Read(IEnumerable<MacroStep> steps, Dictionary<string, List<VariableUse>> uses)
     {
@@ -487,8 +487,8 @@ public static class VariableChoices
                     continue;
                 }
 
-                // A name field is read as the name it is, not as the line a formula would spell it
-                // with: a bound name renders as "$total", and the wall must offer "total".
+                // A name field is read as the name it is: a bound name is written "total", and that
+                // is the same word the wall has to offer.
                 var declared = Formula.NameOf(parameter.Written);
                 var declaredName = declared.Name.Trim();
                 if (declaredName.Length == 0)

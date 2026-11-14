@@ -283,12 +283,6 @@ public partial class WindowPreviewTests
     private static void PutWindowRule(AddActionViewModel viewModel, string text, string how)
     {
         var parameter = viewModel.Parameters.First(item => item.Definition.Name == "window");
-        if (text.StartsWith('$'))
-        {
-            parameter.UseWindowVariable(text[1..]);
-            return;
-        }
-
         var rule = how switch
         {
             "process" or "processEquals" => new WindowRule(Process: text, How: how),

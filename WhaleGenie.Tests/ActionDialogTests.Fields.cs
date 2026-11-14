@@ -71,8 +71,8 @@ public partial class ActionDialogTests
     }
 
     /// <summary>
-    /// 两个框长得一样，读法却不同：一个整格是一个在运行时才算出来的值，另一个是带 $名字 的文字。
-    /// 区别写在标签左边那一个小标记上：ƒ 认算式，$ 认变量名，各自的含义在悬停里。框下面那行只说
+    /// 两个框长得一样，读法却不同：一个整格是一个在运行时才算出来的值，另一个是带名字片的文字。
+    /// 区别写在标签左边那一个小标记上：ƒ 认算式，名字标记认可插入的名字片，各自的含义在悬停里。框下面那行只说
     /// 这一格自己的事——同一句话每格复述一遍，真正属于这一格的话就被埋了。
     /// </summary>
     [Fact]
@@ -96,21 +96,21 @@ public partial class ActionDialogTests
             var own = marked.First(mark => ReferenceEquals(mark.Field, looked));
             Assert.Equal(Strings.Get("Add.FieldTakesFormula"), ToolTip.GetTip(own.Icon));
 
-            // 带 $名字 的文字不是那一种：它的左边是 $，说的也是另一句话。
+            // 带名字片的文字不是那一种：它的左边是名字标记，说的也是另一句话。
             var (plainWindow, plain) = OpenWindow("file.listFiles");
             var pattern = plain.Parameters.First(parameter => parameter.Definition.Name == "pattern");
 
             Assert.False(pattern.TakesFormula);
-            Assert.True(pattern.ShowsVariableMark);
+            Assert.True(pattern.ShowsNameMark);
             Assert.DoesNotContain(Strings.Get("Add.FieldIsText"), pattern.Hint,
                 StringComparison.Ordinal);
 
-            var dollars = Marks(plainWindow, LucideIconKind.Variable);
+            var names = Marks(plainWindow, LucideIconKind.Variable);
 
-            Assert.Contains(dollars, mark => ReferenceEquals(mark.Field, pattern));
-            Assert.All(dollars, mark => Assert.True(mark.Field.ShowsVariableMark));
+            Assert.Contains(names, mark => ReferenceEquals(mark.Field, pattern));
+            Assert.All(names, mark => Assert.True(mark.Field.ShowsNameMark));
             Assert.Equal(Strings.Get("Add.FieldIsText"),
-                ToolTip.GetTip(dollars.First(mark => ReferenceEquals(mark.Field, pattern)).Icon));
+                ToolTip.GetTip(names.First(mark => ReferenceEquals(mark.Field, pattern)).Icon));
 
             Assert.DoesNotContain(pattern, Marks(plainWindow, LucideIconKind.SquareFunction)
                 .Select(mark => mark.Field));
@@ -263,7 +263,7 @@ public partial class ActionDialogTests
     /// <summary>
     /// 数字格里写"从一条记录里取出一个坐标"是正常的写法：写宏的时候没有哪一步真的跑过，一个名字里
     /// 装着什么形状没有人知道，所以这种读法只可能是"要跑起来才知道"，不是错误。以前这里一律把已知
-    /// 名字当成数字 0，于是唯一正确的写法 field($hit, "x") 反而当场标红，说的还是"0 不是记录"。
+    /// 名字当成数字 0，于是唯一正确的写法 field(hit, "x") 反而当场标红，说的还是"0 不是记录"。
     /// </summary>
     [Fact]
     public void A_number_read_from_a_record_is_not_marked_wrong_while_the_macro_is_being_written()
@@ -272,7 +272,7 @@ public partial class ActionDialogTests
         {
             var x = Number("input.mouseMove", "x", "hit");
 
-            x.WriteValue("field($hit, \"x\")");
+            x.WriteValue("field(hit, \"x\")");
 
             Assert.False(x.HasExpressionError);
             Assert.False(x.ShowExpressionError);
@@ -291,11 +291,11 @@ public partial class ActionDialogTests
         {
             var x = Number("input.mouseMove", "x", "hit");
 
-            x.WriteValue("$count +");
+            x.WriteValue("count +");
             Assert.True(x.HasExpressionError);
             Assert.NotEqual(string.Empty, x.ExpressionMessage);
 
-            x.WriteValue("field($nowhere, \"x\")");
+            x.WriteValue("field(nowhere, \"x\")");
             Assert.True(x.HasExpressionError);
             Assert.NotEqual(Strings.Get("Add.ExpressionWhenRun"), x.ExpressionMessage);
         });

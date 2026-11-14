@@ -40,7 +40,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_written_piece_leaves_the_line_on_a_seam()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a + b", Variables(), ActionValueForm.Value);
         form.SetCaret(2);
 
         form.Place("c");
@@ -52,7 +52,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_whole_formula_goes_at_once_and_undo_brings_it_back()
     {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a + b", Variables(), ActionValueForm.Value);
         Assert.True(form.CanClear);
 
         form.Clear();

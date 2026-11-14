@@ -83,7 +83,7 @@ public sealed partial class MacroRunner
 
     /// <summary>
     /// Where an element sits, written into a variable the way a found picture is: the centre as
-    /// "x,y", and the parts as $name.x, $name.y, $name.width and $name.height. That is what lets a
+    /// "x,y", and the parts as name.x, name.y, name.width and name.height. That is what lets a
     /// later step point at the element — or a little way from it — without hunting for it again.
     /// </summary>
     private void FindElement(ExecutableStep step, int depth)

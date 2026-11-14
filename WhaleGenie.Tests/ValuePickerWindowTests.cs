@@ -56,7 +56,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("concat(list(1, 2), upper($a))");
+            var window = Window("concat(list(1, 2), upper(a))");
 
             var pieces = Pieces(window);
             Assert.NotEmpty(pieces);
@@ -76,7 +76,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + 1");
+            var window = Window("a + 1");
 
             Assert.True(Named(window, "DragLayer").ClipToBounds);
             Assert.True(Named(window, "RemoveLayer").ClipToBounds);
@@ -104,7 +104,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a +");
+            var window = Window("a +");
             var form = (ValuePickerViewModel)window.DataContext!;
             var band = Assert.IsAssignableFrom<ContentControl>(window.FindControl<ContentControl>("Band"));
             band.Focus();
@@ -129,7 +129,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + 1");
+            var window = Window("a + 1");
             var form = (ValuePickerViewModel)window.DataContext!;
             var input = Assert.IsAssignableFrom<TextBox>(window.FindControl<TextBox>("ValueInput"));
             input.Focus();
@@ -144,7 +144,7 @@ public class ValuePickerWindowTests
             });
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal("$a + 1", form.Text);
+            Assert.Equal("a + 1", form.Text);
 
             Ui.CloseAndDiscard(window);
         });
@@ -181,7 +181,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("concat(list(1, 2), upper($a))");
+            var window = Window("concat(list(1, 2), upper(a))");
             var piece = Pieces(window).First(one => one.DataContext is SlotValue value && value.Text == "1");
             var node = Assert.IsAssignableFrom<SlotNode>(piece.DataContext);
 
@@ -216,7 +216,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("concat(list(1, 2), upper($a))");
+            var window = Window("concat(list(1, 2), upper(a))");
             var piece = Pieces(window).First(one => one.DataContext is SlotValue value && value.Text == "1");
 
             Hover(window, piece);
@@ -277,7 +277,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + 1");
+            var window = Window("a + 1");
             var layer = Assert.IsType<Canvas>(Named(window, "RemoveLayer"));
 
             Assert.True(layer.IsHitTestVisible);
@@ -304,7 +304,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + 1");
+            var window = Window("a + 1");
             var field = window.FindControl<TextBox>("ValueInput");
 
             Assert.NotNull(field);
@@ -330,7 +330,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("concat($a, $b, $c, $d)");
+            var window = Window("concat(a, b, c, d)");
             var form = (ValuePickerViewModel)window.DataContext!;
             var before = form.Caret;
 
@@ -351,7 +351,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + $b");
+            var window = Window("a + b");
             var form = (ValuePickerViewModel)window.DataContext!;
             var before = form.Caret;
 
@@ -374,7 +374,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + $b");
+            var window = Window("a + b");
             var form = (ValuePickerViewModel)window.DataContext!;
             var clear = window.GetVisualDescendants().OfType<Button>()
                 .Single(one => Equals(ToolTip.GetTip(one), Strings.Get("ValuePicker.Clear")));
@@ -421,7 +421,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + $b");
+            var window = Window("a + b");
             var caret = Assert.IsType<Border>(window.FindControl<Control>("TextCaret"));
 
             Assert.Equal(2, caret.Width);
@@ -462,7 +462,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a + 1");
+            var window = Window("a + 1");
             var splitter = Assert.IsType<GridSplitter>(Named(window, "BandSplitter"));
             var rows = Assert.IsType<Grid>(splitter.Parent).RowDefinitions;
 

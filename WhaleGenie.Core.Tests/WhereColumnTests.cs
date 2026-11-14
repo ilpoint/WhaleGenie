@@ -39,15 +39,15 @@ public class WhereColumnTests
             ("Alan", Value.FromNumber(41), "London"));
 
         Assert.Equal(["Ada", "Alan"],
-            Names(Expression.Evaluate("where($rows, \"city\", \"equals\", \"London\")", store)));
+            Names(Expression.Evaluate("where(rows, \"city\", \"equals\", \"London\")", store)));
         Assert.Equal(["Ada", "Alan"],
-            Names(Expression.Evaluate("where($rows, \"name\", \"startsWith\", \"a\")", store)));
+            Names(Expression.Evaluate("where(rows, \"name\", \"startsWith\", \"a\")", store)));
         Assert.Equal(["Grace"],
-            Names(Expression.Evaluate("where($rows, \"name\", \"endsWith\", \"ce\")", store)));
+            Names(Expression.Evaluate("where(rows, \"name\", \"endsWith\", \"ce\")", store)));
         Assert.Equal(["Alan"],
-            Names(Expression.Evaluate("where($rows, \"name\", \"contains\", \"la\")", store)));
+            Names(Expression.Evaluate("where(rows, \"name\", \"contains\", \"la\")", store)));
         Assert.Equal(["Ada", "Alan"],
-            Names(Expression.Evaluate("where($rows, \"city\", \"regex\", \"^lon\")", store)));
+            Names(Expression.Evaluate("where(rows, \"city\", \"regex\", \"^lon\")", store)));
     }
 
     [Fact]
@@ -59,19 +59,19 @@ public class WhereColumnTests
 
         Assert.Equal(["ADA", "ada"],
             Names(Expression.Evaluate(
-                "where($rows, \"name\", \"equals\", \"ada\")", store)));
+                "where(rows, \"name\", \"equals\", \"ada\")", store)));
         Assert.Equal(["ada"],
             Names(Expression.Evaluate(
-                "where($rows, \"name\", \"equals\", \"ada\", true)", store)));
+                "where(rows, \"name\", \"equals\", \"ada\", true)", store)));
         Assert.Equal(["ada"],
             Names(Expression.Evaluate(
-                "where($rows, \"name\", \"equals\", \"ada\", true, false)", store)));
+                "where(rows, \"name\", \"equals\", \"ada\", true, false)", store)));
         Assert.Equal(["ADA", "ada"],
             Names(Expression.Evaluate(
-                "where($rows, \"city\", \"equals\", \"London\")", store)));
+                "where(rows, \"city\", \"equals\", \"London\")", store)));
         Assert.Equal(["ada"],
             Names(Expression.Evaluate(
-                "where($rows, \"city\", \"equals\", \"London\", false, false)", store)));
+                "where(rows, \"city\", \"equals\", \"London\", false, false)", store)));
     }
 
     [Fact]
@@ -83,17 +83,17 @@ public class WhereColumnTests
             ("Alan", Value.FromNumber(41), "London"));
 
         Assert.Equal(["Grace"],
-            Names(Expression.Evaluate("where($rows, \"age\", \">\", 50)", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \">\", 50)", store)));
         Assert.Equal(["Grace", "Alan"],
-            Names(Expression.Evaluate("where($rows, \"age\", \">=\", 40)", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \">=\", 40)", store)));
         Assert.Equal(["Ada"],
-            Names(Expression.Evaluate("where($rows, \"age\", \"<\", 40)", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \"<\", 40)", store)));
         Assert.Equal(["Ada", "Alan"],
-            Names(Expression.Evaluate("where($rows, \"age\", \"<=\", 41)", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \"<=\", 41)", store)));
         Assert.Equal(["Ada"],
-            Names(Expression.Evaluate("where($rows, \"age\", \"=\", 36)", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \"=\", 36)", store)));
         Assert.Equal(["Grace", "Alan"],
-            Names(Expression.Evaluate("where($rows, \"age\", \"!=\", 36)", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \"!=\", 36)", store)));
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public class WhereColumnTests
             ("Alan", Value.FromText("eighty-five"), "London"));
 
         Assert.Equal(["Grace"],
-            Names(Expression.Evaluate("where($rows, \"age\", \">\", \"40\")", store)));
+            Names(Expression.Evaluate("where(rows, \"age\", \">\", \"40\")", store)));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class WhereColumnTests
             ("Alan", Value.FromNumber(41), "London"));
 
         Expression.BeginDiagnostics();
-        var kept = Expression.Evaluate("where($rows, \"age\", \">\", 40)", store);
+        var kept = Expression.Evaluate("where(rows, \"age\", \">\", 40)", store);
         var notes = Expression.TakeDiagnostics();
 
         Assert.Equal(["Alan"], Names(kept));
@@ -136,14 +136,14 @@ public class WhereColumnTests
         var store = Table(("Ada", Value.FromNumber(36), "London"));
 
         Expression.BeginDiagnostics();
-        var kept = Expression.Evaluate("where($rows, \"nope\", \"contains\", \"x\")", store);
+        var kept = Expression.Evaluate("where(rows, \"nope\", \"contains\", \"x\")", store);
         var note = Assert.Single(Expression.TakeDiagnostics());
 
         Assert.Empty(kept.AsList());
         Assert.Equal(LogKeys.ListFieldMissing, note.Key);
 
         var missing = Assert.Throws<ExpressionException>(
-            () => Expression.Evaluate("column($rows, \"nope\")", store));
+            () => Expression.Evaluate("column(rows, \"nope\")", store));
         Assert.Contains("name, age, city", missing.Detail, System.StringComparison.Ordinal);
     }
 
@@ -159,7 +159,7 @@ public class WhereColumnTests
             ("Ada", Value.FromNumber(36), "London"),
             ("Grace", Value.FromNumber(85), "New York"));
 
-        var ages = Expression.Evaluate("column($rows, \"age\")", store).AsList();
+        var ages = Expression.Evaluate("column(rows, \"age\")", store).AsList();
 
         Assert.Equal([36d, 85d], ages.Select(age => age.AsNumber()));
     }
@@ -175,7 +175,7 @@ public class WhereColumnTests
         ]));
 
         Expression.BeginDiagnostics();
-        var ages = Expression.Evaluate("column($rows, \"age\")", store).AsList();
+        var ages = Expression.Evaluate("column(rows, \"age\")", store).AsList();
         var note = Assert.Single(Expression.TakeDiagnostics());
 
         Assert.Equal([36d], ages.Select(age => age.AsNumber()));

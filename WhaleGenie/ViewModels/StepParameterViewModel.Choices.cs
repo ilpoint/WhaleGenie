@@ -27,7 +27,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>
     /// The names on their own, which is what the expression reader and the checks use. A name here
     /// is one the reader knows, whether or not the interface offers it: a hand written
-    /// <c>$sys.dateTime</c> is a value rather than a mistake, so the check has to be able to say so.
+    /// <c>sys.dateTime</c> is a value rather than a mistake, so the check has to be able to say so.
     /// </summary>
     public IReadOnlyList<string> KnownNames { get; }
 

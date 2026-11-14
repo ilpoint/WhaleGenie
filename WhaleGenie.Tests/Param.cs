@@ -24,34 +24,12 @@ internal static class Fields
         => new() { Name = name, Written = LiteralShape(text), Jitter = jitter };
 
     /// <summary>
-    /// A test field written as one line, turned into the shape it stands for. The product never
-    /// reads a line into a value — a value is made in the value window — so this lives in the
-    /// fixtures, where a line is only a convenient way to write a shape down.
+    /// The shape of one literal a test wrote down. A test that means a name or a formula says so
+    /// with <see cref="Reference"/> or <see cref="Computed"/>: nothing here guesses what a line was
+    /// meant to be from the characters in it.
     /// </summary>
     public static ExpressionNode Shape(string text)
-    {
-        if (text.Length == 0)
-        {
-            return Formula.Nothing;
-        }
-
-        if (string.Equals(text, "true", StringComparison.OrdinalIgnoreCase))
-        {
-            return Formula.Constant("true");
-        }
-
-        if (string.Equals(text, "false", StringComparison.OrdinalIgnoreCase))
-        {
-            return Formula.Constant("false");
-        }
-
-        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
-        {
-            return Formula.Number(text, number);
-        }
-
-        return text.Contains('$') ? Expression.Read(text) : Formula.Text(text);
-    }
+        => text.Length == 0 ? Formula.Nothing : LiteralShape(text);
 
     internal static ExpressionNode LiteralShape(string text)
     {

@@ -336,7 +336,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.FieldTakesFormula"] =
             "This field accepts an expression; the expression is evaluated when the macro runs.",
         ["Add.FieldIsText"] =
-            "This field is read as text; a name is replaced by the variable's value.",
+            "This field is read as text; a name you insert is replaced by the variable's value.",
         ["Add.ImageAdd"] = "Add a picture",
         ["Add.ImageAddHint"] = "Look for one more picture, tried after the ones already listed.",
         ["Add.ImageMoveUp"] = "Move up",
@@ -2799,7 +2799,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.CallArgumentDefault"] = "默认值 {0}：留空就用它。",
         ["Add.CallArgumentUndeclared"] = "被调用的宏已经没有这个形参了；值原样留在这里，不会悄悄丢掉。",
         ["Add.FieldTakesFormula"] = "此字段可填写表达式；表达式在宏运行时计算。",
-        ["Add.FieldIsText"] = "此字段按文本读取；名字 会替换为变量值。",
+        ["Add.FieldIsText"] = "此字段按文本读取；插入的名字会替换为变量值。",
         ["Add.ImageAdd"] = "加一张",
         ["Add.ImageAddHint"] = "再找一张图，排在已经列出的后面。",
         ["Add.ImageMoveUp"] = "上移",

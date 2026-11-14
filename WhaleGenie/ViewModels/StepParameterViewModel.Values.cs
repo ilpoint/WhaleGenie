@@ -102,7 +102,7 @@ public partial class StepParameterViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// True while a number is being written as an expression (<c>$match.x</c>, <c>$count + 1</c>)
+    /// True while a number is being written as an expression (<c>match.x</c>, <c>count + 1</c>)
     /// instead of typed in as a plain number. The engine reads both the same way.
     /// </summary>
     [ObservableProperty]

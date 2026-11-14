@@ -26,7 +26,7 @@ internal static class NumberField
     /// Only the mistakes that are certain are marked as problems. What kind of value a name holds
     /// is not known while the macro is being written — every known name stands for a plain number
     /// here — so a reading that fails on the shape of a value is answered with "the run will tell"
-    /// rather than with a mistake: <c>field($hit, "x")</c> is exactly right, and is only unreadable
+    /// rather than with a mistake: <c>field(hit, "x")</c> is exactly right, and is only unreadable
     /// at this point because nothing has been found yet.
     /// </remarks>
     public static (string Message, bool Failed) Check(string? source,

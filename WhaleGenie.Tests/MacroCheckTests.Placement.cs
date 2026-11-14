@@ -115,7 +115,7 @@ public partial class MacroCheckTests
     {
         var trying = Step("control.try",
             Steps("body", Pressing()),
-            When("catchWhen", "$caught.key == \"Run.ElementNotFound\""),
+            When("catchWhen", "caught.key == \"Run.ElementNotFound\""),
             Steps("catch"),
             Steps("finally"));
 

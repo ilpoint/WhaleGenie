@@ -2,7 +2,7 @@ using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Expressions;
 
-/// <summary>Looks up the value an expression names with <c>$name</c>.</summary>
+/// <summary>Looks up the value an expression names with <c>name</c>.</summary>
 public interface IVariableResolver
 {
     bool TryGet(string name, out Value value);

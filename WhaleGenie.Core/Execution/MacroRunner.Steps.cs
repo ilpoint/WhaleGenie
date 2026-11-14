@@ -235,7 +235,7 @@ public sealed partial class MacroRunner
         try
         {
             // Seeded after the swap, not before: an initial value that reads a name has to read it
-            // in the macro that declared it. Read before the swap, `$total` would be the caller's
+            // in the macro that declared it. Read before the swap, `total` would be the caller's
             // total and the called macro would start from a value it never declared.
             SeedLocals(signature);
 

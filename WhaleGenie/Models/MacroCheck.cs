@@ -93,9 +93,9 @@ public static partial class MacroCheck
             .SelectMany(parameter => parameter.Rows);
 
     /// <summary>What one row of a call's argument list says, read the way the engine reads it.</summary>
-    private static (string Name, string Value, bool Given) Argument(StepParameterRow row)
+    private static (string Name, ExpressionNode Value, bool Given) Argument(StepParameterRow row)
         => (row.Text(FieldNames.Name).Trim(),
-            row.Text(FieldNames.Value).Trim(),
+            row.Cell(FieldNames.Value),
             string.Equals(row.Text(FieldNames.Given).Trim(), "true", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>The steps that give a break or a continue something to act on.</summary>
@@ -281,28 +281,18 @@ public static partial class MacroCheck
 
     /// <summary>
     /// What a constant value a call passes reads as, or null when it depends on a name or a function
-    /// whose answer is only known while the macro runs. A call row still holds its value as a line,
-    /// so this one follows the line reader; declared values use <see cref="DeclaredValue"/>.
+    /// whose answer is only known while the macro runs. A call row holds a shape like every other
+    /// value, so nothing here reads a line back into one.
     /// </summary>
-    private static Value? ConstantValue(string text)
+    private static Value? ConstantValue(ExpressionNode written)
     {
-        var written = Expression.Read(text.Trim());
         if (Formula.IsNothing(written) || !Formula.IsPlain(written)
             || Expression.References(written).Count > 0)
         {
             return null;
         }
 
-        if (Expression.TryEvaluate(written, null, out var value, out _))
-        {
-            return value;
-        }
-
-        var line = text.Trim();
-        return double.TryParse(line, NumberStyles.Float, CultureInfo.InvariantCulture,
-            out var number)
-            ? Value.FromNumber(number)
-            : Value.FromText(line);
+        return Expression.TryEvaluate(written, null, out var value, out _) ? value : null;
     }
 
     /// <summary>

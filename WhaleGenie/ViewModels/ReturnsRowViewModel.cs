@@ -44,7 +44,7 @@ public partial class ReturnsRowViewModel : ViewModelBase
     /// <summary>
     /// 这一项长什么样，一句话说得完的那种：一个开关写 <c>true | false</c>，一条记录写
     /// <c>{x, y, left, top, …}</c>。名字旁边留着一大片空，说的正是「它到底装的是什么」，
-    /// 而写成示例比再写一句说明省地方：字段名就是 <c>field($变量, "x")</c> 里要写的那个词。
+    /// 而写成示例比再写一句说明省地方：字段名就是 <c>field(变量, "x")</c> 里要写的那个词。
     /// </summary>
     public string Structure => Shape(Result);
 

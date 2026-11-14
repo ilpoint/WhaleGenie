@@ -14,7 +14,7 @@ namespace WhaleGenie.Tests;
 public class StepFileTests
 {
     /// <summary>
-    /// A number field may hold an expression — <c>$sys.mouseX</c>, where the pointer is when the
+    /// A number field may hold an expression — <c>sys.mouseX</c>, where the pointer is when the
     /// step runs — and it has to be written as the expression it is. Written as a zero, because it
     /// is not digits, it saves a step that clicks the corner of the screen the moment the macro was
     /// written, which is the opposite of clicking wherever the user left the mouse.

@@ -30,7 +30,7 @@
             <views:IconView Grid.Column="1" Width="16" Height="16" Data="Variable"
                 Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
                 VerticalAlignment="Center"
-                IsVisible="{Binding ShowsVariableMark}"
+                IsVisible="{Binding ShowsNameMark}"
                 ToolTip.Tip="{Binding [Add.FieldIsText], Source={x:Static loc:Strings.Current}}" />
             <TextBlock Grid.Column="2" Classes="FieldLabel" Margin="0"
                 Text="{Binding Label}" />

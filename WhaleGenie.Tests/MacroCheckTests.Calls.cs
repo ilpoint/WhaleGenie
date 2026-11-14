@@ -119,7 +119,7 @@ public partial class MacroCheckTests
     [Fact]
     public void A_macro_may_read_the_results_it_declares()
     {
-        var reading = Set("副本", "$答案");
+        var reading = Set("副本", "答案");
         var own = new MacroCallable("自己", [], [new MacroResult { Name = "答案" }], [reading]);
 
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));

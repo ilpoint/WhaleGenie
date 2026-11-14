@@ -254,7 +254,7 @@ public sealed partial class MacroRunner
 
     /// <summary>
     /// One argument value, read the same way whether it came from a call step or from the debug
-    /// window: <c>$n + 1</c> passes a number and <c>$list</c> passes the list itself rather than its
+    /// window: <c>n + 1</c> passes a number and <c>list</c> passes the list itself rather than its
     /// text, because the value cell is read like every other value field. A cell that is present but
     /// empty has not supplied anything: only the supplied-empty marker turns it into a value. A
     /// value that was not supplied takes the default, or fails when the declaration says it is

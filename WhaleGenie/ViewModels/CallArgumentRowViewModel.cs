@@ -63,8 +63,8 @@ public partial class CallArgumentRowViewModel : ViewModelBase
     public bool IsUndeclared => !IsDeclared;
 
     /// <summary>
-    /// What goes into the argument, read the way every other value field is: <c>$n + 1</c> passes a
-    /// number and <c>$list</c> passes the list itself. An empty box means this call leaves the
+    /// What goes into the argument, read the way every other value field is: <c>n + 1</c> passes a
+    /// number and <c>list</c> passes the list itself. An empty box means this call leaves the
     /// argument out, which is how the declaration's own default applies.
     /// </summary>
     [ObservableProperty]

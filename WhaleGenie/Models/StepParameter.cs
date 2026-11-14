@@ -95,8 +95,8 @@ public class StepParameterRow
 {
     /// <summary>
     /// What each column of this row holds, by column name. A cell is a shape for the same reason a
-    /// value is: a name in one is a name rather than a spelling, and nothing has to guess whether a
-    /// <c>$</c> in it is a reference or a punctuation mark.
+    /// value is: a name in one is a name rather than a spelling, and no character in it has to be
+    /// guessed at.
     /// </summary>
     public Dictionary<string, ExpressionNode> Cells { get; init; }
         = new(StringComparer.OrdinalIgnoreCase);

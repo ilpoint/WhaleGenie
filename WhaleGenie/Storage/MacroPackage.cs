@@ -31,32 +31,15 @@ public static partial class MacroPackage
 {
     /// <summary>
     /// The extension is the program's name, so a package is recognisable as this program's even
-    /// where nothing else says so. The old <c>.vkm</c> comes from a name the project no longer
-    /// uses, and no file in the wild carries it, so there is nothing that reads it back.
+    /// where nothing else says so.
     /// </summary>
     public const string Extension = ".wgmacro";
     public const string FormatId = "whalegenie.macro.package";
+
     /// <summary>
-    /// Bumped when what a field means changes, not only when a field is added. 20 is the version
-    /// where a call writes what it passes as an argument row list rather than one parameter per
-    /// argument: a 19 package's <c>arg.*</c> keys would be read as fields the action does not have,
-    /// so it is refused rather than half-read. 25 is the version where how often the screen is read
-    /// moved from each step to the settings window: a 24 package's <c>intervalMs</c> and
-    /// <c>frameMaxAgeMs</c> would be read as fields no action has any more, and the macro would run
-    /// at a different pace than the one it was written at without saying so. The wheel's positions
-    /// joining <c>triggers.json</c> needs no bump: a package without the node opens with an empty
-    /// wheel, and a package that has one is read by a build that knows the node. 26 is the version
-    /// where a macro declares the local values it starts every run with: a 25 build would drop the
-    /// <c>locals</c> node and run the same macro without its initial values, which is a different
-    /// macro than the one that was saved. 27 is the version where a name carries the identity of
-    /// the declaration it reads: a 26 build would read the name and drop the identity, and a
-    /// reference would silently fall back to matching by spelling, which is the very thing this
-    /// version exists to stop. 30 refuses a package written by a build that still read a
-    /// hand-edited <c>$name</c> line as a reference: here that line is plain words, and opening it
-    /// would silently change what the step means rather than telling the author about it. 31 is the
-    /// version where a macro's argument defaults and local initial values became shapes: a 30
-    /// package wrote them as lines, and read as shapes they would turn into plain words rather than
-    /// the references and operations their author wrote, so the package is refused instead.
+    /// Bumped whenever a field's meaning changes, not only when a field is added. A package written
+    /// for another version is refused rather than half-read: no field is guessed at from a spelling
+    /// that once meant something else.
     /// </summary>
     public const int FormatVersion = 31;
 

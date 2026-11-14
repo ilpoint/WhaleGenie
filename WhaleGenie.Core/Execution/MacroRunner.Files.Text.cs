@@ -25,7 +25,7 @@ public sealed partial class MacroRunner
 {
     // --------------------------------------------------------------------- files
 
-    /// <summary>A path a step named, with any <c>$variable</c> already filled in.</summary>
+    /// <summary>A path a step named, with any <c>variable</c> already filled in.</summary>
     private string PathOf(ExecutableStep step, string parameter = "path")
         => ReadValue(step, parameter).AsText();
 

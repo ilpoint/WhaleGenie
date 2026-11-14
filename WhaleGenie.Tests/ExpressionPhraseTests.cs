@@ -31,7 +31,7 @@ public class ExpressionPhraseTests
     public void The_line_reads_a_formula_built_out_of_formulas()
     {
         InChinese(() => Assert.Equal("取【剪贴板】里的【第1项】的【月份】字段",
-            Say("""field(get($sys.clipboard, 0), "月份")""")));
+            Say("""field(get(sys.clipboard, 0), "月份")""")));
     }
 
     [Fact]
@@ -50,16 +50,16 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("取【rows】里的【第1项】", Say("get($rows, 0)"));
-            Assert.Equal("取【rows】从第【3】项开始", Say("slice($rows, 2)"));
-            Assert.Equal("取【text】从第【3】个字开始", Say("substring($text, 2)"));
+            Assert.Equal("取【rows】里的【第1项】", Say("get(rows, 0)"));
+            Assert.Equal("取【rows】从第【3】项开始", Say("slice(rows, 2)"));
+            Assert.Equal("取【text】从第【3】个字开始", Say("substring(text, 2)"));
         });
     }
 
     [Fact]
     public void A_place_written_as_a_variable_is_read_out_as_it_stands()
     {
-        InChinese(() => Assert.Equal("取【rows】里的【第i项】", Say("get($rows, $i)")));
+        InChinese(() => Assert.Equal("取【rows】里的【第i项】", Say("get(rows, i)")));
     }
 
     /// <summary>
@@ -71,8 +71,8 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("取【text】从第【2】个字开始", Say("substring($text, 1)"));
-            Assert.Equal("取【text】从第【2】个字开始，要【3】个字", Say("substring($text, 1, 3)"));
+            Assert.Equal("取【text】从第【2】个字开始", Say("substring(text, 1)"));
+            Assert.Equal("取【text】从第【2】个字开始，要【3】个字", Say("substring(text, 1, 3)"));
             Assert.Equal("随机取一个数", Say("random()"));
             Assert.Equal("随机取一个数，在【1】到【10】之间", Say("random(1, 10)"));
             Assert.Equal("现在的时间", Say("now()"));
@@ -102,8 +102,8 @@ public class ExpressionPhraseTests
         {
             Assert.Equal("count加上1", Say("count + 1"));
             Assert.Equal("（1加上2）乘上3", Say("(1 + 2) * 3"));
-            Assert.Equal("a大于或等于3并且并非b小于2", Say("$a >= 3 and not ($b < 2)"));
-            Assert.Equal("text等于ab", Say("$text == \"ab\""));
+            Assert.Equal("a大于或等于3并且并非b小于2", Say("a >= 3 and not (b < 2)"));
+            Assert.Equal("text等于ab", Say("text == \"ab\""));
             Assert.Equal("负的5", Say("-5"));
         });
     }
@@ -120,7 +120,7 @@ public class ExpressionPhraseTests
             Assert.Equal("由1、a组成的列表", Say("""[1, "a"]"""));
             Assert.Equal("造一张列表", Say("list()"));
             Assert.Equal("造一张列表，里面有1、2", Say("list(1, 2)"));
-            Assert.Equal("把a、和、b接成一段文字", Say("""concat($a, "和", $b)"""));
+            Assert.Equal("把a、和、b接成一段文字", Say("""concat(a, "和", b)"""));
             Assert.Equal("取1、2里最小的", Say("min(1, 2)"));
             Assert.Equal("造一条记录，字段名和值依次是a、1", Say("""jsonOf("a", 1)"""));
         });
@@ -132,10 +132,10 @@ public class ExpressionPhraseTests
         InChinese(() =>
         {
             Assert.Equal("把【name】写成大写", Say("upper(name)"));
-            Assert.Equal("如果count大于3，就取【多】，不然取【少】", Say("""if($count > 3, "多", "少")"""));
-            Assert.Equal("把【rows】复制一份", Say("append($rows)"));
-            Assert.Equal("把【rows】复制一份，末尾加上4、5", Say("append($rows, 4, 5)"));
-            Assert.Equal("把【原样】插到【rows】的第【2】项前面", Say("""insertAt($rows, 1, "原样")"""));
+            Assert.Equal("如果count大于3，就取【多】，不然取【少】", Say("""if(count > 3, "多", "少")"""));
+            Assert.Equal("把【rows】复制一份", Say("append(rows)"));
+            Assert.Equal("把【rows】复制一份，末尾加上4、5", Say("append(rows, 4, 5)"));
+            Assert.Equal("把【原样】插到【rows】的第【2】项前面", Say("""insertAt(rows, 1, "原样")"""));
         });
     }
 

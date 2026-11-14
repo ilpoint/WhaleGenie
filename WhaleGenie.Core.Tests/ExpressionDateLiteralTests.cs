@@ -38,7 +38,7 @@ public class ExpressionDateLiteralTests
         var bag = new VariableBag();
         bag.SetNumber("a", 5);
 
-        Assert.Equal(4d, Expression.Evaluate("$a-1", bag).AsNumber());
+        Assert.Equal(4d, Expression.Evaluate("a-1", bag).AsNumber());
     }
 
     [Fact]

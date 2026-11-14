@@ -126,7 +126,7 @@ public partial class ActionDialogTests
 
     /// <summary>
     /// 名字旁边那片空说的是「它装的是什么」：一个开关给 true | false，一条记录给它的字段骨架，
-    /// 字段名就是 field($变量, "x") 里要写的那个词。行里只放前几个，全的在悬停里。
+    /// 字段名就是 field(变量, "x") 里要写的那个词。行里只放前几个，全的在悬停里。
     /// </summary>
     [Fact]
     public void A_return_line_shows_the_shape_of_what_it_hands_over()

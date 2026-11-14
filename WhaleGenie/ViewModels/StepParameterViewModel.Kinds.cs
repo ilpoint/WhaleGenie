@@ -120,10 +120,10 @@ public partial class StepParameterViewModel : ViewModelBase
         && (Definition.ValueForm is ActionValueForm.Run or ActionValueForm.Value);
 
     /// <summary>
-    /// 这一格的左边要不要摆一个 $：整格按文本读，写进去的 $名字 会被换掉。认算式的那种格不摆，
-    /// 它左边的 ƒ 已经说了这一格怎么读，两个标记一起出现只会让人先猜哪个算数。
+    /// 这一格的左边要不要摆一个「名字」标记：整格按文本读，插入的名字片会在运行时换成变量的值。
+    /// 认算式的那种格不摆：它左边的 ƒ 已经说了这一格怎么读，两个标记一起出现只会让人先猜哪个算数。
     /// </summary>
-    public bool ShowsVariableMark => OffersVariables && !TakesFormula;
+    public bool ShowsNameMark => OffersVariables && !TakesFormula;
 
     /// <summary>
     /// True when the names of variables are offered beside the page picker rather than over the

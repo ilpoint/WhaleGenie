@@ -124,7 +124,7 @@ public class VariableStoreTests
         store.SetNumber("count", 4);
         store.Set("names", Value.FromList(new[] { Value.FromText("a"), Value.FromText("b") }));
 
-        Assert.Equal("4/2", Expression.Evaluate("$count + \"/\" + length($names)", store).AsText());
+        Assert.Equal("4/2", Expression.Evaluate("count + \"/\" + length(names)", store).AsText());
     }
 
     [Fact]

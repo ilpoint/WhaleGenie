@@ -97,7 +97,7 @@ public class FormulaJsonTests
     [Fact]
     public void A_formula_keeps_its_names_and_its_working_out()
     {
-        var call = Expression.Read("upper($name) + \"!\"");
+        var call = Expression.Read("upper(name) + \"!\"");
         var read = FormulaJson.Read(FormulaJson.Write(call));
 
         Assert.Equal(["name"], Expression.References(read));
@@ -118,7 +118,7 @@ public class FormulaJsonTests
     {
         // A sentence holding a full stop or a bracket is text: the file says "text" by writing a
         // string, so nothing has to be guessed from the characters.
-        const string sentence = "调用 upper($name) 之前请先看一眼";
+        const string sentence = "调用 upper(name) 之前请先看一眼";
 
         Assert.Equal(sentence, Formula.Plain(FormulaJson.Read(FormulaJson.Write(Formula.Text(sentence)))));
     }
@@ -148,7 +148,7 @@ public class FormulaJsonTests
         Assert.Equal(Formula.Number(3.5), FormulaJson.Read(JsonValue.Create(3.5)));
         Assert.Equal(Formula.Constant("true"), FormulaJson.Read(JsonValue.Create(true)));
         Assert.Equal(Formula.Constant("false"), FormulaJson.Read(JsonValue.Create(false)));
-        Assert.Equal(Formula.Text("$n + 1"), FormulaJson.Read(JsonValue.Create("$n + 1")));
+        Assert.Equal(Formula.Text("n + 1"), FormulaJson.Read(JsonValue.Create("n + 1")));
     }
 
     private static string Evaluate(ExpressionNode tree, params (string Name, string Value)[] variables)

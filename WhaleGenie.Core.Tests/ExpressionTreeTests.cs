@@ -27,14 +27,14 @@ public class ExpressionTreeTests
         "-count",
         "count % 2 == 0",
         "not a",
-        "not ($a and $b)",
-        "$a and $b or $c",
-        "$a or $b and $c",
+        "not (a and b)",
+        "a and b or c",
+        "a or b and c",
         "1 == (2 == 2)",
         "1 < 2 and 3 >= 4",
-        "if($count > 3, \"many\", \"few\")",
-        "upper($name) + \"-\" + $count",
-        "field($hit, \"x\")",
+        "if(count > 3, \"many\", \"few\")",
+        "upper(name) + \"-\" + count",
+        "field(hit, \"x\")",
         "get(list(1, 2), 0)",
         "list(1, \"a\", true)",
         "[1, 2, 3]",
@@ -65,12 +65,12 @@ public class ExpressionTreeTests
         // that has to settle: what the writer makes of a tree it has already written.
         string[] regrouping =
         [
-            "$a + ($b + $c)",
-            "($a + $b) + $c",
+            "a + (b + c)",
+            "(a + b) + c",
             "1 * (2 * 3)",
             "1 == (2 == 2)",
-            "not (not $a)",
-            "$a and ($b and $c)",
+            "not (not a)",
+            "a and (b and c)",
         ];
 
         foreach (var formula in Formulas.Concat(regrouping))
@@ -88,15 +88,15 @@ public class ExpressionTreeTests
         string[] sums =
         [
             "count + 1",
-            "(1 + 2) * $count",
-            "1 - (2 - $count)",
-            "$name + \"-\" + $count",
-            "if($count > 2, upper($name), \"few\")",
-            "[$count, 1, 2]",
-            "append(list(1), $count)",
-            "not ($count < 1)",
+            "(1 + 2) * count",
+            "1 - (2 - count)",
+            "name + \"-\" + count",
+            "if(count > 2, upper(name), \"few\")",
+            "[count, 1, 2]",
+            "append(list(1), count)",
+            "not (count < 1)",
             "count % 2 == 0",
-            "substring($name, 1)",
+            "substring(name, 1)",
         ];
 
         var bag = new VariableBag();
@@ -129,9 +129,9 @@ public class ExpressionTreeTests
         => Assert.Equal(expected, Expression.Render(Expression.Parse(source)));
 
     [Theory]
-    [InlineData("!$a", "not a")]
-    [InlineData("$a && $b", "a and b")]
-    [InlineData("$a || $b", "a or b")]
+    [InlineData("!a", "not a")]
+    [InlineData("a && b", "a and b")]
+    [InlineData("a || b", "a or b")]
     [InlineData("TRUE", "true")]
     [InlineData("0.50", "0.50")]
     [InlineData("upper(name)", "upper(name)")]

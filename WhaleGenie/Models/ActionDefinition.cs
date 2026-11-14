@@ -453,9 +453,9 @@ public class ActionParameter
 
     /// <summary>
     /// True when the text is written in another language's syntax rather than as a macro value:
-    /// a script's body, where <c>$name</c> means that language's own variable and nothing to do
-    /// with a variable the macro reads. The editor leaves such text alone when it looks for the
-    /// variables a macro uses.
+    /// a script's body, where a PowerShell <c>$name</c> is that language's own variable and has
+    /// nothing to do with a variable the macro reads. The editor leaves such text alone when it
+    /// looks for the variables a macro uses.
     /// </summary>
     public bool ForeignText { get; init; }
 

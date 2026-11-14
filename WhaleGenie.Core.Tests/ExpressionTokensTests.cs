@@ -50,6 +50,14 @@ public class ExpressionTokensTests
     }
 
     [Fact]
+    public void A_dollar_is_not_a_marker_in_front_of_a_name()
+    {
+        Assert.Equal(ExpressionTokenKind.Unknown,
+            ExpressionTokens.Scan("$count", strict: false)[0].Kind);
+        Assert.Throws<ExpressionException>(() => ExpressionTokens.Scan("$count"));
+    }
+
+    [Fact]
     public void An_unclosed_quote_is_text_when_tolerant_and_an_error_when_strict()
     {
         var token = ExpressionTokens.Scan("\"hi", strict: false)[0];

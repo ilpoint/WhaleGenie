@@ -15,7 +15,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Arguments_carry_a_name_a_position_and_whether_they_are_optional()
     {
-        var form = new ValuePickerViewModel("substring($a, 1)", Variables(), ActionValueForm.Value, bareNames: true);
+        var form = new ValuePickerViewModel("substring(a, 1)", Variables(), ActionValueForm.Value, bareNames: true);
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         Assert.Equal(2, call.Arguments.Count);
@@ -27,7 +27,7 @@ public partial class ValuePickerTests
     }
     /// <summary>A name nothing declares is pointed at, rather than discovered when the macro runs.</summary>
     [Theory]
-    [InlineData("$a + 1")]
+    [InlineData("a + 1")]
     [InlineData("missing + 1")]
     public void A_name_no_variable_declares_is_marked(string formula)
     {

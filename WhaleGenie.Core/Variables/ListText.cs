@@ -7,7 +7,7 @@ namespace WhaleGenie.Core.Variables;
 
 /// <summary>
 /// Reads the text a user types for a list variable. Text that looks like an expression
-/// (<c>[1, 2, 3]</c>, <c>split($text, ",")</c>) is evaluated and has to produce a list;
+/// (<c>[1, 2, 3]</c>, <c>split(text, ",")</c>) is evaluated and has to produce a list;
 /// anything else is read as items separated by commas.
 /// </summary>
 public static class ListText
@@ -65,7 +65,7 @@ public static class ListText
 
     /// <summary>True when the text is meant as an expression rather than a plain list.</summary>
     private static bool LooksLikeExpression(string text)
-        => text[0] is '[' or '$' or '(' || text.Contains('(');
+        => text[0] is '[' or '(' || text.Contains('(');
 
     private static IReadOnlyList<Value> SplitOnSeparators(string text)
         => [.. text

@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -134,14 +135,20 @@ public partial class StepTreeTests
     {
         Ui.Run(() =>
         {
-            var choice = Step("control.if", Text("condition", "$a == 1"));
+            var condition = new StepParameter
+            {
+                Name = "condition",
+                Kind = ActionParameterKind.Expression,
+                Written = Expression.Read("a == 1"),
+            };
+            var choice = Step("control.if", condition);
             var editor = new MacroEditorViewModel();
             editor.AddStep(choice);
 
             // The row stands for the sentence the step is. "control.if · 条件 = …" is the
             // catalogue's way of naming things, not the reader's, and the row already says which
             // action it is by its name and icon.
-            // 值按读出来的样子写：名字用角标括起来，不写前缀 —— 那一行是给人念的，不是给机器读的。
+            // 值按读出来的样子写：名字用角标括起来，文字照原样 —— 那一行是给人念的，不是给机器读的。
             Assert.Equal("「a」 == 1", choice.Detail);
 
             // "满足时 / 否则" rather than "满足时步骤 / 不满足时步骤": where a list sits already says

@@ -52,14 +52,14 @@ public partial class MacroCheckTests
     [Fact]
     public void A_field_a_declared_record_has_is_left_alone()
         => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
-            [Set("左", "field($点, \"x\")")],
+            [Set("左", "field(点, \"x\")")],
             WithRecord("自己", ("x", ValueKind.Number), ("y", ValueKind.Number)),
             [])));
 
     [Fact]
     public void A_field_a_declared_record_does_not_have_is_marked()
     {
-        var step = Set("左", "field($点, \"z\")");
+        var step = Set("左", "field(点, \"z\")");
 
         var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
             [step],
@@ -77,7 +77,7 @@ public partial class MacroCheckTests
     [Fact]
     public void A_record_that_names_no_fields_is_not_checked()
         => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
-            [Set("左", "field($点, \"随便\")")],
+            [Set("左", "field(点, \"随便\")")],
             WithRecord("自己"),
             [])));
 
@@ -105,10 +105,10 @@ public partial class MacroCheckTests
         // Reading a field of a record a call handed back is checked against the called macro's
         // declaration: nowhere else says what is in it.
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
-            [call, Set("左", "field($命中, \"left\")")], Callable("自己"), [called])));
+            [call, Set("左", "field(命中, \"left\")")], Callable("自己"), [called])));
 
         var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
-            [call, Set("左", "field($命中, \"middle\")")], Callable("自己"), [called])));
+            [call, Set("左", "field(命中, \"middle\")")], Callable("自己"), [called])));
         Assert.Equal("UnknownField", problem.Code);
     }
 

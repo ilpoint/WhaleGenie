@@ -113,7 +113,7 @@ public sealed partial class MacroRunner
 
     /// <summary>
     /// Whether one date is before, after or the same as another. Both sides are read the way every
-    /// date function reads one, so <c>$sys.dateTime</c>, <c>2026-01-01</c> and <c>$today()</c> all
+    /// date function reads one, so <c>sys.dateTime</c>, <c>2026-01-01</c> and <c>today()</c> all
     /// work; "the same day" ignores the time of day, which is what "has this run today already"
     /// needs and what comparing two timestamps cannot answer.
     /// </summary>
@@ -134,7 +134,7 @@ public sealed partial class MacroRunner
     /// Reads one side of a date comparison. A date written out is taken as written: 2026-01-31 is
     /// that day and not the arithmetic 2026 minus 1 minus 31, which is what every other value field
     /// would make of it — and a date that quietly turned into 1994 would be a bug nobody could see.
-    /// A name, a <c>$name</c> or something plainly worked out, such as <c>today()</c>, is read the
+    /// A name, a <c>name</c> or something plainly worked out, such as <c>today()</c>, is read the
     /// way every other value is.
     /// </summary>
     private string DateText(string text)

@@ -54,7 +54,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Taking_a_piece_away_leaves_a_hole_rather_than_a_torn_tree()
     {
-        var form = Form("concat($a, $b)");
+        var form = Form("concat(a, b)");
         var first = form.Recipe!.Walk().OfType<SlotValue>()
             .First(value => value.Text == "a");
 
@@ -100,7 +100,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_band_is_drawn_from_the_shape_and_names_stand_in_this_windows_spelling()
     {
-        var form = Form("$a + 1");
+        var form = Form("a + 1");
 
         Assert.All(form.Recipe!.Walk(), piece => Assert.NotNull(piece.Path));
         Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(),
@@ -114,7 +114,7 @@ public partial class ValuePickerTests
     {
         var form = Form();
 
-        form.Text = "$a + 1";
+        form.Text = "a + 1";
 
         Assert.Equal(Formula.Binary("+", Formula.Name("a"), Formula.Number(1)), Answer(form));
     }
@@ -122,7 +122,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_drag_moves_a_piece_to_another_place_in_the_shape()
     {
-        var form = Form("concat($a, $b)");
+        var form = Form("concat(a, b)");
         var values = form.Recipe!.Walk().OfType<SlotValue>().ToList();
         var first = values.First(value => value.Text == "a");
         var last = values.Last(value => value.Text == "b");

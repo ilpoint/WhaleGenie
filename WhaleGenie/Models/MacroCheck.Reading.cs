@@ -370,17 +370,8 @@ public static partial class MacroCheck
     /// The name a cell holds when it is one variable and nothing else, or null when it is text, an
     /// expression or several things at once.
     /// </summary>
-    private static string? WholeName(string value)
-    {
-        var text = value.Trim();
-        if (text.Length < 2 || text[0] != '$')
-        {
-            return null;
-        }
-
-        var name = text[1..];
-        return VariableName.IsName(name) ? name : null;
-    }
+    private static string? WholeName(ExpressionNode value)
+        => value is VariableNode variable ? variable.Name : null;
 
     private static IEnumerable<(string Result, string Name)> Wanted(MacroStep step)
     {

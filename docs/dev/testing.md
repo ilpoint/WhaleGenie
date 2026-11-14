@@ -76,7 +76,7 @@
   决定，左键最多把框挪过去。窗口让位期间，`WindowRuleWindow.OnLocalKeyDown` 要跳过 Esc——焦点可能还在
   那个藏起来的窗口里，否则一下 Esc 会把对话框本身关掉。
 - `ocr.recognize` 的矩形是一张 `region` 列表（与找色、找字同一个参数），不再有 `x`/`y`/`width`/`height`/`rect`。
-  核心测试用 `Region((x, y, w, h))` 或 `RegionFrom("$record")`，界面测试看 `StepParameterViewModel.Regions`
+  核心测试用 `Region((x, y, w, h))` 或 `RegionFrom("record")`，界面测试看 `StepParameterViewModel.Regions`
   与 `ApplyRegion`（它往列表里加一行）。`vision.capture` 仍是四个数，两边的界面结构不同是有意的。
 
 - 「还要像什么样」(`narrow`) 现在两族共用一张行表，但问的事不同，由目录声明：

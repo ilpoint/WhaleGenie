@@ -85,7 +85,7 @@ internal static class TestConditions
         => Formula.Plain(condition.Written(name));
 
     private static ExpressionNode Name(ExecutableStep condition, string name)
-        => Formula.Name(Plain(condition, name).TrimStart('$'));
+        => Formula.Name(Plain(condition, name).Trim());
 
     private static ExpressionNode Number(ExecutableStep condition, string name)
     {

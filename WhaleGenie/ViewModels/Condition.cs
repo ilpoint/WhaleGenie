@@ -166,7 +166,7 @@ public static class Condition
             && Comparisons.All.FirstOrDefault(choice =>
                 Comparisons.OperatorCode(choice.Compare) == binary.Operator) is { } comparison)
         {
-            // length($a) == 0 and count($a) == 3 are rows of their own: written as a plain
+            // length(a) == 0 and count(a) == 3 are rows of their own: written as a plain
             // comparison they would read as a left side nobody typed.
             if (binary.Left is CallNode wrapped && wrapped.Arguments.Count == 1)
             {

@@ -108,7 +108,7 @@ public sealed partial class PlaywrightBrowserDevice
 
         // A string is handed over as the string itself, without the quotes JSON writes around it.
         // A script that answers with an address or a name is the common case, and the quotes used
-        // to travel into whatever read the value next: a browser.goTo given $result navigated to
+        // to travel into whatever read the value next: a browser.goTo given result navigated to
         // ""https://..."", which the browser refused as an address. Objects, lists, numbers and
         // flags stay JSON, because there the text is the only way to carry them.
         return written.ValueKind == JsonValueKind.String

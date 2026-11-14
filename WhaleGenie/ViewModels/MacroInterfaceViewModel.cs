@@ -618,7 +618,7 @@ public sealed partial class MacroResultRow : ViewModelBase
 }
 
 /// <summary>
-/// One field of a record declaration: the name `$record.name` reads and what it holds. A record
+/// One field of a record declaration: the name `record.name` reads and what it holds. A record
 /// without fields is a bag of names nobody can check before the run, so this row is where they are
 /// written down once instead of being discovered by the run.
 /// </summary>

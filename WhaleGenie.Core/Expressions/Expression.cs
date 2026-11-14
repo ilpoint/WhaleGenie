@@ -6,12 +6,13 @@ namespace WhaleGenie.Core.Expressions;
 
 /// <summary>
 /// Reads and evaluates the small expression language the editor offers. The grammar stays
-/// narrow on purpose: literals, <c>$variables</c>, the usual operators and a table of
-/// functions. That is enough for the values a macro needs without turning into a script host.
+/// narrow on purpose: literals, names, the usual operators and a table of functions. A name is
+/// written as itself and a piece of text is quoted, so nothing has to be guessed from a line.
+/// That is enough for the values a macro needs without turning into a script host.
 /// </summary>
 /// <remarks>
-/// Examples: <c>$count + 1</c>, <c>upper($name)</c>, <c>split($text, ",")</c>,
-/// <c>append($names, "Ada")</c>, <c>if($count &gt; 3, "many", "few")</c>.
+/// Examples: <c>count + 1</c>, <c>upper(name)</c>, <c>split(text, ",")</c>,
+/// <c>append(names, "Ada")</c>, <c>if(count &gt; 3, "many", "few")</c>.
 /// </remarks>
 public static class Expression
 {
@@ -285,7 +286,7 @@ public static class Expression
     /// editor uses to show a live error under the field.
     /// </summary>
     public static bool TryEvaluate(string? source, IVariableResolver? variables,
-        out Value value, out ExpressionException? error, bool bare = false)
+        out Value value, out ExpressionException? error)
     {
         try
         {
@@ -317,7 +318,7 @@ public static class Expression
 
     /// <summary>
     /// Reads a formula into a tree, reporting failure instead of throwing. A word of its own is a
-    /// name, and a piece of text is quoted: the spelling has no sign in front of a name.
+    /// name, and a piece of text is quoted: there is only one way to write either.
     /// </summary>
     public static bool TryParse(string? source, out ExpressionNode? tree,
         out ExpressionException? error)

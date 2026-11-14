@@ -18,7 +18,7 @@ public partial class StepParameter
     /// <summary>Writes the value as the JSON type the runtime expects.</summary>
     /// <remarks>
     /// A number is written as the number it is, and anything else is written as what it says. A
-    /// number field may hold an expression — <c>$sys.mouseX</c>, the place the pointer is at when
+    /// number field may hold an expression — <c>sys.mouseX</c>, the place the pointer is at when
     /// the step runs — which the engine reads and works out; writing that as a zero because it is
     /// not digits would save a step that clicks the corner of the screen instead of the mouse, and
     /// the loss would be silent, because the file it is read back from says a number.
@@ -41,7 +41,7 @@ public partial class StepParameter
     /// One value as the file keeps it: the text it is where nothing is named, and the tagged shape
     /// it is where the field names anything. Text stays text so a hand-edited macro still reads the
     /// way it was written; anything with a name or a formula in it is kept as a shape, because a
-    /// line would have to say which of the two a <c>$</c> meant.
+    /// line cannot say which piece is a name and which is text.
     /// </summary>
     private JsonNode? ScalarJson()
     {

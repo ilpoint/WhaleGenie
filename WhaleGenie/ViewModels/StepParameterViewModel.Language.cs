@@ -91,7 +91,7 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         // 「可以写算式」「按文本读取」这两句不在这里说。一页上十来个字段，每个都先把同一句话
         // 复述一遍，真正属于这一格的话就被埋在底下，读的人会往下跳过而不是往下读。它们改由
-        // 标签左边的 ƒ 与 $ 两个小标记承担，各自的含义在悬停里；这一行只留这一格自己的事。
+        // 标签左边的 ƒ 与「名字」两个小标记承担，各自的含义在悬停里；这一行只留这一格自己的事。
 
         // A search region is a list of places rather than four numbers, but it is the same question
         // asked the same way: a place left out reaches the edge, so it says so the same way.

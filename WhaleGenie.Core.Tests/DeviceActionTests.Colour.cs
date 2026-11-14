@@ -210,7 +210,7 @@ public partial class DeviceActionTests
             Step("control.setVariable", Param("name", "dy"), Param("value", "0")),
             Step("control.setVariable", Param("name", "side"), Param("value", "#00FF00")),
             Step("vision.findColors", Param("color", "#FF0000"),
-                // $dx + 1 是零加一，落在右边那一格：变量与算式都算数。
+                // dx + 1 是零加一，落在右边那一格：变量与算式都算数。
                 Fields.Rows("points",
                 Cells.Of(("dx", Formula.Binary("+", Formula.Name("dx"), Formula.Number(1))),
                     ("dy", Formula.Name("dy")), ("colour", Formula.Name("side"))),

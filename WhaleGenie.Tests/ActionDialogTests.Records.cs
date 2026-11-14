@@ -39,7 +39,7 @@ public partial class ActionDialogTests
             var record = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "place");
 
-            record.Text = "$命中";
+            record.Text = "命中";
             Dispatcher.UIThread.RunJobs();
 
             MacroStep? saved = null;
@@ -48,7 +48,7 @@ public partial class ActionDialogTests
 
             var written = saved!.Parameters.ToDictionary(parameter => parameter.Name,
                 parameter => parameter.Value, StringComparer.Ordinal);
-            Assert.Equal("$命中", written["place"]);
+            Assert.Equal("命中", written["place"]);
 
             // 两格数字没写就是没写：这一步的位置由那条记录说，不该在文件里留下空的数字。
             Assert.DoesNotContain("x", written.Keys);
@@ -69,7 +69,7 @@ public partial class ActionDialogTests
             foreach (var name in new[] { "startPlace", "endPlace" })
             {
                 viewModel.Parameters.First(parameter => parameter.Definition.Name == name).Text =
-                    "$旧记录";
+                    "旧记录";
             }
 
             Dispatcher.UIThread.RunJobs();
@@ -85,7 +85,7 @@ public partial class ActionDialogTests
             Assert.Equal("60", Value(viewModel, "endY"));
 
             var capture = Open("vision.capture");
-            capture.Parameters.First(parameter => parameter.Definition.Name == "rect").Text = "$旧块";
+            capture.Parameters.First(parameter => parameter.Definition.Name == "rect").Text = "旧块";
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(capture.ApplyRegion(10, 20, 30, 40));
@@ -104,7 +104,7 @@ public partial class ActionDialogTests
             var viewModel = Open("input.mouseClick");
             var record = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "place");
-            record.Text = "$旧记录";
+            record.Text = "旧记录";
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(viewModel.ApplyCursorPosition(300, 400));

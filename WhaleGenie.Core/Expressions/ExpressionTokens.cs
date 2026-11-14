@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
-using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Expressions;
 
-/// <summary>What a piece of a line is: a number, a piece of text, a name, a variable, a sign, or
-/// something the language does not know.</summary>
+/// <summary>What a piece of a line is: a number, a piece of text, a name, a sign, or something the
+/// language does not know. A name is a name on its own; there is no sign in front of one.</summary>
 public enum ExpressionTokenKind
 {
     Number,
@@ -16,7 +15,6 @@ public enum ExpressionTokenKind
     Date,
 
     Text,
-    Variable,
     Name,
     Symbol,
     Unknown,
@@ -102,35 +100,19 @@ public static class ExpressionTokens
                 continue;
             }
 
-            // An older formula may still have a sign in front of a name. Nothing in the product
-            // writes one any more — a name in a value is a shape, and a formula says it as itself —
-            // but a line kept as text still has to read. This is an input spelling, not a second
-            // way of holding a value: the token carries the name without the sign.
-            if (character == '$' && index + 1 < source.Length
-                && VariableName.IsStart(source[index + 1]))
-            {
-                var sign = index++;
-                var start = index;
-                while (index < source.Length && VariableName.IsPart(source[index]))
-                {
-                    index++;
-                }
-
-                tokens.Add(new ExpressionToken(ExpressionTokenKind.Variable, sign,
-                    index - sign, source[start..index], 0));
-                continue;
-            }
-
             if (char.IsLetter(character) || character == '_')
             {
                 var start = index;
                 while (index < source.Length
                     && (char.IsLetterOrDigit(source[index]) || source[index] is '_' or '.'))
                 {
-                    // A dot joins a name to the field it reads — <c>where.age</c> is one name — and
-                    // starts the next word rather than continuing this one everywhere else.
+                    // A dot joins a name to the field it reads, and that field may begin with a
+                    // digit: step.1.outcome is one name, just as where.age is. A dot with nothing
+                    // after it starts the next word instead.
                     if (source[index] == '.'
-                        && (index + 1 >= source.Length || !char.IsLetter(source[index + 1])))
+                        && (index + 1 >= source.Length
+                            || !(char.IsLetterOrDigit(source[index + 1])
+                                || source[index + 1] == '_')))
                     {
                         break;
                     }

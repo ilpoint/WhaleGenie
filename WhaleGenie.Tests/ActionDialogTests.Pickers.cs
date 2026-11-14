@@ -517,9 +517,9 @@ public partial class ActionDialogTests
             Assert.Equal("120", numbers.CurrentText);
             Assert.Equal(string.Empty, record.CurrentText);
 
-            record.Text = "$命中";
+            record.Text = "命中";
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("$命中", record.CurrentText);
+            Assert.Equal("命中", record.CurrentText);
             Assert.Equal(string.Empty, numbers.CurrentText);
         });
     }

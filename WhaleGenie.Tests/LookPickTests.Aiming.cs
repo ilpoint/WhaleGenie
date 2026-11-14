@@ -23,7 +23,7 @@ public partial class LookPickTests
 
     [Theory]
     [InlineData("12,-4")]
-    [InlineData("12,-4,red")]
+    [InlineData("12,-4,red green")]
     [InlineData("1,2,#12345")]
     [InlineData("1,2,#GGGGGG")]
     [InlineData("1+,2,#FFFFFF")]

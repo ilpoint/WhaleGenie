@@ -24,10 +24,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// several pieces — a folder, a slash and a name — is why this is not simply an append.
     /// </summary>
     /// <remarks>
-    /// A field that names a variable takes the name itself: the engine writes that text down as the
-    /// name, so the <c>$name</c> the wall hands back would make a variable called <c>$count</c>,
-    /// which nothing can read back and which the variable list shows beside the real ones. Every
-    /// other field takes the <c>$name</c> form, which is what the reader understands.
+    /// A picked name goes in as the name itself. A text field keeps it as one piece of the sentence
+    /// rather than as a spelling; every other field writes it as the name a shape holds. There is
+    /// only one way to say a name, so nothing here has to choose between two.
     /// </remarks>
     public void InsertVariable(string token, int caret)
     {

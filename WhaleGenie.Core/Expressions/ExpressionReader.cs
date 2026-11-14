@@ -1,22 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using WhaleGenie.Core.Variables;
-
 
 namespace WhaleGenie.Core.Expressions;
 
-// Reading written text into that tree, and the tokens it is cut into.
 /// <summary>Turns expression text into the tree the editor edits and the evaluator runs.</summary>
 internal static class ExpressionReader
 {
     /// <summary>
-    /// Reads written text into the tree it stands for. A word on
-    /// its own means: a name, which is what a word in a formula is, or — in a line that may be a
-    /// sentence rather than a formula — nothing the language knows, which is how such a line is
-    /// told apart from one that was meant as a formula and got it wrong.
+    /// Reads a formula into the tree it stands for. A word of its own is a name, a piece of text is
+    /// quoted, and a number, a date or a call keeps its own piece. There is no second spelling for
+    /// a name and no line that is read as a sentence instead of a formula.
     /// </summary>
     public static ExpressionNode Read(string source)
     {
@@ -36,7 +29,6 @@ file enum TokenKind
     Number,
     Date,
     Text,
-    Variable,
     Name,
     Symbol,
     End,
@@ -73,7 +65,6 @@ file sealed class Parser
                 ExpressionTokenKind.Number => TokenKind.Number,
                 ExpressionTokenKind.Date => TokenKind.Date,
                 ExpressionTokenKind.Text => TokenKind.Text,
-                ExpressionTokenKind.Variable => TokenKind.Variable,
                 ExpressionTokenKind.Name => TokenKind.Name,
                 ExpressionTokenKind.Symbol => TokenKind.Symbol,
                 ExpressionTokenKind.End => TokenKind.End,
@@ -175,10 +166,6 @@ file sealed class Parser
                 _index++;
                 return new TextNode(token.Text);
 
-            case TokenKind.Variable:
-                _index++;
-                return new VariableNode(token.Text);
-
             case TokenKind.Name:
                 _index++;
                 return TakeSymbol("(")
@@ -262,8 +249,8 @@ file sealed class Parser
 
     /// <summary>
     /// A word that is not followed by a bracket. Three of them are the constants the language
-    /// spells out; every other word is the name it is. A piece of text is quoted, so there is no
-    /// sign to put in front of a name and no word that has to be guessed at.
+    /// spells out; every other word is the name it is. A piece of text is quoted, so a name needs
+    /// no sign and nothing about a word has to be guessed at.
     /// </summary>
     private ExpressionNode Word(string word) => word.ToLowerInvariant() switch
     {

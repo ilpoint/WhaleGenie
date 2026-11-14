@@ -200,7 +200,7 @@ public sealed class SlotValue : SlotNode
     public required string Tone { get; init; }
 
     /// <summary>
-    /// True when this piece reads a variable rather than showing a value: a <c>$name</c>, or a
+    /// True when this piece reads a variable rather than showing a value: a <c>name</c>, or a
     /// bare word in a field whose whole value is a formula. A number or a quoted string is not one,
     /// and neither is <c>true</c>, <c>false</c> or <c>null</c>.
     /// </summary>

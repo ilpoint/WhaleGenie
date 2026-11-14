@@ -18,7 +18,7 @@ public partial class ValuePickerTests
         var form = new ValuePickerViewModel("a", Variables(), ActionValueForm.Value);
 
         form.Text = "a and b";
-        form.Text = "$a and $b and $c";
+        form.Text = "a and b and c";
 
         Assert.True(form.CanUndo);
 

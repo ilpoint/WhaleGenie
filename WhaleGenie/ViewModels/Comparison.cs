@@ -71,33 +71,33 @@ public enum ComparisonFamily
 
 /// <summary>
 /// How one comparison is written. The shape is what both the writer and the reader work from, so a
-/// row written as <c>contains($a, x)</c> reads back as the row it came from rather than as one
+/// row written as <c>contains(a, x)</c> reads back as the row it came from rather than as one
 /// opaque left-hand side.
 /// </summary>
 public enum ComparisonShape
 {
-    /// <summary>An operator between the two sides: <c>$a == 1</c>.</summary>
+    /// <summary>An operator between the two sides: <c>a == 1</c>.</summary>
     Operator,
 
-    /// <summary>A function of both sides: <c>contains($a, x)</c>.</summary>
+    /// <summary>A function of both sides: <c>contains(a, x)</c>.</summary>
     Call,
 
-    /// <summary>The same call, denied: <c>not contains($a, x)</c>.</summary>
+    /// <summary>The same call, denied: <c>not contains(a, x)</c>.</summary>
     NegatedCall,
 
-    /// <summary>Nothing is in the left side: <c>length($a) == 0</c>.</summary>
+    /// <summary>Nothing is in the left side: <c>length(a) == 0</c>.</summary>
     NothingIn,
 
-    /// <summary>Something is in the left side: <c>length($a) > 0</c>.</summary>
+    /// <summary>Something is in the left side: <c>length(a) > 0</c>.</summary>
     SomethingIn,
 
-    /// <summary>How many the left side holds: <c>count($a) == 3</c>.</summary>
+    /// <summary>How many the left side holds: <c>count(a) == 3</c>.</summary>
     HowMany,
 
-    /// <summary>The left side on its own: <c>$a</c>.</summary>
+    /// <summary>The left side on its own: <c>a</c>.</summary>
     Bare,
 
-    /// <summary>The left side denied: <c>not $a</c>.</summary>
+    /// <summary>The left side denied: <c>not a</c>.</summary>
     NegatedBare,
 }
 

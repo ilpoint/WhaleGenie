@@ -16,7 +16,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_number_typed_in_the_strip_goes_in_as_it_reads()
     {
-        var form = new ValuePickerViewModel("$count >", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("count >", Variables(), ActionValueForm.Value);
 
         form.SetTypingMode(number: true);
         form.TypingText = "3.5";

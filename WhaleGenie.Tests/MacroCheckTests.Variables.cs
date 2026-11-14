@@ -44,7 +44,7 @@ public partial class MacroCheckTests
     [Fact]
     public void A_variable_nothing_defines_is_reported()
     {
-        var reader = Set("结果", "$没定义的 + 1");
+        var reader = Set("结果", "没定义的 + 1");
 
         var problem = Assert.Single(Inspect(reader));
 
@@ -52,17 +52,17 @@ public partial class MacroCheckTests
     }
     [Fact]
     public void A_variable_the_macro_defines_itself_is_left_alone()
-        => Assert.Empty(Inspect(Set("计数", "0"), Set("结果", "$计数 + 1")));
+        => Assert.Empty(Inspect(Set("计数", "0"), Set("结果", "计数 + 1")));
 
     /// <summary>
-    /// 宏自己的形参就是它读得到的名字：调用方把值交给这个名字，宏里的步骤照 $名字 读。少了这一条，
+    /// 宏自己的形参就是它读得到的名字：调用方把值交给这个名字，宏里的步骤照名字读。少了这一条，
     /// 「提为子宏」提出来的那个宏一读自己的参数就被标成"没人定义"，而那正是提子宏这一步做出来的
     /// 形状；没声明过、别人也没交过来的名字照旧要报。
     /// </summary>
     [Fact]
     public void A_macro_may_read_the_names_it_declares()
     {
-        var reading = Step("control.log", Value("message", "$谁"));
+        var reading = Step("control.log", Value("message", "谁"));
         var own = Callable("自己", parameters: ["谁"]);
 
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
@@ -76,13 +76,13 @@ public partial class MacroCheckTests
     public void A_name_a_called_macro_brings_back_is_left_alone()
         => Assert.Empty(Against("自己", [Callable("另一个", results: ["答案"])],
             Call("另一个", "答案"),
-            Set("结果", "$答案 + 1")));
+            Set("结果", "答案 + 1")));
     [Fact]
     public void Loading_variables_from_a_file_silences_the_check()
     {
         // A file can hold any name at all, so nothing can be said about what the macro may read.
         var load = Step("file.loadVariables", Text("path", "state.json"));
 
-        Assert.Empty(Inspect(load, Set("结果", "$来自文件")));
+        Assert.Empty(Inspect(load, Set("结果", "来自文件")));
     }
 }

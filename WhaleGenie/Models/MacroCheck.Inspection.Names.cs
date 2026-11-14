@@ -101,7 +101,7 @@ public static partial class MacroCheck
         };
 
         /// <summary>
-        /// A field read of a record whose declaration names its fields. <c>field($point, "x")</c>
+        /// A field read of a record whose declaration names its fields. <c>field(point, "x")</c>
         /// where the record declares `x` and `y` is a mistake the editor can see now, rather than one
         /// the run reports after it has already sent the input before it. A record whose declaration
         /// says nothing about its fields is left alone: checking against names nobody wrote down

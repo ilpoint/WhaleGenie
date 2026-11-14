@@ -57,7 +57,7 @@ public static partial class MacroCheck
             // before then would read nothing.
 
             // What the macro declares is a name it reads like any other: the caller hands a value to it
-            // under that name and the steps inside read $name. A macro lifted out of a stretch of steps
+            // under that name and the steps inside read name. A macro lifted out of a stretch of steps
             // is exactly this shape, so without this it would be told that the names it was made for
             // are ones nothing defines. Declared results count too: the runtime clears them at the
             // start of a call, so reading one before a step writes it is reading the empty value this

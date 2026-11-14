@@ -158,9 +158,9 @@ internal static class ColourPointLine
         }
 
         // A colour named by a variable, or worked out by a function, is read the same way an offset
-        // is: it is kept as written and the run works it out.
-        return text.Contains('$', StringComparison.Ordinal)
-            && Expression.TryParse(text, out _, out _);
+        // is: what is not a colour literal must be a formula, kept as written for the run to work
+        // out. A name needs no marker, so a bare word is a name here just as it is everywhere else.
+        return Expression.TryParse(text, out _, out _);
     }
 
     /// <summary>

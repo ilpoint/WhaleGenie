@@ -39,9 +39,9 @@ public partial class LookPickTests
 
             window.AppendEntry("2,3,#AABBCC");
             window.AppendEntry("2, 3, #aabbcc");
-            window.AppendEntry("$dx,$dy,$side");
+            window.AppendEntry("dx,dy,side");
 
-            Assert.Equal(["2,3,#AABBCC", "$dx,$dy,$side"], window.Added);
+            Assert.Equal(["2,3,#AABBCC", "dx,dy,side"], window.Added);
             Assert.Equal([new ScreenPoint(12, 13), new ScreenPoint(10, 10)], window.MarkerPlaces);
             window.Close();
         });

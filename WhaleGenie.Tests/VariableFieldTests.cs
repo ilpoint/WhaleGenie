@@ -187,10 +187,8 @@ public class VariableFieldTests
     /// A field that takes a variable by name is a box of text, so what it is offered has to be the
     /// names: the rows the wall lists would be spelled out as the name of their own type, and one
     /// picked from the dropdown would put that into the macro rather than the variable it stands
-    /// for. What comes with the name follows what the field does with it: a name being written goes
-    /// in bare — the engine writes that text down as the name, so <c>$count</c> there would make a
-    /// variable called <c>$count</c> that nothing can read back — and a value being read goes in as
-    /// the reader writes it, with the dollar sign the wall hands back.
+    /// for. Both a name being written and a value being read go in as the name itself: a value is a
+    /// shape, and the only spelling a name has is its own.
     /// </summary>
     [Fact]
     public void A_field_that_takes_a_variable_by_name_offers_the_names_and_takes_them_bare()
@@ -455,12 +453,12 @@ public class VariableFieldTests
             "script.run.script", "script.ahk.script", "browser.evaluate.script"];
 
         // A box of several lines: a list of names standing over one would be in the way, so these
-        // are written by hand. The first fills a `$name` in, and the second is shown exactly as it
-        // was written.
+        // are written by hand. The first takes a name straight in, and the second is shown exactly
+        // as it was written.
         string[] multiline = ["command.run.standardInput", "control.note.note"];
 
-        // The shape a reading has to fit is a pattern rather than a value: the dollar signs its hint
-        // uses are the ends of a regular expression, not the start of a variable name.
+        // The shape a reading has to fit is a pattern rather than a value: its hint shows an
+        // example pattern, not a name to offer.
         string[] aPattern = ["ocr.findText.expected", "ocr.clickText.expected"];
 
         // Only the kinds that are a bare box are looked at, because only those can be a box a name
@@ -477,8 +475,7 @@ public class VariableFieldTests
         var gaps = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters.Select(parameter => (definition.Key, parameter)))
             .Where(row => boxes.Contains(row.parameter.Kind))
-            .Where(row => row.parameter.Hint.Contains("variable", StringComparison.OrdinalIgnoreCase)
-                || row.parameter.Hint.Contains('$'))
+            .Where(row => row.parameter.Hint.Contains("variable", StringComparison.OrdinalIgnoreCase))
             .Where(row => !row.parameter.OffersNames)
             .Select(row => $"{row.Key}.{row.parameter.Name}")
             .Where(key => !otherNames.Contains(key) && !multiline.Contains(key)
