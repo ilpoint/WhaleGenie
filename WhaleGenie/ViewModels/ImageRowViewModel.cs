@@ -16,6 +16,15 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public partial class ImageRowViewModel : ViewModelBase
 {
+    /// <summary>The value this row keeps. The line below is only how a person types into it.</summary>
+    private ExpressionNode _shape = Formula.Nothing;
+
+    /// <summary>True while the line is being drawn from a stored shape, so it is not read back.</summary>
+    private bool _composing;
+
+    /// <summary>The value as the shape the step stores, rather than the line it was typed as.</summary>
+    public ExpressionNode Shape => _shape;
+
     /// <summary>What this row names, which the engine reads as a path or as an image variable.</summary>
     [ObservableProperty]
     public partial string Text { get; set; } = string.Empty;
@@ -111,7 +120,17 @@ public partial class ImageRowViewModel : ViewModelBase
         }
     }
 
-    partial void OnTextChanged(string value) => RefreshThumbnail();
+    partial void OnTextChanged(string value)
+    {
+        // Typing is the one place a line becomes a value here. It is read once, into a shape, and
+        // the step is built from that shape rather than from a second reading of the line.
+        if (!_composing)
+        {
+            _shape = value.Trim().Length == 0 ? Formula.Nothing : Formula.FromLine(value);
+        }
+
+        RefreshThumbnail();
+    }
 
     /// <summary>Takes this picture out of the list.</summary>
     [RelayCommand]
@@ -129,10 +148,29 @@ public partial class ImageRowViewModel : ViewModelBase
     public StepParameterRow ToRow()
     {
         var row = new StepParameterRow();
-        row.SetLine("image", Text.Trim());
+        row.Set("image", _shape);
         return row;
     }
 
-    /// <summary>One picture back out of the macro file.</summary>
-    public static ImageRowViewModel From(StepParameterRow row) => new() { Text = row.Text("image") };
+    /// <summary>
+    /// One picture back out of the macro file. The shape is what the file holds; the line is drawn
+    /// from it for the box, without reading the line back and losing a name's identity.
+    /// </summary>
+    public static ImageRowViewModel From(StepParameterRow row)
+    {
+        var image = new ImageRowViewModel();
+        image._composing = true;
+        try
+        {
+            image.Text = row.Text("image");
+        }
+        finally
+        {
+            image._composing = false;
+        }
+
+        image._shape = row.Cell("image");
+        image.RefreshThumbnail();
+        return image;
+    }
 }

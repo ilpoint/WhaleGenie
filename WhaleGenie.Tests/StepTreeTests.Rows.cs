@@ -156,7 +156,7 @@ public partial class StepTreeTests
             // pointer test of its own.
             var picked = form.Wall.Shown.First();
             form.Wall.Looking = picked;
-            form.Place(picked.Token);
+            form.Place(picked.Name);
             form.Confirm();
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();

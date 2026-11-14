@@ -95,18 +95,17 @@ public partial class NumberCellViewModel : ViewModelBase
     public bool HasValue => Text.Trim().Length > 0;
 
     /// <summary>
-    /// Hands this cell what a formula written here may use. The names come from the step being
-    /// edited rather than from the cell, which is why they are given to it rather than asked for.
-    /// <paramref name="bare"/> says how a name is written where this cell puts it: as itself when
-    /// the cell feeds a formula box, and marked when it feeds a line that may still be words.
+    /// Hands this cell what a formula written here may use. A name is offered as itself: the cell
+    /// reads a bare word as a name, so no mark in front of it is needed or wanted. The names come
+    /// from the step being edited rather than from the cell.
     /// </summary>
-    public void Prepare(IReadOnlyList<VariableChoice> variables, bool bare = false)
+    public void Prepare(IReadOnlyList<VariableChoice> variables)
     {
         Variables = variables;
         Named = [.. variables.Select(choice => choice.Name)];
         Suggestions =
         [
-            .. bare ? Named : Named.Select(name => "$" + name),
+            .. Named,
             .. Expression.Functions.Select(function => function.Name + "("),
         ];
     }

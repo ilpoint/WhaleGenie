@@ -98,7 +98,7 @@ public class VariableWallTests
             var clipboard = wall.Shown.First(choice => choice.Name == "sys.clipboard");
 
             Assert.Equal("剪贴板 (sys.clipboard)", clipboard.Display);
-            Assert.Equal("$sys.clipboard", clipboard.Token);
+            Assert.Equal("sys.clipboard", clipboard.Name);
 
             VariableChoice? chosen = null;
             wall.Chosen += choice => chosen = choice;
@@ -464,7 +464,7 @@ public class VariableWallTests
         // 还没有停在任何一个变量上：没有可反查的东西。
         Assert.False(wall.HasUses);
 
-        wall.Looking = wall.Shown.First(choice => choice.Token == "$rows");
+        wall.Looking = wall.Shown.First(choice => choice.Name == "rows");
 
         Assert.True(wall.HasUses);
         var use = Assert.Single(wall.Uses);

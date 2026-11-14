@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -214,4 +215,27 @@ public class ReferencePictureTests
             candidate.IsEffectivelyVisible
             && Equals(candidate.Content, content)
             && (data is null || Equals(candidate.DataContext, data)));
+
+    [Fact]
+    public void An_image_row_keeps_the_shape_that_was_typed_into_it()
+    {
+        var row = new ImageRowViewModel { Text = "$shot" };
+
+        var name = Assert.IsType<VariableNode>(row.Shape);
+        Assert.Equal("shot", name.Name);
+        Assert.Equal(name, row.ToRow().Cell("image"));
+    }
+
+    [Fact]
+    public void An_image_row_from_a_file_keeps_the_identity_of_its_name()
+    {
+        var stored = new StepParameterRow();
+        stored.Set("image", Formula.Name("shot", "a7k2m9"));
+
+        var row = ImageRowViewModel.From(stored);
+
+        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(row.Shape).Id);
+        Assert.Equal("a7k2m9",
+            Assert.IsType<VariableNode>(row.ToRow().Cell("image")).Id);
+    }
 }

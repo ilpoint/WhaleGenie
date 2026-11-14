@@ -194,7 +194,7 @@ public sealed class ParameterRowViewModel : ViewModelBase
     {
         var cell = new NumberCellViewModel(field.Label, field.Hint, field.Placeholder,
             field.QuadShortLabel);
-        cell.Prepare(field.Variables, bare: true);
+        cell.Prepare(field.Variables);
         cell.Write(field.CurrentText);
 
         cell.PropertyChanged += (_, args) =>

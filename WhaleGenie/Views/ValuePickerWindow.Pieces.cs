@@ -84,7 +84,7 @@ public partial class ValuePickerWindow : AppWindow
         }
 
         _viewModel.Wall.Looking = choice;
-        Put(choice.Token);
+        Put(choice.Name);
     }
 
     private void OnFunctionPill(object? sender, RoutedEventArgs e)

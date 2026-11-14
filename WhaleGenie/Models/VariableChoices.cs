@@ -54,9 +54,6 @@ public sealed class VariableChoice
     /// </summary>
     public IReadOnlyList<VariableUse> Uses { get; init; } = [];
 
-    /// <summary>What a field holds once this one is chosen.</summary>
-    public string Token => "$" + Name;
-
     internal Func<string?>? ContentReader { get; init; }
 
     /// <summary>The current value when one can be read, or the reason there is none yet.</summary>
