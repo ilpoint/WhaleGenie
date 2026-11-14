@@ -124,8 +124,8 @@
 456	WhaleGenie.Tests/TriggerKindTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 347	WhaleGenie.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
 529	WhaleGenie.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
-610	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
-546	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
+627	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
+547	WhaleGenie.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 328	WhaleGenie.Tests/WindowPreviewTests.Steps.cs	keep: 窗口预览测试的一族，按列表/取景/排除拆分后单一职责
 4278	WhaleGenie/Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
@@ -212,4 +212,4 @@
 339	WhaleGenie/Views/MacroEditorWindow.Keyboard.cs	keep: 键与指针的捕获、组合键的写法
 531	WhaleGenie/Views/MacroSettingsGeneralView.axaml	keep: 通用设置一页，触发列表与选中项的参数同属一次编辑
 78	WhaleGenie/Views/MacroSettingsSpecificView.axaml	keep: 特定设置一页：界面与开关键
-339	WhaleGenie/ViewModels/StepParameterViewModel.Parts.cs	keep: 一格值的碎片与它们的编辑，读法、写回与跨段删除同属这一件事
+349	WhaleGenie/ViewModels/StepParameterViewModel.Parts.cs	keep: 一格值的碎片与它们的编辑，读法、写回与跨段删除同属这一件事
