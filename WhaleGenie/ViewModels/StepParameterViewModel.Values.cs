@@ -126,6 +126,30 @@ public partial class StepParameterViewModel : ViewModelBase
     [ObservableProperty]
     public partial ActionParameterOption? Option { get; set; }
 
+    /// <summary>
+    /// Keeps the shape in step with a control that never writes a line. A switch, a list and a
+    /// number box answer the field without going through <see cref="Text"/>, so each of them has
+    /// to put its answer into the shape here: that shape is the only thing the step saves, and a
+    /// control that changed must not leave an older one behind. The shapes match what the file
+    /// reads back — a switch is a constant, a choice is a word, a numbered box is a number — so
+    /// opening a step and saving it again does not change what it says.
+    /// </summary>
+    partial void OnFlagChanged(bool value)
+        => _written = Formula.Constant(value ? "true" : "false");
+
+    partial void OnOptionChanged(ActionParameterOption? value)
+        => _written = Formula.Text(value?.Value ?? string.Empty);
+
+    partial void OnNumberValueChanged(decimal? value)
+    {
+        // While the numbered box is showing, its number is the answer. Once the expression box
+        // takes over, the line is the answer and is read where it is written.
+        if (!UseFormula && Definition.Kind is ActionParameterKind.Number)
+        {
+            _written = Formula.FromLine(CurrentText.Trim());
+        }
+    }
+
     /// <summary>What the expression field shows underneath: the result, or why it fails.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowExpressionError))]

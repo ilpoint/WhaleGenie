@@ -22,10 +22,23 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
     partial void OnTextChanged(string value)
     {
+        // A switch, a list and the numbered box answer the field without ever writing a line:
+        // their shape is kept beside them, and a line left over from somewhere else must not
+        // quietly replace it. A number in its expression box is the one exception — there the
+        // line is the answer again.
+        var textDrives = Definition.Kind switch
+        {
+            ActionParameterKind.Bool or ActionParameterKind.Choice or ActionParameterKind.Step => false,
+            ActionParameterKind.Number => UseFormula,
+            _ => true,
+        };
+
         // A line that came from somewhere else — the picker, a drop, a step being opened — is read
         // once into the value the pieces are built from. While the pieces are the ones writing, the
-        // value is already theirs and is not read back out of the line they just wrote.
-        if (!_composing)
+        // value is already theirs and is not read back out of the line they just wrote. The read
+        // follows the field's own form: a run of text, a whole value and a name are three
+        // different readings of the same words.
+        if (!_composing && textDrives)
         {
             if (Definition.NamesVariable)
             {
@@ -42,10 +55,11 @@ public partial class StepParameterViewModel : ViewModelBase
             }
             else
             {
-                // A field that holds one formula reads its line as a formula, so a word in it is the
-                // name it is; a field that holds a run of text reads the same line as the text it
-                // looks like, so a word there is a word.
-                _written = ReadAsFormula ? Formula.FromFormula(value) : Formula.FromLine(value);
+                _written = value.Trim().Length == 0
+                    ? Formula.Nothing
+                    : ReadAsFormula
+                        ? Formula.FromFormula(value)
+                        : FormulaText.Read(value.Trim(), Definition.ValueForm);
             }
         }
 
@@ -134,6 +148,14 @@ public partial class StepParameterViewModel : ViewModelBase
             // an expression a moment ago and what the text says is read off that.
             UpdateExpression(written);
         }
+
+        // A number may change box without changing any control the shape is kept beside, so the
+        // line is read once here as well. ReadAsFormula is decided by the box that was just picked.
+        _written = written.Length == 0
+            ? Formula.Nothing
+            : number
+                ? Formula.FromLine(written)
+                : Formula.FromFormula(written);
     }
 
     /// <summary>

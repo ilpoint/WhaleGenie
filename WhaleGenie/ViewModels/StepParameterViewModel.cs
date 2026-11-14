@@ -168,6 +168,18 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             List = new StepListValue();
         }
+
+        // A switch or a chosen option that starts on its default never raises a change, so the
+        // shape belonging to that starting answer is put in once here. From now on the control
+        // that answers the field keeps the shape; nothing reads a line back into it.
+        if (Definition.Kind is ActionParameterKind.Bool)
+        {
+            _written = Formula.Constant(Flag ? "true" : "false");
+        }
+        else if (Definition.Kind is ActionParameterKind.Choice or ActionParameterKind.Step)
+        {
+            _written = Formula.Text(Option?.Value ?? string.Empty);
+        }
     }
 
     public ActionParameter Definition { get; }

@@ -60,4 +60,59 @@ public class ValueFidelityTests
 
         Assert.Equal("count", field.Text);
     }
+
+    [Fact]
+    public void A_switch_answers_with_a_constant_not_with_a_line()
+    {
+        var definition = Definition("input.mouseClick", "useCursor");
+        var field = new StepParameterViewModel(definition);
+
+        // The default is already the shape it answers with: no change had to happen to put it in.
+        Assert.Equal(Formula.Constant("false"), field.ToStepParameter().Written);
+
+        field.Flag = true;
+
+        Assert.Equal(Formula.Constant("true"), field.ToStepParameter().Written);
+    }
+
+    [Fact]
+    public void A_chosen_option_answers_with_the_word_it_chose()
+    {
+        var definition = Definition("control.setVariable", "scope");
+        var field = new StepParameterViewModel(definition);
+
+        field.Option = field.Choices.Single(choice => choice.Value == "global");
+
+        Assert.Equal(Formula.Text("global"), field.ToStepParameter().Written);
+    }
+
+    [Fact]
+    public void Opening_a_switch_keeps_the_shape_the_file_held()
+    {
+        var definition = Definition("input.mouseClick", "useCursor");
+        var field = new StepParameterViewModel(definition);
+
+        field.ApplyValue(new StepParameter
+        {
+            Name = "useCursor",
+            Kind = definition.Kind,
+            Written = Formula.Constant("true"),
+        });
+
+        Assert.True(field.Flag);
+        Assert.Equal(Formula.Constant("true"), field.ToStepParameter().Written);
+    }
+
+    [Fact]
+    public void Clearing_a_line_does_not_take_a_switch_s_answer_away()
+    {
+        var definition = Definition("input.mouseClick", "useCursor");
+        var field = new StepParameterViewModel(definition);
+        field.Flag = true;
+
+        field.Clear();
+
+        Assert.True(field.Flag);
+        Assert.Equal(Formula.Constant("true"), field.ToStepParameter().Written);
+    }
 }

@@ -50,22 +50,13 @@ public partial class StepParameterViewModel : ViewModelBase
     };
 
     /// <summary>
-    /// The value as the shape the step keeps, and the shape the value window starts from. The field
-    /// is read the way its own definition says it is read — a name is a name, a whole value is an
-    /// expression or a piece of text, a field of text has the names in it filled in where they
-    /// stand — and it is read once, here, because this is the place that knows what the field is
-    /// for. Past this point a value is a shape: the engine, the file and the window all take it as
-    /// it is.
+    /// The value as the shape the step keeps, and the shape the value window starts from. Every
+    /// way of answering the field — a typed line, the pieces of a run, a formula, a switch, a
+    /// chosen option, a number box — writes that answer into this one shape. Nothing is read back
+    /// out of a line here: past this point a value is a shape, and the engine, the file and the
+    /// window all take it as it is.
     /// </summary>
-    public ExpressionNode CurrentShape
-        => Definition.NamesVariable
-            ? new VariableNode(CurrentText.Trim(), _boundId)
-            : ShowsParts || ReadAsFormula
-                // The value the field already holds is the value the step keeps: a run is the pieces
-                // it was built from, a formula is the tree it read as. Nothing is read back out of
-                // the line.
-                ? _written
-                : FormulaText.Read(CurrentText.Trim(), Definition.ValueForm);
+    public ExpressionNode CurrentShape => _written;
 
     /// <summary>
     /// True when this field holds one formula and nothing else, which is what decides how a written
@@ -200,9 +191,13 @@ public partial class StepParameterViewModel : ViewModelBase
                 break;
             case ActionParameterKind.Bool:
                 Flag = string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase);
+                // The switch writes its own shape; what the file held is the shape to keep, so
+                // opening and saving does not change the kind of value it is.
+                _written = stored.Written;
                 break;
             case ActionParameterKind.Choice:
                 Option = Choices.FirstOrDefault(choice => choice.Value == raw) ?? Choices.FirstOrDefault();
+                _written = stored.Written;
                 break;
             case ActionParameterKind.Step:
                 {
@@ -219,6 +214,7 @@ public partial class StepParameterViewModel : ViewModelBase
                     Option = step;
                 }
 
+                _written = stored.Written;
                 break;
             default:
                 // The shape is what the step keeps. The text is only how the box shows it, so the
