@@ -94,6 +94,18 @@ internal static class ShapeTree
     public static ExpressionNode Remove(ExpressionNode root, NodePath path)
         => Set(root, path, Formula.Hole);
 
+    /// <summary>
+    /// Puts a sign after the shape at this place, with an empty place on its right. Where a line
+    /// editor would append a character and let a parser work out the tree, a shape editor grows the
+    /// tree here: what stood at the place becomes the left side, and the right side waits to be
+    /// filled. The caller moves its caret to <c>path.Append(1)</c> to fill it.
+    /// </summary>
+    public static ExpressionNode Surround(ExpressionNode root, NodePath path, string op)
+    {
+        var left = At(root, path) ?? Formula.Hole;
+        return Set(root, path, Formula.Binary(op, left, Formula.Hole));
+    }
+
     private static int Head(NodePath path) => path.Indices[0];
 
     private static NodePath Tail(NodePath path)

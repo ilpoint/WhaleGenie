@@ -246,4 +246,102 @@ public class ValueDraftTests
         Assert.Equal(NodePath.Root, NodePath.Root.Append(1).Parent);
         Assert.Null(NodePath.Root.Parent);
     }
+
+    [Fact]
+    public void A_picked_name_carries_its_identity_into_the_value()
+    {
+        var draft = new ValueDraft(Formula.Nothing);
+
+        draft.PutName("count", "a7k2m9");
+
+        var name = Assert.IsType<VariableNode>((draft.Value as ConcatNode)?.Parts[1] ?? draft.Value);
+        Assert.Equal("count", name.Name);
+        Assert.Equal("a7k2m9", name.Id);
+    }
+
+    [Fact]
+    public void Plain_values_go_in_as_shapes_not_as_lines()
+    {
+        // A run of one is just that shape, so the first piece put into an empty draft is the
+        // shape itself — no line is written and read back to produce it.
+        var number = new ValueDraft(Formula.Nothing);
+        number.PutNumber(3);
+        Assert.Equal(Formula.Number(3), number.Value);
+
+        var constant = new ValueDraft(Formula.Nothing);
+        constant.PutConstant("true");
+        Assert.Equal(Formula.Constant("true"), constant.Value);
+
+        var text = new ValueDraft(Formula.Nothing);
+        text.PutText("hello");
+        Assert.Equal(Formula.Text("hello"), text.Value);
+    }
+
+    [Fact]
+    public void An_operator_grows_a_binary_shape_and_leaves_the_caret_on_its_hole()
+    {
+        var draft = new ValueDraft(Formula.Name("count"));
+        draft.SetCaret(NodePath.Root);
+
+        draft.PutOperator("+");
+
+        var binary = Assert.IsType<BinaryNode>(draft.Value);
+        Assert.Equal("+", binary.Operator);
+        Assert.Equal(new VariableNode("count"), binary.Left);
+        Assert.IsType<HoleNode>(binary.Right);
+        Assert.True(draft.HasHole());
+        Assert.Equal(NodePath.Root.Append(1), draft.Caret);
+
+        draft.Set(draft.Caret, Formula.Number(1));
+
+        Assert.False(draft.HasHole());
+        Assert.Equal(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)), draft.Value);
+    }
+
+    [Fact]
+    public void An_operator_on_a_finished_shape_keeps_that_shape_whole()
+    {
+        var draft = new ValueDraft(Formula.Binary("+", Formula.Name("a"), Formula.Number(1)));
+        draft.SetCaret(NodePath.Root);
+
+        draft.PutOperator("*");
+
+        var binary = Assert.IsType<BinaryNode>(draft.Value);
+        Assert.Equal("*", binary.Operator);
+        Assert.Equal(Formula.Binary("+", Formula.Name("a"), Formula.Number(1)), binary.Left);
+        Assert.IsType<HoleNode>(binary.Right);
+    }
+
+    [Fact]
+    public void A_function_card_puts_a_call_and_leaves_the_caret_in_its_first_argument()
+    {
+        var draft = new ValueDraft(Formula.Nothing);
+        draft.SetCaret(NodePath.Root);
+
+        draft.PutCall("upper");
+
+        var call = Assert.IsType<CallNode>(draft.Value);
+        Assert.Equal("upper", call.Name);
+        Assert.IsType<HoleNode>(Assert.Single(call.Arguments));
+        Assert.Equal(NodePath.Root.Append(0), draft.Caret);
+
+        draft.Set(draft.Caret, Formula.Name("who", "a7k2m9"));
+
+        var filled = Assert.IsType<CallNode>(draft.Value);
+        Assert.Equal(new VariableNode("who", "a7k2m9"), filled.Arguments[0]);
+        Assert.False(draft.HasHole());
+    }
+
+    [Fact]
+    public void A_call_can_ask_for_more_than_one_place()
+    {
+        var draft = new ValueDraft(Formula.Nothing);
+
+        draft.PutCall("field", 2);
+
+        var call = Assert.IsType<CallNode>(draft.Value);
+        Assert.Equal(2, call.Arguments.Count);
+        Assert.All(call.Arguments, argument => Assert.IsType<HoleNode>(argument));
+        Assert.Equal(NodePath.Root.Append(0), draft.Caret);
+    }
 }

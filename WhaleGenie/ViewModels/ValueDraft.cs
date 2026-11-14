@@ -93,6 +93,41 @@ public sealed class ValueDraft : ViewModelBase
     /// <summary>Puts a shape where the caret stands, keeping everything already there.</summary>
     public void Put(ExpressionNode piece) => Change(ShapeTree.Insert(_value, _caret, piece));
 
+    /// <summary>Puts a name where the caret stands, keeping the declaration it is bound to.</summary>
+    public void PutName(string name, string id = "") => Put(Formula.Name(name, id));
+
+    /// <summary>Puts one of the words that stand for a value, such as true, false or null.</summary>
+    public void PutConstant(string word) => Put(Formula.Constant(word));
+
+    /// <summary>Puts a number or a piece of text as the shape it is, not as a line to read back.</summary>
+    public void PutNumber(double number) => Put(Formula.Number(number));
+
+    public void PutText(string text) => Put(Formula.Text(text));
+
+    /// <summary>
+    /// Puts a sign after what stands at the caret and leaves the caret on the empty right side, so
+    /// the next piece typed completes the operation. A line editor would append "+" and let a
+    /// parser guess; here the tree grows by one binary node and the hole says what is still owed.
+    /// </summary>
+    public void PutOperator(string op)
+    {
+        Change(ShapeTree.Surround(_value, _caret, op));
+        SetCaret(_caret.Append(1));
+    }
+
+    /// <summary>
+    /// Puts a call at the caret with one empty argument (or as many as asked for) and leaves the
+    /// caret in the first one. The function table decides later how many arguments are required;
+    /// the draft only needs a place for each one to be filled.
+    /// </summary>
+    public void PutCall(string name, int arguments = 1)
+    {
+        var holes = Enumerable.Range(0, Math.Max(1, arguments))
+            .Select(_ => (ExpressionNode)Formula.Hole).ToArray();
+        Change(ShapeTree.Set(_value, _caret, Formula.Call(name, holes)));
+        SetCaret(_caret.Append(0));
+    }
+
     /// <summary>Replaces the piece at a place with a shape.</summary>
     public void Set(NodePath path, ExpressionNode piece) => Change(ShapeTree.Set(_value, path, piece));
 
