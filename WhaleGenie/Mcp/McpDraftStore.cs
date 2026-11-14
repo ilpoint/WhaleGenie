@@ -180,7 +180,7 @@ public sealed class McpDraft
             if (name.Length == 0)
             {
                 throw new McpFailure(McpErrors.BadArgument, "A global has no name.",
-                    "Every declaration needs a name; it is the word a macro reads as $name.");
+                    "Every declaration needs a name; it is the word a macro reads as a name.");
             }
 
             globals.Add(new VariableDefinition

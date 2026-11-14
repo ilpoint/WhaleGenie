@@ -164,27 +164,27 @@ public static class Comparisons
             ComparisonShape.Operator, "a <= 1", true),
 
         new(ConditionCompare.Contains, ComparisonFamily.Text, "Condition.Contains",
-            ComparisonShape.Call, "contains($a, x)", true),
+            ComparisonShape.Call, "contains(a, x)", true),
         new(ConditionCompare.NotContains, ComparisonFamily.Text, "Condition.NotContains",
-            ComparisonShape.NegatedCall, "not contains($a, x)", true),
+            ComparisonShape.NegatedCall, "not contains(a, x)", true),
         new(ConditionCompare.StartsWith, ComparisonFamily.Text, "Condition.StartsWith",
-            ComparisonShape.Call, "startsWith($a, x)", true),
+            ComparisonShape.Call, "startsWith(a, x)", true),
         new(ConditionCompare.EndsWith, ComparisonFamily.Text, "Condition.EndsWith",
-            ComparisonShape.Call, "endsWith($a, x)", true),
+            ComparisonShape.Call, "endsWith(a, x)", true),
         new(ConditionCompare.Matches, ComparisonFamily.Text, "Condition.Matches",
-            ComparisonShape.Call, "match($a, x)", true),
+            ComparisonShape.Call, "match(a, x)", true),
         new(ConditionCompare.Empty, ComparisonFamily.Text, "Condition.Empty",
-            ComparisonShape.NothingIn, "length($a) == 0", false),
+            ComparisonShape.NothingIn, "length(a) == 0", false),
         new(ConditionCompare.NotEmpty, ComparisonFamily.Text, "Condition.NotEmpty",
-            ComparisonShape.SomethingIn, "length($a) > 0", false),
+            ComparisonShape.SomethingIn, "length(a) > 0", false),
 
         new(ConditionCompare.CountIs, ComparisonFamily.List, "Condition.CountIs",
-            ComparisonShape.HowMany, "count($a) == 3", true),
+            ComparisonShape.HowMany, "count(a) == 3", true),
 
         new(ConditionCompare.Holds, ComparisonFamily.Truth, "Condition.Holds",
             ComparisonShape.Bare, "a", false),
         new(ConditionCompare.Fails, ComparisonFamily.Truth, "Condition.Fails",
-            ComparisonShape.NegatedBare, "not $a", false),
+            ComparisonShape.NegatedBare, "not a", false),
     ];
 
     private static readonly Dictionary<ConditionCompare, ConditionCompareChoice> ByWord =

@@ -87,7 +87,7 @@ internal static partial class McpPatches
             {
                 return Refused(McpErrors.BadPatch,
                     $"\"{name}\" is a {declared.Shape} written as one value, not as an object.",
-                    "Send one value: a variable holding the record, or field($record, \"name\") for one "
+                    "Send one value: a variable holding the record, or field(record, \"name\") for one "
                     + $"field of it. Its fields are {string.Join(", ", recordFields)}.",
                     true, new { step = step.Type, param = name, fields = recordFields });
             }
