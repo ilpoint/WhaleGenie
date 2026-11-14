@@ -44,7 +44,7 @@ public class SearchRegionTests
 
             region.AddRegion();
             region.Regions[0].Put(10, 20, 30, 40);
-            region.AddRegion(new RegionRowViewModel { OrVariable = "$shot" });
+            region.AddRegion(new RegionRowViewModel { OrVariable = "shot" });
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
@@ -75,7 +75,7 @@ public class SearchRegionTests
             region.AddRegion();
             var row = region.Regions[0];
 
-            row.X.Write("$left");
+            row.X.Write("left");
             row.Y.SetNumber(20);
             row.Width.SetNumber(30);
             row.Height.SetNumber(40);
@@ -109,9 +109,9 @@ public class SearchRegionTests
             var row = new RegionRowViewModel();
             row.Put(10, 20, 30, 40);
 
-            row.OrVariable = "$shot";
+            row.OrVariable = "shot";
             Assert.Equal(string.Empty, row.X.Text);
-            Assert.Equal("$shot", row.ToRow().Text("text"));
+            Assert.Equal("shot", row.ToRow().Text("text"));
 
             row.X.SetNumber(5);
             Assert.Equal(string.Empty, row.OrVariable);
@@ -212,7 +212,7 @@ public class SearchRegionTests
 
             // A number written as an expression swaps the spinner for the expression box, the same
             // way it does in every other number field, and writing a plain number swaps it back.
-            row.X.Write("$left");
+            row.X.Write("left");
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(3, window.GetVisualDescendants().OfType<FANumberBox>()
@@ -277,7 +277,7 @@ public class SearchRegionTests
                 Assert.Equal(2, rows.Count);
                 Assert.Equal("10", rows[0].Text("x"));
                 Assert.Equal("40", rows[0].Text("height"));
-                Assert.Equal("$shot", rows[1].Text("text"));
+                Assert.Equal("shot", rows[1].Text("text"));
             }
             finally
             {

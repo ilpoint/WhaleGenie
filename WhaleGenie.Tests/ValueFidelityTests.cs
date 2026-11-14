@@ -141,5 +141,6 @@ public class ValueFidelityTests
 
         Assert.Contains("count", field.ExpressionSuggestions);
         Assert.DoesNotContain("$count", field.ExpressionSuggestions);
+        Assert.DoesNotContain("「count」", field.ExpressionSuggestions);
     }
 }

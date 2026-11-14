@@ -131,7 +131,7 @@ internal static partial class McpPatches
     private static List<StepParameterRow> Matching(List<StepParameterRow> rows,
         Dictionary<string, ExpressionNode> match)
         => [.. rows.Where(row => match.All(column =>
-            string.Equals(row.Text(column.Key).Trim(), FormulaText.Write(column.Value).Trim(),
+            string.Equals(row.Text(column.Key).Trim(), Formula.Word(column.Value).Trim(),
                 StringComparison.OrdinalIgnoreCase)))];
 
     /// <summary>True for the parameters that hold a table of rows rather than one value.</summary>

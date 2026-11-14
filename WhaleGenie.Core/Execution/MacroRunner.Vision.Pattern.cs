@@ -122,11 +122,11 @@ public sealed partial class MacroRunner
         var around = new List<ColourStep>(rows.Count);
         foreach (var row in rows)
         {
-            var dx = Word(row, "dx");
-            var dy = Word(row, "dy");
-            var colour = Word(row, "colour");
-            var entry = $"{dx},{dy},{colour}";
-            if (dx.Length == 0 || dy.Length == 0 || colour.Length == 0)
+            var dx = CellValue(row, "dx");
+            var dy = CellValue(row, "dy");
+            var colour = CellValue(row, "colour");
+            var entry = $"{dx.AsText()},{dy.AsText()},{colour.AsText()}";
+            if (dx.AsText().Length == 0 || dy.AsText().Length == 0 || colour.AsText().Length == 0)
             {
                 throw new StepFailure(RunKeys.BadPoints, entry);
             }
@@ -135,13 +135,17 @@ public sealed partial class MacroRunner
             // between them: the same button drawn light in one state and dark in another is one
             // place, not two patterns. A place that says it must not be these is satisfied by
             // anything else, which is how a pattern says "this corner is empty".
-            var palette = colour
+            var palette = colour.AsText()
                 .Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(token => PatternColour(token, entry))
                 .ToList();
+            if (palette.Count == 0)
+            {
+                throw new StepFailure(RunKeys.BadPoints, entry);
+            }
 
-            // A cell may be a number, a variable or a sum: moving a pattern by a number another
-            // step produced is the same question the text form answered, and it is answered here.
+            // A cell may be a number, a variable or a sum: all of them are already the value the
+            // shape came to. Nothing here spells a value out into a line to be read back.
             around.Add(new ColourStep(PatternOffset(dx, entry), PatternOffset(dy, entry),
                 palette[0], PatternTolerance(row, entry),
                 palette.Count > 1 ? [.. palette[1..]] : null, MustNotHold(row)));
@@ -162,13 +166,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private double? PatternTolerance(IReadOnlyDictionary<string, ExpressionNode> row, string entry)
     {
-        var token = Word(row, "tolerance");
+        var value = CellValue(row, "tolerance");
+        var token = value.AsText().Trim();
         if (token.Length == 0)
         {
             return null;
         }
 
-        var value = PatternValue(token, entry);
         var percent = value.IsNumber
             ? value.AsNumber()
             : double.TryParse(value.AsText().Trim(), NumberStyles.Float, CultureInfo.InvariantCulture,
@@ -186,14 +190,8 @@ public sealed partial class MacroRunner
     /// anything else is a value — a variable, or a sum of them — worked out here, so a pattern can be
     /// moved by a number another step produced instead of being retyped.
     /// </summary>
-    private int PatternOffset(string token, string entry)
+    private static int PatternOffset(Value value, string entry)
     {
-        if (int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var written))
-        {
-            return written;
-        }
-
-        var value = PatternValue(token, entry);
         if (value.IsNumber)
         {
             return (int)Math.Round(value.AsNumber(), MidpointRounding.AwayFromZero);
@@ -205,32 +203,11 @@ public sealed partial class MacroRunner
             : throw new StepFailure(RunKeys.BadPoints, entry);
     }
 
-    /// <summary>One colour of a pattern: a colour, or a value that holds one.</summary>
-    private PixelColor PatternColour(string token, string entry)
-    {
-        if (IsColour(token))
-        {
-            return PixelColor.Parse(token);
-        }
-
-        var text = PatternValue(token, entry).AsText().Trim();
-        return IsColour(text)
-            ? PixelColor.Parse(text)
+    /// <summary>One colour of a pattern. The value has already been worked out by the time it is here.</summary>
+    private static PixelColor PatternColour(string token, string entry)
+        => IsColour(token)
+            ? PixelColor.Parse(token)
             : throw new StepFailure(RunKeys.BadPoints, entry);
-    }
-
-    /// <summary>A part of a pattern read as a value, with a bad one reported as the whole line.</summary>
-    private Value PatternValue(string token, string entry)
-    {
-        try
-        {
-            return Read(token);
-        }
-        catch (StepFailure)
-        {
-            throw new StepFailure(RunKeys.BadPoints, entry);
-        }
-    }
 
     /// <summary>
     /// How close the whole pattern came, from 0 to 1: the average of how close each of its colours

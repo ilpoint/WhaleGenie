@@ -23,6 +23,36 @@ internal static class Fields
     public static ExecutableParameter Text(string name, string text, decimal jitter = 0m)
         => new() { Name = name, Written = LiteralShape(text), Jitter = jitter };
 
+    /// <summary>
+    /// A test field written as one line, turned into the shape it stands for. The product never
+    /// reads a line into a value — a value is made in the value window — so this lives in the
+    /// fixtures, where a line is only a convenient way to write a shape down.
+    /// </summary>
+    public static ExpressionNode Shape(string text)
+    {
+        if (text.Length == 0)
+        {
+            return Formula.Nothing;
+        }
+
+        if (string.Equals(text, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return Formula.Constant("true");
+        }
+
+        if (string.Equals(text, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            return Formula.Constant("false");
+        }
+
+        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
+        {
+            return Formula.Number(text, number);
+        }
+
+        return text.Contains('$') ? Expression.Read(text) : Formula.Text(text);
+    }
+
     internal static ExpressionNode LiteralShape(string text)
     {
         if (string.Equals(text, "true", StringComparison.OrdinalIgnoreCase))

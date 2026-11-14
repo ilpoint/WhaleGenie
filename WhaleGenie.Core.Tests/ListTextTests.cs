@@ -20,19 +20,6 @@ public class ListTextTests
         Assert.Null(error);
         Assert.Equal(expected, ListText.Summarize(items));
     }
-
-    [Theory]
-    [InlineData("splt(\"a\", \",\")")]
-    [InlineData("[1, 2")]
-    [InlineData("$missing")]
-    [InlineData("upper(\"x\")")]
-    public void Text_written_as_an_expression_has_to_produce_a_list(string source)
-    {
-        Assert.False(ListText.TryParse(source, out var items, out var error));
-        Assert.NotNull(error);
-        Assert.Empty(items);
-    }
-
     [Fact]
     public void A_value_that_is_not_a_list_is_reported_as_a_kind_problem()
     {

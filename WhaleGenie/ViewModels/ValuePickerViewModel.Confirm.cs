@@ -91,7 +91,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>True while a place in the value still says it could not be read.</summary>
     private static bool HoldsFault(ExpressionNode node) => node switch
     {
-        FaultNode or HoleNode => true,
+        HoleNode => true,
         ConcatNode run => run.Parts.Any(HoldsFault),
         ListNode list => list.Items.Any(HoldsFault),
         CallNode call => call.Arguments.Any(HoldsFault),
@@ -115,12 +115,17 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         TryReadLine(line, out var parsed, out _, out _);
         // A line that did not read is kept as the broken shape it is, not folded into an empty
         // value: an empty field is a deliberate answer, a half-written formula is not one yet.
-        return parsed ?? Formula.FromLine(line);
+        return parsed ?? Formula.Hole;
     }
 
     /// <summary>
     /// Reads one typed line the way the field will read it. This is the only place the window
     /// decides what a line means, and it is used only for lines a person typed.
+    /// </summary>
+    /// <summary>
+    /// Reads one line a person typed. A text field holds the words as they are; every other field
+    /// is a formula box, where a name is said as the name itself, text is quoted, and a half-written
+    /// line is an empty place no cell can confirm. This is the only place a line becomes a shape.
     /// </summary>
     private bool TryReadLine(string written, out ExpressionNode? parsed,
         out ExpressionException? problem, out string? fault)
@@ -134,46 +139,16 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return false;
         }
 
-        if (_valueForm is ActionValueForm.Text or ActionValueForm.Run)
+        parsed = _valueForm is ActionValueForm.Text or ActionValueForm.Run
+            ? Formula.Text(written)
+            : Expression.Read(written);
+        if (ReferenceEquals(parsed, Formula.Hole))
         {
-            var tree = FormulaText.Read(written, ActionValueForm.Text);
-            if (tree is FaultNode bad)
-            {
-                fault = bad.Message;
-            }
-            else
-            {
-                parsed = tree;
-            }
-        }
-        else if (_bareNames)
-        {
-            if (Language.TryParse(written, out parsed, out problem, bare: true))
-            {
-                problem = null;
-            }
-        }
-        else if (Language.TryParse(written, out parsed, out problem))
-        {
-            problem = null;
-        }
-        else
-        {
-            // A line that is not a formula may still be the text the field holds. Only a line
-            // that opens as a value and then fails is a mistake rather than prose.
-            var tree = Formula.FromLine(written);
-            if (tree is FaultNode bad)
-            {
-                fault = bad.Message;
-            }
-            else
-            {
-                parsed = tree;
-                problem = null;
-            }
+            fault = Strings.Get("ExprBuilder.CannotRead");
+            return false;
         }
 
-        return parsed is not null;
+        return true;
     }
 
     /// <summary>The shape drawn as the line under the band. A picture, never the value.</summary>
@@ -181,7 +156,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         => _draft.IsEmpty
             ? string.Empty
             : _bareNames
-                ? Language.Render(_draft.Value, bare: true)
+                ? Language.Render(_draft.Value)
                 : Formula.Speak(_draft.Value);
 
     /// <summary>Redraws the line and the band after an edit that changed the shape.</summary>

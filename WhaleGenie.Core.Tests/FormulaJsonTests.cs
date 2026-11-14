@@ -25,7 +25,7 @@ public class FormulaJsonTests
     public void Plain_text_is_written_as_the_text_it_is()
     {
         Assert.Equal("你好", FormulaJson.Write(Formula.Text("你好"))!.GetValue<string>());
-        Assert.Equal(3d, FormulaJson.Write(Formula.FromText("3"))!.GetValue<double>());
+        Assert.Equal(3d, FormulaJson.Write(Expression.Read("3"))!.GetValue<double>());
         Assert.Null(FormulaJson.Write(Formula.Nothing));
     }
 
@@ -97,7 +97,7 @@ public class FormulaJsonTests
     [Fact]
     public void A_formula_keeps_its_names_and_its_working_out()
     {
-        var call = Formula.FromText("upper($name) + \"!\"");
+        var call = Expression.Read("upper($name) + \"!\"");
         var read = FormulaJson.Read(FormulaJson.Write(call));
 
         Assert.Equal(["name"], Expression.References(read));
@@ -108,7 +108,7 @@ public class FormulaJsonTests
     public void Reading_what_was_written_gives_the_same_shape_back()
     {
         var original = new UnaryNode("not",
-            new BinaryNode("==", Formula.Name("count"), Formula.FromText("3")));
+            new BinaryNode("==", Formula.Name("count"), Expression.Read("3")));
 
         Assert.Equal(original, FormulaJson.Read(FormulaJson.Write(original)));
     }

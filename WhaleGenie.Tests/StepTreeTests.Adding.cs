@@ -65,7 +65,7 @@ public partial class StepTreeTests
         {
             var editor = new MacroEditorViewModel();
             var choice = Step("control.switch",
-                Text("switchValue", "$mode"),
+                Text("switchValue", "mode"),
                 new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps },
                 new StepParameter { Name = "otherwise", Kind = ActionParameterKind.Steps });
             editor.AddStep(choice);
@@ -92,7 +92,7 @@ public partial class StepTreeTests
         {
             var editor = new MacroEditorViewModel();
             var branch = Step("control.case", Text("values", "a"), Body("body", Step("control.log")));
-            var switchStep = Step("control.switch", Text("value", "$x"),
+            var switchStep = Step("control.switch", Text("value", "x"),
                 new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps, Steps = [branch] });
             var loop = Loop(Step("control.log"));
 

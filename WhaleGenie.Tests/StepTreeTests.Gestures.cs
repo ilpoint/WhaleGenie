@@ -36,7 +36,7 @@ public partial class StepTreeTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             var choice = Step("control.switch",
-                Text("switchValue", "$mode"),
+                Text("switchValue", "mode"),
                 new StepParameter
                 {
                     Name = "cases",

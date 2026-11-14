@@ -40,7 +40,7 @@ public class LocalVariablesTests
             {
                 Name = "text",
                 Kind = ActionParameterKind.Text,
-                Written = Formula.FromLine(expression),
+                Written = Fields.Shape(expression),
             },
         ],
     };
@@ -109,7 +109,7 @@ public class LocalVariablesTests
     [Fact]
     public void A_step_reading_a_declared_local_is_not_reading_a_name_nothing_defines()
     {
-        var own = new MacroCallable("probe", [], [], [Reads("$total")],
+        var own = new MacroCallable("probe", [], [], [Reads("total")],
             [Local("total", Formula.Number(5), ValueKind.Number)]);
 
         var problems = MacroCheck.Inspect(own.OwnSteps, own, [own]);
@@ -154,31 +154,6 @@ public class LocalVariablesTests
             Assert.False(model.RemoveCommand.CanExecute(null));
         });
     }
-
-    [Fact]
-    public void Swapping_two_declared_names_is_applied_in_one_batch()
-    {
-        Ui.Run(() =>
-        {
-            var editor = new MacroEditorViewModel();
-            editor.DeclaredLocals.Add(Local("a", Formula.Number(1), ValueKind.Number));
-            editor.DeclaredLocals.Add(Local("b", Formula.Number(2), ValueKind.Number));
-            editor.Steps.Add(Reads("$a + $b"));
-
-            var first = LocalVariableDraft.Declared(editor.DeclaredLocals[0]);
-            first.Name = "b";
-            var second = LocalVariableDraft.Declared(editor.DeclaredLocals[1]);
-            second.Name = "a";
-
-            var problem = editor.ApplyLocalVariableEdits([first, second]);
-
-            Assert.Empty(problem);
-            Assert.Equal("b", editor.DeclaredLocals[0].Name);
-            Assert.Equal("a", editor.DeclaredLocals[1].Name);
-            Assert.Equal("$b + $a", editor.Steps[0].Text("text"));
-        });
-    }
-
     [Fact]
     public void A_declaration_the_manager_leaves_out_is_removed()
     {

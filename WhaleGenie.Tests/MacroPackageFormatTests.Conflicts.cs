@@ -71,19 +71,19 @@ public partial class MacroPackageFormatTests
                     {
                         Name = "inputMode",
                         Kind = ActionParameterKind.Choice,
-                        Written = Formula.FromLine("background"),
+                        Written = Fields.Shape("background"),
                     },
                     new StepParameter
                     {
                         Name = "window",
                         Kind = ActionParameterKind.WindowRule,
-                        Written = Formula.FromLine(rule.ToJson().ToJsonString()),
+                        Written = Fields.Shape(rule.ToJson().ToJsonString()),
                     },
                     new StepParameter
                     {
                         Name = "key",
                         Kind = ActionParameterKind.Key,
-                        Written = Formula.FromLine("F5"),
+                        Written = Fields.Shape("F5"),
                     },
                 ],
             });
@@ -99,7 +99,7 @@ public partial class MacroPackageFormatTests
             var executable = Assert.Single(new[] { step }.ToExecutable());
             var executableWindow = Assert.Single(executable.Parameters,
                 parameter => parameter.Name == "window");
-            Assert.True(WindowRule.TryParse(FormulaText.Write(executableWindow.Written),
+            Assert.True(WindowRule.TryParse(Formula.Word(executableWindow.Written),
                 out var executableRule));
             Assert.Equal(rule, executableRule);
         }

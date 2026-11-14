@@ -58,7 +58,7 @@ public class InputHookTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Written = Formula.FromLine("800"),
+                        Written = Formula.Number(800),
                     },
                 ],
             });
@@ -118,7 +118,7 @@ public class InputHookTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Written = Formula.FromLine("800"),
+                        Written = Formula.Number(800),
                     },
                 ],
             });

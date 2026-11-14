@@ -90,7 +90,7 @@ public partial class StepParameterViewModel : ViewModelBase
             _written = ConditionEditor.Written;
             Text = Formula.IsNothing(_written)
                 ? string.Empty
-                : Expression.Render(_written, bare: true);
+                : Expression.Render(_written);
         }
         finally
         {

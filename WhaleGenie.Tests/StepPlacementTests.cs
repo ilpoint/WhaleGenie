@@ -314,7 +314,7 @@ public class StepPlacementTests
             {
                 Name = "values",
                 Kind = ActionParameterKind.Text,
-                Written = Formula.FromLine(value),
+                Written = Fields.Shape(value),
             },
             Body("body", body));
 

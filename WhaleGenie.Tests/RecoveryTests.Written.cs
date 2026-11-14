@@ -34,15 +34,15 @@ public partial class RecoveryTests
                 [
                     new StepParameter
                     {
-                        Name = "button", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("left"),
+                        Name = "button", Kind = ActionParameterKind.Choice, Written = Fields.Shape("left"),
                     },
                     new StepParameter
                     {
-                        Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine("$sys.mouseX"),
+                        Name = "x", Kind = ActionParameterKind.Number, Written = Expression.Read("sys.mouseX"),
                     },
                     new StepParameter
                     {
-                        Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine("$sys.mouseY"),
+                        Name = "y", Kind = ActionParameterKind.Number, Written = Expression.Read("sys.mouseY"),
                     },
                 ],
             });
@@ -50,9 +50,9 @@ public partial class RecoveryTests
             RecoveryStore.SaveProject([macro], [], null);
 
             var step = RecoveryStore.Load()!.Macros[0].Steps[0];
-            Assert.Equal("$sys.mouseX", step.Parameters
+            Assert.Equal("sys.mouseX", step.Parameters
                 .First(parameter => parameter.Name == "x").Value);
-            Assert.Equal("$sys.mouseY", step.Parameters
+            Assert.Equal("sys.mouseY", step.Parameters
                 .First(parameter => parameter.Name == "y").Value);
         }));
     }

@@ -71,7 +71,7 @@ public class VariableWarningTests
             reading.Parameters.First(parameter => parameter.Definition.Name == "name").Text =
                 "copy";
             reading.Parameters.First(parameter => parameter.Definition.Name == "value").Text =
-                "$sys.dateTime";
+                "sys.dateTime";
 
             Assert.True(reading.CanSave, reading.ValidationMessage);
         });

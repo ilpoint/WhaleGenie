@@ -19,18 +19,6 @@ public class ExpressionTokensTests
         Assert.Equal(ExpressionTokenKind.Name, tokens[1].Kind);
         Assert.Equal("e5", tokens[1].Text);
     }
-
-    [Fact]
-    public void A_variable_keeps_the_dollar_in_its_span()
-    {
-        var token = ExpressionTokens.Scan("$count")[0];
-
-        Assert.Equal(ExpressionTokenKind.Variable, token.Kind);
-        Assert.Equal("count", token.Text);
-        Assert.Equal(0, token.Start);
-        Assert.Equal(6, token.Length);
-    }
-
     [Fact]
     public void A_text_keeps_its_quotes_in_its_span()
     {
@@ -49,25 +37,6 @@ public class ExpressionTokensTests
 
         Assert.Equal(ExpressionTokenKind.Name, token.Kind);
         Assert.Equal("where.age", token.Text);
-    }
-
-    [Fact]
-    public void A_doubled_dollar_is_one_token_when_tolerant()
-    {
-        var token = ExpressionTokens.Scan("$$", strict: false)[0];
-
-        Assert.Equal(ExpressionTokenKind.Symbol, token.Kind);
-        Assert.Equal("$$", token.Text);
-        Assert.Throws<ExpressionException>(() => ExpressionTokens.Scan("$$"));
-    }
-
-    [Fact]
-    public void A_braced_name_is_framed_by_its_own_tokens()
-    {
-        var tokens = ExpressionTokens.Scan("${count}", strict: false);
-
-        Assert.Equal(new[] { "${", "count", "}" }, tokens.Take(3).Select(one => one.Text));
-        Assert.Throws<ExpressionException>(() => ExpressionTokens.Scan("${count}"));
     }
 
     [Fact]

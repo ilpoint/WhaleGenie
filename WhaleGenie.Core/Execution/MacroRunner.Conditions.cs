@@ -145,7 +145,7 @@ public sealed partial class MacroRunner
             return string.Empty;
         }
 
-        if (trimmed.StartsWith('$') || trimmed.Contains('('))
+        if (trimmed.Contains('('))
         {
             return Read(trimmed).AsText();
         }

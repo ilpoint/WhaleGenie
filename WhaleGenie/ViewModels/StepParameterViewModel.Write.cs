@@ -58,8 +58,8 @@ public partial class StepParameterViewModel : ViewModelBase
                 _written = value.Trim().Length == 0
                     ? Formula.Nothing
                     : ReadAsFormula
-                        ? Formula.FromFormula(value)
-                        : FormulaText.Read(value.Trim(), Definition.ValueForm);
+                        ? Expression.Read(value)
+                        : Formula.Text(value.Trim());
             }
         }
 
@@ -154,8 +154,8 @@ public partial class StepParameterViewModel : ViewModelBase
         _written = written.Length == 0
             ? Formula.Nothing
             : number
-                ? Formula.FromLine(written)
-                : Formula.FromFormula(written);
+                ? Expression.Read(written)
+                : Expression.Read(written);
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public partial class StepParameterViewModel : ViewModelBase
             _composing = true;
             try
             {
-                Text = ReadAsFormula ? Expression.Render(value, bare: true) : Formula.Speak(value);
+                Text = ReadAsFormula ? Expression.Render(value) : Formula.Speak(value);
             }
             finally
             {
@@ -184,7 +184,7 @@ public partial class StepParameterViewModel : ViewModelBase
 
         // A number is one box or the other: let the ordinary write decide which, then keep the
         // original shape as the value so the round trip does not lose what the window carried.
-        WriteValue(Expression.Render(value, bare: true));
+        WriteValue(Expression.Render(value));
         _written = value;
         RebuildParts();
     }

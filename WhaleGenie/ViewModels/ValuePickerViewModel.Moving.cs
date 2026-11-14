@@ -68,7 +68,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
                 }
                 else
                 {
-                    _draft.PutName(written.TrimStart('$'));
+                    _draft.PutName(written);
                 }
 
                 break;

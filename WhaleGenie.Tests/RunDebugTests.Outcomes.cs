@@ -154,7 +154,7 @@ public partial class RunDebugTests
     private static MacroStep Encode(string text) => new()
     {
         Type = "data.base64Encode",
-        Parameters = [new StepParameter { Name = "dataText", Kind = ActionParameterKind.Text, Written = Formula.FromLine(text) }],
+        Parameters = [new StepParameter { Name = "dataText", Kind = ActionParameterKind.Text, Written = Fields.Shape(text) }],
     };
 
     /// <summary>A step that sets a variable, so a run has something to do that cannot fail.</summary>
@@ -163,9 +163,9 @@ public partial class RunDebugTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
         ],
     };
 
@@ -179,7 +179,7 @@ public partial class RunDebugTests
             {
                 Name = "condition",
                 Kind = ActionParameterKind.Expression,
-                Written = Formula.FromLine($"{variable} > {value}"),
+                Written = Fields.Shape($"{variable} > {value}"),
             },
         ],
     };

@@ -213,7 +213,7 @@ public partial class RunDebugTests
             Assert.Equal(BreakpointViewModel.Ending.Save, panel.How);
             Assert.NotNull(panel.Rule);
             Assert.Equal(4, panel.Rule!.HitTimes);
-            Assert.Equal("total > 3", Expression.Render(panel.Rule.Expression, bare: true));
+            Assert.Equal("total > 3", Expression.Render(panel.Rule.Expression));
         });
     }
 }

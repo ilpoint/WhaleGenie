@@ -14,7 +14,7 @@ public partial class ValuePickerTests
     [Theory]
     [InlineData("true", typeof(ConstantNode))]
     [InlineData("3", typeof(NumberNode))]
-    [InlineData("$who", typeof(VariableNode))]
+    [InlineData("who", typeof(VariableNode))]
     [InlineData("\"hello\"", typeof(TextNode))]
     public void A_palette_token_becomes_the_shape_it_stands_for(string token, System.Type kind)
     {
@@ -28,7 +28,7 @@ public partial class ValuePickerTests
     [Fact]
     public void An_operator_grows_a_binary_and_the_next_piece_fills_its_hole()
     {
-        var form = Form("$count");
+        var form = Form("count");
 
         form.Place(" + ");
         Assert.False(form.CanConfirm, "An unfinished binary shape cannot be handed over yet.");
@@ -46,7 +46,7 @@ public partial class ValuePickerTests
         form.PlaceCall("upper");
         Assert.False(form.CanConfirm);
 
-        form.Place("$who");
+        form.Place("who");
 
         AssertSameShape(Formula.Call("upper", Formula.Name("who")), Answer(form));
     }
@@ -68,7 +68,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Undo_brings_back_the_shape_and_redo_takes_it_away_again()
     {
-        var form = Form("$a");
+        var form = Form("a");
         form.Place(" + ");
 
         Assert.True(form.CanUndo);
@@ -87,7 +87,7 @@ public partial class ValuePickerTests
     [Fact]
     public void Clearing_is_one_step_in_the_same_shape_history()
     {
-        var form = Form("$a");
+        var form = Form("a");
 
         form.Clear();
 

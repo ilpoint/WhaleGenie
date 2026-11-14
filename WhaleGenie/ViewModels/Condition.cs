@@ -48,7 +48,7 @@ public static class Condition
     public static bool TryRead(string text, out ConditionShape shape)
     {
         shape = null!;
-        if (!Expression.TryParse(text, out var tree, out _, bare: true) || tree is null)
+        if (!Expression.TryParse(text, out var tree, out _) || tree is null)
         {
             return false;
         }
@@ -235,7 +235,7 @@ public static class Condition
         // A side that was typed but does not read is kept as the broken line it is: dropping it
         // would lose what the person wrote the moment they saved, and a run should say why it
         // cannot read the condition rather than quietly running without one.
-        if (row.Left is FaultNode leftFault)
+        if (row.Left is HoleNode leftFault)
         {
             return leftFault;
         }
@@ -262,7 +262,7 @@ public static class Condition
             };
         }
 
-        if (row.Right is FaultNode rightFault)
+        if (row.Right is HoleNode rightFault)
         {
             return rightFault;
         }
@@ -293,7 +293,7 @@ public static class Condition
     /// A piece of a condition as the text the box holds. A formula says a name as the name it is,
     /// so this is what the person reads and what the box hands back.
     /// </summary>
-    private static string Piece(ExpressionNode node) => Expression.Render(node, bare: true);
+    private static string Piece(ExpressionNode node) => Expression.Render(node);
 
     private static CallNode LengthOf(ExpressionNode value) => new("length", [value]);
 

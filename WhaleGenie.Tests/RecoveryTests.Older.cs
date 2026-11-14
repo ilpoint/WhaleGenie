@@ -46,7 +46,7 @@ public partial class RecoveryTests
         macro.Steps.Add(new MacroStep
         {
             Type = "input.keyPress",
-            Parameters = [new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Formula.FromLine("A") }],
+            Parameters = [new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Fields.Shape("A") }],
         });
         return macro;
     }

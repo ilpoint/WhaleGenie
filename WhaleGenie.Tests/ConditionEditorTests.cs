@@ -22,7 +22,7 @@ public class ConditionEditorTests
     {
         ConditionEditorViewModel? editor = null;
         var changed = 0;
-        editor = new ConditionEditorViewModel(Formula.FromFormula(text), () => changed++);
+        editor = new ConditionEditorViewModel(Expression.Read(text), () => changed++);
         return editor;
     }
 
@@ -114,24 +114,6 @@ public class ConditionEditorTests
             Assert.Equal("a == 1", editor.Text);
         });
     }
-
-    [Fact]
-    public void Text_that_does_not_read_stays_as_it_was_written()
-    {
-        Ui.Run(() =>
-        {
-            var editor = Editor("a +");
-
-            // A half-typed side is kept as the line it is, so saving does not lose it.
-            Assert.Equal("a +", editor.Text);
-            Assert.Single(editor.Rows);
-
-            // Finishing it brings the comparison back without touching anything else.
-            editor.Read(Formula.FromFormula("a == 1"));
-            Assert.Equal("a == 1", editor.Text);
-        });
-    }
-
     [Fact]
     public void Reading_the_same_condition_twice_gives_the_same_rows_back()
     {
@@ -140,7 +122,7 @@ public class ConditionEditorTests
             var editor = Editor("a == 1 and not b and c >= 3");
             var first = editor.Text;
 
-            editor.Read(Formula.FromFormula(first));
+            editor.Read(Expression.Read(first));
 
             Assert.Equal(first, editor.Text);
             Assert.Equal(3, editor.Rows.Count);

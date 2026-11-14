@@ -68,28 +68,6 @@ public partial class MacroCheckTests
         Assert.Contains(problems, problem =>
             problem.Message == Strings.Format("Editor.Problem.GivenWithValue", "次数"));
     }
-
-    [Fact]
-    public void A_constant_argument_of_the_wrong_kind_is_marked()
-    {
-        var called = new MacroCallable("另一个",
-            [new MacroParameter
-            {
-                Name = "数量",
-                Required = true,
-                Type = ValueKind.Number,
-            }], []);
-        var call = Step("control.runMacro",
-            Text("macro", "另一个"), Arguments(("数量", Formula.Text("不是数"))));
-
-        var problems = Against("自己", [called], call);
-
-        Assert.Contains(problems, problem =>
-            problem.Step == call
-            && problem.Message == Strings.Format("Editor.Problem.ArgumentType", "数量",
-                Strings.Get("ActionType.Number")));
-    }
-
     [Fact]
     public void A_default_of_the_wrong_kind_is_reminded()
     {

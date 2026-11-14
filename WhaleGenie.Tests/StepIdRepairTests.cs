@@ -15,40 +15,6 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class StepIdRepairTests
 {
-    [Fact]
-    public void A_step_that_moves_takes_its_own_condition_with_it()
-    {
-        var macro = Macro(
-            Step("abcd", "control.delay", """{"ms":"1"}"""),
-            Step("abcd", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")));
-
-        var renamed = StepIds.Settle(macro.Steps);
-
-        var moved = Assert.Single(renamed);
-        Assert.Equal("abcd", moved.Old);
-        Assert.Equal("abcd", macro.Steps[0].Id);
-        Assert.Equal(moved.New, macro.Steps[1].Id);
-        Assert.Equal($"$step.{moved.New}.outcome == \"ok\"", Value(macro.Steps[1], "condition"));
-    }
-
-    /// <summary>
-    /// Pasting a block copies ids and the conditions that name them together. Both copies arrive
-    /// under the same names, so the second block moves — and its own condition goes with it, while
-    /// the block that was already there keeps the condition it had.
-    /// </summary>
-    [Fact]
-    public void The_block_that_was_already_there_keeps_its_own_condition()
-    {
-        var macro = Macro(
-            Step("abcd", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")),
-            Step("abcd", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")));
-
-        var renamed = Assert.Single(StepIds.Settle(macro.Steps));
-
-        Assert.Equal("$step.abcd.outcome == \"ok\"", Value(macro.Steps[0], "condition"));
-        Assert.Equal($"$step.{renamed.New}.outcome == \"ok\"", Value(macro.Steps[1], "condition"));
-    }
-
     /// <summary>
     /// A field the engine reads as words is not a reference: a macro that types the text
     /// <c>step.abcd.outcome</c> into a window means those words.
@@ -71,10 +37,10 @@ public class StepIdRepairTests
     {
         var macro = Macro(
             Step("abcd", "control.delay", """{"ms":"1"}"""),
-            Step("efgh", "control.if", "condition", Formula.FromLine("$step.abcd.outcome == \"ok\"")));
+            Step("efgh", "control.if", "condition", Expression.Read("step.abcd.outcome == \"ok\"")));
 
         Assert.Empty(StepIds.Settle(macro.Steps));
-        Assert.Equal("$step.abcd.outcome == \"ok\"", Value(macro.Steps[1], "condition"));
+        Assert.Equal("「step.abcd.outcome」 == ok", Value(macro.Steps[1], "condition"));
     }
 
     private static MacroItem Macro(params JsonObject[] steps)

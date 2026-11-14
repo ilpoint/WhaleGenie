@@ -179,5 +179,5 @@ public partial class StepTreeTests
     }
 
     private static StepParameter InputMode(string value)
-        => new() { Name = "inputMode", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) };
+        => new() { Name = "inputMode", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) };
 }

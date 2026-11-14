@@ -46,7 +46,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         => seed is null || Formula.IsNothing(seed)
             ? string.Empty
             : bareNames
-                ? Language.Render(seed, bare: true)
+                ? Language.Render(seed)
                 : Formula.Speak(seed);
 
     public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables,
@@ -66,7 +66,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         // the line is set: setting the text is what asks the band to read it.
         _functions = [.. Language.Functions.Select(function => new ExpressionFunctionChoice(function))];
         _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
-        _draft = new ValueDraft(Formula.Nothing, _table, _bareNames);
+        _draft = new ValueDraft(Formula.Nothing, _table);
 
         // Opening a window is not an edit. The seed line is read once into the shape, then kept as
         // the line a person may go on typing into; the shape is the value from here on.

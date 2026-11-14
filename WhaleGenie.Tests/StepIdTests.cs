@@ -206,7 +206,7 @@ public class StepIdTests
         {
             Name = "condition",
             Kind = ActionParameterKind.Expression,
-            Written = Formula.FromLine("true"),
+            Written = Fields.Shape("true"),
         });
 
     /// <summary>Everything written inside a step's child lists.</summary>

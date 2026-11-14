@@ -190,7 +190,7 @@ public class GamepadTriggerTests
                 {
                     Name = "ms",
                     Kind = ActionParameterKind.Number,
-                    Written = Formula.FromLine("800"),
+                    Written = Formula.Number(800),
                 },
             ],
         });

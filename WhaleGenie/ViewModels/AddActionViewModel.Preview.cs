@@ -185,7 +185,7 @@ public partial class AddActionViewModel
     /// titles would match nothing.
     /// </summary>
     public WindowMatch WindowMatchFor(StepParameterViewModel text)
-        => RuleOf(text.CurrentText).Reading.Match;
+        => RuleOf(text).Reading.Match;
 
     /// <summary>
     /// Writes the title a picker read into the field that holds a window rule's text, and puts the

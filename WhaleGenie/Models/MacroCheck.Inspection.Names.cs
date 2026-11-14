@@ -84,19 +84,19 @@ public static partial class MacroCheck
                     continue;
                 }
 
-                if (Fault(parameter.Written) is { } fault)
+                if (Hole(parameter.Written) is not null)
                 {
                     Add(step, MacroProblemCode.BadExpression, Strings.Format("Editor.Problem.BadExpression",
-                        fault.Message));
+                        Formula.Speak(parameter.Written)));
                 }
             }
         }
 
         /// <summary>The first part of a value that did not read, or null when all of it did.</summary>
-        private static FaultNode? Fault(ExpressionNode node) => node switch
+        private static HoleNode? Hole(ExpressionNode node) => node switch
         {
-            FaultNode fault => fault,
-            ConcatNode run => run.Parts.Select(Fault).OfType<FaultNode>().FirstOrDefault(),
+            HoleNode fault => fault,
+            ConcatNode run => run.Parts.Select(Hole).OfType<HoleNode>().FirstOrDefault(),
             _ => null,
         };
 

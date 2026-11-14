@@ -30,7 +30,6 @@ internal static class ExpressionCompiler
             CallNode call => Compiled(call, variables),
             UnaryNode unary => Compiled(unary, variables),
             BinaryNode binary => Compiled(binary, variables),
-            FaultNode fault => () => throw ExpressionException.Syntax(fault.Message),
             _ => throw ExpressionException.Syntax("a place in the formula is still empty"),
         };
 

@@ -148,7 +148,7 @@ public class JitterTests
                 {
                     Name = "ms",
                     Kind = ActionParameterKind.Number,
-                    Written = Formula.FromLine("500"),
+                    Written = Formula.Number(500),
                     Jitter = 0.2m,
                 },
             ],
@@ -177,7 +177,7 @@ public class JitterTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Written = Formula.FromLine("500"),
+                        Written = Formula.Number(500),
                         Jitter = 0.2m,
                     },
                 ],

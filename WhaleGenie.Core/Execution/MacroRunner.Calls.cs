@@ -192,7 +192,7 @@ public sealed partial class MacroRunner
                 // the few places a line becomes a value: a field of a step already is one.
                 var written = input is null
                     ? Formula.Nothing
-                    : FormulaText.Read(input.Text, ActionValueForm.Value);
+                    : Formula.Text(input.Text);
                 var explicitlyEmpty = input?.Given ?? false;
                 var value = ReadArgument(argument, written, explicitlyEmpty);
                 values.Add((new VariableKey(name, argument.Id), value));

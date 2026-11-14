@@ -164,10 +164,10 @@ public partial class RunViewModel
                     // A list parameter keeps its values in rows, and a row may name the variable
                     // that says where to look — a picture an earlier Capture took, most often.
                     foreach (var value in parameter.IsRowList
-                        ? parameter.RowValues.Select(FormulaText.Write)
-                        : [parameter.Value])
+                        ? parameter.RowValues
+                        : [parameter.Written])
                     {
-                        Note(value, defined, names);
+                        Note(value, names);
                     }
 
                     break;
@@ -176,23 +176,17 @@ public partial class RunViewModel
     }
 
     /// <summary>
-    /// Reads a field the way the runner would: a bare variable name, or <c>$name</c> mentioned
-    /// inside a longer piece of text or an expression.
+    /// Reads the names a shape mentions. The shape is the value, so there is no line to scan for a
+    /// sign in front of a name and no text that has to be told apart from one.
     /// </summary>
-    private static void Note(string text, HashSet<string> defined, HashSet<string> names)
+    private static void Note(ExpressionNode written, HashSet<string> names)
     {
-        var trimmed = text.Trim();
-        if (trimmed.Length == 0)
+        if (written is VariableNode variable)
         {
-            return;
+            names.Add(variable.Name);
         }
 
-        if (defined.Contains(trimmed) || VariableCatalog.IsSystem(trimmed) || VariableCatalog.IsGlobal(trimmed))
-        {
-            names.Add(trimmed);
-        }
-
-        foreach (var name in WhaleGenie.Core.Expressions.Expression.ReferencedNames(trimmed))
+        foreach (var name in Expression.References(written))
         {
             names.Add(name);
         }

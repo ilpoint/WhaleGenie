@@ -49,7 +49,7 @@ public partial class ActionDialogTests
         {
             var viewModel = Open("input.mouseMove");
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            x.WriteValue("$count + 1");
+            x.WriteValue("「count」 + 1");
 
             Assert.True(viewModel.ApplyCursorPosition(120, 240));
             Assert.Equal("120", x.CurrentText);

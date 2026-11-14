@@ -115,10 +115,10 @@ public partial class NumberCellViewModel : ViewModelBase
     /// a plain number is a number and anything else is an expression, and this decides that from
     /// what is written rather than from what was here a moment ago.
     /// </summary>
-    public void Write(ExpressionNode value) => Put(Expression.Render(value, bare: true), value);
+    public void Write(ExpressionNode value) => Put(Expression.Render(value), value);
 
     public void Write(string? value)
-        => Put(value, Formula.FromFormula((value ?? string.Empty).Trim()));
+        => Put(value, Expression.Read(value));
 
     private void Put(string? value, ExpressionNode shape)
     {
@@ -220,7 +220,7 @@ public partial class NumberCellViewModel : ViewModelBase
 
         // Typing is the one place a line becomes a shape: the box is edited a character at a time,
         // and the value the cell keeps follows what the person wrote.
-        _shape = Formula.FromFormula(value);
+        _shape = Expression.Read(value);
 
         // What is in the box decides which box it is: a plain number is the numbered one, and
         // clearing it goes back there, so the way back from a formula is simply to empty it.

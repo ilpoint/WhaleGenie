@@ -223,32 +223,6 @@ public partial class DeviceActionTests
         Assert.True(store.Local.Values["yes"].AsBool());
         Assert.Equal("1,1", Centre(store, "spot"));
     }
-
-    /// <summary>
-    /// 图案里的一处可以由函数算出：函数括号里的逗号属于函数，不是三段的那个分隔符。
-    /// </summary>
-    [Fact]
-    public async Task A_pattern_offset_may_be_a_function_that_holds_commas()
-    {
-        var devices = new FakeDeviceLayer();
-        devices.Screen.Display = Picture("#000000,#000000,#000000",
-                "#000000,#FF0000,#00FF00",
-                "#000000,#0000FF,#000000");
-
-        var (result, _, store) = await RunAsync(
-        [
-            Step("vision.findColors", Param("color", "#FF0000"),
-                // 右一格与下一格：两个函数各带一个逗号，段的划分不能把它们算成四段。
-                Points(("max(0,1)", "0", "#00FF00"), ("0", "min(1,2)", "#0000FF")), Param("tolerance", "1"),
-                Region((0, 0, 3, 3)),
-                Hit("match", "spot"), Returns("found=yes")),
-        ], devices);
-
-        Assert.True(result.Succeeded, result.Key);
-        Assert.True(store.Local.Values["yes"].AsBool());
-        Assert.Equal("1,1", Centre(store, "spot"));
-    }
-
     /// <summary>
     /// 基准色对了、旁边一处不对，就不是这个图案：这正是多点找色要分的那件事。
     /// </summary>

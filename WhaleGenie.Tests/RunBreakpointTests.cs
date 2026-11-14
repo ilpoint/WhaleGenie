@@ -51,7 +51,7 @@ public class RunBreakpointTests
             Assert.Empty(window.OwnedWindows.OfType<BreakpointWindow>());
             Assert.True(row.HasBreakpoint);
             var rule = viewModel.BreakpointRuleOf(row.Id)!;
-            Assert.Equal("n > 3", Expression.Render(rule.Expression, bare: true));
+            Assert.Equal("n > 3", Expression.Render(rule.Expression));
             Assert.Equal(2, rule.HitTimes);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
@@ -63,7 +63,7 @@ public class RunBreakpointTests
             Click(window, row, "condition");
             var again = (BreakpointViewModel)window.OwnedWindows.OfType<BreakpointWindow>().Single()
                 .DataContext!;
-            Assert.Equal("n > 3", Expression.Render(again.Expression, bare: true));
+            Assert.Equal("n > 3", Expression.Render(again.Expression));
             Assert.Equal(2, again.HitTimes);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -94,7 +94,7 @@ public class RunBreakpointTests
                     {
                         Name = "condition",
                         Kind = ActionParameterKind.Expression,
-                        Written = Formula.FromLine("$n == 1"),
+                        Written = Expression.Read("$n == 1"),
                     },
                     new StepParameter
                     {
@@ -332,9 +332,9 @@ public class RunBreakpointTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
         ],
     };
 

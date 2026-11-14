@@ -35,7 +35,7 @@ public class PublicMacroLibraryTests
                 {
                     Name = "macro",
                     Kind = ActionParameterKind.Macro,
-                    Written = Formula.FromLine("helper"),
+                    Written = Fields.Shape("helper"),
                 }));
             macro.SubMacros.Add(child);
 
@@ -115,7 +115,7 @@ public class PublicMacroLibraryTests
                 {
                     Name = "image",
                     Kind = ActionParameterKind.Image,
-                    Written = Formula.FromLine("button.png"),
+                    Written = Fields.Shape("button.png"),
                 }));
             var projectAssets = Path.Combine(folder, "project.assets");
 

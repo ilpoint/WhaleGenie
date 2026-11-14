@@ -73,8 +73,8 @@ public class VariableWallHoverLayoutTests
         Meta = new StepMeta { Comment = label },
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("value1") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine("1") },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("value1") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.Number(1) },
         ],
     };
 }

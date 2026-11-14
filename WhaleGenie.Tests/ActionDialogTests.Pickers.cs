@@ -179,7 +179,7 @@ public partial class ActionDialogTests
                 Type = "browser.evaluate",
                 Parameters =
                 [
-                    new StepParameter { Name = "script", Kind = ActionParameterKind.Text, Written = Formula.FromLine("() => 1") },
+                    new StepParameter { Name = "script", Kind = ActionParameterKind.Text, Written = Fields.Shape("() => 1") },
                     new StepParameter
                     {
                         Name = "returns",

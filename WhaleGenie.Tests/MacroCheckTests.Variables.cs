@@ -14,7 +14,7 @@ public partial class MacroCheckTests
     public void A_script_that_can_write_variables_makes_names_open()
     {
         var script = Step("script.python", Text("script", "print('hi')"));
-        var reading = Set("副本", "$madeByScript");
+        var reading = Set("副本", "madeByScript");
 
         Assert.Empty(Inspect(script, reading));
     }
@@ -50,29 +50,6 @@ public partial class MacroCheckTests
 
         Assert.Same(reader, problem.Step);
     }
-
-    [Fact]
-    public void A_doubled_dollar_is_left_alone()
-    {
-        var writer = Step("file.listFiles",
-            Text("folder", "."),
-            Text("pattern", "costs $$5 and $$未知 stays as it is"));
-
-        Assert.Empty(Inspect(writer));
-    }
-
-    [Fact]
-    public void A_value_that_starts_with_a_variable_is_read_as_one()
-    {
-        // The engine reads a value that starts with $ as an expression, so a name nothing defines
-        // there stops the step rather than quietly becoming text.
-        var writer = Step("file.writeText",
-            Text("path", "notes.txt"),
-            Text("fileContent", "$未知"));
-
-        Assert.Single(Inspect(writer));
-    }
-
     [Fact]
     public void A_variable_the_macro_defines_itself_is_left_alone()
         => Assert.Empty(Inspect(Set("计数", "0"), Set("结果", "$计数 + 1")));
@@ -94,63 +71,12 @@ public partial class MacroCheckTests
 
     [Fact]
     public void A_system_variable_is_left_alone()
-        => Assert.Empty(Inspect(Set("结果", "$sys.date")));
-
-    /// <summary>
-    /// A text field names a variable only where <c>$</c> starts a readable name. Numeric names are
-    /// readable, so a literal amount needs the doubled-dollar escape while an unresolved name is
-    /// still reported.
-    /// </summary>
-    [Fact]
-    public void A_text_field_leaves_prices_and_escaped_dollars_alone()
-    {
-        var plain = Step("file.listFiles", Text("folder", "."),
-            Text("pattern", "$$100 off; price $$100; $$name"));
-        Assert.Empty(Inspect(plain));
-
-        var named = Step("file.listFiles", Text("folder", "."), Text("pattern", "$name"));
-        var problem = Assert.Single(Inspect(named));
-        Assert.Contains("name", problem.Message);
-
-        var numeric = Step("file.listFiles", Text("folder", "."), Text("pattern", "$123"));
-        Assert.Single(Inspect(numeric));
-    }
-
-    /// <summary>A whole value is a value, not a name: a bare word in it is just text.</summary>
-    [Fact]
-    public void A_bare_word_in_a_whole_value_is_not_a_variable()
-        => Assert.Empty(Inspect(Step("file.writeText", Text("path", "out.txt"),
-            Value("fileContent", "total"))));
-
-    [Fact]
-    public void A_loop_variable_is_left_alone()
-    {
-        var loop = Step("control.forEach",
-            Value("items", "[1, 2]"),
-            Text("itemVariable", "项"),
-            Steps("body", Set("结果", "$项")));
-
-        Assert.Empty(Inspect(loop));
-    }
-
+        => Assert.Empty(Inspect(Set("结果", "sys.date")));
     [Fact]
     public void A_name_a_called_macro_brings_back_is_left_alone()
         => Assert.Empty(Against("自己", [Callable("另一个", results: ["答案"])],
             Call("另一个", "答案"),
             Set("结果", "$答案 + 1")));
-
-    [Fact]
-    public void Text_written_in_another_language_is_not_read_for_variables()
-    {
-        // A script's $是那个语言自己的变量，和宏的变量没有关系。
-        var script = Step("script.run",
-            Text("kind", "ps1"),
-            Text("script", "Write-Host $env:TEMP; $result = 1"),
-            Text("scriptArguments", "-Name $name"));
-
-        Assert.Empty(Inspect(script));
-    }
-
     [Fact]
     public void Loading_variables_from_a_file_silences_the_check()
     {

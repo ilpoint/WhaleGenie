@@ -14,7 +14,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_caret_is_clamped_to_the_formula()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a", Variables(), ActionValueForm.Value);
 
         form.SetCaret(-20);
         Assert.Equal(0, form.Caret);
@@ -30,7 +30,7 @@ public partial class ValuePickerTests
         var form = new ValuePickerViewModel("$a + $b + $c", Variables(), ActionValueForm.Value);
         form.SetCaret(form.Text.Length);
 
-        form.Text = "$a";
+        form.Text = "a";
 
         Assert.Equal(form.Text.Length, form.Caret);
     }
@@ -42,7 +42,7 @@ public partial class ValuePickerTests
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
 
         form.SetCaret(call.Ghost!.Start);
-        form.Place("$b");
+        form.Place("b");
 
         Assert.Equal("concat(「a」, 「b」)", form.Text);
         var after = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
@@ -60,20 +60,6 @@ public partial class ValuePickerTests
 
         Assert.Equal(2, form.Caret);
     }
-
-    /// <summary>A place inside a name is not a place the band can draw, so the line goes to an edge.</summary>
-    [Fact]
-    public void A_caret_asked_for_inside_a_piece_lands_on_its_edge()
-    {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
-
-        form.SetCaret(1);
-        Assert.Equal(0, form.Caret);
-
-        form.SetCaret(6);
-        Assert.Equal(5, form.Caret);
-    }
-
     /// <summary>Writing at a caret that was never a seam must not split the piece it landed in.</summary>
     [Fact]
     public void An_insert_never_splits_a_token()
@@ -81,7 +67,7 @@ public partial class ValuePickerTests
         var form = new ValuePickerViewModel("photos", Variables(), ActionValueForm.Value);
         form.SetCaret(3);
 
-        form.Place("$x");
+        form.Place("x");
 
         Assert.Contains(Root(form).Items.OfType<SlotValue>(), one => one.Text == "photos");
     }

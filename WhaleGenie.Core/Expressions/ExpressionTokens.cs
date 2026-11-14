@@ -102,54 +102,22 @@ public static class ExpressionTokens
                 continue;
             }
 
-            if (character == '$')
+            // An older formula may still have a sign in front of a name. Nothing in the product
+            // writes one any more — a name in a value is a shape, and a formula says it as itself —
+            // but a line kept as text still has to read. This is an input spelling, not a second
+            // way of holding a value: the token carries the name without the sign.
+            if (character == '$' && index + 1 < source.Length
+                && VariableName.IsStart(source[index + 1]))
             {
-                if (index + 1 < source.Length && source[index + 1] == '$')
-                {
-                    if (strict)
-                    {
-                        throw ExpressionException.Syntax("a variable name is missing after \"$\"");
-                    }
-
-                    tokens.Add(new ExpressionToken(ExpressionTokenKind.Symbol, index, 2, "$$", 0));
-                    index += 2;
-                    continue;
-                }
-
-                if (index + 1 < source.Length && source[index + 1] == '{')
-                {
-                    if (strict)
-                    {
-                        throw ExpressionException.Syntax("a variable name is missing after \"$\"");
-                    }
-
-                    tokens.Add(new ExpressionToken(ExpressionTokenKind.Symbol, index, 2, "${", 0));
-                    index += 2;
-                    continue;
-                }
-
-                var dollar = index;
-                index++;
-                if (index >= source.Length || !VariableName.IsStart(source[index]))
-                {
-                    if (strict)
-                    {
-                        throw ExpressionException.Syntax("a variable name is missing after \"$\"");
-                    }
-
-                    tokens.Add(new ExpressionToken(ExpressionTokenKind.Variable, dollar, 1,
-                        string.Empty, 0));
-                    continue;
-                }
-
+                var sign = index++;
                 var start = index;
                 while (index < source.Length && VariableName.IsPart(source[index]))
                 {
                     index++;
                 }
 
-                tokens.Add(new ExpressionToken(ExpressionTokenKind.Variable, dollar,
-                    index - dollar, source[start..index], 0));
+                tokens.Add(new ExpressionToken(ExpressionTokenKind.Variable, sign,
+                    index - sign, source[start..index], 0));
                 continue;
             }
 

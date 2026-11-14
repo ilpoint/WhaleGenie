@@ -75,8 +75,9 @@ public partial class AddActionViewModel
             preview.Show(asking);
             if (asking)
             {
-                preview.Follow(RuleOf(text.CurrentText),
-                    SelectedDefinition?.Key == ListWindowsKey, text.HasToBeAnswered);
+                preview.Follow(RuleOf(text),
+                    SelectedDefinition?.Key == ListWindowsKey, text.HasToBeAnswered,
+                    holdsVariable: text.Written is VariableNode);
             }
         }
 

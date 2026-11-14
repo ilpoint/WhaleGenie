@@ -77,7 +77,7 @@ internal static class SlotDiagnostics
                 continue;
             }
 
-            var name = value.Text.TrimStart('$');
+            var name = value.Text;
             if (name.Length == 0 || known.Contains(name))
             {
                 continue;

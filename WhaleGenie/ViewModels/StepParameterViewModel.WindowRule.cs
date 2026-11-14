@@ -107,10 +107,9 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Uses a variable that holds a window record instead of a literal rule.</summary>
     public void UseWindowVariable(string name)
     {
-        // This field is a rule written as one line: a window record is named in it, and the
-        // preview, the coordinate picker and the runner all read that name out of the line. It is
-        // the one place a line is still the field's own format rather than a picture of a shape.
-        Text = "$" + name.Trim().TrimStart('$');
+        // The answer is the name itself as a shape. The preview, the coordinate picker and the
+        // runner all read the shape, so there is no line with a sign in front of the name.
+        WriteValue(Formula.Name(name.Trim()));
         NotifyWindowRule();
     }
 

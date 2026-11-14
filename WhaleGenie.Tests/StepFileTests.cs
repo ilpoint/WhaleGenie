@@ -26,7 +26,7 @@ public class StepFileTests
         // Avalonia geometry, so the round trip belongs on the user-interface thread.
         Ui.Run(() =>
         {
-            var step = Click("$sys.mouseX", "$sys.mouseY");
+            var step = ClickShape(Formula.Name("sys.mouseX"), Formula.Name("sys.mouseY"));
 
             // The file says which name it reads rather than the line that reads it: a line would
             // be a second language for the same fact, and the reader of a file would have to know
@@ -35,8 +35,8 @@ public class StepFileTests
             Assert.Equal("sys.mouseX", parameters["x"]!["name"]!.GetValue<string>());
 
             var read = MacroStep.FromJson(step.ToJson());
-            Assert.Equal("$sys.mouseX", Value(read, "x"));
-            Assert.Equal("$sys.mouseY", Value(read, "y"));
+            Assert.Equal("sys.mouseX", Value(read, "x"));
+            Assert.Equal("sys.mouseY", Value(read, "y"));
         });
     }
 
@@ -75,11 +75,13 @@ public class StepFileTests
     [Fact]
     public void A_row_cell_is_a_shape_and_only_a_typed_line_becomes_one()
     {
-        // The shape a picker hands over keeps the identity of the name it is bound to. A column
-        // filled from a line is the one exception, and it says so in the name of the method.
+        // Every column is a shape. A line a person typed is the one place a shape is read from,
+        // and it is read as the words it says — a name is a piece put in by the value window.
         var row = StepParameterRow.Of("value", Formula.Name("count", "a7k2m9"));
         row.Set("given", Formula.Constant("true"));
-        row.SetLine("note", "共 $count 件");
+        row.Set("note", Formula.Run([
+            Formula.Text("共 "), Formula.Name("count"), Formula.Text(" 件")]));
+        row.SetLine("typed", "共 count 件");
 
         Assert.Equal(Formula.Name("count", "a7k2m9"), row.Cell("value"));
         Assert.Equal(Formula.Constant("true"), row.Cell("given"));
@@ -87,6 +89,7 @@ public class StepFileTests
         Assert.Equal(
             new ExpressionNode[] { Formula.Text("共 "), Formula.Name("count"), Formula.Text(" 件") },
             note.Parts);
+        Assert.Equal(Formula.Text("共 count 件"), row.Cell("typed"));
 
         // What goes into the file is the shape, not a line someone would have to read back.
         var parameter = new StepParameter
@@ -109,14 +112,25 @@ public class StepFileTests
     }
 
     /// <summary>A mouse click with the two halves of its place written as they say.</summary>
+    private static MacroStep ClickShape(ExpressionNode x, ExpressionNode y) => new()
+    {
+        Type = "input.mouseClick",
+        Parameters =
+        [
+            new StepParameter { Name = "button", Kind = ActionParameterKind.Choice, Written = Formula.Text("left") },
+            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = x },
+            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = y },
+        ],
+    };
+
     private static MacroStep Click(string x, string y) => new()
     {
         Type = "input.mouseClick",
         Parameters =
         [
-            new StepParameter { Name = "button", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("left") },
-            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine(x) },
-            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine(y) },
+            new StepParameter { Name = "button", Kind = ActionParameterKind.Choice, Written = Fields.Shape("left") },
+            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = Fields.Shape(x) },
+            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = Fields.Shape(y) },
         ],
     };
 }

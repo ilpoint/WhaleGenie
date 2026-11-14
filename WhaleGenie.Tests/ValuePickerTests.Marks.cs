@@ -43,17 +43,8 @@ public partial class ValuePickerTests
     [Fact]
     public void A_declared_name_is_not_marked()
     {
-        var form = new ValuePickerViewModel("$count + 1", Variables(), ActionValueForm.Value,
+        var form = new ValuePickerViewModel("「count」 + 1", Variables(), ActionValueForm.Value,
             bareNames: true);
-
-        Assert.DoesNotContain(form.Recipe!.Walk(), one => one.HasProblem);
-    }
-
-    /// <summary>A bare word in a field that holds text is a word, not a name to look up.</summary>
-    [Fact]
-    public void A_word_in_a_text_field_is_not_a_name()
-    {
-        var form = new ValuePickerViewModel("missing", Variables(), ActionValueForm.Value);
 
         Assert.DoesNotContain(form.Recipe!.Walk(), one => one.HasProblem);
     }

@@ -102,7 +102,7 @@ public class MacroBundleTests
                 Type = "control.delay",
                 Parameters =
                 [
-                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.FromLine("$次数") },
+                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Expression.Read("次数") },
                 ],
             });
 
@@ -215,7 +215,7 @@ public class MacroBundleTests
     private static MacroStep Call(string name) => new()
     {
         Type = "control.runMacro",
-        Parameters = [new StepParameter { Name = "macro", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) }],
+        Parameters = [new StepParameter { Name = "macro", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) }],
     };
 
     private static string TempFolder()

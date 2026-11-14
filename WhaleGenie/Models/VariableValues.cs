@@ -41,23 +41,9 @@ public static class VariableValues
             return true;
         }
 
-        if (text.StartsWith("$$", StringComparison.Ordinal))
-        {
-            value = Value.FromText(text[1..]);
-            error = string.Empty;
-            return ConvertToType(type, value, out value, out error);
-        }
-
         if (Expression.TryEvaluate(text, variables, out var evaluated, out var expressionError))
         {
             return ConvertToType(type, evaluated, out value, out error);
-        }
-
-        if (text[0] == '$')
-        {
-            value = Value.Null;
-            error = expressionError?.Detail ?? text;
-            return false;
         }
 
         value = type switch

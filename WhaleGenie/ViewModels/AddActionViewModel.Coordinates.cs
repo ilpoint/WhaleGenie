@@ -203,14 +203,21 @@ public partial class AddActionViewModel
     /// The rule a window field shows in the preview. A variable cannot be read before the run, and
     /// a bare line of text is still read as a title.
     /// </summary>
-    private static WindowRule RuleOf(string? text)
+    private static WindowRule RuleOf(StepParameterViewModel? field)
     {
-        var written = (text ?? string.Empty).Trim();
-        if (written.StartsWith('$'))
+        if (field is null)
         {
-            return new WindowRule(Title: written);
+            return WindowRule.Empty;
         }
 
+        // A variable that holds a window record cannot be read before the run, so the preview says
+        // the name it is waiting for. The shape says which it is; no sign in a line decides it.
+        if (field.Written is VariableNode variable)
+        {
+            return new WindowRule(Title: variable.Name);
+        }
+
+        var written = field.CurrentText.Trim();
         return WindowRule.TryParse(written, out var rule)
             ? rule
             : new WindowRule(Title: written);
@@ -218,7 +225,7 @@ public partial class AddActionViewModel
 
     /// <summary>The rule a named window field holds right now, or an empty rule when it holds none.</summary>
     public WindowRule WindowRuleFor(string name)
-        => Parameter(name) is { } field ? RuleOf(field.CurrentText) : WindowRule.Empty;
+        => Parameter(name) is { } field ? RuleOf(field) : WindowRule.Empty;
 
     /// <summary>The window this mover names right now, when it is open.</summary>
     public WindowInfo? CurrentWindow()
@@ -228,7 +235,7 @@ public partial class AddActionViewModel
             return null;
         }
 
-        var rule = RuleOf(field.CurrentText);
+        var rule = RuleOf(field);
         if (!rule.HasTarget)
         {
             return null;
@@ -259,12 +266,12 @@ public partial class AddActionViewModel
         var windowBasis = Parameter("anchorMode")?.CurrentText.Trim().Equals(
             "window", StringComparison.OrdinalIgnoreCase) == true;
         if ((!background && !windowBasis) || Parameter("window") is not { } field
-            || field.CurrentText.TrimStart().StartsWith('$'))
+            || field.Written is VariableNode)
         {
             return null;
         }
 
-        var rule = RuleOf(field.CurrentText);
+        var rule = RuleOf(field);
         return rule.HasTarget ? rule : null;
     }
 
@@ -352,7 +359,7 @@ public partial class AddActionViewModel
             return null;
         }
 
-        var rule = RuleOf(text.CurrentText);
+        var rule = RuleOf(text);
         if (!rule.HasTarget)
         {
             return null;

@@ -37,8 +37,7 @@ internal static class NumberField
             return (string.Empty, false);
         }
 
-        if (!Expression.TryEvaluate(source, new KnownVariables(known), out var value, out var error,
-                bare: true))
+        if (!Expression.TryEvaluate(source, new KnownVariables(known), out var value, out var error))
         {
             return Certain(error!.Code)
                 ? (ExpressionText.Describe(error), true)
@@ -79,7 +78,7 @@ internal static class NumberField
 
     /// <summary>True when the formula reads a variable, so what it comes to is only known at the run.</summary>
     private static bool Names(string source)
-        => Expression.TryParse(source, out var tree, out _, bare: true)
+        => Expression.TryParse(source, out var tree, out _)
             && Expression.References(tree).Count > 0;
 
     /// <summary>

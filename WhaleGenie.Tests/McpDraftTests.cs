@@ -224,7 +224,7 @@ public class McpDraftTests
                     {
                         Name = "values",
                         Kind = ActionParameterKind.Text,
-                        Written = Formula.FromLine("a"),
+                        Written = Fields.Shape("a"),
                     },
                     new StepParameter
                     {

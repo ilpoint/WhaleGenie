@@ -35,7 +35,7 @@ public partial class StepParameter
     /// — the shape above is the value. A field is written once, where it is filled in, and from
     /// there on it is carried as it stands.
     /// </summary>
-    public string Value => FormulaText.Write(Written);
+    public string Value => Formula.Word(Written);
 
     /// <summary>
     /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%
@@ -109,7 +109,7 @@ public class StepParameterRow
     /// The line a column says, for the places that still speak lines. Only out: a column is a
     /// shape, and this rendering is never read back into one.
     /// </summary>
-    public string Text(string column) => FormulaText.Write(Cell(column));
+    public string Text(string column) => Formula.Word(Cell(column));
 
     /// <summary>Puts a shape in a column. The only way a column gets a value.</summary>
     public void Set(string column, ExpressionNode value) => Cells[column] = value;
@@ -119,7 +119,7 @@ public class StepParameterRow
     /// become a shape; a value that came from the picker or the file is a shape already and uses
     /// <see cref="Set"/>. It is named on its own so the line never looks like the value.
     /// </summary>
-    public void SetLine(string column, string line) => Cells[column] = Formula.FromLine(line);
+    public void SetLine(string column, string line) => Cells[column] = Formula.Text(line);
 
     /// <summary>A row that says one thing in one column, which is how a named region is written.</summary>
     public static StepParameterRow Of(string column, ExpressionNode value) => new()

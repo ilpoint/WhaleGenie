@@ -75,9 +75,9 @@ public class RunStepStatusDuringSingleStepTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
         ],
     };
 }

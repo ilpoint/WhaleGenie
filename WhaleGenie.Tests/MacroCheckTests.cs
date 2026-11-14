@@ -22,19 +22,19 @@ public partial class MacroCheckTests
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
     private static StepParameter When(string name, string expression)
-        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = Formula.FromLine(expression) };
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = Expression.Read(expression) };
 
     private static StepParameter Text(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) };
+        => new() { Name = name, Kind = ActionParameterKind.Text, Written = Fields.Shape(value) };
 
     private static StepParameter Name(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Variable, Written = Formula.FromLine(value) };
+        => new() { Name = name, Kind = ActionParameterKind.Variable, Written = Fields.Shape(value) };
 
     private static StepParameter Value(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = Formula.FromLine(value) };
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = Expression.Read(value) };
 
     private static StepParameter Flag(string name, bool value)
-        => new() { Name = name, Kind = ActionParameterKind.Bool, Written = Formula.FromLine(value ? "true" : "false") };
+        => new() { Name = name, Kind = ActionParameterKind.Bool, Written = Fields.Shape(value ? "true" : "false") };
 
     private static MacroStep Set(string name, string value)
         => Step("control.setVariable", Text("name", name), Text("scope", "local"), Value("value", value));

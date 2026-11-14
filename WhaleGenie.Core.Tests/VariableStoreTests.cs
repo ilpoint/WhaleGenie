@@ -61,7 +61,7 @@ public class VariableStoreTests
         Assert.Equal(11, second.AsNumber());
 
         // And through an expression, which is how the fields of a step read it.
-        Assert.Equal("12", Expression.Evaluate("$sys.tick", store).AsText());
+        Assert.Equal("12", Expression.Evaluate("sys.tick", store).AsText());
     }
 
     /// <summary>

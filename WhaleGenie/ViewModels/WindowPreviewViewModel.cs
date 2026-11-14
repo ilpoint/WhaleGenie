@@ -63,6 +63,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// listing the window in front would read as if the step matched it.
     /// </summary>
     private bool _needsAnswer;
+    private bool _holdsVariable;
 
     /// <summary>Whether the list is on the screen at all, which the dialog says: a rule the step does
     /// not read has nothing to frame either.</summary>
@@ -138,9 +139,10 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// waits for the typing to pause.
     /// </summary>
     public void Follow(WhaleGenie.Core.Devices.WindowRule rule, bool emptyIsEvery = false,
-        bool needsAnswer = false)
+        bool needsAnswer = false, bool holdsVariable = false)
     {
-        if (_rule == rule && _emptyIsEvery == emptyIsEvery && _needsAnswer == needsAnswer)
+        if (_rule == rule && _emptyIsEvery == emptyIsEvery && _needsAnswer == needsAnswer
+            && _holdsVariable == holdsVariable)
         {
             return;
         }
@@ -149,6 +151,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
         _rule = rule;
         _emptyIsEvery = emptyIsEvery;
         _needsAnswer = needsAnswer;
+        _holdsVariable = holdsVariable;
 
         if (first)
         {
@@ -315,7 +318,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
 
         Note = rule.MatchValue.Length == 0
             ? Strings.Get(_emptyIsEvery ? "Add.WindowPreview.Every" : "Add.WindowPreview.Front")
-            : Expression.ReferencedNames(rule.MatchValue).Count > 0
+            : _holdsVariable
                 ? Strings.Get("Add.WindowPreview.Variable")
                 : string.Empty;
 

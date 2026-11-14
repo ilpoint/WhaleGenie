@@ -128,17 +128,15 @@ public class ValueDraftTests
         Assert.True(call.Ghost!.Required);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Every_piece_has_a_place_in_a_stable_order(bool bare)
+    [Fact]
+    public void Every_piece_has_a_place_in_a_stable_order()
     {
         var value = Formula.Binary("+",
             Formula.Call("upper", Formula.Name("who", "a7k2m9")),
             Formula.Number(2));
         var (root, end) = SlotReader.Shape(value,
             Expression.Functions.ToDictionary(function => function.Name,
-                StringComparer.OrdinalIgnoreCase), bare);
+                StringComparer.OrdinalIgnoreCase));
 
         Assert.True(end > 0);
         Assert.All(root.Walk(), piece =>

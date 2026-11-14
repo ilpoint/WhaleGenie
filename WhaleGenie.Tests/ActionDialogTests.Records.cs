@@ -165,7 +165,7 @@ public partial class ActionDialogTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Formula.FromLine("F5") },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Fields.Shape("F5") },
                 ],
                 Meta = new StepMeta
                 {
@@ -319,7 +319,7 @@ public partial class ActionDialogTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Written = Formula.FromLine("300000"),
+                        Written = Formula.Number(300000),
                     },
                 ],
             });
@@ -349,12 +349,12 @@ public partial class ActionDialogTests
             // the number on screen would quietly mean a different moment.
             Assert.Equal("120000", ms.CurrentText);
 
-            ms.WriteValue("$count + 1");
+            ms.WriteValue("「count」 + 1");
 
             // The unit dropdown steps aside because the engine reads the expression in milliseconds.
             Assert.False(ms.IsDurationEditor);
             Assert.True(ms.IsDurationFormula);
-            Assert.Equal("$count + 1", Value(viewModel, "ms"));
+            Assert.Equal("「count」 + 1", Value(viewModel, "ms"));
 
             // Writing a plain number in place of the expression puts the spinner back, and it reads
             // in milliseconds the same as every other time field: what is shown is the number the

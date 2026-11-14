@@ -31,14 +31,11 @@ internal static class ExpressionWriter
     private const int Atom = 7;
 
     /// <summary>
-    /// The tree as text. <paramref name="bare"/> says how a name is written: as itself, which is
-    /// what a formula says, or with the sign that marks a name inside a line that is otherwise
-    /// words.
-    /// </summary>
-    public static string Write(ExpressionNode node, string hole, bool bare)
-        => Piece(node, hole, bare, out _);
+    /// <summary>The tree as text, with a name said as the name it is.</summary>
+    public static string Write(ExpressionNode node, string hole)
+        => Piece(node, hole, out _);
 
-    private static string Piece(ExpressionNode node, string hole, bool bare, out int precedence)
+    private static string Piece(ExpressionNode node, string hole, out int precedence)
     {
         switch (node)
         {
@@ -56,13 +53,13 @@ internal static class ExpressionWriter
 
             case VariableNode variable:
                 precedence = Atom;
-                return bare ? variable.Name : "$" + variable.Name;
+                return variable.Name;
 
             case ConcatNode run:
                 precedence = Additive;
                 return string.Join(" + ", run.Parts.Select(part =>
                 {
-                    var written = Piece(part, hole, bare, out var partPrecedence);
+                    var written = Piece(part, hole, out var partPrecedence);
                     return Loose(written, partPrecedence, Additive, false, false);
                 }));
 
@@ -73,34 +70,28 @@ internal static class ExpressionWriter
             case ListNode list:
                 precedence = Atom;
                 return "[" + string.Join(", ",
-                    list.Items.Select(item => Piece(item, hole, bare, out _))) + "]";
+                    list.Items.Select(item => Piece(item, hole, out _))) + "]";
 
             case CallNode call:
                 precedence = Atom;
                 return call.Name + "("
                     + string.Join(", ",
-                        call.Arguments.Select(argument => Piece(argument, hole, bare, out _)))
+                        call.Arguments.Select(argument => Piece(argument, hole, out _)))
                     + ")";
 
             case UnaryNode unary:
                 precedence = Prefix;
-                var operand = Piece(unary.Operand, hole, bare, out var operandPrecedence);
+                var operand = Piece(unary.Operand, hole, out var operandPrecedence);
                 return (unary.Operator == "not" ? "not " : "-")
                     + Loose(operand, operandPrecedence, Prefix, false, false);
 
             case BinaryNode binary:
                 precedence = Binds(binary.Operator);
-                var left = Piece(binary.Left, hole, bare, out var leftPrecedence);
-                var right = Piece(binary.Right, hole, bare, out var rightPrecedence);
+                var left = Piece(binary.Left, hole, out var leftPrecedence);
+                var right = Piece(binary.Right, hole, out var rightPrecedence);
                 return Loose(left, leftPrecedence, precedence, false, false)
                     + " " + binary.Operator + " "
                     + Loose(right, rightPrecedence, precedence, true, !ReadsTheSame(binary.Operator));
-
-            case FaultNode fault:
-                // A value that could not be read keeps the line it was written as, so the editor
-                // hands back what the person typed rather than a tidied version of it.
-                precedence = Atom;
-                return fault.Text;
 
             case HoleNode:
                 precedence = Atom;

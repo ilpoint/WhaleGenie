@@ -89,8 +89,8 @@ public partial class ActionDialogTests
             Assert.Single(region.Regions);
             Assert.True(region.HasRegions);
 
-            region.Regions[0].OrVariable = "$shot";
-            Assert.Equal("$shot", region.Regions[0].OrVariable);
+            region.Regions[0].OrVariable = "shot";
+            Assert.Equal("shot", region.Regions[0].OrVariable);
         });
     }
 
@@ -330,7 +330,7 @@ public partial class ActionDialogTests
             {
                 Name = "window",
                 Kind = ActionParameterKind.WindowRule,
-                Written = Formula.FromLine(rule),
+                Written = Fields.Shape(rule),
             },
         ],
     };

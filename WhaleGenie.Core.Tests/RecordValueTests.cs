@@ -50,7 +50,7 @@ public class RecordValueTests
     {
         var bag = Bag(("hit", Hit()));
 
-        Assert.True(Expression.Evaluate("$hit", bag).IsRecord);
+        Assert.True(Expression.Evaluate("hit", bag).IsRecord);
         Assert.Equal("30", Expression.Evaluate("field($hit, \"x\")", bag).AsText());
         Assert.Equal("20,30,20,20", Expression.Evaluate("field($hit, \"box\")", bag).AsText());
 
@@ -94,7 +94,7 @@ public class RecordValueTests
             ("box", Value.FromText("1,2,3,4")),
         ])));
 
-        var written = Expression.Evaluate("$hit", bag).AsText();
+        var written = Expression.Evaluate("hit", bag).AsText();
         Assert.StartsWith("{\"x\":30,\"text\":\"", written, System.StringComparison.Ordinal);
         Assert.EndsWith("\",\"sure\":true,\"box\":\"1,2,3,4\"}", written, System.StringComparison.Ordinal);
 
@@ -135,7 +135,7 @@ public class RecordValueTests
         Assert.Equal(30, Expression.Evaluate("field($back, \"x\")", reading).AsNumber());
         Assert.Equal("记事本",
             Expression.Evaluate("field(field($back, \"nested\"), \"title\")", reading).AsText());
-        Assert.Equal("1, a", Expression.Evaluate("$tags", reading).AsText());
+        Assert.Equal("1, a", Expression.Evaluate("tags", reading).AsText());
         Assert.Equal(2, Expression.Evaluate("count($tags)", reading).AsNumber());
     }
 
@@ -145,8 +145,8 @@ public class RecordValueTests
         var bag = Bag(("hit", Hit("Save")),
             ("hits", Value.FromList([Hit("Save"), Hit("Cancel")])));
 
-        Assert.True(Expression.Evaluate("$hits", bag).IsList);
-        Assert.Equal(2, Expression.Evaluate("$hits", bag).AsList().Count);
+        Assert.True(Expression.Evaluate("hits", bag).IsList);
+        Assert.Equal(2, Expression.Evaluate("hits", bag).AsList().Count);
         Assert.Equal("Cancel",
             Expression.Evaluate("field(get($hits, 1), \"text\")", bag).AsText());
 
@@ -154,7 +154,7 @@ public class RecordValueTests
         Assert.Equal("[{\"text\":\"Save\"},{\"text\":\"Cancel\"}]",
             Expression.Evaluate("toJson($hits)", bag).AsText());
         Assert.True(Expression.Evaluate("jsonGet(toJson($hits), \"\")", bag).IsList);
-        Assert.Equal(Expression.Evaluate("$hits", bag),
+        Assert.Equal(Expression.Evaluate("hits", bag),
             Expression.Evaluate("jsonGet(toJson($hits), \"\")", bag));
     }
 }

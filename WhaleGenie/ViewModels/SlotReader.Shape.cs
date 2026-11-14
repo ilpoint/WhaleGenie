@@ -19,10 +19,10 @@ internal sealed partial class SlotReader
     /// </summary>
     /// <summary>The drawn shape and one past the last place it stands at.</summary>
     public static (SlotNode Node, int End) Shape(ExpressionNode value,
-        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bare = false)
+        IReadOnlyDictionary<string, ExpressionFunction> functions)
     {
         var at = 0;
-        var root = Piece(value, NodePath.Root, functions, bare, ref at);
+        var root = Piece(value, NodePath.Root, functions, ref at);
 
         foreach (var drawn in root.Walk())
         {
@@ -36,22 +36,22 @@ internal sealed partial class SlotReader
     }
 
     private static SlotNode Piece(ExpressionNode value, NodePath path,
-        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bare, ref int at)
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
         var start = at;
         var node = value switch
         {
             HoleNode or TextNode { Text: "" } => Empty(path, Strings.Get("ValuePicker.Hole"), at),
-            TextNode text => Leaf(path, value, text.Text, "maths", false, bare, ref at),
-            NumberNode number => Leaf(path, value, number.Text, "maths", false, bare, ref at),
-            DateNode date => Leaf(path, value, date.Text, "maths", false, bare, ref at),
-            ConstantNode constant => Leaf(path, value, constant.Word, "other", false, bare, ref at),
-            VariableNode variable => Leaf(path, value, variable.Name, "lists", true, bare, ref at),
-            ConcatNode run => Sequence(run.Parts, path, functions, bare, ref at),
-            ListNode list => Sequence(list.Items, path, functions, bare, ref at),
-            UnaryNode unary => Unary(unary, path, functions, bare, ref at),
-            BinaryNode binary => Binary(binary, path, functions, bare, ref at),
-            CallNode call => Call(call, path, functions, bare, ref at),
+            TextNode text => Leaf(path, value, text.Text, "maths", false, ref at),
+            NumberNode number => Leaf(path, value, number.Text, "maths", false, ref at),
+            DateNode date => Leaf(path, value, date.Text, "maths", false, ref at),
+            ConstantNode constant => Leaf(path, value, constant.Word, "other", false, ref at),
+            VariableNode variable => Leaf(path, value, variable.Name, "lists", true, ref at),
+            ConcatNode run => Sequence(run.Parts, path, functions, ref at),
+            ListNode list => Sequence(list.Items, path, functions, ref at),
+            UnaryNode unary => Unary(unary, path, functions, ref at),
+            BinaryNode binary => Binary(binary, path, functions, ref at),
+            CallNode call => Call(call, path, functions, ref at),
             _ => Empty(path, Strings.Get("ValuePicker.Hole"), at),
         };
 
@@ -71,13 +71,13 @@ internal sealed partial class SlotReader
     }
 
     private static SlotNode Sequence(IReadOnlyList<ExpressionNode> parts, NodePath path,
-        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bare, ref int at)
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
         var start = at;
         var items = new List<SlotNode>(parts.Count);
         for (var index = 0; index < parts.Count; index++)
         {
-            items.Add(Piece(parts[index], path.Append(index), functions, bare, ref at));
+            items.Add(Piece(parts[index], path.Append(index), functions, ref at));
         }
 
         return new SlotSequence
@@ -90,7 +90,7 @@ internal sealed partial class SlotReader
     }
 
     private static SlotNode Unary(UnaryNode unary, NodePath path,
-        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bare, ref int at)
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
         var sign = new SlotOperator
         {
@@ -100,14 +100,14 @@ internal sealed partial class SlotReader
             Length = unary.Operator.Length,
         };
         at += unary.Operator.Length;
-        var operand = Piece(unary.Operand, path.Append(0), functions, bare, ref at);
+        var operand = Piece(unary.Operand, path.Append(0), functions, ref at);
         return new SlotSequence { Items = [sign, operand], Path = path, Source = unary };
     }
 
     private static SlotNode Binary(BinaryNode binary, NodePath path,
-        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bare, ref int at)
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
-        var left = Piece(binary.Left, path.Append(0), functions, bare, ref at);
+        var left = Piece(binary.Left, path.Append(0), functions, ref at);
         var sign = new SlotOperator
         {
             Text = binary.Operator,
@@ -116,7 +116,7 @@ internal sealed partial class SlotReader
             Length = binary.Operator.Length,
         };
         at += binary.Operator.Length;
-        var right = Piece(binary.Right, path.Append(1), functions, bare, ref at);
+        var right = Piece(binary.Right, path.Append(1), functions, ref at);
         return new SlotSequence
         {
             Items = [left, sign, right],
@@ -126,7 +126,7 @@ internal sealed partial class SlotReader
     }
 
     private static SlotNode Call(CallNode call, NodePath path,
-        IReadOnlyDictionary<string, ExpressionFunction> functions, bool bare, ref int at)
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
         functions.TryGetValue(call.Name, out var entry);
 
@@ -140,7 +140,7 @@ internal sealed partial class SlotReader
                 at += 2;
             }
 
-            var value = Piece(call.Arguments[index], path.Append(index), functions, bare, ref at);
+            var value = Piece(call.Arguments[index], path.Append(index), functions, ref at);
             var argument = new SlotSequence
             {
                 Items = [value],
@@ -192,9 +192,9 @@ internal sealed partial class SlotReader
     }
 
     private static SlotNode Leaf(NodePath path, ExpressionNode source, string text, string tone,
-        bool isName, bool bare, ref int at)
+        bool isName, ref int at)
     {
-        var length = Expression.Render(source, bare: bare).Length;
+        var length = Expression.Render(source).Length;
         var piece = new SlotValue
         {
             Text = text,

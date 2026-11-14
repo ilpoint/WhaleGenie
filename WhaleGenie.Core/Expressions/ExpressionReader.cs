@@ -13,14 +13,14 @@ namespace WhaleGenie.Core.Expressions;
 internal static class ExpressionReader
 {
     /// <summary>
-    /// Reads written text into the tree it stands for. <paramref name="bare"/> says what a word on
+    /// Reads written text into the tree it stands for. A word on
     /// its own means: a name, which is what a word in a formula is, or — in a line that may be a
     /// sentence rather than a formula — nothing the language knows, which is how such a line is
     /// told apart from one that was meant as a formula and got it wrong.
     /// </summary>
-    public static ExpressionNode Read(string source, bool bare = false)
+    public static ExpressionNode Read(string source)
     {
-        var parser = new Parser(source, bare);
+        var parser = new Parser(source);
         var node = parser.ReadOr();
         if (parser.Current.Kind != TokenKind.End)
         {
@@ -52,13 +52,11 @@ file readonly record struct Token(TokenKind Kind, string Text, double Number);
 file sealed class Parser
 {
     private readonly List<Token> _tokens;
-    private readonly bool _bare;
     private int _index;
 
-    public Parser(string source, bool bare)
+    public Parser(string source)
     {
         _tokens = ReadTokens(source);
-        _bare = bare;
     }
 
     /// <summary>
@@ -264,17 +262,15 @@ file sealed class Parser
 
     /// <summary>
     /// A word that is not followed by a bracket. Three of them are the constants the language
-    /// spells out. The rest are names when the line being read is a formula, and are the reason a
-    /// line is not one when it is not: a word the language does not know is exactly what a sentence
-    /// is made of.
+    /// spells out; every other word is the name it is. A piece of text is quoted, so there is no
+    /// sign to put in front of a name and no word that has to be guessed at.
     /// </summary>
     private ExpressionNode Word(string word) => word.ToLowerInvariant() switch
     {
         "true" => new ConstantNode("true"),
         "false" => new ConstantNode("false"),
         "null" => new ConstantNode("null"),
-        _ when _bare => new VariableNode(word),
-        _ => throw ExpressionException.Syntax($"unknown word \"{word}\""),
+        _ => new VariableNode(word),
     };
 
     private Token Take()

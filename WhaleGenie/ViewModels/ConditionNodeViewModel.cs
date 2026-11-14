@@ -174,7 +174,7 @@ public sealed partial class ConditionNodeViewModel : ObservableObject, IFolds
 
     /// <summary>A side as the line the box shows it as.</summary>
     private static string Said(ExpressionNode value)
-        => Formula.IsNothing(value) ? string.Empty : Expression.Render(value, bare: true);
+        => Formula.IsNothing(value) ? string.Empty : Expression.Render(value);
 
     /// <summary>How this line compares the two sides.</summary>
     public ConditionCompare Compare

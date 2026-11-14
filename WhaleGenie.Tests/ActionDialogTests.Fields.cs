@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -216,10 +217,10 @@ public partial class ActionDialogTests
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
 
             Assert.True(x.IsNumberValue);
-            x.WriteValue("$count + 1");
+            x.WriteValue(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
             Assert.True(x.IsNumberFormula);
-            Assert.Equal("$count + 1", x.CurrentText);
+            Assert.Equal("count + 1", x.CurrentText);
 
             // What the builder hands back decides which box the field shows: a plain number goes
             // back to the spinner, so nothing has to know which way the field was written.
@@ -237,14 +238,14 @@ public partial class ActionDialogTests
         {
             var viewModel = Open("input.mouseMove");
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            x.WriteValue("$count + 1");
+            x.WriteValue(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
             viewModel.SaveCommand.Execute(null);
 
             Assert.NotNull(saved);
-            Assert.Equal("$count + 1",
+            Assert.Equal("「count」 + 1",
                 saved!.Parameters.First(parameter => parameter.Name == "x").Value);
 
             var reopened = new ActionEditorWindow(saved, ActionCatalog.Definitions,
@@ -255,7 +256,7 @@ public partial class ActionDialogTests
             var again = ((AddActionViewModel)reopened.DataContext!).Parameters
                 .First(parameter => parameter.Definition.Name == "x");
             Assert.True(again.IsNumberFormula);
-            Assert.Equal("$count + 1", again.CurrentText);
+            Assert.Equal("count + 1", again.CurrentText);
         });
     }
 

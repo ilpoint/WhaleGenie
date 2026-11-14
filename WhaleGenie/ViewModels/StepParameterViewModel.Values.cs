@@ -146,7 +146,7 @@ public partial class StepParameterViewModel : ViewModelBase
         // takes over, the line is the answer and is read where it is written.
         if (!UseFormula && Definition.Kind is ActionParameterKind.Number)
         {
-            _written = Formula.FromLine(CurrentText.Trim());
+            _written = Expression.Read(CurrentText.Trim());
         }
     }
 

@@ -114,9 +114,9 @@ public class VariableDropTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Variable, Written = Formula.FromLine("answer") },
-                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("local") },
-                    new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.FromLine("1") },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Variable, Written = Fields.Shape("answer") },
+                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Fields.Shape("local") },
+                    new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.Number(1) },
                 ],
             });
             var window = new MacroEditorWindow(macro, [macro]);

@@ -335,15 +335,15 @@ public class ProjectSaveTests
                     [
                         new StepParameter
                         {
-                            Name = "button", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("left"),
+                            Name = "button", Kind = ActionParameterKind.Choice, Written = Fields.Shape("left"),
                         },
                         new StepParameter
                         {
-                            Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine("$sys.mouseX"),
+                            Name = "x", Kind = ActionParameterKind.Number, Written = Expression.Read("sys.mouseX"),
                         },
                         new StepParameter
                         {
-                            Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine("$sys.mouseY"),
+                            Name = "y", Kind = ActionParameterKind.Number, Written = Expression.Read("sys.mouseY"),
                         },
                     ],
                 });
@@ -352,9 +352,9 @@ public class ProjectSaveTests
                 MacroPackage.Save(path, [macro], [], "v0");
                 var read = MacroPackage.Load(path).Macros[0];
 
-                Assert.Equal("$sys.mouseX", read.Steps[0].Parameters
+                Assert.Equal("sys.mouseX", read.Steps[0].Parameters
                     .First(parameter => parameter.Name == "x").Value);
-                Assert.Equal("$sys.mouseY", read.Steps[0].Parameters
+                Assert.Equal("sys.mouseY", read.Steps[0].Parameters
                     .First(parameter => parameter.Name == "y").Value);
             });
         }

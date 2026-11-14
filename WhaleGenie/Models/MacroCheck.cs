@@ -286,23 +286,23 @@ public static partial class MacroCheck
     /// </summary>
     private static Value? ConstantValue(string text)
     {
-        var trimmed = text.Trim();
-        if (trimmed.Length == 0
-            || trimmed.StartsWith('$')
-            || Expression.ReferencedNames(trimmed).Count > 0)
+        var written = Expression.Read(text.Trim());
+        if (Formula.IsNothing(written) || !Formula.IsPlain(written)
+            || Expression.References(written).Count > 0)
         {
             return null;
         }
 
-        if (Expression.TryEvaluate(trimmed, null, out var value, out _))
+        if (Expression.TryEvaluate(written, null, out var value, out _))
         {
             return value;
         }
 
-        return double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture,
+        var line = text.Trim();
+        return double.TryParse(line, NumberStyles.Float, CultureInfo.InvariantCulture,
             out var number)
             ? Value.FromNumber(number)
-            : Value.FromText(trimmed);
+            : Value.FromText(line);
     }
 
     /// <summary>

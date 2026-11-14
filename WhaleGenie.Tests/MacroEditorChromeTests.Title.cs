@@ -71,7 +71,7 @@ public partial class MacroEditorChromeTests
                 {
                     Name = "macro",
                     Kind = ActionParameterKind.Macro,
-                    Written = Formula.FromLine("child"),
+                    Written = Fields.Shape("child"),
                 },
             ],
         });
@@ -96,9 +96,9 @@ public partial class MacroEditorChromeTests
             Meta = StepMeta.New,
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine(name) },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Formula.FromLine("local") },
-                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.FromLine(value) },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Fields.Shape("local") },
+                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Fields.Shape(value) },
             ],
         };
 }

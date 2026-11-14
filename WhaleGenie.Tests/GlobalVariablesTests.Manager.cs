@@ -117,7 +117,7 @@ public partial class GlobalVariablesTests
                         {
                             Name = "message",
                             Kind = ActionParameterKind.Expression,
-                            Written = Formula.FromLine("$oldGlobal + 1"),
+                            Written = Expression.Read("$oldGlobal + 1"),
                         },
                     ],
                 });
@@ -141,7 +141,7 @@ public partial class GlobalVariablesTests
                 Assert.Null(VariableCatalog.FindGlobal("oldGlobal"));
                 Assert.Equal(6, SharedVariables.Current.Values["newGlobal"].AsNumber());
                 var root = (MacroEditorViewModel)window.DataContext!;
-                Assert.Equal("$newGlobal + 1", root.Steps[0].Text("message"));
+                Assert.Equal("「newGlobal」 + 1", root.Steps[0].Text("message"));
 
                 // 改名会让这一步的文本变脏，关窗时会问要不要保存。这里问的是一件事：改名有没有
                 // 落到步骤上。问句必须在这里答完，否则它会在下一个检查里冒出来，把那个检查的

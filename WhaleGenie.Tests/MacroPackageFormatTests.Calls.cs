@@ -41,7 +41,7 @@ public partial class MacroPackageFormatTests
                     {
                         Name = FieldNames.Macro,
                         Kind = ActionParameterKind.Macro,
-                        Written = Formula.FromLine("整理"),
+                        Written = Fields.Shape("整理"),
                     },
                     new StepParameter
                     {
@@ -49,7 +49,7 @@ public partial class MacroPackageFormatTests
                         Kind = ActionParameterKind.Arguments,
                         Rows =
                         [
-                            Row(("name", "次数"), ("value", "$n")),
+                            Row(("name", "次数"), ("value", "n")),
                             Row(("name", "标签"), ("value", string.Empty), ("given", "true")),
                         ],
                     },
@@ -66,7 +66,7 @@ public partial class MacroPackageFormatTests
                 parameter => parameter.Name == FieldNames.Arguments).Rows;
             Assert.Equal(2, rows.Count);
             Assert.Equal("次数", rows[0].Text(FieldNames.Name));
-            Assert.Equal("$n", rows[0].Text(FieldNames.Value));
+            Assert.Equal("n", rows[0].Text(FieldNames.Value));
             Assert.Equal("标签", rows[1].Text(FieldNames.Name));
             Assert.Equal(string.Empty, rows[1].Text(FieldNames.Value));
             Assert.Equal("true", rows[1].Text(FieldNames.Given));

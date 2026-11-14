@@ -50,7 +50,7 @@ public partial class McpServerTests
                         {
                             Name = "ms",
                             Kind = ActionParameterKind.Number,
-                            Written = Formula.FromLine("1000"),
+                            Written = Formula.Number(1000),
                         },
                     ],
                 });

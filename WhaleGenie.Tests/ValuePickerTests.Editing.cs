@@ -15,9 +15,9 @@ public partial class ValuePickerTests
     [Fact]
     public void Undo_and_redo_walk_the_line()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a", Variables(), ActionValueForm.Value);
 
-        form.Text = "$a and $b";
+        form.Text = "a and b";
         form.Text = "$a and $b and $c";
 
         Assert.True(form.CanUndo);

@@ -43,7 +43,7 @@ public partial class MacroEditorWorkspaceTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             editor.AddStep(Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
             Dispatcher.UIThread.RunJobs();
 
@@ -90,9 +90,9 @@ public partial class MacroEditorWorkspaceTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             editor.AddStep(Step("control.delay",
-                new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.FromLine("5") }));
+                new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.Number(5) }));
             editor.AddStep(Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
             Dispatcher.UIThread.RunJobs();
 

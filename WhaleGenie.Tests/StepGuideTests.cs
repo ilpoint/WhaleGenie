@@ -35,7 +35,7 @@ public class StepGuideTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             var loop = Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("3") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(3) },
                 new StepParameter
                 {
                     Name = "body",
@@ -44,7 +44,7 @@ public class StepGuideTests
                     [
                         Step("input.mouseMove"),
                         Step("control.if",
-                            new StepParameter { Name = "condition", Kind = ActionParameterKind.Text, Written = Formula.FromLine("$a") },
+                            new StepParameter { Name = "condition", Kind = ActionParameterKind.Text, Written = Expression.Read("a") },
                             new StepParameter
                             {
                                 Name = "then",
@@ -225,7 +225,7 @@ public class StepGuideTests
         {
             var editor = new MacroEditorViewModel();
             var loop = Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                 new StepParameter
                 {
                     Name = "body",
@@ -254,7 +254,7 @@ public class StepGuideTests
         {
             var editor = new MacroEditorViewModel();
             var branch = Step("control.case",
-                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable, Written = Formula.FromLine("1") },
+                new StepParameter { Name = "values", Kind = ActionParameterKind.Variable, Written = Formula.Number(1) },
                 new StepParameter
                 {
                     Name = "body",
@@ -262,7 +262,7 @@ public class StepGuideTests
                     Steps = [Step("control.note")],
                 });
             editor.AddStep(Step("control.switch",
-                new StepParameter { Name = "switchValue", Kind = ActionParameterKind.Variable, Written = Formula.FromLine("$mode") },
+                new StepParameter { Name = "switchValue", Kind = ActionParameterKind.Variable, Written = Expression.Read("mode") },
                 new StepParameter
                 {
                     Name = "cases",

@@ -120,18 +120,6 @@ public partial class WindowPreviewTests
             Assert.Equal(Strings.Get("Add.WindowPreview.Front"), preview.Note);
         });
     }
-
-    [Fact]
-    public void A_text_written_as_a_variable_is_said_to_be_read_as_it_stands()
-    {
-        Ui.Run(() =>
-        {
-            var (_, preview) = Rule(Desk().Add(1, "Notepad", "notepad", "Notepad"), "$wanted");
-
-            Assert.Equal(Strings.Get("Add.WindowPreview.Variable"), preview.Note);
-        });
-    }
-
     [Fact]
     public void Only_the_first_few_are_listed_and_the_rest_counted()
     {

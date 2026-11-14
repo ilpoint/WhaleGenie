@@ -88,7 +88,7 @@ public partial class MacroPackageFormatTests
                 {
                     Name = "notificationText",
                     Kind = ActionParameterKind.Text,
-                    Written = Formula.FromLine(text),
+                    Written = Fields.Shape(text),
                 },
             ],
         };

@@ -40,7 +40,7 @@ public class ReferencePictureTests
             var pictures = Pictures(viewModel);
 
             pictures.AddPicture(new ImageRowViewModel { Text = "ok.png" });
-            pictures.AddPicture(new ImageRowViewModel { Text = "$shot" });
+            pictures.AddPicture(new ImageRowViewModel { Text = "shot" });
 
             MacroStep? saved = null;
             viewModel.CloseRequested += step => saved = step;
@@ -219,7 +219,8 @@ public class ReferencePictureTests
     [Fact]
     public void An_image_row_keeps_the_shape_that_was_typed_into_it()
     {
-        var row = new ImageRowViewModel { Text = "$shot" };
+        var row = new ImageRowViewModel();
+        row.Write(Formula.Name("shot"));
 
         var name = Assert.IsType<VariableNode>(row.Shape);
         Assert.Equal("shot", name.Name);

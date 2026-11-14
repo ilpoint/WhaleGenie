@@ -111,7 +111,7 @@ public partial class RunDebugTests
                     {
                         Name = "ms",
                         Kind = ActionParameterKind.Number,
-                        Written = Formula.FromLine("0"),
+                        Written = Formula.Number(0),
                     },
                 ],
             });

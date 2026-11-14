@@ -69,7 +69,7 @@ public partial class ValuePickerTests
 
         var token = form.TypedToken();
         Assert.NotNull(token);
-        Assert.True(Expression.TryParse(token, out var tree, out _, bare: true));
+        Assert.True(Expression.TryParse(token, out var tree, out _));
         Assert.True(tree is NumberNode or UnaryNode { Operator: "-", Operand: NumberNode });
     }
 

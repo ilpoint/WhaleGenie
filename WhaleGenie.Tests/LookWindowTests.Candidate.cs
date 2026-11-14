@@ -104,10 +104,10 @@ public partial class LookWindowTests
         Type = "ocr.recognize",
         Parameters =
         [
-            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = Formula.FromLine("0") },
-            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = Formula.FromLine("0") },
-            new StepParameter { Name = "width", Kind = ActionParameterKind.Number, Written = Formula.FromLine("120") },
-            new StepParameter { Name = "height", Kind = ActionParameterKind.Number, Written = Formula.FromLine("20") },
+            new StepParameter { Name = "x", Kind = ActionParameterKind.Number, Written = Formula.Number(0) },
+            new StepParameter { Name = "y", Kind = ActionParameterKind.Number, Written = Formula.Number(0) },
+            new StepParameter { Name = "width", Kind = ActionParameterKind.Number, Written = Formula.Number(120) },
+            new StepParameter { Name = "height", Kind = ActionParameterKind.Number, Written = Formula.Number(20) },
         ],
     };
 

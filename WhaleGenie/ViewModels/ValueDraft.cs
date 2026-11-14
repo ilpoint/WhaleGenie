@@ -21,17 +21,15 @@ namespace WhaleGenie.ViewModels;
 public sealed class ValueDraft : ViewModelBase
 {
     private readonly IReadOnlyDictionary<string, ExpressionFunction> _functions;
-    private readonly bool _bare;
     private readonly Stack<ExpressionNode> _before = new();
     private readonly Stack<ExpressionNode> _after = new();
     private ExpressionNode _value;
     private NodePath _caret = NodePath.Root;
 
     public ValueDraft(ExpressionNode value,
-        IReadOnlyDictionary<string, ExpressionFunction>? functions = null, bool bare = false)
+        IReadOnlyDictionary<string, ExpressionFunction>? functions = null)
     {
         _value = value;
-        _bare = bare;
         _functions = functions
             ?? Expression.Functions.ToDictionary(function => function.Name,
                 StringComparer.OrdinalIgnoreCase);
@@ -207,7 +205,7 @@ public sealed class ValueDraft : ViewModelBase
 
     private void Rebuild()
     {
-        (Recipe, End) = SlotReader.Shape(_value, _functions, _bare);
+        (Recipe, End) = SlotReader.Shape(_value, _functions);
         OnPropertyChanged(nameof(Recipe));
         OnPropertyChanged(nameof(Value));
         OnPropertyChanged(nameof(Speak));

@@ -74,23 +74,6 @@ public class VariableWallDockTests
         Assert.True(besideTheMacro.List >= inAPicker.List + 60,
             $"the list beside the macro is {besideTheMacro.List:0.#} tall and the picker's {inAPicker.List:0.#}");
     }
-
-    [Fact]
-    public void What_the_details_panel_used_to_say_is_in_the_hover_text()
-    {
-        var choice = VariableChoices
-            .For([Writes(), Reads("这次有 $total 件", "读合计"), Reads("打印 $total", "写报表")])
-            .First(row => row.Name == "total");
-
-        var text = choice.HoverText;
-
-        Assert.Contains(Strings.Get("VarWall.UsedBy"), text, System.StringComparison.Ordinal);
-        foreach (var use in choice.Uses)
-        {
-            Assert.Contains(use.Label, text, System.StringComparison.Ordinal);
-        }
-    }
-
     /// <summary>
     /// What a wall looks like in a 336-pixel column: whether the details panel is there, and how tall
     /// the list it leaves is. Both are read off the view rather than the model.
@@ -120,8 +103,8 @@ public class VariableWallDockTests
         Meta = new StepMeta(),
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("total") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine("1") },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("total") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.Number(1) },
         ],
     };
 
@@ -129,6 +112,6 @@ public class VariableWallDockTests
     {
         Type = "control.log",
         Meta = new StepMeta { Comment = label },
-        Parameters = [new StepParameter { Name = "message", Kind = ActionParameterKind.Text, Written = Formula.FromLine(expression) }],
+        Parameters = [new StepParameter { Name = "message", Kind = ActionParameterKind.Text, Written = Fields.Shape(expression) }],
     };
 }

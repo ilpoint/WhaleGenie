@@ -16,20 +16,6 @@ public class MacroSignatureTests
 
     private static MacroSignature WithResult(params MacroReturn[] results)
         => new([], results, []);
-
-    [Theory]
-    [InlineData("有 空格")]
-    [InlineData(".count")]
-    [InlineData("a-b")]
-    [InlineData("$name")]
-    public void A_declared_name_has_to_be_readable_as_a_variable(string name)
-    {
-        var problem = Assert.Single(Signature(new MacroArgument(name, Formula.Nothing, false)).Problems());
-
-        Assert.Equal(MacroSignatureFault.InvalidName, problem.Fault);
-        Assert.Equal(name, problem.Name);
-    }
-
     [Fact]
     public void Dots_and_chinese_are_part_of_a_readable_name()
     {

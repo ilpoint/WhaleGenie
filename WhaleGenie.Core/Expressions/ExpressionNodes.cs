@@ -67,7 +67,6 @@ public sealed record ListNode(IReadOnlyList<ExpressionNode> Items) : ExpressionN
 /// than raising it where the file is read is what lets the step that holds it be the thing that
 /// fails, with its own name on the failure, instead of a whole macro refusing to open.
 /// </summary>
-public sealed record FaultNode(string Text, string Message) : ExpressionNode;
 
 /// <summary>
 /// A place in the tree nothing has been put in yet. Reading a formula never produces one — text

@@ -398,9 +398,9 @@ public class ElementPickerTests
             way.Take!(way);
             Assert.Equal("#save" + Environment.NewLine + "body > div > button", target.Text);
 
-            target.AddLine("$choice");
+            target.AddLine("choice");
             Assert.Equal(
-                "#save" + Environment.NewLine + "body > div > button" + Environment.NewLine + "$choice",
+                "#save" + Environment.NewLine + "body > div > button" + Environment.NewLine + "choice",
                 target.Text);
         });
     }

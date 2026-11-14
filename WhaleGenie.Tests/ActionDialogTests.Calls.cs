@@ -58,7 +58,7 @@ public partial class ActionDialogTests
             Assert.True(Assert.Single(rows, row => row.Name == "标签").IsRequired);
             Assert.Equal("答案", Assert.Single(viewModel.ReturnsRows).Key);
 
-            times.Value = "$n";
+            times.Value = "n";
 
             // Another macro is another form...
             Field(viewModel, "macro")!.WriteValue("清空");
@@ -69,7 +69,7 @@ public partial class ActionDialogTests
             // ...and coming back does not empty the values that were filled in.
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("$n", Assert.Single(viewModel.CallArgumentRows,
+            Assert.Equal("n", Assert.Single(viewModel.CallArgumentRows,
                 row => row.Name == "次数").Value);
         });
     }
@@ -84,7 +84,7 @@ public partial class ActionDialogTests
 
             Field(viewModel, "macro")!.WriteValue("整理");
             Dispatcher.UIThread.RunJobs();
-            Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数").Value = "$n";
+            Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数").Value = "n";
             Assert.Single(viewModel.CallArgumentRows, row => row.Name == "标签").Value = "开始";
             viewModel.ReturnsRows[0].Ticked = true;
             viewModel.ReturnsRows[0].Name = "答案";
@@ -100,7 +100,7 @@ public partial class ActionDialogTests
             var passed = Assert.Single(saved.Parameters,
                 parameter => parameter.Name == FieldNames.Arguments).Rows;
             Assert.Equal(2, passed.Count);
-            Assert.Equal("$n", Assert.Single(passed, row => row.Text(FieldNames.Name) == "次数")
+            Assert.Equal("n", Assert.Single(passed, row => row.Text(FieldNames.Name) == "次数")
                 .Text(FieldNames.Value));
             Assert.Equal("开始", Assert.Single(passed, row => row.Text(FieldNames.Name) == "标签")
                 .Text(FieldNames.Value));
@@ -118,7 +118,7 @@ public partial class ActionDialogTests
 
             var again = (AddActionViewModel)reopened.DataContext!;
             Assert.Equal("整理", Field(again, "macro")!.CurrentText);
-            Assert.Equal("$n", Assert.Single(again.CallArgumentRows, row => row.Name == "次数").Value);
+            Assert.Equal("n", Assert.Single(again.CallArgumentRows, row => row.Name == "次数").Value);
             Assert.Equal("开始", Assert.Single(again.CallArgumentRows, row => row.Name == "标签").Value);
             Assert.True(Assert.Single(again.ReturnsRows).Ticked);
         });

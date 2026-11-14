@@ -115,7 +115,7 @@ public partial class ActionDialogTests
                     {
                         Name = "style",
                         Kind = ActionParameterKind.Choice,
-                        Written = Formula.FromLine("smooth"),
+                        Written = Fields.Shape("smooth"),
                     },
                 ],
             });
@@ -139,7 +139,7 @@ public partial class ActionDialogTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Written = Formula.FromLine("F5") },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Key, Written = Fields.Shape("F5") },
                 ],
             });
 

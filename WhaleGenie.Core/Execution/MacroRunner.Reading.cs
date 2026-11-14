@@ -96,8 +96,7 @@ public sealed partial class MacroRunner
     /// written in the catalogue, an argument the run dialog typed — come through here; a field of a
     /// step is already a shape.
     /// </summary>
-    private Value Read(string text)
-        => Expression.Evaluate(FormulaText.Read(text, ActionValueForm.Value), Variables);
+    private Value Read(string text) => Read(Formula.Text(text));
 
     /// <summary>The text a field comes to, with the names in it worked out where they stand.</summary>
     private string Text(ExecutableStep step, string name) => Read(step.Written(name)).AsText();
@@ -112,7 +111,15 @@ public sealed partial class MacroRunner
     /// than a piece of text answers with the name it holds.
     /// </summary>
     private static string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
-        => FormulaText.Write(row.GetValueOrDefault(column)).Trim();
+        => ShapeWord(row.GetValueOrDefault(column));
+
+    /// <summary>
+    /// What a column of a row comes to, worked out from the shape itself. A cell may hold a number,
+    /// a name or a sum; nothing renders it into a line to be read back. This is the reader for a
+    /// column whose value is used, as opposed to one that names something.
+    /// </summary>
+    private Value CellValue(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written) ? Read(written) : Value.Null;
 
     /// <summary>
     /// The word a shape holds, read from the shape itself rather than from a line rendered and

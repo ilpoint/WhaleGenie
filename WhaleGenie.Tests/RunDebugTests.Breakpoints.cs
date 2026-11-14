@@ -63,14 +63,14 @@ public partial class RunDebugTests
             var inner = new MacroStep
             {
                 Type = "control.delay",
-                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.FromLine("1") }],
+                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.Number(1) }],
             };
             var loop = new MacroStep
             {
                 Type = "control.repeat",
                 Parameters =
                 [
-                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                     new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [inner] },
                 ],
             };
@@ -136,14 +136,14 @@ public partial class RunDebugTests
             var inner = new MacroStep
             {
                 Type = "control.delay",
-                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.FromLine("1") }],
+                Parameters = [new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.Number(1) }],
             };
             var loop = new MacroStep
             {
                 Type = "control.repeat",
                 Parameters =
                 [
-                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                     new StepParameter { Name = "body", Kind = ActionParameterKind.Steps, Steps = [inner] },
                 ],
             };
@@ -327,7 +327,7 @@ public partial class RunDebugTests
         Type = "control.delay",
         Parameters =
         [
-            new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.FromLine($"{milliseconds}") },
+            new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Fields.Shape($"{milliseconds}") },
         ],
     };
 

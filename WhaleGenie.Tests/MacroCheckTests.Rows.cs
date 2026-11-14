@@ -69,18 +69,6 @@ public partial class MacroCheckTests
         Assert.Contains(problems, message =>
             message == Strings.Format("Editor.Problem.EmptyDeclaration", "坏"));
     }
-
-    [Fact]
-    public void A_broken_braced_expression_in_text_is_marked()
-    {
-        var problems = Inspect(Step("control.log", Text("message", "${1 +}"),
-            Text("level", "info")));
-
-        var prefix = Strings.Get("Editor.Problem.BadExpression").Split("{0}")[0];
-        Assert.Contains(problems, problem =>
-            problem.Message.StartsWith(prefix, StringComparison.Ordinal));
-    }
-
     [Fact]
     public void A_colour_search_can_name_only_its_region()
     {
@@ -114,7 +102,7 @@ public partial class MacroCheckTests
     public void A_colour_search_place_and_its_numbers_are_marked()
     {
         var step = Step("vision.getPixel",
-            Text("place", "$spot"), Text("x", "10"), Text("y", "20"));
+            Text("place", "spot"), Text("x", "10"), Text("y", "20"));
 
         var label = ActionCatalog.Find("vision.getPixel")!.Parameters
             .First(parameter => parameter.Name == "place").LocalLabel;

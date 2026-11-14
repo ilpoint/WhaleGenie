@@ -32,7 +32,7 @@ public partial class MacroEditorWorkspaceTests
                 {
                     Name = "times",
                     Kind = ActionParameterKind.Number,
-                    Written = Formula.FromLine("2"),
+                    Written = Formula.Number(2),
                 },
                 new StepParameter
                 {
@@ -141,7 +141,7 @@ public partial class MacroEditorWorkspaceTests
         {
             Name = "macro",
             Kind = ActionParameterKind.Macro,
-            Written = Formula.FromLine(macro),
+            Written = Fields.Shape(macro),
         });
 
     private static DragEventArgs Drag(Control target, RoutedEvent<DragEventArgs> what,

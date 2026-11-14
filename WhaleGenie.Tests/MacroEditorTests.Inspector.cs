@@ -257,13 +257,13 @@ public partial class MacroEditorTests
                     {
                         Name = "macro",
                         Kind = ActionParameterKind.Macro,
-                        Written = Formula.FromLine("被调用"),
+                        Written = Fields.Shape("被调用"),
                     },
                     new StepParameter
                     {
                         Name = "arg.旧",
                         Kind = ActionParameterKind.Expression,
-                        Written = Formula.FromLine("1"),
+                        Written = Formula.Number(1),
                     },
                 ],
             });

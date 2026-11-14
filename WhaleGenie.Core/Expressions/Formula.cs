@@ -22,61 +22,13 @@ public static class Formula
     /// <summary>One piece of text as the whole value of a field.</summary>
     public static ExpressionNode Text(string text) => new TextNode(text ?? string.Empty);
 
-    /// <summary>
-    /// The value a line typed into a value field stands for. A value field is a formula rather
-    /// than prose, so the line is read as one; a line that is not a formula — <c>hello there</c>,
-    /// <c>C:\a b</c> — is the text it looks like. This is the one place text becomes a shape, and
-    /// it is only ever called where a person typed into a whole-value field.
-    /// </summary>
-    public static ExpressionNode FromText(string? text)
-    {
-        var written = text ?? string.Empty;
-        if (written.Trim().Length == 0)
-        {
-            return Nothing;
-        }
-
-        return Expression.TryParse(written, out var tree, out _) && tree is not null
-            ? tree
-            : Text(written);
-    }
-
-    /// <summary>
-    /// The value a line stands for while a field is still being written: the formula when it reads
-    /// as one, a run of text with the names left where they stand when it does not, and the broken
-    /// formula it is when it opens as one. A line that opens by naming a variable was written as a
-    /// value, so a mistake in it is kept as a mistake rather than quietly becoming the words it
-    /// looks like; that is the one thing the lenient reading must not do.
-    /// </summary>
-    public static ExpressionNode FromLine(string? text)
-        => text is { Length: > 0 } ? FormulaText.Read(text, ActionValueForm.Value) : Nothing;
-
-    /// <summary>
-    /// The value a line typed into a formula field stands for: the formula it is. A line that does
-    /// not read is kept as the broken value it is rather than falling back to prose — a condition
-    /// is not a sentence, and a half-typed one belongs in the field where it can be put right, not
-    /// in the macro as the words it looks like.
-    /// </summary>
-    public static ExpressionNode FromFormula(string? text)
-    {
-        var written = text ?? string.Empty;
-        if (written.Trim().Length == 0)
-        {
-            return Nothing;
-        }
-
-        return Expression.TryParse(written, out var tree, out var fault, bare: true) && tree is not null
-            ? tree
-            : new FaultNode(written, fault?.Message ?? string.Empty);
-    }
-
     /// <summary>One variable read by name. A record's field is part of the name, as it always was.</summary>
     public static ExpressionNode Name(string name, string id = "") => new VariableNode(name, id);
 
     /// <summary>
     /// The name a shape names, with the identity it is bound to. A shape that is text names the
     /// text; it has no identity of its own. This is the reader for the fields a step writes a
-    /// variable into, where <see cref="FormulaText.Write"/> would put a dollar in front of the name.
+    /// variable into, where a rendered line would put the name in corner marks.
     /// </summary>
     public static VariableKey NameOf(ExpressionNode? value) => VariableKey.From(value);
 
@@ -128,6 +80,20 @@ public static class Formula
     public static bool IsNothing(ExpressionNode? value) => value is null or TextNode { Text: "" };
 
     /// <summary>
+    /// The word a shape names, for the places that look a field up by what it says — a key, a
+    /// kind, the name a result is kept under. A name answers with the name itself and nothing
+    /// around it; every other shape is said as <see cref="Speak"/> says it. Step lists and log
+    /// lines use <see cref="Speak"/>, where a name is told apart by its corner marks.
+    /// </summary>
+    public static string Word(ExpressionNode? value) => value switch
+    {
+        null => string.Empty,
+        VariableNode variable => variable.Name,
+        ConcatNode run => string.Concat(run.Parts.Select(Word)),
+        _ => Speak(value),
+    };
+
+    /// <summary>
     /// The value as it is read by a person: the words as written, a name between corner marks so
     /// it is told apart from the prose around it. This is the form a step list, a run log and a
     /// complaint about a step use — never a form anything is read back from, which is what keeps
@@ -135,7 +101,6 @@ public static class Formula
     /// </summary>
     public static string Speak(ExpressionNode? value) => value switch
     {
-        FaultNode fault => fault.Text,
         TextNode text => text.Text,
         NumberNode number => number.Text,
         DateNode date => date.Text,

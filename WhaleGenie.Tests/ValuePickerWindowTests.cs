@@ -84,21 +84,6 @@ public class ValuePickerWindowTests
             Ui.CloseAndDiscard(window);
         });
     }
-
-    [Fact]
-    public void A_plain_piece_opens_no_wordless_tooltip()
-    {
-        Ui.Run(() =>
-        {
-            var window = Window("$count + 1");
-
-            var pieces = Pieces(window);
-            Assert.NotEmpty(pieces);
-            Assert.All(pieces, piece => Assert.Null(ToolTip.GetTip(piece)));
-
-            Ui.CloseAndDiscard(window);
-        });
-    }
     [Fact]
     public void Confirm_is_enabled_while_the_cell_is_empty()
     {
@@ -411,7 +396,7 @@ public class ValuePickerWindowTests
     {
         Ui.Run(() =>
         {
-            var window = Window("$a");
+            var window = Window("a");
             var form = (ValuePickerViewModel)window.DataContext!;
 
             var groups = window.GetVisualDescendants().OfType<Button>()

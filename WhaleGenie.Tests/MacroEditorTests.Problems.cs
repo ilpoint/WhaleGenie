@@ -54,7 +54,7 @@ public partial class MacroEditorTests
                 Type = "control.repeat",
                 Parameters =
                 [
-                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("3") },
+                    new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(3) },
                     new StepParameter
                     {
                         Name = "body",

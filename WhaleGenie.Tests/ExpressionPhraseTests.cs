@@ -100,7 +100,7 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("count加上1", Say("$count + 1"));
+            Assert.Equal("count加上1", Say("count + 1"));
             Assert.Equal("（1加上2）乘上3", Say("(1 + 2) * 3"));
             Assert.Equal("a大于或等于3并且并非b小于2", Say("$a >= 3 and not ($b < 2)"));
             Assert.Equal("text等于ab", Say("$text == \"ab\""));
@@ -131,7 +131,7 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("把【name】写成大写", Say("upper($name)"));
+            Assert.Equal("把【name】写成大写", Say("upper(name)"));
             Assert.Equal("如果count大于3，就取【多】，不然取【少】", Say("""if($count > 3, "多", "少")"""));
             Assert.Equal("把【rows】复制一份", Say("append($rows)"));
             Assert.Equal("把【rows】复制一份，末尾加上4、5", Say("append($rows, 4, 5)"));

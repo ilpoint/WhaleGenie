@@ -67,7 +67,7 @@ public class ValueDateTests
     {
         var record = Value.FromRecord(
         [
-            ("$date", Value.FromText("2024-03-01")),
+            ("date", Value.FromText("2024-03-01")),
             ("note", Value.FromText("x")),
         ]);
 

@@ -29,5 +29,5 @@ public partial class StepTreeTests
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
     private static StepParameter Text(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Text, Written = Formula.FromLine(value) };
+        => new() { Name = name, Kind = ActionParameterKind.Text, Written = Fields.Shape(value) };
 }

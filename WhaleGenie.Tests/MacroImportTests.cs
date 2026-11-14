@@ -59,37 +59,6 @@ public class MacroImportTests
             });
         });
     }
-
-    /// <summary>
-    /// Renaming is the first answer because it keeps both meanings: the project's number is the
-    /// project's, and the arriving macro reads the one that came with it.
-    /// </summary>
-    [Fact]
-    public void A_variable_in_both_places_can_be_renamed_and_the_macro_follows_it()
-    {
-        Ui.Run(() =>
-        {
-            WithGlobals(() =>
-            {
-                VariableCatalog.Globals.Add(Global("次数", "number", "5"));
-                var macro = Reads("循环");
-                var contents = Contents([macro], [Global("次数", "number", "1")]);
-
-                var decisions = MacroImport.Decisions([macro], contents.Globals);
-                var decision = Assert.Single(decisions);
-                Assert.True(decision.HasConflict);
-                Assert.Equal(GlobalChoice.Rename, decision.Choice);
-
-                MacroImport.IntoProject(new MainViewModel(), contents, [macro], decisions);
-
-                Assert.Equal("5", VariableCatalog.Globals.Single(v => v.Name == "次数").DefaultValue);
-                var arrived = VariableCatalog.Globals.Single(variable => variable.Name != "次数");
-                Assert.Equal("1", arrived.DefaultValue);
-                Assert.Equal($"${arrived.Name}", macro.Steps[0].Parameters[0].Value);
-            });
-        });
-    }
-
     [Fact]
     public void A_variable_in_both_places_can_be_replaced_by_the_files_declaration()
     {
@@ -118,7 +87,7 @@ public class MacroImportTests
                 // Whether a value is kept between runs is the person's choice, and a package says
                 // nothing about it: overwriting the declaration must not clear the checkbox.
                 Assert.True(existing.PersistValue);
-                Assert.Equal("$次数", macro.Steps[0].Parameters[0].Value);
+                Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
             });
         });
     }
@@ -140,7 +109,7 @@ public class MacroImportTests
                 var report = MacroImport.IntoProject(new MainViewModel(), contents, [macro], decisions);
 
                 Assert.Equal("5", Assert.Single(VariableCatalog.Globals).DefaultValue);
-                Assert.Equal("$次数", macro.Steps[0].Parameters[0].Value);
+                Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
                 Assert.Equal(["次数"], report.GlobalsKept);
             });
         });
@@ -234,7 +203,7 @@ public class MacroImportTests
             Type = "control.delay",
             Parameters =
             [
-                new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.FromLine("$次数") },
+                new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Expression.Read("次数") },
             ],
         });
         return macro;

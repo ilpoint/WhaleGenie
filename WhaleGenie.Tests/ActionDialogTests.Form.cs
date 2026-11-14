@@ -55,7 +55,7 @@ public partial class ActionDialogTests
             var executable = Assert.Single(new[] { step }.ToExecutable());
             var posted = Assert.Single(executable.Parameters,
                 parameter => parameter.Name == "window");
-            Assert.True(WindowRule.TryParse(FormulaText.Write(posted.Written), out var reached));
+            Assert.True(WindowRule.TryParse(Formula.Word(posted.Written), out var reached));
             Assert.Equal(rule, reached);
         });
     }

@@ -82,7 +82,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
         var written = TypingText.Trim();
         return written.Length > 0
-               && Language.TryParse(written, out var tree, out _, bare: true)
+               && Language.TryParse(written, out var tree, out _)
                && tree is NumberNode or UnaryNode { Operator: "-", Operand: NumberNode }
             ? written
             : null;

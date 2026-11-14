@@ -80,7 +80,7 @@ public partial class StepTreeTests
             editor.AddStep(outer);
 
             var branch = Step("control.case", Text("values", "a"), Body("body", Step("control.log")));
-            var switchStep = Step("control.switch", Text("value", "$x"),
+            var switchStep = Step("control.switch", Text("value", "x"),
                 new StepParameter { Name = "cases", Kind = ActionParameterKind.Steps, Steps = [branch] });
             editor.AddStep(switchStep);
 

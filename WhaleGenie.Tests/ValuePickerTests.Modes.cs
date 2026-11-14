@@ -23,20 +23,6 @@ public partial class ValuePickerTests
         Assert.True(form.CanConfirm);
         Assert.False(form.NoteIsProblem);
     }
-
-    /// <summary>
-    /// A whole value that is not a formula is the text it looks like: a path is not a mistake.
-    /// </summary>
-    [Fact]
-    public void A_value_field_takes_a_sentence_it_cannot_read_as_a_formula()
-    {
-        var form = new ValuePickerViewModel(@"C:\a b", Variables(), ActionValueForm.Value);
-
-        Assert.True(form.Reads);
-        Assert.True(form.CanConfirm);
-        Assert.False(form.NoteIsProblem);
-    }
-
     /// <summary>A field that holds one name is not asked whether the name is a formula.</summary>
     [Fact]
     public void A_name_field_never_reports_a_reading_problem()
@@ -62,27 +48,5 @@ public partial class ValuePickerTests
 
         Assert.True(closed!.Chosen);
         Assert.Equal(Formula.Nothing, closed.Value);
-    }
-
-    /// <summary>
-    /// The window and the field must give the same answer for the same line. A line that opens as a
-    /// value and then fails stays a mistake; a line that is prose stays prose.
-    /// </summary>
-    [Theory]
-    [InlineData("count", true, false, true)]
-    [InlineData("count", false, false, true)]
-    [InlineData("$count + 1", true, false, true)]
-    [InlineData("$count +", true, false, false)]
-    [InlineData("$count +", false, false, false)]
-    [InlineData(@"C:\a b", false, false, true)]
-    [InlineData("hello $name", false, true, true)]
-    public void The_seed_reads_in_the_same_way_the_field_will_read_it(
-        string seed, bool bareNames, bool textMode, bool reads)
-    {
-        var form = new ValuePickerViewModel(seed, Variables(),
-            textMode ? ActionValueForm.Text : ActionValueForm.Value, bareNames);
-
-        Assert.Equal(reads, form.Reads);
-        Assert.Equal(reads, form.CanConfirm);
     }
 }

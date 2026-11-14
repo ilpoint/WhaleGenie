@@ -23,8 +23,8 @@ public class RunStepOutcomeTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("n") },
-                    new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.FromLine("1") },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("n") },
+                    new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.Number(1) },
                 ],
             };
             StepIds.Settle([step]);
@@ -83,7 +83,7 @@ public class RunStepOutcomeTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Formula.FromLine("F5") },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Fields.Shape("F5") },
                 ],
                 Meta = new StepMeta { OnError = StepErrorAction.Continue },
             };
@@ -96,13 +96,13 @@ public class RunStepOutcomeTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Formula.FromLine("why") },
-                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Formula.FromLine("local") },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("why") },
+                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
                     new StepParameter
                     {
                         Name = "value",
                         Kind = ActionParameterKind.Text,
-                        Written = Formula.FromLine("$step." + broken.Id + ".outcome"),
+                        Written = Expression.Read("step." + broken.Id + ".outcome"),
                     },
                 ],
             };
@@ -136,7 +136,7 @@ public class RunStepOutcomeTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Formula.FromLine("F5") },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Fields.Shape("F5") },
                 ],
                 Meta = new StepMeta { OnError = StepErrorAction.Continue },
             };

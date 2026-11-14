@@ -62,15 +62,20 @@ public static class Expression
     }
 
     /// <summary>
-    /// The variable names a line of a field reads. A line is read as a whole value, which is what
-    /// the places that ask this question are looking at: a formula, or a declaration's value.
+    /// The one place a line a person typed into a formula box becomes a shape. A name is said as
+    /// the name itself and text is quoted; a half-written line is an empty place, which no cell
+    /// can confirm until it is filled. Nothing else reads a line back into a value.
     /// </summary>
-    public static IReadOnlyList<string> ReferencedNames(string? source)
-        => FormulaText.Names(source, ActionValueForm.Value);
+    public static ExpressionNode Read(string? source)
+    {
+        var written = (source ?? string.Empty).Trim();
+        if (written.Length == 0)
+        {
+            return Formula.Nothing;
+        }
 
-    /// <summary>One name in a line rewritten, with everything else left as it was written.</summary>
-    public static string RenameVariable(string? source, string oldName, string newName)
-        => FormulaText.Rename(source, ActionValueForm.Value, oldName, newName);
+        return TryParse(written, out var tree, out _) && tree is not null ? tree : Formula.Hole;
+    }
 
     /// <summary>
     /// The variable names a tree reads, in the order they appear and without duplicates. A name
@@ -284,7 +289,7 @@ public static class Expression
     {
         try
         {
-            value = EvaluateChecked(source, variables, bare);
+            value = EvaluateChecked(source, variables);
             error = null;
             return true;
         }
@@ -300,9 +305,9 @@ public static class Expression
     /// Reads a formula into the tree the editor shows. The tree is the language's own shape, so
     /// what the editor puts in front of the user and what the engine runs are the same thing.
     /// </summary>
-    public static ExpressionNode Parse(string? source, bool bare = false)
+    public static ExpressionNode Parse(string? source)
     {
-        if (!TryParse(source, out var tree, out var error, bare))
+        if (!TryParse(source, out var tree, out var error))
         {
             throw error!;
         }
@@ -311,12 +316,11 @@ public static class Expression
     }
 
     /// <summary>
-    /// Reads a formula into a tree, reporting failure instead of throwing.
-    /// <paramref name="bare"/> says whether a word of its own is a name, which is what a formula
-    /// says and what a line that may still be prose does not.
+    /// Reads a formula into a tree, reporting failure instead of throwing. A word of its own is a
+    /// name, and a piece of text is quoted: the spelling has no sign in front of a name.
     /// </summary>
     public static bool TryParse(string? source, out ExpressionNode? tree,
-        out ExpressionException? error, bool bare = false)
+        out ExpressionException? error)
     {
         if (string.IsNullOrWhiteSpace(source))
         {
@@ -327,7 +331,7 @@ public static class Expression
 
         try
         {
-            tree = ExpressionReader.Read(source, bare);
+            tree = ExpressionReader.Read(source);
             error = null;
             return true;
         }
@@ -343,17 +347,17 @@ public static class Expression
     /// Writes a tree back out as a formula. A place nothing was put in is written as
     /// <paramref name="hole"/>, which is what the editor shows and never what the engine reads.
     /// </summary>
-    public static string Render(ExpressionNode tree, string hole = "▢", bool bare = false)
-        => ExpressionWriter.Write(tree, hole, bare);
+    public static string Render(ExpressionNode tree, string hole = "▢")
+        => ExpressionWriter.Write(tree, hole);
 
-    private static Value EvaluateChecked(string? source, IVariableResolver? variables, bool bare)
+    private static Value EvaluateChecked(string? source, IVariableResolver? variables)
     {
         if (string.IsNullOrWhiteSpace(source))
         {
             return Value.Null;
         }
 
-        var tree = ExpressionReader.Read(source, bare);
+        var tree = ExpressionReader.Read(source);
         return ExpressionCompiler.Compile(tree, variables ?? EmptyVariableResolver.Instance)();
     }
 }

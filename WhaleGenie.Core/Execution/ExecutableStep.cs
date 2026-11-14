@@ -62,7 +62,7 @@ public sealed class ExecutableStep
     /// speak lines — a failure message, a log, a mode the catalogue declares — and nothing is read
     /// back out of it: what a step holds is <see cref="Written"/>.
     /// </summary>
-    public string Text(string name) => FormulaText.Write(Parameter(name)?.Written);
+    public string Text(string name) => Formula.Word(Parameter(name)?.Written);
 
     /// <summary>The child steps held by a named parameter.</summary>
     public IReadOnlyList<ExecutableStep> Children(string name) => Parameter(name)?.Steps ?? [];
@@ -92,7 +92,7 @@ public sealed class ExecutableStep
             foreach (var row in parameter.Rows)
             {
                 if (row.TryGetValue(FieldNames.Key, out var written)
-                    && string.Equals(FormulaText.Write(written).Trim(), key,
+                    && string.Equals(Formula.Word(written).Trim(), key,
                         StringComparison.OrdinalIgnoreCase))
                 {
                     return row.TryGetValue(FieldNames.Name, out var name)

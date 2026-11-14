@@ -69,7 +69,7 @@ public partial class StepTreeTests
                 {
                     Name = "condition",
                     Kind = ActionParameterKind.Expression,
-                    Written = Formula.FromLine("false"),
+                    Written = Fields.Shape("false"),
                 });
             editor.AddStep(conditional);
 

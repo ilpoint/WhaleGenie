@@ -180,9 +180,10 @@ public partial class StepParameterViewModel : ViewModelBase
                 else
                 {
                     // Anything that is not a plain number is an expression the engine can still
-                    // evaluate, so the text has to survive opening and saving the step.
+                    // evaluate. The formula box shows the formula itself — a name as its name,
+                    // with no corner marks — exactly as it does when the value window writes it.
                     UseFormula = true;
-                    Text = raw;
+                    Text = Expression.Render(stored.Written);
                 }
 
                 // The text is only what the box shows; the shape is what the step keeps, and it is
@@ -242,7 +243,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 try
                 {
                     Text = ReadAsFormula && stored.Written is not (TextNode or ConcatNode)
-                        ? Expression.Render(stored.Written, bare: true)
+                        ? Expression.Render(stored.Written)
                         : Formula.Speak(stored.Written);
                 }
                 finally

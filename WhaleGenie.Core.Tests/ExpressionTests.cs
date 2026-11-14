@@ -391,28 +391,4 @@ public class ExpressionTests
         Assert.Equal("2.5", Value.FromNumber(2.5).AsText());
         Assert.Equal("0.3", Expression.Evaluate("0.1 + 0.2").AsText());
     }
-
-    [Theory]
-    [InlineData("$count + 1", "count")]
-    [InlineData("upper($name)", "name")]
-    [InlineData("append($names, $item)", "names,item")]
-    [InlineData("$sys.date + \"-\" + $name", "sys.date,name")]
-    [InlineData("$count - 1", "count")]
-    [InlineData("$a and $a", "a")]
-    [InlineData("nothing here", "")]
-    [InlineData("cost is $5", "5")]
-    [InlineData("$123 + $2金币", "123,2金币")]
-    [InlineData("$$123 + $2", "2")]
-    public void Referenced_names_are_found_inside_expressions(string source, string expected)
-        => Assert.Equal(expected, string.Join(",", Expression.ReferencedNames(source)));
-
-    [Fact]
-    public void A_hyphen_reads_as_a_minus_rather_than_part_of_a_name()
-    {
-        var bag = new VariableBag();
-        bag.SetNumber("count", 5);
-
-        Assert.Equal("4", Expression.Evaluate("$count-1", bag).AsText());
-        Assert.Equal(["count"], Expression.ReferencedNames("$count-1"));
-    }
 }

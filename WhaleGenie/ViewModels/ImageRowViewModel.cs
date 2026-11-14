@@ -126,7 +126,7 @@ public partial class ImageRowViewModel : ViewModelBase
         // the step is built from that shape rather than from a second reading of the line.
         if (!_composing)
         {
-            _shape = value.Trim().Length == 0 ? Formula.Nothing : Formula.FromLine(value);
+            _shape = value.Trim().Length == 0 ? Formula.Nothing : Formula.Text(value);
         }
 
         RefreshThumbnail();
@@ -156,21 +156,32 @@ public partial class ImageRowViewModel : ViewModelBase
     /// One picture back out of the macro file. The shape is what the file holds; the line is drawn
     /// from it for the box, without reading the line back and losing a name's identity.
     /// </summary>
-    public static ImageRowViewModel From(StepParameterRow row)
+    /// <summary>
+    /// Puts a shape in the row, keeping the identity each name carries. The line is drawn from
+    /// the shape rather than the shape being read out of a line, so a name the value window handed
+    /// over stays bound to its declaration. Typing is the only other way in, and that writes
+    /// <see cref="Formula.Text"/> above.
+    /// </summary>
+    public void Write(ExpressionNode value)
     {
-        var image = new ImageRowViewModel();
-        image._composing = true;
+        _shape = value;
+        _composing = true;
         try
         {
-            image.Text = row.Text("image");
+            Text = Formula.Speak(value);
         }
         finally
         {
-            image._composing = false;
+            _composing = false;
         }
 
-        image._shape = row.Cell("image");
-        image.RefreshThumbnail();
+        RefreshThumbnail();
+    }
+
+    public static ImageRowViewModel From(StepParameterRow row)
+    {
+        var image = new ImageRowViewModel();
+        image.Write(row.Cell("image"));
         return image;
     }
 }

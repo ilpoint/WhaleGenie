@@ -122,36 +122,6 @@ public partial class MacroCheckTests
         Assert.Equal(Strings.Format("Editor.Problem.BadResultName", "two words"),
             problem.Message);
     }
-
-    [Theory]
-    [InlineData("$x +", true)]
-    [InlineData("$x + 1", false)]
-    [InlineData("$$5", false)]
-    [InlineData("plain text", false)]
-    public void A_value_that_reads_as_an_expression_is_parsed_while_it_is_written(
-        string value, bool marked)
-    {
-        var step = Step("control.setVariable", Text("name", "y"), Text("scope", "local"),
-            Value("value", value));
-
-        // x is defined first, so the only question left about the value is whether it parses.
-        var problems = Inspect(Set("x", "1"), step)
-            .Where(problem => ReferenceEquals(problem.Step, step))
-            .ToList();
-
-        if (!marked)
-        {
-            Assert.Empty(problems);
-        }
-        else
-        {
-            var before = Strings.Get("Editor.Problem.BadExpression")
-                .Replace("{0}", string.Empty, StringComparison.Ordinal);
-            Assert.Contains(problems, problem =>
-                problem.Message.StartsWith(before, StringComparison.Ordinal));
-        }
-    }
-
     [Fact]
     public void A_required_field_left_empty_is_marked()
     {

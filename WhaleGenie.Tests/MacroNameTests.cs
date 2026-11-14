@@ -97,7 +97,7 @@ public class MacroNameTests
             {
                 Type = "control.delay",
                 Parameters =
-                [new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.FromLine("5") }]
+                [new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.Number(5) }]
             });
             MacroPackage.Save(path, [incoming], [], "test");
 

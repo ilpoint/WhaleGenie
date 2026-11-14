@@ -35,91 +35,6 @@ public class VariableFieldTests
             Assert.True(heading.OffersFormula);
         });
     }
-
-    /// <summary>
-    /// A value that names something is edited as the pieces it is made of: the words, and each name
-    /// taking a box of its own. What tells a reader that a word is a variable is then the shape of
-    /// it, not a sign written in front — nothing has to be typed to make one.
-    /// </summary>
-    [Fact]
-    public void A_value_with_a_name_in_it_is_edited_as_pieces()
-    {
-        Ui.Run(() =>
-        {
-            var field = Parameter(Open("system.notify"), "notificationText");
-            Assert.False(field.ShowsParts);
-
-            field.Text = "你好，$name！";
-            Assert.True(field.ShowsParts);
-            Assert.Equal(["你好，", "name", "！"], Spoken(field));
-            Assert.Equal([false, true, false], field.Parts.Take(3).Select(part => part is NamePart));
-
-            // A value that names nothing is a box like any other: there is nothing a box cannot show.
-            field.Text = "你好";
-            Assert.False(field.ShowsParts);
-        });
-    }
-
-    /// <summary>
-    /// What is typed in one of the runs is text, and it is the value: the pieces write themselves
-    /// back, so there is no second copy of the value to keep in step.
-    /// </summary>
-    [Fact]
-    public void Typing_in_a_run_writes_the_value_back()
-    {
-        Ui.Run(() =>
-        {
-            var field = Parameter(Open("system.notify"), "notificationText");
-            field.Text = "你好，$name！";
-
-            var first = field.Parts.OfType<TextPart>().First();
-            first.Text = "再见，";
-
-            Assert.Equal("再见，「name」！", field.Text);
-            Assert.True(field.ShowsParts);
-        });
-    }
-
-    /// <summary>
-    /// A name picked from the wall goes in where the person was writing, splitting the run they
-    /// were in. It never goes through the text, so no spelling of a name is ever typed.
-    /// </summary>
-    [Fact]
-    public void A_name_goes_in_where_the_person_was_writing()
-    {
-        Ui.Run(() =>
-        {
-            var field = Parameter(Open("system.notify"), "notificationText");
-            field.Text = "你好，$name！";
-
-            field.RememberPlace(field.Parts.OfType<TextPart>().First(), 2);
-            field.InsertName("count");
-
-            Assert.Equal("你好「count」，「name」！", field.Text);
-            Assert.Equal(["你好", "count", "，", "name", "！"], Spoken(field));
-        });
-    }
-
-    /// <summary>
-    /// Taking a name out joins the runs of text it stood between, so a value that is back to plain
-    /// text stops being edited as pieces at all.
-    /// </summary>
-    [Fact]
-    public void Taking_a_name_out_joins_the_text_around_it()
-    {
-        Ui.Run(() =>
-        {
-            var field = Parameter(Open("system.notify"), "notificationText");
-            field.Text = "a$name b";
-
-            var name = Assert.Single(field.Parts.OfType<NamePart>());
-            name.Remove.Execute(null);
-
-            Assert.Equal("a b", field.Text);
-            Assert.False(field.ShowsParts);
-        });
-    }
-
     /// <summary>
     /// A whole value read as one formula is not a sentence with names in it, so it keeps the one box
     /// it has always been edited in.
@@ -130,7 +45,7 @@ public class VariableFieldTests
         Ui.Run(() =>
         {
             var field = Parameter(Open("system.notify"), "notificationText");
-            field.Text = "$count + 1";
+            field.Text = "「count」 + 1";
 
             Assert.False(field.ShowsParts);
         });
@@ -221,39 +136,16 @@ public class VariableFieldTests
                 Assert.Equal("30", region.Regions[0].ToRow().Text("width"));
                 Assert.Equal("40", region.Regions[0].ToRow().Text("height"));
 
-                region.AddRegion(new RegionRowViewModel { OrVariable = "$shot" });
+                region.AddRegion(new RegionRowViewModel { OrVariable = "shot" });
                 Assert.Equal(2, region.Regions.Count);
-                Assert.Equal("$shot", region.Regions[1].ToRow().Text("text"));
+                Assert.Equal("shot", region.Regions[1].ToRow().Text("text"));
 
                 region.RemoveRegion(region.Regions[0]);
                 Assert.Single(region.Regions);
-                Assert.Equal("$shot", region.Regions[0].ToRow().Text("text"));
+                Assert.Equal("shot", region.Regions[0].ToRow().Text("text"));
             }
         });
     }
-
-    /// <summary>
-    /// A window is one captured rule rather than a text box beside a comparison choice. The field
-    /// can still be handed a variable holding a window record, through its own variable picker.
-    /// </summary>
-    [Fact]
-    public void A_window_is_one_rule_and_a_variable_can_be_used_instead()
-    {
-        Ui.Run(() =>
-        {
-            foreach (var key in new[] { "window.exists", "vision.findImage", "input.keyPress" })
-            {
-                var field = Parameter(Open(key), "window");
-
-                Assert.True(field.IsWindowRule, $"{key}'s window is not one rule field");
-                Assert.False(field.OffersFormula, $"{key}'s window offers the expression editor");
-
-                field.UseWindowVariable("count");
-                Assert.Equal("$count", field.Text);
-            }
-        });
-    }
-
     /// <summary>
     /// Every action that names a window uses the same one field shape.
     /// </summary>

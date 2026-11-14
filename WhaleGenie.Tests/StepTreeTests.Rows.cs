@@ -35,7 +35,7 @@ public partial class StepTreeTests
                     });
 
             var choice = Step("control.switch",
-                Text("switchValue", "$mode"),
+                Text("switchValue", "mode"),
                 new StepParameter
                 {
                     Name = "cases",

@@ -37,7 +37,7 @@ public partial class MacroEditorWorkspaceTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             var loop = Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps });
             editor.AddStep(loop);
             Dispatcher.UIThread.RunJobs();
@@ -78,7 +78,7 @@ public partial class MacroEditorWorkspaceTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             editor.AddStep(Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                 new StepParameter { Name = "body", Kind = ActionParameterKind.Steps }));
             Dispatcher.UIThread.RunJobs();
 
@@ -123,13 +123,13 @@ public partial class MacroEditorWorkspaceTests
 
             var editor = (MacroEditorViewModel)window.DataContext!;
             editor.AddStep(Step("control.repeat",
-                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.FromLine("2") },
+                new StepParameter { Name = "times", Kind = ActionParameterKind.Number, Written = Formula.Number(2) },
                 new StepParameter
                 {
                     Name = "body",
                     Kind = ActionParameterKind.Steps,
                     Steps = [Step("control.delay",
-                        new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.FromLine("1") })],
+                        new StepParameter { Name = "ms", Kind = ActionParameterKind.Number, Written = Formula.Number(1) })],
                 }));
             Dispatcher.UIThread.RunJobs();
 
@@ -181,7 +181,7 @@ public partial class MacroEditorWorkspaceTests
                 {
                     Name = "times",
                     Kind = ActionParameterKind.Number,
-                    Written = Formula.FromLine("2"),
+                    Written = Formula.Number(2),
                 },
                 new StepParameter
                 {

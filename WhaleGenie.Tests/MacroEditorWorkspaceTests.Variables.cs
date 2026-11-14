@@ -110,7 +110,7 @@ public partial class MacroEditorWorkspaceTests
                 var scope = form.Parameters.Single(parameter => parameter.Definition.Name == "scope");
                 scope.Option = scope.Choices.Single(option => option.Value == "global");
                 form.Parameters.Single(parameter => parameter.Definition.Name == "value").Text =
-                    "$count + 1";
+                    "「count」 + 1";
                 Dispatcher.UIThread.RunJobs();
 
                 Assert.True(form.ShowsGlobalPersistence);

@@ -79,7 +79,7 @@ public partial class MacroEditorTests
                             {
                                 Name = "steps",
                                 Kind = ActionParameterKind.Steps,
-                                Steps = [Set("inner", "$total")],
+                                Steps = [Set("inner", "total")],
                             },
                         ],
                     },

@@ -34,7 +34,7 @@ internal static class SampleFiles
         var hasWindow = parameters.Any(parameter => parameter.Name == "window");
         var how = hasWindow
             ? parameters.FirstOrDefault(parameter => parameter.Name == "how") is { } asked
-                ? FormulaText.Write(asked.Written)
+                ? Formula.Word(asked.Written)
                 : null
             : null;
         var written = new List<ExecutableParameter>(parameters.Length);
@@ -51,12 +51,13 @@ internal static class SampleFiles
                 continue;
             }
 
-            var text = FormulaText.Write(parameter.Written);
-            if (text.TrimStart().StartsWith('$'))
+            if (parameter.Written is VariableNode)
             {
                 written.Add(parameter);
                 continue;
             }
+
+            var text = Formula.Word(parameter.Written);
 
             var rule = WindowRule.TryParse(text, out var parsed)
                 ? parsed

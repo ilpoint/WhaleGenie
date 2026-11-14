@@ -14,7 +14,7 @@ public partial class ValuePickerTests
     [Fact]
     public void A_step_past_either_end_stays_where_it_is()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a", Variables(), ActionValueForm.Value);
 
         form.SetCaret(0);
         Assert.False(form.StepCaret(-1));
@@ -43,7 +43,7 @@ public partial class ValuePickerTests
         var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
         form.SetCaret(2);
 
-        form.Place("$c");
+        form.Place("c");
 
         Assert.Contains(form.Caret, form.Seams());
     }
@@ -80,7 +80,7 @@ public partial class ValuePickerTests
     [Fact]
     public void The_function_group_on_show_is_the_marked_one()
     {
-        var form = new ValuePickerViewModel("$a", Variables(), ActionValueForm.Value);
+        var form = new ValuePickerViewModel("a", Variables(), ActionValueForm.Value);
 
         Assert.True(form.FunctionGroups[0].IsSelected);
         Assert.Single(form.FunctionGroups, filter => filter.IsSelected);
