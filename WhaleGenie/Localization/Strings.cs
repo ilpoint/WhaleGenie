@@ -972,7 +972,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UndeclaredResult"] =
             "\"{1}\" does not offer to hand back \"{0}\", so this call gets nothing.",
         ["Editor.Problem.UndefinedVariable"] = "Nothing defines \"${0}\", so it reads as nothing.",
-        ["Editor.Problem.UnknownVariableReference"] = "This reference points at a declaration that is not here; it will be read by its name.",
         ["Editor.Problem.PostedMove"] = "Background input does not move the pointer, so this step "
             + "cannot move by an offset here. Use in-front or driver input, or write the place out "
             + "with Mouse Move.",
@@ -2096,7 +2095,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.Message"] = "{0}",
         ["Run.Unsupported"] = "The engine does not support this action yet: {0}",
         ["Run.VariableTableFull"] = "This run is already holding {0} names, which is as many as it may keep. A name built while the macro runs is kept until the run ends: clear the names that are done with, or reuse one name each round.",
-        ["Run.VariableNameConflict"] = "Two declarations in this macro are called \"{0}\". One name holds one value, so the run cannot tell which one to read; rename one of them.",
         ["Run.VariableTypeMismatch"] = "The value written to \"{0}\" is not the type it was declared as. A number takes numbers, a list takes lists, and a flag takes true or false.",
         ["Run.BadExpression"] = "The value is not a valid expression: {0}",
         ["Run.BadInitial"] = "The starting value of this local variable cannot be read, or is not the kind it declares: {0}",
@@ -2522,7 +2520,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["GlobalVariables.Definition"] = "Variable definition",
         ["GlobalVariables.NameHint"] = "A name may begin with a letter, digit or underscore. After that, use only letters, digits, underscores and dots.",
         ["GlobalVariables.HasProblemHint"] = "This variable has a setting that needs attention.",
-        ["GlobalVariables.DefaultPlaceholder"] = "A literal or an expression such as count + 1",
+        ["GlobalVariables.DefaultPlaceholder"] = "Press + to pick a value",
         ["GlobalVariables.CurrentHint"] = "What the running program holds, or the value saved for it, or the default. Runs write it, so it is shown here and not edited.",
         ["GlobalVariables.Uses"] = "References",
         ["GlobalVariables.NoUses"] = "No step in the current macro reads this variable.",
@@ -3374,7 +3372,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.Problem.UndeclaredArgument"] = "“{1}”没有声明“{0}”这个形参，传过去的这个值没有步骤会读。",
         ["Editor.Problem.UndeclaredResult"] = "“{1}”没有声明要交回“{0}”，这一步取不到它。",
         ["Editor.Problem.UndefinedVariable"] = "没有定义“${0}”，读到的会是空的。",
-        ["Editor.Problem.UnknownVariableReference"] = "这条引用指向的声明不在这里，会按名字读取。",
         ["Editor.Problem.PostedMove"] = "「后台消息」这一档不做相对移动：它只把消息投给窗口，屏幕上的"
             + "指针不会动。改用前台或驱动级，或者用「鼠标移动到」把位置按绝对坐标写全。",
         ["Editor.Problem.WaitWithoutTimeout"] = "这一步会等待，但没有设置自己的超时；重试或外层限时"
@@ -4813,7 +4810,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Log.Message"] = "{0}",
         ["Run.Unsupported"] = "引擎尚不支持这个动作：{0}",
         ["Run.VariableTableFull"] = "这次运行自己的变量表已经装到上限（{0} 个名字）。运行期拼出来的名字会一直留到运行结束；用「清除变量」放掉不再需要的名字，或改成每轮复用同一个名字。",
-        ["Run.VariableNameConflict"] = "这个宏里有两个声明都叫「{0}」。一个名字只有一个值，运行没法知道该读哪一个；请给其中一个改名。",
         ["Run.VariableTypeMismatch"] = "写进「{0}」的值与它声明的类型不符。数字变量只收数字，列表只收列表，布尔只收真假。",
         ["Run.BadExpression"] = "这个值不是有效的表达式：{0}",
         ["Run.BadInitial"] = "局部变量的初始值读不出来，或者与它声明的类型不符：{0}",
@@ -5200,7 +5196,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["GlobalVariables.Definition"] = "变量定义",
         ["GlobalVariables.NameHint"] = "变量名可以用汉字、字母、数字或下划线开头，后面只能再用这些字符和点。",
         ["GlobalVariables.HasProblemHint"] = "这个变量有需要处理的设置。",
-        ["GlobalVariables.DefaultPlaceholder"] = "直接填值，或写表达式，例如 count + 1",
+        ["GlobalVariables.DefaultPlaceholder"] = "按「+」选一个值",
         ["GlobalVariables.CurrentHint"] = "运行中的程序此刻装着什么，或者为它保存下来的值，再或者默认值。它由运行写入，这里只显示，不能改。",
         ["GlobalVariables.Uses"] = "引用",
         ["GlobalVariables.NoUses"] = "当前宏没有步骤读取这个变量。",

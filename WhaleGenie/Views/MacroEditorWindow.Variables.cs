@@ -115,8 +115,7 @@ public partial class MacroEditorWindow : AppWindow
                 page.RenameGlobalReferences(draft.OriginalName, next);
             }
 
-            _rootViewModel.Persisted.Rename(draft.OriginalName, next,
-                VariableCatalog.FindGlobal(draft.OriginalName)?.Id ?? string.Empty);
+            _rootViewModel.Persisted.Rename(draft.OriginalName, next);
             SharedVariables.Current.Rename(draft.OriginalName, next);
         }
 

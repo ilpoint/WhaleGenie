@@ -61,7 +61,7 @@ public partial class ValuePickerTests
     public void A_number_cell_keeps_the_shape_the_window_handed_it()
     {
         var cell = new NumberCellViewModel("x", "hint");
-        var shape = Formula.Binary("+", Formula.Name("count", "a7k2m9"), Formula.Number(2));
+        var shape = Formula.Binary("+", Formula.Name("count"), Formula.Number(2));
 
         cell.Write(shape);
 
@@ -133,9 +133,9 @@ public partial class ValuePickerTests
     }
 
     [Fact]
-    public void A_shape_opened_and_left_alone_keeps_the_identity_a_line_cannot_carry()
+    public void A_shape_opened_and_left_alone_comes_back_whole()
     {
-        var shape = Formula.Name("count", "a7k2m9");
+        var shape = Formula.Name("count");
         var form = new ValuePickerViewModel(shape, Variables(), ActionValueForm.Value);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;
@@ -144,13 +144,12 @@ public partial class ValuePickerTests
 
         var handed = Assert.IsType<ValuePick>(answer).Value;
         Assert.Equal(shape, handed);
-        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(handed).Id);
     }
 
     [Fact]
     public void An_edit_replaces_the_shape_the_window_started_from()
     {
-        var form = new ValuePickerViewModel(Formula.Name("count", "a7k2m9"),
+        var form = new ValuePickerViewModel(Formula.Name("count"),
             Variables(), ActionValueForm.Value);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;

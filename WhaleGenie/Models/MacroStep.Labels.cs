@@ -64,7 +64,7 @@ public partial class MacroStep : INotifyPropertyChanged
         // puts in front of a reference. The shape holds the name and its identity; this is the
         // reader for the places that ask a step what it says.
         return ParameterDefinition(parameter) is { NamesVariable: true }
-            ? Formula.NameOf(parameter.Written).Name
+            ? Formula.NameOf(parameter.Written)
             : parameter.Value;
     }
 }

@@ -17,7 +17,7 @@ public class FormulaShapeTests
         Assert.IsType<NumberNode>(Formula.Number(3));
         Assert.IsType<DateNode>(Formula.Date("2026-11-12"));
         Assert.IsType<ConstantNode>(Formula.Constant("true"));
-        Assert.IsType<VariableNode>(Formula.Name("count", "a7k2m9"));
+        Assert.IsType<VariableNode>(Formula.Name("count"));
         Assert.IsType<CallNode>(Formula.Call("upper", Formula.Name("who")));
         Assert.IsType<UnaryNode>(Formula.Unary("not", Formula.Constant("false")));
         Assert.IsType<BinaryNode>(Formula.Binary("+", Formula.Number(1), Formula.Number(2)));
@@ -43,7 +43,7 @@ public class FormulaShapeTests
             Formula.Number(3),
             Formula.Date("2026-11-12"),
             Formula.Constant("true"),
-            Formula.Name("count", "a7k2m9"),
+            Formula.Name("count"),
             Formula.Run([Formula.Text("你好，"), Formula.Name("who")]),
             Formula.List(Formula.Number(1), Formula.Text("two")),
             Formula.Call("upper", Formula.Name("who")),
@@ -61,11 +61,11 @@ public class FormulaShapeTests
     }
 
     [Fact]
-    public void A_name_keeps_its_identity_through_the_file()
+    public void A_name_survives_the_file()
     {
-        var readBack = FormulaJson.Read(FormulaJson.Write(Formula.Name("count", "a7k2m9")));
+        var readBack = FormulaJson.Read(FormulaJson.Write(Formula.Name("count")));
 
-        Assert.Equal(new VariableNode("count", "a7k2m9"), readBack);
+        Assert.Equal(new VariableNode("count"), readBack);
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -112,19 +113,6 @@ public static class VariableCatalog
 
     public static void NotifyGlobalsChanged() => GlobalsChanged?.Invoke();
 
-    /// <summary>
-    /// Names a picker should offer: system and global variables first, then the ones
-    /// the surrounding macro created for itself.
-    /// </summary>
-    public static IReadOnlyList<string> Names(IEnumerable<string>? localNames = null)
-    {
-        var names = new SortedSet<string>(SystemVariables.Select(variable => variable.Name),
-            StringComparer.OrdinalIgnoreCase);
-        names.UnionWith(Globals.Select(variable => variable.Name));
-        names.UnionWith(localNames ?? Enumerable.Empty<string>());
-        return [.. names];
-    }
-
     private static VariableDefinition SystemVariable(string name, string type, string description,
         string defaultValue)
         => new()
@@ -133,6 +121,6 @@ public static class VariableCatalog
             Scope = VariableScope.System,
             Type = VariableTypes.KindOf(type),
             Description = description,
-            DefaultValue = defaultValue,
+            Default = Formula.Text(defaultValue),
         };
 }

@@ -472,10 +472,6 @@ public sealed partial class MacroRunner
         {
             throw new StepFailure(RunKeys.BadExpression, failure.Detail);
         }
-        catch (VariableConflictException failure)
-        {
-            throw new StepFailure(RunKeys.VariableNameConflict, failure.Name);
-        }
         catch (VariableTypeException failure)
         {
             throw new StepFailure(RunKeys.VariableTypeMismatch, failure.Name);

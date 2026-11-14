@@ -228,15 +228,15 @@ public class ReferencePictureTests
     }
 
     [Fact]
-    public void An_image_row_from_a_file_keeps_the_identity_of_its_name()
+    public void An_image_row_from_a_file_keeps_the_name_it_holds()
     {
         var stored = new StepParameterRow();
-        stored.Set("image", Formula.Name("shot", "a7k2m9"));
+        stored.Set("image", Formula.Name("shot"));
 
         var row = ImageRowViewModel.From(stored);
 
-        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(row.Shape).Id);
-        Assert.Equal("a7k2m9",
-            Assert.IsType<VariableNode>(row.ToRow().Cell("image")).Id);
+        Assert.Equal("shot", Assert.IsType<VariableNode>(row.Shape).Name);
+        Assert.Equal("shot",
+            Assert.IsType<VariableNode>(row.ToRow().Cell("image")).Name);
     }
 }

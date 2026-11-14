@@ -88,76 +88,13 @@ public static partial class MacroCheck
                 return [];
         }
     }
+
     /// <summary>
-    /// The variable a run-handle field names when it holds one variable and nothing else, or null
-    /// when it is an expression. Only that form lets the check say which run a wait settles.
-    /// </summary>
-    /// <summary>    /// <summary>
     /// The names a macro may read: the ones WhaleGenie provides, the shared ones, the ones its own
     /// steps create, and the ones a call asks a called macro to bring back. A name the macro
     /// defines anywhere counts, because whether a step runs before the one that reads it is a
     /// question the steps alone cannot answer.
     /// </summary>
-    /// <summary>
-    /// The identities a macro may read: the shared declarations, its own parameters, results and
-    /// locals, and the names its steps declare. A reference carrying an identity outside this set
-    /// points at a declaration that is gone or was never here.
-    /// </summary>
-    private static HashSet<string> DefinedIds(IReadOnlyList<MacroStep> steps, MacroCallable? own)
-    {
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var global in VariableCatalog.Globals.Where(global => global.Id.Length > 0))
-        {
-            ids.Add(global.Id);
-        }
-
-        if (own is not null)
-        {
-            foreach (var parameter in own.Parameters.Where(parameter => parameter.Id.Length > 0))
-            {
-                ids.Add(parameter.Id);
-            }
-
-            foreach (var result in own.Results.Where(result => result.Id.Length > 0))
-            {
-                ids.Add(result.Id);
-            }
-
-            foreach (var local in own.OwnLocals.Where(local => local.Id.Length > 0))
-            {
-                ids.Add(local.Id);
-            }
-        }
-
-        foreach (var step in Every(steps))
-        {
-            foreach (var parameter in step.Parameters)
-            {
-                if (parameter.Kind is ActionParameterKind.Returns)
-                {
-                    foreach (var row in parameter.Rows)
-                    {
-                        var id = Formula.NameOf(row.Cell(FieldNames.Name)).Id;
-                        if (id.Length > 0)
-                        {
-                            ids.Add(id);
-                        }
-                    }
-                }
-                else if (step.DefinesVariable(parameter))
-                {
-                    var id = Formula.NameOf(parameter.Written).Id;
-                    if (id.Length > 0)
-                    {
-                        ids.Add(id);
-                    }
-                }
-            }
-        }
-
-        return ids;
-    }
-
     private static HashSet<string> DefinedVariables(IReadOnlyList<MacroStep> steps)
     {
         var defined = new HashSet<string>(
@@ -380,7 +317,7 @@ public static partial class MacroCheck
             foreach (var row in parameter.Rows)
             {
                 var result = row.Text(FieldNames.Key).Trim();
-                var name = Formula.NameOf(row.Cell(FieldNames.Name)).Name.Trim();
+                var name = Formula.NameOf(row.Cell(FieldNames.Name));
                 if (result.Length > 0 && name.Length > 0)
                 {
                     yield return (result, name);

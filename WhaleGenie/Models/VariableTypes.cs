@@ -38,23 +38,18 @@ public static class VariableTypes
     };
 
     /// <summary>
-    /// The kind a word stands for. A colour was a declared type once: it is text with a picker, and
-    /// a value kept by that build still opens as the text it always was.
+    /// The kind a word stands for, read from the words this program writes. The list is explicit
+    /// rather than a parse of the enum: a numeric spelling must not quietly become a kind, and a
+    /// word nothing knows is text — the kind every value can be read as.
     /// </summary>
-    public static ValueKind KindOf(string? name)
+    public static ValueKind KindOf(string? name) => name?.Trim().ToLowerInvariant() switch
     {
-        var written = name?.Trim();
-        if (string.IsNullOrEmpty(written))
-        {
-            return ValueKind.Text;
-        }
-
-        // The file spells a kind the way the enum does ("Number"); the table and the dropdown
-        // spell it in lower case. Both mean the same kind, and a name nothing knows is text.
-        return System.Enum.TryParse<ValueKind>(written, ignoreCase: true, out var kind)
-            && kind is not ValueKind.Null
-            && System.Enum.IsDefined(kind)
-                ? kind
-                : ValueKind.Text;
-    }
+        "number" => ValueKind.Number,
+        "bool" => ValueKind.Bool,
+        "list" => ValueKind.List,
+        "record" => ValueKind.Record,
+        "date" => ValueKind.Date,
+        "image" => ValueKind.Image,
+        _ => ValueKind.Text,
+    };
 }

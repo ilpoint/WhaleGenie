@@ -110,7 +110,7 @@ public partial class StepParameterViewModel : ViewModelBase
         => Formula.IsNothing(value)
             ? string.Empty
             : Definition.NamesVariable
-                ? Formula.NameOf(value).Name
+                ? Formula.NameOf(value)
                 : ReadAsFormula || IsNumber
                     ? Expression.Render(value)
                     : ExpressionPhrase.Display(value);

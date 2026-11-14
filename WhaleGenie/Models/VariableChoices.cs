@@ -15,9 +15,6 @@ namespace WhaleGenie.Models;
 /// </summary>
 public sealed class VariableChoice
 {
-    /// <summary>The declaration this choice names, empty for a value the program or a run provides.</summary>
-    public string Id { get; init; } = string.Empty;
-
     /// <summary>The name as it is written down, without the dollar sign that reads it.</summary>
     public required string Name { get; init; }
 
@@ -173,7 +170,6 @@ public sealed class VariableChoice
     /// </summary>
     internal VariableChoice WithContent(Func<string, VariableScope, string?> content) => new()
     {
-        Id = Id,
         Name = Name,
         Scope = Scope,
         Type = Type,
@@ -247,7 +243,6 @@ public static class VariableChoices
         [
             .. VariableCatalog.Globals.Select(variable => new VariableChoice
             {
-                Id = variable.Id,
                 Name = variable.Name,
                 Scope = VariableScope.Global,
                 Type = variable.Type,
@@ -294,7 +289,6 @@ public static class VariableChoices
 
             rows.Add(new VariableChoice
             {
-                Id = parameter.Id,
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = parameter.Type,
@@ -317,7 +311,6 @@ public static class VariableChoices
 
             rows.Add(new VariableChoice
             {
-                Id = result.Id,
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = result.Type,
@@ -343,7 +336,6 @@ public static class VariableChoices
             var type = local.Type;
             rows.Add(new VariableChoice
             {
-                Id = local.Id,
                 Name = name,
                 Scope = VariableScope.Local,
                 Type = type,
@@ -467,15 +459,14 @@ public static class VariableChoices
                                 StringComparison.OrdinalIgnoreCase));
                         rows.Add(new VariableChoice
                         {
-                            Id = name.Id,
-                            Name = name.Name,
+                            Name = name,
                             Scope = VariableScope.Local,
                             Type = result?.Type ?? ValueKind.Text,
                             Fields = result?.Fields ?? [],
                             Description = result?.LocalHint ?? string.Empty,
                             Source = step.PickerLabel,
                             Origin = VariableOrigin.Local,
-                            Uses = UsesOf(uses, name.Name),
+                            Uses = UsesOf(uses, name),
                         });
                     }
 
@@ -489,8 +480,7 @@ public static class VariableChoices
 
                 // A name field is read as the name it is: a bound name is written "total", and that
                 // is the same word the wall has to offer.
-                var declared = Formula.NameOf(parameter.Written);
-                var declaredName = declared.Name.Trim();
+                var declaredName = Formula.NameOf(parameter.Written);
                 if (declaredName.Length == 0)
                 {
                     continue;
@@ -498,7 +488,6 @@ public static class VariableChoices
 
                 rows.Add(new VariableChoice
                 {
-                    Id = declared.Id,
                     Name = declaredName,
                     Scope = VariableScope.Local,
                     Description = step.Definition?.Parameters

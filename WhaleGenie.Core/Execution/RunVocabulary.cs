@@ -236,7 +236,6 @@ public static class RunKeys
     public const string Unsupported = "Run.Unsupported";
 
     /// <summary>Two declarations of this run want one name, so neither can own the value.</summary>
-    public const string VariableNameConflict = "Run.VariableNameConflict";
 
     /// <summary>A value was written that the declared name cannot hold.</summary>
     public const string VariableTypeMismatch = "Run.VariableTypeMismatch";

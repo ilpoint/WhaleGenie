@@ -116,7 +116,7 @@ public partial class MacroEditorWorkspaceTests
                 Assert.True(form.ShowsGlobalPersistence);
                 Assert.NotNull(form.GlobalVariableDraft);
                 form.GlobalVariableDraft.Type = "number";
-                form.GlobalVariableDraft.DefaultValue = "2";
+                form.GlobalVariableDraft.Default = Formula.Text("2");
                 form.GlobalVariableDraft.PersistValue = true;
                 Assert.True(form.Parameters
                     .Single(parameter => parameter.Definition.Name == "value").IsExpression);

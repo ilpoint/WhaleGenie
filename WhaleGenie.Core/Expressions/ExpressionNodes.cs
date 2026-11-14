@@ -40,9 +40,9 @@ public sealed record TextNode(string Text) : ExpressionNode;
 /// </summary>
 public sealed record ConcatNode(IReadOnlyList<ExpressionNode> Parts) : ExpressionNode;
 
-/// <summary>A name the macro holds. <paramref name="Id"/> is the declaration's identity; empty
-/// means the name itself is the only thing that identifies it.</summary>
-public sealed record VariableNode(string Name, string Id = "") : ExpressionNode;
+/// <summary>A name the macro holds. The name is the whole key: two declarations cannot share one,
+/// so there is nothing beside it to tell two variables apart.</summary>
+public sealed record VariableNode(string Name) : ExpressionNode;
 
 /// <summary>One of the words that stand for a value on its own: true, false or null.</summary>
 public sealed record ConstantNode(string Word) : ExpressionNode;

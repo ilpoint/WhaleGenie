@@ -196,7 +196,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        parameter.UseWindowVariable(Formula.NameOf(picked.Value).Name);
+        parameter.UseWindowVariable(Formula.NameOf(picked.Value));
     }
 
     /// <summary>One line of the window menu: what it says, what it does, and whether it is the one in force.</summary>

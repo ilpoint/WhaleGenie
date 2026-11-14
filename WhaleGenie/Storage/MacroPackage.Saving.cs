@@ -75,10 +75,8 @@ public static partial class MacroPackage
         // gets one before the file is written rather than on the next load.
         foreach (var macro in macros)
         {
-            VariableIds.Settle(macro);
         }
 
-        VariableIds.SettleGlobals(globals);
 
         // A macro with a fatal declaration problem cannot be called, so writing it into a package
         // would only carry a broken interface forward. The editor blocks the same faults; this is

@@ -24,49 +24,46 @@ public sealed partial class MacroRunner
 {
     private void SetVariable(ExecutableStep step, int depth)
     {
-        var key = ReadNameKey(step, "name");
-        var name = key.Name.Trim();
+        var name = WrittenName(step, "name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        key = key with { Name = name };
-        var target = Target(step, key);
+        var target = Target(step, name);
         var value = ReadValue(step, "value");
-        Variables.Set(key, value, target);
+        Variables.Set(name, value, target);
         NoteLocalGrowth(depth);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
     }
 
     /// <summary>
-    /// Empties a name again. A local one is taken out of the table, so reading it afterwards is the
-    /// same failure as reading a name nothing ever wrote. A global belongs to the project and cannot
+    /// Empties a name again. A local one goes back to the empty value of the kind it was declared
+    /// as, or out of the table when nothing declared it, so reading it afterwards is the same
+    /// failure as reading a name nothing ever wrote. A global belongs to the project and cannot
     /// be removed from inside a macro, so clearing one writes its declared starting value back.
     /// </summary>
     private void ClearVariable(ExecutableStep step, int depth)
     {
-        var key = ReadNameKey(step, "name");
-        var name = key.Name.Trim();
+        var name = WrittenName(step, "name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        key = key with { Name = name };
         if (string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
         {
-            if (!Variables.Global.Contains(key))
+            if (!Variables.Global.Contains(name))
             {
                 throw new StepFailure(RunKeys.GlobalMustExist, name);
             }
 
-            Variables.Global.Set(key, Variables.GlobalDefault?.Invoke(name) ?? Value.Null);
+            Variables.Global.Set(name, Variables.GlobalDefault?.Invoke(name) ?? Value.Null);
             Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedVariable, name);
             return;
         }
 
-        Variables.Local.Remove(key);
+        Variables.Local.Clear(name);
         Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedVariable, name);
     }
 
@@ -155,19 +152,17 @@ public sealed partial class MacroRunner
     /// </summary>
     private void IncrementGlobal(ExecutableStep step, int depth)
     {
-        var key = ReadNameKey(step, "name");
-        var name = key.Name.Trim();
+        var name = WrittenName(step, "name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        key = key with { Name = name };
         var amount = ReadValue(step, "amount").AsNumber();
         double sum;
         try
         {
-            if (!Variables.Global.TryAddNumber(key, amount, out sum))
+            if (!Variables.Global.TryAddNumber(name, amount, out sum))
             {
                 throw new StepFailure(RunKeys.GlobalMustExist, name);
             }
@@ -192,16 +187,14 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ChangeList(ExecutableStep step, int depth)
     {
-        var key = ReadNameKey(step, "name");
-        var name = key.Name.Trim();
+        var name = WrittenName(step, "name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        key = key with { Name = name };
-        var bag = Variables.Local.Contains(key) ? Variables.Local : Variables.Global;
-        if (!bag.TryUpdate(key, current => Changed(step, current, name), out var list))
+        var bag = Variables.Local.Contains(name) ? Variables.Local : Variables.Global;
+        if (!bag.TryUpdate(name, current => Changed(step, current, name), out var list))
         {
             throw new StepFailure(RunKeys.NotAList, name);
         }
@@ -261,7 +254,7 @@ public sealed partial class MacroRunner
         return index;
     }
 
-    private VariableTarget Target(ExecutableStep step, VariableKey key)
+    private VariableTarget Target(ExecutableStep step, string name)
     {
         if (!string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
         {
@@ -270,9 +263,9 @@ public sealed partial class MacroRunner
 
         // Only the Variable Center creates shared variables, so a macro may write to one
         // that already exists but never invent a new one.
-        if (!Variables.Global.Contains(key))
+        if (!Variables.Global.Contains(name))
         {
-            throw new StepFailure(RunKeys.GlobalMustExist, key.Name);
+            throw new StepFailure(RunKeys.GlobalMustExist, name);
         }
 
         return VariableTarget.Global;

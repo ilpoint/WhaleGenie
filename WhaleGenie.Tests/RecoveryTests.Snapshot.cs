@@ -49,7 +49,7 @@ public partial class RecoveryTests
                 Name = "notes",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Text,
-                DefaultValue = "hi",
+                Default = Formula.Text("hi"),
                 Description = "what to say",
             };
 

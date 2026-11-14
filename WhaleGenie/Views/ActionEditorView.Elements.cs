@@ -339,7 +339,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        parameter.AddLine(Formula.NameOf(picked.Value).Name);
+        parameter.AddLine(Formula.NameOf(picked.Value));
     }
 
     /// <summary>

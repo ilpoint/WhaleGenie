@@ -69,77 +69,61 @@ public sealed partial class MacroRunner
     /// not erase the outer one's item. A name no loop around it was using is the macro's own to
     /// read afterwards, and a counter stays readable while the round number does not.
     /// </summary>
-    private LoopScope EnterLoop(params VariableKey[] keys) => EnterLoop(false, keys);
+    private LoopScope EnterLoop(params string[] names) => EnterLoop(false, names);
 
-    private LoopScope EnterLoop(bool keepLast, params VariableKey[] keys)
+    private LoopScope EnterLoop(bool keepLast, params string[] names)
     {
-        var taken = keys.Where(key => key.Name.Trim().Length > 0)
-            .GroupBy(key => key.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .Select(group => group.First())
+        var taken = names.Select(name => name.Trim())
+            .Where(name => name.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-        var values = Variables.Local;
-        var bound = new List<(string Name, string Id, string Previous)>();
-        foreach (var key in taken)
-        {
-            var name = key.Name.Trim();
 
-            // A loop's variable is its own: it borrows the name and never the identity, so a
-            // declaration that already answers to it is shadowed for the length of the block
-            // rather than written. Leaving the block puts the binding back.
-            var id = values.NewId();
-            bound.Add((name, id, values.Bind(name, id)));
+        var values = Variables.Local;
+        var marks = new List<(string Name, VariableMark Mark)>();
+        foreach (var name in taken)
+        {
+            // A loop's variable is its own: it borrows the name and never the value, so a
+            // declaration that already answers to it keeps its value for the length of the block
+            // and gets it back on the way out.
+            marks.Add((name, values.Mark(name)));
         }
 
-        return new LoopScope(values, bound, keepLast);
+        return new LoopScope(values, marks, keepLast);
     }
 
     /// <summary>
     /// The names a loop writes for its own rounds, and what each of them meant before the loop took
     /// it. A name the loop introduced stays afterwards — that is what makes a counter readable once
-    /// the loop is over — while one it shadowed is put back the way it was.
+    /// the loop is over — while one it borrowed is put back the way it was.
     /// </summary>
     private readonly struct LoopScope : IDisposable
     {
         private readonly VariableBag _values;
-        private readonly List<(string Name, string Id, string Previous)> _bound;
+        private readonly List<(string Name, VariableMark Mark)> _marks;
         private readonly bool _keepLast;
 
-        public LoopScope(VariableBag values, List<(string Name, string Id, string Previous)> bound,
+        public LoopScope(VariableBag values, List<(string Name, VariableMark Mark)> marks,
             bool keepLast)
         {
             _values = values;
-            _bound = bound;
+            _marks = marks;
             _keepLast = keepLast;
         }
 
-        /// <summary>
-        /// Writes one of the loop's own names. The identity the loop minted is what is written, so a
-        /// step that rebound the name inside the body cannot send the next round somewhere else.
-        /// </summary>
-        public void Set(string name, Value value)
-        {
-            foreach (var (bound, id, _) in _bound)
-            {
-                if (string.Equals(bound, name, StringComparison.OrdinalIgnoreCase))
-                {
-                    _values.Set(new VariableKey(bound, id), value);
-                    return;
-                }
-            }
-
-            _values.Set(name, value);
-        }
+        /// <summary>Writes one of the loop's own names. The name is the key, so a step inside the
+        /// body writing the same name is writing the same value the next round writes.</summary>
+        public void Set(string name, Value value) => _values.Set(name, value);
 
         public void Dispose()
         {
-            foreach (var (name, id, previous) in _bound)
+            foreach (var (name, mark) in _marks)
             {
-                if (_keepLast && previous.Length == 0)
+                if (_keepLast && !mark.Existed)
                 {
                     continue;
                 }
 
-                _values.Unbind(name, id, previous);
+                _values.Restore(name, mark);
             }
         }
     }

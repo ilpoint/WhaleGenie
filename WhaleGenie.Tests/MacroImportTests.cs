@@ -214,7 +214,7 @@ public class MacroImportTests
         Name = name,
         Scope = VariableScope.Global,
         Type = VariableTypes.KindOf(type),
-        DefaultValue = value,
+        Default = Formula.Text(value),
     };
 
     private static PackageContents Contents(IReadOnlyList<MacroItem> macros,

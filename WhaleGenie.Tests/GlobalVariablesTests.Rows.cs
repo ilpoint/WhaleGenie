@@ -81,7 +81,7 @@ public partial class GlobalVariablesTests
                 Name = "hidden",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "not a number",
+                Default = Formula.Text("not a number"),
             },
         ]);
         GlobalVariableProblemField? focus = null;

@@ -23,14 +23,25 @@ public static class Formula
     public static ExpressionNode Text(string text) => new TextNode(text ?? string.Empty);
 
     /// <summary>One variable read by name. A record's field is part of the name, as it always was.</summary>
-    public static ExpressionNode Name(string name, string id = "") => new VariableNode(name, id);
+    public static ExpressionNode Name(string name) => new VariableNode(name);
 
     /// <summary>
-    /// The name a shape names, with the identity it is bound to. A shape that is text names the
-    /// text; it has no identity of its own. This is the reader for the fields a step writes a
-    /// variable into, where a rendered line would put the name in corner marks.
+    /// The name a shape names. A shape that is text names the text; it has no identity of its own.
+    /// This is the reader for the fields a step writes a variable into, where a rendered line would
+    /// put the name in corner marks.
     /// </summary>
-    public static VariableKey NameOf(ExpressionNode? value) => VariableKey.From(value);
+    public static string NameOf(ExpressionNode? value) => value switch
+    {
+        VariableNode variable => variable.Name.Trim(),
+        TextNode text => text.Text.Trim(),
+        // A field that names a variable may read as a number: the language allows a name of
+        // digits, and the reader keeps a number as the number it is.
+        NumberNode number => number.Text.Trim(),
+        // A date is written down but is not a name; a field that names a variable keeps its words
+        // so the reader can say the name is not one.
+        DateNode date => date.Text.Trim(),
+        _ => string.Empty,
+    };
 
     /// <summary>
     /// Several pieces standing next to each other. One piece is that piece: a run of one is a

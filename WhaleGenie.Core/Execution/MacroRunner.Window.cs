@@ -38,8 +38,7 @@ public sealed partial class MacroRunner
         }
 
         var declared = definition.Return(key);
-        var resultKey = step.ReturnKey(key);
-        var name = resultKey.Name;
+        var name = step.Return(key);
         if (declared is null)
         {
             if (name.Length > 0)
@@ -59,7 +58,7 @@ public sealed partial class MacroRunner
 
         if (name.Length > 0)
         {
-            Variables.Set(resultKey, value);
+            Variables.Set(name, value);
         }
 
         if (_worked is { } worked)
@@ -480,7 +479,7 @@ public sealed partial class MacroRunner
     {
         var written = step.Written(field);
         if (written is VariableNode name && VariableName.IsName(name.Name)
-            && Variables.TryGet(new VariableKey(name.Name, name.Id), out var value))
+            && Variables.TryGet(name.Name, out var value))
         {
             return value;
         }

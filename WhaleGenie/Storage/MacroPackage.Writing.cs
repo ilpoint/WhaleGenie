@@ -57,7 +57,6 @@ public static partial class MacroPackage
                 ["type"] = variable.Type.ToString(),
                 ["default"] = FormulaJson.Write(variable.Default),
                 ["description"] = variable.Description,
-                ["id"] = variable.Id,
             });
         }
 

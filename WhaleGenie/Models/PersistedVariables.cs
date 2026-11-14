@@ -12,11 +12,10 @@ namespace WhaleGenie.Models;
 
 /// <summary>
 /// Values of global variables the person asked to keep on this machine. An entry is kept under the
-/// declaration's identity, not its name: renaming the variable moves its label, and a project whose
-/// global happens to share a name with another project's no longer inherits its saved value. A
-/// value is stored as JSON rather than as the text it reads as, because a list with a comma in one
-/// of its items and a number with more than six decimals both survive JSON and neither survives a
-/// line meant for a person to read.
+/// name the macro reads, which is the same key a run uses: renaming a variable moves its entry, and
+/// two globals cannot share one. A value is stored as JSON rather than as the text it reads as,
+/// because a list with a comma in one of its items and a number with more than six decimals both
+/// survive JSON and neither survives a line meant for a person to read.
 ///
 /// <para>
 /// This is a service, not a static class: the program builds one for the real file, a test builds
@@ -26,15 +25,14 @@ namespace WhaleGenie.Models;
 /// </summary>
 public sealed class PersistedVariables : IDisposable
 {
-    /// <summary>The shape this build writes. Version 1 kept names and the text values read as.</summary>
+    /// <summary>The one shape this build reads and writes.</summary>
     private const int FileVersion = 2;
 
-    private sealed record Saved(string Id, string Name, ValueKind Type, Value Value);
+    private sealed record Saved(string Name, Value Value);
 
     private readonly string _path;
     private readonly object _gate = new();
-    private readonly Dictionary<string, Saved> _byKey = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _keyByName = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Saved> _byName = new(StringComparer.OrdinalIgnoreCase);
 
     private VariableBag? _shared;
     private Timer? _timer;
@@ -43,8 +41,8 @@ public sealed class PersistedVariables : IDisposable
     private bool _backedUp;
 
     /// <summary>
-    /// True when the file on disk was written by a newer build. It is left exactly as it is: an
-    /// older program that overwrote it would drop values this one cannot read yet.
+    /// True when the file on disk was written by a build that keeps more than this one understands.
+    /// It is left exactly as it is rather than overwritten with values that build cannot read back.
     /// </summary>
     private bool _readOnly;
 
@@ -102,7 +100,7 @@ public sealed class PersistedVariables : IDisposable
         {
             foreach (var definition in definitions)
             {
-                var saved = Find(definition.Name, definition.Id);
+                var saved = Find(definition.Name);
                 if (saved is null)
                 {
                     applied.Add((definition.Name, Value.Null, false));
@@ -132,7 +130,7 @@ public sealed class PersistedVariables : IDisposable
         {
             lock (_gate)
             {
-                Remove(definition.Name);
+                _byName.Remove(definition.Name);
             }
 
             Schedule();
@@ -148,7 +146,7 @@ public sealed class PersistedVariables : IDisposable
 
         lock (_gate)
         {
-            Store(new Saved(definition.Id, definition.Name, definition.Type, value));
+            _byName[definition.Name] = new Saved(definition.Name, value);
         }
 
         Schedule();
@@ -164,32 +162,17 @@ public sealed class PersistedVariables : IDisposable
         }
     }
 
-    /// <summary>
-    /// Moves what was kept for a declaration to the name it now goes by. The identity is what the
-    /// entry is keyed on, so a rename only has to change the label; an entry kept under a name —
-    /// one written by a build that had no identities — is moved as well.
-    /// </summary>
-    public void Rename(string oldName, string newName, string id = "")
+    /// <summary>Moves what was kept for a declaration to the name it now goes by.</summary>
+    public void Rename(string oldName, string newName)
     {
         lock (_gate)
         {
-            var saved = Find(oldName, id);
-            if (saved is null)
+            if (!_byName.Remove(oldName, out var saved))
             {
                 return;
             }
 
-            var renamed = saved with { Name = newName };
-            var oldKey = KeyOf(saved);
-            _keyByName.Remove(saved.Name);
-            Store(renamed);
-
-            // An entry kept under a name rather than an identity moves to a new key; one kept
-            // under an identity only changed its label.
-            if (!string.Equals(oldKey, KeyOf(renamed), StringComparison.Ordinal))
-            {
-                _byKey.Remove(oldKey);
-            }
+            _byName[newName.Trim()] = saved with { Name = newName.Trim() };
         }
 
         Schedule();
@@ -200,7 +183,7 @@ public sealed class PersistedVariables : IDisposable
     {
         lock (_gate)
         {
-            Remove(name);
+            _byName.Remove(name);
         }
 
         Schedule();
@@ -211,8 +194,7 @@ public sealed class PersistedVariables : IDisposable
     {
         lock (_gate)
         {
-            if (_keyByName.TryGetValue(name, out var key)
-                && _byKey.TryGetValue(key, out var saved))
+            if (_byName.TryGetValue(name, out var saved))
             {
                 value = saved.Value.AsText();
                 return true;
@@ -248,12 +230,12 @@ public sealed class PersistedVariables : IDisposable
 
         lock (_gate)
         {
-            if (!_keyByName.TryGetValue(name, out var key) || !_byKey.TryGetValue(key, out var saved))
+            if (!_byName.TryGetValue(name, out var saved))
             {
                 return;
             }
 
-            _byKey[key] = saved with { Value = value };
+            _byName[name] = saved with { Value = value };
         }
 
         Schedule();
@@ -273,80 +255,19 @@ public sealed class PersistedVariables : IDisposable
         }
     }
 
-    /// <summary>
-    /// The entry a declaration's value was kept under: its identity first, the name second. A build
-    /// that had no identities wrote the name alone, and that file must still open.
-    /// </summary>
-    private Saved? Find(string name, string id)
-    {
-        if (id.Length > 0)
-        {
-            if (_byKey.TryGetValue("i:" + id, out var byIdentity))
-            {
-                return byIdentity;
-            }
-
-            // A file written before identities existed keys its entries by name. One of those is
-            // adopted by the declaration that now carries the name; an entry that belongs to a
-            // different identity is another project's value and is left alone.
-            return _keyByName.TryGetValue(name, out var key)
-                && _byKey.TryGetValue(key, out var byName)
-                && byName.Id.Length == 0
-                    ? byName
-                    : null;
-        }
-
-        return _keyByName.TryGetValue(name, out var legacy)
-            && _byKey.TryGetValue(legacy, out var found)
-                ? found
-                : null;
-    }
-
-    private static string KeyOf(Saved saved)
-        => saved.Id.Length > 0 ? "i:" + saved.Id : "n:" + saved.Name.ToLowerInvariant();
-
-    /// <summary>Files one entry, taking over whatever the same name or identity held before.</summary>
-    private void Store(Saved saved)
-    {
-        var key = KeyOf(saved);
-
-        if (_keyByName.TryGetValue(saved.Name, out var previous)
-            && !string.Equals(previous, key, StringComparison.Ordinal))
-        {
-            _byKey.Remove(previous);
-        }
-
-        if (saved.Id.Length > 0
-            && _byKey.TryGetValue(key, out var older)
-            && !string.Equals(older.Name, saved.Name, StringComparison.OrdinalIgnoreCase))
-        {
-            _keyByName.Remove(older.Name);
-        }
-
-        _byKey[key] = saved;
-        _keyByName[saved.Name] = key;
-    }
-
-    private void Remove(string name)
-    {
-        if (_keyByName.Remove(name, out var key))
-        {
-            _byKey.Remove(key);
-        }
-    }
+    private Saved? Find(string name)
+        => _byName.GetValueOrDefault(name);
 
     /// <summary>
     /// The saved value as the declaration can hold it. A value that no longer fits the declared
-    /// type — the declaration was changed, or the value was kept as text by an older build — falls
-    /// back to the declared starting value rather than stopping the project from opening.
+    /// type — the declaration was changed — falls back to the declared starting value rather than
+    /// stopping the project from opening.
     /// </summary>
     private static Value Fit(VariableDefinition definition, Value saved)
-        => Fits(definition.Type, saved)
+        => ValueRules.Accepts(definition.Type, saved)
             ? saved
             : VariableValues.Read(definition.Type, definition.Default,
                 VariableValues.DesignContext());
-
-    private static bool Fits(ValueKind type, Value value) => ValueRules.Accepts(type, value);
 
     private void Load()
     {
@@ -370,13 +291,19 @@ public sealed class PersistedVariables : IDisposable
 
             var version = root["version"] is JsonValue written && written.TryGetValue<int>(out var number)
                 ? number
-                : 1;
+                : 0;
 
-            // A file from a newer build is left alone. Reporting the values as unknown is better
-            // than flattening them into this build's shape, which the newer one could not read back.
+            // A file from a build that keeps more than this one understands is left alone.
             if (version > FileVersion)
             {
                 _readOnly = true;
+                return;
+            }
+
+            // An older shape is not migrated: this build starts from what the declarations say and
+            // writes its own shape on the first change.
+            if (version < FileVersion)
+            {
                 return;
             }
 
@@ -386,7 +313,7 @@ public sealed class PersistedVariables : IDisposable
                 {
                     if (node is JsonObject entry)
                     {
-                        ReadEntry(entry, version);
+                        ReadEntry(entry);
                     }
                 }
                 catch (Exception)
@@ -398,12 +325,11 @@ public sealed class PersistedVariables : IDisposable
         }
         catch (Exception)
         {
-            _byKey.Clear();
-            _keyByName.Clear();
+            _byName.Clear();
         }
     }
 
-    private void ReadEntry(JsonObject entry, int version)
+    private void ReadEntry(JsonObject entry)
     {
         var name = entry["name"]?.GetValue<string>()?.Trim() ?? string.Empty;
         if (name.Length == 0)
@@ -411,23 +337,7 @@ public sealed class PersistedVariables : IDisposable
             return;
         }
 
-        if (version < 2)
-        {
-            // Version 1 kept the value's text and nothing about its type. What kind it is comes
-            // from the declaration when the project opens, so it is read as the text it is.
-            var text = entry["value"];
-            var legacy = text is JsonValue value && value.TryGetValue<string>(out var written)
-                ? Value.FromText(written)
-                : JsonValues.FromJson(text);
-            Store(new Saved(string.Empty, name, ValueKind.Text, legacy));
-            return;
-        }
-
-        Store(new Saved(
-            entry["id"]?.GetValue<string>() ?? string.Empty,
-            name,
-            VariableTypes.KindOf(entry["type"]?.GetValue<string>()),
-            JsonValues.FromJson(entry["value"])));
+        _byName[name] = new Saved(name, JsonValues.FromJson(entry["value"]));
     }
 
     private void Save()
@@ -453,13 +363,11 @@ public sealed class PersistedVariables : IDisposable
                 _backedUp = true;
             }
 
-            var variables = _byKey.Values
+            var variables = _byName.Values
                 .OrderBy(saved => saved.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(saved => new JsonObject
                 {
-                    ["id"] = saved.Id,
                     ["name"] = saved.Name,
-                    ["type"] = VariableTypes.Name(saved.Type),
                     ["value"] = JsonValues.Node(saved.Value),
                 })
                 .ToList();

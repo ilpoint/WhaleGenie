@@ -159,6 +159,7 @@
                                                VerticalAlignment="Center" />
                                     <StackPanel Grid.Column="1" Spacing="4">
                                         <TextBox Name="DefaultValueBox" Classes="HasChip"
+                                                 IsReadOnly="True"
                                                  Text="{Binding Editor.DefaultValue}"
                                                  PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}">
                                             <TextBox.InnerRightContent>

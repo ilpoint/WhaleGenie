@@ -30,7 +30,7 @@ public sealed partial class MacroRunner
     /// half-finished run.
     /// </summary>
     private (string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
-        List<(string Result, VariableKey Key)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
+        List<(string Result, string Name)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
     {
         var name = ReadValue(step, "macro").AsText().Trim();
         var steps = name.Length == 0 ? null : _macros.Steps(name);
@@ -56,31 +56,32 @@ public sealed partial class MacroRunner
         // A macro's own values are its own, so a call says what goes in and what comes back rather
         // than leaning on whatever happened to be left lying around.
         var called = new VariableBag();
-        foreach (var argument in signature.Arguments)
-        {
-            supplied.TryGetValue(argument.Name.Trim(), out var input);
-            // A declaration of the called macro, so a second one claiming the same name is refused
-            // rather than quietly sharing the slot.
-            called.Declare(argument.Id, argument.Name.Trim(), argument.Type);
-            called.Set(new VariableKey(argument.Name.Trim(), argument.Id),
-                ReadArgument(argument, input?.Value ?? Formula.Nothing, input?.Given ?? false));
-        }
 
-        // A declared result is empty until this attempt writes it. Putting it into the local table
-        // now means a read at the top of the called macro sees the same empty value a caller gets
-        // for a result that was never written, instead of failing as an undefined expression. An
-        // in-out name keeps the argument that was just passed in.
+        // A declared result is empty until this attempt writes it. It is put in first, and the
+        // arguments after it, so an in-out name keeps the value that was just passed in while a
+        // result nobody wrote reads as empty rather than as the last attempt's answer.
         foreach (var result in signature.Results)
         {
             var resultName = result.Name.Trim();
             // Declared, but not given a type: a result is judged when it is handed back, by the
             // key the failure table already names for it. Checking it here would report the same
             // mistake twice and with the less specific of the two keys.
-            called.Declare(result.Id, resultName, result.Type);
+            called.Declare(resultName, result.Type);
             if (resultName.Length > 0)
             {
-                called.SetIfAbsent(new VariableKey(resultName, result.Id), Value.Null);
+                called.Set(resultName, Value.Null);
             }
+        }
+
+        foreach (var argument in signature.Arguments)
+        {
+            var argumentName = argument.Name.Trim();
+            supplied.TryGetValue(argumentName, out var input);
+            // A declaration of the called macro, so a second one claiming the same name is refused
+            // rather than quietly sharing the slot.
+            called.Declare(argumentName, argument.Type);
+            called.Set(argumentName, ReadArgument(argument, input?.Value ?? Formula.Nothing,
+                input?.Given ?? false));
         }
 
         // The name of the macro that is running right now, which is what a macro writing a log line
@@ -154,31 +155,21 @@ public sealed partial class MacroRunner
             }
         }
 
-        // The values a previous run of this debug window left under the declared names are not
-        // values this run has; defaults and supplied values replace them.
+        // Every name this run declares is declared again, so a value a previous run left under the
+        // same name is judged against this run's kind rather than the last one's.
         foreach (var argument in signature.Arguments)
         {
-            var name = argument.Name.Trim();
-            Variables.Local.Declare(argument.Id, name, argument.Type);
-            if (name.Length > 0)
-            {
-                Variables.Local.Remove(new VariableKey(name, argument.Id));
-            }
+            Variables.Local.Declare(argument.Name.Trim(), argument.Type);
         }
 
         foreach (var result in signature.Results)
         {
-            var name = result.Name.Trim();
-            Variables.Local.Declare(result.Id, name, result.Type);
-            if (name.Length > 0)
-            {
-                Variables.Local.Remove(new VariableKey(name, result.Id));
-            }
+            Variables.Local.Declare(result.Name.Trim(), result.Type);
         }
 
         try
         {
-            var values = new List<(VariableKey Key, Value Value)>();
+            var values = new List<(string Name, Value Value)>();
             foreach (var argument in signature.Arguments)
             {
                 var name = argument.Name.Trim();
@@ -195,27 +186,28 @@ public sealed partial class MacroRunner
                     : Formula.Text(input.Text);
                 var explicitlyEmpty = input?.Given ?? false;
                 var value = ReadArgument(argument, written, explicitlyEmpty);
-                values.Add((new VariableKey(name, argument.Id), value));
+                values.Add((name, value));
             }
 
-            foreach (var (key, value) in values)
-            {
-                Variables.Local.Set(key, value);
-            }
-
-            // The macro's own declarations, in the order they were written: an initial value may
-            // read a parameter, a built-in, or a declaration above it.
-            SeedLocals(signature);
-
+            // A result is empty until this attempt writes it — never the value the last attempt
+            // left there. A name that is also an argument takes the argument written below.
             foreach (var result in signature.Results)
             {
                 var name = result.Name.Trim();
                 if (name.Length > 0)
                 {
-                    Variables.Local.SetIfAbsent(new VariableKey(name, result.Id), Value.Null);
+                    Variables.Local.Set(name, Value.Null);
                 }
             }
 
+            foreach (var (name, value) in values)
+            {
+                Variables.Local.Set(name, value);
+            }
+
+            // The macro's own declarations, in the order they were written: an initial value may
+            // read a parameter, a built-in, or a declaration above it.
+            SeedLocals(signature);
             return null;
         }
         catch (StepFailure failure)
@@ -225,10 +217,6 @@ public sealed partial class MacroRunner
         catch (ExpressionException failure)
         {
             return new StepFailure(RunKeys.BadExpression, failure.Detail);
-        }
-        catch (VariableConflictException failure)
-        {
-            return new StepFailure(RunKeys.VariableNameConflict, failure.Name);
         }
     }
 
@@ -243,11 +231,10 @@ public sealed partial class MacroRunner
         foreach (var local in signature.Locals)
         {
             var name = local.Name.Trim();
-            Variables.Local.Declare(local.Id, name, local.Type);
+            Variables.Local.Declare(name, local.Type);
             if (name.Length > 0)
             {
-                Variables.Local.Set(new VariableKey(name, local.Id),
-                    ReadDeclared(name, local.Initial, local.Type));
+                Variables.Local.Set(name, ReadDeclared(name, local.Initial, local.Type));
             }
         }
     }
@@ -365,17 +352,17 @@ public sealed partial class MacroRunner
     /// <c>returns</c>, each row carrying the called macro's own name for the value and the name the
     /// caller wants it under. A name the called macro does not offer is a mistake in the call.
     /// </summary>
-    private static List<(string Result, VariableKey Key)> WantedResults(ExecutableStep step,
+    private static List<(string Result, string Name)> WantedResults(ExecutableStep step,
         MacroSignature signature)
     {
-        var wanted = new List<(string Result, VariableKey Key)>();
+        var wanted = new List<(string Result, string Name)>();
         foreach (var row in step.Rows("returns"))
         {
             var result = Word(row, FieldNames.Key);
             var name = row.TryGetValue(FieldNames.Name, out var written)
                 ? Formula.NameOf(written)
-                : VariableKey.Of(string.Empty);
-            if (result.Length == 0 || name.Name.Length == 0)
+                : string.Empty;
+            if (result.Length == 0 || name.Length == 0)
             {
                 continue;
             }
@@ -396,11 +383,11 @@ public sealed partial class MacroRunner
     /// macro offers but never set comes back empty rather than missing, so the step after the call
     /// reads this call's answer and not whatever an earlier pass left behind.
     /// </summary>
-    private void Take(List<(string Result, VariableKey Key)> wanted, VariableBag produced)
+    private void Take(List<(string Result, string Name)> wanted, VariableBag produced)
     {
-        foreach (var (result, key) in wanted)
+        foreach (var (result, name) in wanted)
         {
-            Variables.Local.Set(key,
+            Variables.Local.Set(name,
                 produced.TryGet(result, out var value) && value is not null ? value : Value.Null);
         }
     }
@@ -410,7 +397,7 @@ public sealed partial class MacroRunner
     /// A result it never wrote is empty rather than wrong, so that one is left to the caller.
     /// </summary>
     private static void CheckResults(MacroSignature signature,
-        List<(string Result, VariableKey Key)> wanted, VariableBag produced)
+        List<(string Result, string Name)> wanted, VariableBag produced)
     {
         foreach (var (result, _) in wanted)
         {

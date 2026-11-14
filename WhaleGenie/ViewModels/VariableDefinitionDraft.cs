@@ -21,7 +21,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         IReadOnlyList<VariableUse>? uses = null, PersistedVariables? persisted = null)
     {
         OriginalName = source?.Name ?? string.Empty;
-        Id = source?.Id ?? string.Empty;
         Name = source?.Name ?? string.Empty;
         Type = source is { } given ? VariableTypes.Name(given.Type) : "text";
         OriginalType = Type;
@@ -43,12 +42,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
 
     public string OriginalName { get; }
 
-    /// <summary>
-    /// The identity this declaration already had, kept so that editing its name, type or default
-    /// does not make every reference to it stale. A draft of a variable that does not exist yet
-    /// carries none, and one is given when the project next settles its declarations.
-    /// </summary>
-    public string Id { get; }
     public string OriginalType { get; }
     public string OriginalDefaultValue { get; }
     public string OriginalDescription { get; }
@@ -110,14 +103,10 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     private ExpressionNode _default = Formula.Nothing;
 
     /// <summary>
-    /// What the box shows and what a person types. Words typed in are kept as words; a name or a
-    /// formula goes in through the value window and arrives as a shape. Nothing is parsed.
+    /// What the box shows. It is a rendering, never a way in: the value arrives through
+    /// <see cref="Default"/> from the value window, so a name in it stays a name.
     /// </summary>
-    public string DefaultValue
-    {
-        get => ExpressionPhrase.Display(_default);
-        set => Default = Formula.Text(value ?? string.Empty);
-    }
+    public string DefaultValue => ExpressionPhrase.Display(_default);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsChanged))]
@@ -159,7 +148,6 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
 
     public VariableDefinition ToDefinition() => new()
     {
-        Id = Id,
         Name = Name.Trim(),
         Scope = VariableScope.Global,
         Type = VariableTypes.KindOf(Type),

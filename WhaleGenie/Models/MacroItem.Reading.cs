@@ -71,7 +71,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 macro.Parameters.Add(new MacroParameter
                 {
-                    Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Default = FormulaJson.Read(declared["default"]),
                     Required = ReadBool(declared["required"], true),
@@ -88,7 +87,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 macro.Results.Add(new MacroResult
                 {
-                    Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Description = declared["description"]?.GetValue<string>() ?? string.Empty,
                     Type = ReadKind(declared),
@@ -103,7 +101,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             {
                 macro.Locals.Add(new MacroLocalVariable
                 {
-                    Id = declared["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Name = declared["name"]?.GetValue<string>()?.Trim() ?? string.Empty,
                     Type = ReadKind(declared),
                     Initial = FormulaJson.Read(declared["initial"]),
@@ -150,7 +147,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             }
         }
 
-        VariableIds.Settle(macro);
         return macro;
     }
 

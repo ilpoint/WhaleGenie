@@ -26,9 +26,6 @@ public enum VariableScope
 /// <summary>One variable the editor knows about, shown in the Variable Center and the pickers.</summary>
 public partial class VariableDefinition : ObservableObject
 {
-    /// <summary>The stable identity a reference binds to; empty on a system value, which has none.</summary>
-    public string Id { get; set; } = string.Empty;
-
     public required string Name { get; set; }
 
     public VariableScope Scope { get; set; }
@@ -50,16 +47,12 @@ public partial class VariableDefinition : ObservableObject
     public partial ExpressionNode Default { get; set; } = Formula.Nothing;
 
     /// <summary>
-    /// The starting value as the line a form shows. This is a rendering, never a second value:
-    /// words typed into the field are kept as the words they are, with nothing in them parsed and
-    /// no sign in front of a name. A name or a formula arrives as a shape through
-    /// <see cref="Default"/> instead.
+    /// The starting value as the line a form shows. This is a rendering, never a second value and
+    /// never a way in: a name or a formula is a shape, and a shape arrives through
+    /// <see cref="Default"/> from the value window. Rendering it back into an editable box would
+    /// turn the name in it into the marks that spell it.
     /// </summary>
-    public string DefaultValue
-    {
-        get => ExpressionPhrase.Display(Default);
-        set => Default = Formula.Text(value ?? string.Empty);
-    }
+    public string DefaultValue => ExpressionPhrase.Display(Default);
 
     /// <summary>Macro that owns a local variable; empty for system and global variables.</summary>
     public string Owner { get; set; } = string.Empty;

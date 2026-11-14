@@ -102,7 +102,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 yield return NewText(text.Text);
                 break;
             case VariableNode name:
-                yield return NewName(name.Name, name.Id);
+                yield return NewName(name.Name);
                 break;
             case ConcatNode run:
                 foreach (var part in run.Parts.SelectMany(Flatten))
@@ -118,10 +118,10 @@ public partial class StepParameterViewModel : ViewModelBase
     private TextPart NewText(string text) => new(text, Compose);
 
     /// <summary>One name, wired to take itself out when its cross is clicked.</summary>
-    private NamePart NewName(string name, string id = "")
+    private NamePart NewName(string name)
     {
         NamePart? part = null;
-        part = new NamePart { Name = name, Id = id, Remove = new RelayCommand(() => Drop(part!)) };
+        part = new NamePart { Name = name, Remove = new RelayCommand(() => Drop(part!)) };
         return part;
     }
 
@@ -139,7 +139,7 @@ public partial class StepParameterViewModel : ViewModelBase
         var parts = Parts
             .Select(part => part switch
             {
-                NamePart name => Formula.Name(name.Name, name.Id),
+                NamePart name => Formula.Name(name.Name),
                 TextPart text when text.Text.Length > 0 => Formula.Text(text.Text),
                 _ => null,
             })
@@ -161,14 +161,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// in if they were in the middle of one. This is the only way a name gets in, and it never goes
     /// through the text — the value keeps a shape, not a spelling.
     /// </summary>
-    public void InsertName(string name, int? caret = null) => InsertName(name, string.Empty, caret);
-
-    /// <summary>
-    /// The same insert with the declaration the name is bound to. A name picked in the window
-    /// carries its identity; a name typed by hand carries nothing and is bound later, if it is
-    /// the only declaration with that spelling.
-    /// </summary>
-    public void InsertName(string name, string id, int? caret = null)
+    public void InsertName(string name, int? caret = null)
     {
         if (!ShowsParts)
         {
@@ -183,7 +176,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 built.Add(Formula.Text(current[..split]));
             }
 
-            built.Add(Formula.Name(name, id));
+            built.Add(Formula.Name(name));
             if (current[split..].Length > 0)
             {
                 built.Add(Formula.Text(current[split..]));
@@ -205,12 +198,12 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             var tail = text.Text[place..];
             text.Text = text.Text[..place];
-            Parts.Insert(at + 1, NewName(name, id));
+            Parts.Insert(at + 1, NewName(name));
             Parts.Insert(at + 2, NewText(tail));
         }
         else
         {
-            Parts.Insert(at + 1, NewName(name, id));
+            Parts.Insert(at + 1, NewName(name));
         }
 
         if (Parts[^1] is not TextPart)

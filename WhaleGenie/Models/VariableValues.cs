@@ -1,5 +1,7 @@
 using System;
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -82,7 +84,9 @@ public static class VariableValues
                 ValueKind.Number => Value.FromNumber(source.AsNumber()),
                 ValueKind.Bool => Value.FromBool(source.AsBool()),
                 ValueKind.List => Value.FromList(source.AsList()),
+                ValueKind.Record => Record(source),
                 ValueKind.Date => Moment(source),
+                ValueKind.Image => Picture(source),
                 _ => Value.FromText(source.AsText()),
             };
             error = string.Empty;
@@ -97,8 +101,41 @@ public static class VariableValues
     }
 
     /// <summary>
+    /// A value read as a record. A record stays one; a line is read as the JSON object a record is
+    /// written as, which is the same text <see cref="Value.AsText"/> gives back.
+    /// </summary>
+    private static Value Record(Value source)
+    {
+        if (source.IsRecord)
+        {
+            return source;
+        }
+
+        var written = source.AsText();
+        try
+        {
+            return JsonValues.FromJson(JsonNode.Parse(written)) is { IsRecord: true } record
+                ? record
+                : throw ExpressionException.TypeMismatch($"\"{written}\" is not a record");
+        }
+        catch (JsonException)
+        {
+            throw ExpressionException.TypeMismatch($"\"{written}\" is not a record");
+        }
+    }
+
+    /// <summary>
+    /// A value read as a picture. A picture is a handle to pixels a run holds, so it cannot be
+    /// written down: a literal that spells a handle is a line, not the picture.
+    /// </summary>
+    private static Value Picture(Value source)
+        => source.IsImage
+            ? source
+            : throw ExpressionException.TypeMismatch("a picture comes from a run, not from a written value");
+
+    /// <summary>
     /// A value read as a moment. A date stays one; a line is read as a date when it is written like
-    /// one, so a value kept by an older build still opens rather than stopping the project.
+    /// one.
     /// </summary>
     private static Value Moment(Value source)
     {

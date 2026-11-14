@@ -46,9 +46,6 @@ public sealed class NamePart : ValuePart
 {
     public required string Name { get; init; }
 
-    /// <summary>The declaration this name is bound to, empty when the name is the identity.</summary>
-    public string Id { get; init; } = string.Empty;
-
     /// <summary>Takes this name, and the text it stood between, back out of the value.</summary>
     public required ICommand Remove { get; init; }
 }

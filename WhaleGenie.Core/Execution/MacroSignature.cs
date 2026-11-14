@@ -12,11 +12,10 @@ namespace WhaleGenie.Core.Execution;
 /// happens to read.
 /// </summary>
 public sealed record MacroArgument(string Name, ExpressionNode Default, bool Required,
-    ValueKind Type = ValueKind.Text, string Id = "");
+    ValueKind Type = ValueKind.Text);
 
 /// <summary>One value a macro offers to hand back: the name and what kind of value it is.</summary>
-public sealed record MacroReturn(string Name, ValueKind Type = ValueKind.Text,
-    string Id = "");
+public sealed record MacroReturn(string Name, ValueKind Type = ValueKind.Text);
 
 /// <summary>
 /// One value a macro declares for itself. The name is read by its own steps only, and
@@ -24,7 +23,7 @@ public sealed record MacroReturn(string Name, ValueKind Type = ValueKind.Text,
 /// run, not only when the name happens to be missing.
 /// </summary>
 public sealed record MacroLocal(string Name, ExpressionNode Initial,
-    ValueKind Type = ValueKind.Text, string Id = "");
+    ValueKind Type = ValueKind.Text);
 
 /// <summary>
 /// One value supplied to a direct run, the way a call supplies an argument. <paramref name="Given"/>

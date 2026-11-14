@@ -37,7 +37,7 @@ public class ShapeContractTests
     [Fact]
     public void Rendering_a_formula_puts_no_sign_in_front_of_a_name()
     {
-        var tree = Formula.Call("upper", Formula.Name("title", "a7k2m9"));
+        var tree = Formula.Call("upper", Formula.Name("title"));
 
         var written = Expression.Render(tree);
 
@@ -51,7 +51,7 @@ public class ShapeContractTests
     [Fact]
     public void A_name_is_said_two_ways_and_neither_has_a_sign()
     {
-        var name = Formula.Name("count", "a7k2m9");
+        var name = Formula.Name("count");
 
         Assert.Equal("count", Formula.Word(name));
         Assert.Equal("「count」", ExpressionPhrase.Display(name));
@@ -60,14 +60,14 @@ public class ShapeContractTests
     }
 
     [Fact]
-    public void The_file_writes_a_name_as_a_shape_with_its_identity()
+    public void The_file_writes_a_name_as_a_shape_with_only_its_name()
     {
-        var written = FormulaJson.Write(Formula.Name("count", "a7k2m9"));
+        var written = FormulaJson.Write(Formula.Name("count"));
 
         var shape = Assert.IsType<JsonObject>(written);
         Assert.Equal("count", shape["name"]!.GetValue<string>());
-        Assert.Equal("a7k2m9", shape["id"]!.GetValue<string>());
-        Assert.Equal(Formula.Name("count", "a7k2m9"), FormulaJson.Read(written));
+        Assert.Single(shape);
+        Assert.Equal(Formula.Name("count"), FormulaJson.Read(written));
     }
 
     [Fact]
@@ -95,10 +95,10 @@ public class ShapeContractTests
     {
         var row = new ImageRowViewModel();
 
-        row.Write(Formula.Name("shot", "a7k2m9"));
+        row.Write(Formula.Name("shot"));
 
-        Assert.Equal(Formula.Name("shot", "a7k2m9"), row.Shape);
-        Assert.Equal(Formula.Name("shot", "a7k2m9"), row.ToRow().Cell("image"));
+        Assert.Equal(Formula.Name("shot"), row.Shape);
+        Assert.Equal(Formula.Name("shot"), row.ToRow().Cell("image"));
         Assert.DoesNotContain("$", row.Text);
     }
 }

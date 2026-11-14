@@ -29,7 +29,7 @@ public partial class GlobalVariablesTests
                     Name = "base",
                     Scope = VariableScope.Global,
                     Type = ValueKind.Number,
-                    DefaultValue = "2",
+                    Default = Formula.Text("2"),
                 },
             ], []);
             var manager = (GlobalVariablesViewModel)window.DataContext!;
@@ -77,7 +77,7 @@ public partial class GlobalVariablesTests
             Name = "baseCount",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
-            DefaultValue = "4",
+            Default = Formula.Text("4"),
         };
         var derived = new VariableDefinition
         {
@@ -121,7 +121,7 @@ public partial class GlobalVariablesTests
                 Name = "baseCount",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "3",
+                Default = Formula.Text("3"),
             },
         ]);
         manager.NewCommand.Execute(null);

@@ -521,7 +521,7 @@ public partial class MacroRunnerTests
     public async Task A_number_that_is_given_words_stops_the_step_that_wrote_them()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("n", Formula.Nothing, ValueKind.Number, "n00001")]);
+            [new MacroLocal("n", Formula.Nothing, ValueKind.Number)]);
 
         var (result, _) = await RunAsync([Set("n", "many words")], startSignature: signature);
 
@@ -533,7 +533,7 @@ public partial class MacroRunnerTests
     {
         var store = Store();
         var signature = new MacroSignature([], [],
-            [new MacroLocal("n", Formula.Nothing, ValueKind.Number, "n00001")]);
+            [new MacroLocal("n", Formula.Nothing, ValueKind.Number)]);
 
         var (result, _) = await RunAsync([Set("n", "3")], variables: store,
             startSignature: signature);
@@ -546,7 +546,7 @@ public partial class MacroRunnerTests
     public async Task A_text_declaration_takes_a_number_without_complaint()
     {
         var signature = new MacroSignature([], [],
-            [new MacroLocal("note", Formula.Nothing, ValueKind.Text, "t00001")]);
+            [new MacroLocal("note", Formula.Nothing, ValueKind.Text)]);
 
         var (result, _) = await RunAsync([Set("note", "1")], startSignature: signature);
 

@@ -43,7 +43,7 @@ public static class MacroVariables
         foreach (var definition in VariableCatalog.Globals)
         {
             declared.Add(definition.Name);
-            store.Global.Declare(definition.Id, definition.Name, definition.Type);
+            store.Global.Declare(definition.Name, definition.Type);
             store.Global.SetIfAbsent(definition.Name,
                 VariableValues.Read(definition.Type, definition.Default, store));
         }

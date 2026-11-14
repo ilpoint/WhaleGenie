@@ -87,7 +87,7 @@ public sealed partial class MacroRunner
         {
             var key = Word(row, FieldNames.Key);
             var name = row.TryGetValue(FieldNames.Name, out var writtenName)
-                ? Formula.NameOf(writtenName).Name
+                ? Formula.NameOf(writtenName)
                 : string.Empty;
             if (key.Length == 0 || name.Length == 0)
             {

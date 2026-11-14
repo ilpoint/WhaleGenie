@@ -77,13 +77,13 @@ public class StepFileTests
     {
         // Every column is a shape. A line a person typed is the one place a shape is read from,
         // and it is read as the words it says — a name is a piece put in by the value window.
-        var row = StepParameterRow.Of("value", Formula.Name("count", "a7k2m9"));
+        var row = StepParameterRow.Of("value", Formula.Name("count"));
         row.Set("given", Formula.Constant("true"));
         row.Set("note", Formula.Run([
             Formula.Text("共 "), Formula.Name("count"), Formula.Text(" 件")]));
         row.SetLine("typed", "共 count 件");
 
-        Assert.Equal(Formula.Name("count", "a7k2m9"), row.Cell("value"));
+        Assert.Equal(Formula.Name("count"), row.Cell("value"));
         Assert.Equal(Formula.Constant("true"), row.Cell("given"));
         var note = Assert.IsType<ConcatNode>(row.Cell("note"));
         Assert.Equal(
@@ -102,12 +102,11 @@ public class StepFileTests
         var cell = Assert.IsType<JsonObject>(written[0]);
         var value = Assert.IsType<JsonObject>(cell["value"]);
         Assert.Equal("count", Assert.IsAssignableFrom<JsonValue>(value["name"]).GetValue<string>());
-        Assert.Equal("a7k2m9", Assert.IsAssignableFrom<JsonValue>(value["id"]).GetValue<string>());
         Assert.True(Assert.IsAssignableFrom<JsonValue>(cell["given"]).GetValue<bool>());
 
         var restored = StepParameter.FromJson("arguments", written,
             ActionCatalog.Find("control.runMacro"));
-        Assert.Equal(Formula.Name("count", "a7k2m9"), restored.Rows[0].Cell("value"));
+        Assert.Equal(Formula.Name("count"), restored.Rows[0].Cell("value"));
         Assert.Equal(Formula.Constant("true"), restored.Rows[0].Cell("given"));
     }
 

@@ -25,7 +25,7 @@ public partial class GlobalVariablesTests
             Name = "total",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
-            DefaultValue = "1",
+            Default = Formula.Text("1"),
             Description = "running total",
             PersistValue = true,
         };

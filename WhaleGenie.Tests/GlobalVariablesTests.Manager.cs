@@ -36,7 +36,7 @@ public partial class GlobalVariablesTests
                 Name = "editedByManager",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "1",
+                Default = Formula.Text("1"),
             });
             try
             {
@@ -50,7 +50,7 @@ public partial class GlobalVariablesTests
 
                 var dialog = Assert.Single(window.OwnedWindows.OfType<GlobalVariablesWindow>());
                 var manager = (GlobalVariablesViewModel)dialog.DataContext!;
-                manager.Selected!.DefaultValue = "9";
+                manager.Selected!.Default = Formula.Text("9");
                 manager.Selected.PersistValue = true;
                 Assert.True(manager.CanSave, manager.ValidationMessage);
                 manager.SaveCommand.Execute(null);
@@ -102,7 +102,7 @@ public partial class GlobalVariablesTests
                 Name = "oldGlobal",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "4",
+                Default = Formula.Text("4"),
             });
             SharedVariables.Current.SetNumber("oldGlobal", 6);
             try

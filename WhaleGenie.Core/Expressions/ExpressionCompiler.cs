@@ -77,17 +77,6 @@ internal static class ExpressionCompiler
             value = Value.FromText(name);
             return true;
         }
-
-        public bool TryGet(VariableKey key, out Value value)
-        {
-            if (inner.TryGet(key, out value))
-            {
-                return true;
-            }
-
-            value = Value.FromText(key.Name);
-            return true;
-        }
     }
 
     private static Func<Value> Compiled(CallNode call, IVariableResolver variables)
@@ -141,7 +130,7 @@ internal static class ExpressionCompiler
     }
 
     private static Value Resolve(IVariableResolver variables, VariableNode variable)
-        => variables.TryGet(VariableKey.From(variable), out var value)
+        => variables.TryGet(variable.Name, out var value)
             ? value
             : throw ExpressionException.UnknownVariable(variable.Name);
 

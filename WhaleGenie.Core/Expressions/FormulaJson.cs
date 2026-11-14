@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
-using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Expressions;
 
@@ -20,7 +19,6 @@ namespace WhaleGenie.Core.Expressions;
 public static class FormulaJson
 {
     private const string NameKey = "name";
-    private const string IdKey = "id";
     private const string RunKey = "run";
     private const string CallKey = "call";
     private const string ArgumentsKey = "args";
@@ -56,15 +54,7 @@ public static class FormulaJson
                     _ => null,
                 };
             case VariableNode variable:
-                {
-                    var shape = new JsonObject { [NameKey] = variable.Name };
-                    if (variable.Id.Length > 0)
-                    {
-                        shape[IdKey] = variable.Id;
-                    }
-
-                    return shape;
-                }
+                return new JsonObject { [NameKey] = variable.Name };
             case ConcatNode run:
                 return new JsonObject { [RunKey] = Array(run.Parts) };
             case ListNode list:
@@ -147,25 +137,7 @@ public static class FormulaJson
                 throw Invalid(written, "a name that is not text");
             }
 
-            var id = string.Empty;
-            if (written[IdKey] is { } identity)
-            {
-                if (identity is not JsonValue value
-                    || !value.TryGetValue<string>(out var readId)
-                    || !VariableId.IsWellFormed(readId))
-                {
-                    throw Invalid(written, "an id that is not one this program writes");
-                }
-
-                id = readId;
-            }
-
-            return Formula.Name(read, id);
-        }
-
-        if (written[IdKey] is not null)
-        {
-            throw Invalid(written, "an id without a name");
+            return Formula.Name(read);
         }
 
         if (written[RunKey] is JsonArray run)

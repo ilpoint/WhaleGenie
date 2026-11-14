@@ -6,18 +6,18 @@ using Xunit;
 namespace WhaleGenie.Core.Tests;
 
 /// <summary>
-/// A name is a binding and a value is kept by identity, so the two move apart cleanly: a name can be
-/// pointed somewhere else without copying a value, and a value nobody names is gone.
+/// A bag is a table of names. The name is the whole key: what a step writes is what the line that
+/// reads it says, and a declaration says what kind the name holds rather than being a second thing
+/// to keep in step with it.
 /// </summary>
 public class VariableBindingTests
 {
     [Fact]
-    public void A_name_nothing_declared_is_given_an_identity_of_its_own()
+    public void Writing_a_name_makes_one_slot_for_it()
     {
         var bag = new VariableBag();
         bag.Set("total", Value.FromNumber(3));
 
-        Assert.False(string.IsNullOrEmpty(bag.IdOf("total")));
         Assert.Equal(1, bag.Count);
         Assert.Equal(3d, bag.Values["total"].AsNumber());
     }
@@ -61,19 +61,191 @@ public class VariableBindingTests
         Assert.Equal(1d, bag.Values["total"].AsNumber());
     }
 
-    /// <summary>
-    /// Two step outputs naming one result is how a macro overwrites a value: the second one takes
-    /// the name, and the value nobody can name any more goes with it.
-    /// </summary>
+    /// <summary>A declaration survives a clear, so a name the macro declared stays type-checked.</summary>
     [Fact]
-    public void A_second_step_output_takes_the_name_and_the_first_value_goes()
+    public void Clearing_a_declared_name_puts_the_kinds_empty_value_back()
     {
         var bag = new VariableBag();
-        bag.Set(new VariableKey("rows", "stepA1"), Value.FromNumber(1));
-        bag.Set(new VariableKey("rows", "stepB2"), Value.FromNumber(2));
+        bag.Declare("count", ValueKind.Number);
+        bag.Set("count", Value.FromNumber(7));
 
-        Assert.Equal("stepB2", bag.IdOf("rows"));
-        Assert.False(bag.ContainsId("stepA1"));
-        Assert.Equal(1, bag.Count);
+        Assert.True(bag.Clear("count"));
+        Assert.True(bag.IsDeclared("count"));
+        Assert.Equal(0d, bag.Values["count"].AsNumber());
+        Assert.Throws<VariableTypeException>(() => bag.Set("count", Value.FromText("many")));
+    }
+
+    [Fact]
+    public void Clearing_a_name_nothing_declared_takes_it_out_of_the_table()
+    {
+        var bag = new VariableBag();
+        bag.Set("count", Value.FromNumber(7));
+
+        Assert.True(bag.Clear("count"));
+        Assert.False(bag.Contains("count"));
+    }
+
+    /// <summary>Renaming moves the value and the declaration; a change of case is a rename too.</summary>
+    [Fact]
+    public void Renaming_moves_the_value_and_the_declaration()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+        bag.Set("count", Value.FromNumber(4));
+
+        Assert.True(bag.Rename("count", "Count"));
+        Assert.Equal(4d, bag.Values["Count"].AsNumber());
+        Assert.True(bag.IsDeclared("Count"));
+        Assert.Single(bag.Values);
+    }
+
+    [Fact]
+    public void Renaming_onto_a_name_that_is_taken_changes_nothing()
+    {
+        var bag = new VariableBag();
+        bag.Set("count", Value.FromNumber(1));
+        bag.Set("other", Value.FromNumber(2));
+
+        Assert.False(bag.Rename("count", "other"));
+        Assert.Equal(1d, bag.Values["count"].AsNumber());
+        Assert.Equal(2d, bag.Values["other"].AsNumber());
+    }
+
+    /// <summary>
+    /// A block borrows a name for its own rounds. A name the macro already had comes back with the
+    /// value and the kind it had; a name the block introduced is taken out again.
+    /// </summary>
+    [Fact]
+    public void A_block_that_borrows_a_name_puts_it_back()
+    {
+        var bag = new VariableBag();
+        bag.Declare("item", ValueKind.Text);
+        bag.Set("item", Value.FromText("kept"));
+
+        var mark = bag.Mark("item");
+        bag.Set("item", Value.FromText("inner"));
+        bag.Restore("item", mark);
+
+        Assert.Equal("kept", bag.Values["item"].AsText());
+        Assert.True(bag.IsDeclared("item"));
+
+        var fresh = bag.Mark("round");
+        bag.Set("round", Value.FromNumber(1));
+        bag.Restore("round", fresh);
+
+        Assert.False(bag.Contains("round"));
+    }
+
+    [Fact]
+    public void A_declared_number_refuses_words()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+
+        var refusal = Assert.Throws<VariableTypeException>(() =>
+            bag.Set("count", Value.FromText("many")));
+
+        Assert.Equal("count", refusal.Name);
+        Assert.Equal(ValueKind.Number, refusal.Expected);
+        Assert.Equal(ValueKind.Text, refusal.Actual);
+
+        // The refused write left the name as empty as the declaration made it.
+        Assert.True(bag.Values["count"].IsNull);
+    }
+
+    /// <summary>
+    /// A line that reads as the declared kind is the kind. The call path already judges "3" a
+    /// number, and a write that refused it would make the same value pass one gate and fail the
+    /// next.
+    /// </summary>
+    [Fact]
+    public void A_declared_name_takes_a_line_that_reads_as_its_kind()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+
+        bag.Set("count", Value.FromText("3"));
+
+        Assert.Equal(3d, bag.Values["count"].AsNumber());
+    }
+
+    [Fact]
+    public void A_text_name_takes_every_kind()
+    {
+        var bag = new VariableBag();
+        bag.Declare("note", ValueKind.Text);
+
+        bag.Set("note", Value.FromNumber(3));
+        bag.Set("note", Value.FromList([Value.FromText("a")]));
+
+        Assert.True(bag.Values["note"].IsList);
+    }
+
+    /// <summary>Empty means "nothing was written here yet", which is not a value of the wrong kind.</summary>
+    [Fact]
+    public void Nothing_written_yet_is_allowed_for_every_kind()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+
+        bag.Set("count", Value.Null);
+
+        Assert.True(bag.Contains("count"));
+    }
+
+    /// <summary>
+    /// Changing what a name holds puts the kind's empty value there rather than leaving a number
+    /// where a list is now declared.
+    /// </summary>
+    [Fact]
+    public void Declaring_another_kind_resets_what_did_not_fit()
+    {
+        var bag = new VariableBag();
+        bag.Declare("rows", ValueKind.Number);
+        bag.Set("rows", Value.FromNumber(2));
+
+        bag.Declare("rows", ValueKind.List);
+
+        Assert.True(bag.Values["rows"].IsList);
+        Assert.Empty(bag.Values["rows"].Items);
+    }
+
+    /// <summary>Declaring the same kind again keeps the value the run has already written.</summary>
+    [Fact]
+    public void Declaring_the_same_kind_again_keeps_the_value()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+        bag.Set("count", Value.FromNumber(2));
+
+        bag.Declare("count", ValueKind.Number);
+
+        Assert.Equal(2d, bag.Values["count"].AsNumber());
+    }
+
+    /// <summary>A value that can stand for the new kind is kept rather than thrown away.</summary>
+    [Fact]
+    public void Declaring_another_kind_keeps_a_value_that_still_fits()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Text);
+        bag.Set("count", Value.FromText("3"));
+
+        bag.Declare("count", ValueKind.Number);
+
+        Assert.Equal(3d, bag.Values["count"].AsNumber());
+    }
+
+    [Fact]
+    public void A_declaration_is_forgotten_when_the_run_starts_over()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+
+        bag.ResetDeclarations();
+
+        Assert.False(bag.IsDeclared("count"));
+        bag.Set("count", Value.FromText("words"));
+        Assert.Equal("words", bag.Values["count"].AsText());
     }
 }

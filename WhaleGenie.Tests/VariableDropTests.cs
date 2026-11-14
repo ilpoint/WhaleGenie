@@ -175,13 +175,11 @@ public class VariableDropTests
         form.Choose(new VariableChoice
         {
             Name = "count",
-            Id = "a7k2m9",
             Scope = VariableScope.Local,
         });
 
         var handed = Assert.IsType<ValuePick>(answer).Value;
         Assert.Equal("count", Assert.IsType<VariableNode>(handed).Name);
-        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(handed).Id);
     }
 
     /// <summary>A call holds a list, so record equality would compare that list by identity.</summary>

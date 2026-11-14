@@ -207,14 +207,9 @@ public partial class StepParameterViewModel : ViewModelBase
                 _written = stored.Written;
                 break;
             default:
-                // The shape is what the step keeps. Everything drawn from it — including the
-                // identity a bound name carries — follows through the one write.
+                // The shape is what the step keeps. Everything drawn from it follows through the
+                // one write.
                 SetWritten(stored.Written);
-                if (Definition.NamesVariable)
-                {
-                    _boundId = Formula.NameOf(stored.Written).Id;
-                }
-
                 break;
         }
     }

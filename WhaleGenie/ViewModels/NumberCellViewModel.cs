@@ -164,24 +164,6 @@ public partial class NumberCellViewModel : ViewModelBase
         IsError = false;
     }
 
-    /// <summary>Puts what the macro file holds back in, without asking which box it belongs in.</summary>
-    public void Load(string written)
-    {
-        var text = (written ?? string.Empty).Trim();
-        if (text.Length == 0)
-        {
-            return;
-        }
-
-        if (NumberField.IsNumberText(text))
-        {
-            SetNumber(decimal.Parse(text, NumberStyles.Number, CultureInfo.InvariantCulture));
-            return;
-        }
-
-        Write(VariableName.IsName(text) ? Formula.Name(text) : Formula.Text(text));
-    }
-
     /// <summary>Empties this number, which is what a row written as one variable leaves behind.</summary>
     public void Clear()
     {

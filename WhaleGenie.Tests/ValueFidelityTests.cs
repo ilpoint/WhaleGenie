@@ -21,7 +21,7 @@ public class ValueFidelityTests
     {
         var definition = Definition("system.notify", "notificationText");
         var field = new StepParameterViewModel(definition);
-        var written = Formula.Run([Formula.Text("你好，"), Formula.Name("count", "a7k2m9")]);
+        var written = Formula.Run([Formula.Text("你好，"), Formula.Name("count")]);
 
         field.ApplyValue(new StepParameter
         {
@@ -38,7 +38,7 @@ public class ValueFidelityTests
     {
         var definition = Definition("system.notify", "notificationText");
         var field = new StepParameterViewModel(definition);
-        var written = Formula.Name("count", "a7k2m9");
+        var written = Formula.Name("count");
 
         field.WriteValue(written);
 
@@ -55,7 +55,7 @@ public class ValueFidelityTests
         {
             Name = "name",
             Kind = definition.Kind,
-            Written = Formula.Name("count", "a7k2m9"),
+            Written = Formula.Name("count"),
         });
 
         Assert.Equal("count", field.Text);
@@ -121,7 +121,7 @@ public class ValueFidelityTests
     {
         var definition = Definition("system.notify", "notificationText");
         var field = new StepParameterViewModel(definition);
-        var written = Formula.Run([Formula.Text("你好，"), Formula.Name("count", "a7k2m9")]);
+        var written = Formula.Run([Formula.Text("你好，"), Formula.Name("count")]);
 
         field.WriteValue(written);
 
@@ -136,7 +136,7 @@ public class ValueFidelityTests
         var definition = Definition("system.notify", "notificationText");
         var field = new StepParameterViewModel(definition,
         [
-            new VariableChoice { Name = "count", Id = "a7k2m9", Scope = VariableScope.Local },
+            new VariableChoice { Name = "count", Scope = VariableScope.Local },
         ]);
 
         Assert.Contains("count", field.ExpressionSuggestions);

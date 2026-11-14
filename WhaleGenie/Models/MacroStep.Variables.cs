@@ -59,22 +59,20 @@ public partial class MacroStep : INotifyPropertyChanged
     /// it goes by.
     /// </summary>
     public IEnumerable<(string Key, string Name)> ReturnedResults(StepParameter parameter)
-        => ReturnedNameKeys(parameter).Select(result => (result.Key, result.Name.Name));
+        => ReturnedNameKeys(parameter).Select(result => (result.Key, result.Name));
 
     /// <summary>
-    /// The same rows with the identity each name is bound to. A picker that offers one of these
-    /// names has to carry the identity with it, or the reference it writes is bound by spelling and
-    /// loses the declaration the next time two names happen to match.
+    /// The same rows, read as the names they hold. A picker that offers one of these names offers
+    /// the name itself, because a name is the whole key a reference reads.
     /// </summary>
-    public IEnumerable<(string Key, VariableKey Name)> ReturnedNameKeys(StepParameter parameter)
+    public IEnumerable<(string Key, string Name)> ReturnedNameKeys(StepParameter parameter)
     {
         foreach (var row in parameter.Rows)
         {
-            var key = Formula.NameOf(row.Cell(FieldNames.Name));
-            var name = key.Name.Trim();
+            var name = Formula.NameOf(row.Cell(FieldNames.Name));
             if (name.Length > 0)
             {
-                yield return (row.Text(FieldNames.Key).Trim(), key with { Name = name });
+                yield return (row.Text(FieldNames.Key).Trim(), name);
             }
         }
     }

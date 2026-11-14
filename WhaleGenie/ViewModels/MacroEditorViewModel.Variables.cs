@@ -86,10 +86,6 @@ public partial class MacroEditorViewModel
     /// </summary>
     private void RenameLocalEverywhere(string oldName, string newName)
     {
-        var id = DeclaredLocals.FirstOrDefault(local =>
-            string.Equals(local.Name.Trim(), oldName, StringComparison.Ordinal))?.Id
-            ?? string.Empty;
-
         VariableRename.RenameSteps(Steps, oldName, newName);
         foreach (var local in DeclaredLocals)
         {
@@ -106,7 +102,6 @@ public partial class MacroEditorViewModel
             parameter.Default = VariableRename.RenameValue(parameter.Default, oldName, newName);
         }
 
-        VariableIds.Rebind(Steps, id, newName);
     }
 
     /// <summary>

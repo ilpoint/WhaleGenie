@@ -106,7 +106,6 @@ public static partial class MacroPackage
 
             globals.Add(new VariableDefinition
             {
-                Id = ReadString(variable, "id").Trim(),
                 Name = name,
                 Scope = VariableScope.Global,
                 Type = VariableTypes.KindOf(ReadString(variable, "type")),
@@ -115,11 +114,7 @@ public static partial class MacroPackage
             });
         }
 
-        VariableIds.SettleGlobals(globals);
-        foreach (var macro in macros)
-        {
-            VariableIds.Bind(macro, globals);
-        }
+
 
         return new PackageContents { Macros = macros, Globals = globals, Triggers = triggers };
     }

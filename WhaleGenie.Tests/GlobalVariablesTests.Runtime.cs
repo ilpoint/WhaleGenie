@@ -45,7 +45,7 @@ public partial class GlobalVariablesTests
             Name = "liveTotal",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
-            DefaultValue = "1",
+            Default = Formula.Text("1"),
             PersistValue = true,
         };
         VariableCatalog.Globals.Add(definition);

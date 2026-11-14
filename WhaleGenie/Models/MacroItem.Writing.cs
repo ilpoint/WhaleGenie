@@ -182,11 +182,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["type"] = parameter.Type.ToString(),
             };
 
-            if (parameter.Id.Length > 0)
-            {
-                written["id"] = parameter.Id;
-            }
-
             // Only a record has fields, and only a record whose author said which ones is worth
             // writing down: an empty list would say "a record with nothing in it" rather than "not
             // said", and the two are different answers.
@@ -214,11 +209,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["description"] = result.Description,
                 ["type"] = result.Type.ToString(),
             };
-
-            if (result.Id.Length > 0)
-            {
-                written["id"] = result.Id;
-            }
 
             if (FieldsJson(result.Fields) is { } fields)
             {
@@ -249,11 +239,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
                 ["initial"] = FormulaJson.Write(local.Initial),
                 [FieldNames.Description] = local.Description,
             };
-
-            if (local.Id.Length > 0)
-            {
-                written["id"] = local.Id;
-            }
 
             array.Add(written);
         }

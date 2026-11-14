@@ -25,17 +25,17 @@ public partial class GlobalVariablesTests
             Name = "total",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
-            DefaultValue = "1",
+            Default = Formula.Text("1"),
             PersistValue = true,
         };
         var viewModel = new GlobalVariablesViewModel([existing]);
         IReadOnlyList<VariableDefinitionDraft>? saved = null;
         viewModel.Saved += rows => saved = rows;
 
-        viewModel.Rows.Single().DefaultValue = "2";
+        viewModel.Rows.Single().Default = Formula.Text("2");
         viewModel.NewCommand.Execute(null);
         viewModel.Selected!.Name = "count";
-        viewModel.Selected.DefaultValue = "0";
+        viewModel.Selected.Default = Formula.Text("0");
         Assert.Equal("1", existing.DefaultValue);
         Assert.Null(saved);
 

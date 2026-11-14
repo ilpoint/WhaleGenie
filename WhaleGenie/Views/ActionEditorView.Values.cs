@@ -90,7 +90,7 @@ public partial class ActionEditorView : UserControl
         var caret = (button.FindAncestorOfType<TextBox>(true)
                 ?? button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
                     .OfType<TextBox>().FirstOrDefault())?.CaretIndex;
-        row.InsertVariable(Formula.NameOf(picked.Value).Name, caret ?? row.OrVariable.Length);
+        row.InsertVariable(Formula.NameOf(picked.Value), caret ?? row.OrVariable.Length);
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ public partial class ActionEditorView : UserControl
         // A name goes in as a piece of the value rather than as the line it is written as: the
         // field keeps a shape, so nothing about the way a formula spells a name reaches the user.
         var key = Formula.NameOf(picked.Value);
-        parameter.InsertName(key.Name, key.Id, caret);
+        parameter.InsertName(key, caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)

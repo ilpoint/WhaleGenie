@@ -117,63 +117,6 @@ public static class Expression
     }
 
     /// <summary>
-    /// The identities a tree is bound to, in the order they appear and without repeats. A reference
-    /// written by hand has no identity and is not listed: it is still read by its name.
-    /// </summary>
-    public static IReadOnlyList<string> ReferenceIds(ExpressionNode? tree)
-    {
-        var ids = new List<string>();
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        CollectIds(tree, id =>
-        {
-            if (seen.Add(id))
-            {
-                ids.Add(id);
-            }
-        });
-
-        return ids;
-    }
-
-    private static void CollectIds(ExpressionNode? node, Action<string> found)
-    {
-        switch (node)
-        {
-            case VariableNode { Id.Length: > 0 } variable:
-                found(variable.Id);
-                break;
-            case ConcatNode run:
-                foreach (var part in run.Parts)
-                {
-                    CollectIds(part, found);
-                }
-
-                break;
-            case ListNode list:
-                foreach (var item in list.Items)
-                {
-                    CollectIds(item, found);
-                }
-
-                break;
-            case CallNode call:
-                foreach (var argument in call.Arguments)
-                {
-                    CollectIds(argument, found);
-                }
-
-                break;
-            case UnaryNode unary:
-                CollectIds(unary.Operand, found);
-                break;
-            case BinaryNode binary:
-                CollectIds(binary.Left, found);
-                CollectIds(binary.Right, found);
-                break;
-        }
-    }
-
-    /// <summary>
     /// Renames every reference to one variable and nothing else. A piece of quoted text that
     /// happens to spell the name is left alone, because it is a shape rather than a spelling: the
     /// tree says which nodes are references, so nothing has to be guessed from the characters.

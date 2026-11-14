@@ -56,17 +56,16 @@ public sealed partial class MacroRunner
         var written = step.Written(name);
         return ValueFormOf(step, name) switch
         {
-            ActionValueForm.Name => ReadNameKey(step, name).Name,
+            ActionValueForm.Name => WrittenName(step, name),
             _ => Read(written).AsText(),
         };
     }
 
     /// <summary>
-    /// The name a field writes and the identity it is bound to. A name written into a step is not
-    /// read through the formula writer, because that writer puts a dollar in front of a bare name;
-    /// the shape says which name it is, and the id says which declaration.
+    /// The name a field writes. A name written into a step is not read through the formula writer,
+    /// because that writer puts corner marks around a bare name; the shape says which name it is.
     /// </summary>
-    private VariableKey ReadNameKey(ExecutableStep step, string name)
+    private string WrittenName(ExecutableStep step, string name)
         => Formula.NameOf(step.Written(name));
 
     private static ActionValueForm ValueFormOf(ExecutableStep step, string name)
@@ -79,13 +78,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private Value ReadName(ExpressionNode written)
     {
-        var key = Formula.NameOf(written);
-        if (key.Name.Length == 0)
+        var name = Formula.NameOf(written);
+        if (name.Length == 0)
         {
             return Value.Null;
         }
 
-        return Variables.TryGet(key, out var held) ? held : Value.FromText(key.Name);
+        return Variables.TryGet(name, out var held) ? held : Value.FromText(name);
     }
 
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>

@@ -39,44 +39,19 @@ public class FormulaJsonTests
     }
 
     [Fact]
-    public void A_name_keeps_its_id()
-    {
-        var written = FormulaJson.Write(Formula.Name("count", "a7k2m9"))!.AsObject();
-
-        Assert.Equal("count", written["name"]!.GetValue<string>());
-        Assert.Equal("a7k2m9", written["id"]!.GetValue<string>());
-        Assert.Equal(new VariableNode("count", "a7k2m9"), FormulaJson.Read(written));
-    }
-
-    [Fact]
-    public void A_name_without_an_id_writes_what_it_always_did()
+    public void A_name_is_written_as_its_name_and_nothing_else()
     {
         var written = FormulaJson.Write(Formula.Name("count"))!.AsObject();
 
-        Assert.Null(written["id"]);
-        Assert.Equal("{\"name\":\"count\"}", written.ToJsonString());
+        Assert.Equal("count", written["name"]!.GetValue<string>());
+        Assert.Single(written);
+        Assert.Equal(new VariableNode("count"), FormulaJson.Read(written));
     }
 
     [Fact]
     public void An_unknown_object_is_refused()
     {
         var written = JsonNode.Parse("{\"wat\":1}")!.AsObject();
-
-        Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
-    }
-
-    [Fact]
-    public void An_id_without_a_name_is_refused()
-    {
-        var written = JsonNode.Parse("{\"id\":\"a7k2m9\"}")!.AsObject();
-
-        Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
-    }
-
-    [Fact]
-    public void A_malformed_id_is_refused()
-    {
-        var written = JsonNode.Parse("{\"name\":\"count\",\"id\":\"nope\"}")!.AsObject();
 
         Assert.Throws<InvalidDataException>(() => FormulaJson.Read(written));
     }

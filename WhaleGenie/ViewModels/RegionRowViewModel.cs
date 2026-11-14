@@ -169,10 +169,10 @@ public partial class RegionRowViewModel : ViewModelBase
             return place;
         }
 
-        place.X.Load(row.Text("x"));
-        place.Y.Load(row.Text("y"));
-        place.Width.Load(row.Text(FieldNames.Width));
-        place.Height.Load(row.Text(FieldNames.Height));
+        place.X.Write(row.Cell("x"));
+        place.Y.Write(row.Cell("y"));
+        place.Width.Write(row.Cell(FieldNames.Width));
+        place.Height.Write(row.Cell(FieldNames.Height));
         return place;
     }
 

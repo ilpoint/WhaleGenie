@@ -13,9 +13,6 @@ namespace WhaleGenie.Models;
 /// </summary>
 public sealed class MacroParameter
 {
-    /// <summary>The stable identity the calls and the body bind to; empty means the name alone.</summary>
-    public string Id { get; set; } = string.Empty;
-
     /// <summary>The name the called macro reads this value by.</summary>
     public string Name { get; set; } = string.Empty;
 
@@ -56,9 +53,6 @@ public sealed class MacroField
 /// </summary>
 public sealed class MacroResult
 {
-    /// <summary>The stable identity the body and the call site bind to; empty means the name alone.</summary>
-    public string Id { get; set; } = string.Empty;
-
     /// <summary>The name the value goes by inside the called macro.</summary>
     public string Name { get; set; } = string.Empty;
 
@@ -81,9 +75,6 @@ public sealed class MacroResult
 /// </summary>
 public sealed class MacroLocalVariable
 {
-    /// <summary>The stable identity the body binds to; empty means the name alone.</summary>
-    public string Id { get; set; } = string.Empty;
-
     /// <summary>The name the macro reads it by.</summary>
     public string Name { get; set; } = string.Empty;
 
@@ -121,10 +112,10 @@ public sealed record MacroCallable(
     /// </summary>
     public MacroSignature Signature => new(
         [.. Parameters.Select(parameter => new MacroArgument(parameter.Name.Trim(),
-            parameter.Default, parameter.Required, parameter.Type, parameter.Id))],
-        [.. Results.Select(result => new MacroReturn(result.Name.Trim(), result.Type, result.Id))],
-        [.. OwnLocals.Select(local => new MacroLocal(local.Name.Trim(), local.Initial, local.Type,
-            local.Id))]);
+            parameter.Default, parameter.Required, parameter.Type))],
+        [.. Results.Select(result => new MacroReturn(result.Name.Trim(), result.Type))],
+        [.. OwnLocals.Select(local => new MacroLocal(local.Name.Trim(), local.Initial,
+            local.Type))]);
 
     /// <summary>
     /// Every declaration name that cannot be used: one left empty, one the macro language cannot

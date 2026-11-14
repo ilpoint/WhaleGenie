@@ -108,8 +108,8 @@ public sealed class ValueDraft : ViewModelBase
             : ShapeTree.Insert(_value, _caret, piece));
     }
 
-    /// <summary>Puts a name where the caret stands, keeping the declaration it is bound to.</summary>
-    public void PutName(string name, string id = "") => Put(Formula.Name(name, id));
+    /// <summary>Puts a name where the caret stands.</summary>
+    public void PutName(string name) => Put(Formula.Name(name));
 
     /// <summary>Puts one of the words that stand for a value, such as true, false or null.</summary>
     public void PutConstant(string word) => Put(Formula.Constant(word));

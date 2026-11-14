@@ -88,7 +88,7 @@ public class PersistentVariableTests
                 Name = "total",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "1",
+                Default = Formula.Text("1"),
             };
             VariableCatalog.Globals.Add(definition);
             definition.PersistValue = true;
@@ -106,7 +106,7 @@ public class PersistentVariableTests
                 Name = "total",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "1",
+                Default = Formula.Text("1"),
             };
             VariableCatalog.Globals.Add(reopened);
             Apply(store, [reopened]);
@@ -149,7 +149,7 @@ public class PersistentVariableTests
         var path = Path.Combine(folder, "persistent-variables.json");
         File.WriteAllText(path, """
             {
-              "version": 1,
+              "version": 2,
               "variables": [
                 { "name": "amount", "value": "not a number" }
               ]
@@ -162,7 +162,7 @@ public class PersistentVariableTests
             Name = "amount",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
-            DefaultValue = "3",
+            Default = Formula.Text("3"),
         };
 
         try
@@ -216,7 +216,7 @@ public class PersistentVariableTests
         store.Initialize(SharedVariables.Current);
         try
         {
-            var definition = Global("aaa111", "names", "list");
+            var definition = Global("names", "list");
             definition.PersistValue = true;
             store.PersistChanged(definition, true);
             SharedVariables.Current.Set("names",
@@ -224,7 +224,7 @@ public class PersistentVariableTests
             store.Flush();
 
             SharedVariables.Current.Clear();
-            var reopened = Global("aaa111", "names", "list");
+            var reopened = Global("names", "list");
             Apply(store, [reopened]);
 
             Assert.True(SharedVariables.Current.TryGet("names", out var restored));
@@ -246,14 +246,14 @@ public class PersistentVariableTests
         store.Initialize(SharedVariables.Current);
         try
         {
-            var definition = Global("bbb222", "ratio", "number");
+            var definition = Global("ratio", "number");
             definition.PersistValue = true;
             store.PersistChanged(definition, true);
             SharedVariables.Current.SetNumber("ratio", 0.123456789);
             store.Flush();
 
             SharedVariables.Current.Clear();
-            var reopened = Global("bbb222", "ratio", "number");
+            var reopened = Global("ratio", "number");
             Apply(store, [reopened]);
 
             Assert.True(SharedVariables.Current.TryGet("ratio", out var restored));
@@ -266,11 +266,11 @@ public class PersistentVariableTests
     }
 
     /// <summary>
-    /// The file a build without identities wrote keeps the value's text and nothing else. It must
-    /// still open, and the first save writes it in the shape this build reads.
+    /// A file written in a shape this build does not read is not guessed at: nothing is restored,
+    /// and the first save replaces it with the one shape this build writes.
     /// </summary>
     [Fact]
-    public void A_file_from_before_identities_is_still_read()
+    public void A_file_in_an_older_shape_starts_empty_and_is_rewritten()
     {
         var path = TempPath(out var folder);
         File.WriteAllText(path, """
@@ -286,13 +286,15 @@ public class PersistentVariableTests
         store.Initialize(SharedVariables.Current);
         try
         {
-            var definition = Global("ccc333", "amount", "number");
-            definition.DefaultValue = "3";
+            var definition = Global("amount", "number");
+            definition.Default = Formula.Text("3");
             Apply(store, [definition]);
 
-            Assert.True(definition.PersistValue);
-            Assert.True(SharedVariables.Current.TryGet("amount", out var value));
-            Assert.Equal(12.5, value.AsNumber());
+            Assert.False(definition.PersistValue);
+            Assert.False(SharedVariables.Current.TryGet("amount", out _));
+
+            store.Flush();
+            Assert.Contains("\"version\": 2", File.ReadAllText(path));
         }
         finally
         {
@@ -308,7 +310,7 @@ public class PersistentVariableTests
             {
               "version": 2,
               "variables": [
-                { "id": "ddd444", "name": "good", "type": "number", "value": 5 },
+                { "name": "good", "value": 5 },
                 "not an entry"
               ]
             }
@@ -318,7 +320,7 @@ public class PersistentVariableTests
         store.Initialize(SharedVariables.Current);
         try
         {
-            var definition = Global("ddd444", "good", "number");
+            var definition = Global("good", "number");
             Apply(store, [definition]);
 
             Assert.True(definition.PersistValue);
@@ -332,11 +334,11 @@ public class PersistentVariableTests
     }
 
     /// <summary>
-    /// Two projects may both call a global "count". The saved value belongs to the declaration, not
-    /// to the word, so opening the second project must not hand it the first project's number.
+    /// A name is the key, so the saved value belongs to the word: whichever project declares a
+    /// global called "count" reads the value that name was left at.
     /// </summary>
     [Fact]
-    public void Two_projects_with_one_name_do_not_share_the_saved_value()
+    public void One_name_is_one_saved_value_whichever_project_opens_it()
     {
         var path = TempPath(out var folder);
         var previous = SharedVariables.Current.Values;
@@ -344,23 +346,17 @@ public class PersistentVariableTests
         store.Initialize(SharedVariables.Current);
         try
         {
-            var first = Global("eee555", "count", "number");
+            var first = Global("count", "number");
             first.PersistValue = true;
             SharedVariables.Current.SetNumber("count", 10);
             store.PersistChanged(first, true);
             store.Flush();
 
             SharedVariables.Current.Clear();
-            var second = Global("fff666", "count", "number");
+            var second = Global("count", "number");
             Apply(store, [second]);
 
-            Assert.False(second.PersistValue);
-            Assert.False(SharedVariables.Current.Contains("count"));
-
-            var reopened = Global("eee555", "count", "number");
-            Apply(store, [reopened]);
-
-            Assert.True(reopened.PersistValue);
+            Assert.True(second.PersistValue);
             Assert.True(SharedVariables.Current.TryGet("count", out var restored));
             Assert.Equal(10, restored.AsNumber());
         }
@@ -370,9 +366,8 @@ public class PersistentVariableTests
         }
     }
 
-    private static VariableDefinition Global(string id, string name, string type) => new()
+    private static VariableDefinition Global(string name, string type) => new()
     {
-        Id = id,
         Name = name,
         Scope = VariableScope.Global,
         Type = VariableTypes.KindOf(type),

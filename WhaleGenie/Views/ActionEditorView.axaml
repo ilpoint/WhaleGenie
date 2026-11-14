@@ -343,6 +343,7 @@
                                         <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
                                                    VerticalAlignment="Center" />
                                         <TextBox Grid.Column="1" Classes="HasChip"
+                                                 IsReadOnly="True"
                                                  Text="{Binding GlobalVariableDraft.DefaultValue}">
                                             <TextBox.InnerRightContent>
                                                 <Button Classes="ValueChip" Click="OnBuildGlobalDefaultExpression"

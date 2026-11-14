@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -60,7 +61,7 @@ public partial class GlobalVariablesTests
 
         viewModel.NewCommand.Execute(null);
         viewModel.Selected!.Name = "123";
-        viewModel.Selected.DefaultValue = "7";
+        viewModel.Selected.Default = Formula.Text("7");
 
         Assert.True(viewModel.CanSave, viewModel.ValidationMessage);
         viewModel.SaveCommand.Execute(null);

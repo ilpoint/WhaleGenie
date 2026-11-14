@@ -7,8 +7,10 @@ using WhaleGenie.Core.Expressions;
 namespace WhaleGenie.Models;
 
 /// <summary>
-/// Rewrites the variable references the macro model can know exactly. Record field names and
-/// script bodies are deliberately outside this operation.
+/// Carries a rename through everything the macro model can know a name by. The name is the key, so
+/// a rename rewrites the declaration and every reference to it; record field names and script
+/// bodies are deliberately outside this operation, because a dot in a name is a field and a script
+/// keeps its own language.
 /// </summary>
 public static class VariableRename
 {
@@ -31,15 +33,8 @@ public static class VariableRename
         return found;
     }
 
-    public static void RenameGlobal(IEnumerable<MacroItem> macros, string oldName, string newName,
-        string id = "")
+    public static void RenameGlobal(IEnumerable<MacroItem> macros, string oldName, string newName)
     {
-        if (id.Length == 0)
-        {
-            id = VariableCatalog.Globals.FirstOrDefault(global =>
-                string.Equals(global.Name.Trim(), oldName, StringComparison.OrdinalIgnoreCase))?.Id
-                ?? string.Empty;
-        }
         foreach (var macro in macros)
         {
             RenameSteps(macro.Steps, oldName, newName, global: true);
@@ -52,11 +47,6 @@ public static class VariableRename
             {
                 local.Initial = RenameValue(local.Initial, oldName, newName);
             }
-
-            // The name pass above keeps the old behaviour for references that came in without an
-            // identity. The identity pass then puts every bound reference back on the name of the
-            // declaration it actually belongs to, which is what a same-named local cannot steal.
-            VariableIds.Rebind(macro.Steps, id, newName);
         }
     }
 
@@ -122,15 +112,15 @@ public static class VariableRename
         => Expression.Rename(cell, oldName, newName);
 
     /// <summary>
-    /// A cell that declares a name rather than reading one — a result's name, a returned field —
-    /// is text, so it is compared as the word it is.
+    /// A field that declares a name rather than reading one — a result's name, the name a step
+    /// writes into — holds that name and nothing else, so it is replaced whole. The name is read
+    /// off the shape rather than off a line, and what goes back is a name shape.
     /// </summary>
     private static ExpressionNode RenameDeclared(ExpressionNode cell, string oldName,
         string newName)
-        => cell is TextNode text
-            && string.Equals(text.Text.Trim(), oldName, StringComparison.Ordinal)
-                ? Formula.Text(newName)
-                : cell;
+        => string.Equals(Formula.NameOf(cell), oldName.Trim(), StringComparison.OrdinalIgnoreCase)
+            ? Formula.Name(newName)
+            : cell;
 
     private static IEnumerable<MacroStep> Every(IEnumerable<MacroStep> steps)
     {

@@ -15,13 +15,13 @@ public class ValueDraftTests
     [Fact]
     public void The_shape_a_draft_starts_with_is_the_value_it_hands_back()
     {
-        var given = Formula.Binary("+", Formula.Name("count", "a7k2m9"), Formula.Number(1));
+        var given = Formula.Binary("+", Formula.Name("count"), Formula.Number(1));
 
         var draft = new ValueDraft(given);
 
         Assert.Equal(given, draft.Value);
-        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(
-            Assert.IsType<BinaryNode>(draft.Value).Left).Id);
+        Assert.Equal("count", Assert.IsType<VariableNode>(
+            Assert.IsType<BinaryNode>(draft.Value).Left).Name);
     }
 
     [Fact]
@@ -93,14 +93,14 @@ public class ValueDraftTests
     [Fact]
     public void Undo_and_redo_walk_the_shapes_not_lines_of_text()
     {
-        var given = Formula.Name("count", "a7k2m9");
+        var given = Formula.Name("count");
         var draft = new ValueDraft(given);
         draft.Set(NodePath.Root, Formula.Name("total"));
 
         Assert.True(draft.CanUndo);
         draft.Undo();
         Assert.Equal(given, draft.Value);
-        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(draft.Value).Id);
+        Assert.Equal("count", Assert.IsType<VariableNode>(draft.Value).Name);
 
         draft.Redo();
         Assert.Equal(new VariableNode("total"), draft.Value);
@@ -132,7 +132,7 @@ public class ValueDraftTests
     public void Every_piece_has_a_place_in_a_stable_order()
     {
         var value = Formula.Binary("+",
-            Formula.Call("upper", Formula.Name("who", "a7k2m9")),
+            Formula.Call("upper", Formula.Name("who")),
             Formula.Number(2));
         var (root, end) = SlotReader.Shape(value,
             Expression.Functions.ToDictionary(function => function.Name,
@@ -163,14 +163,14 @@ public class ValueDraftTests
     }
 
     [Fact]
-    public void A_shape_carries_the_identity_of_its_names_into_the_band()
+    public void A_shape_carries_its_names_into_the_band()
     {
-        var draft = new ValueDraft(Formula.Name("count", "a7k2m9"));
+        var draft = new ValueDraft(Formula.Name("count"));
 
         var piece = Assert.IsType<SlotValue>(draft.Recipe);
         Assert.Equal("count", piece.Text);
         Assert.DoesNotContain("$", piece.Text);
-        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(piece.Source).Id);
+        Assert.Equal("count", Assert.IsType<VariableNode>(piece.Source).Name);
         Assert.Equal(NodePath.Root, piece.Path);
     }
 
@@ -246,15 +246,14 @@ public class ValueDraftTests
     }
 
     [Fact]
-    public void A_picked_name_carries_its_identity_into_the_value()
+    public void A_picked_name_lands_in_the_value()
     {
         var draft = new ValueDraft(Formula.Nothing);
 
-        draft.PutName("count", "a7k2m9");
+        draft.PutName("count");
 
         var name = Assert.IsType<VariableNode>((draft.Value as ConcatNode)?.Parts[1] ?? draft.Value);
         Assert.Equal("count", name.Name);
-        Assert.Equal("a7k2m9", name.Id);
     }
 
     [Fact]
@@ -323,10 +322,10 @@ public class ValueDraftTests
         Assert.IsType<HoleNode>(Assert.Single(call.Arguments));
         Assert.Equal(NodePath.Root.Append(0), draft.Caret);
 
-        draft.Set(draft.Caret, Formula.Name("who", "a7k2m9"));
+        draft.Set(draft.Caret, Formula.Name("who"));
 
         var filled = Assert.IsType<CallNode>(draft.Value);
-        Assert.Equal(new VariableNode("who", "a7k2m9"), filled.Arguments[0]);
+        Assert.Equal(new VariableNode("who"), filled.Arguments[0]);
         Assert.False(draft.HasHole());
     }
 

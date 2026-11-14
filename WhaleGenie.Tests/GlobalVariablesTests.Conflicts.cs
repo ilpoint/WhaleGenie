@@ -31,7 +31,7 @@ public partial class GlobalVariablesTests
                 Name = "unchanged",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "1",
+                Default = Formula.Text("1"),
             };
             VariableCatalog.Globals.Add(definition);
             SharedVariables.Current.SetNumber("unchanged", 3);
@@ -48,7 +48,7 @@ public partial class GlobalVariablesTests
                 var dialog = Assert.Single(window.OwnedWindows.OfType<GlobalVariablesWindow>());
                 var manager = (GlobalVariablesViewModel)dialog.DataContext!;
                 manager.Selected!.Name = "changed";
-                manager.Selected.DefaultValue = "8";
+                manager.Selected.Default = Formula.Text("8");
                 manager.Selected.PersistValue = true;
                 dialog.Close(null);
                 Dispatcher.UIThread.RunJobs();
@@ -99,7 +99,7 @@ public partial class GlobalVariablesTests
                 Name = "liveOnly",
                 Scope = VariableScope.Global,
                 Type = ValueKind.Number,
-                DefaultValue = "1",
+                Default = Formula.Text("1"),
             });
             SharedVariables.Current.SetNumber("liveOnly", 1);
             try
