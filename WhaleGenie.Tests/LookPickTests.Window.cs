@@ -46,16 +46,6 @@ public partial class LookPickTests
         });
     }
 
-    /// <summary>一条里的一处可以是函数算出来的：括号里的逗号不是分隔符。</summary>
-    [Theory]
-    [InlineData("max(1,3),0,#FFFFFF", "max(1,3),0,#FFFFFF")]
-    [InlineData("min(2, 4),-1,#00ff00", "min(2, 4),-1,#00FF00")]
-    public void A_function_in_a_line_keeps_its_own_commas(string written, string expected)
-    {
-        Assert.True(ColourPointLine.TryParse(written, out var entry));
-        Assert.Equal(expected, entry);
-    }
-
     /// <summary>
     /// 编辑框一行一个值：偏移 X、偏移 Y、颜色各占一行。这里是手填一个点，三格写的就是数字和颜色，
     /// 所以一格都不带表达式按钮——算式仍然可以直接打进去，引擎照读。

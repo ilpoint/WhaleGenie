@@ -116,7 +116,7 @@ public partial class ActionDialogTests
                 row.QuadCells.Select(cell => cell.ShortLabel));
 
             // 格子里写一个数，参数跟着变；参数改了，格子也跟着变。
-            row.QuadCells[0].Write("120");
+            row.QuadCells[0].Write(Formula.Number(120));
             Assert.Equal("120", row.First.CurrentText);
             Assert.Same(row.First, Field(viewModel, "x"));
 

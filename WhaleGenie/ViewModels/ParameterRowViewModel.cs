@@ -196,7 +196,7 @@ public sealed class ParameterRowViewModel : ViewModelBase
         var cell = new NumberCellViewModel(field.Label, field.Hint, field.Placeholder,
             field.QuadShortLabel);
         cell.Prepare(field.Variables);
-        cell.Write(field.CurrentText);
+        cell.Write(field.Written);
 
         cell.PropertyChanged += (_, args) =>
         {
@@ -238,7 +238,7 @@ public sealed class ParameterRowViewModel : ViewModelBase
             _syncing = true;
             try
             {
-                cell.Write(field.CurrentText);
+                cell.Write(field.Written);
             }
             finally
             {

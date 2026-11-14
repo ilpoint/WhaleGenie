@@ -75,7 +75,7 @@ public partial class ValuePickerTests
     {
         var cell = new NumberCellViewModel("x", "hint");
 
-        cell.Write("3");
+        cell.Write(Formula.Number(3));
 
         Assert.Equal(Formula.Number(3), cell.Seed);
     }

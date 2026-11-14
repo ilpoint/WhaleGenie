@@ -42,22 +42,6 @@ public static class Condition
     public static IReadOnlyList<ConditionCompareChoice> CompareChoices => Comparisons.All;
 
     /// <summary>
-    /// Reads a condition. Text that is not a condition — a function call on its own, a shape the
-    /// rows cannot say — comes back false rather than as a guess, and the editor keeps it as text.
-    /// </summary>
-    public static bool TryRead(string text, out ConditionShape shape)
-    {
-        shape = null!;
-        if (!Expression.TryParse(text, out var tree, out _) || tree is null)
-        {
-            return false;
-        }
-
-        shape = Read(tree);
-        return true;
-    }
-
-    /// <summary>
     /// Reads a condition that is already the shape it was written in. Every shape is one the rows
     /// can say, so this always answers: the row that holds a whole expression says it as one side.
     /// </summary>

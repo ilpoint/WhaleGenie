@@ -19,39 +19,6 @@ internal static class NumberField
             CultureInfo.InvariantCulture, out _);
 
     /// <summary>
-    /// What the line under a box written as an expression says: what it comes to, or why it cannot
-    /// be read. Nothing is said about an empty one, because there is nothing to say about it.
-    /// </summary>
-    /// <remarks>
-    /// Only the mistakes that are certain are marked as problems. What kind of value a name holds
-    /// is not known while the macro is being written — every known name stands for a plain number
-    /// here — so a reading that fails on the shape of a value is answered with "the run will tell"
-    /// rather than with a mistake: <c>field(hit, "x")</c> is exactly right, and is only unreadable
-    /// at this point because nothing has been found yet.
-    /// </remarks>
-    public static (string Message, bool Failed) Check(string? source,
-        IReadOnlyList<string> known)
-    {
-        if (string.IsNullOrWhiteSpace(source))
-        {
-            return (string.Empty, false);
-        }
-
-        if (!Expression.TryEvaluate(source, new KnownVariables(known), out var value, out var error))
-        {
-            return Certain(error!.Code)
-                ? (ExpressionText.Describe(error), true)
-                : (Strings.Get("Add.ExpressionWhenRun"), false);
-        }
-
-        // Without variables the answer is exact, so it is worth showing. With variables
-        // there is nothing to run yet, so the box only confirms that the text reads.
-        return (Names(source)
-            ? Strings.Get("Add.ExpressionValid")
-            : Strings.Format("Add.ExpressionResult", value.AsText()), false);
-    }
-
-    /// <summary>
     /// The same check for a field that already keeps a shape. Nothing is written out to be read
     /// back: the tree is worked out as it stands, and the line under the box says the same thing it
     /// would say for the line that tree came from.
@@ -75,11 +42,6 @@ internal static class NumberField
             ? (Strings.Get("Add.ExpressionValid"), false)
             : (Strings.Format("Add.ExpressionResult", value.AsText()), false);
     }
-
-    /// <summary>True when the formula reads a variable, so what it comes to is only known at the run.</summary>
-    private static bool Names(string source)
-        => Expression.TryParse(source, out var tree, out _)
-            && Expression.References(tree).Count > 0;
 
     /// <summary>
     /// Whether a failure is one the macro can be blamed for here and now: the text does not read,

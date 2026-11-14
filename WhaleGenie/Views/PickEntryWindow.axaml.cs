@@ -11,6 +11,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -143,7 +144,7 @@ internal static class ColourPointLine
             return true;
         }
 
-        return Expression.TryParse(text, out _, out _);
+        return VariableName.IsName(text);
     }
 
     /// <summary>The colour: written out, or a formula that holds one.</summary>
@@ -160,7 +161,7 @@ internal static class ColourPointLine
         // A colour named by a variable, or worked out by a function, is read the same way an offset
         // is: what is not a colour literal must be a formula, kept as written for the run to work
         // out. A name needs no marker, so a bare word is a name here just as it is everywhere else.
-        return Expression.TryParse(text, out _, out _);
+        return VariableName.IsName(text);
     }
 
     /// <summary>

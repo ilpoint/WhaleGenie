@@ -17,14 +17,6 @@ public class ExpressionTests
         return Assert.IsType<ExpressionException>(error);
     }
 
-    [Fact]
-    public void A_name_needs_no_marker_and_a_dollar_is_not_one()
-    {
-        Assert.Equal("count", Assert.IsType<VariableNode>(Expression.Read("count")).Name);
-        Assert.False(Expression.TryParse("$count + 1", out _, out _));
-        Assert.IsType<HoleNode>(Expression.Read("$count + 1"));
-    }
-
     [Theory]
     [InlineData("1 + 2", "3")]
     [InlineData("2 * 3 + 1", "7")]

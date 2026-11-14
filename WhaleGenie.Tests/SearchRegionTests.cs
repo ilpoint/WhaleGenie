@@ -75,7 +75,7 @@ public class SearchRegionTests
             region.AddRegion();
             var row = region.Regions[0];
 
-            row.X.Write("left");
+            row.X.Write(Formula.Name("left"));
             row.Y.SetNumber(20);
             row.Width.SetNumber(30);
             row.Height.SetNumber(40);
@@ -212,7 +212,7 @@ public class SearchRegionTests
 
             // A number written as an expression swaps the spinner for the expression box, the same
             // way it does in every other number field, and writing a plain number swaps it back.
-            row.X.Write("left");
+            row.X.Write(Formula.Name("left"));
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(3, window.GetVisualDescendants().OfType<FANumberBox>()
