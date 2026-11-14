@@ -79,10 +79,16 @@ public sealed class ValueDraft : ViewModelBase
     /// somebody typed is remembered by the line's own history; marking it here too would put two
     /// steps in the undo stack for one keystroke.
     /// </summary>
-    public void Replace(ExpressionNode value)
+    public void Replace(ExpressionNode value, bool remember = false)
     {
         if (Equals(_value, value))
         {
+            return;
+        }
+
+        if (remember)
+        {
+            Change(value);
             return;
         }
 
@@ -90,8 +96,18 @@ public sealed class ValueDraft : ViewModelBase
         Rebuild();
     }
 
-    /// <summary>Puts a shape where the caret stands, keeping everything already there.</summary>
-    public void Put(ExpressionNode piece) => Change(ShapeTree.Insert(_value, _caret, piece));
+    /// <summary>
+    /// Puts a shape where the caret stands. A place that is still a hole — or one past the end of a
+    /// run or call — is filled or appended; a place that already holds a piece keeps it and gains a
+    /// neighbour. ShapeTree.Set grows a list when asked past its end, so one rule covers both.
+    /// </summary>
+    public void Put(ExpressionNode piece)
+    {
+        var standing = ShapeTree.At(_value, _caret);
+        Change(standing is HoleNode or null
+            ? ShapeTree.Set(_value, _caret, piece)
+            : ShapeTree.Insert(_value, _caret, piece));
+    }
 
     /// <summary>Puts a name where the caret stands, keeping the declaration it is bound to.</summary>
     public void PutName(string name, string id = "") => Put(Formula.Name(name, id));

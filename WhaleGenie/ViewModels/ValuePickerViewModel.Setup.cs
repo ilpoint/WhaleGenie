@@ -28,7 +28,11 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         ActionValueForm valueForm, bool bareNames = false, string? target = null)
         : this(SeedLine(seed, bareNames), variables, valueForm, bareNames, target)
     {
+        // The line is only a drawing of the seed. Put the shape itself back so a bound name keeps
+        // the identity no line can carry, then redraw the band from it.
         _draft.Replace(seed);
+        CheckText();
+        SetCaret(SpanEnd);
     }
 
     /// <summary>
@@ -64,8 +68,20 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         _table = Language.Functions.ToDictionary(function => function.Name, StringComparer.OrdinalIgnoreCase);
         _draft = new ValueDraft(Formula.Nothing, _table, _bareNames);
 
-        Text = seed ?? string.Empty;
-        _caret = Text.Length;
+        // Opening a window is not an edit. The seed line is read once into the shape, then kept as
+        // the line a person may go on typing into; the shape is the value from here on.
+        _draft.Replace(ReadLine(seed ?? string.Empty));
+        _composing = true;
+        try
+        {
+            Text = seed ?? string.Empty;
+        }
+        finally
+        {
+            _composing = false;
+        }
+
+        _caret = SpanEnd;
 
         // The wall keeps what a flat list cannot: the steps that read a name, and the way to one.
         // Its own search and filters are shown, because the variables panel is that wall.
@@ -103,6 +119,9 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         // A number is the more common thing to type, so the standing field opens in that mode.
         IsTypingNumber = true;
         CheckText();
+        // The standing line opens at the end of the drawing. Set it through the shape so the two
+        // ways of naming a place agree before the first piece is put in.
+        SetCaret(SpanEnd);
     }
 
     /// <summary>Raised with what the cell should hold, or a cancelled pick when it was left alone.</summary>

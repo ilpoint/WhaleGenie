@@ -20,13 +20,20 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 {
     partial void OnTextChanged(string value)
     {
-        if (_last is { } previous)
+        // A line written by the shape is only a picture; reading it back would turn one edit into
+        // two and lose the identity a bound name carries.
+        if (_composing)
         {
-            Remember(previous);
+            return;
         }
 
-        _last = value;
+        // Typing is an input from a person, so here the line becomes the shape once, as one step
+        // of the shape's own history. Everything after this reads the shape.
+        _draft.Replace(ReadLine(value), remember: true);
         CheckText();
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        OnPropertyChanged(nameof(CanClear));
     }
 
     partial void OnFunctionQueryChanged(string value) => RefreshFunctions();

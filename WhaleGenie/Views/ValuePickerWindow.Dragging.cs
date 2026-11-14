@@ -97,7 +97,7 @@ public partial class ValuePickerWindow : AppWindow
     private void ShowGhost(PointerEventArgs e)
     {
         var piece = _dragPiece!;
-        DragLabel.Text = _viewModel.Text.Substring(piece.Start, piece.Length).Trim();
+        DragLabel.Text = _viewModel.PieceLabel(piece).Trim();
         DragGhost.IsVisible = true;
 
         var at = e.GetPosition(DragLayer);

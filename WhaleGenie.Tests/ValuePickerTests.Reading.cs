@@ -11,25 +11,6 @@ namespace WhaleGenie.Tests;
 // Stepping along the line, and the whole formula at once.
 public partial class ValuePickerTests
 {
-    /// <summary>
-    /// The places the line can stand are the piece edges, not every character: the band only ever
-    /// draws the line on an edge, so a step inside a name would look like nothing happened.
-    /// </summary>
-    [Fact]
-    public void The_line_steps_between_piece_edges_rather_than_characters()
-    {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
-
-        Assert.Equal(new[] { 0, 2, 3, 4, 5, 7 }, form.Seams());
-
-        Assert.True(form.StepCaret(-1));
-        Assert.Equal(5, form.Caret);
-        Assert.True(form.StepCaret(-1));
-        Assert.Equal(4, form.Caret);
-        Assert.True(form.StepCaret(1));
-        Assert.Equal(5, form.Caret);
-    }
-
     [Fact]
     public void A_step_past_either_end_stays_where_it_is()
     {

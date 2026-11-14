@@ -61,13 +61,12 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     private bool _reads;
     private int _caret;
 
-    /// <summary>The shape the last check read the line into.</summary>
-    private ExpressionNode? _parsed;
-
     /// <summary>
-    /// The shape the window hands back. The line is only how it is edited: every check keeps this
-    /// shape in step, and confirming gives this shape rather than one parsed out of the line again,
-    /// so a name that arrived bound to a declaration keeps the identity a line cannot carry.
+    /// The one value the window edits. The band, the caret and the answer are all drawn from this
+    /// shape; a line is only a way of typing into it, never a second thing to keep in step.
     /// </summary>
     private ValueDraft _draft = null!;
+
+    /// <summary>True while the line is being redrawn from the shape, so it is not read back.</summary>
+    private bool _composing;
 }

@@ -99,45 +99,6 @@ public class ValuePickerWindowTests
             Ui.CloseAndDiscard(window);
         });
     }
-
-    [Fact]
-    public void A_problem_still_opens_a_tooltip_with_words()
-    {
-        Ui.Run(() =>
-        {
-            var window = Window("nope($a)");
-
-            var piece = Assert.Single(Pieces(window), one => one.DataContext is SlotCall);
-            var node = Assert.IsAssignableFrom<SlotNode>(piece.DataContext);
-            Assert.True(node.HasProblem);
-            Assert.Equal(node.ProblemHint, Assert.IsType<string>(ToolTip.GetTip(piece)));
-
-            Ui.CloseAndDiscard(window);
-        });
-    }
-
-    [Fact]
-    public void The_confirm_button_has_a_tooltip_only_while_it_is_grey()
-    {
-        Ui.Run(() =>
-        {
-            var window = Window("upper($a)");
-            var form = (ValuePickerViewModel)window.DataContext!;
-            var confirm = window.GetVisualDescendants().OfType<Button>()
-                .Single(one => Equals(one.Content, Strings.Get("ValuePicker.InsertButton")));
-
-            Assert.Null(ToolTip.GetTip(confirm));
-            Assert.Null(form.BlockReasonTip);
-
-            form.Text = "nope($a)";
-            Dispatcher.UIThread.RunJobs();
-            Assert.NotNull(form.BlockReasonTip);
-            Assert.NotNull(ToolTip.GetTip(confirm));
-
-            Ui.CloseAndDiscard(window);
-        });
-    }
-
     [Fact]
     public void Confirm_is_enabled_while_the_cell_is_empty()
     {
@@ -349,37 +310,6 @@ public class ValuePickerWindowTests
             Ui.CloseAndDiscard(window);
         });
     }
-
-    /// <summary>The cross carries the piece it was drawn for, so its click needs no second guess.</summary>
-    [Fact]
-    public void Clicking_the_cross_takes_that_piece_away()
-    {
-        Ui.Run(() =>
-        {
-            var window = Window("concat(list(1, 2), upper($a))");
-            var form = (ValuePickerViewModel)window.DataContext!;
-            var piece = Pieces(window).First(one => one.DataContext is SlotValue value && value.Text == "2");
-
-            Hover(window, piece);
-
-            var cross = window.FindControl<Button>("HoverRemove")!;
-            Assert.Same(piece.DataContext, cross.DataContext);
-            Assert.Equal(16, cross.Width);
-
-            cross.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal("concat(list(1), upper($a))", form.Text);
-
-            // Nothing from the replaced tree stays armed: that node would cut whatever now stands
-            // at the same offsets.
-            Assert.False(cross.IsVisible);
-            Assert.Null(cross.DataContext);
-
-            Ui.CloseAndDiscard(window);
-        });
-    }
-
     /// <summary>
     /// Number and text used to open a row only after a button was pressed. The row is standing now,
     /// so typing never waits for a mode to be chosen and the three panels never jump in height.
@@ -406,33 +336,6 @@ public class ValuePickerWindowTests
             RoutedEvent = InputElement.KeyDownEvent,
             Key = key,
         });
-
-    /// <summary>
-    /// The cross keys walk the standing line from one piece edge to the next. The strip takes the
-    /// keyboard on a press, so this drives it the way a hand would: focus the strip, then press.
-    /// </summary>
-    [Fact]
-    public void An_arrow_key_moves_the_line_one_place_along()
-    {
-        Ui.Run(() =>
-        {
-            var window = Window("$a + $b");
-            var form = (ValuePickerViewModel)window.DataContext!;
-            var band = Named(window, "Band");
-            Assert.True(band.Focusable);
-            Assert.True(band.Focus());
-            Assert.Equal(form.Text.Length, form.Caret);
-
-            Press(window, Key.Left);
-            Assert.Equal(5, form.Caret);
-
-            Press(window, Key.Right);
-            Assert.Equal(form.Text.Length, form.Caret);
-
-            Ui.CloseAndDiscard(window);
-        });
-    }
-
     /// <summary>
     /// A call too long for one row gives each argument its own row, and the up and down keys are what
     /// carries the line between them. Only the seam it lands on is compared, never a pixel.

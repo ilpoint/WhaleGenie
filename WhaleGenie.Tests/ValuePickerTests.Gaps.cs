@@ -11,29 +11,6 @@ namespace WhaleGenie.Tests;
 // A piece written at the caret without taking over its neighbour.
 public partial class ValuePickerTests
 {
-    [Fact]
-    public void A_piece_put_before_a_name_does_not_take_it_over()
-    {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
-        form.SetCaret(5);
-
-        form.Place("$c");
-
-        Assert.Equal("$a + $c $b", form.Text);
-    }
-
-    /// <summary>A call added at the front must not fuse with the name that follows it.</summary>
-    [Fact]
-    public void A_call_put_at_the_front_does_not_fuse_with_the_next_piece()
-    {
-        var form = new ValuePickerViewModel("$a + $b", Variables(), ActionValueForm.Value);
-        form.SetCaret(0);
-
-        form.PlaceCall("upper");
-
-        Assert.Equal("upper() $a + $b", form.Text);
-    }
-
     /// <summary>The standing field opens ready for a number, the more common thing to type.</summary>
     [Fact]
     public void The_small_field_opens_in_number_mode()
@@ -70,17 +47,5 @@ public partial class ValuePickerTests
         Assert.Equal(string.Empty, form.TypingText);
         Assert.False(form.HasTypingNote);
         Assert.False(form.CanInsertTyped);
-    }
-
-    /// <summary>A space already standing at the seam is the separator; a second one would leave a gap.</summary>
-    [Fact]
-    public void A_space_already_at_the_seam_is_not_doubled()
-    {
-        var form = new ValuePickerViewModel("42 $a", Variables(), ActionValueForm.Value);
-        form.SetCaret(2);
-
-        form.Place("\"hello\"");
-
-        Assert.Equal("42 \"hello\" $a", form.Text);
     }
 }

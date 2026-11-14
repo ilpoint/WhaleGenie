@@ -179,7 +179,7 @@ public sealed partial class SlotCall : SlotNode
 public sealed class SlotOperator : SlotNode
 {
     /// <summary>How the sign reads, without the spaces around it.</summary>
-    public required string Text { get; init; }
+    public required string Text { get; set; }
 }
 
 /// <summary>
@@ -195,7 +195,7 @@ public sealed class SlotBracket : SlotNode
 /// <summary>A name, a number, a piece of text or one of the words that stand for a value.</summary>
 public sealed class SlotValue : SlotNode
 {
-    public required string Text { get; init; }
+    public required string Text { get; set; }
 
     public required string Tone { get; init; }
 

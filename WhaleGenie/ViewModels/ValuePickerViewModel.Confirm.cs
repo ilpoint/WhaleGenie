@@ -16,10 +16,10 @@ using Language = WhaleGenie.Core.Expressions.Expression;
 
 namespace WhaleGenie.ViewModels;
 
-// What the window answers: the check it makes, and the recipe it rebuilds.
+// What the window answers: the check it makes, and the band it draws from the shape.
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
-    /// <summary>Hands back what the cell should hold: the line, or the one name it wanted.</summary>
+    /// <summary>Hands back the shape the cell should hold, or the one name it wanted.</summary>
     public void Confirm()
     {
         if (NamesOnly)
@@ -32,10 +32,10 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return;
         }
 
-        // An empty line is a value too: it is how a cell is cleared without leaving the window.
-        // The shape is what goes back, not a second reading of the line: a name bound to a
-        // declaration keeps the identity the line could not carry.
-        if (_reads || Text.Trim().Length == 0)
+        // An empty value is a value too: it is how a cell is cleared without leaving the window.
+        // The shape is the answer, not a second reading of the line, so a name bound to a
+        // declaration keeps the identity a line cannot carry.
+        if (_reads || _draft.IsEmpty)
         {
             CloseRequested?.Invoke(new ValuePick(_draft.Value, true));
         }
@@ -50,7 +50,10 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public void Cancel() => CloseRequested?.Invoke(ValuePick.Cancelled);
 
-    /// <summary>Why the formula does not read, or that it does. Empty is not a mistake yet.</summary>
+    /// <summary>
+    /// Why the shape cannot be handed over, or that it can. Nothing here reads the line back into a
+    /// second value: an unfinished shape (a hole) is the one thing a cell cannot take yet.
+    /// </summary>
     private void CheckText()
     {
         if (NamesOnly)
@@ -58,30 +61,26 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return;
         }
 
-        var written = Text.Trim();
-        var reads = TryReadLine(written, out var parsed, out var problem, out var fault);
-        _parsed = parsed;
-        _reads = reads;
-        _draft.Replace(parsed ?? Formula.Nothing);
-        NoteIsProblem = written.Length > 0 && !_reads;
-        Note = written.Length == 0
+        var empty = _draft.IsEmpty;
+        // A half-typed line is read once into a fault shape. It is just as unfinished as a hole,
+        // and a cell cannot take either until somebody fills it in.
+        var hole = _draft.HasHole() || HoldsFault(_draft.Value);
+        _reads = !hole && !empty;
+        NoteIsProblem = hole;
+        Note = empty
             ? Strings.Get("ValuePicker.Note.Empty")
             : _reads
                 ? Strings.Get("ValuePicker.Note.Reads")
-                : problem is not null
-                    ? ExpressionText.Describe(problem)
-                    : fault is { Length: > 0 }
-                        ? fault
-                        : Strings.Get("ExprBuilder.CannotRead");
-        Saying = _reads && _bareNames && parsed is not null && ExpressionText.InChinese
-            ? Strings.Get("ValuePicker.ReadsAs") + ExpressionPhrase.Say(parsed, VariableCatalog.Spoken)
+                : Strings.Get("ExprBuilder.CannotRead");
+        Saying = _reads && _bareNames && ExpressionText.InChinese
+            ? Strings.Get("ValuePicker.ReadsAs") + ExpressionPhrase.Say(_draft.Value, VariableCatalog.Spoken)
             : string.Empty;
 
         RebuildRecipe();
-        SlotDiagnostics.Mark(Recipe, problem, _table, _knownNames);
-        BlockReason = _reads || written.Length == 0
-            ? string.Empty
-            : Strings.Get("ValuePicker.Confirm.Unreadable");
+        SlotDiagnostics.Mark(Recipe, null, _table, _knownNames);
+        BlockReason = hole
+            ? Strings.Get("ValuePicker.Confirm.Unreadable")
+            : string.Empty;
 
         OnPropertyChanged(nameof(Reads));
         OnPropertyChanged(nameof(CanConfirm));
@@ -89,9 +88,39 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         OnPropertyChanged(nameof(HasSaying));
     }
 
+    /// <summary>True while a place in the value still says it could not be read.</summary>
+    private static bool HoldsFault(ExpressionNode node) => node switch
+    {
+        FaultNode or HoleNode => true,
+        ConcatNode run => run.Parts.Any(HoldsFault),
+        ListNode list => list.Items.Any(HoldsFault),
+        CallNode call => call.Arguments.Any(HoldsFault),
+        UnaryNode unary => HoldsFault(unary.Operand),
+        BinaryNode binary => HoldsFault(binary.Left) || HoldsFault(binary.Right),
+        _ => false,
+    };
+
     /// <summary>
-    /// Reads one line the way the field will read it. This is the only place the window decides
-    /// whether a line reads, so the band and the field cannot answer differently.
+    /// The one place a typed line becomes a shape. Typing is an input from a person, so the line is
+    /// read once, here; nothing downstream reads it again.
+    /// </summary>
+    private ExpressionNode ReadLine(string written)
+    {
+        var line = written.Trim();
+        if (line.Length == 0)
+        {
+            return Formula.Nothing;
+        }
+
+        TryReadLine(line, out var parsed, out _, out _);
+        // A line that did not read is kept as the broken shape it is, not folded into an empty
+        // value: an empty field is a deliberate answer, a half-written formula is not one yet.
+        return parsed ?? Formula.FromLine(line);
+    }
+
+    /// <summary>
+    /// Reads one typed line the way the field will read it. This is the only place the window
+    /// decides what a line means, and it is used only for lines a person typed.
     /// </summary>
     private bool TryReadLine(string written, out ExpressionNode? parsed,
         out ExpressionException? problem, out string? fault)
@@ -131,8 +160,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         else
         {
             // A line that is not a formula may still be the text the field holds. Only a line
-            // that opens as a value and then fails — a half-written "$name +" — is a mistake
-            // rather than prose.
+            // that opens as a value and then fails is a mistake rather than prose.
             var tree = Formula.FromLine(written);
             if (tree is FaultNode bad)
             {
@@ -148,18 +176,133 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         return parsed is not null;
     }
 
-    /// <summary>True when a line the window would hand back reads as the field reads it.</summary>
-    private bool ReadsAsField(string written) => TryReadLine(written, out _, out _, out _);
+    /// <summary>The shape drawn as the line under the band. A picture, never the value.</summary>
+    private string DraftLine()
+        => _draft.IsEmpty
+            ? string.Empty
+            : _bareNames
+                ? Language.Render(_draft.Value, bare: true)
+                : FormulaText.Write(_draft.Value);
+
+    /// <summary>Redraws the line and the band after an edit that changed the shape.</summary>
+    private void RefreshFromDraft()
+    {
+        _composing = true;
+        try
+        {
+            Text = DraftLine();
+        }
+        finally
+        {
+            _composing = false;
+        }
+
+        CheckText();
+        SyncCaret();
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        OnPropertyChanged(nameof(CanClear));
+    }
 
     /// <summary>
-    /// Reads the line into the shape the band draws. An empty formula is one empty place rather than
-    /// nothing at all: the page says "a value goes here" instead of looking broken.
+    /// An edit may leave the caret inside a hole it just made, or in the first argument of a call it
+    /// just wrote. The shape already knows where that is; draw the standing line there so the next
+    /// piece typed lands in the same place without guessing from an offset.
+    /// </summary>
+    private void SyncCaret()
+    {
+        if (Recipe is null)
+        {
+            return;
+        }
+
+        var match = Recipe.Walk().FirstOrDefault(piece =>
+            piece.Path is { } path && path.Equals(_draft.Caret));
+        if (match is null)
+        {
+            return;
+        }
+
+        _caret = match.Start;
+        OnPropertyChanged(nameof(Caret));
+    }
+
+    /// <summary>
+    /// Draws the band from the shape. Each piece carries the walk to its place in the value, and
+    /// each leaf is shown in the spelling this window uses — bare or marked — without any token of
+    /// a line being matched up to it. A shape has no function-name or bracket tokens, so trying to
+    /// align the two would put a function's name on its argument.
     /// </summary>
     private void RebuildRecipe()
     {
-        Recipe = NamesOnly ? null : SlotReader.Read(Text, _table, _bareNames);
+        Recipe = NamesOnly ? null : Band(_draft.Recipe);
+        if (Recipe is not null)
+        {
+            foreach (var piece in Recipe.Walk().OfType<SlotValue>().Where(one => one.IsName))
+            {
+                piece.Text = _bareNames
+                    ? piece.Text.TrimStart('$')
+                    : piece.Text.StartsWith('$')
+                        ? piece.Text
+                        : "$" + piece.Text;
+            }
+        }
+
         RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));
         ClampCaret();
     }
+
+    /// <summary>A value that is one piece is still drawn as a run of one, so the band has edges.</summary>
+    private static SlotNode Band(SlotNode root)
+        => root is SlotSequence
+            ? root
+            : new SlotSequence { Items = [root], Path = NodePath.Root };
+
+    /// <summary>
+    /// The place in the value that the standing line names. The band measures a caret as an offset
+    /// into the drawing; the shape names the same place as a walk from its root.
+    /// </summary>
+    private NodePath PathForCaret()
+    {
+        if (Recipe is null)
+        {
+            return NodePath.Root;
+        }
+
+        // The ghost at the end of a call is drawn but is not one of its arguments, so it is not in
+        // the walk. It is the one place a click can name that needs its own answer.
+        foreach (var call in Recipe.Walk().OfType<SlotCall>())
+        {
+            if (call.Ghost is { Path: { } ghost, Start: var start } && start == Caret)
+            {
+                return ghost;
+            }
+        }
+
+        var pieces = Recipe.Walk().Where(piece => piece.Path is not null).ToList();
+        var exact = pieces.Where(piece => piece.Start == Caret)
+            .OrderByDescending(piece => piece.Path!.Indices.Count)
+            .FirstOrDefault();
+        if (exact?.Path is { } found)
+        {
+            return found;
+        }
+
+        return pieces.Where(piece => piece.Start + piece.Length <= Caret)
+            .OrderByDescending(piece => piece.Start + piece.Length)
+            .ThenByDescending(piece => piece.Path!.Indices.Count)
+            .FirstOrDefault()?.Path ?? NodePath.Root;
+    }
+
+    /// <summary>The words a dragged piece shows while it follows the pointer.</summary>
+    public string PieceLabel(SlotNode piece) => piece switch
+    {
+        SlotValue value => value.Text,
+        SlotOperator sign => sign.Text,
+        SlotBracket bracket => bracket.Text,
+        SlotEmpty empty => empty.Text,
+        SlotCall call => call.Name,
+        _ => string.Empty,
+    };
 }

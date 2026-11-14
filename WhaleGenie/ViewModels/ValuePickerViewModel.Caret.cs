@@ -18,16 +18,19 @@ namespace WhaleGenie.ViewModels;
 // Where the caret is: the seams it can stop at, stepping between them, undo and redo, and clearing.
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
+    /// <summary>One past the last place the band draws, which bounds the caret.</summary>
+    public int SpanEnd => _draft.End;
+
     /// <summary>
-    /// Where the next piece is written, counted in characters of the formula. The band draws one
-    /// thin line here and every palette writes at it; the text stays the only thing stored.
+    /// Where the next piece goes, as a place in the band's drawing order. The band is drawn from
+    /// the shape, so this is an offset into that drawing rather than into a line of text.
     /// </summary>
     public int Caret
     {
         get => _caret;
         private set
         {
-            var next = Math.Clamp(value, 0, Text.Length);
+            var next = Math.Clamp(value, 0, SpanEnd);
             if (_caret == next)
             {
                 return;
@@ -38,8 +41,15 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Moves the insertion point, clamped to the formula that is there now.</summary>
-    public void SetCaret(int at) => Caret = Snap(at);
+    /// <summary>
+    /// Moves the insertion point, clamped to the drawing there is now. The two ways of naming a
+    /// place are kept in step: the band measures an offset, the shape names a walk.
+    /// </summary>
+    public void SetCaret(int at)
+    {
+        Caret = Snap(at);
+        _draft.SetCaret(PathForCaret());
+    }
 
     /// <summary>
     /// The nearest place a piece can be written at. A caret asked for inside a name is not a place
@@ -48,7 +58,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private int Snap(int at)
     {
-        var clamped = Math.Clamp(at, 0, Text.Length);
+        var clamped = Math.Clamp(at, 0, SpanEnd);
         var seams = Seams();
         if (seams.Count == 0)
         {
@@ -79,7 +89,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return [];
         }
 
-        var seams = new SortedSet<int> { 0, Text.Length };
+        var seams = new SortedSet<int> { 0, SpanEnd };
         foreach (var piece in Recipe.Walk())
         {
             // A place with nothing in it is still a place: the space between the brackets of an
@@ -120,7 +130,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public bool CanConfirm => NamesOnly
         ? Wall.Looking is not null
-        : _reads || Text.Trim().Length == 0;
+        : _reads || _draft.IsEmpty;
 
     /// <summary>One short line next to the confirm button saying why it is grey.</summary>
     [ObservableProperty]
@@ -133,74 +143,45 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>Null when there is no reason, so the confirm button opens no wordless tooltip.</summary>
     public string? BlockReasonTip => HasBlockReason ? BlockReason : null;
 
-    private readonly Stack<string> _before = new();
-    private readonly Stack<string> _after = new();
-    private string? _last;
-    private bool _replaying;
+    public bool CanUndo => _draft.CanUndo;
 
-    public bool CanUndo => _before.Count > 0;
-
-    public bool CanRedo => _after.Count > 0;
+    public bool CanRedo => _draft.CanRedo;
 
     /// <summary>
-    /// Goes back one step. Every way of changing the line — typing, a piece from the strip, a cross,
-    /// a drag — writes the text, so one place is enough to remember all of them.
+    /// Goes back one edit. The history holds shapes, so a bound name is still bound when it comes
+    /// back — a line of text could not carry that.
     /// </summary>
     public void Undo()
     {
-        if (_before.Count == 0)
+        if (!_draft.CanUndo)
         {
             return;
         }
 
-        _after.Push(Text);
-        Replay(_before.Pop());
+        _draft.Undo();
+        RefreshFromDraft();
     }
 
-    /// <summary>Goes forward again to the line undo left behind.</summary>
+    /// <summary>Goes forward again to the shape undo left behind.</summary>
     public void Redo()
     {
-        if (_after.Count == 0)
+        if (!_draft.CanRedo)
         {
             return;
         }
 
-        _before.Push(Text);
-        Replay(_after.Pop());
+        _draft.Redo();
+        RefreshFromDraft();
     }
 
-    private void Replay(string text)
-    {
-        _replaying = true;
-        Text = text;
-        _replaying = false;
-        OnPropertyChanged(nameof(CanUndo));
-        OnPropertyChanged(nameof(CanRedo));
-    }
+    /// <summary>True while there is a value to take away.</summary>
+    public bool CanClear => !_draft.IsEmpty;
 
-    private void Remember(string previous)
-    {
-        if (_replaying || previous == Text)
-        {
-            return;
-        }
-
-        _before.Push(previous);
-        _after.Clear();
-        OnPropertyChanged(nameof(CanUndo));
-        OnPropertyChanged(nameof(CanRedo));
-    }
-
-    /// <summary>True while there is a formula to take away.</summary>
-    public bool CanClear => Text.Length > 0;
-
-    /// <summary>
-    /// Empties the line. It is written through <see cref="Text"/> like every other edit, so clearing
-    /// is one more step in the same history and undo brings the whole formula back.
-    /// </summary>
+    /// <summary>Empties the value. A deliberate empty is one more step in the same history.</summary>
     public void Clear()
     {
+        _draft.Clear();
+        RefreshFromDraft();
         SetCaret(0);
-        Text = string.Empty;
     }
 }

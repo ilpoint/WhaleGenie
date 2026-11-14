@@ -1,24 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Localization;
-using WhaleGenie.Models;
-
-// The language itself, spelled out: the property below is the text being edited, which hides the
-// static class of the same name inside this file.
-using Language = WhaleGenie.Core.Expressions.Expression;
 
 namespace WhaleGenie.ViewModels;
 
-// Moving a piece of the formula: the cut it leaves, the preview, and where it lands.
+// Editing the value: putting a piece in, taking one away, and moving one.
 public sealed partial class ValuePickerViewModel : ViewModelBase
 {
-    /// <summary>One stretch of the formula, measured in the coordinates of the text it came from.</summary>
+    /// <summary>One stretch of the band's drawing order, used by the seam arithmetic.</summary>
     public readonly record struct CutSpan(int Start, int End)
     {
         public int Length => End - Start;
@@ -38,93 +28,82 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     public static bool AfterFor(SlotNode? target, bool rightHalf, bool lowerHalf)
         => target is SlotSequence or SlotCall { Stacked: true } ? lowerHalf : rightHalf;
 
-    /// <summary>A move worked out before anything is cut: where, what, and what goes around it.</summary>
-    private readonly record struct MovePlan(SlotNode Piece, int Seam, string Raw, string Lead, string Trail);
+    /// <summary>
+    /// Writes one material at the insertion point. A token from a palette is an input from a
+    /// person; it becomes a shape here, and the shape editor decides how the tree grows. No line is
+    /// spliced and read back.
+    /// </summary>
+    public void Place(string token)
+    {
+        var written = token.Trim();
+        if (written.Length == 0)
+        {
+            return;
+        }
 
-    /// <summary>Writes one material at the insertion point, leaving everything already written alone.</summary>
-    public void Place(string token) => InsertAtCaret(token);
+        switch (written)
+        {
+            case "true" or "false" or "null":
+                _draft.PutConstant(written);
+                break;
+
+            case "(" or ")" or "[" or "]":
+                // A shape has no bracket pieces: the renderer draws them where precedence asks for
+                // them. There is nothing to put into the value for a press on a bracket button.
+                return;
+
+            default:
+                if (double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture,
+                        out var number))
+                {
+                    _draft.PutNumber(number);
+                }
+                else if (written.Length >= 2 && written[0] == '"' && written[^1] == '"')
+                {
+                    _draft.PutText(Unquote(written[1..^1]));
+                }
+                else if (OperatorsOfLanguage.Contains(written))
+                {
+                    _draft.PutOperator(OperatorOfLanguage(written));
+                }
+                else
+                {
+                    _draft.PutName(written.TrimStart('$'));
+                }
+
+                break;
+        }
+
+        RefreshFromDraft();
+    }
 
     /// <summary>
-    /// Adds an empty call and leaves the insertion point between its brackets, ready for an argument.
-    /// Nothing already written is ever put inside it against the reader's wish.
+    /// Adds a call with one empty place per required argument and leaves the insertion point in the
+    /// first one, ready to be filled. Nothing already written is put inside it against the reader's
+    /// wish.
     /// </summary>
     public void PlaceCall(string name)
     {
-        var start = InsertAtCaret(name + "()");
-        SetCaret(start + name.Length + 1);
+        var places = _table.TryGetValue(name, out var entry)
+            ? Math.Max(1, entry.MinArguments)
+            : 1;
+        _draft.PutCall(name, places);
+        RefreshFromDraft();
     }
 
     /// <summary>
-    /// Writes one piece where the insertion point is, putting a space on either side only where the
-    /// characters would otherwise be read as a single piece. Filling the ghost also writes the comma
-    /// it stands behind. Returns where the written piece begins, so a call can put its insertion
-    /// point inside the brackets rather than after them.
-    /// </summary>
-    private int InsertAtCaret(string token)
-    {
-        var at = Snap(Math.Clamp(Caret, 0, Text.Length));
-        if (token.Length == 0)
-        {
-            return at;
-        }
-
-        // The ghost is not an argument and is not in Walk's children: it is the one place a call
-        // keeps that the text never wrote, so it is reached through the call that owns it.
-        var ghost = Recipe?.Walk().OfType<SlotCall>()
-            .Select(call => call.Ghost)
-            .FirstOrDefault(one => one is { IsGhost: true } && one.Start == at);
-        var end = Text.TrimEnd().Length;
-        var left = at > 0 ? Text[at - 1] : '\0';
-        var right = at < end ? Text[at] : '\0';
-        var lead = ghost is not null ? ghost.Before
-            : at == 0 ? string.Empty
-            : at >= end ? " "
-            : left != ' ' && (Glues(left, token[0]) || (EndsPiece(left) && StartsPiece(token[0])))
-                ? " " : string.Empty;
-        // A space already standing there is the separator: adding another would leave a double gap.
-        var trail = ghost is null && at < end && right != ' '
-            && (Glues(token[^1], right) || (EndsPiece(token[^1]) && StartsPiece(right)))
-            ? " " : string.Empty;
-
-        Text = Text.Insert(at, lead + token + trail);
-        SetCaret(at + lead.Length + token.Length);
-        return at + lead.Length;
-    }
-
-    /// <summary>True for the characters a name, a number or a word is made of.</summary>
-    private static bool IsWord(char character)
-        => char.IsLetterOrDigit(character) || character is '_' or '.' or '$';
-
-    /// <summary>
-    /// True when these two characters would be read as one piece if they ended up side by side.
-    /// </summary>
-    private static bool Glues(char left, char right)
-        => (IsWord(left) && IsWord(right))
-            || left is '"' or '\''
-            || right is '"' or '\''
-            || (left, right) is ('!', '=') or ('<', '=') or ('>', '=') or ('=', '=') or ('&', '&') or ('|', '|');
-
-    /// <summary>True for a character that can end one piece of a formula.</summary>
-    private static bool EndsPiece(char character)
-        => IsWord(character) || character is '"' or '\'' or ')' or ']';
-
-    /// <summary>True for a character that can begin one piece of a formula.</summary>
-    private static bool StartsPiece(char character)
-        => IsWord(character) || character is '"' or '\'' or '(' or '[';
-
-    /// <summary>
-    /// Takes one piece away, and the comma that kept it apart from its neighbour. The ghost at the
-    /// end needs no restoring: it is not stored anywhere, it is what a call always has, so it is
-    /// there again the moment the text is read back.
+    /// Takes one piece away, leaving a hole that can be filled again. A shape is never pulled apart
+    /// by cutting characters out of a line.
     /// </summary>
     public bool RemoveArgument(SlotNode? piece)
     {
-        if (piece is not { CanRemove: true, Length: > 0 } target)
+        if (piece is not { CanRemove: true, Path: { } path })
         {
             return false;
         }
 
-        Cut(target.Start, target.Length);
+        _draft.Remove(path);
+        RefreshFromDraft();
         return true;
     }
 
@@ -134,101 +113,63 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     public DropPreview PreviewMove(SlotNode? piece, SlotNode? target, bool after)
     {
-        if (!Resolve(piece, target, after, out var anchor, out var dropAfter, out _))
-        {
-            return new DropPreview((target ?? piece ?? Recipe)!, after, Allowed: false, NoOp: false);
-        }
-
-        var seam = SeamOf(anchor, dropAfter);
-        var noOp = piece is { } moved && Inside(seam, moved);
-        if (!TryPlanMove(piece, target, after, out var plan))
-        {
-            return new DropPreview(anchor, dropAfter, Allowed: false, noOp);
-        }
-
-        return new DropPreview(anchor, dropAfter, Allowed: TryBuildMove(plan, out _), noOp);
+        var allowed = piece is { CanRemove: true, Path: not null, Source: not null }
+            && target is { Path: not null }
+            && !ReferenceEquals(piece, target);
+        var noOp = allowed && piece!.Path!.Equals(target!.Path);
+        return new DropPreview(target ?? piece ?? Recipe!, after, allowed, noOp);
     }
 
     /// <summary>
-    /// Moves one piece to just before (or after) another. The piece is taken out the same way its
-    /// cross takes it out — commas and all — and written back where it was dropped, carrying the
-    /// comma that keeps it apart from its neighbour inside a call, and a space where it would
-    /// otherwise fuse with what stands next to it.
+    /// Moves one piece to just before (or after) another. Both places are walks into the value, so
+    /// the move is a removal and an insert on the shape rather than a cut and paste of characters.
     /// </summary>
     public bool MoveOnto(SlotNode? piece, SlotNode? target, bool after)
     {
-        if (!TryPlanMove(piece, target, after, out var plan) || !TryBuildMove(plan, out var next))
+        if (piece is not { CanRemove: true, Path: { } from, Source: { } shape }
+            || target is not { Path: { } to }
+            || ReferenceEquals(piece, target))
         {
             return false;
         }
 
-        Text = next;
+        _draft.Remove(from);
+        var destination = after
+            ? to.Parent?.Append(to.Leaf + 1) ?? to
+            : to;
+        _draft.SetCaret(destination);
+        _draft.Put(shape);
+        RefreshFromDraft();
         return true;
     }
 
-    /// <summary>
-    /// The formula a move would leave, or null when it would turn a formula that read into one that
-    /// does not. Nothing is written here: the drop preview and the drop itself ask the same question.
-    /// </summary>
-    private bool TryBuildMove(in MovePlan plan, out string next)
+    /// <summary>The signs a person can put between two pieces, as the language spells them.</summary>
+    private static readonly HashSet<string> OperatorsOfLanguage =
+    [
+        "+", "−", "-", "×", "*", "÷", "/", "%", "=", "==", "≠", "!=",
+        ">", "≥", ">=", "<", "≤", "<=", "and", "or", "&&", "||", "not",
+    ];
+
+    /// <summary>The word the engine reads where the palette shows a mathematical sign.</summary>
+    private static string OperatorOfLanguage(string token) => token switch
     {
-        next = Text;
-        var without = CutText(Text, plan.Piece.Start, plan.Piece.Length, out var span);
-        var at = Math.Clamp(SeamAfterCut(plan.Seam, span), 0, without.Length);
+        "−" => "-",
+        "×" => "*",
+        "÷" => "/",
+        "=" => "==",
+        "≠" => "!=",
+        "≥" => ">=",
+        "≤" => "<=",
+        "&&" => "and",
+        "||" => "or",
+        _ => token,
+    };
 
-        var lead = plan.Lead;
-        var trail = plan.Trail;
-        if (lead.Length == 0 && at > 0 && Glues(without[at - 1], plan.Raw[0]))
-        {
-            lead = " ";
-        }
-
-        if (trail.Length == 0 && at < without.Length && Glues(plan.Raw[^1], without[at]))
-        {
-            trail = " ";
-        }
-
-        // A move never means to leave spaces hanging off either end of the line.
-        var built = without.Insert(at, lead + plan.Raw + trail).Trim();
-
-        // A formula that already did not read may be on its way somewhere: refusing every move in a
-        // half-written line would make the band feel stuck. Only a move that breaks a working
-        // formula is refused.
-        if (ReadsAsField(Text) && !ReadsAsField(built))
-        {
-            return false;
-        }
-
-        next = built;
-        return true;
-    }
-
-    /// <summary>
-    /// Works out what a move would do without doing it: the seam, counted in the text as it stands
-    /// now, and the separators that seam asks for. Everything is measured before the cut, because
-    /// cutting can take away the very comma the seam was measured against.
-    /// </summary>
-    private bool TryPlanMove(SlotNode? piece, SlotNode? target, bool after, out MovePlan plan)
-    {
-        plan = default;
-        if (piece is not { CanRemove: true, Length: > 0 } moved
-            || !Resolve(piece, target, after, out var anchor, out var dropAfter, out var gap))
-        {
-            return false;
-        }
-
-        var raw = Text.Substring(moved.Start, moved.Length).Trim();
-        var seam = SeamOf(anchor, dropAfter);
-
-        // Dropping a piece where it already stands is not a move: it would only cut and paste the
-        // same characters back, sometimes leaving an empty argument behind.
-        if (raw.Length == 0 || Inside(seam, moved))
-        {
-            return false;
-        }
-
-        var (lead, trail) = SeparatorsFor(anchor, seam, gap);
-        plan = new MovePlan(moved, seam, raw, lead, trail);
-        return true;
-    }
+    /// <summary>The escapes a quoted word may carry, read back into the word itself.</summary>
+    private static string Unquote(string written) => written
+        .Replace("\\\\", "\\")
+        .Replace("\\\"", "\"")
+        .Replace("\\n", "\n")
+        .Replace("\\r", "\r")
+        .Replace("\\t", "\t");
 }
