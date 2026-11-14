@@ -41,7 +41,7 @@ public class TrialRunAsideTests
 
                 var form = (AddActionViewModel)window.DataContext!;
                 form.Parameters.First(parameter => parameter.Definition.Name == "ms")
-                    .WriteValue("800");
+                    .WriteValue(Fields.Shape("800"));
                 Dispatcher.UIThread.RunJobs();
                 Assert.True(form.CanRun, form.ValidationMessage);
 

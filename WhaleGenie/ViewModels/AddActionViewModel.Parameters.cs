@@ -62,7 +62,7 @@ public partial class AddActionViewModel
                     var editor = AddEditor(parameter, CalledResults(definition), variables, steps);
                     if (calling && parameter.Name == "macro" && _callMacro.Length > 0)
                     {
-                        editor.WriteValue(_callMacro);
+                        editor.WriteValue(Formula.Text(_callMacro));
                     }
                 }
             }

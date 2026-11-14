@@ -19,53 +19,14 @@ namespace WhaleGenie.ViewModels;
 // Writing a value into the field: typing, dropping a variable, clearing, and the expression behind it.
 public partial class StepParameterViewModel : ViewModelBase
 {
-    /// <summary>Re-checks an expression as it is typed, so the editor can show the outcome.</summary>
+    /// <summary>
+    /// The line under the field is only a picture of the shape. Everything that has to follow a
+    /// change of value is said here, and none of it reads the line back: the shape is already the
+    /// answer, and <see cref="SetWritten"/> is the only place it is put in.
+    /// </summary>
     partial void OnTextChanged(string value)
     {
-        // A switch, a list and the numbered box answer the field without ever writing a line:
-        // their shape is kept beside them, and a line left over from somewhere else must not
-        // quietly replace it. A number in its expression box is the one exception — there the
-        // line is the answer again.
-        var textDrives = Definition.Kind switch
-        {
-            ActionParameterKind.Bool or ActionParameterKind.Choice or ActionParameterKind.Step => false,
-            ActionParameterKind.Number => UseFormula,
-            _ => true,
-        };
-
-        // A line that came from somewhere else — the picker, a drop, a step being opened — is read
-        // once into the value the pieces are built from. While the pieces are the ones writing, the
-        // value is already theirs and is not read back out of the line they just wrote. The read
-        // follows the field's own form: a run of text, a whole value and a name are three
-        // different readings of the same words.
-        if (!_composing && textDrives)
-        {
-            if (Definition.NamesVariable)
-            {
-                // A name field shows only the name; the identity kept beside it belongs to the
-                // spelling it came in with. Changing the spelling lets go of it, and a later bind
-                // may find the one declaration that now carries the name.
-                var name = value.Trim();
-                if (!string.Equals(name, Formula.NameOf(_written).Name, StringComparison.Ordinal))
-                {
-                    _boundId = string.Empty;
-                }
-
-                _written = new VariableNode(name, _boundId);
-            }
-            else
-            {
-                _written = value.Trim().Length == 0
-                    ? Formula.Nothing
-                    : ReadAsFormula
-                        ? Expression.Read(value)
-                        : Formula.Text(value.Trim());
-            }
-        }
-
-        // The pieces are the same value said another way, so they are read again on every change:
-        // what the field keeps and what it draws cannot drift apart if one is derived. While the
-        // pieces are the ones writing, this is the change they just made and they stay as they are.
+        // The pieces are the same value said another way, so they are drawn again on every change.
         RebuildParts();
 
         // A condition written by something other than the rows — an expression typed in the raw
@@ -101,36 +62,36 @@ public partial class StepParameterViewModel : ViewModelBase
 
         if (IsExpression || IsNumberFormula)
         {
-            UpdateExpression(value);
+            UpdateExpression(_written);
         }
     }
 
     /// <summary>
-    /// Puts a value in the field whichever way it is written, which is what comes back from the
-    /// expression builder: a plain number is a number and anything else is an expression, and the
-    /// field decides that for itself rather than the button knowing which kind it is.
+    /// The one place a value enters the field. A shape goes in, the line is drawn from it, and
+    /// nothing is ever read back out of that line.
     /// </summary>
-    public void WriteValue(string? value)
+    public void WriteValue(ExpressionNode value) => SetWritten(value);
+
+    /// <summary>
+    /// Puts a shape in as the field's value and redraws what the person sees. Every other writer —
+    /// a picker, a drop, a file being opened, a row being filled — comes through here, so the
+    /// identity a bound name carries is never lost on the way in.
+    /// </summary>
+    internal void SetWritten(ExpressionNode value)
     {
-        var written = (value ?? string.Empty).Trim();
-
-        if (!IsNumber)
-        {
-            Text = written;
-            return;
-        }
-
-        // Which box the field shows is decided from what is being written rather than from what was
-        // there a moment ago, and the value goes in before the mode does: switching a number into an
-        // expression would otherwise read the number that was showing and decide the other way.
-        var number = written.Length == 0 || NumberField.IsNumberText(written);
+        _written = value;
         _writing = true;
         try
         {
-            Text = written;
-            if (!number)
+            Text = DrawnLine(value);
+            if (IsNumber)
             {
-                UseFormula = true;
+                var plain = IsPlainNumber(value);
+                UseFormula = !plain;
+                if (plain && value is NumberNode number)
+                {
+                    ShowMilliseconds((decimal)number.Value);
+                }
             }
         }
         finally
@@ -138,56 +99,27 @@ public partial class StepParameterViewModel : ViewModelBase
             _writing = false;
         }
 
-        if (number)
+        if (IsExpression || IsNumberFormula)
         {
-            UseFormula = false;
+            UpdateExpression(_written);
         }
-        else
-        {
-            // The check runs here rather than while the text went in, because the field only became
-            // an expression a moment ago and what the text says is read off that.
-            UpdateExpression(written);
-        }
-
-        // A number may change box without changing any control the shape is kept beside, so the
-        // line is read once here as well. ReadAsFormula is decided by the box that was just picked.
-        _written = written.Length == 0
-            ? Formula.Nothing
-            : number
-                ? Expression.Read(written)
-                : Expression.Read(written);
     }
 
-    /// <summary>
-    /// Puts a shape in the field, keeping the identity each name carries. The text is rebuilt from
-    /// the shape rather than the shape being read out of the text again, so a window that handed
-    /// over a bound name does not lose the binding on the way in.
-    /// </summary>
-    public void WriteValue(ExpressionNode value)
-    {
-        if (!IsNumber)
-        {
-            _written = value;
-            _composing = true;
-            try
-            {
-                Text = ReadAsFormula ? Expression.Render(value) : Formula.Speak(value);
-            }
-            finally
-            {
-                _composing = false;
-            }
+    /// <summary>The shape as the line under the field. A picture only, never a source.</summary>
+    private string DrawnLine(ExpressionNode value)
+        => Formula.IsNothing(value)
+            ? string.Empty
+            : Definition.NamesVariable
+                ? Formula.NameOf(value).Name
+                : ReadAsFormula || IsNumber
+                    ? Expression.Render(value)
+                    : Formula.Speak(value);
 
-            RebuildParts();
-            return;
-        }
-
-        // A number is one box or the other: let the ordinary write decide which, then keep the
-        // original shape as the value so the round trip does not lose what the window carried.
-        WriteValue(Expression.Render(value));
-        _written = value;
-        RebuildParts();
-    }
+    /// <summary>A plain number belongs in the numbered box; everything else in the formula one.</summary>
+    private static bool IsPlainNumber(ExpressionNode value)
+        => Formula.IsNothing(value)
+            || value is NumberNode
+            || value is UnaryNode { Operator: "-", Operand: NumberNode };
 
     /// <summary>
     /// Puts a plain number in the field, dropping an expression that was there. This is what the
@@ -206,6 +138,8 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public void Clear()
     {
+        // A switch, a choice and the numbered box keep their own answer: the line is only a
+        // picture, and clearing it must not quietly take the value away.
         Text = string.Empty;
         UseFormula = false;
         NumberValue = null;
@@ -225,20 +159,21 @@ public partial class StepParameterViewModel : ViewModelBase
             // Start from the number that was showing, so the field is never left blank. The engine
             // reads an expression in milliseconds, so a time is written down in the stored unit
             // rather than the one the box happened to be showing.
-            Text = Milliseconds.ToString(CultureInfo.InvariantCulture);
+            var shown = Milliseconds.ToString(CultureInfo.InvariantCulture);
+            _written = Formula.Number(shown, (double)Milliseconds);
+            Text = shown;
             return;
         }
 
-        if (decimal.TryParse((Text ?? string.Empty).Trim(), NumberStyles.Number,
-                CultureInfo.InvariantCulture, out var number))
+        if (_written is NumberNode number)
         {
-            ShowMilliseconds(number);
+            ShowMilliseconds((decimal)number.Value);
         }
     }
 
-    private void UpdateExpression(string? source)
+    private void UpdateExpression(ExpressionNode written)
     {
-        var (message, failed) = NumberField.Check(source, KnownNames);
+        var (message, failed) = NumberField.Check(written, KnownNames);
         HasExpressionError = failed;
         ExpressionMessage = message;
     }

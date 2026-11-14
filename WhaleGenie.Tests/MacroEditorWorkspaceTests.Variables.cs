@@ -53,10 +53,10 @@ public partial class MacroEditorWorkspaceTests
 
             var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
             var form = (AddActionViewModel)action.DataContext!;
-            form.Parameters.Single(parameter => parameter.Definition.Name == "name").Text = name;
+            form.Parameters.Single(parameter => parameter.Definition.Name == "name").WriteValue(Formula.Name(name));
             var scope = form.Parameters.Single(parameter => parameter.Definition.Name == "scope");
             scope.Option = scope.Choices.Single(option => option.Value == "global");
-            form.Parameters.Single(parameter => parameter.Definition.Name == "value").Text = "one";
+            form.Parameters.Single(parameter => parameter.Definition.Name == "value").WriteValue(Fields.Shape("one"));
             Assert.True(form.CanSave, form.ValidationMessage);
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -106,7 +106,7 @@ public partial class MacroEditorWorkspaceTests
 
                 var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
                 var form = (AddActionViewModel)action.DataContext!;
-                form.Parameters.Single(parameter => parameter.Definition.Name == "name").Text = name;
+                form.Parameters.Single(parameter => parameter.Definition.Name == "name").WriteValue(Formula.Name(name));
                 var scope = form.Parameters.Single(parameter => parameter.Definition.Name == "scope");
                 scope.Option = scope.Choices.Single(option => option.Value == "global");
                 form.Parameters.Single(parameter => parameter.Definition.Name == "value").Text =
@@ -173,7 +173,7 @@ public partial class MacroEditorWorkspaceTests
 
                 var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
                 var form = (AddActionViewModel)action.DataContext!;
-                form.Parameters.Single(parameter => parameter.Definition.Name == "name").Text = name;
+                form.Parameters.Single(parameter => parameter.Definition.Name == "name").WriteValue(Formula.Name(name));
                 var scope = form.Parameters.Single(parameter => parameter.Definition.Name == "scope");
                 scope.Option = scope.Choices.Single(option => option.Value == "global");
                 form.GlobalVariableDraft!.PersistValue = true;

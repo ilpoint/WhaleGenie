@@ -105,7 +105,7 @@ public partial class AddActionViewModel
         // into the form first: the fields the file is about to fill in only exist because of it.
         if (CallsMacro(SelectedDefinition) && Parameter("macro") is { } called)
         {
-            called.WriteValue(step.Text("macro"));
+            called.WriteValue(Formula.Text(step.Text("macro")));
         }
 
         // The argument rows are read after the name they belong to, because which rows exist is the

@@ -210,7 +210,7 @@ public class ConditionEditorTests
             Assert.Equal("found", parameter.Text);
 
             // A step read back from a file hands its condition in the same way.
-            parameter.Text = "count > 3";
+            parameter.WriteValue(Expression.Read("count > 3"));
             Assert.Equal("count", Assert.Single(editor.Rows).Left);
             window.Close();
         });

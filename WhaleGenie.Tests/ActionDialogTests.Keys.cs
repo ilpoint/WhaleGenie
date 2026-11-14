@@ -354,7 +354,7 @@ public partial class ActionDialogTests
                     .Where(box => box.IsEffectivelyVisible),
                 box => ReferenceEquals(field, box.DataContext));
 
-            field.Text = "F5";
+            field.WriteValue(Fields.Shape("F5"));
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("F5", keyboardField.Content);
 
@@ -597,7 +597,7 @@ public partial class ActionDialogTests
             Dispatcher.UIThread.RunJobs();
 
             var key = viewModel.Parameters.First(parameter => parameter.Definition.Name == "key");
-            key.Text = "F5";
+            key.WriteValue(Fields.Shape("F5"));
 
             var devices = new RecordingDevices();
             window.Devices = devices;

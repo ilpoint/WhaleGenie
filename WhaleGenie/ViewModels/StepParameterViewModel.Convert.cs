@@ -172,23 +172,12 @@ public partial class StepParameterViewModel : ViewModelBase
         switch (Definition.Kind)
         {
             case ActionParameterKind.Number:
+                SetWritten(stored.Written);
                 if (decimal.TryParse(raw, NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
                 {
-                    UseFormula = false;
                     ShowMilliseconds(number);
                 }
-                else
-                {
-                    // Anything that is not a plain number is an expression the engine can still
-                    // evaluate. The formula box shows the formula itself — a name as its name,
-                    // with no corner marks — exactly as it does when the value window writes it.
-                    UseFormula = true;
-                    Text = Expression.Render(stored.Written);
-                }
 
-                // The text is only what the box shows; the shape is what the step keeps, and it is
-                // the shape that remembers which declaration each name is bound to.
-                _written = stored.Written;
                 break;
             case ActionParameterKind.Bool:
                 Flag = string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase);
@@ -218,40 +207,14 @@ public partial class StepParameterViewModel : ViewModelBase
                 _written = stored.Written;
                 break;
             default:
-                // The shape is what the step keeps. The text is only how the box shows it, so the
-                // box is filled from the shape rather than the shape being read out of the text
-                // again — the second reading is where a bound name would lose its binding.
-                _written = stored.Written;
+                // The shape is what the step keeps. Everything drawn from it — including the
+                // identity a bound name carries — follows through the one write.
+                SetWritten(stored.Written);
                 if (Definition.NamesVariable)
                 {
-                    var key = Formula.NameOf(stored.Written);
-                    _boundId = key.Id;
-                    _composing = true;
-                    try
-                    {
-                        Text = key.Name;
-                    }
-                    finally
-                    {
-                        _composing = false;
-                    }
-
-                    break;
+                    _boundId = Formula.NameOf(stored.Written).Id;
                 }
 
-                _composing = true;
-                try
-                {
-                    Text = ReadAsFormula && stored.Written is not (TextNode or ConcatNode)
-                        ? Expression.Render(stored.Written)
-                        : Formula.Speak(stored.Written);
-                }
-                finally
-                {
-                    _composing = false;
-                }
-
-                RebuildParts();
                 break;
         }
     }

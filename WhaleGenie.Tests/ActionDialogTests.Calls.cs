@@ -45,7 +45,7 @@ public partial class ActionDialogTests
             Assert.Empty(viewModel.CallArgumentRows);
             Assert.Empty(viewModel.ReturnsRows);
 
-            Field(viewModel, "macro")!.WriteValue("整理");
+            Field(viewModel, "macro")!.WriteValue(Fields.Shape("整理"));
             Dispatcher.UIThread.RunJobs();
 
             var rows = viewModel.CallArgumentRows;
@@ -61,13 +61,13 @@ public partial class ActionDialogTests
             times.Value = "n";
 
             // Another macro is another form...
-            Field(viewModel, "macro")!.WriteValue("清空");
+            Field(viewModel, "macro")!.WriteValue(Fields.Shape("清空"));
             Dispatcher.UIThread.RunJobs();
             Assert.Empty(viewModel.CallArgumentRows);
             Assert.Empty(viewModel.ReturnsRows);
 
             // ...and coming back does not empty the values that were filled in.
-            Field(viewModel, "macro")!.WriteValue("整理");
+            Field(viewModel, "macro")!.WriteValue(Fields.Shape("整理"));
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("n", Assert.Single(viewModel.CallArgumentRows,
                 row => row.Name == "次数").Value);
@@ -82,7 +82,7 @@ public partial class ActionDialogTests
             var window = CallWindow();
             var viewModel = (AddActionViewModel)window.DataContext!;
 
-            Field(viewModel, "macro")!.WriteValue("整理");
+            Field(viewModel, "macro")!.WriteValue(Fields.Shape("整理"));
             Dispatcher.UIThread.RunJobs();
             Assert.Single(viewModel.CallArgumentRows, row => row.Name == "次数").Value = "n";
             Assert.Single(viewModel.CallArgumentRows, row => row.Name == "标签").Value = "开始";

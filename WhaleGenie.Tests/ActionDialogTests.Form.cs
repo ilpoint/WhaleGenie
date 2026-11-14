@@ -44,7 +44,7 @@ public partial class ActionDialogTests
                 Handle: 42, How: WindowHow.Process);
             window.ApplyWindowRule(rule);
             viewModel.Parameters.First(parameter => parameter.Definition.Name == "key")
-                .WriteValue("F5");
+                .WriteValue(Fields.Shape("F5"));
 
             var step = viewModel.BuildStep();
             var saved = Assert.Single(step.Parameters,

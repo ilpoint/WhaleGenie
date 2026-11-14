@@ -66,7 +66,7 @@ public partial class StepParameterViewModel : ViewModelBase
     public void AddKey(string key)
     {
         var held = Text.Trim();
-        Text = held.Length == 0 ? key : held + "+" + key;
+        SetWritten(Formula.Text(held.Length == 0 ? key : held + "+" + key));
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public partial class StepParameterViewModel : ViewModelBase
         }
         else
         {
-            Text = key;
+            SetWritten(Formula.Text(key));
         }
     }
 

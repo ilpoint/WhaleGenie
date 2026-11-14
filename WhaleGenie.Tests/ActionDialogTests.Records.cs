@@ -39,7 +39,7 @@ public partial class ActionDialogTests
             var record = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "place");
 
-            record.Text = "命中";
+            record.WriteValue(Fields.Shape("命中"));
             Dispatcher.UIThread.RunJobs();
 
             MacroStep? saved = null;
@@ -85,7 +85,7 @@ public partial class ActionDialogTests
             Assert.Equal("60", Value(viewModel, "endY"));
 
             var capture = Open("vision.capture");
-            capture.Parameters.First(parameter => parameter.Definition.Name == "rect").Text = "旧块";
+            capture.Parameters.First(parameter => parameter.Definition.Name == "rect").WriteValue(Fields.Shape("旧块"));
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(capture.ApplyRegion(10, 20, 30, 40));
@@ -104,7 +104,7 @@ public partial class ActionDialogTests
             var viewModel = Open("input.mouseClick");
             var record = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "place");
-            record.Text = "旧记录";
+            record.WriteValue(Fields.Shape("旧记录"));
             Dispatcher.UIThread.RunJobs();
 
             Assert.True(viewModel.ApplyCursorPosition(300, 400));
@@ -349,17 +349,17 @@ public partial class ActionDialogTests
             // the number on screen would quietly mean a different moment.
             Assert.Equal("120000", ms.CurrentText);
 
-            ms.WriteValue("「count」 + 1");
+            ms.WriteValue(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
             // The unit dropdown steps aside because the engine reads the expression in milliseconds.
             Assert.False(ms.IsDurationEditor);
             Assert.True(ms.IsDurationFormula);
-            Assert.Equal("「count」 + 1", Value(viewModel, "ms"));
+            Assert.Equal("count + 1", Value(viewModel, "ms"));
 
             // Writing a plain number in place of the expression puts the spinner back, and it reads
             // in milliseconds the same as every other time field: what is shown is the number the
             // step holds, so nothing is quietly converted.
-            ms.WriteValue("120000");
+            ms.WriteValue(Fields.Shape("120000"));
 
             Assert.True(ms.IsNumberValue);
             Assert.Equal("ms", ms.Unit.Key);

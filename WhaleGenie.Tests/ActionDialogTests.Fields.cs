@@ -224,7 +224,7 @@ public partial class ActionDialogTests
 
             // What the builder hands back decides which box the field shows: a plain number goes
             // back to the spinner, so nothing has to know which way the field was written.
-            x.WriteValue("7");
+            x.WriteValue(Fields.Shape("7"));
 
             Assert.True(x.IsNumberValue);
             Assert.Equal("7", x.CurrentText);
@@ -272,7 +272,7 @@ public partial class ActionDialogTests
         {
             var x = Number("input.mouseMove", "x", "hit");
 
-            x.WriteValue("field(hit, \"x\")");
+            x.WriteValue(Expression.Read("field(hit, \"x\")"));
 
             Assert.False(x.HasExpressionError);
             Assert.False(x.ShowExpressionError);
@@ -291,11 +291,11 @@ public partial class ActionDialogTests
         {
             var x = Number("input.mouseMove", "x", "hit");
 
-            x.WriteValue("count +");
+            x.WriteValue(Expression.Read("count +"));
             Assert.True(x.HasExpressionError);
             Assert.NotEqual(string.Empty, x.ExpressionMessage);
 
-            x.WriteValue("field(nowhere, \"x\")");
+            x.WriteValue(Expression.Read("field(nowhere, \"x\")"));
             Assert.True(x.HasExpressionError);
             Assert.NotEqual(Strings.Get("Add.ExpressionWhenRun"), x.ExpressionMessage);
         });

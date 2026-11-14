@@ -42,9 +42,9 @@ public partial class StepParameterViewModel : ViewModelBase
             return;
         }
 
-        var current = Text ?? string.Empty;
-        var at = Math.Clamp(caret, 0, current.Length);
-        Text = current[..at] + name + current[at..];
+        // An integral field takes the name as its whole value; a field built out of pieces has
+        // already taken the shape path above. There is no line to splice a word into.
+        SetWritten(Formula.Name(name));
     }
 
     /// <summary>What the button beside the field should say.</summary>
@@ -83,17 +83,12 @@ public partial class StepParameterViewModel : ViewModelBase
         }
 
         _writingCondition = true;
-        _composing = true;
         try
         {
-            _written = ConditionEditor.Written;
-            Text = Formula.IsNothing(_written)
-                ? string.Empty
-                : Expression.Render(_written);
+            SetWritten(ConditionEditor.Written);
         }
         finally
         {
-            _composing = false;
             _writingCondition = false;
         }
 

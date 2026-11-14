@@ -406,7 +406,7 @@ public partial class ActionDialogTests
             // It is tuning rather than what the step is, so it is behind the fold.
             Assert.Contains("contentPattern", viewModel.AdvancedRows.SelectMany(Names));
 
-            pattern.Text = @"单号：(\d+)";
+            pattern.WriteValue(Fields.Shape(@"单号：(\d+)"));
             Dispatcher.UIThread.RunJobs();
 
             MacroStep? kept = null;
@@ -517,7 +517,7 @@ public partial class ActionDialogTests
             Assert.Equal("120", numbers.CurrentText);
             Assert.Equal(string.Empty, record.CurrentText);
 
-            record.Text = "命中";
+            record.WriteValue(Fields.Shape("命中"));
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("命中", record.CurrentText);
             Assert.Equal(string.Empty, numbers.CurrentText);

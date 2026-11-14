@@ -144,9 +144,13 @@ public partial class StepParameterViewModel : ViewModelBase
     {
         // While the numbered box is showing, its number is the answer. Once the expression box
         // takes over, the line is the answer and is read where it is written.
-        if (!UseFormula && Definition.Kind is ActionParameterKind.Number)
+        if (!_writing && !UseFormula && Definition.Kind is ActionParameterKind.Number)
         {
-            _written = Expression.Read(CurrentText.Trim());
+            var shown = CurrentText.Trim();
+            _written = shown.Length > 0
+                && double.TryParse(shown, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+                ? Formula.Number(shown, number)
+                : Formula.Nothing;
         }
     }
 

@@ -241,7 +241,7 @@ public partial class StepTreeTests
             // What the step holds has to be on screen, or "editing" it would quietly write the
             // defaults back over it.
             Assert.Equal("F5", dialogModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text);
-            dialogModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text = "F6";
+            dialogModel.Parameters.First(parameter => parameter.Definition.Name == "key").WriteValue(Fields.Shape("F6"));
             Assert.True(dialogModel.CanSave, dialogModel.ValidationMessage);
             dialogModel.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();

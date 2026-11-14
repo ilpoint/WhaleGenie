@@ -34,7 +34,7 @@ public partial class WindowPreviewTests
                 .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                 .Add(2, "Notepad - other.txt", "notepad", "Notepad");
 
-            Parameter(viewModel, "window").Text = "Notepad";
+            Parameter(viewModel, "window").WriteValue(Fields.Shape("Notepad"));
             var preview = viewModel.WindowPreview!;
             preview.RefreshCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -92,7 +92,7 @@ public partial class WindowPreviewTests
                     .Add(1, "Notepad - notes.txt", "notepad", "Notepad")
                     .Add(2, "WhaleGenie", "whalegenie", "Win32");
 
-                Parameter(viewModel, "window").Text = "e";
+                Parameter(viewModel, "window").WriteValue(Fields.Shape("e"));
                 var preview = viewModel.WindowPreview!;
                 preview.RefreshCommand.Execute(null);
                 Dispatcher.UIThread.RunJobs();

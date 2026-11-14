@@ -376,7 +376,7 @@ public class ElementPickerTests
             Assert.False(target.OffersBuilder);
             Assert.False(target.HasCandidates);
 
-            target.Text = "#save";
+            target.WriteValue(Fields.Shape("#save"));
             target.OfferCandidates(
             [
                 new PickCandidate(PickKind.DataAttribute, "[data-testid=\"save\"]", 1),

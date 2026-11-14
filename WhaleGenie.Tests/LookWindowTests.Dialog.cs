@@ -48,7 +48,7 @@ public partial class LookWindowTests
             Assert.False(viewModel.CanRun);
             Assert.False(FindRunButton(window).IsEnabled);
 
-            viewModel.Parameters.First(parameter => parameter.Definition.Name == "key").Text = "F5";
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "key").WriteValue(Fields.Shape("F5"));
             Dispatcher.UIThread.RunJobs();
             Assert.True(viewModel.CanRun);
             Assert.True(FindRunButton(window).IsEnabled);

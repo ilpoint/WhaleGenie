@@ -146,18 +146,7 @@ public partial class StepParameterViewModel : ViewModelBase
             .OfType<ExpressionNode>()
             .ToList();
 
-        _written = Formula.Run(parts);
-        _composing = true;
-        try
-        {
-            // The line is said from the value rather than the other way round. What still asks for
-            // one — a check, a log, the value picker — reads it here; nothing writes back into it.
-            Text = Formula.Speak(_written);
-        }
-        finally
-        {
-            _composing = false;
-        }
+        SetWritten(Formula.Run(parts));
     }
 
     /// <summary>Remembers where the person last was, so a name lands where they were writing.</summary>
@@ -200,18 +189,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 built.Add(Formula.Text(current[split..]));
             }
 
-            _written = Formula.Run(built);
-            _composing = true;
-            try
-            {
-                Text = Formula.Speak(_written);
-            }
-            finally
-            {
-                _composing = false;
-            }
-
-            RebuildParts();
+            SetWritten(Formula.Run(built));
             OnPropertyChanged(nameof(ShowsParts));
             return;
         }

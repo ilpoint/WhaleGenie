@@ -309,7 +309,7 @@ public class VariableWallTests
             var field = new StepParameterViewModel(
                 definition.Parameters.First(parameter => parameter.Name == "path"));
 
-            field.Text = @"C:\logs\.txt";
+            field.WriteValue(Fields.Shape(@"C:\logs\.txt"));
             field.InsertVariable("name", 8);
 
             // A name is drawn as the name itself, with its own typography rather than a sign and

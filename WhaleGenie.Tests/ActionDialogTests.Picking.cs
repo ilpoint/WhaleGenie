@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -49,7 +50,7 @@ public partial class ActionDialogTests
         {
             var viewModel = Open("input.mouseMove");
             var x = viewModel.Parameters.First(parameter => parameter.Definition.Name == "x");
-            x.WriteValue("「count」 + 1");
+            x.WriteValue(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
             Assert.True(viewModel.ApplyCursorPosition(120, 240));
             Assert.Equal("120", x.CurrentText);
@@ -170,7 +171,7 @@ public partial class ActionDialogTests
                         $"{key}.{name}");
                 }
 
-                model.Text = @"C:\models\yolov8n.onnx";
+                model.WriteValue(Fields.Shape(@"C:\models\yolov8n.onnx"));
                 Assert.True(viewModel.CanSave, $"{key}: {viewModel.ValidationMessage}");
 
                 // 两个"换个做法才会动"的数各有默认值：输入尺寸 640、允许重叠 45%。
@@ -268,7 +269,7 @@ public partial class ActionDialogTests
         {
             // 等一个条件成立：它自己的节拍仍留在步骤里，留空表示按屏幕刷新来看。
             var viewModel = Open("control.waitUntil");
-            viewModel.Parameters.First(parameter => parameter.Definition.Name == "condition").Text = "true";
+            viewModel.Parameters.First(parameter => parameter.Definition.Name == "condition").WriteValue(Fields.Shape("true"));
 
             var look = viewModel.Parameters
                 .First(parameter => parameter.Definition.Name == "intervalMs");
@@ -421,7 +422,7 @@ public partial class ActionDialogTests
             window.MouseUp(at, Avalonia.Input.MouseButton.Left);
             Dispatcher.UIThread.RunJobs();
 
-            value.Text = "count";
+            value.WriteValue(Fields.Shape("count"));
             Dispatcher.UIThread.RunJobs();
             window.MouseDown(at, Avalonia.Input.MouseButton.Left,
                 Avalonia.Input.RawInputModifiers.LeftMouseButton);

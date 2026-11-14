@@ -55,7 +55,7 @@ public partial class StepParameterViewModel : ViewModelBase
             .Select(written => written.TrimEnd())
             .Where(written => written.Length > 0)
             .Append(line);
-        Text = string.Join(Environment.NewLine, lines);
+        SetWritten(Formula.Text(string.Join(Environment.NewLine, lines)));
     }
 
     /// <summary>

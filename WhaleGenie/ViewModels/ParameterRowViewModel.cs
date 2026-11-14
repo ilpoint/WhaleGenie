@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using Lucide.Avalonia;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.ViewModels;
@@ -209,10 +210,12 @@ public sealed class ParameterRowViewModel : ViewModelBase
             {
                 // 数字字段的值存在它自己的数里，不只看那行字：写进去之后要把数也定下来，
                 // 否则框里有字、步骤却还是空着。
-                field.WriteValue(cell.Text);
-                if (field.IsNumber && !field.UseFormula
-                    && decimal.TryParse(cell.Text, NumberStyles.Number,
-                        CultureInfo.InvariantCulture, out var number))
+                var isNumber = decimal.TryParse(cell.Text, NumberStyles.Number,
+                    CultureInfo.InvariantCulture, out var number);
+                field.WriteValue(isNumber
+                    ? Formula.Number(cell.Text, (double)number)
+                    : Formula.Text(cell.Text));
+                if (field.IsNumber && !field.UseFormula && isNumber)
                 {
                     field.NumberValue = number;
                 }

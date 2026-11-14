@@ -69,7 +69,7 @@ public class ActionEditorWindowTests
 
             var form = (AddActionViewModel)window.DataContext!;
             form.SelectAction("control.runMacro");
-            form.Parameters.First(parameter => parameter.Definition.Name == "macro").Text = "子";
+            form.Parameters.First(parameter => parameter.Definition.Name == "macro").WriteValue(Fields.Shape("子"));
             Dispatcher.UIThread.RunJobs();
 
             var row = Assert.Single(form.CallArgumentRows);

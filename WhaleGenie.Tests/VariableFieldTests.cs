@@ -45,7 +45,7 @@ public class VariableFieldTests
         Ui.Run(() =>
         {
             var field = Parameter(Open("system.notify"), "notificationText");
-            field.Text = "「count」 + 1";
+            field.WriteValue(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
             Assert.False(field.ShowsParts);
         });

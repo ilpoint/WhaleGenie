@@ -90,7 +90,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Stores a captured rule as the one value this field writes.</summary>
     public void ApplyWindowRule(WindowRule rule)
     {
-        Text = rule.ToJson().ToJsonString();
+        SetWritten(Formula.Text(rule.ToJson().ToJsonString()));
         NotifyWindowRule();
     }
 
@@ -100,7 +100,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </summary>
     public void FollowWindowRule()
     {
-        Text = WindowRule.FollowPrevious.ToJson().ToJsonString();
+        SetWritten(Formula.Text(WindowRule.FollowPrevious.ToJson().ToJsonString()));
         NotifyWindowRule();
     }
 
@@ -116,7 +116,7 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>Forgets the window this field names.</summary>
     public void ClearWindowRule()
     {
-        Text = string.Empty;
+        SetWritten(Formula.Nothing);
         NotifyWindowRule();
     }
 
