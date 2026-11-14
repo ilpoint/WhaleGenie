@@ -32,8 +32,8 @@ public partial class ValuePickerTests
 
         Assert.Equal("concat", call.Name);
         Assert.Equal(2, call.Arguments.Count);
-        Assert.Equal("$a", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[0].Items)).Text);
-        Assert.Equal("$b", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[1].Items)).Text);
+        Assert.Equal("a", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[0].Items)).Text);
+        Assert.Equal("b", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[1].Items)).Text);
         Assert.Equal(", ", call.Arguments[1].Before);
         Assert.NotNull(call.Ghost);
         Assert.False(call.Ghost.Required);
@@ -49,7 +49,7 @@ public partial class ValuePickerTests
         var inner = Assert.IsType<SlotCall>(Assert.Single(outer.Arguments[1].Items));
 
         Assert.Equal("upper", inner.Name);
-        Assert.Equal("$b", Assert.IsType<SlotValue>(Assert.Single(inner.Arguments[0].Items)).Text);
+        Assert.Equal("b", Assert.IsType<SlotValue>(Assert.Single(inner.Arguments[0].Items)).Text);
     }
     /// <summary>A leaf piece is one token, never a stretch of two welded together.</summary>
     [Fact]

@@ -29,7 +29,7 @@ public class VariableFieldTests
             Assert.True(message.OffersFormula);
             Assert.False(message.IsPlainText);
             Assert.NotEmpty(message.ExpressionSuggestions);
-            Assert.Contains(message.ExpressionSuggestions, entry => entry == "$count");
+            Assert.Contains(message.ExpressionSuggestions, entry => entry == "count");
 
             Assert.True(heading.OffersVariables);
             Assert.True(heading.OffersFormula);
@@ -75,7 +75,7 @@ public class VariableFieldTests
             var first = field.Parts.OfType<TextPart>().First();
             first.Text = "再见，";
 
-            Assert.Equal("再见，$name！", field.Text);
+            Assert.Equal("再见，「name」！", field.Text);
             Assert.True(field.ShowsParts);
         });
     }
@@ -95,7 +95,7 @@ public class VariableFieldTests
             field.RememberPlace(field.Parts.OfType<TextPart>().First(), 2);
             field.InsertName("count");
 
-            Assert.Equal("你好$count，$name！", field.Text);
+            Assert.Equal("你好「count」，「name」！", field.Text);
             Assert.Equal(["你好", "count", "，", "name", "！"], Spoken(field));
         });
     }
@@ -158,7 +158,7 @@ public class VariableFieldTests
 
             var place = Parameter(viewModel, "place");
 
-            Assert.Contains("$窗口", place.ExpressionSuggestions);
+            Assert.Contains("窗口", place.ExpressionSuggestions);
         });
     }
 
@@ -310,7 +310,7 @@ public class VariableFieldTests
             Assert.True(naming.IsVariable);
             Assert.Equal(["count", "name"], naming.NameChoices.Order(StringComparer.Ordinal));
 
-            naming.InsertVariable("$count", 0);
+            naming.InsertVariable("count", 0);
             Assert.Equal("count", naming.Text);
 
             var reading = Parameter(Open("control.if"), "condition");
@@ -387,8 +387,8 @@ public class VariableFieldTests
             var path = Parameter(viewModel, "path");
             Assert.Contains("sys.macroFolder", path.NameChoices);
             Assert.Contains("step.k3f9.error", path.NameChoices);
-            Assert.Contains("$sys.macroFolder", path.ExpressionSuggestions);
-            Assert.Contains("$step.k3f9.error", path.ExpressionSuggestions);
+            Assert.Contains("sys.macroFolder", path.ExpressionSuggestions);
+            Assert.Contains("step.k3f9.error", path.ExpressionSuggestions);
 
             viewModel.SelectAction("control.setVariable");
             var name = Parameter(viewModel, "name");

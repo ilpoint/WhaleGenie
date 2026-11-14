@@ -152,7 +152,7 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             // The line is said from the value rather than the other way round. What still asks for
             // one — a check, a log, the value picker — reads it here; nothing writes back into it.
-            Text = FormulaText.Write(_written);
+            Text = Formula.Speak(_written);
         }
         finally
         {
@@ -204,7 +204,7 @@ public partial class StepParameterViewModel : ViewModelBase
             _composing = true;
             try
             {
-                Text = FormulaText.Write(_written);
+                Text = Formula.Speak(_written);
             }
             finally
             {

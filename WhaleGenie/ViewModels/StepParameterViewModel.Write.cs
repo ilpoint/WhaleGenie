@@ -171,7 +171,7 @@ public partial class StepParameterViewModel : ViewModelBase
             _composing = true;
             try
             {
-                Text = ReadAsFormula ? Expression.Render(value, bare: true) : FormulaText.Write(value);
+                Text = ReadAsFormula ? Expression.Render(value, bare: true) : Formula.Speak(value);
             }
             finally
             {

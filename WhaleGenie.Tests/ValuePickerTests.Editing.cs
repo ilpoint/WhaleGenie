@@ -23,14 +23,14 @@ public partial class ValuePickerTests
         Assert.True(form.CanUndo);
 
         form.Undo();
-        Assert.Equal("$a and $b", form.Text);
+        Assert.Equal("「a」 and 「b」", form.Text);
 
         form.Undo();
-        Assert.Equal("$a", form.Text);
+        Assert.Equal("「a」", form.Text);
         Assert.False(form.CanUndo);
 
         form.Redo();
-        Assert.Equal("$a and $b", form.Text);
+        Assert.Equal("「a」 and 「b」", form.Text);
         Assert.True(form.CanRedo);
     }
 }

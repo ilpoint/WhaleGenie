@@ -47,7 +47,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             ? string.Empty
             : bareNames
                 ? Language.Render(seed, bare: true)
-                : FormulaText.Write(seed);
+                : Formula.Speak(seed);
 
     public ValuePickerViewModel(string? seed, IReadOnlyList<VariableChoice>? variables,
         ActionValueForm valueForm, bool bareNames = false, string? target = null)

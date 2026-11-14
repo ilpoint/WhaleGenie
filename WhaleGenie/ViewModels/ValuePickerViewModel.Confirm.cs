@@ -182,7 +182,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             ? string.Empty
             : _bareNames
                 ? Language.Render(_draft.Value, bare: true)
-                : FormulaText.Write(_draft.Value);
+                : Formula.Speak(_draft.Value);
 
     /// <summary>Redraws the line and the band after an edit that changed the shape.</summary>
     private void RefreshFromDraft()
@@ -228,26 +228,14 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Draws the band from the shape. Each piece carries the walk to its place in the value, and
-    /// each leaf is shown in the spelling this window uses — bare or marked — without any token of
-    /// a line being matched up to it. A shape has no function-name or bracket tokens, so trying to
-    /// align the two would put a function's name on its argument.
+    /// Draws the band from the shape. Each piece carries the walk to its place in the value and is
+    /// shown as the name or word it is, with no sign in front of it — the shape already says which
+    /// is which. A shape has no function-name or bracket tokens, so trying to align a line's
+    /// tokens to it would put a function's name on its argument.
     /// </summary>
     private void RebuildRecipe()
     {
         Recipe = NamesOnly ? null : Band(_draft.Recipe);
-        if (Recipe is not null)
-        {
-            foreach (var piece in Recipe.Walk().OfType<SlotValue>().Where(one => one.IsName))
-            {
-                piece.Text = _bareNames
-                    ? piece.Text.TrimStart('$')
-                    : piece.Text.StartsWith('$')
-                        ? piece.Text
-                        : "$" + piece.Text;
-            }
-        }
-
         RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));
         ClampCaret();

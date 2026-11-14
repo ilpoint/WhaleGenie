@@ -44,7 +44,7 @@ public partial class ValuePickerTests
         form.SetCaret(call.Ghost!.Start);
         form.Place("$b");
 
-        Assert.Equal("concat($a, $b)", form.Text);
+        Assert.Equal("concat(「a」, 「b」)", form.Text);
         var after = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
         Assert.Equal(2, after.Arguments.Count);
         Assert.NotNull(after.Ghost);

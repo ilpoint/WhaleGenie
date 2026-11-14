@@ -310,10 +310,11 @@ public class VariableWallTests
                 definition.Parameters.First(parameter => parameter.Name == "path"));
 
             field.Text = @"C:\logs\.txt";
-            field.InsertVariable("$name", 8);
+            field.InsertVariable("name", 8);
 
-            // A dot right after a name would be read as part of it, so the line says where it ends.
-            Assert.Equal(@"C:\logs\${name}.txt", field.Text);
+            // A name is drawn as the name itself, with its own typography rather than a sign and
+            // a pair of braces in front of and around it. The shape keeps it as one piece.
+            Assert.Equal(@"C:\logs\「name」.txt", field.Text);
         });
     }
 

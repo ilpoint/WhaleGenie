@@ -89,14 +89,9 @@ public partial class StepParameterViewModel : ViewModelBase
         var suggestions = new List<string>();
         if (knowsFunctions || definition.ValueForm is ActionValueForm.Run)
         {
-            // A formula says a name as itself. A box that holds text rather than a formula marks
-            // one, because there a word is only a word.
-            var bare = definition.Kind
-                is ActionParameterKind.Expression or ActionParameterKind.Condition
-                    or ActionParameterKind.Number;
-            suggestions.AddRange(bare
-                ? named
-                : named.Select(name => "$" + name));
+            // A name is offered as the name itself. There is no sign to put in front of it: a
+            // value is made in the value window, and a word in a line is only ever a word.
+            suggestions.AddRange(named);
             if (knowsFunctions)
             {
                 suggestions.AddRange(Expression.Functions.Select(function => function.Name + "("));

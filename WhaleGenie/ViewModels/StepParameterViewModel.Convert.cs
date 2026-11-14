@@ -243,7 +243,7 @@ public partial class StepParameterViewModel : ViewModelBase
                 {
                     Text = ReadAsFormula && stored.Written is not (TextNode or ConcatNode)
                         ? Expression.Render(stored.Written, bare: true)
-                        : FormulaText.Write(stored.Written);
+                        : Formula.Speak(stored.Written);
                 }
                 finally
                 {

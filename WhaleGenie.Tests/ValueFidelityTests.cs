@@ -115,4 +115,31 @@ public class ValueFidelityTests
         Assert.True(field.Flag);
         Assert.Equal(Formula.Constant("true"), field.ToStepParameter().Written);
     }
+
+    [Fact]
+    public void A_name_the_window_hands_over_is_drawn_without_a_sign()
+    {
+        var definition = Definition("system.notify", "notificationText");
+        var field = new StepParameterViewModel(definition);
+        var written = Formula.Run([Formula.Text("你好，"), Formula.Name("count", "a7k2m9")]);
+
+        field.WriteValue(written);
+
+        Assert.DoesNotContain("$", field.Text);
+        Assert.Contains("「count」", field.Text);
+        Assert.Equal(written, field.ToStepParameter().Written);
+    }
+
+    [Fact]
+    public void Names_are_offered_as_names_not_as_marked_lines()
+    {
+        var definition = Definition("system.notify", "notificationText");
+        var field = new StepParameterViewModel(definition,
+        [
+            new VariableChoice { Name = "count", Id = "a7k2m9", Scope = VariableScope.Local },
+        ]);
+
+        Assert.Contains("count", field.ExpressionSuggestions);
+        Assert.DoesNotContain("$count", field.ExpressionSuggestions);
+    }
 }

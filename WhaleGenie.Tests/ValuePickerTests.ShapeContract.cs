@@ -56,13 +56,13 @@ public partial class ValuePickerTests
     {
         var form = Form("concat($a, $b)");
         var first = form.Recipe!.Walk().OfType<SlotValue>()
-            .First(value => value.Text == "$a");
+            .First(value => value.Text == "a");
 
         Assert.True(form.RemoveArgument(first));
 
         Assert.False(form.CanConfirm);
         Assert.Contains(form.Recipe.Walk(), piece => piece is SlotEmpty);
-        Assert.Contains(form.Recipe.Walk(), piece => piece is SlotValue value && value.Text == "$b");
+        Assert.Contains(form.Recipe.Walk(), piece => piece is SlotValue value && value.Text == "b");
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public partial class ValuePickerTests
 
         Assert.All(form.Recipe!.Walk(), piece => Assert.NotNull(piece.Path));
         Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(),
-            value => value.Text == "$a" && value.IsName);
+            value => value.Text == "a" && value.IsName);
         Assert.Contains(form.Recipe.Walk().OfType<SlotOperator>(),
             sign => sign.Text == "+");
     }
@@ -124,13 +124,13 @@ public partial class ValuePickerTests
     {
         var form = Form("concat($a, $b)");
         var values = form.Recipe!.Walk().OfType<SlotValue>().ToList();
-        var first = values.First(value => value.Text == "$a");
-        var last = values.Last(value => value.Text == "$b");
+        var first = values.First(value => value.Text == "a");
+        var last = values.Last(value => value.Text == "b");
 
         Assert.True(form.MoveOnto(first, last, after: true));
 
-        Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(), value => value.Text == "$a");
-        Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(), value => value.Text == "$b");
+        Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(), value => value.Text == "a");
+        Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(), value => value.Text == "b");
     }
 
     private static ValuePickerViewModel Form(string seed = "", bool bare = false)

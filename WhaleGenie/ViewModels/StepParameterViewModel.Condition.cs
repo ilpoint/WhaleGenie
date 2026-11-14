@@ -31,11 +31,11 @@ public partial class StepParameterViewModel : ViewModelBase
     /// </remarks>
     public void InsertVariable(string token, int caret)
     {
-        var name = token.Trim().TrimStart('$');
+        var name = token.Trim();
 
         // A field of text keeps a name as a piece of itself rather than as a spelling, so a picked
-        // name goes in as a piece; a formula says a name as the name it is; and a field holding one
-        // value that may be prose marks it, because there a word is only a word.
+        // name goes in as a piece. Every other field says the name as it is: no sign in front of
+        // it, because a value is a shape and this line is only how it is put into words.
         if ((Definition.ValueForm is ActionValueForm.Text or ActionValueForm.Run)
             && !Definition.NamesVariable)
         {
@@ -43,10 +43,9 @@ public partial class StepParameterViewModel : ViewModelBase
             return;
         }
 
-        var written = ReadAsFormula || Definition.NamesVariable ? name : "$" + name;
         var current = Text ?? string.Empty;
         var at = Math.Clamp(caret, 0, current.Length);
-        Text = current[..at] + written + current[at..];
+        Text = current[..at] + name + current[at..];
     }
 
     /// <summary>What the button beside the field should say.</summary>

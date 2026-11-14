@@ -57,7 +57,7 @@ public partial class ValuePickerTests
     {
         var shape = Formula.Name("count");
 
-        Assert.Equal("$count", ValuePickerViewModel.SeedLine(shape, bareNames: false));
+        Assert.Equal("「count」", ValuePickerViewModel.SeedLine(shape, bareNames: false));
         Assert.Equal("count", ValuePickerViewModel.SeedLine(shape, bareNames: true));
     }
 
@@ -169,8 +169,7 @@ public partial class ValuePickerTests
 
     private static ExpressionNode PickWithoutEditing(ExpressionNode seed, bool bareNames)
     {
-        var form = new ValuePickerViewModel(ValuePickerViewModel.SeedLine(seed, bareNames),
-            Variables(), ActionValueForm.Value, bareNames);
+        var form = new ValuePickerViewModel(seed, Variables(), ActionValueForm.Value, bareNames);
         ValuePick? answer = null;
         form.CloseRequested += pick => answer = pick;
 

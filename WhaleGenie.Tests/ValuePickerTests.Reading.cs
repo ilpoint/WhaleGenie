@@ -64,7 +64,7 @@ public partial class ValuePickerTests
 
         form.Undo();
 
-        Assert.Equal("$a + $b", form.Text);
+        Assert.Equal("「a」 + 「b」", form.Text);
         Assert.True(form.CanClear);
     }
 
