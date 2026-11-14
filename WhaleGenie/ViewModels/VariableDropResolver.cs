@@ -14,10 +14,14 @@ public enum VariableDropStatus
     Rejected,
 }
 
-/// <summary>What a variable drop should write, or which fields the person must choose between.</summary>
+/// <summary>
+/// What a variable drop should write, or which fields the person must choose between. The answer
+/// is a shape, not a line: a dropped name is a reference and a record field is a call, so nobody
+/// has to spell a name with a mark and read the line back into a value afterwards.
+/// </summary>
 public sealed record VariableDropResolution(
     VariableDropStatus Status,
-    string Text = "",
+    ExpressionNode? Shape = null,
     IReadOnlyList<VariableDragField>? Fields = null)
 {
     public static VariableDropResolution Reject() => new(VariableDropStatus.Rejected);
@@ -48,7 +52,7 @@ public static class VariableDropResolver
 
         if (target.ValueForm is ActionValueForm.Name)
         {
-            return new VariableDropResolution(VariableDropStatus.Direct, variable.Name);
+            return new VariableDropResolution(VariableDropStatus.Direct, Formula.Text(variable.Name));
         }
 
         if (target.Kind is ActionParameterKind.Text or ActionParameterKind.MultilineText
@@ -104,19 +108,27 @@ public static class VariableDropResolver
         return candidates.Count switch
         {
             0 => VariableDropResolution.Reject(),
-            1 => new VariableDropResolution(
-                VariableDropStatus.Direct,
-                $"field({variable.Token}, \"{candidates[0].Name}\")"),
+            1 => new VariableDropResolution(VariableDropStatus.Direct,
+                FieldShape(variable, candidates[0])),
             _ => new VariableDropResolution(
                 VariableDropStatus.ChooseField, Fields: candidates),
         };
     }
 
-    public static string FieldText(VariableDragPayload variable, VariableDragField field)
-        => $"field({variable.Token}, \"{field.Name}\")";
+    /// <summary>
+    /// A record's field as a call on the record. The field's name is plain text, not a name to
+    /// look up: the engine reads it as the column of that record.
+    /// </summary>
+    public static ExpressionNode FieldShape(VariableDragPayload variable, VariableDragField field)
+        => Formula.Call("field", Formula.Name(variable.Name), Formula.Text(field.Name));
 
-    private static VariableDropResolution Direct(VariableDragPayload variable, bool bare = false)
-        => new(VariableDropStatus.Direct, bare ? variable.Name : variable.Token);
+    /// <summary>
+    /// A field that names a variable wants the word itself; any other field wants a reference to
+    /// it. Neither is written as a line with a mark in front of the name.
+    /// </summary>
+    private static VariableDropResolution Direct(VariableDragPayload variable, bool names = false)
+        => new(VariableDropStatus.Direct,
+            names ? Formula.Text(variable.Name) : Formula.Name(variable.Name));
 
     private static bool HasFields(VariableDragPayload variable, IReadOnlyList<string> wanted)
     {

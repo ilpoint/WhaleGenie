@@ -24,7 +24,7 @@ public class VariableDropTests
         var result = VariableDropResolver.Resolve(parameter, variable);
 
         Assert.Equal(VariableDropStatus.Direct, result.Status);
-        Assert.Equal("$found", result.Text);
+        Assert.Equal(Formula.Name("found"), result.Shape);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class VariableDropTests
         var result = VariableDropResolver.Resolve(parameter, variable);
 
         Assert.Equal(VariableDropStatus.Direct, result.Status);
-        Assert.Equal("$hit", result.Text);
+        Assert.Equal(Formula.Name("hit"), result.Shape);
     }
 
     [Fact]
@@ -76,7 +76,9 @@ public class VariableDropTests
         var result = VariableDropResolver.Resolve(parameter, variable);
 
         Assert.Equal(VariableDropStatus.Direct, result.Status);
-        Assert.Equal("field($program, \"memoryMb\")", result.Text);
+        AssertSameShape(
+            Formula.Call("field", Formula.Name("program"), Formula.Text("memoryMb")),
+            result.Shape);
     }
 
     [Fact]
@@ -148,5 +150,56 @@ public class VariableDropTests
             palette.Sections.Select(section => section.Title));
         Assert.Contains(palette.Sections[0].Cards, card => card.Key == "control.if");
         Assert.Contains(palette.Sections[2].Cards, card => card.Key == "control.waitUntil");
+    }
+
+    [Fact]
+    public void A_name_field_wants_the_word_not_a_reference()
+    {
+        var parameter = ActionCatalog.Find("control.setVariable")!
+            .Parameters.Single(field => field.Name == "name");
+        var variable = new VariableDragPayload("answer", ValueKind.Text, []);
+
+        var result = VariableDropResolver.Resolve(parameter, variable);
+
+        Assert.Equal(VariableDropStatus.Direct, result.Status);
+        Assert.Equal(Formula.Text("answer"), result.Shape);
+    }
+
+    [Fact]
+    public void A_name_chosen_for_a_cell_keeps_the_identity_of_its_declaration()
+    {
+        var form = new ValuePickerViewModel((string?)null, [], ActionValueForm.Name);
+        ValuePick? answer = null;
+        form.CloseRequested += pick => answer = pick;
+
+        form.Choose(new VariableChoice
+        {
+            Name = "count",
+            Id = "a7k2m9",
+            Scope = VariableScope.Local,
+        });
+
+        var handed = Assert.IsType<ValuePick>(answer).Value;
+        Assert.Equal("count", Assert.IsType<VariableNode>(handed).Name);
+        Assert.Equal("a7k2m9", Assert.IsType<VariableNode>(handed).Id);
+    }
+
+    /// <summary>A call holds a list, so record equality would compare that list by identity.</summary>
+    private static void AssertSameShape(ExpressionNode expected, ExpressionNode? actual)
+    {
+        if (expected is CallNode call)
+        {
+            var got = Assert.IsType<CallNode>(actual);
+            Assert.Equal(call.Name, got.Name);
+            Assert.Equal(call.Arguments.Count, got.Arguments.Count);
+            for (var index = 0; index < call.Arguments.Count; index++)
+            {
+                AssertSameShape(call.Arguments[index], got.Arguments[index]);
+            }
+
+            return;
+        }
+
+        Assert.Equal(expected, actual);
     }
 }

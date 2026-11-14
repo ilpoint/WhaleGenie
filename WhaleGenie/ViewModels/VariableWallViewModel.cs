@@ -51,7 +51,7 @@ public partial class VariableWallViewModel : ViewModelBase
     }
 
     /// <summary>Raised with the text of the variable that was picked.</summary>
-    public event Action<string>? Chosen;
+    public event Action<VariableChoice>? Chosen;
 
     /// <summary>Raised with a step somebody asked to be shown, so the place they came from can look.</summary>
     public event Action<MacroStep>? Jumped;
@@ -201,7 +201,7 @@ public partial class VariableWallViewModel : ViewModelBase
     {
         if (choice is not null)
         {
-            Chosen?.Invoke(choice.Token);
+            Chosen?.Invoke(choice);
         }
     }
 

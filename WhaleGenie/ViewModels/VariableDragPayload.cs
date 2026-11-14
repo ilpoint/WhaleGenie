@@ -25,8 +25,6 @@ public sealed record VariableDragPayload(
 
     internal static DataFormat<VariableDragPayload> InProcessFormat => Format;
 
-    public string Token => "$" + Name;
-
     public static VariableDragPayload From(VariableChoice choice) => new(
         choice.Name,
         choice.Type,
@@ -57,11 +55,6 @@ public sealed record VariableDragPayload(
             if (text.StartsWith("var:", StringComparison.Ordinal))
             {
                 text = text[4..];
-            }
-
-            if (text.StartsWith('$'))
-            {
-                text = text[1..];
             }
 
             return text.Length > 0

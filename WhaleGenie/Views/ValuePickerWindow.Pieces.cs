@@ -79,7 +79,7 @@ public partial class ValuePickerWindow : AppWindow
 
         if (_viewModel.NamesOnly)
         {
-            _viewModel.Choose(choice.Token);
+            _viewModel.Choose(choice);
             return;
         }
 

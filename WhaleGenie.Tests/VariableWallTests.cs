@@ -100,10 +100,10 @@ public class VariableWallTests
             Assert.Equal("剪贴板 (sys.clipboard)", clipboard.Display);
             Assert.Equal("$sys.clipboard", clipboard.Token);
 
-            string? chosen = null;
-            wall.Chosen += token => chosen = token;
+            VariableChoice? chosen = null;
+            wall.Chosen += choice => chosen = choice;
             wall.ChooseCommand.Execute(clipboard);
-            Assert.Equal("$sys.clipboard", chosen);
+            Assert.Equal("sys.clipboard", chosen!.Name);
 
             // A macro's own variable has no second name to show, and no sign in front of it: the
             // sign belongs to the line a formula is written as, not to the name.
@@ -273,12 +273,12 @@ public class VariableWallTests
     public void Picking_a_variable_hands_back_the_text_a_field_holds()
     {
         var wall = Wall();
-        var picked = new List<string>();
+        var picked = new List<VariableChoice>();
         wall.Chosen += picked.Add;
 
         wall.ChooseCommand.Execute(wall.Shown[0]);
 
-        Assert.Equal(["$rows"], picked);
+        Assert.Equal(["rows"], picked.Select(choice => choice.Name));
     }
 
     /// <summary>

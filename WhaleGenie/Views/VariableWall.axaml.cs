@@ -54,7 +54,7 @@ public partial class VariableWall : UserControl
         if (sender is Control { DataContext: VariableChoice choice }
             && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
-            _drag.Remember(this, e, VariableDragPayload.From(choice).Token);
+            _drag.Remember(this, e, VariableDragPayload.From(choice).Name);
             var transfer = VariableDragPayload.From(choice).Transfer();
             _variableTransfer = transfer;
             e.Pointer.Capture(sender as Control);

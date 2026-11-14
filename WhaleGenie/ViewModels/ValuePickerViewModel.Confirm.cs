@@ -41,9 +41,12 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Hands back one name, for a cell that holds nothing else.</summary>
-    public void Choose(string token)
-        => CloseRequested?.Invoke(new ValuePick(Formula.Name(token.TrimStart('$')), true));
+    /// <summary>
+    /// Hands back one name, for a cell that holds nothing else. The choice carries the identity of
+    /// the declaration it came from; no line with a mark in front of the name is needed to say it.
+    /// </summary>
+    public void Choose(VariableChoice choice)
+        => CloseRequested?.Invoke(new ValuePick(Formula.Name(choice.Name, choice.Id), true));
 
     public void Cancel() => CloseRequested?.Invoke(ValuePick.Cancelled);
 
