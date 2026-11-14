@@ -137,7 +137,7 @@ public partial class AddActionViewModel
                 return Strings.Format("GlobalVariables.BadName", name);
             }
 
-            if (GlobalVariablesViewModel.Reserved(name))
+            if (MacroRunner.IsReservedName(name))
             {
                 return Strings.Format("GlobalVariables.ReservedName", name);
             }

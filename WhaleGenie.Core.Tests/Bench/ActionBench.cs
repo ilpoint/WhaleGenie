@@ -342,7 +342,7 @@ internal static class ActionBench
             Value.FromList([Value.FromText("bench"), Value.FromText("second")]));
         store.Set(BenchFixtures.RowsName,
             Value.FromList([Value.FromRecord([("a", Value.FromText("1")), ("b", Value.FromText("2"))])]));
-        store.Set(BenchFixtures.GlobalName, Value.FromNumber(0), VariableTarget.Global);
+        store.Global.Set(BenchFixtures.GlobalName, Value.FromNumber(0));
         return store;
     }
 

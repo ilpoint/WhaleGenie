@@ -63,7 +63,10 @@ public static class VariableNames
             return wanted;
         }
 
-        for (var number = 2; number < 1000; number++)
+        // A free suffix always exists: the set of taken names is finite, so among as many
+        // candidates as it holds one is not in it. The loop therefore ends rather than falling
+        // back to the name it was asked to avoid.
+        for (var number = 2; ; number++)
         {
             var candidate = wanted + "_" + number;
             if (!used.Contains(candidate))
@@ -71,8 +74,6 @@ public static class VariableNames
                 return candidate;
             }
         }
-
-        return wanted;
     }
 
     /// <summary>

@@ -4,16 +4,6 @@ using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Variables;
 
-/// <summary>Which scope a value is written to.</summary>
-public enum VariableTarget
-{
-    /// <summary>The macro's own value, invisible to every other macro.</summary>
-    Local,
-
-    /// <summary>A value every macro shares.</summary>
-    Global,
-}
-
 /// <summary>
 /// Values WhaleGenie provides that are only true for the moment they are read: where the pointer is,
 /// what the clipboard holds, what the clock says. They are asked for rather than kept, because a
@@ -142,18 +132,8 @@ public sealed class VariableStore : IVariableResolver
             || System.TryGet(name, out value);
     }
 
-    /// <summary>Writes a value into one scope.</summary>
-    public void Set(string name, Value value, VariableTarget target = VariableTarget.Local)
-    {
-        var bag = target is VariableTarget.Global ? Global : Local;
-        bag.Set(name, value);
-    }
-
-    public void SetText(string name, string? text, VariableTarget target = VariableTarget.Local)
-        => Set(name, Value.FromText(text), target);
-
-    public void SetNumber(string name, double number, VariableTarget target = VariableTarget.Local)
-        => Set(name, Value.FromNumber(number), target);
+    /// <summary>Writes a value the running macro keeps. A caller that means a global names it.</summary>
+    public void Set(string name, Value value) => Local.Set(name, value);
 
     /// <summary>Every visible value in one dictionary, which is what a watcher shows.</summary>
     public IReadOnlyDictionary<string, Value> Flatten()

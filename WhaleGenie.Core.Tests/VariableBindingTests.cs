@@ -236,6 +236,45 @@ public class VariableBindingTests
         Assert.Equal(3d, bag.Values["count"].AsNumber());
     }
 
+    /// <summary>A declaration says what may be written; it is not a value, so seeding fills it.</summary>
+    [Fact]
+    public void A_declaration_alone_leaves_room_for_a_starting_value()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+
+        Assert.True(bag.SetIfAbsent("count", Value.FromNumber(3)));
+        Assert.Equal(3d, bag.Values["count"].AsNumber());
+    }
+
+    /// <summary>A run that wrote the empty value wrote an answer, and seeding must not replace it.</summary>
+    [Fact]
+    public void The_empty_value_a_run_wrote_is_still_written()
+    {
+        var bag = new VariableBag();
+        bag.Declare("count", ValueKind.Number);
+        bag.SetIfAbsent("count", Value.FromNumber(3));
+
+        bag.Set("count", Value.Null);
+
+        Assert.False(bag.SetIfAbsent("count", Value.FromNumber(3)));
+        Assert.True(bag.Values["count"].IsNull);
+    }
+
+    /// <summary>A value the new kind cannot hold stops being a value, so the default may be written.</summary>
+    [Fact]
+    public void Declaring_another_kind_makes_room_for_the_declared_start_again()
+    {
+        var bag = new VariableBag();
+        bag.Declare("rows", ValueKind.Number);
+        bag.SetIfAbsent("rows", Value.FromNumber(2));
+
+        bag.Declare("rows", ValueKind.List);
+
+        Assert.True(bag.SetIfAbsent("rows", Value.FromList([Value.FromText("a")])));
+        Assert.Single(bag.Values["rows"].Items);
+    }
+
     [Fact]
     public void A_declaration_is_forgotten_when_the_run_starts_over()
     {

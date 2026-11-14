@@ -74,6 +74,15 @@ public sealed partial class MacroRunner
         => name.StartsWith(OutcomePrefix, StringComparison.Ordinal)
            && name.EndsWith(OutcomeSuffix, StringComparison.Ordinal);
 
+    /// <summary>
+    /// True when a macro may not go by this name: the program keeps everything under
+    /// <c>sys.</c>, and the run keeps one ending per step. A declaration that took one of those
+    /// would read as the built-in or the ending it shadows.
+    /// </summary>
+    public static bool IsReservedName(string name)
+        => name.StartsWith(VariableName.SystemPrefix, StringComparison.OrdinalIgnoreCase)
+           || IsRunStepName(name);
+
     /// <summary>This step did what it was asked to.</summary>
     private const string OutcomeOk = "ok";
 

@@ -32,7 +32,7 @@ public sealed partial class MacroRunner
 
         var target = Target(step, name);
         var value = ReadValue(step, "value");
-        Variables.Set(name, value, target);
+        target.Set(name, value);
         NoteLocalGrowth(depth);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
     }
@@ -254,11 +254,11 @@ public sealed partial class MacroRunner
         return index;
     }
 
-    private VariableTarget Target(ExecutableStep step, string name)
+    private VariableBag Target(ExecutableStep step, string name)
     {
         if (!string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
         {
-            return VariableTarget.Local;
+            return Variables.Local;
         }
 
         // Only the Variable Center creates shared variables, so a macro may write to one
@@ -268,6 +268,6 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.GlobalMustExist, name);
         }
 
-        return VariableTarget.Global;
+        return Variables.Global;
     }
 }

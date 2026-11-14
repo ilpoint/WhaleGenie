@@ -85,6 +85,20 @@ public class ExpressionCoverageTests
     }
 
     /// <summary>
+    /// Every node can be drawn as the one line a person reads, so a node type the writer does not
+    /// know shows up here rather than as an empty box in the editor.
+    /// </summary>
+    [Fact]
+    public void Every_node_kind_is_drawn_as_a_line()
+    {
+        foreach (var (kind, sample) in Samples)
+        {
+            Assert.NotEmpty(Expression.Render(sample));
+            Assert.NotEmpty(Expression.Render(sample, hole: "_"));
+        }
+    }
+
+    /// <summary>
     /// Every shape the editor can hold is the shape the file writes and reads back, except the place
     /// nobody has filled in yet, which is not a value and is never written.
     /// </summary>

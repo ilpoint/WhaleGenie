@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
@@ -60,13 +62,13 @@ public static class VariableCatalog
         SystemVariable("sys.userName", "text", "Name of the logged-in user.", string.Empty),
         SystemVariable("sys.clipboard", "text", "Current clipboard text.", string.Empty),
 
-        SystemVariable("sys.loopIndex", "number",
+        SystemVariable(VariableStore.LoopIndexName, "number",
             "The round of the loop that is running, from 0. It has no value outside one.", string.Empty,
             seeded: false),
 
-        SystemVariable("caught.key", "text",
+        SystemVariable(MacroRunner.CaughtKeyName, "text",
             "The failure key being filtered inside a try step. Empty outside that check.", string.Empty),
-        SystemVariable("caught.detail", "text",
+        SystemVariable(MacroRunner.CaughtDetailName, "text",
             "The detail of the failure being filtered inside a try step. Empty outside that check.",
             string.Empty),
     ];

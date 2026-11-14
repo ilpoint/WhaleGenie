@@ -137,16 +137,13 @@ public sealed record MacroSignature(
                 continue;
             }
 
-            if (Reserved(name))
+            if (MacroRunner.IsReservedName(name))
             {
                 problems.Add((MacroSignatureFault.ReservedName, name));
             }
         }
     }
 
-    private static bool Reserved(string name)
-        => name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
-           || MacroRunner.IsRunStepName(name);
 }
 
 /// <summary>What is wrong with a macro's declared names.</summary>

@@ -367,7 +367,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
                     ? Strings.Get("GlobalVariables.NameRequired")
                     : !VariableName.IsName(name)
                         ? Strings.Format("GlobalVariables.BadName", name)
-                        : Reserved(name)
+                        : MacroRunner.IsReservedName(name)
                             ? Strings.Format("GlobalVariables.ReservedName", name)
                             : duplicates.Contains(name)
                                 ? Strings.Format("GlobalVariables.Repeated", name)
@@ -449,9 +449,6 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
                 string.Join(", ", scripts));
     }
 
-    internal static bool Reserved(string name) =>
-        name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
-        || MacroRunner.IsRunStepName(name);
 }
 
 public enum GlobalVariableProblemField

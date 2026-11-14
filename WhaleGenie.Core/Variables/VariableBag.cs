@@ -32,6 +32,13 @@ public sealed class VariableBag : IVariableResolver
 
         /// <summary>Null for a name a step wrote without declaring it: anything may be put there.</summary>
         public ValueKind? Kind;
+
+        /// <summary>
+        /// True once something has written this name. A declaration on its own is not a value, and
+        /// neither is the empty value a kind starts at, so seeding can tell "nothing here yet" from
+        /// "a run wrote nothing here" — the second one is an answer and is not put back.
+        /// </summary>
+        public bool Written;
     }
 
     private readonly Dictionary<string, Entry> _entries = new(StringComparer.OrdinalIgnoreCase);
@@ -114,6 +121,7 @@ public sealed class VariableBag : IVariableResolver
             EnsureFits(entry.Kind, name, value);
             changed = !entry.Value.Equals(value);
             entry.Value = value;
+            entry.Written = true;
         }
 
         if (changed)
@@ -132,7 +140,7 @@ public sealed class VariableBag : IVariableResolver
     {
         lock (_gate)
         {
-            if (_entries.TryGetValue(name, out var existing) && !existing.Value.IsNull)
+            if (_entries.TryGetValue(name, out var existing) && existing.Written)
             {
                 return false;
             }
@@ -140,6 +148,7 @@ public sealed class VariableBag : IVariableResolver
             var entry = existing ?? RequireLocked(name);
             EnsureFits(entry.Kind, name, value);
             entry.Value = value;
+            entry.Written = true;
         }
 
         Changed?.Invoke(name);
@@ -180,10 +189,13 @@ public sealed class VariableBag : IVariableResolver
                 entry.Kind = kind;
 
                 // What the name already holds is kept when it can stand for the new kind — a line
-                // that reads as a number is still a number — and replaced when it cannot.
+                // that reads as a number is still a number — and replaced when it cannot. A value
+                // that was replaced is no value of this name any more, so a declared starting value
+                // may be written again.
                 if (!ValueRules.Accepts(kind, entry.Value))
                 {
                     entry.Value = ValueRules.Empty(kind);
+                    entry.Written = false;
                 }
             }
             else
@@ -236,6 +248,7 @@ public sealed class VariableBag : IVariableResolver
             if (entry.Kind is { } kind)
             {
                 entry.Value = ValueRules.Empty(kind);
+                entry.Written = true;
                 emptied = true;
             }
             else
@@ -342,6 +355,7 @@ public sealed class VariableBag : IVariableResolver
             sum = entry.Value.AsNumber() + amount;
             EnsureFits(entry.Kind, name, Value.FromNumber(sum));
             entry.Value = Value.FromNumber(sum);
+            entry.Written = true;
         }
 
         Changed?.Invoke(name);
@@ -369,6 +383,7 @@ public sealed class VariableBag : IVariableResolver
             updated = change(entry.Value);
             EnsureFits(entry.Kind, name, updated);
             entry.Value = updated;
+            entry.Written = true;
             found = true;
         }
 
@@ -391,13 +406,13 @@ public sealed class VariableBag : IVariableResolver
         {
             if (_entries.TryGetValue(name, out var entry))
             {
-                return new VariableMark(existed: true, entry.Value, entry.Kind);
+                return new VariableMark(existed: true, entry.Value, entry.Kind, entry.Written);
             }
 
             // The block writes this name in every round, so it is made here rather than at the
             // first write: the ceiling counts it from the moment the block starts.
             RequireLocked(name);
-            return new VariableMark(existed: false, Value.Null, kind: null);
+            return new VariableMark(existed: false, Value.Null, kind: null, written: false);
         }
     }
 
@@ -416,7 +431,12 @@ public sealed class VariableBag : IVariableResolver
             }
             else
             {
-                _entries[name] = new Entry { Value = mark.Value, Kind = mark.Kind };
+                _entries[name] = new Entry
+                {
+                    Value = mark.Value,
+                    Kind = mark.Kind,
+                    Written = mark.Written,
+                };
             }
         }
 
@@ -470,11 +490,12 @@ public sealed class VariableBag : IVariableResolver
 /// </summary>
 public readonly struct VariableMark
 {
-    internal VariableMark(bool existed, Value value, ValueKind? kind)
+    internal VariableMark(bool existed, Value value, ValueKind? kind, bool written)
     {
         Existed = existed;
         Value = value;
         Kind = kind;
+        Written = written;
     }
 
     /// <summary>True when the name held something before the block borrowed it.</summary>
@@ -483,4 +504,6 @@ public readonly struct VariableMark
     internal Value Value { get; }
 
     internal ValueKind? Kind { get; }
+
+    internal bool Written { get; }
 }

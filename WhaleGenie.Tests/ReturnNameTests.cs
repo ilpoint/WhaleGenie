@@ -77,6 +77,19 @@ public class ReturnNameTests
         Assert.Equal("rows_2", VariableNames.Free("rows", ["ROWS"]));
     }
 
+    /// <summary>
+    /// However many numbered names are taken, the answer is a free one: the name it was asked to
+    /// avoid is never handed back as if it were free.
+    /// </summary>
+    [Fact]
+    public void A_name_stays_free_past_a_thousand_numbers()
+    {
+        var taken = new List<string> { "rows" };
+        taken.AddRange(Enumerable.Range(2, 1200).Select(number => "rows_" + number));
+
+        Assert.Equal("rows_1202", VariableNames.Free("rows", taken));
+    }
+
     [Fact]
     public void A_new_step_opens_with_its_main_result_ticked_and_named()
     {

@@ -60,8 +60,8 @@ public sealed partial class MacroRunner
         {
             // Shared variables are only written to when the Variable Center already made one,
             // the same rule the "set variable" step follows.
-            var target = Variables.Global.Contains(name) ? VariableTarget.Global : VariableTarget.Local;
-            Variables.Set(name, FromJson(node), target);
+            var target = Variables.Global.Contains(name) ? Variables.Global : Variables.Local;
+            target.Set(name, FromJson(node));
         }
 
         Log(LogLevel.Info, depth, step.Type, LogKeys.LoadedVariables, path, saved.Count);

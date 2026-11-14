@@ -301,7 +301,7 @@ public sealed partial class LocalVariablesViewModel : ViewModelBase
                     ? Strings.Get("LocalVariables.NameRequired")
                     : !VariableName.IsName(name)
                         ? Strings.Format("Editor.Problem.InvalidVariableName", name)
-                        : Reserved(name)
+                        : MacroRunner.IsReservedName(name)
                             ? Strings.Format("LocalVariables.ReservedName", name)
                             : duplicates.Contains(name)
                                 ? Strings.Format("Editor.Problem.VariableNameTaken", name)
@@ -349,9 +349,6 @@ public sealed partial class LocalVariablesViewModel : ViewModelBase
             ? known[written].FirstOrDefault()?.Uses ?? []
             : [];
 
-    internal static bool Reserved(string name) =>
-        name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
-        || MacroRunner.IsRunStepName(name);
 }
 
 /// <summary>Which field of a row a problem belongs to, so the window can put the caret there.</summary>

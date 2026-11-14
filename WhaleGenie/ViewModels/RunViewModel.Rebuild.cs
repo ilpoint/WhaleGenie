@@ -146,7 +146,7 @@ public partial class RunViewModel
                 var scope = locals.Contains(name) ? VariableScope.Local
                     : globals.ContainsKey(name) ? VariableScope.Global
                     : system.ContainsKey(name) ? VariableScope.System
-                    : VariableScope.Unknown;
+                    : VariableScope.Undeclared;
 
                 if (scope is VariableScope.System && !ShowSystemVariables)
                 {
@@ -283,7 +283,8 @@ public partial class RunViewModel
         VariableScope.Global => 0,
         VariableScope.Local => 1,
         VariableScope.System => 2,
-        _ => 3,
+        VariableScope.Undeclared => 3,
+        _ => 4,
     };
 
     private static string DescriptionOf(Usage usage,

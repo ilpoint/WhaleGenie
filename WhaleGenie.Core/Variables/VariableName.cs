@@ -10,10 +10,13 @@ namespace WhaleGenie.Core.Variables;
 /// </summary>
 public static class VariableName
 {
+    /// <summary>The namespace the program keeps for the values it provides itself.</summary>
+    public const string SystemPrefix = "sys.";
+
     /// <summary>
     /// True when the text is a name rather than a formula or a sentence. A name may begin with a
-    /// digit, because nothing else in a field can be mistaken for one: a number is not a name, and
-    /// a field that holds a formula holds a shape rather than a word.
+    /// digit: a reference is put into a field by the picker rather than typed, so "123" is a name a
+    /// step can hold and read even though typing 123 into a formula would be a number.
     /// </summary>
     public static bool IsName(string? text)
         => text is { Length: > 0 } && IsStart(text[0]) && text.All(IsPart);

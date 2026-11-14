@@ -19,8 +19,8 @@ public enum VariableScope
     /// <summary>Owned by one macro and visible only inside it.</summary>
     Local,
 
-    /// <summary>A macro names it, but no step defines it. Usually a typo.</summary>
-    Unknown,
+    /// <summary>A macro names it, but nothing declares it. Usually a typo; the run refuses it.</summary>
+    Undeclared,
 }
 
 /// <summary>One variable the editor knows about, shown in the Variable Center and the pickers.</summary>
