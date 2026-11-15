@@ -105,10 +105,6 @@ public sealed partial class MacroRunner
             : throw new StepFailure(RunKeys.BadPoint, written);
     }
 
-    /// <summary>A point as the device needs it and in both coordinate spaces a macro may read.</summary>
-    private readonly record struct ResolvedPoint(ScreenPoint Device, ScreenPoint Screen,
-        ScreenPoint? Window);
-
     /// <summary>
     /// Turns a written point into the device's own space. Window-client coordinates are the step's
     /// numbers in the background; a record says its own basis and is converted only when the step
@@ -426,4 +422,25 @@ public sealed partial class MacroRunner
     /// elsewhere or the list under the control has been scrolled.
     /// </summary>
     private ScreenPoint? Anchor(ExecutableStep step) => AnchorOf(step).Corner;
+
+    /// <summary>
+    /// How far a click is allowed to drift from the point the step names, in pixels: 0, the default,
+    /// is the point itself.
+    /// </summary>
+    private int Spread(ExecutableStep step)
+    {
+        var written = Args(step).Text("variance").Trim();
+        return written.Length == 0 ? 0 : Math.Clamp(Args(step).Number("variance"), 0, 100000);
+    }
+
+    /// <summary>
+    /// A point with the drift the step asked for on it, so a run of clicks is spread over a button
+    /// rather than landing on one pixel. A drift of nothing is the point itself, to the pixel.
+    /// </summary>
+    private static ScreenPoint Scattered(ScreenPoint point, int spread)
+        => spread <= 0
+            ? point
+            : new ScreenPoint(
+                point.X + Random.Shared.Next(-spread, spread + 1),
+                point.Y + Random.Shared.Next(-spread, spread + 1));
 }

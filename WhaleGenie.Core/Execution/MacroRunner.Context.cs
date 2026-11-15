@@ -9,7 +9,7 @@ namespace WhaleGenie.Core.Execution;
 
 // What a family sees of the run: the helpers families share, forwarded rather than moved so the
 // engine keeps one implementation of each while the families are still being lifted out.
-public sealed partial class MacroRunner : IRunContext
+public sealed partial class MacroRunner : IRunContext, IRunPoints
 {
     IDeviceLayer IRunContext.Devices => _devices;
 
@@ -19,7 +19,29 @@ public sealed partial class MacroRunner : IRunContext
 
     string IRunContext.PathOf(ExecutableStep step, string parameter) => PathOf(step, parameter);
 
+    IRunPoints IRunContext.Points => this;
+
     StepArguments IRunContext.Args(ExecutableStep step) => Args(step);
+
+    ResolvedPoint IRunPoints.Point(ExecutableStep step, string xName, string yName)
+        => Point(step, xName, yName);
+
+    ResolvedPoint IRunPoints.MovePlace(ExecutableStep step) => MovePlace(step);
+
+    ResolvedPoint IRunPoints.DragPlace(ExecutableStep step, string end,
+        (ScreenPoint? Corner, WindowInfo? Window) anchor) => DragPlace(step, end, anchor);
+
+    (ScreenPoint? Corner, WindowInfo? Window) IRunPoints.AnchorOf(ExecutableStep step)
+        => AnchorOf(step);
+
+    bool IRunPoints.PostsMessages(ExecutableStep step) => PostsMessages(step);
+
+    ScreenPoint IRunPoints.Scatter(ExecutableStep step, ScreenPoint point)
+        => Scattered(point, Spread(step));
+
+    void IRunPoints.GivePoints(ExecutableStep step, ScreenPoint screen, ScreenPoint? window,
+        string screenKey, string windowKey)
+        => GivePoints(step, screen, window, screenKey, windowKey);
 
     bool IRunContext.Flag(ExecutableStep step, string name, bool fallback)
         => Flag(step, name, fallback);

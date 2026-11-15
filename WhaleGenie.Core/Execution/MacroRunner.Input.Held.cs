@@ -155,4 +155,38 @@ public sealed partial class MacroRunner
         }
     }
 
+    /// <summary>
+    /// The four steps that press something and leave it pressed. They live beside the code that lets
+    /// go of whatever the run left down, because the two are one promise: a macro may hold a key for
+    /// as long as it likes, and the run still ends with nothing held.
+    /// </summary>
+    private Dictionary<string, ActionHandler> HeldActions
+        => _heldActions ??= new(StringComparer.Ordinal)
+        {
+            ["input.keyDown"] = (step, depth, token) =>
+            {
+                HoldKey(step);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.keyUp"] = (step, depth, token) =>
+            {
+                LetGoKey(step);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseDown"] = (step, depth, token) =>
+            {
+                HoldButton(step);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseUp"] = (step, depth, token) =>
+            {
+                LetGoButton(step);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _heldActions;
 }

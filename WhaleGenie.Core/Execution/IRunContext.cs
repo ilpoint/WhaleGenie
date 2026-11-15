@@ -26,6 +26,9 @@ internal interface IRunContext
     /// <summary>A path a step named, with any name in it already worked out.</summary>
     string PathOf(ExecutableStep step, string parameter = "path");
 
+    /// <summary>Where a step's point is, for the families that act at one.</summary>
+    IRunPoints Points { get; }
+
     /// <summary>One step's fields, read the way the catalogue says they are written.</summary>
     StepArguments Args(ExecutableStep step);
 

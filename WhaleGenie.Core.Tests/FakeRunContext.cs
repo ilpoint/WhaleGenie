@@ -15,7 +15,7 @@ namespace WhaleGenie.Core.Tests;
 /// than performed, and the window rule read the way a step wrote it. A family test uses this
 /// instead of building a runner, which is the point of the split.
 /// </summary>
-internal sealed class FakeRunContext : IRunContext
+internal sealed class FakeRunContext : IRunContext, IRunPoints
 {
     private readonly VariableStore _variables = new();
 
@@ -38,7 +38,52 @@ internal sealed class FakeRunContext : IRunContext
     string IRunContext.PathOf(ExecutableStep step, string parameter)
         => ((IRunContext)this).Args(step).ValueOf(parameter).AsText();
 
+    IRunPoints IRunContext.Points => this;
+
     StepArguments IRunContext.Args(ExecutableStep step) => new(step, _variables, 16);
+
+    ResolvedPoint IRunPoints.Point(ExecutableStep step, string xName, string yName)
+    {
+        var args = ((IRunContext)this).Args(step);
+        var point = new ScreenPoint(args.Number(xName), args.Number(yName));
+        return new ResolvedPoint(point, point, null);
+    }
+
+    ResolvedPoint IRunPoints.MovePlace(ExecutableStep step)
+        => ((IRunPoints)this).Point(step, "x", "y");
+
+    ResolvedPoint IRunPoints.DragPlace(ExecutableStep step, string end,
+        (ScreenPoint? Corner, WindowInfo? Window) anchor)
+        => ((IRunPoints)this).Point(step, end + "X", end + "Y");
+
+    (ScreenPoint? Corner, WindowInfo? Window) IRunPoints.AnchorOf(ExecutableStep step)
+        => (null, null);
+
+    bool IRunPoints.PostsMessages(ExecutableStep step) => false;
+
+    ScreenPoint IRunPoints.Scatter(ExecutableStep step, ScreenPoint point) => point;
+
+    void IRunPoints.GivePoints(ExecutableStep step, ScreenPoint screen, ScreenPoint? window,
+        string screenKey, string windowKey)
+    {
+        if (((IRunContext)this).Wants(step, screenKey))
+        {
+            Written[screenKey] = PointRecord(screen, "screen");
+        }
+
+        if (window is { } client && ((IRunContext)this).Wants(step, windowKey))
+        {
+            Written[windowKey] = PointRecord(client, "window");
+        }
+    }
+
+    private static Value PointRecord(ScreenPoint point, string basis)
+        => Value.FromRecord(
+        [
+            (FieldNames.X, Value.FromNumber(point.X)),
+            (FieldNames.Y, Value.FromNumber(point.Y)),
+            (FieldNames.Basis, Value.FromText(basis)),
+        ]);
 
     bool IRunContext.Flag(ExecutableStep step, string name, bool fallback)
     {

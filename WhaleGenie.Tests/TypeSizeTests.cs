@@ -38,7 +38,7 @@ public class TypeSizeTests
     /// </summary>
     private static readonly Dictionary<string, int> Known = new(StringComparer.Ordinal)
     {
-        ["WhaleGenie.Core/MacroRunner"] = 9_900,
+        ["WhaleGenie.Core/MacroRunner"] = 9_600,
         ["WhaleGenie/MacroEditorViewModel"] = 4_200,
         ["WhaleGenie/MacroEditorWindow"] = 3_850,
         ["WhaleGenie/MainWindow"] = 3_450,

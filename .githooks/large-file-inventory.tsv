@@ -78,7 +78,8 @@
 233	WhaleGenie.Core/Execution/FileJsonActions.cs	keep: 一类动作：JSON 读写与路径解析
 379	WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
 285	WhaleGenie.Core/Execution/WindowActions.cs	keep: 一类动作：窗口的存在、等待、前后台状态、移动与读取
-429	WhaleGenie.Core/Execution/MacroRunner.Points.cs	keep: 点的读法与输入路由：屏幕/窗口坐标、拖拽两端、后台投递
+446	WhaleGenie.Core/Execution/MacroRunner.Points.cs	keep: 点的读法与输入路由：屏幕/窗口坐标、拖拽两端、后台投递
+340	WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
 116	WhaleGenie.Core/Execution/DataActions.cs	keep: 一类动作：Base64 与校验和
 470	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	keep: 录制事件到动作的翻译状态机，按住与拖拽的状态只有这一处
@@ -221,5 +222,4 @@
 331	WhaleGenie.Mcp/ActionKnowledge.cs	keep: 动作目录的查询与描述投影，单一职责
 371	WhaleGenie.Tests/PersistentVariableTests.cs	keep: 持久变量的一张表与它的文件、补写和冲突，单一主题
 315	WhaleGenie.Core.Tests/VariableBindingTests.cs	keep: 变量与步骤参数的绑定规则，单一主题
-284	WhaleGenie.Core/Execution/MacroRunner.Input.Mouse.cs	keep: 鼠标动作的一族，按动作族拆分后单一职责
 342	WhaleGenie.Platform.Tests/WindowsKeyTests.cs	keep: 键码与 Windows 键码的对照与可发送判定，一个主题

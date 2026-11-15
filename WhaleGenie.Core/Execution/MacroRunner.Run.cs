@@ -174,13 +174,6 @@ public sealed partial class MacroRunner
     /// </summary>
     public int InitialCallDepth { get; init; }
 
-    /// <summary>
-    /// How long a move borrows when it was written as an instant jump but asked to travel along a
-    /// bent or hand-like path: there is no path to travel without a duration, and quietly going
-    /// straight instead would make the style look broken.
-    /// </summary>
-    private const int BorrowedMoveMs = 200;
-
     private static double Clamp(double scale)
         => double.IsFinite(scale) ? Math.Clamp(scale, SmallestScale, LargestScale) : 1;
 
