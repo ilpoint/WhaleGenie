@@ -15,9 +15,14 @@ namespace WhaleGenie.Platform.Tests;
 /// than pressed wrongly later.
 /// </summary>
 /// <remarks>
-/// The library itself publishes no mapping table to read instead — its public surface is the enum,
-/// the event data and a few providers for auto-repeat rates — so copying the enum is the only way to
-/// keep the boundary. What can be avoided is copying it <em>silently</em>, which is this check.
+/// The library documents the mapping as an article on its site, but documentation is not something a
+/// program can read: its public surface is the enum, the event data and a few providers for
+/// auto-repeat rates. So copying the enum is the only way to keep the boundary, and what this check
+/// avoids is copying it <em>silently</em>.
+///
+/// The values are compared as well as the names, although the library says only the names are stable:
+/// a value that moved means this copy now reports a different key than the hook reports, which is the
+/// failure worth catching. Nothing is persisted as a number, so a renumbering costs a re-copy.
 /// </remarks>
 public sealed class KeyCodeParityTests
 {

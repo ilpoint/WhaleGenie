@@ -97,7 +97,13 @@ internal static class WindowsKeys
         _ => VirtualKey(code) is { } virtualKey && IsExtended(virtualKey),
     };
 
-    /// <summary>The virtual key code for a library code, or null when Windows has no such key.</summary>
+    /// <summary>
+    /// The Windows key code for a library key, or null when there is no key a keystroke could carry:
+    /// either Windows numbers none, or it numbers one with no scan code here — an IME's own keys, the
+    /// number pad's separator and equals, and the library's "misc". Those are answered null rather
+    /// than with a neighbouring key, which is what keeps a keystroke from pressing something the
+    /// macro did not ask for; the posting device reads this table too, so it refuses them as well.
+    /// </summary>
     internal static ushort? VirtualKey(HookCode code) => code switch
     {
         // The letters, the digits and the function keys each sit in one run on both sides, so their

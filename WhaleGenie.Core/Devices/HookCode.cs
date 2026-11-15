@@ -6,16 +6,19 @@ namespace WhaleGenie.Core.Devices;
 /// that its contracts name a key without depending on the library that reports one.
 /// </summary>
 /// <remarks>
-/// Nothing renumbers these: a hook hands back one of them and <see cref="HookKey"/> carries it, so a
-/// value that disagrees with the library's is a different key being reported. The translation to
-/// what Windows presses lives with the Windows adapters, which is the only place that needs both
-/// numberings at once. The names are the library's without the "Vc" it puts in front of each; the
-/// digits are spelled <c>Digit0</c> here because a C# name cannot start with one.
+/// Nothing renumbers these within a version: a hook hands back one of them and <see cref="HookKey"/>
+/// carries it, so a value that disagrees with the library's is a different key being reported. Across
+/// a major version the library reserves the right to renumber them — its own documentation says the
+/// values are meaningless and only the names should be persisted — which is why no number here is
+/// written to a project or a file: a macro and a trigger both store the name.
 ///
-/// The list is copied from <c>SharpHook.Data.KeyCode</c> rather than derived from it, because the
-/// library publishes no table to derive from and this assembly must not depend on it. The copy is
-/// checked, not trusted: <c>KeyCodeParityTests</c> compares the two name by name and value by value
-/// and fails when an upgrade changes either, which is the moment to copy the list again.
+/// The list is copied from <c>SharpHook.Data.KeyCode</c> rather than derived from it. The names are
+/// the library's without the "Vc" it puts in front of each, and the digits are spelled
+/// <c>Digit0</c> here because a C# name cannot start with one. The library's site publishes the
+/// mapping as an article rather than as an API, so there is nothing a program can read instead, and
+/// this assembly must not depend on the package. The copy is checked, not trusted:
+/// <c>KeyCodeParityTests</c> compares the two name by name and value by value and fails when an
+/// upgrade changes either, which is the moment to copy the list again.
 /// </remarks>
 internal enum HookCode
 {
