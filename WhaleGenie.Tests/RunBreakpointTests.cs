@@ -152,7 +152,7 @@ public class RunBreakpointTests
             Assert.Equal(Strings.Get("Run.BreakpointSet"), On(items, "toggle", "Run.BreakpointSet").Header);
             Assert.False(Shown(items, "toggle", "Run.BreakpointOff"));
             Assert.True(Shown(items, "condition", "Run.BreakpointCondition"));
-            Assert.False(Shown(items, "clear", "Run.BreakpointClear"));
+            Assert.False(Shown(items, "clear", "Run.BreakpointClearCondition"));
             Assert.DoesNotContain(items, item => Equals(item.Tag, "skip"));
 
             // 点一下「下断点」：断点真的下上了，标题换成「取消断点」。
@@ -162,7 +162,7 @@ public class RunBreakpointTests
             var after = line.ContextMenu.Items.OfType<MenuItem>().ToList();
             Assert.True(Shown(after, "toggle", "Run.BreakpointOff"));
             Assert.False(Shown(after, "toggle", "Run.BreakpointSet"));
-            Assert.False(Shown(after, "clear", "Run.BreakpointClear"));
+            Assert.False(Shown(after, "clear", "Run.BreakpointClearCondition"));
 
             // 再点一下：断点收回去。
             Click(window, row, "toggle");

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -35,8 +36,8 @@ public static class AppDiagnostics
         try
         {
             Append(new StringBuilder()
-                .AppendLine($"[{now:O}] {stage}")
-                .AppendLine($"thread={Environment.CurrentManagedThreadId} type={error.GetType().FullName}")
+                .AppendLine(CultureInfo.InvariantCulture, $"[{now:O}] {stage}")
+                .AppendLine(CultureInfo.InvariantCulture, $"thread={Environment.CurrentManagedThreadId} type={error.GetType().FullName}")
                 .AppendLine(error.ToString())
                 .AppendLine()
                 .ToString());

@@ -122,7 +122,6 @@ internal static class ArgumentLibrary
                 "True to drop the spaces at both ends before comparing; leave it out to trim only for equals."),
             ["comparison"] = ("Comparison",
                 "Contains, startsWith, endsWith, equals or regex, or a number comparison: >, >=, <, <=, = or !=."),
-            ["needle"] = ("Wanted", "The text or number to compare against."),
             ["compare.needle"] = ("Wanted",
                 "The text or number to compare against. With the regex way, this is the pattern."),
             ["multiline"] = ("Regex by line",

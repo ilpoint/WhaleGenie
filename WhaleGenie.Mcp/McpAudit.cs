@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using WhaleGenie.Models;
@@ -36,7 +37,7 @@ public static class McpAudit
     public static void Note(string tool, string summary, string? outcome = null)
     {
         var line = new StringBuilder()
-            .Append(DateTime.Now.ToString("HH:mm:ss"))
+            .Append(DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture))
             .Append('\t').Append(tool)
             .Append('\t').Append(One(summary));
 

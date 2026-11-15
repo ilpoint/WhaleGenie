@@ -240,7 +240,7 @@
                                                                   IsVisible="{Binding CanBreak}"
                                                                   Click="OnBreakpointMenuClicked"
                                                                   CommandParameter="{Binding}" Tag="condition" />
-                                                        <MenuItem Header="{Binding [Run.BreakpointClear], Source={x:Static loc:Strings.Current}}"
+                                                        <MenuItem Header="{Binding [Run.BreakpointClearCondition], Source={x:Static loc:Strings.Current}}"
                                                                   IsVisible="{Binding HasCondition}"
                                                                   Click="OnBreakpointMenuClicked"
                                                                   CommandParameter="{Binding}" Tag="clear" />

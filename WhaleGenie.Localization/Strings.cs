@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 
 namespace WhaleGenie.Localization;
 
@@ -85,9 +86,9 @@ public sealed class Strings : INotifyPropertyChanged
         return fallback ?? key;
     }
 
-    /// <summary>Text for a key, with placeholders filled in by <see cref="string.Format"/>.</summary>
+    /// <summary>Text for a key, with placeholders filled in by <see cref="string.Format(IFormatProvider?, string, object?)"/>.</summary>
     public static string Format(string key, params object[] arguments)
-        => string.Format(Get(key), arguments);
+        => string.Format(CultureInfo.CurrentCulture, Get(key), arguments);
 
     internal static readonly Dictionary<string, string> English = new()
     {
@@ -893,6 +894,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.DropAtBlockStart"] = "Put it inside this block, at the front",
         ["Editor.DropIntoEmptyList"] = "Drop an action into this step list",
         ["Editor.SavedNotice"] = "Saved",
+        ["Editor.CommitRejectedNotice"] = "The project changed while this window was open. Nothing was written, and your work is still here.",
         ["Editor.Unsaved"] = "Unsaved",
         ["Editor.UnsavedTitle"] = "Unsaved changes",
         ["Editor.ClearTitle"] = "Clear all steps",
@@ -2059,7 +2061,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BreakpointNoteBoth"] = "Arrival {0}, when {1}",
         ["Run.BreakpointCancel"] = "Cancel",
         ["Run.BreakpointSave"] = "Done",
-        ["Run.BreakpointClear"] = "Clear the condition",
+        ["Run.BreakpointClearCondition"] = "Clear the condition",
         ["Run.BreakpointSet"] = "Set a breakpoint here",
         ["Run.BreakpointOff"] = "Take the breakpoint away",
         ["Run.BreakpointUnreadable"] = "The condition on this breakpoint could not be worked out: {0}. The run stops here anyway.",
@@ -2131,7 +2133,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoVariables"] = "This macro does not use any variables yet.",
         ["Run.StepOutcomes"] = "Step status ({0})",
         ["Run.MissingStep"] = "This condition does not say which step it is about.",
-        ["Run.NoSuchStep"] = "There is no step called {0} in this macro.",
         ["Run.NoSuchColumn"] = "This table has no column called {0}: write the name from the "
             + "header row, or the letter the column sits under.",
         ["Run.AlignNeedsNames"] = "Putting each value under the column that has its name takes a "
@@ -3304,6 +3305,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.DropAtBlockStart"] = "放进这一块，排在最前",
         ["Editor.DropIntoEmptyList"] = "将动作拖入步骤列表",
         ["Editor.SavedNotice"] = "已保存",
+        ["Editor.CommitRejectedNotice"] = "这个窗口打开期间项目已被改动，这次保存没有写入；你的修改仍保留在此。",
         ["Editor.Unsaved"] = "未保存",
         ["Editor.UnsavedTitle"] = "有未保存的修改",
         ["Editor.ClearTitle"] = "清空全部步骤",
@@ -4778,7 +4780,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.BreakpointNoteBoth"] = "第 {0} 次且 {1} 时停",
         ["Run.BreakpointCancel"] = "取消",
         ["Run.BreakpointSave"] = "确定",
-        ["Run.BreakpointClear"] = "清除条件",
+        ["Run.BreakpointClearCondition"] = "清除条件",
         ["Run.BreakpointSet"] = "下断点",
         ["Run.BreakpointOff"] = "取消断点",
         ["Run.BreakpointUnreadable"] = "断点条件算不出结果：{0}。本次仍然停在这里。",
@@ -4848,7 +4850,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
         ["Run.StepOutcomes"] = "步骤状态（{0}）",
         ["Run.MissingStep"] = "这个条件没有指明要问哪一步。",
-        ["Run.NoSuchStep"] = "这个宏里没有叫 {0} 的步骤。",
         ["Run.NoSuchColumn"] = "这张表里没有叫 {0} 的列：写表头里的名字，或者写这一列所在的字母。",
         ["Run.AlignNeedsNames"] = "按列名放的时候，要写的每个单元格都得有个名字，"
             + "而这一步最宽的一行有 {0} 个单元格。",

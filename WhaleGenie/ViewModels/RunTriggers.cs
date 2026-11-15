@@ -49,5 +49,5 @@ public sealed record TriggerWatchLine(string Text)
 
     /// <summary>A time of day, or the words for a trigger nothing is on a clock for.</summary>
     private static string Moment(DateTime moment)
-        => moment == default ? Strings.Get("Run.TriggerNoClock") : moment.ToString("HH:mm:ss");
+        => moment == default ? Strings.Get("Run.TriggerNoClock") : moment.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 }
