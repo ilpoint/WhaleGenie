@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Storage;
 
@@ -94,7 +92,7 @@ public static class MacroImport
     }
 
     /// <summary>Adds the chosen macros to the project, bringing the variables they read with them.</summary>
-    public static ImportReport IntoProject(MainViewModel project, PackageContents contents,
+    public static ImportReport IntoProject(ProjectWorkspace project, PackageContents contents,
         IReadOnlyList<MacroItem> chosen, IReadOnlyList<GlobalDecision> decisions)
     {
         var duplicate = new List<string>();

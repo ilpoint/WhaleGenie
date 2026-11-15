@@ -4,7 +4,7 @@ using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>
 /// The macros a run may call, gathered from the project's list — including the submacros nested in

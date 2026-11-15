@@ -21,29 +21,23 @@ namespace WhaleGenie.Mcp;
 /// </summary>
 public sealed class McpServerHost : IAsyncDisposable, IDisposable
 {
-    private readonly ProjectWorkspace _project;
+    private readonly IReadOnlyList<object> _owners;
     private readonly IServiceProvider _services;
     private readonly bool _ownsServices;
     private IHost? _host;
     private Task? _session;
 
     /// <summary>
-    /// A server over a project, wiring up the few things it needs itself. This is the constructor a
-    /// check uses: it hands in a project and gets the same object graph the program builds.
+    /// A server over the run's own container, so a tool and the window share one draft store rather
+    /// than one each. The tool owners are handed in rather than discovered here: the project
+    /// editing tools live with this server, while the ones that touch the machine, run a macro or
+    /// read a run log belong to the interface project and are named where they are built.
     /// </summary>
-    public McpServerHost(ProjectWorkspace project)
-        : this(project, AppServices.Minimal(project), ownsServices: true)
+    public McpServerHost(IServiceProvider services, IReadOnlyList<object> owners,
+        bool ownsServices = false)
     {
-    }
-
-    /// <summary>
-    /// A server that takes what it needs from the run's own container, so a tool and the window
-    /// share one draft store rather than one each.
-    /// </summary>
-    internal McpServerHost(ProjectWorkspace project, IServiceProvider services, bool ownsServices = false)
-    {
-        _project = project;
         _services = services;
+        _owners = owners;
         _ownsServices = ownsServices;
     }
 
@@ -171,15 +165,8 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
     /// </summary>
     private IReadOnlyList<McpServerTool> Tools()
     {
-        object[] owners =
-        [
-            _services.GetRequiredService<McpTools>(),
-            _services.GetRequiredService<McpControlTools>(),
-            _services.GetRequiredService<McpRunTools>(),
-        ];
-
         var tools = new List<McpServerTool>();
-        foreach (var owner in owners)
+        foreach (var owner in _owners)
         {
             foreach (var method in owner.GetType().GetMethods(
                          BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
@@ -214,7 +201,6 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
                 options.ShutdownTimeout = TimeSpan.FromSeconds(2));
             services.AddSingleton(drafts);
             services.AddSingleton(live);
-            services.AddSingleton(_project);
             services.AddLogging(logging => logging.ClearProviders());
             services
                 .AddMcpServer(options => options.ServerInstructions = McpPrompts.ServerInstructions)

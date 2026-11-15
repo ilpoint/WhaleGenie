@@ -7,8 +7,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
@@ -19,26 +17,10 @@ using WhaleGenie.Storage;
 
 namespace WhaleGenie.Mcp;
 
-// The draft and the runs: discarding, listing runs, and reading a run log or its last failure.
-public sealed partial class McpTools
+// The run log: listing runs and reading one, or the newest failure log.
+[McpServerToolType]
+public sealed class McpRunLogTools
 {
-    [McpServerTool(Name = "whalegenie_discard", Destructive = true,
-            Title = "Discard a draft"),
-     Description("Drops a draft. Applied changes already in the project stay there and can still be saved by the person.")]
-    public Task<CallToolResult> Discard(
-        [Description("The draft id.")] string draftId)
-    {
-        if (!drafts.Remove(draftId))
-        {
-            return Task.FromResult(McpErrors.Fail(McpErrors.DraftNotFound,
-                $"There is no draft \"{draftId}\" to discard.",
-                "Call whalegenie_open_project for a new one; a draft is also dropped when the server stops.",
-                retryable: true, details: new { draftId }));
-        }
-
-        return Task.FromResult(McpErrors.Ok(new { discarded = draftId }));
-    }
-
     [McpServerTool(Name = "whalegenie_list_runs", ReadOnly = true,
             Title = "List the last runs"),
      Description("Lists the last runs WhaleGenie performed, newest first, with the total. A run comes from the person pressing Run, from a trigger, or from whalegenie_run_macro.")]
@@ -157,4 +139,18 @@ public sealed partial class McpTools
                 "The file may still be open in another program.", details: new { file }));
         }
     }
+    private static object RunSummary(RunLogSnapshot run) => new
+    {
+        run.Id,
+        run.Macro,
+        run.Source,
+        run.Started,
+        run.Finished,
+        run.Status,
+        run.Key,
+        run.Detail,
+        run.Steps,
+        run.FailureLogPath,
+        lines = run.Lines.Count,
+    };
 }

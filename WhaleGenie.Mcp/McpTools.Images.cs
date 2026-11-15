@@ -7,13 +7,10 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 
 
@@ -64,11 +61,7 @@ public sealed partial class McpTools
             Directory.CreateDirectory(folder);
             await File.WriteAllBytesAsync(written, bytes);
 
-            var size = await Ui(() =>
-            {
-                using var bitmap = new Bitmap(written);
-                return bitmap.PixelSize;
-            });
+            var size = ImageSize.Of(bytes);
 
             file = Path.GetFileName(written);
             McpAudit.Note("whalegenie_put_image", $"{file}, {bytes.Length} bytes");

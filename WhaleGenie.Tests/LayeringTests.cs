@@ -56,6 +56,26 @@ public class LayeringTests
     }
 
     [Fact]
+    public void The_document_and_the_server_do_not_reference_the_window()
+    {
+        static string[] Referenced(Type type)
+            => [.. type.Assembly.GetReferencedAssemblies()
+                .Select(assembly => assembly.Name ?? string.Empty)];
+
+        var document = Referenced(typeof(WhaleGenie.Models.ProjectWorkspace));
+        var server = Referenced(typeof(WhaleGenie.Mcp.McpServerHost));
+
+        Assert.DoesNotContain("WhaleGenie", document);
+        Assert.DoesNotContain("WhaleGenie", server);
+
+        foreach (var name in document.Concat(server))
+        {
+            Assert.False(name.StartsWith("Avalonia", StringComparison.Ordinal),
+                $"the document or the MCP server references {name}");
+        }
+    }
+
+    [Fact]
     public void The_engine_names_no_MCP_server_or_AI_library()
     {
         var offenders = new List<string>();

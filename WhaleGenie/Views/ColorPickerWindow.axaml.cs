@@ -9,6 +9,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
@@ -182,7 +183,7 @@ public partial class ColorPickerWindow : Window
             // pixels the readout is counting: a colour picked off a screen that has moved on is a
             // colour nobody chose.
             _deskPicture?.Dispose();
-            _deskPicture = ImageAssets.ToBitmap(frame);
+            _deskPicture = BitmapImages.ToBitmap(frame);
             if (_desk is not null)
             {
                 _desk.Source = _deskPicture;

@@ -1,6 +1,7 @@
 using System;
+using WhaleGenie.Localization;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>
 /// The version the program says it is, read out of the program itself. The release workflow stamps
@@ -21,5 +22,5 @@ public static class AppVersion
     private static string Read()
         => typeof(AppVersion).Assembly.GetName().Version is { } version
             ? $"v{version.Major}.{version.Minor}.{version.Build}"
-            : Localization.Strings.Get("Main.AboutUnknownVersion");
+            : Strings.Get("Main.AboutUnknownVersion");
 }

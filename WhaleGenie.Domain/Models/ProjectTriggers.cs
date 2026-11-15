@@ -49,5 +49,5 @@ public sealed partial class ProjectTriggers
 
     public event EventHandler? Changed;
 
-    internal void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
 }

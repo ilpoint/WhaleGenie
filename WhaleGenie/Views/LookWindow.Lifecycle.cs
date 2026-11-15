@@ -13,6 +13,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.GraphicsCapture;
@@ -50,8 +51,8 @@ public partial class LookWindow : AppWindow
         _look = look;
         _step = step;
         _devices = devices;
-        _frame = look.Frame.IsEmpty ? null : ImageAssets.ToBitmap(look.Frame);
-        _needle = look.Needle is { IsEmpty: false } needle ? ImageAssets.ToBitmap(needle) : null;
+        _frame = look.Frame.IsEmpty ? null : BitmapImages.ToBitmap(look.Frame);
+        _needle = look.Needle is { IsEmpty: false } needle ? BitmapImages.ToBitmap(needle) : null;
 
         _scroll = this.FindControl<ScrollViewer>("Scroll");
         _board = this.FindControl<Canvas>("Board");

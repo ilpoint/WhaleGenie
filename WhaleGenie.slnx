@@ -19,6 +19,12 @@
   <Project Path="WhaleGenie/WhaleGenie.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.Domain/WhaleGenie.Domain.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="WhaleGenie.Mcp/WhaleGenie.Mcp.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie.Localization/WhaleGenie.Localization.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

@@ -11,6 +11,8 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 ## 架构红线
 
 - `WhaleGenie.Core` 不依赖 Avalonia、FluentAvalonia、MCP、界面模型或 `WhaleGenie.Platform.Windows`。
+- `WhaleGenie.Domain` 不依赖 Avalonia、窗口、ViewModel 或 MCP；`WhaleGenie.Mcp` 不依赖 Avalonia、
+  Views 或 Runtime，机器控制、运行宏与运行日志工具由界面工程作为 tool owner 注入。
 - 除 `App.axaml.cs`、`Program.cs` 与 `SharedDevices.cs` 承担的组合、入口分派和生命周期职责外，
   界面工程不直接引用第三方设备库或 `WhaleGenie.Platform.Windows`；设备能力通过 Core 契约取得。
 - `WhaleGenie.GraphicsCapture` 只取得屏幕像素，不识别宏、动作或界面概念。

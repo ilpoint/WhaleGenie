@@ -51,7 +51,7 @@ public sealed class VariableChoice
     /// </summary>
     public IReadOnlyList<VariableUse> Uses { get; init; } = [];
 
-    internal Func<string?>? ContentReader { get; init; }
+    public Func<string?>? ContentReader { get; init; }
 
     /// <summary>The current value when one can be read, or the reason there is none yet.</summary>
     public string ContentPreview

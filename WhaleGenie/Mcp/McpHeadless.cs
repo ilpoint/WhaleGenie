@@ -38,7 +38,7 @@ internal static class McpHeadless
             return;
         }
 
-        var serving = new Serving(new McpServerHost(project, services), services, project);
+        var serving = new Serving(AppServices.Host(services), services, project);
 
         Console.CancelKeyPress += (_, keys) =>
         {

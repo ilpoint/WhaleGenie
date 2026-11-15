@@ -220,7 +220,7 @@ public sealed class ActionReturn
     public bool Hidden { get; init; }
 
     /// <summary>Fully qualified key of the action this result belongs to.</summary>
-    internal string OwnerKey { get; set; } = string.Empty;
+    public string OwnerKey { get; internal set; } = string.Empty;
 
     /// <summary>Label in the current interface language.</summary>
     public string LocalLabel => Strings.Get($"{OwnerKey}.return.{Key}.label", Label);
@@ -323,7 +323,7 @@ public class ActionParameter
         : Strings.Get($"{OwnerKey}.{Name}.pathFilter", PathFilterLabel);
 
     /// <summary>Fully qualified key of the action this parameter belongs to.</summary>
-    internal string OwnerKey { get; set; } = string.Empty;
+    public string OwnerKey { get; internal set; } = string.Empty;
 
     /// <summary>Label in the current interface language.</summary>
     public string LocalLabel => Strings.Get($"{OwnerKey}.{Name}.label", Label);

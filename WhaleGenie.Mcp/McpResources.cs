@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
@@ -27,6 +26,9 @@ namespace WhaleGenie.Mcp;
 [McpServerResourceType]
 public sealed class McpResources(IProjectGateway live)
 {
+    /// <summary>Runs a catalogue read on the calling thread; the catalogue is static and has no window.</summary>
+    private static Task<T> Ui<T>(Func<T> work) => Task.FromResult(work());
+
     private static readonly JsonSerializerOptions Json = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -45,7 +47,7 @@ public sealed class McpResources(IProjectGateway live)
         Title = "Action catalogue", MimeType = "application/json")]
     [Description("Every action this build knows: key, name, category, whether it is hidden, and the names of its parameters. Read it once and keep it; it changes only when the program is updated.")]
     public async Task<string> Catalogue()
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await Ui(() =>
         {
             var actions = ActionSemanticsCatalog.All.Select(action => new
             {
@@ -69,7 +71,7 @@ public sealed class McpResources(IProjectGateway live)
         Title = "Action matrix", MimeType = "application/json")]
     [Description("How many actions, parameters and results the catalogue holds, and the same counts by group. Useful for deciding what to look at; the per-action detail is in whalegenie://actions/{key}.")]
     public async Task<string> Matrix()
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await Ui(() =>
         {
             var all = ActionSemanticsCatalog.All;
             var groups = all
@@ -109,7 +111,7 @@ public sealed class McpResources(IProjectGateway live)
         Title = "One action", MimeType = "application/json")]
     [Description("One action, described in full: parameters with their kinds, reading rules, defaults, options, units and ranges, the child lists each accepts, the columns of each table, and what it returns. It also says whether the action cannot be undone, and which values of a choice make a step one of those. An unknown key answers with the nearest keys as candidates rather than failing.")]
     public async Task<string> Action(string key)
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await Ui(() =>
         {
             if (ActionKnowledge.Find(key) is { } action)
             {

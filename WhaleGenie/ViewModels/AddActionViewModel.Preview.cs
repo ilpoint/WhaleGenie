@@ -8,6 +8,7 @@ using System.Text.Json;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -319,7 +320,7 @@ public partial class AddActionViewModel
             {
                 if (_clipboard.ReadImage() is { IsEmpty: false } picture)
                 {
-                    ClipboardPreview = ImageAssets.ToBitmap(picture);
+                    ClipboardPreview = BitmapImages.ToBitmap(picture);
                     note = Strings.Format("Add.ClipboardPreviewSize", picture.Width, picture.Height);
                 }
                 else

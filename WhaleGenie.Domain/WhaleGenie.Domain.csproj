@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The document, without a window: the macro file model, the project workspace, the design-time
+    checks, the package reader/writer and the picture files a macro refers to. Namespaces stay
+    WhaleGenie.Models and WhaleGenie.Storage so the window keeps reading them as before; what
+    changed is that this assembly cannot see Avalonia, a window or a view model.
+  -->
+  <PropertyGroup>
+    <!-- The embedded display catalogue keeps the name the model asks for. -->
+    <RootNamespace>WhaleGenie</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Models\ActionDisplay.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+  </ItemGroup>
+
+</Project>

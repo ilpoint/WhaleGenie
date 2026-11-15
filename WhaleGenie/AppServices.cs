@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Mcp;
@@ -63,6 +64,30 @@ internal static class AppServices
         return Wiring(_ => viewModel, project.Persisted, project.Variables).BuildServiceProvider();
     }
 
+    /// <summary>
+    /// The server over this run's container. The tool owners are named here rather than inside the
+    /// server, so adding a tool is one registration beside the others instead of an edit in a
+    /// second project.
+    /// </summary>
+    internal static McpServerHost Host(IServiceProvider services)
+        => new(services, Owners(services));
+
+    /// <summary>The same graph a check builds when it has a project and no window.</summary>
+    internal static McpServerHost HostFor(ProjectWorkspace project)
+    {
+        var services = Minimal(project);
+        return new McpServerHost(services, Owners(services), ownsServices: true);
+    }
+
+    private static IReadOnlyList<object> Owners(IServiceProvider services)
+        =>
+        [
+            services.GetRequiredService<McpTools>(),
+            services.GetRequiredService<McpControlTools>(),
+            services.GetRequiredService<McpRunTools>(),
+            services.GetRequiredService<McpRunLogTools>(),
+        ];
+
     private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project,
         PersistedVariables persisted, VariableSession variables)
     {
@@ -81,6 +106,7 @@ internal static class AppServices
         services.AddSingleton<McpLiveProject>();
         services.AddSingleton<IProjectGateway>(sp => sp.GetRequiredService<McpLiveProject>());
         services.AddSingleton<McpTools>();
+        services.AddSingleton<McpRunLogTools>();
 
         // The triggers are the window's in practice, but not in principle: they are a service that
         // outlives one window and is stopped and released with the run.
@@ -96,8 +122,7 @@ internal static class AppServices
             () => sp.GetRequiredService<IDeviceLayer>()));
 
         services.AddSingleton<McpResources>();
-        services.AddSingleton(sp => new McpServerHost(
-            sp.GetRequiredService<ProjectWorkspace>(), sp));
+        services.AddSingleton(sp => Host(sp));
 
         return services;
     }

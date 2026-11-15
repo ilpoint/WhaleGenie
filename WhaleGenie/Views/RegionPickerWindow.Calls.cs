@@ -11,6 +11,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
@@ -58,7 +59,7 @@ public partial class RegionPickerWindow : Window
         // picker's own overlay out of the picture.
         await AppWindows.SettleAsync();
 
-        return ImageAssets.Capture(screen, region.X, region.Y, region.Width, region.Height, folder);
+        return BitmapImages.Capture(screen, region.X, region.Y, region.Width, region.Height, folder);
     }
 
     /// <summary>

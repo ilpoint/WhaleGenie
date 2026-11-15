@@ -28,11 +28,19 @@
 日志措辞，只依赖 Core；`LocalSettings` 与 `LanguageRefresh` 仍留在界面工程，因为它们读写设置文件
 并驱动 Avalonia 刷新。
 
-**下一步：文档模型出界面工程。** 先清点 `Models/`、`Storage/` 对 Avalonia 与彼此的直接引用
-（已知 `Storage/ImageAssets` 用 Avalonia 位图、`RecoveryWriter` 用 Dispatcher），把纯文档与包读写
-拆成 `WhaleGenie.Domain`；图片与恢复写入的界面部分留在界面工程或改为注入。MCP 随后拆成只依赖
-Domain/Core/Localization 的工程。验收是两件事：无界面 MCP 不启动 Avalonia；`Core.Tests` 不再引用
-`Platform.Windows`。
+**已完成：文档与协议出界面工程。** `WhaleGenie.Domain` 持有宏文档、工程状态、包读写与图片文件，
+不引用 Avalonia；`WhaleGenie.Mcp` 持有协议宿主、草稿、补丁、资源与项目编辑工具，不引用
+Avalonia、Views 或 Runtime。机器控制、运行宏与运行日志工具留在界面工程，由 `AppServices` 作为
+tool owner 注入。`LayeringTests` 新增两条边界检查。
+
+**剩余验收（未完成）：**
+
+- **无界面 MCP 仍启动 Avalonia。** `McpLiveProject`、`McpRunTools`、`McpControlTools` 仍直接用
+  `Dispatcher.UIThread`，运行桥 `UiThreadRunHost` 也依赖它。下一步引入 `IUiDispatcher` 与 headless
+  run host，再让 `--mcp` 在 Avalonia 之外启动；在此之前无界面进程继续用 Avalonia 的 dispatcher。
+- **`Core.Tests` 仍引用 `Platform.Windows`。** 真实适配器测试与引擎测试共用 `Fakes`、`SampleFiles`
+  和 `Bench`。下一步抽 `WhaleGenie.TestSupport`，把 Viiper、Driver、Browser、OCR、UIA、Hook
+  等用例迁到 `WhaleGenie.Platform.Tests`；引擎测试只保留替身设备层。
 
 **再下一步：执行器状态外置。** 从 `MacroRunner` 抽出 `RunState`（变量、日志、帧缓存、持键、
 取消、门闩）与 `StepArguments`（读参助手），再按 13 个动作族抽 `IActionFamily`。预览表已先行

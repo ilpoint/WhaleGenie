@@ -22,7 +22,7 @@ public partial class MacroStep : INotifyPropertyChanged
     /// under it. Empty on steps that have never been saved since ids were introduced, which is
     /// what <see cref="StepIds.Settle"/> fills in when the macro is opened.
     /// </summary>
-    public string Id { get; internal set; } = string.Empty;
+    public string Id { get; set; } = string.Empty;
 
     public List<StepParameter> Parameters { get; init; } = [];
 

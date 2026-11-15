@@ -175,7 +175,7 @@ public sealed class ProjectWorkspace : ObservableObject
     /// <summary>Notes that the shared variables themselves were changed.</summary>
     public void MarkGlobalsChanged() => MarkDirty();
 
-    internal void MarkMenuChanged()
+    public void MarkMenuChanged()
     {
         Triggers.NotifyChanged();
         MarkDirty();

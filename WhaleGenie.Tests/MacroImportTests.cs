@@ -28,7 +28,7 @@ public class MacroImportTests
 
             var decisions = MacroImport.Decisions([macro], contents.Globals,
                 viewModel.Variables.Globals);
-            var report = MacroImport.IntoProject(viewModel, contents, [macro], decisions);
+            var report = MacroImport.IntoProject(viewModel.Workspace, contents, [macro], decisions);
 
             Assert.Single(report.Added);
             Assert.Contains(viewModel.Variables.Globals, variable => variable.Name == "次数");
@@ -45,7 +45,7 @@ public class MacroImportTests
             viewModel.AddMacro(new MacroItem { Name = "整理" });
 
             var arriving = new MacroItem { Name = "整理" };
-            var report = MacroImport.IntoProject(viewModel, Contents([arriving], []), [arriving], []);
+            var report = MacroImport.IntoProject(viewModel.Workspace, Contents([arriving], []), [arriving], []);
 
             var pair = Assert.Single(report.RenamedMacros);
             Assert.Equal("整理", pair.Was);
@@ -74,7 +74,7 @@ public class MacroImportTests
                 viewModel.Variables.Globals);
             decisions[0].Choice = GlobalChoice.Overwrite;
 
-            MacroImport.IntoProject(viewModel, contents, [macro], decisions);
+            MacroImport.IntoProject(viewModel.Workspace, contents, [macro], decisions);
 
             var existing = Assert.Single(viewModel.Variables.Globals);
             Assert.Equal("1", existing.DefaultValue);
@@ -99,7 +99,7 @@ public class MacroImportTests
                 viewModel.Variables.Globals);
             decisions[0].Choice = GlobalChoice.UseProject;
 
-            var report = MacroImport.IntoProject(viewModel, contents, [macro], decisions);
+            var report = MacroImport.IntoProject(viewModel.Workspace, contents, [macro], decisions);
 
             Assert.Equal("5", Assert.Single(viewModel.Variables.Globals).DefaultValue);
             Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
@@ -135,7 +135,7 @@ public class MacroImportTests
                     BindKey = "Ctrl+Alt+1",
                 });
 
-                var report = MacroImport.IntoProject(viewModel, Contents([arriving], []), [arriving], []);
+                var report = MacroImport.IntoProject(viewModel.Workspace, Contents([arriving], []), [arriving], []);
 
                 Assert.Single(report.Added);
                 Assert.NotEmpty(report.DuplicateTriggers);

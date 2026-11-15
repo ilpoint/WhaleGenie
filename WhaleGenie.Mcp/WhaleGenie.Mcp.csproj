@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The protocol and the draft: the server over stdio, the tool surface that reads and writes a
+    draft, the resources a client reads, the patch vocabulary and the gateway interface. Nothing
+    here touches a window, a screen or a running macro. The tools that do — direct control, running
+    a macro, reading its log — live in the interface project and are handed to the server as owners.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WhaleGenie" />
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+  </ItemGroup>
+
+</Project>

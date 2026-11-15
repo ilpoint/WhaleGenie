@@ -1,12 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
-using System.Runtime.InteropServices;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Storage;
 
@@ -42,10 +37,6 @@ public static class ImageAssets
                 "images");
     }
 
-    /// <summary>Takes a rectangle off the screen and stores it as a PNG, reporting its path.</summary>
-    public static string Capture(IScreenDevice screen, int x, int y, int width, int height, string folder)
-        => Save(ScreenReady.Capture(screen, x, y, width, height), folder);
-
     /// <summary>Writes a block of pixels out as an opaque PNG and reports the file it made.</summary>
     public static string Save(ImageFrame frame, string folder)
     {
@@ -56,13 +47,7 @@ public static class ImageAssets
 
         Directory.CreateDirectory(folder);
         var path = UniquePath(folder, Name());
-
-        using (var bitmap = ToBitmap(frame))
-        using (var stream = File.Create(path))
-        {
-            bitmap.Save(stream, PngBitmapEncoderOptions.Default);
-        }
-
+        File.WriteAllBytes(path, PngWriter.Encode(frame));
         return path;
     }
 
@@ -106,37 +91,6 @@ public static class ImageAssets
         var root = string.IsNullOrEmpty(folder) ? "." : folder;
         var candidate = Path.Combine(root, text.Replace('/', Path.DirectorySeparatorChar));
         return File.Exists(candidate) ? Path.GetFullPath(candidate) : null;
-    }
-
-    /// <summary>
-    /// Copies a frame into a bitmap. The alpha byte a screen capture leaves behind is set to
-    /// fully opaque, otherwise the picture would save as something invisible.
-    /// </summary>
-    public static WriteableBitmap ToBitmap(ImageFrame frame)
-    {
-        var pixels = new byte[frame.Width * frame.Height * 4];
-        Buffer.BlockCopy(frame.Bgra, 0, pixels, 0, pixels.Length);
-        for (var index = 3; index < pixels.Length; index += 4)
-        {
-            pixels[index] = 255;
-        }
-
-        var bitmap = new WriteableBitmap(
-            new PixelSize(frame.Width, frame.Height),
-            new Vector(96, 96),
-            PixelFormat.Bgra8888,
-            AlphaFormat.Opaque);
-
-        using (var buffer = bitmap.Lock())
-        {
-            for (var row = 0; row < frame.Height; row++)
-            {
-                Marshal.Copy(pixels, row * frame.Width * 4,
-                    IntPtr.Add(buffer.Address, row * buffer.RowBytes), frame.Width * 4);
-            }
-        }
-
-        return bitmap;
     }
 
     /// <summary>A name that says when the picture was taken, which reads better in a folder listing.</summary>

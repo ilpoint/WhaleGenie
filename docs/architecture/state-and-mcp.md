@@ -26,7 +26,7 @@
 菜单呼出键与系统总开关属于当前机器的 `LocalSettings`，切换项目不改变它们。父宏与内嵌子宏保存在
 同一宏文档中；公共宏拖入项目时复制内容并固定来源版本，不随后续库更新。
 
-工程文档状态由 `Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号与
+工程文档状态由 `WhaleGenie.Domain/Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号与
 `Changed` 事件都在这一处更新。`MainViewModel` 只保留窗口自己的搜索、分组、视图与系统开关，并把
 文档属性和方法转发给绑定；编辑器与 `RunFactory` 仍通过它取文档。`McpLiveProject` 实现
 `Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与资源只依赖这个接口，不依赖窗口模型。
@@ -60,10 +60,11 @@
 `McpGrants`；文件缺失、不可读或只写入一半时按未授权处理。只读项目、读取状态和读取日志不需要开启
 控制权限。
 
-`McpDraftStore` 保存项目深拷贝及修订号，`McpLiveProject` 是 `IProjectGateway` 的界面线程实现，`McpPreview` 提供
+`WhaleGenie.Mcp` 保存协议宿主、草稿、补丁、预览与项目编辑工具，不引用 Avalonia；`McpLiveProject` 是 `IProjectGateway` 的界面线程实现，留在界面工程，`McpPreview` 提供
 应用前差异。`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。
-工具类型由 `AppServices` 注册，并由 `McpServerHost` 的发现列表纳入宿主；新增工具须同时更新两处
-并验证 `tools.list`。
+工具类型由 `AppServices` 注册，并由它作为 tool owner 列表交给 `McpServerHost`；机器控制、运行宏
+与运行日志工具留在界面工程，项目编辑工具在 `WhaleGenie.Mcp`。新增工具须在组合根登记并验证
+`tools.list`。无界面进程仍以 Avalonia 承载运行桥与控制工具；协议与草稿层本身已不依赖它。
 
 `McpResources` 提供动作目录、动作矩阵、项目与宏资源。当前不声明资源订阅，客户端通过修订号判断
 缓存是否失效。`RunFactory` 复用普通运行路径，MCP 运行宏仍受单运行限制。工具拒绝统一返回稳定 `code`、

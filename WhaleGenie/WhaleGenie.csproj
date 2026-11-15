@@ -50,11 +50,6 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <!--
-      Labels, hints and editor kinds are the interface's own projection. Engine facts stay in
-      WhaleGenie.Core so this file cannot become a second action catalogue.
-    -->
-    <EmbeddedResource Include="Models\ActionDisplay.json" />
-    <!--
       状态提示音。作为程序集资源随 exe 走，不落到磁盘上：换机、升级、被清理工具扫到都不会丢，
       也不需要在启动时初始化 Avalonia 才能读出来。
     -->
@@ -101,6 +96,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
     <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
     <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />

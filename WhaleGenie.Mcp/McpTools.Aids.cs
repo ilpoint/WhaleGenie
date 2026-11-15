@@ -7,13 +7,10 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 
 
@@ -190,18 +187,5 @@ public sealed partial class McpTools
         return changed;
     }
 
-    private static object RunSummary(RunLogSnapshot run) => new
-    {
-        run.Id,
-        run.Macro,
-        run.Source,
-        run.Started,
-        run.Finished,
-        run.Status,
-        run.Key,
-        run.Detail,
-        run.Steps,
-        run.FailureLogPath,
-        lines = run.Lines.Count,
-    };
+
 }

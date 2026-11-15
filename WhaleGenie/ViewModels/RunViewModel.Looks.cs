@@ -10,6 +10,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -112,7 +113,7 @@ public partial class RunViewModel
 
         if (Steps.FirstOrDefault(step => step.Id == look.StepId) is { } row)
         {
-            var small = look.Frame.IsEmpty ? null : ImageAssets.ToBitmap(look.Frame);
+            var small = look.Frame.IsEmpty ? null : BitmapImages.ToBitmap(look.Frame);
             var previous = row.Thumbnail;
             row.Thumbnail = small;
             row.HasLook = small is not null;

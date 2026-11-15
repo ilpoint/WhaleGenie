@@ -18,11 +18,14 @@ WhaleGenie 需要在有窗口和无窗口两种形态下运行同一套宏能力
 
 ```text
 WhaleGenie
-  界面、应用服务、文件模型、包读写、触发器、MCP
+  界面、组合根、运行桥、设备控制工具
     │
-    ├──► WhaleGenie.Localization ──┐
-    │      文案表（界面字、动作名、表达式与日志措辞）
-    │                              ▼
+    ├──► WhaleGenie.Mcp ────────────┐
+    │      协议、草稿、补丁、资源    │
+    ├──► WhaleGenie.Domain ─────────┤
+    │      宏文档、工程、包读写      │
+    ├──► WhaleGenie.Localization ───┤
+    │      文案表                    │
     ├──► WhaleGenie.Platform.Windows ──► WhaleGenie.Core
     │      SharpHook、FlaUI、OpenCV、      执行引擎、表达式、变量、
     │      Playwright、Roslyn、NuGet、     设备契约、录制翻译
@@ -32,6 +35,9 @@ WhaleGenie
                                         Windows 画面获取、选路、会话缓存、矩形落位
 ```
 
+Mcp 与 Domain 都引用 Localization 和 Core；Localization 只引用 Core；Platform 引用 Core 与
+GraphicsCapture。界面工程引用以上全部，没有任何产品工程反向引用它。
+
 三个测试工程分别以对应产品工程为主：`WhaleGenie.Tests`、`WhaleGenie.Core.Tests` 和
 `WhaleGenie.GraphicsCapture.Tests`。`Core.Tests` 目前还引用 `Platform.Windows`，因为其中
 一部分用例通过引擎驱动真实适配器；独立适配器测试工程只在出现需要隔离的用例时再拆。产品工程
@@ -39,7 +45,9 @@ WhaleGenie
 
 | 工程 | 主要职责 | 不得承担 |
 | --- | --- | --- |
-| `WhaleGenie` | 窗口、ViewModel、应用生命周期、项目状态、宏与触发器文件模型、`.wgmacro`、文案、MCP | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core |
+| `WhaleGenie` | 窗口、ViewModel、应用生命周期、运行桥、MCP 宿主、设备控制与运行工具 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp |
+| `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸 | Avalonia、窗口、ViewModel、MCP、设备控制 |
+| `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、预览、资源与项目编辑工具 | Avalonia、Views、Runtime、设备控制、运行桥 |
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、录制事件翻译 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows` |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器；批处理宿主 | 宏、动作、ViewModel、项目状态或界面类型 |
 | `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表 | Avalonia、窗口、项目状态、设备或文件读写 |
@@ -52,6 +60,11 @@ WhaleGenie
 `WhaleGenie.Localization` 只放文案表；`Localization/LocalSettings.cs`（读写本机设置）与
 `Localization/LanguageRefresh.cs`（驱动 Avalonia 绑定刷新）仍留在界面工程，因为它们依赖设置
 文件与窗口，而不是文案本身。
+
+`WhaleGenie.Mcp` 不引用界面工程。直接控制、运行宏和读运行日志这三类工具留在
+`WhaleGenie/Mcp/`，由 `AppServices` 作为 tool owner 注入 `McpServerHost`；协议与草稿本身因此
+可以脱离窗口编译和测试。`WhaleGenie.Domain` 同样不引用 Avalonia：位图转换在
+`Assets/BitmapImages`，崩溃快照写入在 `Storage/RecoveryWriter`，两者都留在界面工程。
 
 宏文件模型与工程文档状态位于 `WhaleGenie/Models/`（`ProjectWorkspace` 持有宏、触发入口、共享变量、
 包路径与修订号），包读写位于 `WhaleGenie/Storage/`，文案位于 `WhaleGenie/Localization/`。这些类型虽与

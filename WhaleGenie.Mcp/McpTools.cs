@@ -7,13 +7,10 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 
 namespace WhaleGenie.Mcp;
@@ -35,5 +32,7 @@ public sealed partial class McpTools(McpDraftStore drafts, IProjectGateway proje
     /// </summary>
     private const int MaxImageBytes = 8 * 1024 * 1024;
 
-    private static async Task<T> Ui<T>(Func<T> work) => await Dispatcher.UIThread.InvokeAsync(work);
+    // The drafts and the catalogue are plain objects; nothing here belongs to a window, so a call
+    // runs on the calling thread. The name stays because it says why a tool reads as one turn.
+    private static Task<T> Ui<T>(Func<T> work) => Task.FromResult(work());
 }

@@ -327,7 +327,7 @@ public class PickerAsideTests
 
         var away = source.IndexOf("using var aside = AppWindows.StepAside(owner);", StringComparison.Ordinal);
         var waited = source.IndexOf("await AppWindows.SettleAsync();", StringComparison.Ordinal);
-        var picture = source.IndexOf("ImageAssets.Capture(", StringComparison.Ordinal);
+        var picture = source.IndexOf("BitmapImages.Capture(", StringComparison.Ordinal);
 
         Assert.True(away >= 0 && waited > away && picture > waited,
             "the picture is not taken inside the scope, after the screen has been drawn again");

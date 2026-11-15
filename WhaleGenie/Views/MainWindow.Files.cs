@@ -121,7 +121,7 @@ public partial class MainWindow : AppWindow
                 return;
             }
 
-            var report = MacroImport.IntoProject(viewModel, contents, chosen, decisions);
+            var report = MacroImport.IntoProject(viewModel.Workspace, contents, chosen, decisions);
             await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"), ReportText(report),
                 Strings.Get("Common.Ok"), null, false, height: 320);
         }

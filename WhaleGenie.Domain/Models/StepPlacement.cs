@@ -5,7 +5,7 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Models;
 
 /// <summary>Which list rejected a step, and why.</summary>
-internal enum StepPlacementProblem
+public enum StepPlacementProblem
 {
     WrongKind,
     HiddenStep,
@@ -13,7 +13,7 @@ internal enum StepPlacementProblem
 }
 
 /// <summary>The first step in a proposed insertion that its destination does not accept.</summary>
-internal sealed record StepPlacementIssue(
+public sealed record StepPlacementIssue(
     StepPlacementProblem Problem,
     MacroStep Step,
     ActionParameter? Destination);
@@ -22,7 +22,7 @@ internal sealed record StepPlacementIssue(
 /// Applies the child-list rules the action catalogue declares. The editor uses this before every
 /// insertion or move so adding, dropping, pasting, grouping and lifting cannot disagree.
 /// </summary>
-internal static class StepPlacement
+public static class StepPlacement
 {
     /// <summary>The generated grouping container is the one hidden action a normal list can hold.</summary>
     public const string SequenceKey = "control.sequence";

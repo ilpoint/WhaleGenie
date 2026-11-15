@@ -77,7 +77,7 @@ public class PickerSnapshotTests
         // The picture kept of a dragged rectangle is taken the same way: it is the same problem, and
         // it is the one the user keeps.
         Assert.Contains("ScreenReady.Capture(",
-            File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Storage", "ImageAssets.cs")),
+            File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Assets", "BitmapImages.cs")),
             StringComparison.Ordinal);
     }
 

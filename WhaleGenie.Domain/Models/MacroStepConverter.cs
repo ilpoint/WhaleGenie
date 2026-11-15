@@ -4,7 +4,7 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
-namespace WhaleGenie.Runtime;
+namespace WhaleGenie.Models;
 
 /// <summary>Turns the steps the editor holds into the shape the engine runs.</summary>
 public static class MacroStepConverter

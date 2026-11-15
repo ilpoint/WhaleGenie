@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
+using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
@@ -77,7 +78,7 @@ public partial class LookPickWindow : AppWindow
                 : _centre);
         }
 
-        _bitmap = area.IsEmpty ? null : ImageAssets.ToBitmap(area);
+        _bitmap = area.IsEmpty ? null : BitmapImages.ToBitmap(area);
         _zoom = area.IsEmpty
             ? 1
             : Math.Clamp(LookGeometry.Fit(area.Width, area.Height,
