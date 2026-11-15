@@ -65,6 +65,21 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 “启动方退出时顺带结束宿主”这一条。若该套件在此环境里报 `%TEMP%` 无权限，是命令沙箱对新建
 工程路径的限制，换 CI 或本机正常终端运行即可，与测试内容无关。
 
+## 在本机跑 CI
+
+Windows 上可以用 `act` 以自托管模式跑 `.github/workflows/ci.yml`，不经过容器：
+
+```bash
+git worktree add ../Viktor-ci HEAD     # 干净检出：不带 bin/obj，跑的就是提交的内容
+cd ../Viktor-ci
+act -j build-and-test -P windows-latest=-self-hosted --env ACT=true --action-offline-mode
+```
+
+`ACT=true` 让工作流跳过 `setup-dotnet` 与产物上传（本机不需要，且 act 的产物服务不兼容）。
+`--action-offline-mode` 使用 `~/.cache/act` 里已经下载的动作，避免 act 自己再拉一次。工作流在
+act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命令沙箱限制——这也是 `Platform.Tests`
+在这里能跑通的原因。
+
 依赖方向和主要类型见 [架构文档](../architecture.md)。开发时不必在本文档重复维护文件规模、
 动作数量或测试数量。
 
