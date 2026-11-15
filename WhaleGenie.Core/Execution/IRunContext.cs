@@ -61,6 +61,18 @@ internal interface IRunContext
     /// <summary>The mouse button a step names, or the left one when it names none.</summary>
     string Button(ExecutableStep step);
 
+    /// <summary>The keys of the combination the step's own key field names.</summary>
+    IReadOnlyList<string> Keys(ExecutableStep step);
+
+    /// <summary>A pause the way the run's speed setting scales it.</summary>
+    int Pace(int milliseconds);
+
+    /// <summary>One number of a row that may be left empty, where empty means the run's value.</summary>
+    int Number(IReadOnlyDictionary<string, ExpressionNode> row, string column, int fallback);
+
+    /// <summary>Remembers that a controller was driven, so the run lets go of it at the end.</summary>
+    void MarkGamepadUsed();
+
     /// <summary>One column of one row of a step's table, worked out where it stands.</summary>
     string Text(IReadOnlyDictionary<string, ExpressionNode> row, string column);
 

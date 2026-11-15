@@ -180,6 +180,14 @@ internal readonly struct StepArguments
         return _variables.TryGet(name, out var held) ? held : Value.FromText(name);
     }
 
+    /// <summary>
+    /// The keys of one written combination, such as the Ctrl+Shift+S a shortcut field or a row of a
+    /// sequence holds. Every place that presses a combination reads it here, so the way it is
+    /// written is decided once.
+    /// </summary>
+    public static IReadOnlyList<string> Chords(string written)
+        => [.. written.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
     private Value Read(ExpressionNode written) => Expression.Evaluate(written, _variables);
 }

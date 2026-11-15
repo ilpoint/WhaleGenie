@@ -43,6 +43,15 @@ public sealed partial class MacroRunner : IRunContext
 
     string IRunContext.Button(ExecutableStep step) => Button(step);
 
+    IReadOnlyList<string> IRunContext.Keys(ExecutableStep step) => Keys(step);
+
+    int IRunContext.Pace(int milliseconds) => Pace(milliseconds);
+
+    int IRunContext.Number(IReadOnlyDictionary<string, ExpressionNode> row, string column,
+        int fallback) => Cell(row, column, fallback);
+
+    void IRunContext.MarkGamepadUsed() => _run.GamepadUsed = true;
+
     string IRunContext.Text(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => Text(row, column);
 

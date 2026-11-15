@@ -120,6 +120,23 @@ internal sealed class FakeRunContext : IRunContext
         return button.Length == 0 ? "left" : button;
     }
 
+    IReadOnlyList<string> IRunContext.Keys(ExecutableStep step)
+        => [.. step.Text("keys").Split('+', StringSplitOptions.RemoveEmptyEntries
+            | StringSplitOptions.TrimEntries)];
+
+    int IRunContext.Pace(int milliseconds) => Math.Max(0, milliseconds);
+
+    int IRunContext.Number(IReadOnlyDictionary<string, ExpressionNode> row, string column,
+        int fallback)
+        => row.TryGetValue(column, out var written) && !Formula.IsNothing(written)
+            ? (int)Math.Round(Expression.Evaluate(written, _variables).AsNumber())
+            : fallback;
+
+    void IRunContext.MarkGamepadUsed() => GamepadUsed = true;
+
+    /// <summary>Whether the family under test told the run a controller was driven.</summary>
+    public bool GamepadUsed { get; private set; }
+
     string IRunContext.Text(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => row.TryGetValue(column, out var written)
             ? Expression.Evaluate(written, _variables).AsText()

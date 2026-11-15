@@ -27,6 +27,9 @@ public sealed partial class MacroRunner
     /// duration splits the whole turn over several smaller wheel events with a pause between, so
     /// an application that animates its scrolling has the time to follow.
     /// </summary>
+    /// <summary>Wheel units in one notch, the amount a wheel turns in.</summary>
+    private const int WheelNotch = 120;
+
     private async Task ScrollMouse(ExecutableStep step, CancellationToken token)
     {
         var point = Point(step, "x", "y");
@@ -208,17 +211,7 @@ public sealed partial class MacroRunner
     private Dictionary<string, ActionHandler> InputActions
         => _inputActions ??= new(StringComparer.Ordinal)
         {
-            ["input.keyPress"] = async (step, depth, token) =>
-            {
-                await PressKey(step, token);
-                return Signal.Normal;
-            },
 
-            ["input.waitKey"] = async (step, depth, token) =>
-            {
-                await WaitForKey(step, token);
-                return Signal.Normal;
-            },
 
             ["input.keyDown"] = (step, depth, token) =>
             {
@@ -232,17 +225,7 @@ public sealed partial class MacroRunner
                 return Task.FromResult(Signal.Normal);
             },
 
-            ["input.hotkey"] = async (step, depth, token) =>
-            {
-                await SendHotkey(step, token);
-                return Signal.Normal;
-            },
 
-            ["input.typeText"] = (step, depth, token) =>
-            {
-                Input(step).TypeText(Args(step).ValueOf("typedText").AsText(), Pace(Args(step).Number("intervalMs")));
-                return Task.FromResult(Signal.Normal);
-            },
 
             ["input.mouseMove"] = (step, depth, token) =>
             {
@@ -268,11 +251,6 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             },
 
-            ["input.keySequence"] = async (step, depth, token) =>
-            {
-                await SendKeySequence(step, depth, token);
-                return Signal.Normal;
-            },
 
             ["input.mouseDown"] = (step, depth, token) =>
             {
@@ -298,39 +276,10 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             },
 
-            ["gamepad.connect"] = (step, depth, token) =>
-            {
-                _devices.Gamepad.Connect();
-                _run.GamepadUsed = true;
-                return Task.FromResult(Signal.Normal);
-            },
 
-            ["gamepad.button"] = async (step, depth, token) =>
-            {
-                await PressGamepadButton(step, token);
-                return Signal.Normal;
-            },
 
-            ["gamepad.stick"] = (step, depth, token) =>
-            {
-                _devices.Gamepad.Stick(Args(step).Text("stick"), Args(step).Number("x"), Args(step).Number("y"));
-                _run.GamepadUsed = true;
-                return Task.FromResult(Signal.Normal);
-            },
 
-            ["gamepad.trigger"] = (step, depth, token) =>
-            {
-                _devices.Gamepad.Trigger(Args(step).Text("trigger"), Args(step).Number("amount"));
-                _run.GamepadUsed = true;
-                return Task.FromResult(Signal.Normal);
-            },
 
-            ["gamepad.release"] = (step, depth, token) =>
-            {
-                _devices.Gamepad.ReleaseAll();
-                _run.GamepadUsed = true;
-                return Task.FromResult(Signal.Normal);
-            },
         };
 
     private Dictionary<string, ActionHandler>? _inputActions;
