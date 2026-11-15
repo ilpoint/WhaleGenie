@@ -401,30 +401,34 @@ public sealed partial class MacroRunner
 
 
     /// <summary>
-    /// The ocr actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The ocr actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchOcr(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> OcrActions
+        => _ocrActions ??= new(StringComparer.Ordinal)
         {
-            case "ocr.recognize":
+            ["ocr.recognize"] = async (step, depth, token) =>
+            {
                 await Gate(token);
                 Watching(() => Recognize(step, depth));
                 return Signal.Normal;
-            case "ocr.findText":
+            },
+
+            ["ocr.findText"] = async (step, depth, token) =>
+            {
                 await Gate(token);
                 Watching(() => FindText(step, depth));
                 return Signal.Normal;
-            case "ocr.clickText":
+            },
+
+            ["ocr.clickText"] = async (step, depth, token) =>
+            {
                 await Gate(token);
                 await Watching(() => ClickText(step, depth, token));
                 return Signal.Normal;
+            },
+        };
 
-            // -------------------------------------------------------------------- uia
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+    private Dictionary<string, ActionHandler>? _ocrActions;
+
 }

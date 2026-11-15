@@ -191,50 +191,75 @@ public sealed partial class MacroRunner
 
 
     /// <summary>
-    /// The clipboard actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The clipboard actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchClipboard(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> ClipboardActions
+        => _clipboardActions ??= new(StringComparer.Ordinal)
         {
-            case "clipboard.writeText":
+            ["clipboard.writeText"] = (step, depth, token) =>
+            {
                 ClipboardWrite(step, depth);
-                return Signal.Normal;
-            case "clipboard.readText":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.readText"] = (step, depth, token) =>
+            {
                 ClipboardRead(step, depth);
-                return Signal.Normal;
-            case "clipboard.readImage":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.readImage"] = (step, depth, token) =>
+            {
                 // Watched so the picture is handed to the window once, the same way a capture is.
                 Watching(() => ClipboardImageRead(step, depth));
-                return Signal.Normal;
-            case "clipboard.writeImage":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.writeImage"] = (step, depth, token) =>
+            {
                 ClipboardImageWrite(step, depth);
-                return Signal.Normal;
-            case "clipboard.readFiles":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.readFiles"] = (step, depth, token) =>
+            {
                 ClipboardFilesRead(step, depth);
-                return Signal.Normal;
-            case "clipboard.writeFiles":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.writeFiles"] = (step, depth, token) =>
+            {
                 ClipboardFilesWrite(step, depth);
-                return Signal.Normal;
-            case "clipboard.clear":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.clear"] = (step, depth, token) =>
+            {
                 _devices.Clipboard.Clear();
                 Log(LogLevel.Info, depth, step.Type, LogKeys.ClearedClipboard);
-                return Signal.Normal;
-            case "clipboard.waitChange":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["clipboard.waitChange"] = async (step, depth, token) =>
+            {
                 await ClipboardWait(step, depth, token);
                 return Signal.Normal;
-            case "clipboard.copy":
+            },
+
+            ["clipboard.copy"] = async (step, depth, token) =>
+            {
                 await ClipboardCopy(step, depth, token);
                 return Signal.Normal;
-            case "clipboard.paste":
+            },
+
+            ["clipboard.paste"] = async (step, depth, token) =>
+            {
                 await ClipboardPaste(step, depth, token);
                 return Signal.Normal;
+            },
+        };
 
-            // ---------------------------------------------------------------- process
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+    private Dictionary<string, ActionHandler>? _clipboardActions;
+
 }

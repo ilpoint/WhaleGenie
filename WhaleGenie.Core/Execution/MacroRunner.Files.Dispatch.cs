@@ -35,107 +35,156 @@ public sealed partial class MacroRunner
 
 
     /// <summary>
-    /// The file actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The file actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchFile(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> FileActions
+        => _fileActions ??= new(StringComparer.Ordinal)
         {
-            case "file.readText":
+            ["file.readText"] = (step, depth, token) =>
+            {
                 ReadTextFile(step, depth);
-                return Signal.Normal;
-            case "file.writeText":
-                WriteTextFile(step, depth);
-                return Signal.Normal;
-            case "file.appendLog":
-                AppendLog(step, depth);
-                return Signal.Normal;
-            case "file.zip":
-                ZipFolder(step, depth);
-                return Signal.Normal;
-            case "file.exists":
-                FileExists(step, depth);
-                return Signal.Normal;
-            case "file.delete":
-                DeleteFile(step, depth);
-                return Signal.Normal;
-            case "file.copy":
-                CopyFile(step, depth);
-                return Signal.Normal;
-            case "file.move":
-                MoveFile(step, depth);
-                return Signal.Normal;
-            case "file.createFolder":
-                CreateFolder(step, depth);
-                return Signal.Normal;
-            case "file.deleteFolder":
-                DeleteFolder(step, depth);
-                return Signal.Normal;
-            case "file.path":
-                PathPart(step, depth);
-                return Signal.Normal;
-            case "file.unzip":
-                UnzipFile(step, depth);
-                return Signal.Normal;
-            case "file.listFiles":
-                ListFiles(step, depth);
-                return Signal.Normal;
-            case "file.readJson":
-                ReadJson(step, depth);
-                return Signal.Normal;
-            case "file.writeJson":
-                WriteJson(step, depth);
-                return Signal.Normal;
-            case "file.readCsv":
-                ReadCsv(step, depth);
-                return Signal.Normal;
-            case "file.writeCsv":
-                WriteCsv(step, depth);
-                return Signal.Normal;
-            case "file.saveVariables":
-                SaveVariables(step, depth);
-                return Signal.Normal;
-            case "file.loadVariables":
-                LoadVariables(step, depth);
-                return Signal.Normal;
+                return Task.FromResult(Signal.Normal);
+            },
 
-            // ----------------------------------------------------------------- data
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["file.writeText"] = (step, depth, token) =>
+            {
+                WriteTextFile(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.appendLog"] = (step, depth, token) =>
+            {
+                AppendLog(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.zip"] = (step, depth, token) =>
+            {
+                ZipFolder(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.exists"] = (step, depth, token) =>
+            {
+                FileExists(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.delete"] = (step, depth, token) =>
+            {
+                DeleteFile(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.copy"] = (step, depth, token) =>
+            {
+                CopyFile(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.move"] = (step, depth, token) =>
+            {
+                MoveFile(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.createFolder"] = (step, depth, token) =>
+            {
+                CreateFolder(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.deleteFolder"] = (step, depth, token) =>
+            {
+                DeleteFolder(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.path"] = (step, depth, token) =>
+            {
+                PathPart(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.unzip"] = (step, depth, token) =>
+            {
+                UnzipFile(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.listFiles"] = (step, depth, token) =>
+            {
+                ListFiles(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.readJson"] = (step, depth, token) =>
+            {
+                ReadJson(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.writeJson"] = (step, depth, token) =>
+            {
+                WriteJson(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.readCsv"] = (step, depth, token) =>
+            {
+                ReadCsv(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.writeCsv"] = (step, depth, token) =>
+            {
+                WriteCsv(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.saveVariables"] = (step, depth, token) =>
+            {
+                SaveVariables(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["file.loadVariables"] = (step, depth, token) =>
+            {
+                LoadVariables(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _fileActions;
+
 
     /// <summary>
-    /// The data actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The data actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchData(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        // 变量与列表动作在目录里归「数据与变量」，回答它们的代码仍在控制流那一支。分类是给人
-        // 看的（动作库按它分栏），不该决定哪段代码回答它：这里把 control.* 交回去。
-        if (step.Type.StartsWith("control.", StringComparison.Ordinal))
+    private Dictionary<string, ActionHandler> DataActions
+        => _dataActions ??= new(StringComparer.Ordinal)
         {
-            return await DispatchControl(step, depth, token).ConfigureAwait(false);
-        }
-
-        switch (step.Type)
-        {
-            case "data.base64Encode":
+            ["data.base64Encode"] = (step, depth, token) =>
+            {
                 EncodeBase64(step, depth);
-                return Signal.Normal;
-            case "data.base64Decode":
-                DecodeBase64(step, depth);
-                return Signal.Normal;
-            case "data.hash":
-                HashText(step, depth);
-                return Signal.Normal;
+                return Task.FromResult(Signal.Normal);
+            },
 
-            // -------------------------------------------------------------- clipboard
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["data.base64Decode"] = (step, depth, token) =>
+            {
+                DecodeBase64(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["data.hash"] = (step, depth, token) =>
+            {
+                HashText(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _dataActions;
+
 }

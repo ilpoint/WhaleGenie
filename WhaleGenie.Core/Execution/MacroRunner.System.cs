@@ -418,60 +418,97 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// The system actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The system actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchSystem(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> SystemActions
+        => _systemActions ??= new(StringComparer.Ordinal)
         {
-            case "system.info":
+            ["system.info"] = (step, depth, token) =>
+            {
                 SystemInfo(step, depth);
-                return Signal.Normal;
-            case "screen.list":
-                ListDisplays(step, depth);
-                return Signal.Normal;
-            case "system.environment":
-                EnvironmentVariable(step, depth);
-                return Signal.Normal;
-            case "system.setEnvironment":
-                SetEnvironment(step, depth);
-                return Signal.Normal;
-            case "system.readRegistry":
-                ReadRegistry(step, depth);
-                return Signal.Normal;
-            case "system.writeRegistry":
-                WriteRegistry(step, depth);
-                return Signal.Normal;
-            case "system.deleteRegistry":
-                DeleteRegistry(step, depth);
-                return Signal.Normal;
-            case "system.power":
-                Power(step, depth);
-                return Signal.Normal;
-            case "system.showDesktop":
-                ShowDesktop(step, depth);
-                return Signal.Normal;
-            case "system.volume":
-                Volume(step, depth);
-                return Signal.Normal;
-            case "system.sound":
-                PlaySound(step, depth);
-                return Signal.Normal;
-            case "system.notify":
-                Notify(step, depth);
-                return Signal.Normal;
-            case "system.ime":
-                InputMethod(step, depth);
-                return Signal.Normal;
-            case "system.brightness":
-                Brightness(step, depth);
-                return Signal.Normal;
+                return Task.FromResult(Signal.Normal);
+            },
 
-            // ----------------------------------------------------------------- window
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["screen.list"] = (step, depth, token) =>
+            {
+                ListDisplays(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.environment"] = (step, depth, token) =>
+            {
+                EnvironmentVariable(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.setEnvironment"] = (step, depth, token) =>
+            {
+                SetEnvironment(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.readRegistry"] = (step, depth, token) =>
+            {
+                ReadRegistry(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.writeRegistry"] = (step, depth, token) =>
+            {
+                WriteRegistry(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.deleteRegistry"] = (step, depth, token) =>
+            {
+                DeleteRegistry(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.power"] = (step, depth, token) =>
+            {
+                Power(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.showDesktop"] = (step, depth, token) =>
+            {
+                ShowDesktop(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.volume"] = (step, depth, token) =>
+            {
+                Volume(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.sound"] = (step, depth, token) =>
+            {
+                PlaySound(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.notify"] = (step, depth, token) =>
+            {
+                Notify(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.ime"] = (step, depth, token) =>
+            {
+                InputMethod(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["system.brightness"] = (step, depth, token) =>
+            {
+                Brightness(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _systemActions;
+
 }

@@ -561,33 +561,50 @@ public sealed partial class MacroRunner
 
 
     /// <summary>
-    /// The window actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The window actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchWindow(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> WindowActions
+        => _windowActions ??= new(StringComparer.Ordinal)
         {
-            case "window.exists":
+            ["window.exists"] = (step, depth, token) =>
+            {
                 WindowExists(step, depth);
-                return Signal.Normal;
-            case "window.waitFor":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.waitFor"] = async (step, depth, token) =>
+            {
                 await WaitForWindow(step, depth, token);
                 return Signal.Normal;
-            case "window.activate":
+            },
+
+            ["window.activate"] = (step, depth, token) =>
+            {
                 Act(step, depth, LogKeys.ActivatedWindow, window => _devices.Windows.Activate(window.Handle));
-                return Signal.Normal;
-            case "window.minimize":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.minimize"] = (step, depth, token) =>
+            {
                 Act(step, depth, LogKeys.MinimizedWindow, window => _devices.Windows.Minimize(window.Handle));
-                return Signal.Normal;
-            case "window.maximize":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.maximize"] = (step, depth, token) =>
+            {
                 Act(step, depth, LogKeys.MaximizedWindow, window => _devices.Windows.Maximize(window.Handle));
-                return Signal.Normal;
-            case "window.restore":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.restore"] = (step, depth, token) =>
+            {
                 Act(step, depth, LogKeys.RestoredWindow, window => _devices.Windows.Restore(window.Handle));
-                return Signal.Normal;
-            case "window.move":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.move"] = (step, depth, token) =>
+            {
                 if (MoveTargetWritten(step))
                 {
                     Act(step, depth, LogKeys.MovedWindow, window =>
@@ -597,20 +614,28 @@ public sealed partial class MacroRunner
                     });
                 }
 
-                return Signal.Normal;
-            case "window.close":
-                Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));
-                return Signal.Normal;
-            case "window.list":
-                ListWindows(step, depth);
-                return Signal.Normal;
-            case "window.info":
-                WindowBox(step, depth);
-                return Signal.Normal;
+                return Task.FromResult(Signal.Normal);
+            },
 
-            // ------------------------------------------------------------------ input
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["window.close"] = (step, depth, token) =>
+            {
+                Act(step, depth, LogKeys.ClosedWindow, window => _devices.Windows.Close(window.Handle));
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.list"] = (step, depth, token) =>
+            {
+                ListWindows(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["window.info"] = (step, depth, token) =>
+            {
+                WindowBox(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _windowActions;
+
 }

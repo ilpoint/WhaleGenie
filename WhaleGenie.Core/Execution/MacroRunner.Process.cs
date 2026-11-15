@@ -316,42 +316,61 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// The process actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The process actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchProcess(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> ProcessActions
+        => _processActions ??= new(StringComparer.Ordinal)
         {
-            case "process.start":
+            ["process.start"] = (step, depth, token) =>
+            {
                 StartProcess(step, depth);
-                return Signal.Normal;
-            case "process.waitFor":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["process.waitFor"] = async (step, depth, token) =>
+            {
                 await WaitForProgram(step, depth, token);
                 return Signal.Normal;
-            case "process.waitExit":
+            },
+
+            ["process.waitExit"] = async (step, depth, token) =>
+            {
                 await WaitForExit(step, depth, token);
                 return Signal.Normal;
-            case "process.exists":
-                ProgramRunning(step, depth);
-                return Signal.Normal;
-            case "process.list":
-                ListPrograms(step, depth);
-                return Signal.Normal;
-            case "process.info":
-                ProgramDetails(step, depth);
-                return Signal.Normal;
-            case "process.kill":
-                StopProgram(step, depth);
-                return Signal.Normal;
-            case "command.run":
-                RunCommand(step, depth);
-                return Signal.Normal;
+            },
 
-            // ----------------------------------------------------------------- system
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["process.exists"] = (step, depth, token) =>
+            {
+                ProgramRunning(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["process.list"] = (step, depth, token) =>
+            {
+                ListPrograms(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["process.info"] = (step, depth, token) =>
+            {
+                ProgramDetails(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["process.kill"] = (step, depth, token) =>
+            {
+                StopProgram(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["command.run"] = (step, depth, token) =>
+            {
+                RunCommand(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _processActions;
+
 }

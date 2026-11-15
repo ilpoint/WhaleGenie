@@ -93,113 +93,237 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// Answers one step by handing it to the family it belongs to. Which family an action is in
-    /// is the catalogue's answer, so this switch does not know any action by name — adding one
-    /// is a matter of writing its method and its family's dispatch, not of touching this.
+    /// One action's work: the step, how deep the run is, and the run's token. It is a delegate
+    /// rather than an interface because a handler is a piece of work, not an object with a life of
+    /// its own — the run it belongs to is the argument.
+    /// </summary>
+    private delegate Task<Signal> ActionHandler(ExecutableStep step, int depth,
+        CancellationToken token);
+
+    private Dictionary<string, ActionHandler>? _actions;
+
+    /// <summary>The actions the engine answers, by the key the catalogue gives them.</summary>
+    internal IReadOnlyCollection<string> HandledActions => Handlers.Keys;
+
+    private Dictionary<string, ActionHandler> Handlers => _actions ??= Collect();
+
+    /// <summary>
+    /// Every family's table in one place. A key written in two families is a mistake that would
+    /// otherwise be decided by which table was collected last, so collecting it throws.
+    /// </summary>
+    private Dictionary<string, ActionHandler> Collect()
+    {
+        var all = new Dictionary<string, ActionHandler>(StringComparer.Ordinal);
+        foreach (var family in Families)
+        {
+            foreach (var (key, handler) in family)
+            {
+                all.Add(key, handler);
+            }
+        }
+
+        return all;
+    }
+
+    private IReadOnlyList<Dictionary<string, ActionHandler>> Families
+        =>
+        [
+            ControlActions, FileActions, DataActions, ClipboardActions, ProcessActions,
+            SystemActions, WindowActions, InputActions, VisionActions, OcrActions, UiaActions,
+            BrowserActions, ScriptActions,
+        ];
+
+    /// <summary>
+    /// Answers one step by handing it to the family it belongs to. Which family an action is in is
+    /// the table it was written in rather than a switch here, so adding an action is a matter of
+    /// writing its method and naming it in its family's table, not of touching this.
     /// </summary>
     private Task<Signal> Dispatch(ExecutableStep step, int depth, CancellationToken token)
-        => ActionSemanticsCatalog.Find(step.Type)?.Category switch
-        {
-            ActionCategory.Control => DispatchControl(step, depth, token),
-            ActionCategory.File => DispatchFile(step, depth, token),
-            ActionCategory.Data => DispatchData(step, depth, token),
-            ActionCategory.Clipboard => DispatchClipboard(step, depth, token),
-            ActionCategory.Process => DispatchProcess(step, depth, token),
-            ActionCategory.System => DispatchSystem(step, depth, token),
-            ActionCategory.Window => DispatchWindow(step, depth, token),
-            ActionCategory.Input => DispatchInput(step, depth, token),
-            ActionCategory.Vision => DispatchVision(step, depth, token),
-            ActionCategory.Ocr => DispatchOcr(step, depth, token),
-            ActionCategory.Uia => DispatchUia(step, depth, token),
-            ActionCategory.Browser => DispatchBrowser(step, depth, token),
-            ActionCategory.Script => DispatchScript(step, depth, token),
-            _ => throw new StepFailure(RunKeys.Unsupported, step.Type),
-        };
+        => Handlers.TryGetValue(step.Type, out var handler)
+            ? handler(step, depth, token)
+            : Task.FromException<Signal>(new StepFailure(RunKeys.Unsupported, step.Type));
+
     /// <summary>
-    /// The control actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The control actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchControl(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> ControlActions
+        => _controlActions ??= new(StringComparer.Ordinal)
         {
-            case "control.sequence":
+            ["control.sequence"] = async (step, depth, token) =>
+            {
                 return await RunSteps(step.Children("steps"), depth + 1, token);
-            case "control.holdInput":
+            },
+
+            ["control.holdInput"] = async (step, depth, token) =>
+            {
                 return await RunHold(step, depth, token, input: true);
-            case "control.holdBrowser":
+            },
+
+            ["control.holdBrowser"] = async (step, depth, token) =>
+            {
                 return await RunHold(step, depth, token, input: false);
-            case "control.runMacro":
+            },
+
+            ["control.runMacro"] = async (step, depth, token) =>
+            {
                 return await RunOtherMacro(step, depth, token);
-            case "control.delay":
+            },
+
+            ["control.delay"] = async (step, depth, token) =>
+            {
                 await Pause(Pace(Args(step).Number("ms")), token);
                 return Signal.Normal;
-            case "control.waitUntil":
+            },
+
+            ["control.waitUntil"] = async (step, depth, token) =>
+            {
                 return await RunWaitUntil(step, depth, token);
-            case "control.repeat":
+            },
+
+            ["control.repeat"] = async (step, depth, token) =>
+            {
                 return await RunRepeat(step, depth, token);
-            case "control.while":
+            },
+
+            ["control.while"] = async (step, depth, token) =>
+            {
                 return await RunWhile(step, depth, token);
-            case "control.forEach":
+            },
+
+            ["control.forEach"] = async (step, depth, token) =>
+            {
                 return await RunForEach(step, depth, token);
-            case "control.for":
+            },
+
+            ["control.for"] = async (step, depth, token) =>
+            {
                 return await RunFor(step, depth, token);
-            case "control.switch":
+            },
+
+            ["control.switch"] = async (step, depth, token) =>
+            {
                 return await RunSwitch(step, depth, token);
-            case "control.if":
+            },
+
+            ["control.if"] = async (step, depth, token) =>
+            {
                 return await RunIf(step, depth, token);
-            case "control.try":
+            },
+
+            ["control.try"] = async (step, depth, token) =>
+            {
                 return await RunTry(step, depth, token);
-            case "control.break":
-                return LeaveLoop(Signal.Break, step);
-            case "control.continue":
-                return LeaveLoop(Signal.Continue, step);
-            case "control.return":
-                return Signal.Return;
-            case "control.rethrow":
+            },
+
+            ["control.break"] = (step, depth, token) =>
+            {
+                return Task.FromResult(LeaveLoop(Signal.Break, step));
+            },
+
+            ["control.continue"] = (step, depth, token) =>
+            {
+                return Task.FromResult(LeaveLoop(Signal.Continue, step));
+            },
+
+            ["control.return"] = (step, depth, token) =>
+            {
+                return Task.FromResult(Signal.Return);
+            },
+
+            ["control.rethrow"] = (step, depth, token) =>
+            {
                 throw CaughtFailure();
-            case "control.stop":
+            },
+
+            ["control.stop"] = (step, depth, token) =>
+            {
                 Log(LogLevel.Warn, depth, step.Type, LogKeys.StopRequested,
                     Args(step).ValueOf("reason").AsText());
-                return Signal.Stop;
-            case "control.fail":
+                return Task.FromResult(Signal.Stop);
+            },
+
+            ["control.fail"] = (step, depth, token) =>
+            {
                 // The macro says this step did not work. It travels the same way a device failure
                 // does, so whatever the step's failure rule says — retry, carry on, ask — holds for
                 // a step the macro itself called failed.
                 throw new StepFailure(FailureKeyOf(step), Args(step).ValueOf("reason").AsText());
-            case "control.note":
-                // A note is for whoever reads the macro. There is nothing to do and nothing to say.
-                return Signal.Normal;
-            case "control.setVariable":
-                SetVariable(step, depth);
-                return Signal.Normal;
-            case "control.clearVariable":
-                ClearVariable(step, depth);
-                return Signal.Normal;
-            case "control.incrementGlobal":
-                IncrementGlobal(step, depth);
-                return Signal.Normal;
-            case "control.listAdd":
-            case "control.listInsert":
-            case "control.listSet":
-            case "control.listRemoveAt":
-            case "control.listClear":
-                ChangeList(step, depth);
-                return Signal.Normal;
-            case "control.log":
-                Log(Level(Args(step).Text("level")), depth, step.Type, LogKeys.Message, Args(step).ValueOf("message").AsText());
-                return Signal.Normal;
-            case "control.ask":
-                return await AskPerson(step, depth, token);
-            case "control.input":
-                return await AskForText(step, depth, token);
+            },
 
-            // ------------------------------------------------------------------- file
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["control.note"] = (step, depth, token) =>
+            {
+                // A note is for whoever reads the macro. There is nothing to do and nothing to say.
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.setVariable"] = (step, depth, token) =>
+            {
+                SetVariable(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.clearVariable"] = (step, depth, token) =>
+            {
+                ClearVariable(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.incrementGlobal"] = (step, depth, token) =>
+            {
+                IncrementGlobal(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.listAdd"] = (step, depth, token) =>
+            {
+                ChangeList(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.listInsert"] = (step, depth, token) =>
+            {
+                ChangeList(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.listSet"] = (step, depth, token) =>
+            {
+                ChangeList(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.listRemoveAt"] = (step, depth, token) =>
+            {
+                ChangeList(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.listClear"] = (step, depth, token) =>
+            {
+                ChangeList(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.log"] = (step, depth, token) =>
+            {
+                Log(Level(Args(step).Text("level")), depth, step.Type, LogKeys.Message, Args(step).ValueOf("message").AsText());
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["control.ask"] = async (step, depth, token) =>
+            {
+                return await AskPerson(step, depth, token);
+            },
+
+            ["control.input"] = async (step, depth, token) =>
+            {
+                return await AskForText(step, depth, token);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _controlActions;
+
 
     /// <summary>
     /// Waits for a condition of the macro's own choosing: any of the conditions an if or a while

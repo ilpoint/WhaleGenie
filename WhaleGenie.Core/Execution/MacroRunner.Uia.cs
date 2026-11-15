@@ -307,57 +307,91 @@ public sealed partial class MacroRunner
 
 
     /// <summary>
-    /// The uia actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The uia actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchUia(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> UiaActions
+        => _uiaActions ??= new(StringComparer.Ordinal)
         {
-            case "uia.exists":
+            ["uia.exists"] = (step, depth, token) =>
+            {
                 Exists(step, depth);
-                return Signal.Normal;
-            case "uia.find":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.find"] = (step, depth, token) =>
+            {
                 FindElement(step, depth);
-                return Signal.Normal;
-            case "uia.waitElement":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.waitElement"] = async (step, depth, token) =>
+            {
                 await WaitElement(step, depth, token);
                 return Signal.Normal;
-            case "uia.click":
+            },
+
+            ["uia.click"] = async (step, depth, token) =>
+            {
                 await ClickElement(step, depth, token);
                 return Signal.Normal;
-            case "uia.invoke":
+            },
+
+            ["uia.invoke"] = async (step, depth, token) =>
+            {
                 await InvokeElement(step, depth, token);
                 return Signal.Normal;
-            case "uia.setText":
-                SetElementText(step, depth);
-                return Signal.Normal;
-            case "uia.read":
-                ReadElement(step, depth);
-                return Signal.Normal;
-            case "uia.select":
-                SelectItem(step, depth);
-                return Signal.Normal;
-            case "uia.check":
-                SetElementChecked(step, depth);
-                return Signal.Normal;
-            case "uia.expand":
-                SetElementExpanded(step, depth);
-                return Signal.Normal;
-            case "uia.scrollIntoView":
-                ScrollElementIntoView(step, depth);
-                return Signal.Normal;
-            case "uia.readTable":
-                ReadElementTable(step, depth);
-                return Signal.Normal;
-            case "uia.focusWindow":
-                FocusWindow(step, depth);
-                return Signal.Normal;
+            },
 
-            // --------------------------------------------------------------- browser
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+            ["uia.setText"] = (step, depth, token) =>
+            {
+                SetElementText(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.read"] = (step, depth, token) =>
+            {
+                ReadElement(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.select"] = (step, depth, token) =>
+            {
+                SelectItem(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.check"] = (step, depth, token) =>
+            {
+                SetElementChecked(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.expand"] = (step, depth, token) =>
+            {
+                SetElementExpanded(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.scrollIntoView"] = (step, depth, token) =>
+            {
+                ScrollElementIntoView(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.readTable"] = (step, depth, token) =>
+            {
+                ReadElementTable(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["uia.focusWindow"] = (step, depth, token) =>
+            {
+                FocusWindow(step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _uiaActions;
+
 }

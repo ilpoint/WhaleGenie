@@ -497,95 +497,162 @@ public sealed partial class MacroRunner
     /// </summary>
 
     /// <summary>
-    /// The browser actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The browser actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchBrowser(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> BrowserActions
+        => _browserActions ??= new(StringComparer.Ordinal)
         {
-            case "browser.open":
+            ["browser.open"] = (step, depth, token) =>
+            {
                 BrowserOpen(step, depth);
-                return Signal.Normal;
-            case "browser.goTo":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.goTo"] = (step, depth, token) =>
+            {
                 _devices.Browser.GoTo(Args(step).ValueOf("url").AsText(), step.Meta.TimeoutMs);
                 Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserAddress, _devices.Browser.Url);
-                return Signal.Normal;
-            case "browser.click":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.click"] = (step, depth, token) =>
+            {
                 BrowserClick(step, depth);
-                return Signal.Normal;
-            case "browser.fill":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.fill"] = (step, depth, token) =>
+            {
                 BrowserFill(step, depth);
-                return Signal.Normal;
-            case "browser.readText":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.readText"] = (step, depth, token) =>
+            {
                 BrowserReadText(step, depth);
-                return Signal.Normal;
-            case "browser.readAll":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.readAll"] = (step, depth, token) =>
+            {
                 BrowserReadAll(step, depth);
-                return Signal.Normal;
-            case "browser.readTable":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.readTable"] = (step, depth, token) =>
+            {
                 BrowserReadTable(step, depth);
-                return Signal.Normal;
-            case "browser.readPage":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.readPage"] = (step, depth, token) =>
+            {
                 BrowserReadPage(step, depth);
-                return Signal.Normal;
-            case "browser.select":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.select"] = (step, depth, token) =>
+            {
                 BrowserSelect(step, depth);
-                return Signal.Normal;
-            case "browser.check":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.check"] = (step, depth, token) =>
+            {
                 Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserChecked,
                     _devices.Browser.Check(Element(step), Flag(step, "checked", true),
                         step.Meta.TimeoutMs));
-                return Signal.Normal;
-            case "browser.hover":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.hover"] = (step, depth, token) =>
+            {
                 Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserHovered,
                     _devices.Browser.Hover(Element(step), step.Meta.TimeoutMs));
-                return Signal.Normal;
-            case "browser.press":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.press"] = (step, depth, token) =>
+            {
                 BrowserPress(step, depth);
-                return Signal.Normal;
-            case "browser.waitFor":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.waitFor"] = (step, depth, token) =>
+            {
                 BrowserWaitFor(step, depth);
-                return Signal.Normal;
-            case "browser.exists":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.exists"] = (step, depth, token) =>
+            {
                 BrowserExists(step, depth);
-                return Signal.Normal;
-            case "browser.waitForUrl":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.waitForUrl"] = (step, depth, token) =>
+            {
                 BrowserWaitForUrl(step, depth);
-                return Signal.Normal;
-            case "browser.waitForLoad":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.waitForLoad"] = (step, depth, token) =>
+            {
                 BrowserWaitForLoad(step, depth);
-                return Signal.Normal;
-            case "browser.scroll":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.scroll"] = (step, depth, token) =>
+            {
                 BrowserScroll(step, depth);
-                return Signal.Normal;
-            case "browser.download":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.download"] = (step, depth, token) =>
+            {
                 BrowserDownload(step, depth);
-                return Signal.Normal;
-            case "browser.dialog":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.dialog"] = async (step, depth, token) =>
+            {
                 return await RunDialog(step, depth, token);
-            case "browser.evaluate":
+            },
+
+            ["browser.evaluate"] = (step, depth, token) =>
+            {
                 BrowserEvaluate(step, depth);
-                return Signal.Normal;
-            case "browser.upload":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.upload"] = (step, depth, token) =>
+            {
                 BrowserUpload(step, depth);
-                return Signal.Normal;
-            case "browser.switchTab":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.switchTab"] = (step, depth, token) =>
+            {
                 BrowserSwitchTab(step, depth);
-                return Signal.Normal;
-            case "browser.closeTab":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.closeTab"] = (step, depth, token) =>
+            {
                 _devices.Browser.CloseTab();
                 Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedTab);
-                return Signal.Normal;
-            case "browser.close":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["browser.close"] = (step, depth, token) =>
+            {
                 _devices.Browser.Close();
                 Log(LogLevel.Info, depth, step.Type, LogKeys.ClosedBrowser);
-                return Signal.Normal;
+                return Task.FromResult(Signal.Normal);
+            },
+        };
 
-            // ------------------------------------------------------------------ script
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+    private Dictionary<string, ActionHandler>? _browserActions;
+
 }

@@ -202,88 +202,137 @@ public sealed partial class MacroRunner
 
 
     /// <summary>
-    /// The input actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The input actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchInput(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> InputActions
+        => _inputActions ??= new(StringComparer.Ordinal)
         {
-            case "input.keyPress":
+            ["input.keyPress"] = async (step, depth, token) =>
+            {
                 await PressKey(step, token);
                 return Signal.Normal;
-            case "input.waitKey":
+            },
+
+            ["input.waitKey"] = async (step, depth, token) =>
+            {
                 await WaitForKey(step, token);
                 return Signal.Normal;
-            case "input.keyDown":
+            },
+
+            ["input.keyDown"] = (step, depth, token) =>
+            {
                 HoldKey(step);
-                return Signal.Normal;
-            case "input.keyUp":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.keyUp"] = (step, depth, token) =>
+            {
                 LetGoKey(step);
-                return Signal.Normal;
-            case "input.hotkey":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.hotkey"] = async (step, depth, token) =>
+            {
                 await SendHotkey(step, token);
                 return Signal.Normal;
-            case "input.typeText":
+            },
+
+            ["input.typeText"] = (step, depth, token) =>
+            {
                 Input(step).TypeText(Args(step).ValueOf("typedText").AsText(), Pace(Args(step).Number("intervalMs")));
-                return Signal.Normal;
-            case "input.mouseMove":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseMove"] = (step, depth, token) =>
+            {
                 MovePointer(step, MovePlace(step));
-                return Signal.Normal;
-            case "input.mouseMoveRelative":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseMoveRelative"] = (step, depth, token) =>
+            {
                 MovePointerBy(step);
-                return Signal.Normal;
-            case "input.mouseClick":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseClick"] = async (step, depth, token) =>
+            {
                 await ClickMouse(step, token);
                 return Signal.Normal;
-            case "input.mouseDoubleClick":
+            },
+
+            ["input.mouseDoubleClick"] = async (step, depth, token) =>
+            {
                 await DoubleClickMouse(step, token);
                 return Signal.Normal;
-            case "input.keySequence":
+            },
+
+            ["input.keySequence"] = async (step, depth, token) =>
+            {
                 await SendKeySequence(step, depth, token);
                 return Signal.Normal;
-            case "input.mouseDown":
-                {
-                    HoldButton(step);
-                    return Signal.Normal;
-                }
-            case "input.mouseUp":
-                {
-                    LetGoButton(step);
-                    return Signal.Normal;
-                }
-            case "input.mouseScroll":
+            },
+
+            ["input.mouseDown"] = (step, depth, token) =>
+            {
+                HoldButton(step);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseUp"] = (step, depth, token) =>
+            {
+                LetGoButton(step);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["input.mouseScroll"] = async (step, depth, token) =>
+            {
                 await ScrollMouse(step, token);
                 return Signal.Normal;
-            case "input.mouseDrag":
+            },
+
+            ["input.mouseDrag"] = async (step, depth, token) =>
+            {
                 await DragPointer(step, token);
                 return Signal.Normal;
+            },
 
-            // ---------------------------------------------------------------- gamepad
-            case "gamepad.connect":
+            ["gamepad.connect"] = (step, depth, token) =>
+            {
                 _devices.Gamepad.Connect();
                 _run.GamepadUsed = true;
-                return Signal.Normal;
-            case "gamepad.button":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["gamepad.button"] = async (step, depth, token) =>
+            {
                 await PressGamepadButton(step, token);
                 return Signal.Normal;
-            case "gamepad.stick":
+            },
+
+            ["gamepad.stick"] = (step, depth, token) =>
+            {
                 _devices.Gamepad.Stick(Args(step).Text("stick"), Args(step).Number("x"), Args(step).Number("y"));
                 _run.GamepadUsed = true;
-                return Signal.Normal;
-            case "gamepad.trigger":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["gamepad.trigger"] = (step, depth, token) =>
+            {
                 _devices.Gamepad.Trigger(Args(step).Text("trigger"), Args(step).Number("amount"));
                 _run.GamepadUsed = true;
-                return Signal.Normal;
-            case "gamepad.release":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["gamepad.release"] = (step, depth, token) =>
+            {
                 _devices.Gamepad.ReleaseAll();
                 _run.GamepadUsed = true;
-                return Signal.Normal;
+                return Task.FromResult(Signal.Normal);
+            },
+        };
 
-            // ----------------------------------------------------------------- vision
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+    private Dictionary<string, ActionHandler>? _inputActions;
+
 }

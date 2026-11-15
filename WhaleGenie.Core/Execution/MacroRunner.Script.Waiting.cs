@@ -107,31 +107,46 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// The script actions, each answered by the method written for it. Step types of
-    /// other families are not this dispatch's to answer.
+    /// The script actions, each answered by the method written for it. A step of
+    /// another family is not in this table.
     /// </summary>
-    private async Task<Signal> DispatchScript(ExecutableStep step, int depth,
-        CancellationToken token)
-    {
-        switch (step.Type)
+    private Dictionary<string, ActionHandler> ScriptActions
+        => _scriptActions ??= new(StringComparer.Ordinal)
         {
-            case "script.run":
+            ["script.run"] = (step, depth, token) =>
+            {
                 RunScript(step, depth);
-                return Signal.Normal;
-            case "script.python":
-                return RunPython(step, depth, token);
-            case "script.pip":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["script.python"] = (step, depth, token) =>
+            {
+                return Task.FromResult(RunPython(step, depth, token));
+            },
+
+            ["script.pip"] = (step, depth, token) =>
+            {
                 RunPip(step, depth, token);
-                return Signal.Normal;
-            case "script.csharp":
-                return RunCSharp(step, depth, token);
-            case "script.ahk":
-                return RunAutoHotkey(step, depth, token);
-            case "script.nuget":
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["script.csharp"] = (step, depth, token) =>
+            {
+                return Task.FromResult(RunCSharp(step, depth, token));
+            },
+
+            ["script.ahk"] = (step, depth, token) =>
+            {
+                return Task.FromResult(RunAutoHotkey(step, depth, token));
+            },
+
+            ["script.nuget"] = (step, depth, token) =>
+            {
                 RunNuGet(step, depth, token);
-                return Signal.Normal;
-            default:
-                throw new StepFailure(RunKeys.Unsupported, step.Type);
-        }
-    }
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private Dictionary<string, ActionHandler>? _scriptActions;
+
 }
