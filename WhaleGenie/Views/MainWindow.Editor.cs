@@ -69,7 +69,7 @@ public partial class MainWindow : AppWindow
 
         var commit = new EditorCommitState(existing, newView ?? MacroView.All);
         _editor = editor;
-        editor.Saved += macro => CommitEditorSnapshot(editor, macro, commit, viewModel);
+        editor.Commit = macro => CommitEditorSnapshot(editor, macro, commit, viewModel);
         editor.Closed += (_, _) => OnEditorClosed(editor, commit, viewModel);
 
         // The editor stands beside the list rather than replacing it, so both stay on screen and
@@ -100,9 +100,20 @@ public partial class MainWindow : AppWindow
         CommitEditorSnapshot(editor, macro, commit, viewModel);
     }
 
-    private void CommitEditorSnapshot(MacroEditorWindow editor, MacroItem macro,
+    /// <summary>
+    /// Takes what the editor ended with and answers whether the project took it. A macro that has
+    /// left the list cannot be written back: a draft applied from MCP replaces the list's instances,
+    /// and replacing one that is no longer there would silently drop the edit. False leaves the
+    /// work in the editor, which shows why and keeps its draft.
+    /// </summary>
+    private bool CommitEditorSnapshot(MacroEditorWindow editor, MacroItem macro,
         EditorCommitState commit, MainViewModel viewModel)
     {
+        if (commit.Target is { } target && !viewModel.Macros.Contains(target))
+        {
+            return false;
+        }
+
         // A stretch of steps lifted into a macro of its own during the session is real work: it
         // joins the project together with the macro that calls it, because the call is only in the
         // list that is arriving now.
@@ -123,26 +134,31 @@ public partial class MainWindow : AppWindow
             PlaceNewMacro(commit.NewView, macro, viewModel);
             commit.Target = macro;
             WriteUnsavedProject(viewModel);
-            return;
+            return true;
         }
 
         // Saving an unchanged macro is not a project change. This also makes the close after a
         // successful save a no-op rather than a second insertion or replacement.
         if (Same(commit.Target, macro))
         {
-            return;
+            return true;
         }
 
         // The edited macro replaces the one the trigger may be running.
         _triggers?.Stop(commit.Target);
         ApplyEditorTriggerSettings(viewModel, macro);
-        viewModel.ReplaceMacro(commit.Target, macro);
+        if (!viewModel.ReplaceMacro(commit.Target, macro))
+        {
+            return false;
+        }
+
         commit.Target = macro;
         RefreshRunning(viewModel);
 
         // The editor has just let its draft go, so the list is the only copy of this macro: it
         // goes into the snapshot now rather than waiting for the next turn of the timer.
         WriteUnsavedProject(viewModel);
+        return true;
     }
 
     /// <summary>

@@ -115,13 +115,17 @@ public sealed class ProjectWorkspace : ObservableObject
         MarkDirty();
     }
 
-    /// <summary>Swaps an edited macro back into the list, keeping its on/off state.</summary>
-    public void ReplaceMacro(MacroItem original, MacroItem edited)
+    /// <summary>
+    /// Swaps an edited macro back into the list, keeping its on/off state. Answers whether the macro
+    /// was still there: a draft applied while an editor is open replaces the list's instances, and
+    /// the editor's save must be told rather than quietly written nowhere.
+    /// </summary>
+    public bool ReplaceMacro(MacroItem original, MacroItem edited)
     {
         var index = Macros.IndexOf(original);
         if (index < 0)
         {
-            return;
+            return false;
         }
 
         edited.IsEnabled = original.IsEnabled;
@@ -133,6 +137,7 @@ public sealed class ProjectWorkspace : ObservableObject
         Macros[index] = edited;
         Triggers.ReplaceMacro(edited.Name, edited.Triggers.Select(entry => entry.Copy()));
         MarkDirty();
+        return true;
     }
 
     /// <summary>Removes a macro from the list.</summary>

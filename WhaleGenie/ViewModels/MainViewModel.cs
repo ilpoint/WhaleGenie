@@ -336,8 +336,11 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
     public void AddMacro(MacroItem macro) => Workspace.AddMacro(macro);
 
-    /// <summary>Swaps an edited macro back into the list, keeping its on/off state.</summary>
-    public void ReplaceMacro(MacroItem original, MacroItem edited)
+    /// <summary>
+    /// Swaps an edited macro back into the list, keeping its on/off state. False means the macro was
+    /// no longer in the list — the project changed while the editor was open.
+    /// </summary>
+    public bool ReplaceMacro(MacroItem original, MacroItem edited)
         => Workspace.ReplaceMacro(original, edited);
 
     /// <summary>Removes a macro from the list.</summary>

@@ -543,6 +543,16 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         var result = BuildRootSnapshot();
+
+        // The project answers first: a macro that left the list while this window was open —
+        // a draft applied from MCP replaces the instances — cannot be written back, and clearing
+        // the draft before hearing so would throw the work away without a word.
+        if (Commit is { } commit && !commit(result))
+        {
+            RefuseCommit();
+            return false;
+        }
+
         Result = result;
         foreach (var page in _documentPages)
         {
@@ -552,7 +562,7 @@ public partial class MacroEditorWindow : AppWindow
         _rootViewModel.IsDirty = false;
         _mustStayUnsaved = false;
         StopRecovery();
-        Saved?.Invoke(result);
+        _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = false;
         _settings.Find<TextBlock>("SavedNotice")!.IsVisible = true;
 
         if (closeAfterSave)
@@ -563,5 +573,24 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// The project would not take this snapshot: it changed while the window was open. Nothing is
+    /// written and nothing is let go — the work stays in the editor, the recovery draft stays on
+    /// disk, and closing still asks about it.
+    /// </summary>
+    private void RefuseCommit()
+    {
+        _mustStayUnsaved = true;
+        _viewModel.IsDirty = true;
+
+        // What the project holds is not this session's work any more, so the window has not ended
+        // with a macro: closing must not try to hand the same stale snapshot over a second time.
+        Result = null;
+
+        _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
+        _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = true;
+        SyncRecovery();
     }
 }

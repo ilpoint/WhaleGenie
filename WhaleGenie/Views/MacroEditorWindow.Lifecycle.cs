@@ -49,10 +49,11 @@ public partial class MacroEditorWindow : AppWindow
     internal MacroItem? Result { get; private set; }
 
     /// <summary>
-    /// The macro and all of its child pages as they stood when Save succeeded. The main window
-    /// commits this snapshot while the editor remains open; closing later must not repeat it.
+    /// Hands the macro and its child pages to the project. Answers whether the project took it:
+    /// false means the macro this editor was opened on is no longer in the list, and the work stays
+    /// here rather than being written over a version somebody else made.
     /// </summary>
-    internal event Action<MacroItem>? Saved;
+    internal Func<MacroItem, bool>? Commit { get; set; }
 
     /// <summary>
     /// Macros this session made out of stretches of the one being edited, minus the ones the macro

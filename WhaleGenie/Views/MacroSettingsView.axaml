@@ -58,6 +58,10 @@
                 <TextBlock Name="SavedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
                     Foreground="{DynamicResource Success}"
                     Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Name="CommitRejectedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
+                    TextWrapping="Wrap"
+                    Foreground="{DynamicResource Danger}"
+                    Text="{Binding [Editor.CommitRejectedNotice], Source={x:Static loc:Strings.Current}}" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="6" Margin="12,8,12,12">
                     <Button Name="SaveButton" Classes="Primary"
                         Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}">

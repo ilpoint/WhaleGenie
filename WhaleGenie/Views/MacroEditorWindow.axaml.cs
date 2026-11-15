@@ -315,6 +315,7 @@ public partial class MacroEditorWindow : AppWindow
         _viewModel.Changed += (_, _) =>
         {
             _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
+            _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = false;
             RefreshDocuments();
             KeepRecovery();
         };
