@@ -10,6 +10,9 @@
   <Project Path="WhaleGenie.App/WhaleGenie.App.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.App.TestSupport/WhaleGenie.App.TestSupport.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie.Core/WhaleGenie.Core.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
@@ -22,7 +25,13 @@
   <Project Path="WhaleGenie/WhaleGenie.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.Domain.Tests/WhaleGenie.Domain.Tests.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie.Domain/WhaleGenie.Domain.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="WhaleGenie.Mcp.Tests/WhaleGenie.Mcp.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="WhaleGenie.Mcp/WhaleGenie.Mcp.csproj">

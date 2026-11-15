@@ -43,11 +43,16 @@ WhaleGenie
 工程只引用 `WhaleGenie.App`，没有任何产品工程反向引用它。Mcp 与 Domain 都引用 Localization 和
 Core；Localization 只引用 Core；Platform 引用 Core 与 GraphicsCapture。
 
-四个测试工程按被测对象划分：`WhaleGenie.Tests`（界面与文档对账）、`WhaleGenie.Core.Tests`
-（引擎与动作语义，只用替身设备层）、`WhaleGenie.Platform.Tests`（通过引擎驱动真实 Windows
-适配器）和 `WhaleGenie.GraphicsCapture.Tests`。`Core.Tests` 不引用 `Platform.Windows`：引擎
-测试运行时不加载 OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接保证。
-`WhaleGenie.TestSupport` 承载两者共用的替身设备层、样本文件与测试特性，本身不含测试。产品工程
+六个测试工程按被测对象划分：`WhaleGenie.Tests`（窗口、ViewModel 与界面文案对账）、
+`WhaleGenie.Domain.Tests`（宏文档、包格式、设计期检查、变量、触发器与运行期服务，不开窗口）、
+`WhaleGenie.Mcp.Tests`（协议、工具、拒绝码与容器，不经窗口）、`WhaleGenie.Core.Tests`（引擎与
+动作语义，只用替身设备层）、`WhaleGenie.Platform.Tests`（通过引擎驱动真实 Windows 适配器）和
+`WhaleGenie.GraphicsCapture.Tests`。`Core.Tests` 不引用 `Platform.Windows`：引擎测试运行时不加载
+OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接保证。`Domain.Tests` 与
+`Mcp.Tests` 不引用界面工程，前者的分层用例会拦住一次误加的 Avalonia 引用。
+
+两个支撑库不含测试：`WhaleGenie.TestSupport` 给引擎侧两套件提供替身设备层与样本文件，
+`WhaleGenie.App.TestSupport` 给应用侧两套件提供建步骤的 `Fields` 与假桌面 `ChecksDevices`。产品工程
 不反向引用测试工程。
 
 | 工程 | 主要职责 | 不得承担 |

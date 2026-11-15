@@ -56,7 +56,10 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 | `WhaleGenie.Domain` | 宏文件模型、工程文档、设计期检查、包读写与图片文件；不引用 Avalonia |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、资源与项目编辑工具；不引用 Avalonia、Views 或 Runtime |
 | `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
-| `WhaleGenie.Tests` | 界面、包、MCP、文案和文档对账测试，运行于 Avalonia 无头平台 |
+| `WhaleGenie.Tests` | 窗口、ViewModel、界面文案与文档对账测试，运行于 Avalonia 无头平台 |
+| `WhaleGenie.Domain.Tests` | 宏文档、包格式、设计期检查、变量、触发器与运行期服务；不引用界面工程 |
+| `WhaleGenie.Mcp.Tests` | 协议、工具、拒绝码与容器；不引用界面工程 |
+| `WhaleGenie.App.TestSupport` | 应用侧套件共用的步骤构造与假桌面；自身没有测试 |
 | `WhaleGenie.Core.Tests` | 引擎与动作语义测试，只依赖替身设备层；不引用任何 Windows 适配器 |
 | `WhaleGenie.Platform.Tests` | 通过引擎驱动真实适配器的测试（浏览器、驱动、VIIPER、OCR、UIA、钩子、脚本、文件与剪贴板） |
 | `WhaleGenie.TestSupport` | 两个引擎侧测试工程共用的替身设备层、样本文件与测试特性；自身没有测试 |

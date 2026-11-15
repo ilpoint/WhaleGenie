@@ -13,6 +13,7 @@
   <ItemGroup>
     <!-- The checks read the two language tables whole so a missing key is found before a release. -->
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Domain.Tests" />
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
   </ItemGroup>
 

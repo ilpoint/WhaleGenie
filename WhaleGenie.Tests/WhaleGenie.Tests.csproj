@@ -15,10 +15,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WhaleGenie\WhaleGenie.csproj" />
+    <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- The steps and the pretend desktop every application-side check builds its world from. -->
+    <Using Include="WhaleGenie.Tests.Support" />
   </ItemGroup>
 
 </Project>
