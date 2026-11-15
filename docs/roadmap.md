@@ -23,6 +23,9 @@
 **范围**
 
 - 新增 `WhaleGenie.Domain.Tests` 与 `WhaleGenie.Mcp.Tests`，搬走不依赖 Avalonia 的用例。
+  界面套件 349 个文件里 45 个不碰 Avalonia，其中 13 个用 `Ui.` 无头宿主驱动界面，实际可搬 32 个；
+  `Param`（领域 20、界面 103）、`ChecksDevices`、`SharedState`、`VariableChoicesForChecks` 两边都用，
+  先决定它们进 `WhaleGenie.TestSupport` 还是留在界面套件里由新工程链接。
 - 等待类用例引入 `TimeProvider`；时序敏感用例单独 trait 与串行集合。
 - CI 去掉 `-m:1`，只让时序集合串行。
 
