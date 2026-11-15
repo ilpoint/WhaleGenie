@@ -16,6 +16,27 @@ public sealed partial class MacroRunner
     private StepArguments Args(ExecutableStep step)
         => new(step, Variables, _devices.Screen.RefreshMilliseconds);
 
+    /// <summary>
+    /// A yes/no setting. A step that says nothing takes the catalogue's own default, so a
+    /// missing switch behaves the way the action editor showed it rather than always being on.
+    /// </summary>
+    private static bool Flag(ExecutableStep step, string name, bool fallback)
+    {
+        var text = step.Text(name).Trim();
+        return text.Length == 0
+            ? fallback
+            : !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The severity a log line was written with, and the everyday one when it says none.</summary>
+    private static LogLevel Level(string level) => level.ToLowerInvariant() switch
+    {
+        "warn" => LogLevel.Warn,
+        "error" => LogLevel.Error,
+        "debug" => LogLevel.Debug,
+        _ => LogLevel.Info,
+    };
+
     /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
     private Value Read(ExpressionNode written) => Expression.Evaluate(written, Variables);
 
