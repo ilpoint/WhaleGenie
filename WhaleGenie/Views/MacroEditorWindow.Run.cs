@@ -173,7 +173,8 @@ public partial class MacroEditorWindow : AppWindow
         var window = new RunWindow(_viewModel.Steps, Layer, _viewModel.DelayScale, BuildLibrary(),
             macroName: _viewModel.Name,
             callable: macro.Callable,
-            inputRate: macro.InputRate);
+            inputRate: macro.InputRate,
+            variables: _variables);
         _running = window;
         window.Closed += (_, _) =>
         {

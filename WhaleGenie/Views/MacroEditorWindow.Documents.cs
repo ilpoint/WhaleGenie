@@ -53,7 +53,12 @@ public partial class MacroEditorWindow : AppWindow
         foreach (var child in children)
         {
             var nested = child.SubMacros.ToList();
-            var editor = new MacroEditorViewModel { IsSubMacro = true, Persisted = _rootViewModel.Persisted };
+            var editor = new MacroEditorViewModel
+            {
+                IsSubMacro = true,
+                Persisted = _rootViewModel.Persisted,
+                Variables = _variables,
+            };
             if (_devices is { } devices)
             {
                 editor.Windows = devices.Windows;
@@ -72,7 +77,12 @@ public partial class MacroEditorWindow : AppWindow
 
     private void AddBlankSubMacro()
     {
-        var editor = new MacroEditorViewModel { IsSubMacro = true, Persisted = _rootViewModel.Persisted };
+        var editor = new MacroEditorViewModel
+        {
+            IsSubMacro = true,
+            Persisted = _rootViewModel.Persisted,
+            Variables = _variables,
+        };
         editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {
@@ -125,7 +135,8 @@ public partial class MacroEditorWindow : AppWindow
 
         try
         {
-            MacroPackage.Save(path, [macro], MacroBundle.UsedGlobals([macro]), AppVersion.Text,
+            MacroPackage.Save(path, [macro],
+                MacroBundle.UsedGlobals([macro], _variables.Globals), AppVersion.Text,
                 _session.AssetFolder);
         }
         catch (Exception error)
@@ -137,7 +148,12 @@ public partial class MacroEditorWindow : AppWindow
 
     private void AddExistingSubMacro(MacroItem macro)
     {
-        var editor = new MacroEditorViewModel { IsSubMacro = true, Persisted = _rootViewModel.Persisted };
+        var editor = new MacroEditorViewModel
+        {
+            IsSubMacro = true,
+            Persisted = _rootViewModel.Persisted,
+            Variables = _variables,
+        };
         editor.Documents = _session.Documents;
         if (_devices is { } devices)
         {

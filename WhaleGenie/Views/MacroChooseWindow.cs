@@ -38,6 +38,7 @@ public sealed class MacroChooseWindow : AppWindow
     private readonly MacroTreeSelection _selection;
     private readonly ProjectTriggers _triggers;
     private readonly IReadOnlyList<VariableDefinition> _fileGlobals;
+    private readonly IReadOnlyList<VariableDefinition> _projectGlobals;
     private readonly bool? _intoLibrary;
     private readonly List<(MacroTreeSelection.Node Node, CheckBox Box)> _rows = [];
     private readonly TextBlock _counts;
@@ -47,11 +48,13 @@ public sealed class MacroChooseWindow : AppWindow
     private bool _syncing;
 
     internal MacroChooseWindow(MacroChooseKind kind, IReadOnlyList<MacroItem> macros,
-        ProjectTriggers triggers, IReadOnlyList<VariableDefinition> fileGlobals,
+        ProjectTriggers triggers, IReadOnlyList<VariableDefinition> projectGlobals,
+        IReadOnlyList<VariableDefinition> fileGlobals,
         IEnumerable<MacroItem>? preselected, string? fileName, bool? intoLibrary = null)
     {
         _kind = kind;
         _triggers = triggers;
+        _projectGlobals = projectGlobals;
         _fileGlobals = fileGlobals;
         _intoLibrary = intoLibrary;
         _selection = new MacroTreeSelection(macros, preselected);
@@ -176,12 +179,13 @@ public sealed class MacroChooseWindow : AppWindow
     /// </summary>
     public static async Task<IReadOnlyList<MacroTreeSelection.Node>?> ShowAsync(Window owner,
         MacroChooseKind kind, IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition> projectGlobals,
         IReadOnlyList<VariableDefinition>? fileGlobals = null,
         IEnumerable<MacroItem>? preselected = null, string? fileName = null,
         bool? intoLibrary = null)
     {
-        var window = new MacroChooseWindow(kind, macros, triggers, fileGlobals ?? [], preselected,
-            fileName, intoLibrary);
+        var window = new MacroChooseWindow(kind, macros, triggers, projectGlobals,
+            fileGlobals ?? [], preselected, fileName, intoLibrary);
         return await window.ShowDialogOver<IReadOnlyList<MacroTreeSelection.Node>?>(owner);
     }
 
@@ -254,7 +258,7 @@ public sealed class MacroChooseWindow : AppWindow
 
         if (_kind == MacroChooseKind.Export)
         {
-            var globals = MacroBundle.UsedGlobals(chosen).Count;
+            var globals = MacroBundle.UsedGlobals(chosen, _projectGlobals).Count;
             var entries = MacroBundle.Take(_triggers, chosen).Entries.Count;
             _counts.Text = Strings.Format("Export.Counts", chosen.Count, globals, entries);
 

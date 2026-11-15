@@ -31,16 +31,18 @@ public partial class MacroEditorWorkspaceTests
                 Guid.NewGuid().ToString("N"));
             using var persistence = new PersistedVariables(
                 Path.Combine(folder, "persistent-variables.json"));
-            persistence.Initialize(SharedVariables.Current);
+            var session = new VariableSession();
+            persistence.Initialize(session);
             var existing = new VariableDefinition
             {
                 Name = name,
                 Scope = VariableScope.Global,
                 Type = ValueKind.Text,
             };
-            VariableCatalog.Globals.Add(existing);
+            session.Adopt(existing);
             var macro = new MacroItem { Name = "probe" };
-            var window = new MacroEditorWindow(macro, [macro], persisted: persistence);
+            var window = new MacroEditorWindow(macro, [macro], persisted: persistence,
+                variables: session);
             window.Show();
             Dispatcher.UIThread.RunJobs();
 
@@ -65,13 +67,11 @@ public partial class MacroEditorWorkspaceTests
             var savedStep = Assert.Single(root.Steps);
             Assert.Equal(name, savedStep.Text("name"));
             Assert.Equal("global", savedStep.Text("scope"));
-            Assert.Single(VariableCatalog.Globals, variable => variable.Name == name);
+            Assert.Single(session.Globals, variable => variable.Name == name);
             Assert.Contains(root.VariableCenter.Wall.Shown,
                 choice => choice.Name == name);
 
             persistence.Flush();
-            VariableCatalog.Globals.Remove(existing);
-            SharedVariables.Current.Remove(name);
             Ui.CloseAndAnswer(window);
         });
     }
@@ -86,14 +86,12 @@ public partial class MacroEditorWorkspaceTests
                 Guid.NewGuid().ToString("N"));
             using var persistence = new PersistedVariables(
                 Path.Combine(folder, "persistent-variables.json"));
-            persistence.Initialize(SharedVariables.Current);
-            var previous = VariableCatalog.Globals.ToList();
-            try
+            var session = new VariableSession();
+            persistence.Initialize(session);
             {
-                VariableCatalog.Globals.Clear();
-                SharedVariables.Current.Remove(name);
                 var macro = new MacroItem { Name = "probe" };
-                var window = new MacroEditorWindow(macro, [macro], persisted: persistence);
+                var window = new MacroEditorWindow(macro, [macro], persisted: persistence,
+                    variables: session);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
@@ -125,27 +123,17 @@ public partial class MacroEditorWorkspaceTests
                 Dispatcher.UIThread.RunJobs();
                 Dispatcher.UIThread.RunJobs();
 
-                var saved = Assert.Single(VariableCatalog.Globals,
+                var saved = Assert.Single(session.Globals,
                     variable => variable.Name == name);
                 Assert.Equal(ValueKind.Number, saved.Type);
                 Assert.Equal("2", saved.DefaultValue);
                 Assert.True(saved.PersistValue);
-                Assert.True(SharedVariables.Current.TryGet(name, out var current));
+                Assert.True(session.Values.TryGet(name, out var current));
                 Assert.Equal(2, current.AsNumber());
 
                 persistence.Flush();
                 Assert.True(persistence.TryGet(name, out _));
                 Ui.CloseAndAnswer(window);
-            }
-            finally
-            {
-                VariableCatalog.Globals.Clear();
-                foreach (var global in previous)
-                {
-                    VariableCatalog.Globals.Add(global);
-                }
-
-                SharedVariables.Current.Remove(name);
             }
         });
     }
@@ -156,12 +144,10 @@ public partial class MacroEditorWorkspaceTests
         Ui.Run(() =>
         {
             var name = "cancelledGlobal";
-            var previous = VariableCatalog.Globals.ToList();
-            VariableCatalog.Globals.Clear();
-            try
+            var session = new VariableSession();
             {
                 var macro = new MacroItem { Name = "probe" };
-                var window = new MacroEditorWindow(macro, [macro]);
+                var window = new MacroEditorWindow(macro, [macro], variables: session);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 
@@ -180,17 +166,9 @@ public partial class MacroEditorWorkspaceTests
                 form.CancelCommand.Execute(null);
                 Dispatcher.UIThread.RunJobs();
 
-                Assert.DoesNotContain(VariableCatalog.Globals,
+                Assert.DoesNotContain(session.Globals,
                     variable => variable.Name == name);
                 window.Close(null);
-            }
-            finally
-            {
-                VariableCatalog.Globals.Clear();
-                foreach (var global in previous)
-                {
-                    VariableCatalog.Globals.Add(global);
-                }
             }
         });
     }

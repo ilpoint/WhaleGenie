@@ -18,7 +18,8 @@ namespace WhaleGenie.ViewModels;
 public sealed partial class VariableDefinitionDraft : ObservableObject
 {
     public VariableDefinitionDraft(VariableDefinition? source = null,
-        IReadOnlyList<VariableUse>? uses = null, PersistedVariables? persisted = null)
+        IReadOnlyList<VariableUse>? uses = null, PersistedVariables? persisted = null,
+        IVariableResolver? live = null)
     {
         OriginalName = source?.Name ?? string.Empty;
         Name = source?.Name ?? string.Empty;
@@ -32,7 +33,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         OriginalPersistValue = PersistValue;
         Persisted = persisted ?? new PersistedVariables();
         CurrentValue = source is { Scope: VariableScope.Global }
-            ? CurrentText(source, Persisted)
+            ? CurrentText(source, Persisted, live)
             : string.Empty;
         Uses = uses ?? [];
     }
@@ -49,7 +50,7 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
     public bool IsNew => OriginalName.Length == 0;
     public bool TypeChanged => Type != OriginalType;
     public IReadOnlyList<VariableUse> Uses { get; }
-    public IVariableResolver? Resolver { get; set; } = SharedVariables.Current;
+    public IVariableResolver? Resolver { get; set; }
     public bool IsChanged => IsNew
         || !string.Equals(Name.Trim(), OriginalName.Trim(), StringComparison.Ordinal)
         || Type != OriginalType
@@ -195,11 +196,12 @@ public sealed partial class VariableDefinitionDraft : ObservableObject
         OnPropertyChanged(nameof(HasProblem));
     }
 
-    private static string CurrentText(VariableDefinition definition, PersistedVariables persisted)
+    private static string CurrentText(VariableDefinition definition, PersistedVariables persisted,
+        IVariableResolver? live)
     {
-        if (SharedVariables.Current.TryGet(definition.Name, out var live))
+        if (live?.TryGet(definition.Name, out var current) == true)
         {
-            return live.AsText();
+            return current.AsText();
         }
 
         return persisted.TryGet(definition.Name, out var saved)

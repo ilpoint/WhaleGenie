@@ -77,16 +77,15 @@ public class MacroBundleTests
     [Fact]
     public void An_export_carries_only_the_globals_the_chosen_macros_read()
     {
-        var previous = VariableCatalog.Globals.ToList();
-        VariableCatalog.Globals.Clear();
-        VariableCatalog.Globals.Add(new VariableDefinition
+        var session = new VariableSession();
+        session.Adopt(new VariableDefinition
         {
             Name = "次数",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
             Default = Formula.Text("1"),
         });
-        VariableCatalog.Globals.Add(new VariableDefinition
+        session.Adopt(new VariableDefinition
         {
             Name = "无关紧要",
             Scope = VariableScope.Global,
@@ -94,30 +93,19 @@ public class MacroBundleTests
             Default = Formula.Text("x"),
         });
 
-        try
+        var macro = new MacroItem { Name = "循环" };
+        macro.Steps.Add(new MacroStep
         {
-            var macro = new MacroItem { Name = "循环" };
-            macro.Steps.Add(new MacroStep
-            {
-                Type = "control.delay",
-                Parameters =
-                [
-                    new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.Name("次数") },
-                ],
-            });
+            Type = "control.delay",
+            Parameters =
+            [
+                new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.Name("次数") },
+            ],
+        });
 
-            var globals = MacroBundle.UsedGlobals([macro]);
-            var only = Assert.Single(globals);
-            Assert.Equal("次数", only.Name);
-        }
-        finally
-        {
-            VariableCatalog.Globals.Clear();
-            foreach (var global in previous)
-            {
-                VariableCatalog.Globals.Add(global);
-            }
-        }
+        var globals = MacroBundle.UsedGlobals([macro], session.Globals);
+        var only = Assert.Single(globals);
+        Assert.Equal("次数", only.Name);
     }
 
     /// <summary>

@@ -28,7 +28,7 @@ public partial class MacroEditorViewModel
     /// behind — each with what a person choosing one needs to know about it.
     /// </summary>
     public IReadOnlyList<VariableChoice> CollectVariables()
-        => VariableChoices.For(Steps, DeclaredParameters, DeclaredResults, DeclaredLocals,
+        => VariableChoices.For(Steps, Variables.Globals, DeclaredParameters, DeclaredResults, DeclaredLocals,
             ReadVariableContent);
 
     /// <summary>
@@ -202,7 +202,7 @@ public partial class MacroEditorViewModel
     {
         if (scope is VariableScope.Global)
         {
-            if (SharedVariables.Current.TryGet(name, out var value))
+            if (Variables.Values.TryGet(name, out var value))
             {
                 return value.AsText();
             }
@@ -212,10 +212,10 @@ public partial class MacroEditorViewModel
                 return saved;
             }
 
-            var definition = VariableCatalog.FindGlobal(name);
+            var definition = Variables.FindGlobal(name);
             return definition is null
                 ? null
-                : VariableDefinition.Preview(definition.Type, definition.Default);
+                : VariableDefinition.Preview(definition.Type, definition.Default, Variables.Design);
         }
 
         if (scope is VariableScope.System)

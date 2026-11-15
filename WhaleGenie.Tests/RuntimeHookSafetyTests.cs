@@ -164,8 +164,8 @@ public class RuntimeHookSafetyTests
             });
             var store = new TriggerRuntimeSnapshotStore();
             store.Publish(triggers, macros);
-            using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
-                new NoWindowEvents());
+            using var service = new MacroTriggerService(() => store.Current,
+                NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents());
             var requested = false;
             service.MenuRequested += () => requested = true;
 
@@ -182,8 +182,8 @@ public class RuntimeHookSafetyTests
             var triggers = new ProjectTriggers();
             var store = new TriggerRuntimeSnapshotStore();
             store.Publish(triggers, []);
-            using var service = new MacroTriggerService(() => store.Current, NullDeviceLayer.Instance,
-                new NoWindowEvents());
+            using var service = new MacroTriggerService(() => store.Current,
+                NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents());
             var requested = false;
             service.MenuRequested += () => requested = true;
 

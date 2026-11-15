@@ -159,6 +159,9 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// </summary>
     private readonly SystemVariableReader _system;
 
+    /// <summary>The table this run shares with everything else in the project.</summary>
+    private readonly VariableSession _session;
+
     private CancellationTokenSource? _cancellation;
     private RunLogCapture? _capture;
     private TaskCompletionSource<bool>? _gate;
@@ -212,9 +215,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer devices, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
         MacroTriggerService? triggers = null, string macroName = "",
-        MacroCallable? callable = null, int? inputRate = null)
+        MacroCallable? callable = null, int? inputRate = null, VariableSession? variables = null)
     {
         _devices = devices;
+        _session = variables ?? new VariableSession();
         _delayScale = delayScale;
         _inputRate = inputRate;
         _macros = macros;
@@ -223,7 +227,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
         _callable = callable;
         Debugged = macroName;
         _system = new SystemVariableReader(_devices);
-        _variables = MacroVariables.Seed(_system, SharedVariables.Current);
+        _variables = MacroVariables.Seed(_system, _session);
 
         // Nothing is loaded yet, so the compiler is told what every path sets before it reads them.
         _steps = [];
@@ -244,7 +248,8 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     {
         BuildArguments();
         var source = steps as IReadOnlyList<MacroStep> ?? [.. steps];
-        _choices = VariableChoices.For(source, _callable?.Parameters, _callable?.Results);
+        _choices = VariableChoices.For(source, _session.Globals, _callable?.Parameters,
+            _callable?.Results);
         _steps = source.ToExecutable();
         _watched = VariablesUsed(source);
 

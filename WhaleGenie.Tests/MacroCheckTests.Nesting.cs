@@ -39,7 +39,7 @@ public partial class MacroCheckTests
         var b = Callable("乙", null, null, toA,
             Step("browser.switchTab", Text("tabHow", "newest")));
 
-        var problems = Ui.Run(() => MacroCheck.Inspect([toA], null, [a, b], browserShared: true));
+        var problems = Ui.Run(() => MacroCheck.Inspect([toA], null, [a, b], [], browserShared: true));
 
         // 环里仍然找得到乙的浏览器步骤：分析有结论，而且只报一次。
         var problem = Assert.Single(problems, candidate => candidate.Step == toA);

@@ -365,7 +365,8 @@ public sealed class McpDraftStore
                 hints.Add(new McpProblem(macro.Name, null, "DeclarationWarning", warning));
             }
 
-            foreach (var problem in MacroCheck.Inspect(macro.Steps, macro.Callable, callables))
+            foreach (var problem in MacroCheck.Inspect(macro.Steps, macro.Callable, callables,
+                         draft.Globals))
             {
                 // The editor draws both kinds on the step; only the ones that cannot work stops an
                 // apply. A draft carrying a hint is a draft somebody may still be halfway through

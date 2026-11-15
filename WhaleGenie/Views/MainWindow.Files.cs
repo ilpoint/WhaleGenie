@@ -91,7 +91,8 @@ public partial class MainWindow : AppWindow
         }
 
         var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import, contents.Macros,
-            contents.Triggers, contents.Globals, fileName: Path.GetFileName(path));
+            contents.Triggers, viewModel.Variables.Globals, contents.Globals,
+            fileName: Path.GetFileName(path));
         if (nodes is null || nodes.Count == 0)
         {
             return;
@@ -113,7 +114,8 @@ public partial class MainWindow : AppWindow
 
             // What to do about a variable both sides declare is a question, not a default: the wrong
             // answer is a macro that reads somebody else's number without saying so.
-            var decisions = MacroImport.Decisions(chosen, contents.Globals);
+            var decisions = MacroImport.Decisions(chosen, contents.Globals,
+                viewModel.Variables.Globals);
             if (!await GlobalConflictWindow.ShowAsync(this, decisions, chosen))
             {
                 return;
@@ -230,7 +232,7 @@ public partial class MainWindow : AppWindow
     private async Task ExportMacrosAsync(MainViewModel viewModel, IReadOnlyList<MacroItem> preselected)
     {
         var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Export, viewModel.Macros,
-            viewModel.Triggers, preselected: preselected);
+            viewModel.Triggers, viewModel.Variables.Globals, preselected: preselected);
         if (nodes is null || nodes.Count == 0)
         {
             return;
@@ -251,7 +253,7 @@ public partial class MainWindow : AppWindow
             // folder comes along so the package carries them rather than pointing at this machine.
             MacroPackage.Save(path, MacroBundle.Copies(selection),
                 MacroBundle.Take(viewModel.Triggers, selection),
-                MacroBundle.UsedGlobals(selection), AppVersion.Text,
+                MacroBundle.UsedGlobals(selection, viewModel.Variables.Globals), AppVersion.Text,
                 ImageAssets.FolderFor(viewModel.CurrentPath));
         }
         catch (Exception error)

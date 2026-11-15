@@ -93,7 +93,7 @@ public class VariableWallTests
     {
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
-            var wall = new VariableWallViewModel(VariableChoices.For([]));
+            var wall = new VariableWallViewModel(VariableChoices.For([], [], []));
             wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.System);
             var clipboard = wall.Shown.First(choice => choice.Name == "sys.clipboard");
 
@@ -117,7 +117,7 @@ public class VariableWallTests
     {
         Ui.Run(() =>
         {
-            var variables = VariableChoices.For([],
+            var variables = VariableChoices.For([], [],
                 [new MacroParameter
                 {
                     Name = "次数",
@@ -331,7 +331,7 @@ public class VariableWallTests
             ],
         };
 
-        var rows = VariableChoices.For([step]);
+        var rows = VariableChoices.For([step], []);
         var result = rows.First(row => row.Name == "上月订单");
         var ending = rows.First(row => row.Name == "step.k3f9.outcome");
 
@@ -353,7 +353,7 @@ public class VariableWallTests
 
         // A result nobody ticked is not a variable at all, so it is not offered anywhere.
         var unticked = new MacroStep { Type = "file.readCsv", Id = "bbbb" };
-        Assert.DoesNotContain(VariableChoices.For([unticked]),
+        Assert.DoesNotContain(VariableChoices.For([unticked], []),
             row => row.Group == VariableGroup.Local && !row.IsStepResult);
     }
 

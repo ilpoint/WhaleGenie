@@ -34,7 +34,7 @@ public sealed class PersistedVariables : IDisposable
     private readonly object _gate = new();
     private readonly Dictionary<string, Saved> _byName = new(StringComparer.OrdinalIgnoreCase);
 
-    private VariableBag? _shared;
+    private VariableSession? _session;
     private Timer? _timer;
     private bool _loaded;
     private bool _applying;
@@ -65,7 +65,7 @@ public sealed class PersistedVariables : IDisposable
     /// Reads the file and starts watching the table for values a run writes. Called once by the
     /// program; a store with no path keeps nothing and has nothing to watch.
     /// </summary>
-    public void Initialize(VariableBag? shared = null)
+    public void Initialize(VariableSession? session = null)
     {
         lock (_gate)
         {
@@ -75,13 +75,13 @@ public sealed class PersistedVariables : IDisposable
             }
 
             _loaded = true;
-            _shared = shared;
+            _session = session;
             Load();
         }
 
-        if (shared is not null)
+        if (session is not null)
         {
-            shared.Changed += OnGlobalChanged;
+            session.Values.Changed += OnGlobalChanged;
         }
     }
 
@@ -137,11 +137,10 @@ public sealed class PersistedVariables : IDisposable
             return;
         }
 
-        if (_shared is null || !_shared.TryGet(definition.Name, out var value))
+        if (_session is null || !_session.Values.TryGet(definition.Name, out var value))
         {
-            value = VariableValues.Read(definition.Type, definition.Default,
-                VariableValues.DesignContext());
-            _shared?.SetIfAbsent(definition.Name, value);
+            value = VariableValues.Read(definition.Type, definition.Default, _session?.Design);
+            _session?.Values.SetIfAbsent(definition.Name, value);
         }
 
         lock (_gate)
@@ -207,10 +206,10 @@ public sealed class PersistedVariables : IDisposable
 
     public void Dispose()
     {
-        if (_shared is not null)
+        if (_session is not null)
         {
-            _shared.Changed -= OnGlobalChanged;
-            _shared = null;
+            _session.Values.Changed -= OnGlobalChanged;
+            _session = null;
         }
 
         lock (_gate)
@@ -223,7 +222,7 @@ public sealed class PersistedVariables : IDisposable
 
     private void OnGlobalChanged(string name)
     {
-        if (_shared is null || !_shared.TryGet(name, out var value))
+        if (_session is null || !_session.Values.TryGet(name, out var value))
         {
             return;
         }
@@ -263,11 +262,10 @@ public sealed class PersistedVariables : IDisposable
     /// type — the declaration was changed — falls back to the declared starting value rather than
     /// stopping the project from opening.
     /// </summary>
-    private static Value Fit(VariableDefinition definition, Value saved)
+    private Value Fit(VariableDefinition definition, Value saved)
         => ValueRules.Accepts(definition.Type, saved)
             ? saved
-            : VariableValues.Read(definition.Type, definition.Default,
-                VariableValues.DesignContext());
+            : VariableValues.Read(definition.Type, definition.Default, _session?.Design);
 
     private void Load()
     {

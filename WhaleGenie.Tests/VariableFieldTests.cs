@@ -65,7 +65,7 @@ public class VariableFieldTests
     {
         Ui.Run(() =>
         {
-            var declared = VariableChoices.For([],
+            var declared = VariableChoices.For([], [],
                 [new MacroParameter { Name = "窗口", Type = ValueKind.Record }],
                 []);
             var viewModel = new AddActionViewModel(ActionCatalog.Definitions, declared, []);
@@ -82,7 +82,7 @@ public class VariableFieldTests
     {
         Ui.Run(() =>
         {
-            var choices = VariableChoices.For([],
+            var choices = VariableChoices.For([], [],
                 [
                     new MacroParameter
                     {

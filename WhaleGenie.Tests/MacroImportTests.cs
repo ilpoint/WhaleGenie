@@ -15,7 +15,6 @@ namespace WhaleGenie.Tests;
 /// declare, and the one thing that must never happen — a macro arriving with a variable it thinks
 /// means one thing while the project means another.
 /// </summary>
-[RestoreSharedState]
 public class MacroImportTests
 {
     [Fact]
@@ -23,19 +22,17 @@ public class MacroImportTests
     {
         Ui.Run(() =>
         {
-            WithGlobals(() =>
-            {
-                var macro = Reads("循环");
-                var contents = Contents([macro], [Global("次数", "number", "1"), Global("无关", "text", "x")]);
-                var viewModel = new MainViewModel();
+            var macro = Reads("循环");
+            var contents = Contents([macro], [Global("次数", "number", "1"), Global("无关", "text", "x")]);
+            var viewModel = new MainViewModel();
 
-                var decisions = MacroImport.Decisions([macro], contents.Globals);
-                var report = MacroImport.IntoProject(viewModel, contents, [macro], decisions);
+            var decisions = MacroImport.Decisions([macro], contents.Globals,
+                viewModel.Variables.Globals);
+            var report = MacroImport.IntoProject(viewModel, contents, [macro], decisions);
 
-                Assert.Single(report.Added);
-                Assert.Contains(VariableCatalog.Globals, variable => variable.Name == "次数");
-                Assert.DoesNotContain(VariableCatalog.Globals, variable => variable.Name == "无关");
-            });
+            Assert.Single(report.Added);
+            Assert.Contains(viewModel.Variables.Globals, variable => variable.Name == "次数");
+            Assert.DoesNotContain(viewModel.Variables.Globals, variable => variable.Name == "无关");
         });
     }
 
@@ -44,19 +41,16 @@ public class MacroImportTests
     {
         Ui.Run(() =>
         {
-            WithGlobals(() =>
-            {
-                var viewModel = new MainViewModel();
-                viewModel.AddMacro(new MacroItem { Name = "整理" });
+            var viewModel = new MainViewModel();
+            viewModel.AddMacro(new MacroItem { Name = "整理" });
 
-                var arriving = new MacroItem { Name = "整理" };
-                var report = MacroImport.IntoProject(viewModel, Contents([arriving], []), [arriving], []);
+            var arriving = new MacroItem { Name = "整理" };
+            var report = MacroImport.IntoProject(viewModel, Contents([arriving], []), [arriving], []);
 
-                var pair = Assert.Single(report.RenamedMacros);
-                Assert.Equal("整理", pair.Was);
-                Assert.NotEqual("整理", pair.Now);
-                Assert.Equal(2, viewModel.Macros.Count);
-            });
+            var pair = Assert.Single(report.RenamedMacros);
+            Assert.Equal("整理", pair.Was);
+            Assert.NotEqual("整理", pair.Now);
+            Assert.Equal(2, viewModel.Macros.Count);
         });
     }
     [Fact]
@@ -64,31 +58,30 @@ public class MacroImportTests
     {
         Ui.Run(() =>
         {
-            WithGlobals(() =>
-            {
-                var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
-                    Guid.NewGuid().ToString("N"));
-                using var persistent = new PersistedVariables(
-                    Path.Combine(folder, "persistent-variables.json"));
-                persistent.Initialize(SharedVariables.Current);
-                var kept = Global("次数", "number", "5");
-                kept.PersistValue = true;
-                VariableCatalog.Globals.Add(kept);
-                var macro = Reads("循环");
-                var contents = Contents([macro], [Global("次数", "number", "1")]);
+            var viewModel = new MainViewModel();
+            var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+                Guid.NewGuid().ToString("N"));
+            using var persistent = new PersistedVariables(
+                Path.Combine(folder, "persistent-variables.json"));
+            persistent.Initialize(viewModel.Variables);
+            var kept = Global("次数", "number", "5");
+            kept.PersistValue = true;
+            viewModel.Variables.Adopt(kept);
+            var macro = Reads("循环");
+            var contents = Contents([macro], [Global("次数", "number", "1")]);
 
-                var decisions = MacroImport.Decisions([macro], contents.Globals);
-                decisions[0].Choice = GlobalChoice.Overwrite;
+            var decisions = MacroImport.Decisions([macro], contents.Globals,
+                viewModel.Variables.Globals);
+            decisions[0].Choice = GlobalChoice.Overwrite;
 
-                MacroImport.IntoProject(new MainViewModel(), contents, [macro], decisions);
+            MacroImport.IntoProject(viewModel, contents, [macro], decisions);
 
-                var existing = Assert.Single(VariableCatalog.Globals);
-                Assert.Equal("1", existing.DefaultValue);
-                // Whether a value is kept between runs is the person's choice, and a package says
-                // nothing about it: overwriting the declaration must not clear the checkbox.
-                Assert.True(existing.PersistValue);
-                Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
-            });
+            var existing = Assert.Single(viewModel.Variables.Globals);
+            Assert.Equal("1", existing.DefaultValue);
+            // Whether a value is kept between runs is the person's choice, and a package says
+            // nothing about it: overwriting the declaration must not clear the checkbox.
+            Assert.True(existing.PersistValue);
+            Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
         });
     }
 
@@ -97,21 +90,20 @@ public class MacroImportTests
     {
         Ui.Run(() =>
         {
-            WithGlobals(() =>
-            {
-                VariableCatalog.Globals.Add(Global("次数", "number", "5"));
-                var macro = Reads("循环");
-                var contents = Contents([macro], [Global("次数", "number", "1")]);
+            var viewModel = new MainViewModel();
+            viewModel.Variables.Adopt(Global("次数", "number", "5"));
+            var macro = Reads("循环");
+            var contents = Contents([macro], [Global("次数", "number", "1")]);
 
-                var decisions = MacroImport.Decisions([macro], contents.Globals);
-                decisions[0].Choice = GlobalChoice.UseProject;
+            var decisions = MacroImport.Decisions([macro], contents.Globals,
+                viewModel.Variables.Globals);
+            decisions[0].Choice = GlobalChoice.UseProject;
 
-                var report = MacroImport.IntoProject(new MainViewModel(), contents, [macro], decisions);
+            var report = MacroImport.IntoProject(viewModel, contents, [macro], decisions);
 
-                Assert.Equal("5", Assert.Single(VariableCatalog.Globals).DefaultValue);
-                Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
-                Assert.Equal(["次数"], report.GlobalsKept);
-            });
+            Assert.Equal("5", Assert.Single(viewModel.Variables.Globals).DefaultValue);
+            Assert.Equal("次数", macro.Steps[0].Parameters[0].Value);
+            Assert.Equal(["次数"], report.GlobalsKept);
         });
     }
 
@@ -124,7 +116,6 @@ public class MacroImportTests
     {
         Ui.Run(() =>
         {
-            WithGlobals(() =>
             {
                 var viewModel = new MainViewModel();
                 var existing = new MacroItem { Name = "整理" };
@@ -148,7 +139,7 @@ public class MacroImportTests
 
                 Assert.Single(report.Added);
                 Assert.NotEmpty(report.DuplicateTriggers);
-            });
+            }
         });
     }
 
@@ -174,24 +165,6 @@ public class MacroImportTests
         finally
         {
             Directory.Delete(folder, true);
-        }
-    }
-
-    private static void WithGlobals(Action body)
-    {
-        var previous = VariableCatalog.Globals.ToList();
-        VariableCatalog.Globals.Clear();
-        try
-        {
-            body();
-        }
-        finally
-        {
-            VariableCatalog.Globals.Clear();
-            foreach (var variable in previous)
-            {
-                VariableCatalog.Globals.Add(variable);
-            }
         }
     }
 

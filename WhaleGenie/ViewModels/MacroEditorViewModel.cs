@@ -38,6 +38,12 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>The values kept on this machine, shared with the project that opened this editor.</summary>
     public PersistedVariables Persisted { get; init; } = new();
 
+    /// <summary>
+    /// The project's shared values, shared with every run and every other editor window. An editor
+    /// built on its own — a check, a page that only reads the palette — gets a session of its own.
+    /// </summary>
+    public VariableSession Variables { get; init; } = new();
+
     /// <summary>Raised when the editor should close, with the macro to save or <c>null</c> when cancelled.</summary>
     public event Action<MacroItem?>? CloseRequested;
 

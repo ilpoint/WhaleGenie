@@ -89,26 +89,34 @@ public partial class VariableDefinition : ObservableObject
     public bool IsList => Type is ValueKind.List;
 
     /// <summary>
+    /// What a starting value is read against: the project's shared values and the built-in ones.
+    /// The session this declaration belongs to answers it; a declaration made on its own — a draft,
+    /// a check — leaves it empty and its preview then says a name it cannot read is unreadable.
+    /// </summary>
+    public IVariableResolver? Resolver { get; set; }
+
+    /// <summary>
     /// How the starting value reads to the user. A list shows what is inside it, so its
     /// contents can be checked without opening the macro that fills it in.
     /// </summary>
-    public string DefaultPreview => Preview(Type, Default);
+    public string DefaultPreview => Preview(Type, Default, Resolver);
 
     /// <summary>True while <see cref="DefaultPreview"/> explains a problem.</summary>
-    public bool DefaultHasError => HasError(Type, Default);
+    public bool DefaultHasError => HasError(Type, Default, Resolver);
 
     /// <summary>True while the preview shows what the list holds rather than a problem.</summary>
     public bool ShowDefaultSummary => IsList && !DefaultHasError;
 
     /// <summary>Reads a starting value that is already the shape it was written as.</summary>
-    public static string Preview(ValueKind type, ExpressionNode shape)
+    public static string Preview(ValueKind type, ExpressionNode shape,
+        IVariableResolver? variables = null)
     {
         if (type is not ValueKind.List)
         {
-            return VariableValues.Preview(type, shape, VariableValues.DesignContext());
+            return VariableValues.Preview(type, shape, variables);
         }
 
-        if (!ListText.TryRead(shape, VariableValues.DesignContext(), out var items, out var error))
+        if (!ListText.TryRead(shape, variables, out var items, out var error))
         {
             return ExpressionText.Describe(error!);
         }
@@ -119,8 +127,9 @@ public partial class VariableDefinition : ObservableObject
     }
 
     /// <summary>True when a shape cannot be read for the given type.</summary>
-    public static bool HasError(ValueKind type, ExpressionNode shape)
-        => VariableValues.HasError(type, shape, VariableValues.DesignContext());
+    public static bool HasError(ValueKind type, ExpressionNode shape,
+        IVariableResolver? variables = null)
+        => VariableValues.HasError(type, shape, variables);
 
     /// <summary>Type name in the current interface language.</summary>
     public string LocalType => Strings.Get($"Variable.Type.{VariableTypes.Name(Type)}",

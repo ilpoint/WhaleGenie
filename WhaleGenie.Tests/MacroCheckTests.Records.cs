@@ -54,7 +54,7 @@ public partial class MacroCheckTests
         => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
             [Set("左", Formula.Call("field", Formula.Name("点"), Formula.Text("x")))],
             WithRecord("自己", ("x", ValueKind.Number), ("y", ValueKind.Number)),
-            [])));
+            [], [])));
 
     [Fact]
     public void A_field_a_declared_record_does_not_have_is_marked()
@@ -64,7 +64,7 @@ public partial class MacroCheckTests
         var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
             [step],
             WithRecord("自己", ("x", ValueKind.Number), ("y", ValueKind.Number)),
-            [])));
+            [], [])));
 
         // The mark names the field that is not there and the ones that are: "wrong field" without
         // the list would leave the author guessing at the spelling.
@@ -79,7 +79,7 @@ public partial class MacroCheckTests
         => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
             [Set("左", Formula.Call("field", Formula.Name("点"), Formula.Text("随便")))],
             WithRecord("自己"),
-            [])));
+            [], [])));
 
     [Fact]
     public void A_record_a_call_hands_back_is_checked_by_the_called_macro()
@@ -105,10 +105,10 @@ public partial class MacroCheckTests
         // Reading a field of a record a call handed back is checked against the called macro's
         // declaration: nowhere else says what is in it.
         Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
-            [call, Set("左", Formula.Call("field", Formula.Name("命中"), Formula.Text("left")))], Callable("自己"), [called])));
+            [call, Set("左", Formula.Call("field", Formula.Name("命中"), Formula.Text("left")))], Callable("自己"), [called], [])));
 
         var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
-            [call, Set("左", Formula.Call("field", Formula.Name("命中"), Formula.Text("middle")))], Callable("自己"), [called])));
+            [call, Set("左", Formula.Call("field", Formula.Name("命中"), Formula.Text("middle")))], Callable("自己"), [called], [])));
         Assert.Equal("UnknownField", problem.Code);
     }
 

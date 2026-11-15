@@ -40,7 +40,7 @@ public partial class GlobalVariablesWindow : AppWindow
         Func<string, IReadOnlyList<VariableUse>>? usesOf = null,
         Func<string, string?>? renameConflict = null,
         Func<string, IReadOnlyList<string>>? scriptUsers = null,
-        string? initialName = null)
+        string? initialName = null, VariableSession? session = null)
     {
         InitializeComponent();
         WindowChrome.Attach(this);
@@ -52,7 +52,8 @@ public partial class GlobalVariablesWindow : AppWindow
         _nameBox = this.FindControl<TextBox>("NameBox")!;
         _defaultValueBox = this.FindControl<TextBox>("DefaultValueBox")!;
 
-        _viewModel = new GlobalVariablesViewModel(globals, usesOf, renameConflict, scriptUsers);
+        _viewModel = new GlobalVariablesViewModel(globals, usesOf, renameConflict, scriptUsers,
+            session);
         _viewModel.Saved += rows =>
         {
             _allowClose = true;
@@ -74,14 +75,14 @@ public partial class GlobalVariablesWindow : AppWindow
     }
 
     public static async Task<IReadOnlyList<VariableDefinitionDraft>?> EditAsync(
-        Window owner, IReadOnlyList<VariableChoice> variables,
+        Window owner, IReadOnlyList<VariableChoice> variables, VariableSession session,
         Func<string, IReadOnlyList<VariableUse>>? usesOf = null,
         Func<string, string?>? renameConflict = null,
         Func<string, IReadOnlyList<string>>? scriptUsers = null,
         string? initialName = null)
         => await DialogWindow.ShowDialogOver<IReadOnlyList<VariableDefinitionDraft>?>(
-            new GlobalVariablesWindow(VariableCatalog.Globals, variables, usesOf,
-                renameConflict, scriptUsers, initialName), owner);
+            new GlobalVariablesWindow(session.Globals, variables, usesOf,
+                renameConflict, scriptUsers, initialName, session), owner);
 
     private void RefreshLanguage()
     {

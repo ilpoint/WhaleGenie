@@ -84,14 +84,14 @@ public partial class MacroCheckTests
         var first = Step("browser.switchTab", Text("tabHow", "newest"));
         var second = Step("browser.goTo", Text("url", "https://example.com"));
 
-        var problems = Ui.Run(() => MacroCheck.Inspect([first, second], null, [],
+        var problems = Ui.Run(() => MacroCheck.Inspect([first, second], null, [], [],
             browserShared: true));
 
         var problem = Assert.Single(problems);
         Assert.Same(first, problem.Step);
         Assert.Equal(Strings.Get("Editor.Problem.SharedBrowser"), problem.Message);
 
-        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([first, second], null, [])));
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([first, second], null, [], [])));
     }
 
     /// <summary>

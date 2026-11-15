@@ -19,8 +19,8 @@ internal sealed class TriggerRuntime : IDisposable
 {
     private readonly TriggerRuntimeSnapshotStore _snapshots = new();
 
-    public TriggerRuntime(IDeviceLayer devices)
-        => Triggers = new MacroTriggerService(() => _snapshots.Current, devices);
+    public TriggerRuntime(IDeviceLayer devices, VariableSession variables)
+        => Triggers = new MacroTriggerService(() => _snapshots.Current, devices, variables);
 
     /// <summary>The service that watches for the triggers and starts the runs they ask for.</summary>
     public MacroTriggerService Triggers { get; }

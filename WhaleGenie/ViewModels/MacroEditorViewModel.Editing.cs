@@ -397,7 +397,7 @@ public partial class MacroEditorViewModel
         var alwaysVisible = new HashSet<string>(
             VariableCatalog.SystemVariables.Select(variable => variable.Name),
             StringComparer.OrdinalIgnoreCase);
-        alwaysVisible.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));
+        alwaysVisible.UnionWith(Variables.Globals.Select(variable => variable.Name));
         alwaysVisible.Add(MacroRunner.CaughtKeyName);
         alwaysVisible.Add(MacroRunner.CaughtDetailName);
 

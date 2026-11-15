@@ -19,9 +19,10 @@ public static class MacroVariables
     /// that drives the engine directly — and then the built-in variables hold their declared
     /// starting values and nothing is read off a machine.
     /// </param>
-    public static VariableStore Seed(SystemVariableReader? system = null, VariableBag? shared = null)
+    public static VariableStore Seed(SystemVariableReader? system = null,
+        VariableSession? session = null)
     {
-        var store = new VariableStore(shared);
+        var store = new VariableStore(session?.Values);
 
         // The declared values are what a machine that cannot answer falls back on; the reader, when
         // there is one, is asked before them every time a step reads a built-in variable.
@@ -32,7 +33,7 @@ public static class MacroVariables
         }
 
         store.Live = system;
-        store.GlobalDefault = name => VariableCatalog.FindGlobal(name) is { } definition
+        store.GlobalDefault = name => session?.FindGlobal(name) is { } definition
             ? VariableValues.Read(definition.Type, definition.Default, store)
             : null;
 
@@ -41,7 +42,9 @@ public static class MacroVariables
         // is already in the shared table keeps its value. A name the project no longer declares is
         // taken out, or a removed variable would stay writable for the rest of the program.
         var declared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var definition in VariableCatalog.Globals)
+        IEnumerable<VariableDefinition> globals =
+            session is null ? [] : session.Globals;
+        foreach (var definition in globals)
         {
             declared.Add(definition.Name);
             store.Global.Declare(definition.Name, definition.Type);

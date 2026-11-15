@@ -16,23 +16,6 @@ namespace WhaleGenie.Models;
 /// </summary>
 public static class VariableValues
 {
-    /// <summary>A value context for the editor: shared values plus the built-in starting values.</summary>
-    public static VariableStore DesignContext()
-    {
-        var store = new VariableStore();
-        foreach (var (name, value) in SharedVariables.Current.Values)
-        {
-            store.Global.Set(name, value);
-        }
-
-        foreach (var variable in VariableCatalog.SystemVariables.Where(variable => variable.Seeded))
-        {
-            store.System.Set(variable.Name, Read(variable.Type, variable.Default, store));
-        }
-
-        return store;
-    }
-
     /// <summary>
     /// Reads a declared value that is already the shape it was written in. Nothing is parsed here:
     /// the shape is worked out and the result is made the declared kind, which is the same rule the

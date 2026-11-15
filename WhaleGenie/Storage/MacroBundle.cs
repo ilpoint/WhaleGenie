@@ -93,9 +93,6 @@ public static class MacroBundle
     /// can arrive with a name the project already has under a different meaning, and it is why the
     /// import reports the variables it brought.
     /// </remarks>
-    public static IReadOnlyList<VariableDefinition> UsedGlobals(IEnumerable<MacroItem> macros)
-        => UsedGlobals(macros, VariableCatalog.Globals);
-
     /// <summary>
     /// The same, out of a given table rather than the open project's: a file has its own variables,
     /// and what it will bring is the ones its macros read from that list.

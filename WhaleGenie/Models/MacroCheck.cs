@@ -436,13 +436,19 @@ public static partial class MacroCheck
     /// <paramref name="macros"/> is every macro a call can reach — the project list, each with what
     /// it declares — and <paramref name="own"/> is the macro being edited, which may call itself.
     /// </summary>
+    /// <param name="globals">
+    /// The shared variables the open project declares. A name one of them carries is a name the
+    /// macro may read without declaring it; a name none of them carries is a typo. Passed in rather
+    /// than looked up, so a check can be run against a project that is not the open one.
+    /// </param>
     /// <param name="browserShared">
     /// True when another macro in the same project also uses the browser. There is one browser and
     /// one current page for the whole program, so two runs take turns there; a tab one changes is
     /// the page the other reads next.
     /// </param>
     public static IReadOnlyList<MacroProblem> Inspect(IEnumerable<MacroStep> steps,
-        MacroCallable? own, IEnumerable<MacroCallable> macros, bool browserShared = false) =>
-        new Inspection(steps, own, macros, browserShared).Run();
+        MacroCallable? own, IEnumerable<MacroCallable> macros,
+        IReadOnlyList<VariableDefinition> globals, bool browserShared = false) =>
+        new Inspection(steps, own, macros, globals, browserShared).Run();
 
 }

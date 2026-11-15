@@ -66,7 +66,7 @@ public partial class MacroCheckTests
         var reading = Step("control.log", Value("message", Formula.Name("谁")));
         var own = Callable("自己", parameters: ["谁"]);
 
-        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own], [])));
         Assert.Single(Against("自己", [], reading));
     }
 

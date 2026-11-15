@@ -42,6 +42,9 @@ public partial class RunWindow : AppWindow
     /// <summary>The macros the list holds, which is what the variables in use are read off.</summary>
     private readonly IReadOnlyList<MacroItem> _listed;
 
+    /// <summary>The table this window's run shares with the rest of the project.</summary>
+    private readonly VariableSession _session;
+
     /// <summary>The list the steps are shown in, kept so the run can be followed down it.</summary>
     private readonly ScrollViewer? _stepScroll;
 
@@ -67,16 +70,17 @@ public partial class RunWindow : AppWindow
     public RunWindow(IEnumerable<MacroStep> steps, IDeviceLayer? devices = null, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
         MacroTriggerService? triggers = null, string macroName = "",
-        MacroCallable? callable = null, int? inputRate = null)
+        MacroCallable? callable = null, int? inputRate = null, VariableSession? variables = null)
     {
         InitializeComponent();
 
         _listed = listed ?? [];
+        _session = variables ?? new VariableSession();
         var viewModel = new RunViewModel(steps, devices ?? SharedDevices.Current, delayScale, macros,
-            _listed, triggers, macroName, callable, inputRate);
+            _listed, triggers, macroName, callable, inputRate, _session);
         DataContext = viewModel;
-        VariableCatalog.GlobalsChanged += OnVariablesChanged;
-        SharedVariables.Current.Changed += OnVariableChanged;
+        _session.GlobalsChanged += OnVariablesChanged;
+        _session.Values.Changed += OnVariableChanged;
         _watchesTriggers = triggers is not null;
         Title = Strings.Get("Run.Title");
 
@@ -103,8 +107,8 @@ public partial class RunWindow : AppWindow
         Closing += (_, _) => viewModel.StopCommand.Execute(null);
         Closed += (_, _) =>
         {
-            VariableCatalog.GlobalsChanged -= OnVariablesChanged;
-            SharedVariables.Current.Changed -= OnVariableChanged;
+            _session.GlobalsChanged -= OnVariablesChanged;
+            _session.Values.Changed -= OnVariableChanged;
             viewModel.ReleaseLooks();
             _frames.Dispose();
         };

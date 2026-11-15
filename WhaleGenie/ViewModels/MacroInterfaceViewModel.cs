@@ -45,7 +45,8 @@ public partial class MacroInterfaceViewModel : ViewModelBase
     /// macro's own table, so this lists the global and system variables a caller always has. A
     /// caller's local name can still be typed by hand; it cannot be enumerated here.
     /// </summary>
-    public IReadOnlyList<VariableChoice> ValueVariables => VariableChoices.For([]);
+    public IReadOnlyList<VariableChoice> ValueVariables =>
+        VariableChoices.For([], _editor.Variables.Globals);
 
     private static IReadOnlyList<MacroTypeChoice> BuildTypes() =>
     [

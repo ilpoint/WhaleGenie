@@ -68,10 +68,7 @@ public partial class GlobalVariablesTests
     [Fact]
     public void Default_values_are_expressions_evaluated_in_declaration_order()
     {
-        var previousGlobals = VariableCatalog.Globals.ToList();
-        var previousValues = SharedVariables.Current.Values;
-        VariableCatalog.Globals.Clear();
-        SharedVariables.Current.Clear();
+        var session = new VariableSession();
         var source = new VariableDefinition
         {
             Name = "baseCount",
@@ -86,29 +83,15 @@ public partial class GlobalVariablesTests
             Type = ValueKind.Number,
             Default = Formula.Binary("+", Formula.Name("baseCount"), Formula.Number(1)),
         };
-        VariableCatalog.Globals.Add(source);
-        VariableCatalog.Globals.Add(derived);
-        try
-        {
-            var store = MacroVariables.Seed();
+        session.Adopt(source);
+        session.Adopt(derived);
 
-            Assert.Equal(4, store.Global.Values["baseCount"].AsNumber());
-            Assert.Equal(5, store.Global.Values["derivedCount"].AsNumber());
-        }
-        finally
-        {
-            VariableCatalog.Globals.Clear();
-            foreach (var global in previousGlobals)
-            {
-                VariableCatalog.Globals.Add(global);
-            }
+        // The declarations are read in the order they were written: an initial value may name the
+        // one above it, and a name nothing has written yet starts at its declared value.
+        var store = MacroVariables.Seed(session: session);
 
-            SharedVariables.Current.Clear();
-            foreach (var (name, value) in previousValues)
-            {
-                SharedVariables.Current.Set(name, value);
-            }
-        }
+        Assert.Equal(4, store.Global.Values["baseCount"].AsNumber());
+        Assert.Equal(5, store.Global.Values["derivedCount"].AsNumber());
     }
 
     [Fact]

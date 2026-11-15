@@ -62,6 +62,9 @@ public sealed partial class MacroTriggerService : IDisposable
     private readonly IDeviceLayer _devices;
     private readonly IWindowEvents _windowEvents;
 
+    /// <summary>The table every run this service starts shares with the window.</summary>
+    private readonly VariableSession _variables;
+
     /// <summary>The controller in the person's hands, read on its own timer.</summary>
     private readonly IGamepadReading _pads;
 

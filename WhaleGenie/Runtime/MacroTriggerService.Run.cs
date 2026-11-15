@@ -82,7 +82,7 @@ public sealed partial class MacroTriggerService
                 var runner = RunFactory.Create(new RunRequest
                 {
                     Variables = MacroVariables.Seed(
-                        new SystemVariableReader(_devices), SharedVariables.Current),
+                        new SystemVariableReader(_devices), _variables),
                     Host = host,
                     Devices = _devices,
                     Library = library,

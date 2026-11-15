@@ -25,15 +25,18 @@ internal static class AppServices
     /// <summary>A run with a window on top of it, which is the ordinary way the program is started.</summary>
     internal static ServiceProvider Build(bool windowed = true)
     {
-        // Values a macro wrote are read back before the project is handed to anyone, so the store
-        // is made and opened here rather than when a window happens to ask for one.
+        // The session every run of this project shares is made here, before any window: what a
+        // macro wrote last time is read back into it, and the windows and the MCP tools are handed
+        // this one table rather than reaching for a static of their own.
+        var variables = new VariableSession();
         var persisted = new PersistedVariables(PersistedVariables.DefaultPath);
-        persisted.Initialize(SharedVariables.Current);
+        persisted.Initialize(variables);
 
         // The MCP flyout is a recipe now, not a server: the program no longer listens on anything,
         // so nothing in the container has to be built for it.
         var services = Wiring(
-            _ => new MainViewModel(_ => new McpServerViewModel(), persisted), persisted);
+            _ => new MainViewModel(_ => new McpServerViewModel(), persisted, variables), persisted,
+            variables);
 
         if (windowed)
         {
@@ -55,15 +58,16 @@ internal static class AppServices
     /// never wire up.
     /// </summary>
     internal static ServiceProvider Minimal(MainViewModel project)
-        => Wiring(_ => project, project.Persisted).BuildServiceProvider();
+        => Wiring(_ => project, project.Persisted, project.Variables).BuildServiceProvider();
 
     private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project,
-        PersistedVariables persisted)
+        PersistedVariables persisted, VariableSession variables)
     {
         var services = new ServiceCollection();
 
         services.AddSingleton(sp => project(sp));
         services.AddSingleton(persisted);
+        services.AddSingleton(variables);
 
         // One device layer for the whole run: a window, a trigger and an MCP call all work on this
         // machine, and the models it loads are loaded once.
@@ -75,7 +79,8 @@ internal static class AppServices
 
         // The triggers are the window's in practice, but not in principle: they are a service that
         // outlives one window and is stopped and released with the run.
-        services.AddSingleton<TriggerRuntime>();
+        services.AddSingleton(sp => new TriggerRuntime(
+            sp.GetRequiredService<IDeviceLayer>(), sp.GetRequiredService<VariableSession>()));
 
         // The two tool sets that touch the machine take the layer through a function rather than an
         // instance: a run that never asks for a device never builds one.

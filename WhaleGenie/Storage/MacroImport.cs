@@ -74,7 +74,8 @@ public static class MacroImport
     /// window asks about, and the one that must not be settled quietly.
     /// </summary>
     public static IReadOnlyList<GlobalDecision> Decisions(IReadOnlyList<MacroItem> chosen,
-        IReadOnlyList<VariableDefinition> arriving)
+        IReadOnlyList<VariableDefinition> arriving,
+        IReadOnlyList<VariableDefinition> projectGlobals)
     {
         var used = MacroBundle.UsedGlobals(chosen, arriving)
             .Select(variable => variable.Name)
@@ -83,7 +84,7 @@ public static class MacroImport
         var decisions = new List<GlobalDecision>();
         foreach (var variable in arriving.Where(variable => used.Contains(variable.Name)))
         {
-            var existing = VariableCatalog.Globals.FirstOrDefault(candidate =>
+            var existing = projectGlobals.FirstOrDefault(candidate =>
                 string.Equals(candidate.Name.Trim(), variable.Name.Trim(),
                     StringComparison.OrdinalIgnoreCase));
             decisions.Add(new GlobalDecision { Arriving = variable, Existing = existing });
@@ -129,7 +130,7 @@ public static class MacroImport
 
         project.Triggers.MergeMenuFrom(contents.Triggers, added);
 
-        var globals = Apply(added, decisions);
+        var globals = Apply(added, decisions, project.Variables);
         return new ImportReport(added, renamed, globals.Added, globals.Renamed, globals.Overwritten,
             globals.Kept, duplicate, globals.Scripts);
     }
@@ -169,7 +170,7 @@ public static class MacroImport
 
     private static (List<string> Added, List<string> Renamed, List<string> Overwritten,
         List<string> Kept, List<string> Scripts) Apply(IReadOnlyList<MacroItem> added,
-        IReadOnlyList<GlobalDecision> decisions)
+        IReadOnlyList<GlobalDecision> decisions, VariableSession session)
     {
         var addedNames = new List<string>();
         var renamed = new List<string>();
@@ -177,7 +178,7 @@ public static class MacroImport
         var kept = new List<string>();
         var scripts = new List<string>();
 
-        var taken = VariableCatalog.Globals.Select(variable => variable.Name.Trim())
+        var taken = session.Globals.Select(variable => variable.Name.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var decision in decisions)
@@ -186,7 +187,7 @@ public static class MacroImport
 
             if (decision.Existing is not { } existing)
             {
-                VariableCatalog.Globals.Add(Clone(decision.Arriving, name));
+                session.Adopt(Clone(decision.Arriving, name));
                 taken.Add(name);
                 addedNames.Add(name);
                 continue;
@@ -220,7 +221,7 @@ public static class MacroImport
                     }
 
                     VariableRename.RenameGlobal(added, name, target);
-                    VariableCatalog.Globals.Add(Clone(decision.Arriving, target));
+                    session.Adopt(Clone(decision.Arriving, target));
                     taken.Add(target);
                     renamed.Add($"{name} → {target}");
                     break;

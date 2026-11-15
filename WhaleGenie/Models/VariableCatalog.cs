@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -10,14 +9,12 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Models;
 
 /// <summary>
-/// Every variable the editor can offer: the ones WhaleGenie provides, the shared ones the
-/// user creates in the Variable Center, and the ones a macro creates for itself.
+/// The variables WhaleGenie provides itself, and the words they are shown by. The project's own
+/// shared variables are not here: they belong to a project, so they live in a
+/// <see cref="VariableSession"/> rather than beside the built-in ones.
 /// </summary>
 public static class VariableCatalog
 {
-    /// <summary>Raised after a person adds or removes a project-level global variable.</summary>
-    public static event Action? GlobalsChanged;
-
     /// <summary>Built-in variables, read-only inside a macro.</summary>
     public static IReadOnlyList<VariableDefinition> SystemVariables { get; } =
     [
@@ -101,23 +98,8 @@ public static class VariableCatalog
     public static string Spoken(string name)
         => Label(name) is { Length: > 0 } chinese ? chinese : name;
 
-    /// <summary>Shared variables, managed from the Variable Center.</summary>
-    public static ObservableCollection<VariableDefinition> Globals { get; } = [];
-
     /// <summary>True when WhaleGenie provides this variable itself.</summary>
     public static bool IsSystem(string name) => SystemByName.ContainsKey(name);
-
-    /// <summary>True when the Variable Center defines this shared variable.</summary>
-    public static bool IsGlobal(string name)
-        => Globals.Any(variable =>
-            string.Equals(variable.Name, name, StringComparison.OrdinalIgnoreCase));
-
-    /// <summary>Finds a global variable by name.</summary>
-    public static VariableDefinition? FindGlobal(string name)
-        => Globals.FirstOrDefault(variable =>
-            string.Equals(variable.Name, name, StringComparison.OrdinalIgnoreCase));
-
-    public static void NotifyGlobalsChanged() => GlobalsChanged?.Invoke();
 
     private static VariableDefinition SystemVariable(string name, string type, string description,
         string defaultValue, bool seeded = true)

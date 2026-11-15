@@ -191,7 +191,8 @@ public partial class ActionEditorView : UserControl
         string? presetKey = null, string? assetFolder = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
         IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
-        string? windowAbove = null, PersistedVariables? persisted = null)
+        string? windowAbove = null, PersistedVariables? persisted = null,
+        VariableSession? session = null)
     {
         InitializeComponent();
 
@@ -199,6 +200,7 @@ public partial class ActionEditorView : UserControl
             windowRules, followsWindowAbove, windowAbove)
         {
             Persisted = persisted ?? new PersistedVariables(),
+            Variables = session ?? new VariableSession(),
         };
         viewModel.AssetFolder = assetFolder ?? string.Empty;
 

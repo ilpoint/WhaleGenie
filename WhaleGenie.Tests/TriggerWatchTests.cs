@@ -29,7 +29,7 @@ public class TriggerWatchTests
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [macro], new WindowsDeviceLayer(), new NoWindowEvents());
+                () => [macro], new WindowsDeviceLayer(), new VariableSession(), new NoWindowEvents());
 
             var before = DateTime.Now;
             service.Look();
@@ -64,7 +64,7 @@ public class TriggerWatchTests
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [macro], new ChecksDevices { Windows = windows }, new NoWindowEvents());
+                () => [macro], new ChecksDevices { Windows = windows }, new VariableSession(), new NoWindowEvents());
 
             service.Look();
 
@@ -111,7 +111,7 @@ public class TriggerWatchTests
             off.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [waiting, bound, off], new WindowsDeviceLayer(), new NoWindowEvents());
+                () => [waiting, bound, off], new WindowsDeviceLayer(), new VariableSession(), new NoWindowEvents());
 
             service.Look();
 
@@ -136,7 +136,7 @@ public class TriggerWatchTests
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [macro], new WindowsDeviceLayer(), new NoWindowEvents());
+                () => [macro], new WindowsDeviceLayer(), new VariableSession(), new NoWindowEvents());
 
             // The reading before this one is where counting starts, so what is running now is what
             // was running then, not something that has just started.

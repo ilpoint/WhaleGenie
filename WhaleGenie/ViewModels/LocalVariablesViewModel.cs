@@ -21,16 +21,19 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public sealed partial class LocalVariablesViewModel : ViewModelBase
 {
+    private readonly VariableSession _session;
     private readonly Func<string, string?> _taken;
     private readonly IReadOnlyList<string> _initialNames;
     private List<LocalVariableProblem> _problems = [];
     private bool _refreshing;
 
     public LocalVariablesViewModel(IReadOnlyList<MacroLocalVariable>? declared = null,
-        IReadOnlyList<VariableChoice>? variables = null, Func<string, string?>? taken = null)
+        IReadOnlyList<VariableChoice>? variables = null, Func<string, string?>? taken = null,
+        VariableSession? session = null)
     {
         _taken = taken ?? (_ => null);
-        var context = VariableValues.DesignContext();
+        _session = session ?? new VariableSession();
+        var context = _session.Context();
         var known = (variables ?? []).ToLookup(choice => choice.Name, StringComparer.OrdinalIgnoreCase);
 
         // Declared values first, in the order the macro declares them — that order is what a run
@@ -130,7 +133,7 @@ public sealed partial class LocalVariablesViewModel : ViewModelBase
         if (row is null)
         {
             row = LocalVariableDraft.Declared();
-            Add(row, VariableValues.DesignContext());
+            Add(row, _session.Context());
         }
 
         SearchText = string.Empty;
@@ -278,7 +281,7 @@ public sealed partial class LocalVariablesViewModel : ViewModelBase
         _refreshing = true;
         try
         {
-            var context = VariableValues.DesignContext();
+            var context = _session.Context();
             foreach (var row in Rows)
             {
                 row.Resolver = context;

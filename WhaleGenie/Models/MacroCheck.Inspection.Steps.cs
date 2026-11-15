@@ -189,7 +189,8 @@ public static partial class MacroCheck
                 "control.incrementGlobal" => step.Text("name").Trim(),
                 _ => null,
             };
-            if (name is { Length: > 0 } && !VariableCatalog.IsGlobal(name))
+            if (name is { Length: > 0 } && !globals.Any(variable =>
+                    string.Equals(variable.Name.Trim(), name, StringComparison.OrdinalIgnoreCase)))
             {
                 Add(step, MacroProblemCode.GlobalMustExist, Strings.Format("Editor.Problem.GlobalMustExist", name));
             }

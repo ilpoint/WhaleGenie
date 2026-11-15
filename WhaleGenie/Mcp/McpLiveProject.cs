@@ -95,7 +95,7 @@ public sealed class McpLiveProject(MainViewModel project)
             project.CurrentPath,
             project.Revision,
             macros,
-            [.. VariableCatalog.Globals.Select(Copy)],
+            [.. project.Variables.Globals.Select(Copy)],
             triggers);
     }
 

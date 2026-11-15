@@ -122,6 +122,6 @@ public partial class MacroCheckTests
         var reading = Set("副本", Formula.Name("答案"));
         var own = new MacroCallable("自己", [], [new MacroResult { Name = "答案" }], [reading]);
 
-        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own], [])));
     }
 }

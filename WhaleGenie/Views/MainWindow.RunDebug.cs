@@ -61,12 +61,12 @@ public partial class MainWindow : AppWindow
         // one is a change to the project like any other — and nothing on the macro list moves when
         // it happens, so this is the one place that can notice it. The window is not modal, so when
         // it is closed is when to look.
-        var before = MainViewModel.SharedVariables();
+        var before = viewModel.Globals();
 
         // The layer the whole program shares, so a debug run reads with the same loaded models the
         // rest of the program uses rather than loading a second copy of them.
         var window = new RunWindow([], SharedDevices.Current, listed: [.. viewModel.Macros],
-            triggers: _triggers);
+            triggers: _triggers, variables: viewModel.Variables);
         _runDebug = window;
         window.Closed += (_, _) =>
         {
@@ -75,9 +75,9 @@ public partial class MainWindow : AppWindow
                 _runDebug = null;
             }
 
-            if (MainViewModel.SharedVariablesChangedSince(before))
+            if (viewModel.GlobalsChangedSince(before))
             {
-                viewModel.MarkSharedVariablesChanged();
+                viewModel.MarkGlobalsChanged();
             }
         };
 

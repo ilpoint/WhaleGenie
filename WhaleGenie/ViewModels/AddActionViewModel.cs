@@ -101,6 +101,12 @@ public partial class AddActionViewModel : ViewModelBase
     /// nobody chose is how the dialog came to offer the whole catalogue beside a form that had
     /// already been decided.
     /// </param>
+    /// <summary>
+    /// The project's shared values, so a trial run here reads what the editor reads. A form built
+    /// on its own gets a session of its own.
+    /// </summary>
+    public VariableSession Variables { get; init; } = new();
+
     public AddActionViewModel(IReadOnlyList<ActionDefinition> actions,
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,

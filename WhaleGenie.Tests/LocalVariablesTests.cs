@@ -92,7 +92,7 @@ public class LocalVariablesTests
     [Fact]
     public void A_declared_local_shows_what_it_starts_at()
     {
-        var rows = VariableChoices.For([], null, null,
+        var rows = VariableChoices.For([], [], null, null,
             [Local("total", Formula.Number(5), ValueKind.Number)]);
 
         var row = Assert.Single(rows, choice => choice.Name == "total");
@@ -112,7 +112,7 @@ public class LocalVariablesTests
         var own = new MacroCallable("probe", [], [], [Reads("total")],
             [Local("total", Formula.Number(5), ValueKind.Number)]);
 
-        var problems = MacroCheck.Inspect(own.OwnSteps, own, [own]);
+        var problems = MacroCheck.Inspect(own.OwnSteps, own, [own], []);
 
         Assert.DoesNotContain(problems,
             problem => problem.Code == MacroProblemCode.UndefinedVariable);

@@ -31,9 +31,10 @@ public sealed partial class MacroTriggerService
     /// the timer exactly as a Windows too old to say anything does.
     /// </param>
     public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros, IDeviceLayer devices,
-        IWindowEvents? windowEvents = null, IInputHook? hook = null)
+        VariableSession variables, IWindowEvents? windowEvents = null, IInputHook? hook = null)
     {
         _macros = macros;
+        _variables = variables;
         _legacyTriggers = ProjectTriggers.FromMacros(Snapshot());
         _legacyMode = true;
         _triggerSource = () => _legacyTriggers;
@@ -50,9 +51,9 @@ public sealed partial class MacroTriggerService
 
     /// <summary>The same service over the project-wide trigger entries.</summary>
     public MacroTriggerService(Func<IReadOnlyList<MacroItem>> macros,
-        Func<ProjectTriggers> triggers, IDeviceLayer devices,
+        Func<ProjectTriggers> triggers, IDeviceLayer devices, VariableSession variables,
         IWindowEvents? windowEvents = null, IInputHook? hook = null)
-        : this(macros, devices, windowEvents, hook)
+        : this(macros, devices, variables, windowEvents, hook)
     {
         _legacyMode = false;
         _triggerSource = triggers;
@@ -60,8 +61,8 @@ public sealed partial class MacroTriggerService
 
     /// <summary>The running program's service, reading only immutable UI-published snapshots.</summary>
     public MacroTriggerService(Func<TriggerRuntimeSnapshot> triggers, IDeviceLayer devices,
-        IWindowEvents? windowEvents = null, IInputHook? hook = null)
-        : this(() => [], devices, windowEvents, hook)
+        VariableSession variables, IWindowEvents? windowEvents = null, IInputHook? hook = null)
+        : this(() => [], devices, variables, windowEvents, hook)
     {
         _runtimeSource = triggers;
         _macros = () => triggers().Macros;

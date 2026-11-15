@@ -95,12 +95,13 @@ public static partial class MacroCheck
     /// defines anywhere counts, because whether a step runs before the one that reads it is a
     /// question the steps alone cannot answer.
     /// </summary>
-    private static HashSet<string> DefinedVariables(IReadOnlyList<MacroStep> steps)
+    private static HashSet<string> DefinedVariables(IReadOnlyList<MacroStep> steps,
+        IReadOnlyList<VariableDefinition> globals)
     {
         var defined = new HashSet<string>(
             VariableCatalog.SystemVariables.Select(variable => variable.Name),
             StringComparer.OrdinalIgnoreCase);
-        defined.UnionWith(VariableCatalog.Globals.Select(variable => variable.Name));
+        defined.UnionWith(globals.Select(variable => variable.Name));
 
         // A catch block is handed the failure it took on under these two names. Whether a read
         // sits inside a catch is not something the walk below can settle yet, so the names count

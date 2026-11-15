@@ -19,6 +19,7 @@ public static partial class MacroCheck
     private sealed partial class Inspection
     {
         private readonly bool browserShared;
+        private readonly IReadOnlyList<VariableDefinition> globals;
         private readonly HashSet<string> defined;
         private readonly Dictionary<string, ValueKind> known;
         private readonly bool namesAreOpen;
@@ -29,10 +30,12 @@ public static partial class MacroCheck
         private readonly IReadOnlyList<MacroStep> tree;
 
         public Inspection(IEnumerable<MacroStep> steps, MacroCallable? own,
-            IEnumerable<MacroCallable> macros, bool browserShared)
+            IEnumerable<MacroCallable> macros, IReadOnlyList<VariableDefinition> globals,
+            bool browserShared)
         {
             tree = steps as IReadOnlyList<MacroStep> ?? [.. steps];
             this.browserShared = browserShared;
+            this.globals = globals;
 
             reachable = new Dictionary<string, MacroCallable?>(StringComparer.OrdinalIgnoreCase);
             foreach (var macro in macros)
@@ -46,7 +49,7 @@ public static partial class MacroCheck
                 reachable[ownName] = own;
             }
 
-            defined = DefinedVariables(tree);
+            defined = DefinedVariables(tree, globals);
             known = KnownTypes(tree, own, reachable);
             recordFields = KnownFields(tree, own, reachable);
 

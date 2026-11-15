@@ -127,7 +127,7 @@ public sealed class McpRunTools
                 var runner = RunFactory.Create(new RunRequest
                 {
                     Variables = MacroVariables.Seed(
-                        new SystemVariableReader(devices), SharedVariables.Current),
+                        new SystemVariableReader(devices), _ui.Variables),
                     Host = host,
                     Devices = devices,
                     Library = library,

@@ -36,50 +36,31 @@ public partial class GlobalVariablesTests
     [Fact]
     public void Run_debug_lists_the_live_global_value_without_an_editor()
     {
-        var previousGlobals = VariableCatalog.Globals.ToList();
-        var previousValues = SharedVariables.Current.Values;
-        VariableCatalog.Globals.Clear();
-        SharedVariables.Current.Clear();
-        var definition = new VariableDefinition
+        var session = new VariableSession();
+        session.Adopt(new VariableDefinition
         {
             Name = "liveTotal",
             Scope = VariableScope.Global,
             Type = ValueKind.Number,
             Default = Formula.Text("1"),
             PersistValue = true,
-        };
-        VariableCatalog.Globals.Add(definition);
-        try
-        {
-            Ui.Run(() =>
-            {
-                var window = new RunWindow([], new ChecksDevices());
-                window.Show();
-                var viewModel = (RunViewModel)window.DataContext!;
-                viewModel.SelectPageCommand.Execute("Variables");
-                viewModel.SelectTabCommand.Execute("Global");
-                SharedVariables.Current.SetNumber("liveTotal", 9);
-                Dispatcher.UIThread.RunJobs();
+        });
 
-                var row = viewModel.Globals.Single(variable => variable.Name == "liveTotal");
-                Assert.Equal("9", row.CurrentValue);
-                Assert.True(row.PersistValue);
-                window.Close();
-            });
-        }
-        finally
+        Ui.Run(() =>
         {
-            VariableCatalog.Globals.Clear();
-            foreach (var global in previousGlobals)
-            {
-                VariableCatalog.Globals.Add(global);
-            }
-            SharedVariables.Current.Clear();
-            foreach (var (name, value) in previousValues)
-            {
-                SharedVariables.Current.Set(name, value);
-            }
-        }
+            var window = new RunWindow([], new ChecksDevices(), variables: session);
+            window.Show();
+            var viewModel = (RunViewModel)window.DataContext!;
+            viewModel.SelectPageCommand.Execute("Variables");
+            viewModel.SelectTabCommand.Execute("Global");
+            session.Values.SetNumber("liveTotal", 9);
+            Dispatcher.UIThread.RunJobs();
+
+            var row = viewModel.Globals.Single(variable => variable.Name == "liveTotal");
+            Assert.Equal("9", row.CurrentValue);
+            Assert.True(row.PersistValue);
+            window.Close();
+        });
     }
 
     [Fact]

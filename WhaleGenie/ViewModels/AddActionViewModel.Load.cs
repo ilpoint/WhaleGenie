@@ -36,7 +36,7 @@ public partial class AddActionViewModel
 
         return nested.Count == 0
             ? _variables
-            : VariableChoices.Merge(_variables, VariableChoices.For(nested));
+            : VariableChoices.Merge(_variables, VariableChoices.For(nested, Variables.Globals));
     }
 
     /// <summary>

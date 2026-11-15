@@ -50,6 +50,7 @@ public partial class MacroEditorWindow : AppWindow
                 || choice.Origin is VariableOrigin.Parameter)],
             _viewModel.LocalNameConflict,
             _viewModel.ApplyLocalVariableEdits,
+            _variables,
             initialName);
     }
 
@@ -60,7 +61,7 @@ public partial class MacroEditorWindow : AppWindow
             .Where(choice => choice.Group is VariableGroup.Global or VariableGroup.System)
             .ToList();
         var choices = _viewModel.CollectVariables();
-        var edited = await GlobalVariablesWindow.EditAsync(this, expressionVariables,
+        var edited = await GlobalVariablesWindow.EditAsync(this, expressionVariables, _variables,
             name => choices.FirstOrDefault(choice =>
                 string.Equals(choice.Name, name, StringComparison.OrdinalIgnoreCase))?.Uses ?? [],
             name => VariableRename.GlobalConflict(allMacros, name),
@@ -116,31 +117,31 @@ public partial class MacroEditorWindow : AppWindow
             }
 
             _rootViewModel.Persisted.Rename(draft.OriginalName, next);
-            SharedVariables.Current.Rename(draft.OriginalName, next);
+            _variables.Values.Rename(draft.OriginalName, next);
         }
 
         var kept = drafts.Select(draft => draft.Name.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var removed in VariableCatalog.Globals
+        foreach (var removed in _variables.Globals
                      .Where(variable => !kept.Contains(variable.Name))
                      .Select(variable => variable.Name)
                      .ToList())
         {
             _rootViewModel.Persisted.Forget(removed);
-            SharedVariables.Current.Remove(removed);
+            _variables.Values.Remove(removed);
         }
 
-        VariableCatalog.Globals.Clear();
+        _variables.ClearGlobals();
         foreach (var draft in drafts)
         {
-            // The draft carries the identity the declaration already had, so saving an edited
-            // variable does not make every reference to it stale.
+            // The declaration goes back under the name it now has; every reference was rewritten
+            // above, because the name is the only thing that identifies it.
             var definition = draft.ToDefinition();
-            VariableCatalog.Globals.Add(definition);
+            _variables.Adopt(definition);
             _rootViewModel.Persisted.PersistChanged(definition, definition.PersistValue);
         }
 
-        VariableCatalog.NotifyGlobalsChanged();
+        _variables.NotifyGlobalsChanged();
         RefreshSharedVariables();
     }
 

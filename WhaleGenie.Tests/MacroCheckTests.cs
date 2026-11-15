@@ -112,9 +112,14 @@ public partial class MacroCheckTests
     /// whose icons are Avalonia geometries.
     /// </summary>
     private static IReadOnlyList<MacroProblem> Inspect(params MacroStep[] steps)
-        => Ui.Run(() => MacroCheck.Inspect(steps, null, []));
+        => Inspect([], steps);
+
+    /// <summary>The same with a project's shared declarations, which decide what a name means.</summary>
+    private static IReadOnlyList<MacroProblem> Inspect(
+        IReadOnlyList<VariableDefinition> globals, params MacroStep[] steps)
+        => Ui.Run(() => MacroCheck.Inspect(steps, null, [], globals));
 
     private static IReadOnlyList<MacroProblem> Against(string ownName, MacroCallable[] macros,
         params MacroStep[] steps)
-        => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros));
+        => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros, []));
 }

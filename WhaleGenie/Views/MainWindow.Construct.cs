@@ -41,7 +41,8 @@ public partial class MainWindow : AppWindow
     /// bindings should not put a key hook on the machine; the program hands in the one the container
     /// built, so opening the window never builds a second.
     /// </summary>
-    private TriggerRuntime Runtime => _runtime ??= new TriggerRuntime(SharedDevices.Current);
+    private TriggerRuntime Runtime => _runtime ??= new TriggerRuntime(SharedDevices.Current,
+        (DataContext as MainViewModel)?.Variables ?? new VariableSession());
 
     /// <summary>
     /// The window over the run's own triggers. The program hands in the one the container built, so

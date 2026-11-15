@@ -50,14 +50,14 @@ public partial class MacroCheckTests
             {
                 var step = Step(action.Key);
                 step.Meta = new StepMeta { RetryCount = 1 };
-                Assert.Contains(MacroCheck.Inspect([step], null, []),
+                Assert.Contains(MacroCheck.Inspect([step], null, [], []),
                     problem => problem.Step == step
                         && problem.Message == Strings.Get("Editor.Problem.WaitWithoutTimeout"));
             }
 
             var pressing = Pressing();
             pressing.Meta = new StepMeta { RetryCount = 1 };
-            Assert.Empty(MacroCheck.Inspect([pressing], null, []));
+            Assert.Empty(MacroCheck.Inspect([pressing], null, [], []));
         });
     }
 }

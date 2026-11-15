@@ -65,7 +65,7 @@ public class InputHookTests
 
             var hook = new FakeInputHook();
             using var service = new MacroTriggerService(
-                () => [macro], NullDeviceLayer.Instance, new NoWindowEvents(), hook);
+                () => [macro], NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents(), hook);
 
             service.IsEnabled = true;
 
@@ -125,7 +125,7 @@ public class InputHookTests
 
             var hook = new FakeInputHook();
             using var service = new MacroTriggerService(
-                () => [macro], NullDeviceLayer.Instance, new NoWindowEvents(), hook);
+                () => [macro], NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents(), hook);
 
             service.IsEnabled = true;
 

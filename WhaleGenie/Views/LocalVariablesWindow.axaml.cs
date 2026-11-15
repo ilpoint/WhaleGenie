@@ -42,7 +42,7 @@ public partial class LocalVariablesWindow : AppWindow
         IReadOnlyList<VariableChoice> expressionVariables,
         Func<string, string?>? taken = null,
         Func<IReadOnlyList<LocalVariableDraft>, string>? apply = null,
-        string? initialName = null)
+        string? initialName = null, VariableSession? session = null)
     {
         InitializeComponent();
         WindowChrome.Attach(this);
@@ -54,7 +54,7 @@ public partial class LocalVariablesWindow : AppWindow
         _nameBox = this.FindControl<TextBox>("NameBox")!;
         _initialBox = this.FindControl<TextBox>("InitialBox")!;
 
-        _viewModel = new LocalVariablesViewModel(declared, variables, taken);
+        _viewModel = new LocalVariablesViewModel(declared, variables, taken, session);
         _viewModel.Saved += OnSaved;
         _viewModel.Cancelled += RequestClose;
         _viewModel.FocusRequested += FocusProblemField;
@@ -78,10 +78,10 @@ public partial class LocalVariablesWindow : AppWindow
     internal static async Task ShowAsync(Window owner, IReadOnlyList<MacroLocalVariable> declared,
         IReadOnlyList<VariableChoice> variables, IReadOnlyList<VariableChoice> expressionVariables,
         Func<string, string?> taken, Func<IReadOnlyList<LocalVariableDraft>, string> apply,
-        string? initialName = null)
+        VariableSession session, string? initialName = null)
         => await DialogWindow.ShowDialogOver<object?>(
             new LocalVariablesWindow(declared, variables, expressionVariables, taken, apply,
-                initialName), owner);
+                initialName, session), owner);
 
     private void OnSaved(IReadOnlyList<LocalVariableDraft> rows)
     {

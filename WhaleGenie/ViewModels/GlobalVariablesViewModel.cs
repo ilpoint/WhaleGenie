@@ -20,6 +20,7 @@ namespace WhaleGenie.ViewModels;
 /// </summary>
 public sealed partial class GlobalVariablesViewModel : ViewModelBase
 {
+    private readonly VariableSession _session;
     private readonly Func<string, IReadOnlyList<VariableUse>> _usesOf;
     private readonly Func<string, string?> _renameConflict;
     private readonly Func<string, IReadOnlyList<string>> _scriptUsers;
@@ -31,8 +32,10 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
     public GlobalVariablesViewModel(IEnumerable<VariableDefinition> globals,
         Func<string, IReadOnlyList<VariableUse>>? usesOf = null,
         Func<string, string?>? renameConflict = null,
-        Func<string, IReadOnlyList<string>>? scriptUsers = null)
+        Func<string, IReadOnlyList<string>>? scriptUsers = null,
+        VariableSession? session = null)
     {
+        _session = session ?? new VariableSession();
         _usesOf = usesOf ?? (_ => []);
         _renameConflict = renameConflict ?? (_ => null);
         _scriptUsers = scriptUsers ?? (_ => []);
@@ -276,7 +279,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
 
     private void AddDraft(VariableDefinitionDraft draft)
     {
-        draft.Resolver = VariableValues.DesignContext();
+        draft.Resolver = _session.Design;
         draft.PropertyChanged += OnDraftChanged;
         Rows.Add(draft);
     }
@@ -337,7 +340,7 @@ public sealed partial class GlobalVariablesViewModel : ViewModelBase
         _refreshing = true;
         try
         {
-            var context = VariableValues.DesignContext();
+            var context = _session.Context();
             foreach (var row in Rows)
             {
                 row.Resolver = context;

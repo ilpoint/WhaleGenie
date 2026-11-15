@@ -219,7 +219,7 @@ public class ReturnsPageTests
         Assert.Equal("record", definition.Returns.First(result => result.Key == "match").TypeName);
         Assert.Equal("list", definition.Returns.First(result => result.Key == "every").TypeName);
 
-        var offered = VariableChoices.For([step]);
+        var offered = VariableChoices.For([step], []);
         var result = offered.First(choice => choice.Name == "登录_命中");
 
         Assert.Contains("k3f9", result.Source, StringComparison.Ordinal);

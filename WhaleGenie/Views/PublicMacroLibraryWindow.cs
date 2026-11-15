@@ -213,7 +213,7 @@ public sealed class PublicMacroLibraryWindow : AppWindow
             var contents = MacroPackage.Load(path,
                 PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
             var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import,
-                contents.Macros, contents.Triggers, contents.Globals,
+                contents.Macros, contents.Triggers, [], contents.Globals,
                 fileName: Path.GetFileName(path), intoLibrary: true);
             if (nodes is null || nodes.Count == 0)
             {

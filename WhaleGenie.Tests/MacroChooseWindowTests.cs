@@ -24,7 +24,7 @@ public class MacroChooseWindowTests
             var other = new MacroItem { Name = "收尾" };
 
             var window = new MacroChooseWindow(MacroChooseKind.Export, [macro, other],
-                new ProjectTriggers(), [], [macro], null);
+                new ProjectTriggers(), [], [], [macro], null);
             try
             {
                 var boxes = Boxes(window).ToList();
@@ -60,7 +60,7 @@ public class MacroChooseWindowTests
             macro.SubMacros.Add(new MacroItem { Name = "读表" });
 
             var window = new MacroChooseWindow(MacroChooseKind.Import, [macro],
-                new ProjectTriggers(), [], null, "from.wgmacro");
+                new ProjectTriggers(), [], [], null, "from.wgmacro");
             try
             {
                 var boxes = Boxes(window).ToList();

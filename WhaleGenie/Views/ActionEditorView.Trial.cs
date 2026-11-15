@@ -132,7 +132,7 @@ public partial class ActionEditorView : UserControl
             // dialog has to stay able to come back when it is done.
             outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices,
                 variables: MacroVariables.Seed(new SystemVariableReader(Devices),
-                    SharedVariables.Current),
+                    viewModel.Variables),
                 macros: Macros));
         }
         finally

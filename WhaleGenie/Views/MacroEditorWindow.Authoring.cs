@@ -163,7 +163,7 @@ public partial class MacroEditorWindow : AppWindow
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
             MacroCalls(), presetKey, _session.AssetFolder, _viewModel.StepChoices(),
             editing?.Id ?? _viewModel.NewStepId(), windowRules, follows, windowAbove,
-            _rootViewModel.Persisted)
+            _rootViewModel.Persisted, _variables)
         {
             Devices = Layer,
             Macros = BuildLibrary(),

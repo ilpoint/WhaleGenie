@@ -30,6 +30,9 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>What this editor is working on: the project, the macro, the lifted ones, the pages.</summary>
     private readonly MacroDocumentView _document;
     private readonly MacroEditorSession _session;
+
+    /// <summary>The project's shared values, handed in by the window this was opened from.</summary>
+    private readonly VariableSession _variables;
     private readonly MacroRecordingView _recording;
     private readonly MacroSettingsView _settings;
 
@@ -151,7 +154,8 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
         string? packagePath = null, IDeviceLayer? devices = null, ProjectTriggers? triggers = null,
-        bool callableOnly = false, MacroView? newView = null, PersistedVariables? persisted = null)
+        bool callableOnly = false, MacroView? newView = null, PersistedVariables? persisted = null,
+        VariableSession? variables = null)
     {
         InitializeComponent();
         _settings = this.FindControl<MacroSettingsView>("MacroSettings")!;
@@ -162,7 +166,12 @@ public partial class MacroEditorWindow : AppWindow
             [.. project ?? (existing is null ? [] : [existing])],
             ImageAssets.FolderFor(packagePath));
         _devices = devices;
-        _rootViewModel = new MacroEditorViewModel { Persisted = persisted ?? new PersistedVariables() };
+        _variables = variables ?? new VariableSession();
+        _rootViewModel = new MacroEditorViewModel
+        {
+            Persisted = persisted ?? new PersistedVariables(),
+            Variables = _variables,
+        };
         _rootViewModel.SystemReader = new SystemVariableReader(Layer);
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;
@@ -334,12 +343,12 @@ public partial class MacroEditorWindow : AppWindow
         MacroTriggerGate.Enter();
         Closed += (_, _) => MacroTriggerGate.Exit();
 
-        VariableCatalog.GlobalsChanged += OnGlobalsChanged;
-        SharedVariables.Current.Changed += OnSharedVariableChanged;
+        _variables.GlobalsChanged += OnGlobalsChanged;
+        _variables.Values.Changed += OnSharedVariableChanged;
         Closed += (_, _) =>
         {
-            VariableCatalog.GlobalsChanged -= OnGlobalsChanged;
-            SharedVariables.Current.Changed -= OnSharedVariableChanged;
+            _variables.GlobalsChanged -= OnGlobalsChanged;
+            _variables.Values.Changed -= OnSharedVariableChanged;
         };
 
         var pinButton = this.FindControl<Button>("PinButton");

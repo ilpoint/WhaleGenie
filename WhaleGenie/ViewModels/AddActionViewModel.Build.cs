@@ -78,7 +78,7 @@ public partial class AddActionViewModel
             ?.CurrentText;
 
         return SelectedDefinition.Key != "control.setVariable"
-            && name.Length > 0 && scope == "global" && !VariableCatalog.IsGlobal(name)
+            && name.Length > 0 && scope == "global" && !Variables.IsGlobal(name)
             ? Strings.Format("Add.GlobalMustExist", name)
             : null;
     }
@@ -173,15 +173,15 @@ public partial class AddActionViewModel
             return;
         }
 
-        var existing = VariableCatalog.FindGlobal(name);
+        var existing = Variables.FindGlobal(name);
         GlobalVariableDraft = existing is not null
-            ? new VariableDefinitionDraft(existing, persisted: Persisted)
-            : new VariableDefinitionDraft(persisted: Persisted)
+            ? new VariableDefinitionDraft(existing, persisted: Persisted, live: Variables.Design)
+            : new VariableDefinitionDraft(persisted: Persisted, live: Variables.Design)
             {
                 Name = name,
                 Type = ValueKind.Text,
             };
-        GlobalVariableDraft.Resolver = VariableValues.DesignContext();
+        GlobalVariableDraft.Resolver = Variables.Design;
     }
 
     private void CommitGlobalVariable()
@@ -194,7 +194,7 @@ public partial class AddActionViewModel
             return;
         }
 
-        var existing = VariableCatalog.FindGlobal(draft.OriginalName);
+        var existing = Variables.FindGlobal(draft.OriginalName);
         if (existing is null)
         {
             existing = new VariableDefinition
@@ -206,7 +206,7 @@ public partial class AddActionViewModel
                 Description = draft.Description.Trim(),
                 PersistValue = draft.PersistValue,
             };
-            VariableCatalog.Globals.Add(existing);
+            Variables.Adopt(existing);
         }
         else
         {
@@ -221,6 +221,6 @@ public partial class AddActionViewModel
         Persisted.PersistChanged(existing, draft.PersistValue);
 
         existing.PersistValue = draft.PersistValue;
-        VariableCatalog.NotifyGlobalsChanged();
+        Variables.NotifyGlobalsChanged();
     }
 }

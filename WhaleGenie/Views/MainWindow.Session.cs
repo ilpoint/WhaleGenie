@@ -286,6 +286,6 @@ public partial class MainWindow : AppWindow
         }
 
         RecoveryStore.SaveProject([.. viewModel.Macros], viewModel.Triggers,
-            [.. VariableCatalog.Globals], viewModel.CurrentPath);
+            [.. viewModel.Variables.Globals], viewModel.CurrentPath);
     }
 }

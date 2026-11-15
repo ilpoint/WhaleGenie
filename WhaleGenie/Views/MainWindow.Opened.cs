@@ -45,7 +45,7 @@ public partial class MainWindow : AppWindow
             return;
         }
 
-        VariableCatalog.GlobalsChanged += OnGlobalsChanged;
+        viewModel.Variables.GlobalsChanged += OnGlobalsChanged;
 
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
@@ -114,7 +114,7 @@ public partial class MainWindow : AppWindow
             viewModel.Triggers.Changed -= OnProjectTriggersChanged;
             viewModel.Changed -= OnProjectChanged;
             viewModel.Macros.CollectionChanged -= OnMacrosChanged;
-            VariableCatalog.GlobalsChanged -= OnGlobalsChanged;
+            viewModel.Variables.GlobalsChanged -= OnGlobalsChanged;
             HideSurface();
             StopTriggers();
             _recovery?.Stop();
@@ -125,7 +125,7 @@ public partial class MainWindow : AppWindow
     {
         if (DataContext is MainViewModel viewModel)
         {
-            viewModel.MarkSharedVariablesChanged();
+            viewModel.MarkGlobalsChanged();
             WriteUnsavedProject(viewModel);
         }
     }

@@ -47,7 +47,7 @@ public partial class RunViewModel
         SystemVariables.Clear();
 
         Globals.Clear();
-        foreach (var shared in VariableCatalog.Globals)
+        foreach (var shared in _session.Globals)
         {
             Globals.Add(new RunGlobalVariable
             {
@@ -60,7 +60,7 @@ public partial class RunViewModel
                     ? value.AsText()
                     : String.IsNullOrWhiteSpace(shared.DefaultValue)
                         ? Strings.Get("Variable.NotSet")
-                        : VariableDefinition.Preview(shared.Type, shared.Default),
+                        : VariableDefinition.Preview(shared.Type, shared.Default, _session.Design),
             });
         }
 
@@ -126,7 +126,7 @@ public partial class RunViewModel
 
         var system = VariableCatalog.SystemVariables
             .ToDictionary(variable => variable.Name, StringComparer.OrdinalIgnoreCase);
-        var globals = VariableCatalog.Globals
+        var globals = _session.Globals
             .ToDictionary(variable => variable.Name, StringComparer.OrdinalIgnoreCase);
         var live = SystemVariables
             .ToDictionary(variable => variable.Name, variable => variable.CurrentValue,
@@ -176,7 +176,7 @@ public partial class RunViewModel
                 Owner = string.Join(", ", usage.Owners),
                 Description = DescriptionOf(usage, system, globals),
                 Type = TypeOf(usage, system, globals),
-                CurrentValue = ValueOf(usage, system, globals, live),
+                CurrentValue = ValueOf(usage, system, globals, live, _session.Design),
             };
 
             CurrentVariables.Add(row);
@@ -310,12 +310,13 @@ public partial class RunViewModel
     private static string ValueOf(Usage usage,
         IReadOnlyDictionary<string, VariableDefinition> system,
         IReadOnlyDictionary<string, VariableDefinition> globals,
-        IReadOnlyDictionary<string, string> live)
+        IReadOnlyDictionary<string, string> live, IVariableResolver design)
         => usage.Scope switch
         {
             VariableScope.System when live.TryGetValue(usage.Name, out var current) => current,
             VariableScope.Global when globals.TryGetValue(usage.Name, out var shared)
-                && shared.DefaultValue.Length > 0 => VariableDefinition.Preview(shared.Type, shared.Default),
+                && shared.DefaultValue.Length > 0
+                => VariableDefinition.Preview(shared.Type, shared.Default, design),
             _ => Strings.Get("Variable.NotSet"),
         };
 

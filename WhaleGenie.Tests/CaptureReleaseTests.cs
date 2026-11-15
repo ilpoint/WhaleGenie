@@ -1,5 +1,6 @@
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
+using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
@@ -15,7 +16,7 @@ public class CaptureReleaseTests
     {
         var screen = new ReleaseCountingScreen();
         var devices = new ChecksDevices { Screen = screen };
-        using var service = new MacroTriggerService(() => [], devices, new NoWindowEvents(),
+        using var service = new MacroTriggerService(() => [], devices, new VariableSession(), new NoWindowEvents(),
             NullDeviceLayer.Instance.Hook);
 
         service.IsEnabled = true;

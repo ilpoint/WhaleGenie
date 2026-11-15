@@ -229,6 +229,7 @@ public enum VariableOrigin
 public static class VariableChoices
 {
     public static IReadOnlyList<VariableChoice> For(IEnumerable<MacroStep> steps,
+        IEnumerable<VariableDefinition> globals,
         IEnumerable<MacroParameter>? parameters = null, IEnumerable<MacroResult>? results = null,
         IEnumerable<MacroLocalVariable>? locals = null,
         Func<string, VariableScope, string?>? content = null)
@@ -241,7 +242,7 @@ public static class VariableChoices
 
         IReadOnlyList<VariableChoice> shared =
         [
-            .. VariableCatalog.Globals.Select(variable => new VariableChoice
+            .. globals.Select(variable => new VariableChoice
             {
                 Name = variable.Name,
                 Scope = VariableScope.Global,

@@ -98,7 +98,8 @@ public partial class MacroEditorViewModel
     /// </summary>
     private void RefreshProblems()
     {
-        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, _browserShared);
+        Problems = MacroCheck.Inspect(Steps, OwnCallable, _projectMacros, Variables.Globals,
+            _browserShared);
         DeclarationProblems = MacroCheck.DeclarationProblems(OwnCallable);
         CallImpactSummary = MacroCheck.CallImpact(OwnCallable, _projectMacros);
         _problemByStep = Problems

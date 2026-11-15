@@ -199,7 +199,7 @@ public class GamepadTriggerTests
     }
 
     private static MacroTriggerService Service(FakeGamepad pad, params MacroItem[] macros)
-        => new(() => macros, new ChecksDevices { GamepadReading = pad }, new NoWindowEvents());
+        => new(() => macros, new ChecksDevices { GamepadReading = pad }, new VariableSession(), new NoWindowEvents());
 
     private static HookKey Key(string name) => KeyNames.Resolve(name)!.Value;
 }

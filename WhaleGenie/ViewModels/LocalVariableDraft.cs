@@ -84,7 +84,7 @@ public sealed partial class LocalVariableDraft : ObservableObject
     public bool HasUses => Uses.Count > 0;
 
     /// <summary>What reads the declared value, when it is checked against the initial value's kind.</summary>
-    public IVariableResolver? Resolver { get; set; } = SharedVariables.Current;
+    public IVariableResolver? Resolver { get; set; }
 
     public bool IsChanged => IsNew
         || !string.Equals(Name.Trim(), OriginalName.Trim(), StringComparison.Ordinal)

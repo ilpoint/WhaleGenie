@@ -26,16 +26,8 @@ public partial class MacroCheckTests
             Name = name,
             Scope = VariableScope.Global,
         };
-        VariableCatalog.Globals.Add(definition);
-        try
-        {
-            Assert.DoesNotContain(Inspect(step),
-                problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
-        }
-        finally
-        {
-            VariableCatalog.Globals.Remove(definition);
-        }
+        Assert.DoesNotContain(Inspect([definition], step),
+            problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
     }
 
     [Fact]
