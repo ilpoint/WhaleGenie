@@ -55,7 +55,7 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、资源与项目编辑工具；不引用 Avalonia、Views 或 Runtime |
 | `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
 | `WhaleGenie.Tests` | 界面、包、MCP、文案和文档对账测试，运行于 Avalonia 无头平台 |
-| `WhaleGenie.Core.Tests` | 引擎与动作契约测试，使用替身设备层，不操作真实桌面 |
+| `WhaleGenie.Core.Tests` | 引擎、动作契约与真实适配器测试；多数用例使用替身设备层，少数会操作本机设备 |
 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用和矩形落位测试；真实 Windows 取画面另行手动验收 |
 
 依赖方向和主要类型见 [架构文档](../architecture.md)。开发时不必在本文档重复维护文件规模、

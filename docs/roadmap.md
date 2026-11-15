@@ -42,7 +42,9 @@ Avalonia、Skia 或 HarfBuzz。
 
 - **`Core.Tests` 仍引用 `Platform.Windows`。** 真实适配器测试与引擎测试共用 `Fakes`、`SampleFiles`
   和 `Bench`。下一步抽 `WhaleGenie.TestSupport`，把 Viiper、Driver、Browser、OCR、UIA、Hook
-  等用例迁到 `WhaleGenie.Platform.Tests`；引擎测试只保留替身设备层。
+  等用例迁到 `WhaleGenie.Platform.Tests`；引擎测试只保留替身设备层。这一步已经试做过一次：
+  新测试工程可以编译，但本机的 WindowsDesktop 测试宿主在启动时打开父进程句柄被拒绝，
+  测试无法被发现，于是先回退；下次在 CI 或另一台机器上重做，并把这一步单独提交。
 
 **再下一步：执行器状态外置。** 从 `MacroRunner` 抽出 `RunState`（变量、日志、帧缓存、持键、
 取消、门闩）与 `StepArguments`（读参助手），再按 13 个动作族抽 `IActionFamily`。预览表已先行
