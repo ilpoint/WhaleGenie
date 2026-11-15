@@ -23,9 +23,9 @@ public sealed partial class MacroRunner
             ["vision.waitImage"] = (run, step) => ImageActions.Preview(run, step),
             ["vision.clickImage"] = (run, step) => ImageActions.Preview(run, step),
 
-            ["vision.detect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
-            ["vision.waitDetect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
-            ["vision.clickDetect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
+            ["vision.detect"] = (run, step) => run._sight.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
+            ["vision.waitDetect"] = (run, step) => run._sight.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
+            ["vision.clickDetect"] = (run, step) => run._sight.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
 
             ["vision.findColor"] = (run, step) => ColourActions.Preview(run, step),
             ["vision.waitColor"] = (run, step) => ColourActions.Preview(run, step),
@@ -40,9 +40,9 @@ public sealed partial class MacroRunner
             ["vision.capture"] = (run, step) => CaptureActions.Preview(run, step),
             ["vision.captureWindow"] = (run, step) => CaptureActions.Preview(run, step),
 
-            ["ocr.recognize"] = (run, step) => run.Watching(() => run.WasRead(step, run.ReadBox(step))),
-            ["ocr.findText"] = (run, step) => run.Watching(() => run.SawSought(step)),
-            ["ocr.clickText"] = (run, step) => run.Watching(() => run.SawSought(step)),
+            ["ocr.recognize"] = (run, step) => run._sight.Watching(() => run._reads.WasRead(step, run._reads.ReadBox(step))),
+            ["ocr.findText"] = (run, step) => run._sight.Watching(() => run._reads.SawSought(step)),
+            ["ocr.clickText"] = (run, step) => run._sight.Watching(() => run._reads.SawSought(step)),
         };
 
     /// <summary>

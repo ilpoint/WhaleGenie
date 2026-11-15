@@ -368,12 +368,12 @@ public sealed partial class MacroRunner
             // worth keeping all the same: that number is what makes a macro that is too slow to
             // catch something diagnosable, and the waiting is over either way. Which failure this
             // becomes is not this step's to decide — the timeout rule reads the step's type.
-            Give(step, "elapsed", Value.FromNumber(Elapsed(started)));
+            _results.Give(step, "elapsed", Value.FromNumber(Elapsed(started)));
             throw;
         }
 
         var waited = Elapsed(started);
-        Give(step, "elapsed", Value.FromNumber(waited));
+        _results.Give(step, "elapsed", Value.FromNumber(waited));
         Log(LogLevel.Info, depth, step.Type, LogKeys.WaitedFor, waited, step.Text("condition"));
         return Signal.Normal;
     }
@@ -400,14 +400,14 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
-                Give(step, "ended", Value.FromText("break"));
+                _results.Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
             await Pacing.Pause(interval, token);
         }
 
-        Give(step, "ended", Value.FromText("count"));
+        _results.Give(step, "ended", Value.FromText("count"));
         return Signal.Normal;
     }
 
@@ -424,7 +424,7 @@ public sealed partial class MacroRunner
             scope.Set(VariableStore.LoopIndexName, Value.FromNumber(round));
             if (!Check(step, "condition", token))
             {
-                Give(step, "ended", Value.FromText("condition"));
+                _results.Give(step, "ended", Value.FromText("condition"));
                 return Signal.Normal;
             }
 
@@ -436,14 +436,14 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
-                Give(step, "ended", Value.FromText("break"));
+                _results.Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
             await Pacing.Pause(interval, token);
         }
 
-        Give(step, "ended", Value.FromText("limit"));
+        _results.Give(step, "ended", Value.FromText("limit"));
         Log(LogLevel.Warn, depth, step.Type, LogKeys.LoopLimit, limit);
         return Signal.Normal;
     }

@@ -180,7 +180,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Remember(ExecutableStep step, StepFailure? failure)
     {
-        Give(step, "error", Value.FromText(failure?.Key ?? string.Empty));
-        Give(step, "detail", Value.FromText(failure?.Detail ?? string.Empty));
+        _results.Give(step, "error", Value.FromText(failure?.Key ?? string.Empty));
+        _results.Give(step, "detail", Value.FromText(failure?.Detail ?? string.Empty));
     }
 }

@@ -80,17 +80,17 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 格式分成 `FileActions`（文本、单个文件、文件夹、列表与变量快照）、`FileJsonActions` 与
 `FileCsvActions`，各自带走自己的形状规则。按键分成“按完就结束”的键盘族与按住不放的四个步骤：
 后者属于运行状态，与运行结束时统一放松的代码放在一起，仍留在 `MacroRunner`。
-运行器现在只装解释器本身：步骤循环、尝试与失败规则、门与循环、调用栈，以及公共读值
-（`MacroRunner.Reading.cs`）与结果、窗口、点、试看、参考图几层。目录声明语义，但不替代动作分派；
-新增动作仍需在具体处理器中实现。
+运行器现在只装解释器本身：步骤循环、尝试与失败规则、门与循环、调用栈、条件与变量，
+以及公共读值（`MacroRunner.Reading.cs`）和试看试问（`MacroRunner.Trials.cs`）。目录声明语义，
+但不替代动作分派；新增动作仍需在具体处理器中实现。
 
-曾经住在动作族文件里、实际被所有族共用的代码已经分开：`MacroRunner.Results.cs` 是交付结果的
-一层（`Give`、`Store`、`GiveMatch`、`GiveNothing`、`GiveEvery` 与命中记录），
-`MacroRunner.WindowRules.cs` 是认窗口的一层（规则解析、`Lookup`、`Locate` 与窗口记录读取），
-`MacroRunner.Points.cs` 是认点的一层（屏幕/窗口坐标、记录自带的基准、拖拽两端与后台投递），
-`MacroRunner.Looks.cs` 与 `MacroRunner.Reads.cs` 是看屏的一层（搜索区域、抓屏与帧节拍、读法与观察标记），
-`MacroRunner.Pictures.cs` 是认参考图的一层（变量里的图、磁盘上的图与按写入时间做的缓存）；
-动作族通过 `IRunPoints`、`IScreenReads` 与 `IScreenShots` 取用它们，不必知道这些规则住在哪。
+被所有族共用的六层已经各自成为独立的类，而不是继续挂在运行器上：`StepResults` 交付结果
+（`Give`、`Store`、`GiveMatch`、`GiveNothing`、`GiveEvery` 与点记录），`WindowFacts` 认窗口
+（规则解析、`Lookup`、`Locate`、锚点与后台投递的目标），`ScreenPoints` 认点（屏幕/窗口坐标、
+记录自带的基准、拖拽两端、漂移与输入路由），`ScreenSight` 看屏（搜索区域、抓屏与复用、帧节拍、
+试看标记），`ScreenReads` 读屏（区域读数、识别修正、命中计数），`ReferencePictures` 认参考图
+（变量里的图、磁盘上的图与按写入时间做的缓存）。运行器持有这六个对象并把接口转发给它们；
+动作族通过 `IRunPoints`、`IScreenReads` 与 `IScreenShots` 取用，不必知道这些规则住在哪。
 
 同一份读法被多个族用到时抽成独立类型而不是继续留在运行器里：`RunLimits` 是搜索与表格的上限，
 `TableColumns` 给文件、浏览器与元素三处的表格列起名，`HitRecord` 是命中记录的字段表，

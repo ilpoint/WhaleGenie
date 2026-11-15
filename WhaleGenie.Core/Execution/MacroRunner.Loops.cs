@@ -97,7 +97,7 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
-                Give(step, "ended", Value.FromText("break"));
+                _results.Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
@@ -105,7 +105,7 @@ public sealed partial class MacroRunner
             await Pacing.Pause(interval, token);
         }
 
-        Give(step, "ended", Value.FromText("items"));
+        _results.Give(step, "ended", Value.FromText("items"));
         return Signal.Normal;
     }
 
@@ -153,7 +153,7 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Break)
             {
-                Give(step, "ended", Value.FromText("break"));
+                _results.Give(step, "ended", Value.FromText("break"));
                 return Signal.Normal;
             }
 
@@ -161,7 +161,7 @@ public sealed partial class MacroRunner
             await Pacing.Pause(interval, token);
         }
 
-        Give(step, "ended", Value.FromText("range"));
+        _results.Give(step, "ended", Value.FromText("range"));
         return Signal.Normal;
     }
 

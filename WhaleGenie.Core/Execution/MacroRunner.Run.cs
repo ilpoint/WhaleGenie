@@ -119,6 +119,12 @@ public sealed partial class MacroRunner
         _devices = devices ?? NullDeviceLayer.Instance;
         _macros = macros ?? EmptyMacroLibrary.Instance;
         _looks = looks;
+        _pictures = new ReferencePictures(_devices, Variables, _run);
+        _windows = new WindowFacts(_devices, Variables, _run);
+        _sight = new ScreenSight(_devices, Variables, _run, _here, looks, _windows);
+        _points = new ScreenPoints(_devices, Variables, _windows);
+        _results = new StepResults(Variables, _here, _points, Log);
+        _reads = new ScreenReads(_devices, Variables, _run, _here, _sight);
         DelayScale = Clamp(delayScale);
     }
 

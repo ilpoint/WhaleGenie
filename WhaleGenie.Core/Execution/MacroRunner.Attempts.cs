@@ -340,7 +340,7 @@ public sealed partial class MacroRunner
                 "vision.clickColor" => new StepFailure(RunKeys.ColourNotFound,
                     PixelColor.Parse(Args(step).ValueOf("color").AsText()).ToHex()),
                 "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
-                    Written(step.Rows("images"))),
+                    StepRows.Written(step.Rows("images"))),
                 "vision.waitDetect" or "vision.clickDetect" => new StepFailure(RunKeys.DetectNotFound,
                     SearchHits.Looking(this, step)),
                 "vision.waitStable" => new StepFailure(RunKeys.ScreenNotStable, patience),
@@ -349,9 +349,9 @@ public sealed partial class MacroRunner
                 "control.waitUntil" => new StepFailure(RunKeys.WaitTimeout, WaitingFor(step, patience)),
                 "clipboard.waitChange" or "clipboard.copy" =>
                     new StepFailure(RunKeys.ClipboardTimeout),
-                "process.waitFor" => new StepFailure(RunKeys.ProgramNotFound, WindowText(step)),
-                "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout, WindowText(step)),
-                "window.waitFor" => new StepFailure(RunKeys.WindowTimeout, WindowText(step)),
+                "process.waitFor" => new StepFailure(RunKeys.ProgramNotFound, _windows.Text(step)),
+                "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout, _windows.Text(step)),
+                "window.waitFor" => new StepFailure(RunKeys.WindowTimeout, _windows.Text(step)),
                 "uia.waitElement" or "uia.click" or "uia.invoke" =>
                     new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector")),
                 "command.run" => new StepFailure(RunKeys.CommandTimeout,

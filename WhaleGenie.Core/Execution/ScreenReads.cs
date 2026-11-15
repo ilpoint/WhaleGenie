@@ -17,14 +17,51 @@ namespace WhaleGenie.Core.Execution;
 /// some text is there reads through the same code, so "is it on screen" and "find it" agree on what
 /// counts as found.
 /// </summary>
-public sealed partial class MacroRunner
+internal sealed class ScreenReads(IDeviceLayer devices, VariableStore variables, RunState run,
+    StepProgress here, ScreenSight sight)
 {
+    /// <summary>The reader for the fields of one step.</summary>
+    private StepArguments Args(ExecutableStep step)
+        => new(step, variables, devices.Screen.RefreshMilliseconds);
+
+    /// <summary>A yes/no field, with the answer a blank cell means.</summary>
+    private static bool Flag(ExecutableStep step, string name, bool fallback)
+    {
+        var text = step.Text(name).Trim();
+        return text.Length == 0
+            ? fallback
+            : !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Hands over what was read off a picture, without writing the reading anywhere. The trial
+    /// window's own look: what the model made of the screen, marked where it read it.
+    /// </summary>
+    public void WasRead(ExecutableStep step,
+        (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) read)
+        => sight.Saw(step, LookKind.Text, read.Area, read.Corner,
+            ScreenSight.Marks([(read.Area, read.Corner)], TextMarks.Of(read.Spans, read.Corner), 0), 0,
+            note: string.Join(' ', read.Spans.Select(span => span.Text)),
+            minimum: Args(step).Number("minScore"));
+
+    /// <summary>Hands over what a step looking for writing would find right now.</summary>
+    public void SawSought(ExecutableStep step)
+    {
+        var wanted = Args(step).ValueOf("queryText").AsText();
+        var way = TextRule.Checked(Args(step).Text("matchMode"), wanted);
+        var readings = ReadSpans(step);
+        var (_, chosen) = Counting(step, readings, wanted, way);
+
+        sight.SawSearch(step, LookKind.Text, here.Read, TextMarks.Of(readings, default), chosen,
+            wanted, minimum: Args(step).Number("minScore"));
+    }
+
     /// <summary>
     /// Reads the text in a step's search areas, with the positions in screen coordinates. Several
     /// areas are read one after another and what they hold is handed back together, and the areas
     /// themselves are kept so that a look at this reading can draw where it was taken from.
     /// </summary>
-    private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step,
+    public IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step,
         CancellationToken token = default)
         => ReadBoth(step, token).Spans;
 
@@ -32,12 +69,12 @@ public sealed partial class MacroRunner
     /// The same reading, with the areas it was taken from: a look has to show where it looked, and
     /// reading them again for that would take a second picture of the same screen.
     /// </summary>
-    private (IReadOnlyList<TextSpan> Spans,
+    public (IReadOnlyList<TextSpan> Spans,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> Areas) ReadBoth(ExecutableStep step,
             CancellationToken token = default)
     {
-        var areas = SearchAreas(step);
-        _here.Read = areas;
+        var areas = sight.SearchAreas(step);
+        here.Read = areas;
 
         var spans = new List<TextSpan>();
         foreach (var (area, origin) in areas)
@@ -67,11 +104,11 @@ public sealed partial class MacroRunner
         }
         else
         {
-            _run.RunToken.ThrowIfCancellationRequested();
+            run.RunToken.ThrowIfCancellationRequested();
         }
 
         var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), Args(step).Text("preprocess"));
-        var readings = _devices.Ocr.Recognize(prepared)
+        var readings = devices.Ocr.Recognize(prepared)
             .Select(span => span with { Text = Corrected(step, span.Text) });
         var spans = Wanted(step, [.. readings]);
 
@@ -135,11 +172,11 @@ public sealed partial class MacroRunner
     /// The rectangle a reading step reads: where it starts on screen, the picture taken of it, and
     /// what was read off that picture.
     /// </summary>
-    private (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) ReadBox(
+    public (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) ReadBox(
         ExecutableStep step)
     {
         // 搜索范围可能有好几处，试看只摆得出其中一张：摆第一处，与运行时从头读起的那一处一致。
-        var (frame, origin) = SearchAreas(step)[0];
+        var (frame, origin) = sight.SearchAreas(step)[0];
         return (origin, frame, ReadFrame(step, frame));
     }
 
@@ -147,7 +184,7 @@ public sealed partial class MacroRunner
     /// The readings of a step's areas that it would act on, and which of them it would pick,
     /// counted from one inside the readings it was given.
     /// </summary>
-    private (List<TextSpan> Hits, int Chosen) Counting(ExecutableStep step,
+    public (List<TextSpan> Hits, int Chosen) Counting(ExecutableStep step,
         IReadOnlyList<TextSpan> readings, string wanted, string mode)
     {
         var hits = new List<TextSpan>();
@@ -252,7 +289,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool Matches(ExecutableStep step, string found, string wanted, string mode)
     {
-        var way = Way(mode);
+        var way = TextRule.Way(mode);
         try
         {
             return TextCompare.Matches(found, wanted, way, OptionsOf(step, way));
@@ -264,32 +301,11 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// One of the five ways of comparing text, as the step wrote it. An unanswered field reads as
-    /// "contained in it"; anything else the five do not name is worth saying out loud, because
-    /// quietly comparing in some other way would turn "exactly this" into "this is part of it".
-    /// </summary>
-    private static string Way(string written)
-    {
-        try
-        {
-            return TextCompare.Read(written);
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure(RunKeys.BadMatchMode, written.Trim());
-        }
-    }
-
-    /// <summary>
     /// The switches a text comparison carries. Spacing is a question only "exactly" asks by
     /// default; leaving the switch out keeps that default, while writing it false keeps the spaces
     /// the text actually has.
     /// </summary>
     private TextCompareOptions OptionsOf(ExecutableStep step, string way)
-        => new(
-            Flag(step, "caseSensitive", false),
-            way == TextCompare.Exactly ? Flag(step, "trim", true) : null,
+        => TextRule.Options(way, Flag(step, "caseSensitive", false), Flag(step, "trim", true),
             Flag(step, "multiline", false));
-
-
 }

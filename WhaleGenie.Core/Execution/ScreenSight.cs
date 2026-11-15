@@ -14,35 +14,43 @@ namespace WhaleGenie.Core.Execution;
 
 /// <summary>
 /// What looking at the screen means: the places a step searches, the picture taken of each, the beat
-/// between two pictures, and the marks a look leaves for whoever is watching. Vision, OCR and the
-/// conditions a macro writes all read the screen through this one layer, so "where did this step
-/// look" has one answer rather than three.
+/// between two pictures, the colour of one pixel, and the marks a look leaves for whoever is
+/// watching. Vision, OCR and the conditions a macro writes all read the screen through this one
+/// class, so "where did this step look" has one answer rather than three.
 /// </summary>
-public sealed partial class MacroRunner
+internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables, RunState run,
+    StepProgress here, IRunLooks? looks, WindowFacts windows)
 {
+    /// <summary>The reader for the fields of one step.</summary>
+    private StepArguments Args(ExecutableStep step)
+        => new(step, variables, devices.Screen.RefreshMilliseconds);
+
+    /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
+    private Value Read(ExpressionNode written) => Expression.Evaluate(written, variables);
+
     /// <summary>
     /// The places to search: the whole screen unless the step names regions, each of which may be
     /// counted from a window's corner when the step says so. One row of the step's region is either
     /// a rectangle written out — which is what the region picker fills in — or the name of a
     /// variable, which is how a rectangle or a picture taken earlier gets to be searched.
     /// </summary>
-    private IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> SearchAreas(ExecutableStep step)
+    public IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> SearchAreas(ExecutableStep step)
     {
         var rows = step.Rows("region");
         if (rows.Count == 0)
         {
             // With nowhere written down, the whole of whatever the step is about: the window its
             // numbers are counted from when it names one, and the desktop otherwise.
-            var anchor = AnchorOf(step);
+            var anchor = windows.AnchorOf(step);
             if (anchor.Window is { } window)
             {
-                var client = _devices.Windows.ClientOrigin(window.Handle);
-                var size = _devices.Windows.ClientSize(window.Handle);
+                var client = devices.Windows.ClientOrigin(window.Handle);
+                var size = devices.Windows.ClientSize(window.Handle);
                 var whole = Shot(client.X, client.Y, size.Width, size.Height, window);
                 return [(whole.Frame, whole.Origin)];
             }
 
-            var desk = _devices.Screen.Desktop.Bounds;
+            var desk = devices.Screen.Desktop.Bounds;
             var desktop = Shot(desk.Left, desk.Top, desk.Width, desk.Height);
             return [(desktop.Frame, desktop.Origin)];
         }
@@ -85,7 +93,7 @@ public sealed partial class MacroRunner
         // variables: what a variable holds is a note about the picture, and it is the picture
         // itself that is searched. The name is the shape's own, so nothing is taken off the front
         // of a word to find it.
-        if (Name(written) is { } name && _run.Images.TryGetValue(name, out var picture))
+        if (Name(written) is { } name && run.Images.TryGetValue(name, out var picture))
         {
             yield return (picture, new ScreenPoint(0, 0));
             yield break;
@@ -129,7 +137,7 @@ public sealed partial class MacroRunner
             // Which window the picture is read out of is a different question, and stays the
             // step's own answer.
             var shot = Shot(sides.Left, sides.Top, sides.Width, sides.Height,
-                AnchorOf(step).Window);
+                windows.AnchorOf(step).Window);
             return (shot.Frame, shot.Origin);
         }
 
@@ -228,8 +236,8 @@ public sealed partial class MacroRunner
     private (ImageFrame Frame, ScreenPoint Origin) Capture(ExecutableStep step, int x, int y,
         int width, int height)
     {
-        var anchor = AnchorOf(step);
-        var corner = Placed(anchor.Corner, x, y);
+        var anchor = windows.AnchorOf(step);
+        var corner = ScreenMath.Placed(anchor.Corner, x, y);
         var shot = Shot(corner.X, corner.Y, width, height, anchor.Window);
         return (shot.Frame, shot.Origin);
     }
@@ -241,23 +249,23 @@ public sealed partial class MacroRunner
     /// The window is the one the caller's coordinates are counted from, or the one it names
     /// outright.
     /// </summary>
-    private ScreenShot Shot(int x, int y, int width, int height, WindowInfo? window = null)
+    public ScreenShot Shot(int x, int y, int width, int height, WindowInfo? window = null)
     {
         // Which window this is about to be read out of is asked for before anything is read, so a
         // debugger can put a frame there while the reading is going on rather than after it.
         Reading(window);
 
         var method = window is null
-            ? _devices.Capture.ForScreen()
-            : _devices.Capture.ForWindow();
+            ? devices.Capture.ForScreen()
+            : devices.Capture.ForWindow();
 
         var source = window?.Handle ?? 0;
-        var age = Math.Max(0, _devices.Frames.CacheMilliseconds);
+        var age = Math.Max(0, devices.Frames.CacheMilliseconds);
         if (age == 0)
         {
             // Nothing already taken is old enough to do, so the rectangle asked for is the rectangle
             // read: this is the reading a macro has always done, at the cost it has always had.
-            var exact = _devices.Screen.Capture(new ScreenCaptureRequest(x, y, width, height,
+            var exact = devices.Screen.Capture(new ScreenCaptureRequest(x, y, width, height,
                 method, source));
             Taken(window, exact.Method);
             return exact;
@@ -265,7 +273,7 @@ public sealed partial class MacroRunner
 
         var key = Reused(source, method);
         var now = Stopwatch.GetTimestamp();
-        if (_run.Frames.TryGetValue(key, out var kept)
+        if (run.Frames.TryGetValue(key, out var kept)
             && Stopwatch.GetElapsedTime(kept.TakenAt, now).TotalMilliseconds <= age
             && Covers(kept.Frame, kept.Origin, x, y, width, height))
         {
@@ -277,7 +285,7 @@ public sealed partial class MacroRunner
         // is served without reading the screen again: asking for one rectangle costs more than that
         // rectangle, and asking for the whole source is what makes the next look free.
         var whole = Whole(method, window);
-        _run.Frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
+        run.Frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
         Taken(window, whole.Method);
         return Cut(whole.Frame, whole.Origin, x, y, width, height, whole.Method);
     }
@@ -299,12 +307,12 @@ public sealed partial class MacroRunner
     {
         if (window is null)
         {
-            var desk = _devices.Screen.Desktop.Bounds;
-            return _devices.Screen.Capture(
+            var desk = devices.Screen.Desktop.Bounds;
+            return devices.Screen.Capture(
                 new ScreenCaptureRequest(desk.Left, desk.Top, desk.Width, desk.Height, method));
         }
 
-        return _devices.Screen.Capture(new ScreenCaptureRequest(window.Location.X, window.Location.Y,
+        return devices.Screen.Capture(new ScreenCaptureRequest(window.Location.X, window.Location.Y,
             window.Size.Width, window.Size.Height, method, window.Handle));
     }
 
@@ -355,13 +363,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Taken(WindowInfo? window, CaptureWay method)
     {
-        _here.TakenWindow = window?.Title ?? string.Empty;
-        _here.TakenMethod = method;
-        _run.LastFrame = Stopwatch.GetTimestamp();
+        here.TakenWindow = window?.Title ?? string.Empty;
+        here.TakenMethod = method;
+        run.LastFrame = Stopwatch.GetTimestamp();
     }
 
     /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
-    private void Reading(WindowInfo? window) => _looks?.Reading(window);
+    private void Reading(WindowInfo? window) => looks?.Reading(window);
 
     /// <summary>
     /// Waits out however much of the run's frame gap is left and notes the look. Every step that
@@ -369,7 +377,7 @@ public sealed partial class MacroRunner
     /// held to it whichever way it reads, and ten steps in one loop share it instead of each taking
     /// a picture of their own.
     /// </summary>
-    private async Task Gate(CancellationToken token)
+    public async Task Gate(CancellationToken token)
     {
         var left = Until();
         if (left > 0)
@@ -384,12 +392,12 @@ public sealed partial class MacroRunner
     /// </summary>
     private int Until()
     {
-        if (_run.LastFrame == 0)
+        if (run.LastFrame == 0)
         {
             return 0;
         }
 
-        return Math.Max(0, FrameGap() - (int)Stopwatch.GetElapsedTime(_run.LastFrame).TotalMilliseconds);
+        return Math.Max(0, FrameGap() - (int)Stopwatch.GetElapsedTime(run.LastFrame).TotalMilliseconds);
     }
 
     /// <summary>
@@ -398,13 +406,13 @@ public sealed partial class MacroRunner
     /// picture that has not been drawn again cannot differ from the one already read, so anything
     /// above the display's rate would only read the same frame twice at the cost of reading it.
     /// </summary>
-    private int FrameGap()
+    public int FrameGap()
     {
-        var hertz = Math.Max(1, _devices.Screen.RefreshHertz);
-        var asked = _devices.Frames.MaxFramesPerSecond;
+        var hertz = Math.Max(1, devices.Screen.RefreshHertz);
+        var asked = devices.Frames.MaxFramesPerSecond;
         if (asked <= 0 || asked >= hertz)
         {
-            return Math.Max(1, _devices.Screen.RefreshMilliseconds);
+            return Math.Max(1, devices.Screen.RefreshMilliseconds);
         }
 
         return Math.Max(1, (int)Math.Ceiling(1000.0 / asked));
@@ -414,9 +422,9 @@ public sealed partial class MacroRunner
     /// Runs one step that looks at the screen and hands over what it saw, whatever came of it: the
     /// look of a step that found nothing is the one worth having.
     /// </summary>
-    private void Watching(Action body)
+    public void Watching(Action body)
     {
-        _here.Saw = null;
+        here.Saw = null;
         try
         {
             body();
@@ -428,9 +436,9 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>The same, for a step that has to wait for what it is looking at.</summary>
-    private async Task Watching(Func<Task> body)
+    public async Task Watching(Func<Task> body)
     {
-        _here.Saw = null;
+        here.Saw = null;
         try
         {
             await body();
@@ -444,14 +452,14 @@ public sealed partial class MacroRunner
     /// <summary>Hands the look over to whoever is watching, and forgets it.</summary>
     private void Show()
     {
-        var look = _here.Saw;
-        _here.Saw = null;
-        if (_looks is null || look is null)
+        var look = here.Saw;
+        here.Saw = null;
+        if (looks is null || look is null)
         {
             return;
         }
 
-        _looks.Look(look);
+        looks.Look(look);
     }
 
     /// <summary>
@@ -459,16 +467,16 @@ public sealed partial class MacroRunner
     /// watching: a picture of every step of a run nobody is looking at is work for nothing, and a
     /// step that waits would build one every two hundred milliseconds.
     /// </summary>
-    private void Saw(ExecutableStep step, LookKind kind, ImageFrame frame, ScreenPoint origin,
+    public void Saw(ExecutableStep step, LookKind kind, ImageFrame frame, ScreenPoint origin,
         IReadOnlyList<LookBox> boxes, int chosen, string looking = "", ImageFrame? needle = null,
         string? note = null, double? minimum = null, int picture = 0, int pictures = 0)
     {
-        if (_looks is null)
+        if (looks is null)
         {
             return;
         }
 
-        _here.Saw = new StepLook
+        here.Saw = new StepLook
         {
             StepId = step.Id,
             StepType = step.Type,
@@ -483,8 +491,8 @@ public sealed partial class MacroRunner
             Minimum = minimum,
             PictureNumber = picture,
             PictureCount = pictures,
-            Source = _here.TakenWindow,
-            Method = _here.TakenMethod ?? CaptureWay.Auto,
+            Source = here.TakenWindow,
+            Method = here.TakenMethod ?? CaptureWay.Auto,
         };
     }
 
@@ -493,13 +501,13 @@ public sealed partial class MacroRunner
     /// found, and the one it went with. Several areas are put together into one picture so that
     /// every mark has somewhere to sit.
     /// </summary>
-    private void SawSearch(ExecutableStep step, LookKind kind,
+    public void SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string looking = "",
         ImageFrame? needle = null, double? minimum = null, int picture = 0, int pictures = 0,
         string? note = null)
     {
-        if (_looks is null)
+        if (looks is null)
         {
             return;
         }
@@ -514,34 +522,34 @@ public sealed partial class MacroRunner
     /// Adds where a step has just acted to the look it took to get there, so a step that clicked
     /// the wrong place can be seen rather than guessed at.
     /// </summary>
-    private void Aim(ScreenPoint point)
+    public void Aim(ScreenPoint point)
     {
-        if (_looks is null || _here.Saw is null)
+        if (looks is null || here.Saw is null)
         {
             return;
         }
 
-        var boxes = new List<LookBox>(_here.Saw.Boxes)
+        var boxes = new List<LookBox>(here.Saw.Boxes)
         {
             new(new ImageMatch(1, point, new ScreenSize(1, 1)), LookRole.Target),
         };
 
-        _here.Saw = _here.Saw with { Boxes = boxes, ChosenIndex = boxes.Count };
+        here.Saw = here.Saw with { Boxes = boxes, ChosenIndex = boxes.Count };
     }
 
     /// <summary>
     /// A look at a single pixel: a square of screen around it with the pixel itself marked, which
     /// is what a step watching for a colour has to show for itself.
     /// </summary>
-    private void SawPixel(ExecutableStep step, ScreenPoint point, string looking,
+    public void SawPixel(ExecutableStep step, ScreenPoint point, string looking,
         WindowInfo? window)
     {
-        if (_looks is null)
+        if (looks is null)
         {
             return;
         }
 
-        var desk = _devices.Screen.Desktop.Bounds;
+        var desk = devices.Screen.Desktop.Bounds;
         var left = Math.Clamp(point.X - Neighbourhood, desk.Left, Math.Max(desk.Left, desk.Right - 1));
         var top = Math.Clamp(point.Y - Neighbourhood, desk.Top, Math.Max(desk.Top, desk.Bottom - 1));
         var right = Math.Clamp(point.X + Neighbourhood + 1, left + 1, desk.Right);
@@ -561,7 +569,7 @@ public sealed partial class MacroRunner
     private const int Neighbourhood = 60;
 
     /// <summary>The marks for a look: where it looked, and everything that was found there.</summary>
-    private static List<LookBox> Marks(
+    public static List<LookBox> Marks(
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen)
     {
@@ -623,5 +631,32 @@ public sealed partial class MacroRunner
     /// because a loop of ten vision steps was taking ten pictures a pass of a screen that cannot
     /// change between them.
     /// </summary>
-    private int LookBeat() => FrameGap();
+    public int LookBeat() => FrameGap();
+
+    /// <summary>
+    /// The colour of one pixel. A pixel the step counts from the screen is read straight off the
+    /// screen, which is a fraction of the cost of a picture; one it counts from a window is read
+    /// out of a picture of that window, so a window another window covers still gives its own
+    /// colour rather than the covering window's.
+    /// </summary>
+    public PixelColor PixelAt(ExecutableStep step, ScreenPoint point, WindowInfo? window)
+    {
+        if (window is null)
+        {
+            // A pixel of the desktop is read straight off it rather than out of a picture, so this
+            // is the one reading that has to say for itself that it is not reading a window.
+            Reading(null);
+            return devices.Screen.PixelAt(point.X, point.Y);
+        }
+
+        var shot = Shot(point.X, point.Y, 1, 1, window);
+        if (shot.Origin != point)
+        {
+            // The picture came back from somewhere else, which means the window does not reach
+            // that far: there is no such pixel, and reading a neighbour's colour would be a lie.
+            throw new StepFailure(RunKeys.PixelOutsideScreen, $"{point.X},{point.Y}");
+        }
+
+        return shot.Frame[0, 0];
+    }
 }

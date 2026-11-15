@@ -179,17 +179,5 @@ internal static class OcrActions
     /// screen has been read and compared.
     /// </summary>
     private static string TextWay(IRunContext run, ExecutableStep step, string wanted)
-    {
-        var way = TextRule.Way(run.Args(step).Text("matchMode"));
-        try
-        {
-            TextCompare.Check(wanted, way);
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure(RunKeys.BadPattern, wanted);
-        }
-
-        return way;
-    }
+        => TextRule.Checked(run.Args(step).Text("matchMode"), wanted);
 }

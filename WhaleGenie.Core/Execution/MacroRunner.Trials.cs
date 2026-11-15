@@ -18,7 +18,8 @@ using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
-// Looking at the screen once without acting: the anchor a step reads from, its pixels, and what a trial sees.
+// Trying a look or a question without carrying anything out: what the dialog shows for a step,
+// and what a breakpoint asks before the run goes on.
 public sealed partial class MacroRunner
 {
     /// <summary>
@@ -145,23 +146,4 @@ public sealed partial class MacroRunner
         public void Reading(WindowInfo? window) => watch?.Reading(window);
     }
 
-    /// <summary>Hands over what was read off a picture, without writing the reading anywhere.</summary>
-    private void WasRead(ExecutableStep step,
-        (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) read)
-        => Saw(step, LookKind.Text, read.Area, read.Corner,
-            Marks([(read.Area, read.Corner)], TextMarks.Of(read.Spans, read.Corner), 0), 0,
-            note: string.Join(' ', read.Spans.Select(span => span.Text)),
-            minimum: Args(step).Number("minScore"));
-
-    /// <summary>Hands over what a step looking for writing would find right now.</summary>
-    private void SawSought(ExecutableStep step)
-    {
-        var wanted = Args(step).ValueOf("queryText").AsText();
-        var way = TextWay(step, wanted);
-        var readings = ReadSpans(step);
-        var (_, chosen) = Counting(step, readings, wanted, way);
-
-        SawSearch(step, LookKind.Text, _here.Read, TextMarks.Of(readings, default), chosen,
-            wanted, minimum: Args(step).Number("minScore"));
-    }
 }

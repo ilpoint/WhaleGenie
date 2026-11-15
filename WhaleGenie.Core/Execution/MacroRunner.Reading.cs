@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
@@ -94,7 +96,7 @@ public sealed partial class MacroRunner
     /// than a piece of text answers with the name it holds.
     /// </summary>
     private static string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
-        => ShapeWord(row.GetValueOrDefault(column));
+        => ShapeWords.Of(row.GetValueOrDefault(column));
 
     /// <summary>
     /// What a column of a row comes to, worked out from the shape itself. A cell may hold a number,
@@ -104,23 +106,65 @@ public sealed partial class MacroRunner
     private Value CellValue(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => row.TryGetValue(column, out var written) ? Read(written) : Value.Null;
 
+    /// <summary>What a row of a list parameter says in one column, or nothing when it has none.</summary>
+    private static ExpressionNode Column(IReadOnlyDictionary<string, ExpressionNode> row,
+        string column)
+        => row.GetValueOrDefault(column) ?? Formula.Nothing;
+
     /// <summary>
-    /// The word a shape holds, read from the shape itself rather than from a line rendered and
-    /// read back. A name answers with the name, a run with the words it is made of, and anything
-    /// else with the plain value it was written as. There is no sign in front of a name to strip.
+    /// One number of a row that may be left empty, where empty means the run's own value: a row
+    /// only has to spell out the hold or the gap that is not the one everywhere else.
     /// </summary>
-    /// <remarks>
-    /// The other <see cref="Word(System.Collections.Generic.IReadOnlyDictionary{string, ExpressionNode}, string)"/>
-    /// overload still renders a line, because the columns it serves can hold a formula that has to
-    /// be worked out by the caller; changing them all at once is a different question.
-    /// </remarks>
-    private static string ShapeWord(ExpressionNode? value) => value switch
+    private int Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column, int fallback)
+        => Formula.IsNothing(Column(row, column))
+            ? fallback
+            : (int)Math.Round(Read(Column(row, column)).AsNumber());
+
+    /// <summary>One side of a rectangle held in a record, in whole screen pixels.</summary>
+    private static int Whole(Value side) => (int)Math.Round(side.AsNumber());
+
+    /// <summary>
+    /// The four sides a record says a rectangle has, in whole screen pixels: the corner it starts at
+    /// and how far it reaches from there. Nothing when the record is not a rectangle, so a record of
+    /// some other shape is refused by whoever asked for one.
+    /// </summary>
+    private static (int Left, int Top, int Width, int Height)? Sides(Value record)
     {
-        null => string.Empty,
-        VariableNode variable => variable.Name.Trim(),
-        ConcatNode run => string.Concat(run.Parts.Select(ShapeWord)),
-        _ => Formula.Plain(value).Trim(),
-    };
+        if (record.Field(FieldNames.Left) is not { } left
+            || record.Field(FieldNames.Top) is not { } top
+            || record.Field(FieldNames.Width) is not { } width
+            || record.Field(FieldNames.Height) is not { } height)
+        {
+            return null;
+        }
+
+        return (Whole(left), Whole(top), Math.Max(1, Whole(width)), Math.Max(1, Whole(height)));
+    }
+
+    /// <summary>
+    /// The switches a text comparison carries. Spacing is a question only "exactly" asks by
+    /// default; leaving the switch out keeps that default, while writing it false keeps the spaces
+    /// the text actually has.
+    /// </summary>
+    private TextCompareOptions OptionsOf(ExecutableStep step, string way)
+        => TextRule.Options(way, Flag(step, "caseSensitive", false), Flag(step, "trim", true),
+            Flag(step, "multiline", false));
+
+    /// <summary>
+    /// Compares found text against what was asked for, the way the step chose. A pattern the
+    /// machine cannot read comes back as a failed step rather than as a stack trace.
+    /// </summary>
+    private bool Matches(ExecutableStep step, string found, string wanted, string way)
+    {
+        try
+        {
+            return TextCompare.Matches(found, wanted, way, OptionsOf(step, way));
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure(RunKeys.BadPattern, wanted);
+        }
+    }
 
     /// <summary>True when a column of a row holds anything at all.</summary>
     private static bool Said(IReadOnlyDictionary<string, ExpressionNode> row, string column)

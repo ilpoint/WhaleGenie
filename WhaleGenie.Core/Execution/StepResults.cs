@@ -7,9 +7,13 @@ using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
-// The result layer every family hands its work through: what a step offers, whether it asked for a
-// result, and the one shape a hit, a point and a list of them come in.
-public sealed partial class MacroRunner
+/// <summary>
+/// The result layer every family hands its work through: what a step offers, whether it asked for a
+/// result, and the one shape a hit, a point and a list of them come in. Writing a result the step
+/// did not ask for is not an error and not a variable: it is a name the step never makes.
+/// </summary>
+internal sealed class StepResults(VariableStore variables, StepProgress here, ScreenPoints points,
+    Action<LogLevel, int, string, string, object[]> log)
 {
     /// <summary>
     /// Hands one of a step's results over under the name the step gave it, and does nothing at all
@@ -18,7 +22,7 @@ public sealed partial class MacroRunner
     /// worked out is kept for the debugger either way, under the name the macro keeps it by when
     /// there is one, so a result nobody ticked can still be read after the run.
     /// </summary>
-    private string Give(ExecutableStep step, string key, Value value)
+    public string Give(ExecutableStep step, string key, Value value)
     {
         if (ActionSemanticsCatalog.Find(step.Type) is not { } definition)
         {
@@ -39,17 +43,17 @@ public sealed partial class MacroRunner
             return string.Empty;
         }
 
-        if (!ReturnFits(declared, value))
+        if (!MacroRunner.ReturnFits(declared, value))
         {
             throw new StepFailure(RunKeys.VariableTypeMismatch, key);
         }
 
         if (name.Length > 0)
         {
-            Variables.Set(name, value);
+            variables.Set(name, value);
         }
 
-        if (_here.Worked is { } worked)
+        if (here.Worked is { } worked)
         {
             var workedOut = new StepResult(key, name, value.AsText())
             {
@@ -87,17 +91,17 @@ public sealed partial class MacroRunner
     };
 
     /// <summary>Hands one result over and says so in the log, the way storing a value does.</summary>
-    private void Store(ExecutableStep step, string key, Value value, int depth)
+    public void Store(ExecutableStep step, string key, Value value, int depth)
     {
         var name = Give(step, key, value);
         if (name.Length > 0)
         {
-            Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
+            log(LogLevel.Info, depth, step.Type, LogKeys.Set, [name, value.AsText()]);
         }
     }
 
     /// <summary>True when the step keeps this result, so working it out is worth anything.</summary>
-    private static bool Wants(ExecutableStep step, string key) => step.Return(key).Length > 0;
+    public static bool Wants(ExecutableStep step, string key) => step.Return(key).Length > 0;
 
     /// <summary>
     /// Hands over what a search found as one record: where it was, the four sides of the rectangle
@@ -110,7 +114,7 @@ public sealed partial class MacroRunner
     /// working out an offset first. The middle is in the record beside it under names of its own,
     /// because that is the point a click or a move aims at.
     /// </summary>
-    private void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
+    public void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
         string text = "", string label = "", int classId = -1)
     {
         Give(step, "match", HitRecord.Of(corner, size, score, text, label, classId));
@@ -119,15 +123,67 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// Hands over the point a step actually used in the spaces it knows. A point from a window
+    /// action carries both; a foreground action with no window carries only the screen point.
+    /// </summary>
+    public void GivePoints(ExecutableStep step, ScreenPoint screen, ScreenPoint? window,
+        string screenKey = "screenPoint", string windowKey = "windowPoint")
+    {
+        if (Wants(step, screenKey))
+        {
+            Give(step, screenKey, PointRecord(screen, "screen"));
+        }
+
+        if (!Wants(step, windowKey))
+        {
+            return;
+        }
+
+        if ((window ?? points.WindowPointAt(step, screen)) is { } client)
+        {
+            Give(step, windowKey, PointRecord(client, "window"));
+        }
+    }
+
+    /// <summary>Hands over a screen point and, when the reading came from a window, its client point.</summary>
+    public void GivePointAt(ExecutableStep step, ScreenPoint screen, WindowInfo? window)
+    {
+        if (!Wants(step, "screenPoint") && !Wants(step, "windowPoint"))
+        {
+            return;
+        }
+
+        if (!Wants(step, "windowPoint"))
+        {
+            GivePoints(step, screen, null);
+            return;
+        }
+
+        var client = window is null
+            ? points.WindowPointAt(step, screen)
+            : points.InWindow(window, screen);
+        GivePoints(step, screen, client);
+    }
+
+    /// <summary>One point as a record a later position field can read directly.</summary>
+    private static Value PointRecord(ScreenPoint point, string basis)
+        => Value.FromRecord(
+        [
+            (FieldNames.X, Value.FromNumber(point.X)),
+            (FieldNames.Y, Value.FromNumber(point.Y)),
+            (FieldNames.Basis, Value.FromText(basis)),
+        ]);
+
+    /// <summary>
     /// Hands over which window the picture came from and which way it was taken. That answers a
     /// different question from where the hit was: not "where is it", but "was it looking at the
     /// right thing at all".
     /// </summary>
-    private void GiveTaken(ExecutableStep step)
+    public void GiveTaken(ExecutableStep step)
     {
-        Give(step, "window", Value.FromText(_here.TakenWindow));
+        Give(step, "window", Value.FromText(here.TakenWindow));
         Give(step, "method", Value.FromText(
-            _here.TakenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
+            here.TakenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
     }
 
     /// <summary>
@@ -135,7 +191,7 @@ public sealed partial class MacroRunner
     /// the pass before it found. Nothing found is an empty hit and no hits at all, rather than the
     /// hit of the pass before: an empty list counts as nought, which is what "found nothing" means.
     /// </summary>
-    private void GiveNothing(ExecutableStep step)
+    public void GiveNothing(ExecutableStep step)
     {
         Give(step, "match", Value.FromText(string.Empty));
         Give(step, "every", Value.FromList([]));
@@ -157,24 +213,11 @@ public sealed partial class MacroRunner
     /// can count them, take one apart and loop over them all with the list functions. Only the steps
     /// that asked for them pay for the list.
     /// </summary>
-    private void GiveEvery(ExecutableStep step, IEnumerable<Value> hits)
+    public void GiveEvery(ExecutableStep step, IEnumerable<Value> hits)
     {
         if (Wants(step, "every"))
         {
             Give(step, "every", Value.FromList(hits));
         }
     }
-
-    /// <summary>Every picture hit as a record, in the order the step counts them in.</summary>
-    private static IEnumerable<Value> HitRecords(IReadOnlyList<ImageMatch> hits)
-        => hits.Select(hit => HitRecord.Of(hit.Location, hit.Size, hit.Score));
-
-    /// <summary>Every thing a detection model found as a record, kind of thing and all.</summary>
-    private static IEnumerable<Value> HitRecords(IReadOnlyList<Sighting> hits)
-        => hits.Select(hit => HitRecord.Of(hit.Match.Location, hit.Match.Size, hit.Match.Score,
-            label: hit.Label, classId: hit.ClassId));
-
-    /// <summary>Every reading of the screen as a record, keeping what each of them said.</summary>
-    private static IEnumerable<Value> HitRecords(IReadOnlyList<TextSpan> hits)
-        => hits.Select(hit => HitRecord.Of(hit.Location, hit.Size, hit.Confidence, hit.Text));
 }

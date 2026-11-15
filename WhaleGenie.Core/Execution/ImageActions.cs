@@ -102,7 +102,7 @@ internal static class ImageActions
             var hits = Hits(run, step, token);
             found = SearchHits.Choose(run, hits, step) is { } match
                 ? new Found(hits, match)
-                : throw new StepFailure(RunKeys.ImageNotFound, Written(step.Rows("images")));
+                : throw new StepFailure(RunKeys.ImageNotFound, StepRows.Written(step.Rows("images")));
         }
 
         var at = run.Points.Scatter(step, new ScreenPoint(
@@ -135,7 +135,7 @@ internal static class ImageActions
         }
 
         return await Pacing.WaitForValueAsync(Enough, interval, token)
-               ?? throw new StepFailure(RunKeys.ImageNotFound, Written(step.Rows("images")));
+               ?? throw new StepFailure(RunKeys.ImageNotFound, StepRows.Written(step.Rows("images")));
     }
 
     /// <summary>

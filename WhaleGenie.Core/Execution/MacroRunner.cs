@@ -17,18 +17,35 @@ public sealed partial class MacroRunner
 {
     // What this class holds, by lifetime. Program-wide: the shared global table, the two gates
     // and the device layer. One run: _host, _devices, _macros, _looks and _run, which is every
-    // piece of bookkeeping the run writes down — see RunState for those. One attempt: _here, which
-    // is what the step being tried has worked out so far — see StepProgress for that. The family
-    // methods live beside this file in MacroRunner.<Family>.cs. A method that more than one family
-    // uses stayed in the file that first needed it, so before assuming a family file holds only
-    // its own steps: Give (the result writer every family hands to) is in .Window.cs, Pause and
-    // WaitForFlagAsync in .Script.cs, Gate (the capture throttle) in .Detection.cs, and the trial
-    // look (CanLook / LookOnce / SeeOnce) in .Input.cs.
+    // piece of bookkeeping the run writes down — see RunState for those — together with the six
+    // layers a step reads the world through: _pictures, _windows, _points, _results, _sight and
+    // _reads. One attempt: _here, which is what the step being tried has worked out so far — see
+    // StepProgress for that. What is left in the partial files beside this one is the interpreter
+    // itself: the step loop, attempts and failure rules, calls, loops, conditions, variables, and
+    // the trial look a dialog asks for.
 
     private readonly IRunHost _host;
     private readonly IDeviceLayer _devices;
     private readonly IMacroLibrary _macros;
     private readonly IRunLooks? _looks;
+
+    /// <summary>The pictures a step looks for, read once and kept while the file behind them holds still.</summary>
+    private readonly ReferencePictures _pictures;
+
+    /// <summary>The window a step names, and the rule it wrote to name it.</summary>
+    private readonly WindowFacts _windows;
+
+    /// <summary>What looking at the screen means: areas, pictures, the beat, and the marks a look leaves.</summary>
+    private readonly ScreenSight _sight;
+
+    /// <summary>Where a step's point is, and which way its input travels.</summary>
+    private readonly ScreenPoints _points;
+
+    /// <summary>The one place a step's results are written.</summary>
+    private readonly StepResults _results;
+
+    /// <summary>Reading writing off the screen: areas, corrections, and which readings count.</summary>
+    private readonly ScreenReads _reads;
 
     /// <summary>
     /// What this run has written down so far. Everything here belongs to one run and is emptied

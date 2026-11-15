@@ -117,7 +117,7 @@ public sealed partial class MacroRunner
         var question = detail.Length == 0 ? message : message + "\n\n" + detail;
         var answer = await _host.AskUser(new AskQuestion(AskKind.Confirm, question, string.Empty), token);
 
-        Store(step, "confirmed", Value.FromBool(answer.Confirmed), depth);
+        _results.Store(step, "confirmed", Value.FromBool(answer.Confirmed), depth);
         Log(LogLevel.Info, depth, step.Type,
             answer.Confirmed ? LogKeys.AskedYes : LogKeys.AskedNo, question);
         return Signal.Normal;
@@ -139,7 +139,7 @@ public sealed partial class MacroRunner
         var suggestion = Args(step).ValueOf("default").AsText();
         var answer = await _host.AskUser(new AskQuestion(AskKind.Text, message, suggestion), token);
 
-        Store(step, "text", Value.FromText(answer.Text), depth);
+        _results.Store(step, "text", Value.FromText(answer.Text), depth);
         Log(LogLevel.Info, depth, step.Type, LogKeys.AskedText, answer.Text);
         return Signal.Normal;
     }
@@ -174,7 +174,7 @@ public sealed partial class MacroRunner
         // The count after this step, so a macro can compare it or write it down without reading
         // the same global again — a second read would also be a second look at a value another run
         // may have changed in between.
-        Give(step, "value", Value.FromNumber(sum));
+        _results.Give(step, "value", Value.FromNumber(sum));
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, Value.FormatNumber(sum));
     }
 

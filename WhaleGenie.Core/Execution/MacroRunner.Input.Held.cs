@@ -29,14 +29,14 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ClickAt(ExecutableStep step, ScreenPoint at)
     {
-        Aim(at);
-        Input(step).Click(Button(step), at.X, at.Y, 1, 0);
+        _sight.Aim(at);
+        _points.Input(step).Click(ScreenPoints.Button(step), at.X, at.Y, 1, 0);
     }
 
     /// <summary>Presses a key and remembers it, so the run can let it go if the macro never does.</summary>
     private void HoldKey(ExecutableStep step)
     {
-        var device = Input(step);
+        var device = _points.Input(step);
         var key = Args(step).Text("key");
         device.KeyDown(key);
         if (!_run.HeldKeys.Any(held => Same(held.Device, device) && Same(held.Name, key)))
@@ -48,7 +48,7 @@ public sealed partial class MacroRunner
     /// <summary>Releases a key the macro asked to release, and stops counting it as held.</summary>
     private void LetGoKey(ExecutableStep step)
     {
-        var device = Input(step);
+        var device = _points.Input(step);
         var key = Args(step).Text("key");
         device.KeyUp(key);
         _run.HeldKeys.RemoveAll(held => Same(held.Device, device) && Same(held.Name, key));
@@ -57,27 +57,27 @@ public sealed partial class MacroRunner
     /// <summary>The same, for a mouse button, remembering where it was pressed.</summary>
     private void HoldButton(ExecutableStep step)
     {
-        var device = Input(step);
-        var button = Button(step);
-        var point = Point(step, "x", "y");
+        var device = _points.Input(step);
+        var button = ScreenPoints.Button(step);
+        var point = _points.Point(step, "x", "y");
         device.MouseDown(button, point.Device.X, point.Device.Y);
         if (!_run.HeldButtons.Any(held =>
                 Same(held.Device, device) && Same(held.Button, button)))
         {
             _run.HeldButtons.Add((device, button, point.Device));
         }
-        GivePoints(step, point.Screen, point.Window);
+        _results.GivePoints(step, point.Screen, point.Window);
     }
 
     /// <summary>Releases a mouse button the macro asked to release, wherever it is now held.</summary>
     private void LetGoButton(ExecutableStep step)
     {
-        var device = Input(step);
-        var button = Button(step);
-        var point = Point(step, "x", "y");
+        var device = _points.Input(step);
+        var button = ScreenPoints.Button(step);
+        var point = _points.Point(step, "x", "y");
         device.MouseUp(button, point.Device.X, point.Device.Y);
         _run.HeldButtons.RemoveAll(held => Same(held.Device, device) && Same(held.Button, button));
-        GivePoints(step, point.Screen, point.Window);
+        _results.GivePoints(step, point.Screen, point.Window);
     }
 
     /// <summary>True when two device handles or two names stand for the same thing.</summary>

@@ -80,7 +80,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool WindowThere(ExecutableStep condition)
     {
-        var rule = WindowRuleOf(condition);
+        var rule = _windows.RuleOf(condition);
         return _devices.Windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
             rule.Options) is not null;
     }
@@ -154,7 +154,7 @@ public sealed partial class MacroRunner
     {
         var wanted = Args(condition).ValueOf("queryText").AsText();
         var way = TextWay(condition, wanted);
-        return ReadSpans(condition).Any(span => Matches(condition, span.Text, wanted, way));
+        return _reads.ReadSpans(condition).Any(span => Matches(condition, span.Text, wanted, way));
     }
 
     /// <summary>
@@ -164,7 +164,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private static string TextWay(ExecutableStep step, string wanted)
     {
-        var way = Way(step.Text("matchMode"));
+        var way = TextRule.Way(step.Text("matchMode"));
         try
         {
             TextCompare.Check(wanted, way);
@@ -187,10 +187,10 @@ public sealed partial class MacroRunner
         var tolerance = Args(condition).ValueOf("tolerance").AsNumber();
         var every = !string.Equals(Args(condition).Text("colorMatchMode").Trim(), "any",
             StringComparison.OrdinalIgnoreCase);
-        var window = AnchorOf(condition).Window;
+        var window = _windows.AnchorOf(condition).Window;
 
         var matched = Points(condition)
-            .Select(point => PixelAt(condition, point.Where, window)
+            .Select(point => _sight.PixelAt(condition, point.Where, window)
                 .Matches(point.Colour, tolerance));
 
         return every ? matched.All(match => match) : matched.Any(match => match);
@@ -219,7 +219,7 @@ public sealed partial class MacroRunner
                 throw new StepFailure(RunKeys.BadPoints, entry);
             }
 
-            points.Add(new ColourPoint(Place(step, x, y), PixelColor.Parse(parts[2])));
+            points.Add(new ColourPoint(_points.Place(step, x, y), PixelColor.Parse(parts[2])));
         }
 
         if (points.Count == 0)

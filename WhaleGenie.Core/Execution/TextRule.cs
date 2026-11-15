@@ -11,6 +11,26 @@ namespace WhaleGenie.Core.Execution;
 /// </summary>
 internal static class TextRule
 {
+    /// <summary>
+    /// One of the five ways of comparing text, read and checked before anything is looked at: a
+    /// word that is none of the five, or a pattern the machine cannot read, is refused here rather
+    /// than after a screen has been read and compared.
+    /// </summary>
+    public static string Checked(string written, string wanted)
+    {
+        var way = Way(written);
+        try
+        {
+            TextCompare.Check(wanted, way);
+        }
+        catch (ArgumentException)
+        {
+            throw new StepFailure(RunKeys.BadPattern, wanted);
+        }
+
+        return way;
+    }
+
     /// <summary>One of the five ways, as the step wrote it; nothing written means "contained in it".</summary>
     public static string Way(string written)
     {
