@@ -247,12 +247,14 @@ internal static class WindowsKeyStrokes
 
     /// <summary>
     /// Sends one input event. The scan code goes beside the key code because that is what a
-    /// keyboard sends and what the extended flag is read against; a key with no scan code never
-    /// reaches here, since <see cref="WindowsKeys.CanBePressed"/> has already refused it.
+    /// keyboard sends and what the extended flag is read against. A key Windows numbers but no
+    /// keystroke carries — an IME's own key, the number pad's separator or equals, the library's
+    /// "misc" — is refused here as well as by the device: its code exists to be posted as a message,
+    /// and sending it as a key press would send nothing or a neighbouring key.
     /// </summary>
     private static void Send(HookCode key, string name, bool up)
     {
-        var virtualKey = WindowsKeys.VirtualKey(key)
+        var virtualKey = WindowsKeys.KeyForStroke(key)
             ?? throw new DeviceActionException(RunKeys.KeyNotPressable, name);
 
         var flags = up ? KeyEventKeyUp : 0u;

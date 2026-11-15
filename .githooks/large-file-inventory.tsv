@@ -219,3 +219,4 @@
 371	WhaleGenie.Tests/PersistentVariableTests.cs	keep: 持久变量的一张表与它的文件、补写和冲突，单一主题
 315	WhaleGenie.Core.Tests/VariableBindingTests.cs	keep: 变量与步骤参数的绑定规则，单一主题
 338	WhaleGenie.Core/Execution/MacroRunner.Input.Mouse.cs	keep: 鼠标动作的一族，按动作族拆分后单一职责
+342	WhaleGenie.Platform.Tests/WindowsKeyTests.cs	keep: 键码与 Windows 键码的对照与可发送判定，一个主题

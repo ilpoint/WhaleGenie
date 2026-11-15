@@ -46,8 +46,31 @@ internal static class WindowsKeys
     /// rather than taking Windows' word for it (Windows answers 0, because Pause has no entry in
     /// the one-scan-code-per-key table).
     /// </summary>
-    internal static bool CanBePressed(HookCode code)
-        => VirtualKey(code) is { } virtualKey && ScanCode(virtualKey) != 0;
+    internal static bool CanBePressed(HookCode code) => KeyForStroke(code) is not null;
+
+    /// <summary>
+    /// The Windows key code a key press carries, or null when a keystroke cannot carry the key: no
+    /// Windows code, or one of the few codes with no scan code on the layouts this runs on. The
+    /// sender asks this rather than <see cref="VirtualKey"/> so that a key a message can name is
+    /// never sent as a key press by mistake.
+    /// </summary>
+    internal static ushort? KeyForStroke(HookCode code)
+        => Carriable(code) && VirtualKey(code) is { } virtualKey && ScanCode(virtualKey) != 0
+            ? virtualKey
+            : null;
+
+    /// <summary>
+    /// Whether a keystroke can carry the key. A few keys have a Windows code and no scan code on the
+    /// layouts this runs on — an IME's own keys, the number pad's separator and equals, and the
+    /// library's "misc" — so a keystroke built from one would send nothing or a neighbouring key.
+    /// A posted message names the key and needs no scan code, which is why <see cref="VirtualKey"/>
+    /// answers them and this refuses them.
+    /// </summary>
+    private static bool Carriable(HookCode code) => code is not (
+        HookCode.Kana or HookCode.ImeOn or HookCode.Junja or HookCode.Final or HookCode.Hanja
+        or HookCode.ImeOff or HookCode.Convert or HookCode.NonConvert or HookCode.Accept
+        or HookCode.ModeChange or HookCode.Process
+        or HookCode.Misc or HookCode.NumPadSeparator or HookCode.NumPadEquals);
 
     /// <summary>MAPVK_VK_TO_VSC, which answers with 0 for a key no keyboard can send.</summary>
     private const uint VkToScan = 0;
@@ -98,11 +121,10 @@ internal static class WindowsKeys
     };
 
     /// <summary>
-    /// The Windows key code for a library key, or null when there is no key a keystroke could carry:
-    /// either Windows numbers none, or it numbers one with no scan code here — an IME's own keys, the
-    /// number pad's separator and equals, and the library's "misc". Those are answered null rather
-    /// than with a neighbouring key, which is what keeps a keystroke from pressing something the
-    /// macro did not ask for; the posting device reads this table too, so it refuses them as well.
+    /// The Windows key code for a library key, or null when Windows numbers no such key. It is the
+    /// code itself, not the code a keystroke can carry: a posted message names the key and needs only
+    /// this, so an IME's own keys and the number pad's separator and equals are answered here too.
+    /// <see cref="KeyForStroke"/> is the narrower question a key press asks.
     /// </summary>
     internal static ushort? VirtualKey(HookCode code) => code switch
     {
@@ -132,11 +154,11 @@ internal static class WindowsKeys
         HookCode.Space => 0x20,
 
         // The key Windows names for the keyboard a machine happens to have: the section sign is the
-        // extra key an ISO keyboard carries left of Z. The key the library calls "misc" is another
-        // such extra key, and Windows gives it a number without a scan code to send it with, so it
-        // is left to the null group below like the rest of the keys no keystroke can carry.
+        // extra key an ISO keyboard carries left of Z, and the key the library calls "misc" is
+        // another such extra key, which Windows numbers VK_OEM_8. The number is stated all the same:
+        // a posted message can name it, even though no keystroke here can carry it.
         HookCode.Section => 0xE2,
-        HookCode.Misc => null,
+        HookCode.Misc => 0xDF,
 
         HookCode.PrintScreen => 0x2C,
         HookCode.ScrollLock => 0x91,
@@ -167,11 +189,12 @@ internal static class WindowsKeys
         HookCode.NumPadAdd => 0x6B,
         HookCode.NumPadDecimal => 0x6E,
 
-        // The number pad's separator and its equals key are numbered by Windows but given no scan
-        // code, so no keyboard on a machine with an ordinary layout can send them; they are left to
-        // the null group below rather than being posted as a key with nothing behind it.
-        HookCode.NumPadSeparator => null,
-        HookCode.NumPadEquals => null,
+        // The number pad's separator and its equals key are numbered by Windows — VK_SEPARATOR and
+        // the NEC equal key's 0x92 — but given no scan code on an ordinary layout, so a keystroke
+        // cannot carry them. The number is stated because a message can name the key; Carriable is
+        // what keeps them from being sent as a key press.
+        HookCode.NumPadSeparator => 0x6C,
+        HookCode.NumPadEquals => 0x92,
 
         // The number pad's Enter carries the same code as the main one and is told apart by the
         // extended flag, which is what the posting device's scan code lookup and IsExtended are for.
@@ -212,19 +235,19 @@ internal static class WindowsKeys
         // The keys a Japanese or Korean keyboard has for its own script. Windows numbers them, but
         // gives them no scan code on the layouts this program runs on, so nothing a keyboard sends
         // can become one of them: measured, asking the foreground device for one posts VK 0xFF and
-        // no key arrives at all. They are therefore answered with null, like every other key no
-        // keystroke can carry, rather than being offered as a key that silently does nothing.
-        HookCode.Kana => null,
-        HookCode.Hanja => null,
-        HookCode.Junja => null,
-        HookCode.Final => null,
-        HookCode.Accept => null,
-        HookCode.Convert => null,
-        HookCode.NonConvert => null,
-        HookCode.ImeOn => null,
-        HookCode.ImeOff => null,
-        HookCode.ModeChange => null,
-        HookCode.Process => null,
+        // no key arrives at all. The codes are stated because a message can name the key, while
+        // Carriable keeps a keystroke from going out as something else.
+        HookCode.Kana => 0x15,
+        HookCode.ImeOn => 0x16,
+        HookCode.Junja => 0x17,
+        HookCode.Final => 0x18,
+        HookCode.Hanja => 0x19,
+        HookCode.ImeOff => 0x1A,
+        HookCode.Convert => 0x1C,
+        HookCode.NonConvert => 0x1D,
+        HookCode.Accept => 0x1E,
+        HookCode.ModeChange => 0x1F,
+        HookCode.Process => 0xE5,
 
         // Keys the library has a code for and Windows has not: a macro that names one of these gets
         // a step that says which key it could not press, rather than a different key being pressed.

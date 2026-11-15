@@ -63,24 +63,44 @@ public class WindowsKeyTests
     [InlineData("MediaNext", 0xB0)]
     [InlineData("VolumeMute", 0xAD)]
     [InlineData("VolumeUp", 0xAF)]
+    [InlineData("Kana", 0x15)]
+    [InlineData("ImeOn", 0x16)]
+    [InlineData("Junja", 0x17)]
+    [InlineData("Final", 0x18)]
+    [InlineData("Hanja", 0x19)]
+    [InlineData("ImeOff", 0x1A)]
+    [InlineData("Convert", 0x1C)]
+    [InlineData("NonConvert", 0x1D)]
+    [InlineData("Accept", 0x1E)]
+    [InlineData("ModeChange", 0x1F)]
+    [InlineData("Process", 0xE5)]
+    [InlineData("Misc", 0xDF)]
+    [InlineData("NumPadSeparator", 0x6C)]
+    [InlineData("NumPadEquals", 0x92)]
     public void The_keys_a_macro_writes_reach_windows(string name, int expected)
         => Assert.Equal((ushort?)expected, WindowsKeys.VirtualKey(KeyTable.ResolveCode(name)!.Value));
 
+    /// <summary>
+    /// A key Windows numbers no code for is answered empty rather than with a neighbouring key, so a
+    /// step can say which key it could not press.
+    /// </summary>
     [Theory]
     [InlineData("Yen")]
     [InlineData("Underscore")]
     [InlineData("Katakana")]
     [InlineData("KatakanaHiragana")]
+    [InlineData("Hiragana")]
+    [InlineData("Alphanumeric")]
+    [InlineData("JpComma")]
     [InlineData("Power")]
+    [InlineData("App3")]
+    [InlineData("App4")]
     [InlineData("AppBrowser")]
     [InlineData("AppCalculator")]
     [InlineData("MediaEject")]
-    [InlineData("Kana")]
-    [InlineData("Convert")]
-    [InlineData("Misc")]
-    [InlineData("NumPadSeparator")]
-    [InlineData("NumPadEquals")]
-    public void A_key_windows_has_not_got_is_left_empty(string name)
+    [InlineData("Function")]
+    [InlineData("ChangeInputSource")]
+    public void A_key_windows_does_not_number_is_left_empty(string name)
         => Assert.Null(WindowsKeys.VirtualKey(KeyTable.ResolveCode(name)!.Value));
 
     /// <summary>
@@ -116,13 +136,9 @@ public class WindowsKeyTests
     }
 
     /// <summary>
-    /// The keys the library has and Windows has no keystroke for, named here rather than mapped to a
-    /// neighbouring key that would press something the macro did not ask for. That is two groups:
-    /// codes Windows does not number at all, and codes it numbers but gives no scan code — an IME's
-    /// own keys, the number pad's separator and equals key, and the library's "misc" key. Measured
-    /// with a keyboard hook: asking for one of the second group posts VK 0xFF and no key arrives. A
-    /// key the library adds later lands in this list only when somebody has looked at what Windows
-    /// makes of it.
+    /// The keys the library has and Windows does not number at all, named here rather than mapped to
+    /// a neighbouring key. A key the library adds later lands in this list only when somebody has
+    /// looked at what Windows makes of it.
     /// </summary>
     private static readonly HookCode[] NoWindowsKey =
     [
@@ -141,15 +157,26 @@ public class WindowsKeyTests
         HookCode.Underscore,
         HookCode.Yen,
         HookCode.JpComma,
+    ];
+
+    /// <summary>
+    /// The keys Windows numbers but no keystroke can carry: an IME's own keys, the number pad's
+    /// separator and equals, and the library's "misc". A posted message names the key and needs only
+    /// the code, so these have one; a keystroke is a scan code, and these have none on the layouts
+    /// this runs on — measured with a keyboard hook, asking for one posts VK 0xFF and no key arrives.
+    /// Refusing them by name is what keeps a keystroke from going out as a neighbouring key.
+    /// </summary>
+    private static readonly HookCode[] NoKeystroke =
+    [
         HookCode.Kana,
-        HookCode.Hanja,
+        HookCode.ImeOn,
         HookCode.Junja,
         HookCode.Final,
-        HookCode.Accept,
+        HookCode.Hanja,
+        HookCode.ImeOff,
         HookCode.Convert,
         HookCode.NonConvert,
-        HookCode.ImeOn,
-        HookCode.ImeOff,
+        HookCode.Accept,
         HookCode.ModeChange,
         HookCode.Process,
         HookCode.Misc,
@@ -157,8 +184,12 @@ public class WindowsKeyTests
         HookCode.NumPadEquals,
     ];
 
+    /// <summary>
+    /// Every key the library speaks either has a Windows code to post or is named as having none.
+    /// The second group is the one no message could name: Windows numbers no such key.
+    /// </summary>
     [Fact]
-    public void Every_key_the_library_speaks_is_posted_or_named_as_having_no_code()
+    public void Every_key_the_library_speaks_has_a_windows_code_or_is_named_as_having_none()
     {
         var unlisted = new List<string>();
         foreach (var code in Enum.GetValues<HookCode>())
@@ -179,7 +210,22 @@ public class WindowsKeyTests
     }
 
     /// <summary>
-    /// Every key Windows numbers can be one key press, Pause included. A keyboard sends Pause as
+    /// A key Windows numbers but no keystroke carries is still posted: the code is what a message
+    /// says the key was. The number pad's separator is the case that shows the difference — it can
+    /// be sent to a window and cannot be typed.
+    /// </summary>
+    [Fact]
+    public void A_key_no_keystroke_carries_is_posted_and_never_pressed()
+    {
+        foreach (var code in NoKeystroke)
+        {
+            Assert.NotNull(WindowsKeys.VirtualKey(code));
+            Assert.False(WindowsKeys.CanBePressed(code), $"{code} must not be pressed");
+        }
+    }
+
+    /// <summary>
+    /// Every key that is not named as uncarriable can be one key press, Pause included. A keyboard sends Pause as
     /// the three-byte sequence E1 1D 45, which a single input event cannot express — but the E1 1D
     /// prefix is eaten by the keyboard driver, and what the application is handed is VK_PAUSE with
     /// scan code 0x45. That pair is what the sender states, so the window is told the same thing a
@@ -188,7 +234,7 @@ public class WindowsKeyTests
     /// the library's sender used to answer Pause with RightCtrl, which is worse than nothing.
     /// </summary>
     [Fact]
-    public void Every_key_that_is_posted_can_be_pressed()
+    public void Every_key_is_pressable_unless_it_is_named_as_uncarriable()
     {
         Assert.True(WindowsKeys.CanBePressed(HookCode.Pause));
 
@@ -203,7 +249,9 @@ public class WindowsKeyTests
             .ToArray();
 
         var wanted = Enum.GetValues<HookCode>()
-            .Where(code => code != HookCode.Undefined && !NoWindowsKey.Contains(code))
+            .Where(code => code != HookCode.Undefined
+                           && !NoWindowsKey.Contains(code)
+                           && !NoKeystroke.Contains(code))
             .Order()
             .ToArray();
 
