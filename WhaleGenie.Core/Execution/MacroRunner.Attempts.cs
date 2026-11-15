@@ -44,8 +44,8 @@ public sealed partial class MacroRunner
         // What the step works out while it runs is kept for whoever is watching it, and nothing is
         // kept when nobody is: a macro a trigger started is not made to turn every result into text
         // so that a window which is not there can ignore it.
-        var outerWorked = _worked;
-        _worked = _looks is null ? null : [];
+        var outerWorked = _here.Worked;
+        _here.Worked = _looks is null ? null : [];
         var startedStep = Stopwatch.GetTimestamp();
         Expression.BeginDiagnostics();
         try
@@ -54,7 +54,7 @@ public sealed partial class MacroRunner
         }
         finally
         {
-            _worked = outerWorked;
+            _here.Worked = outerWorked;
             foreach (var note in Expression.TakeDiagnostics())
             {
                 Log(LogLevel.Warn, depth, step.Type, note.Key, [.. note.Arguments]);
@@ -147,8 +147,8 @@ public sealed partial class MacroRunner
 
         async Task<Signal> Spent(ExecutableStep stepToFail, CancellationToken stopToken)
         {
-            _failure = WaitedTooLong(stepToFail);
-            Log(LogLevel.Error, depth, step.Type, _failure.Key, _failure.Detail);
+            _here.Failure = WaitedTooLong(stepToFail);
+            Log(LogLevel.Error, depth, step.Type, _here.Failure.Key, _here.Failure.Detail);
 
             // The time is gone, so another try cannot be paid for. Everything else the step's
             // failure rule says — carry on, next round, stop, ask — still applies.
@@ -220,8 +220,8 @@ public sealed partial class MacroRunner
                 // levels work together: the inside decides first, the block decides what is left.
                 if (signal is Signal.Failed)
                 {
-                    var failure = _failure ?? new StepFailure(RunKeys.Failed);
-                    _failure = failure;
+                    var failure = _here.Failure ?? new StepFailure(RunKeys.Failed);
+                    _here.Failure = failure;
                     attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran: false));
 
                     var stopped = await RetryOrStop(step, attempt, token);
@@ -244,7 +244,7 @@ public sealed partial class MacroRunner
             {
                 var failure = WaitedTooLong(step);
                 attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran: true));
-                _failure = failure;
+                _here.Failure = failure;
                 Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
                 var decided = await Decide(step, token);
                 return StepFailed(step, decided is Decision.Retry ? Decision.Stop : decided,
@@ -257,7 +257,7 @@ public sealed partial class MacroRunner
                     ? new StepFailure(RunKeys.Timeout, budget.ToString(CultureInfo.InvariantCulture))
                     : caught;
                 attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran));
-                _failure = failure;
+                _here.Failure = failure;
                 Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
 
                 // What a thrown failure does next is the same as what a signalled one does; the
@@ -385,7 +385,7 @@ public sealed partial class MacroRunner
         IReadOnlyList<StepAttempt> attempts)
     {
         WriteOutcome(step, OutcomeFailed);
-        Report(step, OutcomeFailed, elapsedMs, _failure, Worked(), attempts);
+        Report(step, OutcomeFailed, elapsedMs, _here.Failure, Worked(), attempts);
         return decided switch
         {
             Decision.Skip => Signal.Normal,
@@ -423,7 +423,7 @@ public sealed partial class MacroRunner
 
     /// <summary>Everything the step being run has worked out, as it stands.</summary>
     private IReadOnlyList<StepResult> Worked()
-        => _worked is { Count: > 0 } worked ? [.. worked] : [];
+        => _here.Worked is { Count: > 0 } worked ? [.. worked] : [];
 
     /// <summary>
     /// What the step's failure rule says to do about the failure that just happened. The failure
@@ -435,7 +435,7 @@ public sealed partial class MacroRunner
         {
             StepErrorAction.Continue => Decision.Skip,
             StepErrorAction.NextIteration => Decision.NextIteration,
-            StepErrorAction.AskUser => await Ask(step, _failure ?? new StepFailure(RunKeys.Failed), token),
+            StepErrorAction.AskUser => await Ask(step, _here.Failure ?? new StepFailure(RunKeys.Failed), token),
             _ => Decision.Stop,
         };
 
@@ -506,8 +506,8 @@ public sealed partial class MacroRunner
         // Whatever the step before this one read is not what this one read. A step that looks at a
         // picture it was handed rather than taking one of its own says nothing about a window,
         // which is truer than repeating what the step before it was looking at.
-        _takenWindow = string.Empty;
-        _takenMethod = null;
+        _here.TakenWindow = string.Empty;
+        _here.TakenMethod = null;
 
         // The shared browser is its own piece of state. Every browser step takes this door, whether
         // or not the macro asked to take turns sending input: another run must not switch the page

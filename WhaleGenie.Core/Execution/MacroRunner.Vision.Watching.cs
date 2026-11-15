@@ -30,7 +30,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Watching(Action body)
     {
-        _saw = null;
+        _here.Saw = null;
         try
         {
             body();
@@ -44,7 +44,7 @@ public sealed partial class MacroRunner
     /// <summary>The same, for a step that has to wait for what it is looking at.</summary>
     private async Task Watching(Func<Task> body)
     {
-        _saw = null;
+        _here.Saw = null;
         try
         {
             await body();
@@ -58,8 +58,8 @@ public sealed partial class MacroRunner
     /// <summary>Hands the look over to whoever is watching, and forgets it.</summary>
     private void Show()
     {
-        var look = _saw;
-        _saw = null;
+        var look = _here.Saw;
+        _here.Saw = null;
         if (_looks is null || look is null)
         {
             return;
@@ -82,7 +82,7 @@ public sealed partial class MacroRunner
             return;
         }
 
-        _saw = new StepLook
+        _here.Saw = new StepLook
         {
             StepId = step.Id,
             StepType = step.Type,
@@ -97,8 +97,8 @@ public sealed partial class MacroRunner
             Minimum = minimum,
             PictureNumber = picture,
             PictureCount = pictures,
-            Source = _takenWindow,
-            Method = _takenMethod ?? CaptureWay.Auto,
+            Source = _here.TakenWindow,
+            Method = _here.TakenMethod ?? CaptureWay.Auto,
         };
     }
 

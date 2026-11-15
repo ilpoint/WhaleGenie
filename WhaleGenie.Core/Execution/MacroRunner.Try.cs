@@ -43,7 +43,7 @@ public sealed partial class MacroRunner
 
             if (signal is Signal.Failed)
             {
-                var failure = _failure ?? new StepFailure(RunKeys.Failed);
+                var failure = _here.Failure ?? new StepFailure(RunKeys.Failed);
                 var before = RememberCaught(failure);
                 try
                 {
@@ -61,7 +61,7 @@ public sealed partial class MacroRunner
                     {
                         // Not this block's failure. The key and detail travel on untouched; the
                         // clean-up steps below still run before the caller hears about it.
-                        _failure = failure;
+                        _here.Failure = failure;
                     }
                 }
                 finally
@@ -90,7 +90,7 @@ public sealed partial class MacroRunner
                     if (stopped && closingSignal is Signal.Failed)
                     {
                         Log(LogLevel.Warn, depth, step.Type, LogKeys.CleanupFailed,
-                            _failure?.Key ?? RunKeys.Failed);
+                            _here.Failure?.Key ?? RunKeys.Failed);
                     }
                 }
                 catch (OperationCanceledException) when (cleanup.IsCancellationRequested)

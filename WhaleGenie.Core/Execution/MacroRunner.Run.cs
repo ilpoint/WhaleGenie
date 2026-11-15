@@ -96,8 +96,6 @@ public sealed partial class MacroRunner
         }
     }
 
-    private StepFailure? _failure;
-
     /// <summary>How many names a run may keep before it says so, once.</summary>
     private const int LocalNameWarning = 50_000;
 
@@ -235,7 +233,7 @@ public sealed partial class MacroRunner
         CancellationToken token = default)
     {
         _run.Begin(token, steps, InitialCallDepth);
-        _failure = null;
+        _here.Failure = null;
 
         // A declaration belongs to the macro that wrote it. A store the debug window keeps between
         // runs would otherwise still be holding the names of whatever ran last.
@@ -267,7 +265,7 @@ public sealed partial class MacroRunner
             if (StartSignature is { } signature
                 && SeedStart(signature) is { } startFailure)
             {
-                _failure = startFailure;
+                _here.Failure = startFailure;
                 Log(LogLevel.Error, 0, string.Empty, startFailure.Key, startFailure.Detail);
                 LeaveFailureLog();
                 return new RunResult(RunStatus.Failed, startFailure.Key, startFailure.Detail, 0);
@@ -280,16 +278,16 @@ public sealed partial class MacroRunner
             // ends the run the same way a missing macro does.
             if (signal is Signal.Break or Signal.Continue)
             {
-                _failure = new StepFailure(LoopControlKey(signal));
-                Log(LogLevel.Error, 0, string.Empty, _failure.Key);
+                _here.Failure = new StepFailure(LoopControlKey(signal));
+                Log(LogLevel.Error, 0, string.Empty, _here.Failure.Key);
                 signal = Signal.Failed;
             }
 
             var outcome = signal switch
             {
                 Signal.Stop => new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _run.Executed),
-                Signal.Failed => new RunResult(RunStatus.Failed, _failure?.Key ?? RunKeys.Failed,
-                    _failure?.Detail ?? string.Empty, _run.Executed),
+                Signal.Failed => new RunResult(RunStatus.Failed, _here.Failure?.Key ?? RunKeys.Failed,
+                    _here.Failure?.Detail ?? string.Empty, _run.Executed),
                 _ => new RunResult(RunStatus.Completed, string.Empty, string.Empty, _run.Executed),
             };
 

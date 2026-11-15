@@ -157,8 +157,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Taken(WindowInfo? window, CaptureWay method)
     {
-        _takenWindow = window?.Title ?? string.Empty;
-        _takenMethod = method;
+        _here.TakenWindow = window?.Title ?? string.Empty;
+        _here.TakenMethod = method;
         _run.LastFrame = Stopwatch.GetTimestamp();
     }
 

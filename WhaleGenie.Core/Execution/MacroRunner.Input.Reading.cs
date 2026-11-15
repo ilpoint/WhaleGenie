@@ -251,7 +251,7 @@ public sealed partial class MacroRunner
         var readings = ReadSpans(step);
         var (_, chosen) = Counting(step, readings, wanted, way);
 
-        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen,
+        SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen,
             wanted, minimum: Args(step).Number("minScore"));
     }
 }

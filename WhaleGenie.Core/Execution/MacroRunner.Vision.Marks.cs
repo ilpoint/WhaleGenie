@@ -28,17 +28,17 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Aim(ScreenPoint point)
     {
-        if (_looks is null || _saw is null)
+        if (_looks is null || _here.Saw is null)
         {
             return;
         }
 
-        var boxes = new List<LookBox>(_saw.Boxes)
+        var boxes = new List<LookBox>(_here.Saw.Boxes)
         {
             new(new ImageMatch(1, point, new ScreenSize(1, 1)), LookRole.Target),
         };
 
-        _saw = _saw with { Boxes = boxes, ChosenIndex = boxes.Count };
+        _here.Saw = _here.Saw with { Boxes = boxes, ChosenIndex = boxes.Count };
     }
 
     /// <summary>

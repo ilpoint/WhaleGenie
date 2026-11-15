@@ -30,7 +30,7 @@ public sealed partial class MacroRunner
     private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step)
     {
         var areas = SearchAreas(step);
-        _read = areas;
+        _here.Read = areas;
 
         var spans = new List<TextSpan>();
         foreach (var (area, origin) in areas)
@@ -230,7 +230,7 @@ public sealed partial class MacroRunner
         // 搜索范围可能写下好几处，也可能一处都没写（那就是整块屏幕或窗口）。每一处都读，
         // 读到的按区域顺序接起来：同一段话分在两个框里，读出来的仍是一句话。
         var spans = ReadSpans(step);
-        var areas = _read;
+        var areas = _here.Read;
         var (frame, corner) = areas[0];
 
         GivePoints(step, Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
@@ -267,7 +267,7 @@ public sealed partial class MacroRunner
         var readings = ReadSpans(step);
         var (hits, chosen) = Counting(step, readings, wanted, way);
 
-        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
+        SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen, wanted,
             minimum: Args(step).Number("minScore"));
 
         var span = hits.Count > 0 ? hits[0] : null;
@@ -323,7 +323,7 @@ public sealed partial class MacroRunner
         }
 
         var span = await WaitForValueAsync(Look, interval, token);
-        SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
+        SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen, wanted,
             minimum: Args(step).Number("minScore"));
 
         // A step that asked to look again waits a moment and confirms the line is still there: a
@@ -334,7 +334,7 @@ public sealed partial class MacroRunner
         {
             await Pause(again, token);
             span = Look() ?? throw new StepFailure(RunKeys.TextNotFound, wanted);
-            SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
+            SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen, wanted,
                 minimum: Args(step).Number("minScore"));
         }
 

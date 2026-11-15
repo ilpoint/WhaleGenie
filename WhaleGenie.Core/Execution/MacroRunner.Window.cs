@@ -60,7 +60,7 @@ public sealed partial class MacroRunner
             Variables.Set(name, value);
         }
 
-        if (_worked is { } worked)
+        if (_here.Worked is { } worked)
         {
             var workedOut = new StepResult(key, name, value.AsText())
             {
@@ -136,9 +136,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private void GiveTaken(ExecutableStep step)
     {
-        Give(step, "window", Value.FromText(_takenWindow));
+        Give(step, "window", Value.FromText(_here.TakenWindow));
         Give(step, "method", Value.FromText(
-            _takenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
+            _here.TakenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
     }
 
     /// <summary>
