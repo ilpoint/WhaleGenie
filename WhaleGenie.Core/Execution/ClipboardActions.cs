@@ -14,16 +14,12 @@ namespace WhaleGenie.Core.Execution;
 /// </summary>
 internal static class ClipboardActions
 {
-    /// <summary>One clipboard action: the run it belongs to, the step, its depth and its token.</summary>
-    internal delegate Task<Signal> Handler(IRunContext run, ExecutableStep step, int depth,
-        CancellationToken token);
-
     /// <summary>
     /// The clipboard actions, each answered by the method written for it. A step of another family
     /// is not in this table.
     /// </summary>
-    internal static readonly IReadOnlyDictionary<string, Handler> Map =
-        new Dictionary<string, Handler>(StringComparer.Ordinal)
+    internal static readonly IReadOnlyDictionary<string, RunActionHandler> Map =
+        new Dictionary<string, RunActionHandler>(StringComparer.Ordinal)
         {
             ["clipboard.writeText"] = static (run, step, depth, _) =>
             {
