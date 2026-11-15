@@ -65,6 +65,12 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 “启动方退出时顺带结束宿主”这一条。若该套件在此环境里报 `%TEMP%` 无权限，是命令沙箱对新建
 工程路径的限制，换 CI 或本机正常终端运行即可，与测试内容无关。
 
+`WhaleGenie.Tests` 的每次 `Ui.Run` 结束时，无头会话会把队列里剩下的任务泵完再拆除应用，预算
+5 秒；一个仍在自我续期的任务——渲染、动画、还在和界面说话的运行——会耗尽预算并以
+`You've caused dispatcher loop` 结束。`Ui` 把这种收尾失败当作收尾失败而不是测试失败：测试体
+已经跑完并拿到了结果，遗留队列属于即将丢弃的应用，下一次调用会重建 dispatcher。
+`UiIsolationTests` 用一个自我投递的任务守住这条。
+
 ## 在本机跑 CI
 
 Windows 上可以用 `act` 以自托管模式跑 `.github/workflows/ci.yml`，不经过容器：
@@ -79,6 +85,10 @@ act -j build-and-test -P windows-latest=-self-hosted --env ACT=true --action-off
 `--action-offline-mode` 使用 `~/.cache/act` 里已经下载的动作，避免 act 自己再拉一次。工作流在
 act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命令沙箱限制——这也是 `Platform.Tests`
 在这里能跑通的原因。
+
+`~/.cache/act` 会随每次运行复制一份工作区而涨到数 GB，可以整个删掉。删掉后第一次运行要重新
+`git clone --depth 1 --branch <tag> https://github.com/actions/<name>` 到
+`~/.cache/act/actions-<name>@<tag>`，或者临时去掉 `--action-offline-mode` 让 act 自己下载。
 
 依赖方向和主要类型见 [架构文档](../architecture.md)。开发时不必在本文档重复维护文件规模、
 动作数量或测试数量。
