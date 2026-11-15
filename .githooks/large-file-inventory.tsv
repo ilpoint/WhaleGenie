@@ -31,6 +31,7 @@
 275	WhaleGenie.Platform.Tests/DeviceActionTests.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责
 459	WhaleGenie.Core.Tests/ExpressionTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 308	WhaleGenie.Core.Tests/InputLimitTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
+334	WhaleGenie.Core.Tests/FakeRunContext.cs	keep: 一个族测试上下文实现四个运行接口，拆开会让每条用例构造四个对象
 595	WhaleGenie.Core.Tests/MacroRunnerTests.Calls.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
 345	WhaleGenie.Core.Tests/MacroRunnerTests.Declarations.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
 555	WhaleGenie.Core.Tests/MacroRunnerTests.Failure.cs	keep: 执行引擎测试的一族，按执行关注点拆分后单一职责
@@ -65,7 +66,7 @@
 428374	WhaleGenie.Core/Execution/ActionSemantics.json	keep: 机器可读动作目录，MCP、检查与测试共用一份
 547	WhaleGenie.Core/Execution/MacroRunner.Attempts.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 414	WhaleGenie.Core/Execution/MacroRunner.Calls.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
-450	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
+451	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 313	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 413	WhaleGenie.Core/Execution/MacroRunner.Run.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 300	WhaleGenie.Core/Execution/OcrReading.cs	keep: 一类动作的执行，失败键与日志只在这一点
@@ -73,6 +74,9 @@
 507	WhaleGenie.Core/Execution/SystemActions.cs	keep: 一类动作：机器事实、屏幕、环境、注册表、电源、声音与显示设置
 487	WhaleGenie.Core/Execution/UiaActions.cs	keep: 一类动作：找到元素、操作元素、读元素与读表格
 535	WhaleGenie.Core/Execution/FileActions.cs	keep: 一类动作：文本、单个文件、文件夹与归档、列表与变量快照
+355	WhaleGenie.Core/Execution/CaptureActions.cs	keep: 一类动作：截图、整窗截图与等屏幕静止共用同一次取图
+538	WhaleGenie.Core/Execution/ColourActions.cs	keep: 一类动作：像素读色、比色与找色；图案解析属于找色本身
+328	WhaleGenie.Core/Execution/ImageActions.cs	keep: 一类动作：找图、等图与点图；参考图与命中规则已抽出
 233	WhaleGenie.Core/Execution/FileJsonActions.cs	keep: 一类动作：JSON 读写与路径解析
 379	WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
 285	WhaleGenie.Core/Execution/WindowActions.cs	keep: 一类动作：窗口的存在、等待、前后台状态、移动与读取
