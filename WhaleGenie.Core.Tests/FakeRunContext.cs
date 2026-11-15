@@ -93,6 +93,27 @@ internal sealed class FakeRunContext : IRunContext
         return text.Length == 0 ? fallback : Math.Clamp(args.Number(name), 1, RunLimits.Matches);
     }
 
+    WindowInfo IRunContext.Locate(ExecutableStep step)
+        => ((IRunContext)this).Lookup(step)
+           ?? throw new StepFailure(RunKeys.WindowNotFound, step.Text("window"));
+
+    (int Left, int Top, int Width, int Height)? IRunContext.RectOf(ExecutableStep step, string name)
+    {
+        var value = ((IRunContext)this).Args(step).ValueOf(name);
+        if (value.IsNull)
+        {
+            return null;
+        }
+
+        int Side(string side)
+            => (int)(value.Field(side)?.AsNumber()
+                        ?? throw new StepFailure(RunKeys.BadRegion, step.Text(name).Trim()));
+
+        return value is { IsRecord: true }
+            ? (Side("left"), Side("top"), Side("width"), Side("height"))
+            : throw new StepFailure(RunKeys.BadRegion, step.Text(name).Trim());
+    }
+
     string IRunContext.Button(ExecutableStep step)
     {
         var button = step.Text("button").Trim();

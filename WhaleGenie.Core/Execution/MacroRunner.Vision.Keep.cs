@@ -47,7 +47,7 @@ public sealed partial class MacroRunner
         // region as it stands or read one part at a time. The middle is in it beside the corner:
         // that is the point a step aims at, and a macro that means the middle of what it just took
         // should not have to work it out of two halves of the rectangle.
-        var middle = Middle(corner, new ScreenSize(frame.Width, frame.Height));
+        var middle = ScreenMath.Middle(corner, new ScreenSize(frame.Width, frame.Height));
         ScreenPoint? client = null;
         if (sourceWindow is { } source)
         {

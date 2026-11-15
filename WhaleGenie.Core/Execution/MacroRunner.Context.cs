@@ -33,6 +33,11 @@ public sealed partial class MacroRunner : IRunContext
 
     WindowInfo? IRunContext.Lookup(ExecutableStep step) => Lookup(step);
 
+    WindowInfo IRunContext.Locate(ExecutableStep step) => Locate(step);
+
+    (int Left, int Top, int Width, int Height)? IRunContext.RectOf(ExecutableStep step, string name)
+        => RecordedRect(step, name);
+
     int IRunContext.Index(ExecutableStep step, string name, int fallback)
         => Index(step, name, fallback);
 

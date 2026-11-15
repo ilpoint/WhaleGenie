@@ -53,7 +53,7 @@ public sealed partial class MacroRunner
                     if (now.FirstOrDefault() is { Frame: { } frame, Origin: { } origin })
                     {
                         GivePoints(step,
-                            Middle(origin, new ScreenSize(frame.Width, frame.Height)), null);
+                            ScreenMath.Middle(origin, new ScreenSize(frame.Width, frame.Height)), null);
                     }
 
                     Log(LogLevel.Info, depth, step.Type, LogKeys.FrameStill, Elapsed());

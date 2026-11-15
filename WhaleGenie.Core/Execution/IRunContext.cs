@@ -49,6 +49,12 @@ internal interface IRunContext
     /// </summary>
     WindowInfo? Lookup(ExecutableStep step);
 
+    /// <summary>The same, as a failure naming the window that could not be found.</summary>
+    WindowInfo Locate(ExecutableStep step);
+
+    /// <summary>The rectangle a step's record field names, or null when it named none.</summary>
+    (int Left, int Top, int Width, int Height)? RectOf(ExecutableStep step, string name);
+
     /// <summary>Which of the hits a step means, counted from one and held to the search limit.</summary>
     int Index(ExecutableStep step, string name, int fallback);
 

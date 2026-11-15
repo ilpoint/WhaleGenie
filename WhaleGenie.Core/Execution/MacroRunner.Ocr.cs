@@ -233,7 +233,7 @@ public sealed partial class MacroRunner
         var areas = _here.Read;
         var (frame, corner) = areas[0];
 
-        GivePoints(step, Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
+        GivePoints(step, ScreenMath.Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
         var text = string.Join(' ', spans.Select(span => span.Text));
         Saw(step, LookKind.Text, frame, corner, Marks(areas, TextMarks(spans, default), 0), 0,
             note: text, minimum: Args(step).Number("minScore"));
