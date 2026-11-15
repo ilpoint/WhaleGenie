@@ -22,6 +22,15 @@ internal interface IRunContext
     /// <summary>One step's fields, read the way the catalogue says they are written.</summary>
     StepArguments Args(ExecutableStep step);
 
+    /// <summary>A yes/no field, with the answer a blank cell means.</summary>
+    bool Flag(ExecutableStep step, string name, bool fallback);
+
+    /// <summary>Whether the step asked for one of its results, by giving it a name.</summary>
+    bool Wants(ExecutableStep step, string key);
+
+    /// <summary>The window rule a step wrote, resolved the same way every family resolves it.</summary>
+    WindowRule WindowRuleOf(ExecutableStep step);
+
     /// <summary>Hands one result over under the name the step gave it.</summary>
     string Give(ExecutableStep step, string key, Value value);
 

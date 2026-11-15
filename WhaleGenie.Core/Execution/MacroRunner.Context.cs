@@ -16,6 +16,13 @@ public sealed partial class MacroRunner : IRunContext
 
     StepArguments IRunContext.Args(ExecutableStep step) => Args(step);
 
+    bool IRunContext.Flag(ExecutableStep step, string name, bool fallback)
+        => Flag(step, name, fallback);
+
+    bool IRunContext.Wants(ExecutableStep step, string key) => Wants(step, key);
+
+    WindowRule IRunContext.WindowRuleOf(ExecutableStep step) => WindowRuleOf(step);
+
     string IRunContext.Give(ExecutableStep step, string key, Value value)
         => Give(step, key, value);
 

@@ -1,13 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 using WhaleGenie.TestSupport;
 
 namespace WhaleGenie.Core.Tests;
@@ -22,7 +17,7 @@ public class ClipboardActionTests
     [Fact]
     public async Task Writing_text_puts_it_on_the_clipboard()
     {
-        var context = new Context();
+        var context = new FakeRunContext();
 
         await Run(context, "clipboard.writeText", ("clipboardText", "你好"));
 
@@ -34,7 +29,7 @@ public class ClipboardActionTests
     [Fact]
     public async Task Reading_text_hands_it_over_under_the_name_the_step_gave()
     {
-        var context = new Context();
+        var context = new FakeRunContext();
         context.Machine.Clipboard.Text = "copied words";
 
         await Run(context, "clipboard.readText");
@@ -45,7 +40,7 @@ public class ClipboardActionTests
     [Fact]
     public async Task Clearing_leaves_the_clipboard_empty()
     {
-        var context = new Context();
+        var context = new FakeRunContext();
         context.Machine.Clipboard.Text = "something";
 
         await Run(context, "clipboard.clear");
@@ -53,7 +48,7 @@ public class ClipboardActionTests
         Assert.Equal(string.Empty, context.Machine.Clipboard.Text);
     }
 
-    private static Task<Signal> Run(Context context, string type,
+    private static Task<Signal> Run(FakeRunContext context, string type,
         params (string Name, string Text)[] fields)
         => ClipboardActions.Map[type](context, Step(type, fields), 0, CancellationToken.None);
 
@@ -63,56 +58,4 @@ public class ClipboardActionTests
             Type = type,
             Parameters = [.. fields.Select(field => Fields.Text(field.Name, field.Text))],
         };
-
-    /// <summary>
-    /// The run as one family sees it: the devices, the results, the log and the picture it showed,
-    /// recorded rather than performed.
-    /// </summary>
-    private sealed class Context : IRunContext
-    {
-        private readonly VariableStore _variables = new();
-
-        public FakeDeviceLayer Machine { get; } = new();
-
-        public Dictionary<string, ImageFrame> Images { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-        public Dictionary<string, Value> Written { get; } = new(StringComparer.Ordinal);
-
-        public List<(LogLevel Level, string Key)> Logged { get; } = [];
-
-        public List<(LookKind Kind, ImageFrame Frame)> Shown { get; } = [];
-
-        IDeviceLayer IRunContext.Devices => Machine;
-
-        IDictionary<string, ImageFrame> IRunContext.Images => Images;
-
-        StepArguments IRunContext.Args(ExecutableStep step) => new(step, _variables, 16);
-
-        string IRunContext.Give(ExecutableStep step, string key, Value value)
-        {
-            Written[key] = value;
-            return key;
-        }
-
-        void IRunContext.Store(ExecutableStep step, string key, Value value, int depth)
-        {
-            Written[key] = value;
-            Logged.Add((LogLevel.Info, key));
-        }
-
-        void IRunContext.Log(LogLevel level, int depth, string type, string key,
-            params object[] arguments) => Logged.Add((level, key));
-
-        void IRunContext.Saw(ExecutableStep step, LookKind kind, ImageFrame frame)
-            => Shown.Add((kind, frame));
-
-        void IRunContext.Watching(Action body) => body();
-
-        IInputDevice IRunContext.Input(ExecutableStep step) => Machine.Input;
-
-        IReadOnlyList<string> IRunContext.Shortcut(ExecutableStep step) => ["Ctrl", "C"];
-
-        ImageFrame IRunContext.Reference(ExecutableStep step)
-            => throw new NotSupportedException("this family does not read reference pictures here");
-    }
 }

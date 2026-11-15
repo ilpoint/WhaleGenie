@@ -277,7 +277,8 @@ internal static class RunnerLedger
     /// </summary>
     private static readonly Regex ActionTables = new(
         "(?:private|internal|public)\\s+(?:static\\s+)?(?:readonly\\s+)?"
-        + "(?:IReadOnlyDictionary|Dictionary)<string,\\s*(?:ActionHandler|Handler)>\\s+[A-Za-z_]",
+        + "(?:IReadOnlyDictionary|Dictionary)<string,\\s*"
+        + "(?:RunActionHandler|ActionHandler|Handler)>\\s+[A-Za-z_]",
         RegexOptions.Compiled);
 
     /// <summary>
