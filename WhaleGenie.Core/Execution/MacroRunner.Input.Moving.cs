@@ -28,8 +28,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private void MovePointer(ExecutableStep step, ResolvedPoint to)
     {
-        var route = MousePath.Route(ReadText(step, "style"));
-        var duration = Pace(Number(step, "durationMs"));
+        var route = MousePath.Route(Args(step).Text("style"));
+        var duration = Pace(Args(step).Number("durationMs"));
         if (route is MouseRoute.Direct || PostsMessages(step))
         {
             Input(step).MoveMouse(to.Device.X, to.Device.Y, duration);
@@ -54,10 +54,10 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.BackgroundNeedsPointer);
         }
 
-        var dx = Number(step, "dx");
-        var dy = Number(step, "dy");
-        var route = MousePath.Route(ReadText(step, "style"));
-        var duration = Pace(Number(step, "durationMs"));
+        var dx = Args(step).Number("dx");
+        var dy = Args(step).Number("dy");
+        var route = MousePath.Route(Args(step).Text("style"));
+        var duration = Pace(Args(step).Number("durationMs"));
         if (route is MouseRoute.Direct)
         {
             Input(step).MoveMouseRelative(dx, dy, duration);
@@ -94,10 +94,10 @@ public sealed partial class MacroRunner
         var anchor = AnchorOf(step);
         var from = DragPlace(step, "start", anchor);
         var to = DragPlace(step, "end", anchor);
-        var duration = Pace(Number(step, "durationMs"));
-        var settle = Pace(Number(step, "settleMs"));
-        var steps = Math.Clamp(Number(step, "dragSteps"), 1, 200);
-        var route = MousePath.Route(ReadText(step, "style"));
+        var duration = Pace(Args(step).Number("durationMs"));
+        var settle = Pace(Args(step).Number("settleMs"));
+        var steps = Math.Clamp(Args(step).Number("dragSteps"), 1, 200);
+        var route = MousePath.Route(Args(step).Text("style"));
         if (route is not MouseRoute.Direct)
         {
             if (duration <= 0)

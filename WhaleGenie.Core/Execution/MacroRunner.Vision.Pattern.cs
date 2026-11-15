@@ -61,8 +61,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private List<ImageMatch> PatternHits(ExecutableStep step)
     {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var target = PixelColor.Parse(Args(step).ValueOf("color").AsText());
+        var tolerance = Args(step).ValueOf("tolerance").AsNumber();
         var around = Pattern(step);
 
         var wanted = Wanted(step);

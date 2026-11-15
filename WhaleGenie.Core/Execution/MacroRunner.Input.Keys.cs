@@ -22,11 +22,11 @@ namespace WhaleGenie.Core.Execution;
 public sealed partial class MacroRunner
 {
     private IReadOnlyList<string> Keys(ExecutableStep step)
-        => Chord(ReadText(step, "keys"));
+        => Chord(Args(step).Text("keys"));
 
     /// <summary>The shortcut a clipboard step presses, written as one combination.</summary>
     private IReadOnlyList<string> Shortcut(ExecutableStep step)
-        => Chord(ReadText(step, "shortcut"));
+        => Chord(Args(step).Text("shortcut"));
 
     /// <summary>The keys of one written combination, such as the Ctrl+Shift+S a row of a sequence holds.</summary>
     private static IReadOnlyList<string> Chord(string written)
@@ -43,11 +43,11 @@ public sealed partial class MacroRunner
     private async Task SendKeySequence(ExecutableStep step, int depth, CancellationToken token)
     {
         var rows = step.Rows("keySequence");
-        var hold = Number(step, "holdMs");
-        var gap = Number(step, "gapMs");
-        var after = Pace(Number(step, "afterMs"));
-        var runs = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "sequenceIntervalMs"));
+        var hold = Args(step).Number("holdMs");
+        var gap = Args(step).Number("gapMs");
+        var after = Pace(Args(step).Number("afterMs"));
+        var runs = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("sequenceIntervalMs"));
         var presses = 0;
 
         for (var run = 0; run < runs; run++)
@@ -101,11 +101,11 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task WaitForKey(ExecutableStep step, CancellationToken token)
     {
-        var written = ReadText(step, "key").Trim();
+        var written = Args(step).Text("key").Trim();
         var wanted = written.Length == 0
             ? (HookKey?)null
             : KeyNames.Resolve(written) ?? throw new StepFailure(RunKeys.UnknownKey, written);
-        var up = string.Equals(ReadText(step, "event").Trim(), "up", StringComparison.OrdinalIgnoreCase);
+        var up = string.Equals(Args(step).Text("event").Trim(), "up", StringComparison.OrdinalIgnoreCase);
         var swallow = Flag(step, "swallow", false);
 
         var heard = new TaskCompletionSource<KeyHookEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -158,10 +158,10 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task PressKey(ExecutableStep step, CancellationToken token)
     {
-        var key = ReadText(step, "key");
-        var hold = Pace(Number(step, "holdMs"));
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var key = Args(step).Text("key");
+        var hold = Pace(Args(step).Number("holdMs"));
+        var repeats = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("intervalMs"));
 
         for (var count = 0; count < repeats; count++)
         {
@@ -186,10 +186,10 @@ public sealed partial class MacroRunner
     private async Task PressGamepadButton(ExecutableStep step, CancellationToken token)
     {
         var device = _devices.Gamepad;
-        var button = ReadText(step, "button");
+        var button = Args(step).Text("button");
         _run.GamepadUsed = true;
 
-        switch (ReadText(step, "buttonMode").Trim().ToLowerInvariant())
+        switch (Args(step).Text("buttonMode").Trim().ToLowerInvariant())
         {
             case "down":
                 device.Button(button, true);
@@ -199,9 +199,9 @@ public sealed partial class MacroRunner
                 return;
         }
 
-        var hold = Math.Max(Pace(Number(step, "holdMs")), ShortestPressMs);
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var hold = Math.Max(Pace(Args(step).Number("holdMs")), ShortestPressMs);
+        var repeats = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("intervalMs"));
 
         for (var count = 0; count < repeats; count++)
         {
@@ -221,9 +221,9 @@ public sealed partial class MacroRunner
     private async Task SendHotkey(ExecutableStep step, CancellationToken token)
     {
         var keys = Keys(step);
-        var hold = Pace(Number(step, "holdMs"));
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var hold = Pace(Args(step).Number("holdMs"));
+        var repeats = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("intervalMs"));
 
         for (var count = 0; count < repeats; count++)
         {

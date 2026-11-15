@@ -76,7 +76,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private (string To, bool Go) Landing(ExecutableStep step, string to)
     {
-        var choice = ReadText(step, "ifExists").Trim().ToLowerInvariant();
+        var choice = Args(step).Text("ifExists").Trim().ToLowerInvariant();
         if (!_devices.Files.Exists(to))
         {
             return (to, true);

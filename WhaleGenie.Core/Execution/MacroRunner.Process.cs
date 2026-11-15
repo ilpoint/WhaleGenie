@@ -25,9 +25,9 @@ public sealed partial class MacroRunner
     /// <summary>Starts another program and keeps what later steps need to reach it.</summary>
     private void StartProcess(ExecutableStep step, int depth)
     {
-        var program = ReadValue(step, "programFile").AsText();
-        var arguments = ReadValue(step, "commandArguments").AsText();
-        var folder = ReadValue(step, "workingDirectory").AsText();
+        var program = Args(step).ValueOf("programFile").AsText();
+        var arguments = Args(step).ValueOf("commandArguments").AsText();
+        var folder = Args(step).ValueOf("workingDirectory").AsText();
         var hidden = Flag(step, "hidden", false);
         var runAsAdmin = Flag(step, "runAsAdmin", false);
 
@@ -94,7 +94,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private Dictionary<string, string>? EnvironmentOf(ExecutableStep step)
     {
-        var text = ReadText(step, "environment");
+        var text = Args(step).Text("environment");
         if (text.Trim().Length == 0)
         {
             return null;
@@ -128,7 +128,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private string? StandardInputOf(ExecutableStep step)
     {
-        var text = ReadText(step, "standardInput");
+        var text = Args(step).Text("standardInput");
         return text.Trim().Length == 0 ? null : text;
     }
 
@@ -247,9 +247,9 @@ public sealed partial class MacroRunner
     /// <summary>Runs a command line to the end and keeps what it printed.</summary>
     private void RunCommand(ExecutableStep step, int depth)
     {
-        var program = ReadValue(step, "commandFile").AsText();
-        var arguments = ReadValue(step, "commandArguments").AsText();
-        var folder = ReadValue(step, "workingDirectory").AsText();
+        var program = Args(step).ValueOf("commandFile").AsText();
+        var arguments = Args(step).ValueOf("commandArguments").AsText();
+        var folder = Args(step).ValueOf("workingDirectory").AsText();
         // The process device takes zero to mean "do not wait at all"; the step's own zero means
         // "no limit", which is the largest wait it can be given.
         var timeout = step.Meta.TimeoutMs > 0 ? step.Meta.TimeoutMs : int.MaxValue;

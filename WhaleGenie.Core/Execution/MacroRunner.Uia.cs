@@ -32,7 +32,7 @@ public sealed partial class MacroRunner
     {
         var query = Query(step);
         var timeout = step.Meta.TimeoutMs;
-        var poll = Number(step, "intervalMs");
+        var poll = Args(step).Number("intervalMs");
         if (poll <= 0)
         {
             poll = 200;
@@ -40,7 +40,7 @@ public sealed partial class MacroRunner
 
         if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, poll, token))
         {
-            throw new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector"));
         }
 
         // What turned up, handed over the way uia.read hands over the same thing: a step that waited
@@ -51,7 +51,7 @@ public sealed partial class MacroRunner
             Give(step, "element", ElementRecord(found));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementFound, ReadText(step, "uiSelector"));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementFound, Args(step).Text("uiSelector"));
     }
 
     /// <summary>
@@ -127,29 +127,29 @@ public sealed partial class MacroRunner
 
         if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, 200, token))
         {
-            throw new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector"));
         }
 
         if (!_devices.Ui.Click(query, Button(step)))
         {
-            throw new StepFailure(RunKeys.ElementNotClickable, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotClickable, Args(step).Text("uiSelector"));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedElement, ReadText(step, "uiSelector"));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedElement, Args(step).Text("uiSelector"));
     }
 
     private void SetElementText(ExecutableStep step, int depth)
     {
         var query = Query(step);
-        var text = ReadValue(step, "valueText").AsText();
-        var clear = !string.Equals(ReadText(step, "clearFirst").Trim(), "false", StringComparison.OrdinalIgnoreCase);
+        var text = Args(step).ValueOf("valueText").AsText();
+        var clear = !string.Equals(Args(step).Text("clearFirst").Trim(), "false", StringComparison.OrdinalIgnoreCase);
 
         if (!_devices.Ui.SetText(query, text, clear))
         {
-            throw new StepFailure(RunKeys.ElementNotWritable, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotWritable, Args(step).Text("uiSelector"));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementFilled, ReadText(step, "uiSelector"), text);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementFilled, Args(step).Text("uiSelector"), text);
     }
 
     /// <summary>
@@ -164,15 +164,15 @@ public sealed partial class MacroRunner
 
         if (!await WaitForFlagAsync(() => _devices.Ui.Exists(query, 0), timeout, 200, token))
         {
-            throw new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector"));
         }
 
         if (!_devices.Ui.Invoke(query))
         {
-            throw new StepFailure(RunKeys.ElementNotInvocable, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotInvocable, Args(step).Text("uiSelector"));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.InvokedElement, ReadText(step, "uiSelector"));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.InvokedElement, Args(step).Text("uiSelector"));
     }
 
     /// <summary>
@@ -184,11 +184,11 @@ public sealed partial class MacroRunner
     private void ReadElement(ExecutableStep step, int depth)
     {
         var facts = _devices.Ui.Facts(Query(step))
-            ?? throw new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector"));
+            ?? throw new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector"));
 
         Give(step, "element", ElementRecord(facts));
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ReadElement, ReadText(step, "uiSelector"), facts.Value);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ReadElement, Args(step).Text("uiSelector"), facts.Value);
     }
 
     private void FocusWindow(ExecutableStep step, int depth)
@@ -210,8 +210,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private void SelectItem(ExecutableStep step, int depth)
     {
-        var item = ReadValue(step, "item").AsText().Trim();
-        var index = Number(step, "itemIndex");
+        var item = Args(step).ValueOf("item").AsText().Trim();
+        var index = Args(step).Number("itemIndex");
         var which = item.Length > 0 ? item : index.ToString(CultureInfo.InvariantCulture);
         if (item.Length == 0 && index <= 0)
         {
@@ -223,30 +223,30 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.ItemNotFound, which);
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.SelectedItem, ReadText(step, "uiSelector"), which);
+        Log(LogLevel.Info, depth, step.Type, LogKeys.SelectedItem, Args(step).Text("uiSelector"), which);
     }
 
     /// <summary>Turns a check box on, off, or the other way round.</summary>
     private void SetElementChecked(ExecutableStep step, int depth)
     {
-        if (!_devices.Ui.SetChecked(Query(step), Switch(ReadText(step, "checkState"))))
+        if (!_devices.Ui.SetChecked(Query(step), Switch(Args(step).Text("checkState"))))
         {
-            throw new StepFailure(RunKeys.ElementNotCheckable, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotCheckable, Args(step).Text("uiSelector"));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementChecked, ReadText(step, "uiSelector"));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementChecked, Args(step).Text("uiSelector"));
     }
 
     /// <summary>Opens or closes a node: a tree branch, an accordion, a collapsed panel.</summary>
     private void SetElementExpanded(ExecutableStep step, int depth)
     {
-        var action = ReadText(step, "expandState").Trim();
+        var action = Args(step).Text("expandState").Trim();
         if (!_devices.Ui.SetExpanded(Query(step), action.Length == 0 ? "expand" : action))
         {
-            throw new StepFailure(RunKeys.ElementNotExpandable, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotExpandable, Args(step).Text("uiSelector"));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementExpanded, ReadText(step, "uiSelector"));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ElementExpanded, Args(step).Text("uiSelector"));
     }
 
     /// <summary>Scrolls an element into view inside whatever list or panel holds it.</summary>
@@ -254,10 +254,10 @@ public sealed partial class MacroRunner
     {
         if (!_devices.Ui.ScrollIntoView(Query(step)))
         {
-            throw new StepFailure(RunKeys.ElementNotScrollable, ReadText(step, "uiSelector"));
+            throw new StepFailure(RunKeys.ElementNotScrollable, Args(step).Text("uiSelector"));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ScrolledElement, ReadText(step, "uiSelector"));
+        Log(LogLevel.Info, depth, step.Type, LogKeys.ScrolledElement, Args(step).Text("uiSelector"));
     }
 
     /// <summary>
@@ -269,7 +269,7 @@ public sealed partial class MacroRunner
     {
         // A step with no row limit at all still gets one, the same default the editor shows, so a
         // table nobody bounded cannot be read forever.
-        var limit = Math.Clamp(Number(step, "maxRows"), 1, MaxRows);
+        var limit = Math.Clamp(Args(step).Number("maxRows"), 1, MaxRows);
         var table = _devices.Ui.ReadTable(Query(step), limit);
 
         // A grid that keeps no strip of column names still has columns: they are the places its

@@ -23,14 +23,14 @@ public sealed partial class MacroRunner
 {
     private void SetVariable(ExecutableStep step, int depth)
     {
-        var name = WrittenName(step, "name").Trim();
+        var name = Args(step).Written("name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
         var target = Target(step, name);
-        var value = ReadValue(step, "value");
+        var value = Args(step).ValueOf("value");
         target.Set(name, value);
         NoteLocalGrowth(depth);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Set, name, value.AsText());
@@ -44,13 +44,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ClearVariable(ExecutableStep step, int depth)
     {
-        var name = WrittenName(step, "name").Trim();
+        var name = Args(step).Written("name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        if (string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Args(step).Text("scope"), "global", StringComparison.OrdinalIgnoreCase))
         {
             if (!Variables.Global.Contains(name))
             {
@@ -86,7 +86,7 @@ public sealed partial class MacroRunner
     /// <summary>The key a Fail step reports, either the engine's default or the macro's own.</summary>
     private string FailureKeyOf(ExecutableStep step)
     {
-        var key = ReadText(step, "failureKey").Trim();
+        var key = Args(step).Text("failureKey").Trim();
         if (key.Length == 0)
         {
             return RunKeys.StepFailedByMacro;
@@ -107,8 +107,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> AskPerson(ExecutableStep step, int depth, CancellationToken token)
     {
-        var message = ReadValue(step, "message").AsText();
-        var detail = ReadValue(step, "detail").AsText();
+        var message = Args(step).ValueOf("message").AsText();
+        var detail = Args(step).ValueOf("detail").AsText();
         if (message.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingQuestion);
@@ -130,13 +130,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> AskForText(ExecutableStep step, int depth, CancellationToken token)
     {
-        var message = ReadValue(step, "message").AsText();
+        var message = Args(step).ValueOf("message").AsText();
         if (message.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingQuestion);
         }
 
-        var suggestion = ReadValue(step, "default").AsText();
+        var suggestion = Args(step).ValueOf("default").AsText();
         var answer = await _host.AskUser(new AskQuestion(AskKind.Text, message, suggestion), token);
 
         Store(step, "text", Value.FromText(answer.Text), depth);
@@ -151,13 +151,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private void IncrementGlobal(ExecutableStep step, int depth)
     {
-        var name = WrittenName(step, "name").Trim();
+        var name = Args(step).Written("name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
         }
 
-        var amount = ReadValue(step, "amount").AsNumber();
+        var amount = Args(step).ValueOf("amount").AsNumber();
         double sum;
         try
         {
@@ -186,7 +186,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ChangeList(ExecutableStep step, int depth)
     {
-        var name = WrittenName(step, "name").Trim();
+        var name = Args(step).Written("name").Trim();
         if (name.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingVariable);
@@ -217,14 +217,14 @@ public sealed partial class MacroRunner
         switch (step.Type)
         {
             case "control.listAdd":
-                items.Add(ReadValue(step, "value"));
+                items.Add(Args(step).ValueOf("value"));
                 break;
             case "control.listInsert":
-                items.Insert(Math.Clamp(Number(step, "listIndex"), 0, items.Count),
-                    ReadValue(step, "value"));
+                items.Insert(Math.Clamp(Args(step).Number("listIndex"), 0, items.Count),
+                    Args(step).ValueOf("value"));
                 break;
             case "control.listSet":
-                items[Index(step, items.Count)] = ReadValue(step, "value");
+                items[Index(step, items.Count)] = Args(step).ValueOf("value");
                 break;
             case "control.listRemoveAt":
                 items.RemoveAt(Index(step, items.Count));
@@ -239,7 +239,7 @@ public sealed partial class MacroRunner
 
     private int Index(ExecutableStep step, int count)
     {
-        var index = Number(step, "listIndex");
+        var index = Args(step).Number("listIndex");
         if (index < 0)
         {
             index += count;
@@ -247,7 +247,7 @@ public sealed partial class MacroRunner
 
         if (index < 0 || index >= count)
         {
-            throw new StepFailure(RunKeys.IndexOutOfRange, ReadText(step, "listIndex"));
+            throw new StepFailure(RunKeys.IndexOutOfRange, Args(step).Text("listIndex"));
         }
 
         return index;
@@ -255,7 +255,7 @@ public sealed partial class MacroRunner
 
     private VariableBag Target(ExecutableStep step, string name)
     {
-        if (!string.Equals(ReadText(step, "scope"), "global", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Args(step).Text("scope"), "global", StringComparison.OrdinalIgnoreCase))
         {
             return Variables.Local;
         }

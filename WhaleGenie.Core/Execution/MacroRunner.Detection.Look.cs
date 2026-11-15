@@ -32,9 +32,9 @@ public sealed partial class MacroRunner
     /// <summary>What a step asked the model to look for, as the device reads it.</summary>
     private DetectionQuery Detection(ExecutableStep step)
     {
-        var confidence = Number(step, "confidence");
-        var overlap = Number(step, "iou");
-        var input = Number(step, "inputSize");
+        var confidence = Args(step).Number("confidence");
+        var overlap = Args(step).Number("iou");
+        var input = Args(step).Number("inputSize");
 
         // Every box the model found is collected, whatever the step will take out of them. Looking
         // for more costs nothing here — one pass of the model answers with all of them — while asking
@@ -46,7 +46,7 @@ public sealed partial class MacroRunner
             confidence > 0 ? confidence : 25,
             input >= 32 ? input : 640,
             overlap > 0 ? overlap : 45,
-            Rows(ReadText(step, "labels")),
+            Rows(Args(step).Text("labels")),
             MatchLimit,
             LabelFileOf(step));
     }
@@ -59,7 +59,7 @@ public sealed partial class MacroRunner
     private string Looking(ExecutableStep step)
     {
         var model = System.IO.Path.GetFileName(ModelOf(step));
-        var labels = Rows(ReadText(step, "labels"));
+        var labels = Rows(Args(step).Text("labels"));
         return labels.Count == 0 ? model : $"{model} {string.Join(',', labels)}";
     }
 

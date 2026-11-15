@@ -29,10 +29,10 @@ public sealed partial class MacroRunner
         // A script may be written in the step or named as a file on disk. A file is run where it
         // lies: nothing of it is copied, so what it reads beside itself, what it includes and what
         // a variable written into it would have been are exactly what its author wrote.
-        var fromFile = string.Equals(ReadText(step, "scriptSource").Trim(), "file",
+        var fromFile = string.Equals(Args(step).Text("scriptSource").Trim(), "file",
             StringComparison.OrdinalIgnoreCase);
-        var chosen = fromFile ? ReadValue(step, "scriptFile").AsText().Trim() : string.Empty;
-        var script = fromFile ? string.Empty : Template(ReadText(step, "script"));
+        var chosen = fromFile ? Args(step).ValueOf("scriptFile").AsText().Trim() : string.Empty;
+        var script = fromFile ? string.Empty : Template(Args(step).Text("script"));
         if (chosen.Length == 0 && script.Trim().Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScript);
@@ -60,7 +60,7 @@ public sealed partial class MacroRunner
         // A script named as a file cannot have a line added to it, so the kind that needs the mark
         // gets a little batch file of its own to run it with: the mark still says when the command
         // is done, and the file that was named stays exactly as it was.
-        var passed = Template(ReadText(step, "scriptArguments")).Trim();
+        var passed = Template(Args(step).Text("scriptArguments")).Trim();
         var wrapper = sentinel.Length > 0 && fromFile
             ? Path.Combine(ScriptFolder(), $"script-{stamp}.cmd")
             : string.Empty;

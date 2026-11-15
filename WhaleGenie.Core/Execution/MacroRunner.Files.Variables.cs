@@ -25,7 +25,7 @@ public sealed partial class MacroRunner
     private void SaveVariables(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var chosen = ReadText(step, "names").Trim();
+        var chosen = Args(step).Text("names").Trim();
         IEnumerable<string> names = chosen.Length > 0
             ? chosen.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             : Variables.Local.Values.Keys
@@ -84,7 +84,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void EncodeBase64(ExecutableStep step, int depth)
     {
-        var text = ReadValue(step, "dataText").AsText();
+        var text = Args(step).ValueOf("dataText").AsText();
         var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
         Store(step, "encoded", Value.FromText(encoded), depth);
     }
@@ -95,7 +95,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void DecodeBase64(ExecutableStep step, int depth)
     {
-        var text = ReadValue(step, "dataText").AsText();
+        var text = Args(step).ValueOf("dataText").AsText();
         byte[] bytes;
         try
         {
@@ -116,9 +116,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private void HashText(ExecutableStep step, int depth)
     {
-        var algorithm = ReadText(step, "hashAlgorithm");
+        var algorithm = Args(step).Text("hashAlgorithm");
         byte[] digest;
-        if (string.Equals(ReadText(step, "hashSource").Trim(), "file", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Args(step).Text("hashSource").Trim(), "file", StringComparison.OrdinalIgnoreCase))
         {
             var path = PathOf(step);
             using var file = _devices.Files.OpenRead(path);
@@ -126,7 +126,7 @@ public sealed partial class MacroRunner
         }
         else
         {
-            var text = ReadValue(step, "dataText").AsText();
+            var text = Args(step).ValueOf("dataText").AsText();
             digest = ComputeHash(algorithm, new MemoryStream(Encoding.UTF8.GetBytes(text)));
         }
 

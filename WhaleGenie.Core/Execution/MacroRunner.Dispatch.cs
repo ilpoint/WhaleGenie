@@ -133,7 +133,7 @@ public sealed partial class MacroRunner
             case "control.runMacro":
                 return await RunOtherMacro(step, depth, token);
             case "control.delay":
-                await Pause(Pace(Number(step, "ms")), token);
+                await Pause(Pace(Args(step).Number("ms")), token);
                 return Signal.Normal;
             case "control.waitUntil":
                 return await RunWaitUntil(step, depth, token);
@@ -161,13 +161,13 @@ public sealed partial class MacroRunner
                 throw CaughtFailure();
             case "control.stop":
                 Log(LogLevel.Warn, depth, step.Type, LogKeys.StopRequested,
-                    ReadValue(step, "reason").AsText());
+                    Args(step).ValueOf("reason").AsText());
                 return Signal.Stop;
             case "control.fail":
                 // The macro says this step did not work. It travels the same way a device failure
                 // does, so whatever the step's failure rule says — retry, carry on, ask — holds for
                 // a step the macro itself called failed.
-                throw new StepFailure(FailureKeyOf(step), ReadValue(step, "reason").AsText());
+                throw new StepFailure(FailureKeyOf(step), Args(step).ValueOf("reason").AsText());
             case "control.note":
                 // A note is for whoever reads the macro. There is nothing to do and nothing to say.
                 return Signal.Normal;
@@ -188,7 +188,7 @@ public sealed partial class MacroRunner
                 ChangeList(step, depth);
                 return Signal.Normal;
             case "control.log":
-                Log(Level(ReadText(step, "level")), depth, step.Type, LogKeys.Message, ReadValue(step, "message").AsText());
+                Log(Level(Args(step).Text("level")), depth, step.Type, LogKeys.Message, Args(step).ValueOf("message").AsText());
                 return Signal.Normal;
             case "control.ask":
                 return await AskPerson(step, depth, token);
@@ -211,7 +211,7 @@ public sealed partial class MacroRunner
     private async Task<Signal> RunWaitUntil(ExecutableStep step, int depth, CancellationToken token)
     {
         RequireCondition(step, "condition");
-        var poll = Number(step, "intervalMs");
+        var poll = Args(step).Number("intervalMs");
         if (poll <= 0)
         {
             poll = 200;
@@ -244,8 +244,8 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> RunRepeat(ExecutableStep step, int depth, CancellationToken token)
     {
-        var times = Math.Max(0, Number(step, "times"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var times = Math.Max(0, Args(step).Number("times"));
+        var interval = Pace(Args(step).Number("intervalMs"));
         using var scope = EnterLoop(VariableStore.LoopIndexName);
 
         for (var round = 0; round < times; round++)
@@ -274,8 +274,8 @@ public sealed partial class MacroRunner
     private async Task<Signal> RunWhile(ExecutableStep step, int depth, CancellationToken token)
     {
         RequireCondition(step, "condition");
-        var limit = Math.Max(1, Number(step, "maxIterations"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var limit = Math.Max(1, Args(step).Number("maxIterations"));
+        var interval = Pace(Args(step).Number("intervalMs"));
         using var scope = EnterLoop(VariableStore.LoopIndexName);
 
         for (var round = 0; round < limit; round++)

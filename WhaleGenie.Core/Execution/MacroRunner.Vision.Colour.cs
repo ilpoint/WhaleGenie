@@ -24,8 +24,8 @@ public sealed partial class MacroRunner
 {
     private async Task WaitColor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var target = PixelColor.Parse(Args(step).ValueOf("color").AsText());
+        var tolerance = Args(step).ValueOf("tolerance").AsNumber();
 
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
@@ -49,7 +49,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void MightHaveMissed(ExecutableStep step, string detail = "")
     {
-        if (!ReadValue(step, "missingIsFailure").AsBool())
+        if (!Args(step).ValueOf("missingIsFailure").AsBool())
         {
             return;
         }
@@ -67,8 +67,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private void MatchColor(ExecutableStep step, int depth)
     {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
+        var target = PixelColor.Parse(Args(step).ValueOf("color").AsText());
+        var tolerance = Args(step).ValueOf("tolerance").AsNumber();
         var (point, window) = Spot(step);
         var colour = PixelAt(step, point, window);
         var matched = colour.Matches(target, tolerance);
@@ -90,9 +90,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private void FindColor(ExecutableStep step, int depth)
     {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
-        var least = ReadValue(step, "minCoverage").AsNumber() / 100;
+        var target = PixelColor.Parse(Args(step).ValueOf("color").AsText());
+        var tolerance = Args(step).ValueOf("tolerance").AsNumber();
+        var least = Args(step).ValueOf("minCoverage").AsNumber() / 100;
 
         // The share is only measured when the step asks about it, either by handing it over or by
         // saying below which share it will not act: the walk it costs is otherwise wasted.
@@ -175,9 +175,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool ColourShare(ExecutableStep condition)
     {
-        var target = PixelColor.Parse(ReadValue(condition, "color").AsText());
-        var tolerance = ReadValue(condition, "tolerance").AsNumber();
-        var least = ReadValue(condition, "minCoverage").AsNumber() / 100;
+        var target = PixelColor.Parse(Args(condition).ValueOf("color").AsText());
+        var tolerance = Args(condition).ValueOf("tolerance").AsNumber();
+        var least = Args(condition).ValueOf("minCoverage").AsNumber() / 100;
         return Scan(condition, target, tolerance, measured: true).Enough(least);
     }
 

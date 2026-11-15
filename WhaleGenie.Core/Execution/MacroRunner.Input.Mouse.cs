@@ -30,13 +30,13 @@ public sealed partial class MacroRunner
     private async Task ScrollMouse(ExecutableStep step, CancellationToken token)
     {
         var point = Point(step, "x", "y");
-        var direction = ReadText(step, "direction");
-        var pixels = string.Equals(ReadText(step, "unit").Trim(), "pixels", StringComparison.OrdinalIgnoreCase);
-        var amount = Math.Max(1, Number(step, "amount"));
+        var direction = Args(step).Text("direction");
+        var pixels = string.Equals(Args(step).Text("unit").Trim(), "pixels", StringComparison.OrdinalIgnoreCase);
+        var amount = Math.Max(1, Args(step).Number("amount"));
         var total = pixels ? amount : amount * WheelNotch;
-        var smooth = Pace(Number(step, "smoothMs"));
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var smooth = Pace(Args(step).Number("smoothMs"));
+        var repeats = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("intervalMs"));
 
         for (var count = 0; count < repeats; count++)
         {
@@ -78,9 +78,9 @@ public sealed partial class MacroRunner
     {
         var point = Point(step, "x", "y");
         var button = Button(step);
-        var clicks = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
-        var hold = Pace(Number(step, "holdMs"));
+        var clicks = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("intervalMs"));
+        var hold = Pace(Args(step).Number("holdMs"));
         var spread = Spread(step);
         var from = PostsMessages(step) ? null : ArrivedFrom(step);
 
@@ -139,8 +139,8 @@ public sealed partial class MacroRunner
     private async Task DoubleClickMouse(ExecutableStep step, CancellationToken token)
     {
         var point = Point(step, "x", "y");
-        var repeats = Math.Max(1, Number(step, "repeat"));
-        var interval = Pace(Number(step, "intervalMs"));
+        var repeats = Math.Max(1, Args(step).Number("repeat"));
+        var interval = Pace(Args(step).Number("intervalMs"));
         var spread = Spread(step);
         var from = PostsMessages(step) ? null : ArrivedFrom(step);
 
@@ -175,8 +175,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private int Spread(ExecutableStep step)
     {
-        var written = ReadText(step, "variance").Trim();
-        return written.Length == 0 ? 0 : Math.Clamp(Number(step, "variance"), 0, 100000);
+        var written = Args(step).Text("variance").Trim();
+        return written.Length == 0 ? 0 : Math.Clamp(Args(step).Number("variance"), 0, 100000);
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ public sealed partial class MacroRunner
                 await SendHotkey(step, token);
                 return Signal.Normal;
             case "input.typeText":
-                Input(step).TypeText(ReadValue(step, "typedText").AsText(), Pace(Number(step, "intervalMs")));
+                Input(step).TypeText(Args(step).ValueOf("typedText").AsText(), Pace(Args(step).Number("intervalMs")));
                 return Signal.Normal;
             case "input.mouseMove":
                 MovePointer(step, MovePlace(step));
@@ -269,11 +269,11 @@ public sealed partial class MacroRunner
                 await PressGamepadButton(step, token);
                 return Signal.Normal;
             case "gamepad.stick":
-                _devices.Gamepad.Stick(ReadText(step, "stick"), Number(step, "x"), Number(step, "y"));
+                _devices.Gamepad.Stick(Args(step).Text("stick"), Args(step).Number("x"), Args(step).Number("y"));
                 _run.GamepadUsed = true;
                 return Signal.Normal;
             case "gamepad.trigger":
-                _devices.Gamepad.Trigger(ReadText(step, "trigger"), Number(step, "amount"));
+                _devices.Gamepad.Trigger(Args(step).Text("trigger"), Args(step).Number("amount"));
                 _run.GamepadUsed = true;
                 return Signal.Normal;
             case "gamepad.release":

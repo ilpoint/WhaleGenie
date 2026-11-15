@@ -61,7 +61,7 @@ public sealed partial class MacroRunner
             return (new ScreenPoint(sides.Left, sides.Top), sides.Width, sides.Height);
         }
 
-        var corner = Placed(origin, Number(step, "x"), Number(step, "y"));
+        var corner = Placed(origin, Args(step).Number("x"), Args(step).Number("y"));
         int right;
         int bottom;
         if (window is { } target)
@@ -89,7 +89,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private (int Left, int Top, int Width, int Height)? RecordedRect(ExecutableStep step, string name)
     {
-        var value = ReadValue(step, name);
+        var value = Args(step).ValueOf(name);
         if (value.IsNull)
         {
             return null;
@@ -106,9 +106,9 @@ public sealed partial class MacroRunner
     /// catalogue calls "to the edge" — the rest of the screen from where the rectangle starts.
     /// </summary>
     private int Reach(ExecutableStep step, string name, int from, int limit)
-        => !Given(step, name) && Empties(step, name) == ActionEmptyMeans.ToEdge
+        => !Args(step).Given(name) && Args(step).EmptyMeans(name) == ActionEmptyMeans.ToEdge
             ? Math.Max(1, limit - from)
-            : Math.Max(1, Number(step, name));
+            : Math.Max(1, Args(step).Number(name));
 
     /// <summary>
     /// Copies a whole window into a variable. The window's own rectangle is what is copied, so the

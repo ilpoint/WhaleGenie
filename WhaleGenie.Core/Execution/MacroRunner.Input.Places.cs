@@ -31,7 +31,7 @@ public sealed partial class MacroRunner
         var anchor = AnchorOf(step);
         var point = RecordedPlaceAndBasis(step, "place") is { } place
             ? Resolve(step, place.Point, place.Basis, anchor).Screen
-            : Placed(anchor.Corner, Number(step, "x"), Number(step, "y"));
+            : Placed(anchor.Corner, Args(step).Number("x"), Args(step).Number("y"));
         return (point,
             anchor.Window);
     }
@@ -64,8 +64,8 @@ public sealed partial class MacroRunner
             return Resolve(step, place.Point, place.Basis);
         }
 
-        var x = ReadText(step, xName).Trim();
-        var y = ReadText(step, yName).Trim();
+        var x = Args(step).Text(xName).Trim();
+        var y = Args(step).Text(yName).Trim();
         if (x.Length == 0 && y.Length == 0)
         {
             if (PostsMessages(step))
@@ -77,7 +77,7 @@ public sealed partial class MacroRunner
             return new ResolvedPoint(pointer, pointer, null);
         }
 
-        return Resolve(step, new ScreenPoint(Number(step, xName), Number(step, yName)),
+        return Resolve(step, new ScreenPoint(Args(step).Number(xName), Args(step).Number(yName)),
             PostsMessages(step) ? "window" : "step");
     }
 
@@ -90,7 +90,7 @@ public sealed partial class MacroRunner
     private ResolvedPoint MovePlace(ExecutableStep step)
         => RecordedPlaceAndBasis(step, "place") is { } place
             ? Resolve(step, place.Point, place.Basis)
-            : Resolve(step, new ScreenPoint(Number(step, "x"), Number(step, "y")),
+            : Resolve(step, new ScreenPoint(Args(step).Number("x"), Args(step).Number("y")),
                 PostsMessages(step) ? "window" : "step");
 
     /// <summary>
@@ -100,7 +100,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private (ScreenPoint Point, string Basis)? RecordedPlaceAndBasis(ExecutableStep step, string name)
     {
-        var value = ReadValue(step, name);
+        var value = Args(step).ValueOf(name);
         if (value.IsNull)
         {
             return null;
@@ -137,7 +137,7 @@ public sealed partial class MacroRunner
                     new ScreenPoint(point.X - origin.X, point.Y - origin.Y));
         }
 
-        var mode = ReadText(step, "anchorMode").Trim().ToLowerInvariant();
+        var mode = Args(step).Text("anchorMode").Trim().ToLowerInvariant();
         if (mode.Length > 0 && mode is not ("screen" or "window"))
         {
             throw new StepFailure(RunKeys.BadOption, "anchorMode");
@@ -207,7 +207,7 @@ public sealed partial class MacroRunner
         {
             var origin = PostsMessages(step)
                 ? _devices.Windows.ClientOrigin(BackgroundWindow(step).Handle)
-                : ReadText(step, "anchorMode").Trim().Equals("window", StringComparison.OrdinalIgnoreCase)
+                : Args(step).Text("anchorMode").Trim().Equals("window", StringComparison.OrdinalIgnoreCase)
                     ? Anchor(step)
                     : null;
             return origin is { } corner
@@ -302,7 +302,7 @@ public sealed partial class MacroRunner
     {
         return RecordedPlaceAndBasis(step, end + "Place") is { } place
             ? Resolve(step, place.Point, place.Basis, anchor)
-            : Resolve(step, new ScreenPoint(Number(step, end + "X"), Number(step, end + "Y")),
+            : Resolve(step, new ScreenPoint(Args(step).Number(end + "X"), Args(step).Number(end + "Y")),
                 PostsMessages(step) ? "window" : "step", anchor);
     }
 }

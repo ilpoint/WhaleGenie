@@ -25,7 +25,7 @@ public sealed partial class MacroRunner
     /// <summary>Puts text on the clipboard, the same as copying it.</summary>
     private void ClipboardWrite(ExecutableStep step, int depth)
     {
-        var text = ReadValue(step, "clipboardText").AsText();
+        var text = Args(step).ValueOf("clipboardText").AsText();
         _devices.Clipboard.WriteText(text);
         Log(LogLevel.Info, depth, step.Type, LogKeys.CopiedToClipboard, text.Length);
     }
@@ -84,7 +84,7 @@ public sealed partial class MacroRunner
         var picture = Reference(step);
         if (picture.IsEmpty)
         {
-            throw new StepFailure(RunKeys.MissingImage, ReadText(step, "imageSource"));
+            throw new StepFailure(RunKeys.MissingImage, Args(step).Text("imageSource"));
         }
 
         _devices.Clipboard.WriteImage(picture);
@@ -108,7 +108,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ClipboardFilesWrite(ExecutableStep step, int depth)
     {
-        var value = ReadValue(step, "files");
+        var value = Args(step).ValueOf("files");
         var paths = new List<string>();
         IReadOnlyList<Value> items = value.IsList
             ? value.Items
@@ -164,10 +164,10 @@ public sealed partial class MacroRunner
     /// <summary>Puts text on the clipboard when one is given, then presses the paste shortcut.</summary>
     private async Task ClipboardPaste(ExecutableStep step, int depth, CancellationToken token)
     {
-        var given = ReadText(step, "pasteText").Trim().Length > 0;
+        var given = Args(step).Text("pasteText").Trim().Length > 0;
         if (given)
         {
-            _devices.Clipboard.WriteText(ReadValue(step, "pasteText").AsText());
+            _devices.Clipboard.WriteText(Args(step).ValueOf("pasteText").AsText());
             await Pause(40, token);
         }
 

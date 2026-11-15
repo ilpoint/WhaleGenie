@@ -29,7 +29,7 @@ public sealed partial class MacroRunner
 
         // A condition is the shape it was built from. Words are words, a comparison is a tree, and
         // nothing is read out of a line in between them.
-        return ReadValue(step, name).AsBool();
+        return Args(step).ValueOf(name).AsBool();
     }
 
     /// <summary>
@@ -40,13 +40,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool StepResult(ExecutableStep condition)
     {
-        var id = ReadText(condition, "stepId").Trim();
+        var id = Args(condition).Text("stepId").Trim();
         if (id.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingStep);
         }
 
-        var expected = ReadText(condition, "expectedOutcome").Trim();
+        var expected = Args(condition).Text("expectedOutcome").Trim();
         if (!Variables.TryGet(OutcomeName(id), out var outcome))
         {
             throw new StepFailure(RunKeys.NoSuchStep, id);
@@ -68,7 +68,7 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.BadList, error?.Detail ?? Formula.Speak(writtenList));
         }
 
-        var wanted = ReadValue(condition, "wantedValue");
+        var wanted = Args(condition).ValueOf("wantedValue");
         return items.Any(item => ValueRules.Same(item, wanted)
             || string.Equals(item.AsText(), wanted.AsText(), StringComparison.OrdinalIgnoreCase));
     }
@@ -92,9 +92,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool InRange(ExecutableStep condition)
     {
-        var value = ReadValue(condition, "testValue").AsNumber();
-        var low = ReadValue(condition, "min").AsNumber();
-        var high = ReadValue(condition, "max").AsNumber();
+        var value = Args(condition).ValueOf("testValue").AsNumber();
+        var low = Args(condition).ValueOf("min").AsNumber();
+        var high = Args(condition).ValueOf("max").AsNumber();
         return value >= Math.Min(low, high) && value <= Math.Max(low, high);
     }
 
@@ -106,9 +106,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool DatesCompared(ExecutableStep condition)
     {
-        var left = FunctionLibrary.Moment(DateText(ReadText(condition, "left")));
-        var right = FunctionLibrary.Moment(DateText(ReadText(condition, "right")));
-        return ReadText(condition, "dateOperator").Trim().ToLowerInvariant() switch
+        var left = FunctionLibrary.Moment(DateText(Args(condition).Text("left")));
+        var right = FunctionLibrary.Moment(DateText(Args(condition).Text("right")));
+        return Args(condition).Text("dateOperator").Trim().ToLowerInvariant() switch
         {
             "before" => left < right,
             "after" => left > right,
@@ -150,7 +150,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool TextThere(ExecutableStep condition)
     {
-        var wanted = ReadValue(condition, "queryText").AsText();
+        var wanted = Args(condition).ValueOf("queryText").AsText();
         var way = TextWay(condition, wanted);
         return ReadSpans(condition).Any(span => Matches(condition, span.Text, wanted, way));
     }
@@ -182,8 +182,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private bool ColoursMatch(ExecutableStep condition)
     {
-        var tolerance = ReadValue(condition, "tolerance").AsNumber();
-        var every = !string.Equals(ReadText(condition, "colorMatchMode").Trim(), "any",
+        var tolerance = Args(condition).ValueOf("tolerance").AsNumber();
+        var every = !string.Equals(Args(condition).Text("colorMatchMode").Trim(), "any",
             StringComparison.OrdinalIgnoreCase);
         var window = AnchorOf(condition).Window;
 
@@ -203,7 +203,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private IReadOnlyList<ColourPoint> Points(ExecutableStep step)
     {
-        var text = ReadText(step, "points").Trim();
+        var text = Args(step).Text("points").Trim();
         var points = new List<ColourPoint>();
         foreach (var entry in text.Split([';', '\n', '\r'],
                      StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -237,12 +237,12 @@ public sealed partial class MacroRunner
 
     private bool Compare(ExecutableStep step)
     {
-        var left = ReadValue(step, "variable");
-        var right = ReadValue(step, "compareValue");
+        var left = Args(step).ValueOf("variable");
+        var right = Args(step).ValueOf("compareValue");
         var same = ValueRules.Same(left, right)
             || Compare(step, left, right, TextCompare.Exactly);
 
-        return ReadText(step, "compareOperator") switch
+        return Args(step).Text("compareOperator") switch
         {
             "equals" => same,
             "notEquals" => !same,

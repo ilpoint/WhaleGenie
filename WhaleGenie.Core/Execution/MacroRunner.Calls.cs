@@ -31,7 +31,7 @@ public sealed partial class MacroRunner
     private (string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
         List<(string Result, string Name)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
     {
-        var name = ReadValue(step, "macro").AsText().Trim();
+        var name = Args(step).ValueOf("macro").AsText().Trim();
         var steps = name.Length == 0 ? null : _macros.Steps(name);
         if (steps is null)
         {

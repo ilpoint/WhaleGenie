@@ -28,7 +28,7 @@ public sealed partial class MacroRunner
     /// whatever else the step said the right element has to be like.
     /// </summary>
     private PageTarget Element(ExecutableStep step)
-        => PageTarget.Of(ReadValue(step, "pageSelector").AsText(), Index(step, "matchIndex", 1),
+        => PageTarget.Of(Args(step).ValueOf("pageSelector").AsText(), Index(step, "matchIndex", 1),
             Conditions(step));
 
     /// <summary>
@@ -83,15 +83,15 @@ public sealed partial class MacroRunner
     private void BrowserOpen(ExecutableStep step, int depth)
     {
         var browser = _devices.Browser;
-        var engine = ReadText(step, "browser").Trim();
+        var engine = Args(step).Text("browser").Trim();
         if (!browser.Ready(engine))
         {
             throw new StepFailure(RunKeys.BrowserMissing, browser.InstallHint);
         }
 
-        var url = ReadValue(step, "url").AsText();
+        var url = Args(step).ValueOf("url").AsText();
         browser.Open(engine, url, Flag(step, "headless", false),
-            ReadValue(step, "profile").AsText());
+            Args(step).ValueOf("profile").AsText());
         Log(LogLevel.Info, depth, step.Type, LogKeys.OpenedBrowser, engine, browser.Url);
     }
 
@@ -102,7 +102,7 @@ public sealed partial class MacroRunner
     private void BrowserReadText(ExecutableStep step, int depth)
     {
         var text = _devices.Browser.Text(OptionalElement(step), PagePartOf(step),
-            ReadText(step, "attribute"), step.Meta.TimeoutMs);
+            Args(step).Text("attribute"), step.Meta.TimeoutMs);
         Give(step, "text", Value.FromText(text));
         Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserRead, text.Length);
     }
@@ -116,9 +116,9 @@ public sealed partial class MacroRunner
     {
         // A step with no limit at all still gets one, the same default the editor shows, so a page
         // whose list keeps growing cannot fill memory.
-        var limit = Math.Clamp(Number(step, "maxItems"), 1, MaxRows);
+        var limit = Math.Clamp(Args(step).Number("maxItems"), 1, MaxRows);
         var items = _devices.Browser.ReadAll(Element(step), PagePartOf(step),
-            ReadText(step, "attribute"), limit, step.Meta.TimeoutMs);
+            Args(step).Text("attribute"), limit, step.Meta.TimeoutMs);
 
         Give(step, "items", Value.FromList(items.Select(Value.FromText)));
         Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserReadAll, items.Count);
@@ -132,7 +132,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserReadTable(ExecutableStep step, int depth)
     {
-        var limit = Math.Clamp(Number(step, "maxRows"), 1, MaxRows);
+        var limit = Math.Clamp(Args(step).Number("maxRows"), 1, MaxRows);
 
         // A step that names no table reads the page's own table element, which is what the field
         // starts out holding: this is the one element a page always names the same way.
@@ -193,8 +193,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserSelect(ExecutableStep step, int depth)
     {
-        var value = ReadValue(step, "optionValue").AsText();
-        var byIndex = ReadText(step, "by").Trim().Equals("index", StringComparison.OrdinalIgnoreCase);
+        var value = Args(step).ValueOf("optionValue").AsText();
+        var byIndex = Args(step).Text("by").Trim().Equals("index", StringComparison.OrdinalIgnoreCase);
         if (byIndex && !Position(value))
         {
             throw new StepFailure(RunKeys.BadPosition, value);
@@ -219,7 +219,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserPress(ExecutableStep step, int depth)
     {
-        var key = ReadText(step, "keyChord").Trim();
+        var key = Args(step).Text("keyChord").Trim();
         var keys = KeyNames.ResolveChord(key, out var unknown);
         if (keys.Count == 0 || unknown is not null)
         {
@@ -263,7 +263,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserClick(ExecutableStep step, int depth)
     {
-        var how = ReadText(step, "clickHow").Trim().ToLowerInvariant() switch
+        var how = Args(step).Text("clickHow").Trim().ToLowerInvariant() switch
         {
             "double" => ClickWay.Double,
             "right" => ClickWay.Right,
@@ -282,13 +282,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserFill(ExecutableStep step, int depth)
     {
-        var how = string.Equals(ReadText(step, "fillHow").Trim(), "type", StringComparison.OrdinalIgnoreCase)
+        var how = string.Equals(Args(step).Text("fillHow").Trim(), "type", StringComparison.OrdinalIgnoreCase)
             ? FillWay.Type
             : FillWay.Fill;
 
-        var gap = how is FillWay.Type ? Number(step, "keyIntervalMs") : 0;
+        var gap = how is FillWay.Type ? Args(step).Number("keyIntervalMs") : 0;
         Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserFilled,
-            _devices.Browser.Fill(Element(step), ReadValue(step, "fillText").AsText(), how, gap,
+            _devices.Browser.Fill(Element(step), Args(step).ValueOf("fillText").AsText(), how, gap,
                 step.Meta.TimeoutMs));
     }
 
@@ -299,7 +299,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserScroll(ExecutableStep step, int depth)
     {
-        var how = ReadText(step, "scrollHow").Trim().ToLowerInvariant() switch
+        var how = Args(step).Text("scrollHow").Trim().ToLowerInvariant() switch
         {
             "bottom" => ScrollWay.Bottom,
             "top" => ScrollWay.Top,
@@ -318,7 +318,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserDownload(ExecutableStep step, int depth)
     {
-        var folder = ReadValue(step, "folder").AsText();
+        var folder = Args(step).ValueOf("folder").AsText();
         var where = folder.Trim().Length > 0 ? _devices.Files.Resolve(folder) : _devices.Files.BaseFolder;
         var saved = _devices.Browser.Download(OptionalElement(step), where, step.Meta.TimeoutMs);
 
@@ -339,9 +339,9 @@ public sealed partial class MacroRunner
     /// </remarks>
     private async Task<Signal> RunDialog(ExecutableStep step, int depth, CancellationToken token)
     {
-        var accept = !string.Equals(ReadText(step, "dialogHow").Trim(), "dismiss",
+        var accept = !string.Equals(Args(step).Text("dialogHow").Trim(), "dismiss",
             StringComparison.OrdinalIgnoreCase);
-        _devices.Browser.ArmDialog(accept, ReadValue(step, "dialogText").AsText());
+        _devices.Browser.ArmDialog(accept, Args(step).ValueOf("dialogText").AsText());
 
         Signal signal;
         try
@@ -377,7 +377,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserEvaluate(ExecutableStep step, int depth)
     {
-        var script = Template(ReadText(step, "script")).Trim();
+        var script = Template(Args(step).Text("script")).Trim();
         if (script.Length == 0)
         {
             throw new StepFailure(RunKeys.BrowserNoScript);
@@ -411,8 +411,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserWaitForUrl(ExecutableStep step, int depth)
     {
-        var wanted = ReadValue(step, "urlMatch").AsText();
-        var how = Way(ReadText(step, "urlHow"));
+        var wanted = Args(step).ValueOf("urlMatch").AsText();
+        var how = Way(Args(step).Text("urlHow"));
         var options = OptionsOf(step, how);
         try
         {
@@ -434,7 +434,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserWaitForLoad(ExecutableStep step, int depth)
     {
-        var state = ReadText(step, "loadState").Trim().ToLowerInvariant() switch
+        var state = Args(step).Text("loadState").Trim().ToLowerInvariant() switch
         {
             "idle" => PageLoad.Idle,
             "ready" => PageLoad.Ready,
@@ -452,7 +452,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserUpload(ExecutableStep step, int depth)
     {
-        var paths = Lines(ReadValue(step, "uploadFiles").AsText())
+        var paths = Lines(Args(step).ValueOf("uploadFiles").AsText())
             .Select(line => line.Trim())
             .Where(line => line.Length > 0)
             .Select(_devices.Files.Resolve)
@@ -474,7 +474,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserSwitchTab(ExecutableStep step, int depth)
     {
-        var choice = ReadText(step, "tabHow").Trim().ToLowerInvariant() switch
+        var choice = Args(step).Text("tabHow").Trim().ToLowerInvariant() switch
         {
             "index" => TabChoice.Index,
             "title" => TabChoice.Title,
@@ -482,8 +482,8 @@ public sealed partial class MacroRunner
             _ => TabChoice.Newest,
         };
 
-        _devices.Browser.SwitchTab(choice, Number(step, "tabIndex"),
-            ReadValue(step, "tabMatch").AsText());
+        _devices.Browser.SwitchTab(choice, Args(step).Number("tabIndex"),
+            Args(step).ValueOf("tabMatch").AsText());
         Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserTab, _devices.Browser.Url);
     }
 
@@ -509,7 +509,7 @@ public sealed partial class MacroRunner
                 BrowserOpen(step, depth);
                 return Signal.Normal;
             case "browser.goTo":
-                _devices.Browser.GoTo(ReadValue(step, "url").AsText(), step.Meta.TimeoutMs);
+                _devices.Browser.GoTo(Args(step).ValueOf("url").AsText(), step.Meta.TimeoutMs);
                 Log(LogLevel.Info, depth, step.Type, LogKeys.BrowserAddress, _devices.Browser.Url);
                 return Signal.Normal;
             case "browser.click":

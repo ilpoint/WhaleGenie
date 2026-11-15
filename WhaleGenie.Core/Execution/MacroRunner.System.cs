@@ -25,7 +25,7 @@ public sealed partial class MacroRunner
     /// <summary>Reads a fact about the machine into a variable.</summary>
     private void SystemInfo(ExecutableStep step, int depth)
     {
-        var value = _devices.System.Info(ReadText(step, "field").Trim());
+        var value = _devices.System.Info(Args(step).Text("field").Trim());
         Store(step, "value", Value.FromText(value), depth);
     }
 
@@ -72,7 +72,7 @@ public sealed partial class MacroRunner
     /// <summary>Reads an environment variable into a variable.</summary>
     private void EnvironmentVariable(ExecutableStep step, int depth)
     {
-        var name = ReadValue(step, "environmentName").AsText();
+        var name = Args(step).ValueOf("environmentName").AsText();
         var value = _devices.System.Environment(name);
         Store(step, "value", Value.FromText(value), depth);
     }
@@ -83,13 +83,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private void SetEnvironment(ExecutableStep step, int depth)
     {
-        var scope = ReadText(step, "environmentScope").Trim()
+        var scope = Args(step).Text("environmentScope").Trim()
             .Equals("machine", StringComparison.OrdinalIgnoreCase)
             ? EnvironmentScope.Machine
             : EnvironmentScope.User;
 
-        var name = ReadValue(step, "environmentName").AsText();
-        var value = ReadValue(step, "environmentValue").AsText();
+        var name = Args(step).ValueOf("environmentName").AsText();
+        var value = Args(step).ValueOf("environmentValue").AsText();
 
         var written = _devices.System.SetEnvironment(name, value, scope);
         Store(step, "value", Value.FromText(written), depth);
@@ -100,8 +100,8 @@ public sealed partial class MacroRunner
     private void ReadRegistry(ExecutableStep step, int depth)
     {
         var branch = BranchOf(step);
-        var path = ReadText(step, "registryPath");
-        var name = ReadValue(step, "valueName").AsText();
+        var path = Args(step).Text("registryPath");
+        var name = Args(step).ValueOf("valueName").AsText();
 
         var value = _devices.System.ReadRegistry(branch, path, name);
         Store(step, "value", Value.FromText(value), depth);
@@ -112,10 +112,10 @@ public sealed partial class MacroRunner
     private void WriteRegistry(ExecutableStep step, int depth)
     {
         var branch = BranchOf(step);
-        var path = ReadText(step, "registryPath");
-        var name = ReadValue(step, "valueName").AsText();
+        var path = Args(step).Text("registryPath");
+        var name = Args(step).ValueOf("valueName").AsText();
         var type = TypeOf(step);
-        var data = ReadValue(step, "registryData").AsText();
+        var data = Args(step).ValueOf("registryData").AsText();
 
         var value = _devices.System.WriteRegistry(branch, path, name, type, data);
         Store(step, "value", Value.FromText(value), depth);
@@ -126,8 +126,8 @@ public sealed partial class MacroRunner
     private void DeleteRegistry(ExecutableStep step, int depth)
     {
         var branch = BranchOf(step);
-        var path = ReadText(step, "registryPath");
-        var name = ReadValue(step, "valueName").AsText();
+        var path = Args(step).Text("registryPath");
+        var name = Args(step).ValueOf("valueName").AsText();
 
         _devices.System.DeleteRegistry(branch, path, name);
         Log(LogLevel.Info, depth, step.Type, LogKeys.RegistryDeleted, branch.ToString(), path, name);
@@ -138,13 +138,13 @@ public sealed partial class MacroRunner
     /// 看得见的那一份，改错了也改得回来。
     /// </summary>
     private RegistryBranch BranchOf(ExecutableStep step)
-        => ReadText(step, "hive").Trim().Equals("localMachine", StringComparison.OrdinalIgnoreCase)
+        => Args(step).Text("hive").Trim().Equals("localMachine", StringComparison.OrdinalIgnoreCase)
             ? RegistryBranch.LocalMachine
             : RegistryBranch.CurrentUser;
 
     /// <summary>写进去的是哪一档值。认不出来时落到文本，这是最不会把人绊住的那一档。</summary>
     private RegistryValueType TypeOf(ExecutableStep step)
-        => ReadText(step, "registryType").Trim().ToLowerInvariant() switch
+        => Args(step).Text("registryType").Trim().ToLowerInvariant() switch
         {
             "dword" => RegistryValueType.DWord,
             "expandstring" => RegistryValueType.ExpandString,
@@ -159,7 +159,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Power(ExecutableStep step, int depth)
     {
-        var wanted = ReadText(step, "powerAction").Trim().ToLowerInvariant();
+        var wanted = Args(step).Text("powerAction").Trim().ToLowerInvariant();
         var action = wanted switch
         {
             "" or "lock" => PowerAction.Lock,
@@ -173,7 +173,7 @@ public sealed partial class MacroRunner
             _ => throw new StepFailure(RunKeys.UnknownPowerAction, wanted),
         };
 
-        var grace = Number(step, "graceSeconds");
+        var grace = Args(step).Number("graceSeconds");
         _devices.System.Power(action, grace);
         Log(LogLevel.Info, depth, step.Type, LogKeys.Power, wanted.Length == 0 ? "lock" : wanted,
             grace);
@@ -186,7 +186,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Volume(ExecutableStep step, int depth)
     {
-        var what = ReadText(step, "volumeAction").Trim().ToLowerInvariant();
+        var what = Args(step).Text("volumeAction").Trim().ToLowerInvariant();
         switch (what)
         {
             // A step written before this field existed means the same as the editor's own default:
@@ -196,12 +196,12 @@ public sealed partial class MacroRunner
                 break;
 
             case "set":
-                _devices.System.SetVolume(Number(step, "levelPercent"));
+                _devices.System.SetVolume(Args(step).Number("levelPercent"));
                 break;
 
             case "up":
             case "down":
-                var move = Number(step, "stepPercent");
+                var move = Args(step).Number("stepPercent");
                 _devices.System.SetVolume(
                     _devices.System.Volume() + (what == "up" ? move : -move));
                 break;
@@ -244,9 +244,9 @@ public sealed partial class MacroRunner
     {
         // 放一个宏自己带的文件时，「哪一种提示音」那一格就不作数了：两者是同一个问题的两种答案，
         // 界面上也只有一个看得见。
-        if (string.Equals(ReadText(step, "soundSource").Trim(), "file", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Args(step).Text("soundSource").Trim(), "file", StringComparison.OrdinalIgnoreCase))
         {
-            var named = ReadValue(step, "soundFile").AsText().Trim();
+            var named = Args(step).ValueOf("soundFile").AsText().Trim();
             if (named.Length == 0)
             {
                 throw new StepFailure(RunKeys.MissingPath);
@@ -257,7 +257,7 @@ public sealed partial class MacroRunner
             return;
         }
 
-        var what = ReadText(step, "sound").Trim().ToLowerInvariant();
+        var what = Args(step).Text("sound").Trim().ToLowerInvariant();
         var kind = what switch
         {
             "" or "default" => SoundKind.Default,
@@ -281,7 +281,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void ShowDesktop(ExecutableStep step, int depth)
     {
-        var what = ReadText(step, "desktopAction").Trim().ToLowerInvariant();
+        var what = Args(step).Text("desktopAction").Trim().ToLowerInvariant();
         var restore = what switch
         {
             "" or "minimizeall" => false,
@@ -318,9 +318,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Notify(ExecutableStep step, int depth)
     {
-        var title = ReadValue(step, "heading").AsText();
-        var message = ReadValue(step, "notificationText").AsText();
-        var what = ReadText(step, "notificationKind").Trim().ToLowerInvariant();
+        var title = Args(step).ValueOf("heading").AsText();
+        var message = Args(step).ValueOf("notificationText").AsText();
+        var what = Args(step).Text("notificationKind").Trim().ToLowerInvariant();
 
         var kind = what switch
         {
@@ -342,7 +342,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void InputMethod(ExecutableStep step, int depth)
     {
-        var what = ReadText(step, "imeAction").Trim().ToLowerInvariant();
+        var what = Args(step).Text("imeAction").Trim().ToLowerInvariant();
         Value answer;
 
         switch (what)
@@ -359,7 +359,7 @@ public sealed partial class MacroRunner
                 break;
 
             case "switch":
-                var wanted = ReadValue(step, "layout").AsText().Trim();
+                var wanted = Args(step).ValueOf("layout").AsText().Trim();
                 if (wanted.Length == 0)
                 {
                     throw new StepFailure(RunKeys.MissingName);
@@ -388,7 +388,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void Brightness(ExecutableStep step, int depth)
     {
-        var what = ReadText(step, "brightnessAction").Trim().ToLowerInvariant();
+        var what = Args(step).Text("brightnessAction").Trim().ToLowerInvariant();
         switch (what)
         {
             // A step written before this field existed means the same as the editor's own default:
@@ -398,12 +398,12 @@ public sealed partial class MacroRunner
                 break;
 
             case "set":
-                _devices.System.SetBrightness(Number(step, "levelPercent"));
+                _devices.System.SetBrightness(Args(step).Number("levelPercent"));
                 break;
 
             case "up":
             case "down":
-                var move = Number(step, "stepPercent");
+                var move = Args(step).Number("stepPercent");
                 _devices.System.SetBrightness(
                     _devices.System.Brightness() + (what is "up" ? move : -move));
                 break;

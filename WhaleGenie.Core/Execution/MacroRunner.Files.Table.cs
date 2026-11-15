@@ -68,7 +68,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private IReadOnlyList<string> Header(ExecutableStep step, char separator)
     {
-        var text = ReadText(step, "header").Trim();
+        var text = Args(step).Text("header").Trim();
         if (text.Length == 0)
         {
             return [];
@@ -109,8 +109,8 @@ public sealed partial class MacroRunner
         IEnumerable<IReadOnlyList<Value>> body)
     {
         var match = ColumnOf(step, header, "matchColumn");
-        var wanted = ReadValue(step, "matchValue");
-        var mode = ReadText(step, "filterMode");
+        var wanted = Args(step).ValueOf("matchValue");
+        var mode = Args(step).Text("filterMode");
 
         // Which rows to keep is worked out before the columns are taken off, because the column a
         // row is matched on need not be one of the columns that come back.
@@ -142,7 +142,7 @@ public sealed partial class MacroRunner
     {
         var width = table.Header?.Count ?? table.Rows.FirstOrDefault()?.Count ?? 0;
 
-        if (string.Equals(ReadText(step, "shape").Trim(), "values", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(Args(step).Text("shape").Trim(), "values", StringComparison.OrdinalIgnoreCase))
         {
             if (width > 1)
             {
@@ -199,7 +199,7 @@ public sealed partial class MacroRunner
     /// <summary>The columns a step named, in the order it named them; empty means all of them.</summary>
     private IReadOnlyList<int> Kept(ExecutableStep step, IReadOnlyList<Value>? header)
     {
-        var wanted = ReadText(step, "columns").Trim();
+        var wanted = Args(step).Text("columns").Trim();
         if (wanted.Length == 0)
         {
             return [];
@@ -216,7 +216,7 @@ public sealed partial class MacroRunner
     /// <summary>Which column a step named with one of its own fields, or -1 when it named none.</summary>
     private int ColumnOf(ExecutableStep step, IReadOnlyList<Value>? header, string parameter)
     {
-        var name = ReadText(step, parameter).Trim();
+        var name = Args(step).Text(parameter).Trim();
         return name.Length == 0 ? -1 : ColumnOf(header, name);
     }
 

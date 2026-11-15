@@ -29,13 +29,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private Signal RunPython(ExecutableStep step, int depth, CancellationToken token)
     {
-        var script = Template(ReadText(step, "script"));
+        var script = Template(Args(step).Text("script"));
         if (script.Trim().Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScript);
         }
 
-        var request = new PythonScript(script, Template(ReadText(step, "scriptArguments")).Trim(),
+        var request = new PythonScript(script, Template(Args(step).Text("scriptArguments")).Trim(),
             ScriptWorkingFolder(step), ScriptTimeoutOf(step), ScriptInterpreter(step));
 
         _run.StoppedInsideScript = false;
@@ -61,13 +61,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private Signal RunCSharp(ExecutableStep step, int depth, CancellationToken token)
     {
-        var script = Template(ReadText(step, "script"));
+        var script = Template(Args(step).Text("script"));
         if (script.Trim().Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScript);
         }
 
-        var request = new CSharpScript(script, Template(ReadText(step, "scriptArguments")).Trim(),
+        var request = new CSharpScript(script, Template(Args(step).Text("scriptArguments")).Trim(),
             ScriptWorkingFolder(step), ScriptTimeoutOf(step));
 
         _run.StoppedInsideScript = false;
@@ -91,14 +91,14 @@ public sealed partial class MacroRunner
     /// </summary>
     private Signal RunAutoHotkey(ExecutableStep step, int depth, CancellationToken token)
     {
-        var script = Template(ReadText(step, "script"));
+        var script = Template(Args(step).Text("script"));
         if (script.Trim().Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScript);
         }
 
-        var request = new AutoHotkeyScript(script, Template(ReadText(step, "scriptArguments")).Trim(),
-            ScriptWorkingFolder(step), ScriptTimeoutOf(step), ReadText(step, "ahk").Trim());
+        var request = new AutoHotkeyScript(script, Template(Args(step).Text("scriptArguments")).Trim(),
+            ScriptWorkingFolder(step), ScriptTimeoutOf(step), Args(step).Text("ahk").Trim());
 
         _run.StoppedInsideScript = false;
         _run.ReturnedInsideScript = false;

@@ -39,14 +39,14 @@ public sealed partial class MacroRunner
     /// </summary>
     private VisionQuery SearchQuery(ExecutableStep step)
     {
-        var confidence = Number(step, "confidence");
+        var confidence = Args(step).Number("confidence");
         if (confidence <= 0)
         {
             confidence = 90;
         }
 
-        var features = Number(step, "minFeatures");
-        var written = ReadValue(step, "transparentColor").AsText().Trim();
+        var features = Args(step).Number("minFeatures");
+        var written = Args(step).ValueOf("transparentColor").AsText().Trim();
 
         // A colour nobody can read used to be read as black, which silently masked pixels that had
         // nothing to do with what the step meant. Saying so is the only answer that can be acted on.
@@ -59,12 +59,12 @@ public sealed partial class MacroRunner
         }
 
         return new VisionQuery(
-            AlgorithmOf(ReadText(step, "detectAlgorithm")),
+            AlgorithmOf(Args(step).Text("detectAlgorithm")),
             confidence,
             features > 0 ? features : 6,
             transparent,
             Wanted(step),
-            Number(step, "tolerance"));
+            Args(step).Number("tolerance"));
     }
 
     /// <summary>

@@ -29,9 +29,9 @@ public sealed partial class MacroRunner
     /// itself decides.
     /// </summary>
     private string Separator(ExecutableStep step)
-        => ReadText(step, "separatorText").Trim().Length > 0
-            ? ReadText(step, "separatorText")
-            : ReadText(step, "separator");
+        => Args(step).Text("separatorText").Trim().Length > 0
+            ? Args(step).Text("separatorText")
+            : Args(step).Text("separator");
 
 
     /// <summary>

@@ -96,8 +96,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private int Index(ExecutableStep step, string name, int fallback)
     {
-        var text = ReadText(step, name).Trim();
-        return text.Length == 0 ? fallback : Math.Clamp(Number(step, name), 1, MatchLimit);
+        var text = Args(step).Text(name).Trim();
+        return text.Length == 0 ? fallback : Math.Clamp(Args(step).Number(name), 1, MatchLimit);
     }
 
     /// <summary>Reading order, the order the hits are counted in.</summary>

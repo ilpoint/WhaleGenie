@@ -37,7 +37,7 @@ public sealed partial class MacroRunner
     private void HoldKey(ExecutableStep step)
     {
         var device = Input(step);
-        var key = ReadText(step, "key");
+        var key = Args(step).Text("key");
         device.KeyDown(key);
         if (!_run.HeldKeys.Any(held => Same(held.Device, device) && Same(held.Name, key)))
         {
@@ -49,7 +49,7 @@ public sealed partial class MacroRunner
     private void LetGoKey(ExecutableStep step)
     {
         var device = Input(step);
-        var key = ReadText(step, "key");
+        var key = Args(step).Text("key");
         device.KeyUp(key);
         _run.HeldKeys.RemoveAll(held => Same(held.Device, device) && Same(held.Name, key));
     }

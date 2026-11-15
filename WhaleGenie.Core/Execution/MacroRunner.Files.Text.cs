@@ -26,7 +26,7 @@ public sealed partial class MacroRunner
 
     /// <summary>A path a step named, with any <c>variable</c> already filled in.</summary>
     private string PathOf(ExecutableStep step, string parameter = "path")
-        => ReadValue(step, parameter).AsText();
+        => Args(step).ValueOf(parameter).AsText();
 
     /// <summary>
     /// The encoding a step named, or UTF-8 when it says nothing. Older macros have no such field,
@@ -57,7 +57,7 @@ public sealed partial class MacroRunner
         }
 
         var wanted = Lines(text, Flag(step, "skipBlankLines", false), Flag(step, "trimLines", false));
-        var limit = Number(step, "limit");
+        var limit = Args(step).Number("limit");
         if (limit > 0 && wanted.Count > limit)
         {
             wanted = [.. wanted.Take(limit)];
@@ -97,10 +97,10 @@ public sealed partial class MacroRunner
     private void WriteTextFile(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var text = ReadValue(step, "fileContent").AsText();
-        var append = string.Equals(ReadText(step, "writeMode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
+        var text = Args(step).ValueOf("fileContent").AsText();
+        var append = string.Equals(Args(step).Text("writeMode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
         var encoding = EncodingOf(step);
-        var newline = ReadText(step, "newline").Trim().ToLowerInvariant();
+        var newline = Args(step).Text("newline").Trim().ToLowerInvariant();
 
         if (newline == "end")
         {
@@ -127,7 +127,7 @@ public sealed partial class MacroRunner
     {
         var path = PathOf(step);
         var encoding = EncodingOf(step);
-        var line = ReadValue(step, "logLine").AsText();
+        var line = Args(step).ValueOf("logLine").AsText();
         if (Flag(step, "timestamp", true))
         {
             line = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)

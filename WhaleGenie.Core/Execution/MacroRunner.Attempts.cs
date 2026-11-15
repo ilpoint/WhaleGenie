@@ -336,16 +336,16 @@ public sealed partial class MacroRunner
             return step.Type switch
             {
                 "vision.waitColor" => new StepFailure(RunKeys.WaitColorTimeout,
-                    PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
+                    PixelColor.Parse(Args(step).ValueOf("color").AsText()).ToHex()),
                 "vision.clickColor" => new StepFailure(RunKeys.ColourNotFound,
-                    PixelColor.Parse(ReadValue(step, "color").AsText()).ToHex()),
+                    PixelColor.Parse(Args(step).ValueOf("color").AsText()).ToHex()),
                 "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
                     Written(step.Rows("images"))),
                 "vision.waitDetect" or "vision.clickDetect" => new StepFailure(RunKeys.DetectNotFound,
                     Looking(step)),
                 "vision.waitStable" => new StepFailure(RunKeys.ScreenNotStable, patience),
                 "ocr.clickText" => new StepFailure(RunKeys.TextNotFound,
-                    ReadValue(step, "queryText").AsText()),
+                    Args(step).ValueOf("queryText").AsText()),
                 "control.waitUntil" => new StepFailure(RunKeys.WaitTimeout, WaitingFor(step, patience)),
                 "clipboard.waitChange" or "clipboard.copy" =>
                     new StepFailure(RunKeys.ClipboardTimeout),
@@ -353,9 +353,9 @@ public sealed partial class MacroRunner
                 "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout, WindowText(step)),
                 "window.waitFor" => new StepFailure(RunKeys.WindowTimeout, WindowText(step)),
                 "uia.waitElement" or "uia.click" or "uia.invoke" =>
-                    new StepFailure(RunKeys.ElementNotFound, ReadText(step, "uiSelector")),
+                    new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector")),
                 "command.run" => new StepFailure(RunKeys.CommandTimeout,
-                    ReadValue(step, "commandFile").AsText()),
+                    Args(step).ValueOf("commandFile").AsText()),
                 _ => new StepFailure(RunKeys.Timeout, patience),
             };
         }

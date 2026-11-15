@@ -117,7 +117,7 @@ public sealed partial class MacroRunner
         // A step that asked to look again waits a moment and confirms the thing is still there: a
         // thing that flashed past, or a screen that has already moved on, is not clicked. The second
         // look is a single look rather than another wait, the same as a step that clicks a picture.
-        var again = Pace(Number(step, "confirmMs"));
+        var again = Pace(Args(step).Number("confirmMs"));
         if (again > 0)
         {
             await Pause(again, token);
@@ -128,8 +128,8 @@ public sealed partial class MacroRunner
         }
 
         var at = Scattered(new ScreenPoint(
-            seen.Match.Match.Center.X + Number(step, "offsetX"),
-            seen.Match.Match.Center.Y + Number(step, "offsetY")), Spread(step));
+            seen.Match.Match.Center.X + Args(step).Number("offsetX"),
+            seen.Match.Match.Center.Y + Args(step).Number("offsetY")), Spread(step));
 
         GiveMatch(step, seen.Match.Match.Location, seen.Match.Match.Size, seen.Match.Match.Score,
             label: seen.Match.Label, classId: seen.Match.ClassId);
@@ -145,7 +145,7 @@ public sealed partial class MacroRunner
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas, IReadOnlyList<Sighting> found)
         => SawSearch(step, LookKind.Detection, areas,
             [.. found.Select(hit => (hit.Match, (string?)hit.Label))],
-            WentWith(found, step), Looking(step), minimum: Number(step, "confidence") / 100.0);
+            WentWith(found, step), Looking(step), minimum: Args(step).Number("confidence") / 100.0);
 
     /// <summary>The model file a step named, as the path it is read from.</summary>
     private string ModelOf(ExecutableStep step) => _devices.Files.Resolve(PathOf(step, "model"));

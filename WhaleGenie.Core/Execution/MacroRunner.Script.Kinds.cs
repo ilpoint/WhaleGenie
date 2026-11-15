@@ -69,7 +69,7 @@ public sealed partial class MacroRunner
 
         if (kind is ScriptKind.Custom)
         {
-            var named = ReadText(step, "interpreter").Trim();
+            var named = Args(step).Text("interpreter").Trim();
             if (named.Length == 0)
             {
                 throw new StepFailure(RunKeys.MissingInterpreter);
@@ -119,7 +119,7 @@ public sealed partial class MacroRunner
                 return ".ahk";
         }
 
-        var wanted = ReadText(step, "extension").Trim();
+        var wanted = Args(step).Text("extension").Trim();
         if (wanted.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScriptExtension);
@@ -161,7 +161,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private string ScriptWorkingFolder(ExecutableStep step)
     {
-        var folder = ReadValue(step, "folder").AsText().Trim();
+        var folder = Args(step).ValueOf("folder").AsText().Trim();
         return folder.Length == 0 && _devices.Files.Exists(_devices.Files.BaseFolder)
             ? _devices.Files.BaseFolder
             : folder;

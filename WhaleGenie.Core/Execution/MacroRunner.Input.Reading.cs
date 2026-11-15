@@ -29,7 +29,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private (ScreenPoint? Corner, WindowInfo? Window) AnchorOf(ExecutableStep step)
     {
-        var mode = ReadText(step, "anchorMode").Trim().ToLowerInvariant();
+        var mode = Args(step).Text("anchorMode").Trim().ToLowerInvariant();
         if (mode.Length > 0 && mode is not ("screen" or "window"))
         {
             throw new StepFailure(RunKeys.BadOption, "anchorMode");
@@ -241,17 +241,17 @@ public sealed partial class MacroRunner
         => Saw(step, LookKind.Text, read.Area, read.Corner,
             Marks([(read.Area, read.Corner)], TextMarks(read.Spans, read.Corner), 0), 0,
             note: string.Join(' ', read.Spans.Select(span => span.Text)),
-            minimum: Number(step, "minScore"));
+            minimum: Args(step).Number("minScore"));
 
     /// <summary>Hands over what a step looking for writing would find right now.</summary>
     private void SawSought(ExecutableStep step)
     {
-        var wanted = ReadValue(step, "queryText").AsText();
+        var wanted = Args(step).ValueOf("queryText").AsText();
         var way = TextWay(step, wanted);
         var readings = ReadSpans(step);
         var (_, chosen) = Counting(step, readings, wanted, way);
 
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen,
-            wanted, minimum: Number(step, "minScore"));
+            wanted, minimum: Args(step).Number("minScore"));
     }
 }

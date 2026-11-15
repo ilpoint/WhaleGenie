@@ -26,7 +26,7 @@ public sealed partial class MacroRunner
     {
         var path = PathOf(step);
         var document = Json(path, _devices.Files.ReadText(path, EncodingOf(step)));
-        var query = ReadValue(step, "query").AsText().Trim();
+        var query = Args(step).ValueOf("query").AsText().Trim();
         var node = query.Length == 0
             ? document
             : Select(document, query) ?? throw new StepFailure(RunKeys.BadJsonPath, query);
@@ -38,7 +38,7 @@ public sealed partial class MacroRunner
     private void WriteJson(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var query = ReadValue(step, "query").AsText().Trim();
+        var query = Args(step).ValueOf("query").AsText().Trim();
         if (query.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingJsonPath);
@@ -48,7 +48,7 @@ public sealed partial class MacroRunner
             ? Json(path, _devices.Files.ReadText(path, EncodingOf(step)))
             : new JsonObject();
 
-        Assign(document, query, ToJson(ReadValue(step, "writeValue")));
+        Assign(document, query, ToJson(Args(step).ValueOf("writeValue")));
 
         var text = document.ToJsonString(Writable);
         _devices.Files.WriteText(path, text, false, EncodingOf(step));
@@ -66,11 +66,11 @@ public sealed partial class MacroRunner
 
         // The line the step starts at is the line the header is on, when there is one: "start at
         // row 3" is where reading begins, and everything else follows from there.
-        var wanted = rows.Skip(Math.Max(1, Number(step, "startRow")) - 1);
+        var wanted = rows.Skip(Math.Max(1, Args(step).Number("startRow")) - 1);
         var header = Flag(step, "hasHeader", true) ? wanted.FirstOrDefault() : null;
         var body = header is null ? wanted : wanted.Skip(1);
 
-        var limit = Number(step, "maxRows");
+        var limit = Args(step).Number("maxRows");
         if (limit > 0)
         {
             body = body.Take(limit);
@@ -90,13 +90,13 @@ public sealed partial class MacroRunner
     {
         var path = PathOf(step);
         var separator = DelimitedFile.Named(Separator(step))[0];
-        var rows = ReadValue(step, "rows");
+        var rows = Args(step).ValueOf("rows");
         if (!rows.IsList)
         {
-            throw new StepFailure(RunKeys.NotAList, ReadText(step, "rows"));
+            throw new StepFailure(RunKeys.NotAList, Args(step).Text("rows"));
         }
 
-        var append = string.Equals(ReadText(step, "writeMode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
+        var append = string.Equals(Args(step).Text("writeMode").Trim(), "append", StringComparison.OrdinalIgnoreCase);
         var table = new List<IReadOnlyList<string>>();
 
         // Appending to a file that is not there yet is the first line of a log, so the header goes
@@ -121,7 +121,7 @@ public sealed partial class MacroRunner
 
         var text = DelimitedFile.Write(table, separator.ToString(), LineEnding(step),
             Flag(step, "quoteAll", false),
-            string.Equals(ReadText(step, "emptyCells").Trim(), "quoted", StringComparison.OrdinalIgnoreCase));
+            string.Equals(Args(step).Text("emptyCells").Trim(), "quoted", StringComparison.OrdinalIgnoreCase));
         _devices.Files.WriteText(path, text, append, EncodingOf(step));
         Log(LogLevel.Info, depth, step.Type, LogKeys.WroteFile, path, table.Count);
     }

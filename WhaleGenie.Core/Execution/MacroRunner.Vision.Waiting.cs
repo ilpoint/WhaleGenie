@@ -40,7 +40,7 @@ public sealed partial class MacroRunner
         // button that flashed past, or a screen that has already moved on, is not clicked. The
         // second look is a single look rather than another wait: what is being asked is whether the
         // picture is still there, not whether it turns up again.
-        var again = Pace(Number(step, "confirmMs"));
+        var again = Pace(Args(step).Number("confirmMs"));
         if (again > 0)
         {
             await Pause(again, token);
@@ -51,8 +51,8 @@ public sealed partial class MacroRunner
         }
 
         var at = Scattered(new ScreenPoint(
-            found.Match.Center.X + Number(step, "offsetX"),
-            found.Match.Center.Y + Number(step, "offsetY")), Spread(step));
+            found.Match.Center.X + Args(step).Number("offsetX"),
+            found.Match.Center.Y + Args(step).Number("offsetY")), Spread(step));
 
         // Where it was found and every place it was found, the same as the step that only looks:
         // a step that clicks something is also a step whose position a later one may want.
@@ -72,9 +72,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task ClickColor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var target = PixelColor.Parse(ReadValue(step, "color").AsText());
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
-        var least = ReadValue(step, "minCoverage").AsNumber() / 100;
+        var target = PixelColor.Parse(Args(step).ValueOf("color").AsText());
+        var tolerance = Args(step).ValueOf("tolerance").AsNumber();
+        var least = Args(step).ValueOf("minCoverage").AsNumber() / 100;
         var interval = LookBeat();
 
         // Enough of the region showing the colour is not the same question as the hit the step
@@ -93,8 +93,8 @@ public sealed partial class MacroRunner
         // The click aims at the middle of what was found, moved by the offset the step gives, so a
         // click can land beside the colour it recognised rather than on it.
         var at = Scattered(new ScreenPoint(
-            match.Center.X + Number(step, "offsetX"),
-            match.Center.Y + Number(step, "offsetY")), Spread(step));
+            match.Center.X + Args(step).Number("offsetX"),
+            match.Center.Y + Args(step).Number("offsetY")), Spread(step));
 
         // Where it was found and everywhere it was found, as the searching action hands them over:
         // a step that clicks something is also a step whose position a later one may want.

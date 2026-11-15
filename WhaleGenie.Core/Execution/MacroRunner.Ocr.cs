@@ -55,7 +55,7 @@ public sealed partial class MacroRunner
         // 识别一次整幅画面是同步的，读不到取消令牌：进识别之前先问一次，让「停止」不必等它。
         _run.RunToken.ThrowIfCancellationRequested();
 
-        var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), ReadText(step, "preprocess"));
+        var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), Args(step).Text("preprocess"));
         var readings = _devices.Ocr.Recognize(prepared)
             .Select(span => span with { Text = Corrected(step, span.Text) });
         var spans = Wanted(step, [.. readings]);
@@ -82,10 +82,10 @@ public sealed partial class MacroRunner
     /// </summary>
     private ImageFrame Isolated(ExecutableStep step, ImageFrame frame)
     {
-        var colour = ReadValue(step, "colorFilter").AsText().Trim();
+        var colour = Args(step).ValueOf("colorFilter").AsText().Trim();
         return colour.Length == 0
             ? frame
-            : OcrPreprocess.ByColour(frame, PixelColor.Parse(colour), Number(step, "colorTolerance"));
+            : OcrPreprocess.ByColour(frame, PixelColor.Parse(colour), Args(step).Number("colorTolerance"));
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private string Corrected(ExecutableStep step, string text)
     {
-        var corrections = ReadText(step, "fixText");
+        var corrections = Args(step).Text("fixText");
         if (text.Length == 0 || corrections.Trim().Length == 0)
         {
             return text;
@@ -167,7 +167,7 @@ public sealed partial class MacroRunner
             return false;
         }
 
-        var shape = ReadText(step, "expected").Trim();
+        var shape = Args(step).Text("expected").Trim();
         if (shape.Length == 0)
         {
             return true;
@@ -191,7 +191,7 @@ public sealed partial class MacroRunner
     /// how a screen full of labels and a screen full of codes are handled by the same kind of step.
     /// </summary>
     private IReadOnlyList<TextSpan> Wanted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
-        => ReadText(step, "content").Trim().ToLowerInvariant() switch
+        => Args(step).Text("content").Trim().ToLowerInvariant() switch
         {
             "digits" => OcrReading.Numbers(spans),
             "letters" => OcrReading.Letters(spans),
@@ -209,7 +209,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private IReadOnlyList<TextSpan> Extracted(ExecutableStep step, IReadOnlyList<TextSpan> spans)
     {
-        var pattern = ReadValue(step, "contentPattern").AsText().Trim();
+        var pattern = Args(step).ValueOf("contentPattern").AsText().Trim();
         if (pattern.Length == 0)
         {
             return spans;
@@ -236,7 +236,7 @@ public sealed partial class MacroRunner
         GivePoints(step, Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
         var text = string.Join(' ', spans.Select(span => span.Text));
         Saw(step, LookKind.Text, frame, corner, Marks(areas, TextMarks(spans, default), 0), 0,
-            note: text, minimum: Number(step, "minScore"));
+            note: text, minimum: Args(step).Number("minScore"));
 
         // Read as a table, the result holds rows, each one a record keyed by where its cells sit —
         // the shape reading a table through UI Automation gives. Read as text it holds the writing,
@@ -258,7 +258,7 @@ public sealed partial class MacroRunner
 
     private void FindText(ExecutableStep step, int depth)
     {
-        var wanted = ReadValue(step, "queryText").AsText();
+        var wanted = Args(step).ValueOf("queryText").AsText();
         var way = TextWay(step, wanted);
 
         // Every reading is kept, not only the ones the step is willing to act on: a look that
@@ -268,7 +268,7 @@ public sealed partial class MacroRunner
         var (hits, chosen) = Counting(step, readings, wanted, way);
 
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
-            minimum: Number(step, "minScore"));
+            minimum: Args(step).Number("minScore"));
 
         var span = hits.Count > 0 ? hits[0] : null;
         Give(step, "found", Value.FromBool(span is not null));
@@ -301,11 +301,11 @@ public sealed partial class MacroRunner
             (string?)span.Text))];
 
     private bool Sure(ExecutableStep step, TextSpan candidate)
-        => candidate.Confidence >= Number(step, "minScore");
+        => candidate.Confidence >= Args(step).Number("minScore");
 
     private async Task ClickText(ExecutableStep step, int depth, CancellationToken token)
     {
-        var wanted = ReadValue(step, "queryText").AsText();
+        var wanted = Args(step).ValueOf("queryText").AsText();
         var way = TextWay(step, wanted);
         var interval = LookBeat();
 
@@ -324,23 +324,23 @@ public sealed partial class MacroRunner
 
         var span = await WaitForValueAsync(Look, interval, token);
         SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
-            minimum: Number(step, "minScore"));
+            minimum: Args(step).Number("minScore"));
 
         // A step that asked to look again waits a moment and confirms the line is still there: a
         // line that has already been replaced is not clicked. The second look is a single look
         // rather than another wait: whether the line is still there is not a thing to wait for.
-        var again = Pace(Number(step, "confirmMs"));
+        var again = Pace(Args(step).Number("confirmMs"));
         if (again > 0)
         {
             await Pause(again, token);
             span = Look() ?? throw new StepFailure(RunKeys.TextNotFound, wanted);
             SawSearch(step, LookKind.Text, _read, TextMarks(readings, default), chosen, wanted,
-                minimum: Number(step, "minScore"));
+                minimum: Args(step).Number("minScore"));
         }
 
         var at = Scattered(new ScreenPoint(
-            span.Center.X + Number(step, "offsetX"),
-            span.Center.Y + Number(step, "offsetY")), Spread(step));
+            span.Center.X + Args(step).Number("offsetX"),
+            span.Center.Y + Args(step).Number("offsetY")), Spread(step));
 
         // Where the line was read, every other place it was read, and what each of them said — the
         // same answers the step that only looks for text hands over.

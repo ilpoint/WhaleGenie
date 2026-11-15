@@ -62,20 +62,20 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.BadList, error?.Detail ?? Formula.Speak(writtenItems));
         }
 
-        var itemName = WrittenName(step, "itemVariable").Trim();
+        var itemName = Args(step).Written("itemVariable").Trim();
         if (itemName.Length == 0)
         {
             itemName = "item";
         }
 
-        var order = string.Equals(ReadText(step, "reverse"), "true", StringComparison.OrdinalIgnoreCase)
+        var order = string.Equals(Args(step).Text("reverse"), "true", StringComparison.OrdinalIgnoreCase)
             ? items.Reverse()
             : items;
 
         // The round number is only worth having when the step asked for it by name: a variable
         // nobody asked for is one more thing to puzzle over in the variable list.
-        var indexName = WrittenName(step, "indexVariable").Trim();
-        var interval = Pace(Number(step, "intervalMs"));
+        var indexName = Args(step).Written("indexVariable").Trim();
+        var interval = Pace(Args(step).Number("intervalMs"));
         var index = 0;
         using var indexScope = EnterLoop(VariableStore.LoopIndexName);
         using var nameScope = EnterLoop(true, itemName, indexName);
@@ -116,9 +116,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunFor(ExecutableStep step, int depth, CancellationToken token)
     {
-        var from = Number(step, "rangeFrom");
-        var to = Number(step, "rangeTo");
-        var stride = Number(step, "stepSize");
+        var from = Args(step).Number("rangeFrom");
+        var to = Args(step).Number("rangeTo");
+        var stride = Args(step).Number("stepSize");
         if (stride == 0)
         {
             // A step is what the counter moves by, so a zero would never move it at all. Taking the
@@ -128,13 +128,13 @@ public sealed partial class MacroRunner
 
         // The counter is a variable the step itself names, and a loop with no counter has nothing
         // to run its body against, so an empty field falls back to the name every for-loop uses.
-        var counter = WrittenName(step, "name").Trim();
+        var counter = Args(step).Written("name").Trim();
         if (counter.Length == 0)
         {
             counter = "i";
         }
 
-        var interval = Pace(Number(step, "intervalMs"));
+        var interval = Pace(Args(step).Number("intervalMs"));
         var round = 0;
         using var indexScope = EnterLoop(VariableStore.LoopIndexName);
         using var nameScope = EnterLoop(true, counter);
@@ -172,8 +172,8 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunSwitch(ExecutableStep step, int depth, CancellationToken token)
     {
-        var value = ReadValue(step, "switchValue");
-        var mode = ReadText(step, "switchMode");
+        var value = Args(step).ValueOf("switchValue");
+        var mode = Args(step).Text("switchMode");
 
         foreach (var branch in step.Children("cases"))
         {

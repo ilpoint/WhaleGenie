@@ -320,7 +320,7 @@ public sealed partial class MacroRunner
         }
 
         int Side(string name, int current, int least)
-            => Given(step, name) ? Math.Max(least, Number(step, name)) : current;
+            => Args(step).Given(name) ? Math.Max(least, Args(step).Number(name)) : current;
 
         return (Side("x", window.Location.X, int.MinValue),
             Side("y", window.Location.Y, int.MinValue),

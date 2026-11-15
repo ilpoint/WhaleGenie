@@ -28,14 +28,14 @@ public sealed partial class MacroRunner
             ["vision.clickDetect"] = (run, step) => run.Watching(() => run.Sightings(step)),
 
             ["vision.findColor"] = (run, step) => run.Watching(() => run.Scan(step,
-                PixelColor.Parse(run.ReadValue(step, "color").AsText()),
-                run.ReadValue(step, "tolerance").AsNumber(), measured: false)),
+                PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),
+                run.Args(step).ValueOf("tolerance").AsNumber(), measured: false)),
             ["vision.waitColor"] = (run, step) => run.Watching(() => run.Scan(step,
-                PixelColor.Parse(run.ReadValue(step, "color").AsText()),
-                run.ReadValue(step, "tolerance").AsNumber(), measured: false)),
+                PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),
+                run.Args(step).ValueOf("tolerance").AsNumber(), measured: false)),
             ["vision.clickColor"] = (run, step) => run.Watching(() => run.Scan(step,
-                PixelColor.Parse(run.ReadValue(step, "color").AsText()),
-                run.ReadValue(step, "tolerance").AsNumber(), measured: false)),
+                PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),
+                run.Args(step).ValueOf("tolerance").AsNumber(), measured: false)),
 
             ["vision.findColors"] = (run, step) => run.Watching(() => run.PatternHits(step)),
 

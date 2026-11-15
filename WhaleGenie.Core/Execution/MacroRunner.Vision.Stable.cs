@@ -31,9 +31,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task WaitStable(ExecutableStep step, int depth, CancellationToken token)
     {
-        var tolerance = ReadValue(step, "tolerance").AsNumber();
-        var allowed = ReadValue(step, "changedPercent").AsNumber() / 100;
-        var quiet = Math.Max(0, Number(step, "quietMs"));
+        var tolerance = Args(step).ValueOf("tolerance").AsNumber();
+        var allowed = Args(step).ValueOf("changedPercent").AsNumber() / 100;
+        var quiet = Math.Max(0, Args(step).Number("quietMs"));
         var interval = LookBeat();
 
         var started = Stopwatch.GetTimestamp();

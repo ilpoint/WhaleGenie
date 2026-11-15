@@ -46,9 +46,9 @@ public sealed partial class MacroRunner
     private void PathPart(ExecutableStep step, int depth)
     {
         var path = PathOf(step);
-        var other = ReadValue(step, "fileName").AsText().Trim();
+        var other = Args(step).ValueOf("fileName").AsText().Trim();
 
-        var answer = ReadText(step, "operation").Trim().ToLowerInvariant() switch
+        var answer = Args(step).Text("operation").Trim().ToLowerInvariant() switch
         {
             "folder" => Path.GetDirectoryName(path) ?? string.Empty,
             "name" => Path.GetFileName(path),
@@ -89,11 +89,11 @@ public sealed partial class MacroRunner
         var recurse = Flag(step, "recurse", false);
         // A filter said with a semi-colon is several filters, the way the action this is modelled
         // on reads it: *.txt; *.csv is one question, not two steps.
-        var patterns = ReadText(step, "pattern")
+        var patterns = Args(step).Text("pattern")
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        var levels = Number(step, "depth");
+        var levels = Args(step).Number("depth");
         // 收文件还是收文件夹：默认收文件，跟这个选择出现之前一样。
-        var kind = ReadText(step, "kind").Trim().ToLowerInvariant() switch
+        var kind = Args(step).Text("kind").Trim().ToLowerInvariant() switch
         {
             "folders" => ListKind.Folders,
             "both" => ListKind.Both,
@@ -103,8 +103,8 @@ public sealed partial class MacroRunner
             recurse ? (levels <= 0 ? -1 : levels) : 0, kind);
 
         var since = ChangedSince(step);
-        var smallest = Number(step, "minKb") * 1024L;
-        var largest = Number(step, "maxKb") * 1024L;
+        var smallest = Args(step).Number("minKb") * 1024L;
+        var largest = Args(step).Number("maxKb") * 1024L;
         var kept = files.Where(entry =>
             (since is null || entry.Modified >= since)
             && (smallest <= 0 || entry.Size >= smallest)
@@ -112,7 +112,7 @@ public sealed partial class MacroRunner
 
         // A listing a macro loops over is the same listing on every run, so the folder's own order
         // is never the answer: an order is always asked for, and the name settles the ties.
-        var ordered = InOrder(kept, ReadText(step, "sortBy").Trim(), Flag(step, "descending", false));
+        var ordered = InOrder(kept, Args(step).Text("sortBy").Trim(), Flag(step, "descending", false));
         var root = Flag(step, "relative", false) ? _devices.Files.Resolve(folder) : "";
         var paths = ordered
             .Select(entry => root.Length == 0 ? entry.Path : Path.GetRelativePath(root, entry.Path))
@@ -128,13 +128,13 @@ public sealed partial class MacroRunner
     /// </summary>
     private DateTimeOffset? ChangedSince(ExecutableStep step)
     {
-        var count = Number(step, "withinCount");
+        var count = Args(step).Number("withinCount");
         if (count <= 0)
         {
             return null;
         }
 
-        var back = ReadText(step, "withinUnit").Trim().ToLowerInvariant() switch
+        var back = Args(step).Text("withinUnit").Trim().ToLowerInvariant() switch
         {
             "minutes" => TimeSpan.FromMinutes(count),
             "hours" => TimeSpan.FromHours(count),

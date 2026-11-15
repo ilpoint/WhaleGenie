@@ -32,7 +32,7 @@ public sealed partial class MacroRunner
     private UiQuery Query(ExecutableStep step)
     {
         var rule = WindowRuleOf(step);
-        var query = UiQuery.Parse(ReadText(step, "uiSelector"), rule.MatchValue,
+        var query = UiQuery.Parse(Args(step).Text("uiSelector"), rule.MatchValue,
             Index(step, "matchIndex", 1), rule.Reading.Match, rule.Reading.Compare, rule.Options);
         return query with { Narrow = NarrowConditions(step), Anchor = AnchorOf(step, rule) };
     }
@@ -48,13 +48,13 @@ public sealed partial class MacroRunner
     /// </remarks>
     private UiAnchor? AnchorOf(ExecutableStep step, WindowRule rule)
     {
-        var selector = ReadText(step, "anchorElement").Trim();
+        var selector = Args(step).Text("anchorElement").Trim();
         if (selector.Length == 0)
         {
             return null;
         }
 
-        var side = ReadText(step, "anchorSide").Trim().ToLowerInvariant() switch
+        var side = Args(step).Text("anchorSide").Trim().ToLowerInvariant() switch
         {
             "right" => UiSide.Right,
             "above" => UiSide.Above,
@@ -65,7 +65,7 @@ public sealed partial class MacroRunner
         var anchor = UiQuery.Parse(selector, rule.MatchValue, 1,
             rule.Reading.Match, rule.Reading.Compare, rule.Options);
 
-        return new UiAnchor(anchor, side, Math.Max(0, (int)Number(step, "anchorGap")));
+        return new UiAnchor(anchor, side, Math.Max(0, (int)Args(step).Number("anchorGap")));
     }
 
     /// <summary>

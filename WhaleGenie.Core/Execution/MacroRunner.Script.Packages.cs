@@ -143,14 +143,14 @@ public sealed partial class MacroRunner
     /// is left out: a list kept by hand is easier to read with a word about what is in it.
     /// </summary>
     private IReadOnlyList<string> ScriptPackages(ExecutableStep step)
-        => [.. Template(ReadText(step, "packages")).Split('\n')
+        => [.. Template(Args(step).Text("packages")).Split('\n')
             .Select(line => line.Trim())
             .Where(line => line.Length > 0 && !line.StartsWith('#'))];
 
     /// <summary>The interpreter a Python step runs with, which is this machine's own by default.</summary>
     private string ScriptInterpreter(ExecutableStep step)
     {
-        var named = ReadText(step, "python").Trim();
+        var named = Args(step).Text("python").Trim();
         return named.Length == 0 ? "python" : named;
     }
 
