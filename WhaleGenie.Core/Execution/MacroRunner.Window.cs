@@ -169,7 +169,7 @@ public sealed partial class MacroRunner
 
     /// <summary>The middle of a rectangle, which is the point an action aims at.</summary>
     private static ScreenPoint Middle(ScreenPoint corner, ScreenSize size)
-        => new(corner.X + (size.Width / 2), corner.Y + (size.Height / 2));
+        => ScreenMath.Middle(corner, size);
 
     /// <summary>
     /// Empties what a search would have handed over, so a step inside a loop never reads the place
