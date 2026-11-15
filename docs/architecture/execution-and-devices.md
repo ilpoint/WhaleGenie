@@ -69,7 +69,8 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 `SystemActions`、`UiaActions`、`FileActions` 与 `DataActions` 已经迁出：它们共用 `RunActionHandler`，
 处理器表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），
 因此这些族可以脱离运行器直接测试。`UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此
-在族内只有一种搜索方式；`FileActions` 带走 JSON 路径、CSV 形状与变量快照，文件族因此自带整套读法。
+在族内只有一种搜索方式；文件族按读写格式分成 `FileActions`（文本、单个文件、文件夹、列表与变量快照）、
+`FileJsonActions` 与 `FileCsvActions`，各自带走自己的形状规则。
 尚未迁走的族仍是 `MacroRunner.<Family>.cs`；主文件维护运行状态、循环与分派，公共读值集中在
 `MacroRunner.Reading.cs`。目录声明语义，但不替代动作分派；新增动作仍需在具体处理器中实现。
 

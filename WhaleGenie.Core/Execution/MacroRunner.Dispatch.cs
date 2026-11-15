@@ -127,7 +127,7 @@ public sealed partial class MacroRunner
         foreach (var family in new[]
                  {
                      ClipboardActions.Map, ProcessActions.Map, SystemActions.Map, UiaActions.Map,
-                     FileActions.Map, DataActions.Map,
+                     FileActions.Map, FileJsonActions.Map, FileCsvActions.Map, DataActions.Map,
                  })
         {
             foreach (var (key, handler) in family)

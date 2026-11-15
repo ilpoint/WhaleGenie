@@ -79,7 +79,10 @@ public class FileActionTests
         => record.Fields.First(field => field.Name == name).Value;
 
     private static Task<Signal> Run(FakeRunContext context, string type, ExecutableStep step)
-        => FileActions.Map[type](context, step, 0, CancellationToken.None);
+        => Handler(type)(context, step, 0, CancellationToken.None);
+
+    private static RunActionHandler Handler(string type)
+        => FileActions.Map.TryGetValue(type, out var handler) ? handler : FileCsvActions.Map[type];
 
     private static ExecutableStep Step(string type, params ExecutableParameter[] parameters)
         => new() { Type = type, Parameters = parameters };

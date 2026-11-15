@@ -76,7 +76,9 @@
 369	WhaleGenie.Core/Execution/ProcessActions.cs	keep: 一类动作：启动、查找、等待、结束与命令执行共用同一套程序规则
 507	WhaleGenie.Core/Execution/SystemActions.cs	keep: 一类动作：机器事实、屏幕、环境、注册表、电源、声音与显示设置
 487	WhaleGenie.Core/Execution/UiaActions.cs	keep: 一类动作：找到元素、操作元素、读元素与读表格
-1093	WhaleGenie.Core/Execution/FileActions.cs	keep: 一类动作：文本/JSON/CSV、单个文件、文件夹与归档、变量快照
+534	WhaleGenie.Core/Execution/FileActions.cs	keep: 一类动作：文本、单个文件、文件夹与归档、列表与变量快照
+233	WhaleGenie.Core/Execution/FileJsonActions.cs	keep: 一类动作：JSON 读写与路径解析
+379	WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
 116	WhaleGenie.Core/Execution/DataActions.cs	keep: 一类动作：Base64 与校验和
 470	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	keep: 录制事件到动作的翻译状态机，按住与拖拽的状态只有这一处
