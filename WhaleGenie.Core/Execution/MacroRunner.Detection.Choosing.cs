@@ -51,7 +51,7 @@ public sealed partial class MacroRunner
     {
         if (Wants(step, "every") || CountsFromTheFarSide(step))
         {
-            return MatchLimit;
+            return RunLimits.Matches;
         }
 
         return Index(step, "matchIndex", 1);
@@ -97,7 +97,7 @@ public sealed partial class MacroRunner
     private int Index(ExecutableStep step, string name, int fallback)
     {
         var text = Args(step).Text(name).Trim();
-        return text.Length == 0 ? fallback : Math.Clamp(Args(step).Number(name), 1, MatchLimit);
+        return text.Length == 0 ? fallback : Math.Clamp(Args(step).Number(name), 1, RunLimits.Matches);
     }
 
     /// <summary>Reading order, the order the hits are counted in.</summary>
@@ -105,7 +105,4 @@ public sealed partial class MacroRunner
         => left.Location.Y != right.Location.Y
             ? left.Location.Y.CompareTo(right.Location.Y)
             : left.Location.X.CompareTo(right.Location.X);
-
-    /// <summary>The most hits one step collects, so a flat colour cannot fill memory.</summary>
-    private const int MatchLimit = 200;
 }

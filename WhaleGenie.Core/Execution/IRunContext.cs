@@ -31,11 +31,38 @@ internal interface IRunContext
     /// <summary>The window rule a step wrote, resolved the same way every family resolves it.</summary>
     WindowRule WindowRuleOf(ExecutableStep step);
 
+    /// <summary>
+    /// The window a step is about: the one its rule finds, or the one in front when it named none.
+    /// </summary>
+    WindowInfo? Lookup(ExecutableStep step);
+
+    /// <summary>Which of the hits a step means, counted from one and held to the search limit.</summary>
+    int Index(ExecutableStep step, string name, int fallback);
+
+    /// <summary>The mouse button a step names, or the left one when it names none.</summary>
+    string Button(ExecutableStep step);
+
+    /// <summary>One column of one row of a step's table, worked out where it stands.</summary>
+    string Text(IReadOnlyDictionary<string, ExpressionNode> row, string column);
+
+    /// <summary>One column of one row read as the word it names rather than as a value.</summary>
+    string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column);
+
     /// <summary>Hands one result over under the name the step gave it.</summary>
     string Give(ExecutableStep step, string key, Value value);
 
     /// <summary>Hands a result over and writes the line that says a variable was set.</summary>
     void Store(ExecutableStep step, string key, Value value, int depth);
+
+    /// <summary>Hands over what a search found: where to aim, and what was read with it.</summary>
+    void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
+        string text = "", string label = "", int classId = -1);
+
+    /// <summary>Empties the results a search would have handed over after finding nothing.</summary>
+    void GiveNothing(ExecutableStep step);
+
+    /// <summary>Hands over every hit there was, for the steps that asked for the list.</summary>
+    void GiveEvery(ExecutableStep step, IEnumerable<Value> hits);
 
     /// <summary>Adds a line to the run's log.</summary>
     void Log(LogLevel level, int depth, string type, string key, params object[] arguments);

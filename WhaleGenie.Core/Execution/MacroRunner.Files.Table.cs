@@ -152,7 +152,7 @@ public sealed partial class MacroRunner
             return Value.FromList([.. table.Rows.Select(row => Cell(row, 0))]);
         }
 
-        var names = ColumnNames(table.Header, width);
+        var names = TableColumns.Names(table.Header, width);
         return Value.FromList(
         [
             .. table.Rows.Select(row => Value.FromRecord(
@@ -160,40 +160,6 @@ public sealed partial class MacroRunner
                     names[index],
                     index < row.Count ? row[index] : Value.FromText(string.Empty))))),
         ]);
-    }
-
-    /// <summary>
-    /// What each cell of a row is called: the name written above it, or — for a file whose first row
-    /// is not a header — the letter of its column, which is the same name the "only these columns"
-    /// field takes. A column nobody named keeps its letter rather than taking the name of the one
-    /// before it, and so does a column that repeats a name already taken: two columns under one name
-    /// would put one of them out of reach of a record.
-    /// </summary>
-    private static IReadOnlyList<string> ColumnNames(IReadOnlyList<Value>? header, int width)
-    {
-        var names = new List<string>(width);
-        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var index = 0; index < width; index++)
-        {
-            var written = index < (header?.Count ?? 0) ? header![index].AsText().Trim() : string.Empty;
-            var name = written.Length > 0 && taken.Add(written) ? written : Letter(index);
-            names.Add(name);
-            taken.Add(name);
-        }
-
-        return names;
-    }
-
-    /// <summary>The way a person writes a column place on its own: A, B, ... Z, AA.</summary>
-    private static string Letter(int place)
-    {
-        var text = string.Empty;
-        for (var at = place; at >= 0; at = (at / 26) - 1)
-        {
-            text = (char)('A' + (at % 26)) + text;
-        }
-
-        return text;
     }
 
     /// <summary>The columns a step named, in the order it named them; empty means all of them.</summary>

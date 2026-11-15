@@ -126,7 +126,7 @@ public sealed partial class MacroRunner
         // answering rather than capturing it, so the table is built once for the process.
         foreach (var family in new[]
                  {
-                     ClipboardActions.Map, ProcessActions.Map, SystemActions.Map,
+                     ClipboardActions.Map, ProcessActions.Map, SystemActions.Map, UiaActions.Map,
                  })
         {
             foreach (var (key, handler) in family)
@@ -143,7 +143,7 @@ public sealed partial class MacroRunner
         [
             ControlActions, FileActions, DataActions,
             WindowActions, InputActions, VisionActions, OcrActions,
-            UiaActions, BrowserActions, ScriptActions,
+            BrowserActions, ScriptActions,
         ];
 
     /// <summary>

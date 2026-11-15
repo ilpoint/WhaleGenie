@@ -248,7 +248,7 @@ public sealed partial class MacroRunner
             // in name them: A, B, C, the same names a file with no header gets.
             var rows = OcrReading.Rows(spans);
             Give(step, "table", Value.FromList(rows.Select(row => Value.FromRecord(
-                row.Select((cell, index) => (Letter(index), Value.FromText(cell)))))));
+                row.Select((cell, index) => (TableColumns.Letter(index), Value.FromText(cell)))))));
             text = string.Join('\n', rows.Select(row => string.Join('\t', row)));
             Log(LogLevel.Info, depth, step.Type, LogKeys.ReadTable, rows.Count);
         }

@@ -65,11 +65,15 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 信息投影给编辑器；`ActionContractTests` 检查二者对应关系。显示层另有一个 `WrittenByTool`：这类值
 由专门的窗口写入（基准色周围要对的颜色），表单不给它生成行，值本身照常保存与校验。
 
-动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions` 与
-`SystemActions` 已经迁出：它们共用 `RunActionHandler`，处理器表是静态的，每个处理器只接收
-`IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），因此这些族可以脱离运行器直接测试。
+动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、
+`SystemActions` 与 `UiaActions` 已经迁出：它们共用 `RunActionHandler`，处理器表是静态的，每个处理器
+只接收 `IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），因此这些族可以脱离运行器直接
+测试。`UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此在族内只有一种搜索方式。
 尚未迁走的族仍是 `MacroRunner.<Family>.cs`；主文件维护运行状态、循环与分派，公共读值集中在
 `MacroRunner.Reading.cs`。目录声明语义，但不替代动作分派；新增动作仍需在具体处理器中实现。
+
+同一份读法被多个族用到时抽成独立类型而不是继续留在运行器里：`RunLimits` 是搜索与表格的上限，
+`TableColumns` 给文件、浏览器与元素三处的表格列起名，`HitRecord` 是命中记录的字段表。
 
 等待集中在 `Pacing`：暂停、按间隔重问一个条件、等一个会出现的值。动作族直接用它，不必经由运行器；
 `MacroRunner` 暂时保留同签名的私有转发，等族迁完就删。

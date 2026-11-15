@@ -47,7 +47,7 @@ public sealed partial class MacroRunner
             input >= 32 ? input : 640,
             overlap > 0 ? overlap : 45,
             Rows(Args(step).Text("labels")),
-            MatchLimit,
+            RunLimits.Matches,
             LabelFileOf(step));
     }
 

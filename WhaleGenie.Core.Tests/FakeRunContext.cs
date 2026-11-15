@@ -47,6 +47,37 @@ internal sealed class FakeRunContext : IRunContext
     WindowRule IRunContext.WindowRuleOf(ExecutableStep step)
         => WindowRule.TryParse(step.Text("window"), out var rule) ? rule : WindowRule.Empty;
 
+    WindowInfo? IRunContext.Lookup(ExecutableStep step)
+    {
+        var rule = ((IRunContext)this).WindowRuleOf(step);
+        var windows = (IWindowDevice)Machine.Window;
+        return rule.HasTarget
+            ? windows.Find(rule.MatchValue, rule.Reading.Match, rule.Reading.Compare,
+                rule.Options)
+            : windows.Foreground();
+    }
+
+    int IRunContext.Index(ExecutableStep step, string name, int fallback)
+    {
+        var args = ((IRunContext)this).Args(step);
+        var text = args.Text(name).Trim();
+        return text.Length == 0 ? fallback : Math.Clamp(args.Number(name), 1, RunLimits.Matches);
+    }
+
+    string IRunContext.Button(ExecutableStep step)
+    {
+        var button = step.Text("button").Trim();
+        return button.Length == 0 ? "left" : button;
+    }
+
+    string IRunContext.Text(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written)
+            ? Expression.Evaluate(written, _variables).AsText()
+            : string.Empty;
+
+    string IRunContext.Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written) ? Formula.Word(written).Trim() : string.Empty;
+
     string IRunContext.Give(ExecutableStep step, string key, Value value)
     {
         Written[key] = value;
@@ -58,6 +89,19 @@ internal sealed class FakeRunContext : IRunContext
         Written[key] = value;
         Logged.Add((LogLevel.Info, key));
     }
+
+    void IRunContext.GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size,
+        double score, string text, string label, int classId)
+        => Written["match"] = HitRecord.Of(corner, size, score, text, label, classId);
+
+    void IRunContext.GiveNothing(ExecutableStep step)
+    {
+        Written["match"] = Value.FromText(string.Empty);
+        Written["every"] = Value.FromList([]);
+    }
+
+    void IRunContext.GiveEvery(ExecutableStep step, IEnumerable<Value> hits)
+        => Written["every"] = Value.FromList(hits);
 
     void IRunContext.Log(LogLevel level, int depth, string type, string key,
         params object[] arguments) => Logged.Add((level, key));

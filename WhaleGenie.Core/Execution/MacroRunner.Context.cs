@@ -23,11 +23,33 @@ public sealed partial class MacroRunner : IRunContext
 
     WindowRule IRunContext.WindowRuleOf(ExecutableStep step) => WindowRuleOf(step);
 
+    WindowInfo? IRunContext.Lookup(ExecutableStep step) => Lookup(step);
+
+    int IRunContext.Index(ExecutableStep step, string name, int fallback)
+        => Index(step, name, fallback);
+
+    string IRunContext.Button(ExecutableStep step) => Button(step);
+
+    string IRunContext.Text(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => Text(row, column);
+
+    string IRunContext.Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => Word(row, column);
+
     string IRunContext.Give(ExecutableStep step, string key, Value value)
         => Give(step, key, value);
 
     void IRunContext.Store(ExecutableStep step, string key, Value value, int depth)
         => Store(step, key, value, depth);
+
+    void IRunContext.GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size,
+        double score, string text, string label, int classId)
+        => GiveMatch(step, corner, size, score, text, label, classId);
+
+    void IRunContext.GiveNothing(ExecutableStep step) => GiveNothing(step);
+
+    void IRunContext.GiveEvery(ExecutableStep step, IEnumerable<Value> hits)
+        => GiveEvery(step, hits);
 
     void IRunContext.Log(LogLevel level, int depth, string type, string key,
         params object[] arguments)
