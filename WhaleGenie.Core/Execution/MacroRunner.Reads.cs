@@ -48,7 +48,7 @@ public sealed partial class MacroRunner
             }));
         }
 
-        Sorted(spans, step);
+        SearchHits.Sort(spans, step);
         return (spans, areas);
     }
 

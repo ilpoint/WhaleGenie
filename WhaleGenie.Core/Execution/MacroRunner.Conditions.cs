@@ -141,7 +141,9 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>True when a reference picture is somewhere in a condition's search areas.</summary>
-    private bool ImageThere(ExecutableStep condition) => Search(condition) is not null;
+    private bool ImageThere(ExecutableStep condition)
+        => SearchHits.Choose(this, ImageActions.Hits(this, condition, _run.RunToken), condition)
+           is not null;
 
     /// <summary>
     /// True when the text a condition names is somewhere in its search areas. The negative wording

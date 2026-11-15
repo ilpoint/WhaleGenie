@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 
@@ -30,4 +32,8 @@ internal static class HitRecord
             (FieldNames.Label, Value.FromText(label)),
         ]);
     }
+
+    /// <summary>Every place a search found something, each a record, in the order it counts them in.</summary>
+    public static IEnumerable<Value> Each(IReadOnlyList<ImageMatch> hits)
+        => hits.Select(hit => Of(hit.Location, hit.Size, hit.Score));
 }

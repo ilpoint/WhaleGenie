@@ -67,11 +67,13 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 
 动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、
 `SystemActions`、`UiaActions`、`FileActions` 与 `DataActions`、`WindowActions`、`KeyboardActions`、
-`GamepadActions`、`PointerActions`、`BrowserActions` 与 `OcrActions` 已经迁出：它们共用
+`GamepadActions`、`PointerActions`、`BrowserActions`、`OcrActions`、`DetectionActions`、
+`CaptureActions`、`ColourActions` 与 `ImageActions` 已经迁出：它们共用
 `RunActionHandler`，处理器表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、
 取得设备与运行观测），因此这些族可以脱离运行器直接测试。带块的动作（`browser.dialog` 这类）通过
 `IRunContext.RunBlock` 运行它包住的步骤，门与循环仍由运行器掌管；读屏的动作通过 `IRunContext.Reads`
-（`IScreenReads`）取用区域、读法与观察，条件判断与试看走同一份。
+（`IScreenReads`）取用区域、读法与观察，条件判断与试看走同一份；取一张图、读一个像素通过
+`IRunContext.Shots`（`IScreenShots`）取用，截图与像素读法因此只有一处。
 `UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此在族内只有一种搜索方式；文件族按读写
 格式分成 `FileActions`（文本、单个文件、文件夹、列表与变量快照）、`FileJsonActions` 与
 `FileCsvActions`，各自带走自己的形状规则。按键分成“按完就结束”的键盘族与按住不放的四个步骤：
@@ -79,16 +81,18 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 尚未迁走的族仍是 `MacroRunner.<Family>.cs`；主文件维护运行状态、循环与分派，公共读值集中在
 `MacroRunner.Reading.cs`。目录声明语义，但不替代动作分派；新增动作仍需在具体处理器中实现。
 
-三处曾经住在动作族文件里、实际被所有族共用的代码已经分开：`MacroRunner.Results.cs` 是交付结果的
+曾经住在动作族文件里、实际被所有族共用的代码已经分开：`MacroRunner.Results.cs` 是交付结果的
 一层（`Give`、`Store`、`GiveMatch`、`GiveNothing`、`GiveEvery` 与命中记录），
 `MacroRunner.WindowRules.cs` 是认窗口的一层（规则解析、`Lookup`、`Locate` 与窗口记录读取），
 `MacroRunner.Points.cs` 是认点的一层（屏幕/窗口坐标、记录自带的基准、拖拽两端与后台投递），
-`MacroRunner.Looks.cs` 与 `MacroRunner.Reads.cs` 是看屏的一层（搜索区域、抓屏与帧节拍、读法与观察标记）；
-动作族通过 `IRunPoints` 与 `IScreenReads` 取用它们，不必知道这些规则住在哪。
+`MacroRunner.Looks.cs` 与 `MacroRunner.Reads.cs` 是看屏的一层（搜索区域、抓屏与帧节拍、读法与观察标记），
+`MacroRunner.Pictures.cs` 是认参考图的一层（变量里的图、磁盘上的图与按写入时间做的缓存）；
+动作族通过 `IRunPoints`、`IScreenReads` 与 `IScreenShots` 取用它们，不必知道这些规则住在哪。
 
 同一份读法被多个族用到时抽成独立类型而不是继续留在运行器里：`RunLimits` 是搜索与表格的上限，
 `TableColumns` 给文件、浏览器与元素三处的表格列起名，`HitRecord` 是命中记录的字段表，
-`Templates` 填 `{{name}}`，`TextRule` 读文本比较的方式与开关。
+`Templates` 填 `{{name}}`，`TextRule` 读文本比较的方式与开关，`SearchHits` 统一定义命中按什么顺序数、
+第几个是哪一个，图像、颜色与检测三类搜索因此不会各数各的。
 
 等待集中在 `Pacing`：暂停、按间隔重问一个条件、等一个会出现的值。动作族直接用它，不必经由运行器；
 `MacroRunner` 暂时保留同签名的私有转发，等族迁完就删。

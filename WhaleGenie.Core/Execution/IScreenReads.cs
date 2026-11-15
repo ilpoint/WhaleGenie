@@ -40,12 +40,15 @@ internal interface IScreenReads
 
     /// <summary>
     /// Hands over what a search saw: the areas searched, every place the thing was found, and the
-    /// one the step went with.
+    /// one the step went with. The needle is the picture being looked for, which the look draws
+    /// beside the screen it was found on; the picture count says which of several it was, so a
+    /// step that listed four of them shows "the second".
     /// </summary>
     void SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted = "",
-        double? minimum = null, string? note = null);
+        ImageFrame? needle = null, double? minimum = null, int picture = 0, int pictures = 0,
+        string? note = null);
 
     /// <summary>Clicks where a step just worked out, and marks it on the look it came from.</summary>
     void ClickAt(ExecutableStep step, ScreenPoint at);

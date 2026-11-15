@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -15,7 +16,7 @@ namespace WhaleGenie.Core.Tests;
 /// than performed, and the window rule read the way a step wrote it. A family test uses this
 /// instead of building a runner, which is the point of the split.
 /// </summary>
-internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
+internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IScreenShots
 {
     private readonly VariableStore _variables = new();
 
@@ -46,7 +47,13 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
     public List<(string Wanted, int Chosen, int Found)> Searches { get; } = [];
 
     IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> IScreenReads.Areas(
-        ExecutableStep step) => [(Picture(), new ScreenPoint(0, 0))];
+        ExecutableStep step)
+    {
+        var desk = Machine.Screen.Desktop.Bounds;
+        var shot = Machine.Screen.Capture(
+            new ScreenCaptureRequest(desk.Left, desk.Top, desk.Width, desk.Height));
+        return [(shot.Frame, shot.Origin)];
+    }
 
     (IReadOnlyList<TextSpan> Spans, IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> Areas)
         IScreenReads.Read(ExecutableStep step, CancellationToken token)
@@ -74,12 +81,46 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
     void IScreenReads.SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted,
-        double? minimum, string? note) => Searches.Add((wanted, chosen, found.Count));
+        ImageFrame? needle, double? minimum, int picture, int pictures, string? note)
+        => Searches.Add((wanted, chosen, found.Count));
 
     void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at)
         => Machine.Input.Click("left", at.X, at.Y, 1, 0);
 
     int IScreenReads.Beat() => 0;
+
+    IScreenShots IRunContext.Shots => this;
+
+    IReadOnlyList<(string Name, ImageFrame Frame)> IRunContext.Pictures(ExecutableStep step)
+        => [.. step.Rows("images").Select(row => (((IRunContext)this).Word(row, "image"),
+            Picture()))];
+
+    (ScreenPoint Corner, WindowInfo? Window) IScreenShots.Spot(ExecutableStep step)
+    {
+        var args = ((IRunContext)this).Args(step);
+        return (new ScreenPoint(args.Number("x"), args.Number("y")), null);
+    }
+
+    ScreenShot IScreenShots.Take(int x, int y, int width, int height, WindowInfo? window)
+        => Machine.Screen.Capture(new ScreenCaptureRequest(x, y, width, height, window is null
+            ? Machine.Screen.Ways.ForScreen()
+            : Machine.Screen.Ways.ForWindow(), window?.Handle ?? 0));
+
+    PixelColor IScreenShots.At(ExecutableStep step, ScreenPoint point, WindowInfo? window)
+        => Machine.Screen.PixelAt(point.X, point.Y);
+
+    void IScreenShots.SawPixel(ExecutableStep step, ScreenPoint point, string looking,
+        WindowInfo? window) => Shown.Add((LookKind.Pixel, Picture()));
+
+    void IScreenShots.Show(ExecutableStep step, LookKind kind, ImageFrame frame,
+        ScreenPoint origin, IReadOnlyList<LookBox> boxes, int chosen, string looking)
+        => Shown.Add((kind, frame));
+
+    void IScreenShots.GiveTaken(ExecutableStep step)
+    {
+        Written["window"] = Value.FromText(string.Empty);
+        Written["method"] = Value.FromText(string.Empty);
+    }
 
     private static ImageFrame Picture() => new(10, 10, new byte[400]);
 
@@ -119,6 +160,9 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
             Written[windowKey] = PointRecord(client, "window");
         }
     }
+
+    void IRunPoints.GivePointAt(ExecutableStep step, ScreenPoint screen, WindowInfo? window)
+        => ((IRunPoints)this).GivePoints(step, screen, null);
 
     private static Value PointRecord(ScreenPoint point, string basis)
         => Value.FromRecord(
@@ -232,6 +276,11 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
 
     string IRunContext.Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => row.TryGetValue(column, out var written) ? Formula.Word(written).Trim() : string.Empty;
+
+    Value IRunContext.Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written)
+            ? Expression.Evaluate(written, _variables)
+            : Value.Null;
 
     string IRunContext.Give(ExecutableStep step, string key, Value value)
     {

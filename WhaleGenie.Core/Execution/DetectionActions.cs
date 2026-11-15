@@ -176,7 +176,7 @@ internal static class DetectionActions
         => run.Reads.SawSearch(step, LookKind.Detection, areas,
             [.. found.Select(hit => (hit.Match, (string?)hit.Label))],
             SearchHits.WentWith(run, found, step), SearchHits.Looking(run, step),
-            run.Args(step).Number("confidence") / 100.0);
+            minimum: run.Args(step).Number("confidence") / 100.0);
 
     /// <summary>Every thing the model found as a record, kind of thing and all.</summary>
     private static IEnumerable<Value> Records(IReadOnlyList<Sighting> found)

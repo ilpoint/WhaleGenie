@@ -32,6 +32,15 @@ internal interface IRunContext
     /// <summary>Reading the screen, for the steps that look before they act.</summary>
     IScreenReads Reads { get; }
 
+    /// <summary>Taking a picture of it, for the steps that watch a pixel or keep what they saw.</summary>
+    IScreenShots Shots { get; }
+
+    /// <summary>
+    /// The reference pictures a step lists, in the order it wrote them, each with the name it gave
+    /// it: what an earlier capture saved, or a file on disk.
+    /// </summary>
+    IReadOnlyList<(string Name, ImageFrame Frame)> Pictures(ExecutableStep step);
+
     /// <summary>One step's fields, read the way the catalogue says they are written.</summary>
     StepArguments Args(ExecutableStep step);
 
@@ -84,6 +93,9 @@ internal interface IRunContext
 
     /// <summary>One column of one row read as the word it names rather than as a value.</summary>
     string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column);
+
+    /// <summary>One column of one row worked out as the value it comes to.</summary>
+    Value Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column);
 
     /// <summary>Hands one result over under the name the step gave it.</summary>
     string Give(ExecutableStep step, string key, Value value);

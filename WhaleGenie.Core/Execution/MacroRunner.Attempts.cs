@@ -342,7 +342,7 @@ public sealed partial class MacroRunner
                 "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
                     Written(step.Rows("images"))),
                 "vision.waitDetect" or "vision.clickDetect" => new StepFailure(RunKeys.DetectNotFound,
-                    Looking(step)),
+                    SearchHits.Looking(this, step)),
                 "vision.waitStable" => new StepFailure(RunKeys.ScreenNotStable, patience),
                 "ocr.clickText" => new StepFailure(RunKeys.TextNotFound,
                     Args(step).ValueOf("queryText").AsText()),

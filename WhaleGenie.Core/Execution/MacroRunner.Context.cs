@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -9,7 +10,7 @@ namespace WhaleGenie.Core.Execution;
 
 // What a family sees of the run: the helpers families share, forwarded rather than moved so the
 // engine keeps one implementation of each while the families are still being lifted out.
-public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads
+public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads, IScreenShots
 {
     IDeviceLayer IRunContext.Devices => _devices;
 
@@ -42,12 +43,35 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads
     void IScreenReads.SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted,
-        double? minimum, string? note) => SawSearch(step, kind, areas, found, chosen,
-            wanted, minimum: minimum, note: note);
+        ImageFrame? needle, double? minimum, int picture, int pictures, string? note)
+        => SawSearch(step, kind, areas, found, chosen, wanted, needle, minimum, picture, pictures,
+            note);
 
     void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at) => ClickAt(step, at);
 
     int IScreenReads.Beat() => LookBeat();
+
+    IScreenShots IRunContext.Shots => this;
+
+    IReadOnlyList<(string Name, ImageFrame Frame)> IRunContext.Pictures(ExecutableStep step)
+        => [.. References(step).Select(picture => (picture.Name, picture.Frame))];
+
+    (ScreenPoint Corner, WindowInfo? Window) IScreenShots.Spot(ExecutableStep step) => Spot(step);
+
+    ScreenShot IScreenShots.Take(int x, int y, int width, int height, WindowInfo? window)
+        => Shot(x, y, width, height, window);
+
+    PixelColor IScreenShots.At(ExecutableStep step, ScreenPoint point, WindowInfo? window)
+        => PixelAt(step, point, window);
+
+    void IScreenShots.SawPixel(ExecutableStep step, ScreenPoint point, string looking,
+        WindowInfo? window) => SawPixel(step, point, looking, window);
+
+    void IScreenShots.Show(ExecutableStep step, LookKind kind, ImageFrame frame,
+        ScreenPoint origin, IReadOnlyList<LookBox> boxes, int chosen, string looking)
+        => Saw(step, kind, frame, origin, boxes, chosen, looking);
+
+    void IScreenShots.GiveTaken(ExecutableStep step) => GiveTaken(step);
 
     StepArguments IRunContext.Args(ExecutableStep step) => Args(step);
 
@@ -70,6 +94,9 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads
     void IRunPoints.GivePoints(ExecutableStep step, ScreenPoint screen, ScreenPoint? window,
         string screenKey, string windowKey)
         => GivePoints(step, screen, window, screenKey, windowKey);
+
+    void IRunPoints.GivePointAt(ExecutableStep step, ScreenPoint screen, WindowInfo? window)
+        => GivePointAt(step, screen, window);
 
     bool IRunContext.Flag(ExecutableStep step, string name, bool fallback)
         => Flag(step, name, fallback);
@@ -107,6 +134,9 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads
 
     string IRunContext.Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
         => Word(row, column);
+
+    Value IRunContext.Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => CellValue(row, column);
 
     string IRunContext.Give(ExecutableStep step, string key, Value value)
         => Give(step, key, value);

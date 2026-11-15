@@ -19,49 +19,26 @@ public sealed partial class MacroRunner
     private static readonly Dictionary<string, Action<MacroRunner, ExecutableStep>> Previews =
         new(StringComparer.Ordinal)
         {
-            ["vision.findImage"] = (run, step) => run.Watching(() => run.Hits(step)),
-            ["vision.waitImage"] = (run, step) => run.Watching(() => run.Hits(step)),
-            ["vision.clickImage"] = (run, step) => run.Watching(() => run.Hits(step)),
+            ["vision.findImage"] = (run, step) => ImageActions.Preview(run, step),
+            ["vision.waitImage"] = (run, step) => ImageActions.Preview(run, step),
+            ["vision.clickImage"] = (run, step) => ImageActions.Preview(run, step),
 
             ["vision.detect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
             ["vision.waitDetect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
             ["vision.clickDetect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
 
-            ["vision.findColor"] = (run, step) => run.Watching(() => run.Scan(step,
-                PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),
-                run.Args(step).ValueOf("tolerance").AsNumber(), measured: false)),
-            ["vision.waitColor"] = (run, step) => run.Watching(() => run.Scan(step,
-                PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),
-                run.Args(step).ValueOf("tolerance").AsNumber(), measured: false)),
-            ["vision.clickColor"] = (run, step) => run.Watching(() => run.Scan(step,
-                PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),
-                run.Args(step).ValueOf("tolerance").AsNumber(), measured: false)),
-
-            ["vision.findColors"] = (run, step) => run.Watching(() => run.PatternHits(step)),
-
-            ["vision.matchColor"] = (run, step) => run.Watching(() =>
-            {
-                var (point, window) = run.Spot(step);
-                run.SawPixel(step, point, run.PixelAt(step, point, window).ToHex(), window);
-            }),
-            ["vision.getPixel"] = (run, step) => run.Watching(() =>
-            {
-                var (point, window) = run.Spot(step);
-                run.SawPixel(step, point, run.PixelAt(step, point, window).ToHex(), window);
-            }),
+            ["vision.findColor"] = (run, step) => ColourActions.Preview(run, step),
+            ["vision.waitColor"] = (run, step) => ColourActions.Preview(run, step),
+            ["vision.clickColor"] = (run, step) => ColourActions.Preview(run, step),
+            ["vision.findColors"] = (run, step) => ColourActions.Preview(run, step),
+            ["vision.matchColor"] = (run, step) => ColourActions.Preview(run, step),
+            ["vision.getPixel"] = (run, step) => ColourActions.Preview(run, step),
 
             // Whether something has stopped moving is only answered by time passing, so one look
             // shows what is on the screen and leaves the waiting to a run.
-            ["vision.waitStable"] = (run, step) => run.Watching(() =>
-            {
-                if (run.SearchAreas(step).FirstOrDefault() is { Frame: { } frame, Origin: { } origin })
-                {
-                    run.Took(step, (frame, origin));
-                }
-            }),
-
-            ["vision.capture"] = (run, step) => run.Watching(() => run.Took(step, run.CaptureBox(step))),
-            ["vision.captureWindow"] = (run, step) => run.Watching(() => run.Took(step, run.WindowBox(step))),
+            ["vision.waitStable"] = (run, step) => CaptureActions.Preview(run, step),
+            ["vision.capture"] = (run, step) => CaptureActions.Preview(run, step),
+            ["vision.captureWindow"] = (run, step) => CaptureActions.Preview(run, step),
 
             ["ocr.recognize"] = (run, step) => run.Watching(() => run.WasRead(step, run.ReadBox(step))),
             ["ocr.findText"] = (run, step) => run.Watching(() => run.SawSought(step)),

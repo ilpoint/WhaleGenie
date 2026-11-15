@@ -17,6 +17,36 @@ public sealed partial class MacroRunner
         => new(step, Variables, _devices.Screen.RefreshMilliseconds);
 
     /// <summary>
+    /// The rectangle a record field names, or null when nobody filled it in. A value written there
+    /// that is not a record carrying all four sides is refused with what was written.
+    /// </summary>
+    private (int Left, int Top, int Width, int Height)? RecordedRect(ExecutableStep step,
+        string name)
+    {
+        var value = Args(step).ValueOf(name);
+        if (value.IsNull)
+        {
+            return null;
+        }
+
+        var written = step.Text(name).Trim();
+        return value.IsRecord && Sides(value) is { } sides
+            ? sides
+            : throw new StepFailure(RunKeys.BadRegion, written);
+    }
+
+    /// <summary>
+    /// Which hit a step means, counted from one. Anything that does not read as a number from one
+    /// onwards falls back to the first, so a half-written step aims at something rather than at
+    /// nothing.
+    /// </summary>
+    private int Index(ExecutableStep step, string name, int fallback)
+    {
+        var text = Args(step).Text(name).Trim();
+        return text.Length == 0 ? fallback : Math.Clamp(Args(step).Number(name), 1, RunLimits.Matches);
+    }
+
+    /// <summary>
     /// A path a step named, with any <c>variable</c> already filled in. Vision and the file family
     /// both name their target this way, so the reading lives here rather than with either of them.
     /// </summary>

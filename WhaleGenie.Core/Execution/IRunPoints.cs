@@ -35,4 +35,10 @@ internal interface IRunPoints
     /// <summary>Hands over the point the step actually used, in the spaces it knows.</summary>
     void GivePoints(ExecutableStep step, ScreenPoint screen, ScreenPoint? window,
         string screenKey = "screenPoint", string windowKey = "windowPoint");
+
+    /// <summary>
+    /// Hands over one point a step read, counting the window side from the step's own anchor when
+    /// the reading named no window of its own.
+    /// </summary>
+    void GivePointAt(ExecutableStep step, ScreenPoint screen, WindowInfo? window);
 }

@@ -145,21 +145,6 @@ public sealed partial class MacroRunner
         public void Reading(WindowInfo? window) => watch?.Reading(window);
     }
 
-    /// <summary>Hands over a picture that was taken, without keeping it anywhere.</summary>
-    private void Took(ExecutableStep step, (ImageFrame Frame, ScreenPoint Corner) taken)
-        => Saw(step, LookKind.Capture, taken.Frame, taken.Corner,
-            [
-                new(new ImageMatch(0, taken.Corner,
-                    new ScreenSize(taken.Frame.Width, taken.Frame.Height)), LookRole.Area),
-            ],
-            // The name the picture would be handed over under, which is what the run itself puts
-            // here when it really takes one; a step asked to try its looking writes nothing.
-            1, step.Return("image"));
-
-    private void Took(ExecutableStep step,
-        (ImageFrame Frame, ScreenPoint Corner, WindowInfo Window) taken)
-        => Took(step, (taken.Frame, taken.Corner));
-
     /// <summary>Hands over what was read off a picture, without writing the reading anywhere.</summary>
     private void WasRead(ExecutableStep step,
         (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) read)
