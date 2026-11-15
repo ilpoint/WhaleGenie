@@ -39,7 +39,7 @@ sealed class Program
 
         AppDomain.CurrentDomain.UnhandledException += (_, error) =>
             AppDiagnostics.Record("process.unhandled",
-                error.ExceptionObject as Exception ?? new Exception(error.ExceptionObject?.ToString()));
+                error.ExceptionObject as Exception ?? new InvalidOperationException(error.ExceptionObject?.ToString()));
         TaskScheduler.UnobservedTaskException += (_, error) =>
         {
             AppDiagnostics.Record("process.task", error.Exception);

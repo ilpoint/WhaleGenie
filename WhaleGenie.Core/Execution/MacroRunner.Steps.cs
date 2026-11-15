@@ -173,7 +173,7 @@ public sealed partial class MacroRunner
                 return await HeldBody(step, depth, token, input: true);
             }
 
-            using var held = await InputGate.Take(RunName, token);
+            using var held = await SharedDoors.Input.Take(RunName, token);
             return await HeldBody(step, depth, token, input: true);
         }
 
@@ -182,7 +182,7 @@ public sealed partial class MacroRunner
             return await HeldBody(step, depth, token, input: false);
         }
 
-        using var page = await BrowserGate.Take(RunName, token);
+        using var page = await SharedDoors.Browser.Take(RunName, token);
         return await HeldBody(step, depth, token, input: false);
     }
 

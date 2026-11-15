@@ -336,8 +336,8 @@ public partial class RunWindow : AppWindow
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        InputGate.Changed += OnInputGateChanged;
-        BrowserGate.Changed += OnBrowserGateChanged;
+        SharedDoors.Input.Changed += OnInputGateChanged;
+        SharedDoors.Browser.Changed += OnBrowserGateChanged;
 
         // What the triggers are waiting for changes on its own, so the lines are read again while
         // the window is up rather than once when it opens. A second is often enough to watch a
@@ -353,8 +353,8 @@ public partial class RunWindow : AppWindow
 
     protected override void OnClosed(EventArgs e)
     {
-        InputGate.Changed -= OnInputGateChanged;
-        BrowserGate.Changed -= OnBrowserGateChanged;
+        SharedDoors.Input.Changed -= OnInputGateChanged;
+        SharedDoors.Browser.Changed -= OnBrowserGateChanged;
         _triggers.Stop();
         _triggers.Tick -= OnTriggerTick;
         base.OnClosed(e);

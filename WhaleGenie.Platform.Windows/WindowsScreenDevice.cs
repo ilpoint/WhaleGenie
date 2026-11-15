@@ -84,7 +84,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
         finally
         {
-            ReleaseDC(IntPtr.Zero, screen);
+            _ = ReleaseDC(IntPtr.Zero, screen);
         }
     }
 
@@ -111,7 +111,7 @@ public sealed class WindowsScreenDevice : IScreenDevice, IDisposable
         }
         finally
         {
-            ReleaseDC(IntPtr.Zero, screen);
+            _ = ReleaseDC(IntPtr.Zero, screen);
         }
     }
 

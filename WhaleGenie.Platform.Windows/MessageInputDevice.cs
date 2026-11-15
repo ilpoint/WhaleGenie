@@ -429,7 +429,11 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
         }
 
         var name = new StringBuilder(128);
-        GetClassName(child, name, name.Capacity);
+        if (GetClassName(child, name, name.Capacity) == 0)
+        {
+            return false;
+        }
+
         var className = name.ToString();
         return className.StartsWith("Edit", StringComparison.OrdinalIgnoreCase)
                || className.StartsWith("RichEdit", StringComparison.OrdinalIgnoreCase)

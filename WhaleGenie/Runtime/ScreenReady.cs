@@ -38,8 +38,10 @@ internal static class ScreenReady
 
         try
         {
-            DwmFlush();
-            DwmFlush();
+            // One flush starts the composition and the second waits for it; the answer says whether
+            // there was anything to wait for, which is not something a step can act on.
+            _ = DwmFlush();
+            _ = DwmFlush();
         }
         catch (Exception)
         {

@@ -228,7 +228,7 @@ public partial class RunDebugTests
             var viewModel = (RunViewModel)window.DataContext!;
             Assert.False(viewModel.ShowsInputOwner);
 
-            var held = InputGate.Take("别的宏", default).GetAwaiter().GetResult();
+            var held = SharedDoors.Input.Take("别的宏", default).GetAwaiter().GetResult();
             try
             {
                 viewModel.RefreshInputOwner();

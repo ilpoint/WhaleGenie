@@ -53,7 +53,7 @@ internal sealed class FakeInput(FakeDesk desk, FakeScreen screen) : IInputDevice
 
     public void Click(string button, int x, int y, int clicks, int intervalMs)
     {
-        GateAtClick = InputGate.Owner;
+        GateAtClick = SharedDoors.Input.Owner;
         desk.Note($"click {button} {x} {y} {clicks} {intervalMs}");
     }
 

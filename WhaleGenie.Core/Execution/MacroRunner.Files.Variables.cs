@@ -135,8 +135,11 @@ public sealed partial class MacroRunner
 
     /// <summary>
     /// The checksum a named algorithm works out. An unrecognized name falls back to SHA-256 rather
-    /// than failing: a step that asked for a checksum should get one the macro can compare.
+    /// than failing: a step that asked for a checksum should get one the macro can compare. MD5 and
+    /// SHA-1 are offered because the file or site being compared with still names them; this is a
+    /// checksum for a macro, not a security decision.
     /// </summary>
+#pragma warning disable CA5350, CA5351
     private static byte[] ComputeHash(string algorithm, Stream bytes) =>
         algorithm.Trim().ToLowerInvariant() switch
         {
@@ -145,4 +148,5 @@ public sealed partial class MacroRunner
             "sha512" => SHA512.HashData(bytes),
             _ => SHA256.HashData(bytes),
         };
+#pragma warning restore CA5350, CA5351
 }

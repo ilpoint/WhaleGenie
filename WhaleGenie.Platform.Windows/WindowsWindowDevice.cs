@@ -295,7 +295,9 @@ public sealed class WindowsWindowDevice : IWindowDevice
 
         try
         {
-            GetWindowThreadProcessId(new IntPtr(handle), out var processId);
+            // The answer is the thread that owns the window, not whether the call worked; the
+            // process id is the out value.
+            _ = GetWindowThreadProcessId(new IntPtr(handle), out var processId);
             return processId == 0 ? 0 : (int)processId;
         }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException

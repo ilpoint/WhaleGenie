@@ -95,10 +95,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// control.holdInput block, so the line has something to say exactly while one of those is
     /// running.
     /// </summary>
-    public string InputOwnerLine => Strings.Format("Run.InputOwner", InputGate.Owner);
+    public string InputOwnerLine => Strings.Format("Run.InputOwner", SharedDoors.Input.Owner);
 
     /// <summary>True while some run holds the input door, so the line means something.</summary>
-    public bool ShowsInputOwner => InputGate.Owner.Length > 0;
+    public bool ShowsInputOwner => SharedDoors.Input.Owner.Length > 0;
 
     /// <summary>The door changed hands, so what the line says has changed with it.</summary>
     public void RefreshInputOwner()
@@ -112,12 +112,12 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// for the whole program, so a browser step can wait for another macro just as an input step
     /// waits at the input door; this is the line that says who has it.
     /// </summary>
-    public string BrowserOwnerLine => BrowserGate.Owner.Length == 0
+    public string BrowserOwnerLine => SharedDoors.Browser.Owner.Length == 0
         ? string.Empty
-        : Strings.Format("Run.BrowserOwner", BrowserGate.Owner);
+        : Strings.Format("Run.BrowserOwner", SharedDoors.Browser.Owner);
 
     /// <summary>True while some run is using the browser, so the line has something to say.</summary>
-    public bool ShowsBrowserOwner => BrowserGate.Owner.Length > 0;
+    public bool ShowsBrowserOwner => SharedDoors.Browser.Owner.Length > 0;
 
     /// <summary>The browser door changed hands.</summary>
     public void RefreshBrowserOwner()

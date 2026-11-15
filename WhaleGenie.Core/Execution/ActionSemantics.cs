@@ -435,16 +435,18 @@ public static class ActionSemanticsCatalog
 
     private static readonly Dictionary<string, ActionSemantics> ByKey;
 
+    /// <summary>The one reader this file needs; the options are built once rather than per read.</summary>
+    private static readonly JsonSerializerOptions CatalogueOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     static ActionSemanticsCatalog()
     {
         using var stream = typeof(ActionSemanticsCatalog).Assembly.GetManifestResourceStream(Resource)
             ?? throw new InvalidOperationException($"The action catalogue resource {Resource} is missing.");
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            Converters = { new JsonStringEnumConverter() },
-        };
-        var actions = JsonSerializer.Deserialize<List<ActionSemantics>>(stream, options)
+        var actions = JsonSerializer.Deserialize<List<ActionSemantics>>(stream, CatalogueOptions)
             ?? throw new InvalidOperationException("The action catalogue is empty.");
 
         foreach (var action in actions)

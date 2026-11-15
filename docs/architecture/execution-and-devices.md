@@ -128,9 +128,10 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 
 ### 5.4 并发门与观测
 
-`InputGate` 和 `BrowserGate` 分别串行化输入与浏览器操作。两道门都只由持有门的容器块
-（`control.holdInput` / `control.holdBrowser`）取，普通步骤不再按动作名自己排队；块内步骤不重复获取同一门，
-宏里调用的子宏沿用这一次运行的持有状态。输入会发到哪一步仍由目录声明并沿调用图计算，供界面提示与运行观测使用。
+`SharedDoors.Input` 与 `SharedDoors.Browser` 是同一个 `SharedDoor` 的两个实例，分别串行化输入与
+浏览器操作。两道门都只由持有门的容器块（`control.holdInput` / `control.holdBrowser`）取，普通步骤不再
+按动作名自己排队；块内步骤不重复获取同一门，宏里调用的子宏沿用这一次运行的持有状态。输入会发到哪一步
+仍由目录声明并沿调用图计算，供界面提示与运行观测使用。
 
 按键与鼠标的节奏另有一条线：`InputLimit` 对每个运行给出自己的速率与时间线（`AsyncLocal` 作用域），
 `MacroRunner.RunAsync` 进出该作用域，因此两个同时运行、限速不同的宏互不拖慢。`RunRequest.InputRate`

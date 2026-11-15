@@ -1,7 +1,6 @@
 ﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="WhaleGenie.App"
-             xmlns:local="using:WhaleGenie"
              xmlns:conv="using:WhaleGenie.Converters"
              xmlns:styling="using:Avalonia.Styling"
              xmlns:fa="using:FluentAvalonia.Styling"
@@ -30,10 +29,6 @@
             <conv:NumberFieldValueConverter x:Key="Number" />
         </ResourceDictionary>
     </Application.Resources>
-
-    <Application.DataTemplates>
-        <local:ViewLocator />
-    </Application.DataTemplates>
 
     <Application.Styles>
         <!--

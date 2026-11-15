@@ -203,7 +203,7 @@ public partial class RunDebugTests
             var viewModel = (RunViewModel)window.DataContext!;
             viewModel.DebugAsync(macro).GetAwaiter().GetResult();
 
-            using var held = InputGate.Take("别的宏", default).GetAwaiter().GetResult();
+            using var held = SharedDoors.Input.Take("别的宏", default).GetAwaiter().GetResult();
             viewModel.RefreshInputOwner();
             Dispatcher.UIThread.RunJobs();
 

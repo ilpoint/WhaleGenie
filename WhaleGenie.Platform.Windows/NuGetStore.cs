@@ -35,6 +35,9 @@ internal sealed class NuGetStore(string folder)
 
     private readonly string _folder = folder;
 
+    /// <summary>The shape of the reference list, made once rather than per package.</summary>
+    private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
+
     /// <summary>
     /// The dlls a C# script is compiled against and run with, by full path, as the package step
     /// left them. A script with no packages yet has none, and a list that cannot be read is nothing
@@ -351,7 +354,7 @@ internal sealed class NuGetStore(string folder)
 
         Directory.CreateDirectory(_folder);
         File.WriteAllText(Path.Combine(_folder, "references.json"),
-            JsonSerializer.Serialize(found, new JsonSerializerOptions { WriteIndented = true }),
+            JsonSerializer.Serialize(found, WriteOptions),
             new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
     }
 

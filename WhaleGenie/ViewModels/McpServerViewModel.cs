@@ -25,6 +25,9 @@ public partial class McpServerViewModel : ViewModelBase
     private bool _allowRun;
     private string _status = string.Empty;
 
+    /// <summary>The block's shape, made once rather than every time the text is read.</summary>
+    private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
+
     public McpServerViewModel()
     {
         var grants = LocalSettings.LoadMcpGrants();
@@ -71,7 +74,7 @@ public partial class McpServerViewModel : ViewModelBase
                 args = Arguments(),
             },
         },
-    }, new JsonSerializerOptions { WriteIndented = true });
+    }, WriteOptions);
 
     /// <summary>This program's own path, which is what the client has to be told to start.</summary>
     public string Executable => McpProgram.Executable;

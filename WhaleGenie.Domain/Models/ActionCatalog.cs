@@ -152,12 +152,17 @@ public static class ActionCatalog
         using var stream = typeof(ActionCatalog).Assembly.GetManifestResourceStream(DisplayResource)
             ?? throw new InvalidOperationException(
                 $"The action display resource {DisplayResource} is missing.");
-        var display = JsonSerializer.Deserialize<List<DisplayAction>>(stream,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        var display = JsonSerializer.Deserialize<List<DisplayAction>>(stream, DisplayOptions)
             ?? throw new InvalidOperationException("The action display catalogue is empty.");
 
         return display;
     }
+
+    /// <summary>The one reader of the display resource; built once rather than per load.</summary>
+    private static readonly JsonSerializerOptions DisplayOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
 
     /// <summary>One display entry cut down to what the contract check reads.</summary>
     private static ActionContractDisplay Shown(DisplayAction action)

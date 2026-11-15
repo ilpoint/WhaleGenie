@@ -34,6 +34,9 @@ public sealed class PersistedVariables : IDisposable
     private readonly object _gate = new();
     private readonly Dictionary<string, Saved> _byName = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>The one shape the file is written in; made once rather than on every save.</summary>
+    private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
+
     private VariableSession? _session;
     private Timer? _timer;
     private bool _loaded;
@@ -373,7 +376,7 @@ public sealed class PersistedVariables : IDisposable
             {
                 ["version"] = FileVersion,
                 ["variables"] = new JsonArray([.. variables]),
-            }, new JsonSerializerOptions { WriteIndented = true });
+            }, WriteOptions);
 
             var temporary = _path + ".tmp";
             File.WriteAllText(temporary, json);

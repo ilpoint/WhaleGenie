@@ -47,7 +47,7 @@ public partial class DeviceActionTests
     public async Task A_hold_waits_at_the_door_while_another_run_is_inside()
     {
         var devices = new FakeDeviceLayer();
-        var inside = await InputGate.Take("别人", default);
+        var inside = await SharedDoors.Input.Take("别人", default);
         var run = Holding(devices, "A", "10", "第一个");
 
         try
@@ -56,7 +56,7 @@ public partial class DeviceActionTests
 
             Assert.False(run.IsCompleted);
             Assert.Empty(devices.Calls);
-            Assert.Equal("别人", InputGate.Owner);
+            Assert.Equal("别人", SharedDoors.Input.Owner);
         }
         finally
         {
@@ -68,7 +68,7 @@ public partial class DeviceActionTests
         Assert.Equal(["keyPress A 10"], devices.Calls);
 
         // 发完就把门交回去，下一个才进得来。
-        Assert.Equal(string.Empty, InputGate.Owner);
+        Assert.Equal(string.Empty, SharedDoors.Input.Owner);
     }
 
     /// <summary>
@@ -78,12 +78,12 @@ public partial class DeviceActionTests
     public async Task A_run_without_a_hold_goes_straight_through()
     {
         var devices = new FakeDeviceLayer();
-        using var inside = await InputGate.Take("别人", default);
+        using var inside = await SharedDoors.Input.Take("别人", default);
 
         await Pressing(devices, "A", "10", "第一个");
 
         Assert.Equal(["keyPress A 10"], devices.Calls);
-        Assert.Equal("别人", InputGate.Owner);
+        Assert.Equal("别人", SharedDoors.Input.Owner);
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ public partial class DeviceActionTests
     public async Task A_browser_step_waits_at_the_browser_door_while_another_run_is_inside()
     {
         var devices = new FakeDeviceLayer();
-        using var inside = await BrowserGate.Take("别人", default);
+        using var inside = await SharedDoors.Browser.Take("别人", default);
         var run = new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
             .RunAsync([Step("browser.switchTab", Param("tabHow", "newest"))]);
 
@@ -104,7 +104,7 @@ public partial class DeviceActionTests
 
             Assert.False(run.IsCompleted);
             Assert.DoesNotContain(devices.Calls, call => call.StartsWith("browserSwitchTab"));
-            Assert.Equal("别人", BrowserGate.Owner);
+            Assert.Equal("别人", SharedDoors.Browser.Owner);
         }
         finally
         {
@@ -114,7 +114,7 @@ public partial class DeviceActionTests
         await run;
 
         Assert.Contains(devices.Calls, call => call.StartsWith("browserSwitchTab"));
-        Assert.Equal(string.Empty, BrowserGate.Owner);
+        Assert.Equal(string.Empty, SharedDoors.Browser.Owner);
     }
 
     /// <summary>
@@ -124,12 +124,12 @@ public partial class DeviceActionTests
     public async Task The_browser_door_does_not_hold_back_input()
     {
         var devices = new FakeDeviceLayer();
-        using var browser = await BrowserGate.Take("别人", default);
+        using var browser = await SharedDoors.Browser.Take("别人", default);
 
         await Pressing(devices, "A", "10", "第一个");
 
         Assert.Equal(["keyPress A 10"], devices.Calls);
-        Assert.Equal("别人", BrowserGate.Owner);
+        Assert.Equal("别人", SharedDoors.Browser.Owner);
     }
 
     /// <summary>
@@ -139,7 +139,7 @@ public partial class DeviceActionTests
     public async Task The_input_door_does_not_hold_back_the_browser()
     {
         var devices = new FakeDeviceLayer();
-        using var input = await InputGate.Take("别人", default);
+        using var input = await SharedDoors.Input.Take("别人", default);
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
@@ -148,7 +148,7 @@ public partial class DeviceActionTests
 
         Assert.True(result.Succeeded, result.Key);
         Assert.Contains(devices.Calls, call => call.StartsWith("browserSwitchTab"));
-        Assert.Equal("别人", InputGate.Owner);
+        Assert.Equal("别人", SharedDoors.Input.Owner);
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ public partial class DeviceActionTests
         var finished = await Task.WhenAny(run, Task.Delay(5000));
         Assert.Same(run, finished);
         Assert.True((await run).Succeeded);
-        Assert.Equal(string.Empty, InputGate.Owner);
+        Assert.Equal(string.Empty, SharedDoors.Input.Owner);
     }
 
     [Fact]

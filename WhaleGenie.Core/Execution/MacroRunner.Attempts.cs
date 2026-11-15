@@ -527,7 +527,7 @@ public sealed partial class MacroRunner
                 }
             }
 
-            using var page = await BrowserGate.Take(RunName, token);
+            using var page = await SharedDoors.Browser.Take(RunName, token);
             _run.BrowserHolds++;
             try
             {

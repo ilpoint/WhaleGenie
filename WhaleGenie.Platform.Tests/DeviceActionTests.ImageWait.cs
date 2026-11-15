@@ -133,7 +133,7 @@ public partial class DeviceActionTests
         var devices = new FakeDeviceLayer();
         devices.Vision.PictureAnswers = (_, _) =>
             [new ImageMatch(0.99, new ScreenPoint(5, 6), new ScreenSize(2, 2))];
-        using var inside = await InputGate.Take("别人", default);
+        using var inside = await SharedDoors.Input.Take("别人", default);
 
         var result = await new MacroRunner(new VariableStore(), new SilentRunHost(), devices)
         {
@@ -144,7 +144,7 @@ public partial class DeviceActionTests
 
         // 点击发生时门还在别人手里：这一步既没有等，也没有把门拿走。
         Assert.Equal("别人", devices.Input.GateAtClick);
-        Assert.Equal("别人", InputGate.Owner);
+        Assert.Equal("别人", SharedDoors.Input.Owner);
     }
 
     /// <summary>

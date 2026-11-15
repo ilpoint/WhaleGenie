@@ -35,11 +35,23 @@ internal static class WindowHole
             return;
         }
 
-        CombineRgn(border, border, hole, Difference);
+        // A region the combine failed to make is not the window's to keep: deleting both leaves the
+        // window whole rather than letting a half-built region leak.
+        if (CombineRgn(border, border, hole, Difference) < 0)
+        {
+            DeleteObject(border);
+            DeleteObject(hole);
+            return;
+        }
+
         DeleteObject(hole);
 
-        // The window takes the region over, so it must not be freed here.
-        SetWindowRgn(platform.Handle, border, true);
+        // The window takes the region over, so it must not be freed here — unless handing it over
+        // failed, in which case nobody else will free it.
+        if (SetWindowRgn(platform.Handle, border, true) == 0)
+        {
+            DeleteObject(border);
+        }
     }
 
     [DllImport("gdi32.dll")]

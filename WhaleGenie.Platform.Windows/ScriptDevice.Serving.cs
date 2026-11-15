@@ -116,12 +116,15 @@ public sealed partial class ScriptDevice : IScriptDevice
         // Start waiting before the child so a short-lived script cannot connect and exit before
         // the listener has had a chance to run. The task is a normal pool task, so it cannot keep
         // the process alive if the pipe is disposed while it waits.
-        _ = Task.Run(() => Listen(pipe, asked, reached));
+        // The listener and the readers deliberately outlive a cancelled step: the pipe and the
+        // process are what end them, and a token that fired while they were queued would leave the
+        // script talking to nobody.
+        _ = Task.Run(() => Listen(pipe, asked, reached), CancellationToken.None);
         using var process = Start(info, program, how.Missing);
         var reading = new[]
         {
-            Task.Run(() => Pump(process.StandardOutput, output)),
-            Task.Run(() => Pump(process.StandardError, error)),
+            Task.Run(() => Pump(process.StandardOutput, output), CancellationToken.None),
+            Task.Run(() => Pump(process.StandardError, error), CancellationToken.None),
         };
 
         var started = Stopwatch.GetTimestamp();
@@ -133,7 +136,7 @@ public sealed partial class ScriptDevice : IScriptDevice
             {
                 token.ThrowIfCancellationRequested();
 
-                if (asked.TryTake(out var request, 25))
+                if (asked.TryTake(out var request, 25, token))
                 {
                     if (request["call"]?.GetValue<string>() is "result")
                     {
@@ -171,12 +174,16 @@ public sealed partial class ScriptDevice : IScriptDevice
             // Everything the script said is read before the step is over: a line that arrives just
             // as it exits is still something it said. A stream a program of its own is still
             // holding open is left alone rather than waited on for ever.
+            // Task.WaitAll and Task.Wait take a timeout but no token, so there is nothing to hand
+            // the step's cancellation to here; the wait itself is what the clean-up is bounded by.
+#pragma warning disable CA2016
             Task.WaitAll([reading[0], reading[1]], StopWaitMs);
 
             // A script that ends immediately can leave the process before the pipe listener has
             // marked its connection. Give that listener the same short window the output streams
             // get; otherwise a perfectly good run is reported as one that never reached us.
             reached.Task.Wait(TimeSpan.FromMilliseconds(10000));
+#pragma warning restore CA2016
 
             // A script that ran but never reached the macro is a run that could not be served at
             // all, which is a different thing from a script that failed and said why.

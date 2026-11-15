@@ -165,7 +165,9 @@ public partial class ActionEditorView : UserControl
     /// <summary>捕获窗口：按 F1 对准窗口点一下，再改匹配方式。仍然是最精确的那条路。</summary>
     private async Task CaptureWindowRule(StepParameterViewModel parameter)
     {
-        WindowRule.TryParse(parameter.Text, out var current);
+        // A rule that cannot be read starts the picker from an empty one rather than refusing to
+        // open: the window is picked again, and what was typed is only a starting point.
+        _ = WindowRule.TryParse(parameter.Text, out var current);
         if (await WindowRuleWindow.PickAsync(HostWindow!, Devices.Windows, Devices.Hook, current) is { } picked)
         {
             parameter.ApplyWindowRule(picked);

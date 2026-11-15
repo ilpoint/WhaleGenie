@@ -401,7 +401,7 @@ public partial class MacroRunnerTests
             Step("control.holdInput", Body("steps", Step("input.keyPress", Param("key", "F5")))),
         ]));
 
-        var holder = await InputGate.Take("another macro", CancellationToken.None);
+        var holder = await SharedDoors.Input.Take("another macro", CancellationToken.None);
         Task<RunResult> running;
         try
         {
