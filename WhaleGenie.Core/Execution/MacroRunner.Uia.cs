@@ -110,7 +110,7 @@ public sealed partial class MacroRunner
             Give(step, "window", Value.FromText(source?.Title ?? string.Empty));
         }
 
-        GiveEvery(step, hits.Select(element => Hit(element.Location, element.Size, 1, element.Name)));
+        GiveEvery(step, hits.Select(element => HitRecord.Of(element.Location, element.Size, 1, element.Name)));
         Log(LogLevel.Info, depth, step.Type, match is null ? LogKeys.ElementMissing : LogKeys.ElementWhere,
             match is null ? string.Empty : $"{Centre(match).X},{Centre(match).Y}");
     }

@@ -124,7 +124,7 @@ public sealed partial class MacroRunner
     private void GiveMatch(ExecutableStep step, ScreenPoint corner, ScreenSize size, double score,
         string text = "", string label = "", int classId = -1)
     {
-        Give(step, "match", Hit(corner, size, score, text, label, classId));
+        Give(step, "match", HitRecord.Of(corner, size, score, text, label, classId));
         GivePoints(step, Middle(corner, size), null);
         GiveTaken(step);
     }
@@ -139,32 +139,6 @@ public sealed partial class MacroRunner
         Give(step, "window", Value.FromText(_here.TakenWindow));
         Give(step, "method", Value.FromText(
             _here.TakenMethod is { } method ? CaptureWayNames.Written(method) : string.Empty));
-    }
-
-    /// <summary>
-    /// One hit as a record. Every hit carries the same fields, whatever was found: the same
-    /// rectangle, the same score and the same place to put a kind and a piece of writing, empty
-    /// where the action read none. A macro that reads the size of a picture and one that reads the
-    /// size of a line of writing therefore spell it the same way.
-    /// </summary>
-    private static Value Hit(ScreenPoint corner, ScreenSize size, double score, string text = "",
-        string label = "", int classId = -1)
-    {
-        var centre = Middle(corner, size);
-        return Value.FromRecord(
-        [
-            (FieldNames.X, Value.FromNumber(centre.X)),
-            (FieldNames.Y, Value.FromNumber(centre.Y)),
-            (FieldNames.Left, Value.FromNumber(corner.X)),
-            (FieldNames.Top, Value.FromNumber(corner.Y)),
-            (FieldNames.Width, Value.FromNumber(size.Width)),
-            (FieldNames.Height, Value.FromNumber(size.Height)),
-            (FieldNames.Score, Value.FromNumber(score)),
-            (FieldNames.Box, Value.FromText($"{corner.X},{corner.Y},{size.Width},{size.Height}")),
-            (FieldNames.Text, Value.FromText(text)),
-            (FieldNames.Class, Value.FromNumber(classId)),
-            (FieldNames.Label, Value.FromText(label)),
-        ]);
     }
 
     /// <summary>The middle of a rectangle, which is the point an action aims at.</summary>
@@ -208,16 +182,16 @@ public sealed partial class MacroRunner
 
     /// <summary>Every picture hit as a record, in the order the step counts them in.</summary>
     private static IEnumerable<Value> HitRecords(IReadOnlyList<ImageMatch> hits)
-        => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Score));
+        => hits.Select(hit => HitRecord.Of(hit.Location, hit.Size, hit.Score));
 
     /// <summary>Every thing a detection model found as a record, kind of thing and all.</summary>
     private static IEnumerable<Value> HitRecords(IReadOnlyList<Sighting> hits)
-        => hits.Select(hit => Hit(hit.Match.Location, hit.Match.Size, hit.Match.Score,
+        => hits.Select(hit => HitRecord.Of(hit.Match.Location, hit.Match.Size, hit.Match.Score,
             label: hit.Label, classId: hit.ClassId));
 
     /// <summary>Every reading of the screen as a record, keeping what each of them said.</summary>
     private static IEnumerable<Value> HitRecords(IReadOnlyList<TextSpan> hits)
-        => hits.Select(hit => Hit(hit.Location, hit.Size, hit.Confidence, hit.Text));
+        => hits.Select(hit => HitRecord.Of(hit.Location, hit.Size, hit.Confidence, hit.Text));
 
     /// <summary>Leaves true or false behind, depending on whether the window is open.</summary>
     private void WindowExists(ExecutableStep step, int depth)
