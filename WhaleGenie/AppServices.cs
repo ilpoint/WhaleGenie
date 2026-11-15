@@ -6,7 +6,6 @@ using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie;
 
@@ -37,17 +36,11 @@ internal static class AppServices
         // so nothing in the container has to be built for it.
         var services = Wiring(
             _ => new MainViewModel(_ => new McpServerViewModel(), persisted, variables), persisted,
-            variables);
+            variables, windowed);
 
         if (windowed)
         {
-            // The window is built here rather than in App so that "who gets which project" is
-            // answered in one place: the view model it shows is the same instance the MCP server
-            // reads.
-            services.AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>())
-            {
-                DataContext = sp.GetRequiredService<MainViewModel>(),
-            });
+            WindowedServices.Add(services);
         }
 
         return services.BuildServiceProvider();
@@ -61,7 +54,8 @@ internal static class AppServices
     internal static ServiceProvider Minimal(ProjectWorkspace project)
     {
         var viewModel = new MainViewModel(workspace: project);
-        return Wiring(_ => viewModel, project.Persisted, project.Variables).BuildServiceProvider();
+        return Wiring(_ => viewModel, project.Persisted, project.Variables, windowed: false)
+            .BuildServiceProvider();
     }
 
     /// <summary>
@@ -89,7 +83,7 @@ internal static class AppServices
         ];
 
     private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project,
-        PersistedVariables persisted, VariableSession variables)
+        PersistedVariables persisted, VariableSession variables, bool windowed)
     {
         var services = new ServiceCollection();
 
@@ -101,6 +95,13 @@ internal static class AppServices
         // One device layer for the whole run: a window, a trigger and an MCP call all work on this
         // machine, and the models it loads are loaded once.
         services.AddSingleton<IDeviceLayer>(_ => SharedDevices.Current);
+
+        // The windowed run marshals to Avalonia's thread and moves its own windows aside for a
+        // capture; a run with no window answers on the calling thread and has nothing to move.
+        services.AddSingleton<IUiDispatcher>(_ =>
+            windowed ? new AvaloniaUiDispatcher() : DirectUiDispatcher.Instance);
+        services.AddSingleton<IWindowAside>(_ =>
+            windowed ? new AvaloniaWindowAside() : NoWindowAside.Instance);
 
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<McpLiveProject>();
@@ -115,10 +116,13 @@ internal static class AppServices
 
         // The two tool sets that touch the machine take the layer through a function rather than an
         // instance: a run that never asks for a device never builds one.
-        services.AddSingleton(sp => new McpControlTools(() => sp.GetRequiredService<IDeviceLayer>()));
+        services.AddSingleton(sp => new McpControlTools(
+            () => sp.GetRequiredService<IDeviceLayer>(),
+            sp.GetRequiredService<IWindowAside>()));
         services.AddSingleton(sp => new McpRunTools(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<McpDraftStore>(),
+            sp.GetRequiredService<IUiDispatcher>(),
             () => sp.GetRequiredService<IDeviceLayer>()));
 
         services.AddSingleton<McpResources>();

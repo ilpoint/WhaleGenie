@@ -7,13 +7,10 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
-using WhaleGenie.Runtime;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Mcp;
 
@@ -51,4 +48,5 @@ public sealed partial class McpControlTools
     private static readonly object InputLock = new();
 
     private readonly Func<IDeviceLayer> _devices;
+    private readonly IWindowAside _aside;
 }

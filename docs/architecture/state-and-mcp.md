@@ -64,7 +64,7 @@
 应用前差异。`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。
 工具类型由 `AppServices` 注册，并由它作为 tool owner 列表交给 `McpServerHost`；机器控制、运行宏
 与运行日志工具留在界面工程，项目编辑工具在 `WhaleGenie.Mcp`。新增工具须在组合根登记并验证
-`tools.list`。无界面进程仍以 Avalonia 承载运行桥与控制工具；协议与草稿层本身已不依赖它。
+`tools.list`。`--mcp` 在 Avalonia 之前运行：窗口化运行注册 Avalonia 的调度器与窗口让位，无窗口运行注册直接调度器与“没有窗口可让”的实现，因此协议、草稿与控制工具都不需要启动界面框架。
 
 `McpResources` 提供动作目录、动作矩阵、项目与宏资源。当前不声明资源订阅，客户端通过修订号判断
 缓存是否失效。`RunFactory` 复用普通运行路径，MCP 运行宏仍受单运行限制。工具拒绝统一返回稳定 `code`、

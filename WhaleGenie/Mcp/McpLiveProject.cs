@@ -2,26 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Mcp;
 
 
 /// <summary>
-/// The only bridge between the HTTP tools and the interface's project. Every read and write is
-/// marshalled to the interface thread: the project is an Avalonia view model and must not be
-/// touched from a Kestrel thread.
+/// The only bridge between the protocol tools and the window's project. Every read and write goes
+/// through the interface thread the window owns; a run with no window passes a dispatcher that
+/// answers on the calling thread.
 /// </summary>
-public sealed class McpLiveProject(ProjectWorkspace project) : IProjectGateway
+public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui) : IProjectGateway
 {
     public async Task<McpProjectStatus> StatusAsync()
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await ui.InvokeAsync(() =>
             new McpProjectStatus(project.CurrentPath, project.Revision, project.IsDirty,
                 project.Macros.Count));
 
     public async Task<McpProjectSnapshot> SnapshotAsync()
-        => await Dispatcher.UIThread.InvokeAsync(Snapshot);
+        => await ui.InvokeAsync(Snapshot);
 
     /// <summary>
     /// The snapshot and whether the project has unsaved changes, read in one turn of the interface
@@ -29,7 +28,7 @@ public sealed class McpLiveProject(ProjectWorkspace project) : IProjectGateway
     /// separate reads could name a revision the dirty flag was never about.
     /// </summary>
     public async Task<(McpProjectSnapshot Snapshot, bool Dirty)> ReadAsync()
-        => await Dispatcher.UIThread.InvokeAsync(() => (Snapshot(), project.IsDirty));
+        => await ui.InvokeAsync(() => (Snapshot(), project.IsDirty));
 
     /// <summary>
     /// Writes a draft back into the project, but only if the project has not moved since the
@@ -42,7 +41,7 @@ public sealed class McpLiveProject(ProjectWorkspace project) : IProjectGateway
     public async Task<int> ApplyAsync(McpProjectSnapshot basis,
         IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition> globals)
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await ui.InvokeAsync(() =>
         {
             if (project.Revision != basis.Revision)
             {
@@ -63,7 +62,7 @@ public sealed class McpLiveProject(ProjectWorkspace project) : IProjectGateway
     /// itself, so this path and the window's own Save behave the same way.
     /// </summary>
     public async Task<string> SaveAsync()
-        => await Dispatcher.UIThread.InvokeAsync(() =>
+        => await ui.InvokeAsync(() =>
         {
             var path = project.CurrentPath;
             if (path is null || path.Length == 0)

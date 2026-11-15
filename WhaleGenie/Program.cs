@@ -94,8 +94,7 @@ sealed class Program
                 return 2;
             }
 
-            App.Headless = options;
-            return RunHeadless();
+            return McpHeadless.Run(options);
         }
 
 #if DEBUG
@@ -136,9 +135,6 @@ sealed class Program
     /// Runs with no window. The lifetime is asked to end only when told to, because a lifetime that
     /// ends with its last window would end immediately when there is no window at all.
     /// </summary>
-    private static int RunHeadless()
-        => BuildAvaloniaApp().StartWithClassicDesktopLifetime([], ShutdownMode.OnExplicitShutdown);
-
     private static void Run(string[] args)
     {
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

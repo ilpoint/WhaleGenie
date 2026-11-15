@@ -34,7 +34,7 @@ public class McpControlTests : IDisposable
         _devices.Screen = _screen;
         _devices.Windows = _windows;
         _devices.Ui = _ui;
-        _tools = new McpControlTools(() => _devices);
+        _tools = new McpControlTools(() => _devices, NoWindowAside.Instance);
     }
 
     /// <summary>The gate is the machine's, not one check's: it goes back off whatever happened.</summary>

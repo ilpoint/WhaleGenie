@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Devices;
@@ -37,18 +36,21 @@ public sealed class McpRunTools
 
     private readonly ProjectWorkspace _project;
     private readonly McpDraftStore _drafts;
+    private readonly IUiDispatcher _ui;
     private readonly Func<IDeviceLayer> _devices;
 
-    public McpRunTools(ProjectWorkspace project, McpDraftStore drafts)
-        : this(project, drafts, () => SharedDevices.Current)
+    public McpRunTools(ProjectWorkspace project, McpDraftStore drafts, IUiDispatcher ui)
+        : this(project, drafts, ui, () => SharedDevices.Current)
     {
     }
 
     /// <summary>A bench or a check hands its own device layer in here.</summary>
-    internal McpRunTools(ProjectWorkspace project, McpDraftStore drafts, Func<IDeviceLayer> devices)
+    internal McpRunTools(ProjectWorkspace project, McpDraftStore drafts, IUiDispatcher ui,
+        Func<IDeviceLayer> devices)
     {
         _project = project;
         _drafts = drafts;
+        _ui = ui;
         _devices = devices;
     }
 
@@ -71,7 +73,7 @@ public sealed class McpRunTools
             }
 
             var wanted = (name ?? string.Empty).Trim();
-            var sources = await Dispatcher.UIThread.InvokeAsync(() => Sources(draftId));
+            var sources = await _ui.InvokeAsync(() => Sources(draftId));
             if (sources.Refusal is { } refusal)
             {
                 return refusal;

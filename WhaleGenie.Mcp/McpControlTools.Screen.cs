@@ -7,13 +7,10 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
-using WhaleGenie.Runtime;
-using WhaleGenie.Views;
 
 
 namespace WhaleGenie.Mcp;
@@ -22,12 +19,12 @@ namespace WhaleGenie.Mcp;
 public sealed partial class McpControlTools
 {
     /// <summary>The tools as the server makes them, over this program's own device layer.</summary>
-    public McpControlTools() : this(() => SharedDevices.Current)
-    {
-    }
-
     /// <summary>The same tools over a device layer a check hands in.</summary>
-    internal McpControlTools(Func<IDeviceLayer> devices) => _devices = devices;
+    internal McpControlTools(Func<IDeviceLayer> devices, IWindowAside aside)
+    {
+        _devices = devices;
+        _aside = aside;
+    }
 
     [McpServerTool(Name = "whalegenie_capture_screen", Title = "Look at the screen"),
      Description("Takes a picture of the desktop, or of one window, and returns it as a PNG image. Coordinates are screen pixels; a region left empty is the whole desktop, or the whole window when a window is named.")]
@@ -48,11 +45,7 @@ public sealed partial class McpControlTools
             // the way they do for every picker: they step aside for the length of one capture and
             // come back as they were. That is window work, so it happens on the interface thread.
             var shot = windowHandle == 0 && hideWhaleGenie
-                ? await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    using var aside = AppWindows.StepAside();
-                    return devices.Screen.Capture(request);
-                })
+                ? await _aside.WithoutOwnWindows(() => devices.Screen.Capture(request))
                 : Use(() => devices.Screen.Capture(request));
 
             var frame = maxSide > 0 ? McpPictures.Scale(shot.Frame, maxSide) : shot.Frame;

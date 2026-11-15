@@ -63,7 +63,9 @@ GraphicsCapture。界面工程引用以上全部，没有任何产品工程反�
 
 `WhaleGenie.Mcp` 不引用界面工程。直接控制、运行宏和读运行日志这三类工具留在
 `WhaleGenie/Mcp/`，由 `AppServices` 作为 tool owner 注入 `McpServerHost`；协议与草稿本身因此
-可以脱离窗口编译和测试。`WhaleGenie.Domain` 同样不引用 Avalonia：位图转换在
+可以脱离窗口编译和测试。
+`--mcp` 在 Avalonia 之前分派：窗口化运行注册 Avalonia 的调度器与窗口让位，无窗口运行注册直接
+调度器与“没有窗口可让”的实现，因此无界面服务不启动界面框架。`WhaleGenie.Domain` 同样不引用 Avalonia：位图转换在
 `Assets/BitmapImages`，崩溃快照写入在 `Storage/RecoveryWriter`，两者都留在界面工程。
 
 宏文件模型与工程文档状态位于 `WhaleGenie/Models/`（`ProjectWorkspace` 持有宏、触发入口、共享变量、

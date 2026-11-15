@@ -7,13 +7,10 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
-using WhaleGenie.Runtime;
-using WhaleGenie.Views;
 
 
 namespace WhaleGenie.Mcp;

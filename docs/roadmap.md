@@ -33,11 +33,13 @@
 Avalonia、Views 或 Runtime。机器控制、运行宏与运行日志工具留在界面工程，由 `AppServices` 作为
 tool owner 注入。`LayeringTests` 新增两条边界检查。
 
+**已完成：无界面 MCP 不启动 Avalonia。** `--mcp` 在 Avalonia 之前分派；`IUiDispatcher` 与
+`IWindowAside` 让窗口化运行使用 Avalonia 的调度器和窗口让位，无窗口运行使用直接调度器与
+`NoWindowAside`。Release 冒烟验证了 `initialize`、`tools/list` 与空项目创建，进程未加载
+Avalonia、Skia 或 HarfBuzz。
+
 **剩余验收（未完成）：**
 
-- **无界面 MCP 仍启动 Avalonia。** `McpLiveProject`、`McpRunTools`、`McpControlTools` 仍直接用
-  `Dispatcher.UIThread`，运行桥 `UiThreadRunHost` 也依赖它。下一步引入 `IUiDispatcher` 与 headless
-  run host，再让 `--mcp` 在 Avalonia 之外启动；在此之前无界面进程继续用 Avalonia 的 dispatcher。
 - **`Core.Tests` 仍引用 `Platform.Windows`。** 真实适配器测试与引擎测试共用 `Fakes`、`SampleFiles`
   和 `Bench`。下一步抽 `WhaleGenie.TestSupport`，把 Viiper、Driver、Browser、OCR、UIA、Hook
   等用例迁到 `WhaleGenie.Platform.Tests`；引擎测试只保留替身设备层。
