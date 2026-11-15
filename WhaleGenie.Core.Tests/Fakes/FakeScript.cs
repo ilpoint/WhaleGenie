@@ -12,6 +12,12 @@ namespace WhaleGenie.Core.Tests;
 /// </summary>
 internal sealed class FakeScript(FakeDesk desk) : IScriptDevice
 {
+    /// <summary>
+    /// What this machine says its AutoHotkey is, or null for a machine with none. The engine asks
+    /// the device, so a check sets this rather than the static locator the Windows adapter uses.
+    /// </summary>
+    public string? AutoHotkeyProgram { get; set; }
+
     /// <summary>What running a script in the fake reports back.</summary>
     public ScriptResult Python { get; set; } = new(0, string.Empty, string.Empty, Value.Null);
 

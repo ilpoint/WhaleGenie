@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using WhaleGenie.Core.Devices.Platform;
 
 namespace WhaleGenie.Core.Devices;
 

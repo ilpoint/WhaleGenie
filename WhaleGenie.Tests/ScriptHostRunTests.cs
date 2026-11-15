@@ -5,8 +5,8 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Platform.Windows;
 
 namespace WhaleGenie.Tests;
 

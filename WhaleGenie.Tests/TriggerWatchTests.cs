@@ -1,7 +1,7 @@
 using System.IO;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Models;
+using WhaleGenie.Platform.Windows;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;

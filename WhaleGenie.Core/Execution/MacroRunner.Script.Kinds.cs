@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
@@ -83,7 +82,8 @@ public sealed partial class MacroRunner
 
         if (kind is ScriptKind.AutoHotkey)
         {
-            return (AutoHotkey.Program() ?? throw new StepFailure(RunKeys.NoAutoHotkey),
+            return (_devices.Scripts.AutoHotkeyProgram
+                    ?? throw new StepFailure(RunKeys.NoAutoHotkey),
                 $"{quoted}{tail}");
         }
 

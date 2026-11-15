@@ -19,7 +19,7 @@ public class LayeringTests
     /// The two files that are the composition root: they name the Windows implementations because
     /// deciding which ones to use is the whole of their job.
     /// </summary>
-    private static readonly string[] Assembling = ["App.axaml.cs", "SharedDevices.cs"];
+    private static readonly string[] Assembling = ["App.axaml.cs", "Program.cs", "SharedDevices.cs"];
 
     [Fact]
     public void The_interface_names_no_Windows_implementation()
@@ -33,7 +33,7 @@ public class LayeringTests
                 continue;
             }
 
-            if (File.ReadAllText(file).Contains("WhaleGenie.Core.Devices.Platform", StringComparison.Ordinal))
+            if (File.ReadAllText(file).Contains("WhaleGenie.Platform.Windows", StringComparison.Ordinal))
             {
                 offenders.Add(Path.GetRelativePath(Repository(), file));
             }
@@ -42,6 +42,17 @@ public class LayeringTests
         Assert.True(offenders.Count == 0,
             "these files name a Windows implementation instead of the interface they were handed: "
             + string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void The_engine_does_not_reference_the_Windows_adapters()
+    {
+        var referenced = typeof(WhaleGenie.Core.Execution.MacroRunner).Assembly
+            .GetReferencedAssemblies()
+            .Select(assembly => assembly.Name)
+            .ToList();
+
+        Assert.DoesNotContain("WhaleGenie.Platform.Windows", referenced);
     }
 
     [Fact]

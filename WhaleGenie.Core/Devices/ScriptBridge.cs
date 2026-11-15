@@ -50,7 +50,7 @@ public static class ScriptBridge
                 return 1;
             }
 
-            var name = Environment.GetEnvironmentVariable(ScriptHost.PipeVariable) ?? string.Empty;
+            var name = Environment.GetEnvironmentVariable(ScriptProtocol.PipeVariable) ?? string.Empty;
             if (name.Length == 0)
             {
                 Console.Error.WriteLine("whalegenie: no pipe to the macro to answer on.");

@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Platform.Windows;
 
 namespace WhaleGenie.Core.Tests;
 

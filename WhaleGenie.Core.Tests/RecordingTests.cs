@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Recording;
+using WhaleGenie.Platform.Windows;
 
 namespace WhaleGenie.Core.Tests;
 

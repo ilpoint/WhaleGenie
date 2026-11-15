@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using OpenCvSharp;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Platform.Windows;
 using Xunit;
 
 namespace WhaleGenie.Core.Tests;

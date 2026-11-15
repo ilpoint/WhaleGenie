@@ -5,8 +5,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Platform.Windows;
 
 namespace WhaleGenie.Core.Tests;
 

@@ -326,6 +326,8 @@ public sealed class NullDeviceLayer : IDeviceLayer
 
         public CommandResult Run(CommandRequest request) => throw Missing("command lines");
 
+        public string? AutoHotkeyProgram => null;
+
         public ScriptResult RunPython(PythonScript script, IScriptHost host, Action<string> onOutput,
             Action<string> onError, System.Threading.CancellationToken token)
             => throw Missing("Python scripts");

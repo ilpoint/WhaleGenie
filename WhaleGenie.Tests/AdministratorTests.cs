@@ -1,6 +1,6 @@
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
+using WhaleGenie.Platform.Windows;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 

@@ -102,6 +102,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
   </ItemGroup>
 
   <ItemGroup>

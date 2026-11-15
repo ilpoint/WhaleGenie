@@ -1,5 +1,5 @@
 using System;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Platform.Windows;
 
 namespace WhaleGenie.Core.Tests;
 

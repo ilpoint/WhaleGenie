@@ -5,43 +5,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+      The engine reads and writes CSV files itself: a table step is about the data, not about the
+      machine, so the parser stays here rather than moving down with the Windows adapters.
+    -->
     <PackageReference Include="CsvHelper" Version="33.1.0" />
-    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
     <!--
-      C# 脚本：先在程序里把脚本编成一份 dll（Roslyn 就是 dotnet build 用的那个编译器），再交给
-      程序自己另起一个进程运行。编译要用的引用与下载包都靠下面这几包：声明、包本体、目标框架
-      的比较（哪一份 lib 最贴近本机）与版本区间。
+      The key vocabulary is the one exception: a macro names keys, and the engine has to turn those
+      names into the codes the hook sends. That table is spelled in SharpHook's own enum today, so
+      the enum — not the hook — comes with it. Replacing it with a Core-owned code table is the
+      next step; then this reference goes too.
     -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
-    <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
-    <PackageReference Include="NuGet.Frameworks" Version="7.9.0" />
-    <PackageReference Include="NuGet.Packaging" Version="7.9.0" />
-    <PackageReference Include="NuGet.Protocol" Version="7.9.0" />
-    <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
-    <!--
-      NuGet.Packaging 7.9.0 拖进来的是 System.Security.Cryptography.Pkcs 8.0.1，两条已公开的公告
-      （CVE-2026-84008 高、CVE-2026-70162 中）都指着它，修在 8.0.2 以后；.NET 10 的 SDK 审计
-      会把"警告当错误"（`TreatWarningsAsErrors`），于是还原当场失败，CI 与发版都过不去。
-      这一条只是把解析出来的版本抬到修好的那一个：程序目标框架是 net10.0-windows，这个程序集
-      由 WindowsDesktop 共享框架提供（本机 10.0.13），运行时加载的本来就是框架那一份，
-      所以钉住之后包里不多一个文件、运行行为也不变 —— 变的是还原不再报警。
-    -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-    <PackageReference Include="OpenCvSharp5.Windows" Version="5.0.0.20260702" />
-    <PackageReference Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
-    <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
     <PackageReference Include="SharpHook" Version="8.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!--
-      驱动级输入的那份原生库：虚拟 USB 的服务端就装在程序自己的进程里，不是另一个程序。
-      它不分平台、只有 Windows 这一份，来自上游 v0.9.0 的发行包，见
-      third_party/libVIIPER/README.md。放在 exe 旁边；发布包里会被打包脚本收进 lib，由
-      Program.HookLibraryFolder 交给 Windows 的查找路径。
-    -->
-    <None Include="..\third_party\libVIIPER\libVIIPER.dll" Link="libVIIPER.dll"
-          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -56,6 +31,8 @@
   <ItemGroup>
     <!-- The engine tests look at how a step's input is routed between the devices. -->
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
+    <!-- The Windows adapters read the engine's key table; nothing else of Core is theirs to use. -->
+    <InternalsVisibleTo Include="WhaleGenie.Platform.Windows" />
   </ItemGroup>
 
   <ItemGroup>

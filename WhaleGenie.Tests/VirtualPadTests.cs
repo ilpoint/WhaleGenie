@@ -7,7 +7,7 @@ using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
+using WhaleGenie.Platform.Windows;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;

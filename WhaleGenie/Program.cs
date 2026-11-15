@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Platform.Windows;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Runtime;
