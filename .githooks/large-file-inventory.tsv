@@ -67,6 +67,9 @@
 547	WhaleGenie.Core/Execution/MacroRunner.Attempts.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 414	WhaleGenie.Core/Execution/MacroRunner.Calls.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 450	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
+662	WhaleGenie.Core/Execution/ScreenSight.cs	keep: 看屏的一层：搜索区域、抓屏与复用、帧节拍、试看标记
+344	WhaleGenie.Core/Execution/ScreenPoints.cs	keep: 认点的一层：屏幕/窗口坐标、拖拽两端、漂移与输入路由
+311	WhaleGenie.Core/Execution/ScreenReads.cs	keep: 读屏的一层：区域读数、识别修正、命中计数
 313	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 413	WhaleGenie.Core/Execution/MacroRunner.Run.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 300	WhaleGenie.Core/Execution/OcrReading.cs	keep: 一类动作的执行，失败键与日志只在这一点
@@ -80,10 +83,8 @@
 233	WhaleGenie.Core/Execution/FileJsonActions.cs	keep: 一类动作：JSON 读写与路径解析
 379	WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
 285	WhaleGenie.Core/Execution/WindowActions.cs	keep: 一类动作：窗口的存在、等待、前后台状态、移动与读取
-446	WhaleGenie.Core/Execution/MacroRunner.Points.cs	keep: 点的读法与输入路由：屏幕/窗口坐标、拖拽两端、后台投递
 340	WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
 659	WhaleGenie.Core/Execution/BrowserActions.cs	keep: 一类动作：打开页面、读写页面与元素、等待、下载、对话框
-627	WhaleGenie.Core/Execution/MacroRunner.Looks.cs	keep: 试看层：搜索区域、抓屏、帧节拍、观察标记
 116	WhaleGenie.Core/Execution/DataActions.cs	keep: 一类动作：Base64 与校验和
 470	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	keep: 录制事件到动作的翻译状态机，按住与拖拽的状态只有这一处
