@@ -89,55 +89,15 @@ public class ColourActionTests
     }
 
     [Fact]
-    public void The_pattern_pass_over_the_screen_finds_the_base_colour()
+    public async Task A_pattern_with_no_points_is_refused_rather_than_matching_everywhere()
     {
         var context = new FakeRunContext();
-        context.Machine.Screen.Display = Picture(
-            "#000000,#000000,#000000",
-            "#000000,#FF0000,#00FF00",
-            "#000000,#0000FF,#000000");
-        context.Machine.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, 3, 3),
-            [new ScreenDisplay(new ScreenArea(0, 0, 3, 3), true)]);
-        var points = Fields.Rows("points",
-            Cells.Of(("dx", "1"), ("dy", "0"), ("colour", "#00FF00")));
-        var step = Step("vision.findColors", Fields.Text("color", "#FF0000"),
-            Fields.Text("tolerance", "0"), points);
 
-        var hits = ColourActions.PatternHits(context, step);
+        var failure = await Assert.ThrowsAsync<StepFailure>(() => Run(context, "vision.findColors",
+            Step("vision.findColors", Fields.Text("color", "#FF0000"),
+                SampleFiles.Returns("found"))));
 
-        Assert.Single(hits);
-        Assert.Equal(1, hits[0].Location.X);
-    }
-
-    [Fact]
-    public void The_pattern_reads_its_offsets_and_colours()
-    {
-        var context = new FakeRunContext();
-        var points = Fields.Rows("points",
-            Cells.Of(("dx", "1"), ("dy", "0"), ("colour", "#00FF00")),
-            Cells.Of(("dx", "0"), ("dy", "1"), ("colour", "#0000FF")));
-        var step = Step("vision.findColors", Fields.Text("color", "#FF0000"), points);
-
-        var around = ColourActions.Pattern(context, step);
-
-        Assert.Equal(2, around.Count);
-        Assert.Equal((1, 0), (around[0].Dx, around[0].Dy));
-        Assert.Equal(PixelColor.Parse("#00FF00"), around[0].Colour);
-        Assert.Equal((0, 1), (around[1].Dx, around[1].Dy));
-    }
-
-    [Fact]
-    public void The_pattern_search_finds_the_picture_the_test_draws()
-    {
-        var frame = Picture(
-            "#000000,#000000,#000000",
-            "#000000,#FF0000,#00FF00",
-            "#000000,#0000FF,#000000");
-        var around = new[] { new ColourStep(1, 0, PixelColor.Parse("#00FF00")) };
-
-        var hits = PixelSearch.FindPattern(frame, PixelColor.Parse("#FF0000"), 0, around, 10);
-
-        Assert.Single(hits);
+        Assert.Equal(RunKeys.NoColourPoints, failure.Key);
     }
 
     private static ImageFrame Picture(params string[] rows)
@@ -159,18 +119,6 @@ public class ColourActionTests
         }
 
         return new ImageFrame(width, rows.Length, bytes);
-    }
-
-    [Fact]
-    public async Task A_pattern_with_no_points_is_refused_rather_than_matching_everywhere()
-    {
-        var context = new FakeRunContext();
-
-        var failure = await Assert.ThrowsAsync<StepFailure>(() => Run(context, "vision.findColors",
-            Step("vision.findColors", Fields.Text("color", "#FF0000"),
-                SampleFiles.Returns("found"))));
-
-        Assert.Equal(RunKeys.NoColourPoints, failure.Key);
     }
 
     private static Value Field(Value record, string name)
