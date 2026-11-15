@@ -16,7 +16,6 @@
       the enum — not the hook — comes with it. Replacing it with a Core-owned code table is the
       next step; then this reference goes too.
     -->
-    <PackageReference Include="SharpHook" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

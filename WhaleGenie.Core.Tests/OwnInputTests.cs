@@ -1,4 +1,3 @@
-using SharpHook.Data;
 using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.Core.Tests;
@@ -18,7 +17,7 @@ public class OwnInputTests
     [Fact]
     public void A_number_pad_key_is_remembered_under_the_name_it_arrives_as()
     {
-        WhaleGenieInputGate.Note(SharpKeys.Key(KeyCode.VcNumPad7));
+        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.NumPad7));
 
         Assert.True(WhaleGenieInputGate.RecentlySent("NumPad7"));
         Assert.True(WhaleGenieInputGate.RecentlySent("Home"));
@@ -31,7 +30,7 @@ public class OwnInputTests
     [Fact]
     public void A_key_that_keeps_its_name_is_remembered_under_that_name_only()
     {
-        WhaleGenieInputGate.Note(SharpKeys.Key(KeyCode.VcA));
+        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.A));
 
         Assert.True(WhaleGenieInputGate.RecentlySent("A"));
         Assert.False(WhaleGenieInputGate.RecentlySent("F5"));
@@ -45,8 +44,8 @@ public class OwnInputTests
     [Fact]
     public void Every_key_of_a_chord_is_remembered()
     {
-        WhaleGenieInputGate.Note(SharpKeys.Key(KeyCode.VcLeftControl));
-        WhaleGenieInputGate.Note(SharpKeys.Key(KeyCode.VcNumPad1));
+        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.LeftControl));
+        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.NumPad1));
 
         Assert.True(WhaleGenieInputGate.RecentlySent("左Ctrl"));
         Assert.True(WhaleGenieInputGate.RecentlySent("End"));
@@ -59,7 +58,7 @@ public class OwnInputTests
     [Fact]
     public void Turning_off_ignoring_own_input_makes_the_program_answer_its_own_keys()
     {
-        WhaleGenieInputGate.Note(SharpKeys.Key(KeyCode.VcF7));
+        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.F7));
 
         try
         {

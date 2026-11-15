@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using SharpHook.Data;
+using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.Platform.Windows;
 
@@ -37,7 +37,7 @@ internal static class WindowsKeyStrokes
     private const uint CharMessage = 0x0102;
 
     /// <summary>Presses a key, holds it for as long as asked, and lets it go.</summary>
-    internal static void Press(KeyCode key, string name, int holdMs)
+    internal static void Press(HookCode key, string name, int holdMs)
     {
         Down(key, name);
 
@@ -50,10 +50,10 @@ internal static class WindowsKeyStrokes
     }
 
     /// <summary>Presses a key down and leaves it down.</summary>
-    internal static void Down(KeyCode key, string name) => Send(key, name, up: false);
+    internal static void Down(HookCode key, string name) => Send(key, name, up: false);
 
     /// <summary>Lets a key that is down back up.</summary>
-    internal static void Up(KeyCode key, string name) => Send(key, name, up: true);
+    internal static void Up(HookCode key, string name) => Send(key, name, up: true);
 
     /// <summary>
     /// Types text as text: every character is handed to the window with the focus as the character
@@ -110,7 +110,7 @@ internal static class WindowsKeyStrokes
             if (character is '\n' or '\t')
             {
                 Post(window, batch);
-                Press(character == '\n' ? KeyCode.VcEnter : KeyCode.VcTab, character == '\n' ? "Enter" : "Tab", 0);
+                Press(character == '\n' ? HookCode.Enter : HookCode.Tab, character == '\n' ? "Enter" : "Tab", 0);
             }
             else
             {
@@ -242,7 +242,7 @@ internal static class WindowsKeyStrokes
     /// keyboard sends and what the extended flag is read against; a key with no scan code never
     /// reaches here, since <see cref="WindowsKeys.CanBePressed"/> has already refused it.
     /// </summary>
-    private static void Send(KeyCode key, string name, bool up)
+    private static void Send(HookCode key, string name, bool up)
     {
         var virtualKey = WindowsKeys.VirtualKey(key)
             ?? throw new DeviceActionException(RunKeys.KeyNotPressable, name);

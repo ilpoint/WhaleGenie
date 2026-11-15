@@ -1,4 +1,4 @@
-using SharpHook.Data;
+using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.Platform.Windows;
 
@@ -133,22 +133,22 @@ public enum HidUsage : byte
 /// after the platform's own codes and the device wants HID usage IDs, so this is where the two
 /// vocabularies meet; a key with no code on the other side is refused rather than guessed at.
 /// </summary>
-public static class ViiperKeys
+internal static class ViiperKeys
 {
     /// <summary>
     /// The modifier a code stands for, which travels in the report's modifier byte rather than in
     /// its list of held keys. Anything else is an ordinary key.
     /// </summary>
-    public static byte? Modifier(KeyCode code) => code switch
+    public static byte? Modifier(HookCode code) => code switch
     {
-        KeyCode.VcLeftControl => LibViiper.ModifierLeftCtrl,
-        KeyCode.VcRightControl => LibViiper.ModifierRightCtrl,
-        KeyCode.VcLeftShift => LibViiper.ModifierLeftShift,
-        KeyCode.VcRightShift => LibViiper.ModifierRightShift,
-        KeyCode.VcLeftAlt => LibViiper.ModifierLeftAlt,
-        KeyCode.VcRightAlt => LibViiper.ModifierRightAlt,
-        KeyCode.VcLeftMeta => LibViiper.ModifierLeftGui,
-        KeyCode.VcRightMeta => LibViiper.ModifierRightGui,
+        HookCode.LeftControl => LibViiper.ModifierLeftCtrl,
+        HookCode.RightControl => LibViiper.ModifierRightCtrl,
+        HookCode.LeftShift => LibViiper.ModifierLeftShift,
+        HookCode.RightShift => LibViiper.ModifierRightShift,
+        HookCode.LeftAlt => LibViiper.ModifierLeftAlt,
+        HookCode.RightAlt => LibViiper.ModifierRightAlt,
+        HookCode.LeftMeta => LibViiper.ModifierLeftGui,
+        HookCode.RightMeta => LibViiper.ModifierRightGui,
         _ => null,
     };
 
@@ -158,90 +158,90 @@ public static class ViiperKeys
     /// from where they sit in their range; the rest are named one by one, since the two sides
     /// disagree about almost everything else ("Esc" is Escape, the number pad is Kp, and so on).
     /// </summary>
-    public static HidUsage? Usage(KeyCode code) => code switch
+    public static HidUsage? Usage(HookCode code) => code switch
     {
-        >= KeyCode.VcA and <= KeyCode.VcZ =>
-            (HidUsage)((int)HidUsage.A + ((int)code - (int)KeyCode.VcA)),
+        >= HookCode.A and <= HookCode.Z =>
+            (HidUsage)((int)HidUsage.A + ((int)code - (int)HookCode.A)),
 
         // The digits run 1 to 9 and then 0, so that is the way round the codes go.
-        >= KeyCode.Vc1 and <= KeyCode.Vc9 =>
-            (HidUsage)((int)HidUsage.Num1 + ((int)code - (int)KeyCode.Vc1)),
-        KeyCode.Vc0 => HidUsage.Num0,
+        >= HookCode.Digit1 and <= HookCode.Digit9 =>
+            (HidUsage)((int)HidUsage.Num1 + ((int)code - (int)HookCode.Digit1)),
+        HookCode.Digit0 => HidUsage.Num0,
 
         // The first twelve function keys sit together, and the rest sit at the end of the device's
         // list, past the number pad.
-        >= KeyCode.VcF1 and <= KeyCode.VcF12 =>
-            (HidUsage)((int)HidUsage.F1 + ((int)code - (int)KeyCode.VcF1)),
-        >= KeyCode.VcF13 and <= KeyCode.VcF24 =>
-            (HidUsage)((int)HidUsage.F13 + ((int)code - (int)KeyCode.VcF13)),
+        >= HookCode.F1 and <= HookCode.F12 =>
+            (HidUsage)((int)HidUsage.F1 + ((int)code - (int)HookCode.F1)),
+        >= HookCode.F13 and <= HookCode.F24 =>
+            (HidUsage)((int)HidUsage.F13 + ((int)code - (int)HookCode.F13)),
 
-        KeyCode.VcEscape => HidUsage.Escape,
-        KeyCode.VcBackspace => HidUsage.Backspace,
-        KeyCode.VcTab => HidUsage.Tab,
-        KeyCode.VcSpace => HidUsage.Space,
-        KeyCode.VcEnter => HidUsage.Enter,
-        KeyCode.VcCapsLock => HidUsage.CapsLock,
-        KeyCode.VcMinus => HidUsage.Minus,
-        KeyCode.VcEquals => HidUsage.Equal,
-        KeyCode.VcOpenBracket => HidUsage.LeftBrace,
-        KeyCode.VcCloseBracket => HidUsage.RightBrace,
-        KeyCode.VcBackslash => HidUsage.Backslash,
-        KeyCode.VcSection => HidUsage.NonUsBackslash,
-        KeyCode.VcSemicolon => HidUsage.Semicolon,
-        KeyCode.VcQuote => HidUsage.Apostrophe,
-        KeyCode.VcBackQuote => HidUsage.Grave,
-        KeyCode.VcComma => HidUsage.Comma,
-        KeyCode.VcPeriod => HidUsage.Period,
-        KeyCode.VcSlash => HidUsage.Slash,
+        HookCode.Escape => HidUsage.Escape,
+        HookCode.Backspace => HidUsage.Backspace,
+        HookCode.Tab => HidUsage.Tab,
+        HookCode.Space => HidUsage.Space,
+        HookCode.Enter => HidUsage.Enter,
+        HookCode.CapsLock => HidUsage.CapsLock,
+        HookCode.Minus => HidUsage.Minus,
+        HookCode.Equals => HidUsage.Equal,
+        HookCode.OpenBracket => HidUsage.LeftBrace,
+        HookCode.CloseBracket => HidUsage.RightBrace,
+        HookCode.Backslash => HidUsage.Backslash,
+        HookCode.Section => HidUsage.NonUsBackslash,
+        HookCode.Semicolon => HidUsage.Semicolon,
+        HookCode.Quote => HidUsage.Apostrophe,
+        HookCode.BackQuote => HidUsage.Grave,
+        HookCode.Comma => HidUsage.Comma,
+        HookCode.Period => HidUsage.Period,
+        HookCode.Slash => HidUsage.Slash,
 
-        KeyCode.VcPrintScreen => HidUsage.PrintScreen,
-        KeyCode.VcScrollLock => HidUsage.ScrollLock,
-        KeyCode.VcPause => HidUsage.Pause,
-        KeyCode.VcInsert => HidUsage.Insert,
-        KeyCode.VcDelete => HidUsage.Delete,
-        KeyCode.VcHome => HidUsage.Home,
-        KeyCode.VcEnd => HidUsage.End,
-        KeyCode.VcPageUp => HidUsage.PageUp,
-        KeyCode.VcPageDown => HidUsage.PageDown,
-        KeyCode.VcUp => HidUsage.Up,
-        KeyCode.VcDown => HidUsage.Down,
-        KeyCode.VcLeft => HidUsage.Left,
-        KeyCode.VcRight => HidUsage.Right,
-        KeyCode.VcContextMenu => HidUsage.Application,
+        HookCode.PrintScreen => HidUsage.PrintScreen,
+        HookCode.ScrollLock => HidUsage.ScrollLock,
+        HookCode.Pause => HidUsage.Pause,
+        HookCode.Insert => HidUsage.Insert,
+        HookCode.Delete => HidUsage.Delete,
+        HookCode.Home => HidUsage.Home,
+        HookCode.End => HidUsage.End,
+        HookCode.PageUp => HidUsage.PageUp,
+        HookCode.PageDown => HidUsage.PageDown,
+        HookCode.Up => HidUsage.Up,
+        HookCode.Down => HidUsage.Down,
+        HookCode.Left => HidUsage.Left,
+        HookCode.Right => HidUsage.Right,
+        HookCode.ContextMenu => HidUsage.Application,
 
         // The library's "help" key is the device's usage 0x75, which Windows' own keyboard driver
         // turns into no key at all — measured with a hook: the report arrives, nothing comes out.
         // Leaving it here would be a key that quietly does nothing, so the device refuses it.
-        KeyCode.VcPower => HidUsage.Power,
+        HookCode.Power => HidUsage.Power,
 
-        KeyCode.VcNumLock => HidUsage.NumLock,
-        KeyCode.VcNumPadDivide => HidUsage.KpSlash,
-        KeyCode.VcNumPadMultiply => HidUsage.KpAsterisk,
-        KeyCode.VcNumPadSubtract => HidUsage.KpMinus,
-        KeyCode.VcNumPadAdd => HidUsage.KpPlus,
-        KeyCode.VcNumPadEnter => HidUsage.KpEnter,
-        KeyCode.VcNumPadDecimal => HidUsage.KpDot,
+        HookCode.NumLock => HidUsage.NumLock,
+        HookCode.NumPadDivide => HidUsage.KpSlash,
+        HookCode.NumPadMultiply => HidUsage.KpAsterisk,
+        HookCode.NumPadSubtract => HidUsage.KpMinus,
+        HookCode.NumPadAdd => HidUsage.KpPlus,
+        HookCode.NumPadEnter => HidUsage.KpEnter,
+        HookCode.NumPadDecimal => HidUsage.KpDot,
 
         // The number pad's equals key becomes VK_CLEAR on Windows, which is the number pad's 5 with
         // NumLock off — a key the macro already has under its own name. Two names for one key is
         // what makes a recording and a macro disagree, so this one is left to the refusal.
-        KeyCode.VcNumPadEquals => null,
-        >= KeyCode.VcNumPad1 and <= KeyCode.VcNumPad9 =>
-            (HidUsage)((int)HidUsage.Kp1 + ((int)code - (int)KeyCode.VcNumPad1)),
-        KeyCode.VcNumPad0 => HidUsage.Kp0,
+        HookCode.NumPadEquals => null,
+        >= HookCode.NumPad1 and <= HookCode.NumPad9 =>
+            (HidUsage)((int)HidUsage.Kp1 + ((int)code - (int)HookCode.NumPad1)),
+        HookCode.NumPad0 => HidUsage.Kp0,
 
         // The media keys and the volume keys are not on the device's keyboard page at all: a real
         // keyboard sends them as consumer-control reports, and the virtual keyboard here has only
         // the one report it fills with key usages. Writing them into that report is a key Windows
         // does not number — measured: the report arrives and VK 0xFF comes out, or nothing does.
         // They are therefore refused by this device rather than pressed as something else.
-        KeyCode.VcVolumeMute => null,
-        KeyCode.VcVolumeDown => null,
-        KeyCode.VcVolumeUp => null,
-        KeyCode.VcMediaPlay => null,
-        KeyCode.VcMediaStop => null,
-        KeyCode.VcMediaNext => null,
-        KeyCode.VcMediaPrevious => null,
+        HookCode.VolumeMute => null,
+        HookCode.VolumeDown => null,
+        HookCode.VolumeUp => null,
+        HookCode.MediaPlay => null,
+        HookCode.MediaStop => null,
+        HookCode.MediaNext => null,
+        HookCode.MediaPrevious => null,
 
         _ => null,
     };

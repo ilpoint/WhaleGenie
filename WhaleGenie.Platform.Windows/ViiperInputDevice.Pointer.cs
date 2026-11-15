@@ -105,7 +105,7 @@ public sealed partial class ViiperInputDevice : IInputDevice, IGamepadDevice, ID
 
                 // The name is the one the recorder hears, which counts up as a turn towards the
                 // left, while the virtual device counts up as a turn towards the right.
-                WhaleGenieInputGate.Note(SharpKeys.WheelName(
+                WhaleGenieInputGate.Note(HookKeys.WheelName(
                     vertical ? MouseWheelScrollDirection.Vertical : MouseWheelScrollDirection.Horizontal,
                     vertical ? turn : (short)-turn));
 

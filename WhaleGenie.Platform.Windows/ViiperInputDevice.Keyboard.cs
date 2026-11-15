@@ -38,7 +38,7 @@ public sealed partial class ViiperInputDevice : IInputDevice, IGamepadDevice, ID
         {
             // Every key is looked up before any is pressed, so a chord with a name that means
             // nothing fails without half of it being down already.
-            var codes = new List<KeyCode>(keys.Count);
+            var codes = new List<HookCode>(keys.Count);
             foreach (var key in keys)
             {
                 codes.Add(Code(key));

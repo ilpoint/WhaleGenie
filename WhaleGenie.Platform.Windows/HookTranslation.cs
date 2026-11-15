@@ -15,11 +15,11 @@ internal static class HookTranslation
 {
     /// <summary>A key going down.</summary>
     internal static KeyHookEvent KeyDown(KeyboardHookEventArgs e)
-        => new(SharpKeys.Key(e.Data.KeyCode), e.IsEventSimulated);
+        => new(HookKeys.Key(e.Data.KeyCode), e.IsEventSimulated);
 
     /// <summary>A key coming back up.</summary>
     internal static KeyHookEvent KeyUp(KeyboardHookEventArgs e)
-        => new(SharpKeys.Key(e.Data.KeyCode), e.IsEventSimulated);
+        => new(HookKeys.Key(e.Data.KeyCode), e.IsEventSimulated);
 
     /// <summary>
     /// A mouse button going down, or null for a button this program has no name for. Naming only
@@ -27,7 +27,7 @@ internal static class HookTranslation
     /// left button and firing something the user never asked for.
     /// </summary>
     internal static MouseHookEvent? MouseDown(MouseHookEventArgs e)
-        => SharpKeys.Mouse(e.Data.Button) is { } button
+        => HookKeys.Mouse(e.Data.Button) is { } button
             ? new MouseHookEvent(button, e.Data.X, e.Data.Y, e.IsEventSimulated)
             : null;
 
@@ -48,7 +48,7 @@ internal static class HookTranslation
     /// <summary>The wheel turning.</summary>
     internal static WheelHookEvent Wheel(MouseWheelHookEventArgs e)
         => new(
-            SharpKeys.Axis(e.Data.Direction),
+            HookKeys.Axis(e.Data.Direction),
             e.Data.Rotation,
             e.Data.Delta,
             e.Data.X,

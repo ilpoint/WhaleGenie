@@ -34,34 +34,34 @@ public sealed class SharpHookInputDevice : IInputDevice
     public void KeyPress(string key, int holdMs)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WhaleGenieInputGate.Note(KeyTable.Key(code));
         WindowsKeyStrokes.Press(code, key, Hold(holdMs));
     }
 
     public void KeyDown(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WhaleGenieInputGate.Note(KeyTable.Key(code));
         WindowsKeyStrokes.Down(code, key);
     }
 
     public void KeyUp(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(SharpKeys.Key(code));
+        WhaleGenieInputGate.Note(KeyTable.Key(code));
         WindowsKeyStrokes.Up(code, key);
     }
 
     public void Hotkey(IReadOnlyList<string> keys, int holdMs)
     {
-        var codes = new List<KeyCode>(keys.Count);
+        var codes = new List<HookCode>(keys.Count);
         foreach (var key in keys)
         {
             var code = Code(key);
             codes.Add(code);
 
             // Every name the key can come back as, so a chord is not answered by its own keys.
-            WhaleGenieInputGate.Note(SharpKeys.Key(code));
+            WhaleGenieInputGate.Note(KeyTable.Key(code));
         }
 
         if (codes.Count == 0)
@@ -74,7 +74,7 @@ public sealed class SharpHookInputDevice : IInputDevice
         // different chord to the receiving window when the arrows arrive as the number pad.
         foreach (var code in codes)
         {
-            WindowsKeyStrokes.Down(code, SharpKeys.Name(code, sided: true));
+            WindowsKeyStrokes.Down(code, KeyTable.Name(code, sided: true));
             Thread.Sleep(10);
         }
 
@@ -82,7 +82,7 @@ public sealed class SharpHookInputDevice : IInputDevice
 
         for (var index = codes.Count - 1; index >= 0; index--)
         {
-            WindowsKeyStrokes.Up(codes[index], SharpKeys.Name(codes[index], sided: true));
+            WindowsKeyStrokes.Up(codes[index], KeyTable.Name(codes[index], sided: true));
         }
     }
 
@@ -141,7 +141,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     {
         MoveMouse(x, y, 0);
         var code = Button(button);
-        WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
+        WhaleGenieInputGate.Note(HookKeys.MouseName(code));
         _simulator.SimulateMousePress(code);
     }
 
@@ -149,7 +149,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     {
         MoveMouse(x, y, 0);
         var code = Button(button);
-        WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
+        WhaleGenieInputGate.Note(HookKeys.MouseName(code));
         _simulator.SimulateMouseRelease(code);
     }
 
@@ -167,7 +167,7 @@ public sealed class SharpHookInputDevice : IInputDevice
                 Thread.Sleep(gap);
             }
 
-            WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
+            WhaleGenieInputGate.Note(HookKeys.MouseName(code));
             _simulator.SimulateMousePress(code);
             Thread.Sleep(10);
             _simulator.SimulateMouseRelease(code);
@@ -194,7 +194,7 @@ public sealed class SharpHookInputDevice : IInputDevice
             var step = Math.Min(left, Notch);
             left -= step;
             var rotation = (short)(sign * step);
-            WhaleGenieInputGate.Note(SharpKeys.WheelName(axis, rotation));
+            WhaleGenieInputGate.Note(HookKeys.WheelName(axis, rotation));
             _simulator.SimulateMouseWheel(rotation, axis, Scrolling);
             Thread.Sleep(10);
         }
@@ -213,7 +213,7 @@ public sealed class SharpHookInputDevice : IInputDevice
 
         var code = Button(button);
         MoveMouse(path[0].X, path[0].Y, 0);
-        WhaleGenieInputGate.Note(SharpKeys.MouseName(code));
+        WhaleGenieInputGate.Note(HookKeys.MouseName(code));
         _simulator.SimulateMousePress(code);
 
         try
@@ -264,9 +264,9 @@ public sealed class SharpHookInputDevice : IInputDevice
     /// all, and a step that says which key it could not press is worth more than one that quietly
     /// does nothing.
     /// </summary>
-    private static KeyCode Code(string key)
+    private static HookCode Code(string key)
     {
-        var code = SharpKeys.ResolveCode(key)
+        var code = KeyTable.ResolveCode(key)
             ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
         return WindowsKeys.CanBePressed(code)

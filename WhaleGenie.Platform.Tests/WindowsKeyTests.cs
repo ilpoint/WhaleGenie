@@ -1,4 +1,3 @@
-using SharpHook.Data;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Platform.Windows;
 
@@ -65,7 +64,7 @@ public class WindowsKeyTests
     [InlineData("VolumeMute", 0xAD)]
     [InlineData("VolumeUp", 0xAF)]
     public void The_keys_a_macro_writes_reach_windows(string name, int expected)
-        => Assert.Equal((ushort?)expected, WindowsKeys.VirtualKey(SharpKeys.ResolveCode(name)!.Value));
+        => Assert.Equal((ushort?)expected, WindowsKeys.VirtualKey(KeyTable.ResolveCode(name)!.Value));
 
     [Theory]
     [InlineData("Yen")]
@@ -82,7 +81,7 @@ public class WindowsKeyTests
     [InlineData("NumPadSeparator")]
     [InlineData("NumPadEquals")]
     public void A_key_windows_has_not_got_is_left_empty(string name)
-        => Assert.Null(WindowsKeys.VirtualKey(SharpKeys.ResolveCode(name)!.Value));
+        => Assert.Null(WindowsKeys.VirtualKey(KeyTable.ResolveCode(name)!.Value));
 
     /// <summary>
     /// The runs that sit together on both sides are worked out from where a key stands rather than
@@ -93,27 +92,27 @@ public class WindowsKeyTests
     {
         for (ushort step = 0; step < 26; step++)
         {
-            Assert.Equal((ushort)('A' + step), WindowsKeys.VirtualKey(KeyCode.VcA + step));
+            Assert.Equal((ushort)('A' + step), WindowsKeys.VirtualKey(HookCode.A + step));
         }
 
         for (ushort digit = 0; digit < 9; digit++)
         {
-            Assert.Equal((ushort)('1' + digit), WindowsKeys.VirtualKey(KeyCode.Vc1 + digit));
+            Assert.Equal((ushort)('1' + digit), WindowsKeys.VirtualKey(HookCode.Digit1 + digit));
         }
 
-        Assert.Equal((ushort)'0', WindowsKeys.VirtualKey(KeyCode.Vc0));
+        Assert.Equal((ushort)'0', WindowsKeys.VirtualKey(HookCode.Digit0));
 
         for (ushort number = 0; number < 24; number++)
         {
-            Assert.Equal((ushort)(0x70 + number), WindowsKeys.VirtualKey(KeyCode.VcF1 + number));
+            Assert.Equal((ushort)(0x70 + number), WindowsKeys.VirtualKey(HookCode.F1 + number));
         }
 
         for (ushort digit = 0; digit < 9; digit++)
         {
-            Assert.Equal((ushort)(0x61 + digit), WindowsKeys.VirtualKey(KeyCode.VcNumPad1 + digit));
+            Assert.Equal((ushort)(0x61 + digit), WindowsKeys.VirtualKey(HookCode.NumPad1 + digit));
         }
 
-        Assert.Equal((ushort)0x60, WindowsKeys.VirtualKey(KeyCode.VcNumPad0));
+        Assert.Equal((ushort)0x60, WindowsKeys.VirtualKey(HookCode.NumPad0));
     }
 
     /// <summary>
@@ -125,46 +124,46 @@ public class WindowsKeyTests
     /// key the library adds later lands in this list only when somebody has looked at what Windows
     /// makes of it.
     /// </summary>
-    private static readonly KeyCode[] NoWindowsKey =
+    private static readonly HookCode[] NoWindowsKey =
     [
-        KeyCode.VcFunction,
-        KeyCode.VcChangeInputSource,
-        KeyCode.VcPower,
-        KeyCode.VcMediaEject,
-        KeyCode.VcApp3,
-        KeyCode.VcApp4,
-        KeyCode.VcAppBrowser,
-        KeyCode.VcAppCalculator,
-        KeyCode.VcKatakanaHiragana,
-        KeyCode.VcKatakana,
-        KeyCode.VcHiragana,
-        KeyCode.VcAlphanumeric,
-        KeyCode.VcUnderscore,
-        KeyCode.VcYen,
-        KeyCode.VcJpComma,
-        KeyCode.VcKana,
-        KeyCode.VcHanja,
-        KeyCode.VcJunja,
-        KeyCode.VcFinal,
-        KeyCode.VcAccept,
-        KeyCode.VcConvert,
-        KeyCode.VcNonConvert,
-        KeyCode.VcImeOn,
-        KeyCode.VcImeOff,
-        KeyCode.VcModeChange,
-        KeyCode.VcProcess,
-        KeyCode.VcMisc,
-        KeyCode.VcNumPadSeparator,
-        KeyCode.VcNumPadEquals,
+        HookCode.Function,
+        HookCode.ChangeInputSource,
+        HookCode.Power,
+        HookCode.MediaEject,
+        HookCode.App3,
+        HookCode.App4,
+        HookCode.AppBrowser,
+        HookCode.AppCalculator,
+        HookCode.KatakanaHiragana,
+        HookCode.Katakana,
+        HookCode.Hiragana,
+        HookCode.Alphanumeric,
+        HookCode.Underscore,
+        HookCode.Yen,
+        HookCode.JpComma,
+        HookCode.Kana,
+        HookCode.Hanja,
+        HookCode.Junja,
+        HookCode.Final,
+        HookCode.Accept,
+        HookCode.Convert,
+        HookCode.NonConvert,
+        HookCode.ImeOn,
+        HookCode.ImeOff,
+        HookCode.ModeChange,
+        HookCode.Process,
+        HookCode.Misc,
+        HookCode.NumPadSeparator,
+        HookCode.NumPadEquals,
     ];
 
     [Fact]
     public void Every_key_the_library_speaks_is_posted_or_named_as_having_no_code()
     {
         var unlisted = new List<string>();
-        foreach (var code in Enum.GetValues<KeyCode>())
+        foreach (var code in Enum.GetValues<HookCode>())
         {
-            if (code == KeyCode.VcUndefined)
+            if (code == HookCode.Undefined)
             {
                 continue;
             }
@@ -191,20 +190,20 @@ public class WindowsKeyTests
     [Fact]
     public void Every_key_that_is_posted_can_be_pressed()
     {
-        Assert.True(WindowsKeys.CanBePressed(KeyCode.VcPause));
+        Assert.True(WindowsKeys.CanBePressed(HookCode.Pause));
 
         // The pair a real keyboard produces, once the driver has taken the E1 1D prefix off.
-        Assert.Equal<ushort>(0x13, WindowsKeys.VirtualKey(KeyCode.VcPause) ?? 0);
+        Assert.Equal<ushort>(0x13, WindowsKeys.VirtualKey(HookCode.Pause) ?? 0);
         Assert.Equal(0x45, WindowsKeys.ScanCode(0x13));
 
         // Everything Windows numbers, and nothing it does not.
-        var pressable = Enum.GetValues<KeyCode>()
-            .Where(code => code != KeyCode.VcUndefined && WindowsKeys.CanBePressed(code))
+        var pressable = Enum.GetValues<HookCode>()
+            .Where(code => code != HookCode.Undefined && WindowsKeys.CanBePressed(code))
             .Order()
             .ToArray();
 
-        var wanted = Enum.GetValues<KeyCode>()
-            .Where(code => code != KeyCode.VcUndefined && !NoWindowsKey.Contains(code))
+        var wanted = Enum.GetValues<HookCode>()
+            .Where(code => code != HookCode.Undefined && !NoWindowsKey.Contains(code))
             .Order()
             .ToArray();
 
@@ -269,11 +268,11 @@ public class WindowsKeyTests
     [Fact]
     public void The_two_enters_are_told_apart_by_the_key_that_was_written()
     {
-        Assert.Equal<ushort>(0x0D, WindowsKeys.VirtualKey(KeyCode.VcEnter) ?? 0);
-        Assert.Equal<ushort>(0x0D, WindowsKeys.VirtualKey(KeyCode.VcNumPadEnter) ?? 0);
+        Assert.Equal<ushort>(0x0D, WindowsKeys.VirtualKey(HookCode.Enter) ?? 0);
+        Assert.Equal<ushort>(0x0D, WindowsKeys.VirtualKey(HookCode.NumPadEnter) ?? 0);
 
-        Assert.False(WindowsKeys.IsExtended(KeyCode.VcEnter));
-        Assert.True(WindowsKeys.IsExtended(KeyCode.VcNumPadEnter));
+        Assert.False(WindowsKeys.IsExtended(HookCode.Enter));
+        Assert.True(WindowsKeys.IsExtended(HookCode.NumPadEnter));
     }
 
     /// <summary>
@@ -284,12 +283,12 @@ public class WindowsKeyTests
     [Fact]
     public void Every_other_key_takes_its_flag_from_its_key_code()
     {
-        Assert.True(WindowsKeys.IsExtended(KeyCode.VcHome));
-        Assert.False(WindowsKeys.IsExtended(KeyCode.VcNumPad7));
-        Assert.True(WindowsKeys.IsExtended(KeyCode.VcUp));
-        Assert.False(WindowsKeys.IsExtended(KeyCode.VcNumPad8));
-        Assert.True(WindowsKeys.IsExtended(KeyCode.VcNumLock));
-        Assert.False(WindowsKeys.IsExtended(KeyCode.VcA));
-        Assert.False(WindowsKeys.IsExtended(KeyCode.VcPause));
+        Assert.True(WindowsKeys.IsExtended(HookCode.Home));
+        Assert.False(WindowsKeys.IsExtended(HookCode.NumPad7));
+        Assert.True(WindowsKeys.IsExtended(HookCode.Up));
+        Assert.False(WindowsKeys.IsExtended(HookCode.NumPad8));
+        Assert.True(WindowsKeys.IsExtended(HookCode.NumLock));
+        Assert.False(WindowsKeys.IsExtended(HookCode.A));
+        Assert.False(WindowsKeys.IsExtended(HookCode.Pause));
     }
 }

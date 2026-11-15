@@ -113,7 +113,7 @@ public sealed partial class ViiperInputDevice : IInputDevice, IGamepadDevice, ID
     }
 
     /// <summary>Puts a key down or takes it up in the state the next report will carry.</summary>
-    private void Apply(KeyCode code, bool down)
+    private void Apply(HookCode code, bool down)
     {
         if (ViiperKeys.Modifier(code) is { } modifier)
         {
@@ -134,24 +134,24 @@ public sealed partial class ViiperInputDevice : IInputDevice, IGamepadDevice, ID
             return;
         }
 
-        throw new DeviceActionException(RunKeys.NoDriverKey, SharpKeys.Name(code, sided: true));
+        throw new DeviceActionException(RunKeys.NoDriverKey, KeyTable.Name(code, sided: true));
     }
 
     /// <summary>The code a macro's key name stands for.</summary>
-    private static KeyCode Code(string key)
-        => SharpKeys.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+    private static HookCode Code(string key)
+        => KeyTable.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
     /// <summary>Tells the parts of the app that watch the keyboard that this press is WhaleGenie's own.</summary>
-    private static void Note(KeyCode code) => WhaleGenieInputGate.Note(SharpKeys.Key(code));
+    private static void Note(HookCode code) => WhaleGenieInputGate.Note(KeyTable.Key(code));
 
     /// <summary>The virtual mouse's bit for a button, and the name WhaleGenie calls that button by.</summary>
     private static (byte Bit, string Name) Button(string button) => button.Trim().ToLowerInvariant() switch
     {
-        "right" => (LibViiper.MouseRight, SharpKeys.MouseName(MouseButton.Button2)),
-        "middle" => (LibViiper.MouseMiddle, SharpKeys.MouseName(MouseButton.Button3)),
-        "middle2" or "back" => (LibViiper.MouseBack, SharpKeys.MouseName(MouseButton.Button4)),
-        "forward" => (LibViiper.MouseForward, SharpKeys.MouseName(MouseButton.Button5)),
-        _ => (LibViiper.MouseLeft, SharpKeys.MouseName(MouseButton.Button1)),
+        "right" => (LibViiper.MouseRight, KeyTable.MouseName(HookMouseButton.Right)),
+        "middle" => (LibViiper.MouseMiddle, KeyTable.MouseName(HookMouseButton.Middle)),
+        "middle2" or "back" => (LibViiper.MouseBack, KeyTable.MouseName(HookMouseButton.Back)),
+        "forward" => (LibViiper.MouseForward, KeyTable.MouseName(HookMouseButton.Forward)),
+        _ => (LibViiper.MouseLeft, KeyTable.MouseName(HookMouseButton.Left)),
     };
 
     /// <summary>The most one report has room for.</summary>

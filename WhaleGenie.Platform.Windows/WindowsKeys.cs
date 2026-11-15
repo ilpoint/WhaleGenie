@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using SharpHook.Data;
+using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.Platform.Windows;
 
@@ -10,7 +10,7 @@ namespace WhaleGenie.Platform.Windows;
 /// the program notices: the window simply receives a key nobody asked for.
 /// </summary>
 /// <remarks>
-/// A macro's key name is resolved to a library code by <see cref="SharpKeys"/>, which is the one
+/// A macro's key name is resolved to a library code by <see cref="KeyTable"/>, which is the one
 /// place that knows how a name is spelled; this is the rest of that journey, from the code to what
 /// Windows presses. The pairs are the ones the library publishes for Windows, which come from the
 /// system's own list of virtual key codes. A key the library has and Windows has not is answered
@@ -46,7 +46,7 @@ internal static class WindowsKeys
     /// rather than taking Windows' word for it (Windows answers 0, because Pause has no entry in
     /// the one-scan-code-per-key table).
     /// </summary>
-    internal static bool CanBePressed(KeyCode code)
+    internal static bool CanBePressed(HookCode code)
         => VirtualKey(code) is { } virtualKey && ScanCode(virtualKey) != 0;
 
     /// <summary>MAPVK_VK_TO_VSC, which answers with 0 for a key no keyboard can send.</summary>
@@ -90,153 +90,153 @@ internal static class WindowsKeys
     /// read from the key that was written, and only the keys that have a key code of their own fall
     /// back to the table above.
     /// </summary>
-    internal static bool IsExtended(KeyCode code) => code switch
+    internal static bool IsExtended(HookCode code) => code switch
     {
-        KeyCode.VcNumPadEnter => true,
-        KeyCode.VcEnter => false,
+        HookCode.NumPadEnter => true,
+        HookCode.Enter => false,
         _ => VirtualKey(code) is { } virtualKey && IsExtended(virtualKey),
     };
 
     /// <summary>The virtual key code for a library code, or null when Windows has no such key.</summary>
-    internal static ushort? VirtualKey(KeyCode code) => code switch
+    internal static ushort? VirtualKey(HookCode code) => code switch
     {
         // The letters, the digits and the function keys each sit in one run on both sides, so their
         // place in the run is what carries over; the digits run 1 to 9 and then 0.
-        >= KeyCode.VcA and <= KeyCode.VcZ => (ushort)('A' + ((int)code - (int)KeyCode.VcA)),
-        >= KeyCode.Vc1 and <= KeyCode.Vc9 => (ushort)('1' + ((int)code - (int)KeyCode.Vc1)),
-        KeyCode.Vc0 => '0',
-        >= KeyCode.VcF1 and <= KeyCode.VcF24 => (ushort)(VkF1 + ((int)code - (int)KeyCode.VcF1)),
+        >= HookCode.A and <= HookCode.Z => (ushort)('A' + ((int)code - (int)HookCode.A)),
+        >= HookCode.Digit1 and <= HookCode.Digit9 => (ushort)('1' + ((int)code - (int)HookCode.Digit1)),
+        HookCode.Digit0 => '0',
+        >= HookCode.F1 and <= HookCode.F24 => (ushort)(VkF1 + ((int)code - (int)HookCode.F1)),
 
-        KeyCode.VcEscape => 0x1B,
-        KeyCode.VcBackQuote => 0xC0,
-        KeyCode.VcMinus => 0xBD,
-        KeyCode.VcEquals => 0xBB,
-        KeyCode.VcBackspace => 0x08,
-        KeyCode.VcTab => 0x09,
-        KeyCode.VcCapsLock => 0x14,
-        KeyCode.VcOpenBracket => 0xDB,
-        KeyCode.VcCloseBracket => 0xDD,
-        KeyCode.VcBackslash => 0xDC,
-        KeyCode.VcSemicolon => 0xBA,
-        KeyCode.VcQuote => 0xDE,
-        KeyCode.VcEnter => 0x0D,
-        KeyCode.VcComma => 0xBC,
-        KeyCode.VcPeriod => 0xBE,
-        KeyCode.VcSlash => 0xBF,
-        KeyCode.VcSpace => 0x20,
+        HookCode.Escape => 0x1B,
+        HookCode.BackQuote => 0xC0,
+        HookCode.Minus => 0xBD,
+        HookCode.Equals => 0xBB,
+        HookCode.Backspace => 0x08,
+        HookCode.Tab => 0x09,
+        HookCode.CapsLock => 0x14,
+        HookCode.OpenBracket => 0xDB,
+        HookCode.CloseBracket => 0xDD,
+        HookCode.Backslash => 0xDC,
+        HookCode.Semicolon => 0xBA,
+        HookCode.Quote => 0xDE,
+        HookCode.Enter => 0x0D,
+        HookCode.Comma => 0xBC,
+        HookCode.Period => 0xBE,
+        HookCode.Slash => 0xBF,
+        HookCode.Space => 0x20,
 
         // The key Windows names for the keyboard a machine happens to have: the section sign is the
         // extra key an ISO keyboard carries left of Z. The key the library calls "misc" is another
         // such extra key, and Windows gives it a number without a scan code to send it with, so it
         // is left to the null group below like the rest of the keys no keystroke can carry.
-        KeyCode.VcSection => 0xE2,
-        KeyCode.VcMisc => null,
+        HookCode.Section => 0xE2,
+        HookCode.Misc => null,
 
-        KeyCode.VcPrintScreen => 0x2C,
-        KeyCode.VcScrollLock => 0x91,
-        KeyCode.VcPause => 0x13,
-        KeyCode.VcCancel => 0x03,
-        KeyCode.VcHelp => 0x2F,
-        KeyCode.VcInsert => 0x2D,
-        KeyCode.VcDelete => 0x2E,
-        KeyCode.VcHome => 0x24,
-        KeyCode.VcEnd => 0x23,
-        KeyCode.VcPageUp => 0x21,
-        KeyCode.VcPageDown => 0x22,
-        KeyCode.VcUp => 0x26,
-        KeyCode.VcLeft => 0x25,
-        KeyCode.VcRight => 0x27,
-        KeyCode.VcDown => 0x28,
+        HookCode.PrintScreen => 0x2C,
+        HookCode.ScrollLock => 0x91,
+        HookCode.Pause => 0x13,
+        HookCode.Cancel => 0x03,
+        HookCode.Help => 0x2F,
+        HookCode.Insert => 0x2D,
+        HookCode.Delete => 0x2E,
+        HookCode.Home => 0x24,
+        HookCode.End => 0x23,
+        HookCode.PageUp => 0x21,
+        HookCode.PageDown => 0x22,
+        HookCode.Up => 0x26,
+        HookCode.Left => 0x25,
+        HookCode.Right => 0x27,
+        HookCode.Down => 0x28,
 
         // The number pad: its digits sit in a run of their own, and its operators are separate keys
         // from the ones above the letters, so each is named on its own.
-        >= KeyCode.VcNumPad1 and <= KeyCode.VcNumPad9 =>
-            (ushort)(0x61 + ((int)code - (int)KeyCode.VcNumPad1)),
-        KeyCode.VcNumPad0 => 0x60,
-        KeyCode.VcNumLock => 0x90,
-        KeyCode.VcNumPadClear => 0x0C,
-        KeyCode.VcNumPadDivide => 0x6F,
-        KeyCode.VcNumPadMultiply => 0x6A,
-        KeyCode.VcNumPadSubtract => 0x6D,
-        KeyCode.VcNumPadAdd => 0x6B,
-        KeyCode.VcNumPadDecimal => 0x6E,
+        >= HookCode.NumPad1 and <= HookCode.NumPad9 =>
+            (ushort)(0x61 + ((int)code - (int)HookCode.NumPad1)),
+        HookCode.NumPad0 => 0x60,
+        HookCode.NumLock => 0x90,
+        HookCode.NumPadClear => 0x0C,
+        HookCode.NumPadDivide => 0x6F,
+        HookCode.NumPadMultiply => 0x6A,
+        HookCode.NumPadSubtract => 0x6D,
+        HookCode.NumPadAdd => 0x6B,
+        HookCode.NumPadDecimal => 0x6E,
 
         // The number pad's separator and its equals key are numbered by Windows but given no scan
         // code, so no keyboard on a machine with an ordinary layout can send them; they are left to
         // the null group below rather than being posted as a key with nothing behind it.
-        KeyCode.VcNumPadSeparator => null,
-        KeyCode.VcNumPadEquals => null,
+        HookCode.NumPadSeparator => null,
+        HookCode.NumPadEquals => null,
 
         // The number pad's Enter carries the same code as the main one and is told apart by the
         // extended flag, which is what the posting device's scan code lookup and IsExtended are for.
-        KeyCode.VcNumPadEnter => 0x0D,
+        HookCode.NumPadEnter => 0x0D,
 
         // The two halves of each modifier are two different keys to Windows, which is what makes a
         // chord written with a named half arrive as that half.
-        KeyCode.VcLeftShift => 0xA0,
-        KeyCode.VcRightShift => 0xA1,
-        KeyCode.VcLeftControl => 0xA2,
-        KeyCode.VcRightControl => 0xA3,
-        KeyCode.VcLeftAlt => 0xA4,
-        KeyCode.VcRightAlt => 0xA5,
-        KeyCode.VcLeftMeta => 0x5B,
-        KeyCode.VcRightMeta => 0x5C,
-        KeyCode.VcContextMenu => 0x5D,
-        KeyCode.VcSleep => 0x5F,
+        HookCode.LeftShift => 0xA0,
+        HookCode.RightShift => 0xA1,
+        HookCode.LeftControl => 0xA2,
+        HookCode.RightControl => 0xA3,
+        HookCode.LeftAlt => 0xA4,
+        HookCode.RightAlt => 0xA5,
+        HookCode.LeftMeta => 0x5B,
+        HookCode.RightMeta => 0x5C,
+        HookCode.ContextMenu => 0x5D,
+        HookCode.Sleep => 0x5F,
 
-        KeyCode.VcMediaPlay => 0xB3,
-        KeyCode.VcMediaStop => 0xB2,
-        KeyCode.VcMediaPrevious => 0xB1,
-        KeyCode.VcMediaNext => 0xB0,
-        KeyCode.VcMediaSelect => 0xB5,
-        KeyCode.VcVolumeMute => 0xAD,
-        KeyCode.VcVolumeDown => 0xAE,
-        KeyCode.VcVolumeUp => 0xAF,
-        KeyCode.VcApp1 => 0xB6,
-        KeyCode.VcApp2 => 0xB7,
-        KeyCode.VcAppMail => 0xB4,
-        KeyCode.VcBrowserHome => 0xAC,
-        KeyCode.VcBrowserBack => 0xA6,
-        KeyCode.VcBrowserForward => 0xA7,
-        KeyCode.VcBrowserStop => 0xA9,
-        KeyCode.VcBrowserRefresh => 0xA8,
-        KeyCode.VcBrowserSearch => 0xAA,
-        KeyCode.VcBrowserFavorites => 0xAB,
+        HookCode.MediaPlay => 0xB3,
+        HookCode.MediaStop => 0xB2,
+        HookCode.MediaPrevious => 0xB1,
+        HookCode.MediaNext => 0xB0,
+        HookCode.MediaSelect => 0xB5,
+        HookCode.VolumeMute => 0xAD,
+        HookCode.VolumeDown => 0xAE,
+        HookCode.VolumeUp => 0xAF,
+        HookCode.App1 => 0xB6,
+        HookCode.App2 => 0xB7,
+        HookCode.AppMail => 0xB4,
+        HookCode.BrowserHome => 0xAC,
+        HookCode.BrowserBack => 0xA6,
+        HookCode.BrowserForward => 0xA7,
+        HookCode.BrowserStop => 0xA9,
+        HookCode.BrowserRefresh => 0xA8,
+        HookCode.BrowserSearch => 0xAA,
+        HookCode.BrowserFavorites => 0xAB,
 
         // The keys a Japanese or Korean keyboard has for its own script. Windows numbers them, but
         // gives them no scan code on the layouts this program runs on, so nothing a keyboard sends
         // can become one of them: measured, asking the foreground device for one posts VK 0xFF and
         // no key arrives at all. They are therefore answered with null, like every other key no
         // keystroke can carry, rather than being offered as a key that silently does nothing.
-        KeyCode.VcKana => null,
-        KeyCode.VcHanja => null,
-        KeyCode.VcJunja => null,
-        KeyCode.VcFinal => null,
-        KeyCode.VcAccept => null,
-        KeyCode.VcConvert => null,
-        KeyCode.VcNonConvert => null,
-        KeyCode.VcImeOn => null,
-        KeyCode.VcImeOff => null,
-        KeyCode.VcModeChange => null,
-        KeyCode.VcProcess => null,
+        HookCode.Kana => null,
+        HookCode.Hanja => null,
+        HookCode.Junja => null,
+        HookCode.Final => null,
+        HookCode.Accept => null,
+        HookCode.Convert => null,
+        HookCode.NonConvert => null,
+        HookCode.ImeOn => null,
+        HookCode.ImeOff => null,
+        HookCode.ModeChange => null,
+        HookCode.Process => null,
 
         // Keys the library has a code for and Windows has not: a macro that names one of these gets
         // a step that says which key it could not press, rather than a different key being pressed.
-        KeyCode.VcFunction => null,
-        KeyCode.VcChangeInputSource => null,
-        KeyCode.VcPower => null,
-        KeyCode.VcMediaEject => null,
-        KeyCode.VcApp3 => null,
-        KeyCode.VcApp4 => null,
-        KeyCode.VcAppBrowser => null,
-        KeyCode.VcAppCalculator => null,
-        KeyCode.VcKatakanaHiragana => null,
-        KeyCode.VcKatakana => null,
-        KeyCode.VcHiragana => null,
-        KeyCode.VcAlphanumeric => null,
-        KeyCode.VcUnderscore => null,
-        KeyCode.VcYen => null,
-        KeyCode.VcJpComma => null,
+        HookCode.Function => null,
+        HookCode.ChangeInputSource => null,
+        HookCode.Power => null,
+        HookCode.MediaEject => null,
+        HookCode.App3 => null,
+        HookCode.App4 => null,
+        HookCode.AppBrowser => null,
+        HookCode.AppCalculator => null,
+        HookCode.KatakanaHiragana => null,
+        HookCode.Katakana => null,
+        HookCode.Hiragana => null,
+        HookCode.Alphanumeric => null,
+        HookCode.Underscore => null,
+        HookCode.Yen => null,
+        HookCode.JpComma => null,
 
         _ => null,
     };

@@ -1,4 +1,3 @@
-using SharpHook.Data;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Platform.Windows;
 
@@ -15,8 +14,8 @@ public class RecorderShortcutTests
     {
         var (stop, held) = InputHookRecorder.ReadShortcut("Ctrl+F10");
 
-        Assert.Equal(SharpKeys.Key(KeyCode.VcF10), stop);
-        Assert.Equal([SharpKeys.Key(KeyCode.VcLeftControl)], held);
+        Assert.Equal(KeyTable.Key(HookCode.F10), stop);
+        Assert.Equal([KeyTable.Key(HookCode.LeftControl)], held);
     }
 
     [Fact]
@@ -24,7 +23,7 @@ public class RecorderShortcutTests
     {
         var (stop, held) = InputHookRecorder.ReadShortcut("F9");
 
-        Assert.Equal(SharpKeys.Key(KeyCode.VcF9), stop);
+        Assert.Equal(KeyTable.Key(HookCode.F9), stop);
         Assert.Empty(held);
     }
 

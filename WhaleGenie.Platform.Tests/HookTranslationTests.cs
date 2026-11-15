@@ -16,13 +16,13 @@ public class HookTranslationTests
     [Fact]
     public void A_key_carries_the_key_and_whether_a_program_sent_it()
     {
-        Assert.Equal(KeyNames.Resolve("F5"), HookTranslation.KeyDown(Keyboard(KeyCode.VcF5)).Key);
-        Assert.False(HookTranslation.KeyDown(Keyboard(KeyCode.VcF5)).Injected);
-        Assert.True(HookTranslation.KeyDown(Keyboard(KeyCode.VcF5, simulated: true)).Injected);
+        Assert.Equal(KeyNames.Resolve("F5"), HookTranslation.KeyDown(Keyboard(HookCode.F5)).Key);
+        Assert.False(HookTranslation.KeyDown(Keyboard(HookCode.F5)).Injected);
+        Assert.True(HookTranslation.KeyDown(Keyboard(HookCode.F5, simulated: true)).Injected);
 
         // Letting go is the same event under another name: which way it went is the listeners'
         // business, so a release has to name the same key a press did.
-        Assert.Equal(KeyNames.Resolve("F5"), HookTranslation.KeyUp(Keyboard(KeyCode.VcF5)).Key);
+        Assert.Equal(KeyNames.Resolve("F5"), HookTranslation.KeyUp(Keyboard(HookCode.F5)).Key);
     }
 
     [Fact]
@@ -104,12 +104,12 @@ public class HookTranslationTests
     }
 
     /// <summary>A press of one key, as the library reports it.</summary>
-    private static KeyboardHookEventArgs Keyboard(KeyCode code, bool simulated = false)
+    private static KeyboardHookEventArgs Keyboard(HookCode code, bool simulated = false)
         => new(new UioHookEvent
         {
             Type = EventType.KeyPressed,
             Mask = simulated ? EventMask.SimulatedEvent : EventMask.None,
-            Keyboard = new KeyboardEventData { KeyCode = code },
+            Keyboard = new KeyboardEventData { KeyCode = (SharpHook.Data.KeyCode)(int)code },
         });
 
     /// <summary>A press of one mouse button, as the library reports it.</summary>
