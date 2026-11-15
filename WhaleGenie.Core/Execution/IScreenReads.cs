@@ -42,7 +42,7 @@ internal interface IScreenReads
     /// Hands over what a search saw: the areas searched, every place the thing was found, and the
     /// one the step went with.
     /// </summary>
-    void SawSearch(ExecutableStep step,
+    void SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted = "",
         double? minimum = null, string? note = null);

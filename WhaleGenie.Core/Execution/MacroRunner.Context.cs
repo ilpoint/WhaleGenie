@@ -39,10 +39,10 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads
 
     Task IScreenReads.Showing(Func<Task> body) => Watching(body);
 
-    void IScreenReads.SawSearch(ExecutableStep step,
+    void IScreenReads.SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted,
-        double? minimum, string? note) => SawSearch(step, LookKind.Text, areas, found, chosen,
+        double? minimum, string? note) => SawSearch(step, kind, areas, found, chosen,
             wanted, minimum: minimum, note: note);
 
     void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at) => ClickAt(step, at);

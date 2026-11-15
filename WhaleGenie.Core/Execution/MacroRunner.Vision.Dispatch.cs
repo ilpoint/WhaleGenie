@@ -112,26 +112,8 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             },
 
-            ["vision.detect"] = async (step, depth, token) =>
-            {
-                await Gate(token);
-                Watching(() => LookForObjects(step, depth));
-                return Signal.Normal;
-            },
 
-            ["vision.waitDetect"] = async (step, depth, token) =>
-            {
-                await Gate(token);
-                await Watching(() => WaitForObjects(step, depth, token));
-                return Signal.Normal;
-            },
 
-            ["vision.clickDetect"] = async (step, depth, token) =>
-            {
-                await Gate(token);
-                await Watching(() => ClickObject(step, depth, token));
-                return Signal.Normal;
-            },
         };
 
     private Dictionary<string, ActionHandler>? _visionActions;

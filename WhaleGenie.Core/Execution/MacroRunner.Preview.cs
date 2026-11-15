@@ -23,9 +23,9 @@ public sealed partial class MacroRunner
             ["vision.waitImage"] = (run, step) => run.Watching(() => run.Hits(step)),
             ["vision.clickImage"] = (run, step) => run.Watching(() => run.Hits(step)),
 
-            ["vision.detect"] = (run, step) => run.Watching(() => run.Sightings(step)),
-            ["vision.waitDetect"] = (run, step) => run.Watching(() => run.Sightings(step)),
-            ["vision.clickDetect"] = (run, step) => run.Watching(() => run.Sightings(step)),
+            ["vision.detect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
+            ["vision.waitDetect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
+            ["vision.clickDetect"] = (run, step) => run.Watching(() => DetectionActions.Sightings(run, step, run._run.RunToken)),
 
             ["vision.findColor"] = (run, step) => run.Watching(() => run.Scan(step,
                 PixelColor.Parse(run.Args(step).ValueOf("color").AsText()),

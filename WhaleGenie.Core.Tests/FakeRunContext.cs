@@ -71,7 +71,7 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
 
     Task IScreenReads.Showing(Func<Task> body) => body();
 
-    void IScreenReads.SawSearch(ExecutableStep step,
+    void IScreenReads.SawSearch(ExecutableStep step, LookKind kind,
         IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
         IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted,
         double? minimum, string? note) => Searches.Add((wanted, chosen, found.Count));

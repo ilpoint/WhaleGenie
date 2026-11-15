@@ -56,7 +56,7 @@ internal static class OcrActions
         run.Points.GivePoints(step,
             ScreenMath.Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
         var text = string.Join(' ', spans.Select(span => span.Text));
-        run.Reads.SawSearch(step, areas, TextMarks.Of(spans, default), 0, note: text,
+        run.Reads.SawSearch(step, LookKind.Text, areas, TextMarks.Of(spans, default), 0, note: text,
             minimum: run.Args(step).Number("minScore"));
 
         // Read as a table, the result holds rows, each one a record keyed by where its cells sit —
@@ -89,7 +89,7 @@ internal static class OcrActions
         var (readings, areas) = run.Reads.Read(step, token);
         var (hits, chosen) = run.Reads.Counting(step, readings, wanted, way);
 
-        run.Reads.SawSearch(step, areas, TextMarks.Of(readings, default), chosen, wanted,
+        run.Reads.SawSearch(step, LookKind.Text, areas, TextMarks.Of(readings, default), chosen, wanted,
             run.Args(step).Number("minScore"));
 
         var span = hits.Count > 0 ? hits[0] : null;
@@ -142,7 +142,7 @@ internal static class OcrActions
 
         var span = await Pacing.WaitForValueAsync(Look, interval, token)
             ?? throw new StepFailure(RunKeys.TextNotFound, wanted);
-        run.Reads.SawSearch(step, areas, TextMarks.Of(readings, default), chosen, wanted,
+        run.Reads.SawSearch(step, LookKind.Text, areas, TextMarks.Of(readings, default), chosen, wanted,
             run.Args(step).Number("minScore"));
 
         // The second look is a single look rather than another wait: whether the line is still
@@ -152,7 +152,7 @@ internal static class OcrActions
         {
             await Pacing.Pause(again, token);
             span = Look() ?? throw new StepFailure(RunKeys.TextNotFound, wanted);
-            run.Reads.SawSearch(step, areas, TextMarks.Of(readings, default), chosen, wanted,
+            run.Reads.SawSearch(step, LookKind.Text, areas, TextMarks.Of(readings, default), chosen, wanted,
                 run.Args(step).Number("minScore"));
         }
 

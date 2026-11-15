@@ -81,17 +81,7 @@ public sealed partial class MacroRunner
     };
 
     /// <summary>What order a step asked its hits to be counted in, as written in its field.</summary>
-    private static MatchOrder OrderOf(ExecutableStep step) => step.Text("orderBy").Trim()
-        .ToLowerInvariant() switch
-    {
-        "score" => MatchOrder.Score,
-        "area" => MatchOrder.Area,
-        "random" => MatchOrder.Random,
-        "readingup" => MatchOrder.ReadingUp,
-        "readingback" => MatchOrder.ReadingBack,
-        "readingbackup" => MatchOrder.ReadingBackUp,
-        _ => MatchOrder.Reading,
-    };
+    private static MatchOrder OrderOf(ExecutableStep step) => SearchHits.OrderOf(step);
 
     /// <summary>
     /// The hits in the order the step wants to count them in, which is what "the third one" means.
@@ -162,29 +152,6 @@ public sealed partial class MacroRunner
                 // Reading order is the order the readings came back in: the reading model hands
                 // them over in the order they appear on the screen, and re-sorting them by position
                 // would break up a line whose words sit at slightly different heights.
-                break;
-        }
-    }
-
-    /// <summary>The same for what a detection model found: a thing it found is a hit as well.</summary>
-    private static void Sorted(List<Sighting> found, ExecutableStep step)
-    {
-        switch (OrderOf(step))
-        {
-            case MatchOrder.Score:
-                found.Sort((left, right) => right.Match.Score.CompareTo(left.Match.Score));
-                break;
-
-            case MatchOrder.Area:
-                found.Sort((left, right) => Box(right.Match).CompareTo(Box(left.Match)));
-                break;
-
-            case MatchOrder.Random:
-                Shuffle(found);
-                break;
-
-            default:
-                found.Sort((left, right) => Reading(left.Match, right.Match));
                 break;
         }
     }

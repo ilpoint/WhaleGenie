@@ -52,23 +52,9 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
-    /// What a step was after, as the user wrote it: which model, and which classes of thing. It is
-    /// what a step that found nothing says it did not find, and what the look hands over as what was
-    /// being looked for.
+    /// What a step was after, as the user wrote it: which model, and which classes of thing.
     /// </summary>
-    private string Looking(ExecutableStep step)
-    {
-        var model = System.IO.Path.GetFileName(ModelOf(step));
-        var labels = Rows(Args(step).Text("labels"));
-        return labels.Count == 0 ? model : $"{model} {string.Join(',', labels)}";
-    }
-
-    /// <summary>One thing that was found, in the words a log line reads it in: person 640,360.</summary>
-    private static string Saying(Sighting sighting)
-        => sighting.Label.Length > 0
-            ? $"{sighting.Label} {sighting.Match.Center.X},{sighting.Match.Center.Y}"
-            : $"{sighting.Match.Center.X},{sighting.Match.Center.Y}";
-
+    private string Looking(ExecutableStep step) => SearchHits.Looking(this, step);
     /// <summary>The rows of a list a step wrote: one per line, or separated by semicolons.</summary>
     private IReadOnlyList<string> Rows(string text)
         =>

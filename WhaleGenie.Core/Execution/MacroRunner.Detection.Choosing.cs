@@ -72,13 +72,6 @@ public sealed partial class MacroRunner
         return index <= hits.Count ? hits[index - 1] : null;
     }
 
-    /// <summary>The same, for the things a detection model found.</summary>
-    private Sighting? Chosen(IReadOnlyList<Sighting> found, ExecutableStep step)
-    {
-        var index = Index(step, "matchIndex", 1);
-        return index <= found.Count ? found[index - 1] : null;
-    }
-
     /// <summary>
     /// Which of the hits a step went with, counted from one, or zero when there are not that many
     /// to choose from.
