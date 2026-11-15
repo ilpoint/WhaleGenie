@@ -221,6 +221,16 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints
     void IRunContext.Saw(ExecutableStep step, LookKind kind, ImageFrame frame)
         => Shown.Add((kind, frame));
 
+    Task<Signal> IRunContext.RunBlock(IReadOnlyList<ExecutableStep> steps, int depth,
+        CancellationToken token)
+    {
+        Ran.Add(steps);
+        return Task.FromResult(Signal.Normal);
+    }
+
+    /// <summary>The blocks a family under test ran, in the order it ran them.</summary>
+    public List<IReadOnlyList<ExecutableStep>> Ran { get; } = [];
+
     void IRunContext.Watching(Action body) => body();
 
     IInputDevice IRunContext.Input(ExecutableStep step) => Machine.Input;

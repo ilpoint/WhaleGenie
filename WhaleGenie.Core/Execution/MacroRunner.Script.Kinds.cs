@@ -209,12 +209,7 @@ public sealed partial class MacroRunner
     /// purpose. A name the macro does not know is left as it was written, where it is easy to see
     /// rather than quietly replaced by nothing.
     /// </summary>
-    private string Template(string text)
-        => Regex.Replace(text, @"\{\{(.+?)\}\}", match =>
-        {
-            var name = match.Groups[1].Value.Trim();
-            return Variables.TryGet(name, out var value) ? value.AsText() : match.Value;
-        });
+    private string Template(string text) => Templates.Fill(text, Variables);
 
     /// <summary>What a script said on its error output, kept short enough to read in a message.</summary>
     private static string Careful(string text)

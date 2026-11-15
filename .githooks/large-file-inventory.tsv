@@ -64,7 +64,6 @@
 651	WhaleGenie.Core/Execution/ActionSemantics.cs	keep: 动作语义模型的一整套枚举与记录
 428374	WhaleGenie.Core/Execution/ActionSemantics.json	keep: 机器可读动作目录，MCP、检查与测试共用一份
 547	WhaleGenie.Core/Execution/MacroRunner.Attempts.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
-658	WhaleGenie.Core/Execution/MacroRunner.Browser.cs	keep: 已按动作族分出的局部实现
 414	WhaleGenie.Core/Execution/MacroRunner.Calls.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 450	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 313	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
@@ -80,6 +79,7 @@
 285	WhaleGenie.Core/Execution/WindowActions.cs	keep: 一类动作：窗口的存在、等待、前后台状态、移动与读取
 446	WhaleGenie.Core/Execution/MacroRunner.Points.cs	keep: 点的读法与输入路由：屏幕/窗口坐标、拖拽两端、后台投递
 340	WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
+659	WhaleGenie.Core/Execution/BrowserActions.cs	keep: 一类动作：打开页面、读写页面与元素、等待、下载、对话框
 116	WhaleGenie.Core/Execution/DataActions.cs	keep: 一类动作：Base64 与校验和
 470	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	keep: 录制事件到动作的翻译状态机，按住与拖拽的状态只有这一处

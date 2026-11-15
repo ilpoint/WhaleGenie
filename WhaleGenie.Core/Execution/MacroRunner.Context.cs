@@ -99,6 +99,9 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints
         params object[] arguments)
         => Log(level, depth, type, key, arguments);
 
+    Task<Signal> IRunContext.RunBlock(IReadOnlyList<ExecutableStep> steps, int depth,
+        CancellationToken token) => RunSteps(steps, depth, token);
+
     void IRunContext.Saw(ExecutableStep step, LookKind kind, ImageFrame frame)
         => Saw(step, kind, frame, default, [], 0);
 

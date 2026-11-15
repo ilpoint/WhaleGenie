@@ -104,6 +104,12 @@ internal interface IRunContext
     /// <summary>Hands the picture a step looked at to whoever is watching, if anybody is.</summary>
     void Saw(ExecutableStep step, LookKind kind, ImageFrame frame);
 
+    /// <summary>
+    /// Runs a block of steps as part of this action, for the actions that hold a body — a dialog
+    /// answered around the steps that raise it, a loop around the steps it repeats.
+    /// </summary>
+    Task<Signal> RunBlock(IReadOnlyList<ExecutableStep> steps, int depth, CancellationToken token);
+
     /// <summary>Runs a body with the step's picture cleared, keeping whatever it saw.</summary>
     void Watching(Action body);
 
