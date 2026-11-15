@@ -12,25 +12,6 @@
 - 先处理契约和静默错误，再处理行为扩展与操作便利；游戏与办公场景具有同等优先级。
 - 待评估事项必须先取得测量结果，再决定是否升级为阶段。
 
-## 计划中：引擎不再依赖钩子库
-
-模块边界已经收口（适配器、文案、文档与协议各自成工程，无界面 MCP 不启动 Avalonia，测试按被测
-对象拆分，执行器状态与动作分派都已外置），只剩一项：
-
-**Core 仍是 `SharpHook` 的使用者，只为一份键码表。** `Devices/SharpKeys.cs` 直接以
-`SharpHook.Data.KeyCode`、`MouseButton`、`MouseWheelScrollDirection` 书写，`KeyNames` 与四个
-适配器（`HookTranslation`、`SharpHookInputDevice`、`MessageInputDevice`、`PlaywrightBrowserDevice`）
-都经由它取键名或取发送用的代码。
-
-- **目标**：Core 自带 `VirtualKey` 枚举，数值即 Windows 虚拟键码（从 SharpHook 现表导出，不可
-  重编号）；`SharpKeys` 只用自己的类型，库类型与 Core 类型的转换搬到 `Platform.Windows`。
-- **收益**：Core 的包闭包从 2 降到 1（只剩 CsvHelper），引擎测试不再加载钩子的原生库。
-- **做法**：`KeyCode` → `VirtualKey` 逐项改名；鼠标与滚轮的命名改成按 `HookMouseButton`、
-  `HookWheelAxis`（现在先绕一次库类型）；`WindowsKeys` 里按 `KeyCode` 判断扩展键的部分改用
-  Core 类型。数字键名去掉 `Vc` 后是非法标识符，需用 `Digit0`…`Digit9`，反向命名要还原成 `"0"`…`"9"`。
-- **验收**：`KeyNameTests`、`HookTranslationTests`、`Platform.Tests` 的 848 个用例，以及本机
-  `act` 跑完整个 `ci.yml`。
-
 ## 待评估
 
 以下事项尚未承诺实施。升级为阶段前须写明测量结果、目标、范围和验收方法。

@@ -90,24 +90,24 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 
 | 依赖 | 使用位置与用途 |
 | --- | --- |
-| `SharpHook` | Core：全局键鼠钩子、前台输入、录制和拾取 |
-| `libVIIPER` | Core：驱动级虚拟键鼠和 Xbox 360 手柄；原生库位于 `third_party/libVIIPER/` |
-| `OpenCvSharp5.Windows` | Core：找图、找色和 YOLO 检测 |
-| `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | Core：离线 OCR 与中文模型 |
-| `FlaUI.UIA3` | Core：UI Automation 查询与操作 |
-| `Microsoft.Playwright` | Core：浏览器自动化，默认使用系统 Edge |
-| `CsvHelper` | Core：CSV 的引号、换行、空行和行尾处理 |
-| `Microsoft.CodeAnalysis.CSharp` | Core：编译 C# 脚本 |
-| `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning` | Core：下载并解析脚本使用的 NuGet 包 |
-| `System.Security.Cryptography.Pkcs` | Core：固定安全修复版本，避免 NuGet 审计警告阻断还原 |
+| `SharpHook` | Platform.Windows：全局键鼠钩子与事件翻译；引擎用自己的 `HookCode` 与 `KeyTable` 命名按键，不依赖它 |
+| `libVIIPER` | Platform.Windows：驱动级虚拟键鼠和 Xbox 360 手柄；原生库位于 `third_party/libVIIPER/` |
+| `OpenCvSharp5.Windows` | Platform.Windows：找图、找色和 YOLO 检测 |
+| `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | Platform.Windows：离线 OCR 与中文模型 |
+| `FlaUI.UIA3` | Platform.Windows：UI Automation 查询与操作 |
+| `Microsoft.Playwright` | Platform.Windows：浏览器自动化，默认使用系统 Edge |
+| `CsvHelper` | Core：CSV 的引号、换行、空行和行尾处理；Core 只有这一个包 |
+| `Microsoft.CodeAnalysis.CSharp` | Platform.Windows：编译 C# 脚本 |
+| `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning` | Platform.Windows：下载并解析脚本使用的 NuGet 包 |
+| `System.Security.Cryptography.Pkcs` | Platform.Windows：固定安全修复版本，避免 NuGet 审计警告阻断还原 |
 | `Vortice.Direct3D11`、`Vortice.DXGI` | GraphicsCapture：Windows Graphics Capture 与桌面复制 |
 | `Avalonia`、`Avalonia.Desktop`、`Avalonia.Fonts.Inter` | 界面：桌面应用、输入、渲染和统一字体 |
 | `FluentAvaloniaUI` | 界面：`FluentAvaloniaTheme`、控件模板和 `FAAppWindow` 标题栏 |
 | `Avalonia.Controls.DataGrid` | 界面：表格展示与编辑 |
 | `Avalonia.Controls.ColorPicker`、`Avalonia.Themes.Fluent` | 界面：自定义强调色及相关 Fluent 资源；应用主主题由 FluentAvalonia 提供，ColorPicker 样式文件来自 ColorPicker 包 |
-| `CommunityToolkit.Mvvm` | 界面：可观察属性和源生成命令 |
+| `CommunityToolkit.Mvvm` | Domain 与界面：可观察属性和源生成命令 |
 | `Lucide.Avalonia` | 界面：动作、工具栏和菜单图标 |
-| `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | 界面：stdio MCP 服务、工具发现与通用宿主 |
+| `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | Mcp：stdio 协议服务、草稿与工具；界面：MCP 宿主与工具发现 |
 | `AvaloniaUI.DiagnosticsSupport` | 仅 Debug：界面诊断支持 |
 | `Declarative.Avalonia.AgentTools` | 仅 Debug：进程内的 MCP 检查器，让 agent 自己调试正在运行的界面 |
 
