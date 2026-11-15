@@ -87,7 +87,7 @@ public partial class ActionContractTests
     public void The_runner_dispatches_every_executable_action()
     {
         var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
-        var sources = Directory.EnumerateFiles(folder, "MacroRunner*.cs")
+        var sources = Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories)
             .Select(File.ReadAllText)
             .ToList();
         var dispatch = sources.SelectMany(FamilyDispatches).ToList();

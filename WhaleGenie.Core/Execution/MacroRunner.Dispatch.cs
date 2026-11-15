@@ -122,15 +122,22 @@ public sealed partial class MacroRunner
             }
         }
 
+        // A family that has left this class brings its own table; it is handed the run it is
+        // answering rather than capturing it, so the table is built once for the process.
+        foreach (var (key, handler) in ClipboardActions.Map)
+        {
+            all.Add(key, (step, depth, token) => handler(this, step, depth, token));
+        }
+
         return all;
     }
 
     private IReadOnlyList<Dictionary<string, ActionHandler>> Families
         =>
         [
-            ControlActions, FileActions, DataActions, ClipboardActions, ProcessActions,
-            SystemActions, WindowActions, InputActions, VisionActions, OcrActions, UiaActions,
-            BrowserActions, ScriptActions,
+            ControlActions, FileActions, DataActions,
+            ProcessActions, SystemActions, WindowActions, InputActions, VisionActions, OcrActions,
+            UiaActions, BrowserActions, ScriptActions,
         ];
 
     /// <summary>

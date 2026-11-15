@@ -7,7 +7,7 @@ namespace WhaleGenie.Tests;
 
 /// <summary>
 /// Which code an action is answered by, and which results that code can write — read out of the
-/// runner's own source rather than out of a list somebody maintains.
+/// engine's own source rather than out of a list somebody maintains.
 ///
 /// The question this answers is the one a whole-folder search cannot: not "does the text <c>"hit"</c>
 /// appear anywhere in the engine" but "does the path <c>vision.findImage</c> takes write the result
@@ -180,6 +180,13 @@ internal static class RunnerLedger
             foreach (Match declared in Regex.Matches(text,
                 "(private|public|internal|protected)[^;{}]*?\\b([A-Z][A-Za-z0-9_]*)\\s*\\("))
             {
+                // A delegate declares a signature, not a body; the next brace belongs to something
+                // else, and reading it as this method would put a table's keys in the wrong path.
+                if (declared.Value.Contains("delegate", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 var open = text.IndexOf('{', declared.Index + declared.Length);
                 if (open < 0 || !TryBody(text, open, out var close))
                 {
@@ -229,6 +236,8 @@ internal static class RunnerLedger
     /// The entries of the engine's action tables: each key and the handler written for it, up to the
     /// next key. Only a table of handlers counts — the preview table names the same actions for a
     /// different purpose, and reading its keys as routes would say a click is answered by a look.
+    /// A family that has left the runner declares its table in its own class, so the shape is read
+    /// rather than the file name.
     /// </summary>
     private static IReadOnlyList<(string Action, string Segment)> Entries(string text)
     {
@@ -260,12 +269,24 @@ internal static class RunnerLedger
     internal static IReadOnlyList<string> RoutedKeys(string text)
         => [.. Entries(text).Select(entry => entry.Action).Distinct(StringComparer.Ordinal)];
 
+    /// <summary>
+    /// A table whose values are action handlers: the runner's own families
+    /// (<c>Dictionary&lt;string, ActionHandler&gt;</c>) and the ones that have moved out to a class
+    /// of their own (<c>IReadOnlyDictionary&lt;string, Handler&gt;</c>). The preview table is not
+    /// one of these: its values are looks, not routes.
+    /// </summary>
     private static readonly Regex ActionTables = new(
-        "private Dictionary<string, ActionHandler> [A-Za-z]+Actions", RegexOptions.Compiled);
+        "(?:private|internal|public)\\s+(?:static\\s+)?(?:readonly\\s+)?"
+        + "(?:IReadOnlyDictionary|Dictionary)<string,\\s*(?:ActionHandler|Handler)>\\s+[A-Za-z_]",
+        RegexOptions.Compiled);
 
-    /// <summary>The runner's own methods a stretch of code calls with the step as the first argument.</summary>
+    /// <summary>
+    /// The engine's own methods a stretch of code calls with the step among the arguments. A family
+    /// that has moved out passes the run first (<c>Write(run, step, depth)</c>), so the step is not
+    /// always the first argument.
+    /// </summary>
     private static IReadOnlyList<string> CalledWithStep(string code)
-        => [.. Regex.Matches(code, "\\b([A-Z][A-Za-z0-9_]*)\\s*\\(\\s*step\\b")
+        => [.. Regex.Matches(code, "\\b([A-Z][A-Za-z0-9_]*)\\s*\\([^()]*\\bstep\\b")
             .Select(match => match.Groups[1].Value)
             .Distinct(StringComparer.Ordinal)];
 }

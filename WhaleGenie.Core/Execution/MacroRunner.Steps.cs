@@ -21,17 +21,6 @@ namespace WhaleGenie.Core.Execution;
 // Running a list of steps: the signal a step leaves, the outcomes written down, and a held body.
 public sealed partial class MacroRunner
 {
-    /// <summary>What a step tells the runner to do next.</summary>
-    private enum Signal
-    {
-        Normal,
-        Break,
-        Continue,
-        Return,
-        Stop,
-        Failed,
-    }
-
     /// <summary>
     /// How the name of a step's outcome is built: <c>k3f9</c> is answered by
     /// <c>step.k3f9.outcome</c>. It travels as a name the run reads rather than as something the

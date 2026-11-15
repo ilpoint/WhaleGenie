@@ -65,9 +65,14 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 信息投影给编辑器；`ActionContractTests` 检查二者对应关系。显示层另有一个 `WrittenByTool`：这类值
 由专门的窗口写入（基准色周围要对的颜色），表单不给它生成行，值本身照常保存与校验。
 
-`MacroRunner` 是按动作族拆分的 `partial` 类。主文件维护运行状态和循环，各
-`MacroRunner.<Family>.cs` 维护本分族的分派与实现，公共读值集中在 `MacroRunner.Reading.cs`。
-目录声明语义，但不替代动作分派；新增动作仍需在具体处理器中实现。
+动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions` 是第一个：处理器
+表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），因此
+这一族可以脱离运行器直接测试。尚未迁走的族仍是 `MacroRunner.<Family>.cs`；主文件维护运行状态、
+循环与分派，公共读值集中在 `MacroRunner.Reading.cs`。目录声明语义，但不替代动作分派；新增动作仍需
+在具体处理器中实现。
+
+等待集中在 `Pacing`：暂停、按间隔重问一个条件、等一个会出现的值。动作族直接用它，不必经由运行器；
+`MacroRunner` 暂时保留同签名的私有转发，等族迁完就删。
 
 试运行分为“是否支持查看”和“实际查看一次”。前者读取目录的 `LooksAtScreen`，后者由 `SeeOnce`
 等执行路径完成。修改支持试运行的动作时，必须同步检查这两条路径。

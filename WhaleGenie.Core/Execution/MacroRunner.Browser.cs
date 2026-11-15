@@ -452,7 +452,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private void BrowserUpload(ExecutableStep step, int depth)
     {
-        var paths = Lines(Args(step).ValueOf("uploadFiles").AsText())
+        var paths = TextLines.Split(Args(step).ValueOf("uploadFiles").AsText())
             .Select(line => line.Trim())
             .Where(line => line.Length > 0)
             .Select(_devices.Files.Resolve)

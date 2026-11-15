@@ -332,7 +332,7 @@ private void CloseWindow(ExecutableStep step, int depth)
     private static IReadOnlyDictionary<string, RunnerLedger.Path> Ledger()
     {
         var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
-        var sources = Directory.GetFiles(folder, "MacroRunner*.cs")
+        var sources = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .Select(File.ReadAllText);
 

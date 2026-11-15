@@ -411,7 +411,4 @@ public sealed partial class MacroRunner
             CheckValueFits(declared.Type, value, result, RunKeys.VariableTypeMismatch);
         }
     }
-    /// <summary>The entries of a field written one to a line, whichever line ending was used.</summary>
-    private static string[] Lines(string text)
-        => text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
 }

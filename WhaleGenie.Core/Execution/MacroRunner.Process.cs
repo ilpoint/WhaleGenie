@@ -101,7 +101,7 @@ public sealed partial class MacroRunner
         }
 
         var wanted = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var line in Lines(text))
+        foreach (var line in TextLines.Split(text))
         {
             var pair = line.Trim();
             if (pair.Length == 0 || pair.StartsWith('#'))
