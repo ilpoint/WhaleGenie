@@ -20,15 +20,16 @@ WhaleGenie 需要在有窗口和无窗口两种形态下运行同一套宏能力
 WhaleGenie
   界面、应用服务、文件模型、包读写、触发器、MCP
     │
-    ├──────────────────────────┐
-    ▼                          ▼
-WhaleGenie.Platform.Windows  WhaleGenie.Core
-  SharpHook、FlaUI、OpenCV、     执行引擎、表达式、变量、
-  Playwright、Roslyn、NuGet、    设备契约、录制翻译
-  VIIPER 等 Windows 适配器          │
+    ├──► WhaleGenie.Localization ──┐
+    │      文案表（界面字、动作名、表达式与日志措辞）
     │                              ▼
-    └──────────────────► WhaleGenie.GraphicsCapture
-                            Windows 画面获取、选路、会话缓存、矩形落位
+    ├──► WhaleGenie.Platform.Windows ──► WhaleGenie.Core
+    │      SharpHook、FlaUI、OpenCV、      执行引擎、表达式、变量、
+    │      Playwright、Roslyn、NuGet、     设备契约、录制翻译
+    │      VIIPER 等 Windows 适配器          │
+    │                                        ▼
+    └────────────────────────────────► WhaleGenie.GraphicsCapture
+                                        Windows 画面获取、选路、会话缓存、矩形落位
 ```
 
 三个测试工程分别以对应产品工程为主：`WhaleGenie.Tests`、`WhaleGenie.Core.Tests` 和
@@ -41,15 +42,21 @@ WhaleGenie.Platform.Windows  WhaleGenie.Core
 | `WhaleGenie` | 窗口、ViewModel、应用生命周期、项目状态、宏与触发器文件模型、`.wgmacro`、文案、MCP | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core |
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、录制事件翻译 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows` |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器；批处理宿主 | 宏、动作、ViewModel、项目状态或界面类型 |
+| `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表 | Avalonia、窗口、项目状态、设备或文件读写 |
 | `WhaleGenie.GraphicsCapture` | Graphics Capture、桌面复制、GDI、PrintWindow 及 `ScreenGrab` 输出 | 宏、动作、ViewModel 或项目状态 |
 
 `App.axaml.cs`、`Program.cs` 与 `Runtime/SharedDevices.cs` 是界面工程引用具体 Windows 实现
 的限定例外：分别负责应用生命周期、脚本宿主分派和设备组合。其他窗口、ViewModel 与应用代码只
 依赖 Core 契约，`LayeringTests` 按这一白名单检查；Core 对适配器工程的引用由编译关系直接排除。
 
-宏文件模型位于 `WhaleGenie/Models/`，包读写位于 `WhaleGenie/Storage/`，文案位于
-`WhaleGenie/Localization/`。这些类型虽与界面工程一起编译，但模型本身不应读取控件状态；所需的
-界面信息通过参数或委托注入。其代价是独立的包读写工具仍需引用界面工程，是否拆分由真实调用方决定。
+`WhaleGenie.Localization` 只放文案表；`Localization/LocalSettings.cs`（读写本机设置）与
+`Localization/LanguageRefresh.cs`（驱动 Avalonia 绑定刷新）仍留在界面工程，因为它们依赖设置
+文件与窗口，而不是文案本身。
+
+宏文件模型与工程文档状态位于 `WhaleGenie/Models/`（`ProjectWorkspace` 持有宏、触发入口、共享变量、
+包路径与修订号），包读写位于 `WhaleGenie/Storage/`，文案位于 `WhaleGenie/Localization/`。这些类型虽与
+界面工程一起编译，但模型本身不读取控件状态；`MainViewModel` 只做转发。其代价是独立的包读写工具仍需
+引用界面工程，是否拆分由真实调用方决定。
 
 `WhaleGenie` 通过 Core 的传递引用使用 `CaptureWay` 等画面获取类型，Core 的屏幕契约也公开
 `ScreenLayout` 等类型。因此 GraphicsCapture 是依赖叶子，但其公开数据形状属于跨层契约，修改时需同时

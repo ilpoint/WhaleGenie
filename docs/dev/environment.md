@@ -50,6 +50,7 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 | `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、应用服务、宏文件模型、包读写、触发器、文案和 MCP 宿主 |
 | `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量与设备契约；不引用任何 Windows 适配器 |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器与脚本宿主 |
+| `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表；本机设置与 Avalonia 刷新仍在界面工程 |
 | `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
 | `WhaleGenie.Tests` | 界面、包、MCP、文案和文档对账测试，运行于 Avalonia 无头平台 |
 | `WhaleGenie.Core.Tests` | 引擎与动作契约测试，使用替身设备层，不操作真实桌面 |

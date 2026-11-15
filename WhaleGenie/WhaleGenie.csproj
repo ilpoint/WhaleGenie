@@ -101,6 +101,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
     <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
   </ItemGroup>

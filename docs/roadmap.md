@@ -20,11 +20,19 @@
 适配器程序集”的检查。剩余：把 `SharpKeys` 的键码表换成 Core 自己的枚举，之后 Core 可以去掉
 最后一个原生包。
 
-**下一步：领域模型与 MCP 出界面工程。** 先抽 `ProjectWorkspace`（Macros、Triggers、Globals、
-Path、Revision、Dirty、Open、Save、ApplyDraft、Changed），让 `MainViewModel` 只做壳，
-`McpLiveProject` 依赖 `IProjectGateway` 而不是视图模型；再把 `Models/`、`Storage/`、
-`Localization/`、`Mcp/` 拆成独立工程。验收是两件事：无界面 MCP 不启动 Avalonia；
-`Core.Tests` 不再引用 `Platform.Windows`。
+**已完成：工程文档外置。** `Models/ProjectWorkspace` 持有宏、触发入口、共享变量、包路径、脏标记、
+修订号与 `Changed`；`MainViewModel` 只保留搜索、分组、视图和系统开关并转发文档。MCP 的宿主、工具与
+资源依赖 `Mcp/IProjectGateway`，`McpLiveProject` 是它的界面线程实现，不再引用 `MainViewModel`。
+
+**已完成：文案表独立成工程。** `WhaleGenie.Localization` 持有 `Strings`、`ActionStrings`、表达式与
+日志措辞，只依赖 Core；`LocalSettings` 与 `LanguageRefresh` 仍留在界面工程，因为它们读写设置文件
+并驱动 Avalonia 刷新。
+
+**下一步：文档模型出界面工程。** 先清点 `Models/`、`Storage/` 对 Avalonia 与彼此的直接引用
+（已知 `Storage/ImageAssets` 用 Avalonia 位图、`RecoveryWriter` 用 Dispatcher），把纯文档与包读写
+拆成 `WhaleGenie.Domain`；图片与恢复写入的界面部分留在界面工程或改为注入。MCP 随后拆成只依赖
+Domain/Core/Localization 的工程。验收是两件事：无界面 MCP 不启动 Avalonia；`Core.Tests` 不再引用
+`Platform.Windows`。
 
 **再下一步：执行器状态外置。** 从 `MacroRunner` 抽出 `RunState`（变量、日志、帧缓存、持键、
 取消、门闩）与 `StepArguments`（读参助手），再按 13 个动作族抽 `IActionFamily`。预览表已先行
