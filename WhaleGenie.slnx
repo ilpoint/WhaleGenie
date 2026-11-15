@@ -7,6 +7,9 @@
   <Project Path="WhaleGenie.Core.Tests/WhaleGenie.Core.Tests.csproj" Id="8302107e-15b8-4668-b07f-99e8cd751013">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.App/WhaleGenie.App.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie.Core/WhaleGenie.Core.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

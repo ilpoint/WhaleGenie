@@ -15,7 +15,7 @@ public class McpLifecycleTests
     [Fact]
     public void The_container_disposes_the_server_it_built()
     {
-        var services = AppServices.Build(windowed: false);
+        var services = AppServices.Windowless(out _);
         _ = services.GetRequiredService<McpServerHost>();
 
         // Throwing here is what the exit cannot afford: the device layer is released after this, and

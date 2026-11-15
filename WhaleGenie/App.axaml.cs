@@ -93,7 +93,7 @@ public partial class App : Application
 
     private static void ShowWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        var services = AppServices.Build();
+        var services = WindowedServices.Build();
         var window = services.GetRequiredService<MainWindow>();
         var viewModel = (MainViewModel)window.DataContext!;
 

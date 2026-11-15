@@ -45,6 +45,18 @@ public class LayeringTests
     }
 
     [Fact]
+    public void The_application_layer_does_not_reference_a_window_toolkit()
+    {
+        var referenced = typeof(WhaleGenie.AppServices).Assembly
+            .GetReferencedAssemblies()
+            .Select(assembly => assembly.Name ?? string.Empty)
+            .ToList();
+
+        Assert.DoesNotContain(referenced, name =>
+            name.StartsWith("Avalonia", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void The_engine_does_not_reference_the_Windows_adapters()
     {
         var referenced = typeof(WhaleGenie.Core.Execution.MacroRunner).Assembly
@@ -104,10 +116,14 @@ public class LayeringTests
                            && !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
                                StringComparison.Ordinal));
 
-    /// <summary>Every source file of the program the user runs — the engine's are free to name them.</summary>
+    /// <summary>
+    /// Every source file of the program the user runs, window and application layer both: the
+    /// engine's are free to name a Windows implementation, these two are not.
+    /// </summary>
     private static IEnumerable<string> Sources()
-        => Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie"), "*.*",
-                SearchOption.AllDirectories)
+        => new[] { "WhaleGenie", "WhaleGenie.App" }
+            .SelectMany(project => Directory.EnumerateFiles(Path.Combine(Repository(), project), "*.*",
+                SearchOption.AllDirectories))
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                            || file.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",

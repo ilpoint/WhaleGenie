@@ -99,8 +99,12 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/modelcontextprotocol/csharp-sdk>
   MCP 服务器用它说话：协议、工具发现与那一对标准输入输出流上的传输都在这里。没有 HTTP、
   没有监听端口，所以不再引用 ASP.NET Core。不随包分发额外的原生库。
-- Microsoft.Extensions.Hosting（以及它带进来的 Hosting.Abstractions、DependencyInjection、
-  Logging、Configuration 等同族包）— MIT
+- Microsoft.Extensions.DependencyInjection — MIT
+  <https://github.com/dotnet/runtime>
+  组合根用它把有状态的服务装一次、按需取用：窗口、触发器和无窗口的 MCP 会话共用同一份注册，
+  而不是各自 new 一份。
+- Microsoft.Extensions.Hosting（以及它带进来的 Hosting.Abstractions、Logging、Configuration
+  等同族包）— MIT
   <https://github.com/dotnet/runtime>
   无窗口那个 MCP 会话跑在一个通用宿主里：装配工具、启动会话、在流关闭时收尾。它不装控制台
   生命周期，也不打印任何东西——那些流上的标准输出就是协议本身。

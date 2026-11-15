@@ -48,10 +48,11 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 
 | 项目 | 职责 |
 | --- | --- |
-| `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、应用服务、运行桥、触发器、MCP 宿主与设备控制工具 |
+| `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、窗口与 ViewModel、窗口化组合根、界面与设备适配 |
 | `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量与设备契约；不引用任何 Windows 适配器 |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器与脚本宿主 |
-| `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表；本机设置与 Avalonia 刷新仍在界面工程 |
+| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与工具、应用层组合根；不引用 Avalonia |
+| `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表；Avalonia 刷新仍在界面工程 |
 | `WhaleGenie.Domain` | 宏文件模型、工程文档、设计期检查、包读写与图片文件；不引用 Avalonia |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、资源与项目编辑工具；不引用 Avalonia、Views 或 Runtime |
 | `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |

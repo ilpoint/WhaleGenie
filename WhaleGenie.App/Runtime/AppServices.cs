@@ -5,45 +5,38 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie;
 
 /// <summary>
-/// The composition root. This is the one place that decides which implementation of each thing a
-/// run uses and in what order they are built; everything else takes what it needs through its own
-/// constructor.
+/// What every kind of run wires up, whether or not a window is ever shown: the project, the shared
+/// variables, the draft store, the tools the MCP server is handed, and the triggers. It is one place
+/// because a run that had to carry one more thing had to be changed in three, and the one that got
+/// missed failed in a way that read like the macro's own fault.
 /// </summary>
 /// <remarks>
-/// What is registered here is what has state and is shared: the device layer, the project, the draft
-/// store, the MCP server and its tools. Rows, choices and the other view models built for one row of
-/// a dialog are not registered — they are values, and a container would only add a lookup between the
-/// code and the object it is making.
+/// What differs between a run with a window and one without is handed in rather than switched on: the
+/// window marshes to its own thread and moves its windows aside for a capture, while a run with no
+/// window answers on the calling thread and has nothing to move. Rows, choices and the other view
+/// models built for one row of a dialog are not registered — they are values, and a container would
+/// only add a lookup between the code and the object it is making.
 /// </remarks>
 internal static class AppServices
 {
-    /// <summary>A run with a window on top of it, which is the ordinary way the program is started.</summary>
-    internal static ServiceProvider Build(bool windowed = true)
+    /// <summary>
+    /// A run with no window at all: the project is made here, and the caller is handed it back
+    /// because it is the thing a headless start reads and flushes.
+    /// </summary>
+    internal static ServiceProvider Windowless(out ProjectWorkspace workspace)
     {
-        // The session every run of this project shares is made here, before any window: what a
-        // macro wrote last time is read back into it, and the windows and the MCP tools are handed
-        // this one table rather than reaching for a static of their own.
         var variables = new VariableSession();
         var persisted = new PersistedVariables(PersistedVariables.DefaultPath);
         persisted.Initialize(variables);
 
-        // The MCP flyout is a recipe now, not a server: the program no longer listens on anything,
-        // so nothing in the container has to be built for it.
-        var services = Wiring(
-            _ => new MainViewModel(_ => new McpServerViewModel(), persisted, variables), persisted,
-            variables, windowed);
-
-        if (windowed)
-        {
-            WindowedServices.Add(services);
-        }
-
-        return services.BuildServiceProvider();
+        var document = new ProjectWorkspace(persisted, variables, AppVersion.Text);
+        workspace = document;
+        return Wiring(_ => document, persisted, variables, DirectUiDispatcher.Instance,
+            NoWindowAside.Instance).BuildServiceProvider();
     }
 
     /// <summary>
@@ -52,11 +45,8 @@ internal static class AppServices
     /// never wire up.
     /// </summary>
     internal static ServiceProvider Minimal(ProjectWorkspace project)
-    {
-        var viewModel = new MainViewModel(workspace: project);
-        return Wiring(_ => viewModel, project.Persisted, project.Variables, windowed: false)
-            .BuildServiceProvider();
-    }
+        => Wiring(_ => project, project.Persisted, project.Variables, DirectUiDispatcher.Instance,
+            NoWindowAside.Instance).BuildServiceProvider();
 
     /// <summary>
     /// The server over this run's container. The tool owners are named here rather than inside the
@@ -73,22 +63,17 @@ internal static class AppServices
         return new McpServerHost(services, Owners(services), ownsServices: true);
     }
 
-    private static IReadOnlyList<object> Owners(IServiceProvider services)
-        =>
-        [
-            services.GetRequiredService<McpTools>(),
-            services.GetRequiredService<McpControlTools>(),
-            services.GetRequiredService<McpRunTools>(),
-            services.GetRequiredService<McpRunLogTools>(),
-        ];
-
-    private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project,
-        PersistedVariables persisted, VariableSession variables, bool windowed)
+    /// <summary>
+    /// Everything a run needs, with the two pieces that differ between a window and no window left
+    /// to the caller. The project is asked of the container so the windowed root can hand in the one
+    /// its window shows.
+    /// </summary>
+    internal static ServiceCollection Wiring(Func<IServiceProvider, ProjectWorkspace> project,
+        PersistedVariables persisted, VariableSession variables, IUiDispatcher ui, IWindowAside aside)
     {
         var services = new ServiceCollection();
 
         services.AddSingleton(sp => project(sp));
-        services.AddSingleton(sp => sp.GetRequiredService<MainViewModel>().Workspace);
         services.AddSingleton(persisted);
         services.AddSingleton(variables);
 
@@ -96,12 +81,8 @@ internal static class AppServices
         // machine, and the models it loads are loaded once.
         services.AddSingleton<IDeviceLayer>(_ => SharedDevices.Current);
 
-        // The windowed run marshals to Avalonia's thread and moves its own windows aside for a
-        // capture; a run with no window answers on the calling thread and has nothing to move.
-        services.AddSingleton<IUiDispatcher>(_ =>
-            windowed ? new AvaloniaUiDispatcher() : DirectUiDispatcher.Instance);
-        services.AddSingleton<IWindowAside>(_ =>
-            windowed ? new AvaloniaWindowAside() : NoWindowAside.Instance);
+        services.AddSingleton(ui);
+        services.AddSingleton(aside);
 
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<McpLiveProject>();
@@ -130,4 +111,13 @@ internal static class AppServices
 
         return services;
     }
+
+    private static IReadOnlyList<object> Owners(IServiceProvider services)
+        =>
+        [
+            services.GetRequiredService<McpTools>(),
+            services.GetRequiredService<McpControlTools>(),
+            services.GetRequiredService<McpRunTools>(),
+            services.GetRequiredService<McpRunLogTools>(),
+        ];
 }

@@ -24,8 +24,7 @@ internal static class McpHeadless
     {
         RuntimeSetup.Prepare();
 
-        var services = AppServices.Build(windowed: false);
-        var project = services.GetRequiredService<ProjectWorkspace>();
+        var services = AppServices.Windowless(out var project);
 
         // A windowless run has no page to flip, but the page is in the program the person has open
         // beside it: the two permissions are read back from the settings file before each call, so

@@ -72,7 +72,7 @@ internal static class AppSound
             if (!Loaded.TryGetValue(which, out var wave))
             {
                 using var stream = typeof(AppSound).Assembly.GetManifestResourceStream(
-                    $"WhaleGenie.Sounds.{Files[which]}")
+                    $"WhaleGenie.App.Sounds.{Files[which]}")
                     ?? throw new InvalidOperationException(
                         $"The sound {Files[which]} is not packed into the program.");
                 using var memory = new MemoryStream();

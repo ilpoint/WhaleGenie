@@ -22,7 +22,7 @@ public class TypeSizeTests
     /// <summary>The product projects; the localization tables are measured by the file hook.</summary>
     private static readonly string[] Projects =
     [
-        "WhaleGenie", "WhaleGenie.Core", "WhaleGenie.Domain", "WhaleGenie.Mcp",
+        "WhaleGenie", "WhaleGenie.App", "WhaleGenie.Core", "WhaleGenie.Domain", "WhaleGenie.Mcp",
         "WhaleGenie.Platform.Windows", "WhaleGenie.GraphicsCapture",
     ];
 

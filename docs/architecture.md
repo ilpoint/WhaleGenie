@@ -18,8 +18,12 @@ WhaleGenie 需要在有窗口和无窗口两种形态下运行同一套宏能力
 
 ```text
 WhaleGenie
-  界面、组合根、运行桥、设备控制工具
+  窗口、ViewModel、应用生命周期
     │
+    └──► WhaleGenie.App
+           触发器、运行编排、录制翻译、
+           项目服务、MCP 宿主与设备控制工具
+             │
     ├──► WhaleGenie.Mcp ────────────┐
     │      协议、草稿、补丁、资源    │
     ├──► WhaleGenie.Domain ─────────┤
@@ -35,8 +39,9 @@ WhaleGenie
                                         Windows 画面获取、选路、会话缓存、矩形落位
 ```
 
-Mcp 与 Domain 都引用 Localization 和 Core；Localization 只引用 Core；Platform 引用 Core 与
-GraphicsCapture。界面工程引用以上全部，没有任何产品工程反向引用它。
+`WhaleGenie.App` 引用 Mcp、Domain、Localization、Core 与 Platform.Windows，不引用 Avalonia；界面
+工程只引用 `WhaleGenie.App`，没有任何产品工程反向引用它。Mcp 与 Domain 都引用 Localization 和
+Core；Localization 只引用 Core；Platform 引用 Core 与 GraphicsCapture。
 
 四个测试工程按被测对象划分：`WhaleGenie.Tests`（界面与文档对账）、`WhaleGenie.Core.Tests`
 （引擎与动作语义，只用替身设备层）、`WhaleGenie.Platform.Tests`（通过引擎驱动真实 Windows
@@ -47,7 +52,8 @@ GraphicsCapture。界面工程引用以上全部，没有任何产品工程反�
 
 | 工程 | 主要职责 | 不得承担 |
 | --- | --- | --- |
-| `WhaleGenie` | 窗口、ViewModel、应用生命周期、运行桥、MCP 宿主、设备控制与运行工具 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp |
+| `WhaleGenie` | 窗口、ViewModel、应用生命周期、窗口化组合根与界面适配 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp/App |
+| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与设备控制/运行工具、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸 | Avalonia、窗口、ViewModel、MCP、设备控制 |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、预览、资源与项目编辑工具 | Avalonia、Views、Runtime、设备控制、运行桥 |
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、录制事件翻译 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows` |
@@ -55,25 +61,26 @@ GraphicsCapture。界面工程引用以上全部，没有任何产品工程反�
 | `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表 | Avalonia、窗口、项目状态、设备或文件读写 |
 | `WhaleGenie.GraphicsCapture` | Graphics Capture、桌面复制、GDI、PrintWindow 及 `ScreenGrab` 输出 | 宏、动作、ViewModel 或项目状态 |
 
-`App.axaml.cs`、`Program.cs` 与 `Runtime/SharedDevices.cs` 是界面工程引用具体 Windows 实现
-的限定例外：分别负责应用生命周期、脚本宿主分派和设备组合。其他窗口、ViewModel 与应用代码只
-依赖 Core 契约，`LayeringTests` 按这一白名单检查；Core 对适配器工程的引用由编译关系直接排除。
+`App.axaml.cs`、`Program.cs` 与 `Runtime/SharedDevices.cs` 是引用具体 Windows 实现的限定例外：
+分别负责应用生命周期、脚本宿主分派和设备组合。其他窗口、ViewModel 与应用代码只依赖 Core 契约，
+`LayeringTests` 按这一白名单检查窗口与应用两层；Core 对适配器工程的引用由编译关系直接排除。
 
-`WhaleGenie.Localization` 只放文案表；`Localization/LocalSettings.cs`（读写本机设置）与
-`Localization/LanguageRefresh.cs`（驱动 Avalonia 绑定刷新）仍留在界面工程，因为它们依赖设置
-文件与窗口，而不是文案本身。
+`WhaleGenie.Localization` 只放文案表；`LocalSettings.cs`（读写本机设置）与主题选择的值类型随
+应用层走，因为运行、触发器和无窗口服务都要读它们。`LanguageRefresh.cs`（驱动 Avalonia 绑定刷新）
+留在界面工程，因为它依赖窗口。
 
 `WhaleGenie.Mcp` 不引用界面工程。直接控制、运行宏和读运行日志这三类工具留在
-`WhaleGenie/Mcp/`，由 `AppServices` 作为 tool owner 注入 `McpServerHost`；协议与草稿本身因此
-可以脱离窗口编译和测试。
-`--mcp` 在 Avalonia 之前分派：窗口化运行注册 Avalonia 的调度器与窗口让位，无窗口运行注册直接
-调度器与“没有窗口可让”的实现，因此无界面服务不启动界面框架。`WhaleGenie.Domain` 同样不引用 Avalonia：位图转换在
-`Assets/BitmapImages`，崩溃快照写入在 `Storage/RecoveryWriter`，两者都留在界面工程。
+`WhaleGenie.App/Mcp/`，由 `AppServices` 作为 tool owner 注入 `McpServerHost`；协议与草稿本身
+因此可以脱离窗口编译和测试。
+`--mcp` 在 Avalonia 之前分派：窗口化运行由界面工程注册 Avalonia 的调度器与窗口让位，无窗口运行
+注册直接调度器与“没有窗口可让”的实现，因此无界面服务不启动界面框架。`WhaleGenie.Domain` 同样不
+引用 Avalonia：位图转换在 `Assets/BitmapImages`，崩溃快照写入在 `Storage/RecoveryWriter`，两者都
+留在界面工程。
 
-宏文件模型与工程文档状态位于 `WhaleGenie/Models/`（`ProjectWorkspace` 持有宏、触发入口、共享变量、
-包路径与修订号），包读写位于 `WhaleGenie/Storage/`，文案位于 `WhaleGenie/Localization/`。这些类型虽与
-界面工程一起编译，但模型本身不读取控件状态；`MainViewModel` 只做转发。其代价是独立的包读写工具仍需
-引用界面工程，是否拆分由真实调用方决定。
+宏文件模型与工程文档状态位于 `WhaleGenie.Domain/Models/`（`ProjectWorkspace` 持有宏、触发入口、
+共享变量、包路径与修订号），包读写位于 `WhaleGenie.Domain/Storage/`，文案位于
+`WhaleGenie.Localization/`。这些类型不与界面工程一起编译，模型本身也不读取控件状态；
+`MainViewModel` 只做转发。
 
 `WhaleGenie` 通过 Core 的传递引用使用 `CaptureWay` 等画面获取类型，Core 的屏幕契约也公开
 `ScreenLayout` 等类型。因此 GraphicsCapture 是依赖叶子，但其公开数据形状属于跨层契约，修改时需同时
@@ -85,7 +92,8 @@ GraphicsCapture。界面工程引用以上全部，没有任何产品工程反�
 | --- | --- |
 | `Program` | 进程入口；分派普通界面、脚本宿主、脚本桥、`--mcp` 和 `--mcp-doctor`，并处理单实例 |
 | `App.axaml.cs` | 应用启动、窗口或无窗口模式、预热和退出收尾 |
-| `AppServices` | 对象图组合根；注册项目、设备层、触发器、草稿、MCP 服务与工具 |
+| `AppServices` | 应用层组合根；注册项目、设备层、触发器、草稿、MCP 服务与工具，窗口与无窗口两种形态共用 |
+| `WindowedServices` | 窗口化组合根；在应用层图上补窗口与主 ViewModel |
 | `Runtime/SharedDevices.cs` | 持有进程共享的 `WindowsDeviceLayer`，负责预热与最终释放 |
 | `Runtime/RunFactory.cs` | 调试、触发器和 MCP 共用的 `MacroRunner` 装配入口 |
 | `Runtime/TriggerRuntime.cs` | 持有触发器服务及不可变运行快照 |

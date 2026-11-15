@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="WhaleGenie" />
+    <InternalsVisibleTo Include="WhaleGenie.App" />
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
   </ItemGroup>
 

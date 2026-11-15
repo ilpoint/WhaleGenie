@@ -64,10 +64,10 @@
 `McpGrants`；文件缺失、不可读或只写入一半时按未授权处理。只读项目、读取状态和读取日志不需要开启
 控制权限。
 
-`WhaleGenie.Mcp` 保存协议宿主、草稿、补丁、预览与项目编辑工具，不引用 Avalonia；`McpLiveProject` 是 `IProjectGateway` 的界面线程实现，留在界面工程，`McpPreview` 提供
-应用前差异。`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。
+`WhaleGenie.Mcp` 保存协议宿主、草稿、补丁、预览与项目编辑工具，不引用 Avalonia；`McpLiveProject`
+是 `IProjectGateway` 的调度器实现，留在应用层（`WhaleGenie.App`），`McpPreview` 提供应用前差异。`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。
 工具类型由 `AppServices` 注册，并由它作为 tool owner 列表交给 `McpServerHost`；机器控制、运行宏
-与运行日志工具留在界面工程，项目编辑工具在 `WhaleGenie.Mcp`。新增工具须在组合根登记并验证
+与运行日志工具留在应用层（`WhaleGenie.App`），项目编辑工具在 `WhaleGenie.Mcp`。新增工具须在组合根登记并验证
 `tools.list`。`--mcp` 在 Avalonia 之前运行：窗口化运行注册 Avalonia 的调度器与窗口让位，无窗口运行注册直接调度器与“没有窗口可让”的实现，因此协议、草稿与控制工具都不需要启动界面框架。
 
 `McpResources` 提供动作目录、动作矩阵、项目与宏资源。当前不声明资源订阅，客户端通过修订号判断

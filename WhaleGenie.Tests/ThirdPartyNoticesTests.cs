@@ -38,7 +38,7 @@ public class ThirdPartyNoticesTests
         var notices = Notices();
         var missing = new List<string>();
 
-        foreach (var project in new[] { "WhaleGenie", "WhaleGenie.Core" })
+        foreach (var project in new[] { "WhaleGenie", "WhaleGenie.App", "WhaleGenie.Core" })
         {
             var project_file = Path.Combine(Repository(), project, project + ".csproj");
             foreach (Match match in Regex.Matches(File.ReadAllText(project_file),
