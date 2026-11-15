@@ -7,15 +7,14 @@ using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Mcp;
 
 /// <summary>
-/// Serves MCP from a run that never shows a window. The interface still has to exist — the project
-/// is a view model and every tool reaches it on the interface thread — so this runs inside Avalonia
-/// with no window rather than beside it. Without a window there is no tray, no recovery question,
-/// no virtual keyboard and no OCR warm-up: this run is here to answer a client, not to work a macro.
+/// Serves MCP from a run that never shows a window. Every tool still reaches the project on the
+/// interface thread, so this runs inside Avalonia with no window rather than beside it. Without a
+/// window there is no tray, no recovery question, no virtual keyboard and no OCR warm-up: this run
+/// is here to answer a client, not to work a macro.
 /// </summary>
 internal static class McpHeadless
 {
@@ -24,7 +23,7 @@ internal static class McpHeadless
         // A windowless run builds the same graph the windowed one does, minus the window: the tools,
         // the draft store and the project are the objects a window would have used.
         var services = AppServices.Build(windowed: false);
-        var project = services.GetRequiredService<MainViewModel>();
+        var project = services.GetRequiredService<ProjectWorkspace>();
 
         // A windowless run has no page to flip, but the page is in the program the person has open
         // beside it: the two permissions are read back from the settings file before each call, so
@@ -57,7 +56,7 @@ internal static class McpHeadless
     /// which is the only place the project may be touched.
     /// </summary>
     private static string? Setup(IClassicDesktopStyleApplicationLifetime desktop,
-        MainViewModel project, McpHostOptions options)
+        ProjectWorkspace project, McpHostOptions options)
     {
         _ = desktop;
         try
@@ -183,13 +182,13 @@ internal static class McpHeadless
     }
 
     /// <summary>What one windowless run holds while it serves: the session, its container, its project.</summary>
-    private sealed class Serving(McpServerHost host, IServiceProvider services, MainViewModel project)
+    private sealed class Serving(McpServerHost host, IServiceProvider services, ProjectWorkspace project)
     {
         public McpServerHost Host { get; } = host;
 
         public IServiceProvider Services { get; } = services;
 
-        public MainViewModel Project { get; } = project;
+        public ProjectWorkspace Project { get; } = project;
 
         public bool Leaving { get; set; }
     }

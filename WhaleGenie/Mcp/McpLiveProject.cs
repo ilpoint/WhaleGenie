@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using WhaleGenie.Models;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Mcp;
 
@@ -21,7 +20,7 @@ public sealed record McpProjectStatus(string? Path, int Revision, bool Dirty, in
 /// marshalled to the interface thread: the project is an Avalonia view model and must not be
 /// touched from a Kestrel thread.
 /// </summary>
-public sealed class McpLiveProject(MainViewModel project)
+public sealed class McpLiveProject(ProjectWorkspace project) : IProjectGateway
 {
     public async Task<McpProjectStatus> StatusAsync()
         => await Dispatcher.UIThread.InvokeAsync(() =>

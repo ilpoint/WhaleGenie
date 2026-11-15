@@ -171,7 +171,7 @@ public partial class App : Application
         McpControl.Stored = McpGrants.Current;
         McpPipe.Serve(async pipe =>
         {
-            var host = new McpServerHost(viewModel, services);
+            var host = new McpServerHost(viewModel.Workspace, services);
             host.Start(pipe, pipe);
             await host.WaitForShutdownAsync().ConfigureAwait(false);
             await host.DisposeAsync().ConfigureAwait(false);

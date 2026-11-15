@@ -25,7 +25,7 @@ namespace WhaleGenie.Mcp;
 /// and a page whose revision is behind is the signal to read it again.
 /// </remarks>
 [McpServerResourceType]
-public sealed class McpResources(McpLiveProject live)
+public sealed class McpResources(IProjectGateway live)
 {
     private static readonly JsonSerializerOptions Json = new()
     {

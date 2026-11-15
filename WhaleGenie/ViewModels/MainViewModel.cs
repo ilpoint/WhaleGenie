@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -10,41 +11,39 @@ using WhaleGenie.Runtime;
 
 namespace WhaleGenie.ViewModels;
 
+/// <summary>
+/// The main window's own state: what is typed in the search box, which view is open, whether the
+/// system is armed and the MCP flyout. The document itself lives in <see cref="Workspace"/>; this
+/// class forwards it so the window and the existing bindings keep one object to talk to.
+/// </summary>
 public partial class MainViewModel : ViewModelBase
 {
     private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
     private McpServerViewModel? _mcp;
 
-    /// <summary>The values kept on this machine for the project's global declarations.</summary>
-    public PersistedVariables Persisted { get; }
-
-    /// <summary>
-    /// The table every run of this project shares, and the one the editor reads a declared value
-    /// through. It belongs to this project and this window: a second project gets its own.
-    /// </summary>
-    public VariableSession Variables { get; }
-
     public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null,
-        PersistedVariables? persisted = null, VariableSession? variables = null)
+        PersistedVariables? persisted = null, VariableSession? variables = null,
+        ProjectWorkspace? workspace = null)
     {
         _makeMcp = mcp;
-        Persisted = persisted ?? new PersistedVariables();
-        Variables = variables ?? new VariableSession();
+
+        // The document is made first: every other member here reads it, and a window that opens a
+        // package during construction should find the same table the runs will use. A caller that
+        // already holds the document — the MCP container does — hands it in rather than letting a
+        // second one be made beside it.
+        Workspace = workspace ?? new ProjectWorkspace(persisted, variables, AppVersion.Text);
+        Workspace.PropertyChanged += OnWorkspacePropertyChanged;
+        Workspace.Changed += (_, _) => RefreshVisibleMacros();
+
         SelectedView = LocalSettings.LoadView();
 
         // 启动时是否已经在听触发，由设置决定；默认关着，和按热键启用之前一样。
         IsRunning = LocalSettings.LoadSystemAtStart();
-        Macros.CollectionChanged += (_, _) =>
+        Workspace.Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
             OnPropertyChanged(nameof(HasUnsavedChanges));
             RefreshGroups();
-            RefreshVisibleMacros();
-        };
-        Triggers.Changed += (_, _) =>
-        {
-            Triggers.Attach([.. Macros]);
-            MarkDirty();
             RefreshVisibleMacros();
         };
         Localization.Strings.Current.LanguageChanged += () =>
@@ -61,6 +60,67 @@ public partial class MainViewModel : ViewModelBase
             RefreshGroups();
         };
         RefreshGroups();
+    }
+
+    /// <summary>
+    /// The project document: macros, triggers, shared variables, the package path, the dirty flag
+    /// and the revision. The window shows it; the editor and the MCP tools change it.
+    /// </summary>
+    public ProjectWorkspace Workspace { get; }
+
+    /// <summary>The values kept on this machine for the project's global declarations.</summary>
+    public PersistedVariables Persisted => Workspace.Persisted;
+
+    /// <summary>The table every run of this project shares.</summary>
+    public VariableSession Variables => Workspace.Variables;
+
+    /// <summary>Every macro in the project.</summary>
+    public ObservableCollection<MacroItem> Macros => Workspace.Macros;
+
+    /// <summary>Every trigger entry in the project.</summary>
+    public ProjectTriggers Triggers => Workspace.Triggers;
+
+    /// <summary>Whether the document has changed since it was last written.</summary>
+    public bool IsDirty
+    {
+        get => Workspace.IsDirty;
+        set => Workspace.IsDirty = value;
+    }
+
+    /// <summary>Package file the macros are saved to, or <c>null</c> before the first save.</summary>
+    public string? CurrentPath
+    {
+        get => Workspace.CurrentPath;
+        set => Workspace.CurrentPath = value;
+    }
+
+    /// <summary>Which version of the document the window is holding.</summary>
+    public int Revision => Workspace.Revision;
+
+    /// <summary>Raised for every change to the document, after the dirty flag and revision moved.</summary>
+    public event EventHandler? Changed
+    {
+        add => Workspace.Changed += value;
+        remove => Workspace.Changed -= value;
+    }
+
+    private void OnWorkspacePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        switch (e.PropertyName)
+        {
+            case nameof(ProjectWorkspace.IsDirty):
+                OnPropertyChanged(nameof(IsDirty));
+                OnPropertyChanged(nameof(HasUnsavedChanges));
+                break;
+            case nameof(ProjectWorkspace.CurrentPath):
+                OnPropertyChanged(nameof(CurrentPath));
+                OnPropertyChanged(nameof(WindowTitle));
+                OnPropertyChanged(nameof(CurrentFolder));
+                break;
+            case nameof(ProjectWorkspace.Revision):
+                OnPropertyChanged(nameof(Revision));
+                break;
+        }
     }
 
     /// <summary>
@@ -127,9 +187,6 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Every trigger entry in the project, including the one the list is filtered by.</summary>
-    public ProjectTriggers Triggers { get; } = new();
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsAllView))]
     [NotifyPropertyChangedFor(nameof(IsKeysView))]
@@ -194,27 +251,11 @@ public partial class MainViewModel : ViewModelBase
     public string Version { get; } = AppVersion.Text;
 
     /// <summary>
-    /// Whether anything in the list has been changed since the package was last written — macros
-    /// added, edited, removed or armed or disarmed, and shared variables imported. The armed state
-    /// counts because it is written into the package: a macro that was switched off here is off
-    /// the next time the package is opened, so it is a change like any other.
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasUnsavedChanges))]
-    public partial bool IsDirty { get; set; }
-
-    /// <summary>
     /// True when stopping the program would throw away something the user made. A project that was
     /// never saved and holds nothing is not one of those, so "close all" on a list that is only
     /// memory does not turn into a question at exit.
     /// </summary>
     public bool HasUnsavedChanges => IsDirty && (Macros.Count > 0 || CurrentPath is not null);
-
-    /// <summary>Package file the macros are saved to, or <c>null</c> before the first save.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(WindowTitle))]
-    [NotifyPropertyChangedFor(nameof(CurrentFolder))]
-    public partial string? CurrentPath { get; set; }
 
     /// <summary>Title bar text, which names the open package once there is one.</summary>
     public string WindowTitle => CurrentPath is null
@@ -234,9 +275,6 @@ public partial class MainViewModel : ViewModelBase
     public string? CurrentFolder => CurrentPath is null
         ? null
         : System.IO.Path.GetDirectoryName(CurrentPath);
-
-    /// <summary>Macros shown in the list. Empty until the user adds one.</summary>
-    public ObservableCollection<MacroItem> Macros { get; } = [];
 
     /// <summary>
     /// What the list actually shows: every macro, or the ones whose name matches what is in the
@@ -296,187 +334,44 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
-    public void AddMacro(MacroItem macro)
-    {
-        if (string.IsNullOrWhiteSpace(macro.Name))
-        {
-            macro.Name = MacroNames.NextDefault(Macros.Select(item => item.Name));
-        }
-        else if (Macros.FirstOrDefault(item => string.Equals(item.Name.Trim(), macro.Name.Trim(),
-                     StringComparison.OrdinalIgnoreCase)) is not null)
-        {
-            // Two macros cannot share a name: a macro is reached by its name, so the second one would
-            // be the one a call never finds. Neither is a mistake — importing a package that holds a
-            // macro this project already has is an ordinary thing to do — so the one arriving now
-            // keeps its steps under a name of its own, dated the day it arrived.
-            macro.Name = MacroNames.Free(macro.Name, Macros.Select(item => item.Name), DateTime.Now);
-        }
-
-        // A macro without a trigger is a real state: it is listed in "all" and runs when something
-        // calls it. Inventing an empty key entry here made every new macro look like a key macro
-        // whose key had merely not been chosen yet.
-        Macros.Add(macro);
-        Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
-        MarkDirty();
-    }
+    public void AddMacro(MacroItem macro) => Workspace.AddMacro(macro);
 
     /// <summary>Swaps an edited macro back into the list, keeping its on/off state.</summary>
     public void ReplaceMacro(MacroItem original, MacroItem edited)
-    {
-        var index = Macros.IndexOf(original);
-        if (index < 0)
-        {
-            return;
-        }
-
-        edited.IsEnabled = original.IsEnabled;
-        if (!string.Equals(original.Name, edited.Name, StringComparison.Ordinal))
-        {
-            Triggers.RenameMacro(original.Name, edited.Name);
-        }
-
-        Macros[index] = edited;
-        Triggers.ReplaceMacro(edited.Name, edited.Triggers.Select(entry => entry.Copy()));
-        MarkDirty();
-    }
+        => Workspace.ReplaceMacro(original, edited);
 
     /// <summary>Removes a macro from the list.</summary>
-    public void RemoveMacro(MacroItem macro)
-    {
-        Macros.Remove(macro);
-        Triggers.RemoveMacro(macro.Name);
-        MarkDirty();
-    }
+    public void RemoveMacro(MacroItem macro) => Workspace.RemoveMacro(macro);
 
     /// <summary>Removes every macro, used by "close all".</summary>
-    public void ClearMacros()
-    {
-        Macros.Clear();
-        Triggers.Entries.Clear();
-        Triggers.InterfaceLayouts.Clear();
-        Triggers.ResetMenu();
-        MarkDirty();
-    }
+    public void ClearMacros() => Workspace.ClearMacros();
 
     /// <summary>Arms or disarms a macro; the macro list shows the state as a coloured dot.</summary>
-    /// <remarks>
-    /// The list is put back together afterwards because "enabled first" is a list setting: without
-    /// this the dot would say one thing and the order another until something else redrew the list.
-    /// </remarks>
-    public void ToggleMacro(MacroItem macro)
-    {
-        macro.IsEnabled = !macro.IsEnabled;
-        RefreshVisibleMacros();
-        MarkDirty();
-    }
+    public void ToggleMacro(MacroItem macro) => Workspace.ToggleMacro(macro);
 
     /// <summary>
     /// What the shared variables hold, one line each, so that a change made while they were open
     /// can be told from no change at all.
     /// </summary>
-    /// <remarks>
-    /// Nothing else watches them: the package carries the shared variables beside the macros, but
-    /// they are not on the macro list, so nothing on that list moves when one is added, renamed or
-    /// given another starting value.
-    /// </remarks>
-    public IReadOnlyList<string> Globals()
-        => [.. Variables.Globals.Select(variable =>
-            $"{variable.Name}\u001f{variable.Type}\u001f{variable.DefaultValue}\u001f{variable.Description}")];
+    public IReadOnlyList<string> Globals() => Workspace.Globals();
 
     /// <summary>Whether the shared variables have moved on since <paramref name="before"/> was taken.</summary>
     public bool GlobalsChangedSince(IReadOnlyList<string> before)
-        => !before.SequenceEqual(Globals());
+        => Workspace.GlobalsChangedSince(before);
 
     /// <summary>Notes that the shared variables themselves were changed.</summary>
-    public void MarkGlobalsChanged() => MarkDirty();
+    public void MarkGlobalsChanged() => Workspace.MarkGlobalsChanged();
 
-    internal void MarkMenuChanged()
-    {
-        Triggers.NotifyChanged();
-        MarkDirty();
-    }
+    internal void MarkMenuChanged() => Workspace.MarkMenuChanged();
 
     /// <summary>Writes the macro list and the shared variables to a package file.</summary>
-    public void SavePackage(string path)
-    {
-        // The pictures are in the folder of the project as it stands now, which is not the folder of
-        // the file being written when this is a save-as: without saying so, a package written
-        // somewhere else silently loses the pictures it refers to.
-        Storage.MacroPackage.Save(path, [.. Macros], Triggers, [.. Variables.Globals], Version,
-            Storage.ImageAssets.FolderFor(CurrentPath));
-        CurrentPath = path;
-        IsDirty = false;
-    }
+    public void SavePackage(string path) => Workspace.SavePackage(path);
 
     /// <summary>Replaces everything with the contents of a package file.</summary>
-    public void OpenPackage(string path)
-    {
-        var contents = Storage.MacroPackage.Load(path);
+    public void OpenPackage(string path) => Workspace.OpenPackage(path);
 
-        Macros.Clear();
-        foreach (var macro in contents.Macros)
-        {
-            Macros.Add(macro);
-        }
-        Triggers.ReplaceAll(contents.Triggers);
-        Triggers.Attach([.. Macros]);
-
-        LoadSharedVariables(contents.Globals, replace: true, Persisted);
-
-        CurrentPath = path;
-        IsDirty = false;
-        Revision++;
-    }
-
-    /// <summary>
-    /// Puts a package's shared variables into the catalog. Replace takes the current list away
-    /// first, which is what opening a project means; add keeps what is there and only brings in the
-    /// names the project does not have yet, which is what importing a package means.
-    /// </summary>
-    private void LoadSharedVariables(IReadOnlyList<VariableDefinition> globals,
-        bool replace, PersistedVariables persisted)
-    {
-        if (replace)
-        {
-            Variables.ClearGlobals();
-        }
-
-        foreach (var global in globals)
-        {
-            if (!replace && Variables.IsGlobal(global.Name))
-            {
-                continue;
-            }
-
-            Variables.Adopt(global);
-        }
-
-        // The values a macro wrote last time live outside the package. They are put back once the
-        // declarations are known, which is what makes a reopened project start with them; doing it
-        // here rather than at each caller is what keeps a path from forgetting it.
-        ApplyPersisted(persisted);
-    }
-
-    /// <summary>
-    /// Puts the work a stopped run left behind back into the list. It counts as unsaved on
-    /// purpose: a snapshot is what a program that stopped without notice was holding, so the list
-    /// has to keep asking to write it out rather than treating it as something already on disk.
-    /// </summary>
-    public void RestoreFrom(Storage.RecoveryContents contents)
-    {
-        Macros.Clear();
-        foreach (var macro in contents.Macros)
-        {
-            Macros.Add(macro);
-        }
-        Triggers.ReplaceAll(contents.Triggers);
-        Triggers.Attach([.. Macros]);
-
-        LoadSharedVariables(contents.Globals, replace: true, Persisted);
-
-        CurrentPath = contents.PackagePath;
-        MarkDirty();
-    }
+    /// <summary>Puts a stopped run's work back into the list.</summary>
+    public void RestoreFrom(Storage.RecoveryContents contents) => Workspace.RestoreFrom(contents);
 
     [RelayCommand]
     private void ToggleRun() => IsRunning = !IsRunning;
@@ -491,73 +386,13 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Raised for every change to the work this holds, where <see cref="IsDirty"/> only says
-    /// whether there is any of it: the snapshot keeping up with the work has to hear about the
-    /// changes that arrive while it is already unsaved, and the dirty flag does not move for
-    /// those.
-    /// </summary>
-    public event EventHandler? Changed;
-
-    /// <summary>Notes that the work has moved on.</summary>
-    private void MarkDirty()
-    {
-        IsDirty = true;
-        Revision++;
-        Changed?.Invoke(this, EventArgs.Empty);
-    }
-
-    /// <summary>
-    /// Which version of the project the interface is holding. An MCP draft remembers the number
-    /// it was taken from; applying it after the number moved would overwrite work done in between.
-    /// </summary>
-    public int Revision { get; private set; }
-
-    /// <summary>
     /// Replaces the project with a draft the MCP tools have been editing. The caller has already
     /// checked the revision; this is only the write.
     /// </summary>
     public void ApplyDraft(IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals)
-        => ApplyDraft(macros, ProjectTriggers.FromMacros(macros), globals);
+        => Workspace.ApplyDraft(macros, globals);
 
     public void ApplyDraft(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition> globals)
-    {
-        Macros.Clear();
-        foreach (var macro in macros)
-        {
-            Macros.Add(macro);
-        }
-        Triggers.ReplaceAll(triggers);
-        Triggers.Attach([.. Macros]);
-
-        Variables.ClearGlobals();
-        foreach (var global in globals)
-        {
-            Variables.Adopt(global);
-        }
-        ApplyPersisted(Persisted);
-
-        MarkDirty();
-    }
-
-    /// <summary>
-    /// Puts back the values kept for this project's global declarations. A declaration whose value
-    /// is not kept is left at the value it declares, and its checkbox says so.
-    /// </summary>
-    private void ApplyPersisted(PersistedVariables persisted)
-    {
-        foreach (var (name, value, kept) in persisted.ApplyTo(Variables.Globals))
-        {
-            if (Variables.FindGlobal(name) is not { } definition)
-            {
-                continue;
-            }
-
-            definition.PersistValue = kept;
-            if (kept)
-            {
-                Variables.Values.Set(name, value);
-            }
-        }
-    }
+        => Workspace.ApplyDraft(macros, triggers, globals);
 }

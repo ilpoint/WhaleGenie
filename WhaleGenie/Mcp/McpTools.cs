@@ -27,7 +27,7 @@ namespace WhaleGenie.Mcp;
 /// so a client can branch on what went wrong instead of reading English back to itself.
 /// </summary>
 [McpServerToolType]
-public sealed partial class McpTools(McpDraftStore drafts, McpLiveProject project)
+public sealed partial class McpTools(McpDraftStore drafts, IProjectGateway project)
 {
     /// <summary>
     /// The largest picture a client may hand over. A template a step matches against is a crop of

@@ -26,12 +26,17 @@
 菜单呼出键与系统总开关属于当前机器的 `LocalSettings`，切换项目不改变它们。父宏与内嵌子宏保存在
 同一宏文档中；公共宏拖入项目时复制内容并固定来源版本，不随后续库更新。
 
+工程文档状态由 `Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号与
+`Changed` 事件都在这一处更新。`MainViewModel` 只保留窗口自己的搜索、分组、视图与系统开关，并把
+文档属性和方法转发给绑定；编辑器与 `RunFactory` 仍通过它取文档。`McpLiveProject` 实现
+`Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与资源只依赖这个接口，不依赖窗口模型。
+
 包外状态分为：
 
 | 状态 | 位置 | 说明 |
 | --- | --- | --- |
 | 本机设置 | 程序目录 `settings.json` | 主题、捕获、MCP 权限和启动行为等 |
-| 全局变量（声明与当前值） | 内存 | `VariableSession`：组合根建一个，`MainViewModel` 持有并交给编辑器、运行窗口、触发器和 MCP；项目包保存声明，值只在本进程内共享，不随包走 |
+| 全局变量（声明与当前值） | 内存 | `VariableSession`：组合根建一个，`ProjectWorkspace` 持有，经 `MainViewModel` 转发给编辑器、运行窗口、触发器和 MCP；项目包保存声明，值只在本进程内共享，不随包走 |
 | 持久化全局变量值 | `%LOCALAPPDATA%\WhaleGenie\persistent-variables.json` | 只保存声明为持久化的值；声明仍在包内。文件版本 2 按名字保存、值写成 JSON；更旧的形状不迁移，更高版本只读不覆盖。由 `PersistedVariables` 实例持有路径、定时器与索引，经容器注入；勾选只在保存时显式写入，运行期写入由表的变更事件补写 |
 | 崩溃恢复 | 程序目录 `recovery.json` | `RecoveryStore` 与 `RecoveryWriter` 保存未提交编辑状态 |
 | 脚本包 | 程序目录 `packages/`，必要时回退到 `%LOCALAPPDATA%\WhaleGenie\packages` | Python 与 NuGet 包的独立缓存 |
@@ -55,7 +60,7 @@
 `McpGrants`；文件缺失、不可读或只写入一半时按未授权处理。只读项目、读取状态和读取日志不需要开启
 控制权限。
 
-`McpDraftStore` 保存项目深拷贝及修订号，`McpLiveProject` 负责界面线程桥接，`McpPreview` 提供
+`McpDraftStore` 保存项目深拷贝及修订号，`McpLiveProject` 是 `IProjectGateway` 的界面线程实现，`McpPreview` 提供
 应用前差异。`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。
 工具类型由 `AppServices` 注册，并由 `McpServerHost` 的发现列表纳入宿主；新增工具须同时更新两处
 并验证 `tools.list`。

@@ -57,8 +57,11 @@ internal static class AppServices
     /// this to get the same graph the program has, so a tool cannot depend on something the tests
     /// never wire up.
     /// </summary>
-    internal static ServiceProvider Minimal(MainViewModel project)
-        => Wiring(_ => project, project.Persisted, project.Variables).BuildServiceProvider();
+    internal static ServiceProvider Minimal(ProjectWorkspace project)
+    {
+        var viewModel = new MainViewModel(workspace: project);
+        return Wiring(_ => viewModel, project.Persisted, project.Variables).BuildServiceProvider();
+    }
 
     private static ServiceCollection Wiring(Func<IServiceProvider, MainViewModel> project,
         PersistedVariables persisted, VariableSession variables)
@@ -66,6 +69,7 @@ internal static class AppServices
         var services = new ServiceCollection();
 
         services.AddSingleton(sp => project(sp));
+        services.AddSingleton(sp => sp.GetRequiredService<MainViewModel>().Workspace);
         services.AddSingleton(persisted);
         services.AddSingleton(variables);
 
@@ -75,6 +79,7 @@ internal static class AppServices
 
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<McpLiveProject>();
+        services.AddSingleton<IProjectGateway>(sp => sp.GetRequiredService<McpLiveProject>());
         services.AddSingleton<McpTools>();
 
         // The triggers are the window's in practice, but not in principle: they are a service that
@@ -86,13 +91,13 @@ internal static class AppServices
         // instance: a run that never asks for a device never builds one.
         services.AddSingleton(sp => new McpControlTools(() => sp.GetRequiredService<IDeviceLayer>()));
         services.AddSingleton(sp => new McpRunTools(
-            sp.GetRequiredService<MainViewModel>(),
+            sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<McpDraftStore>(),
             () => sp.GetRequiredService<IDeviceLayer>()));
 
         services.AddSingleton<McpResources>();
         services.AddSingleton(sp => new McpServerHost(
-            sp.GetRequiredService<MainViewModel>(), sp));
+            sp.GetRequiredService<ProjectWorkspace>(), sp));
 
         return services;
     }

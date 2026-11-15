@@ -11,7 +11,6 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Mcp;
 
@@ -36,19 +35,19 @@ public sealed class McpRunTools
     private static string _runningMacro = string.Empty;
     private static DateTimeOffset _started;
 
-    private readonly MainViewModel _ui;
+    private readonly ProjectWorkspace _project;
     private readonly McpDraftStore _drafts;
     private readonly Func<IDeviceLayer> _devices;
 
-    public McpRunTools(MainViewModel ui, McpDraftStore drafts)
-        : this(ui, drafts, () => SharedDevices.Current)
+    public McpRunTools(ProjectWorkspace project, McpDraftStore drafts)
+        : this(project, drafts, () => SharedDevices.Current)
     {
     }
 
     /// <summary>A bench or a check hands its own device layer in here.</summary>
-    internal McpRunTools(MainViewModel ui, McpDraftStore drafts, Func<IDeviceLayer> devices)
+    internal McpRunTools(ProjectWorkspace project, McpDraftStore drafts, Func<IDeviceLayer> devices)
     {
-        _ui = ui;
+        _project = project;
         _drafts = drafts;
         _devices = devices;
     }
@@ -127,7 +126,7 @@ public sealed class McpRunTools
                 var runner = RunFactory.Create(new RunRequest
                 {
                     Variables = MacroVariables.Seed(
-                        new SystemVariableReader(devices), _ui.Variables),
+                        new SystemVariableReader(devices), _project.Variables),
                     Host = host,
                     Devices = devices,
                     Library = library,
@@ -299,7 +298,7 @@ public sealed class McpRunTools
     {
         if (string.IsNullOrWhiteSpace(draftId))
         {
-            return (_ui.Macros.ToList(), null);
+            return (_project.Macros.ToList(), null);
         }
 
         try

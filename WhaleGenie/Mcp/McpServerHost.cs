@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Server;
-using WhaleGenie.ViewModels;
+using WhaleGenie.Models;
 
 namespace WhaleGenie.Mcp;
 
@@ -21,7 +21,7 @@ namespace WhaleGenie.Mcp;
 /// </summary>
 public sealed class McpServerHost : IAsyncDisposable, IDisposable
 {
-    private readonly MainViewModel _project;
+    private readonly ProjectWorkspace _project;
     private readonly IServiceProvider _services;
     private readonly bool _ownsServices;
     private IHost? _host;
@@ -31,7 +31,7 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
     /// A server over a project, wiring up the few things it needs itself. This is the constructor a
     /// check uses: it hands in a project and gets the same object graph the program builds.
     /// </summary>
-    public McpServerHost(MainViewModel project)
+    public McpServerHost(ProjectWorkspace project)
         : this(project, AppServices.Minimal(project), ownsServices: true)
     {
     }
@@ -40,7 +40,7 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
     /// A server that takes what it needs from the run's own container, so a tool and the window
     /// share one draft store rather than one each.
     /// </summary>
-    internal McpServerHost(MainViewModel project, IServiceProvider services, bool ownsServices = false)
+    internal McpServerHost(ProjectWorkspace project, IServiceProvider services, bool ownsServices = false)
     {
         _project = project;
         _services = services;
@@ -201,7 +201,7 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
         // The draft store and the bridge to the project belong to the run rather than to this
         // server: a tool and the window have to see the same drafts, and the project is one object.
         var drafts = _services.GetRequiredService<McpDraftStore>();
-        var live = _services.GetRequiredService<McpLiveProject>();
+        var live = _services.GetRequiredService<IProjectGateway>();
 
         // A plain builder, not the console one: this host must not install a console lifetime that
         // handles Ctrl+C and ends the process, because it is not the process — the window or the
