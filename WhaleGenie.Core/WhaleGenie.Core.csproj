@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -31,6 +31,8 @@
   <ItemGroup>
     <!-- The engine tests look at how a step's input is routed between the devices. -->
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.TestSupport" />
+    <InternalsVisibleTo Include="WhaleGenie.Platform.Tests" />
     <!-- The Windows adapters read the engine's key table; nothing else of Core is theirs to use. -->
     <InternalsVisibleTo Include="WhaleGenie.Platform.Windows" />
   </ItemGroup>

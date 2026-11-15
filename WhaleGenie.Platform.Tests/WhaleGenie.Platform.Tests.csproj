@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+
+    <!--
+      The test host tells the process that started it to end it if that process goes away. Here the
+      host cannot open the handle: the run stops before discovery with "the Testhost process has
+      exited with an error" and a Win32Exception (5), which Windows shows as 0xe0434352. The switch
+      is the one the SDK itself sets for UWP tools; the only thing given up is the automatic cleanup
+      of a host left behind by a killed run.
+    -->
+    <_MSTestEnableParentProcessQuery>false</_MSTestEnableParentProcessQuery>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
+    <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="WhaleGenie.TestSupport" />
+  </ItemGroup>
+
+</Project>

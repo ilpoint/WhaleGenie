@@ -14,11 +14,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
-    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
+    <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="WhaleGenie.TestSupport" />
   </ItemGroup>
 
 </Project>

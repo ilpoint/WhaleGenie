@@ -31,6 +31,12 @@
   <Project Path="WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.TestSupport/WhaleGenie.TestSupport.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="WhaleGenie.Platform.Tests/WhaleGenie.Platform.Tests.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie.Tests/WhaleGenie.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

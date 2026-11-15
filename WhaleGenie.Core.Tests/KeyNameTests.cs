@@ -1,7 +1,6 @@
 using System;
 using SharpHook.Data;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Platform.Windows;
 
 namespace WhaleGenie.Core.Tests;
 

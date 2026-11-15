@@ -38,13 +38,15 @@ tool owner 注入。`LayeringTests` 新增两条边界检查。
 `NoWindowAside`。Release 冒烟验证了 `initialize`、`tools/list` 与空项目创建，进程未加载
 Avalonia、Skia 或 HarfBuzz。
 
-**剩余验收（未完成）：**
+**已完成：测试工程按被测对象拆分。** `WhaleGenie.TestSupport` 收替身设备层、样本文件与测试
+特性；`WhaleGenie.Platform.Tests` 收通过引擎驱动真实适配器的用例（浏览器、驱动、VIIPER、OCR、
+UIA、钩子、脚本、文件、剪贴板与设备动作族）；`Core.Tests` 只留引擎与动作语义，不再引用
+`Platform.Windows`，运行时也不加载原生依赖。动作覆盖契约测试改为同时扫描两个套件。
 
-- **`Core.Tests` 仍引用 `Platform.Windows`。** 真实适配器测试与引擎测试共用 `Fakes`、`SampleFiles`
-  和 `Bench`。下一步抽 `WhaleGenie.TestSupport`，把 Viiper、Driver、Browser、OCR、UIA、Hook
-  等用例迁到 `WhaleGenie.Platform.Tests`；引擎测试只保留替身设备层。这一步已经试做过一次：
-  新测试工程可以编译，但本机的 WindowsDesktop 测试宿主在启动时打开父进程句柄被拒绝，
-  测试无法被发现，于是先回退；下次在 CI 或另一台机器上重做，并把这一步单独提交。
+**本机限制（记录，不影响代码）：** 新建工程路径下的测试宿主在本机命令沙箱里拿不到 `%TEMP%`，
+`WhaleGenie.Platform.Tests` 的 47 个用例因此在构造阶段失败；同一批用例在引擎工程里运行时是通过的，
+换正常终端或 CI 可验证。宿主启动时打开父进程句柄被拒的问题已用 `_MSTestEnableParentProcessQuery`
+关掉（见 `docs/dev/environment.md`）。
 
 **再下一步：执行器状态外置。** 从 `MacroRunner` 抽出 `RunState`（变量、日志、帧缓存、持键、
 取消、门闩）与 `StepArguments`（读参助手），再按 13 个动作族抽 `IActionFamily`。预览表已先行

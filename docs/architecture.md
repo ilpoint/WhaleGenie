@@ -38,9 +38,11 @@ WhaleGenie
 Mcp 与 Domain 都引用 Localization 和 Core；Localization 只引用 Core；Platform 引用 Core 与
 GraphicsCapture。界面工程引用以上全部，没有任何产品工程反向引用它。
 
-三个测试工程分别以对应产品工程为主：`WhaleGenie.Tests`、`WhaleGenie.Core.Tests` 和
-`WhaleGenie.GraphicsCapture.Tests`。`Core.Tests` 目前还引用 `Platform.Windows`，因为其中
-一部分用例通过引擎驱动真实适配器；独立适配器测试工程只在出现需要隔离的用例时再拆。产品工程
+四个测试工程按被测对象划分：`WhaleGenie.Tests`（界面与文档对账）、`WhaleGenie.Core.Tests`
+（引擎与动作语义，只用替身设备层）、`WhaleGenie.Platform.Tests`（通过引擎驱动真实 Windows
+适配器）和 `WhaleGenie.GraphicsCapture.Tests`。`Core.Tests` 不引用 `Platform.Windows`：引擎
+测试运行时不加载 OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接保证。
+`WhaleGenie.TestSupport` 承载两者共用的替身设备层、样本文件与测试特性，本身不含测试。产品工程
 不反向引用测试工程。
 
 | 工程 | 主要职责 | 不得承担 |

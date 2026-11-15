@@ -53,6 +53,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.TestSupport" />
+    <InternalsVisibleTo Include="WhaleGenie.Platform.Tests" />
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
   </ItemGroup>
 

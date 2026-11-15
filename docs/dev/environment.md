@@ -55,8 +55,15 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、资源与项目编辑工具；不引用 Avalonia、Views 或 Runtime |
 | `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
 | `WhaleGenie.Tests` | 界面、包、MCP、文案和文档对账测试，运行于 Avalonia 无头平台 |
-| `WhaleGenie.Core.Tests` | 引擎、动作契约与真实适配器测试；多数用例使用替身设备层，少数会操作本机设备 |
+| `WhaleGenie.Core.Tests` | 引擎与动作语义测试，只依赖替身设备层；不引用任何 Windows 适配器 |
+| `WhaleGenie.Platform.Tests` | 通过引擎驱动真实适配器的测试（浏览器、驱动、VIIPER、OCR、UIA、钩子、脚本、文件与剪贴板） |
+| `WhaleGenie.TestSupport` | 两个引擎侧测试工程共用的替身设备层、样本文件与测试特性；自身没有测试 |
 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用和矩形落位测试；真实 Windows 取画面另行手动验收 |
+
+`WhaleGenie.Platform.Tests` 显式关掉了测试宿主的父进程监听：在本机它打开父进程句柄被拒绝
+（`Win32Exception (5)`，Windows 报成 `0xe0434352`），宿主会在发现测试之前终止。关掉只放弃
+“启动方退出时顺带结束宿主”这一条。若该套件在此环境里报 `%TEMP%` 无权限，是命令沙箱对新建
+工程路径的限制，换 CI 或本机正常终端运行即可，与测试内容无关。
 
 依赖方向和主要类型见 [架构文档](../architecture.md)。开发时不必在本文档重复维护文件规模、
 动作数量或测试数量。

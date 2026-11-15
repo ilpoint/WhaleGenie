@@ -19,9 +19,12 @@ public partial class ActionContractTests
     [Fact]
     public void Every_executable_action_is_named_by_at_least_one_engine_test()
     {
+        // Both suites name actions: the engine's own, and the ones that reach a real Windows
+        // adapter through the engine. Either counts as naming the action.
         var tests = string.Join(Environment.NewLine,
-            Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie.Core.Tests"),
-                    "*.cs", SearchOption.AllDirectories)
+            new[] { "WhaleGenie.Core.Tests", "WhaleGenie.Platform.Tests" }
+                .SelectMany(suite => Directory.EnumerateFiles(
+                    Path.Combine(Repository(), suite), "*.cs", SearchOption.AllDirectories))
                 .Select(File.ReadAllText));
 
         var missing = ActionSemanticsCatalog.All
