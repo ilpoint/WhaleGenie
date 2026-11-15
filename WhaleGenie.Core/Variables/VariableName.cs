@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 
 namespace WhaleGenie.Core.Variables;
@@ -12,6 +13,16 @@ public static class VariableName
 {
     /// <summary>The namespace the program keeps for the values it provides itself.</summary>
     public const string SystemPrefix = "sys.";
+
+    /// <summary>
+    /// True when this name is one of the program's own. Nothing a macro brings with it — a step, a
+    /// file of variables, a script — may write one: the value would stand in front of the clock or
+    /// the clipboard for the rest of the run, and the macro would read it without asking who wrote
+    /// it.
+    /// </summary>
+    public static bool IsSystem(string? name)
+        => name is { Length: > 0 }
+           && name.TrimStart().StartsWith(SystemPrefix, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// True when the text is a name rather than a formula or a sentence. A name may begin with a

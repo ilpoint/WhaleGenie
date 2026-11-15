@@ -173,8 +173,7 @@ public static partial class MacroCheck
             {
                 var name = written.Trim();
                 if (name.Length > 0
-                    && (name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
-                        || MacroRunner.IsRunStepName(name)))
+                    && (VariableName.IsSystem(name) || MacroRunner.IsRunStepName(name)))
                 {
                     Add(step, MacroProblemCode.ReservedVariable, Strings.Format("Editor.Problem.ReservedVariable", name));
                 }

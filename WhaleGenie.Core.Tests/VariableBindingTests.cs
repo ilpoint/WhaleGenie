@@ -70,7 +70,6 @@ public class VariableBindingTests
         bag.Set("count", Value.FromNumber(7));
 
         Assert.True(bag.Clear("count"));
-        Assert.True(bag.IsDeclared("count"));
         Assert.Equal(0d, bag.Values["count"].AsNumber());
         Assert.Throws<VariableTypeException>(() => bag.Set("count", Value.FromText("many")));
     }
@@ -95,8 +94,10 @@ public class VariableBindingTests
 
         Assert.True(bag.Rename("count", "Count"));
         Assert.Equal(4d, bag.Values["Count"].AsNumber());
-        Assert.True(bag.IsDeclared("Count"));
         Assert.Single(bag.Values);
+
+        // The declaration travelled with the value: the name is still the number it was.
+        Assert.Throws<VariableTypeException>(() => bag.Set("Count", Value.FromText("many")));
     }
 
     [Fact]
@@ -127,7 +128,12 @@ public class VariableBindingTests
         bag.Restore("item", mark);
 
         Assert.Equal("kept", bag.Values["item"].AsText());
-        Assert.True(bag.IsDeclared("item"));
+
+        // The declaration came back with the value: clearing it leaves the empty value of its
+        // kind rather than taking the name out, which is what an undeclared name would get.
+        Assert.True(bag.Clear("item"));
+        Assert.True(bag.Contains("item"));
+        Assert.Equal(string.Empty, bag.Values["item"].AsText());
 
         var fresh = bag.Mark("round");
         bag.Set("round", Value.FromNumber(1));
@@ -287,7 +293,6 @@ public class VariableBindingTests
         bag.Set(" count ", Value.FromNumber(3));
 
         Assert.Equal(1, bag.Count);
-        Assert.True(bag.IsDeclared("count"));
         Assert.True(bag.TryGet("count", out var value));
         Assert.Equal(3d, value.AsNumber());
 
@@ -304,7 +309,6 @@ public class VariableBindingTests
 
         bag.ResetDeclarations();
 
-        Assert.False(bag.IsDeclared("count"));
         bag.Set("count", Value.FromText("words"));
         Assert.Equal("words", bag.Values["count"].AsText());
     }

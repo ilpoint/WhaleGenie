@@ -80,8 +80,7 @@ public sealed partial class MacroRunner
     /// would read as the built-in or the ending it shadows.
     /// </summary>
     public static bool IsReservedName(string name)
-        => name.StartsWith(VariableName.SystemPrefix, StringComparison.OrdinalIgnoreCase)
-           || IsRunStepName(name);
+        => VariableName.IsSystem(name) || IsRunStepName(name);
 
     /// <summary>This step did what it was asked to.</summary>
     private const string OutcomeOk = "ok";

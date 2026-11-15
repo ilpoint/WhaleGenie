@@ -161,6 +161,7 @@
 | `Run.ScriptFailed` | 脚本以退出码 {0} 结束 |
 | `Run.SoundRefused` | 这台机器没有可用的声音设备，放不出这个提示音。 |
 | `Run.StepFailedByMacro` | 宏把这一步判为失败。{0} |
+| `Run.SystemVariableReadOnly` | 「{0}」是鲸灵自己提供的值，变量文件不能写它。 |
 | `Run.TextNotFound` | 始终没有找到文字：{0} |
 | `Run.TextNotTyped` | 这段文字没能输出去：没有窗口接收它。目标窗口可能已经关闭，或者它的权限比鲸灵高。 |
 | `Run.Timeout` | 该步骤的运行时间超过了允许的 {0} 毫秒。 |

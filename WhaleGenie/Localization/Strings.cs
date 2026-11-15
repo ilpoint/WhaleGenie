@@ -2106,6 +2106,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.IndexOutOfRange"] = "That position is outside the list: {0}",
         ["Run.GlobalMustExist"] =
             "The shared variable {0} does not exist. Create it in a macro editor's Variable Center",
+        ["Run.SystemVariableReadOnly"] =
+            "\"{0}\" is a value WhaleGenie provides itself, and a file of variables may not write it. "
+            + "Leave it out of the snapshot, or read it after the step instead.",
         ["Run.MissingVariable"] = "No variable name was given",
         ["Run.NoKeys"] = "The run has no key combination to send.",
         ["Log.KeysSent"] = "Sent {0} key combination(s).",
@@ -4821,6 +4824,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.NotConfirmed"] = "这一步做下去无法撤回，没有得到确认。",
         ["Run.IndexOutOfRange"] = "下标超出列表范围：{0}",
         ["Run.GlobalMustExist"] = "全局变量 {0} 不存在，请先在宏编辑器的变量中心创建",
+        ["Run.SystemVariableReadOnly"] =
+            "「{0}」是鲸灵自己提供的值，变量文件不能写它。把这个名字从快照里去掉，或者在这一步之后直接读它。",
         ["Run.MissingVariable"] = "没有填写变量名",
         ["Run.NoKeys"] = "这条序列里一个组合键都没有。",
         ["Log.KeysSent"] = "发出了 {0} 个组合键。",

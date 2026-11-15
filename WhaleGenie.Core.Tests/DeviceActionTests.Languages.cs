@@ -197,6 +197,30 @@ public partial class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_script_cannot_write_a_value_whale_genie_provides()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Script.Python = new ScriptResult(0, string.Empty, string.Empty, Value.Null);
+        devices.Script.PythonBody = (host, _) =>
+        {
+            host.Write("sys.date", Value.FromText("1999-01-01"));
+            host.Write("mine", Value.FromText("kept"));
+        };
+
+        var store = new VariableStore();
+        store.System.Set("sys.date", Value.FromText("2026-11-15"));
+        var result = await new MacroRunner(store, new AgreeingHost(), devices).RunAsync(
+            [Step("script.python", Param("script", "WhaleGenie.SetProperty('sys.date', 'x')"))]);
+
+        // The script asked to write something it cannot have: the write is dropped rather than
+        // shadowing the clock, and everything else it wrote is still there.
+        Assert.True(result.Succeeded);
+        Assert.True(store.TryGet("sys.date", out var date));
+        Assert.Equal("2026-11-15", date.AsText());
+        Assert.Equal("kept", store.Local.Values["mine"].AsText());
+    }
+
+    [Fact]
     public async Task A_python_script_that_names_no_interpreter_runs_with_this_machines_own()
     {
         var devices = new FakeDeviceLayer();

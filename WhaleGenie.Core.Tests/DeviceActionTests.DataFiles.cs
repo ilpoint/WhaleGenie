@@ -401,6 +401,41 @@ public partial class DeviceActionTests
     }
 
     [Fact]
+    public async Task A_snapshot_that_names_a_built_in_value_stops_the_step()
+    {
+        var devices = new FakeDeviceLayer();
+        devices.Files.Store["state.json"] = """{"counter": 5, "sys.date": "1999-01-01"}""";
+
+        var (result, _, store) = await RunAsync(
+            [Step("file.loadVariables", Param("path", "state.json"))], devices);
+
+        // A file may hold any name, so the built-in one is refused here rather than left standing
+        // in front of the clock for the rest of the run.
+        Assert.False(result.Succeeded);
+        Assert.Equal("Run.SystemVariableReadOnly", result.Key);
+        Assert.Equal("sys.date", result.Detail);
+        Assert.False(store.Local.Contains("sys.date"));
+    }
+
+    [Fact]
+    public async Task A_snapshot_leaves_out_the_values_whale_genie_provides()
+    {
+        var devices = new FakeDeviceLayer();
+        var store = new VariableStore();
+        store.System.Set("sys.date", Value.FromText("2026-11-15"));
+        store.Local.Set("counter", Value.FromNumber(5));
+
+        var result = await new MacroRunner(store, new AgreeingHost(), devices).RunAsync(
+            [Step("file.saveVariables", Param("path", "state.json"),
+                Param("names", "sys.date,counter"))]);
+
+        Assert.True(result.Succeeded);
+        var written = devices.Files.Store["state.json"];
+        Assert.Contains("\"counter\": 5", written);
+        Assert.DoesNotContain("sys.date", written);
+    }
+
+    [Fact]
     public async Task A_file_that_cannot_be_read_stops_the_step_with_a_reason()
     {
         var devices = new FakeDeviceLayer

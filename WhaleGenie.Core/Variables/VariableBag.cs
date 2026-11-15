@@ -302,15 +302,6 @@ public sealed class VariableBag : IVariableResolver
         return true;
     }
 
-    /// <summary>True when this name was declared — by the macro, this run — as holding one kind.</summary>
-    public bool IsDeclared(string name)
-    {
-        lock (_gate)
-        {
-            return _entries.TryGetValue(Key(name), out var entry) && entry.Kind is not null;
-        }
-    }
-
     /// <summary>Empties the scope. A value nobody can name is not worth keeping.</summary>
     public void Clear()
     {

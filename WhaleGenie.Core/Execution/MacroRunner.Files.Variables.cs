@@ -27,11 +27,15 @@ public sealed partial class MacroRunner
     {
         var path = PathOf(step);
         var chosen = ReadText(step, "names").Trim();
-        var names = chosen.Length > 0
+        IEnumerable<string> names = chosen.Length > 0
             ? chosen.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            : [.. Variables.Local.Values.Keys
+            : Variables.Local.Values.Keys
                 .Concat(Variables.Global.Values.Keys)
-                .Distinct(StringComparer.OrdinalIgnoreCase)];
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        // A value WhaleGenie provides is not a snapshot's to keep: it is read off the machine at
+        // the moment a step asks, and a file that wrote one down could only ever put it back.
+        names = names.Where(name => !VariableName.IsSystem(name));
 
         var document = new JsonObject();
         foreach (var name in names)
@@ -58,6 +62,14 @@ public sealed partial class MacroRunner
 
         foreach (var (name, node) in saved)
         {
+            // A file may hold any name at all — it is written by hand as often as by the step
+            // above — so this is where a name the program keeps for itself is refused. Writing it
+            // would put a value in front of the clock or the clipboard for the rest of the run.
+            if (VariableName.IsSystem(name))
+            {
+                throw new StepFailure(RunKeys.SystemVariableReadOnly, name);
+            }
+
             // Shared variables are only written to when the Variable Center already made one,
             // the same rule the "set variable" step follows.
             var target = Variables.Global.Contains(name) ? Variables.Global : Variables.Local;

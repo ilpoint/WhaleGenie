@@ -210,6 +210,12 @@ public static class RunKeys
     public const string ScriptFailed = "Run.ScriptFailed";
     public const string SoundRefused = "Run.SoundRefused";
     public const string StepFailedByMacro = "Run.StepFailedByMacro";
+
+    /// <summary>
+    /// A file of variables carried a name the program keeps for itself. Those values belong to the
+    /// run — the clock, the clipboard, the window in front — so a snapshot may not put one there.
+    /// </summary>
+    public const string SystemVariableReadOnly = "Run.SystemVariableReadOnly";
     public const string TextNotFound = "Run.TextNotFound";
 
     /// <summary>No window took the text that was typed.</summary>

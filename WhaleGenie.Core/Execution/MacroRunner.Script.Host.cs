@@ -88,7 +88,20 @@ public sealed partial class MacroRunner
     {
         public Value? Read(string name) => runner.Variables.TryGet(name, out var value) ? value : null;
 
-        public void Write(string name, Value value) => runner.Variables.Set(name, value);
+        /// <summary>
+        /// A script writes the macro's own values, never the program's. A write to a built-in name
+        /// is dropped rather than failing the script: the script asked for a value it cannot have,
+        /// and what it reads next is still the clock or the clipboard it wrote over.
+        /// </summary>
+        public void Write(string name, Value value)
+        {
+            if (VariableName.IsSystem(name))
+            {
+                return;
+            }
+
+            runner.Variables.Set(name, value);
+        }
 
         public bool RunStep(string id) => runner.RunStepById(id, type, depth, token);
 
