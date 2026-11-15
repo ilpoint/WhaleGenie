@@ -19,6 +19,14 @@ namespace WhaleGenie.Platform.Windows;
 /// the Windows side, while every browser reports a key nobody pressed. So the three facts are taken
 /// from <see cref="WindowsKeys"/> and written into the event as they are.
 ///
+/// Handing this to a library was tried and does not work. SharpHook's simulator posts through
+/// libuiohook's own mapping, which takes the scan code from <c>MapVirtualKey</c> and sets the
+/// extended flag only when that call puts a byte in the high half — NumLock's 0x45 has none, so it
+/// goes out as the Pause its scan code is one byte of. Its text path is <c>KEYEVENTF_UNICODE</c>,
+/// which this file already tried against the input method and lost; a character posted as
+/// <c>WM_CHAR</c> is the one that arrives. The mouse goes through the simulator, where neither
+/// question comes up — see <see cref="SharpHookInputDevice"/>.
+///
 /// Whether a key can be sent at all is <see cref="WindowsKeys.CanBePressed"/>'s question; this is
 /// only how one that can goes out.
 /// </remarks>

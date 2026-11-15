@@ -17,7 +17,11 @@ public sealed class SharpHookInputDevice : IInputDevice
 
     private static readonly MouseWheelScrollType Scrolling = MouseWheelScrollType.BlockScroll;
 
-    /// <summary>The one simulator this device reuses, since setting one up is not cheap.</summary>
+    /// <summary>
+    /// The one simulator this device reuses, since setting one up is not cheap. The mouse goes
+    /// through it; the keyboard does not, because its mapping cannot tell NumLock from Pause or type
+    /// through an input method — see <see cref="WindowsKeyStrokes"/> for both.
+    /// </summary>
     private readonly IEventSimulator _simulator = EventSimulator.Create("WhaleGenie");
 
     /// <summary>
