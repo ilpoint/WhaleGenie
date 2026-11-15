@@ -69,7 +69,6 @@
 308	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 307	WhaleGenie.Core/Execution/MacroRunner.Files.Table.cs	keep: 文件执行的一族，按文件/文件夹/表格/查询拆分后单一职责
 309	WhaleGenie.Core/Execution/MacroRunner.Input.Places.cs	keep: 输入执行的一族，按住释放/读屏/坐标/移动/按键/鼠标各自成文件
-332	WhaleGenie.Core/Execution/MacroRunner.Input.Reading.cs	keep: 输入执行的一族，按住释放/读屏/坐标/移动/按键/鼠标各自成文件
 321	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 431	WhaleGenie.Core/Execution/MacroRunner.Ocr.cs	keep: 一类动作的执行，失败键与日志只在这一点
 358	WhaleGenie.Core/Execution/MacroRunner.Process.cs	keep: 一类动作的执行，失败键与日志只在这一点

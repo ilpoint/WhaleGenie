@@ -12,6 +12,24 @@
 - 先处理契约和静默错误，再处理行为扩展与操作便利；游戏与办公场景具有同等优先级。
 - 待评估事项必须先取得测量结果，再决定是否升级为阶段。
 
+## 进行中：模块边界
+
+**已完成：Windows 适配器独立成工程。** `WhaleGenie.Core/Devices/Platform/` 的 80 个适配器与
+`ScriptHost` 迁入 `WhaleGenie.Platform.Windows`；Core 只保留契约、解释器与键名表，包依赖从
+13 个降到 2 个（CsvHelper 与 SharpHook 的 `KeyCode` 枚举）。`LayeringTests` 增加“引擎不引用
+适配器程序集”的检查。剩余：把 `SharpKeys` 的键码表换成 Core 自己的枚举，之后 Core 可以去掉
+最后一个原生包。
+
+**下一步：领域模型与 MCP 出界面工程。** 先抽 `ProjectWorkspace`（Macros、Triggers、Globals、
+Path、Revision、Dirty、Open、Save、ApplyDraft、Changed），让 `MainViewModel` 只做壳，
+`McpLiveProject` 依赖 `IProjectGateway` 而不是视图模型；再把 `Models/`、`Storage/`、
+`Localization/`、`Mcp/` 拆成独立工程。验收是两件事：无界面 MCP 不启动 Avalonia；
+`Core.Tests` 不再引用 `Platform.Windows`。
+
+**再下一步：执行器状态外置。** 从 `MacroRunner` 抽出 `RunState`（变量、日志、帧缓存、持键、
+取消、门闩）与 `StepArguments`（读参助手），再按 13 个动作族抽 `IActionFamily`。预览表已先行
+独立为 `MacroRunner.Preview.cs`，目录覆盖由 `ActionPreviewTests` 守住。
+
 ## 进行中：按读取集优化大文件
 
 代码按行数、文档按字节。`.githooks/pre-commit` 读取暂存内容后分档提示，不阻止提交：超过 700 行

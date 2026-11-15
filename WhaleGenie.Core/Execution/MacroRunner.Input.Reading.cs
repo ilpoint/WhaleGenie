@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
@@ -219,80 +218,6 @@ public sealed partial class MacroRunner
         }
 
         public void Reading(WindowInfo? window) => watch?.Reading(window);
-    }
-
-    /// <summary>
-    /// One look at the screen for a step, without the step: a search looks once rather than
-    /// waiting, a wait does not wait, and the mouse is left alone.
-    /// </summary>
-    private void SeeOnce(ExecutableStep step)
-    {
-        switch (step.Type)
-        {
-            case "vision.findImage":
-            case "vision.waitImage":
-            case "vision.clickImage":
-                Watching(() => Hits(step));
-                break;
-
-            case "vision.detect":
-            case "vision.waitDetect":
-            case "vision.clickDetect":
-                Watching(() => Sightings(step));
-                break;
-
-            case "vision.findColor":
-            case "vision.waitColor":
-            case "vision.clickColor":
-                Watching(() => Scan(step, PixelColor.Parse(ReadValue(step, "color").AsText()),
-                    ReadValue(step, "tolerance").AsNumber(), measured: false));
-                break;
-
-            case "vision.findColors":
-                Watching(() => PatternHits(step));
-                break;
-
-            case "vision.matchColor":
-            case "vision.getPixel":
-                Watching(() =>
-                {
-                    var (point, window) = Spot(step);
-                    SawPixel(step, point, PixelAt(step, point, window).ToHex(), window);
-                });
-                break;
-
-            case "vision.waitStable":
-                // Whether something has stopped moving is only answered by time passing, so one look
-                // shows what is on the screen and leaves the waiting to a run.
-                Watching(() =>
-                {
-                    if (SearchAreas(step).FirstOrDefault() is { Frame: { } frame, Origin: { } origin })
-                    {
-                        Took(step, (frame, origin));
-                    }
-                });
-                break;
-
-            case "vision.capture":
-                Watching(() => Took(step, CaptureBox(step)));
-                break;
-
-            case "vision.captureWindow":
-                Watching(() => Took(step, WindowBox(step)));
-                break;
-
-            case "ocr.recognize":
-                Watching(() => WasRead(step, ReadBox(step)));
-                break;
-
-            case "ocr.findText":
-            case "ocr.clickText":
-                Watching(() => SawSought(step));
-                break;
-
-            default:
-                break;
-        }
     }
 
     /// <summary>Hands over a picture that was taken, without keeping it anywhere.</summary>

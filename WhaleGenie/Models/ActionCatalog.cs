@@ -109,7 +109,7 @@ public static class ActionCatalog
 
         Definitions = definitions;
         ByKey = definitions.ToDictionary(definition => definition.Key, StringComparer.Ordinal);
-        RunnableActions = [.. definitions.Where(definition => !definition.Hidden && !definition.Retired)];
+        RunnableActions = [.. definitions.Where(definition => !definition.Hidden)];
         PlaceableActions = [.. definitions.Where(definition => !definition.Hidden)];
     }
 
