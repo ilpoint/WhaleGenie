@@ -65,21 +65,24 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 信息投影给编辑器；`ActionContractTests` 检查二者对应关系。显示层另有一个 `WrittenByTool`：这类值
 由专门的窗口写入（基准色周围要对的颜色），表单不给它生成行，值本身照常保存与校验。
 
-动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、
+动作族已经从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、
 `SystemActions`、`UiaActions`、`FileActions` 与 `DataActions`、`WindowActions`、`KeyboardActions`、
 `GamepadActions`、`PointerActions`、`BrowserActions`、`OcrActions`、`DetectionActions`、
-`CaptureActions`、`ColourActions` 与 `ImageActions` 已经迁出：它们共用
-`RunActionHandler`，处理器表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、
-取得设备与运行观测），因此这些族可以脱离运行器直接测试。带块的动作（`browser.dialog` 这类）通过
-`IRunContext.RunBlock` 运行它包住的步骤，门与循环仍由运行器掌管；读屏的动作通过 `IRunContext.Reads`
-（`IScreenReads`）取用区域、读法与观察，条件判断与试看走同一份；取一张图、读一个像素通过
-`IRunContext.Shots`（`IScreenShots`）取用，截图与像素读法因此只有一处。
+`CaptureActions`、`ColourActions`、`ImageActions` 与脚本三件（`ScriptActions`、`ScriptLanguages`、
+`ScriptFiles`）都在族自己的文件里：它们共用 `RunActionHandler`，处理器表是静态的，每个处理器只接收
+`IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），因此这些族可以脱离运行器直接测试。
+带块的动作（`browser.dialog` 这类）通过 `IRunContext.RunBlock` 运行它包住的步骤，门与循环仍由运行器
+掌管；读屏的动作通过 `IRunContext.Reads`（`IScreenReads`）取用区域、读法与观察，条件判断与试看走同一份；
+取一张图、读一个像素通过 `IRunContext.Shots`（`IScreenShots`）取用，截图与像素读法因此只有一处；
+脚本通过 `IRunContext.RunStepById` 按标识运行一步，脚本里停止或返回的意愿由 `BeginScript` /
+`EndScript` 一并交回宏本身。
 `UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此在族内只有一种搜索方式；文件族按读写
 格式分成 `FileActions`（文本、单个文件、文件夹、列表与变量快照）、`FileJsonActions` 与
 `FileCsvActions`，各自带走自己的形状规则。按键分成“按完就结束”的键盘族与按住不放的四个步骤：
 后者属于运行状态，与运行结束时统一放松的代码放在一起，仍留在 `MacroRunner`。
-尚未迁走的族仍是 `MacroRunner.<Family>.cs`；主文件维护运行状态、循环与分派，公共读值集中在
-`MacroRunner.Reading.cs`。目录声明语义，但不替代动作分派；新增动作仍需在具体处理器中实现。
+运行器现在只装解释器本身：步骤循环、尝试与失败规则、门与循环、调用栈，以及公共读值
+（`MacroRunner.Reading.cs`）与结果、窗口、点、试看、参考图几层。目录声明语义，但不替代动作分派；
+新增动作仍需在具体处理器中实现。
 
 曾经住在动作族文件里、实际被所有族共用的代码已经分开：`MacroRunner.Results.cs` 是交付结果的
 一层（`Give`、`Store`、`GiveMatch`、`GiveNothing`、`GiveEvery` 与命中记录），

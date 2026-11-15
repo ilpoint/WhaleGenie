@@ -160,6 +160,20 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads,
     Task<Signal> IRunContext.RunBlock(IReadOnlyList<ExecutableStep> steps, int depth,
         CancellationToken token) => RunSteps(steps, depth, token);
 
+    bool IRunContext.RunStepById(string id, string type, int depth, CancellationToken token)
+        => RunStepById(id, type, depth, token);
+
+    void IRunContext.BeginScript()
+    {
+        _run.StoppedInsideScript = false;
+        _run.ReturnedInsideScript = false;
+    }
+
+    Signal IRunContext.EndScript()
+        => _run.StoppedInsideScript ? Signal.Stop
+            : _run.ReturnedInsideScript ? Signal.Return
+            : Signal.Normal;
+
     void IRunContext.Saw(ExecutableStep step, LookKind kind, ImageFrame frame)
         => Saw(step, kind, frame, default, [], 0);
 

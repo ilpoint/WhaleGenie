@@ -1,29 +1,19 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
-
 
 namespace WhaleGenie.Core.Execution;
 
-// What kind of script a step writes, where it runs, and how its file is named and tidied.
-public sealed partial class MacroRunner
+/// <summary>
+/// What kind of script a step writes, where it runs, how its file is named and how the copy is
+/// tidied away. Everything about a script that is a fact about files rather than about running
+/// one: the command line an interpreter needs, the ending its file must have, the code page it is
+/// written in, and the folder it runs in.
+/// </summary>
+internal static class ScriptFiles
 {
     /// <summary>The kind of script a step asks for, said in the step's <c>kind</c> field.</summary>
-    private static ScriptKind ScriptKindOf(ExecutableStep step)
+    public static ScriptKind KindOf(ExecutableStep step)
         => step.Text("kind").Trim().ToLowerInvariant() switch
         {
             "" or "ps1" => ScriptKind.PowerShell,
@@ -44,7 +34,7 @@ public sealed partial class MacroRunner
     /// A name for the kind of script, for the line the run log keeps. It is the name of the thing
     /// that ran rather than the value the field holds, because the log is read by a person.
     /// </summary>
-    private static string ScriptKindName(ScriptKind kind) => kind switch
+    public static string KindName(ScriptKind kind) => kind switch
     {
         ScriptKind.CommandKeepWindow or ScriptKind.CommandCloseWindow or ScriptKind.CommandHidden
             or ScriptKind.CommandFile => "CMD",
@@ -61,15 +51,15 @@ public sealed partial class MacroRunner
     /// after whatever the macro wrote, which is where an interpreter expects to find it and where
     /// a person typing the same command line would put it.
     /// </summary>
-    private (string Program, string Arguments) ScriptCommandOf(ExecutableStep step,
-        ScriptKind kind, string path, string extra)
+    public static (string Program, string Arguments) CommandOf(IRunContext run,
+        ExecutableStep step, ScriptKind kind, string path, string extra)
     {
         var quoted = $"\"{path}\"";
         var tail = extra.Length == 0 ? string.Empty : $" {extra}";
 
         if (kind is ScriptKind.Custom)
         {
-            var named = Args(step).Text("interpreter").Trim();
+            var named = run.Args(step).Text("interpreter").Trim();
             if (named.Length == 0)
             {
                 throw new StepFailure(RunKeys.MissingInterpreter);
@@ -82,7 +72,7 @@ public sealed partial class MacroRunner
 
         if (kind is ScriptKind.AutoHotkey)
         {
-            return (_devices.Scripts.AutoHotkeyProgram
+            return (run.Devices.Scripts.AutoHotkeyProgram
                     ?? throw new StepFailure(RunKeys.NoAutoHotkey),
                 $"{quoted}{tail}");
         }
@@ -102,7 +92,7 @@ public sealed partial class MacroRunner
     /// kinds that name a program by itself are each one ending; a program of the macro's own
     /// choosing has to be told.
     /// </summary>
-    private string ScriptExtensionOf(ExecutableStep step, ScriptKind kind)
+    public static string ExtensionOf(IRunContext run, ExecutableStep step, ScriptKind kind)
     {
         switch (kind)
         {
@@ -119,7 +109,7 @@ public sealed partial class MacroRunner
                 return ".ahk";
         }
 
-        var wanted = Args(step).Text("extension").Trim();
+        var wanted = run.Args(step).Text("extension").Trim();
         if (wanted.Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScriptExtension);
@@ -137,7 +127,7 @@ public sealed partial class MacroRunner
     /// reads. A macro that knows better can say so, and the reason it can is cscript: that one
     /// reads the system code page by design, so Chinese text in a .vbs has to be GBK.
     /// </summary>
-    private static string ScriptEncodingOf(ExecutableStep step, ScriptKind kind)
+    public static string EncodingOf(ExecutableStep step, ScriptKind kind)
     {
         var chosen = step.Text("encoding").Trim();
         if (chosen.Length > 0 && !string.Equals(chosen, "auto", StringComparison.OrdinalIgnoreCase))
@@ -159,11 +149,11 @@ public sealed partial class MacroRunner
     /// means — but only when that folder is really there: a program cannot be started in a folder
     /// that does not exist, and an empty folder field is better than a script that never runs.
     /// </summary>
-    private string ScriptWorkingFolder(ExecutableStep step)
+    public static string WorkingFolder(IRunContext run, ExecutableStep step)
     {
-        var folder = Args(step).ValueOf("folder").AsText().Trim();
-        return folder.Length == 0 && _devices.Files.Exists(_devices.Files.BaseFolder)
-            ? _devices.Files.BaseFolder
+        var folder = run.Args(step).ValueOf("folder").AsText().Trim();
+        return folder.Length == 0 && run.Devices.Files.Exists(run.Devices.Files.BaseFolder)
+            ? run.Devices.Files.BaseFolder
             : folder;
     }
 
@@ -173,7 +163,7 @@ public sealed partial class MacroRunner
     /// ever there for as long as the program needed to read it, and a tidy-up that fails is not
     /// worth failing the step over.
     /// </summary>
-    private void TidyScript(string path, string sentinel, int depth, string type)
+    public static void Tidy(IRunContext run, string path, string sentinel, int depth, string type)
     {
         foreach (var file in new[] { path, sentinel })
         {
@@ -184,35 +174,26 @@ public sealed partial class MacroRunner
 
             try
             {
-                _devices.Files.Delete(file, false);
+                run.Devices.Files.Delete(file, false);
             }
             catch (Exception)
             {
-                Log(LogLevel.Debug, depth, type, LogKeys.ScriptNotTidied, file);
+                run.Log(LogLevel.Debug, depth, type, LogKeys.ScriptNotTidied, file);
             }
         }
     }
 
     /// <summary>Where the copies of a script are written while it runs.</summary>
-    private static string ScriptFolder() => Path.Combine(Path.GetTempPath(), "WhaleGenie");
+    public static string Folder() => Path.Combine(Path.GetTempPath(), "WhaleGenie");
 
     /// <summary>
     /// The time a command is given, turned into one the process API understands: a step that asked
     /// for no limit is given one long enough that nobody reading the number is waiting for it.
     /// </summary>
-    private static int ScriptLimitOf(int timeoutMs) => timeoutMs <= 0 ? int.MaxValue : timeoutMs;
-
-    /// <summary>
-    /// Fills the <c>{{name}}</c> placeholders with what those variables hold. A script is written in
-    /// a language of its own — PowerShell, JavaScript, a batch file — and every one of them gives
-    /// its own meaning to <c>$</c> and <c>%</c>, so a macro value is spelled differently in here on
-    /// purpose. A name the macro does not know is left as it was written, where it is easy to see
-    /// rather than quietly replaced by nothing.
-    /// </summary>
-    private string Template(string text) => Templates.Fill(text, Variables);
+    public static int LimitOf(int timeoutMs) => timeoutMs <= 0 ? int.MaxValue : timeoutMs;
 
     /// <summary>What a script said on its error output, kept short enough to read in a message.</summary>
-    private static string Careful(string text)
+    public static string Careful(string text)
     {
         var trimmed = text.Trim();
         return trimmed.Length <= 400 ? trimmed : trimmed[..400] + "…";

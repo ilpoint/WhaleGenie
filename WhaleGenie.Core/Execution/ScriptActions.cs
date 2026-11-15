@@ -3,50 +3,83 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
-
 
 namespace WhaleGenie.Core.Execution;
 
-// Running a script: the step that asks for one, and the window its output is captured through.
-public sealed partial class MacroRunner
+/// <summary>
+/// Running a script the step carries: writing a copy where an interpreter can read it, starting
+/// that interpreter, and handing over what the script came to. A command that keeps its window is
+/// waited on through a mark the script writes rather than through the window the person is
+/// reading.
+/// </summary>
+internal static class ScriptActions
 {
-    private void RunScript(ExecutableStep step, int depth)
+    /// <summary>
+    /// The script actions, each answered by the method written for it. A step of another family
+    /// is not in this table.
+    /// </summary>
+    internal static readonly IReadOnlyDictionary<string, RunActionHandler> Map =
+        new Dictionary<string, RunActionHandler>(StringComparer.Ordinal)
+        {
+            ["script.run"] = (run, step, depth, _) =>
+            {
+                RunScript(run, step, depth);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["script.python"] = (run, step, depth, token) =>
+                Task.FromResult(ScriptLanguages.RunPython(run, step, depth, token)),
+
+            ["script.pip"] = (run, step, depth, token) =>
+            {
+                ScriptLanguages.RunPip(run, step, depth, token);
+                return Task.FromResult(Signal.Normal);
+            },
+
+            ["script.csharp"] = (run, step, depth, token) =>
+                Task.FromResult(ScriptLanguages.RunCSharp(run, step, depth, token)),
+
+            ["script.ahk"] = (run, step, depth, token) =>
+                Task.FromResult(ScriptLanguages.RunAutoHotkey(run, step, depth, token)),
+
+            ["script.nuget"] = (run, step, depth, token) =>
+            {
+                ScriptLanguages.RunNuGet(run, step, depth, token);
+                return Task.FromResult(Signal.Normal);
+            },
+        };
+
+    private static void RunScript(IRunContext run, ExecutableStep step, int depth)
     {
-        var kind = ScriptKindOf(step);
+        var kind = ScriptFiles.KindOf(step);
+        var args = run.Args(step);
 
         // A script may be written in the step or named as a file on disk. A file is run where it
         // lies: nothing of it is copied, so what it reads beside itself, what it includes and what
         // a variable written into it would have been are exactly what its author wrote.
-        var fromFile = string.Equals(Args(step).Text("scriptSource").Trim(), "file",
+        var fromFile = string.Equals(args.Text("scriptSource").Trim(), "file",
             StringComparison.OrdinalIgnoreCase);
-        var chosen = fromFile ? Args(step).ValueOf("scriptFile").AsText().Trim() : string.Empty;
-        var script = fromFile ? string.Empty : Template(Args(step).Text("script"));
+        var chosen = fromFile ? args.ValueOf("scriptFile").AsText().Trim() : string.Empty;
+        var script = fromFile ? string.Empty : Templates.Fill(args.Text("script"), run.Variables);
         if (chosen.Length == 0 && script.Trim().Length == 0)
         {
             throw new StepFailure(RunKeys.MissingScript);
         }
 
-        if (fromFile && !_devices.Files.Exists(chosen))
+        if (fromFile && !run.Devices.Files.Exists(chosen))
         {
             throw new StepFailure(RunKeys.FileNotFound, chosen);
         }
 
         var stamp = Guid.NewGuid().ToString("N");
         var path = fromFile
-            ? _devices.Files.Resolve(chosen)
-            : Path.Combine(ScriptFolder(), $"script-{stamp}{ScriptExtensionOf(step, kind)}");
+            ? run.Devices.Files.Resolve(chosen)
+            : Path.Combine(ScriptFiles.Folder(),
+                $"script-{stamp}{ScriptFiles.ExtensionOf(run, step, kind)}");
 
         // The one kind whose window is left standing has to be told that the command is done: a
         // batch file sitting at its prompt says nothing to anyone but the person in front of it. A
@@ -54,34 +87,34 @@ public sealed partial class MacroRunner
         // it, and that is what lets the macro carry on when the command finishes rather than when
         // the window is closed.
         var sentinel = kind is ScriptKind.CommandKeepWindow
-            ? Path.Combine(ScriptFolder(), $"done-{stamp}.txt")
+            ? Path.Combine(ScriptFiles.Folder(), $"done-{stamp}.txt")
             : string.Empty;
 
         // A script named as a file cannot have a line added to it, so the kind that needs the mark
         // gets a little batch file of its own to run it with: the mark still says when the command
         // is done, and the file that was named stays exactly as it was.
-        var passed = Template(Args(step).Text("scriptArguments")).Trim();
+        var passed = Templates.Fill(args.Text("scriptArguments"), run.Variables).Trim();
         var wrapper = sentinel.Length > 0 && fromFile
-            ? Path.Combine(ScriptFolder(), $"script-{stamp}.cmd")
+            ? Path.Combine(ScriptFiles.Folder(), $"script-{stamp}.cmd")
             : string.Empty;
 
         // The command line is put together before anything is written: a step whose program or file
         // ending is missing fails without leaving a copy of a script behind.
-        var (program, arguments) = ScriptCommandOf(step, kind, wrapper.Length > 0 ? wrapper : path,
-            wrapper.Length > 0 ? string.Empty : passed);
-        var folder = ScriptWorkingFolder(step);
+        var (program, arguments) = ScriptFiles.CommandOf(run, step, kind,
+            wrapper.Length > 0 ? wrapper : path, wrapper.Length > 0 ? string.Empty : passed);
+        var folder = ScriptFiles.WorkingFolder(run, step);
         var timeout = Math.Max(0, step.Meta.TimeoutMs);
 
         if (wrapper.Length > 0)
         {
-            _devices.Files.WriteText(wrapper, WithCaller(path, passed, sentinel), false,
-                ScriptEncodingOf(step, kind));
+            run.Devices.Files.WriteText(wrapper, WithCaller(path, passed, sentinel), false,
+                ScriptFiles.EncodingOf(step, kind));
         }
         else if (!fromFile)
         {
-            _devices.Files.WriteText(path,
+            run.Devices.Files.WriteText(path,
                 sentinel.Length == 0 ? script : WithSentinel(script, sentinel),
-                false, ScriptEncodingOf(step, kind));
+                false, ScriptFiles.EncodingOf(step, kind));
         }
 
         var output = string.Empty;
@@ -91,12 +124,12 @@ public sealed partial class MacroRunner
         {
             if (kind is ScriptKind.CommandKeepWindow or ScriptKind.CommandCloseWindow)
             {
-                exitCode = RunInWindow(program, arguments, folder, sentinel, timeout);
+                exitCode = RunInWindow(run, program, arguments, folder, sentinel, timeout);
             }
             else
             {
-                var ran = _devices.Processes.Run(new CommandRequest(program, arguments, folder,
-                    ScriptLimitOf(timeout), OutputEncoding: TextEncoding.System));
+                var ran = run.Devices.Processes.Run(new CommandRequest(program, arguments, folder,
+                    ScriptFiles.LimitOf(timeout), OutputEncoding: TextEncoding.System));
                 output = ran.StandardOutput.Trim('\r', '\n');
                 error = ran.StandardError.Trim();
                 exitCode = ran.ExitCode;
@@ -106,23 +139,25 @@ public sealed partial class MacroRunner
         {
             // What is removed is what this step wrote: a script the macro named as a file is one of
             // the macro's own and is left where it is.
-            TidyScript(fromFile ? wrapper : path, sentinel, depth, step.Type);
+            ScriptFiles.Tidy(run, fromFile ? wrapper : path, sentinel, depth, step.Type);
         }
 
         // What the script came to is handed over before the step is failed for it: a macro whose
         // failure rule lets it carry on — "continue", or the user answering the question — reads
         // the message and the flag on the steps after this one.
-        Give(step, "output", Value.FromText(output));
-        Give(step, "error", Value.FromText(error));
-        Give(step, "exitCode", Value.FromNumber(exitCode));
-        Give(step, "success", Value.FromBool(exitCode == 0));
+        run.Give(step, "output", Value.FromText(output));
+        run.Give(step, "error", Value.FromText(error));
+        run.Give(step, "exitCode", Value.FromNumber(exitCode));
+        run.Give(step, "success", Value.FromBool(exitCode == 0));
 
         if (exitCode != 0)
         {
-            throw new StepFailure(RunKeys.ScriptFailed, Reason(exitCode, error));
+            throw new StepFailure(RunKeys.ScriptFailed,
+                ScriptLanguages.Reason(exitCode, error));
         }
 
-        Log(LogLevel.Info, depth, step.Type, LogKeys.RanScript, ScriptKindName(kind), output.Length);
+        run.Log(LogLevel.Info, depth, step.Type, LogKeys.RanScript,
+            ScriptFiles.KindName(kind), output.Length);
     }
 
     /// <summary>
@@ -131,22 +166,23 @@ public sealed partial class MacroRunner
     /// this way, so what ends the wait is either the process — a command run with /c, or a window
     /// the person closed — or the mark the script leaves behind when it is finished.
     /// </summary>
-    private int RunInWindow(string program, string arguments, string folder, string sentinel,
-        int timeoutMs)
+    private static int RunInWindow(IRunContext run, string program, string arguments, string folder,
+        string sentinel, int timeoutMs)
     {
-        var id = _devices.Processes.Start(new StartRequest(program, arguments, folder, Hidden: false));
+        var id = run.Devices.Processes.Start(new StartRequest(program, arguments, folder,
+            Hidden: false));
         var started = Stopwatch.GetTimestamp();
 
         while (true)
         {
-            if (_devices.Processes.HasExited(id))
+            if (run.Devices.Processes.HasExited(id))
             {
-                return _devices.Processes.ExitCode(id) ?? 0;
+                return run.Devices.Processes.ExitCode(id) ?? 0;
             }
 
-            if (sentinel.Length > 0 && _devices.Files.Exists(sentinel))
+            if (sentinel.Length > 0 && run.Devices.Files.Exists(sentinel))
             {
-                var written = _devices.Files.ReadText(sentinel, TextEncoding.Default).Trim();
+                var written = run.Devices.Files.ReadText(sentinel, TextEncoding.Default).Trim();
                 return int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture,
                     out var code)
                     ? code
@@ -155,7 +191,7 @@ public sealed partial class MacroRunner
 
             if (timeoutMs > 0 && Stopwatch.GetElapsedTime(started).TotalMilliseconds > timeoutMs)
             {
-                _devices.Processes.StopById(id, force: true);
+                run.Devices.Processes.StopById(id, force: true);
                 throw new StepFailure(RunKeys.CommandTimeout, program);
             }
 

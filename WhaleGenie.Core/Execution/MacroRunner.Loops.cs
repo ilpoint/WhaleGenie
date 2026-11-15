@@ -102,7 +102,7 @@ public sealed partial class MacroRunner
             }
 
             index++;
-            await Pause(interval, token);
+            await Pacing.Pause(interval, token);
         }
 
         Give(step, "ended", Value.FromText("items"));
@@ -158,7 +158,7 @@ public sealed partial class MacroRunner
             }
 
             round++;
-            await Pause(interval, token);
+            await Pacing.Pause(interval, token);
         }
 
         Give(step, "ended", Value.FromText("range"));

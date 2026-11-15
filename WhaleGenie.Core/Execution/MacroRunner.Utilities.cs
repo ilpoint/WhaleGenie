@@ -33,7 +33,7 @@ public sealed partial class MacroRunner
                 return found;
             }
 
-            await Pause(interval, token);
+            await Pacing.Pause(interval, token);
         }
     }
 

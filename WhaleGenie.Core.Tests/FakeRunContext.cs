@@ -320,6 +320,25 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
         return Task.FromResult(Signal.Normal);
     }
 
+    bool IRunContext.RunStepById(string id, string type, int depth, CancellationToken token)
+    {
+        StepsRun.Add((id, type));
+        return StepRunSucceeds;
+    }
+
+    void IRunContext.BeginScript() => ScriptOutcome = Signal.Normal;
+
+    Signal IRunContext.EndScript() => ScriptOutcome;
+
+    /// <summary>The steps a script under test asked the run to carry out, by identity.</summary>
+    public List<(string Id, string Type)> StepsRun { get; } = [];
+
+    /// <summary>Whether a step a script runs reports that it ended well.</summary>
+    public bool StepRunSucceeds { get; set; } = true;
+
+    /// <summary>What the run answers a script step with once the script is over.</summary>
+    public Signal ScriptOutcome { get; set; } = Signal.Normal;
+
     /// <summary>The blocks a family under test ran, in the order it ran them.</summary>
     public List<IReadOnlyList<ExecutableStep>> Ran { get; } = [];
 

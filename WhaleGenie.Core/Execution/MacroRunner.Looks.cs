@@ -374,7 +374,7 @@ public sealed partial class MacroRunner
         var left = Until();
         if (left > 0)
         {
-            await Pause(left, token);
+            await Pacing.Pause(left, token);
         }
     }
 

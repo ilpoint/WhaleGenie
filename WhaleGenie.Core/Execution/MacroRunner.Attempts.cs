@@ -39,7 +39,7 @@ public sealed partial class MacroRunner
             return Signal.Normal;
         }
 
-        await Pause(Pace(step.Meta.DelayBeforeMs), token);
+        await Pacing.Pause(Pace(step.Meta.DelayBeforeMs), token);
 
         // What the step works out while it runs is kept for whoever is watching it, and nothing is
         // kept when nobody is: a macro a trigger started is not made to turn every result into text
@@ -234,7 +234,7 @@ public sealed partial class MacroRunner
                 }
 
                 attempts.Add(Took(attempt + 1, started, OutcomeOk, null, overran: false));
-                await Pause(Pace(step.Meta.DelayAfterMs), token);
+                await Pacing.Pause(Pace(step.Meta.DelayAfterMs), token);
                 WriteOutcome(step, OutcomeOk);
                 Report(step, OutcomeOk, Elapsed(startedStep), null, Worked(), attempts);
                 return signal;
@@ -282,7 +282,7 @@ public sealed partial class MacroRunner
     {
         if (remaining is null)
         {
-            await Pause(RetryPause(step, attempt + 1), token);
+            await Pacing.Pause(RetryPause(step, attempt + 1), token);
             return true;
         }
 
@@ -299,7 +299,7 @@ public sealed partial class MacroRunner
 
         try
         {
-            await Pause(pause, token);
+            await Pacing.Pause(pause, token);
             return true;
         }
         catch (OperationCanceledException) when (!outer.IsCancellationRequested)

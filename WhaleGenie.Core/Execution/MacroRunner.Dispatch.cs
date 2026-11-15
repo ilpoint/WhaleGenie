@@ -130,7 +130,7 @@ public sealed partial class MacroRunner
                      FileActions.Map, FileJsonActions.Map, FileCsvActions.Map, DataActions.Map,
                      WindowActions.Map, KeyboardActions.Map, GamepadActions.Map,
                      PointerActions.Map, BrowserActions.Map, OcrActions.Map, DetectionActions.Map,
-                     CaptureActions.Map, ColourActions.Map, ImageActions.Map,
+                     CaptureActions.Map, ColourActions.Map, ImageActions.Map, ScriptActions.Map,
                  })
         {
             foreach (var (key, handler) in family)
@@ -147,7 +147,6 @@ public sealed partial class MacroRunner
         [
             ControlActions,
             HeldActions,
-            ScriptActions,
         ];
 
     /// <summary>
@@ -189,7 +188,7 @@ public sealed partial class MacroRunner
 
             ["control.delay"] = async (step, depth, token) =>
             {
-                await Pause(Pace(Args(step).Number("ms")), token);
+                await Pacing.Pause(Pace(Args(step).Number("ms")), token);
                 return Signal.Normal;
             },
 
@@ -361,7 +360,7 @@ public sealed partial class MacroRunner
         var started = Stopwatch.GetTimestamp();
         try
         {
-            await WaitForFlagAsync(() => Check(step, "condition", token), poll, token);
+            await Pacing.WaitForFlagAsync(() => Check(step, "condition", token), poll, token);
         }
         catch (OperationCanceledException)
         {
@@ -405,7 +404,7 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             }
 
-            await Pause(interval, token);
+            await Pacing.Pause(interval, token);
         }
 
         Give(step, "ended", Value.FromText("count"));
@@ -441,7 +440,7 @@ public sealed partial class MacroRunner
                 return Signal.Normal;
             }
 
-            await Pause(interval, token);
+            await Pacing.Pause(interval, token);
         }
 
         Give(step, "ended", Value.FromText("limit"));

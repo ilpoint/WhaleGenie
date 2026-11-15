@@ -125,6 +125,22 @@ internal interface IRunContext
     /// </summary>
     Task<Signal> RunBlock(IReadOnlyList<ExecutableStep> steps, int depth, CancellationToken token);
 
+    /// <summary>
+    /// Runs one step of the macro by the identity a script names, saying whether it ended well. A
+    /// script may drive the macro it is running inside; what the step asks for — stop, return,
+    /// fail — is carried out as if the macro had reached it.
+    /// </summary>
+    bool RunStepById(string id, string type, int depth, CancellationToken token);
+
+    /// <summary>
+    /// Starts a script step. A step the script runs may ask the macro to stop or to return, and
+    /// those answers belong to the macro rather than to the script.
+    /// </summary>
+    void BeginScript();
+
+    /// <summary>What the steps a script ran asked for, once the script is over.</summary>
+    Signal EndScript();
+
     /// <summary>Runs a body with the step's picture cleared, keeping whatever it saw.</summary>
     void Watching(Action body);
 
