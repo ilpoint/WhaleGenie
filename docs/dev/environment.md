@@ -90,7 +90,7 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 
 | 依赖 | 使用位置与用途 |
 | --- | --- |
-| `SharpHook` | Platform.Windows：全局键鼠钩子与事件翻译；引擎用自己的 `HookCode` 与 `KeyTable` 命名按键，不依赖它 |
+| `SharpHook` | Platform.Windows：全局键鼠钩子与事件翻译；引擎用自己的 `HookCode` 与 `KeyTable` 命名按键，不依赖它，`KeyCodeParityTests` 保证这份列表与 `SharpHook.Data.KeyCode` 同名同值 |
 | `libVIIPER` | Platform.Windows：驱动级虚拟键鼠和 Xbox 360 手柄；原生库位于 `third_party/libVIIPER/` |
 | `OpenCvSharp5.Windows` | Platform.Windows：找图、找色和 YOLO 检测 |
 | `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | Platform.Windows：离线 OCR 与中文模型 |

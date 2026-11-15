@@ -11,6 +11,11 @@ namespace WhaleGenie.Core.Devices;
 /// what Windows presses lives with the Windows adapters, which is the only place that needs both
 /// numberings at once. The names are the library's without the "Vc" it puts in front of each; the
 /// digits are spelled <c>Digit0</c> here because a C# name cannot start with one.
+///
+/// The list is copied from <c>SharpHook.Data.KeyCode</c> rather than derived from it, because the
+/// library publishes no table to derive from and this assembly must not depend on it. The copy is
+/// checked, not trusted: <c>KeyCodeParityTests</c> compares the two name by name and value by value
+/// and fails when an upgrade changes either, which is the moment to copy the list again.
 /// </remarks>
 internal enum HookCode
 {

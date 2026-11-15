@@ -17,12 +17,6 @@ internal static class HookKeys
     /// <summary>The key of ours for a code the library reported.</summary>
     internal static HookKey Key(KeyCode code) => new((int)code);
 
-    /// <summary>The code the library wants for a key of ours.</summary>
-    internal static KeyCode Library(HookKey key) => (KeyCode)key.Value;
-
-    /// <summary>The code the library wants for one of the engine's.</summary>
-    internal static KeyCode Library(HookCode code) => (KeyCode)(int)code;
-
     /// <summary>
     /// Our name for a button the library reported, or nothing for one it has no name for. Naming
     /// only the buttons a macro can be bound to is what keeps an unnamed one from being taken for
