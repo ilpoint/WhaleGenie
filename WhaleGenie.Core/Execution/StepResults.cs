@@ -43,7 +43,7 @@ internal sealed class StepResults(VariableStore variables, StepProgress here, Sc
             return string.Empty;
         }
 
-        if (!MacroRunner.ReturnFits(declared, value))
+        if (!StepChecks.ReturnFits(declared, value))
         {
             throw new StepFailure(RunKeys.VariableTypeMismatch, key);
         }

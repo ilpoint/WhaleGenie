@@ -306,7 +306,7 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> RunIf(ExecutableStep step, int depth, CancellationToken token)
     {
-        RequireCondition(step, "condition");
+        StepChecks.RequireCondition(step, "condition");
         var matched = Check(step, "condition", token);
         return await RunSteps(step.Children(matched ? "then" : "else"), depth + 1, token);
     }

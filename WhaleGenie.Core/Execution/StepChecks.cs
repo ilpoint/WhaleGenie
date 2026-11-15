@@ -1,39 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
-// Checking a step before it runs: the answers it leaves out and the values it hands back.
-public sealed partial class MacroRunner
+/// <summary>
+/// What a step must be given before it runs, and what it promises to hand back. Both questions are
+/// answered from the catalogue rather than from a list kept here, so an action that is added to the
+/// catalogue is checked the moment it is written, and an answer that does not fit the declared kind
+/// is refused before it can be mistaken for a result the macro meant.
+/// </summary>
+internal static class StepChecks
 {
-    /// <summary>
-    /// Answers one condition. Nothing here waits or hands work to another thread, so a condition
-    /// can be asked again and again without holding anything up — which is what the wait block
-    /// does with it.
-    /// </summary>
-    /// <summary>
-    /// Whether a condition's answer comes from the screen, and so from a look at it. The ones that
-    /// do are the ones whose own "how often the screen is looked at" counts, the same field the
-    /// vision steps carry.
-    /// </summary>
-    private static bool LooksAtScreen(string conditionType)
-        => ActionSemanticsCatalog.Find(conditionType)?.LooksAtScreen ?? false;
-
     /// <summary>
     /// What the catalogue says a step must be given, checked before the step runs. An unanswered
     /// field is a mistake to report rather than an empty value for the action to interpret; a word
@@ -41,7 +21,7 @@ public sealed partial class MacroRunner
     /// the key the catalogue names for that field, so a path still says "no path" rather than the
     /// general word for an unanswered field.
     /// </summary>
-    private static void ValidateAnswers(ExecutableStep step)
+    public static void ValidateAnswers(ExecutableStep step)
     {
         if (ActionSemanticsCatalog.Find(step.Type) is not { } definition)
         {
@@ -84,7 +64,7 @@ public sealed partial class MacroRunner
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in step.Rows("returns"))
         {
-            var key = Word(row, FieldNames.Key);
+            var key = ShapeWords.Of(row.GetValueOrDefault(FieldNames.Key));
             var name = row.TryGetValue(FieldNames.Name, out var writtenName)
                 ? Formula.NameOf(writtenName)
                 : string.Empty;
@@ -107,12 +87,56 @@ public sealed partial class MacroRunner
     }
 
     /// <summary>
+    /// A row list is checked against the columns its field declares. A column nobody reads would be
+    /// skipped in silence, which looks like the action ignoring what the row said; one the field
+    /// requires but the row leaves out is a row that cannot say what it was meant to say.
+    /// </summary>
+    private static void CheckRowColumns(ActionParameterSemantics facts,
+        IReadOnlyList<IReadOnlyDictionary<string, ExpressionNode>> rows)
+    {
+        foreach (var row in rows)
+        {
+            foreach (var column in row.Keys)
+            {
+                if (!facts.Columns.Any(known =>
+                        string.Equals(known.Name, column, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new StepFailure(RunKeys.BadRowColumn, facts.Name + "." + column);
+                }
+            }
+
+            if (string.Equals(facts.Name, "region", StringComparison.Ordinal)
+                && HasTextAndNumbers(row))
+            {
+                throw new StepFailure(RunKeys.BadRowColumn, facts.Name + ".text");
+            }
+
+            foreach (var column in facts.Columns.Where(column => column.Required))
+            {
+                if (!row.Keys.Any(written =>
+                        string.Equals(written, column.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new StepFailure(RunKeys.BadRowColumn, facts.Name + "." + column.Name);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// A region row says where to look in one of two ways: a name, or four numbers. Both at once
+    /// would be two answers to one question, and the reader would have to guess which one wins.
+    /// </summary>
+    private static bool HasTextAndNumbers(IReadOnlyDictionary<string, ExpressionNode> row)
+        => Said(row, "text")
+           && new[] { "x", "y", "width", "height" }.Any(column => Said(row, column));
+
+    /// <summary>
     /// True when a value has the shape the catalogue promised for one result. Empty means this
     /// attempt did not work the result out and is valid for every kind. A declared record field
     /// table is exact: a missing, extra or wrongly typed field is a different shape even when the
     /// value still happens to be a record.
     /// </summary>
-    internal static bool ReturnFits(ActionReturnSemantics declared, Value value)
+    public static bool ReturnFits(ActionReturnSemantics declared, Value value)
     {
         if (!ValueRules.Accepts(declared.Type, value))
         {
@@ -153,11 +177,20 @@ public sealed partial class MacroRunner
 
         return true;
     }
-    private static void RequireCondition(ExecutableStep step, string name)
+
+    /// <summary>
+    /// A condition that asks nothing is a mistake rather than a question answered "no": a branch
+    /// whose condition was never filled in would otherwise quietly take one side for ever.
+    /// </summary>
+    public static void RequireCondition(ExecutableStep step, string name)
     {
         if (string.IsNullOrWhiteSpace(step.Text(name)))
         {
             throw new StepFailure(RunKeys.MissingCondition);
         }
     }
+
+    /// <summary>True when a column of a row holds anything at all.</summary>
+    private static bool Said(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => !Formula.IsNothing(row.GetValueOrDefault(column));
 }

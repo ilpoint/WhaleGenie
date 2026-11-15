@@ -149,24 +149,4 @@ public sealed partial class MacroRunner
     private TextCompareOptions OptionsOf(ExecutableStep step, string way)
         => TextRule.Options(way, Flag(step, "caseSensitive", false), Flag(step, "trim", true),
             Flag(step, "multiline", false));
-
-    /// <summary>
-    /// Compares found text against what was asked for, the way the step chose. A pattern the
-    /// machine cannot read comes back as a failed step rather than as a stack trace.
-    /// </summary>
-    private bool Matches(ExecutableStep step, string found, string wanted, string way)
-    {
-        try
-        {
-            return TextCompare.Matches(found, wanted, way, OptionsOf(step, way));
-        }
-        catch (ArgumentException)
-        {
-            throw new StepFailure(RunKeys.BadPattern, wanted);
-        }
-    }
-
-    /// <summary>True when a column of a row holds anything at all.</summary>
-    private static bool Said(IReadOnlyDictionary<string, ExpressionNode> row, string column)
-        => !Formula.IsNothing(row.GetValueOrDefault(column));
 }

@@ -350,7 +350,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunWaitUntil(ExecutableStep step, int depth, CancellationToken token)
     {
-        RequireCondition(step, "condition");
+        StepChecks.RequireCondition(step, "condition");
         var poll = Args(step).Number("intervalMs");
         if (poll <= 0)
         {
@@ -413,7 +413,7 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> RunWhile(ExecutableStep step, int depth, CancellationToken token)
     {
-        RequireCondition(step, "condition");
+        StepChecks.RequireCondition(step, "condition");
         var limit = Math.Max(1, Args(step).Number("maxIterations"));
         var interval = Pace(Args(step).Number("intervalMs"));
         using var scope = EnterLoop(VariableStore.LoopIndexName);

@@ -502,7 +502,7 @@ public sealed partial class MacroRunner
 
     private async Task<Signal> Execute(ExecutableStep step, int depth, CancellationToken token)
     {
-        ValidateAnswers(step);
+        StepChecks.ValidateAnswers(step);
         // Whatever the step before this one read is not what this one read. A step that looks at a
         // picture it was handed rather than taking one of its own says nothing about a window,
         // which is truer than repeating what the step before it was looking at.

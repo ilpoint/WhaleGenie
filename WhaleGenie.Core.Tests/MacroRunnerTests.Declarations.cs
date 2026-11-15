@@ -94,14 +94,14 @@ public partial class MacroRunnerTests
             (FieldNames.How, Value.FromText(WindowHow.ProcessEquals)),
         ]);
 
-        Assert.True(MacroRunner.ReturnFits(program, exact));
-        Assert.False(MacroRunner.ReturnFits(program, Value.FromRecord(
+        Assert.True(StepChecks.ReturnFits(program, exact));
+        Assert.False(StepChecks.ReturnFits(program, Value.FromRecord(
         [
             (FieldNames.Id, Value.FromNumber(12)),
             (FieldNames.Process, Value.FromText("notepad")),
             (FieldNames.Title, Value.FromText("Untitled")),
         ])));
-        Assert.False(MacroRunner.ReturnFits(program, Value.FromRecord(
+        Assert.False(StepChecks.ReturnFits(program, Value.FromRecord(
         [
             (FieldNames.Id, Value.FromText("十二")),
             (FieldNames.Process, Value.FromText("notepad")),
@@ -117,8 +117,8 @@ public partial class MacroRunnerTests
         var first = RecordOf(every.Fields);
         var second = RecordOf(every.Fields);
 
-        Assert.True(MacroRunner.ReturnFits(every, Value.FromList([first, second])));
-        Assert.False(MacroRunner.ReturnFits(every,
+        Assert.True(StepChecks.ReturnFits(every, Value.FromList([first, second])));
+        Assert.False(StepChecks.ReturnFits(every,
             Value.FromList([first, Value.FromText("not a record")])));
     }
 
