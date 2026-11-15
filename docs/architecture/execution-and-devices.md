@@ -66,9 +66,10 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 由专门的窗口写入（基准色周围要对的颜色），表单不给它生成行，值本身照常保存与校验。
 
 动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、
-`SystemActions` 与 `UiaActions` 已经迁出：它们共用 `RunActionHandler`，处理器表是静态的，每个处理器
-只接收 `IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），因此这些族可以脱离运行器直接
-测试。`UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此在族内只有一种搜索方式。
+`SystemActions`、`UiaActions`、`FileActions` 与 `DataActions` 已经迁出：它们共用 `RunActionHandler`，
+处理器表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），
+因此这些族可以脱离运行器直接测试。`UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此
+在族内只有一种搜索方式；`FileActions` 带走 JSON 路径、CSV 形状与变量快照，文件族因此自带整套读法。
 尚未迁走的族仍是 `MacroRunner.<Family>.cs`；主文件维护运行状态、循环与分派，公共读值集中在
 `MacroRunner.Reading.cs`。目录声明语义，但不替代动作分派；新增动作仍需在具体处理器中实现。
 

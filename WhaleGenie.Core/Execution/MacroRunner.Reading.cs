@@ -17,6 +17,13 @@ public sealed partial class MacroRunner
         => new(step, Variables, _devices.Screen.RefreshMilliseconds);
 
     /// <summary>
+    /// A path a step named, with any <c>variable</c> already filled in. Vision and the file family
+    /// both name their target this way, so the reading lives here rather than with either of them.
+    /// </summary>
+    private string PathOf(ExecutableStep step, string parameter = "path")
+        => Args(step).ValueOf(parameter).AsText();
+
+    /// <summary>
     /// A yes/no setting. A step that says nothing takes the catalogue's own default, so a
     /// missing switch behaves the way the action editor showed it rather than always being on.
     /// </summary>

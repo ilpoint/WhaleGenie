@@ -127,6 +127,7 @@ public sealed partial class MacroRunner
         foreach (var family in new[]
                  {
                      ClipboardActions.Map, ProcessActions.Map, SystemActions.Map, UiaActions.Map,
+                     FileActions.Map, DataActions.Map,
                  })
         {
             foreach (var (key, handler) in family)
@@ -141,7 +142,7 @@ public sealed partial class MacroRunner
     private IReadOnlyList<Dictionary<string, ActionHandler>> Families
         =>
         [
-            ControlActions, FileActions, DataActions,
+            ControlActions,
             WindowActions, InputActions, VisionActions, OcrActions,
             BrowserActions, ScriptActions,
         ];

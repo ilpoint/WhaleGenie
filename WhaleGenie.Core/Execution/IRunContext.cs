@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
@@ -19,11 +20,23 @@ internal interface IRunContext
     /// <summary>Pictures the run has taken, under the name the macro saved them by.</summary>
     IDictionary<string, ImageFrame> Images { get; }
 
+    /// <summary>The variables the run works with, for the step that writes them all down.</summary>
+    VariableStore Variables { get; }
+
+    /// <summary>A path a step named, with any name in it already worked out.</summary>
+    string PathOf(ExecutableStep step, string parameter = "path");
+
     /// <summary>One step's fields, read the way the catalogue says they are written.</summary>
     StepArguments Args(ExecutableStep step);
 
     /// <summary>A yes/no field, with the answer a blank cell means.</summary>
     bool Flag(ExecutableStep step, string name, bool fallback);
+
+    /// <summary>
+    /// Whether one value answers another the way a filter asked: the same comparison a switch uses,
+    /// so "keep the rows matching this" and "run this branch" mean the same thing by it.
+    /// </summary>
+    bool CaseMatches(ExecutableStep step, Value value, string wanted, string mode);
 
     /// <summary>Whether the step asked for one of its results, by giving it a name.</summary>
     bool Wants(ExecutableStep step, string key);

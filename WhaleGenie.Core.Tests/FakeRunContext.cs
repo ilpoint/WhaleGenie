@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -32,6 +33,11 @@ internal sealed class FakeRunContext : IRunContext
 
     IDictionary<string, ImageFrame> IRunContext.Images => Images;
 
+    VariableStore IRunContext.Variables => _variables;
+
+    string IRunContext.PathOf(ExecutableStep step, string parameter)
+        => ((IRunContext)this).Args(step).ValueOf(parameter).AsText();
+
     StepArguments IRunContext.Args(ExecutableStep step) => new(step, _variables, 16);
 
     bool IRunContext.Flag(ExecutableStep step, string name, bool fallback)
@@ -40,6 +46,29 @@ internal sealed class FakeRunContext : IRunContext
         return text.Length == 0
             ? fallback
             : !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    bool IRunContext.CaseMatches(ExecutableStep step, Value value, string wanted, string mode)
+    {
+        var text = value.AsText();
+        return mode.Trim().ToLowerInvariant() switch
+        {
+            "notequals" => !ValueRules.Same(value, Value.FromText(wanted)),
+            "contains" or "startswith" or "endswith" => TextCompare.Matches(text, wanted, mode),
+            "notcontains" => !TextCompare.Matches(text, wanted, TextCompare.Contains),
+            "greaterthan" => Number(text).CompareTo(Number(wanted)) > 0,
+            "greaterorequal" => Number(text).CompareTo(Number(wanted)) >= 0,
+            "lessthan" => Number(text).CompareTo(Number(wanted)) < 0,
+            "lessorequal" => Number(text).CompareTo(Number(wanted)) <= 0,
+            "regex" => TextCompare.Matches(text, wanted, TextCompare.Regex),
+            _ => ValueRules.Same(value, Value.FromText(wanted))
+                 || TextCompare.Matches(text, wanted, TextCompare.Exactly),
+        };
+
+        static double Number(string written)
+            => double.TryParse(written, NumberStyles.Any, CultureInfo.InvariantCulture, out var number)
+                ? number
+                : 0;
     }
 
     bool IRunContext.Wants(ExecutableStep step, string key) => step.Return(key).Length > 0;

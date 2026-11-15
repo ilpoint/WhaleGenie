@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
@@ -14,10 +15,17 @@ public sealed partial class MacroRunner : IRunContext
 
     IDictionary<string, ImageFrame> IRunContext.Images => _run.Images;
 
+    VariableStore IRunContext.Variables => Variables;
+
+    string IRunContext.PathOf(ExecutableStep step, string parameter) => PathOf(step, parameter);
+
     StepArguments IRunContext.Args(ExecutableStep step) => Args(step);
 
     bool IRunContext.Flag(ExecutableStep step, string name, bool fallback)
         => Flag(step, name, fallback);
+
+    bool IRunContext.CaseMatches(ExecutableStep step, Value value, string wanted, string mode)
+        => CaseMatches(step, value, wanted, mode);
 
     bool IRunContext.Wants(ExecutableStep step, string key) => Wants(step, key);
 
