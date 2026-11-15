@@ -12,83 +12,24 @@
 - 先处理契约和静默错误，再处理行为扩展与操作便利；游戏与办公场景具有同等优先级。
 - 待评估事项必须先取得测量结果，再决定是否升级为阶段。
 
-## 进行中：模块边界
+## 计划中：引擎不再依赖钩子库
 
-**已完成：Windows 适配器独立成工程。** `WhaleGenie.Core/Devices/Platform/` 的 80 个适配器与
-`ScriptHost` 迁入 `WhaleGenie.Platform.Windows`；Core 只保留契约、解释器与键名表，包依赖从
-13 个降到 2 个（CsvHelper 与 SharpHook 的 `KeyCode` 枚举）。`LayeringTests` 增加“引擎不引用
-适配器程序集”的检查。剩余：把 `SharpKeys` 的键码表换成 Core 自己的枚举，之后 Core 可以去掉
-最后一个原生包。
+模块边界已经收口（适配器、文案、文档与协议各自成工程，无界面 MCP 不启动 Avalonia，测试按被测
+对象拆分，执行器状态与动作分派都已外置），只剩一项：
 
-**已完成：工程文档外置。** `Models/ProjectWorkspace` 持有宏、触发入口、共享变量、包路径、脏标记、
-修订号与 `Changed`；`MainViewModel` 只保留搜索、分组、视图和系统开关并转发文档。MCP 的宿主、工具与
-资源依赖 `Mcp/IProjectGateway`，`McpLiveProject` 是它的界面线程实现，不再引用 `MainViewModel`。
+**Core 仍是 `SharpHook` 的使用者，只为一份键码表。** `Devices/SharpKeys.cs` 直接以
+`SharpHook.Data.KeyCode`、`MouseButton`、`MouseWheelScrollDirection` 书写，`KeyNames` 与四个
+适配器（`HookTranslation`、`SharpHookInputDevice`、`MessageInputDevice`、`PlaywrightBrowserDevice`）
+都经由它取键名或取发送用的代码。
 
-**已完成：文案表独立成工程。** `WhaleGenie.Localization` 持有 `Strings`、`ActionStrings`、表达式与
-日志措辞，只依赖 Core；`LocalSettings` 与 `LanguageRefresh` 仍留在界面工程，因为它们读写设置文件
-并驱动 Avalonia 刷新。
-
-**已完成：文档与协议出界面工程。** `WhaleGenie.Domain` 持有宏文档、工程状态、包读写与图片文件，
-不引用 Avalonia；`WhaleGenie.Mcp` 持有协议宿主、草稿、补丁、资源与项目编辑工具，不引用
-Avalonia、Views 或 Runtime。机器控制、运行宏与运行日志工具留在界面工程，由 `AppServices` 作为
-tool owner 注入。`LayeringTests` 新增两条边界检查。
-
-**已完成：无界面 MCP 不启动 Avalonia。** `--mcp` 在 Avalonia 之前分派；`IUiDispatcher` 与
-`IWindowAside` 让窗口化运行使用 Avalonia 的调度器和窗口让位，无窗口运行使用直接调度器与
-`NoWindowAside`。Release 冒烟验证了 `initialize`、`tools/list` 与空项目创建，进程未加载
-Avalonia、Skia 或 HarfBuzz。
-
-**已完成：测试工程按被测对象拆分。** `WhaleGenie.TestSupport` 收替身设备层、样本文件与测试
-特性；`WhaleGenie.Platform.Tests` 收通过引擎驱动真实适配器的用例（浏览器、驱动、VIIPER、OCR、
-UIA、钩子、脚本、文件、剪贴板与设备动作族）；`Core.Tests` 只留引擎与动作语义，不再引用
-`Platform.Windows`，运行时也不加载原生依赖。动作覆盖契约测试改为同时扫描两个套件。
-
-**本机限制（记录，不影响代码）：** 新建工程路径下的测试宿主在本机命令沙箱里拿不到 `%TEMP%`，
-`WhaleGenie.Platform.Tests` 的 47 个用例因此在构造阶段失败；同一批用例在引擎工程里运行时是通过的，
-换正常终端或 CI 可验证。宿主启动时打开父进程句柄被拒的问题已用 `_MSTestEnableParentProcessQuery`
-关掉（见 `docs/dev/environment.md`）。
-
-**已完成：执行器状态外置。** `MacroRunner` 上原本 30 个可变字段现在分成三处：一次运行的
-`RunState`（帧与引用图缓存、持键、调用深度、取消、门闩、日志、循环与开关深度、脚本内停机标志，
-由 `Begin` 统一清空；引用图缓存按文件写入时间判断新鲜度，因此跨运行保留）、一次尝试的
-`StepProgress`（已算出的结果、看到的画面、读屏区域、取自哪个窗口、失败原因），以及只读的协作者
-（宿主、设备、宏库、外观）。`StepArguments` 收拢步骤参数的读取规则，只依赖步骤、变量表与刷新
-耗时，动作族可以直接持有；`StepFailure` 随之从私有嵌套类型提成独立类型。
-
-**已完成：动作分派改成处理器表。** 13 个族里 176 个 `case` 换成各自的表（`ControlActions`
-…`ScriptActions`），语句体原样搬运，只有不等待的分支把返回值包成 `Task.FromResult`。
-`Dispatch` 按动作键查表。既有的两条覆盖测试（`ReturnsPageTests` 的台账与
-`ActionContractTests` 的集合比对）原本扫描 `case` 文本，已改为读表，仍然双向核对目录与表；
-台账那条还照旧核对“每个动作声明的返回值都有路径写入”。
-
-**本机 CI 已可运行。** `act` 用自托管模式在干净工作树里跑完整个 `ci.yml`：Release 构建 +
-`dotnet format` + 四个套件（Core 756 通过 / 6 跳过，采集 34，适配器 848，界面 1782 / 跳过 1）。
-
-## 进行中：按读取集优化大文件
-
-代码按行数、文档按字节。`.githooks/pre-commit` 读取暂存内容后分档提示，不阻止提交：超过 700 行
-强制拆分并登记技术债，500–700 行建议拆分，300–500 行检查内聚性，少于 300 行健康；文档仍按
-20,000 字节。文案查表记 `exempt:`，不受 700 行强制拆分约束。
-`.githooks/large-file-inventory.tsv` 记录代码行数（文档与数据记字节）与结论：`keep: <理由>` 表示
-确认单一职责、可以保持完整；`split: <理由>` 表示判定混合了关注点、但尚未拆分；`exempt: <理由>`
-表示键与文案一一对应的查表。它不是白名单；二进制、lockfile、生成代码、构建产物、第三方文件和
-许可证不参与提示。
-
-判断一个文件是否需要拆分，看同一项任务是否必须同时读取多个可以独立变化的关注点：
-
-- **需要拆分**：文件混合了多个业务关注点，改动一处通常还要同时理解无关的另一处；按关注点拆分，
-  使实现与对应测试落在同一处。不要按 helpers、utils、models 之类技术层拆，也不为降低行数拆。
-- **保持原样**：单一职责、内部强耦合、很少与别处同时修改；即使超过检查线，也记入清单后保留。
-  大型机器目录、查表数据与共享运行状态属于这一类，不应为了阈值切碎装载入口或状态。但超过 700 行
-  的代码属于技术债，须尽快按关注点拆分。
-
-清单现有 208 个文件：206 个 `keep`，2 个文案查表 `exempt`，没有 `split`，也没有待评估的条目。
-全部代码文件都已按关注点审视过：超过 700 行的只剩两张文案表与一张选择器层叠表，其余都在
-500 行以下，或确认是单一职责。拆分时保持「一次任务只读取相关内容」的口径，不再按行数排队。
-
-完成一批后，从清单删除旧路径或更新行数；超过 700 行的文件在每次提交时都会再次提示，直到拆分。
-不改变动作字段、文件格式或发布包形状；结构调整与行为变更分开提交。清单中只剩 `keep:` 与
-`exempt:` 文件后，删除本节。
+- **目标**：Core 自带 `VirtualKey` 枚举，数值即 Windows 虚拟键码（从 SharpHook 现表导出，不可
+  重编号）；`SharpKeys` 只用自己的类型，库类型与 Core 类型的转换搬到 `Platform.Windows`。
+- **收益**：Core 的包闭包从 2 降到 1（只剩 CsvHelper），引擎测试不再加载钩子的原生库。
+- **做法**：`KeyCode` → `VirtualKey` 逐项改名；鼠标与滚轮的命名改成按 `HookMouseButton`、
+  `HookWheelAxis`（现在先绕一次库类型）；`WindowsKeys` 里按 `KeyCode` 判断扩展键的部分改用
+  Core 类型。数字键名去掉 `Vc` 后是非法标识符，需用 `Digit0`…`Digit9`，反向命名要还原成 `"0"`…`"9"`。
+- **验收**：`KeyNameTests`、`HookTranslationTests`、`Platform.Tests` 的 848 个用例，以及本机
+  `act` 跑完整个 `ci.yml`。
 
 ## 待评估
 
@@ -96,8 +37,6 @@ UIA、钩子、脚本、文件、剪贴板与设备动作族）；`Core.Tests` �
 
 ### 契约与正确性
 
-- **试运行的执行路径对账**：`LooksAtScreen` 已由目录声明，但 `SeeOnce` 等实际查看路径仍含手写分派。
-  先统计声明与实现可系统性漏配的动作，再决定采用目录驱动、按动作键对账或反向 fixture。
 - **其余等待动作的行为用例**：部分等待动作只验证能够结束。参照已有的“第 N 次才满足”夹具，
   优先覆盖 `vision.waitColor`、`browser.waitFor*` 和 `clipboard.waitChange`，确认等待、满足和超时
   三种路径。
@@ -108,8 +47,8 @@ UIA、钩子、脚本、文件、剪贴板与设备动作族）；`Core.Tests` �
 
 - **审计与失败日志的读取边界**：两类日志同处 `logs/` 但文件名不同。检查一次真实运行产生的文件及
   读取路径，决定是否需要目录分离或显式路径参数。
-- **无界面命令行**：只有出现 CI 批量验包、脚本生成宏等真实调用方时，才评估将 `Models/`、
-  `Storage/`、`Localization/` 拆出界面工程；没有调用方则不新增入口。
+- **无界面命令行**：`Models/`、`Storage/`、`Localization/` 已出界面工程，但只服务 MCP 与包读写；
+  仍不新增 CLI 入口，除非出现 CI 批量验包、脚本生成宏等真实调用方。
 - **MCP 工具发现与审计登记**：工具类型和审计调用仍有手工登记点。先通过故障注入确认漏登记能否被
   现有测试发现，再决定是否采用自动发现或统一拦截。
 
