@@ -57,8 +57,9 @@ UIA、钩子、脚本、文件、剪贴板与设备动作族）；`Core.Tests` �
 
 **已完成：动作分派改成处理器表。** 13 个族里 176 个 `case` 换成各自的表（`ControlActions`
 …`ScriptActions`），语句体原样搬运，只有不等待的分支把返回值包成 `Task.FromResult`。
-`Dispatch` 按动作键查表，漏接的动作由 `ActionDispatchTests` 双向核对（目录里的每个动作都有
-处理器、表里的每个键目录都认识），不再等到运行时报 `Run.Unsupported`。
+`Dispatch` 按动作键查表。既有的两条覆盖测试（`ReturnsPageTests` 的台账与
+`ActionContractTests` 的集合比对）原本扫描 `case` 文本，已改为读表，仍然双向核对目录与表；
+台账那条还照旧核对“每个动作声明的返回值都有路径写入”。
 
 **本机 CI 已可运行。** `act` 用自托管模式在干净工作树里跑完整个 `ci.yml`：Release 构建 +
 `dotnet format` + 四个套件（Core 756 通过 / 6 跳过，采集 34，适配器 848，界面 1782 / 跳过 1）。

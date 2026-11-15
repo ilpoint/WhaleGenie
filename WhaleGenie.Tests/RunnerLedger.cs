@@ -40,16 +40,13 @@ internal static class RunnerLedger
         var texts = sources.ToList();
         var methods = Methods(texts);
 
-        // Only a switch over the step type routes actions. Every other switch in the engine is about
-        // a value — a match mode, a list direction — and its cases are words, not action keys.
+        // Only a table over the step type routes actions. Every other collection in the engine is
+        // about something else — a match mode, a list direction — and its keys are words, not
+        // action keys.
         var ledger = new Dictionary<string, Path>(StringComparer.Ordinal);
-        var dispatches = methods
-            .Where(method => method.Key.StartsWith("Dispatch", StringComparison.Ordinal))
-            .SelectMany(method => method.Value.Select(body => body.Body));
-
-        foreach (var dispatch in dispatches)
+        foreach (var text in texts)
         {
-            foreach (var (action, segment) in Branches(dispatch))
+            foreach (var (action, segment) in Entries(text))
             {
                 var keys = new HashSet<string>(StringComparer.Ordinal);
                 Collect(segment, constants, keys);
@@ -229,23 +226,42 @@ internal static class RunnerLedger
     }
 
     /// <summary>
-    /// The branches of a switch over the step type: each case label and the code up to the next one.
-    /// A case whose body runs into the next label (an empty case used as a fall-through) comes back
-    /// with the short segment, which is what its path actually is.
+    /// The entries of the engine's action tables: each key and the handler written for it, up to the
+    /// next key. Only a table of handlers counts — the preview table names the same actions for a
+    /// different purpose, and reading its keys as routes would say a click is answered by a look.
     /// </summary>
-    private static IReadOnlyList<(string Action, string Segment)> Branches(string body)
+    private static IReadOnlyList<(string Action, string Segment)> Entries(string text)
     {
-        var branches = new List<(string Action, string Segment)>();
-        var labels = Regex.Matches(body, "case \\\"([a-zA-Z0-9_.]+)\\\":");
-        for (var index = 0; index < labels.Count; index++)
+        var entries = new List<(string Action, string Segment)>();
+        foreach (Match table in ActionTables.Matches(text))
         {
-            var at = labels[index].Index + labels[index].Length;
-            var next = index + 1 < labels.Count ? labels[index + 1].Index : body.Length;
-            branches.Add((labels[index].Groups[1].Value, body[at..next]));
+            var open = text.IndexOf('{', table.Index);
+            if (open < 0 || !TryBody(text, open, out var close))
+            {
+                continue;
+            }
+
+            var body = text[open..(close + 1)];
+            var labels = Regex.Matches(body, "(?m)^\\s+\\[\"([a-zA-Z0-9_.]+)\"\\] =");
+            for (var index = 0; index < labels.Count; index++)
+            {
+                var at = labels[index].Index + labels[index].Length;
+                var next = index + 1 < labels.Count
+                    ? labels[index + 1].Index
+                    : body.Length;
+                entries.Add((labels[index].Groups[1].Value, body[at..next]));
+            }
         }
 
-        return branches;
+        return entries;
     }
+
+    /// <summary>The action keys one source routes, for a check that only wants the names.</summary>
+    internal static IReadOnlyList<string> RoutedKeys(string text)
+        => [.. Entries(text).Select(entry => entry.Action).Distinct(StringComparer.Ordinal)];
+
+    private static readonly Regex ActionTables = new(
+        "private Dictionary<string, ActionHandler> [A-Za-z]+Actions", RegexOptions.Compiled);
 
     /// <summary>The runner's own methods a stretch of code calls with the step as the first argument.</summary>
     private static IReadOnlyList<string> CalledWithStep(string code)

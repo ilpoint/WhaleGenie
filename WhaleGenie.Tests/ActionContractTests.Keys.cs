@@ -169,24 +169,9 @@ public partial class ActionContractTests
     /// action is answered by whichever family file it belongs to rather than by one list in the
     /// main file.
     /// </summary>
+    /// <summary>The keys the engine's action tables route, read out of the tables themselves.</summary>
     private static IEnumerable<string> FamilyDispatches(string source)
-    {
-        foreach (Match declaration in Regex.Matches(source,
-                     @"\n    private [^\n]*\bDispatch[A-Za-z]*\("))
-        {
-            var start = declaration.Index;
-            var end = source.IndexOf("\n    private ", start + 1, StringComparison.Ordinal);
-            var body = end < 0 ? source[start..] : source[start..end];
-            foreach (var key in Cases(body))
-            {
-                yield return key;
-            }
-        }
-    }
-    private static List<string> Cases(string method)
-        => [.. Regex.Matches(method, "case \"([^\"]+)\":")
-            .Select(match => match.Groups[1].Value)
-            .Distinct(StringComparer.Ordinal)];
+        => RunnerLedger.RoutedKeys(source);
 
     private static void Keys(JsonElement element, List<string> keys)
     {

@@ -273,20 +273,21 @@ public class ReturnsPageTests
     public void A_result_no_path_writes_is_named_with_its_action_its_method_and_its_key()
     {
         const string source = """
-private Task<Signal> DispatchWindow(ExecutableStep step, int depth, CancellationToken token)
-{
-    switch (step.Type)
+private Dictionary<string, ActionHandler> WindowActions
+    => _windowActions ??= new(StringComparer.Ordinal)
     {
-        case "window.info":
+            ["window.info"] = (step, depth, token) =>
+        {
             WindowBox(step, depth);
             return Task.FromResult(Signal.Normal);
-        case "window.close":
+        },
+
+            ["window.close"] = (step, depth, token) =>
+        {
             CloseWindow(step, depth);
             return Task.FromResult(Signal.Normal);
-    }
-
-    return Task.FromResult(Signal.Normal);
-}
+        },
+    };
 
 private void WindowBox(ExecutableStep step, int depth)
 {
