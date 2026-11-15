@@ -38,7 +38,7 @@ public sealed partial class MacroRunner
         var name = Give(step, "image", Value.FromImage($"<image {frame.Width}x{frame.Height}>"));
         if (name.Length > 0)
         {
-            _images[name] = frame;
+            _run.Images[name] = frame;
         }
 
         GiveTaken(step);

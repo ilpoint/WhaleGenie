@@ -81,7 +81,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<bool> Agreed(ExecutableStep step, CancellationToken token)
     {
-        if (_agreed.Contains(Key(step)) || !ActionSemanticsCatalog.CannotBeUndone(step))
+        if (_run.Agreed.Contains(Key(step)) || !ActionSemanticsCatalog.CannotBeUndone(step))
         {
             return true;
         }
@@ -91,7 +91,7 @@ public sealed partial class MacroRunner
             return false;
         }
 
-        _agreed.Add(Key(step));
+        _run.Agreed.Add(Key(step));
         return true;
     }
 
@@ -209,7 +209,7 @@ public sealed partial class MacroRunner
                     throw new StepFailure(RunKeys.Timeout, budget.ToString(CultureInfo.InvariantCulture));
                 }
 
-                _executed++;
+                _run.Executed++;
 
                 // A step that holds steps fails when one of them fails. That arrives as a signal
                 // rather than as an exception — the step that failed has already said what it
@@ -514,28 +514,28 @@ public sealed partial class MacroRunner
         // between this step's click and its next read.
         if (UsesBrowser(step.Type))
         {
-            if (_browserHolds > 0)
+            if (_run.BrowserHolds > 0)
             {
-                _browserHolds++;
+                _run.BrowserHolds++;
                 try
                 {
                     return await Dispatch(step, depth, token);
                 }
                 finally
                 {
-                    _browserHolds--;
+                    _run.BrowserHolds--;
                 }
             }
 
             using var page = await BrowserGate.Take(RunName, token);
-            _browserHolds++;
+            _run.BrowserHolds++;
             try
             {
                 return await Dispatch(step, depth, token);
             }
             finally
             {
-                _browserHolds--;
+                _run.BrowserHolds--;
             }
         }
 

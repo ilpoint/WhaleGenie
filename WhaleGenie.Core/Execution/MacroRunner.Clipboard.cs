@@ -54,7 +54,7 @@ public sealed partial class MacroRunner
             // step inside a loop must never read the picture the previous pass left behind.
             if (name.Length > 0)
             {
-                _images.Remove(name);
+                _run.Images.Remove(name);
             }
 
             Give(step, "image", Value.FromImage(string.Empty));
@@ -64,7 +64,7 @@ public sealed partial class MacroRunner
 
         if (name.Length > 0)
         {
-            _images[name] = picture;
+            _run.Images[name] = picture;
         }
 
         // The picture is the whole answer, so it is what the run window shows for this step: there

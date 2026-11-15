@@ -43,22 +43,7 @@ public sealed partial class MacroRunner
 
         // Kept beside being handed to the host: a run that ends on a failure writes all of this to
         // a file afterwards, and a run nobody is watching has no host that keeps it.
-        _log.Add(entry);
+        _run.Log.Add(entry);
         _host.Log(entry);
-    }
-
-    /// <summary>Why a step could not run. The key is translated by the interface.</summary>
-    private sealed class StepFailure : Exception
-    {
-        public StepFailure(string key, string detail = "")
-            : base(key)
-        {
-            Key = key;
-            Detail = detail;
-        }
-
-        public string Key { get; }
-
-        public string Detail { get; }
     }
 }

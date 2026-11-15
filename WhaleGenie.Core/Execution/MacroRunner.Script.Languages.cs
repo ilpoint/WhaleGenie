@@ -38,8 +38,8 @@ public sealed partial class MacroRunner
         var request = new PythonScript(script, Template(ReadText(step, "scriptArguments")).Trim(),
             ScriptWorkingFolder(step), ScriptTimeoutOf(step), ScriptInterpreter(step));
 
-        _stoppedInsideScript = false;
-        _returnedInsideScript = false;
+        _run.StoppedInsideScript = false;
+        _run.ReturnedInsideScript = false;
         var outcome = _devices.Scripts.RunPython(request, new MacroHost(this, step.Type, depth, token),
             line => Log(LogLevel.Info, depth, step.Type, LogKeys.ScriptOutput, line),
             line => Log(LogLevel.Error, depth, step.Type, LogKeys.ScriptError, line),
@@ -70,8 +70,8 @@ public sealed partial class MacroRunner
         var request = new CSharpScript(script, Template(ReadText(step, "scriptArguments")).Trim(),
             ScriptWorkingFolder(step), ScriptTimeoutOf(step));
 
-        _stoppedInsideScript = false;
-        _returnedInsideScript = false;
+        _run.StoppedInsideScript = false;
+        _run.ReturnedInsideScript = false;
         var outcome = _devices.Scripts.RunCSharp(request, new MacroHost(this, step.Type, depth, token),
             line => Log(LogLevel.Info, depth, step.Type, LogKeys.ScriptOutput, line),
             line => Log(LogLevel.Error, depth, step.Type, LogKeys.ScriptError, line),
@@ -100,8 +100,8 @@ public sealed partial class MacroRunner
         var request = new AutoHotkeyScript(script, Template(ReadText(step, "scriptArguments")).Trim(),
             ScriptWorkingFolder(step), ScriptTimeoutOf(step), ReadText(step, "ahk").Trim());
 
-        _stoppedInsideScript = false;
-        _returnedInsideScript = false;
+        _run.StoppedInsideScript = false;
+        _run.ReturnedInsideScript = false;
         var outcome = _devices.Scripts.RunAutoHotkey(request,
             new MacroHost(this, step.Type, depth, token),
             line => Log(LogLevel.Info, depth, step.Type, LogKeys.ScriptOutput, line),

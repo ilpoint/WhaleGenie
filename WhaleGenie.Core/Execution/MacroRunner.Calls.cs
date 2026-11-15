@@ -38,7 +38,7 @@ public sealed partial class MacroRunner
             throw new StepFailure(RunKeys.MacroNotFound, name);
         }
 
-        if (_callDepth >= CallDepthLimit)
+        if (_run.CallDepth >= CallDepthLimit)
         {
             throw new StepFailure(RunKeys.MacroTooDeep, name);
         }

@@ -74,12 +74,12 @@ public sealed partial class MacroRunner
     /// </summary>
     private void NoteLocalGrowth(int depth)
     {
-        if (_localGrowthWarned || Variables.Local.Count <= LocalNameWarning)
+        if (_run.LocalGrowthWarned || Variables.Local.Count <= LocalNameWarning)
         {
             return;
         }
 
-        _localGrowthWarned = true;
+        _run.LocalGrowthWarned = true;
         Log(LogLevel.Warn, depth, string.Empty, LogKeys.VariableTableLarge, Variables.Local.Count);
     }
 

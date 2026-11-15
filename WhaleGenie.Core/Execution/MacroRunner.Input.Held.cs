@@ -39,9 +39,9 @@ public sealed partial class MacroRunner
         var device = Input(step);
         var key = ReadText(step, "key");
         device.KeyDown(key);
-        if (!_heldKeys.Any(held => Same(held.Device, device) && Same(held.Name, key)))
+        if (!_run.HeldKeys.Any(held => Same(held.Device, device) && Same(held.Name, key)))
         {
-            _heldKeys.Add((device, key));
+            _run.HeldKeys.Add((device, key));
         }
     }
 
@@ -51,7 +51,7 @@ public sealed partial class MacroRunner
         var device = Input(step);
         var key = ReadText(step, "key");
         device.KeyUp(key);
-        _heldKeys.RemoveAll(held => Same(held.Device, device) && Same(held.Name, key));
+        _run.HeldKeys.RemoveAll(held => Same(held.Device, device) && Same(held.Name, key));
     }
 
     /// <summary>The same, for a mouse button, remembering where it was pressed.</summary>
@@ -61,10 +61,10 @@ public sealed partial class MacroRunner
         var button = Button(step);
         var point = Point(step, "x", "y");
         device.MouseDown(button, point.Device.X, point.Device.Y);
-        if (!_heldButtons.Any(held =>
+        if (!_run.HeldButtons.Any(held =>
                 Same(held.Device, device) && Same(held.Button, button)))
         {
-            _heldButtons.Add((device, button, point.Device));
+            _run.HeldButtons.Add((device, button, point.Device));
         }
         GivePoints(step, point.Screen, point.Window);
     }
@@ -76,7 +76,7 @@ public sealed partial class MacroRunner
         var button = Button(step);
         var point = Point(step, "x", "y");
         device.MouseUp(button, point.Device.X, point.Device.Y);
-        _heldButtons.RemoveAll(held => Same(held.Device, device) && Same(held.Button, button));
+        _run.HeldButtons.RemoveAll(held => Same(held.Device, device) && Same(held.Button, button));
         GivePoints(step, point.Screen, point.Window);
     }
 
@@ -96,15 +96,15 @@ public sealed partial class MacroRunner
     /// </summary>
     private void LetGoOfHeldInput()
     {
-        if (_heldKeys.Count == 0 && _heldButtons.Count == 0 && !_gamepadUsed)
+        if (_run.HeldKeys.Count == 0 && _run.HeldButtons.Count == 0 && !_run.GamepadUsed)
         {
             return;
         }
 
-        var keys = _heldKeys.ToList();
-        var buttons = _heldButtons.ToList();
-        _heldKeys.Clear();
-        _heldButtons.Clear();
+        var keys = _run.HeldKeys.ToList();
+        var buttons = _run.HeldButtons.ToList();
+        _run.HeldKeys.Clear();
+        _run.HeldButtons.Clear();
 
         var released = 0;
         foreach (var (device, key) in keys)
@@ -135,9 +135,9 @@ public sealed partial class MacroRunner
 
         // A controller left holding a button, or a stick pushed over, would keep a game walking
         // into a wall long after the macro that pushed it has finished.
-        if (_gamepadUsed)
+        if (_run.GamepadUsed)
         {
-            _gamepadUsed = false;
+            _run.GamepadUsed = false;
             try
             {
                 _devices.Gamepad.ReleaseAll();

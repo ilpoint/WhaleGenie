@@ -67,7 +67,7 @@ public sealed partial class MacroRunner
 
         var key = Reused(source, method);
         var now = Stopwatch.GetTimestamp();
-        if (_frames.TryGetValue(key, out var kept)
+        if (_run.Frames.TryGetValue(key, out var kept)
             && Stopwatch.GetElapsedTime(kept.TakenAt, now).TotalMilliseconds <= age
             && Covers(kept.Frame, kept.Origin, x, y, width, height))
         {
@@ -79,7 +79,7 @@ public sealed partial class MacroRunner
         // is served without reading the screen again: asking for one rectangle costs more than that
         // rectangle, and asking for the whole source is what makes the next look free.
         var whole = Whole(method, window);
-        _frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
+        _run.Frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
         Taken(window, whole.Method);
         return Cut(whole.Frame, whole.Origin, x, y, width, height, whole.Method);
     }
@@ -159,7 +159,7 @@ public sealed partial class MacroRunner
     {
         _takenWindow = window?.Title ?? string.Empty;
         _takenMethod = method;
-        _lastFrame = Stopwatch.GetTimestamp();
+        _run.LastFrame = Stopwatch.GetTimestamp();
     }
 
     /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
@@ -186,12 +186,12 @@ public sealed partial class MacroRunner
     /// </summary>
     private int Until()
     {
-        if (_lastFrame == 0)
+        if (_run.LastFrame == 0)
         {
             return 0;
         }
 
-        return Math.Max(0, FrameGap() - (int)Stopwatch.GetElapsedTime(_lastFrame).TotalMilliseconds);
+        return Math.Max(0, FrameGap() - (int)Stopwatch.GetElapsedTime(_run.LastFrame).TotalMilliseconds);
     }
 
     /// <summary>

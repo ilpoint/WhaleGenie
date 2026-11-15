@@ -100,7 +100,7 @@ public sealed partial class MacroRunner
             {
                 // 匹配是整个宏里最贵的一次同步调用（整屏找图中位数二百毫秒），它中途读不到取消
                 // 令牌；至少在每块区域前后问一次，让「停止」在两块之间就能生效。
-                _runToken.ThrowIfCancellationRequested();
+                _run.RunToken.ThrowIfCancellationRequested();
                 foreach (var found in _devices.Vision.FindAll(area, wanted[number].Frame, query))
                 {
                     hits.Add(found with

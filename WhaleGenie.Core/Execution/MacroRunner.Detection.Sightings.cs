@@ -36,7 +36,7 @@ public sealed partial class MacroRunner
         foreach (var (area, origin) in areas)
         {
             // 一次模型推理是整段同步的，中途读不到取消令牌：每块区域前后各问一次。
-            _runToken.ThrowIfCancellationRequested();
+            _run.RunToken.ThrowIfCancellationRequested();
             foreach (var hit in _devices.Detector.Detect(model, area, query))
             {
                 // The device counts from the corner of the picture it was handed; a step counts

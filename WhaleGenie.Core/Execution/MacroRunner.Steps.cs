@@ -168,7 +168,7 @@ public sealed partial class MacroRunner
     {
         if (input)
         {
-            if (_inputHolds > 0)
+            if (_run.InputHolds > 0)
             {
                 return await HeldBody(step, depth, token, input: true);
             }
@@ -177,7 +177,7 @@ public sealed partial class MacroRunner
             return await HeldBody(step, depth, token, input: true);
         }
 
-        if (_browserHolds > 0)
+        if (_run.BrowserHolds > 0)
         {
             return await HeldBody(step, depth, token, input: false);
         }
@@ -192,25 +192,25 @@ public sealed partial class MacroRunner
     {
         if (input)
         {
-            _inputHolds++;
+            _run.InputHolds++;
             try
             {
                 return await RunSteps(step.Children("steps"), depth + 1, token);
             }
             finally
             {
-                _inputHolds--;
+                _run.InputHolds--;
             }
         }
 
-        _browserHolds++;
+        _run.BrowserHolds++;
         try
         {
             return await RunSteps(step.Children("steps"), depth + 1, token);
         }
         finally
         {
-            _browserHolds--;
+            _run.BrowserHolds--;
         }
     }
 
@@ -225,19 +225,19 @@ public sealed partial class MacroRunner
         var (name, steps, signature, wanted, called) = ResolveCall(step);
 
         Variables.PushLocal(called);
-        _callDepth++;
+        _run.CallDepth++;
         PrepareOutcomes(steps);
 
         // The called macro starts outside every loop, whatever the caller is inside. A break in
         // there belongs to a loop of its own or to nothing; it must never reach out and cut a
         // loop in the caller short.
-        var outerLoops = _loops;
-        _loops = 0;
+        var outerLoops = _run.Loops;
+        _run.Loops = 0;
 
         // A catch block belongs to the macro it is written in. The called macro starts with none
         // of the caller's failures in reach, so a rethrow inside it can only mean one of its own.
-        var outerCaught = _caught;
-        _caught = [];
+        var outerCaught = _run.Caught;
+        _run.Caught = [];
         var finished = false;
         try
         {
@@ -267,9 +267,9 @@ public sealed partial class MacroRunner
         }
         finally
         {
-            _caught = outerCaught;
-            _loops = outerLoops;
-            _callDepth--;
+            _run.Caught = outerCaught;
+            _run.Loops = outerLoops;
+            _run.CallDepth--;
             var produced = Variables.PopLocal();
             if (finished)
             {

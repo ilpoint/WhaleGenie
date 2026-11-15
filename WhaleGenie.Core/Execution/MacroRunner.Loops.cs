@@ -31,14 +31,14 @@ public sealed partial class MacroRunner
         // The body is this round's: a step left out of it this time reads as skipped rather
         // than as whatever it came to in the round before.
         PrepareOutcomes(step.Children("body"));
-        _loops++;
+        _run.Loops++;
         try
         {
             return await RunSteps(step.Children("body"), depth + 1, token);
         }
         finally
         {
-            _loops--;
+            _run.Loops--;
         }
     }
 
@@ -50,7 +50,7 @@ public sealed partial class MacroRunner
     private Signal LeaveLoop(Signal signal, ExecutableStep step)
     {
         // A break also has somewhere to go inside a switch; a continue only ever means a loop.
-        var reachable = signal is Signal.Break ? _loops > 0 || _switches > 0 : _loops > 0;
+        var reachable = signal is Signal.Break ? _run.Loops > 0 || _run.Switches > 0 : _run.Loops > 0;
         return reachable ? signal : throw new StepFailure(LoopControlKey(signal), step.Type);
     }
 
@@ -211,14 +211,14 @@ public sealed partial class MacroRunner
     private async Task<Signal> RunBranch(ExecutableStep step, int depth, CancellationToken token,
         string children = "body")
     {
-        _switches++;
+        _run.Switches++;
         try
         {
             return await RunSteps(step.Children(children), depth + 1, token);
         }
         finally
         {
-            _switches--;
+            _run.Switches--;
         }
     }
 

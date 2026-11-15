@@ -263,22 +263,22 @@ public sealed partial class MacroRunner
             // ---------------------------------------------------------------- gamepad
             case "gamepad.connect":
                 _devices.Gamepad.Connect();
-                _gamepadUsed = true;
+                _run.GamepadUsed = true;
                 return Signal.Normal;
             case "gamepad.button":
                 await PressGamepadButton(step, token);
                 return Signal.Normal;
             case "gamepad.stick":
                 _devices.Gamepad.Stick(ReadText(step, "stick"), Number(step, "x"), Number(step, "y"));
-                _gamepadUsed = true;
+                _run.GamepadUsed = true;
                 return Signal.Normal;
             case "gamepad.trigger":
                 _devices.Gamepad.Trigger(ReadText(step, "trigger"), Number(step, "amount"));
-                _gamepadUsed = true;
+                _run.GamepadUsed = true;
                 return Signal.Normal;
             case "gamepad.release":
                 _devices.Gamepad.ReleaseAll();
-                _gamepadUsed = true;
+                _run.GamepadUsed = true;
                 return Signal.Normal;
 
             // ----------------------------------------------------------------- vision

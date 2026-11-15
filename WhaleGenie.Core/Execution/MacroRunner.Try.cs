@@ -123,8 +123,8 @@ public sealed partial class MacroRunner
     /// somewhere else.
     /// </summary>
     private StepFailure CaughtFailure()
-        => _caught.Count > 0
-            ? _caught[^1]
+        => _run.Caught.Count > 0
+            ? _run.Caught[^1]
             : throw new StepFailure(RunKeys.NothingToRethrow);
 
     /// <summary>
@@ -139,7 +139,7 @@ public sealed partial class MacroRunner
 
         Variables.Local.Set(CaughtKeyName, Value.FromText(failure.Key));
         Variables.Local.Set(CaughtDetailName, Value.FromText(failure.Detail));
-        _caught.Add(failure);
+        _run.Caught.Add(failure);
         return before;
     }
 
@@ -150,9 +150,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private void RestoreCaught((Value? Key, Value? Detail) before)
     {
-        if (_caught.Count > 0)
+        if (_run.Caught.Count > 0)
         {
-            _caught.RemoveAt(_caught.Count - 1);
+            _run.Caught.RemoveAt(_run.Caught.Count - 1);
         }
 
         if (before.Key is { } key)

@@ -87,7 +87,7 @@ public sealed partial class MacroRunner
         // variables: what a variable holds is a note about the picture, and it is the picture
         // itself that is searched. The name is the shape's own, so nothing is taken off the front
         // of a word to find it.
-        if (Name(written) is { } name && _images.TryGetValue(name, out var picture))
+        if (Name(written) is { } name && _run.Images.TryGetValue(name, out var picture))
         {
             yield return (picture, new ScreenPoint(0, 0));
             yield break;

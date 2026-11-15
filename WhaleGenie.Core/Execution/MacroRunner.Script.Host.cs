@@ -32,7 +32,7 @@ public sealed partial class MacroRunner
     private bool RunStepById(string id, string type, int depth, CancellationToken token)
     {
         var wanted = id.Trim();
-        var step = FindStep(_steps, wanted) ?? throw new StepFailure(RunKeys.NoSuchStep, wanted);
+        var step = FindStep(_run.Steps, wanted) ?? throw new StepFailure(RunKeys.NoSuchStep, wanted);
         Log(LogLevel.Info, depth, type, LogKeys.ScriptStep, wanted);
 
         var signal = RunSteps([step], depth + 1, token).GetAwaiter().GetResult();
@@ -43,12 +43,12 @@ public sealed partial class MacroRunner
 
         if (signal is Signal.Stop)
         {
-            _stoppedInsideScript = true;
+            _run.StoppedInsideScript = true;
         }
 
         if (signal is Signal.Return)
         {
-            _returnedInsideScript = true;
+            _run.ReturnedInsideScript = true;
         }
 
         return signal is not Signal.Failed;

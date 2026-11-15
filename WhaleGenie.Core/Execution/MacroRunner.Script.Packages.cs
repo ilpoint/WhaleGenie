@@ -164,7 +164,7 @@ public sealed partial class MacroRunner
     /// script, so it is carried out once the script has finished and its own result is filed.
     /// </summary>
     private Signal ScriptSignal()
-        => _stoppedInsideScript ? Signal.Stop
-            : _returnedInsideScript ? Signal.Return
+        => _run.StoppedInsideScript ? Signal.Stop
+            : _run.ReturnedInsideScript ? Signal.Return
             : Signal.Normal;
 }

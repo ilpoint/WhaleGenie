@@ -187,7 +187,7 @@ public sealed partial class MacroRunner
     {
         var device = _devices.Gamepad;
         var button = ReadText(step, "button");
-        _gamepadUsed = true;
+        _run.GamepadUsed = true;
 
         switch (ReadText(step, "buttonMode").Trim().ToLowerInvariant())
         {

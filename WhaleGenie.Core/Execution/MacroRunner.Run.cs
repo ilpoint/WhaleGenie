@@ -27,40 +27,9 @@ public sealed partial class MacroRunner
     /// </summary>
     private CancellationToken StopCleanupToken()
     {
-        _cleanup ??= new CancellationTokenSource(CleanupBudget);
-        return _cleanup.Token;
+        _run.Cleanup ??= new CancellationTokenSource(CleanupBudget);
+        return _run.Cleanup.Token;
     }
-
-    /// <summary>
-    /// The background runs this run has started and not yet waited for. They keep the shared global
-    /// table, but a local table of their own.
-    /// </summary>
-
-
-    /// <summary>
-    /// How many browser steps of this run are inside the browser door right now. A block such as
-    /// <c>browser.dialog</c> holds the door while its body runs; the body's own browser steps are
-    /// the same turn at the page and must not wait for the door they already hold.
-    /// </summary>
-    private int _browserHolds;
-
-    /// <summary>
-    /// How many input-holding blocks are around the step being run. The block asked for the door so
-    /// its steps would send their keys as one turn, so the steps inside must not ask for it again.
-    /// </summary>
-    private int _inputHolds;
-
-    /// <summary>
-    /// How many loops the run is inside right now. A break or a continue only means something
-    /// while this is above zero; one that reaches the top of a macro has nothing to act on.
-    /// </summary>
-    private int _loops;
-
-    /// <summary>
-    /// How many switches the run is inside right now. A break inside a switch leaves that switch
-    /// rather than the loop around it, so a switch on its own is a place a break can stand.
-    /// </summary>
-    private int _switches;
 
     /// <summary>
     /// Names a loop writes for its own rounds. They belong to the innermost loop that names them:
@@ -129,65 +98,14 @@ public sealed partial class MacroRunner
 
     private StepFailure? _failure;
 
-    /// <summary>Whether this run has already said that its own table is growing without a ceiling.</summary>
-    private bool _localGrowthWarned;
-
     /// <summary>How many names a run may keep before it says so, once.</summary>
     private const int LocalNameWarning = 50_000;
 
     /// <summary>How many names a run may keep at all.</summary>
     private const int LocalNameLimit = 200_000;
 
-    /// <summary>
-    /// The keys and mouse buttons the macro has pressed and not yet let go, with the device each
-    /// was pressed on so it is let go the same way — a key posted at one window has to be released
-    /// at that window, not at whatever has the focus when the run ends.
-    /// </summary>
-    private readonly List<(IInputDevice Device, string Name)> _heldKeys = [];
-
-    private readonly List<(IInputDevice Device, string Button, ScreenPoint Point)> _heldButtons = [];
-
-    /// <summary>Whether a controller was driven, so the run lets go of it the way it does a key.</summary>
-    private bool _gamepadUsed;
-
     /// <summary>How long a controller button stays down when the step asked for no time in particular.</summary>
     private const int ShortestPressMs = 50;
-
-    /// <summary>
-    /// The steps this run was handed, kept so that a script can name one of them. Nothing else reads
-    /// it: what a step is found by is the identity the editor writes into the file, and the steps of
-    /// a macro called from this one belong to that call rather than to this list.
-    /// </summary>
-    private IReadOnlyList<ExecutableStep> _steps = [];
-
-    /// <summary>
-    /// The lines this run has written so far, kept so that one which stops on a failure can leave
-    /// the whole of them behind as a text file. A run the debugger is watching shows the same lines
-    /// in its window, and one a trigger started has no window at all — there this file is the only
-    /// account of what happened.
-    /// </summary>
-    private readonly List<LogEntry> _log = [];
-
-    /// <summary>
-    /// Whether a step a script ran asked for the whole macro to stop. A script runs to its own end —
-    /// it is a program in a process of its own and there is no stopping it politely — so the answer
-    /// is carried out of the step that ran it and ends the macro once that step is over.
-    /// </summary>
-    private bool _stoppedInsideScript;
-
-    /// <summary>
-    /// Whether a step a script ran asked to end its macro. Like a stop, the answer comes back
-    /// through the script step and ends the macro once that step is over.
-    /// </summary>
-    private bool _returnedInsideScript;
-
-    /// <summary>
-    /// The failures the catch blocks now running have taken hold of, innermost last. A rethrow
-    /// takes the last one, so a nested catch never reaches past the block it is written in. The
-    /// list is swapped for a new one around a call to another macro: a macro may not rethrow
-    /// something its caller caught.
-    /// </summary>
-    private List<StepFailure> _caught = [];
 
     /// <summary>
     /// How long what one tried step left behind is left alone before it is let go of, so a game
@@ -316,22 +234,8 @@ public sealed partial class MacroRunner
     public async Task<RunResult> RunAsync(IReadOnlyList<ExecutableStep> steps,
         CancellationToken token = default)
     {
-        _executed = 0;
-        _loops = 0;
-        _callDepth = InitialCallDepth;
-        _cleanup?.Dispose();
-        _cleanup = null;
-        _runToken = token;
+        _run.Begin(token, steps, InitialCallDepth);
         _failure = null;
-        _returnedInsideScript = false;
-        _caught = [];
-        _log.Clear();
-        _images.Clear();
-        _frames.Clear();
-        _lastFrame = 0;
-        _agreed.Clear();
-        _steps = steps;
-        _localGrowthWarned = false;
 
         // A declaration belongs to the macro that wrote it. A store the debug window keeps between
         // runs would otherwise still be holding the names of whatever ran last.
@@ -383,13 +287,13 @@ public sealed partial class MacroRunner
 
             var outcome = signal switch
             {
-                Signal.Stop => new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _executed),
+                Signal.Stop => new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _run.Executed),
                 Signal.Failed => new RunResult(RunStatus.Failed, _failure?.Key ?? RunKeys.Failed,
-                    _failure?.Detail ?? string.Empty, _executed),
-                _ => new RunResult(RunStatus.Completed, string.Empty, string.Empty, _executed),
+                    _failure?.Detail ?? string.Empty, _run.Executed),
+                _ => new RunResult(RunStatus.Completed, string.Empty, string.Empty, _run.Executed),
             };
 
-            Log(LogLevel.Info, 0, string.Empty, SummaryKey(outcome.Status), _executed);
+            Log(LogLevel.Info, 0, string.Empty, SummaryKey(outcome.Status), _run.Executed);
 
             if (outcome.Status is RunStatus.Failed)
             {
@@ -400,16 +304,16 @@ public sealed partial class MacroRunner
         }
         catch (OperationCanceledException)
         {
-            Log(LogLevel.Warn, 0, string.Empty, LogKeys.Stopped, _executed);
-            return new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _executed);
+            Log(LogLevel.Warn, 0, string.Empty, LogKeys.Stopped, _run.Executed);
+            return new RunResult(RunStatus.Stopped, string.Empty, string.Empty, _run.Executed);
         }
         finally
         {
             // Whatever the run decided, the machine is handed back the way it was found.
             LetGoOfHeldInput();
 
-            _cleanup?.Dispose();
-            _cleanup = null;
+            _run.Cleanup?.Dispose();
+            _run.Cleanup = null;
         }
     }
 
@@ -473,7 +377,7 @@ public sealed partial class MacroRunner
             .Append(Environment.NewLine)
             .Append(Environment.NewLine);
 
-        foreach (var entry in _log)
+        foreach (var entry in _run.Log)
         {
             text.Append(entry.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture))
                 .Append("  ")

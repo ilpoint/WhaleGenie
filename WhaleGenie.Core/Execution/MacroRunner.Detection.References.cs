@@ -71,7 +71,7 @@ public sealed partial class MacroRunner
     {
         // A picture an earlier Capture saved is looked up by the word the field wrote, whether the
         // shape is a name or plain text. Anything that is not one already is worked out as a path.
-        if (_images.TryGetValue(ShapeWord(value), out var captured))
+        if (_run.Images.TryGetValue(ShapeWord(value), out var captured))
         {
             return captured;
         }
@@ -79,7 +79,7 @@ public sealed partial class MacroRunner
         var path = Read(value).AsText();
         var written = Written(path);
         if (written is { } stamp
-            && _references.TryGetValue(path, out var kept)
+            && _run.References.TryGetValue(path, out var kept)
             && kept.Written == stamp)
         {
             return kept.Frame;
@@ -89,7 +89,7 @@ public sealed partial class MacroRunner
             ?? throw new StepFailure(RunKeys.MissingImage, Formula.Speak(value));
         if (written is not null)
         {
-            _references[path] = (written.Value, picture);
+            _run.References[path] = (written.Value, picture);
         }
 
         return picture;

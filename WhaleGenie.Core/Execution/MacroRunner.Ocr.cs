@@ -53,7 +53,7 @@ public sealed partial class MacroRunner
     private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
     {
         // 识别一次整幅画面是同步的，读不到取消令牌：进识别之前先问一次，让「停止」不必等它。
-        _runToken.ThrowIfCancellationRequested();
+        _run.RunToken.ThrowIfCancellationRequested();
 
         var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), ReadText(step, "preprocess"));
         var readings = _devices.Ocr.Recognize(prepared)
