@@ -9,7 +9,7 @@ namespace WhaleGenie.Core.Execution;
 
 // What a family sees of the run: the helpers families share, forwarded rather than moved so the
 // engine keeps one implementation of each while the families are still being lifted out.
-public sealed partial class MacroRunner : IRunContext, IRunPoints
+public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads
 {
     IDeviceLayer IRunContext.Devices => _devices;
 
@@ -20,6 +20,34 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints
     string IRunContext.PathOf(ExecutableStep step, string parameter) => PathOf(step, parameter);
 
     IRunPoints IRunContext.Points => this;
+
+    IScreenReads IRunContext.Reads => this;
+
+    IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> IScreenReads.Areas(
+        ExecutableStep step) => SearchAreas(step);
+
+    (IReadOnlyList<TextSpan> Spans, IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> Areas)
+        IScreenReads.Read(ExecutableStep step, CancellationToken token) => ReadBoth(step, token);
+
+    (List<TextSpan> Hits, int Chosen) IScreenReads.Counting(ExecutableStep step,
+        IReadOnlyList<TextSpan> readings, string wanted, string mode)
+        => Counting(step, readings, wanted, mode);
+
+    Task IScreenReads.WaitForScreen(CancellationToken token) => Gate(token);
+
+    void IScreenReads.Showing(Action body) => Watching(body);
+
+    Task IScreenReads.Showing(Func<Task> body) => Watching(body);
+
+    void IScreenReads.SawSearch(ExecutableStep step,
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
+        IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted,
+        double? minimum, string? note) => SawSearch(step, LookKind.Text, areas, found, chosen,
+            wanted, minimum: minimum, note: note);
+
+    void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at) => ClickAt(step, at);
+
+    int IScreenReads.Beat() => LookBeat();
 
     StepArguments IRunContext.Args(ExecutableStep step) => Args(step);
 

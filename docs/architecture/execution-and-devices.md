@@ -67,10 +67,11 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 
 动作族正在从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、
 `SystemActions`、`UiaActions`、`FileActions` 与 `DataActions`、`WindowActions`、`KeyboardActions`、
-`GamepadActions`、`PointerActions` 与 `BrowserActions` 已经迁出：它们共用 `RunActionHandler`，处理器
-表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、取得设备与运行观测），因此这些族
-可以脱离运行器直接测试。带块的动作（`browser.dialog` 这类）通过 `IRunContext.RunBlock` 运行它包住的
-步骤，门与循环仍由运行器掌管。
+`GamepadActions`、`PointerActions`、`BrowserActions` 与 `OcrActions` 已经迁出：它们共用
+`RunActionHandler`，处理器表是静态的，每个处理器只接收 `IRunContext`（读字段、交付结果、写日志、
+取得设备与运行观测），因此这些族可以脱离运行器直接测试。带块的动作（`browser.dialog` 这类）通过
+`IRunContext.RunBlock` 运行它包住的步骤，门与循环仍由运行器掌管；读屏的动作通过 `IRunContext.Reads`
+（`IScreenReads`）取用区域、读法与观察，条件判断与试看走同一份。
 `UiaActions` 连选择器解析、锚点与收窄条件一起带走，一个元素因此在族内只有一种搜索方式；文件族按读写
 格式分成 `FileActions`（文本、单个文件、文件夹、列表与变量快照）、`FileJsonActions` 与
 `FileCsvActions`，各自带走自己的形状规则。按键分成“按完就结束”的键盘族与按住不放的四个步骤：
@@ -82,7 +83,8 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 一层（`Give`、`Store`、`GiveMatch`、`GiveNothing`、`GiveEvery` 与命中记录），
 `MacroRunner.WindowRules.cs` 是认窗口的一层（规则解析、`Lookup`、`Locate` 与窗口记录读取），
 `MacroRunner.Points.cs` 是认点的一层（屏幕/窗口坐标、记录自带的基准、拖拽两端与后台投递），
-动作族通过 `IRunPoints` 取用点的读法与结果，不必知道这些规则住在哪。
+`MacroRunner.Looks.cs` 与 `MacroRunner.Reads.cs` 是看屏的一层（搜索区域、抓屏与帧节拍、读法与观察标记）；
+动作族通过 `IRunPoints` 与 `IScreenReads` 取用它们，不必知道这些规则住在哪。
 
 同一份读法被多个族用到时抽成独立类型而不是继续留在运行器里：`RunLimits` 是搜索与表格的上限，
 `TableColumns` 给文件、浏览器与元素三处的表格列起名，`HitRecord` 是命中记录的字段表，

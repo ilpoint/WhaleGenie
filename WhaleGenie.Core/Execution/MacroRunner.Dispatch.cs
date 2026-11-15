@@ -129,7 +129,7 @@ public sealed partial class MacroRunner
                      ClipboardActions.Map, ProcessActions.Map, SystemActions.Map, UiaActions.Map,
                      FileActions.Map, FileJsonActions.Map, FileCsvActions.Map, DataActions.Map,
                      WindowActions.Map, KeyboardActions.Map, GamepadActions.Map,
-                     PointerActions.Map, BrowserActions.Map,
+                     PointerActions.Map, BrowserActions.Map, OcrActions.Map,
                  })
         {
             foreach (var (key, handler) in family)
@@ -145,7 +145,7 @@ public sealed partial class MacroRunner
         =>
         [
             ControlActions,
-            HeldActions, VisionActions, OcrActions,
+            HeldActions, VisionActions,
             ScriptActions,
         ];
 

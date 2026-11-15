@@ -15,7 +15,7 @@ namespace WhaleGenie.Core.Tests;
 /// than performed, and the window rule read the way a step wrote it. A family test uses this
 /// instead of building a runner, which is the point of the split.
 /// </summary>
-internal sealed class FakeRunContext : IRunContext, IRunPoints
+internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads
 {
     private readonly VariableStore _variables = new();
 
@@ -39,6 +39,49 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints
         => ((IRunContext)this).Args(step).ValueOf(parameter).AsText();
 
     IRunPoints IRunContext.Points => this;
+
+    IScreenReads IRunContext.Reads => this;
+
+    /// <summary>The searches a family under test handed to whoever is watching.</summary>
+    public List<(string Wanted, int Chosen, int Found)> Searches { get; } = [];
+
+    IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> IScreenReads.Areas(
+        ExecutableStep step) => [(Picture(), new ScreenPoint(0, 0))];
+
+    (IReadOnlyList<TextSpan> Spans, IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> Areas)
+        IScreenReads.Read(ExecutableStep step, CancellationToken token)
+    {
+        var frame = Picture();
+        var area = (frame, new ScreenPoint(0, 0));
+        return (Machine.Ocr.Recognize(frame), [area]);
+    }
+
+    (List<TextSpan> Hits, int Chosen) IScreenReads.Counting(ExecutableStep step,
+        IReadOnlyList<TextSpan> readings, string wanted, string mode)
+    {
+        var hits = readings
+            .Where(span => TextCompare.Matches(span.Text, wanted, TextCompare.Contains))
+            .ToList();
+        return (hits, hits.Count > 0 ? 1 : 0);
+    }
+
+    Task IScreenReads.WaitForScreen(CancellationToken token) => Task.CompletedTask;
+
+    void IScreenReads.Showing(Action body) => body();
+
+    Task IScreenReads.Showing(Func<Task> body) => body();
+
+    void IScreenReads.SawSearch(ExecutableStep step,
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> areas,
+        IReadOnlyList<(ImageMatch Match, string? Label)> found, int chosen, string wanted,
+        double? minimum, string? note) => Searches.Add((wanted, chosen, found.Count));
+
+    void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at)
+        => Machine.Input.Click("left", at.X, at.Y, 1, 0);
+
+    int IScreenReads.Beat() => 0;
+
+    private static ImageFrame Picture() => new(10, 10, new byte[400]);
 
     StepArguments IRunContext.Args(ExecutableStep step) => new(step, _variables, 16);
 

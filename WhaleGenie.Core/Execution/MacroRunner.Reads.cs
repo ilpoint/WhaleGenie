@@ -1,16 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -18,16 +11,30 @@ using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
+/// <summary>
+/// Reading writing off the screen: the areas a step reads, what each picture came back as, the
+/// corrections a step wrote down, and which readings it would act on. A condition asking whether
+/// some text is there reads through the same code, so "is it on screen" and "find it" agree on what
+/// counts as found.
+/// </summary>
 public sealed partial class MacroRunner
 {
-    // ---------------------------------------------------------------------- ocr
-
     /// <summary>
     /// Reads the text in a step's search areas, with the positions in screen coordinates. Several
     /// areas are read one after another and what they hold is handed back together, and the areas
     /// themselves are kept so that a look at this reading can draw where it was taken from.
     /// </summary>
-    private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step)
+    private IReadOnlyList<TextSpan> ReadSpans(ExecutableStep step,
+        CancellationToken token = default)
+        => ReadBoth(step, token).Spans;
+
+    /// <summary>
+    /// The same reading, with the areas it was taken from: a look has to show where it looked, and
+    /// reading them again for that would take a second picture of the same screen.
+    /// </summary>
+    private (IReadOnlyList<TextSpan> Spans,
+        IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> Areas) ReadBoth(ExecutableStep step,
+            CancellationToken token = default)
     {
         var areas = SearchAreas(step);
         _here.Read = areas;
@@ -35,14 +42,14 @@ public sealed partial class MacroRunner
         var spans = new List<TextSpan>();
         foreach (var (area, origin) in areas)
         {
-            spans.AddRange(ReadFrame(step, area).Select(span => span with
+            spans.AddRange(ReadFrame(step, area, token).Select(span => span with
             {
                 Location = new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
             }));
         }
 
         Sorted(spans, step);
-        return spans;
+        return (spans, areas);
     }
 
     /// <summary>
@@ -50,10 +57,18 @@ public sealed partial class MacroRunner
     /// in the coordinates of the picture that was given: one that was made bigger to be read has
     /// its positions made smaller again, so they still mean screen pixels.
     /// </summary>
-    private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame)
+    private IReadOnlyList<TextSpan> ReadFrame(ExecutableStep step, ImageFrame frame,
+        CancellationToken token = default)
     {
         // 识别一次整幅画面是同步的，读不到取消令牌：进识别之前先问一次，让「停止」不必等它。
-        _run.RunToken.ThrowIfCancellationRequested();
+        if (token.CanBeCanceled)
+        {
+            token.ThrowIfCancellationRequested();
+        }
+        else
+        {
+            _run.RunToken.ThrowIfCancellationRequested();
+        }
 
         var (prepared, scale) = OcrPreprocess.Apply(Isolated(step, frame), Args(step).Text("preprocess"));
         var readings = _devices.Ocr.Recognize(prepared)
@@ -225,131 +240,8 @@ public sealed partial class MacroRunner
         }
     }
 
-    private void Recognize(ExecutableStep step, int depth)
-    {
-        // 搜索范围可能写下好几处，也可能一处都没写（那就是整块屏幕或窗口）。每一处都读，
-        // 读到的按区域顺序接起来：同一段话分在两个框里，读出来的仍是一句话。
-        var spans = ReadSpans(step);
-        var areas = _here.Read;
-        var (frame, corner) = areas[0];
-
-        GivePoints(step, ScreenMath.Middle(corner, new ScreenSize(frame.Width, frame.Height)), null);
-        var text = string.Join(' ', spans.Select(span => span.Text));
-        Saw(step, LookKind.Text, frame, corner, Marks(areas, TextMarks(spans, default), 0), 0,
-            note: text, minimum: Args(step).Number("minScore"));
-
-        // Read as a table, the result holds rows, each one a record keyed by where its cells sit —
-        // the shape reading a table through UI Automation gives. Read as text it holds the writing,
-        // and either way the writing itself is handed over as well, so a macro can take it both
-        // ways round.
-        if (Flag(step, "table", false))
-        {
-            // A page read off the screen has no strip of column names, so the places its cells sit
-            // in name them: A, B, C, the same names a file with no header gets.
-            var rows = OcrReading.Rows(spans);
-            Give(step, "table", Value.FromList(rows.Select(row => Value.FromRecord(
-                row.Select((cell, index) => (TableColumns.Letter(index), Value.FromText(cell)))))));
-            text = string.Join('\n', rows.Select(row => string.Join('\t', row)));
-            Log(LogLevel.Info, depth, step.Type, LogKeys.ReadTable, rows.Count);
-        }
-
-        Store(step, "text", Value.FromText(text), depth);
-    }
-
-    private void FindText(ExecutableStep step, int depth)
-    {
-        var wanted = Args(step).ValueOf("queryText").AsText();
-        var way = TextWay(step, wanted);
-
-        // Every reading is kept, not only the ones the step is willing to act on: a look that
-        // shows what the model made of the screen is what tells a step that found nothing whether
-        // the writing was missing or the reading was.
-        var readings = ReadSpans(step);
-        var (hits, chosen) = Counting(step, readings, wanted, way);
-
-        SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen, wanted,
-            minimum: Args(step).Number("minScore"));
-
-        var span = hits.Count > 0 ? hits[0] : null;
-        Give(step, "found", Value.FromBool(span is not null));
-
-        if (span is null)
-        {
-            GiveNothing(step);
-        }
-        else
-        {
-            GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
-        }
-
-        // Every reading, not only the one the step picked, so a macro can walk a list of them or
-        // click through a column of them; what each of them said is in its own record.
-        GiveEvery(step, HitRecords(hits));
-
-        Log(LogLevel.Info, depth, step.Type, span is null ? LogKeys.TextMissing : LogKeys.TextFound,
-            span is null ? string.Empty : $"{span.Center.X},{span.Center.Y}",
-            span is null ? string.Empty : span.Text);
-    }
-
-    /// <summary>What one reading of the screen reads as a mark: the writing, with its own score.</summary>
-    private static List<(ImageMatch Match, string? Label)> TextMarks(
-        IReadOnlyList<TextSpan> spans, ScreenPoint origin)
-        => [.. spans.Select(span => (
-            new ImageMatch(span.Confidence,
-                new ScreenPoint(span.Location.X + origin.X, span.Location.Y + origin.Y),
-                span.Size),
-            (string?)span.Text))];
-
     private bool Sure(ExecutableStep step, TextSpan candidate)
         => candidate.Confidence >= Args(step).Number("minScore");
-
-    private async Task ClickText(ExecutableStep step, int depth, CancellationToken token)
-    {
-        var wanted = Args(step).ValueOf("queryText").AsText();
-        var way = TextWay(step, wanted);
-        var interval = LookBeat();
-
-        // The readings of the last look are kept, so the look handed over at the end is of the
-        // screen as it was when the step gave up or found what it wanted.
-        IReadOnlyList<TextSpan> readings = [];
-        List<TextSpan> hits = [];
-        var chosen = 0;
-
-        TextSpan? Look()
-        {
-            readings = ReadSpans(step);
-            (hits, chosen) = Counting(step, readings, wanted, way);
-            return hits.Count > 0 ? hits[0] : null;
-        }
-
-        var span = await WaitForValueAsync(Look, interval, token);
-        SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen, wanted,
-            minimum: Args(step).Number("minScore"));
-
-        // A step that asked to look again waits a moment and confirms the line is still there: a
-        // line that has already been replaced is not clicked. The second look is a single look
-        // rather than another wait: whether the line is still there is not a thing to wait for.
-        var again = Pace(Args(step).Number("confirmMs"));
-        if (again > 0)
-        {
-            await Pause(again, token);
-            span = Look() ?? throw new StepFailure(RunKeys.TextNotFound, wanted);
-            SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen, wanted,
-                minimum: Args(step).Number("minScore"));
-        }
-
-        var at = Scattered(new ScreenPoint(
-            span.Center.X + Args(step).Number("offsetX"),
-            span.Center.Y + Args(step).Number("offsetY")), Spread(step));
-
-        // Where the line was read, every other place it was read, and what each of them said — the
-        // same answers the step that only looks for text hands over.
-        GiveMatch(step, span.Location, span.Size, span.Confidence, span.Text);
-        GiveEvery(step, HitRecords(hits));
-
-        ClickAt(step, at);
-        Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedText, wanted, $"{at.X},{at.Y}");
-    }
 
     /// <summary>
     /// Compares found text against what was asked for, the way the step chose. The five ways
@@ -399,36 +291,5 @@ public sealed partial class MacroRunner
             way == TextCompare.Exactly ? Flag(step, "trim", true) : null,
             Flag(step, "multiline", false));
 
-
-    /// <summary>
-    /// The ocr actions, each answered by the method written for it. A step of
-    /// another family is not in this table.
-    /// </summary>
-    private Dictionary<string, ActionHandler> OcrActions
-        => _ocrActions ??= new(StringComparer.Ordinal)
-        {
-            ["ocr.recognize"] = async (step, depth, token) =>
-            {
-                await Gate(token);
-                Watching(() => Recognize(step, depth));
-                return Signal.Normal;
-            },
-
-            ["ocr.findText"] = async (step, depth, token) =>
-            {
-                await Gate(token);
-                Watching(() => FindText(step, depth));
-                return Signal.Normal;
-            },
-
-            ["ocr.clickText"] = async (step, depth, token) =>
-            {
-                await Gate(token);
-                await Watching(() => ClickText(step, depth, token));
-                return Signal.Normal;
-            },
-        };
-
-    private Dictionary<string, ActionHandler>? _ocrActions;
 
 }

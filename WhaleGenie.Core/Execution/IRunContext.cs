@@ -29,6 +29,9 @@ internal interface IRunContext
     /// <summary>Where a step's point is, for the families that act at one.</summary>
     IRunPoints Points { get; }
 
+    /// <summary>Reading the screen, for the steps that look before they act.</summary>
+    IScreenReads Reads { get; }
+
     /// <summary>One step's fields, read the way the catalogue says they are written.</summary>
     StepArguments Args(ExecutableStep step);
 

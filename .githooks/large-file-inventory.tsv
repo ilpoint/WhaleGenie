@@ -67,7 +67,6 @@
 414	WhaleGenie.Core/Execution/MacroRunner.Calls.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 450	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 313	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
-434	WhaleGenie.Core/Execution/MacroRunner.Ocr.cs	keep: 一类动作的执行，失败键与日志只在这一点
 413	WhaleGenie.Core/Execution/MacroRunner.Run.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 300	WhaleGenie.Core/Execution/OcrReading.cs	keep: 一类动作的执行，失败键与日志只在这一点
 369	WhaleGenie.Core/Execution/ProcessActions.cs	keep: 一类动作：启动、查找、等待、结束与命令执行共用同一套程序规则
@@ -80,6 +79,7 @@
 446	WhaleGenie.Core/Execution/MacroRunner.Points.cs	keep: 点的读法与输入路由：屏幕/窗口坐标、拖拽两端、后台投递
 340	WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
 659	WhaleGenie.Core/Execution/BrowserActions.cs	keep: 一类动作：打开页面、读写页面与元素、等待、下载、对话框
+627	WhaleGenie.Core/Execution/MacroRunner.Looks.cs	keep: 试看层：搜索区域、抓屏、帧节拍、观察标记
 116	WhaleGenie.Core/Execution/DataActions.cs	keep: 一类动作：Base64 与校验和
 470	WhaleGenie.Core/Execution/RunVocabulary.cs	keep: 运行键名与失败键词汇表
 592	WhaleGenie.Core/Recording/RecordingTranslator.cs	keep: 录制事件到动作的翻译状态机，按住与拖拽的状态只有这一处

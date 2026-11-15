@@ -73,6 +73,25 @@ internal static class Pacing
     }
 
     /// <summary>
+    /// The same wait for something that turns up, with the step's own token as the only end: a
+    /// click that waits for a line of text does not know how long the line will take.
+    /// </summary>
+    public static async Task<T?> WaitForValueAsync<T>(Func<T?> probe, int interval,
+        CancellationToken token)
+        where T : class
+    {
+        while (true)
+        {
+            if (probe() is { } found)
+            {
+                return found;
+            }
+
+            await Pause(interval, token);
+        }
+    }
+
+    /// <summary>
     /// Waits for something to become true, asking every <paramref name="interval"/> until it does.
     /// How long that may take is not the wait's to say: the step's own token is what ends it, which
     /// is what makes the length of a wait a setting of the step rather than a second field.

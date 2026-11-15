@@ -40,15 +40,6 @@ public sealed partial class MacroRunner
         => Pacing.WaitForFlagAsync(ready, interval, token);
 
     /// <summary>
-    /// The beat a step that looks at the screen keeps: the run's frame gap, which is the display's
-    /// own rate unless the settings asked for a slower one. A picture that has not been drawn again
-    /// cannot differ from the one just read, so a look that comes sooner reads the same frame twice.
-    /// The beat is the run's rather than the step's, because a loop of ten vision steps was taking
-    /// ten pictures a pass of a screen that cannot change between them.
-    /// </summary>
-    private int LookBeat() => FrameGap();
-
-    /// <summary>
     /// The script actions, each answered by the method written for it. A step of
     /// another family is not in this table.
     /// </summary>

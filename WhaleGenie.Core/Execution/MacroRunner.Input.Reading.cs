@@ -164,7 +164,7 @@ public sealed partial class MacroRunner
     private void WasRead(ExecutableStep step,
         (ScreenPoint Corner, ImageFrame Area, IReadOnlyList<TextSpan> Spans) read)
         => Saw(step, LookKind.Text, read.Area, read.Corner,
-            Marks([(read.Area, read.Corner)], TextMarks(read.Spans, read.Corner), 0), 0,
+            Marks([(read.Area, read.Corner)], TextMarks.Of(read.Spans, read.Corner), 0), 0,
             note: string.Join(' ', read.Spans.Select(span => span.Text)),
             minimum: Args(step).Number("minScore"));
 
@@ -176,7 +176,7 @@ public sealed partial class MacroRunner
         var readings = ReadSpans(step);
         var (_, chosen) = Counting(step, readings, wanted, way);
 
-        SawSearch(step, LookKind.Text, _here.Read, TextMarks(readings, default), chosen,
+        SawSearch(step, LookKind.Text, _here.Read, TextMarks.Of(readings, default), chosen,
             wanted, minimum: Args(step).Number("minScore"));
     }
 }
