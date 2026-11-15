@@ -118,7 +118,6 @@
 | `Run.MissingQuestion` | 这一步要问一句话，但问题没有写。 |
 | `Run.MissingScript` | 这一步没有填写要运行的脚本。 |
 | `Run.MissingScriptExtension` | 这一步没有写脚本要用什么后缀。 |
-| `Run.MissingStep` | 这个条件没有指明要问哪一步。 |
 | `Run.MissingTargetWindow` | 后台输入需要目标窗口，请先获取目标窗口。 |
 | `Run.MissingVariable` | 没有填写变量名 |
 | `Run.MissingWindow` | 没有填写窗口标题：{0} |

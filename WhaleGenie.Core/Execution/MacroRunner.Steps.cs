@@ -143,9 +143,6 @@ public sealed partial class MacroRunner
         return Signal.Normal;
     }
 
-    /// <summary>How many macros deep a run may go before it is called a mistake.</summary>
-    private const int CallDepthLimit = 16;
-
     /// <summary>
     /// Runs a body while holding one of the two doors. The steps inside are the reason the block
     /// exists: another macro must not put its own keys or page work between them. A hold inside the
@@ -211,7 +208,7 @@ public sealed partial class MacroRunner
     /// </summary>
     private async Task<Signal> RunOtherMacro(ExecutableStep step, int depth, CancellationToken token)
     {
-        var (name, steps, signature, wanted, called) = ResolveCall(step);
+        var (name, steps, signature, wanted, called) = _calls.Resolve(step);
 
         Variables.PushLocal(called);
         _run.CallDepth++;
@@ -233,7 +230,7 @@ public sealed partial class MacroRunner
             // Seeded after the swap, not before: an initial value that reads a name has to read it
             // in the macro that declared it. Read before the swap, `total` would be the caller's
             // total and the called macro would start from a value it never declared.
-            SeedLocals(signature);
+            _calls.SeedLocals(signature);
 
             Log(LogLevel.Info, depth, step.Type, LogKeys.CalledMacro, name, steps.Count);
             var signal = await RunSteps(steps, depth + 1, token);
@@ -262,8 +259,8 @@ public sealed partial class MacroRunner
             var produced = Variables.PopLocal();
             if (finished)
             {
-                CheckResults(signature, wanted, produced);
-                Take(wanted, produced);
+                CallBinder.CheckResults(signature, wanted, produced);
+                _calls.Take(wanted, produced);
             }
         }
     }

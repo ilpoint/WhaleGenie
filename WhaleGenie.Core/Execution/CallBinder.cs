@@ -1,49 +1,53 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 
-// Calling another macro: finding it, reading its arguments and seeding what it starts with.
-public sealed partial class MacroRunner
+/// <summary>
+/// Calling another macro: which macro the step names, what that macro declares, and the values it is
+/// handed. A call is a boundary — the called macro reads what it was passed and nothing else — so
+/// everything the boundary is made of is decided here rather than in the walk that runs the steps.
+/// </summary>
+/// <remarks>
+/// The arguments are read while the caller's values are still the ones in force; the names the call
+/// asks to have back are checked against the called macro's declaration before anything runs, so a
+/// name it never offered is said now rather than after a half-finished run.
+/// </remarks>
+internal sealed class CallBinder(IDeviceLayer devices, VariableStore variables, IMacroLibrary macros,
+    RunState run)
 {
+    /// <summary>How many macros deep a run may go before it is called a mistake.</summary>
+    private const int DepthLimit = 16;
+
+    /// <summary>The reader for the fields of one step.</summary>
+    private StepArguments Args(ExecutableStep step)
+        => new(step, variables, devices.Screen.RefreshMilliseconds);
+
+    /// <summary>What one call resolved to: the macro, the values it starts on, and what comes back.</summary>
+    public sealed record Resolved(string Name, IReadOnlyList<ExecutableStep> Steps,
+        MacroSignature Signature, List<(string Result, string Name)> Wanted, VariableBag Called);
+
     /// <summary>
-    /// What a call names, what the called macro declares, and the values it is handed. The
-    /// arguments are read while the caller's values are still the ones in force, and the names the
-    /// call asks to have back are checked against the called macro's declaration before anything
-    /// runs: a name it never offered is a mistake in the call, said now rather than after a
-    /// half-finished run.
+    /// What a call names, what the called macro declares, and the values it is handed.
     /// </summary>
-    private (string Name, IReadOnlyList<ExecutableStep> Steps, MacroSignature Signature,
-        List<(string Result, string Name)> Wanted, VariableBag Called) ResolveCall(ExecutableStep step)
+    public Resolved Resolve(ExecutableStep step)
     {
         var name = Args(step).ValueOf("macro").AsText().Trim();
-        var steps = name.Length == 0 ? null : _macros.Steps(name);
+        var steps = name.Length == 0 ? null : macros.Steps(name);
         if (steps is null)
         {
             throw new StepFailure(RunKeys.MacroNotFound, name);
         }
 
-        if (_run.CallDepth >= CallDepthLimit)
+        if (run.CallDepth >= DepthLimit)
         {
             throw new StepFailure(RunKeys.MacroTooDeep, name);
         }
 
-        var signature = _macros.Signature(name) ?? MacroSignature.Empty;
+        var signature = macros.Signature(name) ?? MacroSignature.Empty;
         if (signature.Problem() is { } problem)
         {
             throw new StepFailure(RunKeys.BadDeclaration, problem.Name);
@@ -86,7 +90,7 @@ public sealed partial class MacroRunner
         // The name of the macro that is running right now, which is what a macro writing a log line
         // or naming a file means by it.
         called.Set("sys.macroName", Value.FromText(name));
-        return (name, steps, signature, wanted, called);
+        return new Resolved(name, steps, signature, wanted, called);
     }
 
     /// <summary>
@@ -99,13 +103,13 @@ public sealed partial class MacroRunner
     /// silently drop the one that was written first. A row with no name is a row the editor added
     /// and left empty, so it passes nothing and the argument it might have filled takes its default.
     /// </summary>
-    private static Dictionary<string, CallArgument> ReadArguments(
-        ExecutableStep step, MacroSignature signature)
+    private static Dictionary<string, CallArgument> ReadArguments(ExecutableStep step,
+        MacroSignature signature)
     {
         var supplied = new Dictionary<string, CallArgument>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in step.Rows(FieldNames.Arguments))
         {
-            var name = Word(row, FieldNames.Name);
+            var name = ShapeWords.Of(row.GetValueOrDefault(FieldNames.Name));
             if (name.Length == 0)
             {
                 continue;
@@ -117,8 +121,8 @@ public sealed partial class MacroRunner
             }
 
             var value = row.GetValueOrDefault(FieldNames.Value) ?? Formula.Nothing;
-            var given = string.Equals(Word(row, FieldNames.Given), "true",
-                StringComparison.OrdinalIgnoreCase);
+            var given = string.Equals(ShapeWords.Of(row.GetValueOrDefault(FieldNames.Given)),
+                "true", StringComparison.OrdinalIgnoreCase);
             if (!supplied.TryAdd(name, new CallArgument(value, given)))
             {
                 throw new StepFailure(RunKeys.DuplicateArgument, name);
@@ -132,12 +136,13 @@ public sealed partial class MacroRunner
     private sealed record CallArgument(ExpressionNode Value, bool Given);
 
     /// <summary>
-    /// Fills the run's own table from the declaration before the first step. A top-level run has no
+    /// Fills a run's own table from the declaration before the first step. A top-level run has no
     /// caller to read arguments from, so the same rule is used against the values the debug window
     /// supplied; a trigger supplies none and the defaults apply. A required value with no default
     /// stops the run here, before any step has done anything.
     /// </summary>
-    private StepFailure? SeedStart(MacroSignature signature)
+    public StepFailure? SeedStart(MacroSignature signature,
+        IReadOnlyList<MacroStartArgument>? startArguments)
     {
         if (signature.Problem() is { } problem)
         {
@@ -145,7 +150,7 @@ public sealed partial class MacroRunner
         }
 
         var supplied = new Dictionary<string, MacroStartArgument>(StringComparer.OrdinalIgnoreCase);
-        foreach (var argument in StartArguments ?? [])
+        foreach (var argument in startArguments ?? [])
         {
             var name = argument.Name.Trim();
             if (name.Length > 0)
@@ -158,12 +163,12 @@ public sealed partial class MacroRunner
         // same name is judged against this run's kind rather than the last one's.
         foreach (var argument in signature.Arguments)
         {
-            Variables.Local.Declare(argument.Name.Trim(), argument.Type);
+            variables.Local.Declare(argument.Name.Trim(), argument.Type);
         }
 
         foreach (var result in signature.Results)
         {
-            Variables.Local.Declare(result.Name.Trim(), result.Type);
+            variables.Local.Declare(result.Name.Trim(), result.Type);
         }
 
         try
@@ -195,13 +200,13 @@ public sealed partial class MacroRunner
                 var name = result.Name.Trim();
                 if (name.Length > 0)
                 {
-                    Variables.Local.Set(name, Value.Null);
+                    variables.Local.Set(name, Value.Null);
                 }
             }
 
             foreach (var (name, value) in values)
             {
-                Variables.Local.Set(name, value);
+                variables.Local.Set(name, value);
             }
 
             // The macro's own declarations, in the order they were written: an initial value may
@@ -225,15 +230,15 @@ public sealed partial class MacroRunner
     /// it. They are set rather than filled in, because an initial value is where a run starts —
     /// not a fallback for a name that happens to be missing.
     /// </summary>
-    private void SeedLocals(MacroSignature signature)
+    public void SeedLocals(MacroSignature signature)
     {
         foreach (var local in signature.Locals)
         {
             var name = local.Name.Trim();
-            Variables.Local.Declare(name, local.Type);
+            variables.Local.Declare(name, local.Type);
             if (name.Length > 0)
             {
-                Variables.Local.Set(name, ReadDeclared(name, local.Initial, local.Type));
+                variables.Local.Set(name, ReadDeclared(name, local.Initial, local.Type));
             }
         }
     }
@@ -262,12 +267,16 @@ public sealed partial class MacroRunner
                 throw new StepFailure(RunKeys.MissingArgument, argument.Name);
             }
 
-            var fallback = Formula.IsNothing(argument.Default) ? Value.Null : Read(argument.Default);
+            var fallback = Formula.IsNothing(argument.Default)
+                ? Value.Null
+                : Expression.Evaluate(argument.Default, variables);
             CheckValueFits(argument.Type, fallback, argument.Name, RunKeys.BadArgumentType);
             return fallback;
         }
 
-        var value = Formula.IsNothing(written) ? Value.FromText(string.Empty) : Read(written);
+        var value = Formula.IsNothing(written)
+            ? Value.FromText(string.Empty)
+            : Expression.Evaluate(written, variables);
         CheckValueFits(argument.Type, value, argument.Name, RunKeys.BadArgumentType);
         return value;
     }
@@ -286,7 +295,7 @@ public sealed partial class MacroRunner
             return ValueRules.Empty(type);
         }
 
-        var value = Read(initial);
+        var value = Expression.Evaluate(initial, variables);
         CheckValueFits(type, value, name, RunKeys.BadInitial);
         return value;
     }
@@ -316,7 +325,7 @@ public sealed partial class MacroRunner
         var wanted = new List<(string Result, string Name)>();
         foreach (var row in step.Rows("returns"))
         {
-            var result = Word(row, FieldNames.Key);
+            var result = ShapeWords.Of(row.GetValueOrDefault(FieldNames.Key));
             var name = row.TryGetValue(FieldNames.Name, out var written)
                 ? Formula.NameOf(written)
                 : string.Empty;
@@ -341,11 +350,11 @@ public sealed partial class MacroRunner
     /// macro offers but never set comes back empty rather than missing, so the step after the call
     /// reads this call's answer and not whatever an earlier pass left behind.
     /// </summary>
-    private void Take(List<(string Result, string Name)> wanted, VariableBag produced)
+    public void Take(List<(string Result, string Name)> wanted, VariableBag produced)
     {
         foreach (var (result, name) in wanted)
         {
-            Variables.Local.Set(name,
+            variables.Local.Set(name,
                 produced.TryGet(result, out var value) && value is not null ? value : Value.Null);
         }
     }
@@ -354,7 +363,7 @@ public sealed partial class MacroRunner
     /// Checks what a finished run is about to hand over against the kinds its signature declared.
     /// A result it never wrote is empty rather than wrong, so that one is left to the caller.
     /// </summary>
-    private static void CheckResults(MacroSignature signature,
+    public static void CheckResults(MacroSignature signature,
         List<(string Result, string Name)> wanted, VariableBag produced)
     {
         foreach (var (result, _) in wanted)

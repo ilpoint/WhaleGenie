@@ -31,77 +31,6 @@ public sealed partial class MacroRunner
         return _run.Cleanup.Token;
     }
 
-    /// <summary>
-    /// Names a loop writes for its own rounds. They belong to the innermost loop that names them:
-    /// leaving it puts back what the loop around it had, so an inner "for each" using "item" does
-    /// not erase the outer one's item. A name no loop around it was using is the macro's own to
-    /// read afterwards, and a counter stays readable while the round number does not.
-    /// </summary>
-    private LoopScope EnterLoop(params string[] names) => EnterLoop(false, names);
-
-    private LoopScope EnterLoop(bool keepLast, params string[] names)
-    {
-        var taken = names.Select(name => name.Trim())
-            .Where(name => name.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var values = Variables.Local;
-        var marks = new List<(string Name, VariableMark Mark)>();
-        foreach (var name in taken)
-        {
-            // A loop's variable is its own: it borrows the name and never the value, so a
-            // declaration that already answers to it keeps its value for the length of the block
-            // and gets it back on the way out.
-            marks.Add((name, values.Mark(name)));
-        }
-
-        return new LoopScope(values, marks, keepLast);
-    }
-
-    /// <summary>
-    /// The names a loop writes for its own rounds, and what each of them meant before the loop took
-    /// it. A name the loop introduced stays afterwards — that is what makes a counter readable once
-    /// the loop is over — while one it borrowed is put back the way it was.
-    /// </summary>
-    private readonly struct LoopScope : IDisposable
-    {
-        private readonly VariableBag _values;
-        private readonly List<(string Name, VariableMark Mark)> _marks;
-        private readonly bool _keepLast;
-
-        public LoopScope(VariableBag values, List<(string Name, VariableMark Mark)> marks,
-            bool keepLast)
-        {
-            _values = values;
-            _marks = marks;
-            _keepLast = keepLast;
-        }
-
-        /// <summary>Writes one of the loop's own names. The name is the key, so a step inside the
-        /// body writing the same name is writing the same value the next round writes.</summary>
-        public void Set(string name, Value value) => _values.Set(name, value);
-
-        public void Dispose()
-        {
-            foreach (var (name, mark) in _marks)
-            {
-                if (_keepLast && !mark.Existed)
-                {
-                    continue;
-                }
-
-                _values.Restore(name, mark);
-            }
-        }
-    }
-
-    /// <summary>How many names a run may keep before it says so, once.</summary>
-    private const int LocalNameWarning = 50_000;
-
-    /// <summary>How many names a run may keep at all.</summary>
-    private const int LocalNameLimit = 200_000;
-
     /// <summary>How long a controller button stays down when the step asked for no time in particular.</summary>
     private const int ShortestPressMs = 50;
 
@@ -125,6 +54,9 @@ public sealed partial class MacroRunner
         _points = new ScreenPoints(_devices, Variables, _windows);
         _results = new StepResults(Variables, _here, _points, Log);
         _reads = new ScreenReads(_devices, Variables, _run, _here, _sight);
+        _calls = new CallBinder(_devices, Variables, _macros, _run);
+        _timeout = new StepTimeout(this, _windows);
+        _values = new ValueActions(this, _run);
         DelayScale = Clamp(delayScale);
     }
 
@@ -237,7 +169,7 @@ public sealed partial class MacroRunner
         // A declaration belongs to the macro that wrote it. A store the debug window keeps between
         // runs would otherwise still be holding the names of whatever ran last.
         Variables.Local.ResetDeclarations();
-        Variables.Local.Capacity = LocalNameLimit;
+        Variables.Local.Capacity = ValueActions.LocalNameLimit;
 
         // A run that brought its own ceiling spaces its events along a line of its own; without one
         // it answers to the program setting exactly as before. Either way the answer is put back
@@ -262,7 +194,7 @@ public sealed partial class MacroRunner
         try
         {
             if (StartSignature is { } signature
-                && SeedStart(signature) is { } startFailure)
+                && _calls.SeedStart(signature, StartArguments) is { } startFailure)
             {
                 _here.Failure = startFailure;
                 Log(LogLevel.Error, 0, string.Empty, startFailure.Key, startFailure.Detail);
@@ -326,87 +258,9 @@ public sealed partial class MacroRunner
     private static string LoopControlKey(Signal signal)
         => signal is Signal.Break ? RunKeys.BreakOutsideLoop : RunKeys.ContinueOutsideLoop;
 
-    /// <summary>How much of the macro's name a file name keeps before it is cut short.</summary>
-    private const int LongestNameInFile = 40;
-
     /// <summary>
     /// Leaves the whole log of this run behind as a text file when it stops on a failure.
     /// </summary>
-    /// <remarks>
-    /// Everything the run wrote goes down, not only the line that failed: what went wrong is read
-    /// next to the steps that led up to it. The file is written whether or not anything goes wrong
-    /// while writing it — a run that has already failed must not be brought down by the act of
-    /// recording it, so a failure here is only logged.
-    /// </remarks>
     private void LeaveFailureLog()
-    {
-        try
-        {
-            var now = DateTimeOffset.Now;
-            var stem = "failure-" + NameForFile()
-                + now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
-            var relative = Path.Combine(FailureLogFolder, stem + ".log");
-            for (var counter = 1; _devices.Files.Exists(relative); counter++)
-            {
-                relative = Path.Combine(FailureLogFolder,
-                    string.Create(CultureInfo.InvariantCulture, $"{stem}-{counter}.log"));
-            }
-
-            _devices.Files.WriteText(relative, FailureLogText(now), append: false, TextEncoding.Utf8Bom);
-            Log(LogLevel.Info, 0, string.Empty, LogKeys.FailureLog, _devices.Files.Resolve(relative));
-        }
-        catch (Exception failure)
-        {
-            Log(LogLevel.Warn, 0, string.Empty, LogKeys.FailureLogFailed, failure.Message);
-        }
-    }
-
-    /// <summary>
-    /// What the file a failed run leaves behind says: which macro it was and when, then every line
-    /// the run wrote with the time it was written. The lines are indented by two spaces for each
-    /// level, because a text file has no other way of saying that a step is inside a block.
-    /// </summary>
-    private string FailureLogText(DateTimeOffset when)
-    {
-        var text = new StringBuilder();
-        text.Append(_host.Text(new LogEntry(when, LogLevel.Info, 0, string.Empty, LogKeys.LogFileHeader,
-                [RunName, when.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)])))
-            .Append(Environment.NewLine)
-            .Append(Environment.NewLine);
-
-        foreach (var entry in _run.Log)
-        {
-            text.Append(entry.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture))
-                .Append("  ")
-                .Append(' ', entry.Depth * 2)
-                .Append(_host.Text(entry))
-                .Append(Environment.NewLine);
-        }
-
-        return text.ToString();
-    }
-
-    /// <summary>
-    /// The run's own name cut down to what a file name can carry, with a dash after it, or nothing
-    /// at all when the name has nothing usable in it. The name is the user's, so anything a file
-    /// name cannot hold becomes an underscore rather than stopping the file from being written.
-    /// </summary>
-    private string NameForFile()
-    {
-        var forbidden = Path.GetInvalidFileNameChars();
-        var kept = new StringBuilder();
-        foreach (var letter in RunName.Trim())
-        {
-            if (kept.Length == LongestNameInFile)
-            {
-                break;
-            }
-
-            kept.Append(forbidden.Contains(letter) ? '_' : letter);
-        }
-
-        // A name may not end in a dot or a space: Windows reads that as the end of the name.
-        var name = kept.ToString().Trim(' ', '.');
-        return name.Length == 0 ? string.Empty : name + "-";
-    }
+        => new FailureLog(this, _host, _run.Log, FailureLogFolder, RunName).Write();
 }

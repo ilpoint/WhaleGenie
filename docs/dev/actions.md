@@ -8,8 +8,11 @@
    记录字段及同义概念，优先复用现有名称。
 2. **修改语义目录。** 在 `WhaleGenie.Core/Execution/ActionSemantics.json` 声明动作分类、参数、
    值形态、控件形状、单位、空值、范围、默认值、必填与选项失败键、拾取器、副作用、等待、子列表和返回值。
-3. **实现引擎分派。** 在对应的 `MacroRunner.<Family>.cs` 中增加分派和实现。读值与范围检查使用目录，
-   记录字段使用 `FieldNames`，不得按 `type` 前缀推断行为。
+3. **实现引擎分派。** 动作族各自成类：`WhaleGenie.Core/Execution/<Family>Actions.cs` 里的静态 `Map`
+   把动作键交给只收 `IRunContext` 的处理器；族不持有运行器，也不读它的私有字段，共享能力经
+   `IRunContext`、`StepArguments`、`StepResults`、`WindowFacts` 等取得。控制流（分支、循环、调用、
+   尝试、变量写入）仍由解释器实现，这类动作加在 `MacroRunner.Dispatch.cs` 的表里。读值与范围检查
+   使用目录，记录字段使用 `FieldNames`，不得按 `type` 前缀推断行为。
 4. **更新展示与文案。** 在 `ActionDisplay.json` 维护标签、提示、编辑器种类和页面归属；同步更新
    `Strings` 与 `ActionStrings`。图标映射位于 `ViewModels/AppIcons.cs`，菜单图标键位于
    `ViewModels/MenuIconCatalog.cs`。
@@ -23,6 +26,11 @@
    观察结果。
 10. **收尾验证。** 更新手册、依赖与许可说明；完成路线图对应事项后删除该事项；运行构建、全部测试和
     格式检查。
+
+新增一个动作要改的地方，按上面的顺序数下来共八处：语义目录、展示目录、族文件（或控制表）、
+`Strings.cs`（中英同一文件）、`ActionStrings.cs`、手册对应篇、族用例，以及——只有在出现新失败键或
+新图标时——`RunVocabulary.cs` 与 `AppIcons.cs`。改动面超过这八处说明这个动作被放错了族，或目录里
+缺了能表达它的形状。
 
 ## 动作表单与编辑器约定
 

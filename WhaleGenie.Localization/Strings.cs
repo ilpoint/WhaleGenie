@@ -2132,7 +2132,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AnswerCancel"] = "Cancel",
         ["Run.NoVariables"] = "This macro does not use any variables yet.",
         ["Run.StepOutcomes"] = "Step status ({0})",
-        ["Run.MissingStep"] = "This condition does not say which step it is about.",
         ["Run.NoSuchColumn"] = "This table has no column called {0}: write the name from the "
             + "header row, or the letter the column sits under.",
         ["Run.AlignNeedsNames"] = "Putting each value under the column that has its name takes a "
@@ -4849,7 +4848,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Run.AnswerCancel"] = "取消",
         ["Run.NoVariables"] = "这个宏还没有使用变量。",
         ["Run.StepOutcomes"] = "步骤状态（{0}）",
-        ["Run.MissingStep"] = "这个条件没有指明要问哪一步。",
         ["Run.NoSuchColumn"] = "这张表里没有叫 {0} 的列：写表头里的名字，或者写这一列所在的字母。",
         ["Run.AlignNeedsNames"] = "按列名放的时候，要写的每个单元格都得有个名字，"
             + "而这一步最宽的一行有 {0} 个单元格。",

@@ -147,7 +147,7 @@ public sealed partial class MacroRunner
 
         async Task<Signal> Spent(ExecutableStep stepToFail, CancellationToken stopToken)
         {
-            _here.Failure = WaitedTooLong(stepToFail);
+            _here.Failure = _timeout.For(stepToFail);
             Log(LogLevel.Error, depth, step.Type, _here.Failure.Key, _here.Failure.Detail);
 
             // The time is gone, so another try cannot be paid for. Everything else the step's
@@ -242,7 +242,7 @@ public sealed partial class MacroRunner
             catch (OperationCanceledException)
                 when (limit is { IsCancellationRequested: true } && !token.IsCancellationRequested)
             {
-                var failure = WaitedTooLong(step);
+                var failure = _timeout.For(step);
                 attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran: true));
                 _here.Failure = failure;
                 Log(LogLevel.Error, depth, step.Type, failure.Key, failure.Detail);
@@ -253,7 +253,7 @@ public sealed partial class MacroRunner
             catch (StepFailure caught)
             {
                 var overran = OutOfTime() && !token.IsCancellationRequested;
-                var failure = overran && !SaysTimedOut(caught.Key)
+                var failure = overran && !StepTimeout.Says(caught.Key)
                     ? new StepFailure(RunKeys.Timeout, budget.ToString(CultureInfo.InvariantCulture))
                     : caught;
                 attempts.Add(Took(attempt + 1, started, OutcomeFailed, failure, overran));
@@ -307,73 +307,6 @@ public sealed partial class MacroRunner
             return false;
         }
     }
-
-    /// <summary>
-    /// True for the failure keys a wait or a device raises when its own clock runs out. Those say
-    /// what was being waited for, so running a little past the step's clock must not replace them
-    /// with the bare "too slow": the caller needs the picture, element or program that never came.
-    /// </summary>
-    private static bool SaysTimedOut(string key)
-        => key is RunKeys.Timeout
-            or RunKeys.WaitColorTimeout or RunKeys.WaitTimeout
-            or RunKeys.ImageNotFound or RunKeys.DetectNotFound or RunKeys.ScreenNotStable
-            or RunKeys.TextNotFound or RunKeys.ElementNotFound or RunKeys.ClipboardTimeout
-            or RunKeys.ColourNotFound
-            or RunKeys.ProcessTimeout or RunKeys.ProgramNotFound or RunKeys.WindowTimeout
-            or RunKeys.CommandTimeout or RunKeys.BrowserNotFound or RunKeys.BrowserNoNewTab;
-
-    /// <summary>
-    /// The failure a step reports when its own clock runs out. A step that was waiting for
-    /// something knows what it was waiting for, so it says that rather than only that it was slow:
-    /// "the picture never turned up" points at the picture, where "too slow" points at the number.
-    /// Every other step has nothing more to say than that it ran out of time.
-    /// </summary>
-    private StepFailure WaitedTooLong(ExecutableStep step)
-    {
-        var patience = step.Meta.TimeoutMs.ToString(CultureInfo.InvariantCulture);
-        try
-        {
-            return step.Type switch
-            {
-                "vision.waitColor" => new StepFailure(RunKeys.WaitColorTimeout,
-                    PixelColor.Parse(Args(step).ValueOf("color").AsText()).ToHex()),
-                "vision.clickColor" => new StepFailure(RunKeys.ColourNotFound,
-                    PixelColor.Parse(Args(step).ValueOf("color").AsText()).ToHex()),
-                "vision.waitImage" or "vision.clickImage" => new StepFailure(RunKeys.ImageNotFound,
-                    StepRows.Written(step.Rows("images"))),
-                "vision.waitDetect" or "vision.clickDetect" => new StepFailure(RunKeys.DetectNotFound,
-                    SearchHits.Looking(this, step)),
-                "vision.waitStable" => new StepFailure(RunKeys.ScreenNotStable, patience),
-                "ocr.clickText" => new StepFailure(RunKeys.TextNotFound,
-                    Args(step).ValueOf("queryText").AsText()),
-                "control.waitUntil" => new StepFailure(RunKeys.WaitTimeout, WaitingFor(step, patience)),
-                "clipboard.waitChange" or "clipboard.copy" =>
-                    new StepFailure(RunKeys.ClipboardTimeout),
-                "process.waitFor" => new StepFailure(RunKeys.ProgramNotFound, _windows.Text(step)),
-                "process.waitExit" => new StepFailure(RunKeys.ProcessTimeout, _windows.Text(step)),
-                "window.waitFor" => new StepFailure(RunKeys.WindowTimeout, _windows.Text(step)),
-                "uia.waitElement" or "uia.click" or "uia.invoke" =>
-                    new StepFailure(RunKeys.ElementNotFound, Args(step).Text("uiSelector")),
-                "command.run" => new StepFailure(RunKeys.CommandTimeout,
-                    Args(step).ValueOf("commandFile").AsText()),
-                _ => new StepFailure(RunKeys.Timeout, patience),
-            };
-        }
-        catch (ExpressionException)
-        {
-            // A field that cannot be read at all is the business of another failure; the only
-            // thing this one has to say is that the step ran out of time.
-            return new StepFailure(RunKeys.Timeout, patience);
-        }
-    }
-
-    /// <summary>
-    /// What a wait-until step was waiting for, so its failure names the question rather than only
-    /// that it was slow. A step with no condition left in it — which the editor does not write —
-    /// has nothing to name, and is left with the length of time.
-    /// </summary>
-    private static string WaitingFor(ExecutableStep step, string patience)
-        => step.Text("condition").Trim() is { Length: > 0 } asked ? asked : patience;
 
     /// <summary>
     /// The step is over and it did not work: writes that down and hands back what its failure rule

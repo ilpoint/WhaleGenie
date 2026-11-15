@@ -159,7 +159,6 @@ public static class RunKeys
     public const string MissingQuestion = "Run.MissingQuestion";
     public const string MissingScript = "Run.MissingScript";
     public const string MissingScriptExtension = "Run.MissingScriptExtension";
-    public const string MissingStep = "Run.MissingStep";
     public const string MissingTargetWindow = "Run.MissingTargetWindow";
 
     /// <summary>A window field did not hold the one record shape every window rule uses.</summary>

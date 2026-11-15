@@ -77,8 +77,8 @@ public sealed partial class MacroRunner
         var indexName = Args(step).Written("indexVariable").Trim();
         var interval = Pace(Args(step).Number("intervalMs"));
         var index = 0;
-        using var indexScope = EnterLoop(VariableStore.LoopIndexName);
-        using var nameScope = EnterLoop(true, itemName, indexName);
+        using var indexScope = LoopScope.Round(Variables.Local);
+        using var nameScope = LoopScope.Named(Variables.Local, true, itemName, indexName);
         foreach (var item in order)
         {
             token.ThrowIfCancellationRequested();
@@ -136,8 +136,8 @@ public sealed partial class MacroRunner
 
         var interval = Pace(Args(step).Number("intervalMs"));
         var round = 0;
-        using var indexScope = EnterLoop(VariableStore.LoopIndexName);
-        using var nameScope = EnterLoop(true, counter);
+        using var indexScope = LoopScope.Round(Variables.Local);
+        using var nameScope = LoopScope.Named(Variables.Local, true, counter);
 
         for (var value = from; stride > 0 ? value <= to : value >= to; value += stride)
         {

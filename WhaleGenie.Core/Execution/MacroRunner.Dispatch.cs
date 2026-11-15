@@ -275,49 +275,49 @@ public sealed partial class MacroRunner
 
             ["control.setVariable"] = (step, depth, token) =>
             {
-                SetVariable(step, depth);
+                _values.Set(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.clearVariable"] = (step, depth, token) =>
             {
-                ClearVariable(step, depth);
+                _values.Clear(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.incrementGlobal"] = (step, depth, token) =>
             {
-                IncrementGlobal(step, depth);
+                _values.Increment(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.listAdd"] = (step, depth, token) =>
             {
-                ChangeList(step, depth);
+                _values.ChangeList(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.listInsert"] = (step, depth, token) =>
             {
-                ChangeList(step, depth);
+                _values.ChangeList(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.listSet"] = (step, depth, token) =>
             {
-                ChangeList(step, depth);
+                _values.ChangeList(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.listRemoveAt"] = (step, depth, token) =>
             {
-                ChangeList(step, depth);
+                _values.ChangeList(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
             ["control.listClear"] = (step, depth, token) =>
             {
-                ChangeList(step, depth);
+                _values.ChangeList(step, depth);
                 return Task.FromResult(Signal.Normal);
             },
 
@@ -327,14 +327,14 @@ public sealed partial class MacroRunner
                 return Task.FromResult(Signal.Normal);
             },
 
-            ["control.ask"] = async (step, depth, token) =>
+            ["control.ask"] = (step, depth, token) =>
             {
-                return await AskPerson(step, depth, token);
+                return AskActions.Confirm(this, _host, step, depth, token);
             },
 
-            ["control.input"] = async (step, depth, token) =>
+            ["control.input"] = (step, depth, token) =>
             {
-                return await AskForText(step, depth, token);
+                return AskActions.Text(this, _host, step, depth, token);
             },
         };
 
@@ -386,7 +386,7 @@ public sealed partial class MacroRunner
     {
         var times = Math.Max(0, Args(step).Number("times"));
         var interval = Pace(Args(step).Number("intervalMs"));
-        using var scope = EnterLoop(VariableStore.LoopIndexName);
+        using var scope = LoopScope.Round(Variables.Local);
 
         for (var round = 0; round < times; round++)
         {
@@ -416,7 +416,7 @@ public sealed partial class MacroRunner
         StepChecks.RequireCondition(step, "condition");
         var limit = Math.Max(1, Args(step).Number("maxIterations"));
         var interval = Pace(Args(step).Number("intervalMs"));
-        using var scope = EnterLoop(VariableStore.LoopIndexName);
+        using var scope = LoopScope.Round(Variables.Local);
 
         for (var round = 0; round < limit; round++)
         {

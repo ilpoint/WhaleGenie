@@ -6,23 +6,25 @@ namespace WhaleGenie.Core.Execution;
 
 /// <summary>
 /// Walks a macro's steps and carries them out. Everything that is not a device action — the
-/// control flow, the variables, the expressions, the lists, and the bookkeeping the step
-/// settings ask for — happens here, which is what makes the engine testable on its own.
+/// control flow, the expressions, the failure rules, and the bookkeeping the step settings ask
+/// for — happens here, which is what makes the engine testable on its own.
 /// </summary>
 /// <remarks>
-/// Actions from <c>input</c>, <c>vision</c>, <c>ocr</c> and <c>uia</c> need the device layer
-/// and are reported as unsupported until that is wired up.
+/// A device action is written in its own family, one file per family, and reached through the
+/// table this class collects. What the families need of a run is <see cref="IRunContext"/>, so an
+/// action never holds the interpreter, and the interpreter never has to know what an action does.
 /// </remarks>
 public sealed partial class MacroRunner
 {
-    // What this class holds, by lifetime. Program-wide: the shared global table, the two gates
-    // and the device layer. One run: _host, _devices, _macros, _looks and _run, which is every
-    // piece of bookkeeping the run writes down — see RunState for those — together with the six
-    // layers a step reads the world through: _pictures, _windows, _points, _results, _sight and
-    // _reads. One attempt: _here, which is what the step being tried has worked out so far — see
+    // What this class holds, by lifetime. Program-wide: the shared global table, the two doors and
+    // the device layer. One run: _host, _devices, _macros, _looks and _run, which is every piece of
+    // bookkeeping the run writes down — see RunState for those — together with the six layers a step
+    // reads the world through: _pictures, _windows, _points, _results, _sight and _reads, and the
+    // four pieces of work the run hands a step to: _calls, _timeout, _values and the action table.
+    // One attempt: _here, which is what the step being tried has worked out so far — see
     // StepProgress for that. What is left in the partial files beside this one is the interpreter
-    // itself: the step loop, attempts and failure rules, calls, loops, conditions, variables, and
-    // the trial look a dialog asks for.
+    // itself: the step loop, attempts and failure rules, dispatch, loops, conditions, the held
+    // input, the trial look a dialog asks for, and the one door a script runs a step through.
 
     private readonly IRunHost _host;
     private readonly IDeviceLayer _devices;
@@ -43,6 +45,15 @@ public sealed partial class MacroRunner
 
     /// <summary>The one place a step's results are written.</summary>
     private readonly StepResults _results;
+
+    /// <summary>Reading a call: the macro it names, the values it is handed and the ones it hands back.</summary>
+    private readonly CallBinder _calls;
+
+    /// <summary>The failure a step reports when its own clock runs out.</summary>
+    private readonly StepTimeout _timeout;
+
+    /// <summary>Writing the run's own values: one name, a shared count, a list.</summary>
+    private readonly ValueActions _values;
 
     /// <summary>Reading writing off the screen: areas, corrections, and which readings count.</summary>
     private readonly ScreenReads _reads;
