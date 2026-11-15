@@ -48,9 +48,17 @@ UIA、钩子、脚本、文件、剪贴板与设备动作族）；`Core.Tests` �
 换正常终端或 CI 可验证。宿主启动时打开父进程句柄被拒的问题已用 `_MSTestEnableParentProcessQuery`
 关掉（见 `docs/dev/environment.md`）。
 
-**再下一步：执行器状态外置。** 从 `MacroRunner` 抽出 `RunState`（变量、日志、帧缓存、持键、
-取消、门闩）与 `StepArguments`（读参助手），再按 13 个动作族抽 `IActionFamily`。预览表已先行
-独立为 `MacroRunner.Preview.cs`，目录覆盖由 `ActionPreviewTests` 守住。
+**已完成：执行器状态外置。** `MacroRunner` 上原本 30 个可变字段现在分成三处：一次运行的
+`RunState`（帧与引用图缓存、持键、调用深度、取消、门闩、日志、循环与开关深度、脚本内停机标志，
+由 `Begin` 统一清空；引用图缓存按文件写入时间判断新鲜度，因此跨运行保留）、一次尝试的
+`StepProgress`（已算出的结果、看到的画面、读屏区域、取自哪个窗口、失败原因），以及只读的协作者
+（宿主、设备、宏库、外观）。`StepArguments` 收拢步骤参数的读取规则，只依赖步骤、变量表与刷新
+耗时，动作族可以直接持有；`StepFailure` 随之从私有嵌套类型提成独立类型。
+
+**下一步：动作族。** 现在的两级分派（类别 → 该类别里的动作 switch）已经把动作按类别放好，
+剩下的是把每个类别里的 `switch (step.Type)` 换成处理器表，并加一条“目录里每个可执行动作都能
+被某个处理器接住”的覆盖测试——现在漏接一个动作只会在运行时报 `Run.Unsupported`。这一步要动
+177 个分支，单独一笔提交，先做 `control` 与 `vision` 两个类别验证写法。
 
 ## 进行中：按读取集优化大文件
 
