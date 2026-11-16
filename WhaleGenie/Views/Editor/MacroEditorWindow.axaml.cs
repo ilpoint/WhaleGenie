@@ -85,8 +85,8 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>What the editor is doing when a key, button or notch is meant as a binding.</summary>
     private readonly EditorBindingCapture _capture;
 
-    /// <summary>What the hook has captured so far, in the order it happened.</summary>
-    private DispatcherTimer? _recordTimer;
+    /// <summary>What a recording does to this window and to the page it started from.</summary>
+    private readonly EditorRecording _recordingRun;
 
     /// <summary>The step tree, kept because the drag handlers need it after construction.</summary>
     private TreeView? _stepList;
@@ -133,6 +133,7 @@ public partial class MacroEditorWindow : AppWindow
         _capture = new EditorBindingCapture(this,
             () => DataContext as MacroEditorViewModel, devices);
         _pickers = new EditorPickers(this, () => Layer);
+        _recordingRun = new EditorRecording(this, _session, () => _viewModel, () => Layer);
         _variables = variables ?? new VariableSession();
         _rootViewModel = new MacroEditorViewModel
         {

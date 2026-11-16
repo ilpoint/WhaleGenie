@@ -14,8 +14,10 @@ namespace WhaleGenie.ViewModels;
 /// being recorded" a question you could only answer by reading an event handler.
 /// </summary>
 /// <remarks>
-/// The window keeps what only it can do: asking whether to record, putting itself out of the way,
-/// and telling the person when nothing was caught.
+/// What a recording does to the window around it — putting it out of the way, the captured count in
+/// the status line, and handing the steps back to the page that started it — belongs to
+/// <c>EditorRecording</c>. The window keeps what only it can do: telling the person when the layer
+/// refused or when nothing was caught.
 /// </remarks>
 internal sealed class RecordingSession : IDisposable
 {
@@ -61,23 +63,49 @@ internal sealed class RecordingSession : IDisposable
         }
 
         var recorder = devices.CreateRecorder();
-        recorder.Captured += OnCaptured;
-        recorder.StopRequested += stopRequested;
-        recorder.IgnoreInjected = ignoreInjected;
-        recorder.RecordController = recordController;
 
-        // 停止键由这一次录制开始时从设置里取：引擎不读设置文件，而用户换成别的键应当立刻生效。
-        recorder.StopShortcut = LocalSettings.LoadRecordStopKey();
-
+        // Everything up to and including Start is a question the layer may refuse: a machine with
+        // no recorder answers by throwing rather than by handing back something that does nothing,
+        // and it may throw on the first subscription just as well as on Start. The answer is the
+        // same either way — this recording did not begin — and nothing is left subscribed.
+        var subscribed = false;
         try
         {
+            recorder.Captured += OnCaptured;
+            recorder.StopRequested += stopRequested;
+            subscribed = true;
+            recorder.IgnoreInjected = ignoreInjected;
+            recorder.RecordController = recordController;
+
+            // 停止键由这一次录制开始时从设置里取：引擎不读设置文件，而用户换成别的键应当立刻生效。
+            recorder.StopShortcut = LocalSettings.LoadRecordStopKey();
             recorder.Start();
         }
         catch (Exception)
         {
-            recorder.Captured -= OnCaptured;
-            recorder.StopRequested -= stopRequested;
-            recorder.Dispose();
+            if (subscribed)
+            {
+                try
+                {
+                    recorder.Captured -= OnCaptured;
+                    recorder.StopRequested -= stopRequested;
+                }
+                catch (Exception)
+                {
+                    // The same refusal that ended the subscription can end the clean-up; the
+                    // recorder is being let go either way.
+                }
+            }
+
+            try
+            {
+                recorder.Dispose();
+            }
+            catch (Exception)
+            {
+                // A refusal can refuse to be let go as well; there is nothing left to clean up.
+            }
+
             return false;
         }
 
