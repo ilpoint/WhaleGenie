@@ -19,13 +19,13 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://WhaleGenie/Views/RunWindow.Resources.axaml" />
+                <ResourceInclude Source="avares://WhaleGenie/Views/Run/RunWindow.Resources.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
 
     <Window.Styles>
-        <StyleInclude Source="avares://WhaleGenie/Views/RunWindow.Styles.axaml" />
+        <StyleInclude Source="avares://WhaleGenie/Views/Run/RunWindow.Styles.axaml" />
     </Window.Styles>
 
     <Border Background="{DynamicResource SurfaceWindow}" CornerRadius="8">

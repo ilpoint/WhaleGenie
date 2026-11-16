@@ -2,12 +2,13 @@ using System;
 using System.IO;
 using System.Linq;
 
-namespace WhaleGenie.Tests;
+namespace WhaleGenie.Tests.Support;
 
 /// <summary>
-/// A view's code-behind, read across every part it is split into. A window or a view is one type
-/// organised by concern, so a check about what its code says has to look at all of it rather than
-/// only the file named after the markup.
+/// The windows as files: where one lives, and its markup or code-behind read across every part it
+/// is split into. A window is one type organised by concern, so a check about what it says has to
+/// look at all of it rather than only the file named after the markup — and a check that hard-codes
+/// the folder it was filed under breaks the day the file moves for a reason of its own.
 /// </summary>
 internal static class ViewSource
 {
@@ -39,7 +40,7 @@ internal static class ViewSource
     {
         var views = Path.Combine(Repository(), "WhaleGenie", "Views");
         var stem = Path.GetFileNameWithoutExtension(fileName);
-        return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.axaml")
+        return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.axaml", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .Select(File.ReadAllText));
     }
@@ -50,6 +51,22 @@ internal static class ViewSource
     /// </summary>
     public static string MarkupAnd(params string[] fileNames) =>
         string.Join("\n", fileNames.Select(Markup));
+
+    /// <summary>
+    /// Where one view file lives. The windows are filed by what they belong to, and a check that
+    /// hard-codes the folder breaks the day a file moves for a reason that has nothing to do with
+    /// it. The answer must be unique: two files with one name would make every check that reads
+    /// "the" view read a coin toss.
+    /// </summary>
+    public static string PathOf(string fileName)
+    {
+        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        var found = Directory.EnumerateFiles(views, fileName, SearchOption.AllDirectories).ToList();
+        return found.Count == 1
+            ? found[0]
+            : throw new InvalidOperationException(
+                $"{found.Count} files named {fileName} under {views}: {string.Join(", ", found)}");
+    }
 
     private static string Repository()
     {

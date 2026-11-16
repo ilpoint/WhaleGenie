@@ -475,7 +475,7 @@ public class VariableWallTests
     public void The_wall_draws_that_list()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "VariableWall.axaml"));
+            ViewSource.PathOf("VariableWall.axaml"));
 
         Assert.Contains("ItemsSource=\"{Binding Uses}\"", markup, StringComparison.Ordinal);
         Assert.Contains("JumpCommand", markup, StringComparison.Ordinal);

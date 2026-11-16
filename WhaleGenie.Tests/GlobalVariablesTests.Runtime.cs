@@ -22,14 +22,13 @@ public partial class GlobalVariablesTests
     {
         // The debug window shows the variables the macro in front of it uses, and nothing else:
         // creating or editing a global belongs to the variable center, not to a run.
-        var run = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
+        var run = File.ReadAllText(ViewSource.PathOf("RunWindow.axaml"));
         Assert.Contains("ItemsSource=\"{Binding Variables}\"", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("AddGlobalCommand", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("RemoveGlobalCommand", run, System.StringComparison.Ordinal);
         Assert.DoesNotContain("NewPersistValue", run, System.StringComparison.Ordinal);
 
-        var editor = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "MacroEditorWindow.axaml"));
+        var editor = File.ReadAllText(ViewSource.PathOf("MacroEditorWindow.axaml"));
         Assert.Contains("Name=\"ManageGlobalsButton\"", editor, System.StringComparison.Ordinal);
     }
 

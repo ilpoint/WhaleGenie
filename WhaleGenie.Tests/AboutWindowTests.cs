@@ -63,7 +63,7 @@ public class AboutWindowTests
     public void The_about_window_has_both_valid_support_assets()
     {
         var code = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "AboutWindow.axaml.cs"));
+            ViewSource.PathOf("AboutWindow.axaml.cs"));
 
         Assert.Contains("DonateWeChat.png", code, StringComparison.Ordinal);
         Assert.Contains("DonateAlipay.png", code, StringComparison.Ordinal);
@@ -98,7 +98,7 @@ public class AboutWindowTests
     public void The_project_page_and_the_notices_stay_reachable_from_about()
     {
         var code = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "AboutWindow.axaml.cs"));
+            ViewSource.PathOf("AboutWindow.axaml.cs"));
 
         Assert.Contains("WebPage.Open(ProjectLinks.Home)", code, StringComparison.Ordinal);
         Assert.Contains("ThirdPartyNotices.Read()", code, StringComparison.Ordinal);

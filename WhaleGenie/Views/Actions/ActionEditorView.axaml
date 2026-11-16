@@ -20,7 +20,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://WhaleGenie/Views/ActionEditorTemplates.axaml" />
+                <ResourceInclude Source="avares://WhaleGenie/Views/Actions/ActionEditorTemplates.axaml" />
             </ResourceDictionary.MergedDictionaries>
 
         <!-- Paints the swatch beside a colour parameter. -->

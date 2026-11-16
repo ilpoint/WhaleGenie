@@ -20,7 +20,7 @@ public class MacroCardMenuTests
     public void The_card_offers_what_a_right_click_asks_for()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+            ViewSource.PathOf("MainWindow.axaml"));
 
         var menu = markup[markup.IndexOf("<Border.ContextMenu>", StringComparison.Ordinal)..];
         menu = menu[..menu.IndexOf("</Border.ContextMenu>", StringComparison.Ordinal)];
@@ -44,7 +44,7 @@ public class MacroCardMenuTests
     public void The_card_has_a_run_button_that_goes_where_the_menu_goes()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+            ViewSource.PathOf("MainWindow.axaml"));
 
         var buttons = markup[markup.IndexOf("<StackPanel Grid.Column=\"1\" Orientation=\"Horizontal\"",
             StringComparison.Ordinal)..];

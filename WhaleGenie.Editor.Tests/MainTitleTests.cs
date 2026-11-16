@@ -37,7 +37,7 @@ public class MainTitleTests
         // The title was the designer's own word in the markup, so the name never followed the
         // language and the admin badge never appeared at all — the work above was being done and
         // nobody was reading it.
-        var markup = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+        var markup = File.ReadAllText(ViewSource.PathOf("MainWindow.axaml"));
 
         Assert.Contains("Title=\"{Binding WindowTitle}\"", markup, StringComparison.Ordinal);
     }
@@ -52,7 +52,10 @@ public class MainTitleTests
         var views = Path.Combine(Repository(), "WhaleGenie", "Views");
         var unwired = new List<string>();
 
-        foreach (var markup in Directory.EnumerateFiles(views, "*.axaml").Order())
+        var markups = Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories).Order().ToList();
+        Assert.True(markups.Count >= 40, $"only {markups.Count} markup files under {views}");
+
+        foreach (var markup in markups)
         {
             var xaml = File.ReadAllText(markup);
             if (!xaml.Contains("Title=\"", StringComparison.Ordinal))

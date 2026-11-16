@@ -90,8 +90,7 @@ public partial class GlobalVariablesTests
     [Fact]
     public void The_window_uses_the_project_dialog_shell_and_one_status_area()
     {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views",
-            "GlobalVariablesWindow.axaml"));
+        var xaml = File.ReadAllText(ViewSource.PathOf("GlobalVariablesWindow.axaml"));
 
         // 外壳是库的 `FAAppWindow`（`views:AppWindow`）：标题栏与关闭键由它画，窗口自己不画。
         Assert.Contains("<views:AppWindow", xaml, System.StringComparison.Ordinal);

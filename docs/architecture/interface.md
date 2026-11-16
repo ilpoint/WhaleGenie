@@ -17,6 +17,13 @@
 没有页面承载的改动合成一个答案，窗口再把它发布到项目文档态。关闭、恢复草稿与关闭确认问的是同一个
 答案，不会各自拼一遍。
 
+窗口与视图按功能分目录：`Views/Editor`（宏编辑窗、步骤树、变量墙、菜单与窗口规则）、
+`Views/Actions`（动作对话框与参数行）、`Views/Pickers`（取值与各类拾取窗口）、`Views/Run`
+（运行窗与屏幕叠层）、`Views/Variables`、`Views/Settings`、`Views/Shell`（主窗、窗口外壳与通用
+对话框）与 `Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应，只有 MCP 与取值窗口两处各占一边。命名空间仍是
+`WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条
+`avares` 路径。
+
 XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口后置代码继续处理拖放、窗口生命周期
 和控件交互，不以“窗口零逻辑”为目标；项目与设备等有状态服务仍由组合根提供。
 
@@ -96,7 +103,7 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.5 设置窗口
 
-`Views/SettingsWindow.axaml` 顶上三个 `Button`（`Classes="Tab Root"`，与主窗的停靠页同一族）标出
+`Views/Settings/SettingsWindow.axaml` 顶上三个 `Button`（`Classes="Tab Root"`，与主窗的停靠页同一族）标出
 "系统、触发器、外观"三组，`Classes.selected` 跟着 `SettingsViewModel.IsXxxRoot`；下面是一个
 `FANavigationView`，左侧只列当前组的页面，右侧是共享一个 `ScrollViewer` 的页面面板。每个设置项是
 一个 `FASettingsExpanderItem`：左边是标题与说明（`Classes` 仍是 `FieldLabel` 与 `Hint`，与其它窗口

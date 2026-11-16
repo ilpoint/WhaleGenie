@@ -13,7 +13,7 @@ public class MainWindowIconTests
     [Fact]
     public void The_add_button_wears_the_same_badge_as_the_run_button()
     {
-        var xaml = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+        var xaml = File.ReadAllText(ViewSource.PathOf("MainWindow.axaml"));
 
         var add = Block(xaml, "Name=\"AddMacroButton\"");
         Assert.Contains("views:IconView", add, StringComparison.Ordinal);
@@ -26,7 +26,7 @@ public class MainWindowIconTests
     [Fact]
     public void Every_run_debug_entry_wears_the_bug_play_icon()
     {
-        var main = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", "MainWindow.axaml"));
+        var main = File.ReadAllText(ViewSource.PathOf("MainWindow.axaml"));
         var editor = ViewSource.MarkupAnd("MacroEditorWindow.axaml", "MacroSettingsView.axaml",
             "MacroDocumentView.axaml", "MacroRecordingView.axaml");
 

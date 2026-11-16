@@ -99,7 +99,7 @@ public partial class RunDebugTests
     public void The_dot_says_what_clicking_it_does()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
+            ViewSource.PathOf("RunWindow.axaml"));
 
         var dot = markup[markup.IndexOf("<Button Classes=\"Breakpoint\"", StringComparison.Ordinal)..];
         dot = dot[..dot.IndexOf('>', StringComparison.Ordinal)];

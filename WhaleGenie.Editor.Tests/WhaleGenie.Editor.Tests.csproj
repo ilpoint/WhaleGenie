@@ -35,7 +35,6 @@
     <Compile Include="..\WhaleGenie.Tests\TestApp.cs" Link="Support\TestApp.cs" />
     <Compile Include="..\WhaleGenie.Tests\SharedState.cs" Link="Support\SharedState.cs" />
     <Compile Include="..\WhaleGenie.Tests\Ui.cs" Link="Support\Ui.cs" />
-    <Compile Include="..\WhaleGenie.Tests\ViewSource.cs" Link="Support\ViewSource.cs" />
     <Compile Include="..\WhaleGenie.Tests\SettingsView.cs" Link="Support\SettingsView.cs" />
     <Compile Include="..\WhaleGenie.Tests\VariableChoicesForChecks.cs" Link="Support\VariableChoicesForChecks.cs" />
     <Compile Include="..\WhaleGenie.Tests\ManualDocument.cs" Link="Support\ManualDocument.cs" />

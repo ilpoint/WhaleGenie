@@ -124,7 +124,7 @@ public partial class RunDebugTests
     public void The_row_menu_offers_the_breakpoint_and_the_row_shows_a_panel()
     {
         var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
+            ViewSource.PathOf("RunWindow.axaml"));
 
         var menu = markup[markup.IndexOf("<Border.ContextMenu>", System.StringComparison.Ordinal)..];
         menu = menu[..menu.IndexOf("</Border.ContextMenu>", System.StringComparison.Ordinal)];
