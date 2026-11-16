@@ -38,6 +38,9 @@ public partial class MacroEditorWindow : AppWindow
 
     private readonly EditorDocumentPages _documentPages;
 
+    /// <summary>Which page stands for a macro, and which one is in front after a tab closes.</summary>
+    private readonly EditorTabs _tabs;
+
     private void AddBlankSubMacro()
     {
         var page = _documentPages.AddBlank();
@@ -272,20 +275,17 @@ public partial class MacroEditorWindow : AppWindow
 
     private void SwitchToSubMacro(MacroItem macro)
     {
-        var page = _documentPages.FirstOrDefault(candidate =>
-            ReferenceEquals(candidate.Source, macro)
-            || (!candidate.IsCurrent
-                && string.Equals(candidate.Editor.Name, macro.Name,
-                    StringComparison.OrdinalIgnoreCase)));
-        if (page is not null)
+        if (_tabs.Find(macro) is not { } page)
         {
-            if (!_session.Documents.Contains(page))
-            {
-                _session.Documents.Add(page);
-            }
-
-            SelectDocument(page);
+            return;
         }
+
+        if (!_session.Documents.Contains(page))
+        {
+            _session.Documents.Add(page);
+        }
+
+        SelectDocument(page);
     }
 
     internal void OnDocumentTabChanged(object? sender, SelectionChangedEventArgs e)
@@ -300,10 +300,7 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     internal void OnDocumentTabClosePressed(object? sender, PointerPressedEventArgs e)
-    {
-        _pageBeforeTabClose = _documentPages.FirstOrDefault(candidate =>
-            ReferenceEquals(candidate.Editor, _viewModel));
-    }
+        => _tabs.NotePress(_tabs.PageOf(_viewModel));
 
     internal void OnCloseDocumentTab(object? sender, RoutedEventArgs e)
     {
@@ -312,13 +309,9 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
-        var active = _pageBeforeTabClose
-            ?? _documentPages.FirstOrDefault(candidate => ReferenceEquals(candidate.Editor, _viewModel));
-        _pageBeforeTabClose = null;
-        var closingActive = ReferenceEquals(active, page);
-
+        var front = _tabs.AfterClose(page, _tabs.PageOf(_viewModel));
         _documentPages.Close(page);
-        SelectDocument(closingActive ? _documentPages[0] : active ?? _documentPages[0]);
+        SelectDocument(front);
         RefreshDocuments();
     }
 

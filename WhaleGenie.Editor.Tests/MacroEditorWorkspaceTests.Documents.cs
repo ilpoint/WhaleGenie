@@ -46,6 +46,39 @@ public partial class MacroEditorWorkspaceTests
     }
 
     [Fact]
+    public void Closing_a_submacro_tab_forgets_the_tab_and_keeps_the_submacro()
+    {
+        Ui.Run(() =>
+        {
+            var child = new MacroItem { Name = "child" };
+            var parent = new MacroItem { Name = "parent" };
+            parent.SubMacros.Add(child);
+            var window = new MacroEditorWindow(parent, [parent]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var root = (MacroEditorViewModel)window.DataContext!;
+            var tabs = window.FindControl<ListBox>("DocumentTabs")!;
+            var page = root.Documents[1];
+            var close = tabs.GetVisualDescendants().OfType<Button>()
+                .First(button => button.Name == "CloseDocumentButton"
+                    && ReferenceEquals(button.DataContext, page));
+
+            close.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            // The tab goes, the submacro stays: it is still part of the macro, and the page is
+            // what a save reads.
+            Assert.Same(root, window.DataContext);
+            Assert.Single(root.Documents);
+            root.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("child", Assert.Single(window.Result!.SubMacros).Name);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    [Fact]
     public void A_submacro_groups_only_calls_made_directly_by_the_active_page()
     {
         var child = new MacroItem { Name = "child" };

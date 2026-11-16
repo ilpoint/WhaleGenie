@@ -42,7 +42,6 @@ public partial class MacroEditorWindow : AppWindow
     private IReadOnlyList<PublicMacroEntry> _publicMacros = [];
     private string? _publicMacroLoadError;
     private bool _switchingDocuments;
-    private MacroDocumentPageViewModel? _pageBeforeTabClose;
 
     /// <summary>
     /// The layer the trials and runs started from here use, handed in by the window this was
@@ -149,6 +148,7 @@ public partial class MacroEditorWindow : AppWindow
         _rootViewModel.Documents = _session.Documents;
         _documentPages = new EditorDocumentPages(_session, _rootViewModel, _variables, _devices,
             WatchChildEditor);
+        _tabs = new EditorTabs(_documentPages);
         _recovery = new EditorRecovery(() => IsAnyDirty, _documentPages.Snapshot,
             () => _session.Editing?.Name ?? string.Empty);
         _commit = new EditorCommit(_session, _documentPages, _rootViewModel, _recovery);
