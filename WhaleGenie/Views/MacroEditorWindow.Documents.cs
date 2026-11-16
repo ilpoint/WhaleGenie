@@ -94,7 +94,7 @@ public partial class MacroEditorWindow : AppWindow
         AddChildPage(editor, null);
         SettleDocumentIds();
         SelectDocument(_documentPages[^1]);
-        _rootViewModel.IsDirty = true;
+        NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
         KeepRecovery();
@@ -167,7 +167,7 @@ public partial class MacroEditorWindow : AppWindow
         AddChildPage(editor, macro);
         SettleDocumentIds();
         SelectDocument(_documentPages[^1]);
-        _rootViewModel.IsDirty = true;
+        NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
         KeepRecovery();
@@ -245,7 +245,7 @@ public partial class MacroEditorWindow : AppWindow
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty)
                 && editor.IsDirty)
             {
-                _rootViewModel.IsDirty = true;
+                NoteEdit();
                 KeepRecovery();
             }
 
@@ -272,7 +272,7 @@ public partial class MacroEditorWindow : AppWindow
         editor.Changed += (_, _) =>
         {
             _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
-            _rootViewModel.IsDirty = true;
+            NoteEdit();
             RefreshDocuments();
             KeepRecovery();
         };
@@ -485,7 +485,7 @@ public partial class MacroEditorWindow : AppWindow
         _session.Documents.Remove(page);
         _documentPages.Remove(page);
         SelectDocument(_documentPages[0]);
-        _rootViewModel.IsDirty = true;
+        NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
         KeepRecovery();
@@ -559,6 +559,7 @@ public partial class MacroEditorWindow : AppWindow
             page.Editor.IsDirty = false;
         }
 
+        _session.Saved();
         _rootViewModel.IsDirty = false;
         _mustStayUnsaved = false;
         StopRecovery();
@@ -583,7 +584,7 @@ public partial class MacroEditorWindow : AppWindow
     private void RefuseCommit()
     {
         _mustStayUnsaved = true;
-        _viewModel.IsDirty = true;
+        NoteEdit();
 
         // What the project holds is not this session's work any more, so the window has not ended
         // with a macro: closing must not try to hand the same stale snapshot over a second time.

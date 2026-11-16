@@ -38,7 +38,7 @@ public partial class MacroEditorWindow : AppWindow
     internal void MarkUnsaved()
     {
         _mustStayUnsaved = true;
-        _viewModel.IsDirty = true;
+        NoteEdit();
     }
 
     /// <summary>
@@ -119,8 +119,18 @@ public partial class MacroEditorWindow : AppWindow
         _editorInRecovery = true;
     }
 
-    private bool IsAnyDirty => _rootViewModel.IsDirty
-        || _documentPages.Any(page => page.Editor.IsDirty);
+    private bool IsAnyDirty => _session.IsDirty || _rootViewModel.IsDirty;
+
+    /// <summary>
+    /// Notes that this window changed something the package does not have, and publishes it upwards
+    /// once. Every edit — a page typed into, a macro lifted, a document added or closed — comes
+    /// through here, so what "unsaved" means is decided in one place rather than at each edit site.
+    /// </summary>
+    private void NoteEdit()
+    {
+        _session.NoteEdit();
+        _viewModel.IsDirty = true;
+    }
 
     private MacroItem BuildRootSnapshot()
     {

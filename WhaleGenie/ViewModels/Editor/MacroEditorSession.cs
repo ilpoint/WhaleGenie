@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.ViewModels;
@@ -54,6 +56,37 @@ internal sealed class MacroEditorSession
 
     /// <summary>The recording in progress, or the last one that has not been stopped yet.</summary>
     public RecordingSession Recording { get; } = new();
+
+    /// <summary>
+    /// Whether this session holds work the package does not have. The pages say whether a page is
+    /// dirty, and the window says whether the project is; what belongs here is the one answer the
+    /// two of them add up to, so closing, the recovery draft and the close prompt cannot disagree
+    /// about whether anything would be lost.
+    /// </summary>
+    public bool IsDirty => _dirty || Documents.Any(page => page.Editor.IsDirty);
+
+    /// <summary>Whether an edit that no page holds a record of has been made — a macro lifted, a
+    /// document added or closed, a page's name changed.</summary>
+    private bool _dirty;
+
+    /// <summary>
+    /// Notes that the session has changed something — a page edited, a macro lifted, a document
+    /// added or closed. It is the only place this is written, which is why every edit goes through
+    /// the window's own <c>NoteEdit</c> rather than touching the project's flag where it happens.
+    /// </summary>
+    public void NoteEdit()
+    {
+        _dirty = true;
+        DirtyChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// The package now holds everything this session has: the pages are clean and so is this.
+    /// </summary>
+    public void Saved() => _dirty = false;
+
+    /// <summary>Raised once per edit, for whoever publishes "there is unsaved work" upwards.</summary>
+    public event EventHandler? DirtyChanged;
 }
 
 /// <summary>A lifted sub-macro together with the page that is about to show it.</summary>

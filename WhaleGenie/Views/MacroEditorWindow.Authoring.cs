@@ -213,7 +213,7 @@ public partial class MacroEditorWindow : AppWindow
             _session.Documents.Add(pending.Page);
             _documentPages.Add(pending.Page);
             SettleDocumentIds();
-            _rootViewModel.IsDirty = true;
+            NoteEdit();
         }
 
         RefreshProjectCallables();
