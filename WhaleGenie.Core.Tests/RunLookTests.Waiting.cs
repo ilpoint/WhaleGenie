@@ -21,7 +21,11 @@ public partial class RunLookTests
     {
         var devices = Screen();
         var looks = new Watched();
-        var step = Within(60, Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
+
+        // The clock has to outlast more than one look: a wait looks, pauses for the run's own beat,
+        // and looks again. What this checks is that it looked more than once, not where the
+        // scheduler landed inside two beats — a budget of one beat made the answer the machine's.
+        var step = Within(300, Step("vision.waitImage", Pictures(@"C:\images\ok.png"),
             Param("confidence", "90"), Hit("match", "match")));
 
         var result = await Run(step, devices, looks);
