@@ -61,11 +61,8 @@ public partial class MacroEditorWindow : AppWindow
 
     internal void OnSetInterfaceHotkey(object? sender, RoutedEventArgs e)
     {
-        if (_viewModel.BeginKeyCapture(binding =>
-            {
-                _viewModel.SetInterfaceToggleHotkey(binding);
-                ResetKeyCaptureLabel();
-            }, combination: true, keyboardOnly: true))
+        if (_viewModel.BeginKeyCapture(binding => _viewModel.SetInterfaceToggleHotkey(binding),
+                combination: true, keyboardOnly: true))
         {
             _viewModel.IsCapturingInterfaceHotkey = true;
         }
@@ -89,11 +86,8 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     internal void OnSetToggleKey(object? sender, RoutedEventArgs e)
     {
-        if (_viewModel.BeginKeyCapture(binding =>
-            {
-                _viewModel.SetToggleKey(binding);
-                ResetKeyCaptureLabel();
-            }, combination: true, keyboardOnly: true))
+        if (_viewModel.BeginKeyCapture(binding => _viewModel.SetToggleKey(binding),
+                combination: true, keyboardOnly: true))
         {
             _viewModel.IsCapturingToggleKey = true;
         }

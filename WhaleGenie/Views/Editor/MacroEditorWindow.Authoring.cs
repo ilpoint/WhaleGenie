@@ -227,23 +227,6 @@ public partial class MacroEditorWindow : AppWindow
         return step;
     }
 
-    /// <summary>Puts the form's capture buttons back to their resting labels.</summary>
-    private void ResetKeyCaptureLabel()
-    {
-        if (_keyCaptureParameter is { } parameter)
-        {
-            parameter.IsCapturingKey = false;
-            _keyCaptureParameter = null;
-        }
-
-        if (_keyRowCapture is { } row)
-        {
-            row.IsCapturing = false;
-            _keyRowCapture = null;
-        }
-
-    }
-
     /// <summary>Builds the interface editor the first time it is asked for.</summary>
     private void EnsureInterface()
     {

@@ -24,12 +24,9 @@
 ### 契约与正确性
 
 - **暂停观察的偶发失败**：`RunDebugTests.A_pause_can_leave_the_step_out_altogether` 在一次全量里
-  失败过（74 ms，`IsPaused` 没等到），单跑与重跑都通过。现在六套件并行，只重跑这一条的成本很低；
-  先按 trait 标出来连跑 20 次，再决定是断言问题还是运行器与界面的时序问题。
-
-- **其余等待动作的行为用例**：部分等待动作只验证能够结束。参照已有的“第 N 次才满足”夹具，
-  优先覆盖 `vision.waitColor`、`browser.waitFor*` 和 `clipboard.waitChange`，确认等待、满足和超时
-  三种路径。
+  失败过（74 ms，`IsPaused` 没等到）。之后单跑 30 次、与平台套件同时占 CPU 再跑 20 次，均通过；
+  用例已标 `Timing=Sensitive`，出现时用 `--filter "Timing=Sensitive"` 定向重跑。暂不判为断言问题，
+  留在这里等下一次全量复现。
 - **补丁成本**：当前局部补丁仍需读取并校验整宏。使用约两百步的宏比较 `set` 与 `get_step` 的耗时，
   确认瓶颈后再决定是否引入增量校验。
 

@@ -99,7 +99,7 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>Which windows are framed right now, so that a check can count them.</summary>
-    internal IReadOnlyCollection<long> FramedWindows => _triggerFrames.Framed;
+    internal IReadOnlyCollection<long> FramedWindows => _frames.Framed;
 
     /// <summary>
     /// Puts a frame around each window the trigger's rule recognises, and takes down the ones that
@@ -111,13 +111,8 @@ public partial class MacroEditorWindow : AppWindow
     /// reads as the border of the window rather than as an answer.
     /// </summary>
     private void DrawTriggerFrames()
-    {
-        IReadOnlyList<FramePlace> places = _closing || !IsVisible || WindowState == WindowState.Minimized
-            ? []
-            : _viewModel.WindowPreview.Places;
-
-        _triggerFrames.Show(AppWindows.Outside(places));
-    }
+        => _frames.Show(!_closing && IsVisible && WindowState != WindowState.Minimized,
+            _viewModel.WindowPreview.Places);
 
     private void UpdateTitleBarButtons()
     {

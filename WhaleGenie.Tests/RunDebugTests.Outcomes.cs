@@ -84,6 +84,7 @@ public partial class RunDebugTests
     /// and this one is answered "not carried out" rather than being run quietly.
     /// </summary>
     [Fact]
+    [Trait("Timing", "Sensitive")]
     public void A_pause_can_leave_the_step_out_altogether()
     {
         var answer = Ui.RunAsync(async () =>

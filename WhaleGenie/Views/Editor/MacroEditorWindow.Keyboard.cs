@@ -207,11 +207,11 @@ public partial class MacroEditorWindow : AppWindow
             {
                 case Key.X:
                     e.Handled = true;
-                    CaptureCursorPosition(viewModel);
+                    _pickers.TakeCursorPosition(viewModel);
                     return;
                 case Key.C:
                     e.Handled = true;
-                    CaptureCursorColour(viewModel);
+                    _pickers.TakeCursorColour(viewModel);
                     return;
             }
         }

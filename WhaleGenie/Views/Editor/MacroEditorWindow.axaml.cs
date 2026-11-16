@@ -54,13 +54,14 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>The devices to work through: the ones handed in, or the ones the program holds.</summary>
     private IDeviceLayer Layer => _devices ?? SharedDevices.Current;
 
+    /// <summary>The colour and window looks a trigger can take without running anything.</summary>
+    private readonly EditorPickers _pickers;
+
     /// <summary>
-    /// The frames standing around the windows a window trigger recognises right now. The trigger is
-    /// the easiest part of a macro to get wrong — a rule written a little too wide fires on a window
-    /// nobody meant — and a frame on each window the rule picks out answers "which ones" without
-    /// waiting for it to happen.
+    /// The frames standing around the windows a window trigger recognises right now, which answer
+    /// "which ones" without waiting for the trigger to fire.
     /// </summary>
-    private readonly ScreenFrames _triggerFrames = new();
+    private readonly TriggerFramePreview _frames = new();
 
     private bool _allowClose;
     private bool _prompting;
@@ -109,17 +110,8 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>What the hook has captured so far, in the order it happened.</summary>
     private DispatcherTimer? _recordTimer;
 
-    /// <summary>Clears the "what the last pick caught" line a moment after it is shown.</summary>
-    private DispatcherTimer? _pickTimer;
-
     /// <summary>The step tree, kept because the drag handlers need it after construction.</summary>
     private TreeView? _stepList;
-
-    /// <summary>The form field waiting for a key, so its button can go back to "set key".</summary>
-    private StepParameterViewModel? _keyCaptureParameter;
-
-    /// <summary>The key-run row whose keys are being recorded, so its button can say "stop".</summary>
-    private KeyRowViewModel? _keyRowCapture;
 
     private MacroInterfaceView? _interfaceView;
 
@@ -160,6 +152,7 @@ public partial class MacroEditorWindow : AppWindow
             [.. project ?? (existing is null ? [] : [existing])],
             ImageAssets.FolderFor(packagePath));
         _devices = devices;
+        _pickers = new EditorPickers(this, () => Layer);
         _variables = variables ?? new VariableSession();
         _rootViewModel = new MacroEditorViewModel
         {
@@ -243,17 +236,6 @@ public partial class MacroEditorWindow : AppWindow
             }, DispatcherPriority.Background);
         };
 
-        // The form's "set key" button says it is waiting only while a capture is up; a capture
-        // ended by the record button or by another binding has to put the label back.
-        _viewModel.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(MacroEditorViewModel.IsCapturingKey)
-                && !_viewModel.IsCapturingKey)
-            {
-                ResetKeyCaptureLabel();
-            }
-        };
-
         ActionPalette.DataContext = _palette;
         ActionPalette.SubMacroChosen += reference => SwitchToSubMacro(reference.Macro);
         ActionPalette.AddBlankSubMacroRequested += AddBlankSubMacro;
@@ -332,7 +314,7 @@ public partial class MacroEditorWindow : AppWindow
         Closed += (_, _) =>
         {
             _closing = true;
-            _triggerFrames.Dispose();
+            _frames.Dispose();
         };
 
         // The keys pressed while a macro is being written or a shortcut bound must not set one off.
