@@ -262,7 +262,7 @@ public class TemplatePartTests
         var files = Directory
             .EnumerateFiles(Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes"), "*.axaml")
             .Concat(Directory.EnumerateFiles(
-                Path.Combine(RepositoryRoot(), "WhaleGenie", "Views"), "*.axaml"));
+                Path.Combine(RepositoryRoot(), "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories));
 
         foreach (var file in files)
         {

@@ -123,7 +123,7 @@ public partial class ClassAuditTests
         var testCode = string.Join("\n", Directory.EnumerateFiles(tests, "*.cs").Select(File.ReadAllText));
 
         // 库声明能被哪些地方的 `Classes=` 满足：所有视图 + App.axaml（**不含库自身**）
-        var useSites = string.Join("\n", Directory.EnumerateFiles(views, "*.axaml")
+        var useSites = string.Join("\n", Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories)
             .Concat(Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie"), "*.axaml",
                 SearchOption.TopDirectoryOnly))
             .Select(File.ReadAllText));
@@ -131,7 +131,7 @@ public partial class ClassAuditTests
         var unused = new Dictionary<string, string>(StringComparer.Ordinal);
         var declarations = Directory.EnumerateFiles(themes, "*.axaml")
             .Select(path => (Path: path, IsLibrary: true))
-            .Concat(Directory.EnumerateFiles(views, "*.axaml")
+            .Concat(Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories)
                 .Select(path => (Path: path, IsLibrary: false)));
 
         foreach (var (path, isLibrary) in declarations)
@@ -257,7 +257,7 @@ public partial class ClassAuditTests
         var root = RepositoryRoot();
         var findings = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml"))
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(path);
             var codeFile = path + ".cs";   // axaml 的代码后置是 `X.axaml.cs`，不是 `X.cs`
@@ -447,7 +447,7 @@ public partial class ClassAuditTests
             Path.Combine(root, "WhaleGenie.Tests"), "*.cs").Select(File.ReadAllText));
 
         var findings = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.cs"))
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.cs", SearchOption.AllDirectories))
         {
             var code = File.ReadAllText(path);
             foreach (var name in ClassesAddedInCode(code))
@@ -491,7 +491,7 @@ public partial class ClassAuditTests
         var direct = new List<string>();
         var fallback = new List<string>();
 
-        foreach (var path in Directory.EnumerateFiles(views, "*.cs"))
+        foreach (var path in Directory.EnumerateFiles(views, "*.cs", SearchOption.AllDirectories))
         {
             var lines = File.ReadAllLines(path);
             for (var index = 0; index < lines.Length; index++)

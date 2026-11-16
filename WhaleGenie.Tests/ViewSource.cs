@@ -16,7 +16,7 @@ internal static class ViewSource
     {
         var views = Path.Combine(Repository(), "WhaleGenie", "Views");
         var stem = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(fileName));
-        return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.cs")
+        return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.cs", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .Select(File.ReadAllText));
     }

@@ -38,6 +38,22 @@ public partial class ClassAuditTests
             ["Dock"] = "App.axaml 的 ListBox.Dock 是全局样式，两个窗口都用它",
         };
 
+    /// <summary>
+    /// The audit is only worth its runtime if it read the windows. Every scan below walks
+    /// `WhaleGenie/Views`; a scan pointed at a folder that no longer holds them — a move, a rename,
+    /// a second folder — finds nothing and reports nothing, which reads exactly like a clean bill.
+    /// </summary>
+    [Fact]
+    public void The_audit_reads_the_windows_it_claims_to()
+    {
+        var views = Path.Combine(RepositoryRoot(), "WhaleGenie", "Views");
+        var markup = Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories).Count();
+        var behind = Directory.EnumerateFiles(views, "*.cs", SearchOption.AllDirectories).Count();
+
+        Assert.True(markup >= 40, $"only {markup} markup files under {views}");
+        Assert.True(behind >= 100, $"only {behind} code-behind files under {views}");
+    }
+
     [Fact]
     public void Classes_without_a_style_are_reported_and_the_whitelist_is_checked()
     {
@@ -74,7 +90,7 @@ public partial class ClassAuditTests
         var app = Declared(File.ReadAllText(Path.Combine(root, "WhaleGenie", "Themes", "Controls.axaml")));
 
         var findings = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml"))
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(path);
             var local = Declared(text);
@@ -131,7 +147,7 @@ public partial class ClassAuditTests
 
         var view = Path.GetFileNameWithoutExtension(path);
         var merged = new Dictionary<string, List<string[]>>(StringComparer.Ordinal);
-        foreach (var candidate in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views")))
+        foreach (var candidate in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*", SearchOption.AllDirectories))
         {
             var candidateText = File.ReadAllText(candidate);
             if (!candidateText.Contains(view, StringComparison.Ordinal)
