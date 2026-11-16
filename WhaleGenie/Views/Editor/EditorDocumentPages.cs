@@ -99,6 +99,22 @@ internal sealed class EditorDocumentPages(
     }
 
     /// <summary>
+    /// The document as one macro: the root page built with every other page hanging under it as a
+    /// sub-macro, in the order the tab strip holds them. A save hands this over and the crash draft
+    /// keeps it, so both have to read the document the same way.
+    /// </summary>
+    public MacroItem Snapshot()
+    {
+        root.SubMacros.Clear();
+        foreach (var page in _pages.Where(page => !page.IsCurrent))
+        {
+            root.SubMacros.Add(page.Editor.BuildMacro());
+        }
+
+        return root.BuildMacro();
+    }
+
+    /// <summary>
     /// A name no page and no project macro has. A second copy of "login" is "login (2)": the number
     /// says "another one of these", which is what a copied sub-macro is.
     /// </summary>

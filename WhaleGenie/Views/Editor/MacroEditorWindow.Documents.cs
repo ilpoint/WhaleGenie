@@ -73,7 +73,7 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     internal async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
     {
-        var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : BuildRootSnapshot();
+        var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : _documentPages.Snapshot();
         var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
             macro.Name);
         if (path is null)
@@ -370,69 +370,5 @@ public partial class MacroEditorWindow : AppWindow
         RefreshProjectCallables();
         RefreshDocuments();
         _recovery.Keep();
-    }
-
-    private bool SaveAll(bool closeAfterSave)
-    {
-        RefreshProjectCallables();
-        var bad = _documentPages.FirstOrDefault(page => !page.Editor.CanSave);
-        if (bad is not null)
-        {
-            SelectDocument(bad);
-            OnSaveBlocked();
-            return false;
-        }
-
-        var result = BuildRootSnapshot();
-
-        // The project answers first: a macro that left the list while this window was open —
-        // a draft applied from MCP replaces the instances — cannot be written back, and clearing
-        // the draft before hearing so would throw the work away without a word.
-        if (Commit is { } commit && !commit(result))
-        {
-            RefuseCommit();
-            return false;
-        }
-
-        Result = result;
-        foreach (var page in _documentPages)
-        {
-            page.Editor.IsDirty = false;
-        }
-
-        _session.Saved();
-        _rootViewModel.IsDirty = false;
-        _mustStayUnsaved = false;
-        _recovery.Stop();
-        _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = false;
-        _settings.Find<TextBlock>("SavedNotice")!.IsVisible = true;
-
-        if (closeAfterSave)
-        {
-            _closing = true;
-            _allowClose = true;
-            Close(result);
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// The project would not take this snapshot: it changed while the window was open. Nothing is
-    /// written and nothing is let go — the work stays in the editor, the recovery draft stays on
-    /// disk, and closing still asks about it.
-    /// </summary>
-    private void RefuseCommit()
-    {
-        _mustStayUnsaved = true;
-        NoteEdit();
-
-        // What the project holds is not this session's work any more, so the window has not ended
-        // with a macro: closing must not try to hand the same stale snapshot over a second time.
-        Result = null;
-
-        _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
-        _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = true;
-        _recovery.FirstChange();
     }
 }

@@ -179,13 +179,13 @@
 329	WhaleGenie/Views/Actions/ActionEditorView.axaml.cs	keep: 动作编辑视图的一族，按关注点拆分后单一职责
 606	WhaleGenie/Views/Pickers/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	WhaleGenie/Views/Pickers/ElementPickerWindow.cs	keep: 元素挑选的一次交互，与窗口挑选同一套走法
-438	WhaleGenie/Views/Editor/MacroEditorWindow.Documents.cs	keep: 文档页签、子宏增删与整份保存，同属文档这一列
+374	WhaleGenie/Views/Editor/MacroEditorWindow.Documents.cs	keep: 文档页签、子宏增删与整份文档的读取，同属文档这一列
 553	WhaleGenie/Views/Editor/MacroEditorWindow.DragDrop.cs	keep: 拖放手势、落点几何与拖入处理同属一个交互，拆开要跨文件追同一组状态
 313	WhaleGenie/Views/Editor/MacroEditorWindow.Steps.cs	keep: 步骤列表的选择、移动与右键操作同属一列
 333	WhaleGenie/Views/Editor/MacroEditorWindow.axaml	keep: 窗口框架：标题栏、五列工作区与三个视图的挂载
 92	WhaleGenie/Views/Editor/MacroSettingsView.axaml	keep: 抽屉的标题、页签与两页视图的挂载
 348	WhaleGenie/Views/Editor/MacroDocumentView.axaml	keep: 文档页签、步骤树与右键菜单同属一列
-415	WhaleGenie/Views/Editor/MacroEditorWindow.axaml.cs	keep: 窗口的编排：构造、视图挂接与跨页查找
+419	WhaleGenie/Views/Editor/MacroEditorWindow.axaml.cs	keep: 窗口的编排：构造、视图挂接与跨页查找
 321	WhaleGenie/Views/Editor/EditorBindingCapture.cs	keep: 取一个绑定：滚轮、鼠标、键盘、手柄与修饰键状态
 316	WhaleGenie/Views/Editor/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
 454	WhaleGenie.Domain/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部

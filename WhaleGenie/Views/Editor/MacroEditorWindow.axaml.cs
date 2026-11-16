@@ -82,6 +82,9 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>Keeps the macro being written as a draft while it has unsaved changes.</summary>
     private readonly EditorRecovery _recovery;
 
+    /// <summary>What a save does: which page cannot be written, and whether the project took it.</summary>
+    private readonly EditorCommit _commit;
+
     /// <summary>What the editor is doing when a key, button or notch is meant as a binding.</summary>
     private readonly EditorBindingCapture _capture;
 
@@ -144,8 +147,11 @@ public partial class MacroEditorWindow : AppWindow
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;
         _rootViewModel.Documents = _session.Documents;
-        _recovery = new EditorRecovery(() => IsAnyDirty, BuildRootSnapshot,
+        _documentPages = new EditorDocumentPages(_session, _rootViewModel, _variables, _devices,
+            WatchChildEditor);
+        _recovery = new EditorRecovery(() => IsAnyDirty, _documentPages.Snapshot,
             () => _session.Editing?.Name ?? string.Empty);
+        _commit = new EditorCommit(_session, _documentPages, _rootViewModel, _recovery);
 
         // The window trigger lists the windows its rule picks out right now, and the frames on the
         // screen are the half a list cannot say: two windows with the same title read the same in a
@@ -178,8 +184,6 @@ public partial class MacroEditorWindow : AppWindow
             }
         }
 
-        _documentPages = new EditorDocumentPages(_session, _rootViewModel, _variables, _devices,
-            WatchChildEditor);
         BuildDocumentPages();
 
         _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _session.Project);

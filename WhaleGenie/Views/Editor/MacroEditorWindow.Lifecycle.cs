@@ -52,7 +52,11 @@ public partial class MacroEditorWindow : AppWindow
     /// false means the macro this editor was opened on is no longer in the list, and the work stays
     /// here rather than being written over a version somebody else made.
     /// </summary>
-    internal Func<MacroItem, bool>? Commit { get; set; }
+    internal Func<MacroItem, bool>? Commit
+    {
+        get => _commit.Commit;
+        set => _commit.Commit = value;
+    }
 
     /// <summary>
     /// Macros this session made out of stretches of the one being edited, minus the ones the macro
@@ -85,17 +89,6 @@ public partial class MacroEditorWindow : AppWindow
     {
         _session.NoteEdit();
         _viewModel.IsDirty = true;
-    }
-
-    private MacroItem BuildRootSnapshot()
-    {
-        _rootViewModel.SubMacros.Clear();
-        foreach (var page in _documentPages.Where(page => !page.IsCurrent))
-        {
-            _rootViewModel.SubMacros.Add(page.Editor.BuildMacro());
-        }
-
-        return _rootViewModel.BuildMacro();
     }
 
     /// <summary>Which windows are framed right now, so that a check can count them.</summary>
