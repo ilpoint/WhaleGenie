@@ -196,31 +196,9 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     private string UniqueSubMacroName(string basis)
-    {
-        var names = _documentPages
-            .Select(page => page.Editor.Name.Trim())
-            .Concat(_session.Project.Select(macro => macro.Name.Trim()))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var stem = basis.Trim();
-        if (stem.Length == 0)
-        {
-            stem = Strings.Get("Editor.NewSubMacroName");
-        }
-
-        if (names.Add(stem))
-        {
-            return stem;
-        }
-
-        for (var index = 2; ; index++)
-        {
-            var candidate = $"{stem} ({index})";
-            if (names.Add(candidate))
-            {
-                return candidate;
-            }
-        }
-    }
+        => EditorDocumentNames.Unique(basis, _documentPages
+            .Select(page => page.Editor.Name)
+            .Concat(_session.Project.Select(macro => macro.Name)));
 
     private void WatchChildEditor(MacroEditorViewModel editor)
     {
@@ -259,7 +237,7 @@ public partial class MacroEditorWindow : AppWindow
                 {
                     foreach (var page in _documentPages)
                     {
-                        RenameCalls(page.Editor.Steps, oldName, newName);
+                        EditorDocumentNames.RenameCalls(page.Editor.Steps, oldName, newName);
                         page.Editor.NotifyStepsChanged();
                     }
                 }
@@ -458,7 +436,7 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         var callers = _documentPages
-            .Where(candidate => Calls(candidate.Editor.Steps, page.Editor.Name))
+            .Where(candidate => EditorDocumentNames.Calls(candidate.Editor.Steps, page.Editor.Name))
             .Select(candidate => candidate.Title)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -489,46 +467,6 @@ public partial class MacroEditorWindow : AppWindow
         RefreshProjectCallables();
         RefreshDocuments();
         _recovery.Keep();
-    }
-
-    private static bool Calls(IEnumerable<MacroStep> steps, string macroName)
-    {
-        foreach (var step in steps)
-        {
-            if (step.Type is "control.runMacro"
-                && string.Equals(step.Text("macro").Trim(), macroName,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            if (step.StepLists.Any(parameter => Calls(parameter.Steps, macroName)))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void RenameCalls(IEnumerable<MacroStep> steps, string oldName, string newName)
-    {
-        foreach (var step in steps)
-        {
-            if (step.Type is "control.runMacro"
-                && step.Parameters.FirstOrDefault(parameter => parameter.Name == "macro")
-                    is { } target
-                && string.Equals(target.Value?.Trim(), oldName,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                target.Written = Formula.Text(newName);
-            }
-
-            foreach (var parameter in step.StepLists)
-            {
-                RenameCalls(parameter.Steps, oldName, newName);
-            }
-        }
     }
 
     private bool SaveAll(bool closeAfterSave)
