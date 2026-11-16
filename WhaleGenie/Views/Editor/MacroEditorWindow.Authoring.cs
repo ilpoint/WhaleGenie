@@ -210,9 +210,7 @@ public partial class MacroEditorWindow : AppWindow
             && string.Equals(step.Text("macro").Trim(), pending.Editor.Name,
                 StringComparison.OrdinalIgnoreCase))
         {
-            _session.Documents.Add(pending.Page);
             _documentPages.Add(pending.Page);
-            SettleDocumentIds();
             NoteEdit();
         }
 

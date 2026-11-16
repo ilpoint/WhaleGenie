@@ -197,6 +197,8 @@ public partial class MacroEditorWindow : AppWindow
             }
         }
 
+        _documentPages = new EditorDocumentPages(_session, _rootViewModel, _variables, _devices,
+            WatchChildEditor);
         BuildDocumentPages();
 
         _viewModel.LoadProjectTriggerSettings(triggers ?? new ProjectTriggers(), _session.Project);

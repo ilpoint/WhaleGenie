@@ -31,69 +31,17 @@ public partial class MacroEditorWindow : AppWindow
     // the project. A change to tabs or sub-macro calls does not need the step tree or trigger code.
     private void BuildDocumentPages()
     {
-        _session.Documents.Clear();
-        _documentPages.Clear();
-        var current = new MacroDocumentPageViewModel(_rootViewModel, isCurrent: true);
-        _session.Documents.Add(current);
-        _documentPages.Add(current);
-
-        var children = _rootViewModel.SubMacros.ToList();
-        _rootViewModel.SubMacros.Clear();
-        AddChildPages(children);
-        _rootViewModel.Documents = _session.Documents;
-        SettleDocumentIds();
+        var current = _documentPages.Build();
         RefreshDocuments();
         SelectDocument(current);
     }
 
-    private readonly List<MacroDocumentPageViewModel> _documentPages = [];
-
-    private void AddChildPages(IEnumerable<MacroItem> children)
-    {
-        foreach (var child in children)
-        {
-            var nested = child.SubMacros.ToList();
-            var editor = new MacroEditorViewModel
-            {
-                IsSubMacro = true,
-                Persisted = _rootViewModel.Persisted,
-                Variables = _variables,
-            };
-            if (_devices is { } devices)
-            {
-                editor.Windows = devices.Windows;
-            }
-
-            editor.Documents = _session.Documents;
-            editor.LoadFrom(child);
-            editor.SubMacros.Clear();
-            WatchChildEditor(editor);
-            var page = new MacroDocumentPageViewModel(editor, isCurrent: false, child);
-            _session.Documents.Add(page);
-            _documentPages.Add(page);
-            AddChildPages(nested);
-        }
-    }
+    private readonly EditorDocumentPages _documentPages;
 
     private void AddBlankSubMacro()
     {
-        var editor = new MacroEditorViewModel
-        {
-            IsSubMacro = true,
-            Persisted = _rootViewModel.Persisted,
-            Variables = _variables,
-        };
-        editor.Documents = _session.Documents;
-        if (_devices is { } devices)
-        {
-            editor.Windows = devices.Windows;
-        }
-
-        editor.Name = UniqueSubMacroName(Strings.Get("Editor.NewSubMacroName"));
-        WatchChildEditor(editor);
-        AddChildPage(editor, null);
-        SettleDocumentIds();
-        SelectDocument(_documentPages[^1]);
+        var page = _documentPages.AddBlank();
+        SelectDocument(page);
         NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
@@ -114,7 +62,7 @@ public partial class MacroEditorWindow : AppWindow
 
         var copy = MacroItem.FromJson(source.ToSubMacroJson());
         copy.Origin = null;
-        copy.Name = UniqueSubMacroName(source.Name);
+        copy.Name = _documentPages.UniqueName(source.Name);
         AddExistingSubMacro(copy);
     }
 
@@ -148,57 +96,13 @@ public partial class MacroEditorWindow : AppWindow
 
     private void AddExistingSubMacro(MacroItem macro)
     {
-        var editor = new MacroEditorViewModel
-        {
-            IsSubMacro = true,
-            Persisted = _rootViewModel.Persisted,
-            Variables = _variables,
-        };
-        editor.Documents = _session.Documents;
-        if (_devices is { } devices)
-        {
-            editor.Windows = devices.Windows;
-        }
-
-        editor.LoadFrom(macro);
-        editor.SubMacros.Clear();
-        editor.IsDirty = true;
-        WatchChildEditor(editor);
-        AddChildPage(editor, macro);
-        SettleDocumentIds();
-        SelectDocument(_documentPages[^1]);
+        var page = _documentPages.AddExisting(macro);
+        SelectDocument(page);
         NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
         _recovery.Keep();
     }
-
-    private void AddChildPage(MacroEditorViewModel editor, MacroItem? source)
-    {
-        var page = new MacroDocumentPageViewModel(editor, isCurrent: false, source);
-        editor.Documents = _session.Documents;
-        _session.Documents.Add(page);
-        _documentPages.Add(page);
-    }
-
-    /// <summary>
-    /// Gives every step of every open document an id of its own, and says on the page it happened
-    /// to when one had to move: a submacro brought in from elsewhere arrives with the ids it was
-    /// written with, and the caller it was dropped into may already be using them.
-    /// </summary>
-    private void SettleDocumentIds()
-    {
-        var renamed = StepIds.SettleAcross(_documentPages.Select(page => page.Editor.Steps));
-        if (renamed.Count > 0)
-        {
-            _documentPages[^1].Editor.ShowStepIdsRepaired(renamed);
-        }
-    }
-
-    private string UniqueSubMacroName(string basis)
-        => EditorDocumentNames.Unique(basis, _documentPages
-            .Select(page => page.Editor.Name)
-            .Concat(_session.Project.Select(macro => macro.Name)));
 
     private void WatchChildEditor(MacroEditorViewModel editor)
     {
@@ -413,7 +317,7 @@ public partial class MacroEditorWindow : AppWindow
         _pageBeforeTabClose = null;
         var closingActive = ReferenceEquals(active, page);
 
-        _session.Documents.Remove(page);
+        _documentPages.Close(page);
         SelectDocument(closingActive ? _documentPages[0] : active ?? _documentPages[0]);
         RefreshDocuments();
     }
@@ -460,8 +364,7 @@ public partial class MacroEditorWindow : AppWindow
             return;
         }
 
-        _session.Documents.Remove(page);
-        _documentPages.Remove(page);
+        _documentPages.Forget(page);
         SelectDocument(_documentPages[0]);
         NoteEdit();
         RefreshProjectCallables();

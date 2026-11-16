@@ -499,7 +499,7 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         var copy = PublicMacroLibrary.CopyToProject(entry, _session.AssetFolder);
-        copy.Name = UniqueSubMacroName(entry.Macro.Name);
+        copy.Name = _documentPages.UniqueName(entry.Macro.Name);
         var editor = new MacroEditorViewModel { IsSubMacro = true };
         if (_devices is { } devices)
         {
