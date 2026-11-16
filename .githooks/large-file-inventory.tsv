@@ -141,6 +141,7 @@
 315	WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
 591	WhaleGenie.Domain/Models/ActionDefinition.cs	keep: 动作定义模型
 85714	WhaleGenie.Domain/Models/ActionDisplay.json	keep: 动作显示覆盖项，只写形状说不出的部分
+315	WhaleGenie.Domain/Models/ActionCatalog.cs	keep: 动作目录投影：语义目录加展示覆盖项，并按值形态推断默认控件
 459	WhaleGenie.Domain/Models/TriggerEntry.cs	keep: 触发器数据模型的一族，按职责拆分后单一职责
 519	WhaleGenie.Domain/Models/VariableChoices.cs	keep: 变量候选模型与其来源、用途、字段，单一职责
 327	WhaleGenie.Domain/Models/ProjectWorkspace.cs	keep: 工程文档状态（宏、触发、变量、路径、修订号）在一处更新
