@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Tests;
@@ -41,7 +42,8 @@ public class FieldNameTests
                 }
 
                 var variations = group
-                    .Select(field => string.Join("|", field.Parameter.Label, field.Parameter.OptionLabels.Count,
+                    .Select(field => string.Join("|", EnglishLabel(field.Parameter),
+                        field.Parameter.OptionLabels.Count,
                         string.Join(",", field.Parameter.Options), string.Join(",", field.Parameter.OptionLabels)))
                     .Distinct(StringComparer.Ordinal)
                     .Count();
@@ -294,6 +296,15 @@ public class FieldNameTests
         Assert.NotEmpty(table);
         return table;
     }
+
+    /// <summary>
+    /// A field's label in English. The catalogue no longer carries text; the table does, keyed by
+    /// the action the field belongs to, so the same name can read differently from one action to
+    /// the next — which is exactly what this check is about.
+    /// </summary>
+    private static string EnglishLabel(ActionParameter parameter)
+        => ActionEnglish.English.GetValueOrDefault($"{parameter.OwnerKey}.{parameter.Name}.label",
+            string.Empty);
 
     private static string Repository()
     {

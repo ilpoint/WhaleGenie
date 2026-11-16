@@ -90,18 +90,18 @@ public class ActionContractReportTests
     }
 
     /// <summary>
-    /// A parameter the engine has and the display file forgot is named with the action it belongs to
-    /// rather than as a count of gaps: "3 parameters are missing somewhere" is not a work item.
+    /// The display file says only what the shape of a value does not: one field written down and
+    /// the rest left alone is a complete entry, not an entry with gaps. Everything the engine names
+    /// is already known; repeating the list here would be the duplication this split removes.
     /// </summary>
     [Fact]
-    public void A_parameter_the_display_file_forgot_is_named_where_it_belongs()
+    public void A_display_entry_may_say_nothing_about_most_fields()
     {
         var delay = ActionSemanticsCatalog.Find("control.delay")!;
         var issues = ActionContract.Check(ActionSemanticsCatalog.All,
-            [Shown(delay.Key, [], [.. delay.Returns.Select(result => result.Key)])]);
+            [Shown(delay.Key, [("ms", "")])]);
 
-        var missing = Assert.Single(issues, issue => issue.Kind == "MissingParameter");
-        Assert.Equal(delay.Key, missing.Action);
-        Assert.Contains(missing.Field!, delay.Parameters.Select(parameter => parameter.Name));
+        Assert.DoesNotContain(issues, issue => issue.Kind is "MissingParameter" or "MissingReturn");
+        Assert.DoesNotContain(issues, issue => issue.Action == delay.Key);
     }
 }

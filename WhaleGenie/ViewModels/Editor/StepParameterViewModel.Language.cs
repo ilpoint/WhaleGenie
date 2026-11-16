@@ -116,7 +116,7 @@ public partial class StepParameterViewModel : ViewModelBase
             }
         }
 
-        if (Definition.Hint.Length > 0)
+        if (Definition.LocalHint.Length > 0)
         {
             yield return Definition.LocalHint;
         }

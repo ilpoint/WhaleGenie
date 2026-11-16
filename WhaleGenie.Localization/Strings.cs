@@ -70,7 +70,8 @@ public sealed class Strings : INotifyPropertyChanged
     /// </summary>
     public static string Get(string key, string? fallback = null)
     {
-        // Chrome text lives in this file, action text in ActionStrings; both are Chinese only.
+        // Chrome text lives in this file; action text in ActionStrings (Chinese) and
+        // ActionEnglish (English). Both action tables answer to the same keys.
         if (Instance.Language == Language.Chinese
             && (Chinese.TryGetValue(key, out var chinese)
                 || ActionStrings.Chinese.TryGetValue(key, out chinese)))
@@ -78,7 +79,8 @@ public sealed class Strings : INotifyPropertyChanged
             return chinese;
         }
 
-        if (English.TryGetValue(key, out var english))
+        if (English.TryGetValue(key, out var english)
+            || ActionEnglish.English.TryGetValue(key, out english))
         {
             return english;
         }

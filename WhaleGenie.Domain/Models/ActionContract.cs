@@ -23,7 +23,10 @@ public sealed record ActionContractIssue(string Kind, string Action, string? Fie
             : $"{Kind} {Action}: {Detail}";
 }
 
-/// <summary>One parameter as the display file names it: the name and the editor kind it asks for.</summary>
+/// <summary>
+/// One parameter as the display file names it: the name, and the editor kind it asks for when the
+/// obvious one would be wrong. An empty kind means the shape of the value decides.
+/// </summary>
 public sealed record ActionContractParameter(string Name, string Kind);
 
 /// <summary>One action as the display file has it, cut down to what a contract check reads.</summary>
@@ -31,8 +34,11 @@ public sealed record ActionContractDisplay(
     string Key, IReadOnlyList<ActionContractParameter> Parameters, IReadOnlyList<string> Returns);
 
 /// <summary>
-/// What the engine's catalogue and the display catalogue say about each other. Everything here is
-/// about the two lists agreeing; how a label reads is nobody's business but the reader's.
+/// What the engine's catalogue and the display catalogue say about each other. The engine names
+/// every field and result; the display file adds what a person sees and may say nothing at all. So
+/// what is checked here is that nothing the display file says is about something that is not there,
+/// and that what it does say is a control the editor has — not that every field was mentioned, which
+/// would make the display file repeat the engine's list.
 /// </summary>
 public static class ActionContract
 {
@@ -109,20 +115,16 @@ public static class ActionContract
                 continue;
             }
 
-            // The kind decides which control the form draws, so a name that parses to nothing is a
-            // field the editor cannot lay out at all — said here rather than at the first click.
-            if (!Enum.TryParse<ActionParameterKind>(parameter.Kind, ignoreCase: true, out _))
+            // The kind decides which control the form draws, so an override that parses to nothing
+            // is a field the editor cannot lay out at all — said here rather than at the first click.
+            if (parameter.Kind.Length > 0
+                && !Enum.TryParse<ActionParameterKind>(parameter.Kind, ignoreCase: true, out _))
             {
                 issues.Add(new ActionContractIssue("UnknownKind", facts.Key, parameter.Name,
                     $"the display catalogue asks for the editor kind \"{parameter.Kind}\", "
                     + "which the editor does not have"));
             }
         }
-
-        issues.AddRange(facts.Parameters
-            .Where(parameter => !shownNames.Contains(parameter.Name))
-            .Select(parameter => new ActionContractIssue("MissingParameter", facts.Key,
-                parameter.Name, "the engine's catalogue has it and the display catalogue does not")));
     }
 
     private static void CheckReturns(ActionSemantics facts, ActionContractDisplay shown,
@@ -147,10 +149,5 @@ public static class ActionContract
                     "the display catalogue has it and the engine's catalogue does not"));
             }
         }
-
-        issues.AddRange(facts.Returns
-            .Where(result => !shownKeys.Contains(result.Key))
-            .Select(result => new ActionContractIssue("MissingReturn", facts.Key, result.Key,
-                "the engine's catalogue has it and the display catalogue does not")));
     }
 }

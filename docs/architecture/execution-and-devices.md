@@ -61,8 +61,11 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 `Execution/ActionSemantics.json` 嵌入 Core，由 `ActionSemanticsCatalog` 读取，声明动作分类、
 参数值形态、控件形状、单位、空值、范围、选项、拾取器、子列表、副作用、等待和返回值。
 
-`Models/ActionDisplay.json` 只保存界面标签、提示、编辑器种类和页面归属。`ActionCatalog` 将两类
-信息投影给编辑器；`ActionContractTests` 检查二者对应关系。显示层另有一个 `WrittenByTool`：这类值
+`Models/ActionDisplay.json` 只保存形状决定不了的展示事实：编辑器种类（默认由值形态与拾取器推导，
+覆盖项只写例外）、选项文案、启用条件、路径意图、页面归属与预览；字段以语义目录里的参数名为键，
+所以名称只出现一次。动作文字按同一套键放在 `ActionEnglish`（英文）与 `ActionStrings`（中文）里，
+`ActionCatalog` 在读取时把它们合起来投影给编辑器；`ActionContractTests` 检查覆盖项不指向不存在的
+动作或参数，`LocalizationTests` 检查每个字段与结果都有英文。显示层另有一个 `WrittenByTool`：这类值
 由专门的窗口写入（基准色周围要对的颜色），表单不给它生成行，值本身照常保存与校验。
 
 动作族已经从 `MacroRunner` 的 `partial` 文件迁成独立的类。`ClipboardActions`、`ProcessActions`、

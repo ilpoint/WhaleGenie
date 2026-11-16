@@ -281,7 +281,8 @@ public partial class ActionDialogTests
                 parameter => parameter.Definition.Name == "window");
             Assert.True(field.IsWindowRule);
             Assert.True(field.IsWindow);
-            Assert.Equal("Program", field.Definition.Label);
+            Assert.Equal("Program", ActionEnglish.English["process.kill.window.label"]);
+            Assert.NotEmpty(field.Label);
             Assert.True(field.Definition.Required);
 
             field.ClearWindowRule();

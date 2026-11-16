@@ -13,9 +13,12 @@
    `IRunContext`、`StepArguments`、`StepResults`、`WindowFacts` 等取得。控制流（分支、循环、调用、
    尝试、变量写入）仍由解释器实现，这类动作加在 `MacroRunner.Dispatch.cs` 的表里。读值与范围检查
    使用目录，记录字段使用 `FieldNames`，不得按 `type` 前缀推断行为。
-4. **更新展示与文案。** 在 `ActionDisplay.json` 维护标签、提示、编辑器种类和页面归属；同步更新
-   `Strings` 与 `ActionStrings`。图标映射位于 `ViewModels/AppIcons.cs`，菜单图标键位于
-   `ViewModels/MenuIconCatalog.cs`。
+4. **更新展示与文案。** `ActionDisplay.json` 只写形状决定不了的事：编辑器种类（默认由值形态与
+   拾取器推导，例外才写）、选项文案、启用条件、路径意图、页面归属与预览。文字写进
+   `ActionEnglish`（英文）与 `ActionStrings`（中文），键是 `<动作>.name`、`<动作>.desc`、
+   `<动作>.<字段>.label` / `.hint`、`<动作>.return.<结果>.label` / `.hint`；缺英文会被
+   `LocalizationTests` 挡住，中文可以后补并回落到英文。图标映射位于 `ViewModels/AppIcons.cs`，
+   菜单图标键位于 `ViewModels/MenuIconCatalog.cs`。
 5. **补齐失败键。** 新失败键同时进入 `RunKeys` 和手册失败键表；日志键使用独立的 `Log.*` 词表。
 6. **补齐页面与返回值。** 参数只归属于一个页面；返回值页、目录声明、引擎写入键和记录字段保持一致。
 7. **增加自动化用例。** 至少一条引擎用例执行新动作，并补充值形态、控件形状、范围、副作用、返回形状、
@@ -28,9 +31,9 @@
     格式检查。
 
 新增一个动作要改的地方，按上面的顺序数下来共八处：语义目录、展示目录、族文件（或控制表）、
-`Strings.cs`（中英同一文件）、`ActionStrings.cs`、手册对应篇、族用例，以及——只有在出现新失败键或
-新图标时——`RunVocabulary.cs` 与 `AppIcons.cs`。改动面超过这八处说明这个动作被放错了族，或目录里
-缺了能表达它的形状。
+`ActionEnglish.cs`、`ActionStrings.cs`、手册对应篇、族用例，以及——只有在出现新失败键或新图标时——
+`RunVocabulary.cs` 与 `AppIcons.cs`。改动面超过这八处说明这个动作被放错了族，或目录里缺了能表达
+它的形状；展示目录里只写这个动作与通用默认不同的地方，写得越多越可能是在补形状该说的话。
 
 ## 动作表单与编辑器约定
 

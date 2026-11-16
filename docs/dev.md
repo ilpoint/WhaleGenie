@@ -58,7 +58,8 @@ if ($missing) { $missing; exit 1 }
 事实来源按以下规则确定：
 
 - 用户可见行为以 `docs/manual/` 各篇为准；动作字段的机器可读语义以 `ActionSemantics.json` 为准。
-- 界面展示元数据只放在 `ActionDisplay.json`，不得复制引擎事实。
+- 界面展示元数据只放在 `ActionDisplay.json`，不得复制引擎事实；动作文字在 `ActionEnglish` 与
+  `ActionStrings`，两者按同一组键取值。
 - 失败键以 `RunKeys` 与手册失败键表为准，由 `FailureKeyTests` 对账。
 - 当前结构与跨子系统设计取舍以代码和 `architecture.md` 为准；修改、测试与验收方法放在开发文档各篇。
 - 未完成工作只登记在 `roadmap.md`；进度、批次过程、完成勾选和变更历史以 git 为准，不另写流水。

@@ -206,15 +206,15 @@ public class LocalizationTests
         var actions = ActionCatalog.Definitions;
         var languages = new (string Label, Dictionary<string, string> Table)[]
         {
-            ("中文", Strings.Chinese),
-            ("English", Strings.English),
+            ("中文", ActionStrings.Chinese),
+            ("English", ActionEnglish.English),
         };
 
         foreach (var (label, table) in languages)
         {
             var same = actions
                 .Select(action => (action.Key,
-                    Name: table.GetValueOrDefault(action.Key + ".name", action.DisplayName)))
+                    Name: table.GetValueOrDefault(action.Key + ".name", action.Key)))
                 .GroupBy(named => named.Name)
                 .Where(group => group.Count() > 1)
                 .Select(group => $"{label} {group.Key}: "
@@ -413,12 +413,12 @@ public class LocalizationTests
             {
                 foreach (var parameter in definition.Parameters)
                 {
-                    if (parameter.Hint.Length == 0)
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
+                    if (!ActionEnglish.English.ContainsKey(key))
                     {
                         missing.Add($"{definition.Key}.{parameter.Name} (English)");
                     }
 
-                    var key = $"{definition.Key}.{parameter.Name}.hint";
                     if (!ActionStrings.Chinese.ContainsKey(key))
                     {
                         missing.Add(key);
@@ -487,12 +487,13 @@ public class LocalizationTests
                         continue;
                     }
 
-                    if (!parameter.Hint.Contains("default", StringComparison.OrdinalIgnoreCase))
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
+                    if (!ActionEnglish.English.TryGetValue(key, out var english)
+                        || !english.Contains("default", StringComparison.OrdinalIgnoreCase))
                     {
                         missing.Add($"{definition.Key}.{parameter.Name} (English)");
                     }
 
-                    var key = $"{definition.Key}.{parameter.Name}.hint";
                     if (!ActionStrings.Chinese.TryGetValue(key, out var chinese)
                         || !chinese.Contains("默认"))
                     {
@@ -599,6 +600,11 @@ public class LocalizationTests
                 Look($"ActionStrings.Chinese[{key}]", text);
             }
 
+            foreach (var (key, text) in ActionEnglish.English)
+            {
+                Look($"ActionEnglish.English[{key}]", text);
+            }
+
             foreach (var definition in ActionCatalog.Definitions)
             {
                 Look($"{definition.Key}.Description", definition.Description);
@@ -625,6 +631,44 @@ public class LocalizationTests
         });
 
         Assert.Empty(marked.Order());
+    }
+
+    /// <summary>
+    /// Every action, field and result has English text under the key the form asks for. Chinese may
+    /// fall back to English — that is how a half-translated catalogue still reads — but English has
+    /// nothing behind it: a field with no entry would show its internal name instead of a label.
+    /// </summary>
+    [Fact]
+    public void Every_action_field_and_result_has_English_text()
+    {
+        var missing = new List<string>();
+
+        foreach (var action in ActionCatalog.Definitions)
+        {
+            void Need(string key)
+            {
+                if (!ActionEnglish.English.ContainsKey(key))
+                {
+                    missing.Add(key);
+                }
+            }
+
+            Need($"{action.Key}.name");
+            Need($"{action.Key}.desc");
+            foreach (var parameter in action.Parameters)
+            {
+                Need($"{action.Key}.{parameter.Name}.label");
+                Need($"{action.Key}.{parameter.Name}.hint");
+            }
+
+            foreach (var result in action.Returns)
+            {
+                Need($"{action.Key}.return.{result.Key}.label");
+                Need($"{action.Key}.return.{result.Key}.hint");
+            }
+        }
+
+        Assert.Empty(missing);
     }
 
     /// <summary>

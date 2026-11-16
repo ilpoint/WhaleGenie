@@ -39,18 +39,17 @@ public static class ActionCatalog
         foreach (var semantics in ActionSemanticsCatalog.All)
         {
             var shown = byKey[semantics.Key];
-            var shownParameters = shown.Parameters.ToDictionary(
-                parameter => parameter.Name, StringComparer.Ordinal);
             var parameters = new List<ActionParameter>(semantics.Parameters.Count);
             foreach (var facts in semantics.Parameters)
             {
-                var field = shownParameters[facts.Name];
+                var field = shown.Fields.GetValueOrDefault(facts.Name) ?? new DisplayField();
                 parameters.Add(new ActionParameter
                 {
                     Name = facts.Name,
                     Label = field.Label,
                     Semantics = facts,
-                    Kind = KindOf(field.Kind, $"{semantics.Key}.{facts.Name}"),
+                    Kind = KindOf(facts.Shape, facts.ValueForm, facts.Picker,
+                        facts.Options.Count > 0, field.Kind, $"{semantics.Key}.{facts.Name}"),
                     Hint = field.Hint,
                     Placeholder = field.Placeholder,
                     OptionLabels = field.OptionLabels,
@@ -71,11 +70,10 @@ public static class ActionCatalog
                 });
             }
 
-            var shownReturns = shown.Returns.ToDictionary(result => result.Key, StringComparer.Ordinal);
             var returns = new List<ActionReturn>(semantics.Returns.Count);
             foreach (var facts in semantics.Returns)
             {
-                var result = shownReturns[facts.Key];
+                var result = shown.Results.GetValueOrDefault(facts.Key) ?? new DisplayResult();
                 returns.Add(new ActionReturn
                 {
                     Key = facts.Key,
@@ -99,8 +97,8 @@ public static class ActionCatalog
             {
                 Key = semantics.Key,
                 Semantics = semantics,
-                DisplayName = shown.DisplayName,
-                Description = shown.Description,
+                DisplayName = string.Empty,
+                Description = string.Empty,
                 Preview = PreviewOf(shown.Preview, semantics.Key),
                 Parameters = parameters,
                 Returns = returns,
@@ -167,14 +165,65 @@ public static class ActionCatalog
     /// <summary>One display entry cut down to what the contract check reads.</summary>
     private static ActionContractDisplay Shown(DisplayAction action)
         => new(action.Key,
-            [.. action.Parameters.Select(parameter => new ActionContractParameter(
-                parameter.Name, parameter.Kind))],
-            [.. action.Returns.Select(result => result.Key)]);
+            [.. action.Fields.Select(field => new ActionContractParameter(field.Key, field.Value.Kind))],
+            [.. action.Results.Keys]);
 
-    private static ActionParameterKind KindOf(string written, string field)
-        => Enum.TryParse<ActionParameterKind>(written, ignoreCase: true, out var kind)
-            ? kind
-            : throw new InvalidOperationException($"{field}: unknown editor kind {written}.");
+    /// <summary>
+    /// The editor control for one field: what the display file asks for, or — when it asks for
+    /// nothing — what the shape of the value already implies. A field is only written down when the
+    /// obvious control would be wrong, so the two catalogues cannot disagree about the rest.
+    /// </summary>
+    private static ActionParameterKind KindOf(ActionValueShape shape, ActionValueForm form,
+        ActionPickerKind picker, bool hasOptions, string written, string field)
+    {
+        if (written.Length > 0)
+        {
+            return Enum.TryParse<ActionParameterKind>(written, ignoreCase: true, out var kind)
+                ? kind
+                : throw new InvalidOperationException($"{field}: unknown editor kind {written}.");
+        }
+
+        return DefaultKind(shape, form, picker, hasOptions) ?? throw new InvalidOperationException(
+            $"{field}: a {shape} field whose editor the shape does not decide needs one.");
+    }
+
+    /// <summary>
+    /// The control the shape of a value implies, or null when it implies none. A table of rows is
+    /// the case that decides nothing: what a row holds differs from one action to the next, so the
+    /// display file has to say which table editor to draw.
+    /// </summary>
+    private static ActionParameterKind? DefaultKind(ActionValueShape shape, ActionValueForm form,
+        ActionPickerKind picker, bool hasOptions)
+    {
+        if (hasOptions)
+        {
+            return ActionParameterKind.Choice;
+        }
+
+        return shape switch
+        {
+            ActionValueShape.Number => ActionParameterKind.Number,
+            ActionValueShape.Bool => ActionParameterKind.Bool,
+            ActionValueShape.Choice => ActionParameterKind.Choice,
+            ActionValueShape.Steps => ActionParameterKind.Steps,
+            ActionValueShape.Rows => picker switch
+            {
+                ActionPickerKind.Image => ActionParameterKind.Images,
+                ActionPickerKind.Region => ActionParameterKind.Region,
+                _ => null,
+            },
+            ActionValueShape.Image => ActionParameterKind.Image,
+            ActionValueShape.Point => ActionParameterKind.Point,
+            ActionValueShape.Rect => ActionParameterKind.Rect,
+            ActionValueShape.WindowRule => ActionParameterKind.WindowRule,
+            ActionValueShape.Text when form == ActionValueForm.Name
+                => ActionParameterKind.Variable,
+            ActionValueShape.Text when picker == ActionPickerKind.Color
+                => ActionParameterKind.Color,
+            ActionValueShape.Text => ActionParameterKind.Text,
+            _ => null,
+        };
+    }
 
     /// <summary>
     /// What the form shows live, read the way a field's editor is read: a word the program does not
@@ -192,30 +241,33 @@ public static class ActionCatalog
     {
         public required string Key { get; init; }
 
-        public required string DisplayName { get; init; }
-
-        public string Description { get; init; } = string.Empty;
-
         /// <summary>What the form shows live under its fields, or empty for nothing.</summary>
         public string Preview { get; init; } = string.Empty;
 
-        public IReadOnlyList<DisplayParameter> Parameters { get; init; } = [];
+        /// <summary>
+        /// What each field adds to the form, by the parameter name the engine's catalogue gives it.
+        /// The name is the key here rather than a field of its own, so the display file can only
+        /// ever say something about a parameter that exists; a name it invents is an orphan the
+        /// contract check reports.
+        /// </summary>
+        public IReadOnlyDictionary<string, DisplayField> Fields { get; init; }
+            = new Dictionary<string, DisplayField>(StringComparer.Ordinal);
 
-        public IReadOnlyList<DisplayReturn> Returns { get; init; } = [];
+        public IReadOnlyDictionary<string, DisplayResult> Results { get; init; }
+            = new Dictionary<string, DisplayResult>(StringComparer.Ordinal);
     }
 
     /// <summary>One parameter's display-only fields.</summary>
-    private sealed class DisplayParameter
+    private sealed class DisplayField
     {
-        public required string Name { get; init; }
-
-        public required string Label { get; init; }
+        public string Label { get; init; } = string.Empty;
 
         public string Hint { get; init; } = string.Empty;
 
         public string Placeholder { get; init; } = string.Empty;
 
-        public required string Kind { get; init; }
+        /// <summary>The control to draw, when the shape of the value does not already say.</summary>
+        public string Kind { get; init; } = string.Empty;
 
         /// <summary>
         /// True for a percentage that is measured against a colour channel, where "5%" means
@@ -253,12 +305,10 @@ public static class ActionCatalog
         public string AddLabelKey { get; init; } = string.Empty;
     }
 
-    /// <summary>One result's display-only fields.</summary>
-    private sealed class DisplayReturn
+    /// <summary>One result's display-only fields, keyed by the result's own key.</summary>
+    private sealed class DisplayResult
     {
-        public required string Key { get; init; }
-
-        public required string Label { get; init; }
+        public string Label { get; init; } = string.Empty;
 
         public string Hint { get; init; } = string.Empty;
     }
