@@ -4,14 +4,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
 
-    <!--
-      The test host tells the process that started it to end it if that process goes away. Here the
-      host cannot open the handle: the run stops before discovery with "the Testhost process has
-      exited with an error" and a Win32Exception (5), which Windows shows as 0xe0434352. The switch
-      is the one the SDK itself sets for UWP tools; the only thing given up is the automatic cleanup
-      of a host left behind by a killed run.
-    -->
-    <_MSTestEnableParentProcessQuery>false</_MSTestEnableParentProcessQuery>
 
   </PropertyGroup>
 

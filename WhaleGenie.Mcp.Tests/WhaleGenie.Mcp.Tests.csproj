@@ -9,15 +9,6 @@
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-
-    <!--
-      The test host asks the process that started it to end it when that process goes away. On this
-      machine the host is refused the handle (Win32Exception 5) and the run stops before discovery,
-      which reads as "the test host exited with an error". This is the switch the SDK itself uses
-      for UWP tools; the only thing given up is the automatic clean-up of a host left behind by a
-      killed run. The platform suite needs the same, for the same reason.
-    -->
-    <_MSTestEnableParentProcessQuery>false</_MSTestEnableParentProcessQuery>
   </PropertyGroup>
 
   <ItemGroup>
