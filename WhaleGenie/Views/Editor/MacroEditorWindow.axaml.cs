@@ -78,14 +78,8 @@ public partial class MacroEditorWindow : AppWindow
 
     private HotstringKeyboardWindow? _hotstringKeyboard;
 
-    /// <summary>Writes the macro being edited out as it changes, while it is not saved.</summary>
-    private readonly RecoveryWriter _recovery;
-
-    /// <summary>
-    /// Whether this editor put its macro into the snapshot. Only what wrote it takes it back, so
-    /// an editor opened and closed without a word cannot throw away a draft the last run left.
-    /// </summary>
-    private bool _editorInRecovery;
+    /// <summary>Keeps the macro being written as a draft while it has unsaved changes.</summary>
+    private readonly EditorRecovery _recovery;
 
     /// <summary>
     /// The modifier keys held down while a binding is being taken. A trigger can be a combination,
@@ -176,7 +170,8 @@ public partial class MacroEditorWindow : AppWindow
         _rootViewModel.IsSubMacro = callableOnly;
         _viewModel = _rootViewModel;
         _rootViewModel.Documents = _session.Documents;
-        _recovery = new RecoveryWriter(WriteRecovery);
+        _recovery = new EditorRecovery(() => IsAnyDirty, BuildRootSnapshot,
+            () => _session.Editing?.Name ?? string.Empty);
 
         // The window trigger lists the windows its rule picks out right now, and the frames on the
         // screen are the half a list cannot say: two windows with the same title read the same in a
@@ -305,7 +300,7 @@ public partial class MacroEditorWindow : AppWindow
 
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty))
             {
-                SyncRecovery();
+                _recovery.FirstChange();
             }
         };
 
@@ -317,7 +312,7 @@ public partial class MacroEditorWindow : AppWindow
             _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
             _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = false;
             RefreshDocuments();
-            KeepRecovery();
+            _recovery.Keep();
         };
 
         // If the editor goes away by any route, the hook has to go with it. There is no point
@@ -330,7 +325,7 @@ public partial class MacroEditorWindow : AppWindow
 
         // And so does the recovery draft: once this window is gone, its macro either belongs to
         // the list or was let go, and the next run must not be offered it back.
-        Closed += (_, _) => StopRecovery();
+        Closed += (_, _) => _recovery.Stop();
 
         // And the frames it put on the screen: a window that is gone has nothing left to explain
         // them, and they would go on standing over the windows they were drawn around.

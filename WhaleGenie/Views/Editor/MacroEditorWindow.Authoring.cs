@@ -218,7 +218,7 @@ public partial class MacroEditorWindow : AppWindow
 
         RefreshProjectCallables();
         RefreshDocuments();
-        KeepRecovery();
+        _recovery.Keep();
         if (refusal is not null)
         {
             _viewModel.ReportPlacementRefusal(refusal);

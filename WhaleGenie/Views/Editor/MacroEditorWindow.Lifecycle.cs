@@ -20,7 +20,6 @@ using WhaleGenie.Core.Recording;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 
@@ -75,50 +74,6 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     internal bool SteppedAside { get; set; }
 
-    /// <summary>
-    /// Keeps the macro being written in the recovery snapshot while it has unsaved changes, and
-    /// lets it go once it does not — it was saved into the list, or the user did not want it.
-    /// </summary>
-    private void SyncRecovery()
-    {
-        if (!IsAnyDirty)
-        {
-            StopRecovery();
-            return;
-        }
-
-        // The first change is written straight away, so a macro that is pasted in and then lost
-        // to a crash seconds later is not waiting on the clock to be kept.
-        _editorInRecovery = true;
-        _recovery.Now();
-    }
-
-    /// <summary>
-    /// Keeps a change that arrived while the macro was already unsaved from going unwritten. The
-    /// write waits for the changes to pause; what first made the macro unsaved was written already.
-    /// </summary>
-    private void KeepRecovery()
-    {
-        if (!IsAnyDirty)
-        {
-            return;
-        }
-
-        _editorInRecovery = true;
-        _recovery.Changed();
-    }
-
-    private void WriteRecovery()
-    {
-        if (!IsAnyDirty)
-        {
-            return;
-        }
-
-        RecoveryStore.SaveEditor(BuildRootSnapshot(), _session.Editing?.Name ?? string.Empty);
-        _editorInRecovery = true;
-    }
-
     private bool IsAnyDirty => _session.IsDirty || _rootViewModel.IsDirty;
 
     /// <summary>
@@ -141,19 +96,6 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         return _rootViewModel.BuildMacro();
-    }
-
-    private void StopRecovery()
-    {
-        _recovery.Stop();
-
-        // Only take back what this editor wrote: a draft left by a run that stopped is not this
-        // window's to drop, since nobody has answered for it yet.
-        if (_editorInRecovery)
-        {
-            _editorInRecovery = false;
-            RecoveryStore.ClearEditor();
-        }
     }
 
     /// <summary>Which windows are framed right now, so that a check can count them.</summary>

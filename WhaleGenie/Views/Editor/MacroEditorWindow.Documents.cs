@@ -97,7 +97,7 @@ public partial class MacroEditorWindow : AppWindow
         NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
-        KeepRecovery();
+        _recovery.Keep();
     }
 
     private async void CopyProjectMacroAsSub()
@@ -170,7 +170,7 @@ public partial class MacroEditorWindow : AppWindow
         NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
-        KeepRecovery();
+        _recovery.Keep();
     }
 
     private void AddChildPage(MacroEditorViewModel editor, MacroItem? source)
@@ -246,7 +246,7 @@ public partial class MacroEditorWindow : AppWindow
                 && editor.IsDirty)
             {
                 NoteEdit();
-                KeepRecovery();
+                _recovery.Keep();
             }
 
             if (args.PropertyName == nameof(MacroEditorViewModel.Name))
@@ -274,7 +274,7 @@ public partial class MacroEditorWindow : AppWindow
             _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
             NoteEdit();
             RefreshDocuments();
-            KeepRecovery();
+            _recovery.Keep();
         };
     }
 
@@ -488,7 +488,7 @@ public partial class MacroEditorWindow : AppWindow
         NoteEdit();
         RefreshProjectCallables();
         RefreshDocuments();
-        KeepRecovery();
+        _recovery.Keep();
     }
 
     private static bool Calls(IEnumerable<MacroStep> steps, string macroName)
@@ -562,7 +562,7 @@ public partial class MacroEditorWindow : AppWindow
         _session.Saved();
         _rootViewModel.IsDirty = false;
         _mustStayUnsaved = false;
-        StopRecovery();
+        _recovery.Stop();
         _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = false;
         _settings.Find<TextBlock>("SavedNotice")!.IsVisible = true;
 
@@ -592,6 +592,6 @@ public partial class MacroEditorWindow : AppWindow
 
         _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
         _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = true;
-        SyncRecovery();
+        _recovery.FirstChange();
     }
 }
