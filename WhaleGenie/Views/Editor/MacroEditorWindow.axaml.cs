@@ -82,30 +82,8 @@ public partial class MacroEditorWindow : AppWindow
     /// <summary>Keeps the macro being written as a draft while it has unsaved changes.</summary>
     private readonly EditorRecovery _recovery;
 
-    /// <summary>
-    /// The modifier keys held down while a binding is being taken. A trigger can be a combination,
-    /// so pressing Ctrl does not end the capture — it may be the front of one. Whether it was is
-    /// settled either by the key that finishes the combination or, when nothing follows it, by the
-    /// release: a lone modifier is a binding of its own, and its two halves are two keys.
-    /// </summary>
-    private readonly List<Key> _captureModifiers = [];
-
-    /// <summary>
-    /// The keys the binding just taken was made of, still to see their release. A focused button
-    /// treats Space and Enter on release as a click — which would arm the capture all over again —
-    /// and a combination sends one release per key.
-    /// </summary>
-    private readonly List<Key> _swallowReleases = [];
-
-    /// <summary>
-    /// The controller, read while the editor is waiting for a binding. Windows has no word for a
-    /// controller button going down, so this is a reading on a clock; what it was holding at the
-    /// reading before is kept here, which is the only way a press can be told from a hold.
-    /// </summary>
-    private readonly GamepadButtonWatch _padHeld = new();
-
-    /// <summary>The reading of the controller while the editor waits, or null when it is not waiting.</summary>
-    private DispatcherTimer? _padTimer;
+    /// <summary>What the editor is doing when a key, button or notch is meant as a binding.</summary>
+    private readonly EditorBindingCapture _capture;
 
     /// <summary>What the hook has captured so far, in the order it happened.</summary>
     private DispatcherTimer? _recordTimer;
@@ -152,6 +130,8 @@ public partial class MacroEditorWindow : AppWindow
             [.. project ?? (existing is null ? [] : [existing])],
             ImageAssets.FolderFor(packagePath));
         _devices = devices;
+        _capture = new EditorBindingCapture(this,
+            () => DataContext as MacroEditorViewModel, devices);
         _pickers = new EditorPickers(this, () => Layer);
         _variables = variables ?? new VariableSession();
         _rootViewModel = new MacroEditorViewModel
@@ -274,12 +254,10 @@ public partial class MacroEditorWindow : AppWindow
             {
                 if (_viewModel.IsCapturingKey)
                 {
-                    // A capture starts with nothing held: whatever the last one took is over by now.
-                    _captureModifiers.Clear();
-                    _swallowReleases.Clear();
+                    _capture.Reset();
                 }
 
-                WatchController(_viewModel.IsCapturingKey);
+                _capture.Watch(_viewModel.IsCapturingKey);
             }
 
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty))
@@ -305,7 +283,7 @@ public partial class MacroEditorWindow : AppWindow
         Closed += (_, _) => _hotstringKeyboard?.Close();
 
         // And the reading of the controller, which has nothing left to tell once the window is gone.
-        Closed += (_, _) => WatchController(false);
+        Closed += (_, _) => _capture.Watch(false);
 
         // And so does the recovery draft: once this window is gone, its macro either belongs to
         // the list or was let go, and the next run must not be offered it back.

@@ -103,88 +103,8 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>
-    /// Reads the controller while a binding is being taken, or stops reading it. A check that opened
-    /// the editor without handing a layer in has no controller to read and none is asked for.
-    /// </summary>
-    private void WatchController(bool watching)
-    {
-        if (!watching || _devices is not { } layer)
-        {
-            _padTimer?.Stop();
-            _padTimer = null;
-            _padHeld.Take(GamepadButtons.None);
-            return;
-        }
-
-        if (_padTimer is not null)
-        {
-            return;
-        }
-
-        // Whatever is held when the capture starts is not a press. The keyboard path only sees keys
-        // going down after the button was pressed, and a controller button that is already down is
-        // the same "already there" as a key somebody is resting a finger on.
-        try
-        {
-            _padHeld.Take(layer.GamepadReading.Held());
-        }
-        catch (Exception)
-        {
-            _padHeld.Take(GamepadButtons.None);
-        }
-
-        // The pace the triggers read it at: quicker than a hand presses one button twice, and one
-        // reading of a controller is a fraction of the cost of one look at a pixel.
-        _padTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
-        _padTimer.Tick += (_, _) => ReadController(layer);
-        _padTimer.Start();
-    }
-
-    /// <summary>
     /// One reading of the controller, for the timer and for the checks. The first button found going
     /// down is the binding and ends the capture, the way the first key or mouse button does.
     /// </summary>
-    internal void LookAtController()
-    {
-        if (_devices is { } layer)
-        {
-            ReadController(layer);
-        }
-    }
-
-    private void ReadController(IDeviceLayer layer)
-    {
-        if (!_viewModel.IsCapturingKey || _viewModel.CaptureKeyboardOnly)
-        {
-            return;
-        }
-
-        GamepadButtons held;
-        try
-        {
-            held = layer.GamepadReading.Held();
-        }
-        catch (Exception)
-        {
-            // A controller that cannot be read is a controller with nothing to say; the next reading
-            // tries again rather than the timer dying.
-            return;
-        }
-
-        foreach (var (button, down) in _padHeld.Changed(held))
-        {
-            var name = down ? GamepadNames.Binding(button) : string.Empty;
-            if (name.Length == 0)
-            {
-                continue;
-            }
-
-            // A controller button is one name, so the modifiers of a combination being built do not
-            // go on — the same as a binding taken from the wheel or a mouse button.
-            _captureModifiers.Clear();
-            _viewModel.CaptureKey(name);
-            WatchController(false);
-            return;
-        }
-    }
+    internal void LookAtController() => _capture.LookAtController();
 }
