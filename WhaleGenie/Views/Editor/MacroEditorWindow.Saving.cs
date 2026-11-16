@@ -64,6 +64,6 @@ public partial class MacroEditorWindow : AppWindow
 
         _settings.Find<TextBlock>("SavedNotice")!.IsVisible = false;
         _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = true;
-        _recovery.FirstChange();
+        _recovery.Follow();
     }
 }

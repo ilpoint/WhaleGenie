@@ -79,7 +79,7 @@ public partial class MacroEditorWindow : AppWindow
     private HotstringKeyboardWindow? _hotstringKeyboard;
 
     /// <summary>Keeps the macro being written as a draft while it has unsaved changes.</summary>
-    private readonly EditorRecovery _recovery;
+    private readonly RecoveryDraft _recovery;
 
     /// <summary>What a save does: which page cannot be written, and whether the project took it.</summary>
     private readonly EditorCommit _commit;
@@ -149,8 +149,7 @@ public partial class MacroEditorWindow : AppWindow
         _documentPages = new EditorDocumentPages(_session, _rootViewModel, _variables, _devices,
             WatchChildEditor);
         _tabs = new EditorTabs(_documentPages);
-        _recovery = new EditorRecovery(() => IsAnyDirty, _documentPages.Snapshot,
-            () => _session.Editing?.Name ?? string.Empty);
+        _recovery = new RecoveryDraft(() => IsAnyDirty, WriteDraft, RecoveryStore.ClearEditor);
         _commit = new EditorCommit(_session, _documentPages, _rootViewModel, _recovery);
 
         // The window trigger lists the windows its rule picks out right now, and the frames on the
@@ -267,7 +266,7 @@ public partial class MacroEditorWindow : AppWindow
 
             if (args.PropertyName == nameof(MacroEditorViewModel.IsDirty))
             {
-                _recovery.FirstChange();
+                _recovery.Follow();
             }
         };
 

@@ -42,14 +42,7 @@ public partial class MainWindow : AppWindow
     private bool _askingToSave;
 
     /// <summary>Writes the unsaved project out as it changes; null until the window is watched.</summary>
-    private RecoveryWriter? _recovery;
-
-    /// <summary>
-    /// Whether this session put the project into the snapshot. What clears it is what wrote it:
-    /// the list comes up empty on every start, so clearing "because it is not dirty" at startup
-    /// would throw away the last run's work before the user was even asked about it.
-    /// </summary>
-    private bool _projectInRecovery;
+    private RecoveryDraft? _recovery;
 
     /// <summary>
     /// Whether this run has already put the question about work the last one left behind. The
@@ -211,13 +204,18 @@ public partial class MainWindow : AppWindow
     }
 
     /// <summary>
-    /// Keeps the recovery snapshot in step with the macro list: written while there is something
-    /// to lose, dropped the moment there is not. A run that ends without notice — a crash, or the
+    /// Keeps the project's crash draft in step with the list: written while there is something to
+    /// lose, dropped the moment there is not. A run that ends without notice — a crash, or the
     /// machine going down — therefore leaves the work somewhere the next run can find it.
     /// </summary>
     private void WatchUnsavedProject(MainViewModel viewModel)
     {
-        _recovery = new RecoveryWriter(() => WriteUnsavedProject(viewModel));
+        // What a write puts on disk: the macros as they stand, the trigger table that starts them,
+        // the globals they read and the file they came from.
+        _recovery = new RecoveryDraft(() => viewModel.HasUnsavedChanges,
+            () => RecoveryStore.SaveProject([.. viewModel.Macros], viewModel.Triggers,
+                [.. viewModel.Variables.Globals], viewModel.CurrentPath),
+            RecoveryStore.ClearProject);
 
         viewModel.PropertyChanged += (_, args) =>
         {
@@ -225,67 +223,17 @@ public partial class MainWindow : AppWindow
                 or nameof(MainViewModel.HasUnsavedChanges)
                 or nameof(MainViewModel.CurrentPath))
             {
-                SyncUnsavedProject(viewModel);
+                _recovery?.Follow();
             }
         };
 
         // A change that arrives while the list is already unsaved reaches nothing above: the dirty
         // flag does not move for it, so the snapshot would be left holding the state it had before.
-        viewModel.Changed += (_, _) => KeepUnsavedProject(viewModel);
+        viewModel.Changed += (_, _) => _recovery?.Keep();
 
         // The armed state of a macro is written into the package, so a change to it counts, and
         // it moves nothing that would raise a property change on the list itself.
-        viewModel.Macros.CollectionChanged += (_, _) => KeepUnsavedProject(viewModel);
-        SyncUnsavedProject(viewModel);
-    }
-
-    /// <summary>Writes the project out when it first becomes unsaved, and lets the snapshot go
-    /// when there is nothing left to lose.</summary>
-    private void SyncUnsavedProject(MainViewModel viewModel)
-    {
-        if (!viewModel.HasUnsavedChanges)
-        {
-            _recovery?.Stop();
-
-            // Only take back what this session put there. A snapshot left by the last run is not
-            // this window's to drop: the list is empty on every start, and clearing it here would
-            // do that before the recovered work had even been offered.
-            if (_projectInRecovery)
-            {
-                _projectInRecovery = false;
-                RecoveryStore.ClearProject();
-            }
-
-            return;
-        }
-
-        _projectInRecovery = true;
-        _recovery?.Now();
-    }
-
-    /// <summary>
-    /// Keeps a change that arrived while the list was already unsaved from going unwritten. The
-    /// write itself waits for the changes to pause; what makes the work unsaved was written already.
-    /// </summary>
-    private void KeepUnsavedProject(MainViewModel viewModel)
-    {
-        if (!viewModel.HasUnsavedChanges)
-        {
-            return;
-        }
-
-        _projectInRecovery = true;
-        _recovery?.Changed();
-    }
-
-    private static void WriteUnsavedProject(MainViewModel viewModel)
-    {
-        if (!viewModel.HasUnsavedChanges)
-        {
-            return;
-        }
-
-        RecoveryStore.SaveProject([.. viewModel.Macros], viewModel.Triggers,
-            [.. viewModel.Variables.Globals], viewModel.CurrentPath);
+        viewModel.Macros.CollectionChanged += (_, _) => _recovery?.Keep();
+        _recovery.Follow();
     }
 }

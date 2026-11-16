@@ -126,7 +126,10 @@ public partial class MainWindow : AppWindow
         if (DataContext is MainViewModel viewModel)
         {
             viewModel.MarkGlobalsChanged();
-            WriteUnsavedProject(viewModel);
+
+            // A global is written into the package, and it moves nothing the list itself raises a
+            // change for, so the draft is told to follow now rather than on its own clock.
+            _recovery?.Follow();
         }
     }
 

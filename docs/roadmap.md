@@ -24,13 +24,13 @@
 ### 结构与诊断
 
 - **主窗口仍是协调者**：`MainWindow` 3,378 行 / 13 个分部。宏编辑器那一侧已经搬完，搬的是状态与
-  规则而不是事件处理：恢复草稿（`EditorRecovery`）、触发拾取（`EditorPickers`）、窗口框
-  （`TriggerFramePreview`）、文档页集合（`EditorDocumentPages`）、键位捕获（`EditorBindingCapture`）、
-  录制（`EditorRecording`）、一次保存的三种结局（`EditorCommit`）、页签归属与关页签后谁在前
-  （`EditorTabs`）。`MacroEditorWindow` 现在 3,091 行 / 13 个分部，每个分部 28–553 行、各自只做
-  一件事：合并只会得到一个小号杂物间，所以剩下的部分不再拆。主窗口要动时按同样办法——先找没有页面
-  承载的状态、需要直测的规则，再决定搬哪一块；不为数字切。验收：搬一块后窗口方法数下降、对应行为有
-  直测、不新增超过 700 行的类。
+  规则而不是事件处理：恢复草稿（`RecoveryDraft`，两个窗口共用）、触发拾取（`EditorPickers`）、
+  窗口框（`TriggerFramePreview`）、文档页集合（`EditorDocumentPages`）、键位捕获
+  （`EditorBindingCapture`）、录制（`EditorRecording`）、一次保存的三种结局（`EditorCommit`）、
+  页签归属与关页签后谁在前（`EditorTabs`）。`MacroEditorWindow` 现在 3,091 行 / 13 个分部，每个
+  分部 28–553 行、各自只做一件事：合并只会得到一个小号杂物间，所以剩下的部分不再拆。主窗口要动时
+  按同样办法——先找没有页面承载的状态、需要直测的规则，再决定搬哪一块；不为数字切。验收：搬一块后
+  窗口方法数下降、对应行为有直测、不新增超过 700 行的类。
 - **无界面命令行**：`Models/`、`Storage/`、`Localization/` 已出界面工程，但只服务 MCP 与包读写；
   仍不新增 CLI 入口，除非出现 CI 批量验包、脚本生成宏等真实调用方。
 - **MCP 工具发现与审计登记**：工具类型和审计调用仍有手工登记点。先通过故障注入确认漏登记能否被

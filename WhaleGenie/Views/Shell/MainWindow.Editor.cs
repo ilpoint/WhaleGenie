@@ -133,7 +133,7 @@ public partial class MainWindow : AppWindow
             viewModel.AddMacro(macro);
             PlaceNewMacro(commit.NewView, macro, viewModel);
             commit.Target = macro;
-            WriteUnsavedProject(viewModel);
+            _recovery?.Follow();
             return true;
         }
 
@@ -157,7 +157,7 @@ public partial class MainWindow : AppWindow
 
         // The editor has just let its draft go, so the list is the only copy of this macro: it
         // goes into the snapshot now rather than waiting for the next turn of the timer.
-        WriteUnsavedProject(viewModel);
+        _recovery?.Follow();
         return true;
     }
 

@@ -22,7 +22,7 @@ internal sealed class EditorCommit(
     MacroEditorSession session,
     EditorDocumentPages pages,
     MacroEditorViewModel root,
-    EditorRecovery recovery)
+    RecoveryDraft recovery)
 {
     /// <summary>
     /// What the project does with the macro this editor built: it answers whether it took it. Null

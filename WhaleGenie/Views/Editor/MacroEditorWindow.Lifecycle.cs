@@ -20,6 +20,7 @@ using WhaleGenie.Core.Recording;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 
@@ -79,6 +80,14 @@ public partial class MacroEditorWindow : AppWindow
     internal bool SteppedAside { get; set; }
 
     private bool IsAnyDirty => _session.IsDirty || _rootViewModel.IsDirty;
+
+    /// <summary>
+    /// Writes this editor's document out as the crash draft: the macro as the pages hold it now, and
+    /// the name it was opened under, which is the one the next run reads it back by.
+    /// </summary>
+    private void WriteDraft()
+        => RecoveryStore.SaveEditor(_documentPages.Snapshot(),
+            _session.Editing?.Name ?? string.Empty);
 
     /// <summary>
     /// Notes that this window changed something the package does not have, and publishes it upwards

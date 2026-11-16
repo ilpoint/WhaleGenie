@@ -118,8 +118,10 @@ public class EditorCommitTests
 
         var pages = new EditorDocumentPages(session, root, root.Variables, null, _ => { });
         pages.Build();
-        var recovery = new EditorRecovery(() => session.IsDirty || root.IsDirty, pages.Snapshot,
-            () => root.Name);
+
+        // The draft is not what these cases are about: it stands in for the window's, and what it
+        // does with the disk is checked with the draft itself.
+        var recovery = new RecoveryDraft(() => session.IsDirty || root.IsDirty, () => { }, () => { });
         return (new EditorCommit(session, pages, root, recovery), pages, session, root);
     }
 
