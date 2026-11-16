@@ -23,7 +23,7 @@
 
 ### 结构与诊断
 
-- **主窗口仍是协调者**：`MainWindow` 3,378 行 / 13 个分部。宏编辑器那一侧已经搬完，搬的是状态与
+- **主窗口仍是协调者**：`MainWindow` 3,329 行 / 13 个分部。宏编辑器那一侧已经搬完，搬的是状态与
   规则而不是事件处理：恢复草稿（`RecoveryDraft`，两个窗口共用）、触发拾取（`EditorPickers`）、
   窗口框（`TriggerFramePreview`）、文档页集合（`EditorDocumentPages`）、键位捕获
   （`EditorBindingCapture`）、录制（`EditorRecording`）、一次保存的三种结局（`EditorCommit`）、
