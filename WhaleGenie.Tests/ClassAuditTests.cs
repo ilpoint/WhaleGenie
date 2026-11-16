@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -259,7 +260,17 @@ public class ClassAuditTests
             "views:IconView".Split('|', ':')[^1]);
     }
 
-    private static Dictionary<string, string> Unused()
+    /// <summary>
+    /// The styles with no consumer, read once for the whole run: the answer depends on files this
+    /// process never writes, and the same check asks for it three times — which was three walks of
+    /// every source file and ten seconds of a suite that runs before every commit.
+    /// </summary>
+    private static readonly Lazy<Dictionary<string, string>> UnusedOnce = new(Scan,
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    private static Dictionary<string, string> Unused() => UnusedOnce.Value;
+
+    private static Dictionary<string, string> Scan()
     {
         var root = RepositoryRoot();
         var views = Path.Combine(root, "WhaleGenie", "Views");
