@@ -100,6 +100,8 @@
   <ItemGroup>
     <!-- The interface tests look at the view models and the trigger matching directly. -->
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
   </ItemGroup>
 
   <!--

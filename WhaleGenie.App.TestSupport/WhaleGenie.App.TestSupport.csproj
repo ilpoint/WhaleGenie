@@ -16,6 +16,8 @@
   <ItemGroup>
     <!-- The fakes are the suites' own furniture: both see inside them. -->
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
     <InternalsVisibleTo Include="WhaleGenie.Domain.Tests" />
   </ItemGroup>
 

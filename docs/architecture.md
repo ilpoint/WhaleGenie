@@ -43,13 +43,19 @@ WhaleGenie
 工程只引用 `WhaleGenie.App`，没有任何产品工程反向引用它。Mcp 与 Domain 都引用 Localization 和
 Core；Localization 只引用 Core；Platform 引用 Core 与 GraphicsCapture。
 
-六个测试工程按被测对象划分：`WhaleGenie.Tests`（窗口、ViewModel 与界面文案对账）、
+八个测试工程按被测对象划分：`WhaleGenie.Editor.Tests`（宏编辑窗、步骤树、变量墙、窗口规则与菜单）、
+`WhaleGenie.Actions.Tests`（动作对话框、页面归属、返回值与拾取器）、`WhaleGenie.Tests`（运行与调试、
+MCP、设置、界面文案与文档对账）、
 `WhaleGenie.Domain.Tests`（宏文档、包格式、设计期检查、变量、触发器与运行期服务，不开窗口）、
 `WhaleGenie.Mcp.Tests`（协议、工具、拒绝码与容器，不经窗口）、`WhaleGenie.Core.Tests`（引擎与
 动作语义，只用替身设备层）、`WhaleGenie.Platform.Tests`（通过引擎驱动真实 Windows 适配器）和
 `WhaleGenie.GraphicsCapture.Tests`。`Core.Tests` 不引用 `Platform.Windows`：引擎测试运行时不加载
 OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接保证。`Domain.Tests` 与
 `Mcp.Tests` 不引用界面工程，前者的分层用例会拦住一次误加的 Avalonia 引用。
+
+三个窗口套件各自一份无头会话：会话属于运行它的程序集，借用别人的会在错误的线程上拆除，所以
+`Ui`、`TestApp` 这些夹具以链接方式编进每个套件（一份源码，每个套件一份副本），套件之间因此可以
+并行跑；界面相关的三个套件合计 1,611 条用例，串行 6 分半，分片后全量 2 分钟。
 
 两个支撑库不含测试：`WhaleGenie.TestSupport` 给引擎侧两套件提供替身设备层与样本文件，
 `WhaleGenie.App.TestSupport` 给应用侧两套件提供建步骤的 `Fields` 与假桌面 `ChecksDevices`。产品工程

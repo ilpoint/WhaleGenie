@@ -49,6 +49,12 @@
   <Project Path="WhaleGenie.Platform.Tests/WhaleGenie.Platform.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="WhaleGenie.Editor.Tests/WhaleGenie.Editor.Tests.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="WhaleGenie.Actions.Tests/WhaleGenie.Actions.Tests.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="WhaleGenie.Tests/WhaleGenie.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

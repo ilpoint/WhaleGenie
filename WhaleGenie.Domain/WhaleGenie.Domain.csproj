@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
     <InternalsVisibleTo Include="WhaleGenie.Domain.Tests" />
   </ItemGroup>
 
