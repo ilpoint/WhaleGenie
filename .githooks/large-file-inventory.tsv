@@ -127,7 +127,7 @@
 508	WhaleGenie.Tests/TrayTests.cs	keep: 托盘行为的一组用例，共用一套假通知区
 456	WhaleGenie.Tests/TriggerKindTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 453	WhaleGenie.Actions.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
-664	WhaleGenie.Actions.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
+691	WhaleGenie.Actions.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
 516	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 502	WhaleGenie.Editor.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -135,7 +135,7 @@
 4289	WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 2471	WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
 553	WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
-5337	WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+5379	WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	WhaleGenie.Mcp/ActionKnowledge.cs	keep: 一组同域工具与它们的输入输出
 384	WhaleGenie.Mcp/McpDraftStore.cs	keep: 一组同域工具与它们的输入输出
 315	WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
@@ -226,7 +226,7 @@
 315	WhaleGenie.Core.Tests/VariableBindingTests.cs	keep: 变量与步骤参数的绑定规则，单一主题
 342	WhaleGenie.Platform.Tests/WindowsKeyTests.cs	keep: 键码与 Windows 键码的对照与可发送判定，一个主题
 587	WhaleGenie/ViewModels/Value/ValueDraft.cs	keep: 形状编辑、包裹、移动与一份历史共用同一个入口，拆开会让一步编辑跨文件
-370	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
-332	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
+374	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
+355	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
 311	WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 
