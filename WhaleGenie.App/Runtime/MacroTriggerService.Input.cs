@@ -77,6 +77,14 @@ public sealed partial class MacroTriggerService
             _hub.Release(name);
         }
 
+        // A key WhaleGenie is sending itself is its own output, not the person asking for
+        // something. The held state above still moves, so a combination sees what is down; only
+        // the trigger is kept from answering it.
+        if (WhaleGenieInputGate.RecentlySent(name))
+        {
+            return;
+        }
+
         _hub.Key(DateTime.Now, name, pressed);
     }
 
@@ -111,6 +119,11 @@ public sealed partial class MacroTriggerService
                 return;
             }
 
+            if (WhaleGenieInputGate.RecentlySent(button))
+            {
+                return;
+            }
+
             _hub.Key(DateTime.Now, button, pressed: true);
         });
     }
@@ -131,6 +144,12 @@ public sealed partial class MacroTriggerService
             }
 
             _hub.Release(button);
+
+            if (WhaleGenieInputGate.RecentlySent(button))
+            {
+                return;
+            }
+
             _hub.Key(DateTime.Now, button, pressed: false);
         });
     }
@@ -149,6 +168,11 @@ public sealed partial class MacroTriggerService
             }
 
             var notch = KeyNames.WheelName(e.Axis, e.Rotation);
+            if (WhaleGenieInputGate.RecentlySent(notch))
+            {
+                return;
+            }
+
             var now = DateTime.Now;
             _hub.Key(now, notch, pressed: true);
             _hub.Key(now, notch, pressed: false);
