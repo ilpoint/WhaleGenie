@@ -123,11 +123,11 @@
 543	WhaleGenie.Tests/RunLookTests.cs	keep: 运行取景界面的单一测试
 354	WhaleGenie.Tests/ScriptHostRunTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 331	WhaleGenie.Editor.Tests/StepPlacementTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-348	WhaleGenie.Tests/TemplatePartTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
+349	WhaleGenie.Tests/TemplatePartTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 508	WhaleGenie.Tests/TrayTests.cs	keep: 托盘行为的一组用例，共用一套假通知区
 456	WhaleGenie.Tests/TriggerKindTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-344	WhaleGenie.Actions.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
-491	WhaleGenie.Actions.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
+453	WhaleGenie.Actions.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
+664	WhaleGenie.Actions.Tests/ValuePickerWindowTests.cs	keep: 取值窗口布局的单一测试
 516	WhaleGenie.Tests/VariableFieldTests.cs	keep: 变量字段的单一测试
 502	WhaleGenie.Editor.Tests/VariableWallTests.cs	keep: 变量墙布局的单一测试
 330	WhaleGenie.Tests/VirtualPadTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -203,8 +203,8 @@
 421	WhaleGenie/Views/Settings/SettingsSystemView.axaml	keep: 一页设置一张卡，页面之间只共用一个滚动区
 309	WhaleGenie/Views/Settings/SettingsTriggersView.axaml	keep: 呼出与规则各一页，按钮转发给窗口
 215	WhaleGenie/Views/Settings/SettingsWindow.axaml.cs	keep: 窗口框架：构造、页面挂载与设备相关的三个入口
-363	WhaleGenie/Views/Pickers/ValuePickerWindow.Styles.axaml	keep: 该窗口自己的样式表，与布局分处一文件
-547	WhaleGenie/Views/Pickers/ValuePickerWindow.axaml	keep: 一个窗口的布局与隐式模板，再拆要把绑定与事件挪进子视图
+399	WhaleGenie/Views/Pickers/ValuePickerWindow.Styles.axaml	keep: 该窗口自己的样式表，与布局分处一文件
+677	WhaleGenie/Views/Pickers/ValuePickerWindow.axaml	keep: 一个窗口的布局与隐式模板，再拆要把绑定与事件挪进子视图
 329	WhaleGenie/Views/Editor/WheelActionWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 332	WhaleGenie/Views/Editor/WheelCanvas.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 450	WhaleGenie/Views/Editor/WheelMenuEditorView.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
@@ -225,3 +225,8 @@
 371	WhaleGenie.Domain.Tests/PersistentVariableTests.cs	keep: 持久变量的一张表与它的文件、补写和冲突，单一主题
 315	WhaleGenie.Core.Tests/VariableBindingTests.cs	keep: 变量与步骤参数的绑定规则，单一主题
 342	WhaleGenie.Platform.Tests/WindowsKeyTests.cs	keep: 键码与 Windows 键码的对照与可发送判定，一个主题
+587	WhaleGenie/ViewModels/Value/ValueDraft.cs	keep: 形状编辑、包裹、移动与一份历史共用同一个入口，拆开会让一步编辑跨文件
+370	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
+332	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
+311	WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
+
