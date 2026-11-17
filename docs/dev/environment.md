@@ -34,6 +34,16 @@ dotnet run --project WhaleGenie -c Release -- --mcp
 报告属于本机验证产物，不提交到仓库。MCP 服务使用标准输入输出，不监听网络端口；权限来自
 `settings.json`，命令行不提供权限参数。
 
+### Avalonia 文档 MCP
+
+仓库根 `.mcp.json` 配置只读文档服务 `avalonia-docs`（HTTP `https://docs-mcp.avaloniaui.net/mcp`）。
+Visual Studio 2022 17.14+ 或 Visual Studio 2026 打开解决方案时按解决方案根的 `.mcp.json` 自动读取，
+GitHub Copilot 的 Agent 工具列表里应出现它。`.vscode/` 按 `.gitignore` 属于个人编辑器配置、不进仓库；VS Code 的原生 Copilot 使用
+`mcpServers` 结构，不能直接复用这份 `servers` 配置，需要时按客户端文档另配。
+
+该服务只提供 Avalonia/FluentAvalonia 的 API 与控件文档查询，不参与构建，也不覆盖
+[DESIGN.md](../../DESIGN.md) 与 `Themes/` 的视觉决定。
+
 ### MCP 自检口径
 
 `--mcp-doctor` 用固定场景覆盖状态读取、草稿、动作查询、写宏、校验、应用、保存、局部补丁、资源、

@@ -6,7 +6,8 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 
 文档分工：构建、修改与验收见 [docs/dev.md](docs/dev.md)；当前结构与设计取舍见
 [docs/architecture.md](docs/architecture.md)；未完成工作见 [docs/roadmap.md](docs/roadmap.md)；
-用户行为见 [docs/manual.md](docs/manual.md)。同一项事实只在负责它的文档中展开，历史由 git 保存。
+用户行为见 [docs/manual.md](docs/manual.md)；界面视觉契约与评审门槛见
+[DESIGN.md](DESIGN.md)。同一项事实只在负责它的文档中展开，历史由 git 保存。
 
 ## 架构红线
 
@@ -20,6 +21,17 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 - `WhaleGenie.GraphicsCapture` 只取得屏幕像素，不识别宏、动作或界面概念。
 - 编辑态与运行态分离；MCP 写入先进入草稿，权限、审计和界面桥接留在应用层。
 - 具体依赖方向、组合根和例外由架构文档说明，`LayeringTests` 负责检查。
+
+## 视觉契约
+
+- 界面改动先读 [DESIGN.md](DESIGN.md)，再检索现有令牌与样式；不以 FluentAvalonia 的默认外观
+  作为设计依据。
+- 颜色、字号、间距、圆角、状态与窗口框架只从契约声明的角色和 `Themes/` 令牌取值；不在窗口中
+  新建颜色体系、第二套主题或未登记的样式类。
+- 仓库存放的 `.mcp.json` 提供 `avalonia-docs` 文档服务。它用于查 Avalonia/FluentAvalonia 的
+  API、控件与属性，不覆盖 `DESIGN.md` 或项目令牌。
+- 视觉规则、令牌、控件样式、视图与对应测试同轮修改；只改 XAML 或只改文档都算未完成。改完按
+  `DESIGN.md` 第 10 节做无头与真机检查。
 
 ## 必须遵守的开发规则
 

@@ -26,7 +26,7 @@ git diff --check
 并检查 Markdown 相对链接：
 
 ```powershell
-$files = @("README.md", "AGENTS.md") + (Get-ChildItem docs -Recurse -Filter *.md).FullName
+$files = @("README.md", "AGENTS.md", "DESIGN.md") + (Get-ChildItem docs -Recurse -Filter *.md).FullName
 $missing = foreach ($file in $files) {
   $resolved = Resolve-Path $file
   $base = Split-Path $resolved
@@ -53,6 +53,7 @@ if ($missing) { $missing; exit 1 }
 | `AGENTS.md` | 长期定位、开发规范、跨子系统约定 | 操作手册、阶段计划、完成历史 |
 | `docs/dev.md` 及各篇 | 命令、依赖、修改流程、测试、出图、CI 与发布 | 子系统详细设计、路线排序 |
 | [architecture.md](architecture.md) | 七个产品工程、依赖方向、主链路、子系统边界与当前限制 | 操作命令、逐字段用户语义、阶段计划 |
+| [DESIGN.md](../DESIGN.md) | 界面视觉契约：视觉基调、令牌角色、窗口框架与视觉验收 | 具体令牌值、操作命令、逐字段用户语义 |
 | [roadmap.md](roadmap.md) | 未完成阶段、依赖、验收、待评估事项与非目标 | 已完成清单、工期、重复的开发规范 |
 
 事实来源按以下规则确定：
