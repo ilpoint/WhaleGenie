@@ -148,7 +148,7 @@
                             </ItemsControl.DataTemplates>
                         </ItemsControl>
                         <!-- 取值按钮跟到读法这一侧：一格值不点开也该能换掉。 -->
-                        <Button Grid.Column="1" Classes="ValueChip" Click="OnPickVariable"
+                        <Button Grid.Column="1" Classes="ValueChip" Click="OnOpenValuePicker"
                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                     </Grid>
@@ -159,7 +159,7 @@
                     Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
                     PlaceholderText="{Binding Placeholder}">
                     <TextBox.InnerRightContent>
-                        <Button Classes="ValueChip" Click="OnPickVariable"
+                        <Button Classes="ValueChip" Click="OnOpenValuePicker"
                             Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                             ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                     </TextBox.InnerRightContent>
@@ -266,7 +266,7 @@
                 <TextBox.InnerRightContent>
                     <!-- 多行框里的片贴右上角：跟着框高居中会漂在文字中间，像另一段内容。 -->
                     <Button Classes="ValueChip" Margin="0,6,4,0" VerticalAlignment="Top"
-                        IsVisible="{Binding OffersFormula}"
+                        IsVisible="{Binding OffersValueWindow}"
                         Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />

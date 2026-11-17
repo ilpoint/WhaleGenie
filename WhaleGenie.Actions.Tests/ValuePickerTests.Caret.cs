@@ -74,4 +74,95 @@ public partial class ValuePickerTests
 
         Assert.Contains(Root(form).Items.OfType<SlotValue>(), one => one.Text == "photos");
     }
+
+    /// <summary>The end of a run is after its last piece, not before it.</summary>
+    [Fact]
+    public void The_end_of_a_run_appends_instead_of_inserting_before_the_last()
+    {
+        var form = Form(Formula.Run([Formula.Text("a"), Formula.Name("b")]));
+        form.SetCaret(form.SpanEnd);
+
+        form.Place("x");
+
+        Assert.Equal(["a", "b", "x"], Root(form).Items.OfType<SlotValue>().Select(value => value.Text));
+        Assert.Equal(form.SpanEnd, form.Caret);
+    }
+
+    /// <summary>The operator at the end wraps the whole run, and its new hole disables it again.</summary>
+    [Fact]
+    public void An_operator_at_the_end_wraps_the_whole_run()
+    {
+        var form = Form(Formula.Run([Formula.Text("a"), Formula.Name("b")]));
+        form.SetCaret(form.SpanEnd);
+
+        form.Place("x");
+        form.Place(" + ");
+
+        var binary = Assert.IsType<BinaryNode>(
+            Assert.Single(form.Recipe!.Walk().OfType<SlotBinary>()).Source);
+        AssertSameShape(Formula.Run([Formula.Text("a"), Formula.Name("b"), Formula.Name("x")]), binary.Left);
+        Assert.IsType<HoleNode>(binary.Right);
+        Assert.All(form.Operators, one => Assert.False(one.IsEnabled));
+
+        form.Place("1");
+        Assert.Contains(form.Recipe!.Walk().OfType<SlotValue>(), one => one.Text == "1");
+    }
+
+    /// <summary>There is no left value to wrap, so an operator on an empty value must not grow a hole.</summary>
+    [Fact]
+    public void An_operator_without_a_left_value_is_unavailable()
+    {
+        var form = Form();
+
+        Assert.All(form.Operators, one => Assert.False(one.IsEnabled));
+
+        form.Place(" + ");
+
+        Assert.Equal(string.Empty, form.Text);
+        Assert.All(form.Operators, one => Assert.False(one.IsEnabled));
+    }
+
+    /// <summary>A function at the end is appended; the last existing piece survives.</summary>
+    [Fact]
+    public void A_function_at_the_end_is_appended_instead_of_replacing_the_last_piece()
+    {
+        var form = Form(Formula.Run([Formula.Text("a"), Formula.Name("b")]));
+        form.SetCaret(form.SpanEnd);
+
+        form.PlaceCall("upper");
+
+        var items = Root(form).Items;
+        Assert.Equal(3, items.Count);
+        Assert.Contains(items, one => one is SlotValue { Text: "b" });
+        var call = Assert.IsType<SlotCall>(items[2]);
+        Assert.Equal("upper", call.Name);
+        Assert.IsType<SlotEmpty>(Assert.Single(call.Arguments).Items.Single());
+    }
+
+    /// <summary>Backspace at the end of a call takes its last argument, never the whole call.</summary>
+    [Fact]
+    public void Backspace_at_a_call_end_removes_only_the_last_argument()
+    {
+        var form = Form(Formula.Call("concat", Formula.Name("a"), Formula.Name("b")));
+        form.SetCaret(form.SpanEnd);
+
+        Assert.True(form.CutBeforeCaret());
+
+        var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
+        Assert.Equal("a", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[0].Items)).Text);
+        Assert.Single(call.Arguments);
+        Assert.Equal(form.SpanEnd, form.Caret);
+    }
+
+    /// <summary>The inside of a binary is one structural unit; only its outside and holes are writable.</summary>
+    [Fact]
+    public void A_binary_offers_only_its_outside_edges_and_its_holes_as_seams()
+    {
+        var form = Form(Formula.Binary("+", Formula.Name("a"), Formula.Name("b")));
+
+        Assert.Equal([0, 3], form.Seams());
+
+        form.SetCaret(2);
+        Assert.Equal(3, form.Caret);
+    }
 }

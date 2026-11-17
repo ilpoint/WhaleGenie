@@ -22,13 +22,25 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>Hands back the shape the cell should hold, or the one name it wanted.</summary>
     public void Confirm()
     {
-        if (NamesOnly)
+        if (IsNameMode)
         {
             if (Wall.Looking is { } chosen)
             {
                 CloseRequested?.Invoke(new ValuePick(Formula.Name(chosen.Name), true));
             }
+            else
+            {
+                CreateName();
+            }
 
+            return;
+        }
+
+        if (IsTextMode)
+        {
+            // A text field holds one body of text. An empty body is how the cell is cleared.
+            CloseRequested?.Invoke(new ValuePick(
+                TextBody.Length == 0 ? Formula.Nothing : Formula.Text(TextBody), true));
             return;
         }
 
@@ -56,23 +68,24 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private void CheckText()
     {
-        if (NamesOnly)
+        if (!ShowsBand)
         {
             return;
         }
 
         var empty = _draft.IsEmpty;
         // A piece that still reads as a fault is just as unfinished as a hole, and a cell
-        // cannot take either until somebody fills it in.
-        var hole = _draft.HasHole() || HoldsFault(_draft.Value);
+        // cannot take either until somebody fills it in. Removing a required argument no longer
+        // leaves a hole, so the missing argument count has to be asked separately.
+        var hole = _draft.HasHole() || HoldsFault(_draft.Value) || HasMissingArgument(_draft.Value);
         _reads = !hole && !empty;
         NoteIsProblem = hole;
         Note = empty
-            ? Strings.Get("ValuePicker.Note.Empty")
+            ? Strings.Get(IsRunMode ? "ValuePicker.Note.Empty.Run" : "ValuePicker.Note.Empty")
             : _reads
-                ? Strings.Get("ValuePicker.Note.Reads")
+                ? Strings.Get(IsRunMode ? "ValuePicker.Note.Reads.Run" : "ValuePicker.Note.Reads")
                 : Strings.Get("ExprBuilder.CannotRead");
-        Saying = _reads && ExpressionText.InChinese
+        Saying = IsValueMode && _reads && ExpressionText.InChinese
             ? Strings.Get("ValuePicker.ReadsAs") + ExpressionPhrase.Say(_draft.Value, VariableCatalog.Spoken)
             : string.Empty;
 
@@ -95,8 +108,23 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         ConcatNode run => run.Parts.Any(HoldsFault),
         ListNode list => list.Items.Any(HoldsFault),
         CallNode call => call.Arguments.Any(HoldsFault),
+        GroupNode group => HoldsFault(group.Inner),
         UnaryNode unary => HoldsFault(unary.Operand),
         BinaryNode binary => HoldsFault(binary.Left) || HoldsFault(binary.Right),
+        _ => false,
+    };
+
+    /// <summary>True when a call is short of an argument its function requires.</summary>
+    private bool HasMissingArgument(ExpressionNode node) => node switch
+    {
+        ConcatNode run => run.Parts.Any(HasMissingArgument),
+        ListNode list => list.Items.Any(HasMissingArgument),
+        CallNode call => (_table.TryGetValue(call.Name, out var entry)
+                             && call.Arguments.Count < entry.MinArguments)
+                         || call.Arguments.Any(HasMissingArgument),
+        GroupNode group => HasMissingArgument(group.Inner),
+        UnaryNode unary => HasMissingArgument(unary.Operand),
+        BinaryNode binary => HasMissingArgument(binary.Left) || HasMissingArgument(binary.Right),
         _ => false,
     };
 
@@ -105,11 +133,18 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         => _draft.IsEmpty ? string.Empty : Language.Render(_draft.Value);
 
     /// <summary>Redraws the line and the band after an edit that changed the shape.</summary>
-    private void RefreshFromDraft()
+    private void RefreshFromDraft(bool syncCaret = true)
     {
         Text = DraftLine();
         CheckText();
-        SyncCaret();
+        if (syncCaret)
+        {
+            SyncCaret();
+        }
+
+        RefreshOperatorState();
+        OnPropertyChanged(nameof(IsValueEmpty));
+        OnPropertyChanged(nameof(EmptyBandHint));
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
         OnPropertyChanged(nameof(CanClear));
@@ -127,15 +162,28 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
             return;
         }
 
-        var match = Recipe.Walk().FirstOrDefault(piece =>
-            piece.Path is { } path && path.Equals(_draft.Caret));
-        if (match is null)
+        var offset = Math.Clamp(_draft.CaretOffset, 0, SpanEnd);
+        if (_caret != offset)
         {
-            return;
+            _caret = offset;
+            OnPropertyChanged(nameof(Caret));
         }
 
-        _caret = match.Start;
-        OnPropertyChanged(nameof(Caret));
+        // Put/Cut may leave a path on the last piece even when the line is at the end of the run.
+        // Canonicalize the seam after every edit so "at the end" means the whole run's end, not
+        // the last piece's start; the next operator then wraps the run rather than that one piece.
+        // A path that vanished with an undo is kept for the redo that brings it back, instead of
+        // being replaced by the current numeric seam.
+        var path = _draft.Caret;
+        var exists = Recipe.Walk().Any(piece => piece.Path is { } piecePath
+                && piecePath.Equals(path))
+            || Recipe.Walk().OfType<SlotCall>().Any(call => call.Ghost?.Path is { } ghost
+                && ghost.Equals(path));
+        if (exists)
+        {
+            var place = CaretPlaceFor(offset);
+            _draft.SetCaret(place.Path, place.After);
+        }
     }
 
     /// <summary>
@@ -146,61 +194,29 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private void RebuildRecipe()
     {
-        Recipe = NamesOnly ? null : Band(_draft.Recipe);
+        Recipe = ShowsBand ? Band(_draft.Recipe) : null;
+        ApplySelection();
         RefreshStacking(SlotStacking.CompactWidthPx);
         OnPropertyChanged(nameof(HasRecipe));
-        ClampCaret();
     }
-
-    /// <summary>A value that is one piece is still drawn as a run of one, so the band has edges.</summary>
-    private static SlotNode Band(SlotNode root)
-        => root is SlotSequence
-            ? root
-            : new SlotSequence { Items = [root], Path = NodePath.Root };
 
     /// <summary>
-    /// The place in the value that the standing line names. The band measures a caret as an offset
-    /// into the drawing; the shape names the same place as a walk from its root.
+    /// The band's root. A run is a sequence of words and names; a whole value is one expression, so
+    /// it sits under a root that is not itself a piece and cannot be dragged or taken away.
     /// </summary>
-    private NodePath PathForCaret()
-    {
-        if (Recipe is null)
-        {
-            return NodePath.Root;
-        }
-
-        // The ghost at the end of a call is drawn but is not one of its arguments, so it is not in
-        // the walk. It is the one place a click can name that needs its own answer.
-        foreach (var call in Recipe.Walk().OfType<SlotCall>())
-        {
-            if (call.Ghost is { Path: { } ghost, Start: var start } && start == Caret)
-            {
-                return ghost;
-            }
-        }
-
-        var pieces = Recipe.Walk().Where(piece => piece.Path is not null).ToList();
-        var exact = pieces.Where(piece => piece.Start == Caret)
-            .OrderByDescending(piece => piece.Path!.Indices.Count)
-            .FirstOrDefault();
-        if (exact?.Path is { } found)
-        {
-            return found;
-        }
-
-        return pieces.Where(piece => piece.Start + piece.Length <= Caret)
-            .OrderByDescending(piece => piece.Start + piece.Length)
-            .ThenByDescending(piece => piece.Path!.Indices.Count)
-            .FirstOrDefault()?.Path ?? NodePath.Root;
-    }
+    private SlotNode Band(SlotNode root) => IsRunMode
+        ? root is SlotSequence ? root : new SlotSequence { Items = [root], Path = NodePath.Root }
+        : new SlotRoot { Child = root, Path = NodePath.Root };
 
     /// <summary>The words a dragged piece shows while it follows the pointer.</summary>
     public string PieceLabel(SlotNode piece) => piece switch
     {
         SlotValue value => value.Text,
-        SlotOperator sign => sign.Text,
         SlotEmpty empty => empty.Text,
         SlotCall call => call.Name,
+        SlotBinary or SlotUnary or SlotGroup or SlotList => piece.Source is { } source
+            ? Formula.Speak(source)
+            : string.Empty,
         _ => string.Empty,
     };
 }

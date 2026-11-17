@@ -24,9 +24,16 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// the band is drawn from it and given back to the eye, never read back into the value.
     /// </summary>
     public ValuePickerViewModel(ExpressionNode seed, IReadOnlyList<VariableChoice>? variables,
-        ActionValueForm valueForm, string? target = null)
+        ActionValueForm valueForm, string? target = null, bool allowNewName = false)
     {
-        NamesOnly = valueForm == ActionValueForm.Name;
+        Mode = valueForm switch
+        {
+            ActionValueForm.Name => ValueEditorMode.Name,
+            ActionValueForm.Text => ValueEditorMode.Text,
+            ActionValueForm.Run => ValueEditorMode.Run,
+            _ => ValueEditorMode.Value,
+        };
+        AllowNewName = allowNewName && Mode is ValueEditorMode.Name;
         Target = target ?? string.Empty;
 
         foreach (var variable in variables ?? [])
@@ -57,9 +64,18 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
                 OnPropertyChanged(nameof(HasChosenVariable));
                 OnPropertyChanged(nameof(CanConfirm));
             }
+            else if (args.PropertyName == nameof(VariableWallViewModel.SearchText))
+            {
+                // The name list filters as the person types; the same word is the candidate for a
+                // name this macro does not have yet.
+                OnPropertyChanged(nameof(NewName));
+                OnPropertyChanged(nameof(CanCreateName));
+                OnPropertyChanged(nameof(NewNameLine));
+                OnPropertyChanged(nameof(CanConfirm));
+            }
         };
 
-        Operators = SplitBrackets(OperatorPalette.Build());
+        Operators = OperatorPalette.Build();
         // A number is typed, and text has its own sign in the operator panel; what is left is the
         // three words a formula cannot be typed from memory as easily as it can be clicked.
         Values =
@@ -72,8 +88,24 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         FunctionGroups = BuildGroups();
         SelectedFunctionGroup = FunctionGroups[0];
         RefreshFunctions();
-        // A number is the more common thing to type, so the standing field opens in that mode.
-        IsTypingNumber = true;
+
+        // A text field edits one body of text; the band and the small field are not part of it.
+        if (IsTextMode)
+        {
+            TextBody = seed is TextNode body ? body.Text : string.Empty;
+        }
+
+        // A field that holds one name opens on the name it already has, so the list shows what is
+        // selected and a new name can be typed over it.
+        if (IsNameMode && seed is VariableNode named)
+        {
+            Wall.SearchText = named.Name;
+            Wall.Looking = Wall.Shown.FirstOrDefault(
+                choice => string.Equals(choice.Name, named.Name, StringComparison.Ordinal));
+        }
+
+        // A number is the more common thing to type in a formula; a run is written as words.
+        IsTypingNumber = IsValueMode;
 
         // Draw the line once from the shape and put the caret at its end. From here on every edit
         // goes through the shape, and the line follows it.

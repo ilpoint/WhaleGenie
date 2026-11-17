@@ -72,6 +72,10 @@ public abstract partial class SlotNode : ViewModelBase
     /// </summary>
     public bool ShowsRemove => CanRemove && IsHovered;
 
+    /// <summary>True on the piece the person picked, which draws an accent edge around it.</summary>
+    [ObservableProperty]
+    public partial bool IsSelected { get; set; }
+
     /// <summary>True on the piece a check is complaining about, which draws a red edge around it.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HoverHint))]
@@ -172,14 +176,83 @@ public sealed partial class SlotCall : SlotNode
     /// <summary>True for a call written with nothing in it, which the box says in words.</summary>
     public bool HasNoArguments => Arguments.Count == 0;
 
-    protected override IEnumerable<SlotNode> Children => Arguments;
+    // The ghost is a place in the tree too, even though it is not an argument: the caret and the
+    // writable-place check both have to see the place a new argument would go.
+    protected override IEnumerable<SlotNode> Children
+        => Ghost is null ? Arguments : [.. Arguments, Ghost];
 }
 
-/// <summary>The sign between two pieces, as a piece of its own — spaces and all.</summary>
-public sealed class SlotOperator : SlotNode
+/// <summary>
+/// The whole value as the band draws it: one expression, or one socket when the value is empty.
+/// A root is not a piece: it cannot be dragged or removed, and it is what gives a single token the
+/// edges a drop and a caret need.
+/// </summary>
+public sealed class SlotRoot : SlotNode
 {
-    /// <summary>How the sign reads, without the spaces around it.</summary>
-    public required string Text { get; set; }
+    public required SlotNode Child { get; init; }
+
+    protected override IEnumerable<SlotNode> Children => [Child];
+}
+
+/// <summary>
+/// Two operands and the sign between them, drawn as one token. The sign is not a piece of its own:
+/// it is a button inside this container, and a missing operand is a socket inside it too. That is
+/// what keeps `3 + ▢` one expression rather than three pieces standing next to each other.
+/// </summary>
+public sealed class SlotBinary : SlotNode
+{
+    public required SlotNode Left { get; init; }
+
+    public required SlotNode Right { get; init; }
+
+    /// <summary>The sign as the language reads it, without the spaces around it.</summary>
+    public required string Operator { get; init; }
+
+    /// <summary>The family the sign is drawn in.</summary>
+    public required string Tone { get; init; }
+
+    protected override IEnumerable<SlotNode> Children => [Left, Right];
+}
+
+/// <summary>A sign and its one operand, drawn as one token, for the same reason as a binary.</summary>
+public sealed class SlotUnary : SlotNode
+{
+    public required string Operator { get; init; }
+
+    public required SlotNode Operand { get; init; }
+
+    public required string Tone { get; init; }
+
+    protected override IEnumerable<SlotNode> Children => [Operand];
+}
+
+/// <summary>
+/// A pair of brackets and the expression inside them, drawn as one token. The pair goes and comes
+/// as one thing: a half bracket is not a value the band can hold.
+/// </summary>
+public sealed class SlotGroup : SlotNode
+{
+    public required SlotNode Inner { get; init; }
+
+    protected override IEnumerable<SlotNode> Children => [Inner];
+}
+
+/// <summary>
+/// A list written out, brackets and all. Its items are pieces separated by commas, and the ghost at
+/// the end is the place another item goes.
+/// </summary>
+public sealed class SlotList : SlotNode
+{
+    public required IReadOnlyList<SlotNode> Items { get; init; }
+
+    public SlotEmpty? Ghost { get; init; }
+
+    public required string Tone { get; init; }
+
+    public bool HasNoItems => Items.Count == 0;
+
+    protected override IEnumerable<SlotNode> Children
+        => Ghost is null ? Items : [.. Items, Ghost];
 }
 
 /// <summary>A name, a number, a piece of text or one of the words that stand for a value.</summary>

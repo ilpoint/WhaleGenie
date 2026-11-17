@@ -42,24 +42,46 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     private static void Fold(SlotNode node, double width, bool insideStacked)
     {
-        if (node is SlotCall call)
+        switch (node)
         {
-            var stacked = !insideStacked && SlotStacking.Decide(call, width);
-            call.Stacked = stacked;
-            foreach (var argument in call.Arguments)
-            {
-                Fold(argument, width, insideStacked || stacked);
-            }
+            case SlotCall call:
+                {
+                    var stacked = !insideStacked && SlotStacking.Decide(call, width);
+                    call.Stacked = stacked;
+                    foreach (var argument in call.Arguments)
+                    {
+                        Fold(argument, width, insideStacked || stacked);
+                    }
 
-            return;
-        }
+                    break;
+                }
+            case SlotSequence sequence:
+                foreach (var piece in sequence.Items)
+                {
+                    Fold(piece, width, insideStacked);
+                }
 
-        if (node is SlotSequence sequence)
-        {
-            foreach (var piece in sequence.Items)
-            {
-                Fold(piece, width, insideStacked);
-            }
+                break;
+            case SlotRoot root:
+                Fold(root.Child, width, insideStacked);
+                break;
+            case SlotBinary binary:
+                Fold(binary.Left, width, insideStacked);
+                Fold(binary.Right, width, insideStacked);
+                break;
+            case SlotUnary unary:
+                Fold(unary.Operand, width, insideStacked);
+                break;
+            case SlotGroup group:
+                Fold(group.Inner, width, insideStacked);
+                break;
+            case SlotList list:
+                foreach (var item in list.Items)
+                {
+                    Fold(item, width, insideStacked);
+                }
+
+                break;
         }
     }
 
@@ -67,6 +89,8 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     public override void RefreshLanguage()
     {
         base.RefreshLanguage();
+        OnPropertyChanged(nameof(StructureHint));
+        OnPropertyChanged(nameof(EmptyBandHint));
         RebuildRecipe();
     }
 

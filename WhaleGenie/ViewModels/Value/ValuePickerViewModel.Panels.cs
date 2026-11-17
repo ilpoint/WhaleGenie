@@ -26,16 +26,59 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>The plain words that are worth a button rather than a memory.</summary>
     public IReadOnlyList<ValueToken> Values { get; }
 
-    /// <summary>
-    /// True where the cell only ever holds a name — the name a variable is written under, or the
-    /// selector a step reads. A formula there would be stored as text and never read as one, so the
-    /// window does not draw the formula or the two panels that build one.
-    /// </summary>
-    public bool NamesOnly { get; }
+    /// <summary>What this window edits, taken from the field's declared reading.</summary>
+    public ValueEditorMode Mode { get; }
 
-    public bool CanCompute => !NamesOnly;
+    /// <summary>True for a plain text field: one body of text, no tokens and no formula.</summary>
+    public bool IsTextMode => Mode is ValueEditorMode.Text;
 
-    public string Title => NamesOnly ? Strings.Get("ValuePicker.Names") : Strings.Get("ValuePicker.Title");
+    /// <summary>True for a text field that may name variables: words and names in one run.</summary>
+    public bool IsRunMode => Mode is ValueEditorMode.Run;
+
+    /// <summary>True for a whole-value field: the token band and the three material panels.</summary>
+    public bool IsValueMode => Mode is ValueEditorMode.Value;
+
+    /// <summary>True for a field that holds one name: the list, its filters and a new-name row.</summary>
+    public bool IsNameMode => Mode is ValueEditorMode.Name;
+
+    /// <summary>True where the structure band is the editing surface.</summary>
+    public bool ShowsBand => IsValueMode || IsRunMode;
+
+    /// <summary>True where the operators, values and functions can be put into the band.</summary>
+    public bool ShowsFormulaMaterials => IsValueMode;
+
+    /// <summary>How many of the lower columns the variable panel takes: all of them in a run.</summary>
+    public int PanelSpan => IsValueMode ? 1 : 3;
+
+    /// <summary>True while the band has nothing in it, which is where the starting prompt goes.</summary>
+    public bool IsValueEmpty => ShowsBand && _draft.IsEmpty;
+
+    /// <summary>What the empty band says before the first piece.</summary>
+    public string EmptyBandHint => IsRunMode
+        ? Strings.Get("ValuePicker.Empty.Run")
+        : Strings.Get("ValuePicker.Empty.Value");
+
+    /// <summary>The one short line above the band saying what this mode's pieces are.</summary>
+    public string StructureHint => IsRunMode
+        ? Strings.Get("ValuePicker.Structure.RunHint")
+        : Strings.Get("ValuePicker.Structure.Hint");
+
+    public string Title => Mode switch
+    {
+        ValueEditorMode.Name => Strings.Get("ValuePicker.Names"),
+        ValueEditorMode.Text => Strings.Get("ValuePicker.Title.Text"),
+        ValueEditorMode.Run => Strings.Get("ValuePicker.Title.Run"),
+        _ => Strings.Get("ValuePicker.Title"),
+    };
+
+    /// <summary>The one line under the window saying what this mode expects.</summary>
+    public string Hint => Mode switch
+    {
+        ValueEditorMode.Name => Strings.Get("ValuePicker.Hint.Name"),
+        ValueEditorMode.Text => Strings.Get("ValuePicker.Hint.Text"),
+        ValueEditorMode.Run => Strings.Get("ValuePicker.Hint.Run"),
+        _ => Strings.Get("ValuePicker.Hint"),
+    };
 
     /// <summary>Which cell the window was opened for. Empty when nobody said.</summary>
     public string Target { get; }

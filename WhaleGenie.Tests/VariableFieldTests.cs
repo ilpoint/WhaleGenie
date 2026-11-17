@@ -403,8 +403,8 @@ public class VariableFieldTests
         Assert.Contains("Classes=\"Field HasChip\"", block, StringComparison.Ordinal);
         Assert.Contains("TextBox.InnerRightContent", block, StringComparison.Ordinal);
         Assert.Contains("Classes=\"ValueChip\"", block, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnPickVariable\"", block, StringComparison.Ordinal);
-        Assert.DoesNotContain("Click=\"OnOpenValuePicker\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnOpenValuePicker\"", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("Click=\"OnPickVariable\"", block, StringComparison.Ordinal);
 
         // And a field that holds a variable by name offers the names: the box holds text, so the
         // rows of the wall listed there would be written into the macro as the name of their type.
@@ -417,14 +417,13 @@ public class VariableFieldTests
         Assert.Contains("IsReadOnly=\"True\"", naming, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding Text, Mode=OneWay}\"", naming, StringComparison.Ordinal);
         Assert.DoesNotContain("AutoCompleteBox", naming, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnPickVariable\"", naming, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnOpenValuePicker\"", naming, StringComparison.Ordinal);
 
         // The same one door: the field that names a value keeps its chip inside the box, and the
         // expression button that used to stand beside it is gone.
         Assert.Contains("Classes=\"Field HasChip\"", naming, StringComparison.Ordinal);
         Assert.Contains("TextBox.InnerRightContent", naming, StringComparison.Ordinal);
         Assert.Contains("Classes=\"ValueChip\"", naming, StringComparison.Ordinal);
-        Assert.DoesNotContain("Click=\"OnOpenValuePicker\"", naming, StringComparison.Ordinal);
 
         // And a picture, which is a file or the picture an earlier step saved under a name, is
         // offered those names as well.
@@ -435,6 +434,7 @@ public class VariableFieldTests
             StringComparison.Ordinal)];
         Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", pictures, StringComparison.Ordinal);
     }
+
 
     /// <summary>
     /// Every field whose hint names variables has to be a box that offers them. The ones left out

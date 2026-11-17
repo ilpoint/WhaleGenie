@@ -294,6 +294,154 @@ public class ValuePickerWindowTests
             Ui.CloseAndDiscard(window);
         });
     }
+
+    /// <summary>The cross takes the whole piece away and joins what stood on either side of it.</summary>
+    [Fact]
+    public void The_cross_closes_the_gap_instead_of_leaving_an_empty_slot()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Run([Formula.Text("Hello "), Formula.Name("who"), Formula.Text("!")]));
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var piece = Pieces(window).First(one => one.DataContext is SlotValue { IsName: true });
+            Hover(window, piece);
+
+            window.FindControl<Button>("HoverRemove")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(form.Recipe!.Walk(), one => one is SlotEmpty);
+            var text = Assert.Single(form.Recipe.Walk().OfType<SlotValue>());
+            Assert.False(text.IsName);
+            Assert.Equal("Hello !", text.Text);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    /// <summary>Backspace and Delete take the piece on either side of the standing line.</summary>
+    [Fact]
+    public void Backspace_and_Delete_take_the_piece_on_each_side_of_the_line()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Run([Formula.Text("a"), Formula.Name("who"), Formula.Text("b")]));
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var name = form.Recipe!.Walk().OfType<SlotValue>().Single(one => one.IsName);
+
+            form.SetCaret(name.Start + name.Length);
+            Press(window, Key.Back);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(form.Recipe!.Walk(), one => one is SlotEmpty);
+            Assert.Equal("ab", Assert.Single(form.Recipe.Walk().OfType<SlotValue>()).Text);
+
+            form.Undo();
+            var restored = form.Recipe!.Walk().OfType<SlotValue>().Single(one => one.IsName);
+            form.SetCaret(restored.Start);
+            Press(window, Key.Delete);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(form.Recipe!.Walk(), one => one is SlotEmpty);
+            Assert.Equal("ab", Assert.Single(form.Recipe.Walk().OfType<SlotValue>()).Text);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    /// <summary>Backspace at a call's end takes its last argument, never the call as a whole.</summary>
+    [Fact]
+    public void Backspace_at_a_call_end_removes_only_the_last_argument()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Call("concat", Formula.Name("a"), Formula.Name("b")));
+            var form = (ValuePickerViewModel)window.DataContext!;
+            form.SetCaret(form.SpanEnd);
+
+            Press(window, Key.Back);
+            Dispatcher.UIThread.RunJobs();
+
+            var call = Assert.IsType<SlotCall>(Assert.Single(form.Recipe!.Walk().OfType<SlotCall>()));
+            Assert.Equal("a", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[0].Items)).Text);
+            Assert.Single(call.Arguments);
+            Assert.Equal(form.SpanEnd, form.Caret);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    /// <summary>The operator buttons follow the same left-value rule the model enforces.</summary>
+    [Fact]
+    public void Operator_buttons_are_disabled_until_a_left_value_exists()
+    {
+        Ui.Run(() =>
+        {
+            var empty = Window(Formula.Nothing);
+            var emptyButtons = empty.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.DataContext is ExpressionOperator)
+                .ToList();
+            Assert.NotEmpty(emptyButtons);
+            Assert.All(emptyButtons, button => Assert.False(button.IsEnabled));
+            Ui.CloseAndDiscard(empty);
+
+            var named = Window(Formula.Name("a"));
+            var namedButton = named.GetVisualDescendants().OfType<Button>()
+                .First(button => button.DataContext is ExpressionOperator);
+            Assert.True(namedButton.IsEnabled);
+            Ui.CloseAndDiscard(named);
+        });
+    }
+
+    /// <summary>A click on the empty slot must name that slot, not the piece after it.</summary>
+    [Fact]
+    public void Clicking_an_empty_slot_puts_the_next_value_inside_it()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Name("a"));
+            var form = (ValuePickerViewModel)window.DataContext!;
+            form.Place(" + ");
+            Dispatcher.UIThread.RunJobs();
+
+            var hole = Pieces(window).First(one => one.DataContext is SlotEmpty);
+            var point = hole.TranslatePoint(
+                new Point(hole.Bounds.Width / 2, hole.Bounds.Height / 2), Named(window, "Band"))!.Value;
+            var method = typeof(ValuePickerWindow).GetMethod("CaretFor",
+                BindingFlags.NonPublic | BindingFlags.Instance)!;
+            var at = (int?)method.Invoke(window, [point]);
+            Assert.NotNull(at);
+
+            form.SetCaret(at.Value);
+            form.Place("1");
+
+            Assert.Contains(form.Recipe!.Walk().OfType<SlotValue>(), one => one.Text == "1");
+            Assert.DoesNotContain(form.Recipe.Walk(), one => one is SlotEmpty);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    /// <summary>A real empty place left by an unfinished operator can be deleted with Backspace too.</summary>
+    [Fact]
+    public void Backspace_removes_an_unfinished_operand_place()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Binary("+", Formula.Name("a"), Formula.Hole));
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var hole = form.Recipe!.Walk().OfType<SlotEmpty>().Single();
+            form.SetCaret(hole.Start);
+
+            Press(window, Key.Back);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.DoesNotContain(form.Recipe!.Walk(), one => one is SlotEmpty);
+            Assert.Equal("a", Assert.Single(form.Recipe.Walk().OfType<SlotValue>()).Text);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
     /// <summary>
     /// Number and text used to open a row only after a button was pressed. The row is standing now,
     /// so typing never waits for a mode to be chosen and the three panels never jump in height.
@@ -362,6 +510,31 @@ public class ValuePickerWindowTests
             });
 
             Assert.Equal(before, form.Caret);
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
+    /// <summary>Backspace in a field edits that field; it must not take the piece in the band.</summary>
+    [Fact]
+    public void A_search_box_keeps_its_own_backspace()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Binary("+", Formula.Name("a"), Formula.Name("b")));
+            var form = (ValuePickerViewModel)window.DataContext!;
+            var before = form.Text;
+
+            var search = Assert.IsType<TextBox>(window.FindControl<TextBox>("VariableSearch"));
+            search.RaiseEvent(new KeyEventArgs
+            {
+                RoutedEvent = InputElement.KeyDownEvent,
+                Key = Key.Back,
+                Source = search,
+            });
+
+            Assert.Equal(before, form.Text);
+            Assert.Equal(2, form.Recipe!.Walk().OfType<SlotValue>().Count());
 
             Ui.CloseAndDiscard(window);
         });

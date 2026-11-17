@@ -19,7 +19,5 @@ public partial class ParameterTailView : UserControl
 
     private void OnOpenValuePicker(object? sender, RoutedEventArgs e) => Host?.OnOpenValuePicker(sender, e);
 
-    private void OnPickVariable(object? sender, RoutedEventArgs e) => Host?.OnPickVariable(sender, e);
-
     private void OnOpenGamepadPad(object? sender, RoutedEventArgs e) => Host?.OnOpenGamepadPad(sender, e);
 }

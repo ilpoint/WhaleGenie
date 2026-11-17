@@ -389,13 +389,13 @@ public class VariableWallTests
 
         var value = markup.IndexOf("IsVisible=\"{Binding OffersVariables}\"", StringComparison.Ordinal);
         Assert.True(value >= 0, "the dialog stopped offering a field that may name variables");
-        Assert.Contains("Click=\"OnPickVariable\"",
+        Assert.Contains("Click=\"OnOpenValuePicker\"",
             markup[value..markup.IndexOf("</Grid>", value, StringComparison.Ordinal)],
             StringComparison.Ordinal);
 
         var name = markup.IndexOf("IsVisible=\"{Binding IsVariable}\"", StringComparison.Ordinal);
         Assert.True(name >= 0, "the dialog stopped offering a field that names a variable");
-        Assert.Contains("Click=\"OnPickVariable\"",
+        Assert.Contains("Click=\"OnOpenValuePicker\"",
             markup[name..markup.IndexOf("</Grid>", name, StringComparison.Ordinal)],
             StringComparison.Ordinal);
     }

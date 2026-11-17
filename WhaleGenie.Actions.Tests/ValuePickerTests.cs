@@ -21,7 +21,30 @@ public partial class ValuePickerTests
         new VariableChoice { Name = "title", Scope = VariableScope.Local, Type = ValueKind.Text },
     ];
 
-    private static SlotSequence Root(ValuePickerViewModel form) => Assert.IsType<SlotSequence>(form.Recipe);
+    /// <summary>
+    /// The pieces the band puts at its top level. A whole value has one expression under its root,
+    /// so this reads as a run of one; a run field's root is already that run.
+    /// </summary>
+    private static SlotSequence Root(ValuePickerViewModel form)
+    {
+        if (form.Recipe is SlotRoot { Child: SlotSequence run })
+        {
+            return run;
+        }
+
+        if (form.Recipe is SlotRoot root)
+        {
+            return new SlotSequence
+            {
+                Items = [root.Child],
+                Path = NodePath.Root,
+                Start = 0,
+                Length = root.Child.Length,
+            };
+        }
+
+        return Assert.IsType<SlotSequence>(form.Recipe);
+    }
 
     /// <summary>
     /// A fixture's way of writing a shape down in one line. The window never sees this string: a

@@ -36,9 +36,13 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
+        // One door for every field. The field says how its value is read; the window chooses the
+        // mode from that, so a path is typed, a note is typed as text, a name is picked from its
+        // list, and only a whole value opens the token band.
         if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
                 parameter.Variables, parameter.Definition.ValueForm,
-                target: parameter.Label) is { Chosen: true } built)
+                target: parameter.Label,
+                allowNewName: parameter.AllowsNewName) is { Chosen: true } built)
         {
             parameter.WriteValue(built.Value);
         }
@@ -91,55 +95,6 @@ public partial class ActionEditorView : UserControl
                 ?? button.FindAncestorOfType<WrapPanel>(true)?.GetVisualDescendants()
                     .OfType<TextBox>().FirstOrDefault())?.CaretIndex;
         row.InsertVariable(Formula.NameOf(picked.Value), caret ?? row.OrVariable.Length);
-    }
-
-    /// <summary>
-    /// Opens the variable picker on the field that asked for it. A field that can name a variable
-    /// should never need the name typed out of memory, and the name goes in where the caret is: a
-    /// field is often a piece of text with a variable beside it rather than only a variable.
-    /// </summary>
-    internal async void OnPickVariable(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter } button
-            || DataContext is not AddActionViewModel viewModel)
-        {
-            return;
-        }
-
-        // The caret belongs to the box the button sits in or beside. The chip lives inside the box's
-        // own template now, so the nearest box ancestor is the one being filled in; a button laid
-        // out beside the box still finds it under the row.
-        // Where the caret is, when the field is still one box. A field edited as pieces has no such
-        // box: it remembered where the person was instead, and that is what the name goes beside.
-        var caret = (button.FindAncestorOfType<TextBox>(true)
-                ?? button.FindAncestorOfType<Grid>(true)?.GetVisualDescendants()
-                    .OfType<TextBox>().FirstOrDefault())?.CaretIndex;
-
-        // A field whose whole value is read opens the one window anywhere in the cell, with the
-        // caret where it was; a field that only fills names in opens it on the list of names.
-        if (parameter.OffersFormula)
-        {
-            if (await ValuePickerWindow.ShowFor(HostWindow!, parameter.CurrentShape,
-                    parameter.Variables, parameter.Definition.ValueForm,
-                    target: parameter.Label,
-                    startCaret: caret ?? -1) is { Chosen: true } written)
-            {
-                parameter.WriteValue(written.Value);
-            }
-
-            return;
-        }
-
-        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionValueForm.Name, target: parameter.Label) is not { Chosen: true } picked)
-        {
-            return;
-        }
-
-        // A name goes in as a piece of the value rather than as the line it is written as: the
-        // field keeps a shape, so nothing about the way a formula spells a name reaches the user.
-        var key = Formula.NameOf(picked.Value);
-        parameter.InsertName(key, caret);
     }
 
     private async void OnBuildGlobalDefaultExpression(object? sender, RoutedEventArgs e)

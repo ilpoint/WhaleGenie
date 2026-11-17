@@ -48,7 +48,11 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     public void SetCaret(int at)
     {
         Caret = Snap(at);
-        _draft.SetCaret(PathForCaret());
+        var place = CaretPlaceFor(Caret);
+        _draft.SetCaret(place.Path, place.After);
+        RefreshOperatorState();
+        OnPropertyChanged(nameof(CanPutValue));
+        OnPropertyChanged(nameof(CanInsertTyped));
     }
 
     /// <summary>
@@ -78,31 +82,199 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Every offset a piece begins or ends at, plus both ends of the line, in order. These are the
-    /// places the standing line can stand: an offset inside a name is nowhere a piece could be
-    /// written, so stepping one character at a time would leave the line standing still.
+    /// Every offset a piece can be written at. A binary or unary is one unit here: its operands are
+    /// not a sequence, so the only writable places are its outside edges and the holes inside it.
     /// </summary>
     public IReadOnlyList<int> Seams()
+        => [.. WritableSeams().Select(seam => seam.At).Distinct().Order()];
+
+    private readonly record struct CaretSeam(int At, NodePath Path, bool After, bool Hole);
+
+    private List<CaretSeam> WritableSeams()
     {
-        if (Recipe is null)
+        var seams = new List<CaretSeam>();
+        if (Recipe is not null)
         {
-            return [];
+            AddSeams(Recipe, seams);
         }
 
-        var seams = new SortedSet<int> { 0, SpanEnd };
-        foreach (var piece in Recipe.Walk())
+        return seams;
+    }
+
+    private static void AddSeams(SlotNode node, List<CaretSeam> seams)
+    {
+        switch (node)
         {
-            // A place with nothing in it is still a place: the space between the brackets of an
-            // empty call is where its first argument goes, and it has no characters to measure.
-            seams.Add(piece.Start);
-            seams.Add(piece.Start + piece.Length);
-            if (piece is SlotCall { Ghost: { } ghost })
-            {
-                seams.Add(ghost.Start);
-            }
+            case SlotRoot root:
+                AddSeams(root.Child, seams);
+                break;
+            case SlotCall call:
+                AddSeam(seams, call.Start, call.Path, after: false);
+                AddSeam(seams, call.Start + call.Length, call.Path, after: true);
+                foreach (var argument in call.Arguments)
+                {
+                    AddSeam(seams, argument.Start, argument.Path, after: false);
+                    AddSeam(seams, argument.Start + argument.Length, argument.Path, after: true);
+                    AddSeams(argument, seams);
+                }
+
+                if (call.Ghost is { Path: { } ghost } ghostEmpty)
+                {
+                    AddSeam(seams, ghostEmpty.Start, ghost, after: false, hole: true);
+                }
+
+                break;
+            case SlotBinary binary:
+                AddSeam(seams, binary.Start, binary.Path, after: false);
+                AddSeam(seams, binary.Start + binary.Length, binary.Path, after: true);
+                AddHoles(binary.Left, seams);
+                AddHoles(binary.Right, seams);
+                break;
+            case SlotUnary unary:
+                AddSeam(seams, unary.Start, unary.Path, after: false);
+                AddSeam(seams, unary.Start + unary.Length, unary.Path, after: true);
+                AddHoles(unary.Operand, seams);
+                break;
+            case SlotGroup group:
+                AddSeam(seams, group.Start, group.Path, after: false);
+                AddSeam(seams, group.Start + group.Length, group.Path, after: true);
+                AddSeams(group.Inner, seams);
+                break;
+            case SlotList list:
+                AddSeam(seams, list.Start, list.Path, after: false);
+                AddSeam(seams, list.Start + list.Length, list.Path, after: true);
+                foreach (var item in list.Items)
+                {
+                    AddSeam(seams, item.Start, item.Path, after: false);
+                    AddSeam(seams, item.Start + item.Length, item.Path, after: true);
+                    AddSeams(item, seams);
+                }
+
+                if (list.Ghost is { Path: { } listGhost, Start: var listGhostStart })
+                {
+                    AddSeam(seams, listGhostStart, listGhost, after: false, hole: true);
+                }
+
+                break;
+            case SlotSequence sequence:
+                AddSeam(seams, sequence.Start, sequence.Path, after: false);
+                AddSeam(seams, sequence.Start + sequence.Length, sequence.Path, after: true);
+                foreach (var item in sequence.Items)
+                {
+                    AddSeam(seams, item.Start, item.Path, after: false);
+                    AddSeam(seams, item.Start + item.Length, item.Path, after: true);
+                    AddSeams(item, seams);
+                }
+
+                break;
+            case SlotEmpty empty:
+                AddSeam(seams, empty.Start, empty.Path, after: false, hole: true);
+                break;
+        }
+    }
+
+    /// <summary>Finds holes even inside a structural binary, without making its operands writable.</summary>
+    private static void AddHoles(SlotNode node, List<CaretSeam> seams)
+    {
+        switch (node)
+        {
+            case SlotCall call:
+                foreach (var argument in call.Arguments)
+                {
+                    AddHoles(argument, seams);
+                }
+
+                if (call.Ghost is { Path: { } ghost, Start: var ghostStart })
+                {
+                    AddSeam(seams, ghostStart, ghost, after: false, hole: true);
+                }
+
+                break;
+            case SlotBinary binary:
+                AddHoles(binary.Left, seams);
+                AddHoles(binary.Right, seams);
+                break;
+            case SlotUnary unary:
+                AddHoles(unary.Operand, seams);
+                break;
+            case SlotGroup group:
+                AddHoles(group.Inner, seams);
+                break;
+            case SlotList list:
+                foreach (var item in list.Items)
+                {
+                    AddHoles(item, seams);
+                }
+
+                if (list.Ghost is { Path: { } listGhost, Start: var listGhostStart })
+                {
+                    AddSeam(seams, listGhostStart, listGhost, after: false, hole: true);
+                }
+
+                break;
+            case SlotSequence sequence:
+                foreach (var item in sequence.Items)
+                {
+                    AddHoles(item, seams);
+                }
+
+                break;
+            case SlotEmpty empty:
+                AddSeam(seams, empty.Start, empty.Path, after: false, hole: true);
+                break;
+        }
+    }
+
+    private static void AddSeam(List<CaretSeam> seams, int at, NodePath? path, bool after, bool hole = false)
+    {
+        if (path is not null)
+        {
+            seams.Add(new CaretSeam(at, path, after, hole));
+        }
+    }
+
+    /// <summary>The one seam the numeric caret names, with its side of the piece made explicit.</summary>
+    private (NodePath Path, bool After) CaretPlaceFor(int at)
+    {
+        var seams = WritableSeams();
+        var hole = seams
+            .Where(seam => seam.Hole && seam.At == at)
+            .OrderByDescending(seam => seam.Path.Indices.Count)
+            .FirstOrDefault();
+        if (hole.Path is not null)
+        {
+            return (hole.Path, false);
         }
 
-        return [.. seams];
+        if (at <= 0)
+        {
+            var before = seams
+                .Where(seam => !seam.Hole && !seam.After && seam.At == at)
+                .OrderBy(seam => seam.Path.Indices.Count)
+                .FirstOrDefault();
+            return (before.Path ?? NodePath.Root, false);
+        }
+
+        var ending = seams
+            .Where(seam => !seam.Hole && seam.After && seam.At == at)
+            .OrderBy(seam => seam.Path.Indices.Count)
+            .ThenByDescending(seam => seam.At)
+            .FirstOrDefault();
+        if (ending.Path is not null)
+        {
+            return (ending.Path, true);
+        }
+
+        var starting = seams
+            .Where(seam => !seam.Hole && !seam.After && seam.At == at)
+            .OrderBy(seam => seam.Path.Indices.Count)
+            .FirstOrDefault();
+        if (starting.Path is not null)
+        {
+            return (starting.Path, false);
+        }
+
+        return (NodePath.Root, at >= SpanEnd);
     }
 
     /// <summary>
@@ -125,12 +297,12 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         return true;
     }
 
-    /// <summary>Keeps the insertion point legal after the text changed under it.</summary>
-    private void ClampCaret() => Caret = Snap(_caret);
-
-    public bool CanConfirm => NamesOnly
-        ? Wall.Looking is not null
-        : _reads || _draft.IsEmpty;
+    public bool CanConfirm => Mode switch
+    {
+        ValueEditorMode.Name => Wall.Looking is not null || CanCreateName,
+        ValueEditorMode.Text => true,
+        _ => _reads || _draft.IsEmpty,
+    };
 
     /// <summary>One short line next to the confirm button saying why it is grey.</summary>
     [ObservableProperty]
@@ -143,9 +315,9 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>Null when there is no reason, so the confirm button opens no wordless tooltip.</summary>
     public string? BlockReasonTip => HasBlockReason ? BlockReason : null;
 
-    public bool CanUndo => _draft.CanUndo;
+    public bool CanUndo => ShowsBand && _draft.CanUndo;
 
-    public bool CanRedo => _draft.CanRedo;
+    public bool CanRedo => ShowsBand && _draft.CanRedo;
 
     /// <summary>
     /// Goes back one edit. The history holds shapes, so a bound name is still bound when it comes
@@ -153,7 +325,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     public void Undo()
     {
-        if (!_draft.CanUndo)
+        if (!ShowsBand || !_draft.CanUndo)
         {
             return;
         }
@@ -165,7 +337,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>Goes forward again to the shape undo left behind.</summary>
     public void Redo()
     {
-        if (!_draft.CanRedo)
+        if (!ShowsBand || !_draft.CanRedo)
         {
             return;
         }
@@ -174,12 +346,23 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         RefreshFromDraft();
     }
 
-    /// <summary>True while there is a value to take away.</summary>
-    public bool CanClear => !_draft.IsEmpty;
+    /// <summary>True while there is something to take away in this mode.</summary>
+    public bool CanClear => IsTextMode ? TextBody.Length > 0 : ShowsBand && !_draft.IsEmpty;
 
     /// <summary>Empties the value. A deliberate empty is one more step in the same history.</summary>
     public void Clear()
     {
+        if (IsTextMode)
+        {
+            TextBody = string.Empty;
+            return;
+        }
+
+        if (!ShowsBand)
+        {
+            return;
+        }
+
         _draft.Clear();
         RefreshFromDraft();
         SetCaret(0);

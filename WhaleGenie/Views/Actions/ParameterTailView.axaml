@@ -67,7 +67,7 @@
                 PlaceholderText="{Binding Placeholder}">
                 <TextBox.InnerRightContent>
                     <!-- 一格一个入口：名字与公式都从取值窗口来，框只负责显示。 -->
-                    <Button Classes="ValueChip" Click="OnPickVariable"
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
                         Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
                         ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
                 </TextBox.InnerRightContent>

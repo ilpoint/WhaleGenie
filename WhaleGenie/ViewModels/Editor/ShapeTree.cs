@@ -27,6 +27,7 @@ internal static class ShapeTree
             ConcatNode run => Index(run.Parts, head),
             ListNode list => Index(list.Items, head),
             CallNode call => Index(call.Arguments, head),
+            GroupNode group when head == 0 => group.Inner,
             BinaryNode binary when head == 0 => binary.Left,
             BinaryNode binary when head == 1 => binary.Right,
             UnaryNode unary when head == 0 => unary.Operand,
@@ -57,6 +58,7 @@ internal static class ShapeTree
                 Arguments = Replace(call.Arguments, head,
                     piece => Set(piece, rest, value), value),
             },
+            GroupNode group when head == 0 => group with { Inner = Set(group.Inner, rest, value) },
             BinaryNode binary => head == 1
                 ? binary with { Right = Set(binary.Right, rest, value) }
                 : binary with { Left = Set(binary.Left, rest, value) },
@@ -90,9 +92,27 @@ internal static class ShapeTree
     /// <summary>
     /// Leaves a place empty rather than pulling the tree apart: the hole is drawn as a box and
     /// makes the value unreadable until something is put there, which is what an unfilled place is.
+    /// Used while a piece is being lifted for a drag, where the rest of the tree has to keep its
+    /// paths until the piece lands.
     /// </summary>
     public static ExpressionNode Remove(ExpressionNode root, NodePath path)
         => Set(root, path, Formula.Hole);
+
+    /// <summary>
+    /// Takes a piece out and closes the gap it left. This is the operation behind the cross and
+    /// the keyboard delete keys: a text run joins the pieces on either side, a list loses one item,
+    /// and a parent that cannot stand without its child is simplified. Only an inserted operator
+    /// or call leaves a place to fill; deleting something never leaves one.
+    /// </summary>
+    public static ExpressionNode Cut(ExpressionNode root, NodePath path)
+    {
+        if (path.IsRoot)
+        {
+            return Formula.Nothing;
+        }
+
+        return CutAt(root, path) ?? root;
+    }
 
     /// <summary>
     /// Puts a sign after the shape at this place, with an empty place on its right. Where a line
@@ -104,6 +124,142 @@ internal static class ShapeTree
     {
         var left = At(root, path) ?? Formula.Hole;
         return Set(root, path, Formula.Binary(op, left, Formula.Hole));
+    }
+
+    private static ExpressionNode? CutAt(ExpressionNode root, NodePath path)
+    {
+        var head = Head(path);
+        var rest = Tail(path);
+        switch (root)
+        {
+            case ConcatNode run when head >= 0 && head < run.Parts.Count:
+                {
+                    var parts = run.Parts.ToList();
+                    if (rest.IsRoot)
+                    {
+                        parts.RemoveAt(head);
+                    }
+                    else if (CutAt(parts[head], rest) is { } changed)
+                    {
+                        parts[head] = changed;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+
+                    return MergeText(parts);
+                }
+            case ListNode list when head >= 0 && head < list.Items.Count:
+                {
+                    var items = list.Items.ToList();
+                    if (rest.IsRoot)
+                    {
+                        items.RemoveAt(head);
+                    }
+                    else if (CutAt(items[head], rest) is { } changed)
+                    {
+                        items[head] = changed;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+
+                    return new ListNode(items);
+                }
+            case GroupNode group when head == 0:
+                {
+                    return rest.IsRoot
+                        ? group.Inner
+                        : CutAt(group.Inner, rest) is { } inner
+                            ? group with { Inner = inner }
+                            : null;
+                }
+            case CallNode call when head >= 0 && head < call.Arguments.Count:
+                {
+                    var arguments = call.Arguments.ToList();
+                    if (rest.IsRoot)
+                    {
+                        arguments.RemoveAt(head);
+                    }
+                    else if (CutAt(arguments[head], rest) is { } changed)
+                    {
+                        arguments[head] = changed;
+                    }
+                    else
+                    {
+                        return null;
+                    }
+
+                    return call with { Arguments = arguments };
+                }
+            case BinaryNode binary when head == 0:
+                {
+                    if (rest.IsRoot)
+                    {
+                        return Simplify(binary.Right);
+                    }
+
+                    return CutAt(binary.Left, rest) is { } left
+                        ? binary with { Left = left }
+                        : null;
+                }
+            case BinaryNode binary when head == 1:
+                {
+                    if (rest.IsRoot)
+                    {
+                        return Simplify(binary.Left);
+                    }
+
+                    return CutAt(binary.Right, rest) is { } right
+                        ? binary with { Right = right }
+                        : null;
+                }
+            case UnaryNode unary when head == 0:
+                {
+                    if (rest.IsRoot)
+                    {
+                        return Formula.Nothing;
+                    }
+
+                    return CutAt(unary.Operand, rest) is { } operand
+                        ? unary with { Operand = operand }
+                        : null;
+                }
+            default:
+                return null;
+        }
+    }
+
+    /// <summary>A removed operand that was itself empty leaves an empty value, not another hole.</summary>
+    private static ExpressionNode Simplify(ExpressionNode remaining)
+        => remaining is HoleNode ? Formula.Nothing : remaining;
+
+    /// <summary>Joins the text runs a removed piece stood between, then lets a run of one collapse.</summary>
+    private static ExpressionNode MergeText(IReadOnlyList<ExpressionNode> parts)
+    {
+        var merged = new List<ExpressionNode>();
+        foreach (var part in parts)
+        {
+            if (part is TextNode text)
+            {
+                if (text.Text.Length == 0)
+                {
+                    continue;
+                }
+
+                if (merged.Count > 0 && merged[^1] is TextNode previous)
+                {
+                    merged[^1] = Formula.Text(previous.Text + text.Text);
+                    continue;
+                }
+            }
+
+            merged.Add(part);
+        }
+
+        return Formula.Run(merged);
     }
 
     private static int Head(NodePath path) => path.Indices[0];

@@ -35,13 +35,28 @@ public partial class ValuePickerWindow : AppWindow
         Title = viewModel.Title;
 
 
-        // A cell that only holds a name does not need a workbench: the window is the list.
-        if (viewModel.NamesOnly)
+        // A cell that only holds a name does not need a workbench: the window is the list. A text
+        // field is one body of text, and a run is the band without the formula materials.
+        if (viewModel.IsNameMode)
         {
             Width = 560;
             Height = 620;
             MinWidth = 480;
             MinHeight = 520;
+        }
+        else if (viewModel.IsTextMode)
+        {
+            Width = 760;
+            Height = 600;
+            MinWidth = 620;
+            MinHeight = 480;
+        }
+        else if (viewModel.IsRunMode)
+        {
+            Width = 1040;
+            Height = 680;
+            MinWidth = 900;
+            MinHeight = 600;
         }
 
         viewModel.CloseRequested += result => Close(result);
@@ -77,22 +92,25 @@ public partial class ValuePickerWindow : AppWindow
 
         Opened += (_, _) =>
         {
+            if (!viewModel.ShowsBand)
+            {
+                // A name is chosen from its list; a text field is typed into as one body.
+                (viewModel.IsTextMode ? (Control)TextBody : NameSearch).Focus();
+                return;
+            }
+
             _viewModel.RefreshStacking(BandScroll.Viewport.Width);
-            if (StartCaret >= 0)
+            if (StartCaret >= 0 && viewModel.IsValueMode)
             {
                 _viewModel.SetCaret(StartCaret);
             }
 
             Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
-            if (!viewModel.CanCompute)
-            {
-                NameSearch.Focus();
-                return;
-            }
 
-            // A cell that had a caret in it opens with the small field ready to type into; one that
-            // did not keeps the variable search, which is where a formula usually starts.
-            (StartCaret >= 0 ? ValueInput : VariableSearch).Focus();
+            // The band owns the keyboard: typing there goes to the small field at the caret, so the
+            // first character a person types lands where the standing line is. A caller that named
+            // a caret in an editable condition row still gets the small field ready instead.
+            (StartCaret >= 0 && viewModel.IsValueMode ? (Control)ValueInput : Band).Focus();
         };
     }
 
@@ -109,9 +127,10 @@ public partial class ValuePickerWindow : AppWindow
         IReadOnlyList<VariableChoice>? variables,
         ActionValueForm valueForm = ActionValueForm.Value,
         string? target = null, int startCaret = -1,
-        Action<MacroStep>? lookAtStep = null)
+        Action<MacroStep>? lookAtStep = null, bool allowNewName = false)
     {
-        var viewModel = new ValuePickerViewModel(seed ?? Formula.Nothing, variables, valueForm, target);
+        var viewModel = new ValuePickerViewModel(seed ?? Formula.Nothing, variables, valueForm,
+            target, allowNewName);
         if (lookAtStep is not null)
         {
             viewModel.Jumped += lookAtStep;

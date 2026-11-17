@@ -149,13 +149,6 @@ public partial class StepParameterViewModel : ViewModelBase
         SetWritten(Formula.Run(parts));
     }
 
-    /// <summary>Remembers where the person last was, so a name lands where they were writing.</summary>
-    public void RememberPlace(ValuePart part, int caret)
-    {
-        _activePart = part;
-        _activeCaret = Math.Max(0, caret);
-    }
-
     /// <summary>
     /// Puts a name into the value: at the place the person left, splitting the run of text they were
     /// in if they were in the middle of one. This is the only way a name gets in, and it never goes
@@ -229,60 +222,6 @@ public partial class StepParameterViewModel : ViewModelBase
         Join(at - 1);
         Compose();
         OnPropertyChanged(nameof(ShowsParts));
-    }
-
-    /// <summary>
-    /// Backspace at the very start of a run: the piece before it goes, and the run takes its place.
-    /// Nothing when there is nothing before it.
-    /// </summary>
-    public (ValuePart Part, int Caret)? JoinBack(ValuePart part)
-    {
-        var at = IndexOf(part);
-        if (at <= 0)
-        {
-            return null;
-        }
-
-        var before = Parts[at - 1];
-        if (before is TextPart previous && part is TextPart current)
-        {
-            var caret = previous.Text.Length;
-            current.Text = previous.Text + current.Text;
-            Parts.RemoveAt(at - 1);
-            Compose();
-            return (current, caret);
-        }
-
-        Parts.RemoveAt(at - 1);
-        Join(at - 2);
-        Compose();
-        OnPropertyChanged(nameof(ShowsParts));
-        return (Parts[Math.Max(0, at - 1)], 0);
-    }
-
-    /// <summary>Delete at the very end of a run: the piece after it goes the same way.</summary>
-    public (ValuePart Part, int Caret)? JoinForward(ValuePart part)
-    {
-        var at = IndexOf(part);
-        if (at < 0 || at >= Parts.Count - 1)
-        {
-            return null;
-        }
-
-        var after = Parts[at + 1];
-        if (after is TextPart next && part is TextPart current)
-        {
-            current.Text += next.Text;
-            Parts.RemoveAt(at + 1);
-            Compose();
-            return (current, current.Text.Length - next.Text.Length);
-        }
-
-        Parts.RemoveAt(at + 1);
-        Join(at);
-        Compose();
-        OnPropertyChanged(nameof(ShowsParts));
-        return (Parts[Math.Min(at, Parts.Count - 1)], 0);
     }
 
     /// <summary>Joins the two runs on either side of <paramref name="at"/> when both are text.</summary>

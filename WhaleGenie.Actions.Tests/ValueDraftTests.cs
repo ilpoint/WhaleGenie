@@ -43,12 +43,12 @@ public class ValueDraftTests
     {
         var draft = new ValueDraft(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
-        var root = Assert.IsType<SlotSequence>(draft.Recipe);
+        var root = Assert.IsType<SlotBinary>(draft.Recipe);
         Assert.Equal(NodePath.Root, root.Path);
-        Assert.Equal(NodePath.Root.Append(0), root.Items[0].Path);
-        Assert.Equal(NodePath.Root.Append(1), root.Items[2].Path);
-        Assert.Equal(new VariableNode("count"), root.Items[0].Source);
-        Assert.Equal(new NumberNode("1", 1), root.Items[2].Source);
+        Assert.Equal(NodePath.Root.Append(0), root.Left.Path);
+        Assert.Equal(NodePath.Root.Append(1), root.Right.Path);
+        Assert.Equal(new VariableNode("count"), root.Left.Source);
+        Assert.Equal(new NumberNode("1", 1), root.Right.Source);
     }
 
     [Fact]
@@ -61,14 +61,14 @@ public class ValueDraftTests
         Assert.Equal(new VariableNode("total"),
             Assert.IsType<BinaryNode>(draft.Value).Left);
         Assert.Equal("total", Assert.IsType<SlotValue>(
-            Assert.IsType<SlotSequence>(draft.Recipe).Items[0]).Text);
+            Assert.IsType<SlotBinary>(draft.Recipe).Left).Text);
     }
 
     [Fact]
     public void Putting_a_piece_keeps_what_was_already_there()
     {
         var draft = new ValueDraft(Formula.Text("hello "));
-        draft.SetCaret(NodePath.Root);
+        draft.SetCaret(NodePath.Root, after: true);
 
         draft.Put(Formula.Name("who"));
 
@@ -79,7 +79,84 @@ public class ValueDraftTests
     }
 
     [Fact]
-    public void Taking_a_piece_away_leaves_a_hole_rather_than_a_broken_tree()
+    public void A_piece_put_at_the_end_is_appended_and_the_caret_follows_it()
+    {
+        var draft = new ValueDraft(Formula.Run([Formula.Text("a"), Formula.Name("b")]));
+        draft.SetCaret(NodePath.Root.Append(1), after: true);
+
+        draft.Put(Formula.Name("x"));
+
+        var run = Assert.IsType<ConcatNode>(draft.Value);
+        Assert.Equal(3, run.Parts.Count);
+        Assert.Equal(new VariableNode("x"), run.Parts[2]);
+        Assert.True(draft.CaretAfter);
+        Assert.Equal(5, draft.CaretOffset);
+    }
+
+    [Fact]
+    public void Filling_a_hole_puts_the_value_in_it_and_the_caret_after_it()
+    {
+        var draft = new ValueDraft(Formula.Binary("+", Formula.Name("a"), Formula.Hole));
+        draft.SetCaret(NodePath.Root.Append(1));
+
+        draft.Put(Formula.Number(1));
+
+        Assert.Equal(Formula.Binary("+", Formula.Name("a"), Formula.Number(1)), draft.Value);
+        Assert.True(draft.CaretAfter);
+        Assert.Equal(3, draft.CaretOffset);
+
+        draft.Put(Formula.Name("b"));
+
+        var run = Assert.IsType<ConcatNode>(draft.Value);
+        Assert.Equal(2, run.Parts.Count);
+        Assert.Equal(new VariableNode("b"), run.Parts[1]);
+    }
+
+    [Fact]
+    public void An_operator_at_the_end_wraps_the_whole_run()
+    {
+        var draft = new ValueDraft(Formula.Run([Formula.Text("a"), Formula.Name("b")]));
+        draft.SetCaret(NodePath.Root, after: true);
+
+        Assert.True(draft.PutOperator("+"));
+
+        var binary = Assert.IsType<BinaryNode>(draft.Value);
+        Assert.Equal("+", binary.Operator);
+        Assert.IsType<ConcatNode>(binary.Left);
+        Assert.IsType<HoleNode>(binary.Right);
+        Assert.False(draft.CaretAfter);
+    }
+
+    [Fact]
+    public void An_operator_without_a_left_value_does_not_grow_another_hole()
+    {
+        var draft = new ValueDraft(Formula.Nothing);
+
+        Assert.False(draft.CanPutOperator);
+        Assert.False(draft.PutOperator("+"));
+        Assert.Equal(Formula.Nothing, draft.Value);
+    }
+
+    [Fact]
+    public void A_call_at_the_end_is_appended_instead_of_replacing_the_last_piece()
+    {
+        var draft = new ValueDraft(Formula.Run([Formula.Text("a"), Formula.Name("b")]));
+        draft.SetCaret(NodePath.Root, after: true);
+
+        draft.PutCall("upper");
+
+        var run = Assert.IsType<ConcatNode>(draft.Value);
+        Assert.Equal(3, run.Parts.Count);
+        Assert.Equal(new TextNode("a"), run.Parts[0]);
+        Assert.Equal(new VariableNode("b"), run.Parts[1]);
+        var call = Assert.IsType<CallNode>(run.Parts[2]);
+        Assert.Equal("upper", call.Name);
+        Assert.IsType<HoleNode>(Assert.Single(call.Arguments));
+        Assert.False(draft.CaretAfter);
+    }
+
+    [Fact]
+    public void Lifting_a_piece_leaves_a_hole_for_the_drop()
     {
         var draft = new ValueDraft(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
 
@@ -88,6 +165,38 @@ public class ValueDraftTests
         Assert.IsType<HoleNode>(Assert.IsType<BinaryNode>(draft.Value).Left);
         Assert.True(draft.HasHole());
         Assert.Contains(draft.Recipe.Walk(), piece => piece is SlotEmpty);
+    }
+
+    [Fact]
+    public void Cutting_a_piece_closes_the_gap_and_is_one_history_step()
+    {
+        var draft = new ValueDraft(Formula.Run(
+            [Formula.Text("a"), Formula.Name("who"), Formula.Text("b")]));
+
+        Assert.True(draft.Cut(NodePath.Root.Append(1)));
+
+        Assert.Equal(Formula.Text("ab"), draft.Value);
+        Assert.DoesNotContain(draft.Recipe.Walk(), piece => piece is SlotEmpty);
+        Assert.True(draft.CanUndo);
+        draft.Undo();
+        var restored = Assert.IsType<ConcatNode>(draft.Value);
+        Assert.Equal(["a", "who", "b"], restored.Parts.Select(part => part switch
+        {
+            TextNode text => text.Text,
+            VariableNode name => name.Name,
+            _ => string.Empty,
+        }));
+    }
+
+    [Fact]
+    public void Cutting_a_binary_operand_keeps_the_other_side()
+    {
+        var draft = new ValueDraft(Formula.Binary("+", Formula.Name("a"), Formula.Number(1)));
+
+        Assert.True(draft.Cut(NodePath.Root.Append(1)));
+
+        Assert.Equal(Formula.Name("a"), draft.Value);
+        Assert.False(draft.HasHole());
     }
 
     [Fact]
@@ -147,7 +256,7 @@ public class ValueDraftTests
         });
 
         // Leaves are drawn in the order they stand, so a caret walking the band walks the value.
-        var leaves = root.Walk().Where(piece => piece is SlotValue or SlotOperator).ToList();
+        var leaves = root.Walk().OfType<SlotValue>().ToList();
         Assert.NotEmpty(leaves);
         for (var index = 1; index < leaves.Count; index++)
         {
@@ -155,8 +264,8 @@ public class ValueDraftTests
                 "A later piece cannot be drawn before an earlier one.");
         }
 
-        // A sign belongs to the operator that holds it, so its walk names that operator. A value
-        // names its own place in the tree.
+        // A value names its own place in the tree. A sign is a button inside the binary token, not
+        // a piece of its own, so it has no path in the walk.
         Assert.All(root.Walk().OfType<SlotValue>(),
             piece => Assert.False(piece.Path!.IsRoot,
                 "A value names where it stands, not the value as a whole."));
@@ -216,7 +325,7 @@ public class ValueDraftTests
     }
 
     [Fact]
-    public void A_hole_left_by_a_removal_can_be_filled_again()
+    public void A_hole_left_by_a_lift_can_be_filled_again()
     {
         var draft = new ValueDraft(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
         draft.Remove(NodePath.Root.Append(0));

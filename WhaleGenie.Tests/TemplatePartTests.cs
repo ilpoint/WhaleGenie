@@ -79,6 +79,7 @@ public class TemplatePartTests
         // 插槽上的两枚小按钮：参数的叉与表头的撤销恢复，各自画自己的悬停。
         ("Button", "SlotRemove", "ContentPresenter"),
         ("Button", "SlotStep", "ContentPresenter"),
+        ("Button", "SlotOperatorInline", "ContentPresenter"),
         ("Button", "Thumb", "ContentPresenter"),
         ("ToggleButton", "Chip", "ContentPresenter"),
         ("ToggleButton", "Chip Key", "ContentPresenter"),

@@ -39,35 +39,20 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
     }
 
-    /// <summary>
-    /// Brackets come into the band one character at a time: a pair is two pieces that can each be
-    /// chosen, swapped, dragged or taken away. The old window still offers them as a pair.
-    /// </summary>
-    private static IReadOnlyList<ExpressionOperator> SplitBrackets(IReadOnlyList<ExpressionOperator> all)
+    /// <summary>Lets only the operators that have a complete expression on their left be pressed.</summary>
+    private void RefreshOperatorState()
     {
-        var split = new List<ExpressionOperator>();
-        foreach (var one in all)
+        if (!IsValueMode)
         {
-            switch (one.Insert)
-            {
-                case "()":
-                    split.Add(new ExpressionOperator("(", "(", "Expr.Op.Group"));
-                    split.Add(new ExpressionOperator(")", ")", "Expr.Op.Group"));
-                    break;
-                case "[]":
-                    split.Add(new ExpressionOperator("[", "[", "Expr.Op.List"));
-                    split.Add(new ExpressionOperator("]", "]", "Expr.Op.List"));
-                    break;
-                // 引号不再摆在符号条上：它是"一段文字"的边界，不是可以随手插一个的符号。
-                case "\"\"":
-                    break;
-                default:
-                    split.Add(one);
-                    break;
-            }
+            return;
         }
 
-        return split;
+        var enabled = _draft.CanPutOperator
+            || SelectedNode is { } picked && picked is not SlotEmpty;
+        foreach (var sign in Operators)
+        {
+            sign.IsEnabled = enabled;
+        }
     }
 
     /// <summary>Narrows the function panel to the group and the word typed into it.</summary>

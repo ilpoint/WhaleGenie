@@ -26,7 +26,9 @@ internal sealed partial class SlotReader
 
         foreach (var drawn in root.Walk())
         {
-            if (drawn.Source is not null && drawn is not SlotEmpty)
+            // A run is what pieces sit in, not a piece: dragging it would lift the whole value.
+            if (drawn.Source is not null
+                && drawn is SlotValue or SlotCall or SlotBinary or SlotUnary or SlotGroup or SlotList)
             {
                 drawn.CanRemove = true;
             }
@@ -48,9 +50,10 @@ internal sealed partial class SlotReader
             ConstantNode constant => Leaf(path, value, constant.Word, "other", false, ref at),
             VariableNode variable => Leaf(path, value, variable.Name, "lists", true, ref at),
             ConcatNode run => Sequence(run.Parts, path, functions, ref at),
-            ListNode list => Sequence(list.Items, path, functions, ref at),
+            ListNode list => List(list, path, functions, ref at),
             UnaryNode unary => Unary(unary, path, functions, ref at),
             BinaryNode binary => Binary(binary, path, functions, ref at),
+            GroupNode group => Group(group, path, functions, ref at),
             CallNode call => Call(call, path, functions, ref at),
             _ => Empty(path, Strings.Get("ValuePicker.Hole"), at),
         };
@@ -92,38 +95,109 @@ internal sealed partial class SlotReader
     private static SlotNode Unary(UnaryNode unary, NodePath path,
         IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
-        var sign = new SlotOperator
-        {
-            Text = unary.Operator,
-            Path = path,
-            Start = at,
-            Length = unary.Operator.Length,
-        };
+        var start = at;
         at += unary.Operator.Length;
         var operand = Piece(unary.Operand, path.Append(0), functions, ref at);
-        return new SlotSequence { Items = [sign, operand], Path = path, Source = unary };
+        return new SlotUnary
+        {
+            Operator = unary.Operator,
+            Operand = operand,
+            Tone = ToneOf(unary.Operator),
+            Path = path,
+            Source = unary,
+            Start = start,
+            Length = at - start,
+        };
     }
 
     private static SlotNode Binary(BinaryNode binary, NodePath path,
         IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
     {
+        var start = at;
         var left = Piece(binary.Left, path.Append(0), functions, ref at);
-        var sign = new SlotOperator
-        {
-            Text = binary.Operator,
-            Path = path,
-            Start = at,
-            Length = binary.Operator.Length,
-        };
         at += binary.Operator.Length;
         var right = Piece(binary.Right, path.Append(1), functions, ref at);
-        return new SlotSequence
+        return new SlotBinary
         {
-            Items = [left, sign, right],
+            Left = left,
+            Right = right,
+            Operator = binary.Operator,
+            Tone = ToneOf(binary.Operator),
             Path = path,
             Source = binary,
+            Start = start,
+            Length = at - start,
         };
     }
+
+    /// <summary>A pair of brackets and the one expression inside them, as one token.</summary>
+    private static SlotNode Group(GroupNode group, NodePath path,
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
+    {
+        var start = at;
+        at++;
+        var inner = Piece(group.Inner, path.Append(0), functions, ref at);
+        at++;
+        return new SlotGroup
+        {
+            Inner = inner,
+            Path = path,
+            Source = group,
+            Start = start,
+            Length = at - start,
+        };
+    }
+
+    /// <summary>
+    /// A list is one token with a bracket at each end. Its items are pieces separated by commas,
+    /// and the dashed place before the closing bracket is where the next item goes.
+    /// </summary>
+    private static SlotNode List(ListNode list, NodePath path,
+        IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
+    {
+        var start = at;
+        at++;
+        var items = new List<SlotNode>(list.Items.Count);
+        for (var index = 0; index < list.Items.Count; index++)
+        {
+            if (index > 0)
+            {
+                at += 2;
+            }
+
+            var item = Piece(list.Items[index], path.Append(index), functions, ref at);
+            item.Before = index > 0 ? ", " : string.Empty;
+            items.Add(item);
+        }
+
+        var ghostStart = at;
+        at++;
+        var ghost = new SlotEmpty
+        {
+            Text = Strings.Get("ValuePicker.Slot.Add"),
+            Hint = Strings.Get("ValuePicker.List.AddHint"),
+            Before = items.Count == 0 ? string.Empty : ", ",
+            IsGhost = true,
+            Path = path.Append(items.Count),
+            Start = ghostStart,
+            Length = 0,
+        };
+
+        return new SlotList
+        {
+            Items = items,
+            Ghost = ghost,
+            Tone = "lists",
+            Path = path,
+            Source = list,
+            Start = start,
+            Length = at - start,
+        };
+    }
+
+    /// <summary>Which family a sign is drawn in: numbers, or everything that compares and joins.</summary>
+    private static string ToneOf(string sign)
+        => sign is "+" or "-" or "*" or "/" or "%" ? "maths" : "other";
 
     private static SlotNode Call(CallNode call, NodePath path,
         IReadOnlyDictionary<string, ExpressionFunction> functions, ref int at)
@@ -163,6 +237,7 @@ internal sealed partial class SlotReader
             arguments.Add(argument);
         }
 
+        var ghostStart = at;
         at++;
         var ghost = entry is not null && arguments.Count >= entry.MaxArguments
             ? null
@@ -176,7 +251,7 @@ internal sealed partial class SlotReader
                 IsGhost = true,
                 Required = entry is null ? arguments.Count == 0 : arguments.Count < entry.MinArguments,
                 Path = path.Append(arguments.Count),
-                Start = at,
+                Start = ghostStart,
                 Length = 0,
             };
 

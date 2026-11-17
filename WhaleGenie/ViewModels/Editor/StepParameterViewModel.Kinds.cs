@@ -156,6 +156,15 @@ public partial class StepParameterViewModel : ViewModelBase
     public bool OffersFormula => Definition.AcceptsFormula && !IsWindowRule;
 
     /// <summary>
+    /// True when this field has a value the one window can edit, whatever its reading. A long field
+    /// is one of them: a note is text, a message is a run and a file body is a value, and all three
+    /// are typed in the same window.
+    /// </summary>
+    public bool OffersValueWindow
+        => Definition.ValueForm is ActionValueForm.Text or ActionValueForm.Run
+            or ActionValueForm.Value;
+
+    /// <summary>
     /// True when the whole value written here is read as one rather than as text with the names in
     /// it replaced, so an expression may be written in the box. A number counts: the numbered box
     /// and the expression box are two ways of writing the same kind of value, and the engine works out

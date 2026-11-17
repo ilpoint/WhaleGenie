@@ -26,8 +26,6 @@ public partial class ParameterScalarView : UserControl
 
     private void OnClearWindowRule(object? sender, RoutedEventArgs e) => Host?.OnClearWindowRule(sender, e);
 
-    private void OnPickVariable(object? sender, RoutedEventArgs e) => Host?.OnPickVariable(sender, e);
-
     private void OnPickWindow(object? sender, RoutedEventArgs e) => Host?.OnPickWindow(sender, e);
 
     private void OnPickElement(object? sender, RoutedEventArgs e) => Host?.OnPickElement(sender, e);

@@ -105,12 +105,12 @@ public partial class ValuePickerWindow : AppWindow
 
     private void InsertTyped()
     {
-        if (_viewModel.TypedToken() is not { } token)
+        if (!_viewModel.ShowsBand)
         {
             return;
         }
 
-        Put(token);
+        _viewModel.PutTyped();
         _viewModel.ClearTyped();
         ValueInput.Focus();
     }
@@ -118,4 +118,7 @@ public partial class ValuePickerWindow : AppWindow
     private void OnInsert(object? sender, RoutedEventArgs e) => _viewModel.Confirm();
 
     private void OnCancel(object? sender, RoutedEventArgs e) => _viewModel.Cancel();
+
+    /// <summary>Takes the legal new name typed into the name search as this field's name.</summary>
+    private void OnCreateName(object? sender, RoutedEventArgs e) => _viewModel.CreateName();
 }

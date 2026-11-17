@@ -52,6 +52,7 @@ public partial class ValuePickerWindow : AppWindow
         _dragPiece = TokenAt(point.Position);
         _dragFrom = point.Position;
         _dragging = false;
+        _viewModel.Select(_dragPiece);
         SetHover(_dragPiece);
     }
 

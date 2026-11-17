@@ -105,6 +105,44 @@
             <Setter Property="Cursor" Value="Hand" />
         </Style>
 
+        <!--
+          表达式容器：二元、一元、括号、列表共用一套外框。底色按族取，运算符是容器里的一个小按钮，
+          不是一块兄弟；容器的叉摘掉整条式子。
+        -->
+        <Style Selector="Border.SlotExpression">
+            <Setter Property="Padding" Value="3,1" />
+            <Setter Property="Margin" Value="2,2" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.SlotOperatorInline">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="MinWidth" Value="22" />
+            <Setter Property="Padding" Value="3,0" />
+            <Setter Property="Margin" Value="0,0,1,0" />
+            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Info}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.SlotOperatorInline:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <Style Selector="TextBlock.SlotBracket">
+            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="1,0" />
+        </Style>
+
         <!-- 结构带：一块一块都可以点，虚框就是还没填的地方。 -->
         <Style Selector="Border.SlotCall">
             <Setter Property="BorderThickness" Value="1" />
@@ -309,6 +347,9 @@
         <Style Selector="Border.SlotValue:pointerover Border.HoverWash">
             <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
         </Style>
+        <Style Selector="Border.SlotExpression:pointerover Border.HoverWash">
+            <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        </Style>
 
         <!-- 字：括号与逗号是同一号窄字，名字与值用等宽字，读得出这是代码。 -->
         <Style Selector="TextBlock.SlotName">
@@ -329,6 +370,17 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Margin" Value="-1,0,2,0" />
         </Style>
+        <!-- 选中那一块：强调色覆盖层，和红边一样不占布局。 -->
+        <Style Selector="Border.SlotSelectEdge">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Margin" Value="-5,-1,-5,-1" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+
         <!-- 有问题的那一块：红边是覆盖层，不占布局，也不会把块撑大或挤动旁边的块。 -->
         <Style Selector="Border.SlotProblemEdge">
             <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
@@ -338,22 +390,6 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="VerticalAlignment" Value="Stretch" />
             <Setter Property="IsHitTestVisible" Value="False" />
-        </Style>
-        <Style Selector="Border.SlotOperator">
-            <Setter Property="MinWidth" Value="30" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-            <Setter Property="BorderThickness" Value="1" />
-        </Style>
-        <Style Selector="Border.SlotOperator TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-            <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="{DynamicResource Info}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Border.SlotOperator:pointerover">
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-            <Setter Property="Cursor" Value="Hand" />
         </Style>
         <!-- 小输入框里当前生效的那一枚模式按钮：只描一圈强调色，底不动，免得像按下去没弹回来。 -->
         <Style Selector="Button.Op.on">

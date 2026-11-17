@@ -32,7 +32,7 @@ public partial class ValuePickerTests
     public void A_name_no_variable_declares_is_marked(ExpressionNode shape)
     {
         var form = new ValuePickerViewModel(shape, Variables(), ActionValueForm.Value);
-        var name = Root(form).Items.OfType<SlotValue>().First(one => one.IsName);
+        var name = form.Recipe!.Walk().OfType<SlotValue>().First(one => one.IsName);
 
         Assert.True(name.HasProblem);
         Assert.NotEmpty(name.ProblemHint);

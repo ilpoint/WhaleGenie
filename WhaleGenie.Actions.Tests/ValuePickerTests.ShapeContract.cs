@@ -52,7 +52,7 @@ public partial class ValuePickerTests
     }
 
     [Fact]
-    public void Taking_a_piece_away_leaves_a_hole_rather_than_a_torn_tree()
+    public void Taking_a_piece_away_closes_the_gap_rather_than_leaving_a_hole()
     {
         var form = Form(Formula.Call("concat", Formula.Name("a"), Formula.Name("b")));
         var first = form.Recipe!.Walk().OfType<SlotValue>()
@@ -60,9 +60,57 @@ public partial class ValuePickerTests
 
         Assert.True(form.RemoveArgument(first));
 
-        Assert.False(form.CanConfirm);
-        Assert.Contains(form.Recipe.Walk(), piece => piece is SlotEmpty);
+        Assert.True(form.CanConfirm);
+        Assert.DoesNotContain(form.Recipe.Walk(), piece => piece is SlotEmpty { IsGhost: false });
         Assert.Contains(form.Recipe.Walk(), piece => piece is SlotValue value && value.Text == "b");
+        AssertSameShape(Formula.Call("concat", Formula.Name("b")), Answer(form));
+    }
+
+    /// <summary>The name's two text neighbours become one text run; no empty piece is left between.</summary>
+    [Fact]
+    public void Taking_a_name_out_of_a_sentence_joins_its_two_sides()
+    {
+        var form = Form(Formula.Run([Formula.Text("Hello "), Formula.Name("who"), Formula.Text("!")]));
+        var name = form.Recipe!.Walk().OfType<SlotValue>().Single(value => value.IsName);
+
+        Assert.True(form.RemoveArgument(name));
+
+        Assert.Equal(Formula.Text("Hello !"), Answer(form));
+        Assert.DoesNotContain(form.Recipe.Walk(), piece => piece is SlotEmpty);
+    }
+
+    /// <summary>Removing the last piece clears the cell instead of leaving an empty place behind.</summary>
+    [Fact]
+    public void Taking_the_only_piece_away_empties_the_cell()
+    {
+        var form = Form(Formula.Name("only"));
+
+        var value = Assert.Single(form.Recipe!.Walk().OfType<SlotValue>());
+
+        Assert.True(form.RemoveArgument(value));
+
+        Assert.Equal(Formula.Nothing, Answer(form));
+        Assert.DoesNotContain(form.Recipe.Walk(), piece => piece is SlotValue);
+    }
+
+    /// <summary>
+    /// A call that loses one of its required arguments is not a complete value even though no
+    /// `HoleNode` was written. The missing count has to block confirm just the same.
+    /// </summary>
+    [Fact]
+    public void Removing_a_required_argument_blocks_confirm_until_it_is_filled()
+    {
+        var form = Form(Formula.Call("substring", Formula.Text("abc"), Formula.Number("1", 1d)));
+        var text = form.Recipe!.Walk().OfType<SlotValue>()
+            .First(value => value.Source is TextNode);
+
+        Assert.True(form.RemoveArgument(text));
+
+        Assert.False(form.CanConfirm);
+        Assert.True(Assert.Single(form.Recipe.Walk().OfType<SlotCall>()).Ghost!.Required);
+
+        form.Undo();
+        Assert.True(form.CanConfirm);
     }
 
     [Fact]
@@ -105,8 +153,8 @@ public partial class ValuePickerTests
         Assert.All(form.Recipe!.Walk(), piece => Assert.NotNull(piece.Path));
         Assert.Contains(form.Recipe.Walk().OfType<SlotValue>(),
             value => value.Text == "a" && value.IsName);
-        Assert.Contains(form.Recipe.Walk().OfType<SlotOperator>(),
-            sign => sign.Text == "+");
+        var binary = Assert.Single(form.Recipe.Walk().OfType<SlotBinary>());
+        Assert.Equal("+", binary.Operator);
     }
 
     [Fact]

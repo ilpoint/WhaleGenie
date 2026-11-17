@@ -26,6 +26,14 @@ public partial class ValuePickerWindow : AppWindow
     /// </summary>
     private void OnWindowTunnelKey(object? sender, KeyEventArgs e)
     {
+        // Ctrl+Enter applies from anywhere, including the small field and the text body.
+        if (e.Key == Key.Enter && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            _viewModel.Confirm();
+            e.Handled = true;
+            return;
+        }
+
         // A field or a list with the focus owns its keys, undo included: the small field keeps its
         // own history, and taking Ctrl+Z there would undo the formula instead of what was typed.
         if (KeysOwnedElsewhere(e))
@@ -56,6 +64,21 @@ public partial class ValuePickerWindow : AppWindow
 
         if (e.KeyModifiers != KeyModifiers.None)
         {
+            return;
+        }
+
+        if (e.Key is Key.Back or Key.Delete)
+        {
+            var cut = e.Key == Key.Back ? _viewModel.CutBeforeCaret() : _viewModel.CutAfterCaret();
+            if (!cut)
+            {
+                return;
+            }
+
+            SetHover(null);
+            e.Handled = true;
+            RevealCaret();
+            Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
             return;
         }
 

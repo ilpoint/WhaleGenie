@@ -87,18 +87,21 @@ public partial class ValuePickerTests
         Assert.False(form.CanInsertTyped);
     }
 
-    /// <summary>The strip offers brackets one character at a time and no quote button at all.</summary>
+    /// <summary>
+    /// Brackets and quotes are not signs in this window. Brackets become one group token and lists
+    /// become one list token, so a half pair cannot be put into the band.
+    /// </summary>
     [Fact]
-    public void The_strip_offers_single_brackets_and_no_quote()
+    public void The_strip_offers_no_bracket_or_quote_buttons()
     {
         var form = new ValuePickerViewModel(Formula.Nothing, Variables(), ActionValueForm.Value);
 
         var tokens = form.Operators.Select(one => one.Token).ToList();
 
-        Assert.Contains("(", tokens);
-        Assert.Contains(")", tokens);
-        Assert.Contains("[", tokens);
-        Assert.Contains("]", tokens);
+        Assert.DoesNotContain("(", tokens);
+        Assert.DoesNotContain(")", tokens);
+        Assert.DoesNotContain("[", tokens);
+        Assert.DoesNotContain("]", tokens);
         Assert.DoesNotContain("\"", tokens);
         Assert.DoesNotContain("( )", tokens);
     }

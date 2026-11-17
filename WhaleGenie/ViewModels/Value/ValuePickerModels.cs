@@ -8,6 +8,19 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
+/// What the value window is editing. The field's declared reading decides the mode, and the mode
+/// decides which parts of the window exist: a text field has no formula, a run has no operators,
+/// a name has only names, and a value has the whole token band.
+/// </summary>
+public enum ValueEditorMode
+{
+    Text,
+    Run,
+    Value,
+    Name,
+}
+
+/// <summary>
 /// The signs a formula is built from. Both windows that offer a palette read this one table, so
 /// what a sign says and what it writes cannot drift apart between them.
 /// </summary>
@@ -33,9 +46,6 @@ internal static class OperatorPalette
         new("and", " and ", "Expr.Op.And"),
         new("or", " or ", "Expr.Op.Or"),
         new("not", "not ", "Expr.Op.Not"),
-        new("( )", "()", "Expr.Op.Group"),
-        new("[ ]", "[]", "Expr.Op.List"),
-        new("\"{ }\"", "\"\"", "Expr.Op.Text"),
     ];
 }
 
@@ -161,7 +171,7 @@ public sealed class ExpressionFunctionChoice
 }
 
 /// <summary>One operator button: what it looks like, what it inserts, and what it means.</summary>
-public sealed class ExpressionOperator
+public sealed partial class ExpressionOperator : ObservableObject
 {
     public ExpressionOperator(string token, string insert, string hintKey)
     {
@@ -188,6 +198,10 @@ public sealed class ExpressionOperator
         "\"{ }\"" => "text",
         _ => "other",
     };
+
+    /// <summary>True while the button has a complete expression to its left.</summary>
+    [ObservableProperty]
+    public partial bool IsEnabled { get; set; } = true;
 
     /// <summary>One plain line saying what the operator does.</summary>
     public string Hint { get; }

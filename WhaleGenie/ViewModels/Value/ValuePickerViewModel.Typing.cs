@@ -17,7 +17,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>True when the small field takes a number, false when it takes a piece of text.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsTypingText))]
+    [NotifyPropertyChangedFor(nameof(TypingPlaceholder))]
     public partial bool IsTypingNumber { get; set; }
+
+    /// <summary>What the small field says it takes, which depends on the mode and the two buttons.</summary>
+    public string TypingPlaceholder => IsValueMode && IsTypingNumber
+        ? Strings.Get("ValuePicker.Value.NumberField")
+        : Strings.Get("ValuePicker.Value.TextField");
 
     /// <summary>The other mode, for the button that is lit while the field takes text.</summary>
     public bool IsTypingText => !IsTypingNumber;
@@ -31,9 +37,34 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
 
     public bool HasTypingNote => TypingNote.Length > 0;
 
-    public bool CanInsertTyped => TypedToken() is not null;
+    public bool CanInsertTyped => CanPutValue && (IsRunMode
+        ? TypingText.Length > 0
+        : IsValueMode && TypedToken() is not null);
 
     partial void OnTypingTextChanged(string value) => RefreshTyped();
+
+    /// <summary>
+    /// Writes what was typed where the mode says it goes: a run takes the words as they stand, a
+    /// formula takes the token the language reads them as, and the other modes have no small field.
+    /// </summary>
+    public void PutTyped()
+    {
+        if (IsRunMode)
+        {
+            if (TypingText.Length > 0)
+            {
+                _draft.PutText(TypingText);
+                RefreshFromDraft();
+            }
+
+            return;
+        }
+
+        if (IsValueMode && TypedToken() is { } token)
+        {
+            Place(token);
+        }
+    }
 
     /// <summary>
     /// The small field is always there, so a button only says what the field takes. Switching mode
@@ -41,7 +72,9 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// </summary>
     public void SetTypingMode(bool number)
     {
-        IsTypingNumber = number;
+        // Only a formula has two ways of typing one material; a run is words and a text field is
+        // one body, so both of them stay on text.
+        IsTypingNumber = IsValueMode && number;
         TypingText = string.Empty;
         RefreshTyped();
     }
