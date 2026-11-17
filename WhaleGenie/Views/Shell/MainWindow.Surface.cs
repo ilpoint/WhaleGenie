@@ -47,7 +47,7 @@ public partial class MainWindow : AppWindow
             {
                 try
                 {
-                    if (SharedDevices.Current.Windows.Foreground() is { } current
+                    if (_devices.Windows.Foreground() is { } current
                         && current.Handle != expected.Handle
                         && current.Handle != menu.NativeHandle.ToInt64())
                     {
@@ -100,7 +100,7 @@ public partial class MainWindow : AppWindow
         WindowInfo? foreground;
         try
         {
-            foreground = SharedDevices.Current.Windows.Foreground();
+            foreground = _devices.Windows.Foreground();
         }
         catch
         {
@@ -161,7 +161,7 @@ public partial class MainWindow : AppWindow
             _surfaceRules[group.Key] = group.Rule;
             if (!surface.IsMoving)
             {
-                surface.PlaceAt(foreground, SharedDevices.Current.Windows,
+                surface.PlaceAt(foreground, _devices.Windows,
                     viewModel.Triggers.LayoutFor(group.Rule));
                 if (created)
                 {
@@ -193,7 +193,7 @@ public partial class MainWindow : AppWindow
 
         try
         {
-            var origin = SharedDevices.Current.Windows.ClientOrigin(target.Handle);
+            var origin = _devices.Windows.ClientOrigin(target.Handle);
             viewModel.Triggers.StoreLayout(rule, position.X - origin.X, position.Y - origin.Y);
         }
         catch
@@ -221,11 +221,11 @@ public partial class MainWindow : AppWindow
         _surfaceRules.Remove(key);
     }
 
-    private static bool ForegroundRuleMatches(WindowRule rule, WindowInfo foreground)
+    private bool ForegroundRuleMatches(WindowRule rule, WindowInfo foreground)
     {
         try
         {
-            return SharedDevices.Current.Windows.Find(rule.MatchValue, rule.Reading.Match,
+            return _devices.Windows.Find(rule.MatchValue, rule.Reading.Match,
                 rule.Reading.Compare, rule.Options)?.Handle == foreground.Handle;
         }
         catch

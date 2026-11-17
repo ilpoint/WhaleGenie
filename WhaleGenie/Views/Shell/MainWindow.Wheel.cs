@@ -23,6 +23,12 @@ public partial class MainWindow : AppWindow
     private WheelMenuState _wheelState = new();
 
     /// <summary>
+    /// Whether a wheel is on screen, copied for the hook thread. It asks this before it scrolls;
+    /// reading the window itself from a hook callback would touch Avalonia off its own thread.
+    /// </summary>
+    private int _wheelHostOpen;
+
+    /// <summary>
     /// The project's wheel positions as the hook thread reads them. The live collection belongs to
     /// the interface thread, so it is copied whenever it changes and replaced whole: a press may
     /// ask whether a program scene matches, and a half-edited scene list is not an answer.
@@ -87,7 +93,7 @@ public partial class MainWindow : AppWindow
         try
         {
             _wheelPressScene = rules.SceneFor(
-                SharedDevices.Current.Windows.Foreground(), SharedDevices.Current.Windows);
+                _devices.Windows.Foreground(), _devices.Windows);
         }
         catch
         {
@@ -203,8 +209,8 @@ public partial class MainWindow : AppWindow
             {
                 // Where the pointer is now, rather than where it was released: sending the click
                 // through a position would pull the cursor back if the hand had already moved on.
-                var at = SharedDevices.Current.Input.Cursor;
-                SharedDevices.Current.Input.Click(name, at.X, at.Y, 1, 0);
+                var at = _devices.Input.Cursor;
+                _devices.Input.Click(name, at.X, at.Y, 1, 0);
             }
             catch (Exception error)
             {
@@ -244,7 +250,8 @@ public partial class MainWindow : AppWindow
     {
         try
         {
-            if (_wheelWindow is null || e.Injected || e.Axis == HookWheelAxis.Horizontal)
+            if (Volatile.Read(ref _wheelHostOpen) == 0 || e.Injected
+                || e.Axis == HookWheelAxis.Horizontal)
             {
                 return;
             }
@@ -363,8 +370,8 @@ public partial class MainWindow : AppWindow
                 try
                 {
                     _wheelScene = _wheelRules.SceneFor(
-                        SharedDevices.Current.Windows.Foreground(),
-                        SharedDevices.Current.Windows);
+                        _devices.Windows.Foreground(),
+                        _devices.Windows);
                 }
                 catch
                 {
@@ -382,6 +389,7 @@ public partial class MainWindow : AppWindow
             window.ShowAsPeer(this);
             window.Position = window.PlaceAt(origin);
             _wheelWindow = window;
+            Volatile.Write(ref _wheelHostOpen, 1);
             _wheel?.SetCenter(window.Center.X, window.Center.Y, window.Metrics);
 
             // Everything that belonged to the wheel before this one is stale, including a move
@@ -466,6 +474,7 @@ public partial class MainWindow : AppWindow
     {
         var window = _wheelWindow;
         _wheelWindow = null;
+        Volatile.Write(ref _wheelHostOpen, 0);
         _wheelScene = null;
         _wheelRules = null;
         _wheelMacros = [];

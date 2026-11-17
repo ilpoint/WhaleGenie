@@ -163,7 +163,7 @@ public partial class MainWindow : AppWindow
         {
             try
             {
-                SharedDevices.Current.Windows.Activate(foreground.Handle);
+                _devices.Windows.Activate(foreground.Handle);
             }
             catch
             {

@@ -39,6 +39,7 @@ public partial class MainWindow : AppWindow
     private int _menuChildOpen;
     private int _menuPopupOpen;
     private int _menuSearchFocused;
+    private int _menuPinned;
     private MenuScreenBounds? _menuBounds;
 
     private sealed record MenuScreenBounds(int Left, int Top, int Right, int Bottom)
@@ -60,7 +61,7 @@ public partial class MainWindow : AppWindow
         WindowInfo? previous = null;
         try
         {
-            previous = SharedDevices.Current.Windows.Foreground();
+            previous = _devices.Windows.Foreground();
         }
         catch
         {
@@ -68,13 +69,13 @@ public partial class MainWindow : AppWindow
         }
 
         if (previous is not null
-            && viewModel.Triggers.IsMenuBlocked(previous, SharedDevices.Current.Windows))
+            && viewModel.Triggers.IsMenuBlocked(previous, _devices.Windows))
         {
             return;
         }
 
         var layout = viewModel.Triggers.BuildMenuLayout(previous,
-            SharedDevices.Current.Windows, [.. viewModel.Macros]);
+            _devices.Windows, [.. viewModel.Macros]);
         HideSurface();
         MacroTriggerGate.Enter();
         MacroMenuWindow menu;
@@ -115,11 +116,13 @@ public partial class MainWindow : AppWindow
         _menuChildOpen = 0;
         _menuPopupOpen = 0;
         _menuSearchFocused = 0;
+        _menuPinned = 0;
         Volatile.Write(ref _menuOpen, 1);
         menu.SearchFocusChanged += focused =>
             Volatile.Write(ref _menuSearchFocused, focused ? 1 : 0);
         menu.PopupOpenChanged += open =>
             Volatile.Write(ref _menuPopupOpen, open ? 1 : 0);
+        menu.PinnedChanged += pinned => Volatile.Write(ref _menuPinned, pinned ? 1 : 0);
         menu.PositionChanged += (_, _) => UpdateMenuBounds(menu);
         menu.SizeChanged += (_, _) => UpdateMenuBounds(menu);
         menu.Closed += (_, _) =>
@@ -129,6 +132,7 @@ public partial class MainWindow : AppWindow
             Volatile.Write(ref _menuChildOpen, 0);
             Volatile.Write(ref _menuPopupOpen, 0);
             Volatile.Write(ref _menuSearchFocused, 0);
+            Volatile.Write(ref _menuPinned, 0);
             Volatile.Write(ref _menuBounds, null);
             if (ReferenceEquals(_menu, menu))
             {
@@ -148,6 +152,7 @@ public partial class MainWindow : AppWindow
             _menu = null;
             _menuForeground = null;
             Volatile.Write(ref _menuOpen, 0);
+            Volatile.Write(ref _menuPinned, 0);
             MacroTriggerGate.Exit();
             AppDiagnostics.Record("menu.show", error);
             return;
@@ -163,7 +168,7 @@ public partial class MainWindow : AppWindow
         {
             try
             {
-                SharedDevices.Current.Windows.Activate(previous.Handle);
+                _devices.Windows.Activate(previous.Handle);
                 await Task.Delay(40);
             }
             catch
@@ -180,7 +185,7 @@ public partial class MainWindow : AppWindow
         WindowInfo? foreground = null;
         try
         {
-            foreground = _menuForeground ?? SharedDevices.Current.Windows.Foreground();
+            foreground = _menuForeground ?? _devices.Windows.Foreground();
         }
         catch
         {
@@ -188,7 +193,7 @@ public partial class MainWindow : AppWindow
         }
 
         return viewModel.Triggers.BuildMenuLayout(foreground,
-            SharedDevices.Current.Windows, [.. viewModel.Macros]);
+            _devices.Windows, [.. viewModel.Macros]);
     }
 
     private void UpdateMenuBounds(MacroMenuWindow menu)
@@ -210,7 +215,7 @@ public partial class MainWindow : AppWindow
 
         try
         {
-            SharedDevices.Current.Windows.Activate(foreground.Handle);
+            _devices.Windows.Activate(foreground.Handle);
         }
         catch
         {
@@ -270,7 +275,7 @@ public partial class MainWindow : AppWindow
         string className;
         try
         {
-            className = SharedDevices.Current.Windows.ClassOf(foreground.Handle);
+            className = _devices.Windows.ClassOf(foreground.Handle);
         }
         catch
         {
@@ -292,7 +297,7 @@ public partial class MainWindow : AppWindow
         string className;
         try
         {
-            className = SharedDevices.Current.Windows.ClassOf(foreground.Handle);
+            className = _devices.Windows.ClassOf(foreground.Handle);
         }
         catch
         {
@@ -393,7 +398,7 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    private static string MenuForegroundProcess(WindowInfo? foreground)
+    private string MenuForegroundProcess(WindowInfo? foreground)
     {
         if (foreground is null)
         {
@@ -402,7 +407,7 @@ public partial class MainWindow : AppWindow
 
         try
         {
-            var process = SharedDevices.Current.Windows.ProcessOf(foreground.Handle).Trim();
+            var process = _devices.Windows.ProcessOf(foreground.Handle).Trim();
             var own = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
             return process.Length == 0
                    || string.Equals(process, own, StringComparison.OrdinalIgnoreCase)

@@ -294,6 +294,12 @@ public sealed partial class MacroMenuWindow
 
     public event Action<bool>? PopupOpenChanged;
 
+    /// <summary>
+    /// Raised when the pin changes. The hook thread answers the arrow keys from a copied flag, so
+    /// it never reads this window; this is the one place the copy is moved.
+    /// </summary>
+    public event Action<bool>? PinnedChanged;
+
     public int CommonPage => _commonPage;
 
     public int CommonPageCount => _layout.CommonPages.Count;

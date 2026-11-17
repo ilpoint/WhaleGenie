@@ -41,16 +41,20 @@ public partial class MainWindow : AppWindow
     /// bindings should not put a key hook on the machine; the program hands in the one the container
     /// built, so opening the window never builds a second.
     /// </summary>
-    private TriggerRuntime Runtime => _runtime ??= new TriggerRuntime(SharedDevices.Current,
+    private TriggerRuntime Runtime => _runtime ??= new TriggerRuntime(_devices,
         (DataContext as MainViewModel)?.Variables ?? new VariableSession());
 
     /// <summary>
     /// The window over the run's own triggers. The program hands in the one the container built, so
     /// the service that starts a run is the same one the window shows the state of.
     /// </summary>
-    internal MainWindow(TriggerRuntime? runtime)
+    internal MainWindow(TriggerRuntime? runtime, IDeviceLayer? devices = null)
     {
         _runtime = runtime;
+
+        // The runtime already names the layer it watches; a caller that has no runtime — a check —
+        // hands its own in, and the program-wide layer answers only when neither did.
+        _devices = devices ?? runtime?.Devices ?? SharedDevices.Current;
         InitializeComponent();
 
         // 标题栏归库，但这一扇的内容伸进标题栏：那条 40px 的行里放着置顶钮，整条都可以拖动。

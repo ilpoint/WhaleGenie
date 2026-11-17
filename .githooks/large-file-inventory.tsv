@@ -186,12 +186,12 @@
 348	WhaleGenie/Views/Editor/MacroDocumentView.axaml	keep: 文档页签、步骤树与右键菜单同属一列
 419	WhaleGenie/Views/Editor/MacroEditorWindow.axaml.cs	keep: 窗口的编排：构造、视图挂接与跨页查找
 321	WhaleGenie/Views/Editor/EditorBindingCapture.cs	keep: 取一个绑定：滚轮、鼠标、键盘、手柄与修饰键状态
-316	WhaleGenie/Views/Editor/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
+322	WhaleGenie/Views/Editor/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
 454	WhaleGenie.Domain/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 395	WhaleGenie.Domain/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
 472	WhaleGenie/Views/Shell/MainWindow.Files.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
-494	WhaleGenie/Views/Shell/MainWindow.Menu.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
-503	WhaleGenie/Views/Shell/MainWindow.Wheel.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
+491	WhaleGenie/Views/Shell/MainWindow.Menu.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
+512	WhaleGenie/Views/Shell/MainWindow.Wheel.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 532	WhaleGenie/Views/Shell/MainWindow.axaml	keep: 主窗口一份布局
 311	WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 499	WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态

@@ -53,23 +53,6 @@ public partial class MainWindow : AppWindow
     private SettingsWindow? _settings;
 
     /// <summary>
-    /// The macro an open editor currently replaces in the project. Save commits a fresh snapshot,
-    /// so this moves forward with every successful save and keeps close from applying it twice.
-    /// </summary>
-    private sealed class EditorCommitState(MacroItem? target, MacroView newView)
-    {
-        public MacroItem? Target { get; set; } = target;
-
-        /// <summary>
-        /// The view the macro was created from. A macro made from the menu or the wheel view is
-        /// placed there once it has a name, which is the only moment a position can point at it.
-        /// </summary>
-        public MacroView NewView { get; } = newView;
-
-        public HashSet<MacroItem> Lifted { get; } = [];
-    }
-
-    /// <summary>
     /// The run-and-debug window on screen, or null while there is none. One at a time for the same
     /// reason: it debugs one macro, and asking for another puts those steps in the window that is
     /// already open rather than laying a second one over the same list.
@@ -82,6 +65,9 @@ public partial class MainWindow : AppWindow
     /// </summary>
     internal RunWindow? RunDebug => _runDebug;
 
+    /// <summary>The layer this window works against, for a check that put its own behind it.</summary>
+    internal IDeviceLayer DevicesForCheck => _devices;
+
     /// <summary>The shared hook the Home key is answered through; null until the window is open.</summary>
     private IInputHook? _hotkeyHook;
 
@@ -89,6 +75,13 @@ public partial class MainWindow : AppWindow
     private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
     private TriggerRuntime? _runtime;
     private GlobalHotkeyPlan _globalHotkeyPlan = GlobalHotkeyPlan.Empty;
+
+    /// <summary>
+    /// The machine this window works against: the one the container handed in with the triggers,
+    /// or a caller's own for a check. Nothing here reaches for the program-wide layer directly, so
+    /// a check can put a desktop of its own behind every menu, wheel and floating panel.
+    /// </summary>
+    private readonly IDeviceLayer _devices;
 
     private static NativePoint? GetCursorPosition()
     {

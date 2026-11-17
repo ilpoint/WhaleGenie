@@ -86,6 +86,7 @@ public sealed partial class MacroMenuWindow
         }
 
         _pinned = pinned;
+        PinnedChanged?.Invoke(pinned);
         _pinButton.Background = pinned
             ? ThemeBrush.Of("SurfaceHover")
             : Brushes.Transparent;

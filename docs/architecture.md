@@ -107,7 +107,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | `WindowedServices` | 窗口化组合根；在应用层图上补窗口与主 ViewModel |
 | `Runtime/SharedDevices.cs` | 持有进程共享的 `WindowsDeviceLayer`，负责预热与最终释放 |
 | `Runtime/RunFactory.cs` | 调试、触发器和 MCP 共用的 `MacroRunner` 装配入口 |
-| `Runtime/TriggerRuntime.cs` | 持有触发器服务及不可变运行快照 |
+| `Runtime/TriggerRuntime.cs` | 持有触发器服务、共享设备层及不可变运行快照 |
 
 窗口、ViewModel 和工具通过构造函数取得有状态依赖。子窗口可以直接创建，因为它们通常携带一次性
 编辑参数；进程级服务不得在窗口内部自行实例化。

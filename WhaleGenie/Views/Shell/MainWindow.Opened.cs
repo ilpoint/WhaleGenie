@@ -92,7 +92,7 @@ public partial class MainWindow : AppWindow
             WheelCanOpen);
         WheelMenuStore.Changed += OnWheelStateChanged;
 
-        var windowEvents = SharedDevices.Current.WindowEvents;
+        var windowEvents = _devices.WindowEvents;
         windowEvents.ForegroundChanged += OnSurfaceForegroundChanged;
         windowEvents.BoundsChanged += OnSurfaceBoundsChanged;
         viewModel.Triggers.Changed += OnProjectTriggersChanged;

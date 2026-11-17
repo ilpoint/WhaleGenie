@@ -18,7 +18,16 @@ namespace WhaleGenie.Runtime;
 internal sealed class TriggerRuntime : IDisposable
 {
     public TriggerRuntime(IDeviceLayer devices, VariableSession variables)
-        => Triggers = new MacroTriggerService(devices, variables);
+    {
+        Devices = devices;
+        Triggers = new MacroTriggerService(devices, variables);
+    }
+
+    /// <summary>
+    /// The layer this runtime watches: the window that shows the triggers reads the same one, so
+    /// opening it does not build a second view of the machine.
+    /// </summary>
+    public IDeviceLayer Devices { get; }
 
     /// <summary>The service that watches for the triggers and starts the runs they ask for.</summary>
     public MacroTriggerService Triggers { get; }

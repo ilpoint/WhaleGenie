@@ -39,7 +39,7 @@ public partial class MainWindow : AppWindow
     {
         try
         {
-            var hook = SharedDevices.Current.Hook;
+            var hook = _devices.Hook;
             hook.KeyDown += OnSystemHotkeyDown;
             hook.KeyUp += OnSystemHotkeyUp;
             hook.MouseDown += OnMenuMouseDown;
@@ -108,7 +108,7 @@ public partial class MainWindow : AppWindow
                     return;
                 }
 
-                if (_menu?.IsPinned == true)
+                if (Volatile.Read(ref _menuPinned) == 1)
                 {
                     return;
                 }

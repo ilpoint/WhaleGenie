@@ -23,9 +23,10 @@
 
 ### 结构与诊断
 
-- **主窗口仍是协调者**：`MainWindow` 3,329 行 / 13 个分部。宏编辑器那一侧已经搬完，搬的是状态与
-  规则而不是事件处理：恢复草稿（`RecoveryDraft`，两个窗口共用）、触发拾取（`EditorPickers`）、
-  窗口框（`TriggerFramePreview`）、文档页集合（`EditorDocumentPages`）、键位捕获
+- **主窗口宿主状态**：`MainWindow` 3,187 行 / 13 个分部，菜单、轮盘、浮层、热键与恢复的宿主
+  状态仍在窗口里。宏编辑器那一侧已经搬完，搬的是状态与规则而不是事件处理：恢复草稿
+  （`RecoveryDraft`，两个窗口共用）、触发拾取（`EditorPickers`）、窗口框
+  （`TriggerFramePreview`）、文档页集合（`EditorDocumentPages`）、键位捕获
   （`EditorBindingCapture`）、录制（`EditorRecording`）、一次保存的三种结局（`EditorCommit`）、
   页签归属与关页签后谁在前（`EditorTabs`）。`MacroEditorWindow` 现在 3,091 行 / 13 个分部，每个
   分部 28–553 行、各自只做一件事：合并只会得到一个小号杂物间，所以剩下的部分不再拆。主窗口要动时
