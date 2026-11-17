@@ -32,8 +32,8 @@
 
     <Application.Styles>
         <!--
-          Compact 收紧 Fluent 自己的行高与控件内边距（表格行、列表项、菜单项都跟着变）。
-          我们只覆盖颜色与圆角，密度用它给的，不再自己写一套行高。
+          密度沿用 Fluent v2 的默认样式（表格行、列表项、菜单项都跟着变）；我们只覆盖颜色与
+          圆角，不再自己写一套行高。
         -->
         <fa:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="False" />
 

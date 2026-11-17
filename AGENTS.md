@@ -31,7 +31,7 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 - 仓库存放的 `.mcp.json` 提供 `avalonia-docs` 文档服务。它用于查 Avalonia/FluentAvalonia 的
   API、控件与属性，不覆盖 `DESIGN.md` 或项目令牌。
 - 视觉规则、令牌、控件样式、视图与对应测试同轮修改；只改 XAML 或只改文档都算未完成。改完按
-  `DESIGN.md` 第 10 节做无头与真机检查。
+  `DESIGN.md` 第 11 节做无头与真机检查。
 
 ## 必须遵守的开发规则
 
