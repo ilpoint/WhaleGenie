@@ -44,7 +44,6 @@ public sealed class McpDraft
         Basis = basis;
         Macros = [.. basis.Macros];
         Triggers = basis.Triggers.Copy();
-        Triggers.Attach(Macros);
         Globals = [.. basis.Globals];
     }
 
@@ -92,17 +91,15 @@ public sealed class McpDraft
                 "Every macro needs a name: it is how apply, get_macro and the trigger list find it.");
         }
 
+        // A macro sent with no trigger key is a macro whose steps changed, not one whose triggers
+        // did: what the project had stays. A macro sent with a list replaces it whole, and an empty
+        // list says this macro has none.
+        var sent = ReadTriggers(json, macro.Name);
+
         lock (_gate)
         {
             var existing = Macros.FindIndex(candidate =>
                 string.Equals(candidate.Name.Trim(), macro.Name, StringComparison.OrdinalIgnoreCase));
-
-            // A macro sent with no trigger key is a macro whose steps changed, not one whose
-            // triggers did: the triggers it had come along, taken from the project's own list.
-            if (!json.ContainsKey("triggers") && existing >= 0)
-            {
-                macro.Triggers.AddRange(Triggers.ForMacro(macro.Name).Select(entry => entry.Copy()));
-            }
 
             if (existing >= 0)
             {
@@ -113,17 +110,51 @@ public sealed class McpDraft
                 Macros.Add(macro);
             }
 
-            // A macro sent with no trigger key keeps the triggers the project already had — that is
-            // what "I only changed the steps" means. A macro sent with an empty trigger list is a
-            // different statement: it says this macro has none, so the old ones come out.
-            if (json.ContainsKey("triggers") || macro.Triggers.Count > 0)
+            if (sent is not null)
             {
-                Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
+                Triggers.ReplaceMacro(macro.Name, sent);
             }
         }
 
         McpAudit.Note("draft.put", $"{macro.Name} ({macro.Steps.Count} steps)");
         return new McpPut(macro, renamed);
+    }
+
+    /// <summary>One macro as a client reads it: the body plus the triggers that point at it.</summary>
+    public JsonObject MacroJson(MacroItem macro)
+    {
+        var node = macro.ToJson();
+        node["triggers"] = new JsonArray(
+            [.. Triggers.ForMacro(macro.Name).Select(entry => (JsonNode)entry.ToJson())]);
+        return node;
+    }
+
+    /// <summary>
+    /// The trigger list a client sent, or null when it sent none. An entry without an id is given
+    /// one and the macro it points at is the one being written, so a client adding a trigger does
+    /// not have to know either.
+    /// </summary>
+    private static List<TriggerEntry>? ReadTriggers(JsonObject json, string macroName)
+    {
+        if (json["triggers"] is not JsonArray array)
+        {
+            return null;
+        }
+
+        var entries = new List<TriggerEntry>();
+        foreach (var item in array.OfType<JsonObject>())
+        {
+            var node = (JsonObject)item.DeepClone();
+            if (node["id"] is null)
+            {
+                node["id"] = TriggerIds.New();
+            }
+
+            node["macro"] = macroName;
+            entries.Add(TriggerEntry.FromJson(node));
+        }
+
+        return entries;
     }
 
     public void Delete(string name)

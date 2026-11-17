@@ -166,7 +166,11 @@ public partial class MainWindow : AppWindow
 
     private void PublishRuntimeState(MainViewModel viewModel)
     {
-        Runtime.Publish(viewModel.Triggers, [.. viewModel.Macros]);
-        Volatile.Write(ref _globalHotkeyPlan, GlobalHotkeyPlan.From(viewModel));
+        // The two settings files are read once here rather than by each plan: publishing runs on
+        // every edit, and each of these calls reads and parses the whole file.
+        var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
+        Runtime.Publish(viewModel.Triggers, [.. viewModel.Macros], menuLauncher);
+        Volatile.Write(ref _globalHotkeyPlan,
+            GlobalHotkeyPlan.From(viewModel, Localization.LocalSettings.LoadSystemHotkey(), menuLauncher));
     }
 }

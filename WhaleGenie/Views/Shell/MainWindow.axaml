@@ -455,10 +455,10 @@
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
                                             <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
                                                        TextWrapping="Wrap" MaxLines="2"
-                                                       Text="{Binding TriggerSummaries}" />
+                                                       Text="{Binding CardTriggerSummary}" />
                                             <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
                                                        TextTrimming="CharacterEllipsis"
-                                                       Text="{Binding Action}" />
+                                                       Text="{Binding CardTriggerActions}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>

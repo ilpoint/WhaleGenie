@@ -57,7 +57,7 @@ public class LocalVariablesTests
             macro.Locals.Add(Local("label", Formula.Run([Formula.Text("共 "), Formula.Name("total"), Formula.Text(" 件")])));
 
             var path = Path.Combine(folder, "probe.wgmacro");
-            MacroPackage.Save(path, [macro], [], "0.0.0");
+            MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "0.0.0");
             var read = MacroPackage.Load(path).Macros.Single();
 
             Assert.Equal(2, read.Locals.Count);

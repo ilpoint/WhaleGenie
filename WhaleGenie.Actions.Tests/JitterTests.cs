@@ -183,7 +183,7 @@ public class JitterTests
                 ],
             });
 
-            MacroPackage.Save(package, [macro], [], "test");
+            MacroPackage.Save(package, [macro], new ProjectTriggers(), [], "test");
 
             // The package is where a macro actually lives, so the give has to come back out of it.
             var loaded = MacroPackage.Load(package);

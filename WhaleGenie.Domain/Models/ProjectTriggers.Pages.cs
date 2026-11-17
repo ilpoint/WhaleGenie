@@ -82,7 +82,7 @@ public sealed partial class ProjectTriggers
         }
 
         foreach (var entry in Entries.Where(entry =>
-                     entry.Kind == TriggerKind.Menu && entry.MenuPageId == pageId).ToList())
+                     entry.Spec is MenuSpec menu && menu.PageId == pageId).ToList())
         {
             Entries.Remove(entry);
         }
@@ -117,7 +117,7 @@ public sealed partial class ProjectTriggers
             .ToList();
         var pageIds = pages.Select(page => page.Id).ToHashSet(StringComparer.Ordinal);
         foreach (var entry in Entries.Where(entry =>
-                     entry.Kind == TriggerKind.Menu && pageIds.Contains(entry.MenuPageId)).ToList())
+                     entry.Spec is MenuSpec menu && pageIds.Contains(menu.PageId)).ToList())
         {
             Entries.Remove(entry);
         }

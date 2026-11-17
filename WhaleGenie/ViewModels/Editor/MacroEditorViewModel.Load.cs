@@ -47,7 +47,7 @@ public partial class MacroEditorViewModel
     public void RefreshSelection() => SelectionRefreshRequested?.Invoke();
 
     /// <summary>Fills the editor from an existing macro so it can be edited.</summary>
-    public void LoadFrom(MacroItem macro)
+    public void LoadFrom(MacroItem macro, IReadOnlyList<TriggerEntry> entries)
     {
         _loading = true;
         try
@@ -57,7 +57,7 @@ public partial class MacroEditorViewModel
             Group = macro.Group;
             Origin = macro.Origin;
             TriggerEntries.Clear();
-            foreach (var entry in macro.Triggers)
+            foreach (var entry in entries)
             {
                 var copy = entry.Copy();
                 WatchTriggerEntry(copy);

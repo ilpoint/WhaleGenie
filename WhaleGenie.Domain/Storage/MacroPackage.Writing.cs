@@ -44,8 +44,9 @@ public static partial class MacroPackage
                 ["steps"] = macro.Steps.Count,
             });
 
-            files.Add((macro.Name, string.Join(" / ", macro.Triggers.Select(entry => entry.KindLabel)),
-                macro.Triggers.Count.ToString(CultureInfo.InvariantCulture), macro.Steps.Count));
+            var entries = triggers.ForMacro(macro.Name);
+            files.Add((macro.Name, string.Join(" / ", entries.Select(entry => entry.KindLabel)),
+                entries.Count.ToString(CultureInfo.InvariantCulture), macro.Steps.Count));
         }
 
         var manifestVariables = new JsonArray();

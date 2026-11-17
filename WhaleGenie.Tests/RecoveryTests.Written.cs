@@ -26,7 +26,7 @@ public partial class RecoveryTests
     {
         InOwnFile(_ => Ui.Run(() =>
         {
-            var macro = new MacroItem { Name = "click", BindKey = "F5" };
+            var macro = new MacroItem { Name = "click" };
             macro.Steps.Add(new MacroStep
             {
                 Type = "input.mouseClick",
@@ -47,7 +47,7 @@ public partial class RecoveryTests
                 ],
             });
 
-            RecoveryStore.SaveProject([macro], [], null);
+            RecoveryStore.SaveProject([macro], new ProjectTriggers(), [], null);
 
             var step = RecoveryStore.Load()!.Macros[0].Steps[0];
             Assert.Equal("sys.mouseX", step.Parameters
@@ -67,13 +67,13 @@ public partial class RecoveryTests
     {
         InOwnFile(path =>
         {
-            RecoveryStore.SaveProject([Named("login")], [], null);
+            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
             File.WriteAllText(path, "this is not a snapshot");
             Assert.Null(RecoveryStore.Load());
             Assert.False(File.Exists(path));
 
             // The same work as before: it is the file that went, not the work that moved.
-            RecoveryStore.SaveProject([Named("login")], [], null);
+            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
 
             Assert.True(File.Exists(path));
             Assert.NotNull(RecoveryStore.Load());
@@ -106,7 +106,7 @@ public partial class RecoveryTests
         {
             Ui.RunAsync(async () =>
             {
-                RecoveryStore.SaveProject([Named("login")], [], null);
+                RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
 
                 var asked = 0;
                 var window = new MainWindow
@@ -145,7 +145,7 @@ public partial class RecoveryTests
         {
             Ui.RunAsync(async () =>
             {
-                RecoveryStore.SaveProject([Named("login")], [], null);
+                RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
 
                 var window = new MainWindow
                 {

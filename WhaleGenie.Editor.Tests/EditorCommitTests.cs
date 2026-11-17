@@ -57,10 +57,10 @@ public class EditorCommitTests
     public void A_saved_document_is_one_macro_holding_every_open_page_as_a_sub_macro()
     {
         var (commit, pages, session, root) = SetUp();
-        MacroItem? handed = null;
-        commit.Commit = macro =>
+        MacroDraft? handed = null;
+        commit.Commit = draft =>
         {
-            handed = macro;
+            handed = draft;
             return true;
         };
         pages[1].Editor.Name = "renamed";
@@ -69,10 +69,10 @@ public class EditorCommitTests
 
         var saved = Assert.IsType<CommitOutcome.Saved>(commit.Save());
 
-        Assert.Same(handed, saved.Macro);
-        Assert.Equal("parent", saved.Macro.Name);
+        Assert.Same(handed!.Macro, saved.Draft.Macro);
+        Assert.Equal("parent", saved.Draft.Macro.Name);
         Assert.Equal(["renamed", "b", "c"],
-            saved.Macro.SubMacros.Select(macro => macro.Name).ToList());
+            saved.Draft.Macro.SubMacros.Select(macro => macro.Name).ToList());
         Assert.All(pages, page => Assert.False(page.Editor.IsDirty));
         Assert.False(session.IsDirty);
         Assert.False(root.IsDirty);
@@ -87,8 +87,8 @@ public class EditorCommitTests
 
         var saved = Assert.IsType<CommitOutcome.Saved>(commit.Save());
 
-        Assert.Equal("parent", saved.Macro.Name);
-        Assert.Equal(3, saved.Macro.SubMacros.Count);
+        Assert.Equal("parent", saved.Draft.Macro.Name);
+        Assert.Equal(3, saved.Draft.Macro.SubMacros.Count);
         Assert.All(pages, page => Assert.False(page.Editor.IsDirty));
         Assert.False(session.IsDirty);
     }
@@ -114,7 +114,7 @@ public class EditorCommitTests
             Persisted = new PersistedVariables(),
             Variables = new VariableSession(),
         };
-        root.LoadFrom(macro);
+        root.LoadFrom(macro, []);
 
         var pages = new EditorDocumentPages(session, root, root.Variables, null, _ => { });
         pages.Build();

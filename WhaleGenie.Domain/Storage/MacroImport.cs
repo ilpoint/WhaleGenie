@@ -103,7 +103,8 @@ public static class MacroImport
         foreach (var macro in chosen)
         {
             var wanted = macro.Name.Trim();
-            project.AddMacro(macro);
+            var entries = contents.Triggers.ForMacro(wanted);
+            project.AddMacro(macro, entries);
 
             // The macro's own entries came across with it, under whatever name it ended up with. The
             // file's trigger table still says the old one, and the menu merge below reads it, so the
@@ -115,12 +116,12 @@ public static class MacroImport
             }
 
             added.Add(macro);
-            foreach (var entry in macro.Triggers.Where(entry => seen.Contains(Signature(entry))))
+            foreach (var entry in entries.Where(entry => seen.Contains(Signature(entry))))
             {
                 duplicate.Add($"{entry.KindLabel} · {macro.Name} · {entry.Summary}");
             }
 
-            foreach (var entry in macro.Triggers)
+            foreach (var entry in entries)
             {
                 seen.Add(Signature(entry));
             }

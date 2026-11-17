@@ -29,7 +29,7 @@ internal sealed class EditorCommit(
     /// means nobody is holding the list — a check that opened an editor on its own — and the save
     /// then ends with the snapshot in hand.
     /// </summary>
-    public Func<MacroItem, bool>? Commit { get; set; }
+    public Func<MacroDraft, bool>? Commit { get; set; }
 
     /// <summary>
     /// Writes the document into the project, or says why it could not. Only the ending that took the
@@ -42,8 +42,10 @@ internal sealed class EditorCommit(
             return new CommitOutcome.PageCannotSave(blocked);
         }
 
-        var macro = pages.Snapshot();
-        if (Commit is { } commit && !commit(macro))
+        var draft = new MacroDraft(pages.Snapshot(),
+            [.. root.TriggerEntries.Select(entry => entry.Copy())],
+            [.. root.InterfaceLayoutsSnapshot()]);
+        if (Commit is { } commit && !commit(draft))
         {
             return new CommitOutcome.ProjectRefused();
         }
@@ -56,7 +58,7 @@ internal sealed class EditorCommit(
         session.Saved();
         root.IsDirty = false;
         recovery.Stop();
-        return new CommitOutcome.Saved(macro);
+        return new CommitOutcome.Saved(draft);
     }
 }
 
@@ -72,7 +74,7 @@ internal abstract record CommitOutcome
     }
 
     /// <summary>The macro is the project's now; it is also what the window ends with.</summary>
-    public sealed record Saved(MacroItem Macro) : CommitOutcome;
+    public sealed record Saved(MacroDraft Draft) : CommitOutcome;
 
     /// <summary>One page cannot be written, and it is the one holding the reason.</summary>
     public sealed record PageCannotSave(MacroDocumentPageViewModel Page) : CommitOutcome;

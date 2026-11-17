@@ -48,20 +48,20 @@ public sealed record GlobalHotkeyPlan(
     /// </summary>
     public IReadOnlyList<MacroToggleHotkey> MacroToggles { get; init; } = [];
 
-    public static GlobalHotkeyPlan From(MainViewModel viewModel)
+    /// <param name="systemHotkey">The program's own on/off key, read by the caller.</param>
+    /// <param name="menuLauncher">The key that opens the project menu, read by the caller.</param>
+    public static GlobalHotkeyPlan From(MainViewModel viewModel, string systemHotkey, string menuLauncher)
     {
         var claimed = new List<string>();
         var groups = new List<InterfaceHotkeyGroup>();
         var toggles = new List<MacroToggleHotkey>();
-        var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
         if (viewModel.IsRunning)
         {
             foreach (var entry in viewModel.Triggers.Entries)
             {
-                if (entry.IsEnabled && entry.Kind == TriggerKind.Key
-                    && entry.BindKey.Trim().Length > 0)
+                if (entry.IsEnabled && entry.Spec is KeySpec key && key.Binding.Trim().Length > 0)
                 {
-                    claimed.Add(entry.BindKey.Trim());
+                    claimed.Add(key.Binding.Trim());
                 }
             }
 
@@ -93,7 +93,7 @@ public sealed record GlobalHotkeyPlan(
         }
 
         return new GlobalHotkeyPlan(
-            Localization.LocalSettings.LoadSystemHotkey(),
+            systemHotkey,
             viewModel.IsRunning,
             [.. claimed],
             [.. groups],
@@ -107,13 +107,13 @@ public sealed record GlobalHotkeyPlan(
     {
         foreach (var claimed in ClaimedBindings)
         {
-            if (MacroTriggerService.Binds(claimed, key, held))
+            if (TriggerKeys.Binds(claimed, key, held))
             {
                 return GlobalHotkeyMatch.None;
             }
         }
 
-        if (SystemHotkey.Length > 0 && MacroTriggerService.Binds(SystemHotkey, key, held))
+        if (SystemHotkey.Length > 0 && TriggerKeys.Binds(SystemHotkey, key, held))
         {
             return new GlobalHotkeyMatch(GlobalHotkeyAction.ToggleSystem);
         }
@@ -126,14 +126,14 @@ public sealed record GlobalHotkeyPlan(
         // After the trigger bindings and the system switch: a key that already runs a macro keeps
         // running it, and a macro's arm key never takes the system switch away from it.
         var toggle = MacroToggles.FirstOrDefault(candidate =>
-            MacroTriggerService.Binds(candidate.Binding, key, held));
+            TriggerKeys.Binds(candidate.Binding, key, held));
         if (toggle is not null)
         {
             return new GlobalHotkeyMatch(GlobalHotkeyAction.ToggleMacro, MacroName: toggle.MacroName);
         }
 
         var group = InterfaceGroups.FirstOrDefault(candidate =>
-            MacroTriggerService.Binds(candidate.Binding, key, held));
+            TriggerKeys.Binds(candidate.Binding, key, held));
         return group is null
             ? GlobalHotkeyMatch.None
             : new GlobalHotkeyMatch(GlobalHotkeyAction.ToggleInterfaceGroup, group.GroupKey);

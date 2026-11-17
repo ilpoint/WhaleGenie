@@ -85,11 +85,6 @@ public sealed partial class McpTools
 
             var macros = draft.MacroSnapshot();
             var triggers = draft.Triggers.Copy();
-            await Ui(() =>
-            {
-                triggers.Attach(macros);
-                return true;
-            });
             var globals = await Ui(() => draft.Globals.ToList());
             var revision = await project.ApplyAsync(draft.Basis, macros, triggers, globals);
             draft.MarkApplied();

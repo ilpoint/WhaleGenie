@@ -155,7 +155,7 @@ public class ProjectSaveTests
             viewModel.AddMacro(macro);
             viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
 
-            viewModel.ReplaceMacro(macro, new MacroItem { Name = "login", BindKey = "F5" });
+            viewModel.ReplaceMacro(macro, new MacroItem { Name = "login", Description = "edited" });
 
             Assert.True(viewModel.HasUnsavedChanges);
         }
@@ -323,7 +323,7 @@ public class ProjectSaveTests
         {
             Ui.Run(() =>
             {
-                var macro = new MacroItem { Name = "click", BindKey = "F5" };
+                var macro = new MacroItem { Name = "click" };
                 macro.Steps.Add(new MacroStep
                 {
                     Type = "input.mouseClick",
@@ -345,7 +345,7 @@ public class ProjectSaveTests
                 });
 
                 var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
-                MacroPackage.Save(path, [macro], [], "v0");
+                MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "v0");
                 var read = MacroPackage.Load(path).Macros[0];
 
                 Assert.Equal("sys.mouseX", read.Steps[0].Parameters

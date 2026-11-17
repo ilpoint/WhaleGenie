@@ -161,8 +161,10 @@ public sealed class McpResources(IProjectGateway live)
         var triggers = snapshot.Triggers.Entries
             .Select(entry => new
             {
+                id = entry.Id,
                 kind = entry.Kind.ToString(),
                 macro = entry.MacroName,
+                enabled = entry.IsEnabled,
                 summary = entry.Summary,
             })
             .ToList();

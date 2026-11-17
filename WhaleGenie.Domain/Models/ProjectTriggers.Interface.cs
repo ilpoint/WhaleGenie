@@ -15,22 +15,25 @@ namespace WhaleGenie.Models;
 public sealed partial class ProjectTriggers
 {
     public IReadOnlyList<TriggerEntry> MenuMembers(string pageId)
-        => [.. Entries.Where(entry => entry.Kind == TriggerKind.Menu
-            && entry.IsEnabled && entry.MenuPageId == pageId)];
+        => [.. Entries.Where(entry => entry.IsEnabled
+            && entry.Spec is MenuSpec menu && menu.PageId == pageId)];
 
     public IReadOnlyList<TriggerEntry> GroupedInterfaceEntries(WindowRule rule)
     {
         var key = GroupKey(rule);
-        return [.. InterfaceEntries().Where(entry => GroupKey(entry.WindowTarget) == key)];
+        return [.. InterfaceEntries().Where(entry =>
+            entry.Spec is InterfaceSpec group && GroupKey(group.Window) == key)];
     }
 
     public IReadOnlyList<InterfaceGroupView> InterfaceGroups()
         => [.. InterfaceEntries()
-            .GroupBy(entry => GroupKey(entry.WindowTarget))
+            .Select(entry => (Entry: entry, Group: (InterfaceSpec)entry.Spec))
+            .GroupBy(item => GroupKey(item.Group.Window))
             .Select(group =>
             {
                 var members = group.ToList();
-                return new InterfaceGroupView(group.Key, members[0].WindowTarget, [.. members]);
+                return new InterfaceGroupView(group.Key, members[0].Group.Window,
+                    [.. members.Select(member => member.Entry)]);
             })];
 
     public InterfaceLayout LayoutFor(WindowRule rule)
@@ -73,10 +76,9 @@ public sealed partial class ProjectTriggers
     {
         var occupied = Entries
             .Where(candidate => !ReferenceEquals(candidate, entry)
-                && candidate.Kind == TriggerKind.Menu
-                && candidate.MenuPageId == pageId
-                && candidate.MenuRow >= 0 && candidate.MenuColumn >= 0)
-            .Select(candidate => (candidate.MenuRow, candidate.MenuColumn))
+                && candidate.Spec is MenuSpec { Row: >= 0, Column: >= 0 } placed
+                && placed.PageId == pageId)
+            .Select(candidate => (((MenuSpec)candidate.Spec).Row, ((MenuSpec)candidate.Spec).Column))
             .ToHashSet();
         for (var row = 0; row < MenuRegionRows; row++)
         {
@@ -84,16 +86,13 @@ public sealed partial class ProjectTriggers
             {
                 if (occupied.Add((row, column)))
                 {
-                    entry.MenuPageId = pageId;
-                    entry.MenuRow = row;
-                    entry.MenuColumn = column;
+                    entry.MoveMenuCell(pageId, row, column);
                     return;
                 }
             }
         }
 
-        entry.MenuRow = -1;
-        entry.MenuColumn = -1;
+        entry.MoveMenuCell(pageId, -1, -1);
     }
 
     public void ReplaceMacro(string macroName, IEnumerable<TriggerEntry> entries)
@@ -102,18 +101,27 @@ public sealed partial class ProjectTriggers
         var old = Entries.Where(entry =>
             string.Equals(entry.MacroName, macroName, StringComparison.OrdinalIgnoreCase)).ToList();
         var keepAt = old.Count > 0 ? Entries.IndexOf(old[0]) : Entries.Count;
-        foreach (var entry in old)
-        {
-            Entries.Remove(entry);
-        }
 
-        foreach (var entry in replacements)
+        // One replace is one change: taking the old rows out one at a time would announce the
+        // project to the list, the menu and the runtime once per row.
+        BeginBatch();
+        try
         {
-            entry.MacroName = macroName;
-            Entries.Insert(Math.Min(keepAt++, Entries.Count), entry);
-        }
+            foreach (var entry in old)
+            {
+                Entries.Remove(entry);
+            }
 
-        Changed?.Invoke(this, EventArgs.Empty);
+            foreach (var entry in replacements)
+            {
+                entry.MacroName = macroName;
+                Entries.Insert(Math.Min(keepAt++, Entries.Count), entry);
+            }
+        }
+        finally
+        {
+            EndBatch();
+        }
     }
 
     public void RenameMacro(string oldName, string newName)

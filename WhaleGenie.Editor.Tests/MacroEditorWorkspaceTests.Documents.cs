@@ -72,7 +72,7 @@ public partial class MacroEditorWorkspaceTests
             Assert.Single(root.Documents);
             root.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("child", Assert.Single(window.Result!.SubMacros).Name);
+            Assert.Equal("child", Assert.Single(window.Result!.Macro.SubMacros).Name);
 
             Ui.CloseAndAnswer(window);
         });
@@ -87,7 +87,7 @@ public partial class MacroEditorWorkspaceTests
         parent.SubMacros.Add(child);
 
         var editor = new MacroEditorViewModel();
-        editor.LoadFrom(parent);
+        editor.LoadFrom(parent, []);
         var palette = new ActionPaletteViewModel();
         palette.SetSources(ActionCatalog.RunnableActions, editor.SubMacros, []);
         palette.SelectDock(ActionPaletteDock.SubMacros);

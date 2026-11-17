@@ -96,7 +96,7 @@ public partial class MainWindow : AppWindow
             if (Volatile.Read(ref _menuOpen) == 1)
             {
                 if (plan.MenuLauncher.Length > 0
-                    && MacroTriggerService.Binds(plan.MenuLauncher, name, _globalHeld))
+                    && TriggerKeys.Binds(plan.MenuLauncher, name, _globalHeld))
                 {
                     e.Suppress = true;
                     Dispatcher.UIThread.Post(() => _menu?.CloseFromLauncher());
@@ -125,7 +125,7 @@ public partial class MainWindow : AppWindow
 
             if (Volatile.Read(ref _menuOpen) == 1
                 && plan.SystemHotkey.Length > 0
-                && MacroTriggerService.Binds(plan.SystemHotkey, name, _globalHeld))
+                && TriggerKeys.Binds(plan.SystemHotkey, name, _globalHeld))
             {
                 e.Suppress = true;
                 Dispatcher.UIThread.Post(ToggleSystemFromHotkey);
@@ -223,7 +223,7 @@ public partial class MainWindow : AppWindow
 
         foreach (var macro in viewModel.Macros)
         {
-            macro.IsRunning = _triggers.IsRunning(macro);
+            macro.IsRunning = _triggers.IsRunning(macro.Name);
         }
     }
 

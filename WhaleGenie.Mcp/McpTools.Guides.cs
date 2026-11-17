@@ -66,12 +66,13 @@ public sealed partial class McpTools
         [Description("The macro name.")] string name)
         => McpErrors.RunAsync(async () =>
         {
-            var macro = await Ui(() => drafts.Get(draftId).Find(name));
+            var draft = drafts.Get(draftId);
+            var macro = await Ui(() => draft.Find(name));
             return macro is null
                 ? McpErrors.Fail(McpErrors.NoSuchMacro, $"There is no macro named \"{name}\".",
                     "Call whalegenie_list_macros to see the names this draft holds.",
                     retryable: true, details: new { name })
-                : McpErrors.Ok(await Ui(() => macro.ToJson(includeTriggers: true)));
+                : McpErrors.Ok(await Ui(() => draft.MacroJson(macro)));
         });
 
     [McpServerTool(Name = "whalegenie_get_step", ReadOnly = true,

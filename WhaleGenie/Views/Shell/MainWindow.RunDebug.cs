@@ -146,7 +146,7 @@ public partial class MainWindow : AppWindow
                     string.Equals(macro.Name, name, StringComparison.OrdinalIgnoreCase))
                 : null;
 
-            OpenEditor(editor.Macro, target, draft: true);
+            OpenEditor(editor.Macro, target, draft: true, entries: editor.Entries);
         }
     }
 

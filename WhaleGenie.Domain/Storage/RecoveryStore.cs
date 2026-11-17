@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Storage;
@@ -19,6 +21,9 @@ public sealed class RecoveryEditor
 {
     public required MacroItem Macro { get; init; }
 
+    /// <summary>The trigger entries the editor was holding for that macro.</summary>
+    public IReadOnlyList<TriggerEntry> Entries { get; init; } = [];
+
     /// <summary>Name of the macro the draft was editing, or empty when it was a new macro.</summary>
     public required string Replaces { get; init; }
 
@@ -30,9 +35,9 @@ public sealed class RecoveryEditor
     /// </summary>
     public bool IsWorthKeeping => Macro.Steps.Count > 0
         || Macro.Description.Trim().Length > 0
-        || Macro.BindKey.Trim().Length > 0
         || Macro.ToggleKey.Trim().Length > 0
         || Macro.InputRate is not null
+        || Entries.Count > 0
         || !MacroNames.IsDefault(Macro.Name);
 }
 
@@ -127,10 +132,6 @@ public static class RecoveryStore
     }
 
     /// <summary>Records the macro list, its shared variables and the package it came from.</summary>
-    public static void SaveProject(IReadOnlyList<MacroItem> macros,
-        IReadOnlyList<VariableDefinition> globals, string? packagePath)
-        => SaveProject(macros, ProjectTriggers.FromMacros(macros), globals, packagePath);
-
     public static void SaveProject(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition> globals, string? packagePath)
     {
@@ -175,17 +176,21 @@ public static class RecoveryStore
     public static void ClearProject() => Update("project", null);
 
     /// <summary>Records the macro the editor is holding, and what it stands for.</summary>
-    public static void SaveEditor(MacroItem macro, string replaces)
+    public static void SaveEditor(MacroItem macro, IReadOnlyList<TriggerEntry> entries, string replaces)
     {
         // 什么都没写的草稿不写：它下次打开就是同一张空表单，留着只会让下次启动问一句
         // "发现上次未保存的内容"，答了也没有东西回来。
-        if (!new RecoveryEditor { Macro = macro, Replaces = replaces }.IsWorthKeeping)
+        if (!new RecoveryEditor { Macro = macro, Entries = entries, Replaces = replaces }.IsWorthKeeping)
         {
             Update("editor", null);
             return;
         }
 
-        var editor = new JsonObject { ["macro"] = macro.ToJson(includeTriggers: true) };
+        var editor = new JsonObject
+        {
+            ["macro"] = macro.ToJson(),
+            ["triggers"] = new JsonArray([.. entries.Select(entry => entry.ToJson())]),
+        };
         if (!string.IsNullOrEmpty(replaces))
         {
             editor["replaces"] = replaces;
@@ -246,9 +251,12 @@ public static class RecoveryStore
             return null;
         }
 
-        if (root["formatVersion"]?.GetValue<int>() != MacroPackage.FormatVersion)
+        var version = root["formatVersion"]?.GetValue<int>() ?? 0;
+        if (version != MacroPackage.FormatVersion)
         {
-            throw new InvalidDataException("The recovery snapshot uses an older project format.");
+            throw new InvalidDataException(
+                Localization.Strings.Format("Package.FormatUnreadable", version,
+                    MacroPackage.FormatVersion));
         }
 
         var project = root["project"] as JsonObject;
@@ -285,11 +293,7 @@ public static class RecoveryStore
             });
         }
 
-        var triggers = ResumeTriggers(project, macros);
-        foreach (var macro in macros)
-        {
-
-        }
+        var triggers = ResumeTriggers(project);
 
         RecoveryEditor? editor = null;
         if (root["editor"] is JsonObject editorEntry && editorEntry["macro"] is JsonObject macroNode)
@@ -297,9 +301,11 @@ public static class RecoveryStore
             editor = new RecoveryEditor
             {
                 Macro = MacroItem.FromJson(macroNode),
+                Entries = [.. (editorEntry["triggers"] as JsonArray ?? [])
+                    .OfType<JsonObject>()
+                    .Select(TriggerEntry.FromJson)],
                 Replaces = editorEntry["replaces"]?.GetValue<string>() ?? string.Empty,
             };
-
         }
 
         var contents = new RecoveryContents
@@ -318,17 +324,15 @@ public static class RecoveryStore
         return contents.IsEmpty ? null : contents;
     }
 
-    private static ProjectTriggers ResumeTriggers(JsonObject? project, IReadOnlyList<MacroItem> macros)
-    {
-        if (project?["triggers"] is JsonObject stored)
-        {
-            var triggers = ProjectTriggers.FromJson(stored);
-            triggers.Attach(macros);
-            return triggers;
-        }
-
-        return ProjectTriggers.FromMacros(macros);
-    }
+    /// <summary>
+    /// A draft can be kept with no project alongside it, so the trigger table is only read when the
+    /// project wrote one. An empty table is the honest answer otherwise, not a reason to throw the
+    /// whole snapshot away.
+    /// </summary>
+    private static ProjectTriggers ResumeTriggers(JsonObject? project)
+        => project?["triggers"] is JsonObject stored
+            ? ProjectTriggers.FromJson(stored)
+            : new ProjectTriggers();
 
     /// <summary>
     /// Puts one part of the snapshot in place, or takes it out when <paramref name="node"/> is

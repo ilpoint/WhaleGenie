@@ -268,7 +268,7 @@ public class SearchRegionTests
                     ],
                 });
 
-                MacroPackage.Save(package, [macro], [], "test");
+                MacroPackage.Save(package, [macro], new ProjectTriggers(), [], "test");
 
                 var loaded = MacroPackage.Load(package);
                 var step = Assert.Single(Assert.Single(loaded.Macros).Steps);

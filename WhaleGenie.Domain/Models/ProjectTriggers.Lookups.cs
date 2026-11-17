@@ -45,15 +45,12 @@ public sealed partial class ProjectTriggers
     }
 
     public IReadOnlyList<TriggerEntry> InterfaceEntries()
-        => [.. Entries.Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Interface
-            && entry.WindowTarget.HasTarget)];
+        => [.. Entries.Where(entry => entry.IsEnabled
+            && entry.Spec is InterfaceSpec { Window.HasTarget: true })];
 
     public IReadOnlyList<TriggerEntry> HotstringEntries()
-        => [.. Entries.Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Hotstring
-            && entry.Abbreviation.Length > 0)];
-
-    public IReadOnlyList<TriggerEntry> MenuMembers()
-        => [.. Entries.Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Menu)];
+        => [.. Entries.Where(entry => entry.IsEnabled
+            && entry.Spec is HotstringSpec { Abbreviation.Length: > 0 })];
 
     /// <summary>
     /// The first cell no menu entry occupies, across the common pages in order. A macro created
@@ -64,8 +61,8 @@ public sealed partial class ProjectTriggers
         foreach (var page in CommonMenuPages())
         {
             var used = Entries
-                .Where(entry => entry.Kind == TriggerKind.Menu && entry.MenuPageId == page.Id)
-                .Select(entry => (entry.MenuRow, entry.MenuColumn))
+                .Where(entry => entry.Spec is MenuSpec menu && menu.PageId == page.Id)
+                .Select(entry => (((MenuSpec)entry.Spec).Row, ((MenuSpec)entry.Spec).Column))
                 .ToHashSet();
             for (var row = 0; row < MenuRegionRows; row++)
             {

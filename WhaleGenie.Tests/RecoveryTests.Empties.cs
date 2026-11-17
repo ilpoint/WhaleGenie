@@ -19,7 +19,7 @@ public partial class RecoveryTests
     {
         InOwnFile(path =>
         {
-            RecoveryStore.SaveProject([Named("login")], [], null);
+            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
             Assert.True(File.Exists(path));
 
             // Saving the project, or letting the work go, takes the last thing out of the file.
@@ -42,7 +42,7 @@ public partial class RecoveryTests
         {
             var blank = new MacroItem { Name = MacroNames.NextDefault([]) };
 
-            RecoveryStore.SaveEditor(blank, string.Empty);
+            RecoveryStore.SaveEditor(blank, [], string.Empty);
 
             Assert.False(File.Exists(path), "a blank draft was written to the snapshot");
             Assert.Null(RecoveryStore.Load());

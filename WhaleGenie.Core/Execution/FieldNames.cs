@@ -127,4 +127,101 @@ public static class FieldNames
     public const string Description = "description";
 
     public const string CpuSeconds = "cpuSeconds";
+
+    // ---------------------------------------------------------------- triggers
+
+    /// <summary>Which kind a trigger entry is. The one word every trigger record is read by.</summary>
+    public const string Kind = "kind";
+
+    /// <summary>The key, mouse button or controller button a key trigger answers to.</summary>
+    public const string BindKey = "bindKey";
+
+    public const string LoopMode = "loopMode";
+
+    /// <summary>"Run this once, then wait to be armed again."</summary>
+    public const string TriggerOnce = "triggerOnce";
+
+    /// <summary>The record a timer trigger keeps its clock in.</summary>
+    public const string Schedule = "schedule";
+
+    public const string Mode = "mode";
+
+    public const string Interval = "interval";
+
+    public const string Unit = "unit";
+
+    /// <summary>The time of day a daily schedule runs at.</summary>
+    public const string Time = "time";
+
+    /// <summary>The record a file trigger keeps what it watches in.</summary>
+    public const string Watch = "watch";
+
+    public const string Path = "path";
+
+    /// <summary>Which change counts, for a file or a program. The kind decides what it is read as.</summary>
+    public const string Change = "change";
+
+    public const string Filter = "filter";
+
+    public const string Subfolders = "subfolders";
+
+    /// <summary>The menu page a menu entry sits on.</summary>
+    public const string Page = "page";
+
+    public const string Row = "row";
+
+    public const string Column = "column";
+
+    public const string Icon = "icon";
+
+    public const string ColorMatch = "colorMatch";
+
+    /// <summary>The point a colour trigger watches when it does not follow the cursor.</summary>
+    public const string ColorPosition = "colorPosition";
+
+    public const string UseCursorPosition = "useCursorPosition";
+
+    public const string HexColor = "hexColor";
+
+    public const string ColorTolerance = "colorTolerance";
+
+    public const string Abbreviation = "abbreviation";
+
+    public const string EndChars = "endChars";
+
+    public const string MatchInsideWord = "matchInsideWord";
+
+    public const string RequireEndChar = "requireEndChar";
+
+    public const string EraseTyped = "eraseTyped";
+
+    public const string KeepEndChar = "keepEndChar";
+
+    public const string IdleSeconds = "idleSeconds";
+
+    public const string WindowChange = "windowChange";
+
+    /// <summary>The window rule a window or interface trigger is about.</summary>
+    public const string Window = "window";
+
+    /// <summary>The trigger entries a project holds.</summary>
+    public const string Entries = "entries";
+
+    public const string InterfaceLayouts = "interfaceLayouts";
+
+    /// <summary>The record a project's menu pages and blocked rules live in.</summary>
+    public const string Menu = "menu";
+
+    public const string BlockedRules = "blockedRules";
+
+    public const string Pages = "pages";
+
+    /// <summary>The wheel's scenes and slots.</summary>
+    public const string Wheel = "wheel";
+
+    public const string Region = "region";
+
+    public const string Default = "default";
+
+    public const string ToggleHotkey = "toggleHotkey";
 }

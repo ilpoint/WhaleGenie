@@ -56,12 +56,12 @@ public partial class MacroEditorTests
             Assert.False(viewModel.HasBlockingDeclarationProblems);
             Assert.True(viewModel.CanSave);
 
-            MacroItem? saved = null;
+            MacroDraft? saved = null;
             viewModel.CloseRequested += result => saved = result;
             viewModel.SaveCommand.Execute(null);
 
             Assert.NotNull(saved);
-            Assert.Equal("答案", Assert.Single(saved!.Results).Name);
+            Assert.Equal("答案", Assert.Single(saved!.Macro.Results).Name);
         });
     }
 

@@ -22,7 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.App\WhaleGenie.App.csproj" />
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
     <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
   </ItemGroup>
 

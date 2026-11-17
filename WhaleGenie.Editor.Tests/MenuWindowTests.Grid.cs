@@ -53,7 +53,7 @@ public partial class MenuWindowTests
             Assert.False(window.IsSearchOpen);
             Assert.False(window.IsPinned);
             Assert.Equal(4, ProjectTriggers.MenuColumns);
-            Assert.Equal(6, ProjectTriggers.MenuRows);
+            Assert.Equal(6, ProjectTriggers.MenuRegionRows * 2);
             Assert.Equal(24, window.GetVisualDescendants()
                 .OfType<Button>()
                 .Count(button => button.Classes.Contains("MenuCell")));

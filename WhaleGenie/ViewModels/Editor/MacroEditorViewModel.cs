@@ -45,7 +45,7 @@ public partial class MacroEditorViewModel : ViewModelBase
     public VariableSession Variables { get; init; } = new();
 
     /// <summary>Raised when the editor should close, with the macro to save or <c>null</c> when cancelled.</summary>
-    public event Action<MacroItem?>? CloseRequested;
+    public event Action<MacroDraft?>? CloseRequested;
 
     /// <summary>Action types offered by the Action Editor palette.</summary>
     public IReadOnlyList<MacroAction> ActionPalette { get; } =

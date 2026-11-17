@@ -84,7 +84,7 @@ public class StepIdTests
 
             var read = MacroItem.FromJson(written);
             var editor = new MacroEditorViewModel();
-            editor.LoadFrom(read);
+            editor.LoadFrom(read, []);
 
             var names = editor.Steps.Select(step => step.Id).ToList();
             Assert.Equal(3, names.Count);

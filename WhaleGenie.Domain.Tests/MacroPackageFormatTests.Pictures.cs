@@ -39,7 +39,7 @@ public partial class MacroPackageFormatTests
             var path = Path.Combine(folder, "proj.wgmacro");
 
             MacroPackage.Save(path, [relative, absolute],
-                ProjectTriggers.FromMacros([relative, absolute]), [], "test");
+                new ProjectTriggers(), [], "test");
 
             using var archive = ZipFile.OpenRead(path);
             var entry = Assert.Single(archive.Entries,
@@ -78,7 +78,7 @@ public partial class MacroPackageFormatTests
             var macro = Picture("assets/ok.png");
             var path = Path.Combine(exported, "out.wgmacro");
 
-            MacroPackage.Save(path, [macro], ProjectTriggers.FromMacros([macro]), [], "test",
+            MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "test",
                 projectAssets);
 
             using (var archive = ZipFile.OpenRead(path))
@@ -133,12 +133,9 @@ public partial class MacroPackageFormatTests
             var triggers = new ProjectTriggers();
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Menu,
                 MacroName = macro.Name,
-                MenuPageId = triggers.CommonMenuPages()[0].Id,
-                MenuRow = 0,
-                MenuColumn = 0,
-                MenuIcon = new MenuIconReference(MenuIconKind.Image, icon),
+                Spec = new MenuSpec(triggers.CommonMenuPages()[0].Id, 0, 0,
+                    new MenuIconReference(MenuIconKind.Image, icon)),
             });
             var path = Path.Combine(folder, "menu.wgmacro");
 
@@ -152,8 +149,8 @@ public partial class MacroPackageFormatTests
             }
 
             var loaded = MacroPackage.Load(path);
-            var loadedIcon = loaded.Triggers.Entries.Single(entry =>
-                entry.Kind == TriggerKind.Menu).MenuIcon;
+            var loadedIcon = ((MenuSpec)loaded.Triggers.Entries.Single(entry =>
+                entry.Kind == TriggerKind.Menu).Spec).Icon;
             Assert.Equal(MenuIconKind.Image, loadedIcon?.Kind);
             Assert.True(File.Exists(loadedIcon!.Value));
         }

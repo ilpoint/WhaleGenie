@@ -121,18 +121,8 @@ public class MacroBundleTests
             var one = new MacroItem { Name = "整理" };
             var two = new MacroItem { Name = "读表" };
             var triggers = new ProjectTriggers();
-            triggers.Entries.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Key,
-                MacroName = "整理",
-                BindKey = "Ctrl+Alt+1",
-            });
-            triggers.Entries.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Key,
-                MacroName = "读表",
-                BindKey = "Ctrl+Alt+2",
-            });
+            triggers.Entries.Add(new TriggerEntry { MacroName = "整理", Spec = new KeySpec("Ctrl+Alt+1") });
+            triggers.Entries.Add(new TriggerEntry { MacroName = "读表", Spec = new KeySpec("Ctrl+Alt+2") });
 
             var subset = MacroBundle.Take(triggers, [one]);
             var kept = Assert.Single(subset.Entries);
@@ -141,10 +131,11 @@ public class MacroBundleTests
             var path = Path.Combine(folder, "一个" + MacroPackage.Extension);
             MacroPackage.Save(path, MacroBundle.Copies([one]), subset, [], "0.0.0");
 
-            var loaded = Assert.Single(MacroPackage.Load(path).Macros);
-            var entry = Assert.Single(loaded.Triggers);
-            Assert.Equal("Ctrl+Alt+1", entry.BindKey);
-            Assert.DoesNotContain(loaded.Triggers, candidate => candidate.MacroName == two.Name);
+            var package = MacroPackage.Load(path);
+            Assert.Single(package.Macros);
+            var entry = Assert.Single(package.Triggers.ForMacro(one.Name));
+            Assert.Equal("Ctrl+Alt+1", Assert.IsType<KeySpec>(entry.Spec).Binding);
+            Assert.Empty(package.Triggers.ForMacro(two.Name));
         }
         finally
         {

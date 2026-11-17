@@ -121,7 +121,7 @@ public partial class MacroEditorWindow : AppWindow
     public MacroEditorWindow(MacroItem? existing, IReadOnlyList<MacroItem>? project = null,
         string? packagePath = null, IDeviceLayer? devices = null, ProjectTriggers? triggers = null,
         bool callableOnly = false, MacroView? newView = null, PersistedVariables? persisted = null,
-        VariableSession? variables = null)
+        VariableSession? variables = null, IReadOnlyList<TriggerEntry>? entries = null)
     {
         InitializeComponent();
         _settings = this.FindControl<MacroSettingsView>("MacroSettings")!;
@@ -172,7 +172,8 @@ public partial class MacroEditorWindow : AppWindow
 
         if (existing is not null)
         {
-            _rootViewModel.LoadFrom(existing);
+            _rootViewModel.LoadFrom(existing,
+                entries ?? triggers?.ForMacro(existing.Name) ?? []);
         }
         else
         {

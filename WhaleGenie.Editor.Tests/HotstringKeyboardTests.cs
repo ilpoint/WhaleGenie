@@ -329,13 +329,11 @@ public class HotstringKeyboardTests
     private static (MacroEditorWindow Window, MacroEditorViewModel ViewModel) OpenHotstringEditor()
     {
         var macro = new MacroItem { Name = "typed" };
-        macro.Triggers.Add(new TriggerEntry
+        var entries = new List<TriggerEntry>
         {
-            Kind = TriggerKind.Hotstring,
-            MacroName = macro.Name,
-            Abbreviation = "btw",
-        });
-        var window = new MacroEditorWindow(macro, [macro]);
+            new() { MacroName = macro.Name, Spec = new HotstringSpec("btw") },
+        };
+        var window = new MacroEditorWindow(macro, [macro], entries: entries);
         window.Show();
         Dispatcher.UIThread.RunJobs();
         return (window, (MacroEditorViewModel)window.DataContext!);

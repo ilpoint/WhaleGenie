@@ -7,9 +7,12 @@ using WhaleGenie.Models;
 
 namespace WhaleGenie.Runtime;
 
+/// <summary>One armed typed-string trigger, as the recogniser needs it.</summary>
+public sealed record HotstringChoice(string Id, HotstringSpec Spec);
+
 /// <summary>A hotstring that just matched, and the input cleanup that goes with it.</summary>
 public sealed record HotstringHit(
-    TriggerEntry Entry,
+    string Id,
     string EndingText,
     string EndingKey,
     bool SuppressEndingKey,
@@ -50,7 +53,7 @@ public sealed class HotstringRecognizer
     /// ending key when asked, then performs the returned backspacing and replay before starting
     /// the macro.
     /// </summary>
-    public HotstringHit? Press(string typed, string endKey, IReadOnlyList<TriggerEntry> entries)
+    public HotstringHit? Press(string typed, string endKey, IReadOnlyList<HotstringChoice> entries)
     {
         lock (_gate)
         {
@@ -59,7 +62,7 @@ public sealed class HotstringRecognizer
     }
 
     private HotstringHit? PressLocked(string typed, string endKey,
-        IReadOnlyList<TriggerEntry> entries)
+        IReadOnlyList<HotstringChoice> entries)
     {
         if (typed.Length == 0)
         {
@@ -89,19 +92,19 @@ public sealed class HotstringRecognizer
         return immediate;
     }
 
-    private static HotstringHit? Match(string text, IReadOnlyList<TriggerEntry> entries,
+    private static HotstringHit? Match(string text, IReadOnlyList<HotstringChoice> entries,
         string endingText, string endingKey)
     {
         foreach (var entry in entries
-                     .Where(entry => entry.IsEnabled
-                         && entry.Abbreviation.Length is > 0 and <= MaximumAbbreviationLength)
-                     .OrderByDescending(entry => entry.Abbreviation.Length))
+                     .Where(choice => choice.Spec.Abbreviation.Length is > 0 and <= MaximumAbbreviationLength)
+                     .OrderByDescending(choice => choice.Spec.Abbreviation.Length))
         {
-            var abbreviation = entry.Abbreviation;
-            var needsEnding = entry.RequireEndChar;
+            var spec = entry.Spec;
+            var abbreviation = spec.Abbreviation;
+            var needsEnding = spec.RequireEndChar;
             if (needsEnding)
             {
-                if (!HotstringCharacters.IsEndCharacter(endingText, entry.HotstringEndChars))
+                if (!HotstringCharacters.IsEndCharacter(endingText, spec.EndChars))
                 {
                     continue;
                 }
@@ -112,21 +115,21 @@ public sealed class HotstringRecognizer
             }
 
             if (!text.EndsWith(abbreviation,
-                    entry.CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase))
+                    spec.CaseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
             var before = text[..^abbreviation.Length];
-            if (!entry.MatchInsideWord && before.Length > 0 && char.IsLetterOrDigit(before[^1]))
+            if (!spec.InsideWord && before.Length > 0 && char.IsLetterOrDigit(before[^1]))
             {
                 continue;
             }
 
-            var erase = entry.EraseTyped ? abbreviation.Length : 0;
-            var suppress = needsEnding && entry.EraseTyped;
-            var replay = suppress && entry.KeepEndChar;
-            return new HotstringHit(entry, endingText, endingKey, suppress, erase, replay);
+            var erase = spec.EraseTyped ? abbreviation.Length : 0;
+            var suppress = needsEnding && spec.EraseTyped;
+            var replay = suppress && spec.KeepEndChar;
+            return new HotstringHit(entry.Id, endingText, endingKey, suppress, erase, replay);
         }
 
         return null;

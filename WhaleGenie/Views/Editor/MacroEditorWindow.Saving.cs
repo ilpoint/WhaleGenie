@@ -29,14 +29,14 @@ public partial class MacroEditorWindow : AppWindow
 
             case CommitOutcome.Saved saved:
                 _mustStayUnsaved = false;
-                Result = saved.Macro;
+                Result = saved.Draft;
                 _settings.Find<TextBlock>("CommitRejectedNotice")!.IsVisible = false;
                 _settings.Find<TextBlock>("SavedNotice")!.IsVisible = true;
                 if (closeAfterSave)
                 {
                     _closing = true;
                     _allowClose = true;
-                    Close(saved.Macro);
+                    Close(saved.Draft);
                 }
 
                 return true;

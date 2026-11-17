@@ -50,25 +50,15 @@ internal sealed class FileWatch : IDisposable
     public string Signature { get; }
 
     /// <summary>
-    /// The settings a watch would be built for. A macro re-pointed at another file, or asking
+    /// The settings a watch would be built for. An entry re-pointed at another file, or asking
     /// about something else, is given a watch of its own; there is nothing worth keeping from the
     /// old one beyond its name.
     /// </summary>
-    public static string SignatureOf(MacroItem macro, string path)
-        => string.Join('\u001f', path, macro.WatchPath, macro.WatchChange, macro.WatchFilter,
-            macro.WatchSubfolders);
+    public static string SignatureOf(FileSpec spec, string path)
+        => string.Join('\u001f', path, spec.Path, spec.Change, spec.Filter, spec.Subfolders);
 
-    public static string SignatureOf(TriggerEntry entry, string path)
-        => string.Join('\u001f', path, entry.WatchPath, entry.WatchChange, entry.WatchFilter,
-            entry.WatchSubfolders);
-
-    public static FileWatch Create(MacroItem macro, string path)
-        => new(path, SignatureOf(macro, path), macro.WatchChange, macro.WatchFilter,
-            macro.WatchSubfolders);
-
-    public static FileWatch Create(TriggerEntry entry, string path)
-        => new(path, SignatureOf(entry, path), entry.WatchChange, entry.WatchFilter,
-            entry.WatchSubfolders);
+    public static FileWatch Create(FileSpec spec, string path)
+        => new(path, SignatureOf(spec, path), spec.Change, spec.Filter, spec.Subfolders);
 
     /// <summary>
     /// Makes sure the file system is being listened to. A path that cannot be watched yet — the

@@ -31,11 +31,8 @@ public partial class MacroPackageFormatTests
             {
                 triggers.Entries.Add(new TriggerEntry
                 {
-                    Kind = TriggerKind.Menu,
                     MacroName = macro.Name,
-                    MenuPageId = page.Id,
-                    MenuRow = 0,
-                    MenuColumn = 0,
+                    Spec = new MenuSpec(page.Id, 0, 0),
                 });
             }
 
@@ -88,7 +85,7 @@ public partial class MacroPackageFormatTests
                 ],
             });
 
-            MacroPackage.Save(path, [macro], [], "test");
+            MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "test");
             var loaded = Assert.Single(MacroPackage.Load(path).Macros);
             var step = Assert.Single(loaded.Steps);
             var window = Assert.Single(step.Parameters, parameter => parameter.Name == "window");

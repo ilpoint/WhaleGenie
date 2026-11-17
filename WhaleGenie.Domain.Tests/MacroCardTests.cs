@@ -3,121 +3,104 @@ using WhaleGenie.Models;
 
 namespace WhaleGenie.Domain.Tests;
 
-/// <summary>What a macro card shows: the icon its trigger picks and the binding it previews.</summary>
+/// <summary>
+/// What a macro card shows about the triggers that point at it. The card holds no triggers of its
+/// own: the project writes these lines from the entries, which are the only ones there are.
+/// </summary>
 public class MacroCardTests
 {
     [Fact]
-    public void A_key_binding_is_previewed_with_the_keyboard_icon()
+    public void A_key_entry_is_previewed_with_its_binding()
     {
-        var macro = new MacroItem { BindKey = "右Shift" };
+        var triggers = new ProjectTriggers();
+        triggers.Entries.Add(new TriggerEntry { MacroName = "m", Spec = new KeySpec("右Shift") });
+        var macro = new MacroItem { Name = "m" };
 
-        Assert.True(macro.IsKeyboardTrigger);
-        Assert.False(macro.IsMouseTrigger);
-        Assert.Equal("右Shift", macro.TriggerPreview);
-    }
+        triggers.Project([macro]);
 
-    /// <summary>
-    /// A trigger bound to a combination is still a keyboard trigger: nothing in its name says
-    /// "mouse", so the card keeps the keyboard icon and previews the combination as it was bound.
-    /// </summary>
-    [Fact]
-    public void A_combination_binding_is_previewed_with_the_keyboard_icon()
-    {
-        var macro = new MacroItem { BindKey = "Ctrl+Shift+S" };
-
-        Assert.True(macro.IsKeyboardTrigger);
-        Assert.False(macro.IsMouseTrigger);
-        Assert.Equal("Ctrl+Shift+S", macro.TriggerPreview);
-    }
-
-    [Theory]
-    [InlineData("Mouse Left")]
-    [InlineData("Mouse Wheel Up")]
-    [InlineData("Wheel Left")]
-    [InlineData("Mouse XButton1")]
-    public void A_mouse_binding_is_previewed_with_the_mouse_icon(string binding)
-    {
-        var macro = new MacroItem { BindKey = binding };
-
-        Assert.True(macro.IsMouseTrigger);
-        Assert.False(macro.IsKeyboardTrigger);
-    }
-
-    /// <summary>
-    /// A binding taken from a controller is neither a key nor a mouse button, so the card draws the
-    /// controller and previews the button by the name the trigger is bound to.
-    /// </summary>
-    [Theory]
-    [InlineData("Pad A")]
-    [InlineData("Pad LB")]
-    [InlineData("Pad Start")]
-    public void A_controller_binding_is_previewed_with_the_controller_icon(string binding)
-    {
-        var macro = new MacroItem { BindKey = binding };
-
-        Assert.True(macro.IsGamepadTrigger);
-        Assert.False(macro.IsMouseTrigger);
-        Assert.False(macro.IsKeyboardTrigger);
-        Assert.Equal(binding, macro.TriggerPreview);
+        Assert.Equal("右Shift", macro.CardTriggerPreview);
+        Assert.Equal("右Shift", macro.CardTriggerSummary);
+        Assert.Equal(Strings.Get("Loop.Press"), macro.CardTriggerActions);
     }
 
     [Fact]
-    public void A_macro_without_a_binding_says_so()
+    public void A_colour_entry_previews_the_colour()
     {
-        // A card with nothing written on it would read as a macro that starts some other way, so a
-        // trigger with nothing to preview says "none" in the reader's own language.
-        var macro = new MacroItem();
-
-        Assert.Equal(Strings.Get("Common.None"), macro.TriggerPreview);
-        Assert.True(macro.IsKeyboardTrigger);
-    }
-
-    [Fact]
-    public void A_colour_trigger_previews_the_colour()
-    {
-        var macro = new MacroItem
+        var triggers = new ProjectTriggers();
+        triggers.Entries.Add(new TriggerEntry
         {
-            TriggerMode = MacroTrigger.ColorPixelChanges,
-            HexColor = "#4a90d9",
-        };
+            MacroName = "m",
+            Spec = new ColorSpec(Hex: "#4a90d9"),
+        });
+        var macro = new MacroItem { Name = "m" };
 
-        Assert.True(macro.IsColorTrigger);
-        Assert.Equal("#4A90D9", macro.TriggerPreview);
+        triggers.Project([macro]);
+
+        Assert.Equal("#4A90D9", macro.CardTriggerPreview);
     }
 
     [Fact]
-    public void Changing_the_binding_refreshes_what_the_card_shows()
+    public void A_macro_with_no_trigger_says_so()
     {
-        var macro = new MacroItem { BindKey = "NumPad7" };
-        var refreshed = new List<string>();
-        macro.PropertyChanged += (_, args) => refreshed.Add(args.PropertyName ?? string.Empty);
+        var triggers = new ProjectTriggers();
+        var macro = new MacroItem { Name = "m" };
 
-        macro.BindKey = "Mouse Left";
+        triggers.Project([macro]);
 
-        Assert.Contains(nameof(MacroItem.TriggerPreview), refreshed);
-        Assert.Contains(nameof(MacroItem.IsMouseTrigger), refreshed);
-        Assert.Contains(nameof(MacroItem.IsGamepadTrigger), refreshed);
-        Assert.Contains(nameof(MacroItem.IsKeyboardTrigger), refreshed);
+        Assert.Equal(Strings.Get("Trigger.Unset"), macro.CardTriggerSummary);
+        Assert.Equal(Strings.Get("Common.None"), macro.CardTriggerPreview);
+        Assert.Empty(macro.CardTriggerActions);
     }
 
+    /// <summary>
+    /// A key and a colour say how they repeat; a schedule starts the macro rather than holding it,
+    /// and a menu cell, a floating group and a typed abbreviation have nothing to repeat.
+    /// </summary>
     [Fact]
     public void Only_key_and_colour_entries_show_loop_wording()
     {
-        var key = new MacroItem { Name = "key" };
-        key.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Key, LoopMode = MacroLoop.Toggle });
-        var colour = new MacroItem { Name = "colour" };
-        colour.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Color, LoopMode = MacroLoop.Press });
-        var ui = new MacroItem { Name = "ui" };
-        ui.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Interface });
-        var typed = new MacroItem { Name = "typed" };
-        typed.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Hotstring });
-        var menu = new MacroItem { Name = "menu" };
-        menu.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Menu });
+        var triggers = new ProjectTriggers();
+        triggers.Entries.Add(new TriggerEntry
+        {
+            MacroName = "m",
+            Spec = new KeySpec("F8", MacroLoop.Toggle),
+        });
+        triggers.Entries.Add(new TriggerEntry
+        {
+            MacroName = "m",
+            Spec = new ColorSpec(Loop: MacroLoop.Press),
+        });
+        triggers.Entries.Add(new TriggerEntry
+        {
+            MacroName = "m",
+            Spec = new InterfaceSpec(Core.Devices.WindowRule.Empty),
+        });
+        triggers.Entries.Add(new TriggerEntry { MacroName = "m", Spec = new HotstringSpec("sig") });
+        triggers.Entries.Add(new TriggerEntry { MacroName = "m", Spec = new MenuSpec() });
+        var macro = new MacroItem { Name = "m" };
 
-        Assert.Equal(Strings.Get("Loop.Toggle"), key.Action);
-        Assert.Equal(Strings.Get("Loop.Press"), colour.Action);
-        Assert.Empty(ui.Action);
-        Assert.Empty(typed.Action);
-        Assert.Empty(menu.Action);
+        triggers.Project([macro]);
+
+        Assert.Equal($"{Strings.Get("Loop.Toggle")} · {Strings.Get("Loop.Press")}",
+            macro.CardTriggerActions);
+    }
+
+    [Fact]
+    public void Projecting_again_follows_a_changed_entry()
+    {
+        var triggers = new ProjectTriggers();
+        var entry = new TriggerEntry { MacroName = "m", Spec = new KeySpec("NumPad7") };
+        triggers.Entries.Add(entry);
+        var macro = new MacroItem { Name = "m" };
+        triggers.Project([macro]);
+
+        var refreshed = new List<string>();
+        macro.PropertyChanged += (_, args) => refreshed.Add(args.PropertyName ?? string.Empty);
+
+        entry.Spec = new KeySpec("F9");
+        triggers.Project([macro]);
+
+        Assert.Equal("F9", macro.CardTriggerPreview);
+        Assert.Contains(nameof(MacroItem.CardTriggerPreview), refreshed);
     }
 }

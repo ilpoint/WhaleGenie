@@ -42,8 +42,8 @@ public partial class MacroEditorWorkspaceTests
             root.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal("parent", window.Result!.Name);
-            var savedChild = Assert.Single(window.Result.SubMacros);
+            Assert.Equal("parent", window.Result!.Macro.Name);
+            var savedChild = Assert.Single(window.Result.Macro.SubMacros);
             Assert.Equal(["control.delay", "control.log"],
                 savedChild.Steps.Select(step => step.Type));
         });

@@ -9,7 +9,7 @@ public class HotstringRecognizerTests
     public void An_ending_character_is_required_by_default_and_is_replayed_after_cleanup()
     {
         var recognizer = new HotstringRecognizer();
-        var entry = Entry("sig");
+        var entry = Choice("sig");
 
         Assert.Null(recognizer.Press("s", "S", [entry]));
         Assert.Null(recognizer.Press("i", "I", [entry]));
@@ -27,43 +27,39 @@ public class HotstringRecognizerTests
     public void Case_and_word_boundaries_follow_the_entry()
     {
         var recognizer = new HotstringRecognizer();
-        var entry = Entry("Sig");
-        entry.CaseSensitive = true;
+        var exact = Choice("Sig", new HotstringSpec("Sig", CaseSensitive: true));
 
         foreach (var character in "sig")
         {
-            recognizer.Press(character.ToString(), character.ToString(), [entry]);
+            recognizer.Press(character.ToString(), character.ToString(), [exact]);
         }
 
-        Assert.Null(recognizer.Press(" ", "Space", [entry]));
+        Assert.Null(recognizer.Press(" ", "Space", [exact]));
 
         recognizer.Reset();
-        entry.CaseSensitive = false;
-        entry.MatchInsideWord = false;
+        var insensitive = Choice("Sig");
         foreach (var character in "xsig")
         {
-            recognizer.Press(character.ToString(), character.ToString(), [entry]);
+            recognizer.Press(character.ToString(), character.ToString(), [insensitive]);
         }
 
-        Assert.Null(recognizer.Press(" ", "Space", [entry]));
+        Assert.Null(recognizer.Press(" ", "Space", [insensitive]));
 
         recognizer.Reset();
-        entry.MatchInsideWord = true;
+        var insideWord = Choice("Sig", new HotstringSpec("Sig", InsideWord: true));
         foreach (var character in "xsig")
         {
-            recognizer.Press(character.ToString(), character.ToString(), [entry]);
+            recognizer.Press(character.ToString(), character.ToString(), [insideWord]);
         }
 
-        Assert.NotNull(recognizer.Press(" ", "Space", [entry]));
+        Assert.NotNull(recognizer.Press(" ", "Space", [insideWord]));
     }
 
     [Fact]
     public void An_entry_may_fire_without_an_ending_key_or_keep_the_typed_text()
     {
         var recognizer = new HotstringRecognizer();
-        var entry = Entry("go");
-        entry.RequireEndChar = false;
-        entry.EraseTyped = false;
+        var entry = Choice("go", new HotstringSpec("go", RequireEndChar: false, EraseTyped: false));
 
         recognizer.Press("g", "G", [entry]);
         var hit = recognizer.Press("o", "O", [entry]);
@@ -77,8 +73,8 @@ public class HotstringRecognizerTests
     [Fact]
     public void The_longest_matching_abbreviation_wins()
     {
-        var shortEntry = Entry("log");
-        var longEntry = Entry(";log");
+        var shortEntry = Choice("log");
+        var longEntry = Choice(";log");
         var recognizer = new HotstringRecognizer();
 
         foreach (var character in ";log")
@@ -88,7 +84,7 @@ public class HotstringRecognizerTests
 
         var hit = recognizer.Press(" ", "Space", [shortEntry, longEntry]);
 
-        Assert.Same(longEntry, hit!.Entry);
+        Assert.Equal(";log", hit!.Id);
         Assert.Equal(4, hit.Backspaces);
     }
 
@@ -96,7 +92,7 @@ public class HotstringRecognizerTests
     public void Resetting_forgets_the_half_typed_string()
     {
         var recognizer = new HotstringRecognizer();
-        var entry = Entry("go");
+        var entry = Choice("go");
 
         recognizer.Press("g", "G", [entry]);
         recognizer.Reset();
@@ -109,8 +105,7 @@ public class HotstringRecognizerTests
     public void An_entry_can_replace_the_default_ending_character_set()
     {
         var recognizer = new HotstringRecognizer();
-        var entry = Entry("go");
-        entry.HotstringEndChars = "\n";
+        var entry = Choice("go", new HotstringSpec("go", EndChars: "\n"));
 
         recognizer.Press("g", "G", [entry]);
         recognizer.Press("o", "O", [entry]);
@@ -147,10 +142,6 @@ public class HotstringRecognizerTests
         Assert.Contains("n", HotstringCharacters.ParseEndChars("`n"));
     }
 
-    private static TriggerEntry Entry(string abbreviation) => new()
-    {
-        Kind = TriggerKind.Hotstring,
-        MacroName = "macro",
-        Abbreviation = abbreviation,
-    };
+    private static HotstringChoice Choice(string abbreviation, HotstringSpec? spec = null)
+        => new(abbreviation, spec ?? new HotstringSpec(abbreviation));
 }

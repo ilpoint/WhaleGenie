@@ -1,16 +1,16 @@
-using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Domain.Tests;
 
 /// <summary>
-/// Which key a trigger answers to. The two halves of a modifier are separate keys, the older
-/// side-agnostic spelling has to keep working, and a chord only counts with its modifiers down.
+/// Which key a trigger answers to, and what the runtime remembers about an entry. The two halves of
+/// a modifier are separate keys, the older side-agnostic spelling has to keep working, and a chord
+/// only counts with its modifiers down.
 /// </summary>
 public class TriggerTests
 {
     private static bool Binds(string binding, string key, params string[] held)
-        => MacroTriggerService.Binds(binding, key, held);
+        => TriggerKeys.Binds(binding, key, held);
 
     [Theory]
     [InlineData("右Shift", "右Shift", true)]
@@ -63,23 +63,17 @@ public class TriggerTests
     [Fact]
     public void A_window_seen_twice_is_one_appearance()
     {
-        var watches = new WindowWatches();
-        var macro = new MacroItem();
+        var state = new TriggerStateStore();
 
-        Assert.False(watches.Changed(macro, true));
-        Assert.True(watches.For(macro));
+        Assert.False(state.WindowChanged("one", true));
+        Assert.True(state.Window("one"));
 
-        Assert.False(watches.Changed(macro, true));
-        Assert.False(watches.Changed(macro, true));
+        Assert.False(state.WindowChanged("one", true));
+        Assert.False(state.WindowChanged("one", true));
 
-        Assert.True(watches.Changed(macro, false));
-        Assert.False(watches.Changed(macro, false));
-        Assert.True(watches.Changed(macro, true));
-
-        // A macro that is put back in the list starts over rather than being told what it knew.
-        watches.Forget(macro);
-        Assert.Null(watches.For(macro));
-        Assert.False(watches.Changed(macro, true));
+        Assert.True(state.WindowChanged("one", false));
+        Assert.False(state.WindowChanged("one", false));
+        Assert.True(state.WindowChanged("one", true));
     }
 
     /// <summary>
@@ -90,21 +84,16 @@ public class TriggerTests
     [Fact]
     public void A_program_already_running_is_not_a_start()
     {
-        var watches = new ProgramWatches();
-        var macro = new MacroItem();
+        var state = new TriggerStateStore();
 
-        Assert.Null(watches.Changed(macro, [7, 8]));
-        Assert.True(watches.For(macro));
+        Assert.Null(state.ProgramChanged("one", [7, 8]));
+        Assert.True(state.Program("one"));
 
-        Assert.Equal((false, false), watches.Changed(macro, [7, 8]));
-        Assert.Equal((true, false), watches.Changed(macro, [7, 8, 9]));
-        Assert.Equal((false, true), watches.Changed(macro, [7, 9]));
-        Assert.Equal((true, true), watches.Changed(macro, [9, 10]));
-        Assert.Equal((false, true), watches.Changed(macro, []));
-        Assert.False(watches.For(macro));
-
-        watches.Forget(macro);
-        Assert.Null(watches.For(macro));
-        Assert.Null(watches.Changed(macro, [7]));
+        Assert.Equal((false, false), state.ProgramChanged("one", [7, 8]));
+        Assert.Equal((true, false), state.ProgramChanged("one", [7, 8, 9]));
+        Assert.Equal((false, true), state.ProgramChanged("one", [7, 9]));
+        Assert.Equal((true, true), state.ProgramChanged("one", [9, 10]));
+        Assert.Equal((false, true), state.ProgramChanged("one", []));
+        Assert.False(state.Program("one"));
     }
 }

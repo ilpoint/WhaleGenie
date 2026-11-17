@@ -16,8 +16,8 @@ public class CaptureReleaseTests
     {
         var screen = new ReleaseCountingScreen();
         var devices = new ChecksDevices { Screen = screen };
-        using var service = new MacroTriggerService(() => [], devices, new VariableSession(), new NoWindowEvents(),
-            NullDeviceLayer.Instance.Hook);
+        using var service = new MacroTriggerService(devices, new VariableSession(),
+            new NoWindowEvents(), NullDeviceLayer.Instance.Hook);
 
         service.IsEnabled = true;
         Assert.Equal(0, screen.Releases);

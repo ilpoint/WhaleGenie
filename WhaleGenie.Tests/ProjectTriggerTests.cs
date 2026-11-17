@@ -29,20 +29,15 @@ public class ProjectTriggerTests
     {
         var viewModel = new MainViewModel();
         var macro = new MacroItem { Name = "multi" };
-        macro.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Key, BindKey = "F8" });
-        macro.Triggers.Add(new TriggerEntry
-        {
-            Kind = TriggerKind.Interface,
-            WindowTarget = new WindowRule(Title: "Game"),
-        });
-        macro.Triggers.Add(new TriggerEntry
-        {
-            Kind = TriggerKind.Hotstring,
-            Abbreviation = ";go",
-        });
-        macro.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Menu });
+        List<TriggerEntry> entries =
+        [
+            new() { MacroName = macro.Name, Spec = new KeySpec("F8") },
+            new() { MacroName = macro.Name, Spec = new InterfaceSpec(new WindowRule(Title: "Game")) },
+            new() { MacroName = macro.Name, Spec = new HotstringSpec(";go") },
+            new() { MacroName = macro.Name, Spec = new MenuSpec() },
+        ];
 
-        viewModel.AddMacro(macro);
+        viewModel.AddMacro(macro, entries);
 
         foreach (var view in new[]
                  {
@@ -106,18 +101,19 @@ public class ProjectTriggerTests
         var cell = Assert.Single(viewModel.Triggers.Entries);
         Assert.Equal(TriggerKind.Menu, cell.Kind);
         Assert.Equal("from-menu", cell.MacroName);
-        Assert.Equal(viewModel.Triggers.CommonMenuPages()[0].Id, cell.MenuPageId);
-        Assert.Equal(0, cell.MenuRow);
-        Assert.Equal(0, cell.MenuColumn);
+        var cellSpec = Assert.IsType<MenuSpec>(cell.Spec);
+        Assert.Equal(viewModel.Triggers.CommonMenuPages()[0].Id, cellSpec.PageId);
+        Assert.Equal(0, cellSpec.Row);
+        Assert.Equal(0, cellSpec.Column);
 
         // The next one takes the cell after it, not the same one again.
         var second = new MacroItem { Name = "second" };
         viewModel.AddMacro(second);
         MainWindow.PlaceNewMacro(MacroView.Menu, second, viewModel);
-        Assert.Equal(0, viewModel.Triggers.Entries
-            .Single(entry => entry.MacroName == "second").MenuRow);
-        Assert.Equal(1, viewModel.Triggers.Entries
-            .Single(entry => entry.MacroName == "second").MenuColumn);
+        var secondCell = Assert.IsType<MenuSpec>(viewModel.Triggers.Entries
+            .Single(entry => entry.MacroName == "second").Spec);
+        Assert.Equal(0, secondCell.Row);
+        Assert.Equal(1, secondCell.Column);
 
         var wheelMacro = new MacroItem { Name = "from-wheel" };
         viewModel.AddMacro(wheelMacro);
@@ -144,12 +140,10 @@ public class ProjectTriggerTests
     {
         var viewModel = new MainViewModel();
         var colour = new MacroItem { Name = "colour" };
-        colour.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Color });
         var timer = new MacroItem { Name = "timer" };
-        timer.Triggers.Add(new TriggerEntry { Kind = TriggerKind.Timer });
 
-        viewModel.AddMacro(colour);
-        viewModel.AddMacro(timer);
+        viewModel.AddMacro(colour, [new TriggerEntry { MacroName = "colour", Spec = new ColorSpec() }]);
+        viewModel.AddMacro(timer, [new TriggerEntry { MacroName = "timer", Spec = new TimerSpec() }]);
 
         viewModel.SelectedView = MacroView.Events;
         Assert.Equal(["colour", "timer"], viewModel.VisibleMacros.Select(item => item.Name));
@@ -164,47 +158,39 @@ public class ProjectTriggerTests
         var triggers = new ProjectTriggers();
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Hotstring,
             MacroName = "macro",
-            Abbreviation = "sig",
-            CaseSensitive = true,
-            MatchInsideWord = true,
-            RequireEndChar = false,
-            EraseTyped = false,
-            KeepEndChar = false,
+            Spec = new HotstringSpec("sig", CaseSensitive: true, InsideWord: true,
+                RequireEndChar: false, EraseTyped: false, KeepEndChar: false),
         });
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Interface,
             MacroName = "macro",
-            WindowTarget = new WindowRule(Title: "Notepad"),
+            Spec = new InterfaceSpec(new WindowRule(Title: "Notepad")),
         });
         triggers.StoreLayout(new WindowRule(Title: "Notepad"), 30, 70);
         triggers.StoreInterfaceHotkey(new WindowRule(Title: "Notepad"), "Ctrl+Alt+N");
         var page = triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Menu,
             MacroName = "macro",
-            MenuPageId = page.Id,
-            MenuRow = 1,
-            MenuColumn = 2,
-            MenuIcon = new MenuIconReference(MenuIconKind.Builtin, "Play"),
+            Spec = new MenuSpec(page.Id, 1, 2, new MenuIconReference(MenuIconKind.Builtin, "Play")),
         });
 
         var restored = ProjectTriggers.FromJson(JsonNode.Parse(triggers.ToJson().ToJsonString())
             as JsonObject);
 
         Assert.Equal(3, restored.Entries.Count);
-        Assert.Equal("sig", restored.Entries[0].Abbreviation);
-        Assert.True(restored.Entries[0].MatchInsideWord);
+        var hotstring = Assert.IsType<HotstringSpec>(restored.Entries[0].Spec);
+        Assert.Equal("sig", hotstring.Abbreviation);
+        Assert.True(hotstring.InsideWord);
         Assert.Equal(30, Assert.Single(restored.InterfaceLayouts).OffsetX);
         Assert.Equal("Ctrl+Alt+N", Assert.Single(restored.InterfaceLayouts).ToggleHotkey);
         Assert.Single(restored.CommonMenuPages());
         Assert.Single(restored.ContextMenuPages());
-        var menu = restored.Entries.Single(entry => entry.Kind == TriggerKind.Menu);
-        Assert.Equal((1, 2), (menu.MenuRow, menu.MenuColumn));
-        Assert.Equal(new MenuIconReference(MenuIconKind.Builtin, "Play"), menu.MenuIcon);
+        var menu = Assert.IsType<MenuSpec>(
+            restored.Entries.Single(entry => entry.Kind == TriggerKind.Menu).Spec);
+        Assert.Equal((1, 2), (menu.Row, menu.Column));
+        Assert.Equal(new MenuIconReference(MenuIconKind.Builtin, "Play"), menu.Icon);
     }
 
     [Fact]
@@ -267,12 +253,11 @@ public class ProjectTriggerTests
     public void Renaming_a_macro_keeps_every_entry_pointing_at_it()
     {
         var triggers = new ProjectTriggers();
-        triggers.Entries.Add(new TriggerEntry { Kind = TriggerKind.Key, MacroName = "old" });
+        triggers.Entries.Add(new TriggerEntry { MacroName = "old", Spec = new KeySpec() });
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Menu,
             MacroName = "old",
-            MenuPageId = triggers.CommonMenuPages()[0].Id,
+            Spec = new MenuSpec(triggers.CommonMenuPages()[0].Id),
         });
 
         triggers.RenameMacro("old", "new");
@@ -286,15 +271,13 @@ public class ProjectTriggerTests
         var triggers = new ProjectTriggers();
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Interface,
             MacroName = "first",
-            WindowTarget = new WindowRule(Title: "Game"),
+            Spec = new InterfaceSpec(new WindowRule(Title: "Game")),
         });
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Interface,
             MacroName = "second",
-            WindowTarget = new WindowRule(Title: "Game"),
+            Spec = new InterfaceSpec(new WindowRule(Title: "Game")),
         });
 
         var chosen = Assert.Single(triggers.InterfaceGroups());
@@ -309,17 +292,15 @@ public class ProjectTriggerTests
         var page = triggers.CommonMenuPages()[0];
         triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Menu,
             MacroName = "one",
-            MenuPageId = page.Id,
-            MenuRow = 0,
-            MenuColumn = 0,
+            Spec = new MenuSpec(page.Id, 0, 0),
         });
-        var next = new TriggerEntry { Kind = TriggerKind.Menu, MacroName = "two" };
+        var next = new TriggerEntry { MacroName = "two", Spec = new MenuSpec() };
 
         triggers.AssignFirstEmptyMenuCell(next, page.Id);
 
-        Assert.Equal((0, 1), (next.MenuRow, next.MenuColumn));
+        var cell = Assert.IsType<MenuSpec>(next.Spec);
+        Assert.Equal((0, 1), (cell.Row, cell.Column));
     }
 
     [Fact]
@@ -335,19 +316,15 @@ public class ProjectTriggerTests
             var triggers = new ProjectTriggers();
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Hotstring,
                 MacroName = macro.Name,
-                Abbreviation = ";r",
+                Spec = new HotstringSpec(";r"),
             });
             var context = triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Menu,
                 MacroName = macro.Name,
-                MenuPageId = context.Id,
-                MenuRow = 0,
-                MenuColumn = 0,
-                MenuIcon = new MenuIconReference(MenuIconKind.Builtin, "play"),
+                Spec = new MenuSpec(context.Id, 0, 0,
+                    new MenuIconReference(MenuIconKind.Builtin, "play")),
             });
 
             RecoveryStore.SaveProject([macro], triggers, [], null);
@@ -355,12 +332,13 @@ public class ProjectTriggerTests
 
             Assert.NotNull(loaded);
             Assert.Contains(loaded!.Triggers.Entries, entry =>
-                entry.Kind == TriggerKind.Hotstring && entry.Abbreviation == ";r");
+                entry.Spec is HotstringSpec { Abbreviation: ";r" });
             Assert.Single(loaded.Triggers.ContextMenuPages());
             Assert.Contains(loaded.Triggers.Entries, entry =>
-                entry.Kind == TriggerKind.Menu
-                && entry.MenuIcon == new MenuIconReference(MenuIconKind.Builtin, "play"));
-            Assert.Equal(2, Assert.Single(loaded.Macros).Triggers.Count);
+                entry.Spec is MenuSpec
+                {
+                    Icon: { Kind: MenuIconKind.Builtin, Value: "play" },
+                });
         }
         finally
         {

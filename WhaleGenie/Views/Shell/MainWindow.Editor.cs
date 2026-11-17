@@ -38,7 +38,7 @@ public partial class MainWindow : AppWindow
     /// editor back so that a check can write in it; nothing else reads that.
     /// </summary>
     internal MacroEditorWindow? OpenEditor(MacroItem? editing, MacroItem? existing, bool draft,
-        MacroView? newView = null)
+        MacroView? newView = null, IReadOnlyList<TriggerEntry>? entries = null)
     {
         if (DataContext is not MainViewModel viewModel)
         {
@@ -58,7 +58,7 @@ public partial class MainWindow : AppWindow
         // whose text recognition models are already loaded.
         var editor = new MacroEditorWindow(editing, [.. viewModel.Macros], viewModel.CurrentPath,
             SharedDevices.Current, viewModel.Triggers, callableOnly: false, newView,
-            viewModel.Persisted);
+            viewModel.Persisted, entries: entries);
 
         // Recovered work is unsaved by definition, so closing that editor has to ask about it rather
         // than let it go without a word.
@@ -69,7 +69,7 @@ public partial class MainWindow : AppWindow
 
         var commit = new EditorCommitState(existing, newView ?? MacroView.All);
         _editor = editor;
-        editor.Commit = macro => CommitEditorSnapshot(editor, macro, commit, viewModel);
+        editor.Commit = draft => CommitEditorSnapshot(editor, draft, commit, viewModel);
         editor.Closed += (_, _) => OnEditorClosed(editor, commit, viewModel);
 
         // The editor stands beside the list rather than replacing it, so both stay on screen and
@@ -92,12 +92,12 @@ public partial class MainWindow : AppWindow
             Tray?.ComeBack();
         }
 
-        if (editor.Result is not { } macro)
+        if (editor.Result is not { } draft)
         {
             return;
         }
 
-        CommitEditorSnapshot(editor, macro, commit, viewModel);
+        CommitEditorSnapshot(editor, draft, commit, viewModel);
     }
 
     /// <summary>
@@ -106,9 +106,10 @@ public partial class MainWindow : AppWindow
     /// and replacing one that is no longer there would silently drop the edit. False leaves the
     /// work in the editor, which shows why and keeps its draft.
     /// </summary>
-    private bool CommitEditorSnapshot(MacroEditorWindow editor, MacroItem macro,
+    private bool CommitEditorSnapshot(MacroEditorWindow editor, MacroDraft draft,
         EditorCommitState commit, MainViewModel viewModel)
     {
+        var macro = draft.Macro;
         if (commit.Target is { } target && !viewModel.Macros.Contains(target))
         {
             return false;
@@ -129,8 +130,8 @@ public partial class MainWindow : AppWindow
 
         if (commit.Target is null)
         {
-            ApplyEditorTriggerSettings(viewModel, macro);
-            viewModel.AddMacro(macro);
+            ApplyEditorTriggerSettings(viewModel, draft.Layouts);
+            viewModel.AddMacro(macro, draft.Entries);
             PlaceNewMacro(commit.NewView, macro, viewModel);
             commit.Target = macro;
             _recovery?.Follow();
@@ -139,15 +140,15 @@ public partial class MainWindow : AppWindow
 
         // Saving an unchanged macro is not a project change. This also makes the close after a
         // successful save a no-op rather than a second insertion or replacement.
-        if (Same(commit.Target, macro))
+        if (Same(viewModel, commit.Target, draft))
         {
             return true;
         }
 
         // The edited macro replaces the one the trigger may be running.
-        _triggers?.Stop(commit.Target);
-        ApplyEditorTriggerSettings(viewModel, macro);
-        if (!viewModel.ReplaceMacro(commit.Target, macro))
+        _triggers?.Stop(commit.Target.Name);
+        ApplyEditorTriggerSettings(viewModel, draft.Layouts);
+        if (!viewModel.ReplaceMacro(commit.Target, macro, draft.Entries))
         {
             return false;
         }
@@ -173,11 +174,8 @@ public partial class MainWindow : AppWindow
             case MacroView.Menu when viewModel.Triggers.FirstFreeMenuCell() is { } cell:
                 viewModel.Triggers.Entries.Add(new TriggerEntry
                 {
-                    Kind = TriggerKind.Menu,
+                    Spec = new MenuSpec(cell.PageId, cell.Row, cell.Column),
                     MacroName = macro.Name,
-                    MenuPageId = cell.PageId,
-                    MenuRow = cell.Row,
-                    MenuColumn = cell.Column,
                     IsEnabled = true,
                 });
                 break;
@@ -189,37 +187,44 @@ public partial class MainWindow : AppWindow
     }
 
     /// <summary>
-    /// Whether the editor brought back the very same macro. The editor builds the macro again as it
-    /// hands it over, so this is a question about what the macro says rather than about which object
-    /// it is; two macros that read the same are written to the package the same way.
+    /// Whether the editor brought back the very same macro, triggers and layouts. The editor builds
+    /// the macro again as it hands it over, so this is a question about what the macro says rather
+    /// than about which object it is; two macros that read the same are written the same way.
     /// </summary>
-    private static bool Same(MacroItem one, MacroItem other)
-        => string.Equals(one.ToJson().ToJsonString(), other.ToJson().ToJsonString(),
+    private static bool Same(MainViewModel viewModel, MacroItem target, MacroDraft draft)
+        => string.Equals(target.ToJson().ToJsonString(), draft.Macro.ToJson().ToJsonString(),
             StringComparison.Ordinal)
-           && string.Equals(TriggerJson(one), TriggerJson(other), StringComparison.Ordinal)
-           && string.Equals(EditorSettingsJson(one), EditorSettingsJson(other), StringComparison.Ordinal);
+           && string.Equals(TriggerJson(viewModel.Triggers.ForMacro(target.Name)),
+               TriggerJson(draft.Entries), StringComparison.Ordinal)
+           && string.Equals(LayoutJson(viewModel.Triggers.InterfaceLayouts),
+               LayoutJson(draft.Layouts), StringComparison.Ordinal);
 
-    private static string TriggerJson(MacroItem macro)
+    private static string TriggerJson(IReadOnlyList<TriggerEntry> entries)
     {
-        var entries = new JsonArray();
-        foreach (var entry in macro.Triggers)
+        var array = new JsonArray();
+        foreach (var entry in entries)
         {
-            entries.Add(entry.ToJson());
+            array.Add(entry.ToJson());
         }
 
-        return entries.ToJsonString();
+        return array.ToJsonString();
     }
 
-    private static string EditorSettingsJson(MacroItem macro)
-        => new JsonObject
-        {
-            ["layouts"] = new JsonArray(
-                [.. macro.InterfaceLayouts.Select(layout => layout.ToJson())]),
-        }.ToJsonString();
-
-    private static void ApplyEditorTriggerSettings(MainViewModel viewModel, MacroItem macro)
+    private static string LayoutJson(IReadOnlyList<InterfaceLayout> layouts)
     {
-        foreach (var layout in macro.InterfaceLayouts)
+        var array = new JsonArray();
+        foreach (var layout in layouts)
+        {
+            array.Add(layout.ToJson());
+        }
+
+        return array.ToJsonString();
+    }
+
+    private static void ApplyEditorTriggerSettings(MainViewModel viewModel,
+        IReadOnlyList<InterfaceLayout> layouts)
+    {
+        foreach (var layout in layouts)
         {
             viewModel.Triggers.StoreInterfaceHotkey(layout.Window, layout.ToggleHotkey);
         }

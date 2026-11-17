@@ -137,7 +137,7 @@ public partial class McpServerTests
                     ["draftId"] = draft,
                     ["name"] = "宏设置",
                     ["operations"] = JsonNode.Parse(
-                        """[{"op":"macro","description":"改过的","delayScale":0.5,"triggerMode":"Timer"}]"""),
+                        """[{"op":"macro","description":"改过的","delayScale":0.5,"toggleKey":"F7"}]"""),
                 })).RootElement;
             Assert.Equal(3, answer.GetProperty("changed").GetArrayLength());
             Assert.Equal("description", answer.GetProperty("changed")[0].GetProperty("field").GetString());
@@ -150,14 +150,16 @@ public partial class McpServerTests
                 })).RootElement;
             Assert.Equal("改过的", macro.GetProperty("description").GetString());
             Assert.Equal(0.5, macro.GetProperty("delayScale").GetDouble());
-            Assert.Equal("Timer", macro.GetProperty("triggerMode").GetString());
+            Assert.Equal("F7", macro.GetProperty("toggleKey").GetString());
 
+            // What starts a macro is not a field any more: the trigger table is the one source, so
+            // a field patch that tries to set one is refused rather than silently ignored.
             var refused = await client.CallToolAsync("whalegenie_patch_macro",
                 new Dictionary<string, object?>
                 {
                     ["draftId"] = draft,
                     ["name"] = "宏设置",
-                    ["operations"] = JsonNode.Parse("""[{"op":"macro","triggerMode":"Nonsense"}]"""),
+                    ["operations"] = JsonNode.Parse("""[{"op":"macro","triggerMode":"Timer"}]"""),
                 });
             Assert.True(refused.IsError);
 

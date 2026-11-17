@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 
 
@@ -84,22 +85,22 @@ public sealed partial class ProjectTriggers
 
         return new JsonObject
         {
-            ["entries"] = entries,
-            ["interfaceLayouts"] = layouts,
-            ["menu"] = new JsonObject
+            [FieldNames.Entries] = entries,
+            [FieldNames.InterfaceLayouts] = layouts,
+            [FieldNames.Menu] = new JsonObject
             {
-                ["pages"] = new JsonArray([.. MenuPages.Select(page => page.ToJson())]),
-                ["blockedRules"] = new JsonArray(
+                [FieldNames.Pages] = new JsonArray([.. MenuPages.Select(page => page.ToJson())]),
+                [FieldNames.BlockedRules] = new JsonArray(
                     [.. BlockedMenuRules.Select(rule => (JsonNode)rule.ToJson())]),
             },
-            ["wheel"] = Wheel.ToJson(),
+            [FieldNames.Wheel] = Wheel.ToJson(),
         };
     }
 
     public static ProjectTriggers FromJson(JsonObject? node)
     {
         var triggers = new ProjectTriggers();
-        foreach (var item in node?["entries"] as JsonArray ?? [])
+        foreach (var item in node?[FieldNames.Entries] as JsonArray ?? [])
         {
             if (item is JsonObject entry)
             {
@@ -107,7 +108,7 @@ public sealed partial class ProjectTriggers
             }
         }
 
-        foreach (var item in node?["interfaceLayouts"] as JsonArray ?? [])
+        foreach (var item in node?[FieldNames.InterfaceLayouts] as JsonArray ?? [])
         {
             if (item is JsonObject layout)
             {
@@ -115,17 +116,17 @@ public sealed partial class ProjectTriggers
             }
         }
 
-        if (node?["menu"] is JsonObject menu)
+        if (node?[FieldNames.Menu] is JsonObject menu)
         {
             triggers.MenuPages.Clear();
-            foreach (var item in menu["pages"] as JsonArray ?? [])
+            foreach (var item in menu[FieldNames.Pages] as JsonArray ?? [])
             {
                 if (item is JsonObject page)
                 {
                     triggers.MenuPages.Add(MenuPage.FromJson(page));
                 }
             }
-            foreach (var item in menu["blockedRules"] as JsonArray ?? [])
+            foreach (var item in menu[FieldNames.BlockedRules] as JsonArray ?? [])
             {
                 if (item is JsonObject rule)
                 {
@@ -134,33 +135,10 @@ public sealed partial class ProjectTriggers
             }
         }
 
-        triggers.Wheel = node?["wheel"] is JsonObject wheel
+        triggers.Wheel = node?[FieldNames.Wheel] is JsonObject wheel
             ? WheelMenuRules.FromJson(wheel)
             : new WheelMenuRules();
         triggers.EnsureMenuPages();
-        return triggers;
-    }
-
-    public static ProjectTriggers FromMacros(IEnumerable<MacroItem> macros)
-    {
-        var triggers = new ProjectTriggers();
-        foreach (var macro in macros)
-        {
-            var entries = macro.Triggers.Count > 0
-                ? macro.Triggers.Select(entry => entry.Copy())
-                : [TriggerEntry.FromMacro(macro)];
-            foreach (var entry in entries)
-            {
-                entry.MacroName = macro.Name;
-                triggers.Entries.Add(entry);
-            }
-        }
-
-        foreach (var layout in macros.SelectMany(macro => macro.InterfaceLayouts)
-                     .DistinctBy(layout => layout.GroupKey))
-        {
-            triggers.InterfaceLayouts.Add(layout with { });
-        }
         return triggers;
     }
 }

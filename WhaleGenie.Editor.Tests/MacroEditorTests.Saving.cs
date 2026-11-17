@@ -37,7 +37,7 @@ public partial class MacroEditorTests
             // The list is not waiting on the editor — it steps aside instead — so what the editor
             // ends with has to be readable from the window as it closes.
             Assert.NotNull(window.Result);
-            Assert.Equal("probe", window.Result!.Name);
+            Assert.Equal("probe", window.Result!.Macro.Name);
 
             var letGo = new MacroEditorWindow(new MacroItem { Name = "other" }, []);
             letGo.Show();
@@ -94,10 +94,10 @@ public partial class MacroEditorTests
                 Assert.NotNull(built);
 
                 var path = Path.Combine(folder, "probe.wgmacro");
-                MacroPackage.Save(path, [built!], [], "0.0.0");
+                MacroPackage.Save(path, [built!.Macro], new ProjectTriggers(), [], "0.0.0");
                 var read = MacroPackage.Load(path).Macros.Single();
 
-                Assert.Equal(built!.ToJson().ToJsonString(), read.ToJson().ToJsonString());
+                Assert.Equal(built.Macro.ToJson().ToJsonString(), read.ToJson().ToJsonString());
             });
         }
         finally

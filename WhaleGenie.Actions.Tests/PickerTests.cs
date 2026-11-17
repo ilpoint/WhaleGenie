@@ -347,7 +347,7 @@ public class PickerTests
                 ],
             });
 
-            MacroPackage.Save(package, [macro], [], "test");
+            MacroPackage.Save(package, [macro], new ProjectTriggers(), [], "test");
 
             // The picture travels inside the package, under the folder the format reserves for it.
             using (var archive = ZipFile.OpenRead(package))

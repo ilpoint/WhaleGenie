@@ -12,12 +12,11 @@ using WhaleGenie.Localization;
 
 namespace WhaleGenie.Models;
 
-// The names the macro declares, and the sentence its trigger reads as.
+// The names the macro declares, and the settings that belong to the macro rather than a trigger.
 public partial class MacroItem : ObservableObject, ILanguageAware
 {
-
-    /// <summary>Allowed colour difference (percent) before the watched pixel counts as a match.</summary>
-    public int ColorTolerance { get; set; } = 5;
+    /// <summary>What a recorded pointer position stores: where it is, or how it moved.</summary>
+    public MousePositionMode PositionCapture { get; set; } = MousePositionMode.SaveCurrentPosition;
 
     public bool RecordMouseMovement { get; set; } = true;
 

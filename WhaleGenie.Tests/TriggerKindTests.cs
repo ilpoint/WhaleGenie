@@ -17,18 +17,7 @@ public class TriggerKindTests
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();
-            TriggerKind[] offered =
-            [
-                TriggerKind.Key,
-                TriggerKind.Color,
-                TriggerKind.Interface,
-                TriggerKind.Hotstring,
-                TriggerKind.Timer,
-                TriggerKind.File,
-                TriggerKind.Process,
-                TriggerKind.Window,
-                TriggerKind.Idle,
-            ];
+            var offered = TriggerKinds.Editable;
 
             Assert.Equal(offered, editor.TriggerKindChoices.Select(choice => choice.Kind));
 
@@ -71,7 +60,7 @@ public class TriggerKindTests
             Assert.Equal(3, editor.TriggerEntries.Count);
             Assert.Equal(TriggerKind.Color, firstColor.Kind);
             Assert.Equal(TriggerKind.Color, secondColor.Kind);
-            Assert.Equal("F8", key.BindKey);
+            Assert.Equal("F8", ((KeySpec)key.Spec).Binding);
             Assert.Same(secondColor, editor.SelectedTrigger);
 
             editor.RemoveTriggerCommand.Execute(firstColor);
@@ -79,7 +68,7 @@ public class TriggerKindTests
             Assert.DoesNotContain(firstColor, editor.TriggerEntries);
             Assert.Same(secondColor, editor.SelectedTrigger);
 
-            var menu = new TriggerEntry { Kind = TriggerKind.Menu };
+            var menu = new TriggerEntry { Spec = new MenuSpec() };
             editor.TriggerEntries.Add(menu);
             editor.SelectedTrigger = menu;
             editor.RemoveTriggerCommand.Execute(menu);
@@ -95,20 +84,8 @@ public class TriggerKindTests
         Ui.Run(() =>
         {
             var editor = new MacroEditorViewModel();
-            TriggerKind[] kinds =
-            [
-                TriggerKind.Key,
-                TriggerKind.Color,
-                TriggerKind.Interface,
-                TriggerKind.Hotstring,
-                TriggerKind.Timer,
-                TriggerKind.File,
-                TriggerKind.Process,
-                TriggerKind.Window,
-                TriggerKind.Idle,
-            ];
 
-            foreach (var kind in kinds)
+            foreach (var kind in TriggerKinds.Editable)
             {
                 editor.AddTriggerCommand.Execute(kind);
 
@@ -195,11 +172,11 @@ public class TriggerKindTests
     }
 
     /// <summary>
-    /// A macro nobody bound anything to is an ordinary state: no trigger, and it repeats once
-    /// rather than until the key is pressed again.
+    /// A macro nobody bound anything to is an ordinary state: no trigger, and the key it does get
+    /// repeats once rather than until the key is pressed again.
     /// </summary>
     [Fact]
-    public void A_new_macro_has_no_trigger_and_repeats_once()
+    public void A_new_macro_has_no_trigger_and_its_key_repeats_once()
     {
         var viewModel = new MainViewModel();
         viewModel.AddMacro(new MacroItem { Name = "fresh" });
@@ -208,14 +185,8 @@ public class TriggerKindTests
         Assert.True(viewModel.Triggers.InView("fresh", MacroView.All));
         Assert.False(viewModel.Triggers.InView("fresh", MacroView.Keys));
 
-        Assert.Equal(MacroLoop.Press, new MacroItem().LoopMode);
-        Assert.Equal(MacroLoop.Press, new TriggerEntry().LoopMode);
-
-        // A file written without the field is read with the same default, not with the old one.
-        var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
-        Assert.Equal(MacroLoop.Press, macro.LoopMode);
-        Assert.Equal(MacroLoop.Press,
-            TriggerEntry.FromJson(new System.Text.Json.Nodes.JsonObject()).LoopMode);
+        Assert.Equal(MacroLoop.Press, new KeySpec().Loop);
+        Assert.IsType<KeySpec>(new TriggerEntry().Spec);
     }
 
     [Fact]
@@ -259,7 +230,6 @@ public class TriggerKindTests
                 editor.WindowChangeIndex = (int)change;
                 Assert.Equal(change, editor.WindowChange);
             }
-
         });
     }
 
@@ -278,43 +248,37 @@ public class TriggerKindTests
                 Trim: false,
                 Multiline: true);
             var macro = new MacroItem { Name = "Probe" };
-            macro.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Process,
-                ProcessName = " notepad ",
-                ProcessChange = ProcessChangeKind.Stopped,
-                TriggerOnce = true,
-            });
-            macro.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.File,
-                WatchPath = " notes.txt ",
-                WatchChange = FileChangeKind.Created,
-                WatchFilter = "*.log",
-                WatchSubfolders = true,
-            });
-            macro.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Timer,
-                ScheduleMode = ScheduleMode.Daily,
-                ScheduleTime = "21:15",
-                ScheduleInterval = 30,
-                ScheduleUnit = ScheduleUnit.Minutes,
-            });
-            macro.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Window,
-                WindowTarget = windowRule,
-                WindowChange = WindowChangeKind.Disappeared,
-            });
-            macro.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Idle,
-                IdleSeconds = 90,
-            });
+            List<TriggerEntry> entries =
+            [
+                new()
+                {
+                    MacroName = macro.Name,
+                    Spec = new ProcessSpec(" notepad ", ProcessChangeKind.Stopped, Once: true),
+                },
+                new()
+                {
+                    MacroName = macro.Name,
+                    Spec = new FileSpec(" notes.txt ", FileChangeKind.Created, "*.log", true),
+                },
+                new()
+                {
+                    MacroName = macro.Name,
+                    Spec = new TimerSpec(ScheduleMode.Daily, "21:15", 30, ScheduleUnit.Minutes),
+                },
+                new()
+                {
+                    MacroName = macro.Name,
+                    Spec = new WindowSpec(windowRule, WindowChangeKind.Disappeared),
+                },
+                new()
+                {
+                    MacroName = macro.Name,
+                    Spec = new IdleSpec(90),
+                },
+            ];
 
             var editor = new MacroEditorViewModel();
-            editor.LoadFrom(macro);
+            editor.LoadFrom(macro, entries);
 
             // Each entry has to be the selected one once, because that is when the fields on the
             // page are written back into it.
@@ -323,134 +287,48 @@ public class TriggerKindTests
                 editor.SelectedTrigger = entry;
             }
 
-            MacroItem? saved = null;
+            MacroDraft? saved = null;
             editor.CloseRequested += built => saved = built;
             editor.SaveCommand.Execute(null);
 
             Assert.NotNull(saved);
-            var process = saved.Triggers.Single(entry => entry.Kind == TriggerKind.Process);
-            Assert.Equal("notepad", process.ProcessName);
-            Assert.Equal(ProcessChangeKind.Stopped, process.ProcessChange);
-            Assert.True(process.TriggerOnce);
+            var process = Assert.IsType<ProcessSpec>(
+                saved.Entries.Single(entry => entry.Kind == TriggerKind.Process).Spec);
+            Assert.Equal("notepad", process.Name);
+            Assert.Equal(ProcessChangeKind.Stopped, process.Change);
+            Assert.True(process.Once);
 
-            var file = saved.Triggers.Single(entry => entry.Kind == TriggerKind.File);
-            Assert.Equal("notes.txt", file.WatchPath);
-            Assert.Equal(FileChangeKind.Created, file.WatchChange);
-            Assert.Equal("*.log", file.WatchFilter);
-            Assert.True(file.WatchSubfolders);
+            var file = Assert.IsType<FileSpec>(
+                saved.Entries.Single(entry => entry.Kind == TriggerKind.File).Spec);
+            Assert.Equal("notes.txt", file.Path);
+            Assert.Equal(FileChangeKind.Created, file.Change);
+            Assert.Equal("*.log", file.Filter);
+            Assert.True(file.Subfolders);
 
-            var timer = saved.Triggers.Single(entry => entry.Kind == TriggerKind.Timer);
-            Assert.Equal(ScheduleMode.Daily, timer.ScheduleMode);
-            Assert.Equal("21:15", timer.ScheduleTime);
-            Assert.Equal(30, timer.ScheduleInterval);
-            Assert.Equal(ScheduleUnit.Minutes, timer.ScheduleUnit);
+            var timer = Assert.IsType<TimerSpec>(
+                saved.Entries.Single(entry => entry.Kind == TriggerKind.Timer).Spec);
+            Assert.Equal(ScheduleMode.Daily, timer.Mode);
+            Assert.Equal("21:15", timer.Time);
+            Assert.Equal(30, timer.Interval);
+            Assert.Equal(ScheduleUnit.Minutes, timer.Unit);
 
-            var window = saved.Triggers.Single(entry => entry.Kind == TriggerKind.Window);
-            Assert.Equal(windowRule, window.WindowTarget);
-            Assert.Equal(WindowChangeKind.Disappeared, window.WindowChange);
+            var window = Assert.IsType<WindowSpec>(
+                saved.Entries.Single(entry => entry.Kind == TriggerKind.Window).Spec);
+            Assert.Equal(windowRule, window.Target);
+            Assert.Equal(WindowChangeKind.Disappeared, window.Change);
 
-            Assert.Equal(90, saved.Triggers.Single(entry => entry.Kind == TriggerKind.Idle).IdleSeconds);
+            Assert.Equal(90, Assert.IsType<IdleSpec>(
+                saved.Entries.Single(entry => entry.Kind == TriggerKind.Idle).Spec).Seconds);
         });
     }
 
     [Fact]
     public void A_trigger_the_editor_has_not_filled_in_gets_usable_defaults()
     {
-        Ui.Run(() =>
-        {
-            var editor = new MacroEditorViewModel { Name = "probe" };
-            editor.WatchFilter = "   ";
-            editor.ScheduleInterval = null;
-
-            MacroItem? saved = null;
-            editor.CloseRequested += built => saved = built;
-            editor.SaveCommand.Execute(null);
-
-            Assert.NotNull(saved);
-            Assert.Equal("*", saved.WatchFilter);
-            Assert.Equal(5, saved.ScheduleInterval);
-            Assert.Equal(60, saved.IdleSeconds);
-            Assert.Equal(ScheduleMode.Interval, saved.ScheduleMode);
-            Assert.Equal(ScheduleUnit.Seconds, saved.ScheduleUnit);
-        });
-    }
-
-    [Fact]
-    public void A_program_trigger_is_previewed_with_the_program()
-    {
-        var macro = new MacroItem
-        {
-            TriggerMode = MacroTrigger.Process,
-            ProcessName = "notepad",
-            ProcessChange = ProcessChangeKind.Stopped,
-        };
-
-        Assert.True(macro.IsProcessTrigger);
-        Assert.Equal("notepad", macro.TriggerPreview);
-
-        var restored = MacroItem.FromJson(macro.ToJson());
-
-        Assert.Equal("notepad", restored.ProcessName);
-        Assert.Equal(ProcessChangeKind.Stopped, restored.ProcessChange);
-    }
-
-    [Fact]
-    public void A_window_trigger_is_previewed_with_the_window_and_survives_being_saved()
-    {
-        var macro = new MacroItem
-        {
-            TriggerMode = MacroTrigger.Window,
-            WindowTarget = new WindowRule(Title: "Save As"),
-            WindowChange = WindowChangeKind.Appeared,
-        };
-
-        Assert.True(macro.IsWindowTrigger);
-        Assert.Equal("Save As", macro.TriggerPreview);
-
-        var restored = MacroItem.FromJson(macro.ToJson());
-
-        Assert.Equal(new WindowRule(Title: "Save As"), restored.WindowTarget);
-        Assert.Equal(WindowChangeKind.Appeared, restored.WindowChange);
-    }
-
-    [Fact]
-    public void A_macro_written_before_the_window_trigger_existed_waits_for_a_title()
-    {
-        var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
-
-        Assert.Equal(WindowRule.Empty, macro.WindowTarget);
-        Assert.Equal(WindowChangeKind.Appeared, macro.WindowChange);
-    }
-
-    [Fact]
-    public void A_macro_written_before_the_program_trigger_existed_reads_back_as_a_start()
-    {
-        var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
-
-        Assert.Equal(string.Empty, macro.ProcessName);
-        Assert.Equal(ProcessChangeKind.Started, macro.ProcessChange);
-    }
-
-    [Fact]
-    public void An_idle_trigger_is_previewed_with_its_wait_and_survives_being_saved()
-    {
-        var macro = new MacroItem
-        {
-            TriggerMode = MacroTrigger.Idle,
-            IdleSeconds = 120,
-        };
-
-        Assert.True(macro.IsIdleTrigger);
-        Assert.Contains("120", macro.TriggerPreview);
-
-        Assert.Equal(120, MacroItem.FromJson(macro.ToJson()).IdleSeconds);
-    }
-
-    [Fact]
-    public void A_macro_written_before_the_idle_trigger_existed_waits_a_minute()
-    {
-        var macro = MacroItem.FromJson(new System.Text.Json.Nodes.JsonObject { ["name"] = "Old" });
-
-        Assert.Equal(60, macro.IdleSeconds);
+        Assert.Equal("*", new FileSpec().Filter);
+        Assert.Equal(5, new TimerSpec().Interval);
+        Assert.Equal(60, new IdleSpec().Seconds);
+        Assert.Equal(ScheduleMode.Interval, new TimerSpec().Mode);
+        Assert.Equal(ScheduleUnit.Seconds, new TimerSpec().Unit);
     }
 }

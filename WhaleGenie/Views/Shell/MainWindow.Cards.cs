@@ -93,7 +93,7 @@ public partial class MainWindow : AppWindow
 
         if (choice == ConfirmChoice.Primary)
         {
-            _triggers?.Stop(macro);
+            _triggers?.Stop(macro.Name);
             viewModel.RemoveMacro(macro);
             RefreshRunning(viewModel);
         }
@@ -133,11 +133,11 @@ public partial class MainWindow : AppWindow
         // Arming a macro again gives a "trigger once" macro a fresh chance to run.
         if (macro.IsEnabled)
         {
-            _triggers?.Rearm(macro);
+            _triggers?.Rearm(macro.Name);
         }
         else
         {
-            _triggers?.Stop(macro);
+            _triggers?.Stop(macro.Name);
         }
 
         RefreshRunning(viewModel);

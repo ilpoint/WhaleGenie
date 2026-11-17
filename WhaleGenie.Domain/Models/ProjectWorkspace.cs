@@ -32,12 +32,12 @@ public sealed class ProjectWorkspace : ObservableObject
         Variables = variables ?? new VariableSession();
         _appVersion = appVersion;
 
-        // A trigger entry is edited in the trigger panel, not through a macro: attaching the
-        // entries to the macros again is what keeps a renamed macro reachable, and the project
-        // counts as changed because the entries are written into the package.
+        // A trigger entry is edited in the trigger panel, not through a macro. The entries are the
+        // project's only triggers, so a change here only has to re-say what the cards show; the
+        // project counts as changed because the entries are written into the package.
         Triggers.Changed += (_, _) =>
         {
-            Triggers.Attach([.. Macros]);
+            Triggers.Project([.. Macros]);
             MarkDirty();
         };
     }
@@ -90,8 +90,12 @@ public sealed class ProjectWorkspace : ObservableObject
     /// </summary>
     public event EventHandler? Changed;
 
-    /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
-    public void AddMacro(MacroItem macro)
+    /// <summary>
+    /// Adds a macro created in the macro editor and assigns it a display name. The entries the
+    /// editor made for it come in the same write, so the project never holds a macro whose triggers
+    /// have not arrived yet.
+    /// </summary>
+    public void AddMacro(MacroItem macro, IReadOnlyList<TriggerEntry>? entries = null)
     {
         if (string.IsNullOrWhiteSpace(macro.Name))
         {
@@ -110,8 +114,21 @@ public sealed class ProjectWorkspace : ObservableObject
         // A macro without a trigger is a real state: it is listed in "all" and runs when something
         // calls it. Inventing an empty key entry here made every new macro look like a key macro
         // whose key had merely not been chosen yet.
-        Macros.Add(macro);
-        Triggers.ReplaceMacro(macro.Name, macro.Triggers.Select(entry => entry.Copy()));
+        Triggers.BeginBatch();
+        try
+        {
+            Macros.Add(macro);
+            if (entries is not null)
+            {
+                Triggers.ReplaceMacro(macro.Name, entries);
+            }
+        }
+        finally
+        {
+            Triggers.EndBatch();
+        }
+
+        Triggers.Project([macro]);
         MarkDirty();
     }
 
@@ -120,7 +137,11 @@ public sealed class ProjectWorkspace : ObservableObject
     /// was still there: a draft applied while an editor is open replaces the list's instances, and
     /// the editor's save must be told rather than quietly written nowhere.
     /// </summary>
-    public bool ReplaceMacro(MacroItem original, MacroItem edited)
+    /// <param name="entries">
+    /// The trigger entries the editor was showing, or null to leave the project's own entries alone.
+    /// </param>
+    public bool ReplaceMacro(MacroItem original, MacroItem edited,
+        IReadOnlyList<TriggerEntry>? entries = null)
     {
         var index = Macros.IndexOf(original);
         if (index < 0)
@@ -129,13 +150,26 @@ public sealed class ProjectWorkspace : ObservableObject
         }
 
         edited.IsEnabled = original.IsEnabled;
-        if (!string.Equals(original.Name, edited.Name, StringComparison.Ordinal))
+        Triggers.BeginBatch();
+        try
         {
-            Triggers.RenameMacro(original.Name, edited.Name);
+            if (!string.Equals(original.Name, edited.Name, StringComparison.Ordinal))
+            {
+                Triggers.RenameMacro(original.Name, edited.Name);
+            }
+
+            Macros[index] = edited;
+            if (entries is not null)
+            {
+                Triggers.ReplaceMacro(edited.Name, entries);
+            }
+        }
+        finally
+        {
+            Triggers.EndBatch();
         }
 
-        Macros[index] = edited;
-        Triggers.ReplaceMacro(edited.Name, edited.Triggers.Select(entry => entry.Copy()));
+        Triggers.Project([edited]);
         MarkDirty();
         return true;
     }
@@ -209,8 +243,7 @@ public sealed class ProjectWorkspace : ObservableObject
             Macros.Add(macro);
         }
         Triggers.ReplaceAll(contents.Triggers);
-        Triggers.Attach([.. Macros]);
-
+        Triggers.Project([.. Macros]);
         LoadSharedVariables(contents.Globals, replace: true, Persisted);
 
         CurrentPath = path;
@@ -260,7 +293,7 @@ public sealed class ProjectWorkspace : ObservableObject
             Macros.Add(macro);
         }
         Triggers.ReplaceAll(contents.Triggers);
-        Triggers.Attach([.. Macros]);
+        Triggers.Project([.. Macros]);
 
         LoadSharedVariables(contents.Globals, replace: true, Persisted);
 
@@ -272,9 +305,6 @@ public sealed class ProjectWorkspace : ObservableObject
     /// Replaces the project with a draft the MCP tools have been editing. The caller has already
     /// checked the revision; this is only the write.
     /// </summary>
-    public void ApplyDraft(IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals)
-        => ApplyDraft(macros, ProjectTriggers.FromMacros(macros), globals);
-
     public void ApplyDraft(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition> globals)
     {
@@ -284,7 +314,7 @@ public sealed class ProjectWorkspace : ObservableObject
             Macros.Add(macro);
         }
         Triggers.ReplaceAll(triggers);
-        Triggers.Attach([.. Macros]);
+        Triggers.Project([.. Macros]);
 
         Variables.ClearGlobals();
         foreach (var global in globals)

@@ -49,11 +49,6 @@ public static partial class MacroPackage
         return Path.Combine(AppPaths.Projects, $"{stem}-{hash}");
     }
 
-    /// <summary>Writes the macros and shared variables into a package file.</summary>
-    public static void Save(string path, IReadOnlyList<MacroItem> macros,
-        IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder = null)
-        => Save(path, macros, ProjectTriggers.FromMacros(macros), globals, appVersion, assetFolder);
-
     /// <summary>
     /// Writes the macro bodies and the project-wide trigger entries into one package.
     /// </summary>
@@ -68,8 +63,6 @@ public static partial class MacroPackage
         ProjectTriggers triggers, IReadOnlyList<VariableDefinition> globals, string appVersion,
         string? assetFolder = null)
     {
-        triggers.Attach(macros);
-
         // A macro the editor has just built has names but no identities yet. Settling here is
         // idempotent: a macro that came from a file keeps every id it has, and a new declaration
         // gets one before the file is written rather than on the next load.

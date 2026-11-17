@@ -5,64 +5,59 @@ using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
-
 
 namespace WhaleGenie.Runtime;
 
 // Running a macro the trigger chose, and the guard around each stage of it.
 public sealed partial class MacroTriggerService
 {
-
-    // ---------------------------------------------------------------- running
-
-    /// <summary>Runs one macro once for a floating button or menu selection.</summary>
-    public void RunOnce(MacroItem macro)
+    /// <summary>
+    /// Starts one armed trigger. A "run once" entry is written down as spent only after the run has
+    /// really begun: a start refused because the macro is empty, switched off or already running
+    /// must not use the entry up.
+    /// </summary>
+    public bool TryStart(ArmedTrigger trigger, bool repeating)
     {
-        if (macro.IsEnabled)
+        var once = TriggerKinds.RunsOnce(trigger.Spec);
+        if (once && _hub.State.IsSpent(trigger.Id))
         {
-            Start(macro, repeating: false);
-        }
-    }
-
-    private void StartFrom(TriggerEntry entry, MacroItem macro, bool repeating)
-    {
-        lock (_gate)
-        {
-            if (entry.TriggerOnce && _spent.Contains(entry))
-            {
-                return;
-            }
-
-            if (entry.TriggerOnce)
-            {
-                _spent.Add(entry);
-            }
+            return false;
         }
 
-        Start(macro, repeating);
+        if (!Start(trigger.Macro, repeating))
+        {
+            return false;
+        }
+
+        if (once)
+        {
+            _hub.State.MarkSpent(trigger.Id);
+        }
+
+        return true;
     }
 
-    private void Start(MacroItem macro, bool repeating)
+    private bool Start(MacroRef macro, bool repeating)
     {
         CancellationTokenSource cancellation;
         lock (_gate)
         {
-            if (!_enabled || _disposed || macro.Steps.Count == 0 || _running.ContainsKey(macro))
+            if (!Listening || macro.Steps.Count == 0 || _running.ContainsKey(macro.Name))
             {
-                return;
+                return false;
             }
 
             cancellation = new CancellationTokenSource();
-            _running[macro] = cancellation;
+            _running[macro.Name] = new RunSlot(macro, cancellation);
         }
 
         StatusChanged?.Invoke();
         _ = Task.Run(() => RunAsync(macro, repeating, cancellation));
+        return true;
     }
 
-    private async Task RunAsync(MacroItem macro, bool repeating, CancellationTokenSource cancellation)
+    private async Task RunAsync(MacroRef macro, bool repeating, CancellationTokenSource cancellation)
     {
         var token = cancellation.Token;
         var capture = RunLogStore.Begin(macro.Name, "trigger");
@@ -90,16 +85,17 @@ public sealed partial class MacroTriggerService
                     Scale = macro.DelayScale,
                     InputRate = macro.InputRate,
                     Looks = capture,
-                    StartSignature = macro.Callable.Signature,
+                    StartSignature = macro.Signature,
                 });
                 var result = await runner.RunAsync(steps, token);
                 last = result;
-                if (result.Status != RunStatus.Completed || !repeating || StoppingAfterPass(macro))
+                if (result.Status != RunStatus.Completed || !repeating
+                    || _hub.Stopping(macro.Name))
                 {
                     break;
                 }
 
-                await Task.Delay(RepeatGapMs, token);
+                await Task.Delay(TriggerPace.RepeatGapMs, token);
             }
         }
         catch (OperationCanceledException)
@@ -118,13 +114,18 @@ public sealed partial class MacroTriggerService
 
             lock (_gate)
             {
-                _running.Remove(macro);
-                _colourHeld.Remove(macro);
-                _colourStopping.Remove(macro);
+                _running.Remove(macro.Name);
             }
 
+            _hub.RunEnded(macro.Name);
             cancellation.Dispose();
             StatusChanged?.Invoke();
         }
     }
+
+    /// <summary>The plan's macros, in the shape a "run another macro" step calls them by.</summary>
+    private IMacroLibrary Library()
+        => new ProjectMacroLibrary(_hub.Plan.Macros
+            .Where(macro => macro.Name.Length > 0)
+            .Select(macro => (macro.Name, macro.Steps.ToExecutable(), macro.Signature)));
 }

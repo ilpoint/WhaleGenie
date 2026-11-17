@@ -29,10 +29,10 @@ public partial class WheelMenuTests
             state.Options.Launcher = WheelOptions.RightButton;
             WheelMenuStore.Save(state);
 
-            var snapshots = new TriggerRuntimeSnapshotStore();
-            snapshots.Publish(new ProjectTriggers(), []);
             using var service = new MacroTriggerService(
-                () => snapshots.Current, NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents());
+                NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlan.From(new ProjectTriggers(), [],
+                LocalSettings.LoadMenuLauncher()));
             var requested = 0;
             service.MenuRequested += () => requested++;
 

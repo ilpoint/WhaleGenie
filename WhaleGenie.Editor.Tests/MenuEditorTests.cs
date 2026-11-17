@@ -15,7 +15,7 @@ public class MenuEditorTests
         Assert.True(triggers.DefaultContextMenuPage().IsDefault);
         Assert.Empty(triggers.ContextMenuPages());
         Assert.Equal(4, ProjectTriggers.MenuColumns);
-        Assert.Equal(6, ProjectTriggers.MenuRows);
+        Assert.Equal(6, ProjectTriggers.MenuRegionRows * 2);
     }
 
     [Fact]
@@ -32,18 +32,11 @@ public class MenuEditorTests
         Assert.Same(triggers.CommonMenuPages()[^1], ninth);
 
         var page = triggers.CommonMenuPages()[1];
-        triggers.Entries.Add(new TriggerEntry
-        {
-            Kind = TriggerKind.Menu,
-            MacroName = "one",
-            MenuPageId = page.Id,
-            MenuRow = 0,
-            MenuColumn = 0,
-        });
+        triggers.Entries.Add(new TriggerEntry { MacroName = "one", Spec = new MenuSpec(page.Id, 0, 0) });
         triggers.RemoveMenuPage(page.Id);
 
         Assert.DoesNotContain(triggers.MenuPages, candidate => candidate.Id == page.Id);
-        Assert.DoesNotContain(triggers.Entries, entry => entry.MenuPageId == page.Id);
+        Assert.DoesNotContain(triggers.Entries, entry => entry.Spec is MenuSpec menu && menu.PageId == page.Id);
     }
 
     [Fact]
@@ -123,22 +116,8 @@ public class MenuEditorTests
         var rule = new WindowRule(Title: "Notepad");
         var first = triggers.AddContextMenuPage(rule);
         var second = triggers.AddContextMenuPage(rule);
-        triggers.Entries.Add(new TriggerEntry
-        {
-            Kind = TriggerKind.Menu,
-            MacroName = macro.Name,
-            MenuPageId = first.Id,
-            MenuRow = 0,
-            MenuColumn = 0,
-        });
-        triggers.Entries.Add(new TriggerEntry
-        {
-            Kind = TriggerKind.Menu,
-            MacroName = macro.Name,
-            MenuPageId = second.Id,
-            MenuRow = 0,
-            MenuColumn = 1,
-        });
+        triggers.Entries.Add(new TriggerEntry { MacroName = macro.Name, Spec = new MenuSpec(first.Id, 0, 0) });
+        triggers.Entries.Add(new TriggerEntry { MacroName = macro.Name, Spec = new MenuSpec(second.Id, 0, 1) });
 
         var layout = triggers.BuildMenuLayout(windows.Open[0], windows, [macro]);
 
@@ -161,10 +140,7 @@ public class MenuEditorTests
 
     private static TriggerEntry Menu(string page, string macro) => new()
     {
-        Kind = TriggerKind.Menu,
         MacroName = macro,
-        MenuPageId = page,
-        MenuRow = 0,
-        MenuColumn = 0,
+        Spec = new MenuSpec(page, 0, 0),
     };
 }

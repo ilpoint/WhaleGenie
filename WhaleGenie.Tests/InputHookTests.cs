@@ -40,12 +40,7 @@ public class InputHookTests
     {
         Ui.RunAsync(async () =>
         {
-            var macro = new MacroItem
-            {
-                Name = "按键触发的",
-                TriggerMode = MacroTrigger.KeystrokesButtonInputs,
-                BindKey = "F6",
-            };
+            var macro = new MacroItem { Name = "按键触发的" };
 
             // Long enough that the run is still going when it is asked about: starting happens on a
             // thread of its own.
@@ -65,7 +60,8 @@ public class InputHookTests
 
             var hook = new FakeInputHook();
             using var service = new MacroTriggerService(
-                () => [macro], NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents(), hook);
+                NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents(), hook);
+            service.Publish(TriggerPlans.For(macro, new KeySpec("F6")));
 
             service.IsEnabled = true;
 
@@ -87,7 +83,7 @@ public class InputHookTests
             WhaleGenieInputGate.Note("F6");
             service.Answer(Key("F6"), pressed: true);
             await Task.Delay(200);
-            Assert.False(service.IsRunning(macro));
+            Assert.False(service.IsRunning(macro.Name));
 
             // Switching the system off lets the hook go again.
             service.IsEnabled = false;
@@ -102,12 +98,7 @@ public class InputHookTests
     {
         Ui.RunAsync(async () =>
         {
-            var macro = new MacroItem
-            {
-                Name = "组合键触发的",
-                TriggerMode = MacroTrigger.KeystrokesButtonInputs,
-                BindKey = "Ctrl+Shift+S",
-            };
+            var macro = new MacroItem { Name = "组合键触发的" };
 
             macro.Steps.Add(new MacroStep
             {
@@ -125,14 +116,15 @@ public class InputHookTests
 
             var hook = new FakeInputHook();
             using var service = new MacroTriggerService(
-                () => [macro], NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents(), hook);
+                NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents(), hook);
+            service.Publish(TriggerPlans.For(macro, new KeySpec("Ctrl+Shift+S")));
 
             service.IsEnabled = true;
 
             // The last key on its own is not the combination.
             service.Answer(Key("S"), pressed: true);
             await Task.Delay(200);
-            Assert.False(service.IsRunning(macro));
+            Assert.False(service.IsRunning(macro.Name));
 
             // With the modifiers down it is, and which side of each was pressed does not matter:
             // a combination writes its modifiers without a side.
@@ -168,7 +160,7 @@ public class InputHookTests
     {
         for (var waited = 0; waited < 2000; waited += 20)
         {
-            if (service.IsRunning(macro))
+            if (service.IsRunning(macro.Name))
             {
                 return true;
             }

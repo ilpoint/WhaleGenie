@@ -62,7 +62,7 @@ public partial class MacroEditorViewModel
     /// <summary>Adds an entry and shows it, without counting as an edit the person made.</summary>
     private TriggerEntry AddEntry(TriggerKind kind)
     {
-        var entry = new TriggerEntry { Kind = kind, MacroName = Name.Trim() };
+        var entry = new TriggerEntry { Spec = TriggerKinds.Default(kind), MacroName = Name.Trim() };
         WatchTriggerEntry(entry);
         TriggerEntries.Add(entry);
         SelectedTrigger = entry;
@@ -117,22 +117,26 @@ public partial class MacroEditorViewModel
 
     public void LoadDraftProjectSettings(MacroItem macro)
     {
-        var loading = _loading;
-        _loading = true;
-        try
-        {
-            _interfaceLayouts.Clear();
-            foreach (var layout in macro.InterfaceLayouts)
-            {
-                _interfaceLayouts[layout.GroupKey] = layout with { };
-            }
-        }
-        finally
-        {
-            _loading = loading;
-        }
-        UpdateInterfaceGroupFields();
+        // The layouts a project holds are the same for every one of its macros, so a draft opens on
+        // what LoadProjectTriggerSettings already read; nothing here belongs to the macro itself.
     }
+
+    /// <summary>
+    /// The interface layouts as the drawer has them. Layouts belong to a group of macros, so they
+    /// are written back to the project rather than kept on the macro being edited.
+    /// </summary>
+    public IReadOnlyList<InterfaceLayout> InterfaceLayoutsSnapshot()
+        => [.. _interfaceLayouts.Values.Select(layout => layout with { })];
+
+    /// <summary>
+    /// What this editor hands the project when it saves. The entries travel with the macro because
+    /// the project writes them as one change, and the layouts because the drawer may have changed a
+    /// group's switch key.
+    /// </summary>
+    public MacroDraft Draft() => new(
+        BuildMacro(),
+        [.. TriggerEntries.Select(entry => entry.Copy())],
+        InterfaceLayoutsSnapshot());
 
     public bool SetInterfaceToggleHotkey(string binding)
     {
@@ -295,30 +299,30 @@ public partial class MacroEditorViewModel
         get
         {
             var problems = new List<string>();
-            foreach (var entry in TriggerEntries.Where(entry => entry.Kind == TriggerKind.Hotstring))
+            foreach (var spec in TriggerEntries.Select(entry => entry.Spec).OfType<HotstringSpec>())
             {
-                if (entry.Abbreviation.Length == 0)
+                if (spec.Abbreviation.Length == 0)
                 {
                     problems.Add(Strings.Get("Editor.Problem.EmptyHotstring"));
                 }
-                else if (entry.Abbreviation.Length > HotstringRecognizer.MaximumAbbreviationLength)
+                else if (spec.Abbreviation.Length > HotstringRecognizer.MaximumAbbreviationLength)
                 {
                     problems.Add(Strings.Format("Editor.Problem.LongHotstring",
                         HotstringRecognizer.MaximumAbbreviationLength));
                 }
 
-                if (!HotstringCharacters.IsAllowed(entry.Abbreviation))
+                if (!HotstringCharacters.IsAllowed(spec.Abbreviation))
                 {
                     problems.Add(Strings.Get("Editor.Problem.HotstringCharacters"));
                 }
 
-                if (entry.RequireEndChar
-                    && HotstringCharacters.ParseEndChars(entry.HotstringEndChars).Count == 0)
+                if (spec.RequireEndChar
+                    && HotstringCharacters.ParseEndChars(spec.EndChars).Count == 0)
                 {
                     problems.Add(Strings.Get("Editor.Problem.EmptyHotstringEndChars"));
                 }
 
-                if (HotstringCharacters.ParseEndChars(entry.HotstringEndChars)
+                if (HotstringCharacters.ParseEndChars(spec.EndChars)
                     .Any(value => value.Length != 1 || !HotstringCharacters.IsAllowed(value[0])))
                 {
                     problems.Add(Strings.Get("Editor.Problem.HotstringEndCharacters"));
@@ -326,9 +330,8 @@ public partial class MacroEditorViewModel
             }
 
             var bindings = TriggerEntries
-                .Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Key
-                    && entry.BindKey.Trim().Length > 0)
-                .Select(entry => entry.BindKey.Trim())
+                .Where(entry => entry.IsEnabled && entry.Spec is KeySpec { Binding.Length: > 0 })
+                .Select(entry => ((KeySpec)entry.Spec).Binding.Trim())
                 .Concat(InterfaceHotkeysForChecks())
                 .Append(ToggleKey.Trim())
                 .Append(LocalSettings.LoadMenuLauncher())
@@ -360,38 +363,12 @@ public partial class MacroEditorViewModel
 
     public bool HasTriggerProblem => TriggerProblemSummary.Length > 0;
 
-    private static readonly TriggerKind[] EditableTriggerKinds =
-    [
-        TriggerKind.Key,
-        TriggerKind.Color,
-        TriggerKind.Interface,
-        TriggerKind.Hotstring,
-        TriggerKind.Timer,
-        TriggerKind.File,
-        TriggerKind.Process,
-        TriggerKind.Window,
-        TriggerKind.Idle,
-    ];
-
     public IReadOnlyList<string> TriggerKindOptions =>
-    [
-        .. EditableTriggerKinds.Select(kind => Strings.Get(kind switch
-        {
-            TriggerKind.Key => "Trigger.Keys",
-            TriggerKind.Color => "Trigger.Color",
-            TriggerKind.Interface => "Trigger.Interface",
-            TriggerKind.Hotstring => "Trigger.Hotstring",
-            TriggerKind.Timer => "Trigger.Timer",
-            TriggerKind.File => "Trigger.File",
-            TriggerKind.Process => "Trigger.Process",
-            TriggerKind.Window => "Trigger.Window",
-            _ => "Trigger.Idle",
-        })),
-    ];
+        [.. TriggerKinds.Editable.Select(TriggerKinds.Text)];
 
     public IReadOnlyList<TriggerKindChoice> TriggerKindChoices =>
     [
-        .. EditableTriggerKinds.Select((kind, index) =>
+        .. TriggerKinds.Editable.Select((kind, index) =>
             new TriggerKindChoice(kind, TriggerKindOptions[index])),
     ];
 

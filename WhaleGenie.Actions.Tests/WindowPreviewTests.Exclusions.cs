@@ -130,12 +130,11 @@ public partial class WindowPreviewTests
                 };
 
                 var macro = new MacroItem { Name = "probe" };
-                macro.Triggers.Add(new TriggerEntry
+                var entries = new List<TriggerEntry>
                 {
-                    Kind = TriggerKind.Window,
-                    WindowTarget = WindowRule.Empty,
-                });
-                var window = new MacroEditorWindow(macro, [macro], null, devices);
+                    new() { MacroName = macro.Name, Spec = new WindowSpec(WindowRule.Empty) },
+                };
+                var window = new MacroEditorWindow(macro, [macro], null, devices, entries: entries);
                 window.Show();
                 Dispatcher.UIThread.RunJobs();
 

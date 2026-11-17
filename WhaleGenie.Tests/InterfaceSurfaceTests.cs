@@ -124,9 +124,8 @@ public class InterfaceSurfaceTests
         {
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Interface,
                 MacroName = macro.Name == "Macro2" ? "  Macro2  " : macro.Name,
-                WindowTarget = rule,
+                Spec = new InterfaceSpec(rule),
             });
         }
 
@@ -145,9 +144,8 @@ public class InterfaceSurfaceTests
         [
             new TriggerEntry
             {
-                Kind = TriggerKind.Interface,
                 MacroName = "Macro2",
-                WindowTarget = new WindowRule(Title: "target"),
+                Spec = new InterfaceSpec(new WindowRule(Title: "target")),
             },
         ]);
 
@@ -165,24 +163,22 @@ public class InterfaceSurfaceTests
         {
             var rule = new WindowRule(Title: "target");
             var one = new MacroItem { Name = "one" };
-            one.Triggers.Add(new TriggerEntry
-            {
-                Kind = TriggerKind.Interface,
-                MacroName = one.Name,
-                WindowTarget = rule,
-            });
             var two = new MacroItem { Name = "two" };
-            two.Triggers.Add(new TriggerEntry
+            var triggers = new ProjectTriggers();
+            triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Interface,
-                MacroName = two.Name,
-                WindowTarget = rule,
+                MacroName = one.Name,
+                Spec = new InterfaceSpec(rule),
             });
-            var triggers = ProjectTriggers.FromMacros([one, two]);
+            triggers.Entries.Add(new TriggerEntry
+            {
+                MacroName = two.Name,
+                Spec = new InterfaceSpec(rule),
+            });
             triggers.StoreInterfaceHotkey(rule, "Ctrl+Alt+U");
 
             var editor = new MacroEditorViewModel();
-            editor.LoadFrom(one);
+            editor.LoadFrom(one, triggers.ForMacro(one.Name));
             editor.LoadProjectTriggerSettings(triggers, [one, two]);
             editor.SelectedTrigger = editor.TriggerEntries
                 .Single(entry => entry.Kind == TriggerKind.Interface);
@@ -192,12 +188,12 @@ public class InterfaceSurfaceTests
             Assert.Contains("two", editor.InterfaceGroupMembers);
 
             editor.SetInterfaceToggleHotkey("Ctrl+Alt+J");
-            MacroItem? saved = null;
-            editor.CloseRequested += macro => saved = macro;
+            MacroDraft? saved = null;
+            editor.CloseRequested += draft => saved = draft;
             editor.SaveCommand.Execute(null);
 
             Assert.NotNull(saved);
-            Assert.Contains(saved!.InterfaceLayouts,
+            Assert.Contains(saved!.Layouts,
                 layout => layout.GroupKey == ProjectTriggers.GroupKey(rule)
                     && layout.ToggleHotkey == "Ctrl+Alt+J");
         });
@@ -218,17 +214,16 @@ public class InterfaceSurfaceTests
             {
                 var rule = new WindowRule(Title: "target");
                 var macro = new MacroItem { Name = "one" };
-                macro.Triggers.Add(new TriggerEntry
+                var triggers = new ProjectTriggers();
+                triggers.Entries.Add(new TriggerEntry
                 {
-                    Kind = TriggerKind.Interface,
                     MacroName = macro.Name,
-                    WindowTarget = rule,
+                    Spec = new InterfaceSpec(rule),
                 });
-                var triggers = ProjectTriggers.FromMacros([macro]);
                 triggers.StoreInterfaceHotkey(rule, "Ctrl+Alt+U");
 
                 var editor = new MacroEditorViewModel();
-                editor.LoadFrom(macro);
+                editor.LoadFrom(macro, triggers.ForMacro(macro.Name));
                 editor.LoadProjectTriggerSettings(triggers, [macro]);
                 editor.SelectedTrigger = editor.TriggerEntries
                     .Single(entry => entry.Kind == TriggerKind.Interface);
@@ -258,15 +253,14 @@ public class InterfaceSurfaceTests
         {
             var rule = new WindowRule(Title: "target");
             var macro = new MacroItem { Name = "one" };
-            macro.Triggers.Add(new TriggerEntry
+            var triggers = new ProjectTriggers();
+            triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Interface,
                 MacroName = macro.Name,
-                WindowTarget = rule,
+                Spec = new InterfaceSpec(rule),
             });
-            var triggers = ProjectTriggers.FromMacros([macro]);
             var editor = new MacroEditorViewModel();
-            editor.LoadFrom(macro);
+            editor.LoadFrom(macro, triggers.ForMacro(macro.Name));
             editor.LoadProjectTriggerSettings(triggers, [macro]);
             editor.SelectedTrigger = editor.TriggerEntries
                 .Single(entry => entry.Kind == TriggerKind.Interface);
@@ -284,13 +278,12 @@ public class InterfaceSurfaceTests
         project.AddMacro(projectMacro);
         project.Triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Interface,
             MacroName = projectMacro.Name,
-            WindowTarget = interfaceRule,
+            Spec = new InterfaceSpec(interfaceRule),
         });
         project.Triggers.StoreInterfaceHotkey(interfaceRule, "NumPadSubtract");
 
-        var match = GlobalHotkeyPlan.From(project).Match("NumPadSubtract", []);
+        var match = GlobalHotkeyPlan.From(project, LocalSettings.LoadSystemHotkey(), "").Match("NumPadSubtract", []);
         Assert.Equal(GlobalHotkeyAction.ToggleInterfaceGroup, match.Action);
     }
 }

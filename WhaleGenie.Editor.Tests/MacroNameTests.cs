@@ -47,7 +47,7 @@ public class MacroNameTests
             viewModel.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
-            Assert.Equal("Macro 4", window.Result?.Name);
+            Assert.Equal("Macro 4", window.Result?.Macro.Name);
         });
     }
 
@@ -99,7 +99,13 @@ public class MacroNameTests
                 Parameters =
                 [new StepParameter { Name = "ms", Kind = ActionParameterKind.Text, Written = Formula.Number(5) }]
             });
-            MacroPackage.Save(path, [incoming], [], "test");
+            var arrivingTriggers = new ProjectTriggers();
+            arrivingTriggers.Entries.Add(new TriggerEntry
+            {
+                MacroName = "整理",
+                Spec = new KeySpec("F5"),
+            });
+            MacroPackage.Save(path, [incoming], arrivingTriggers, [], "test");
 
             var contents = MacroPackage.Load(path);
             var project = new MainViewModel();
@@ -115,9 +121,9 @@ public class MacroNameTests
 
             // Its trigger entries follow the new name, or the entry and the macro would disagree
             // about which macro the package brought.
-            Assert.NotEmpty(arrived.Triggers);
-            Assert.All(arrived.Triggers,
-                entry => Assert.Equal(arrived.Name, entry.MacroName));
+            var arrivedEntries = project.Triggers.ForMacro(arrived.Name);
+            Assert.NotEmpty(arrivedEntries);
+            Assert.All(arrivedEntries, entry => Assert.Equal(arrived.Name, entry.MacroName));
         }
         finally
         {

@@ -35,7 +35,7 @@ public partial class MacroPackageFormatTests
             first.Steps.Add(Step("先读到的"));
             var second = new MacroItem { Name = "整理" };
             second.Steps.Add(Step("后读到的"));
-            MacroPackage.Save(path, [first, second], [], "test");
+            MacroPackage.Save(path, [first, second], new ProjectTriggers(), [], "test");
 
             var loaded = MacroPackage.Load(path).Macros;
 

@@ -192,10 +192,9 @@ public partial class SettingsViewModel
         }
 
         foreach (var entry in Project.Triggers.Entries.Where(entry =>
-                     entry.IsEnabled && entry.Kind == TriggerKind.Key
-                     && entry.BindKey.Trim().Length > 0))
+                     entry.IsEnabled && entry.Spec is KeySpec { Binding.Length: > 0 }))
         {
-            yield return entry.BindKey.Trim();
+            yield return ((KeySpec)entry.Spec).Binding.Trim();
         }
         foreach (var layout in Project.Triggers.InterfaceLayouts.Where(layout =>
                      layout.ToggleHotkey.Trim().Length > 0))

@@ -42,18 +42,18 @@ public partial class MacroEditorWindow : AppWindow
     }
 
     /// <summary>
-    /// The macro the editor finished with, or null when it was let go. The editor is not a dialog —
-    /// the main list steps aside while it is up rather than waiting on it — so what it ends with is
-    /// read from here as it closes.
+    /// What the editor finished with — the macro, its triggers and its layouts — or null when it was
+    /// let go. The editor is not a dialog: the main list steps aside while it is up rather than
+    /// waiting on it, so what it ends with is read from here as it closes.
     /// </summary>
-    internal MacroItem? Result { get; private set; }
+    internal MacroDraft? Result { get; private set; }
 
     /// <summary>
     /// Hands the macro and its child pages to the project. Answers whether the project took it:
     /// false means the macro this editor was opened on is no longer in the list, and the work stays
     /// here rather than being written over a version somebody else made.
     /// </summary>
-    internal Func<MacroItem, bool>? Commit
+    internal Func<MacroDraft, bool>? Commit
     {
         get => _commit.Commit;
         set => _commit.Commit = value;
@@ -87,6 +87,7 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     private void WriteDraft()
         => RecoveryStore.SaveEditor(_documentPages.Snapshot(),
+            _rootViewModel.Draft().Entries,
             _session.Editing?.Name ?? string.Empty);
 
     /// <summary>

@@ -44,11 +44,11 @@ public partial class MacroEditorTests
 
             var saved = window.Result;
             Assert.NotNull(saved);
-            Assert.False(saved!.ToJson().ContainsKey("exclusiveInput"));
-            Assert.False(saved.ToSubMacroJson().ContainsKey("exclusiveInput"));
+            Assert.False(saved!.Macro.ToJson().ContainsKey("exclusiveInput"));
+            Assert.False(saved.Macro.ToSubMacroJson().ContainsKey("exclusiveInput"));
 
             // 旧包：多出来的那一格不该让这个包读不开，也不该被照原样写回去。
-            var older = saved.ToJson();
+            var older = saved.Macro.ToJson();
             older["exclusiveInput"] = true;
             Assert.False(MacroItem.FromJson(older).ToJson().ContainsKey("exclusiveInput"));
         });
@@ -78,7 +78,7 @@ public partial class MacroEditorTests
 
                 var saved = window.Result;
                 Assert.NotNull(saved);
-                Assert.False(saved!.ToJson()["recorder"]!.AsObject().ContainsKey("ignoreInjected"));
+                Assert.False(saved!.Macro.ToJson()["recorder"]!.AsObject().ContainsKey("ignoreInjected"));
             });
         }
         finally

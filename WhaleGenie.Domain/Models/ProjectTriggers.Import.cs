@@ -1,37 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Text.Json.Nodes;
-using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Localization;
-
 
 namespace WhaleGenie.Models;
 
-// Keeping the entries in step with the macros: attaching, replacing and merging a project.
+// Taking in another set of triggers whole, and merging the part of it a package brings along.
 public sealed partial class ProjectTriggers
 {
-    public void Attach(IReadOnlyList<MacroItem> macros)
-    {
-        foreach (var macro in macros)
-        {
-            macro.Triggers.Clear();
-            var entries = ForMacro(macro.Name);
-            if (entries.Count == 0)
-            {
-                entries = [TriggerEntry.FromMacro(macro)];
-            }
-
-            macro.Triggers.AddRange(entries.Select(entry => entry.Copy()));
-            macro.InterfaceLayouts.Clear();
-            macro.InterfaceLayouts.AddRange(InterfaceLayouts.Select(layout => layout with { }));
-            macro.RefreshTriggers();
-        }
-    }
-
     public void ReplaceAll(ProjectTriggers other)
     {
         Entries.Clear();
@@ -99,11 +75,12 @@ public sealed partial class ProjectTriggers
             MenuPages.Add(page with { Id = id });
         }
 
-        foreach (var entry in Entries.Where(entry => entry.Kind == TriggerKind.Menu
-                     && importedNames.Contains(entry.MacroName)
-                     && idMap.TryGetValue(entry.MenuPageId, out _)))
+        foreach (var entry in Entries.Where(entry => importedNames.Contains(entry.MacroName)
+                     && entry.Spec is MenuSpec menu
+                     && idMap.ContainsKey(menu.PageId)))
         {
-            entry.MenuPageId = idMap[entry.MenuPageId];
+            var menu = (MenuSpec)entry.Spec;
+            entry.MoveMenuCell(idMap[menu.PageId], menu.Row, menu.Column);
         }
 
         foreach (var rule in imported.BlockedMenuRules)

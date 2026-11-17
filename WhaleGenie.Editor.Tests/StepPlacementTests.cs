@@ -98,7 +98,7 @@ public class StepPlacementTests
             macro.Steps.Add(Case("one"));
             var editor = new MacroEditorViewModel();
 
-            editor.LoadFrom(macro);
+            editor.LoadFrom(macro, []);
 
             Assert.Equal("control.case", Assert.Single(editor.Steps).Type);
             Assert.True(editor.HasStepProblems);

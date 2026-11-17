@@ -19,8 +19,14 @@ public sealed partial class ProjectTriggers
 {
     public const int MenuColumns = 4;
     public const int MenuRegionRows = 3;
-    public const int MenuRows = MenuRegionRows * 2;
     public const int MaxCommonMenuPages = 8;
+
+    /// <summary>
+    /// How many writes are being made as one. A replace takes every entry out and puts new ones in;
+    /// without this, each of those steps would announce a whole new project to the list, the menu
+    /// and the runtime.
+    /// </summary>
+    private int _batch;
 
     public ProjectTriggers()
     {
@@ -49,5 +55,25 @@ public sealed partial class ProjectTriggers
 
     public event EventHandler? Changed;
 
-    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    public void NotifyChanged() => RaiseChanged();
+
+    /// <summary>Holds the change notices back until the matching <see cref="EndBatch"/>.</summary>
+    public void BeginBatch() => _batch++;
+
+    public void EndBatch()
+    {
+        if (_batch > 0 && --_batch == 0)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    /// <summary>Announces a change unless the caller is still writing the batch it belongs to.</summary>
+    private void RaiseChanged()
+    {
+        if (_batch == 0)
+        {
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
 }

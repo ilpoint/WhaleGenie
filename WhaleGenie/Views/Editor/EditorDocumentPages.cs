@@ -66,7 +66,7 @@ internal sealed class EditorDocumentPages(
     public MacroDocumentPageViewModel AddExisting(MacroItem macro)
     {
         var editor = NewEditor();
-        editor.LoadFrom(macro);
+        editor.LoadFrom(macro, []);
         editor.SubMacros.Clear();
         editor.IsDirty = true;
         watch(editor);
@@ -152,7 +152,7 @@ internal sealed class EditorDocumentPages(
             // nested pages are the ones the loop has to add after this child.
             var nested = child.SubMacros.ToList();
             var editor = NewEditor();
-            editor.LoadFrom(child);
+            editor.LoadFrom(child, []);
             editor.SubMacros.Clear();
             watch(editor);
             AddChild(editor, child);

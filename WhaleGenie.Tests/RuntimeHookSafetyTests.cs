@@ -46,13 +46,12 @@ public class RuntimeHookSafetyTests
         var rule = new WindowRule(Title: "target");
         viewModel.Triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Interface,
             MacroName = "macro",
-            WindowTarget = rule,
+            Spec = new InterfaceSpec(rule),
         });
         viewModel.Triggers.StoreInterfaceHotkey(rule, "Ctrl+Alt+H");
 
-        var plan = GlobalHotkeyPlan.From(viewModel);
+        var plan = Plan(viewModel);
         var match = plan.Match("H", ["左Ctrl", "左Alt"]);
 
         Assert.Equal(GlobalHotkeyAction.ToggleInterfaceGroup, match.Action);
@@ -68,7 +67,7 @@ public class RuntimeHookSafetyTests
         var viewModel = new MainViewModel { IsRunning = true };
         viewModel.AddMacro(new MacroItem { Name = "探针", IsEnabled = false, ToggleKey = "F9" });
 
-        var match = GlobalHotkeyPlan.From(viewModel).Match("F9", []);
+        var match = Plan(viewModel).Match("F9", []);
 
         Assert.Equal(GlobalHotkeyAction.ToggleMacro, match.Action);
         Assert.Equal("探针", match.MacroName);
@@ -82,13 +81,12 @@ public class RuntimeHookSafetyTests
         viewModel.AddMacro(new MacroItem { Name = "探针", ToggleKey = "F9" });
         viewModel.Triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Key,
             MacroName = "探针",
-            BindKey = "F9",
+            Spec = new KeySpec("F9"),
         });
 
         Assert.Equal(GlobalHotkeyAction.None,
-            GlobalHotkeyPlan.From(viewModel).Match("F9", []).Action);
+            Plan(viewModel).Match("F9", []).Action);
     }
 
     /// <summary>组合键写法与触发键一致，退出自动化总开关之后也不再认。</summary>
@@ -115,36 +113,30 @@ public class RuntimeHookSafetyTests
         var viewModel = new MainViewModel();
         viewModel.Triggers.Entries.Add(new TriggerEntry
         {
-            Kind = TriggerKind.Key,
             MacroName = "macro",
-            BindKey = "Home",
+            Spec = new KeySpec("Home"),
         });
 
         Assert.Equal(GlobalHotkeyAction.ToggleSystem,
-            GlobalHotkeyPlan.From(viewModel).Match("Home", []).Action);
+            Plan(viewModel).Match("Home", []).Action);
 
         viewModel.IsRunning = true;
         Assert.Equal(GlobalHotkeyAction.None,
-            GlobalHotkeyPlan.From(viewModel).Match("Home", []).Action);
+            Plan(viewModel).Match("Home", []).Action);
     }
 
     [Fact]
-    public void A_runtime_snapshot_does_not_change_when_the_project_does()
+    public void A_published_plan_does_not_change_when_the_project_does()
     {
         var triggers = new ProjectTriggers();
-        triggers.Entries.Add(new TriggerEntry
-        {
-            Kind = TriggerKind.Hotstring,
-            MacroName = "macro",
-            Abbreviation = "one",
-        });
+        var entry = new TriggerEntry { MacroName = "macro", Spec = new HotstringSpec("one") };
+        triggers.Entries.Add(entry);
         var macro = new MacroItem { Name = "macro" };
-        var store = new TriggerRuntimeSnapshotStore();
 
-        store.Publish(triggers, [macro]);
-        triggers.Entries[0].Abbreviation = "two";
+        var plan = TriggerPlan.From(triggers, [macro], string.Empty);
+        entry.Spec = new HotstringSpec("two");
 
-        Assert.Equal("one", Assert.Single(store.Current.Entries).Abbreviation);
+        Assert.Equal("one", Assert.IsType<HotstringSpec>(Assert.Single(plan.Entries).Spec).Abbreviation);
     }
 
     [Fact]
@@ -156,16 +148,12 @@ public class RuntimeHookSafetyTests
             var triggers = new ProjectTriggers();
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Menu,
                 MacroName = "menu",
-                MenuPageId = triggers.CommonMenuPages()[0].Id,
-                MenuRow = 0,
-                MenuColumn = 0,
+                Spec = new MenuSpec(triggers.CommonMenuPages()[0].Id, 0, 0),
             });
-            var store = new TriggerRuntimeSnapshotStore();
-            store.Publish(triggers, macros);
-            using var service = new MacroTriggerService(() => store.Current,
+            using var service = new MacroTriggerService(
                 NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlan.From(triggers, macros, LocalSettings.LoadMenuLauncher()));
             var requested = false;
             service.MenuRequested += () => requested = true;
 
@@ -180,10 +168,10 @@ public class RuntimeHookSafetyTests
         InOwnSettings("Mouse Middle", () =>
         {
             var triggers = new ProjectTriggers();
-            var store = new TriggerRuntimeSnapshotStore();
-            store.Publish(triggers, []);
-            using var service = new MacroTriggerService(() => store.Current,
+            using var service = new MacroTriggerService(
                 NullDeviceLayer.Instance, new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlan.From(triggers, [],
+                LocalSettings.LoadMenuLauncher()));
             var requested = false;
             service.MenuRequested += () => requested = true;
 
@@ -191,6 +179,11 @@ public class RuntimeHookSafetyTests
             Assert.True(requested);
         });
     }
+
+    /// <summary>The plan the window publishes, with the machine's own keys read the way it reads them.</summary>
+    private static GlobalHotkeyPlan Plan(MainViewModel viewModel)
+        => GlobalHotkeyPlan.From(viewModel, LocalSettings.LoadSystemHotkey(),
+            LocalSettings.LoadMenuLauncher());
 
     private static void InOwnSettings(string launcher, Action check)
     {

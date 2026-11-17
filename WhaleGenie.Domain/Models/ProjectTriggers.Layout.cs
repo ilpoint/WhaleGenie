@@ -25,21 +25,22 @@ public sealed partial class ProjectTriggers
         MenuRuntimePage Page(MenuPage page)
         {
             var cells = Entries
-                .Where(entry => entry.IsEnabled && entry.Kind == TriggerKind.Menu
-                    && entry.MenuPageId == page.Id
-                    && entry.MenuRow is >= 0 and < MenuRegionRows
-                    && entry.MenuColumn is >= 0 and < MenuColumns)
-                .Select(entry => (Entry: entry,
-                    Macro: byName.GetValueOrDefault(entry.MacroName)))
+                .Select(entry => (Entry: entry, Menu: entry.Spec as MenuSpec))
+                .Where(item => item.Entry.IsEnabled && item.Menu is not null
+                    && item.Menu.PageId == page.Id
+                    && item.Menu.Row is >= 0 and < MenuRegionRows
+                    && item.Menu.Column is >= 0 and < MenuColumns)
+                .Select(item => (item.Entry, Menu: item.Menu!,
+                    Macro: byName.GetValueOrDefault(item.Entry.MacroName)))
                 .Where(item => item.Macro is { IsEnabled: true })
-                .GroupBy(item => (item.Entry.MenuRow, item.Entry.MenuColumn))
+                .GroupBy(item => (item.Menu.Row, item.Menu.Column))
                 .Select(group =>
                 {
                     var item = group.First();
                     return new MenuRuntimeCell(
-                        item.Entry.MenuRow,
-                        item.Entry.MenuColumn,
-                        item.Entry.MenuIcon,
+                        item.Menu.Row,
+                        item.Menu.Column,
+                        item.Menu.Icon,
                         item.Entry,
                         item.Macro!);
                 })
@@ -120,14 +121,21 @@ public sealed partial class ProjectTriggers
 
         var names = macros.Select(macro => macro.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in Entries.Where(entry => entry.Kind == TriggerKind.Menu))
+        foreach (var (entry, menu) in Entries
+                     .Select(entry => (Entry: entry, Menu: entry.Spec as MenuSpec))
+                     .Where(item => item.Menu is not null))
         {
-            if (!MenuPages.Any(page => page.Id == entry.MenuPageId))
+            if (menu is null)
+            {
+                continue;
+            }
+
+            if (!MenuPages.Any(page => page.Id == menu.PageId))
             {
                 problems.Add(Strings.Format("Menu.Problem.PageMissing", entry.MacroName));
             }
-            if (entry.MenuRow is < 0 or >= MenuRegionRows
-                || entry.MenuColumn is < 0 or >= MenuColumns)
+            if (menu.Row is < 0 or >= MenuRegionRows
+                || menu.Column is < 0 or >= MenuColumns)
             {
                 problems.Add(Strings.Format("Menu.Problem.CellRange", entry.MacroName));
             }
@@ -135,7 +143,7 @@ public sealed partial class ProjectTriggers
             {
                 problems.Add(Strings.Format("Menu.Problem.MacroMissing", entry.MacroName));
             }
-            if (entry.MenuIcon is { IsEmpty: false } icon
+            if (menu.Icon is { IsEmpty: false } icon
                 && icon.Kind == MenuIconKind.Builtin
                 && knowsIcon is not null
                 && !knowsIcon(icon.Value))
@@ -145,12 +153,13 @@ public sealed partial class ProjectTriggers
         }
 
         foreach (var duplicate in Entries
-                     .Where(entry => entry.Kind == TriggerKind.Menu && entry.IsEnabled)
-                     .GroupBy(entry => (entry.MenuPageId, entry.MenuRow, entry.MenuColumn))
+                     .Select(entry => (Entry: entry, Menu: entry.Spec as MenuSpec))
+                     .Where(item => item.Entry.IsEnabled && item.Menu is not null)
+                     .GroupBy(item => (item.Menu!.PageId, item.Menu.Row, item.Menu.Column))
                      .Where(group => group.Count() > 1))
         {
             problems.Add(Strings.Format("Menu.Problem.CellConflict",
-                duplicate.Key.MenuRow + 1, duplicate.Key.MenuColumn + 1));
+                duplicate.Key.Row + 1, duplicate.Key.Column + 1));
         }
 
         return problems;

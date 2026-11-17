@@ -7,6 +7,7 @@ namespace WhaleGenie.Runtime;
 /// run window shows these, because "my macro did not run" is nearly always answered by which of the
 /// waiting things is not true.
 /// </summary>
+/// <param name="Id">The entry this row is about, so two rows starting the same macro can be told apart.</param>
 /// <param name="Macro">The macro's name.</param>
 /// <param name="Looking">What it waits for, in the words the macro was written with.</param>
 /// <param name="Matched">
@@ -23,6 +24,7 @@ namespace WhaleGenie.Runtime;
 /// watched this way is caught even when it is only up for a moment.
 /// </param>
 public sealed record TriggerWatch(
+    string Id,
     string Macro,
     string Looking,
     bool? Matched,

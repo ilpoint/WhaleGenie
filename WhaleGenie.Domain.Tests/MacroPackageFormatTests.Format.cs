@@ -46,7 +46,7 @@ public partial class MacroPackageFormatTests
         try
         {
             var path = Path.Combine(folder, "old.wgmacro");
-            MacroPackage.Save(path, [new MacroItem { Name = "old" }], [], "test");
+            MacroPackage.Save(path, [new MacroItem { Name = "old" }], new ProjectTriggers(), [], "test");
             RewriteVersion(path, version);
 
             var error = Assert.Throws<InvalidDataException>(() => MacroPackage.Load(path));
@@ -84,7 +84,7 @@ public partial class MacroPackageFormatTests
             child.Steps.Add(new MacroStep { Type = "control.log" });
             parent.SubMacros.Add(child);
 
-            MacroPackage.Save(path, [parent], [], "test");
+            MacroPackage.Save(path, [parent], new ProjectTriggers(), [], "test");
             var loaded = Assert.Single(MacroPackage.Load(path).Macros);
             var loadedChild = Assert.Single(loaded.SubMacros);
 

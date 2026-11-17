@@ -15,23 +15,15 @@ public class FileWatchTests
     [Fact]
     public void Changing_what_is_watched_asks_for_a_watch_of_its_own()
     {
-        var macro = new MacroItem { TriggerMode = MacroTrigger.FileChanges, WatchPath = "notes.txt" };
-        var first = FileWatch.SignatureOf(macro, "/tmp/notes.txt");
+        var spec = new FileSpec("notes.txt");
+        var first = FileWatch.SignatureOf(spec, "/tmp/notes.txt");
 
-        Assert.Equal(first, FileWatch.SignatureOf(macro, "/tmp/notes.txt"));
+        Assert.Equal(first, FileWatch.SignatureOf(spec, "/tmp/notes.txt"));
 
-        macro.WatchFilter = "*.log";
-        Assert.NotEqual(first, FileWatch.SignatureOf(macro, "/tmp/notes.txt"));
-
-        macro.WatchFilter = "*";
-        macro.WatchChange = FileChangeKind.Created;
-        Assert.NotEqual(first, FileWatch.SignatureOf(macro, "/tmp/notes.txt"));
-
-        macro.WatchChange = FileChangeKind.Any;
-        macro.WatchSubfolders = true;
-        Assert.NotEqual(first, FileWatch.SignatureOf(macro, "/tmp/notes.txt"));
-
-        Assert.NotEqual(first, FileWatch.SignatureOf(macro, "/tmp/other.txt"));
+        Assert.NotEqual(first, FileWatch.SignatureOf(spec with { Filter = "*.log" }, "/tmp/notes.txt"));
+        Assert.NotEqual(first, FileWatch.SignatureOf(spec with { Change = FileChangeKind.Created }, "/tmp/notes.txt"));
+        Assert.NotEqual(first, FileWatch.SignatureOf(spec with { Subfolders = true }, "/tmp/notes.txt"));
+        Assert.NotEqual(first, FileWatch.SignatureOf(spec, "/tmp/other.txt"));
     }
 
     [Fact]
@@ -62,13 +54,7 @@ public class FileWatchTests
             File.WriteAllText(file, "one");
 
             using var watch = FileWatch.Create(
-                new MacroItem
-                {
-                    TriggerMode = MacroTrigger.FileChanges,
-                    WatchPath = file,
-                    WatchChange = FileChangeKind.Deleted,
-                },
-                file);
+                new FileSpec(file, FileChangeKind.Deleted), file);
 
             watch.Ensure(DateTime.Now);
 
@@ -89,14 +75,7 @@ public class FileWatchTests
         WithFolder(folder =>
         {
             using var watch = FileWatch.Create(
-                new MacroItem
-                {
-                    TriggerMode = MacroTrigger.FileChanges,
-                    WatchPath = folder,
-                    WatchFilter = "*.log",
-                    WatchChange = FileChangeKind.Created,
-                },
-                folder);
+                new FileSpec(folder, FileChangeKind.Created, "*.log"), folder);
 
             watch.Ensure(DateTime.Now);
 
@@ -113,7 +92,7 @@ public class FileWatchTests
     public void A_path_that_is_not_there_yet_is_left_for_later_rather_than_crashing()
     {
         using var watch = FileWatch.Create(
-            new MacroItem { TriggerMode = MacroTrigger.FileChanges, WatchPath = "missing.txt" },
+            new FileSpec("missing.txt"),
             Path.Combine(Path.GetTempPath(), "whalegenie-not-here-" + Guid.NewGuid(), "missing.txt"));
 
         watch.Ensure(DateTime.Now);
@@ -123,9 +102,7 @@ public class FileWatchTests
 
     private static FileWatch WatchAnything(string path)
     {
-        var watch = FileWatch.Create(
-            new MacroItem { TriggerMode = MacroTrigger.FileChanges, WatchPath = path },
-            path);
+        var watch = FileWatch.Create(new FileSpec(path), path);
 
         watch.Ensure(DateTime.Now);
         return watch;

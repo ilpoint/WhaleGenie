@@ -14,8 +14,11 @@ namespace WhaleGenie.Models;
 // Writing the macro to JSON: the tree, its submacros, arguments, results and locals.
 public partial class MacroItem : ObservableObject, ILanguageAware
 {
-    /// <summary>Serialises the macro into the JSON document the runtime consumes.</summary>
-    public JsonObject ToJson(bool includeTriggers = false)
+    /// <summary>
+    /// Serialises the macro into the JSON document the runtime consumes. What starts the macro is
+    /// not part of it: triggers belong to the project, and the file holds them once.
+    /// </summary>
+    public JsonObject ToJson()
     {
         var steps = new JsonArray();
         foreach (var step in Steps)
@@ -27,42 +30,7 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         {
             ["name"] = Name,
             [FieldNames.Description] = Description,
-            ["triggerMode"] = TriggerMode.ToString(),
-            ["loopMode"] = LoopMode.ToString(),
-            ["bindKey"] = BindKey,
-            ["schedule"] = new JsonObject
-            {
-                ["mode"] = ScheduleMode.ToString(),
-                ["interval"] = ScheduleInterval,
-                ["unit"] = ScheduleUnit.ToString(),
-                ["time"] = ScheduleTime,
-            },
-            ["watch"] = new JsonObject
-            {
-                ["path"] = WatchPath,
-                ["change"] = WatchChange.ToString(),
-                ["filter"] = WatchFilter,
-                ["subfolders"] = WatchSubfolders,
-            },
-            ["process"] = new JsonObject
-            {
-                ["name"] = ProcessName,
-                ["change"] = ProcessChange.ToString(),
-            },
-            ["window"] = WindowTarget.ToJson(),
-            ["windowChange"] = WindowChange.ToString(),
-            ["idleSeconds"] = IdleSeconds,
             ["positionCapture"] = PositionCapture.ToString(),
-            ["colorMatch"] = ColorMatch.ToString(),
-            ["colorPosition"] = new JsonObject
-            {
-                ["x"] = ColorPositionX,
-                ["y"] = ColorPositionY,
-            },
-            ["useCursorPosition"] = UseCursorPosition,
-            ["triggerOnce"] = TriggerOnce,
-            ["hexColor"] = HexColor,
-            ["colorTolerance"] = ColorTolerance,
             ["delayScale"] = DelayScale,
             ["recorder"] = new JsonObject
             {
@@ -97,19 +65,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
         if (ToggleKey.Trim().Length > 0)
         {
             node["toggleKey"] = ToggleKey.Trim();
-        }
-
-        if (includeTriggers)
-        {
-            var triggers = new JsonArray();
-            foreach (var trigger in Triggers)
-            {
-                triggers.Add(trigger.ToJson());
-            }
-
-            node["triggers"] = triggers;
-            node["interfaceLayouts"] = new JsonArray(
-                [.. InterfaceLayouts.Select(layout => layout.ToJson())]);
         }
 
         return node;

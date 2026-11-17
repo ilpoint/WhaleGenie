@@ -53,7 +53,7 @@ public partial class MacroEditorWorkspaceTests
             // the macro the editor was opened on is no longer the one the project holds.
             var theirs = MacroItem.FromJson(committed.ToJson());
             theirs.Name = "theirs";
-            mainModel.Workspace.ApplyDraft([theirs], []);
+            mainModel.Workspace.ApplyDraft([theirs], new ProjectTriggers(), []);
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("theirs", Assert.Single(mainModel.Macros).Name);
 

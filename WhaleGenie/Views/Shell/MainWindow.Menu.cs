@@ -249,16 +249,12 @@ public partial class MainWindow : AppWindow
         {
             viewModel.Triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Menu,
+                Spec = new MenuSpec(slot.PageId, slot.Row, slot.Column),
                 MacroName = macro.Name,
-                MenuPageId = slot.PageId,
-                MenuRow = slot.Row,
-                MenuColumn = slot.Column,
                 IsEnabled = true,
             });
         }
 
-        viewModel.Triggers.Attach([.. viewModel.Macros]);
         viewModel.MarkMenuChanged();
         return RebuildMenuLayout(viewModel);
     }
@@ -382,13 +378,12 @@ public partial class MainWindow : AppWindow
                 return null;
             }
 
-            cell.Entry.MenuIcon = icon.IsEmpty
+            cell.Entry.SetMenuIcon(icon.IsEmpty
                 ? null
                 : icon.Kind == MenuIconKind.Image
                     ? new MenuIconReference(icon.Kind, CopyMenuIcon(icon.Value, viewModel))
-                    : icon;
+                    : icon);
 
-            viewModel.Triggers.Attach([.. viewModel.Macros]);
             viewModel.MarkMenuChanged();
             return RebuildMenuLayout(viewModel);
         }
@@ -430,19 +425,16 @@ public partial class MainWindow : AppWindow
 
         if (target.Cell is { } to)
         {
-            (from.Entry.MenuPageId, to.Entry.MenuPageId) =
-                (target.PageId, source.PageId);
-            (from.Entry.MenuRow, to.Entry.MenuRow) = (target.Row, source.Row);
-            (from.Entry.MenuColumn, to.Entry.MenuColumn) = (target.Column, source.Column);
+            var sourceCell = from.Entry.Spec is MenuSpec menu ? menu : new MenuSpec();
+            var targetCell = to.Entry.Spec is MenuSpec other ? other : new MenuSpec();
+            from.Entry.MoveMenuCell(target.PageId, target.Row, target.Column);
+            to.Entry.MoveMenuCell(source.PageId, sourceCell.Row, sourceCell.Column);
         }
         else
         {
-            from.Entry.MenuPageId = target.PageId;
-            from.Entry.MenuRow = target.Row;
-            from.Entry.MenuColumn = target.Column;
+            from.Entry.MoveMenuCell(target.PageId, target.Row, target.Column);
         }
 
-        viewModel.Triggers.Attach([.. viewModel.Macros]);
         viewModel.MarkMenuChanged();
         return await Task.FromResult<MenuRuntimeLayout?>(RebuildMenuLayout(viewModel));
     }
@@ -465,7 +457,7 @@ public partial class MainWindow : AppWindow
                 var name = KeyNames.MouseName(e.Button);
                 var plan = Volatile.Read(ref _globalHotkeyPlan);
                 if (plan.MenuLauncher.Length > 0
-                    && MacroTriggerService.Binds(plan.MenuLauncher, name, []))
+                    && TriggerKeys.Binds(plan.MenuLauncher, name, []))
                 {
                     e.Suppress = true;
                     Dispatcher.UIThread.Post(() => _menu?.CloseFromLauncher());

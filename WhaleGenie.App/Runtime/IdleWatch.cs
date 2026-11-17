@@ -10,15 +10,17 @@ namespace WhaleGenie.Runtime;
 /// </remarks>
 internal static class IdleWatch
 {
-    /// <summary>How long the machine has been left alone, or zero when the answer is not known.</summary>
-    public static TimeSpan Since()
+    /// <summary>
+    /// How long the machine has been left alone, or null when the machine cannot say. An unknown
+    /// answer is not a quiet spell: reporting zero would keep an idle trigger from ever firing, and
+    /// reporting anything else would fire one that has not been earned.
+    /// </summary>
+    public static TimeSpan? Since()
     {
         var info = new LastInputInfo { Size = (uint)Marshal.SizeOf<LastInputInfo>() };
         if (!GetLastInputInfo(ref info))
         {
-            // An unknown answer reads as "busy", which is the safer way to be wrong: it cannot set
-            // a macro off.
-            return TimeSpan.Zero;
+            return null;
         }
 
         // Both tick counts are 32-bit and come round every seven weeks, so the subtraction is done

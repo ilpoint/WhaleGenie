@@ -92,7 +92,7 @@ public class EditorRecordingTests
             Persisted = new PersistedVariables(),
             Variables = new VariableSession(),
         };
-        root.LoadFrom(macro);
+        root.LoadFrom(macro, []);
 
         var devices = new ChecksDevices { Recorder = recorder };
         var window = new Window();

@@ -1,6 +1,5 @@
-using System.Text.Json.Nodes;
+using System;
 
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Domain.Tests;
@@ -14,17 +13,11 @@ public class MacroScheduleTests
     [Fact]
     public void An_interval_waits_its_gap_from_the_moment_it_is_asked_about()
     {
-        var macro = new MacroItem
-        {
-            TriggerMode = MacroTrigger.Timer,
-            ScheduleMode = ScheduleMode.Interval,
-            ScheduleInterval = 5,
-            ScheduleUnit = ScheduleUnit.Minutes,
-        };
+        var timer = new TimerSpec(Interval: 5, Unit: ScheduleUnit.Minutes);
 
         var from = new DateTime(2026, 10, 6, 9, 0, 0);
 
-        Assert.True(MacroSchedule.TryNextDue(macro, from, out var due));
+        Assert.True(MacroSchedule.TryNextDue(timer, from, out var due));
         Assert.Equal(from.AddMinutes(5), due);
     }
 
@@ -34,17 +27,17 @@ public class MacroScheduleTests
     [InlineData(90, 90)]
     public void A_gap_that_would_spin_is_raised_to_the_shortest_wait(int written, int seconds)
     {
-        var macro = new MacroItem { ScheduleInterval = written, ScheduleUnit = ScheduleUnit.Seconds };
+        var timer = new TimerSpec(Interval: written, Unit: ScheduleUnit.Seconds);
 
-        Assert.Equal(TimeSpan.FromSeconds(seconds), MacroSchedule.Interval(macro));
+        Assert.Equal(TimeSpan.FromSeconds(seconds), MacroSchedule.Interval(timer));
     }
 
     [Fact]
     public void A_very_long_gap_is_kept_inside_what_a_date_can_hold()
     {
-        var macro = new MacroItem { ScheduleInterval = 999_999, ScheduleUnit = ScheduleUnit.Hours };
+        var timer = new TimerSpec(Interval: 999_999, Unit: ScheduleUnit.Hours);
 
-        Assert.Equal(TimeSpan.FromDays(365), MacroSchedule.Interval(macro));
+        Assert.Equal(TimeSpan.FromDays(365), MacroSchedule.Interval(timer));
     }
 
     [Theory]
@@ -69,83 +62,41 @@ public class MacroScheduleTests
     [Fact]
     public void A_daily_time_that_has_gone_today_comes_round_tomorrow()
     {
-        var macro = new MacroItem { ScheduleMode = ScheduleMode.Daily, ScheduleTime = "08:30" };
+        var timer = new TimerSpec(ScheduleMode.Daily, "08:30");
 
         Assert.True(MacroSchedule.TryNextDue(
-            macro, new DateTime(2026, 10, 6, 8, 0, 0), out var today));
+            timer, new DateTime(2026, 10, 6, 8, 0, 0), out var today));
         Assert.Equal(new DateTime(2026, 10, 6, 8, 30, 0), today);
 
         Assert.True(MacroSchedule.TryNextDue(
-            macro, new DateTime(2026, 10, 6, 21, 0, 0), out var tomorrow));
+            timer, new DateTime(2026, 10, 6, 21, 0, 0), out var tomorrow));
         Assert.Equal(new DateTime(2026, 10, 7, 8, 30, 0), tomorrow);
     }
 
     [Fact]
     public void A_daily_schedule_without_a_usable_time_never_comes_round()
     {
-        var macro = new MacroItem { ScheduleMode = ScheduleMode.Daily, ScheduleTime = "half past eight" };
+        var timer = new TimerSpec(ScheduleMode.Daily, "half past eight");
 
-        Assert.False(MacroSchedule.TryNextDue(macro, DateTime.Now, out _));
+        Assert.False(MacroSchedule.TryNextDue(timer, DateTime.Now, out _));
     }
 
     [Fact]
-    public void A_daily_schedule_is_previewed_as_a_time_of_day()
+    public void A_daily_schedule_is_described_as_a_time_of_day()
     {
-        var macro = new MacroItem
-        {
-            TriggerMode = MacroTrigger.Timer,
-            ScheduleMode = ScheduleMode.Daily,
-            ScheduleTime = "21:15",
-        };
+        var timer = new TimerSpec(ScheduleMode.Daily, "21:15");
 
-        Assert.Contains("21:15", MacroSchedule.Describe(macro));
+        Assert.Contains("21:15", MacroSchedule.Describe(timer));
     }
 
     [Fact]
-    public void A_timed_macro_is_previewed_with_its_gap_and_the_clock_icon()
+    public void An_interval_schedule_is_described_with_its_gap_and_unit()
     {
-        var macro = new MacroItem
-        {
-            TriggerMode = MacroTrigger.Timer,
-            ScheduleInterval = 5,
-            ScheduleUnit = ScheduleUnit.Minutes,
-        };
+        var timer = new TimerSpec(Interval: 5, Unit: ScheduleUnit.Minutes);
 
-        Assert.True(macro.IsTimerTrigger);
-        Assert.False(macro.IsKeyboardTrigger);
-        Assert.Contains("5", macro.TriggerPreview);
-        Assert.Contains(Strings.Get("Schedule.Unit.Minutes"), macro.TriggerPreview);
-    }
+        var described = MacroSchedule.Describe(timer);
 
-    [Fact]
-    public void A_schedule_survives_being_saved_and_read_back()
-    {
-        var macro = new MacroItem
-        {
-            Name = "Nightly",
-            TriggerMode = MacroTrigger.Timer,
-            ScheduleMode = ScheduleMode.Daily,
-            ScheduleInterval = 90,
-            ScheduleUnit = ScheduleUnit.Minutes,
-            ScheduleTime = "21:15:30",
-        };
-
-        var restored = MacroItem.FromJson(macro.ToJson());
-
-        Assert.Equal(MacroTrigger.Timer, restored.TriggerMode);
-        Assert.Equal(ScheduleMode.Daily, restored.ScheduleMode);
-        Assert.Equal(90, restored.ScheduleInterval);
-        Assert.Equal(ScheduleUnit.Minutes, restored.ScheduleUnit);
-        Assert.Equal("21:15:30", restored.ScheduleTime);
-    }
-
-    [Fact]
-    public void A_macro_written_before_the_clock_existed_reads_back_with_a_usable_schedule()
-    {
-        var macro = MacroItem.FromJson(new JsonObject { ["name"] = "Old" });
-
-        Assert.Equal(ScheduleMode.Interval, macro.ScheduleMode);
-        Assert.Equal(5, macro.ScheduleInterval);
-        Assert.Equal(ScheduleUnit.Seconds, macro.ScheduleUnit);
+        Assert.Contains("5", described);
+        Assert.Contains(WhaleGenie.Localization.Strings.Get("Schedule.Unit.Minutes"), described);
     }
 }

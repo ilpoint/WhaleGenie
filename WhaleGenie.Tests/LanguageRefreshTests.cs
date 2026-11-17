@@ -60,13 +60,13 @@ public class LanguageRefreshTests
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             macro = new MacroItem();
-            english = macro.Trigger;
+            english = macro.ToggleLabel;
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             macro!.RefreshLanguage();
-            Assert.NotEqual(english, macro.Trigger);
+            Assert.NotEqual(english, macro.ToggleLabel);
         }));
     }
 

@@ -51,7 +51,7 @@ public partial class RecoveryTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.Equal(before, viewModel.Macros[0].ToJson().ToJsonString());
-            Assert.Equal(before, editor.Result!.ToJson().ToJsonString());
+            Assert.Equal(before, editor.Result!.Macro.ToJson().ToJsonString());
             Assert.False(viewModel.HasUnsavedChanges,
                 "the editor handed back a macro nobody changed, and the list calls that a change");
             Assert.False(File.Exists(path), "a snapshot was left by an editor that changed nothing");
@@ -74,7 +74,7 @@ public partial class RecoveryTests
         {
             Ui.RunAsync(async () =>
             {
-                RecoveryStore.SaveProject([Named("login")], [], null);
+                RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
 
                 var asked = 0;
                 var window = new MainWindow

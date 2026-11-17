@@ -1,60 +1,48 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Execution;
-using WhaleGenie.Localization;
-using WhaleGenie.Models;
-
 
 namespace WhaleGenie.Runtime;
 
 // Hooking the machine and letting it go, including the notice that a window changed.
 public sealed partial class MacroTriggerService
 {
-
-    // ---------------------------------------------------------------- hooking
-
+    /// <summary>
+    /// Puts the hook, the timers and the window notices in place. The hook is recorded before it is
+    /// subscribed to, so a subscription that throws half way can still be undone: a listener left
+    /// behind would go on answering for a system that is switched off.
+    /// </summary>
     private void Attach()
     {
+        var hook = _hookSource ?? _devices.Hook;
+        _hook = hook;
         try
         {
-            var hook = _hookSource ?? _devices.Hook;
             hook.KeyDown += OnKeyDown;
             hook.KeyUp += OnKeyUp;
             hook.MouseDown += OnMouseDown;
             hook.MouseUp += OnMouseUp;
             hook.Wheel += OnWheel;
-            _hook = hook;
         }
-        catch (Exception)
+        catch (Exception error)
         {
             // A hook that will not go in means no key and no mouse button can be answered to. The
-            // pixels, the windows, the programs and the clock are all watched by looking rather than
-            // by being told, so those keep working: turning the whole system off because one part of
-            // it is missing would stop a macro whose trigger was never about a key.
-            _hook = null;
+            // pixels, the windows, the programs and the clock are all watched by looking rather
+            // than by being told, so those keep working: turning the whole system off because one
+            // part of it is missing would stop a macro whose trigger was never about a key.
+            AppDiagnostics.Record("trigger.attach", error);
+            ReleaseHook();
         }
 
-        lock (_gate)
-        {
-            _spent.Clear();
-            _colourTriggered.Clear();
-            _colourHeld.Clear();
-            _colourStopping.Clear();
-        }
+        _hub.Reset();
 
-        _poll.Change(PollInterval, PollInterval);
-
-        _programsDueAt = DateTime.Now + ProgramPollInterval;
-        _programs.Change(ProgramPollInterval, ProgramPollInterval);
+        _poll.Change(TriggerPace.Poll, TriggerPace.Poll);
+        _programs.Change(TriggerPace.Program, TriggerPace.Program);
 
         // What the controller is holding is taken up here rather than counted as pressed: a button
         // that was down before the switch went on is not somebody asking for something now.
-        TakeUpGamepad();
-        _padTimer.Change(PadPollInterval, PadPollInterval);
+        _hub.TakeUpGamepad();
+        _pad.Change(TriggerPace.Pad, TriggerPace.Pad);
 
         // The machine is asked to say when a window changes, which is what makes a window that is
         // only up for a moment worth waiting for. It keeps saying so while the switch is on, and
@@ -70,21 +58,16 @@ public sealed partial class MacroTriggerService
         _windowEvents.Changed -= OnWindowsChanged;
         _windowEvents.ForegroundChanged -= OnForegroundChanged;
 
-        if (_hook is { } hook)
-        {
-            hook.KeyDown -= OnKeyDown;
-            hook.KeyUp -= OnKeyUp;
-            hook.MouseDown -= OnMouseDown;
-            hook.MouseUp -= OnMouseUp;
-            hook.Wheel -= OnWheel;
-            _hook = null;
-        }
+        ReleaseHook();
 
         _poll.Change(Timeout.Infinite, Timeout.Infinite);
         _programs.Change(Timeout.Infinite, Timeout.Infinite);
-        _padTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        _hotstrings.Reset();
+        _pad.Change(Timeout.Infinite, Timeout.Infinite);
+
+        // A file watch holds an operating-system handle, and a colour trigger holds an edge. Both
+        // belong to a system that is on, so switching it off closes and forgets them.
         StopAll();
+        _hub.CloseAll();
 
         // Nothing the switch was running is left to look at the screen. The sessions are kept for
         // reuse while the system is on, so this is the moment to give them back rather than hold
@@ -100,6 +83,28 @@ public sealed partial class MacroTriggerService
         }
     }
 
+    private void ReleaseHook()
+    {
+        if (_hook is not { } hook)
+        {
+            return;
+        }
+
+        _hook = null;
+        try
+        {
+            hook.KeyDown -= OnKeyDown;
+            hook.KeyUp -= OnKeyUp;
+            hook.MouseDown -= OnMouseDown;
+            hook.MouseUp -= OnMouseUp;
+            hook.Wheel -= OnWheel;
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record("trigger.detach", error);
+        }
+    }
+
     /// <summary>
     /// The machine saying a window has appeared or gone away. The window list is read there and
     /// then rather than on its next round, because the window worth catching is one that is only up
@@ -107,7 +112,7 @@ public sealed partial class MacroTriggerService
     /// </summary>
     private void OnWindowsChanged()
     {
-        if (!Listening)
+        if (!Listening || MacroTriggerGate.IsOpen)
         {
             return;
         }
@@ -126,7 +131,7 @@ public sealed partial class MacroTriggerService
             do
             {
                 Interlocked.Exchange(ref _windowAgain, 0);
-                PollWindows(TriggerSnapshot(), straightAway: true);
+                _hub.Windows(DateTime.Now, straightAway: true);
             }
             while (Interlocked.Exchange(ref _windowAgain, 0) == 1);
         }
@@ -141,5 +146,5 @@ public sealed partial class MacroTriggerService
         }
     }
 
-    private void OnForegroundChanged() => _hotstrings.Reset();
+    private void OnForegroundChanged() => _hub.ResetTyped();
 }

@@ -14,6 +14,9 @@ namespace WhaleGenie.Models;
 // The pages a project always has, and the change notices that keep the entries in step.
 public sealed partial class ProjectTriggers
 {
+    /// <summary>The entries this set is listening to, so a clear can let go of all of them.</summary>
+    private readonly HashSet<TriggerEntry> _watched = [];
+
     private void EnsureMenuPages()
     {
         if (CommonMenuPages().Count == 0)
@@ -43,28 +46,24 @@ public sealed partial class ProjectTriggers
 
     private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.OldItems is not null)
+        foreach (var entry in _watched)
         {
-            foreach (TriggerEntry entry in e.OldItems)
-            {
-                entry.PropertyChanged -= OnEntryChanged;
-            }
+            entry.PropertyChanged -= OnEntryChanged;
         }
 
-        if (e.NewItems is not null)
+        _watched.Clear();
+        foreach (var entry in Entries)
         {
-            foreach (TriggerEntry entry in e.NewItems)
-            {
-                entry.PropertyChanged += OnEntryChanged;
-            }
+            entry.PropertyChanged += OnEntryChanged;
+            _watched.Add(entry);
         }
 
-        Changed?.Invoke(this, EventArgs.Empty);
+        RaiseChanged();
     }
 
     private void OnEntryChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-        => Changed?.Invoke(this, EventArgs.Empty);
+        => RaiseChanged();
 
     private void OnSurfaceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        => Changed?.Invoke(this, EventArgs.Empty);
+        => RaiseChanged();
 }

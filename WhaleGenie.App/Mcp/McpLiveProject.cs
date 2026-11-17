@@ -81,7 +81,6 @@ public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui) :
     {
         var macros = project.Macros.Select(macro => MacroItem.FromJson(macro.ToJson())).ToList();
         var triggers = project.Triggers.Copy();
-        triggers.Attach(macros);
         return new(
             project.CurrentPath,
             project.Revision,

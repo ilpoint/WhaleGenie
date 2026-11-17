@@ -58,10 +58,10 @@ public partial class RecoveryTests
     {
         InOwnFile(path =>
         {
-            RecoveryStore.SaveProject([Named("login")], [], null);
+            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
             var takenAt = TakenAt(path);
 
-            RecoveryStore.SaveProject([Named("login")], [], null);
+            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
 
             // The file is only what a stop without notice is offered back, and the time it says it
             // was taken is the one thing in it a rewrite would move. Writing work that has not

@@ -92,7 +92,7 @@ public class EditorDocumentPagesTests
             Persisted = new PersistedVariables(),
             Variables = new VariableSession(),
         };
-        root.LoadFrom(macro);
+        root.LoadFrom(macro, []);
 
         var pages = new EditorDocumentPages(session, root, root.Variables, null, _ => { });
         pages.Build();

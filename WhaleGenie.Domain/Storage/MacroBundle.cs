@@ -58,7 +58,13 @@ public static class MacroBundle
         }
 
         var groups = subset.Entries
-            .Select(entry => ProjectTriggers.GroupKey(entry.WindowTarget))
+            .Select(entry => entry.Spec switch
+            {
+                InterfaceSpec group => ProjectTriggers.GroupKey(group.Window),
+                WindowSpec window => ProjectTriggers.GroupKey(window.Target),
+                _ => string.Empty,
+            })
+            .Where(key => key.Length > 0)
             .ToHashSet(StringComparer.Ordinal);
         foreach (var layout in source.InterfaceLayouts.Where(layout => groups.Contains(layout.GroupKey)))
         {
@@ -66,8 +72,9 @@ public static class MacroBundle
         }
 
         var pages = subset.Entries
-            .Where(entry => entry.Kind == TriggerKind.Menu)
-            .Select(entry => entry.MenuPageId)
+            .Select(entry => entry.Spec)
+            .OfType<MenuSpec>()
+            .Select(menu => menu.PageId)
             .ToHashSet(StringComparer.Ordinal);
         foreach (var page in source.MenuPages.Where(page => pages.Contains(page.Id)))
         {

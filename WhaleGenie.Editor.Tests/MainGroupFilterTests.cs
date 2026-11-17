@@ -65,15 +65,15 @@ public class MainGroupFilterTests
         {
             var macro = new MacroItem { Name = "raid", Group = "游戏" };
             var editor = new MacroEditorViewModel();
-            editor.LoadFrom(macro);
+            editor.LoadFrom(macro, []);
             Assert.Equal("游戏", editor.Group);
 
             editor.Group = " 办公 ";
-            MacroItem? saved = null;
+            MacroDraft? saved = null;
             editor.CloseRequested += built => saved = built;
             editor.SaveCommand.Execute(null);
 
-            Assert.Equal("办公", saved?.Group);
+            Assert.Equal("办公", saved?.Macro.Group);
         });
     }
 }

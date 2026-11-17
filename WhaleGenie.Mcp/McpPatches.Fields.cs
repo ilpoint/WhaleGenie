@@ -58,13 +58,6 @@ internal static partial class McpPatches
             changed++;
         }
 
-        if (Said(operation, "bindKey") is { } bind)
-        {
-            macro.BindKey = bind;
-            touches.Add(new Touch("macro", null, "bindKey"));
-            changed++;
-        }
-
         if (operation.TryGetPropertyValue("delayScale", out var scale))
         {
             var written = Text(scale).Trim();
@@ -122,115 +115,11 @@ internal static partial class McpPatches
             changed++;
         }
 
-        if (Enum<MacroTrigger>(macro.TriggerMode, operation, "triggerMode") is { } trigger)
-        {
-            if (trigger.Refusal is { } refusal)
-            {
-                return refusal;
-            }
-
-            macro.TriggerMode = trigger.Value;
-            touches.Add(new Touch("macro", null, "triggerMode"));
-            changed++;
-        }
-
-        if (Enum<MacroLoop>(macro.LoopMode, operation, "loopMode") is { } loop)
-        {
-            if (loop.Refusal is { } refusal)
-            {
-                return refusal;
-            }
-
-            macro.LoopMode = loop.Value;
-            touches.Add(new Touch("macro", null, "loopMode"));
-            changed++;
-        }
-
-        if (Enum<ScheduleMode>(macro.ScheduleMode, operation, "scheduleMode") is { } scheduleMode)
-        {
-            if (scheduleMode.Refusal is { } refusal)
-            {
-                return refusal;
-            }
-
-            macro.ScheduleMode = scheduleMode.Value;
-            touches.Add(new Touch("macro", null, "scheduleMode"));
-            changed++;
-        }
-
-        if (Enum<ScheduleUnit>(macro.ScheduleUnit, operation, "scheduleUnit") is { } scheduleUnit)
-        {
-            if (scheduleUnit.Refusal is { } refusal)
-            {
-                return refusal;
-            }
-
-            macro.ScheduleUnit = scheduleUnit.Value;
-            touches.Add(new Touch("macro", null, "scheduleUnit"));
-            changed++;
-        }
-
-        if (Said(operation, "scheduleTime") is { } time)
-        {
-            macro.ScheduleTime = time;
-            touches.Add(new Touch("macro", null, "scheduleTime"));
-            changed++;
-        }
-
-        if (Number(operation, "scheduleInterval") is { } interval)
-        {
-            macro.ScheduleInterval = interval;
-            touches.Add(new Touch("macro", null, "scheduleInterval"));
-            changed++;
-        }
-
-        if (Said(operation, "watchPath") is { } watchPath)
-        {
-            macro.WatchPath = watchPath;
-            touches.Add(new Touch("macro", null, "watchPath"));
-            changed++;
-        }
-
-        if (Said(operation, "watchFilter") is { } watchFilter)
-        {
-            macro.WatchFilter = watchFilter;
-            touches.Add(new Touch("macro", null, "watchFilter"));
-            changed++;
-        }
-
-        if (Flag(operation, "watchSubfolders") is { } watchFolders)
-        {
-            macro.WatchSubfolders = watchFolders;
-            touches.Add(new Touch("macro", null, "watchSubfolders"));
-            changed++;
-        }
-
-        if (Said(operation, "processName") is { } process)
-        {
-            macro.ProcessName = process;
-            touches.Add(new Touch("macro", null, "processName"));
-            changed++;
-        }
-
-        if (Number(operation, "idleSeconds") is { } idle)
-        {
-            macro.IdleSeconds = idle;
-            touches.Add(new Touch("macro", null, "idleSeconds"));
-            changed++;
-        }
-
-        if (operation["windowTarget"] is JsonObject rule)
-        {
-            macro.WindowTarget = WindowRule.FromJson(rule);
-            touches.Add(new Touch("macro", null, "windowTarget"));
-            changed++;
-        }
-
         return changed == 0
             ? Refused(McpErrors.BadArgument, "The operation names no field this macro has.",
-                "Fields are description, name, enabled, bindKey, delayScale, inputRate, toggleKey, "
-                + "triggerMode, loopMode, scheduleMode, scheduleUnit, scheduleTime, scheduleInterval, "
-                + "watchPath, watchFilter, watchSubfolders, processName, idleSeconds and windowTarget.",
+                "Fields are description, name, enabled, delayScale, inputRate and toggleKey. What "
+                + "starts the macro is not a field: send the whole macro with a \"triggers\" list "
+                + "through whalegenie_put_macro.",
                 true, null)
             : null;
     }

@@ -84,9 +84,9 @@ public static partial class MacroPackage
     {
         foreach (var entry in triggers.Entries)
         {
-            if (entry.MenuIcon is { Kind: MenuIconKind.Image } icon)
+            if (entry.Spec is MenuSpec { Icon: { Kind: MenuIconKind.Image } icon })
             {
-                entry.MenuIcon = icon with { Value = map(icon.Value) };
+                entry.SetMenuIcon(icon with { Value = map(icon.Value) });
             }
         }
     }

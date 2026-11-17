@@ -57,7 +57,7 @@ public sealed class MenuMacroPickerWindow : AppWindow
                 // `Caption` 本身就是三级灰，原来那 0.62 的透明度是把它再压暗一次——去掉。
                 var preview = new TextBlock
                 {
-                    Text = macro.TriggerPreview,
+                    Text = macro.CardTriggerPreview,
                     Classes = { "Caption" },
                     TextTrimming = TextTrimming.CharacterEllipsis,
                 };

@@ -1928,6 +1928,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.UnsavedDiscard"] = "Discard changes",
         ["Package.Filter"] = "WhaleGenie Macro Package",
         ["Package.OpenFailed"] = "This file could not be opened",
+        ["Package.FormatUnreadable"] =
+            "This file was written in format {0}; this version of WhaleGenie reads format {1}.",
         ["Package.SaveFailed"] = "This file could not be saved",
         ["Package.BadDeclaration"] =
             "The macro \"{0}\" has a declaration that cannot be called (\"{1}\"): fix its parameters or results before saving.",
@@ -4657,6 +4659,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Main.UnsavedDiscard"] = "放弃修改",
         ["Package.Filter"] = "鲸灵宏包",
         ["Package.OpenFailed"] = "无法打开该文件",
+        ["Package.FormatUnreadable"] =
+            "该文件使用格式 {0} 写入，本版本鲸灵读取格式 {1}；请用写入它的版本导出后再打开。",
         ["Package.SaveFailed"] = "无法保存该文件",
         ["Package.BadDeclaration"] = "宏「{0}」的声明「{1}」不能用来调用：先修正形参或结果，再保存。",
 

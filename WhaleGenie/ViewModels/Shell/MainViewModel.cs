@@ -325,7 +325,6 @@ public partial class MainViewModel : ViewModelBase
         VisibleMacros.Clear();
         foreach (var macro in keeping.ToList())
         {
-            macro.RefreshTriggers();
             VisibleMacros.Add(macro);
         }
 
@@ -334,14 +333,16 @@ public partial class MainViewModel : ViewModelBase
     }
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
-    public void AddMacro(MacroItem macro) => Workspace.AddMacro(macro);
+    public void AddMacro(MacroItem macro, IReadOnlyList<TriggerEntry>? entries = null)
+        => Workspace.AddMacro(macro, entries);
 
     /// <summary>
     /// Swaps an edited macro back into the list, keeping its on/off state. False means the macro was
     /// no longer in the list — the project changed while the editor was open.
     /// </summary>
-    public bool ReplaceMacro(MacroItem original, MacroItem edited)
-        => Workspace.ReplaceMacro(original, edited);
+    public bool ReplaceMacro(MacroItem original, MacroItem edited,
+        IReadOnlyList<TriggerEntry>? entries = null)
+        => Workspace.ReplaceMacro(original, edited, entries);
 
     /// <summary>Removes a macro from the list.</summary>
     public void RemoveMacro(MacroItem macro) => Workspace.RemoveMacro(macro);
@@ -392,9 +393,6 @@ public partial class MainViewModel : ViewModelBase
     /// Replaces the project with a draft the MCP tools have been editing. The caller has already
     /// checked the revision; this is only the write.
     /// </summary>
-    public void ApplyDraft(IReadOnlyList<MacroItem> macros, IReadOnlyList<VariableDefinition> globals)
-        => Workspace.ApplyDraft(macros, globals);
-
     public void ApplyDraft(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition> globals)
         => Workspace.ApplyDraft(macros, triggers, globals);

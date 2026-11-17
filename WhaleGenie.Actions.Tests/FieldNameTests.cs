@@ -71,7 +71,6 @@ public class FieldNameTests
         var macro = new MacroItem
         {
             Name = "one",
-            ProcessName = "notepad",
             RecordMouseMovement = false,
         };
         macro.Parameters.Add(new MacroParameter { Name = "count", Description = "How many." });
@@ -79,8 +78,10 @@ public class FieldNameTests
 
         var json = macro.ToJson();
 
-        Assert.True(json.ContainsKey("process"));
+        // Triggers belong to the project, not the macro: none of their old top-level fields is
+        // written into the macro file any more.
         Assert.True(json.ContainsKey("recorder"));
+        Assert.False(json.ContainsKey("process"));
         Assert.False(json.ContainsKey("program"));
         Assert.False(json.ContainsKey("record"));
         Assert.False(json.ContainsKey("trigger"));
@@ -109,7 +110,6 @@ public class FieldNameTests
             ["loop"] = new JsonObject { ["kind"] = "old" },
         });
 
-        Assert.Equal(string.Empty, macro.ProcessName);
         Assert.True(macro.RecordMouseMovement);
 
         var meta = StepMeta.FromJson(new JsonObject { ["retry"] = 4 });

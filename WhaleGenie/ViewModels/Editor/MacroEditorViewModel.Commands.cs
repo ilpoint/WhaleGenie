@@ -72,7 +72,7 @@ public partial class MacroEditorViewModel
         }
 
         StopRecording();
-        CloseRequested?.Invoke(BuildMacro());
+        CloseRequested?.Invoke(Draft());
     }
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -185,50 +185,9 @@ public partial class MacroEditorViewModel
             ToggleKey = ToggleKey.Trim(),
         };
         RememberInterfaceHotkey();
-        macro.InterfaceLayouts.AddRange(_interfaceLayouts.Values.Select(layout => layout with { }));
-
-        if (SelectedTrigger is { } current)
-        {
-            // Keep the legacy projections in step for the macro card and old entry guards while
-            // the project-wide trigger collection is becoming the only saved source.
-            macro.TriggerMode = current.Kind switch
-            {
-                TriggerKind.Color => MacroTrigger.ColorPixelChanges,
-                TriggerKind.Timer => MacroTrigger.Timer,
-                TriggerKind.File => MacroTrigger.FileChanges,
-                TriggerKind.Process => MacroTrigger.Process,
-                TriggerKind.Window or TriggerKind.Interface => MacroTrigger.Window,
-                TriggerKind.Idle => MacroTrigger.Idle,
-                _ => MacroTrigger.KeystrokesButtonInputs,
-            };
-            macro.LoopMode = current.LoopMode;
-            macro.BindKey = current.BindKey;
-            macro.ScheduleMode = current.ScheduleMode;
-            macro.ScheduleInterval = current.ScheduleInterval;
-            macro.ScheduleUnit = current.ScheduleUnit;
-            macro.ScheduleTime = current.ScheduleTime;
-            macro.WatchPath = current.WatchPath;
-            macro.WatchChange = current.WatchChange;
-            macro.WatchFilter = current.WatchFilter;
-            macro.WatchSubfolders = current.WatchSubfolders;
-            macro.ProcessName = current.ProcessName;
-            macro.ProcessChange = current.ProcessChange;
-            macro.WindowTarget = current.WindowTarget;
-            macro.WindowChange = current.WindowChange;
-            macro.IdleSeconds = current.IdleSeconds;
-            macro.ColorMatch = current.ColorMatch;
-            macro.ColorPositionX = current.ColorPositionX;
-            macro.ColorPositionY = current.ColorPositionY;
-            macro.UseCursorPosition = current.UseCursorPosition;
-            macro.TriggerOnce = current.TriggerOnce;
-            macro.HexColor = current.HexColor;
-            macro.ColorTolerance = current.ColorTolerance;
-        }
-
         foreach (var entry in TriggerEntries)
         {
             entry.MacroName = macro.Name;
-            macro.Triggers.Add(entry.Copy());
         }
 
         foreach (var step in Steps)
@@ -243,8 +202,4 @@ public partial class MacroEditorViewModel
 
         return macro;
     }
-
-    /// <summary>Reads a numeric parameter typed into a plain input box, falling back to zero.</summary>
-    private static int ParseCoordinate(string? value)
-        => int.TryParse(value?.Trim(), out var result) ? result : 0;
 }

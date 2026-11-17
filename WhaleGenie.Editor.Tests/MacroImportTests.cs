@@ -119,23 +119,14 @@ public class MacroImportTests
             {
                 var viewModel = new MainViewModel();
                 var existing = new MacroItem { Name = "整理" };
-                existing.Triggers.Add(new TriggerEntry
-                {
-                    Kind = TriggerKind.Key,
-                    MacroName = "整理",
-                    BindKey = "Ctrl+Alt+1",
-                });
-                viewModel.AddMacro(existing);
+                viewModel.AddMacro(existing,
+                    [new TriggerEntry { MacroName = "整理", Spec = new KeySpec("Ctrl+Alt+1") }]);
 
                 var arriving = new MacroItem { Name = "新的" };
-                arriving.Triggers.Add(new TriggerEntry
-                {
-                    Kind = TriggerKind.Key,
-                    MacroName = "新的",
-                    BindKey = "Ctrl+Alt+1",
-                });
+                var contents = Contents([arriving], [],
+                    [new TriggerEntry { MacroName = "新的", Spec = new KeySpec("Ctrl+Alt+1") }]);
 
-                var report = MacroImport.IntoProject(viewModel.Workspace, Contents([arriving], []), [arriving], []);
+                var report = MacroImport.IntoProject(viewModel.Workspace, contents, [arriving], []);
 
                 Assert.Single(report.Added);
                 Assert.NotEmpty(report.DuplicateTriggers);
@@ -191,6 +182,14 @@ public class MacroImportTests
     };
 
     private static PackageContents Contents(IReadOnlyList<MacroItem> macros,
-        IReadOnlyList<VariableDefinition> globals)
-        => new() { Macros = macros, Globals = globals, Triggers = new ProjectTriggers() };
+        IReadOnlyList<VariableDefinition> globals, IReadOnlyList<TriggerEntry>? entries = null)
+    {
+        var triggers = new ProjectTriggers();
+        foreach (var entry in entries ?? [])
+        {
+            triggers.Entries.Add(entry);
+        }
+
+        return new() { Macros = macros, Globals = globals, Triggers = triggers };
+    }
 }

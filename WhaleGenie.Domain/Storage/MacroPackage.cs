@@ -41,7 +41,7 @@ public static partial class MacroPackage
     /// for another version is refused rather than half-read: no field is guessed at from a spelling
     /// that once meant something else.
     /// </summary>
-    public const int FormatVersion = 32;
+    public const int FormatVersion = 33;
 
     private const string ManifestEntry = "manifest.json";
     private const string ReadmeEntry = "README.md";

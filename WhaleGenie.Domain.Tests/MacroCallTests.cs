@@ -124,7 +124,7 @@ public class MacroCallTests
         try
         {
             var failure = Assert.Throws<InvalidDataException>(
-                () => MacroPackage.Save(path, [macro], [], "0.0.0"));
+                () => MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "0.0.0"));
 
             Assert.Contains("坏声明", failure.Message, StringComparison.Ordinal);
             Assert.False(File.Exists(path));
@@ -174,7 +174,7 @@ public class MacroCallTests
 
         try
         {
-            MacroPackage.Save(path, [Declaring()], [], "0.0.0");
+            MacroPackage.Save(path, [Declaring()], new ProjectTriggers(), [], "0.0.0");
             var read = MacroPackage.Load(path).Macros.Single();
 
             Assert.Equal("次数", read.Parameters[0].Name);

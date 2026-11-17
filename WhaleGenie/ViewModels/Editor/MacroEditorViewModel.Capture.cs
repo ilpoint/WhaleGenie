@@ -41,9 +41,9 @@ public partial class MacroEditorViewModel
 
     partial void OnTriggerModeChanged(TriggerKind value)
     {
-        if (!_loading && SelectedTrigger is { } selected)
+        if (!_loading && SelectedTrigger is { } selected && selected.Kind != value)
         {
-            selected.Kind = value;
+            selected.Spec = TriggerKinds.Default(value);
         }
 
         OnPropertyChanged(nameof(IsKeyTrigger));
@@ -71,37 +71,8 @@ public partial class MacroEditorViewModel
             return;
         }
 
-        entry.Kind = TriggerMode;
         entry.MacroName = Name.Trim();
-        entry.BindKey = BindKey.Trim();
-        entry.LoopMode = LoopMode;
-        entry.TriggerOnce = TriggerOnce;
-        entry.ScheduleMode = ScheduleMode;
-        entry.ScheduleInterval = Math.Max(1, ScheduleInterval ?? 5);
-        entry.ScheduleUnit = ScheduleUnit;
-        entry.ScheduleTime = ScheduleTime.Trim();
-        entry.WatchPath = WatchPath.Trim();
-        entry.WatchChange = WatchChange;
-        entry.WatchFilter = WatchFilter.Trim().Length == 0 ? "*" : WatchFilter.Trim();
-        entry.WatchSubfolders = WatchSubfolders;
-        entry.ProcessName = ProcessName.Trim();
-        entry.ProcessChange = ProcessChange;
-        entry.WindowTarget = WindowTarget;
-        entry.WindowChange = WindowChange;
-        entry.IdleSeconds = Math.Max(1, IdleSeconds ?? 60);
-        entry.ColorMatch = ColorMatch;
-        entry.ColorPositionX = ParseCoordinate(ColorPositionX);
-        entry.ColorPositionY = ParseCoordinate(ColorPositionY);
-        entry.UseCursorPosition = UseCursorPosition;
-        entry.HexColor = HexColor;
-        entry.ColorTolerance = ParseCoordinate(ColorTolerance);
-        entry.Abbreviation = HotstringText;
-        entry.HotstringEndChars = HotstringEndChars;
-        entry.CaseSensitive = HotstringCaseSensitive;
-        entry.MatchInsideWord = HotstringInsideWord;
-        entry.RequireEndChar = HotstringRequireEnd;
-        entry.EraseTyped = HotstringEraseTyped;
-        entry.KeepEndChar = HotstringKeepEnd;
+        entry.Spec = TriggerDraft.ToSpec(this, entry);
     }
 
     /// <summary>Brings the trigger form onto the entry selected in the list.</summary>
@@ -110,36 +81,7 @@ public partial class MacroEditorViewModel
         _loading = true;
         try
         {
-            TriggerMode = entry?.Kind ?? TriggerKind.Key;
-            BindKey = entry?.BindKey ?? string.Empty;
-            LoopMode = entry?.LoopMode ?? MacroLoop.Toggle;
-            TriggerOnce = entry?.TriggerOnce ?? false;
-            ScheduleMode = entry?.ScheduleMode ?? ScheduleMode.Interval;
-            ScheduleInterval = entry?.ScheduleInterval ?? 5;
-            ScheduleUnit = entry?.ScheduleUnit ?? ScheduleUnit.Seconds;
-            ScheduleTime = entry?.ScheduleTime ?? "08:00";
-            WatchPath = entry?.WatchPath ?? string.Empty;
-            WatchChange = entry?.WatchChange ?? FileChangeKind.Any;
-            WatchFilter = entry?.WatchFilter ?? "*";
-            WatchSubfolders = entry?.WatchSubfolders ?? false;
-            ProcessName = entry?.ProcessName ?? string.Empty;
-            ProcessChange = entry?.ProcessChange ?? ProcessChangeKind.Started;
-            WindowTarget = entry?.WindowTarget ?? WindowRule.Empty;
-            WindowChange = entry?.WindowChange ?? WindowChangeKind.Appeared;
-            IdleSeconds = entry?.IdleSeconds ?? 60;
-            ColorMatch = entry?.ColorMatch ?? ColorMatchCondition.ColorMatches;
-            ColorPositionX = (entry?.ColorPositionX ?? 0).ToString(CultureInfo.InvariantCulture);
-            ColorPositionY = (entry?.ColorPositionY ?? 0).ToString(CultureInfo.InvariantCulture);
-            UseCursorPosition = entry?.UseCursorPosition ?? false;
-            HexColor = entry?.HexColor ?? "#000000";
-            ColorTolerance = (entry?.ColorTolerance ?? 5).ToString(CultureInfo.InvariantCulture);
-            HotstringText = entry?.Abbreviation ?? string.Empty;
-            HotstringEndChars = entry?.HotstringEndChars ?? HotstringCharacters.DefaultEndChars;
-            HotstringCaseSensitive = entry?.CaseSensitive ?? false;
-            HotstringInsideWord = entry?.MatchInsideWord ?? false;
-            HotstringRequireEnd = entry?.RequireEndChar ?? true;
-            HotstringEraseTyped = entry?.EraseTyped ?? true;
-            HotstringKeepEnd = entry?.KeepEndChar ?? true;
+            TriggerDraft.Load(this, entry);
         }
         finally
         {

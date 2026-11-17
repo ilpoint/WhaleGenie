@@ -146,7 +146,6 @@
 519	WhaleGenie.Domain/Models/VariableChoices.cs	keep: 变量候选模型与其来源、用途、字段，单一职责
 327	WhaleGenie.Domain/Models/ProjectWorkspace.cs	keep: 工程文档状态（宏、触发、变量、路径、修订号）在一处更新
 301	WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
-454	WhaleGenie.App/Runtime/MacroTriggerService.Keyboard.cs	keep: 触发器服务的一族，按触发来源拆分后单一职责
 399	WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 454	WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
 1815	WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段

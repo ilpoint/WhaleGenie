@@ -112,10 +112,9 @@ public partial class MacroEditorViewModel
     private bool HasBlockingHotstringProblem
         => (SelectedTrigger?.Kind == TriggerKind.Hotstring
             && IsBlockingHotstring(HotstringText, HotstringRequireEnd, HotstringEndChars))
-            || TriggerEntries.Any(entry => entry.Kind == TriggerKind.Hotstring
-                && !ReferenceEquals(entry, SelectedTrigger)
-                && IsBlockingHotstring(
-                    entry.Abbreviation, entry.RequireEndChar, entry.HotstringEndChars));
+            || TriggerEntries.Any(entry => !ReferenceEquals(entry, SelectedTrigger)
+                && entry.Spec is HotstringSpec spec
+                && IsBlockingHotstring(spec.Abbreviation, spec.RequireEndChar, spec.EndChars));
 
     private static bool IsBlockingHotstring(
         string abbreviation, bool requireEndChar, string endChars)

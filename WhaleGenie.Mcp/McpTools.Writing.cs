@@ -41,7 +41,7 @@ public sealed partial class McpTools
                     outline,
                     renamed = Renamed(put.Renamed),
                     validation = Shape(validation),
-                    macro = await Ui(() => written.ToJson(includeTriggers: true)),
+                    macro = await Ui(() => draft.MacroJson(written)),
                 })
                 : McpErrors.Ok(new
                 {
@@ -116,7 +116,7 @@ public sealed partial class McpTools
 
             if (includeMacro)
             {
-                answer["macro"] = await Ui(() => written.ToJson(includeTriggers: true));
+                answer["macro"] = await Ui(() => draft.MacroJson(written));
             }
 
             return McpErrors.Ok(answer);

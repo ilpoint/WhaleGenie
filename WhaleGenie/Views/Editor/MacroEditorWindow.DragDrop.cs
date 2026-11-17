@@ -507,7 +507,7 @@ public partial class MacroEditorWindow : AppWindow
         }
 
         editor.Documents = _session.Documents;
-        editor.LoadFrom(copy);
+        editor.LoadFrom(copy, []);
         editor.SubMacros.Clear();
         editor.IsDirty = true;
         WatchChildEditor(editor);

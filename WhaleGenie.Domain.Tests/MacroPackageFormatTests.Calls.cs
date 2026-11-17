@@ -58,7 +58,7 @@ public partial class MacroPackageFormatTests
 
             var macro = new MacroItem { Name = "主" };
             macro.Steps.Add(call);
-            MacroPackage.Save(path, [macro], [], "test");
+            MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "test");
 
             var loaded = Assert.Single(MacroPackage.Load(path).Macros);
             var again = Assert.Single(loaded.Steps);
@@ -111,7 +111,7 @@ public partial class MacroPackageFormatTests
                 Fields = [new MacroField { Name = "left", Type = ValueKind.Number }],
             });
 
-            MacroPackage.Save(path, [macro], [], "test");
+            MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "test");
 
             var loaded = Assert.Single(MacroPackage.Load(path).Macros);
             var argument = Assert.Single(loaded.Parameters);

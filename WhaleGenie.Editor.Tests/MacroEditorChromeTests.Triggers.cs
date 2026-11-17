@@ -89,7 +89,7 @@ public partial class MacroEditorChromeTests
 
             var model = (MacroEditorViewModel)window.DataContext!;
             model.AddTriggerCommand.Execute(TriggerKind.Key);
-            var menu = new TriggerEntry { Kind = TriggerKind.Menu };
+            var menu = new TriggerEntry { Spec = new MenuSpec() };
             model.TriggerEntries.Add(menu);
             Dispatcher.UIThread.RunJobs();
 
@@ -155,7 +155,7 @@ public partial class MacroEditorChromeTests
             model.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
             Assert.NotNull(window.Result);
-            Assert.Contains(window.Result!.SubMacros, submacro => submacro.Name == "child");
+            Assert.Contains(window.Result!.Macro.SubMacros, submacro => submacro.Name == "child");
         });
     }
 

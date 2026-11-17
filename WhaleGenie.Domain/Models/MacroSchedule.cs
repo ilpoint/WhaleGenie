@@ -24,11 +24,8 @@ public static class MacroSchedule
     private static readonly TimeSpan LongestGap = TimeSpan.FromDays(365);
 
     /// <summary>The wait between the runs of an interval schedule, clamped to something sane.</summary>
-    public static TimeSpan Interval(MacroItem macro)
-        => Interval(macro.ScheduleInterval, macro.ScheduleUnit);
-
-    public static TimeSpan Interval(TriggerEntry entry)
-        => Interval(entry.ScheduleInterval, entry.ScheduleUnit);
+    public static TimeSpan Interval(TimerSpec timer)
+        => Interval(timer.Interval, timer.Unit);
 
     private static TimeSpan Interval(int interval, ScheduleUnit unit)
     {
@@ -86,13 +83,8 @@ public static class MacroSchedule
     /// <paramref name="from"/> and never landing on it: an interval waits its gap, and a daily
     /// time that has already gone today comes round tomorrow.
     /// </summary>
-    public static bool TryNextDue(MacroItem macro, DateTime from, out DateTime due)
-        => TryNextDue(macro.ScheduleMode, macro.ScheduleTime, macro.ScheduleInterval,
-            macro.ScheduleUnit, from, out due);
-
-    public static bool TryNextDue(TriggerEntry entry, DateTime from, out DateTime due)
-        => TryNextDue(entry.ScheduleMode, entry.ScheduleTime, entry.ScheduleInterval,
-            entry.ScheduleUnit, from, out due);
+    public static bool TryNextDue(TimerSpec timer, DateTime from, out DateTime due)
+        => TryNextDue(timer.Mode, timer.Time, timer.Interval, timer.Unit, from, out due);
 
     private static bool TryNextDue(ScheduleMode mode, string timeText, int interval,
         ScheduleUnit unit, DateTime from, out DateTime due)
@@ -115,11 +107,8 @@ public static class MacroSchedule
     }
 
     /// <summary>How a person would say this schedule, for the macro card.</summary>
-    public static string Describe(MacroItem macro)
-        => Describe(macro.ScheduleMode, macro.ScheduleTime, macro.ScheduleInterval, macro.ScheduleUnit);
-
-    public static string Describe(TriggerEntry entry)
-        => Describe(entry.ScheduleMode, entry.ScheduleTime, entry.ScheduleInterval, entry.ScheduleUnit);
+    public static string Describe(TimerSpec timer)
+        => Describe(timer.Mode, timer.Time, timer.Interval, timer.Unit);
 
     private static string Describe(ScheduleMode mode, string timeText, int interval, ScheduleUnit unit)
     {

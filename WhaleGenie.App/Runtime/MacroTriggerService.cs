@@ -1,115 +1,213 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Runtime;
 
 /// <summary>
-/// Watches the keyboard, the controller, the watched pixels and the clock for what the macros in
-/// the list are waiting for, and runs them the way their trigger settings ask. The main window's
-/// system switch turns the whole thing on and off.
+/// Starts the macros a project's trigger entries are waiting for, and stops them again. The
+/// interface publishes a plan; the watches in <see cref="TriggerHub"/> read that plan and ask this
+/// class to start, stop and report a macro.
 /// </summary>
-public sealed partial class MacroTriggerService : IDisposable
+/// <remarks>
+/// The main window's system switch turns the whole thing on and off. Everything that touches the
+/// machine — the hook, the timers and the window notices — is attached on the switch and released
+/// on it, so a program that is not watching holds no handle and fires no timer.
+/// </remarks>
+public sealed partial class MacroTriggerService : IDisposable, ITriggerRunner
 {
-    /// <summary>How often a watched pixel is looked at, and the clock is asked the time.</summary>
-    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(60);
-
-    /// <summary>
-    /// How often the open windows are looked at. A title comes free with the listing, but a
-    /// program name or a window class costs a look-up per window, so the window list is not read
-    /// as often as a pixel: half a second late is soon enough to notice a window opening.
-    /// </summary>
-    /// <remarks>
-    /// This is the fallback, not the way a window is usually noticed: while the machine is willing
-    /// to say when a window changes, the list is read there and then, and this interval only says
-    /// how often the reading happens anyway. See <see cref="IWindowEvents"/>.
-    /// </remarks>
-    private static readonly TimeSpan WindowPollInterval = TimeSpan.FromMilliseconds(500);
-
-    /// <summary>
-    /// How often the programs are counted. Asking for the programs of one name costs a single
-    /// listing, while reading every program on the machine costs a handle each, so counting this
-    /// often costs what the older, slower reading cost once every sixty milliseconds. It is worth
-    /// that: a program that starts and quits again inside the wait between two counts is a program
-    /// a trigger never notices, and the difference between sixty milliseconds and thirty is the
-    /// difference between missing such a program and catching it.
-    /// </summary>
-    private static readonly TimeSpan ProgramPollInterval = TimeSpan.FromMilliseconds(30);
-
-    /// <summary>
-    /// How often the controller is read. A controller button is read rather than reported — Windows
-    /// has no word for one going down — so a press that starts and ends between two readings is a
-    /// press nothing saw. This is the pace the programs are counted at, for the same reason: it is
-    /// short enough for the quickest press a hand makes, and one reading is a fraction of the cost of
-    /// one look at a pixel.
-    /// </summary>
-    private static readonly TimeSpan PadPollInterval = TimeSpan.FromMilliseconds(30);
-
-    /// <summary>A breather between the passes of a macro that repeats, so it cannot spin.</summary>
-    private const int RepeatGapMs = 10;
-
-    private readonly Func<IReadOnlyList<MacroItem>> _macros;
-    private readonly Func<ProjectTriggers> _triggerSource;
-    private readonly ProjectTriggers _legacyTriggers;
-    private Func<TriggerRuntimeSnapshot>? _runtimeSource;
-    private bool _legacyMode;
     private readonly IDeviceLayer _devices;
     private readonly IWindowEvents _windowEvents;
-
-    /// <summary>The table every run this service starts shares with the window.</summary>
     private readonly VariableSession _variables;
-
-    /// <summary>The controller in the person's hands, read on its own timer.</summary>
-    private readonly IGamepadReading _pads;
-
-    /// <summary>What that controller was holding at the last reading, so a press can be told from a hold.</summary>
-    private readonly GamepadButtonWatch _padHeld = new();
-
-    private readonly object _gate = new();
-    private readonly object _windowGate = new();
-    private readonly object _keys = new();
-    private readonly Dictionary<MacroItem, CancellationTokenSource> _running = [];
-    private readonly HashSet<TriggerEntry> _colourTriggered = [];
-    private readonly HashSet<MacroItem> _colourHeld = [];
-    private readonly HashSet<MacroItem> _colourStopping = [];
-    private readonly HashSet<TriggerEntry> _spent = [];
-    private readonly Dictionary<TriggerEntry, DateTime> _scheduleDue = [];
-    private readonly Dictionary<TriggerEntry, FileWatch> _watches = [];
-    private readonly ProgramWatches _programsRunning = new();
-    private readonly WindowWatches _windows = new();
-    private readonly HashSet<TriggerEntry> _idleDone = [];
-    private readonly HashSet<string> _heldKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly TriggerHub _hub;
+    private readonly IInputHook? _hookSource;
     private readonly Timer _poll;
     private readonly Timer _programs;
-    private readonly Timer _padTimer;
-
-    /// <summary>The hook handed in for this service, or null to share the one the program keeps.</summary>
-    private readonly IInputHook? _hookSource;
-    private readonly HotstringRecognizer _hotstrings = new();
+    private readonly Timer _pad;
+    private readonly Dictionary<string, RunSlot> _running = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _gate = new();
 
     private IInputHook? _hook;
+    private int _pollBusy;
+    private int _programsBusy;
+    private int _padBusy;
     private int _windowPass;
     private int _windowAgain;
-    private DateTime _windowsDueAt;
-    private DateTime _windowsCheckedAt;
-    private DateTime _programsCheckedAt;
-    private DateTime _programsDueAt;
-    private DateTime _polledAt;
-    private bool _enabled;
-    private bool _disposed;
+    private volatile bool _enabled;
+    private volatile bool _disposed;
 
     /// <summary>
     /// Raised when a macro starts or stops, so the window can show which ones are running. It is
-    /// raised on whatever thread noticed, which is never the interface thread.
+    /// raised on whatever thread noticed; a listener that owns interface objects has to marshal.
     /// </summary>
     public event Action? StatusChanged;
 
     /// <summary>Raised on the hook thread when a menu launcher asks for the project menu.</summary>
     public event Action? MenuRequested;
+
+    /// <param name="devices">
+    /// The devices to watch and to run with. The program hands over the one layer it holds, so a
+    /// triggered run uses the same devices — and the same loaded models — as a run started by hand;
+    /// a check hands over a layer of its own, which is where the hook and the window notices come
+    /// from too.
+    /// </param>
+    /// <param name="hook">
+    /// The keyboard and the mouse, as the bound keys and buttons are answered from. The whole
+    /// program shares the one hook the machine allows, so only a check that wants to drive the
+    /// events itself hands in one of its own; with none, the layer's own hook is used.
+    /// </param>
+    /// <param name="windowEvents">
+    /// Where the word that a window changed comes from, or null for the layer's own. A check that is
+    /// about something else hands in a machine with nothing to say, which leaves the window list to
+    /// the clock exactly as an older Windows does.
+    /// </param>
+    public MacroTriggerService(IDeviceLayer devices, VariableSession variables,
+        IWindowEvents? windowEvents = null, IInputHook? hook = null)
+    {
+        _devices = devices;
+        _variables = variables;
+        _windowEvents = windowEvents ?? devices.WindowEvents;
+        _hookSource = hook;
+        _hub = new TriggerHub(devices, _windowEvents, this);
+
+        _poll = new Timer(_ => RunGuarded("trigger.poll",
+            () => Skippable(ref _pollBusy, () => Tick(Look))), null, Timeout.Infinite, Timeout.Infinite);
+        _programs = new Timer(_ => RunGuarded("trigger.programs",
+            () => Skippable(ref _programsBusy, () => Tick(LookAtPrograms))),
+            null, Timeout.Infinite, Timeout.Infinite);
+        _pad = new Timer(_ => RunGuarded("trigger.pad",
+            () => Skippable(ref _padBusy, () => Tick(LookAtGamepad))), null, Timeout.Infinite, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// Asked when a step of a triggered macro has a failure rule of "ask me". Set by the window
+    /// that can ask; without it a run that wants to ask stops, which says more than guessing.
+    /// </summary>
+    public Func<string, string, string, string, Task<StepErrorChoice>>? Ask { get; set; }
+
+    /// <summary>
+    /// Asked when a step of a triggered macro puts the macro's own question to the person. Set by
+    /// the window that can ask; without it the question reads as unanswered, which is what a macro
+    /// running with nobody at the machine should see.
+    /// </summary>
+    public Func<AskQuestion, Task<AskAnswer>>? AskUser { get; set; }
+
+    /// <summary>
+    /// Asked before a step of a triggered macro that cannot be undone is carried out. Set by the
+    /// window that can ask; without it the step does not run, which is what a macro started by a
+    /// schedule with nobody at the machine has to do.
+    /// </summary>
+    public Func<ExecutableStep, Task<bool>>? ConfirmIrreversible { get; set; }
+
+    /// <summary>The system switch on the main window.</summary>
+    public bool IsEnabled
+    {
+        get => _enabled;
+        set
+        {
+            if (_enabled == value || _disposed)
+            {
+                return;
+            }
+
+            _enabled = value;
+            if (value)
+            {
+                Attach();
+            }
+            else
+            {
+                Detach();
+            }
+        }
+    }
+
+    /// <summary>True while a key press should be looked at.</summary>
+    private bool Listening => _enabled && !_disposed;
+
+    /// <summary>
+    /// Hands over the project as it stands now. The watches read this rather than the project, so a
+    /// run can only see what was published before it started.
+    /// </summary>
+    public void Publish(TriggerPlan plan)
+    {
+        if (!_disposed)
+        {
+            _hub.Publish(plan);
+        }
+    }
+
+    /// <summary>
+    /// What every armed trigger is waiting for right now, when it was last looked at and when it
+    /// will be looked at again. It is read by the run window, which is where a person goes when a
+    /// macro they were expecting did not run.
+    /// </summary>
+    public IReadOnlyList<TriggerWatch> Watches() => _hub.Report(DateTime.Now);
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        Detach();
+        _hub.Dispose();
+        _poll.Dispose();
+        _programs.Dispose();
+        _pad.Dispose();
+    }
+
+    /// <summary>
+    /// A clock tick only counts when the system is on and no run has the input door open. The guards
+    /// live here rather than in the reads themselves: a check asks for one pass by calling a read
+    /// directly, and must get it whether or not the system happens to be switched on.
+    /// </summary>
+    private void Tick(Action read)
+    {
+        if (!Listening || MacroTriggerGate.IsOpen)
+        {
+            return;
+        }
+
+        read();
+    }
+
+    /// <summary>Runs one piece of work unless the same piece is still running from the last tick.</summary>
+    private static void Skippable(ref int busy, Action work)
+    {
+        if (Interlocked.Exchange(ref busy, 1) == 1)
+        {
+            return;
+        }
+
+        try
+        {
+            work();
+        }
+        finally
+        {
+            Interlocked.Exchange(ref busy, 0);
+        }
+    }
+
+    internal static void RunGuarded(string stage, Action work)
+    {
+        try
+        {
+            work();
+        }
+        catch (Exception error)
+        {
+            AppDiagnostics.Record(stage, error);
+        }
+    }
+
+    /// <summary>One run of a macro, and the way to ask it to stop.</summary>
+    private sealed record RunSlot(MacroRef Macro, CancellationTokenSource Cancellation);
 }

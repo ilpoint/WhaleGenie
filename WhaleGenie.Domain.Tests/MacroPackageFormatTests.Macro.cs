@@ -32,7 +32,7 @@ public partial class MacroPackageFormatTests
             var own = new MacroItem { Name = "own", InputRate = 300, ToggleKey = "F9" };
             var plain = new MacroItem { Name = "plain" };
 
-            MacroPackage.Save(path, [own, plain], [], "test");
+            MacroPackage.Save(path, [own, plain], new ProjectTriggers(), [], "test");
             var loaded = MacroPackage.Load(path).Macros;
 
             var readBack = loaded.Single(macro => macro.Name == "own");
@@ -70,26 +70,20 @@ public partial class MacroPackageFormatTests
             var triggers = new ProjectTriggers();
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Key,
                 MacroName = macro.Name,
-                BindKey = "F8",
+                Spec = new KeySpec("F8"),
             });
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Hotstring,
                 MacroName = macro.Name,
-                Abbreviation = ";go",
-                HotstringEndChars = "\n",
+                Spec = new HotstringSpec(";go", "\n"),
             });
             var page = triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
             triggers.AddContextMenuPage(new WindowRule(Title: "Notepad"));
             triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Menu,
                 MacroName = macro.Name,
-                MenuPageId = page.Id,
-                MenuRow = 1,
-                MenuColumn = 2,
+                Spec = new MenuSpec(page.Id, 1, 2),
             });
             var blocked = new WindowRule(Process: "game", How: WindowHow.ProcessEquals);
             triggers.BlockedMenuRules.Add(blocked);
@@ -109,16 +103,16 @@ public partial class MacroPackageFormatTests
             var loaded = MacroPackage.Load(path);
 
             Assert.Equal(3, loaded.Triggers.Entries.Count);
-            Assert.Equal(3, Assert.Single(loaded.Macros).Triggers.Count);
             Assert.Contains(loaded.Triggers.Entries,
-                entry => entry.Kind == TriggerKind.Hotstring && entry.Abbreviation == ";go");
-            Assert.Equal("\n", loaded.Triggers.Entries
-                .Single(entry => entry.Kind == TriggerKind.Hotstring).HotstringEndChars);
+                entry => entry.Spec is HotstringSpec { Abbreviation: ";go" });
+            Assert.Equal("\n", ((HotstringSpec)loaded.Triggers.Entries
+                .Single(entry => entry.Kind == TriggerKind.Hotstring).Spec).EndChars);
             Assert.Equal(blocked, Assert.Single(loaded.Triggers.BlockedMenuRules));
             Assert.Single(loaded.Triggers.CommonMenuPages());
             Assert.Equal(2, loaded.Triggers.ContextMenuPages().Count);
-            var menu = loaded.Triggers.Entries.Single(entry => entry.Kind == TriggerKind.Menu);
-            Assert.Equal((1, 2), (menu.MenuRow, menu.MenuColumn));
+            var menu = (MenuSpec)loaded.Triggers.Entries
+                .Single(entry => entry.Kind == TriggerKind.Menu).Spec;
+            Assert.Equal((1, 2), (menu.Row, menu.Column));
         }
         finally
         {
@@ -145,19 +139,20 @@ public partial class MacroPackageFormatTests
                 CaseSensitive: true,
                 Trim: false,
                 Multiline: true);
-            var macro = new MacroItem
+            var macro = new MacroItem { Name = "rule" };
+            var triggers = new ProjectTriggers();
+            triggers.Entries.Add(new TriggerEntry
             {
-                Name = "rule",
-                TriggerMode = MacroTrigger.Window,
-                WindowTarget = rule,
-                WindowChange = WindowChangeKind.Disappeared,
-            };
+                MacroName = macro.Name,
+                Spec = new WindowSpec(rule, WindowChangeKind.Disappeared),
+            });
 
-            MacroPackage.Save(path, [macro], [], "test");
-            var loaded = Assert.Single(MacroPackage.Load(path).Macros);
+            MacroPackage.Save(path, [macro], triggers, [], "test");
+            var loaded = Assert.Single(MacroPackage.Load(path).Triggers.Entries);
 
-            Assert.Equal(rule, loaded.WindowTarget);
-            Assert.Equal(WindowChangeKind.Disappeared, loaded.WindowChange);
+            var window = Assert.IsType<WindowSpec>(loaded.Spec);
+            Assert.Equal(rule, window.Target);
+            Assert.Equal(WindowChangeKind.Disappeared, window.Change);
         }
         finally
         {

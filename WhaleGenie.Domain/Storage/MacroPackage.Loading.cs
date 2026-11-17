@@ -54,8 +54,7 @@ public static partial class MacroPackage
         if (version != FormatVersion)
         {
             throw new InvalidDataException(
-                $"The package was written in format {version}; this WhaleGenie reads format "
-                + $"{FormatVersion}.");
+                Strings.Format("Package.FormatUnreadable", version, FormatVersion));
         }
 
         var assets = new AssetExtractor(archive, assetFolder, reuseExisting);
@@ -94,7 +93,6 @@ public static partial class MacroPackage
 
         var triggers = ProjectTriggers.FromJson(ReadObject(archive, TriggersEntry));
         ExpandMenuIcons(triggers, assets.Expand);
-        triggers.Attach(macros);
 
         var globals = new List<VariableDefinition>();
         foreach (var item in manifest["variables"] as JsonArray ?? [])

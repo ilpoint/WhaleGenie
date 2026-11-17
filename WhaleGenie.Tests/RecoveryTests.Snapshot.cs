@@ -25,7 +25,7 @@ public partial class RecoveryTests
             var macro = Sample();
             macro.IsEnabled = false;
 
-            RecoveryStore.SaveProject([macro], [], @"C:\work\macros.wgmacro");
+            RecoveryStore.SaveProject([macro], new ProjectTriggers(), [], @"C:\work\macros.wgmacro");
 
             var found = RecoveryStore.Load();
 
@@ -55,7 +55,7 @@ public partial class RecoveryTests
 
             // A package is what makes an empty list something worth recovering; without one there
             // would be nothing to lose.
-            RecoveryStore.SaveProject([], [variable], @"C:\work\macros.wgmacro");
+            RecoveryStore.SaveProject([], new ProjectTriggers(), [variable], @"C:\work\macros.wgmacro");
 
             var found = RecoveryStore.Load();
 
@@ -74,8 +74,8 @@ public partial class RecoveryTests
     {
         InOwnFile(_ =>
         {
-            RecoveryStore.SaveProject([Named("login")], [], null);
-            RecoveryStore.SaveEditor(Named("draft"), "login");
+            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
+            RecoveryStore.SaveEditor(Named("draft"), [], "login");
 
             var both = RecoveryStore.Load();
 
@@ -94,7 +94,7 @@ public partial class RecoveryTests
             Assert.Null(onlyList.Editor);
 
             // And the other way round: saving the list must not take the editor's draft with it.
-            RecoveryStore.SaveEditor(Named("draft"), string.Empty);
+            RecoveryStore.SaveEditor(Named("draft"), [], string.Empty);
             RecoveryStore.ClearProject();
 
             var onlyEditor = RecoveryStore.Load();
@@ -114,7 +114,7 @@ public partial class RecoveryTests
             var macro = Named("draft");
             macro.Parameters.Add(new MacroParameter { Name = string.Empty });
             macro.Results.Add(new MacroResult { Name = string.Empty });
-            RecoveryStore.SaveEditor(macro, string.Empty);
+            RecoveryStore.SaveEditor(macro, [], string.Empty);
 
             var found = RecoveryStore.Load();
 

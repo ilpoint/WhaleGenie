@@ -76,7 +76,10 @@ public partial class MacroEditorWindow : AppWindow
     /// </summary>
     internal async void OnExportDocumentClicked(object? sender, RoutedEventArgs e)
     {
-        var macro = _viewModel.IsSubMacro ? _viewModel.BuildMacro() : _documentPages.Snapshot();
+        var draft = _viewModel.IsSubMacro
+            ? new MacroDraft(_viewModel.BuildMacro(), [], [])
+            : _viewModel.Draft();
+        var macro = draft.Macro;
         var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Editor.ExportTitle"),
             macro.Name);
         if (path is null)
@@ -86,7 +89,19 @@ public partial class MacroEditorWindow : AppWindow
 
         try
         {
+            var triggers = new ProjectTriggers();
+            foreach (var entry in draft.Entries)
+            {
+                triggers.Entries.Add(entry.Copy());
+            }
+
+            foreach (var layout in draft.Layouts)
+            {
+                triggers.InterfaceLayouts.Add(layout);
+            }
+
             MacroPackage.Save(path, [macro],
+                MacroBundle.Take(triggers, [macro]),
                 MacroBundle.UsedGlobals([macro], _variables.Globals), AppVersion.Text,
                 _session.AssetFolder);
         }

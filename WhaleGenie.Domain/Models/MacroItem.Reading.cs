@@ -17,42 +17,14 @@ public partial class MacroItem : ObservableObject, ILanguageAware
     /// <summary>Rebuilds a macro from the JSON document written by <see cref="ToJson"/>.</summary>
     public static MacroItem FromJson(JsonObject node)
     {
-        var position = node["colorPosition"] as JsonObject;
         var record = node["recorder"] as JsonObject;
-        var schedule = node["schedule"] as JsonObject;
-        var watch = node["watch"] as JsonObject;
-        var program = node["process"] as JsonObject;
-        var window = node["window"] as JsonObject;
 
         var macro = new MacroItem
         {
             Name = node["name"]?.GetValue<string>() ?? string.Empty,
             Description = node[FieldNames.Description]?.GetValue<string>() ?? string.Empty,
             Group = node["group"]?.GetValue<string>() ?? string.Empty,
-            TriggerMode = ReadEnum(node, "triggerMode", MacroTrigger.KeystrokesButtonInputs),
-            LoopMode = ReadEnum(node, "loopMode", MacroLoop.Press),
-            BindKey = node["bindKey"]?.GetValue<string>() ?? string.Empty,
-            ScheduleMode = ReadEnum(schedule, "mode", ScheduleMode.Interval),
-            ScheduleInterval = ReadInt(schedule?["interval"], 5),
-            ScheduleUnit = ReadEnum(schedule, "unit", ScheduleUnit.Seconds),
-            ScheduleTime = schedule?["time"]?.GetValue<string>() ?? "08:00",
-            WatchPath = watch?["path"]?.GetValue<string>() ?? string.Empty,
-            WatchChange = ReadEnum(watch, "change", FileChangeKind.Any),
-            WatchFilter = watch?["filter"]?.GetValue<string>() ?? "*",
-            WatchSubfolders = ReadBool(watch?["subfolders"]),
-            ProcessName = program?["name"]?.GetValue<string>() ?? string.Empty,
-            ProcessChange = ReadEnum(program, "change", ProcessChangeKind.Started),
-            WindowTarget = window is null ? WindowRule.Empty : WindowRule.FromJson(window),
-            WindowChange = ReadEnum(node, "windowChange", WindowChangeKind.Appeared),
-            IdleSeconds = ReadInt(node["idleSeconds"], 60),
             PositionCapture = ReadEnum(node, "positionCapture", MousePositionMode.SaveCurrentPosition),
-            ColorMatch = ReadEnum(node, "colorMatch", ColorMatchCondition.ColorMatches),
-            ColorPositionX = ReadInt(position?["x"]),
-            ColorPositionY = ReadInt(position?["y"]),
-            UseCursorPosition = ReadFlag(node, "useCursorPosition"),
-            TriggerOnce = ReadFlag(node, "triggerOnce"),
-            HexColor = node["hexColor"]?.GetValue<string>() ?? "#000000",
-            ColorTolerance = ReadInt(node["colorTolerance"]),
             RecordMouseMovement = ReadBool(record?["mouseMovement"], true),
             RecordMouseButtons = ReadBool(record?["mouseButtons"], true),
             RecordKeyboardKeys = ReadBool(record?["keyboardKeys"], true),
@@ -126,24 +98,6 @@ public partial class MacroItem : ObservableObject, ILanguageAware
             foreach (var child in subMacros.OfType<JsonObject>())
             {
                 macro.SubMacros.Add(FromJson(child));
-            }
-        }
-
-        if (node["triggers"] is JsonArray triggers)
-        {
-            foreach (var trigger in triggers.OfType<JsonObject>())
-            {
-                var entry = TriggerEntry.FromJson(trigger);
-                entry.MacroName = macro.Name;
-                macro.Triggers.Add(entry);
-            }
-        }
-
-        if (node["interfaceLayouts"] is JsonArray layouts)
-        {
-            foreach (var layout in layouts.OfType<JsonObject>())
-            {
-                macro.InterfaceLayouts.Add(InterfaceLayout.FromJson(layout));
             }
         }
 

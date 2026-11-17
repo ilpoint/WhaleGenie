@@ -86,11 +86,8 @@ public class SettingsMenuTests
             project.Macros.Add(macro);
             project.Triggers.Entries.Add(new TriggerEntry
             {
-                Kind = TriggerKind.Menu,
                 MacroName = macro.Name,
-                MenuPageId = project.Triggers.CommonMenuPages()[0].Id,
-                MenuRow = 0,
-                MenuColumn = 0,
+                Spec = new MenuSpec(project.Triggers.CommonMenuPages()[0].Id, 0, 0),
             });
             Assert.Equal(Strings.Get("Settings.MenuReady"), viewModel.MenuLauncherStatus);
         });

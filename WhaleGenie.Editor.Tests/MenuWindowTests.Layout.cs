@@ -86,9 +86,8 @@ public partial class MenuWindowTests
     {
         var entry = new TriggerEntry
         {
-            Kind = TriggerKind.Menu,
             MacroName = macro.Name,
-            MenuIcon = icon,
+            Spec = new MenuSpec(Row: row, Column: column, Icon: icon),
         };
         return new MenuRuntimeCell(row, column, icon, entry, macro);
     }
