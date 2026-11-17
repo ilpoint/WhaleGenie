@@ -129,6 +129,7 @@ public static class Expression
             {
                 Arguments = [.. call.Arguments.Select(argument => Map(argument, change))],
             },
+            GroupNode group => group with { Inner = Map(group.Inner, change) },
             UnaryNode unary => unary with { Operand = Map(unary.Operand, change) },
             BinaryNode binary => binary with
             {

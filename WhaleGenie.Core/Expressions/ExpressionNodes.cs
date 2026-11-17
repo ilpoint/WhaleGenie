@@ -54,6 +54,13 @@ public sealed record UnaryNode(string Operator, ExpressionNode Operand) : Expres
 public sealed record BinaryNode(string Operator, ExpressionNode Left, ExpressionNode Right)
     : ExpressionNode;
 
+/// <summary>
+/// An expression the writer put brackets around because the person asked for them. The brackets
+/// are the token: the engine works out what is inside, and nothing else about the value changes.
+/// Keeping the group as a node is what lets a pair of brackets be moved or taken away as one thing.
+/// </summary>
+public sealed record GroupNode(ExpressionNode Inner) : ExpressionNode;
+
 /// <summary>A function and its arguments, in the order they are written.</summary>
 public sealed record CallNode(string Name, IReadOnlyList<ExpressionNode> Arguments) : ExpressionNode;
 

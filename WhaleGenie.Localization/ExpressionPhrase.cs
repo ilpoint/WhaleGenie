@@ -40,6 +40,7 @@ public static class ExpressionPhrase
         ConstantNode constant => Strings.Get($"Expr.Say.Value.{Constant(constant.Word)}"),
         UnaryNode unary => Said(Sign(unary.Operator), [unary.Operand], null, nameOf),
         BinaryNode binary => Said(Operator(binary.Operator), [binary.Left, binary.Right], null, nameOf),
+        GroupNode group => Word(group.Inner, nameOf),
         ListNode list => Said(Strings.Get("Expr.Say.List"), list.Items, null, nameOf),
         CallNode call => Call(call, nameOf),
         _ => string.Empty,

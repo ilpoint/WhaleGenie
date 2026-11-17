@@ -85,6 +85,11 @@ internal static class ExpressionWriter
                 return (unary.Operator == "not" ? "not " : "-")
                     + Loose(operand, operandPrecedence, Prefix, false, false);
 
+            case GroupNode group:
+                // The brackets are what the person asked for; the writer does not add a second pair.
+                precedence = Atom;
+                return "(" + Piece(group.Inner, hole, out _) + ")";
+
             case BinaryNode binary:
                 precedence = Binds(binary.Operator);
                 var left = Piece(binary.Left, hole, out var leftPrecedence);

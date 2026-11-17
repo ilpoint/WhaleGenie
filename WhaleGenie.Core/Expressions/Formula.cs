@@ -33,6 +33,7 @@ public static class Formula
     public static string NameOf(ExpressionNode? value) => value switch
     {
         VariableNode variable => variable.Name.Trim(),
+        GroupNode group => NameOf(group.Inner),
         TextNode text => text.Text.Trim(),
         // A field that names a variable may read as a number: the language allows a name of
         // digits, and the reader keeps a number as the number it is.
@@ -100,6 +101,7 @@ public static class Formula
     {
         null => string.Empty,
         VariableNode variable => variable.Name,
+        GroupNode group => Word(group.Inner),
         ConcatNode run => string.Concat(run.Parts.Select(Word)),
         _ => Speak(value),
     };
@@ -124,6 +126,7 @@ public static class Formula
             UnaryNode unary => unary.Operator == "not" ? "not " + Say(unary.Operand)
                 : "-" + Say(unary.Operand),
             BinaryNode binary => Say(binary.Left) + " " + binary.Operator + " " + Say(binary.Right),
+            GroupNode group => "(" + Say(group.Inner) + ")",
             _ => string.Empty,
         };
 
@@ -136,6 +139,7 @@ public static class Formula
         null => true,
         TextNode or NumberNode or DateNode or ConstantNode => true,
         ConcatNode run => run.Parts.All(IsPlain),
+        GroupNode group => IsPlain(group.Inner),
         _ => false,
     };
 
@@ -151,6 +155,7 @@ public static class Formula
         DateNode date => date.Text,
         ConstantNode constant => constant.Word,
         ConcatNode run => string.Concat(run.Parts.Select(Plain)),
+        GroupNode group => Plain(group.Inner),
         _ => string.Empty,
     };
 }

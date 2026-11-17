@@ -28,6 +28,7 @@ public static class FormulaJson
     private const string OperandKey = "of";
     private const string ListKey = "list";
     private const string DateKey = "date";
+    private const string GroupKey = "group";
 
     /// <summary>The value as a JSON node, or null when there is nothing to write.</summary>
     public static JsonNode? Write(ExpressionNode? value)
@@ -58,6 +59,8 @@ public static class FormulaJson
                 return new JsonObject { [RunKey] = Array(run.Parts) };
             case ListNode list:
                 return new JsonObject { [ListKey] = Array(list.Items) };
+            case GroupNode group:
+                return new JsonObject { [GroupKey] = Write(group.Inner) };
             case CallNode call:
                 return new JsonObject { [CallKey] = call.Name, [ArgumentsKey] = Array(call.Arguments) };
             case UnaryNode unary:
@@ -152,6 +155,11 @@ public static class FormulaJson
         if (written[ListKey] is JsonArray list)
         {
             return new ListNode([.. list.Select(Read)]);
+        }
+
+        if (written[GroupKey] is { } grouped)
+        {
+            return new GroupNode(Read(grouped));
         }
 
         if (written[CallKey] is JsonValue call && call.TryGetValue<string>(out var called))

@@ -28,6 +28,8 @@ public class ExpressionCoverageTests
             [typeof(CallNode)] = Formula.Call("upper", Formula.Name("probe")),
             [typeof(UnaryNode)] = Formula.Unary("not", Formula.Name("probe")),
             [typeof(BinaryNode)] = Formula.Binary("+", Formula.Name("probe"), Formula.Number(1)),
+            [typeof(GroupNode)] = new GroupNode(
+                Formula.Binary("+", Formula.Name("probe"), Formula.Number(1))),
         };
 
     /// <summary>Nodes that hold no name, so a rename has nothing to reach inside them.</summary>
