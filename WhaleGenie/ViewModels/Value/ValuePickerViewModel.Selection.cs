@@ -20,6 +20,13 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
     /// <summary>Picks one token; null clears the pick. A press on blank band space clears it.</summary>
     public void Select(SlotNode? piece)
     {
+        // A run, a root and a socket are not tokens: a press on the blank part of the band or
+        // between two pieces clears the pick instead of selecting the thing they sit in.
+        if (piece is not (SlotValue or SlotCall or SlotBinary or SlotUnary or SlotGroup or SlotList))
+        {
+            piece = null;
+        }
+
         var path = piece?.Path;
         if (Equals(SelectedPath, path))
         {

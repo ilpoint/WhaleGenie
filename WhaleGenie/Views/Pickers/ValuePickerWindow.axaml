@@ -302,14 +302,14 @@
                                   VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   PointerExited="OnBandExited"
-                                  ScrollChanged="OnBandScrolled">
+                                  ScrollChanged="OnBandScrolled"
+                                  PointerPressed="OnBandPressed"
+                                  PointerMoved="OnBandMoved"
+                                  PointerReleased="OnBandReleased"
+                                  PointerCaptureLost="OnBandCaptureLost">
                         <ContentControl Name="Band" Content="{Binding Recipe}"
                                         Focusable="True" FocusAdorner="{x:Null}"
-                                        VerticalContentAlignment="Top"
-                                        PointerPressed="OnBandPressed"
-                                        PointerMoved="OnBandMoved"
-                                        PointerReleased="OnBandReleased"
-                                        PointerCaptureLost="OnBandCaptureLost" />
+                                        VerticalContentAlignment="Top" />
                     </ScrollViewer>
 
                     <!-- 空公式的起点：一句话告诉人从哪里开始，压在结构带上但不接指针。 -->

@@ -208,6 +208,61 @@ public partial class ValuePickerTests
         Assert.IsType<SlotUnary>(Assert.Single(form.Recipe!.Walk().OfType<SlotUnary>()));
     }
 
+
+    [Fact]
+    public void A_press_on_the_root_clears_the_pick()
+    {
+        var form = Form(Formula.Name("a"));
+        var value = Assert.Single(form.Recipe!.Walk().OfType<SlotValue>());
+        form.Select(value);
+        Assert.True(form.HasSelection);
+
+        form.Select(form.Recipe);
+
+        Assert.False(form.HasSelection);
+    }
+
+    [Fact]
+    public void Adding_after_deleting_a_call_argument_stays_in_the_call()
+    {
+        var form = Form(Formula.Call("concat", Formula.Name("a"), Formula.Name("b")));
+        var first = form.Recipe!.Walk().OfType<SlotValue>().First(value => value.Text == "a");
+
+        Assert.True(form.RemoveArgument(first));
+        Assert.True(form.Place("c"));
+
+        var call = Assert.IsType<CallNode>(Answer(form));
+        Assert.Equal("concat", call.Name);
+        Assert.Equal(["b", "c"], call.Arguments.Select(argument => Assert.IsType<VariableNode>(argument).Name));
+    }
+
+    [Fact]
+    public void A_second_item_of_a_list_stays_in_the_list()
+    {
+        var form = Form(Formula.Name("a"));
+        var value = Assert.Single(form.Recipe!.Walk().OfType<SlotValue>());
+        form.Select(value);
+        Assert.True(form.WrapList());
+
+        Assert.True(form.Place("b"));
+
+        var list = Assert.IsType<ListNode>(Answer(form));
+        Assert.Equal(["a", "b"], list.Items.Select(item => Assert.IsType<VariableNode>(item).Name));
+    }
+
+    [Fact]
+    public void A_second_argument_of_the_list_function_stays_in_the_call()
+    {
+        var form = Form();
+        form.PlaceCall("list");
+        Assert.True(form.Place("1"));
+        Assert.True(form.Place("2"));
+
+        var call = Assert.IsType<CallNode>(Answer(form));
+        Assert.Equal("list", call.Name);
+        Assert.Equal(2, call.Arguments.Count);
+    }
+
     [Fact]
     public void The_root_of_a_whole_value_is_not_a_piece_that_can_be_dragged()
     {

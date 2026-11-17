@@ -71,8 +71,14 @@ public partial class ValuePickerWindow : AppWindow
         // meant to put the insertion point after that piece. Only the layer's own clipping can cut it
         // now that it is a real button, so that box is what the clamp is for — clamping to the content
         // viewport instead would push a first-row cross back down onto its piece.
+        // A container's cross lives at its top-left, a token's at its top-right: both are above
+        // the piece, but never within a few pixels of one another. The nearest inner token usually
+        // has the top-right corner, and two crosses that close together are a mis-click waiting.
+        var container = node is SlotCall or SlotBinary or SlotUnary or SlotGroup or SlotList;
         var box = OverlayBox();
-        var left = Math.Clamp(b.X - CrossSize, box.Left, Math.Max(box.Left, box.Right - CrossSize));
+        var left = container
+            ? Math.Clamp(a.X - 2, box.Left, Math.Max(box.Left, box.Right - CrossSize))
+            : Math.Clamp(b.X - CrossSize, box.Left, Math.Max(box.Left, box.Right - CrossSize));
         var top = Math.Clamp(a.Y - CrossLift, box.Top, Math.Max(box.Top, box.Bottom - CrossSize));
         Canvas.SetLeft(HoverRemove, left);
         Canvas.SetTop(HoverRemove, top);

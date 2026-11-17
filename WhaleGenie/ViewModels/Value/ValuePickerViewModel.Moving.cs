@@ -204,8 +204,31 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         RefreshFromDraft(syncCaret: false);
-        SetCaret(Math.Min(at, SpanEnd));
+        SetCaretAfterCut(path, at);
         return true;
+    }
+
+    /// <summary>
+    /// After a cut, the place to write next is the socket the removed piece left behind: the next
+    /// argument of the call or item of the list, not the outside of the container.
+    /// </summary>
+    private void SetCaretAfterCut(NodePath removed, int at)
+    {
+        var parent = removed.Parent;
+        if (parent is not null)
+        {
+            var call = Recipe?.Walk().OfType<SlotCall>()
+                .FirstOrDefault(piece => piece.Path?.Equals(parent) == true);
+            var list = Recipe?.Walk().OfType<SlotList>()
+                .FirstOrDefault(piece => piece.Path?.Equals(parent) == true);
+            if ((call?.Ghost ?? list?.Ghost) is { } ghost)
+            {
+                SetCaret(ghost.Start);
+                return;
+            }
+        }
+
+        SetCaret(Math.Min(at, SpanEnd));
     }
 
     /// <summary>Deletes the piece just before the standing line, if there is one to delete.</summary>
@@ -253,7 +276,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         RefreshFromDraft(syncCaret: false);
-        SetCaret(Math.Min(at, SpanEnd));
+        SetCaretAfterCut(path, at);
         return true;
     }
 

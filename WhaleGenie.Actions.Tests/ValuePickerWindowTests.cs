@@ -70,6 +70,33 @@ public class ValuePickerWindowTests
         });
     }
 
+
+    /// <summary>
+    /// A container's cross is on its other corner: with both above the same top-right corner, the
+    /// nearest inner token and its call would swap targets on a few pixels of pointer movement.
+    /// </summary>
+    [Fact]
+    public void A_container_cross_sits_away_from_its_tokens_cross()
+    {
+        Ui.Run(() =>
+        {
+            var window = Window(Formula.Binary("+", Formula.Name("a"), Formula.Number("1", 1d)));
+            var cross = window.FindControl<Button>("HoverRemove")!;
+            var leaf = Pieces(window).First(one => one.DataContext is SlotValue);
+            Hover(window, leaf);
+            var leafLeft = Canvas.GetLeft(cross);
+
+            var container = Pieces(window).First(one => one.DataContext is SlotBinary);
+            Hover(window, container);
+
+            Assert.True(cross.IsVisible);
+            Assert.True(Canvas.GetLeft(cross) < leafLeft,
+                "a container's cross must not share the token's top-right corner");
+
+            Ui.CloseAndDiscard(window);
+        });
+    }
+
     [Fact]
     public void Both_overlay_layers_clip_their_contents()
     {
@@ -364,7 +391,7 @@ public class ValuePickerWindowTests
             var call = Assert.IsType<SlotCall>(Assert.Single(form.Recipe!.Walk().OfType<SlotCall>()));
             Assert.Equal("a", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[0].Items)).Text);
             Assert.Single(call.Arguments);
-            Assert.Equal(form.SpanEnd, form.Caret);
+            Assert.Equal(call.Ghost!.Start, form.Caret);
 
             Ui.CloseAndDiscard(window);
         });

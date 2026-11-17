@@ -121,6 +121,9 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
                 if (call.Ghost is { Path: { } ghost } ghostEmpty)
                 {
                     AddSeam(seams, ghostEmpty.Start, ghost, after: false, hole: true);
+                    // The end of the call is also the next argument's place: typing there fills the
+                    // ghost instead of putting a second expression beside the call.
+                    AddSeam(seams, call.Start + call.Length, ghost, after: false, hole: true);
                 }
 
                 break;
@@ -153,6 +156,7 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
                 if (list.Ghost is { Path: { } listGhost, Start: var listGhostStart })
                 {
                     AddSeam(seams, listGhostStart, listGhost, after: false, hole: true);
+                    AddSeam(seams, list.Start + list.Length, listGhost, after: false, hole: true);
                 }
 
                 break;

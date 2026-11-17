@@ -151,7 +151,8 @@ public partial class ValuePickerTests
         var call = Assert.IsType<SlotCall>(Assert.Single(Root(form).Items));
         Assert.Equal("a", Assert.IsType<SlotValue>(Assert.Single(call.Arguments[0].Items)).Text);
         Assert.Single(call.Arguments);
-        Assert.Equal(form.SpanEnd, form.Caret);
+        // The next argument's socket is where the line now stands, not outside the closing bracket.
+        Assert.Equal(call.Ghost!.Start, form.Caret);
     }
 
     /// <summary>The inside of a binary is one structural unit; only its outside and holes are writable.</summary>
