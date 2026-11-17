@@ -228,5 +228,6 @@
 587	WhaleGenie/ViewModels/Value/ValueDraft.cs	keep: 形状编辑、包裹、移动与一份历史共用同一个入口，拆开会让一步编辑跨文件
 374	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
 355	WhaleGenie/ViewModels/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
-290	WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
+321	WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 
+338	WhaleGenie.Actions.Tests/ValuePickerTests.Tokens.cs	keep: token 树与容器插槽的一组契约用例，共用同一套夹具
