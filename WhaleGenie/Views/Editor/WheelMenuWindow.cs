@@ -155,7 +155,7 @@ public sealed class WheelMenuWindow : Window
         Redraw();
     }
 
-    /// <summary>Scales and fades the wheel in, the way Quicker 2.x pops it onto the screen.</summary>
+    /// <summary>Scales and fades the wheel in, so a press reads as something opening.</summary>
     /// <remarks>
     /// The progress is read from the clock rather than counted in ticks. Each tick draws the wheel
     /// again, and on a fast swipe the queue can delay one; counting ticks made those delays add up
@@ -396,7 +396,9 @@ public sealed class WheelMenuWindow : Window
 
     /// <summary>
     /// The centre is a real answer, not just a scene label: inside it the release closes the
-    /// wheel, and on the invisible extended circle it names the action that a swipe would run.
+    /// wheel, and on the invisible extended circle it shows the action a swipe would run. That
+    /// action is written there as its name or its note, the same words the sectors use; a word
+    /// such as "swipe" would name the gesture instead of the action it is about to run.
     /// </summary>
     private string HintFor(WheelSlotRef? reference)
     {
@@ -414,11 +416,9 @@ public sealed class WheelMenuWindow : Window
         var name = slot is null ? string.Empty : DisplayName(slot);
         var extended = reference.Value.Ring == WheelRing.Extended;
 
-        if (extended && _options.ExtendedHint)
+        if (extended && _options.ExtendedHint && name.Length > 0)
         {
-            return string.IsNullOrWhiteSpace(name)
-                ? Strings.Get("Wheel.ExtendedPrefix")
-                : $"{Strings.Get("Wheel.ExtendedPrefix")}\n{name}";
+            return name;
         }
 
         return _options.CenterName && slot?.Macro is not null && name.Length > 0
@@ -427,23 +427,11 @@ public sealed class WheelMenuWindow : Window
     }
 
     /// <summary>
-    /// A note written on the wheel position wins; then the macro's own description; then its name.
+    /// A note written on the wheel position wins, then the macro's name. The macro's description
+    /// is deliberately not used: it is prose, and the centre has one line to name an action.
     /// </summary>
     private static string DisplayName(WheelRuntimeSlot slot)
-    {
-        if (slot.Note.Trim().Length > 0)
-        {
-            return slot.Note.Trim();
-        }
-
-        var description = slot.Macro?.Description?.Trim();
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            return description!;
-        }
-
-        return slot.Name.Trim();
-    }
+        => slot.Note.Trim().Length > 0 ? slot.Note.Trim() : slot.Name.Trim();
 
     /// <summary>A fixed palette has to ink its own text, or light theme words vanish on it.</summary>
     private IBrush TextInk() => _options.FollowTheme

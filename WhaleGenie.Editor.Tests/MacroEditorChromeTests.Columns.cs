@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Controls;
@@ -232,5 +233,78 @@ public partial class MacroEditorChromeTests
 
             Ui.CloseAndAnswer(window);
         });
+    }
+
+    /// <summary>
+    /// The four sources at the top of the action library and the five groups at the top of the
+    /// variable center are one control with one look. They were two: the library's tabs were plain
+    /// list rows with a two pixel bar, and the wall's chips wrote their own label colour into the
+    /// template, so the chosen chip's background could change while its words stayed in the body
+    /// colour. Reading the label back is what catches the second half — the style can be perfect and
+    /// the local colour still wins.
+    /// </summary>
+    [Fact]
+    public void The_action_library_and_the_variable_center_wear_the_same_dock()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            try
+            {
+                var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
+                var wall = window.FindControl<VariableWall>("VariableCenterWall")!;
+                var sources = palette.FindControl<ListBox>("SourceDock")!;
+                var groups = wall.FindControl<ListBox>("VariableGroups")!;
+
+                Assert.Contains("Dock", sources.Classes);
+                Assert.Contains("Dock", groups.Classes);
+                Assert.DoesNotContain("List", sources.Classes);
+
+                // One chosen source, and its words are the accent — the same two colours the wall's
+                // chosen group has below.
+                var chosenSource = Assert.Single(
+                    sources.GetVisualDescendants().OfType<ListBoxItem>(), item => item.IsSelected);
+                Assert.Equal(Token("AccentText", window), Colour(Label(chosenSource)));
+
+                // The icon is the row's second reader of that colour: it is a control in the
+                // template whose stroke is bound to the row's foreground, so it has to be named
+                // separately here or a style that only recolours the text leaves the icon behind.
+                var chosenIcon = chosenSource.GetVisualDescendants().OfType<IconView>().Single();
+                Assert.Equal(Token("AccentText", window), Colour(chosenIcon.Stroke));
+
+                var otherSource = sources.GetVisualDescendants().OfType<ListBoxItem>()
+                    .First(item => !item.IsSelected);
+                Assert.Equal(Token("TextSecondary", window), Colour(Label(otherSource)));
+                var otherIcon = otherSource.GetVisualDescendants().OfType<IconView>().Single();
+                Assert.Equal(Token("TextSecondary", window), Colour(otherIcon.Stroke));
+
+                var chosenGroup = Assert.Single(
+                    groups.GetVisualDescendants().OfType<ListBoxItem>(), item => item.IsSelected);
+                Assert.Equal(Token("AccentText", window), Colour(Label(chosenGroup)));
+
+                var otherGroup = groups.GetVisualDescendants().OfType<ListBoxItem>()
+                    .First(item => !item.IsSelected);
+                Assert.Equal(Token("TextSecondary", window), Colour(Label(otherGroup)));
+            }
+            finally
+            {
+                Ui.CloseAndAnswer(window);
+            }
+        });
+    }
+
+    private static IBrush? Label(ListBoxItem item)
+        => item.GetVisualDescendants().OfType<TextBlock>().First().Foreground;
+
+    private static Color? Colour(IBrush? brush) => (brush as ISolidColorBrush)?.Color;
+
+    private static Color Token(string key, StyledElement owner)
+    {
+        Assert.True(Application.Current!.TryGetResource(key, owner.ActualThemeVariant, out var value), key);
+        return Assert.IsAssignableFrom<ISolidColorBrush>(value).Color;
     }
 }

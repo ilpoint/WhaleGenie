@@ -28,7 +28,7 @@ public readonly record struct WheelGestureEvent(
     bool Swallow = false);
 
 /// <summary>
-/// The Quicker gesture: hold the trigger button, move the pointer, release over a direction.
+/// The wheel gesture: hold the trigger button, move the pointer, release over a direction.
 /// </summary>
 /// <remarks>
 /// The button belongs to the wheel from the moment it goes down until it comes back up, and both

@@ -157,6 +157,10 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   对话框，不并行新增第三套。
 - `TabView` 只在需要可拖动/可关闭的文档页签时使用；主窗的根视图是项目自己的 `Tab.Root` 按钮，
   不为统一控件而替换。
+- 分类 dock（变量中心的五个分组、动作库顶部的四个来源）是同一个 `ListBox.Dock`：静息是一行字、
+  悬停叠一层半透明反馈、选中用 `AccentSurface` 底 + `AccentText` 字 + 同色描边；不把 `AccentFill`
+  铺在字后面——浅色主题下那组字只有 3.5:1。选中态不靠字号或字重变化，行宽在切换时不动。
+  同一个 dock 不在窗口里另写一套分类按钮。
 - 图标继续使用项目 `AppIcons` 与 Lucide 的现有族；不混入第二套图标库。
 
 ## 11. 视觉验收
@@ -170,6 +174,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 右键菜单有主题、有尺寸和 `ItemsPresenter` | `MenuThemeTests` |
 | 模板部件存在，颜色/状态读取实际部件 | `TemplatePartTests` |
 | 普通窗口统一走 `WindowChrome` | `WindowChromeTests` |
+| 分类 dock 的静息/悬停/按下/选中/禁用读实际部件，选中字色过对比度底线 | `DockStyleTests` |
 | 强调色派生与对比度底线 | `ThemePaletteTests` |
 
 人工检查：

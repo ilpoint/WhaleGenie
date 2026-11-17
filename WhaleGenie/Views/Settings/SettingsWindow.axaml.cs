@@ -25,10 +25,35 @@ public partial class SettingsWindow : AppWindow
     private readonly SettingsSystemView _system;
     private readonly SettingsTriggersView _triggers;
     private bool _wheelEditorReady;
+    private bool _gateEntered;
 
     public SettingsWindow()
         : this(null, null, SettingsSubPage.General)
     {
+    }
+
+    /// <summary>
+    /// The trigger gate is held for as long as the window is on screen, not from the moment it is
+    /// built: a settings window built for a page check and never shown must not keep every trigger
+    /// held back for the rest of the session.
+    /// </summary>
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (!_gateEntered)
+        {
+            _gateEntered = true;
+            MacroTriggerGate.Enter();
+        }
+    }
+
+    private void LeaveTriggerGate()
+    {
+        if (_gateEntered)
+        {
+            _gateEntered = false;
+            MacroTriggerGate.Exit();
+        }
     }
 
     public SettingsWindow(MainViewModel? project, string? packagePath,
@@ -121,8 +146,9 @@ public partial class SettingsWindow : AppWindow
         // Keys typed here are the interface's, not a macro's. The window is not modal any more, so
         // the hold lasts for as long as it is open — the same rule the editor and the run window
         // keep, and the reason the pages can capture a hotkey without setting one off.
-        MacroTriggerGate.Enter();
-        Closed += (_, _) => MacroTriggerGate.Exit();
+        // Counted while the window is on screen, not while it is being built — a settings window
+        // built for a page check and never shown must not hold the triggers back.
+        Closed += (_, _) => LeaveTriggerGate();
     }
 
     private void EnsureWheelEditor()

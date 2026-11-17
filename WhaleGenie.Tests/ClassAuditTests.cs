@@ -16,11 +16,15 @@ namespace WhaleGenie.Tests;
 /// ones turned up this way (five buttons in `BreakpointWindow` / `MainWindow`, six lines in
 /// `MacroInterfaceView` whose host is constructed in code, so no XAML search finds it).
 ///
+/// A class declared in `App.axaml` used to be one of those invisible names — the scan read
+/// `Controls.axaml` and each window, and the dock had been written above both. Application-level
+/// styles belong in `Controls.axaml`; `App.axaml` is read here as well, so a style that drifts back
+/// up there is still seen rather than needing a whitelist entry that quietly excuses it.
+///
 /// **It reports; it does not fail on findings.** The check cannot tell a class chain from a typo
 /// without being told which chains exist, so it still produces false positives — and a check that
 /// goes red on a false positive gets a whitelist on the first day and gets deleted on the second,
-/// after which it reports nothing at all. What it does fail on is its own whitelist going stale: if
-/// an entry stops appearing, that line has to be looked at again.
+/// after which it reports nothing at all.
 /// </summary>
 public partial class ClassAuditTests
 {
@@ -31,12 +35,11 @@ public partial class ClassAuditTests
     /// <summary>
     /// Names known to be fine even though no selector matches them here, each with the reason. Being
     /// on this list is a statement about the repository, not about the check — so it is checked too.
+    /// Empty at the moment: the one entry it had (Dock, styled from App.axaml) is a class the scan
+    /// now reads, so it is covered rather than excused.
     /// </summary>
     private static readonly Dictionary<string, string> Known =
-        new(StringComparer.Ordinal)
-        {
-            ["Dock"] = "App.axaml 的 ListBox.Dock 是全局样式，两个窗口都用它",
-        };
+        new(StringComparer.Ordinal);
 
     /// <summary>
     /// The audit is only worth its runtime if it read the windows. Every scan below walks
@@ -88,6 +91,12 @@ public partial class ClassAuditTests
     {
         var root = RepositoryRoot();
         var app = Declared(File.ReadAllText(Path.Combine(root, "WhaleGenie", "Themes", "Controls.axaml")));
+        foreach (var (type, chains) in Declared(File.ReadAllText(Path.Combine(root, "WhaleGenie", "App.axaml"))))
+        {
+            app[type] = app.TryGetValue(type, out var existing)
+                ? [.. existing, .. chains]
+                : chains;
+        }
 
         var findings = new HashSet<string>(StringComparer.Ordinal);
         foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))

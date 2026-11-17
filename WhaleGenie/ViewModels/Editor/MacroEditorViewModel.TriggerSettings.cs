@@ -231,6 +231,7 @@ public partial class MacroEditorViewModel
     private void UpdateInterfaceGroupFields()
     {
         InterfaceGroupMembers.Clear();
+        OnPropertyChanged(nameof(WindowTargetSummary));
         var previousLoading = _loading;
         _loading = true;
         try

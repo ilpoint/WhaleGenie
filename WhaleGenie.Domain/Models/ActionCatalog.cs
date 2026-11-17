@@ -97,6 +97,7 @@ public static class ActionCatalog
             {
                 Key = semantics.Key,
                 Semantics = semantics,
+                Group = shown.Group,
                 DisplayName = string.Empty,
                 Description = string.Empty,
                 Preview = PreviewOf(shown.Preview, semantics.Key),
@@ -240,6 +241,12 @@ public static class ActionCatalog
     private sealed class DisplayAction
     {
         public required string Key { get; init; }
+
+        /// <summary>
+        /// The picker's small group for this action, such as Keyboard or Paths. Empty for an action
+        /// that has not been placed yet; the palette lists those under "Other".
+        /// </summary>
+        public string Group { get; init; } = string.Empty;
 
         /// <summary>What the form shows live under its fields, or empty for nothing.</summary>
         public string Preview { get; init; } = string.Empty;

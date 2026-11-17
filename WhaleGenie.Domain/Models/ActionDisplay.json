@@ -163,6 +163,7 @@
   },
   {
     "Key": "control.setVariable",
+    "Group": "Variables",
     "Fields": {
       "name": {
         "Placeholder": "count"
@@ -181,6 +182,7 @@
   },
   {
     "Key": "control.clearVariable",
+    "Group": "Variables",
     "Fields": {
       "name": {
         "Placeholder": "count"
@@ -195,6 +197,7 @@
   },
   {
     "Key": "control.incrementGlobal",
+    "Group": "Variables",
     "Fields": {
       "name": {
         "Placeholder": "count"
@@ -209,6 +212,7 @@
   },
   {
     "Key": "control.listAdd",
+    "Group": "Lists",
     "Fields": {
       "name": {
         "Placeholder": "names"
@@ -221,6 +225,7 @@
   },
   {
     "Key": "control.listInsert",
+    "Group": "Lists",
     "Fields": {
       "name": {
         "Placeholder": "names"
@@ -237,6 +242,7 @@
   },
   {
     "Key": "control.listRemoveAt",
+    "Group": "Lists",
     "Fields": {
       "name": {
         "Placeholder": "names"
@@ -249,6 +255,7 @@
   },
   {
     "Key": "control.listSet",
+    "Group": "Lists",
     "Fields": {
       "name": {
         "Placeholder": "names"
@@ -265,6 +272,7 @@
   },
   {
     "Key": "control.listClear",
+    "Group": "Lists",
     "Fields": {
       "name": {
         "Placeholder": "names"
@@ -326,6 +334,7 @@
   },
   {
     "Key": "file.readText",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "notes.txt",
@@ -357,6 +366,7 @@
   },
   {
     "Key": "file.writeText",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "notes.txt",
@@ -393,6 +403,7 @@
   },
   {
     "Key": "file.appendLog",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "log.txt",
@@ -415,6 +426,7 @@
   },
   {
     "Key": "file.exists",
+    "Group": "Paths",
     "Fields": {
       "path": {
         "Placeholder": "notes.txt",
@@ -428,6 +440,7 @@
   },
   {
     "Key": "file.delete",
+    "Group": "Paths",
     "Fields": {
       "path": {
         "Placeholder": "old.txt",
@@ -438,6 +451,7 @@
   },
   {
     "Key": "file.copy",
+    "Group": "Paths",
     "Fields": {
       "from": {
         "Placeholder": "report.csv",
@@ -463,6 +477,7 @@
   },
   {
     "Key": "file.move",
+    "Group": "Paths",
     "Fields": {
       "from": {
         "Placeholder": "report.csv",
@@ -488,6 +503,7 @@
   },
   {
     "Key": "file.createFolder",
+    "Group": "Paths",
     "Fields": {
       "path": {
         "Placeholder": "output\\reports",
@@ -498,6 +514,7 @@
   },
   {
     "Key": "file.path",
+    "Group": "Paths",
     "Fields": {
       "operation": {
         "OptionLabels": [
@@ -539,6 +556,7 @@
   },
   {
     "Key": "file.unzip",
+    "Group": "Archive",
     "Fields": {
       "from": {
         "Placeholder": "download.zip",
@@ -554,6 +572,7 @@
   },
   {
     "Key": "file.zip",
+    "Group": "Archive",
     "Fields": {
       "folder": {
         "Placeholder": "reports",
@@ -569,6 +588,7 @@
   },
   {
     "Key": "file.deleteFolder",
+    "Group": "Paths",
     "Fields": {
       "path": {
         "Placeholder": "output\\old",
@@ -579,6 +599,7 @@
   },
   {
     "Key": "file.listFiles",
+    "Group": "Paths",
     "Fields": {
       "folder": {
         "Placeholder": ".",
@@ -641,6 +662,7 @@
   },
   {
     "Key": "file.readJson",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "config.json",
@@ -658,6 +680,7 @@
   },
   {
     "Key": "file.writeJson",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "config.json",
@@ -672,6 +695,7 @@
   },
   {
     "Key": "file.readCsv",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "rows.csv",
@@ -759,6 +783,7 @@
   },
   {
     "Key": "file.writeCsv",
+    "Group": "Text",
     "Fields": {
       "path": {
         "Placeholder": "rows.csv",
@@ -830,6 +855,7 @@
   },
   {
     "Key": "file.saveVariables",
+    "Group": "Snapshots",
     "Fields": {
       "path": {
         "Placeholder": "state.json",
@@ -841,6 +867,7 @@
   },
   {
     "Key": "file.loadVariables",
+    "Group": "Snapshots",
     "Fields": {
       "path": {
         "Placeholder": "state.json",
@@ -852,6 +879,7 @@
   },
   {
     "Key": "data.base64Encode",
+    "Group": "Encoding",
     "Fields": {
       "dataText": {
         "Placeholder": "hello"
@@ -863,6 +891,7 @@
   },
   {
     "Key": "data.base64Decode",
+    "Group": "Encoding",
     "Fields": {
       "dataText": {
         "Placeholder": "aGVsbG8="
@@ -874,6 +903,7 @@
   },
   {
     "Key": "data.hash",
+    "Group": "Encoding",
     "Fields": {
       "hashAlgorithm": {
         "OptionLabels": [
@@ -912,6 +942,7 @@
   },
   {
     "Key": "clipboard.writeText",
+    "Group": "Text",
     "Fields": {
       "clipboardText": {
         "Kind": "MultilineText"
@@ -920,6 +951,7 @@
   },
   {
     "Key": "clipboard.readText",
+    "Group": "Text",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -928,6 +960,7 @@
   },
   {
     "Key": "clipboard.readImage",
+    "Group": "Image",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -937,6 +970,7 @@
   },
   {
     "Key": "clipboard.writeImage",
+    "Group": "Image",
     "Fields": {
       "imageSource": {
         "Placeholder": "C:\\images\\ok.png"
@@ -945,6 +979,7 @@
   },
   {
     "Key": "clipboard.readFiles",
+    "Group": "Files",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -953,6 +988,7 @@
   },
   {
     "Key": "clipboard.writeFiles",
+    "Group": "Files",
     "Fields": {
       "files": {
         "Placeholder": "$files",
@@ -962,10 +998,12 @@
     }
   },
   {
-    "Key": "clipboard.clear"
+    "Key": "clipboard.clear",
+    "Group": "Flow"
   },
   {
     "Key": "clipboard.waitChange",
+    "Group": "Flow",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -974,6 +1012,7 @@
   },
   {
     "Key": "clipboard.copy",
+    "Group": "Flow",
     "Fields": {
       "shortcut": {
         "Placeholder": "Ctrl+C",
@@ -986,6 +1025,7 @@
   },
   {
     "Key": "clipboard.paste",
+    "Group": "Flow",
     "Fields": {
       "pasteText": {
         "Kind": "MultilineText"
@@ -999,6 +1039,7 @@
   },
   {
     "Key": "process.start",
+    "Group": "Program",
     "Fields": {
       "programFile": {
         "Placeholder": "notepad.exe",
@@ -1027,6 +1068,7 @@
   },
   {
     "Key": "process.waitFor",
+    "Group": "Program",
     "Fields": {
       "window": {
         "Placeholder": "notepad"
@@ -1038,6 +1080,7 @@
   },
   {
     "Key": "process.waitExit",
+    "Group": "Program",
     "Fields": {
       "window": {
         "Placeholder": "notepad"
@@ -1049,6 +1092,7 @@
   },
   {
     "Key": "process.exists",
+    "Group": "Program",
     "Fields": {
       "window": {
         "Placeholder": "notepad"
@@ -1060,6 +1104,7 @@
   },
   {
     "Key": "process.list",
+    "Group": "Program",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -1068,6 +1113,7 @@
   },
   {
     "Key": "process.info",
+    "Group": "Program",
     "Fields": {
       "window": {
         "Placeholder": "notepad"
@@ -1079,6 +1125,7 @@
   },
   {
     "Key": "process.kill",
+    "Group": "Program",
     "Fields": {
       "window": {
         "Placeholder": "notepad"
@@ -1090,6 +1137,7 @@
   },
   {
     "Key": "command.run",
+    "Group": "Program",
     "Fields": {
       "commandFile": {
         "Placeholder": "cmd.exe",
@@ -1130,6 +1178,7 @@
   },
   {
     "Key": "system.info",
+    "Group": "Info",
     "Fields": {
       "field": {
         "OptionLabels": [
@@ -1169,6 +1218,7 @@
   },
   {
     "Key": "screen.list",
+    "Group": "Info",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -1177,6 +1227,7 @@
   },
   {
     "Key": "system.environment",
+    "Group": "Info",
     "Fields": {
       "environmentName": {
         "Placeholder": "TEMP"
@@ -1188,6 +1239,7 @@
   },
   {
     "Key": "system.setEnvironment",
+    "Group": "Environment",
     "Fields": {
       "environmentScope": {
         "OptionLabels": [
@@ -1208,6 +1260,7 @@
   },
   {
     "Key": "system.readRegistry",
+    "Group": "Environment",
     "Fields": {
       "hive": {
         "OptionLabels": [
@@ -1228,6 +1281,7 @@
   },
   {
     "Key": "system.writeRegistry",
+    "Group": "Environment",
     "Fields": {
       "hive": {
         "OptionLabels": [
@@ -1258,6 +1312,7 @@
   },
   {
     "Key": "system.deleteRegistry",
+    "Group": "Environment",
     "Fields": {
       "hive": {
         "OptionLabels": [
@@ -1275,6 +1330,7 @@
   },
   {
     "Key": "system.power",
+    "Group": "Desktop",
     "Fields": {
       "powerAction": {
         "OptionLabels": [
@@ -1299,6 +1355,7 @@
   },
   {
     "Key": "system.showDesktop",
+    "Group": "Desktop",
     "Fields": {
       "desktopAction": {
         "OptionLabels": [
@@ -1310,6 +1367,7 @@
   },
   {
     "Key": "system.volume",
+    "Group": "Desktop",
     "Fields": {
       "volumeAction": {
         "OptionLabels": [
@@ -1342,6 +1400,7 @@
   },
   {
     "Key": "system.sound",
+    "Group": "Desktop",
     "Fields": {
       "soundSource": {
         "OptionLabels": [
@@ -1376,6 +1435,7 @@
   },
   {
     "Key": "system.notify",
+    "Group": "Desktop",
     "Fields": {
       "heading": {
         "Placeholder": "Backup finished"
@@ -1394,6 +1454,7 @@
   },
   {
     "Key": "system.ime",
+    "Group": "Desktop",
     "Fields": {
       "imeAction": {
         "OptionLabels": [
@@ -1416,6 +1477,7 @@
   },
   {
     "Key": "system.brightness",
+    "Group": "Desktop",
     "Fields": {
       "brightnessAction": {
         "OptionLabels": [
@@ -1445,6 +1507,7 @@
   },
   {
     "Key": "window.exists",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1456,6 +1519,7 @@
   },
   {
     "Key": "window.waitFor",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1467,6 +1531,7 @@
   },
   {
     "Key": "window.activate",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1475,6 +1540,7 @@
   },
   {
     "Key": "window.minimize",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1483,6 +1549,7 @@
   },
   {
     "Key": "window.maximize",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1491,6 +1558,7 @@
   },
   {
     "Key": "window.restore",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1499,6 +1567,7 @@
   },
   {
     "Key": "window.move",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1507,6 +1576,7 @@
   },
   {
     "Key": "window.close",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1515,6 +1585,7 @@
   },
   {
     "Key": "window.list",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1529,6 +1600,7 @@
   },
   {
     "Key": "window.info",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -1540,6 +1612,7 @@
   },
   {
     "Key": "input.keyPress",
+    "Group": "Keyboard",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1563,6 +1636,7 @@
   },
   {
     "Key": "input.waitKey",
+    "Group": "Keyboard",
     "Fields": {
       "key": {
         "Placeholder": "e.g. F8",
@@ -1575,6 +1649,7 @@
   },
   {
     "Key": "input.keyDown",
+    "Group": "Keyboard",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1598,6 +1673,7 @@
   },
   {
     "Key": "input.keyUp",
+    "Group": "Keyboard",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1621,6 +1697,7 @@
   },
   {
     "Key": "input.hotkey",
+    "Group": "Keyboard",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1644,6 +1721,7 @@
   },
   {
     "Key": "input.keySequence",
+    "Group": "Keyboard",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1669,6 +1747,7 @@
   },
   {
     "Key": "input.typeText",
+    "Group": "Keyboard",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1692,6 +1771,7 @@
   },
   {
     "Key": "input.mouseMove",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1722,6 +1802,7 @@
   },
   {
     "Key": "input.mouseMoveRelative",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1744,6 +1825,7 @@
   },
   {
     "Key": "input.mouseClick",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1799,6 +1881,7 @@
   },
   {
     "Key": "input.mouseDoubleClick",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1854,6 +1937,7 @@
   },
   {
     "Key": "input.mouseDown",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1902,6 +1986,7 @@
   },
   {
     "Key": "input.mouseUp",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -1950,6 +2035,7 @@
   },
   {
     "Key": "input.mouseScroll",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -2001,6 +2087,7 @@
   },
   {
     "Key": "input.mouseDrag",
+    "Group": "Mouse",
     "Fields": {
       "inputMode": {
         "OptionLabels": [
@@ -2033,10 +2120,12 @@
     }
   },
   {
-    "Key": "gamepad.connect"
+    "Key": "gamepad.connect",
+    "Group": "Gamepad"
   },
   {
     "Key": "gamepad.button",
+    "Group": "Gamepad",
     "Fields": {
       "button": {
         "OptionLabels": [
@@ -2070,6 +2159,7 @@
   },
   {
     "Key": "gamepad.stick",
+    "Group": "Gamepad",
     "Fields": {
       "stick": {
         "OptionLabels": [
@@ -2081,6 +2171,7 @@
   },
   {
     "Key": "gamepad.trigger",
+    "Group": "Gamepad",
     "Fields": {
       "trigger": {
         "OptionLabels": [
@@ -2091,10 +2182,12 @@
     }
   },
   {
-    "Key": "gamepad.release"
+    "Key": "gamepad.release",
+    "Group": "Gamepad"
   },
   {
     "Key": "vision.capture",
+    "Group": "Screen",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2122,6 +2215,7 @@
   },
   {
     "Key": "vision.captureWindow",
+    "Group": "Screen",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -2139,6 +2233,7 @@
   },
   {
     "Key": "vision.findImage",
+    "Group": "FindImage",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2217,6 +2312,7 @@
   },
   {
     "Key": "vision.waitImage",
+    "Group": "FindImage",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2295,6 +2391,7 @@
   },
   {
     "Key": "vision.clickImage",
+    "Group": "FindImage",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2373,6 +2470,7 @@
   },
   {
     "Key": "vision.getPixel",
+    "Group": "Screen",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2394,6 +2492,7 @@
   },
   {
     "Key": "vision.waitColor",
+    "Group": "Colour",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2418,6 +2517,7 @@
   },
   {
     "Key": "vision.matchColor",
+    "Group": "Colour",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2442,6 +2542,7 @@
   },
   {
     "Key": "vision.findColor",
+    "Group": "Colour",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2478,6 +2579,7 @@
   },
   {
     "Key": "vision.waitStable",
+    "Group": "Screen",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2506,6 +2608,7 @@
   },
   {
     "Key": "vision.findColors",
+    "Group": "Colour",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2546,6 +2649,7 @@
   },
   {
     "Key": "vision.clickColor",
+    "Group": "Colour",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2582,6 +2686,7 @@
   },
   {
     "Key": "vision.detect",
+    "Group": "Detect",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2637,6 +2742,7 @@
   },
   {
     "Key": "vision.waitDetect",
+    "Group": "Detect",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2692,6 +2798,7 @@
   },
   {
     "Key": "vision.clickDetect",
+    "Group": "Detect",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2747,6 +2854,7 @@
   },
   {
     "Key": "ocr.recognize",
+    "Group": "OcrText",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2800,6 +2908,7 @@
   },
   {
     "Key": "ocr.findText",
+    "Group": "OcrText",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2898,6 +3007,7 @@
   },
   {
     "Key": "ocr.clickText",
+    "Group": "OcrText",
     "Fields": {
       "anchorMode": {
         "OptionLabels": [
@@ -2996,6 +3106,7 @@
   },
   {
     "Key": "uia.exists",
+    "Group": "Find",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3032,6 +3143,7 @@
   },
   {
     "Key": "uia.find",
+    "Group": "Find",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3068,6 +3180,7 @@
   },
   {
     "Key": "uia.waitElement",
+    "Group": "Find",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3107,6 +3220,7 @@
   },
   {
     "Key": "uia.click",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3140,6 +3254,7 @@
   },
   {
     "Key": "uia.invoke",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3173,6 +3288,7 @@
   },
   {
     "Key": "uia.setText",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3209,6 +3325,7 @@
   },
   {
     "Key": "uia.read",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3245,6 +3362,7 @@
   },
   {
     "Key": "uia.select",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3292,6 +3410,7 @@
   },
   {
     "Key": "uia.check",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3332,6 +3451,7 @@
   },
   {
     "Key": "uia.expand",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3372,6 +3492,7 @@
   },
   {
     "Key": "uia.scrollIntoView",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3405,6 +3526,7 @@
   },
   {
     "Key": "uia.readTable",
+    "Group": "Element",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3444,6 +3566,7 @@
   },
   {
     "Key": "uia.focusWindow",
+    "Group": "Window",
     "Fields": {
       "window": {
         "Placeholder": "Click the target window, then press F1"
@@ -3452,6 +3575,7 @@
   },
   {
     "Key": "browser.open",
+    "Group": "Navigate",
     "Fields": {
       "browser": {
         "OptionLabels": [
@@ -3475,6 +3599,7 @@
   },
   {
     "Key": "browser.goTo",
+    "Group": "Navigate",
     "Fields": {
       "url": {
         "Placeholder": "https://example.com"
@@ -3483,6 +3608,7 @@
   },
   {
     "Key": "browser.click",
+    "Group": "Element",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#submit"
@@ -3507,6 +3633,7 @@
   },
   {
     "Key": "browser.fill",
+    "Group": "Element",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#search"
@@ -3536,6 +3663,7 @@
   },
   {
     "Key": "browser.readText",
+    "Group": "Page",
     "Fields": {
       "narrow": {
         "AppliesWhen": "pageSelector",
@@ -3572,6 +3700,7 @@
   },
   {
     "Key": "browser.readAll",
+    "Group": "Page",
     "Fields": {
       "pageSelector": {
         "Placeholder": ".result-row"
@@ -3606,6 +3735,7 @@
   },
   {
     "Key": "browser.readTable",
+    "Group": "Page",
     "Fields": {
       "pageSelector": {
         "Placeholder": "table"
@@ -3626,6 +3756,7 @@
   },
   {
     "Key": "browser.readPage",
+    "Group": "Page",
     "Fields": {
       "returns": {
         "Kind": "Returns"
@@ -3634,6 +3765,7 @@
   },
   {
     "Key": "browser.select",
+    "Group": "Element",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#country"
@@ -3657,6 +3789,7 @@
   },
   {
     "Key": "browser.check",
+    "Group": "Element",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#agree"
@@ -3671,6 +3804,7 @@
   },
   {
     "Key": "browser.hover",
+    "Group": "Element",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#menu"
@@ -3685,6 +3819,7 @@
   },
   {
     "Key": "browser.press",
+    "Group": "Element",
     "Fields": {
       "narrow": {
         "AppliesWhen": "pageSelector",
@@ -3708,6 +3843,7 @@
   },
   {
     "Key": "browser.waitFor",
+    "Group": "Wait",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#results"
@@ -3730,6 +3866,7 @@
   },
   {
     "Key": "browser.waitForUrl",
+    "Group": "Wait",
     "Fields": {
       "urlMatch": {
         "Placeholder": "example.com/receipt"
@@ -3747,6 +3884,7 @@
   },
   {
     "Key": "browser.waitForLoad",
+    "Group": "Wait",
     "Fields": {
       "loadState": {
         "OptionLabels": [
@@ -3759,6 +3897,7 @@
   },
   {
     "Key": "browser.scroll",
+    "Group": "Element",
     "Fields": {
       "narrow": {
         "AppliesWhen": "pageSelector",
@@ -3790,6 +3929,7 @@
   },
   {
     "Key": "browser.download",
+    "Group": "Page",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#export"
@@ -3819,6 +3959,7 @@
   },
   {
     "Key": "browser.dialog",
+    "Group": "Page",
     "Fields": {
       "dialogHow": {
         "OptionLabels": [
@@ -3837,6 +3978,7 @@
   },
   {
     "Key": "browser.evaluate",
+    "Group": "Page",
     "Fields": {
       "script": {
         "ForeignText": true,
@@ -3849,6 +3991,7 @@
   },
   {
     "Key": "browser.upload",
+    "Group": "Page",
     "Fields": {
       "pageSelector": {
         "Placeholder": "input[type=file]"
@@ -3868,6 +4011,7 @@
   },
   {
     "Key": "browser.switchTab",
+    "Group": "Navigate",
     "Fields": {
       "tabHow": {
         "OptionLabels": [
@@ -3893,13 +4037,16 @@
     }
   },
   {
-    "Key": "browser.closeTab"
+    "Key": "browser.closeTab",
+    "Group": "Navigate"
   },
   {
-    "Key": "browser.close"
+    "Key": "browser.close",
+    "Group": "Navigate"
   },
   {
     "Key": "script.run",
+    "Group": "Run",
     "Fields": {
       "kind": {
         "OptionLabels": [
@@ -3990,6 +4137,7 @@
   },
   {
     "Key": "script.python",
+    "Group": "Run",
     "Fields": {
       "script": {
         "ForeignText": true,
@@ -4021,6 +4169,7 @@
   },
   {
     "Key": "script.pip",
+    "Group": "Dependencies",
     "Fields": {
       "packages": {
         "Placeholder": "requests\nnumpy",
@@ -4040,6 +4189,7 @@
   },
   {
     "Key": "script.csharp",
+    "Group": "Run",
     "Fields": {
       "script": {
         "ForeignText": true,
@@ -4064,6 +4214,7 @@
   },
   {
     "Key": "script.ahk",
+    "Group": "Run",
     "Fields": {
       "script": {
         "ForeignText": true,
@@ -4095,6 +4246,7 @@
   },
   {
     "Key": "script.nuget",
+    "Group": "Dependencies",
     "Fields": {
       "packages": {
         "Placeholder": "Newtonsoft.Json\nSerilog",
@@ -4107,6 +4259,7 @@
   },
   {
     "Key": "browser.exists",
+    "Group": "Wait",
     "Fields": {
       "pageSelector": {
         "Placeholder": "#results"

@@ -20,17 +20,6 @@
             <Setter Property="Width" Value="8" />
             <Setter Property="MinWidth" Value="8" />
         </Style>
-
-        <!-- The group chips, a touch smaller than the same dock in the expression builder: this one
-             shares a 360-pixel column with the wall under it and has five names to fit on a line.
-             The minimum height comes from the theme's list item and is what made the row 40 pixels
-             tall for 18 pixels of writing; without it the row is the writing plus its own padding,
-             and those 14 pixels are a variable card the list below gets to show. -->
-        <Style Selector="ListBox.VariableFilters ListBoxItem">
-            <Setter Property="MinHeight" Value="0" />
-            <Setter Property="Padding" Value="3,1" />
-            <Setter Property="Margin" Value="0,0,2,3" />
-        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
@@ -42,9 +31,8 @@
              line of chips costs the list a whole row of variables and reads as a break between the
              wall and what it is filtered by. English names are the short ones, because "Local
              variables" is what made the row wrap; the hint on each says the rest. -->
-        <ListBox Grid.Row="1" Name="VariableGroups" Classes="Dock VariableFilters" ItemsSource="{Binding Filters}"
+        <ListBox Grid.Row="1" Name="VariableGroups" Classes="Dock" ItemsSource="{Binding Filters}"
                  SelectedItem="{Binding SelectedFilter}" SelectionMode="Single"
-                 Background="Transparent" BorderThickness="0" Padding="0"
                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
                  ScrollViewer.VerticalScrollBarVisibility="Disabled">
             <ListBox.ItemsPanel>
@@ -54,8 +42,8 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:VariableFilter">
-                    <TextBlock Text="{Binding Label}" FontSize="11" Foreground="{DynamicResource TextPrimary}"
-                               ToolTip.Tip="{Binding Hint}" />
+                    <!-- 字只写一次：颜色与字号从这一行继承，选中与禁用才换得动。 -->
+                    <TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding Hint}" />
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
@@ -85,9 +73,11 @@
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <TextBlock Text="{Binding Display}" VerticalAlignment="Center" />
                                 <Border IsVisible="{Binding IsPersistent}"
-                                        Background="{DynamicResource SurfacePanel}" CornerRadius="3"
+                                        Background="{DynamicResource SurfacePanel}"
+                                        CornerRadius="{DynamicResource RadiusControl}"
                                         Padding="5,1">
-                                    <TextBlock Text="{Binding PersistenceBadge}" FontSize="10.5"
+                                    <TextBlock Text="{Binding PersistenceBadge}"
+                                               FontSize="{DynamicResource UiCaptionSize}"
                                                Foreground="{DynamicResource TextSecondary}" />
                                 </Border>
                             </StackPanel>
@@ -96,10 +86,12 @@
                                 <Border MaxWidth="380" MaxHeight="260"
                                         Background="{DynamicResource SurfacePanel}"
                                         BorderBrush="{DynamicResource BorderControl}"
-                                        BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        BorderThickness="1"
+                                        CornerRadius="{DynamicResource RadiusContainer}" Padding="10,8">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                         <SelectableTextBlock Text="{Binding HoverText}"
-                                                             TextWrapping="Wrap" FontSize="12" />
+                                                             TextWrapping="Wrap"
+                                                             FontSize="{DynamicResource UiBodySmallSize}" />
                                     </ScrollViewer>
                                 </Border>
                             </ToolTip.Tip>
@@ -119,12 +111,14 @@
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="4">
-                <TextBlock Text="{Binding Details}" TextWrapping="Wrap" FontSize="11.5"
+                <TextBlock Text="{Binding Details}" TextWrapping="Wrap"
+                           FontSize="{DynamicResource UiBodySmallSize}"
                            Foreground="{DynamicResource TextTertiary}" />
 
                 <!-- Pressing one of those steps asks the place the wall stands in to show it. -->
                 <StackPanel Spacing="4" IsVisible="{Binding HasUses}">
-                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextTertiary}"
+                    <TextBlock FontSize="{DynamicResource UiBodySmallSize}"
+                               Foreground="{DynamicResource TextTertiary}"
                                Text="{Binding [VarWall.UsedBy], Source={x:Static loc:Strings.Current}}" />
                     <ItemsControl ItemsSource="{Binding Uses}">
                         <ItemsControl.ItemsPanel>

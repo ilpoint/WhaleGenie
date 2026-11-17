@@ -44,9 +44,14 @@ public sealed partial class ProjectTriggers
         };
     }
 
+    /// <summary>
+    /// The interface triggers that are switched on, whether or not they name a window. A trigger
+    /// with no rule at all is the global one: it belongs to whichever window is in front, which is
+    /// what <see cref="WindowRuleMatches"/> already says about an empty rule ("every window holds
+    /// the empty text"). Dropping it here made such a trigger save, list and never appear.
+    /// </summary>
     public IReadOnlyList<TriggerEntry> InterfaceEntries()
-        => [.. Entries.Where(entry => entry.IsEnabled
-            && entry.Spec is InterfaceSpec { Window.HasTarget: true })];
+        => [.. Entries.Where(entry => entry.IsEnabled && entry.Spec is InterfaceSpec)];
 
     public IReadOnlyList<TriggerEntry> HotstringEntries()
         => [.. Entries.Where(entry => entry.IsEnabled

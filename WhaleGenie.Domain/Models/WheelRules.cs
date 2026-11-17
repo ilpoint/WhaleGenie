@@ -89,8 +89,8 @@ public sealed class WheelMenuRules
     }
 
     /// <summary>
-    /// Combines the global scene and the program scene position by position. This is the rule
-    /// Quicker's wheel uses: a program position replaces the global one only when it is filled in.
+    /// Combines the global scene and the program scene position by position: a program position
+    /// replaces the global one only when it is filled in.
     /// </summary>
     public WheelRuntimeLayout Resolve(WheelScene? scene, WheelSource source, bool wideOuter,
         IReadOnlyList<MacroItem> macros, int thirdCapacity = 0, bool hideEmptyOuter = false)

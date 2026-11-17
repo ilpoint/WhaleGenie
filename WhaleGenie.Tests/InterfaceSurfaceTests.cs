@@ -4,6 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
@@ -31,7 +34,8 @@ public class InterfaceSurfaceTests
             surface.Show();
 
             Assert.Equal(["one", "two", "three"], surface.MacroNames);
-            Assert.Equal(3, surface.GetVisualDescendants().OfType<Button>().Count());
+            Assert.Equal(3, surface.GetVisualDescendants().OfType<Button>()
+                .Count(button => button.Content is TextBlock));
             surface.Close();
         });
     }
@@ -86,6 +90,104 @@ public class InterfaceSurfaceTests
             Assert.False(surface.IsMoving);
             surface.Close();
             return true;
+        });
+    }
+
+    /// <summary>
+    /// The handle offers two shapes beside the drag grip: the buttons can be folded away, and the
+    /// column can be turned into a row. The panel is not a topmost window — it belongs to the
+    /// target window's layer, so the program in front covers it instead of being pierced by it.
+    /// </summary>
+    [Fact]
+    public void A_panel_can_be_collapsed_and_turned_into_a_row()
+    {
+        Ui.Run(() =>
+        {
+            var macros = new[]
+            {
+                new MacroItem { Name = "one" },
+                new MacroItem { Name = "two" },
+            };
+            var surface = new FloatingSurfaceWindow(macros, _ => { });
+            surface.Show();
+
+            Assert.False(surface.Topmost);
+            Assert.False(surface.IsCollapsedForCheck);
+            Assert.False(surface.IsHorizontalForCheck);
+            Assert.True(surface.BodyVisibleForCheck);
+            Assert.Equal(Orientation.Vertical, surface.ButtonOrientationForCheck);
+
+            surface.ToggleLayoutForCheck();
+            Assert.True(surface.IsHorizontalForCheck);
+            Assert.Equal(Orientation.Horizontal, surface.ButtonOrientationForCheck);
+            Assert.True(surface.Width > 86);
+
+            surface.ToggleCollapsedForCheck();
+            Assert.True(surface.IsCollapsedForCheck);
+            Assert.False(surface.BodyVisibleForCheck);
+            Assert.Equal(86, surface.Width);
+
+            // The folded window is taller than the handle because Windows will not make it
+            // shorter, so the handle sits on the top edge: the region keeps that strip, and a
+            // centred handle would have its buttons cut in half there.
+            Assert.Equal(20, surface.HeaderHeightForCheck);
+            Assert.Equal(VerticalAlignment.Top, surface.HeaderAlignmentForCheck);
+
+            surface.ToggleCollapsedForCheck();
+            Assert.True(surface.BodyVisibleForCheck);
+            Assert.True(surface.Width > 86);
+            surface.Close();
+        });
+    }
+
+    /// <summary>The collapsed window is taller than its native region; the header must stay in the visible top.</summary>
+    [Fact]
+    public void A_collapsed_panel_keeps_its_header_in_the_clipped_top()
+    {
+        Ui.Run(() =>
+        {
+            var surface = new FloatingSurfaceWindow([new MacroItem { Name = "one" }], _ => { });
+            surface.Show();
+            surface.ToggleCollapsedForCheck();
+            Dispatcher.UIThread.RunJobs();
+
+            var header = surface.GetVisualDescendants().OfType<Border>()
+                .Single(border => border.Name == "SurfaceHeader");
+            Assert.Equal(VerticalAlignment.Top, header.VerticalAlignment);
+            Assert.Equal(20, header.Height);
+            Assert.InRange(header.Bounds.Y, 0, 0.5);
+
+            var collapse = surface.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.Name == "SurfaceCollapseButton");
+            Assert.InRange(collapse.Bounds.Bottom, 0, header.Bounds.Height);
+
+            surface.Close();
+        });
+    }
+
+    /// <summary>A long macro name must be ellipsized inside the pill, not clipped by its right edge.</summary>
+    [Fact]
+    public void A_long_macro_label_trims_inside_its_button()
+    {
+        Ui.Run(() =>
+        {
+            const string name = "全局面板设置很多字";
+            var surface = new FloatingSurfaceWindow([new MacroItem { Name = name }], _ => { });
+            surface.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var label = surface.GetVisualDescendants().OfType<TextBlock>()
+                .Single(text => text.Text == name);
+            var button = surface.GetVisualDescendants().OfType<Button>()
+                .Single(button => ReferenceEquals(button.Content, label));
+
+            Assert.Equal(TextTrimming.CharacterEllipsis, label.TextTrimming);
+            Assert.True(label.MaxWidth <= button.Bounds.Width - 12,
+                $"label max {label.MaxWidth} escapes button width {button.Bounds.Width}");
+            Assert.True(label.Bounds.Width <= label.MaxWidth + 0.5,
+                $"label width {label.Bounds.Width} escapes max {label.MaxWidth}");
+
+            surface.Close();
         });
     }
 
@@ -285,5 +387,163 @@ public class InterfaceSurfaceTests
 
         var match = GlobalHotkeyPlan.From(project, LocalSettings.LoadSystemHotkey(), "").Match("NumPadSubtract", []);
         Assert.Equal(GlobalHotkeyAction.ToggleInterfaceGroup, match.Action);
+    }
+
+    /// <summary>
+    /// A group whose rule names a window keeps its panel in that window. The rule used to be
+    /// compared by asking the device for "the frontmost window": with the panel itself on top, that
+    /// answer could be the panel rather than the window it belongs to, and the panel was hidden
+    /// the moment it appeared. Once placed, the panel now stays there while another program is in
+    /// front, follows the target when it moves, and goes when the target does.
+    /// </summary>
+    [Fact]
+    public void A_rule_bound_panel_stays_in_its_window_while_another_program_is_in_front()
+    {
+        var windows = new WindowsForChecks()
+            .Add(1, "target", "app", "Class")
+            .Add(2, "other", "other", "Other");
+        var events = new RaisingWindowEvents();
+        var devices = new ChecksDevices { Windows = windows, WindowEvents = events };
+        var variables = new VariableSession();
+        var runtime = new TriggerRuntime(devices, variables);
+
+        Ui.Run(() =>
+        {
+            var viewModel = new MainViewModel(variables: variables);
+            var macro = new MacroItem { Name = "panel" };
+            viewModel.AddMacro(macro);
+            viewModel.Triggers.Entries.Add(new TriggerEntry
+            {
+                MacroName = macro.Name,
+                Spec = new InterfaceSpec(new WindowRule(Title: "target")),
+            });
+            viewModel.IsRunning = true;
+
+            var window = new MainWindow(runtime) { DataContext = viewModel };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            try
+            {
+                windows.Front(1);
+                events.RaiseForeground();
+                Dispatcher.UIThread.RunJobs();
+
+                var surface = Assert.Single(window.SurfaceWindowsForCheck);
+                Assert.True(surface.IsVisible);
+                var placed = surface.Position;
+
+                // Another program comes forward: the target is alive but no longer in front.
+                windows.Front(2);
+                events.RaiseForeground();
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Same(surface, Assert.Single(window.SurfaceWindowsForCheck));
+                Assert.True(surface.IsVisible);
+                Assert.Equal(placed, surface.Position);
+
+                // The target moves while it is not focused, and the panel follows it.
+                windows.Place(1, 120, 80, 300, 200);
+                events.RaiseBounds(1);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Same(surface, Assert.Single(window.SurfaceWindowsForCheck));
+                Assert.NotEqual(placed, surface.Position);
+                Assert.InRange(surface.Position.X, 120, 120 + 300 - 1);
+                Assert.InRange(surface.Position.Y, 80, 80 + 200 - 1);
+
+                // The target goes: so does the panel.
+                windows.Remove(1);
+                events.RaiseForeground();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Empty(window.SurfaceWindowsForCheck);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
+    /// <summary>
+    /// A group with no rule belongs to whatever window is in front, and moves with it. This is the
+    /// shape the saved interface triggers had, so it is the one that has to keep working.
+    /// </summary>
+    [Fact]
+    public void A_rule_less_panel_follows_the_window_in_front()
+    {
+        var windows = new WindowsForChecks()
+            .Add(1, "target", "app", "Class")
+            .Add(2, "other", "other", "Other")
+            .Place(2, 200, 150, 100, 100);
+        var events = new RaisingWindowEvents();
+        var devices = new ChecksDevices { Windows = windows, WindowEvents = events };
+        var variables = new VariableSession();
+        var runtime = new TriggerRuntime(devices, variables);
+
+        Ui.Run(() =>
+        {
+            var viewModel = new MainViewModel(variables: variables);
+            var macro = new MacroItem { Name = "panel" };
+            viewModel.AddMacro(macro);
+            viewModel.Triggers.Entries.Add(new TriggerEntry
+            {
+                MacroName = macro.Name,
+                Spec = new InterfaceSpec(WindowRule.Empty),
+            });
+            viewModel.IsRunning = true;
+
+            var window = new MainWindow(runtime) { DataContext = viewModel };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            try
+            {
+                windows.Front(1);
+                events.RaiseForeground();
+                Dispatcher.UIThread.RunJobs();
+                var surface = Assert.Single(window.SurfaceWindowsForCheck);
+                var atTarget = surface.Position;
+
+                windows.Front(2);
+                events.RaiseForeground();
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Same(surface, Assert.Single(window.SurfaceWindowsForCheck));
+                Assert.NotEqual(atTarget, surface.Position);
+            }
+            finally
+            {
+                window.Close();
+            }
+        });
+    }
+
+    /// <summary>Window events a check raises by hand, standing in for the system's own hook.</summary>
+    private sealed class RaisingWindowEvents : IWindowEvents
+    {
+        public bool Available => true;
+
+        public event Action? ForegroundChanged;
+
+        public event Action<long>? BoundsChanged;
+
+        public event Action? Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public void RaiseForeground() => ForegroundChanged?.Invoke();
+
+        public void RaiseBounds(long handle) => BoundsChanged?.Invoke(handle);
+
+        public void Start()
+        {
+        }
+
+        public void Dispose()
+        {
+        }
     }
 }

@@ -84,6 +84,8 @@ public class TemplatePartTests
         ("ToggleButton", "Chip", "ContentPresenter"),
         ("ToggleButton", "Chip Key", "ContentPresenter"),
         ("ListBoxItem", "", "ContentPresenter"),
+        // 分类 dock：切走库画在选中行里的那条 3 像素竖条——dock 的选中态有自己的三件事要说。
+        ("ListBoxItem", "", "Rectangle#SelectionIndicator"),
         // 树的行：选中态由卡片自己画，模板里那层底与那条小竖条都让开。
         ("TreeViewItem", "", "Border#PART_LayoutRoot"),
         ("TreeViewItem", "", "Grid#PART_Header"),

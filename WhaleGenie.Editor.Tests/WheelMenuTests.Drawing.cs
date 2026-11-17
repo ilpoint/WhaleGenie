@@ -20,7 +20,7 @@ namespace WhaleGenie.Tests;
 public partial class WheelMenuTests
 {
     [Fact]
-    public void The_centre_says_close_and_the_invisible_circle_names_its_action()
+    public void The_centre_says_close_and_the_invisible_circle_shows_only_the_name_or_note()
     {
         Ui.Run(() =>
         {
@@ -28,11 +28,25 @@ public partial class WheelMenuTests
             rules.Global.At(Top).Macro = "copy";
             var extended = new WheelSlotRef(WheelRing.Extended, 2);
             rules.Global.At(extended).Macro = "paste";
+            rules.Global.At(extended).Note = "粘贴纯文本";
             var layout = rules.Resolve(null, WheelSource.Global, false,
                 [
                     new MacroItem { Name = "copy", IsEnabled = true },
-                    new MacroItem { Name = "paste", IsEnabled = true, Description = "粘贴纯文本" },
+                    new MacroItem
+                    {
+                        Name = "paste",
+                        IsEnabled = true,
+                        Description = "说明不该显示",
+                    },
                 ]);
+
+            // The same action without a note is named by the macro's name, never by its
+            // description: that is prose and does not fit the one line in the centre.
+            var named = new WheelMenuRules();
+            named.Global.At(extended).Macro = "paste";
+            var namedLayout = named.Resolve(null, WheelSource.Global, false,
+                [new MacroItem { Name = "paste", IsEnabled = true, Description = "说明不该显示" }]);
+
             var window = new WheelMenuWindow(layout, new WheelOptions(),
                 new PixelPoint(400, 400), preview: true);
 
@@ -41,8 +55,12 @@ public partial class WheelMenuTests
             Assert.NotEqual(Strings.Get("Wheel.Close"), window.CenterHint);
 
             window.Hover(extended);
-            Assert.Contains(Strings.Get("Wheel.ExtendedPrefix"), window.CenterHint);
-            Assert.Contains("粘贴纯文本", window.CenterHint);
+            Assert.Equal("粘贴纯文本", window.CenterHint);
+            Assert.DoesNotContain("划一下", window.CenterHint);
+
+            window.SetLayout(namedLayout);
+            Assert.Equal("paste", window.CenterHint);
+            Assert.DoesNotContain("说明不该显示", window.CenterHint);
 
             window.Hover(null);
             Assert.Equal(Strings.Get("Wheel.Close"), window.CenterHint);

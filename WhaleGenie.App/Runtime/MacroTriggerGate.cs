@@ -22,4 +22,11 @@ public static class MacroTriggerGate
 
     /// <summary>Counts a dialog as closed.</summary>
     public static void Exit() => Interlocked.Decrement(ref _open);
+
+    /// <summary>
+    /// Starts from "no dialog open". Each check runs a fresh application, so a count left behind
+    /// by a window that check opened and never closed belongs to an application that is gone; the
+    /// next check must not inherit it and find every floating panel held back.
+    /// </summary>
+    internal static void ResetForChecks() => Volatile.Write(ref _open, 0);
 }

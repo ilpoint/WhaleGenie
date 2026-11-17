@@ -78,6 +78,31 @@ public static class ActionCategoryPresentation
             ? IconFor(value) ?? AppIcons.GridFour
             : AppIcons.GridFour;
 
+    /// <summary>
+    /// The order the small groups of one basic category are listed in. The group each action
+    /// belongs to is named by the display file; this table decides only which section comes first,
+    /// the way <see cref="ActionPaletteViewModel"/>'s flow groups have a rank. A group the table
+    /// does not name is still listed — after the named ones — so an action can never disappear
+    /// from the palette because somebody forgot a line here.
+    /// </summary>
+    private static readonly Dictionary<ActionCategory, string[]> BasicGroupOrder = new()
+    {
+        [ActionCategory.Input] = ["Keyboard", "Mouse", "Gamepad"],
+        [ActionCategory.Vision] = ["Screen", "FindImage", "Colour", "Detect", "OcrText"],
+        [ActionCategory.Uia] = ["Find", "Element", "Window"],
+        [ActionCategory.Browser] = ["Navigate", "Element", "Page", "Wait"],
+        [ActionCategory.Script] = ["Run", "Dependencies"],
+        [ActionCategory.Process] = ["Program", "Window"],
+        [ActionCategory.Data] = ["Variables", "Lists", "Encoding"],
+        [ActionCategory.File] = ["Text", "Paths", "Archive", "Snapshots"],
+        [ActionCategory.Clipboard] = ["Text", "Image", "Files", "Flow"],
+        [ActionCategory.System] = ["Info", "Environment", "Desktop"],
+    };
+
+    /// <summary>The small groups of one basic category, in the order the palette shows them.</summary>
+    public static IReadOnlyList<string> BasicGroups(ActionCategory category)
+        => BasicGroupOrder.TryGetValue(category, out var groups) ? groups : [];
+
     public static IReadOnlyList<ActionCategoryChoice> BasicCategories() =>
     [
         new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"),

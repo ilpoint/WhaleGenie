@@ -68,6 +68,7 @@ public partial class MacroEditorWindow : AppWindow
     private bool _closing;
     private bool _mustStayUnsaved;
     private bool _initialBindingsSettled;
+    private bool _gateEntered;
 
     /// <summary>
     /// The run window this editor opened, kept so that pressing 「运行调试」 twice does not leave two
@@ -107,6 +108,30 @@ public partial class MacroEditorWindow : AppWindow
 
     private static T? FindOn<T>(Control? scope, string name) where T : Control =>
         scope is null ? null : NameScope.GetNameScope(scope)?.Find<T>(name) as T;
+
+    /// <summary>
+    /// The trigger gate is held for as long as the window is on screen, not from the moment it is
+    /// built. A window built for a layout check or a preview and never shown would otherwise keep
+    /// every trigger — the floating panels included — held back for the rest of the session.
+    /// </summary>
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        if (!_gateEntered)
+        {
+            _gateEntered = true;
+            MacroTriggerGate.Enter();
+        }
+    }
+
+    private void LeaveTriggerGate()
+    {
+        if (_gateEntered)
+        {
+            _gateEntered = false;
+            MacroTriggerGate.Exit();
+        }
+    }
 
     public MacroEditorWindow()
         : this(null, null, null)
@@ -303,8 +328,9 @@ public partial class MacroEditorWindow : AppWindow
         };
 
         // The keys pressed while a macro is being written or a shortcut bound must not set one off.
-        MacroTriggerGate.Enter();
-        Closed += (_, _) => MacroTriggerGate.Exit();
+        // The count starts when the window is actually on screen; a window that was built for a
+        // check or a preview and never shown must not hold the triggers back for good.
+        Closed += (_, _) => LeaveTriggerGate();
 
         _variables.GlobalsChanged += OnGlobalsChanged;
         _variables.Values.Changed += OnSharedVariableChanged;

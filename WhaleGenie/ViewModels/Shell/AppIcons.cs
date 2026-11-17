@@ -154,5 +154,17 @@ public static class AppIcons
     public static LucideIconKind SelectionPlus => LucideIconKind.SquarePlus;
     public static LucideIconKind ChevronDown => LucideIconKind.ChevronDown;
     public static LucideIconKind ChevronRight => LucideIconKind.ChevronRight;
+
+    /// <summary>Folds the floating panel up to its handle.</summary>
+    public static LucideIconKind Collapse => LucideIconKind.ChevronUp;
+
+    /// <summary>Opens a folded floating panel again.</summary>
+    public static LucideIconKind Expand => LucideIconKind.ChevronDown;
+
+    /// <summary>Arranges a floating panel's buttons side by side.</summary>
+    public static LucideIconKind ArrangeHorizontal => LucideIconKind.Columns3;
+
+    /// <summary>Arranges a floating panel's buttons in a column.</summary>
+    public static LucideIconKind ArrangeVertical => LucideIconKind.Rows3;
     public static LucideIconKind WarningTriangle => LucideIconKind.TriangleAlert;
 }

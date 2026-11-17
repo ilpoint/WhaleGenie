@@ -112,8 +112,9 @@ public partial class RunWindow : AppWindow
             viewModel.ReleaseLooks();
             _frames.Dispose();
         };
-        MacroTriggerGate.Enter();
-        Closed += (_, _) => MacroTriggerGate.Exit();
+        // Counted while the window is on screen, not while it is being built — see the editor's
+        // OnOpened for the check that a built-but-never-shown window otherwise leaves behind.
+        Closed += (_, _) => LeaveTriggerGate();
 
         // A macro that drives another program is watched with that program in front, so this window
         // is pinned like the editor's: the run stays in sight while the work happens behind it.
@@ -183,6 +184,7 @@ public partial class RunWindow : AppWindow
     /// thousand: the last one queued would have shown the same table anyway.
     /// </summary>
     private bool _rebuildPosted;
+    private bool _gateEntered;
 
     private void OnVariablesChanged() => PostRebuild();
 
@@ -336,6 +338,12 @@ public partial class RunWindow : AppWindow
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        if (!_gateEntered)
+        {
+            _gateEntered = true;
+            MacroTriggerGate.Enter();
+        }
+
         SharedDoors.Input.Changed += OnInputGateChanged;
         SharedDoors.Browser.Changed += OnBrowserGateChanged;
 
@@ -348,6 +356,16 @@ public partial class RunWindow : AppWindow
             _triggers.Interval = TimeSpan.FromSeconds(1);
             _triggers.Tick += OnTriggerTick;
             _triggers.Start();
+        }
+    }
+
+    /// <summary>Takes the window's count back, and only if it ever added one.</summary>
+    private void LeaveTriggerGate()
+    {
+        if (_gateEntered)
+        {
+            _gateEntered = false;
+            MacroTriggerGate.Exit();
         }
     }
 

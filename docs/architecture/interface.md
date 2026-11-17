@@ -95,6 +95,10 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 `ThemeController` 负责应用和保存主题选择。新增样式时须遵守 `Controls.axaml` 文件头的登记规则，
 并通过相关样式测试。
 
+`App.axaml` 只合并主题与上面三层资源，不写控件样式：控件类一律落在 `Themes/Controls.axaml`，
+这样选择器的顺序与登记表只有一处。`ClassAuditTests` 连 `App.axaml` 一起读，样式若再漂回应用层，
+“挂了类却没有样式”的报告仍看得见，不需要另开白名单。
+
 `FluentAvaloniaTheme` 没有接手 `ContextMenu` 的控件主题。库的 `ControlThemes/BasicControls` 里有
 `Menu`、`MenuItem`、`MenuFlyoutPresenter` 和 `Separator`，唯独没有 `ContextMenu`，而它的模板原本由
 `FluentTheme` 提供。`Themes/Controls.axaml` 的 `Styles.Resources` 里因此有一份按项目令牌写的

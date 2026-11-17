@@ -41,6 +41,29 @@ internal sealed class WindowsForChecks : IWindowDevice
         return this;
     }
 
+    /// <summary>Makes one of the windows the one in front, as clicking it would.</summary>
+    public WindowsForChecks Front(long handle)
+    {
+        var at = Open.FindIndex(window => window.Handle == handle);
+        if (at > 0)
+        {
+            var window = Open[at];
+            Open.RemoveAt(at);
+            Open.Insert(0, window);
+        }
+
+        return this;
+    }
+
+    /// <summary>Takes one of the windows off the desktop, as closing it would.</summary>
+    public WindowsForChecks Remove(long handle)
+    {
+        Open.RemoveAll(window => window.Handle == handle);
+        _facts.Remove(handle);
+        _clientOrigins.Remove(handle);
+        return this;
+    }
+
     /// <summary>Shrinks one of the windows, which takes it off the screen.</summary>
     public WindowsForChecks Shrink(long handle)
     {

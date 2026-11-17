@@ -171,6 +171,116 @@ public class ActionPaletteCategoryTests
     }
 
     /// <summary>
+    /// Every action the basic dock can show has to name one of the small groups that category is cut
+    /// into, and the name has to be one the palette's order table knows. Without this, a new action
+    /// silently lands in a section called "Other" — or, worse, in a section nobody ordered.
+    /// </summary>
+    [Fact]
+    public void Every_basic_action_names_a_palette_group_and_the_order_table_knows_it()
+    {
+        var basic = ActionCatalog.RunnableActions
+            .Where(action => action.Category != ActionCategory.Control)
+            .ToList();
+        Assert.NotEmpty(basic);
+
+        var ungrouped = basic.Where(action => action.Group.Length == 0)
+            .Select(action => action.Key)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        Assert.True(ungrouped.Count == 0,
+            "these actions name no palette group: " + string.Join(", ", ungrouped));
+
+        var unknown = basic
+            .Where(action => !ActionCategoryPresentation
+                .BasicGroups(ActionPaletteCategory(action.Category))
+                .Contains(action.Group, StringComparer.Ordinal))
+            .Select(action => $"{action.Key} → {action.Group}")
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        Assert.True(unknown.Count == 0,
+            "these groups are missing from the palette's order table: " + string.Join(", ", unknown));
+    }
+
+    /// <summary>
+    /// A category with many actions is cut into the same kind of small sections the control-flow
+    /// dock has: named, ordered, and with every card in exactly one of them. The titles come from
+    /// the string table, so a missing translation shows up as a raw key rather than an empty line.
+    /// </summary>
+    [Fact]
+    public void Every_basic_category_is_cut_into_its_small_groups_in_order()
+    {
+        var categories = new[]
+        {
+            ActionCategory.Input, ActionCategory.Vision, ActionCategory.Uia,
+            ActionCategory.Browser, ActionCategory.Script, ActionCategory.Process,
+            ActionCategory.Data, ActionCategory.File, ActionCategory.Clipboard,
+            ActionCategory.System,
+        };
+
+        foreach (var category in categories)
+        {
+            var palette = new ActionPaletteViewModel();
+            palette.SelectedCategory = palette.Categories.Single(choice => choice.Value == category);
+
+            var expected = ActionCategoryPresentation.BasicGroups(category)
+                .Select(id => Strings.Get($"Palette.Group.{id}"))
+                .ToList();
+            var titles = palette.Sections.Select(section => section.Title).ToList();
+
+            Assert.Equal(expected, titles);
+            Assert.All(titles, title => Assert.DoesNotContain("Palette.Group.", title));
+            Assert.All(palette.Sections, section => Assert.True(section.HasTitle));
+            Assert.DoesNotContain(Strings.Get("Palette.Group.Other"), titles);
+            Assert.Equal(palette.Cards.Count, palette.Sections.Sum(section => section.Cards.Count));
+        }
+    }
+
+    /// <summary>
+    /// "All" stays one untitled list: it is the browse-everything view, and repeating the rail's
+    /// category names as headings over 150 cards only pushes them further down.
+    /// </summary>
+    [Fact]
+    public void The_all_view_stays_one_untitled_list()
+    {
+        var palette = new ActionPaletteViewModel();
+
+        Assert.Single(palette.Sections);
+        Assert.False(palette.Sections[0].HasTitle);
+        Assert.Equal(palette.Cards.Count, palette.Sections[0].Cards.Count);
+    }
+
+    /// <summary>
+    /// The sections are not just a model detail: the palette draws their titles as text, between the
+    /// cards. This walks the real view once, on the category the user named first.
+    /// </summary>
+    [Fact]
+    public void The_palette_draws_the_small_group_titles()
+    {
+        Ui.Run(() =>
+        {
+            var palette = new ActionPaletteViewModel();
+            var view = new ActionPaletteView { DataContext = palette };
+            var window = new Window { Width = 280, Height = 600, Content = view };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            palette.SelectedCategory = palette.Categories.Single(choice =>
+                choice.Value == ActionCategory.Input);
+            Dispatcher.UIThread.RunJobs();
+
+            var shown = view.GetVisualDescendants().OfType<TextBlock>()
+                .Select(text => text.Text)
+                .ToHashSet(StringComparer.Ordinal);
+            foreach (var id in ActionCategoryPresentation.BasicGroups(ActionCategory.Input))
+            {
+                Assert.Contains(Strings.Get($"Palette.Group.{id}"), shown);
+            }
+
+            window.Close();
+        });
+    }
+
+    /// <summary>
     /// A submacro that is part of the document shows up in the dock as soon as the editor opens,
     /// and a run started from the editor can reach it — the two halves that were missing between
     /// "the file has a submacro" and "a step can call it".

@@ -49,7 +49,7 @@ public static class WheelShape
     public const int ThirdCount = 24;
     public const int ExtendedCount = 8;
 
-    /// <summary>The capacities Quicker offers for the third resident circle. Zero hides it.</summary>
+    /// <summary>The capacities the third resident circle offers. Zero hides it.</summary>
     public static int[] ThirdCapacities => [0, 8, 16, 24];
 
     public static int CountOf(WheelRing ring, bool wideOuter, int thirdCapacity) => ring switch

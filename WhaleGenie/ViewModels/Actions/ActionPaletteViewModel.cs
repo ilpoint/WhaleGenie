@@ -44,6 +44,9 @@ public sealed class ActionPaletteCardViewModel
 
     public string Meta { get; init; } = string.Empty;
 
+    /// <summary>The small group of its category this action sits in, empty for submacros and public macros.</summary>
+    public string Group { get; init; } = string.Empty;
+
     /// <summary>The category badge shown on an action card, empty for submacros and public macros.</summary>
     public string CategoryLabel { get; init; } = string.Empty;
 
@@ -118,7 +121,17 @@ public partial class ActionPaletteViewModel : ViewModelBase
 
     partial void OnSelectedTabChanged(ActionPaletteTab value) => Rebuild();
 
-    partial void OnSelectedCategoryChanged(ActionCategoryChoice? value) => Rebuild();
+    partial void OnSelectedCategoryChanged(ActionCategoryChoice? value)
+    {
+        // The rail is a set of buttons, not a list box, so it has no selection of its own: exactly
+        // one of them has to be told it is the one in force.
+        foreach (var choice in Categories)
+        {
+            choice.IsSelected = ReferenceEquals(choice, value);
+        }
+
+        Rebuild();
+    }
 
     partial void OnSearchChanged(string value) => Rebuild();
 
@@ -240,6 +253,14 @@ public partial class ActionPaletteViewModel : ViewModelBase
                     Strings.Get($"Palette.Flow.{group.Key}"), [.. group]));
             }
         }
+        else if (SelectedTab.Dock == ActionPaletteDock.Basic
+                 && SelectedCategory?.Value is { } category
+                 && !everywhere)
+        {
+            // 一栏动作按显示文件里的小分类再断成几段，与流程控制同一种小节标题；搜索时不再分组，
+            // 那是"一个库"的视图，断开反而挡住要找的东西。
+            AddGroupedSections(category);
+        }
         else if (Cards.Count > 0)
         {
             Sections.Add(new ActionPaletteSection(string.Empty, [.. Cards]));
@@ -247,6 +268,33 @@ public partial class ActionPaletteViewModel : ViewModelBase
 
         OnPropertyChanged(nameof(HasNoCards));
         OnPropertyChanged(nameof(EmptyText));
+    }
+
+    /// <summary>
+    /// One section per small group of the category, named and ordered by the presentation table.
+    /// A group the table does not know is still shown, after the named ones: a card that is on the
+    /// palette must never become unreachable because the table missed a line.
+    /// </summary>
+    private void AddGroupedSections(ActionCategory category)
+    {
+        var order = ActionCategoryPresentation.BasicGroups(category);
+        var rank = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var at = 0; at < order.Count; at++)
+        {
+            rank[order[at]] = at;
+        }
+
+        var groups = Cards
+            .GroupBy(card => card.Group)
+            .OrderBy(group => rank.GetValueOrDefault(group.Key, int.MaxValue))
+            .ThenBy(group => group.Key, StringComparer.Ordinal);
+        foreach (var group in groups)
+        {
+            var title = group.Key.Length == 0
+                ? Strings.Get("Palette.Group.Other")
+                : Strings.Get($"Palette.Group.{group.Key}");
+            Sections.Add(new ActionPaletteSection(title, [.. group]));
+        }
     }
 
     private static ActionPaletteCardViewModel ActionCard(ActionDefinition action)
@@ -258,6 +306,7 @@ public partial class ActionPaletteViewModel : ViewModelBase
             Key = action.Key,
             Title = action.LocalName,
             Description = action.LocalDescription,
+            Group = action.Group,
             CategoryLabel = Strings.Get($"Add.Category.{category}"),
             Accent = ActionCategoryPresentation.Accent(category),
             Icon = ActionCategoryPresentation.Icon(category),

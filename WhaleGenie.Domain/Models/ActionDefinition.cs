@@ -547,6 +547,13 @@ public class ActionDefinition
 
     public string TimeoutField => Semantics.TimeoutField;
 
+    /// <summary>
+    /// Which small group of the picker this action belongs to, such as Keyboard or Paths. The
+    /// display file names it; an action without one is listed under the category's remaining
+    /// actions. It is a picker grouping, not an engine fact.
+    /// </summary>
+    public string Group { get; init; } = string.Empty;
+
     /// <summary>Short human readable name shown in the step list.</summary>
     public required string DisplayName { get; init; }
 

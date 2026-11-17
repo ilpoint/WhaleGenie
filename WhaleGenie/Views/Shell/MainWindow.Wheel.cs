@@ -50,7 +50,7 @@ public partial class MainWindow : AppWindow
     /// so a pointer that moves a thousand times a second still costs one drawing a frame.
     /// </summary>
     private readonly WheelAim _wheelAim = new();
-    private DispatcherTimer? _wheelFrame;
+    private int _wheelAimScheduled;
     private long _wheelOpenedAt;
     private long _wheelMovesAtOpen;
     private long _wheelDrawnAtOpen;
@@ -244,7 +244,7 @@ public partial class MainWindow : AppWindow
     /// <summary>
     /// Scrolling while the wheel is open changes which scene its positions come from: up goes to
     /// the global scene, down to the current program's scene, and the same direction again returns
-    /// to the merged view. This is Quicker's way of answering "show me only this app's actions".
+    /// to the merged view: "show me only this app's actions".
     /// </summary>
     private void OnWheelScroll(WheelHookEvent e)
     {
@@ -294,9 +294,10 @@ public partial class MainWindow : AppWindow
                     (int)Math.Round(answered.X), (int)Math.Round(answered.Y))), "wheel.open");
                 break;
             case WheelGestureAction.Move:
-                // Nothing is posted here. The hook writes where the pointer is; the frame timer
-                // reads it once and draws once, however many of these arrived in between.
+                // Nothing is posted per move. The hook writes where the pointer is; one read is
+                // scheduled for the next frame, and it draws whatever arrived by then.
                 _wheelAim.Move(answered.X, answered.Y);
+                ScheduleWheelAim();
                 break;
             case WheelGestureAction.Select:
                 PostWheel(() =>
@@ -400,7 +401,7 @@ public partial class MainWindow : AppWindow
             _wheelMovesAtOpen = _wheelAim.Counts.Written;
             _wheelDrawnAtOpen = _wheelAim.Counts.Taken;
             _wheelAim.Clear();
-            StartWheelFrames();
+            Volatile.Write(ref _wheelAimScheduled, 0);
         }
         catch (Exception error)
         {
@@ -410,14 +411,24 @@ public partial class MainWindow : AppWindow
     }
 
     /// <summary>
-    /// The one timer the wheel draws from. It runs only while a wheel is up: reading a position that
-    /// has not changed costs a comparison and draws nothing, so an idle wheel is idle.
+    /// Asks for one read of the aim at the next render. Only one read is ever waiting: a move that
+    /// arrives while it is pending is covered by it, because the read takes the newest position.
+    /// It runs with the render pass rather than on a timer, because a timer at input priority waits
+    /// behind the drawing it is meant to keep up with — the guide line then trails the pointer by
+    /// as many frames as the drawing took.
     /// </summary>
-    private void StartWheelFrames()
+    private void ScheduleWheelAim()
     {
-        _wheelFrame ??= new DispatcherTimer(
-            TimeSpan.FromMilliseconds(8), DispatcherPriority.Input, (_, _) => DrainWheelAim());
-        _wheelFrame.Start();
+        if (Interlocked.Exchange(ref _wheelAimScheduled, 1) != 0)
+        {
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            Volatile.Write(ref _wheelAimScheduled, 0);
+            DrainWheelAim();
+        }, DispatcherPriority.Render);
     }
 
     private void DrainWheelAim()
@@ -481,9 +492,8 @@ public partial class MainWindow : AppWindow
         _wheelSource = WheelSource.Merged;
 
         // Bumping the generation is what makes an answer still in the queue belong to a wheel that
-        // no longer exists; the frame timer stops with it.
+        // no longer exists; a scheduled read stops with it.
         _wheelGeneration++;
-        _wheelFrame?.Stop();
         _wheelAim.Clear();
         NoteWheelFrames();
         window?.Close();

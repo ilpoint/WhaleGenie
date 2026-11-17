@@ -52,8 +52,18 @@ public class VariableWallDockTests
 
         // And all five are on show: a row wider than the dock has a chip nobody can see without
         // scrolling it sideways, which is the same complaint in a different shape.
-        Assert.True(content <= room + 0.5,
-            $"the chips take {content:0.#} pixels and the dock has {room:0.#}");
+        //
+        // The pixel budget is only read in Chinese. The headless session draws no text, and its
+        // font manager measures every glyph as wide as a han character — "All" comes out 33 pixels
+        // at 11 point against 14 on a real machine — so an English row measured there is a row
+        // nobody has seen, and the old 3-pixel padding that made it fit was fitted to that number
+        // rather than to the screen. The English run still earns its place on the line check above:
+        // it is the case that would wrap the row if the chips were allowed to.
+        if (language == Language.Chinese)
+        {
+            Assert.True(content <= room + 0.5,
+                $"the chips take {content:0.#} pixels and the dock has {room:0.#}");
+        }
     }
 
     [Fact]

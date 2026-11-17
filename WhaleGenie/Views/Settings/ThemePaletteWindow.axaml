@@ -6,12 +6,12 @@
         xmlns:loc="using:WhaleGenie.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
+        mc:Ignorable="d" d:DesignWidth="480" d:DesignHeight="780"
         x:Class="WhaleGenie.Views.ThemePaletteWindow"
         x:DataType="vm:ThemePaletteViewModel"
         Title="WhaleGenie"
-        Width="560" Height="420"
-        CanResize="False"
+        Width="480" Height="780" MinWidth="440" MinHeight="560"
+        CanResize="True"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceWindow}">
 
@@ -19,72 +19,81 @@
         <vm:ThemePaletteViewModel />
     </Design.DataContext>
 
-
+    <!--
+      取色器按自己的自然尺寸排版：它里面的页签内容固定 350 宽、整套自然高度约 400，窗口只给 420 高时
+      中间那一行只剩 82 像素，调色盘与分量条被下面的预览卡压住——那是窗口尺寸的错，不是取色器的错。
+      所以这里给它一个 360 的下限（实际仍按 400 排），其余内容排在它上下；窗口可以拉大拉小，
+      放不下时整页滚动，取色器本身不参与压缩。
+    -->
     <Grid RowDefinitions="*,Auto">
-        <Grid Grid.Row="0" Margin="16,12" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
-            <StackPanel Grid.Row="0" Spacing="4">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
-                               VerticalAlignment="Center" />
-                    <ToggleSwitch IsChecked="{Binding BaseLight}"
-                                  OnContent="{Binding [Theme.Base.Light], Source={x:Static loc:Strings.Current}}"
-                                  OffContent="{Binding [Theme.Base.Dark], Source={x:Static loc:Strings.Current}}" />
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="16,12" Spacing="10">
+                <StackPanel Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
+                                   Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                                   VerticalAlignment="Center" />
+                        <ToggleSwitch IsChecked="{Binding BaseLight}"
+                                      OnContent="{Binding [Theme.Base.Light], Source={x:Static loc:Strings.Current}}"
+                                      OffContent="{Binding [Theme.Base.Dark], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                    <TextBlock Classes="Hint"
+                               Text="{Binding [Theme.Base.Hint], Source={x:Static loc:Strings.Current}}" />
                 </StackPanel>
-                <TextBlock Classes="Hint"
-                           Text="{Binding [Theme.Base.Hint], Source={x:Static loc:Strings.Current}}" />
+
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding [Theme.Accent], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="13" FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding AccentHex}" Foreground="{DynamicResource TextTertiary}"
+                               FontSize="12" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <cp:ColorView MinHeight="360" Color="{Binding Accent, Mode=TwoWay}"
+                              IsAlphaEnabled="False" IsAlphaVisible="False"
+                              IsAccentColorsVisible="False"
+                              IsColorPreviewVisible="True" IsColorPaletteVisible="True"
+                              IsColorSpectrumVisible="True" IsHexInputVisible="True"
+                              IsColorComponentsVisible="True" IsComponentSliderVisible="True"
+                              IsComponentTextInputVisible="True"
+                              HorizontalAlignment="Stretch" />
+
+                <!-- 三张预览卡就是这套强调色落地的三个地方：实心按钮、选中行、放在窗口底上的强调文字。 -->
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                    <Border Background="{Binding FillPreview}" CornerRadius="4" Height="38" Padding="8,0">
+                        <TextBlock Text="{Binding [Theme.Preview.Primary], Source={x:Static loc:Strings.Current}}"
+                                   Foreground="{DynamicResource TextOnAccent}" FontSize="12"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="1" Background="{Binding SurfacePreview}" CornerRadius="4"
+                            Height="38" Padding="8,0">
+                        <TextBlock Text="{Binding [Theme.Preview.Selected], Source={x:Static loc:Strings.Current}}"
+                                   Foreground="{DynamicResource TextPrimary}" FontSize="12"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <Border Grid.Column="2" Background="{DynamicResource SurfaceWindow}" CornerRadius="4"
+                            Height="38" Padding="8,0"
+                            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1">
+                        <TextBlock Text="{Binding [Theme.Preview.AccentText], Source={x:Static loc:Strings.Current}}"
+                                   Foreground="{Binding TextPreview}" FontSize="12" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </Grid>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Classes="Hint"
+                               Text="{Binding [Theme.Accent.Hint], Source={x:Static loc:Strings.Current}}" />
+                    <TextBlock Classes="Hint"
+                               Text="{Binding [Theme.Palette.Hint], Source={x:Static loc:Strings.Current}}" />
+                    <TextBlock Classes="Hint" Foreground="{DynamicResource Danger}"
+                               IsVisible="{Binding !AccentUsable}"
+                               Text="{Binding [Theme.Accent.Rejected], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
             </StackPanel>
+        </ScrollViewer>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="{Binding [Theme.Accent], Source={x:Static loc:Strings.Current}}"
-                           Foreground="{DynamicResource TextPrimary}" FontSize="13" FontWeight="SemiBold"
-                           VerticalAlignment="Center" />
-                <TextBlock Text="{Binding AccentHex}" Foreground="{DynamicResource TextTertiary}"
-                           FontSize="12" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <cp:ColorView Grid.Row="2" Color="{Binding Accent, Mode=TwoWay}"
-                          IsAlphaEnabled="False" IsAlphaVisible="False"
-                          IsColorPreviewVisible="True" IsColorPaletteVisible="True"
-                          IsColorSpectrumVisible="True" IsHexInputVisible="True"
-                          IsColorComponentsVisible="True" IsComponentSliderVisible="True"
-                          IsComponentTextInputVisible="True"
-                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
-
-            <!-- 三张预览卡就是这套强调色落地的三个地方：实心按钮、选中行、放在窗口底上的强调文字。 -->
-            <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                <Border Background="{Binding FillPreview}" CornerRadius="4" Height="38" Padding="8,0">
-                    <TextBlock Text="{Binding [Theme.Preview.Primary], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{DynamicResource TextOnAccent}" FontSize="12"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <Border Grid.Column="1" Background="{Binding SurfacePreview}" CornerRadius="4"
-                        Height="38" Padding="8,0">
-                    <TextBlock Text="{Binding [Theme.Preview.Selected], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{DynamicResource TextPrimary}" FontSize="12"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <Border Grid.Column="2" Background="{DynamicResource SurfaceWindow}" CornerRadius="4"
-                        Height="38" Padding="8,0"
-                        BorderBrush="{DynamicResource BorderControl}" BorderThickness="1">
-                    <TextBlock Text="{Binding [Theme.Preview.AccentText], Source={x:Static loc:Strings.Current}}"
-                               Foreground="{Binding TextPreview}" FontSize="12" FontWeight="SemiBold"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-            </Grid>
-
-            <StackPanel Grid.Row="4" Spacing="4">
-                <TextBlock Classes="Hint"
-                           Text="{Binding [Theme.Accent.Hint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Classes="Hint"
-                           Text="{Binding [Theme.Palette.Hint], Source={x:Static loc:Strings.Current}}" />
-                <TextBlock Classes="Hint" Foreground="{DynamicResource Danger}"
-                           IsVisible="{Binding !AccentUsable}"
-                           Text="{Binding [Theme.Accent.Rejected], Source={x:Static loc:Strings.Current}}" />
-            </StackPanel>
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="16,0,16,14">
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="16,6,16,14">
             <Button Classes="Secondary" Height="32"
                     Content="{Binding [Theme.ResetAccent], Source={x:Static loc:Strings.Current}}"
                     Command="{Binding ResetAccentCommand}" />

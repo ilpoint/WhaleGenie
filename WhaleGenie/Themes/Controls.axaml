@@ -131,6 +131,19 @@
     </Styles.Resources>
 
     <!--
+      指针停在某样东西上时浮出来的那一块。它画在这里而不是某个窗口里：提示框不画在所属窗口
+      内部，它站在自己的弹层里，窗口级的样式够不到它；应用级的样式才跟着弹层走。
+    -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="Padding" Value="10,9" />
+    </Style>
+
+    <!--
       数字输入框没有上下按钮。它们原来折进取焦才开的弹层，为的是一行四个数字时不吃宽度；可弹层
       开在框的右端，正好压住框里的数字：76 宽的抖动框只剩两个数字的位置。带片的数字格现在把那
       一端留给「取值」片（见下面的 `HasChip`），数字照旧手打，要算式的走「取值」。
@@ -1455,6 +1468,79 @@
         <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
         <Setter Property="Margin" Value="{DynamicResource GapDivider}" />
     </Style>
+    <!--
+      分类 dock：一排按钮把一大片收窄成一组。变量中心的分组与动作库的四个来源都站在这上面，
+      所以它只有一个样子——不在窗口里各写一套分类按钮。
+
+      静息是一行字，悬停叠一层透明色（悬停与按下都用叠层令牌：dock 底下是什么表面都不该换颜色），
+      选中的那一枚用强调底与强调字：与 `Button.ChipWord`、`ToggleButton.Chip` 同一个语汇。
+      `AccentFill` 留给"按下去"的实心钮——它上面的 `TextPrimary` 在浅色主题只有 3.54:1，
+      `AccentSurface` + `AccentText` 两套都是 5.7:1。这不是偏好，是第 9 节那条底线。
+
+      边是 1px，静息就占着（透明），选中才亮出来：选中因此有底、字、边框三重信号，尺寸一次都不动。
+      态写在模板的 `ContentPresenter` 上——这是 `ListBoxItem` 一族画底的地方，与 `ListBox.List` 同一条。
+    -->
+    <Style Selector="ListBox.Dock">
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem">
+        <!-- 主题给每一行 88 像素的下限；分类名很短，"全部"要 30 却拿到 88。 -->
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <!-- 行自己不写 Margin：库的 ListBoxItem 模板已经把内容内缩 2 像素，两块相邻的选中底之间
+             因此仍有 4 像素。再补一道家族的缝，四条中文来源就正好卡在 44 与 44.44 之间——
+             100% DPI 一行放得下，150% 就折成两行。 -->
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <!--
+      前景色写两处，是因为它有两种读者：字在模板里，继承 ContentPresenter 的那一份；图标是模板里的
+      另一个控件，绑的是这一行自己的 Foreground（它没有可继承的字体色）。只改 presenter 的话，
+      选中时字变了、图标不动；两处同写，随行的每一个信号一起变。
+    -->
+    <Style Selector="ListBox.Dock ListBoxItem:pointerover:not(:selected) /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:pointerover:not(:selected)">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:pressed:not(:selected) /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:selected:not(:disabled) /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:selected:not(:disabled)">
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+    <!--
+      库在选中那一行里还画一条 3 像素的强调竖条。dock 的选中已经由底、字、边框三重信号说清，
+      再叠一条竖条就成了四重，而且圆角里的竖条看起来像多出来的一截括号。
+    -->
+    <Style Selector="ListBox.Dock ListBoxItem /template/ Rectangle#SelectionIndicator">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
     <!--
       列表一族：四个壳 + 两种行。
 

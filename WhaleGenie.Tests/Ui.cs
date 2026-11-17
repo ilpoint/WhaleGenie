@@ -7,6 +7,7 @@ using Avalonia.Headless;
 using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -45,6 +46,7 @@ internal static class Ui
     {
         var result = default(T)!;
         var ran = false;
+        MacroTriggerGate.ResetForChecks();
         try
         {
             Session.Dispatch(() =>
@@ -72,6 +74,7 @@ internal static class Ui
     {
         var result = default(T)!;
         var ran = false;
+        MacroTriggerGate.ResetForChecks();
         try
         {
             Session.Dispatch(async () =>

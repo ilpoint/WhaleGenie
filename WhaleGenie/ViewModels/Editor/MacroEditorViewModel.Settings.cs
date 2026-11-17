@@ -193,7 +193,9 @@ public partial class MacroEditorViewModel
 
     public string WindowTargetSummary => WindowTarget.HasTarget
         ? $"{WindowTarget.MatchValue} · {Strings.Get($"WindowRule.Short.{WindowTarget.How}", WindowTarget.How)}"
-        : Strings.Get("WindowRule.NotSet");
+        : SelectedTrigger?.Kind == TriggerKind.Interface
+            ? Strings.Get("WindowRule.AnyWindow")
+            : Strings.Get("WindowRule.NotSet");
 
     /// <summary>Stores the rule the trigger picker captured.</summary>
     public void UseWindowTarget(WindowRuleModel rule)
