@@ -57,6 +57,7 @@ public partial class StepParameterViewModel : ViewModelBase
         // where it lands — a piece of a text, or a word of a formula — is decided when it lands.
         var writesName = definition.NamesVariable
             && MacroStep.DefinesVariable(definition.OwnerKey, definition.Name);
+        AllowsNewName = writesName;
         var offered = writesName
             ? Variables.Where(choice => choice.Scope != VariableScope.System && !choice.IsStepResult)
             : Variables;
@@ -168,9 +169,28 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             _written = Formula.Text(Option?.Value ?? string.Empty);
         }
+        else if (Formula.IsNothing(_written) && definition.LocalDefault.Length > 0)
+        {
+            // A field that starts from a written example — a script language's skeleton is the
+            // important one — keeps that example as its value. The line was already put in Text;
+            // the shape has to say the same thing or the read-only field draws as empty.
+            if (Definition.NamesVariable)
+            {
+                SetWritten(Formula.Name(definition.LocalDefault.Trim()));
+            }
+            else if (Definition.ValueForm is ActionValueForm.Text or ActionValueForm.Run
+                     && Definition.Kind is ActionParameterKind.Text
+                         or ActionParameterKind.MultilineText or ActionParameterKind.Code)
+            {
+                SetWritten(Formula.Text(definition.LocalDefault));
+            }
+        }
     }
 
     public ActionParameter Definition { get; }
+
+    /// <summary>True when this field may name a variable that does not exist yet.</summary>
+    public bool AllowsNewName { get; }
 
     /// <summary>Nested editor, set when this parameter holds steps or a condition.</summary>
     public StepListValue? List { get; }
