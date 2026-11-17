@@ -152,8 +152,17 @@ public partial class App : Application
             WindowFront.Bring(window);
         }));
 
+        var exited = false;
         desktop.Exit += (_, _) =>
         {
+            // Closing the last window can end the lifetime on its own, and the way out asks for a
+            // shutdown as well: the event arrives twice, and the second time the container is gone.
+            if (exited)
+            {
+                return;
+            }
+
+            exited = true;
             services.GetRequiredService<PersistedVariables>().Dispose();
             window.Tray?.Dispose();
 
