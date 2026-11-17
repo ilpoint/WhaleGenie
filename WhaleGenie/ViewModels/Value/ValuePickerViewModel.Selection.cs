@@ -28,6 +28,14 @@ public sealed partial class ValuePickerViewModel : ViewModelBase
         }
 
         var path = piece?.Path;
+
+        // A second press on the same token puts it back down. Brackets and lists are large enough
+        // that a press on the token itself is the natural way to release it.
+        if (path is not null && SelectedPath is { } pickedPath && pickedPath.Equals(path))
+        {
+            path = null;
+        }
+
         if (Equals(SelectedPath, path))
         {
             return;

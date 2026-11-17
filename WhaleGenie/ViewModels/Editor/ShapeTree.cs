@@ -85,6 +85,16 @@ internal static class ShapeTree
             {
                 Arguments = InsertAt(call.Arguments, head, rest, value),
             },
+            // A call inside a bracket group, a binary or a unary is still the same call: a place
+            // in its arguments must be reached through the container, not treated as the root.
+            GroupNode group when !rest.IsRoot && head == 0
+                => group with { Inner = Insert(group.Inner, rest, value) },
+            BinaryNode binary when !rest.IsRoot && head == 0
+                => binary with { Left = Insert(binary.Left, rest, value) },
+            BinaryNode binary when !rest.IsRoot && head == 1
+                => binary with { Right = Insert(binary.Right, rest, value) },
+            UnaryNode unary when !rest.IsRoot && head == 0
+                => unary with { Operand = Insert(unary.Operand, rest, value) },
             _ => Formula.Run([root, value]),
         };
     }
@@ -290,14 +300,14 @@ internal static class ShapeTree
         int at, NodePath rest, ExpressionNode value)
     {
         var next = items.ToList();
-        if (at >= 0 && at < next.Count)
-        {
-            next.Insert(at, value);
-        }
-        else if (!rest.IsRoot && at > 0 && at - 1 < next.Count)
+        if (!rest.IsRoot && at >= 0 && at < next.Count)
         {
             // The walk carries on into a piece that is there, so the change belongs inside it.
-            next[at - 1] = Insert(next[at - 1], rest, value);
+            next[at] = Insert(next[at], rest, value);
+        }
+        else if (at >= 0 && at < next.Count)
+        {
+            next.Insert(at, value);
         }
         else
         {

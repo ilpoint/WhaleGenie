@@ -263,6 +263,69 @@ public partial class ValuePickerTests
         Assert.Equal(2, call.Arguments.Count);
     }
 
+
+    [Fact]
+    public void Picking_the_same_token_again_clears_the_pick()
+    {
+        var form = Form(Formula.Name("a"));
+        var value = Assert.Single(form.Recipe!.Walk().OfType<SlotValue>());
+
+        form.Select(value);
+        Assert.True(form.HasSelection);
+
+        form.Select(value);
+
+        Assert.False(form.HasSelection);
+    }
+
+
+    [Fact]
+    public void A_deleted_argument_inside_a_group_stays_in_its_call()
+    {
+        var form = Form(new GroupNode(
+            Formula.Call("concat", Formula.Name("a"), Formula.Name("b"))));
+        var first = form.Recipe!.Walk().OfType<SlotValue>().First(value => value.Text == "a");
+
+        Assert.True(form.RemoveArgument(first));
+        Assert.True(form.Place("c"));
+
+        var group = Assert.IsType<GroupNode>(Answer(form));
+        var call = Assert.IsType<CallNode>(group.Inner);
+        Assert.Equal(["b", "c"], call.Arguments.Select(argument => Assert.IsType<VariableNode>(argument).Name));
+    }
+
+
+    [Fact]
+    public void A_deleted_argument_inside_a_list_stays_in_its_call()
+    {
+        var form = Form(Formula.List(
+            Formula.Call("concat", Formula.Name("a"), Formula.Name("b"))));
+        var first = form.Recipe!.Walk().OfType<SlotValue>().First(value => value.Text == "a");
+
+        Assert.True(form.RemoveArgument(first));
+        Assert.True(form.Place("c"));
+
+        var list = Assert.IsType<ListNode>(Answer(form));
+        var call = Assert.IsType<CallNode>(Assert.Single(list.Items));
+        Assert.Equal(["b", "c"], call.Arguments.Select(argument => Assert.IsType<VariableNode>(argument).Name));
+    }
+
+    [Fact]
+    public void A_deleted_argument_inside_a_binary_stays_in_its_call()
+    {
+        var form = Form(Formula.Binary("+",
+            Formula.Call("concat", Formula.Name("a"), Formula.Name("b")),
+            Formula.Number("1", 1d)));
+        var first = form.Recipe!.Walk().OfType<SlotValue>().First(value => value.Text == "a");
+
+        Assert.True(form.RemoveArgument(first));
+        Assert.True(form.Place("c"));
+
+        var binary = Assert.IsType<BinaryNode>(Answer(form));
+        var call = Assert.IsType<CallNode>(binary.Left);
+        Assert.Equal(["b", "c"], call.Arguments.Select(argument => Assert.IsType<VariableNode>(argument).Name));
+    }
+
     [Fact]
     public void The_root_of_a_whole_value_is_not_a_piece_that_can_be_dragged()
     {
