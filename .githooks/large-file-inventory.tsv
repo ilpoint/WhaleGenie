@@ -2,8 +2,8 @@
 # Review: "keep: <why cohesive>", "split: <why it mixes concerns>", or
 # "exempt: <why a lookup table>" for a key-to-text table above 700 lines.
 # metric	path	review
-412	WhaleGenie.Platform.Tests/Bench/ActionBench.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-545	WhaleGenie.Platform.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
+420	WhaleGenie.Platform.Tests/Bench/ActionBench.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
+553	WhaleGenie.Platform.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
 611	WhaleGenie.Platform.Tests/BrowserActionTests.cs	keep: 浏览器动作的单一契约测试
 464	WhaleGenie.Platform.Tests/BrowserTargetTests.cs	keep: 浏览器目标解析的单一测试
 367	WhaleGenie.Platform.Tests/DeviceActionTests.Browser.cs	keep: 设备动作测试的一族，按动作族拆分后单一职责

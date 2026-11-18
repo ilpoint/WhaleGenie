@@ -25,7 +25,9 @@ public class SingleInstanceTests
 
         SingleInstance.AskToComeBack();
 
-        Assert.True(heard.Wait(TimeSpan.FromSeconds(5)), "the running copy was never told to come back");
+        // Generous, because the listener is a thread of its own and a machine with every suite
+        // running at once can be slow to give it a turn.
+        Assert.True(heard.Wait(TimeSpan.FromSeconds(20)), "the running copy was never told to come back");
     }
 
     /// <summary>

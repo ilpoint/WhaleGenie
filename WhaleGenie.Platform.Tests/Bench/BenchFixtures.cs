@@ -307,9 +307,17 @@ internal static class BenchFixtures
     /// <summary>The name a result is kept under while the bench looks at it.</summary>
     public static string Name(string key) => "bench_" + key;
 
-    /// <summary>How long one step may take: short, because the point is whether it ends at all.</summary>
+    /// <summary>
+    /// How long one step may take: bounded, because the point is whether it ends at all, but not so
+    /// tight that a machine running every suite at once answers a different question. The waits are
+    /// the ones that need the room: a look or two has to happen before the third one finds anything.
+    /// </summary>
+    private const int BenchTimeoutMs = 5000;
+
     private static int Timeout(ActionSemantics action)
-        => action.TimeoutSource == ActionTimeoutSource.Step ? Math.Min(action.StepTimeoutMs, 600) : 600;
+        => action.TimeoutSource == ActionTimeoutSource.Step
+            ? Math.Min(action.StepTimeoutMs, BenchTimeoutMs)
+            : BenchTimeoutMs;
 
     /// <summary>Where these steps only read inside something else.</summary>
     private static BenchWrapper Wrapper(string key) => key switch

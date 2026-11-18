@@ -107,10 +107,18 @@ internal static class ActionBench
         // moment after the run starts, which is what a person at the keyboard does.
         if (action.Key == "input.waitKey")
         {
+            // The press has to arrive while the step is listening. A single press after 50
+            // milliseconds is a race the machine wins on a quiet one and loses on a busy one, so
+            // the bench keeps pressing until the run is over, as a person would.
             _ = Task.Run(async () =>
             {
-                await Task.Delay(50);
-                devices.HookEvents.Press("F5");
+                // Bounded so the press can never outlive the check: ten seconds is longer than the
+                // step's own clock, and the loop simply runs out on a step that ended first.
+                for (var press = 0; press < 100; press++)
+                {
+                    await Task.Delay(100);
+                    devices.HookEvents.Press("F5");
+                }
             });
         }
         var notes = new List<string>();
