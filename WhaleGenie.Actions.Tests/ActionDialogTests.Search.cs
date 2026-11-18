@@ -120,7 +120,8 @@ public partial class ActionDialogTests
             Assert.Contains("confidence", visible);
             Assert.Contains("matchIndex", folded);
             Assert.Contains("anchorMode", visible);
-            Assert.Contains("transparentColor", folded);
+            Assert.Contains("transparentColors", folded);
+            Assert.Contains("autoTransparent", folded);
             Assert.Contains("tolerance", folded);
 
             // What the step is about stays in front.

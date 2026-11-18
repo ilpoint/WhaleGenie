@@ -160,6 +160,14 @@ internal static class ImageActions
         // order this step counts them in.
         List<ImageMatch> Look(int number)
         {
+            // What is left out of the comparing belongs to the reference picture rather than to
+            // the step: a picture cropped over a background carries that background's colours, and
+            // a step that listed several pictures has one set of them per picture.
+            var query = SearchQuery(run, step, order) with
+            {
+                Transparent = Transparent(run, step, wanted[number].Frame),
+            };
+
             var hits = new List<ImageMatch>();
             foreach (var (area, origin) in areas)
             {
@@ -286,8 +294,9 @@ internal static class ImageActions
     }
 
     /// <summary>
-    /// How a step asked for a picture to be looked for: which way, how sure, what to leave out of
-    /// the comparing, how many places it counts along the way, and which way round it counts them.
+    /// How a step asked for a picture to be looked for: which way, how sure, how many places it
+    /// counts along the way, and which way round it counts them. What is left out of the comparing
+    /// comes with the picture rather than with the step, so it is added by <see cref="Transparent"/>.
     /// </summary>
     private static VisionQuery SearchQuery(IRunContext run, ExecutableStep step, HitOrder order)
     {
@@ -299,26 +308,80 @@ internal static class ImageActions
         }
 
         var features = args.Number("minFeatures");
-        var written = args.ValueOf("transparentColor").AsText().Trim();
-
-        // A colour nobody can read used to be read as black, which silently masked pixels that had
-        // nothing to do with what the step meant. Saying so is the only answer that can be acted on.
-        PixelColor? transparent = null;
-        if (written.Length > 0)
-        {
-            transparent = PixelColor.TryParse(written, out var colour)
-                ? colour
-                : throw new StepFailure(RunKeys.BadPoint, written);
-        }
-
         return new VisionQuery(
             AlgorithmOf(args.Text("detectAlgorithm")),
             confidence,
             features > 0 ? features : 6,
-            transparent,
+            Transparent: null,
             Wanted(run, step, order),
             args.Number("tolerance"),
             order.Walk);
+    }
+
+    /// <summary>
+    /// The colours of a reference picture that take no part in the comparing: the ones the step
+    /// wrote down, and, when the step asks for it, the one the picture's four corners share. A
+    /// colour nobody can read used to be read as black, which silently masked pixels that had
+    /// nothing to do with what the step meant; saying so is the only answer that can be acted on.
+    /// </summary>
+    private static IReadOnlyList<PixelColor>? Transparent(IRunContext run, ExecutableStep step,
+        ImageFrame picture)
+    {
+        var args = run.Args(step);
+        var colours = new List<PixelColor>();
+        foreach (var token in ColourList.Tokens(args.Text("transparentColors")))
+        {
+            colours.Add(ColourList.Read(token)
+                ?? throw new StepFailure(RunKeys.BadPoint, token));
+        }
+
+        if (run.Flag(step, "autoTransparent", true) && Corner(picture, args.Number("tolerance")) is { } corner
+            && !colours.Contains(corner))
+        {
+            colours.Add(corner);
+        }
+
+        return colours.Count > 0 ? colours : null;
+    }
+
+    /// <summary>
+    /// The colour all four corners of a picture are, or nothing when they are not all the same. A
+    /// picture cut out of a screenshot carries the colour behind it over its corners, and leaving
+    /// that colour out is what lets the same picture be found over another one. It is the rule the
+    /// mainstream macro tools apply, and it is offered as a switch because a picture whose corners
+    /// are a colour that belongs to the thing itself has to be found with it.
+    /// </summary>
+    private static PixelColor? Corner(ImageFrame picture, double tolerance)
+    {
+        // Two rows and two columns of picture are nothing but corners, and a picture that is one
+        // colour throughout has nothing left to compare once that colour is left out.
+        if (picture.Width < 3 || picture.Height < 3 || picture.IsEmpty)
+        {
+            return null;
+        }
+
+        var corner = picture[0, 0];
+        var across = picture.Width - 1;
+        var down = picture.Height - 1;
+        if (!corner.Matches(picture[across, 0], tolerance)
+            || !corner.Matches(picture[0, down], tolerance)
+            || !corner.Matches(picture[across, down], tolerance))
+        {
+            return null;
+        }
+
+        for (var y = 0; y < picture.Height; y++)
+        {
+            for (var x = 0; x < picture.Width; x++)
+            {
+                if (!corner.Matches(picture[x, y], tolerance))
+                {
+                    return corner;
+                }
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

@@ -89,10 +89,21 @@ public class ExpressionFieldTests
                 // write the whole value as a formula; asking the catalogue to offer the builder
                 // again would draw the same question twice.
                 if (parameter.Kind is ActionParameterKind.Number
-                    or ActionParameterKind.Expression or ActionParameterKind.Condition
-                    or ActionParameterKind.Color)
+                    or ActionParameterKind.Expression or ActionParameterKind.Condition)
                 {
                     Assert.Equal(WhaleGenie.Core.Execution.ActionValueForm.Value,
+                        parameter.ValueForm);
+                    continue;
+                }
+
+                // One colour is one value. Several of them are a short list written as text, which
+                // is what the magnifier adds to and what the value window edits as it stands.
+                if (parameter.Kind is ActionParameterKind.Color)
+                {
+                    Assert.Equal(
+                        parameter.Picker is WhaleGenie.Core.Execution.ActionPickerKind.Colours
+                            ? WhaleGenie.Core.Execution.ActionValueForm.Text
+                            : WhaleGenie.Core.Execution.ActionValueForm.Value,
                         parameter.ValueForm);
                     continue;
                 }

@@ -126,7 +126,17 @@ public enum ActionPickerKind
     WindowBounds,
     Element,
     Image,
+
+    /// <summary>The screen magnifier, taken once: the field holds one colour.</summary>
     Color,
+
+    /// <summary>
+    /// The same magnifier, taken over and over: each colour it reads is added to the ones the field
+    /// already holds. A picture cropped from a screenshot may carry more than one background colour
+    /// over its corners, and every one of them has to be left out of the comparing.
+    /// </summary>
+    Colours,
+
     Browser,
 }
 

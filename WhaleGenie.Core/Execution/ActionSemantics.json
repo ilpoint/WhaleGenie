@@ -8757,13 +8757,24 @@
         "ChildKeys": []
       },
       {
-        "Name": "transparentColor",
+        "Name": "transparentColors",
         "Group": "target",
         "Shape": "Text",
-        "ValueForm": "Value",
-        "Picker": "Color",
+        "ValueForm": "Text",
+        "Picker": "Colours",
         "Required": false,
         "DefaultValue": "",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "autoTransparent",
+        "Group": "target",
+        "Shape": "Bool",
+        "ValueForm": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "true",
         "Options": [],
         "ChildKeys": []
       },
@@ -9179,13 +9190,24 @@
         "ChildKeys": []
       },
       {
-        "Name": "transparentColor",
+        "Name": "transparentColors",
         "Group": "target",
         "Shape": "Text",
-        "ValueForm": "Value",
-        "Picker": "Color",
+        "ValueForm": "Text",
+        "Picker": "Colours",
         "Required": false,
         "DefaultValue": "",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "autoTransparent",
+        "Group": "target",
+        "Shape": "Bool",
+        "ValueForm": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "true",
         "Options": [],
         "ChildKeys": []
       },
@@ -9595,13 +9617,24 @@
         "ChildKeys": []
       },
       {
-        "Name": "transparentColor",
+        "Name": "transparentColors",
         "Group": "target",
         "Shape": "Text",
-        "ValueForm": "Value",
-        "Picker": "Color",
+        "ValueForm": "Text",
+        "Picker": "Colours",
         "Required": false,
         "DefaultValue": "",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "autoTransparent",
+        "Group": "target",
+        "Shape": "Bool",
+        "ValueForm": "Text",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "true",
         "Options": [],
         "ChildKeys": []
       },

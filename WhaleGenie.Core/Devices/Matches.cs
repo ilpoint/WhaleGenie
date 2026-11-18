@@ -132,12 +132,14 @@ public enum SearchWalk
 /// <remarks>
 /// <see cref="Limit"/> counts the answers in the walk's own order rather than the surest ones:
 /// asking for three of them down the screen is three, not the three best sorted afterwards.
+/// <see cref="Transparent"/> is every colour the reference picture has to be found regardless of;
+/// a pixel within the tolerance of any of them takes no part in the comparing.
 /// </remarks>
 public sealed record VisionQuery(
     MatchAlgorithm Algorithm = MatchAlgorithm.Normed,
     double ConfidencePercent = 90,
     int MinFeatures = 6,
-    PixelColor? Transparent = null,
+    IReadOnlyList<PixelColor>? Transparent = null,
     int Limit = 1,
     double TolerancePercent = 0,
     SearchWalk Walk = SearchWalk.Score,

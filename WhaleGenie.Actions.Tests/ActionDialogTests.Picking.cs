@@ -200,7 +200,7 @@ public partial class ActionDialogTests
             {
                 var viewModel = Open(key);
                 var transparent = viewModel.Parameters
-                    .First(parameter => parameter.Definition.Name == "transparentColor");
+                    .First(parameter => parameter.Definition.Name == "transparentColors");
 
                 Assert.Equal(
                     Strings.Format("Common.OptionalSuffix", transparent.Definition.LocalLabel),

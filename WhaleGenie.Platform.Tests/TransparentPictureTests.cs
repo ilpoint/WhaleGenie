@@ -11,6 +11,7 @@ public class TransparentPictureTests
 {
     private static readonly PixelColor White = new(255, 255, 255);
     private static readonly PixelColor Blue = new(40, 90, 200);
+    private static readonly PixelColor Green = new(0, 200, 0);
 
     /// <summary>A pattern that is not a flat colour, so a mean-brightness difference cannot hide a real one.</summary>
     private static PixelColor Pattern(int x, int y)
@@ -61,7 +62,8 @@ public class TransparentPictureTests
             Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90));
 
         var masked = device.FindAll(screen, icon, new VisionQuery(
-            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90, Transparent: White));
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
+            Transparent: [White]));
 
         Assert.Empty(plain);
         var hit = Assert.Single(masked);
@@ -80,9 +82,39 @@ public class TransparentPictureTests
         var device = new OpenCvVisionDevice();
 
         var masked = device.FindAll(screen, icon, new VisionQuery(
-            ConfidencePercent: 90, Transparent: White));
+            ConfidencePercent: 90, Transparent: [White]));
 
         var hit = Assert.Single(masked);
+        Assert.Equal(10, hit.Location.X);
+        Assert.Equal(2, hit.Location.Y);
+    }
+
+    /// <summary>
+    /// 一个颜色掩掉还不够：图标从截图上裁下来时，上边带着白底、下边带着绿底，两个都掩掉才认得出
+    /// 换在别的底色上的同一个图标。这是「透明色能写好几个」在真匹配器上的那一条。
+    /// </summary>
+    [Fact]
+    public void Every_colour_the_step_names_is_left_out()
+    {
+        var screen = Frame(30, 14, (x, y) =>
+            x >= 12 && x < 18 && y >= 4 && y < 10 ? Pattern(x - 12, y - 4) : Blue);
+
+        // Two backgrounds over one cropped icon: a white ring on top, a green one along the bottom.
+        var icon = Frame(10, 10, (x, y) =>
+            x >= 2 && x < 8 && y >= 2 && y < 8 ? Pattern(x - 2, y - 2)
+            : y >= 8 ? Green
+            : White);
+
+        var device = new OpenCvVisionDevice();
+
+        var one = device.FindAll(screen, icon, new VisionQuery(
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90, Transparent: [White]));
+        var both = device.FindAll(screen, icon, new VisionQuery(
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
+            Transparent: [White, Green]));
+
+        Assert.Empty(one);
+        var hit = Assert.Single(both);
         Assert.Equal(10, hit.Location.X);
         Assert.Equal(2, hit.Location.Y);
     }
@@ -99,7 +131,8 @@ public class TransparentPictureTests
             Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90));
 
         var masked = device.FindAll(screen, icon, new VisionQuery(
-            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90, Transparent: absent));
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
+            Transparent: [absent]));
 
         Assert.Equal(plain.Count, masked.Count);
     }

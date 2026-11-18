@@ -101,9 +101,16 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
 
     IScreenShots IRunContext.Shots => this;
 
+    /// <summary>
+    /// The pictures a step looks for: one the check put in <see cref="Images"/> when it named one,
+    /// which is how a check gives two pictures different pixels, and a plain one otherwise.
+    /// </summary>
     IReadOnlyList<(string Name, ImageFrame Frame)> IRunContext.Pictures(ExecutableStep step)
-        => [.. step.Rows("images").Select(row => (((IRunContext)this).Word(row, "image"),
-            Picture()))];
+        => [.. step.Rows("images").Select(row =>
+        {
+            var name = ((IRunContext)this).Word(row, "image");
+            return (name, Images.TryGetValue(name, out var picture) ? picture : Picture());
+        })];
 
     (ScreenPoint Corner, WindowInfo? Window) IScreenShots.Spot(ExecutableStep step)
     {

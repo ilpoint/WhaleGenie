@@ -186,10 +186,17 @@ internal static class ActionStrings
         + "对话框截图适用。特征比对：把两边明显的特征点配对，画面缩放或有小改动也认得出，"
         + "速度较慢，且只返回一个命中。";
 
-    /// <summary>The hint the "which colour is transparent" fields share.</summary>
-    private const string TransparentColourHint =
-        "参考图里这个颜色不参与比对：图标自带的纯色底，或者会变化的部分，例如按钮上的数字、"
-        + "会走动的进度条。留空表示整张图都参与（默认）。";
+    /// <summary>The hint the fields naming the colours left out of a comparison share.</summary>
+    private const string TransparentColoursHint =
+        "参考图里这些颜色的像素不参与比对：图标自带的纯色底，或者会变化的部分，例如按钮上的数字、"
+        + "会走动的进度条。可以写一个，也可以写几个，用分号或逗号隔开：#FFFFFF; #00FF00。留空表示"
+        + "整张图都参与比对；右边的吸管每取一次就添进去一个，取的是屏幕上的颜色。";
+
+    /// <summary>The hint of the switch that finds the colour of the corners by itself.</summary>
+    private const string AutoTransparentHint =
+        "参考图四个角（左上、右上、左下、右下）是同一个颜色时，自动把它也当作透明色，不必手写："
+        + "从截图上裁下来的图标总带着当时的底色，这一档让同一个图标换个底色也认得出。默认开；那个"
+        + "颜色本来就是要找的东西的一部分时关掉它。四角按下面那格「容差」比较，默认 0 只认完全相同的四角。";
 
     /// <summary>The hint the "how near is still that colour" fields of the picture actions share.</summary>
     private const string TransparentToleranceHint =
@@ -1910,8 +1917,10 @@ internal static class ActionStrings
         ["vision.findImage.detectAlgorithm.option.correlated"] = "相关",
         ["vision.findImage.detectAlgorithm.option.difference"] = "逐像素",
         ["vision.findImage.detectAlgorithm.option.feature"] = "特征比对",
-        ["vision.findImage.transparentColor.label"] = "透明色",
-        ["vision.findImage.transparentColor.hint"] = TransparentColourHint,
+        ["vision.findImage.transparentColors.label"] = "透明色",
+        ["vision.findImage.transparentColors.hint"] = TransparentColoursHint,
+        ["vision.findImage.autoTransparent.label"] = "自动识别透明色",
+        ["vision.findImage.autoTransparent.hint"] = AutoTransparentHint,
         ["vision.findImage.tolerance.label"] = "容差 %",
         ["vision.findImage.tolerance.hint"] = TransparentToleranceHint,
         ["vision.findImage.minFeatures.label"] = "最少特征对数",
@@ -1950,8 +1959,10 @@ internal static class ActionStrings
         ["vision.waitImage.detectAlgorithm.option.correlated"] = "相关",
         ["vision.waitImage.detectAlgorithm.option.difference"] = "逐像素",
         ["vision.waitImage.detectAlgorithm.option.feature"] = "特征比对",
-        ["vision.waitImage.transparentColor.label"] = "透明色",
-        ["vision.waitImage.transparentColor.hint"] = TransparentColourHint,
+        ["vision.waitImage.transparentColors.label"] = "透明色",
+        ["vision.waitImage.transparentColors.hint"] = TransparentColoursHint,
+        ["vision.waitImage.autoTransparent.label"] = "自动识别透明色",
+        ["vision.waitImage.autoTransparent.hint"] = AutoTransparentHint,
         ["vision.waitImage.tolerance.label"] = "容差 %",
         ["vision.waitImage.tolerance.hint"] = TransparentToleranceHint,
         ["vision.waitImage.minFeatures.label"] = "最少特征对数",
@@ -1992,8 +2003,10 @@ internal static class ActionStrings
         ["vision.clickImage.detectAlgorithm.option.correlated"] = "相关",
         ["vision.clickImage.detectAlgorithm.option.difference"] = "逐像素",
         ["vision.clickImage.detectAlgorithm.option.feature"] = "特征比对",
-        ["vision.clickImage.transparentColor.label"] = "透明色",
-        ["vision.clickImage.transparentColor.hint"] = TransparentColourHint,
+        ["vision.clickImage.transparentColors.label"] = "透明色",
+        ["vision.clickImage.transparentColors.hint"] = TransparentColoursHint,
+        ["vision.clickImage.autoTransparent.label"] = "自动识别透明色",
+        ["vision.clickImage.autoTransparent.hint"] = AutoTransparentHint,
         ["vision.clickImage.tolerance.label"] = "容差 %",
         ["vision.clickImage.tolerance.hint"] = TransparentToleranceHint,
         ["vision.clickImage.minFeatures.label"] = "最少特征对数",

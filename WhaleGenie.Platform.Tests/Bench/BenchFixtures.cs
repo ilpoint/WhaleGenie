@@ -193,7 +193,7 @@ internal static class BenchFixtures
         ["writeValue"] = "1",
         ["values"] = "bench",
         ["points"] = "0,0,#FFFFFF",
-        ["transparentColor"] = "#FFFFFF",
+        ["transparentColors"] = "#FFFFFF",
         ["registryPath"] = RegistryPath,
         ["registryData"] = "bench",
         ["environmentValue"] = "bench",
@@ -440,7 +440,7 @@ internal static class BenchFixtures
             ActionPickerKind.Element => Selector,
             ActionPickerKind.Browser => PageSelector,
             ActionPickerKind.Window or ActionPickerKind.WindowBounds => WindowText,
-            ActionPickerKind.Color => "#FFFFFF",
+            ActionPickerKind.Color or ActionPickerKind.Colours => "#FFFFFF",
             _ => "bench",
         };
     }

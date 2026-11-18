@@ -135,7 +135,8 @@ public partial class ActionPageTests
 
         Assert.Contains("detectAlgorithm", advanced);
         Assert.Contains("minFeatures", advanced);
-        Assert.Contains("transparentColor", advanced);
+        Assert.Contains("transparentColors", advanced);
+        Assert.Contains("autoTransparent", advanced);
         Assert.Contains("orderBy", advanced);
     }
 

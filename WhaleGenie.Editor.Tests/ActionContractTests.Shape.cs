@@ -131,8 +131,10 @@ public partial class ActionContractTests
                         problems.Add($"{field}: a picture field has no picture picker");
                     }
 
+                    // A colour field takes the magnifier, whether it holds one colour or several
+                    // of them added one at a time.
                     if (parameter.Kind == ActionParameterKind.Color
-                        && picker != ActionPickerKind.Color)
+                        && picker is not (ActionPickerKind.Color or ActionPickerKind.Colours))
                     {
                         problems.Add($"{field}: a colour field has no colour picker");
                     }

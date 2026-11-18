@@ -219,7 +219,7 @@ public static class ActionCatalog
             ActionValueShape.WindowRule => ActionParameterKind.WindowRule,
             ActionValueShape.Text when form == ActionValueForm.Name
                 => ActionParameterKind.Variable,
-            ActionValueShape.Text when picker == ActionPickerKind.Color
+            ActionValueShape.Text when picker is ActionPickerKind.Color or ActionPickerKind.Colours
                 => ActionParameterKind.Color,
             ActionValueShape.Text => ActionParameterKind.Text,
             _ => null,

@@ -132,7 +132,7 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        parameter.Text = picked.Colour.ToHex();
+        parameter.TakeColour(picked.Colour);
         viewModel.ApplyCursorPosition(picked.At.X, picked.At.Y);
     }
 }
