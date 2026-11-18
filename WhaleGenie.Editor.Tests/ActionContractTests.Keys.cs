@@ -83,6 +83,7 @@ public partial class ActionContractTests
             ["images"] = ["image"],
             ["keySequence"] = ["keys", "holdMs", "gapMs"],
             ["points"] = ["dx", "dy", "colour", "mustNot", "tolerance"],
+            ["transparentColors"] = ["colour", "tolerance"],
         };
 
         foreach (var action in ActionSemanticsCatalog.All)

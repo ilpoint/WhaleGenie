@@ -204,11 +204,4 @@ public partial class StepParameterViewModel : ViewModelBase
 
     /// <summary>True when this parameter is a colour, edited with the screen picker.</summary>
     public bool IsColor => Definition.Picker is ActionPickerKind.Color;
-
-    /// <summary>
-    /// True for a colour field that holds a list of colours rather than one: the magnifier adds to
-    /// what is there instead of replacing it. A picture search asks for this, because one icon can
-    /// be cropped over more than one background colour.
-    /// </summary>
-    public bool HoldsColours => Definition.Shape is ActionValueShape.List;
 }

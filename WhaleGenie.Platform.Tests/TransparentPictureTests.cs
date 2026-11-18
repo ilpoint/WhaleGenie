@@ -63,7 +63,7 @@ public class TransparentPictureTests
 
         var masked = device.FindAll(screen, icon, new VisionQuery(
             Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
-            Transparent: [White]));
+            Transparent: [new TransparentColour(White, 0)]));
 
         Assert.Empty(plain);
         var hit = Assert.Single(masked);
@@ -82,7 +82,7 @@ public class TransparentPictureTests
         var device = new OpenCvVisionDevice();
 
         var masked = device.FindAll(screen, icon, new VisionQuery(
-            ConfidencePercent: 90, Transparent: [White]));
+            ConfidencePercent: 90, Transparent: [new TransparentColour(White, 0)]));
 
         var hit = Assert.Single(masked);
         Assert.Equal(10, hit.Location.X);
@@ -108,13 +108,46 @@ public class TransparentPictureTests
         var device = new OpenCvVisionDevice();
 
         var one = device.FindAll(screen, icon, new VisionQuery(
-            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90, Transparent: [White]));
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
+            Transparent: [new TransparentColour(White, 0)]));
         var both = device.FindAll(screen, icon, new VisionQuery(
             Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
-            Transparent: [White, Green]));
+            Transparent: [new TransparentColour(White, 0), new TransparentColour(Green, 0)]));
 
         Assert.Empty(one);
         var hit = Assert.Single(both);
+        Assert.Equal(10, hit.Location.X);
+        Assert.Equal(2, hit.Location.Y);
+    }
+
+    /// <summary>
+    /// 每个颜色的容差各管自己：白边的白与屏幕上那一层白差一点点，容差 0 掩不掉，给到 10 才掩得掉，
+    /// 而旁边那个颜色仍按它自己的 0 判——容差不是整次搜索共用的一个数。
+    /// </summary>
+    [Fact]
+    public void Each_colour_is_left_out_by_its_own_tolerance()
+    {
+        var screen = Frame(30, 14, (x, y) =>
+            x >= 12 && x < 18 && y >= 4 && y < 10 ? Pattern(x - 12, y - 4) : Blue);
+
+        // The icon was cropped over a white that is a shade off, which is what a screenshot gives.
+        var off = new PixelColor(0xF5, 0xF5, 0xF5);
+        var icon = Frame(10, 10, (x, y) =>
+            x >= 2 && x < 8 && y >= 2 && y < 8 ? Pattern(x - 2, y - 2)
+            : y >= 8 ? Green
+            : off);
+
+        var device = new OpenCvVisionDevice();
+
+        var exact = device.FindAll(screen, icon, new VisionQuery(
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
+            Transparent: [new TransparentColour(off, 0)]));
+        var roomy = device.FindAll(screen, icon, new VisionQuery(
+            Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
+            Transparent: [new TransparentColour(off, 10), new TransparentColour(Green, 0)]));
+
+        Assert.Empty(exact);
+        var hit = Assert.Single(roomy);
         Assert.Equal(10, hit.Location.X);
         Assert.Equal(2, hit.Location.Y);
     }
@@ -132,7 +165,7 @@ public class TransparentPictureTests
 
         var masked = device.FindAll(screen, icon, new VisionQuery(
             Algorithm: MatchAlgorithm.Difference, ConfidencePercent: 90,
-            Transparent: [absent]));
+            Transparent: [new TransparentColour(absent, 0)]));
 
         Assert.Equal(plain.Count, masked.Count);
     }

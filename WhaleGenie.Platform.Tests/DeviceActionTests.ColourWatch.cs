@@ -197,7 +197,8 @@ public partial class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "88"),
-                Param("detectAlgorithm", "feature"), Param("transparentColors", "#00FF00"),
+                Param("detectAlgorithm", "feature"),
+                Rows("transparentColors", Cells.Of(("colour", "#00FF00"), ("tolerance", "4"))),
                 Param("tolerance", "10"), Param("minFeatures", "12"),
                 Hit("match", "where")),
         ], devices);
@@ -206,8 +207,8 @@ public partial class DeviceActionTests
         Assert.Equal(MatchAlgorithm.Feature, query.Algorithm);
         Assert.Equal(88d, query.ConfidencePercent);
         Assert.Equal(12, query.MinFeatures);
-        Assert.Equal([new PixelColor(0x00, 0xFF, 0x00)], query.Transparent);
-        Assert.Equal(10d, query.TolerancePercent);
+        Assert.Equal([new TransparentColour(new PixelColor(0x00, 0xFF, 0x00), 4)],
+            query.Transparent);
         Assert.Equal(1, query.Limit);
     }
 
@@ -256,7 +257,6 @@ public partial class DeviceActionTests
         Assert.Equal(90d, query.ConfidencePercent);
         Assert.Equal(6, query.MinFeatures);
         Assert.Null(query.Transparent);
-        Assert.Equal(0d, query.TolerancePercent);
     }
 
     /// <summary>
@@ -271,7 +271,8 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"),
-                Param("transparentColors", "not a colour"), Hit("match", "where")),
+                Rows("transparentColors", Cells.Of(("colour", "not a colour"))),
+                Hit("match", "where")),
         ], devices);
 
         Assert.False(result.Succeeded);

@@ -213,6 +213,20 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is a list of the places to search.</summary>
     public bool IsRegion => Definition.Kind is ActionParameterKind.Region;
 
+    /// <summary>
+    /// The colours a step leaves out of a comparison, one row each: the colour and how far a pixel
+    /// may sit from it. The field is edited as a colour box with a strip of swatches under it, so
+    /// the rows are read here rather than drawn as a table.
+    /// </summary>
+    public ObservableCollection<ColourRowViewModel> ColourRows { get; } = [];
+
+    /// <summary>True when this parameter is a colour field holding several colours.</summary>
+    public bool IsColourRows => Definition.Kind is ActionParameterKind.Color
+        && Definition.Shape is ActionValueShape.Rows;
+
+    /// <summary>True while the list has at least one colour written down.</summary>
+    public bool HasColours => ColourRows.Count > 0;
+
     /// <summary>The first of the four bounds a window mover can take from one framed rectangle.</summary>
     public bool IsWindowBoundsAnchor =>
         Definition.Picker is ActionPickerKind.WindowBounds && Definition.Name == "x";

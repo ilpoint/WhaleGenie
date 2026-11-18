@@ -189,8 +189,8 @@ internal static class ActionStrings
     /// <summary>The hint the fields naming the colours left out of a comparison share.</summary>
     private const string TransparentColoursHint =
         "参考图里这些颜色的像素不参与比对：图标自带的纯色底，或者会变化的部分，例如按钮上的数字、"
-        + "会走动的进度条。写一个颜色就是一个，写几个就是这个列表，例如 [\"#FFFFFF\", \"#00FF00\"]；"
-        + "右边的吸管每取一次往里添一个，也可以点「取值」取一个装着颜色的变量。留空表示整张图都参与比对。";
+        + "会走动的进度条。一行一个颜色，下面的色块按顺序把它们摊开，每块下面那格是它自己的容差，"
+        + "留空就用下面那格「容差 %」；吸管每取一次添一行。一行都没有就是整张图都参与比对。";
 
     /// <summary>The hint of the switch that finds the colour of the corners by itself.</summary>
     private const string AutoTransparentHint =
@@ -200,8 +200,9 @@ internal static class ActionStrings
 
     /// <summary>The hint the "how near is still that colour" fields of the picture actions share.</summary>
     private const string TransparentToleranceHint =
-        "一个像素偏离透明色多少仍算作它，0–100%，默认 0，即要求颜色完全相同。从截图上取色、"
-        + "或底色带轻微渐变时，给到 5–10 更容易认出来。";
+        "透明色的默认容差：某一行没写自己的容差时用它，0–100%，默认 0，即要求颜色完全相同；"
+        + "上面那档「自动识别透明色」比较四个角也用它。从截图上取色、或底色带轻微渐变时，"
+        + "给到 5–10 更容易认出来。";
 
     /// <summary>The hint the "least feature pairs" fields share.</summary>
     private const string MinFeaturesHint =

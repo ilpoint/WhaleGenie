@@ -29,7 +29,27 @@ public partial class StepParameterViewModel : ViewModelBase
     /// field is read-only, and every value is put in through the value window as a shape. Names
     /// are said with their own typography rather than a sign in front of them.
     /// </summary>
-    public string DisplayLine => ExpressionPhrase.Display(Written);
+    public string DisplayLine
+    {
+        get
+        {
+            if (!IsColourRows)
+            {
+                return ExpressionPhrase.Display(Written);
+            }
+
+            // A field that holds rows has no single shape to draw, so the line is drawn from the
+            // rows instead: the same sentence the value window says for a list of colours.
+            var written = ColourRows
+                .Where(row => row.Colour.Trim().Length > 0)
+                .Select(row => (ExpressionNode)Formula.Text(row.Colour.Trim()))
+                .ToList();
+
+            return written.Count == 0
+                ? string.Empty
+                : ExpressionPhrase.Display(Formula.List([.. written]));
+        }
+    }
 
     /// <summary>The key or chord shown on the keyboard field's button.</summary>
     public string KeyFieldDisplay => Text.Trim().Length > 0

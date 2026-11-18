@@ -126,22 +126,29 @@ public enum SearchWalk
 }
 
 /// <summary>
+/// One colour a reference picture is found regardless of, and how far a pixel may sit from it and
+/// still count as it: 0 asks for the very same colour.
+/// </summary>
+public readonly record struct TransparentColour(PixelColor Colour, double TolerancePercent);
+
+/// <summary>
 /// One search asked for: how it is done, how sure it has to be, what to leave out, and which way
 /// round the places are walked.
 /// </summary>
 /// <remarks>
 /// <see cref="Limit"/> counts the answers in the walk's own order rather than the surest ones:
 /// asking for three of them down the screen is three, not the three best sorted afterwards.
-/// <see cref="Transparent"/> is every colour the reference picture has to be found regardless of;
-/// a pixel within the tolerance of any of them takes no part in the comparing.
+/// <see cref="Transparent"/> is every colour the reference picture has to be found regardless of,
+/// each with how far a pixel may sit from it; a pixel that near any of them takes no part in the
+/// comparing. One picture may need several, and one of them may have been taken with more slack
+/// than another, so the tolerance belongs to the colour rather than to the search.
 /// </remarks>
 public sealed record VisionQuery(
     MatchAlgorithm Algorithm = MatchAlgorithm.Normed,
     double ConfidencePercent = 90,
     int MinFeatures = 6,
-    IReadOnlyList<PixelColor>? Transparent = null,
+    IReadOnlyList<TransparentColour>? Transparent = null,
     int Limit = 1,
-    double TolerancePercent = 0,
     SearchWalk Walk = SearchWalk.Score,
     ScreenPoint Near = default);
 

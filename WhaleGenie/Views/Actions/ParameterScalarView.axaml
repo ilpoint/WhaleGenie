@@ -396,5 +396,44 @@
                 <views:IconView Width="17" Height="17" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
             </Button>
         </Grid>
+
+        <!-- 透明色：一行一个颜色，色块在输入框下面按列表顺序排开；每块下面那格是它自己的容差，
+            留空就用下面那格「容差 %」。色块只是同一份行表的另一种读法，删和改都落在行上，
+            所以这里没有第二份值要同步。 -->
+        <StackPanel IsVisible="{Binding IsColourRows}" Spacing="5" Margin="0,6,0,0">
+            <ItemsControl ItemsSource="{Binding ColourRows}" HorizontalAlignment="Left">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ColourRowViewModel">
+                        <StackPanel Width="64" Spacing="2" Margin="0,0,6,6">
+                            <Grid Height="20">
+                                <Border CornerRadius="3"
+                                    Background="{Binding Colour, Converter={StaticResource HexBrush}}"
+                                    BorderBrush="{DynamicResource BorderControl}"
+                                    BorderThickness="1" />
+                                <Button Classes="Ghost" Name="RemoveColourButton"
+                                    Width="16" Height="16" Padding="0" FontSize="11"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Content="×"
+                                    ToolTip.Tip="{Binding [Add.ColourSwatchRemove], Source={x:Static loc:Strings.Current}}"
+                                    Command="{Binding RemoveCommand}" />
+                            </Grid>
+                            <TextBox Classes="Field" Name="ColourToleranceBox"
+                                Height="24" FontSize="11" Padding="4,0" TextAlignment="Center"
+                                Text="{Binding Tolerance, Mode=TwoWay}"
+                                PlaceholderText="{Binding [Add.ColourSwatchDefault], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ColourSwatchTolerance], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                Text="{Binding [Add.ColourSwatchEmpty], Source={x:Static loc:Strings.Current}}"
+                IsVisible="{Binding !HasColours}" />
+        </StackPanel>
     </StackPanel>
 </UserControl>

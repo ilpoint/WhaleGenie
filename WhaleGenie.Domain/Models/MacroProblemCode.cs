@@ -51,6 +51,7 @@ public static class MacroProblemCode
     public const string UnknownField = nameof(UnknownField);
     public const string UnknownParameter = nameof(UnknownParameter);
     public const string UnknownRowColumn = nameof(UnknownRowColumn);
+    public const string UnexpectedRowValue = nameof(UnexpectedRowValue);
     public const string WaitWithoutTimeout = nameof(WaitWithoutTimeout);
     public const string WindowBounds = nameof(WindowBounds);
     public const string WrongStepKind = nameof(WrongStepKind);

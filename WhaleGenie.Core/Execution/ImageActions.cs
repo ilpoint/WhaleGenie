@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -314,7 +315,6 @@ internal static class ImageActions
             features > 0 ? features : 6,
             Transparent: null,
             Wanted(run, step, order),
-            args.Number("tolerance"),
             order.Walk);
     }
 
@@ -324,45 +324,53 @@ internal static class ImageActions
     /// colour nobody can read used to be read as black, which silently masked pixels that had
     /// nothing to do with what the step meant; saying so is the only answer that can be acted on.
     /// </summary>
-    private static IReadOnlyList<PixelColor>? Transparent(IRunContext run, ExecutableStep step,
+    private static IReadOnlyList<TransparentColour>? Transparent(IRunContext run, ExecutableStep step,
         ImageFrame picture)
     {
         var args = run.Args(step);
-        var colours = new List<PixelColor>();
-        foreach (var written in Text(args.ValueOf("transparentColors")))
+        var fallback = args.Number("tolerance");
+        var colours = new List<TransparentColour>();
+        foreach (var row in step.Rows("transparentColors"))
         {
-            colours.Add(PixelColor.TryParse(written, out var colour)
-                ? colour
-                : throw new StepFailure(RunKeys.BadPoint, written));
+            // A cell holds a colour, or a name whose value is one: it is read as the shape it is,
+            // so a colour another step worked out is read at this look rather than typed in.
+            var written = run.Text(row, "colour").Trim();
+            if (written.Length == 0)
+            {
+                continue;
+            }
+
+            colours.Add(new TransparentColour(
+                PixelColor.TryParse(written, out var colour)
+                    ? colour
+                    : throw new StepFailure(RunKeys.BadPoint, written),
+                Tolerance(run.Text(row, "tolerance"), fallback)));
         }
 
-        if (run.Flag(step, "autoTransparent", true) && Corner(picture, args.Number("tolerance")) is { } corner
-            && !colours.Contains(corner))
+        if (run.Flag(step, "autoTransparent", true) && Corner(picture, fallback) is { } corner
+            && !colours.Any(item => item.Colour == corner))
         {
-            colours.Add(corner);
+            colours.Add(new TransparentColour(corner, fallback));
         }
 
         return colours.Count > 0 ? colours : null;
     }
 
     /// <summary>
-    /// What a field holding colours says, piece by piece: a list of them, one of them, or nothing
-    /// at all. A list inside a list is read through rather than counted as one, so the colours of a
-    /// list held in a variable take part just as the ones typed in beside them do.
+    /// How far a pixel may sit from one colour and still count as it: the reach the row asked for,
+    /// or the one the field gives every colour when the row asks for none.
     /// </summary>
-    private static IEnumerable<string> Text(Value value)
+    private static double Tolerance(string written, double fallback)
     {
-        if (value.IsNull)
+        var text = written.Trim();
+        if (text.Length == 0)
         {
-            return [];
+            return fallback;
         }
 
-        if (!value.IsList)
-        {
-            return [value.AsText()];
-        }
-
-        return value.Items.SelectMany(item => item.IsList ? Text(item) : [item.AsText()]);
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? Math.Clamp(value, 0d, 100d)
+            : throw new StepFailure(RunKeys.BadPoint, text);
     }
 
     /// <summary>

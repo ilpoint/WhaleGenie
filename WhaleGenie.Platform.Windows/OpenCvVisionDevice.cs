@@ -79,7 +79,7 @@ public sealed partial class OpenCvVisionDevice : IVisionDevice
             using var result = new Mat();
             if (query.Transparent is { Count: > 0 } transparent)
             {
-                using var mask = Mask(needle, transparent, query.TolerancePercent);
+                using var mask = Mask(needle, transparent);
                 Cv2.MatchTemplate(hay, pin, result, Mode(query, masked: true), mask);
             }
             else
@@ -120,7 +120,7 @@ public sealed partial class OpenCvVisionDevice : IVisionDevice
         // happens to say this time, which is how a search finds things that are not there. An empty
         // mask is how every part of the picture is taken into account.
         using var mask = query.Transparent is { Count: > 0 } leaveOut
-            ? Mask(needle, leaveOut, query.TolerancePercent)
+            ? Mask(needle, leaveOut)
             : new Mat();
         using var everywhere = new Mat();
         finder.DetectAndCompute(pin, mask, out var wanted, wantedParts);
@@ -214,11 +214,12 @@ public sealed partial class OpenCvVisionDevice : IVisionDevice
     /// lives in <see cref="ColourReach"/> alone. A reference picture is small, so walking it costs
     /// nothing next to matching it.
     /// </remarks>
-    private static Mat Mask(ImageFrame needle, IReadOnlyList<PixelColor> transparent,
-        double tolerancePercent)
+    private static Mat Mask(ImageFrame needle, IReadOnlyList<TransparentColour> transparent)
     {
+        // Each colour carries its own reach: a flat background is asked for exactly, while a
+        // gradient behind an icon is given room, and one picture may have both.
         var reaches = transparent
-            .Select(colour => new ColourReach(colour, tolerancePercent))
+            .Select(item => new ColourReach(item.Colour, item.TolerancePercent))
             .ToList();
         var pixels = needle.Bgra.AsSpan();
         var weight = new byte[needle.Width * needle.Height];

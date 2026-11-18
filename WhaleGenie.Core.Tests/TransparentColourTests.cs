@@ -11,8 +11,8 @@ using WhaleGenie.TestSupport;
 namespace WhaleGenie.Core.Tests;
 
 /// <summary>
-/// 透明色：写下来的那几个颜色不参与比对，四个角同色时那个颜色也自动算进去（大漠的规则），
-/// 关掉这一档就只认手写的。看的窗口是搜索拿到的查询，因为掩码最后是设备照着它做的。
+/// 透明色：写下来的那几行颜色不参与比对，每行带着自己的容差；四个角同色时那个颜色也自动算进去，
+/// 关掉这一档就只认写下来的。看的窗口是搜索拿到的查询，因为掩码最后是设备照着它做的。
 /// </summary>
 public class TransparentColourTests
 {
@@ -23,11 +23,14 @@ public class TransparentColourTests
     private static ExecutableStep Step(params ExecutableParameter[] parameters)
         => new() { Type = "vision.findImage", Parameters = parameters };
 
-    /// <summary>The colours a step leaves out: a list of them, or the one colour it names.</summary>
+    /// <summary>The colours a step leaves out, one row each, with the tolerance each asks for.</summary>
+    private static ExecutableParameter Colours(params (string Colour, string Tolerance)[] rows)
+        => Fields.Rows("transparentColors",
+            [.. rows.Select(row => Cells.Of(("colour", row.Colour), ("tolerance", row.Tolerance)))]);
+
+    /// <summary>The same rows with no tolerance of their own, so each falls back to the field's.</summary>
     private static ExecutableParameter Colours(params string[] written)
-        => Fields.Computed("transparentColors", written.Length == 1
-            ? Formula.Text(written[0])
-            : Formula.List([.. written.Select(colour => (ExpressionNode)Formula.Text(colour))]));
+        => Colours([.. written.Select(colour => (colour, string.Empty))]);
 
     private static ExecutableParameter Pictures(params string[] names)
         => Fields.Rows("images", [.. names.Select(name => Cells.Of(("image", name)))]);
@@ -75,9 +78,7 @@ public class TransparentColourTests
         return context;
     }
 
-    /// <summary>
-    /// 一格能收好几个颜色，分号隔开就行；四个角同色时那个颜色也在里面，手写的那个不写两遍。
-    /// </summary>
+    /// <summary>一行一个颜色；四个角同色时那个颜色也在里面，写过的那个不写两遍。</summary>
     [Fact]
     public async Task Several_colours_are_left_out_and_none_is_written_twice()
     {
@@ -88,39 +89,44 @@ public class TransparentColourTests
             Colours("#FFFFFF", "#00FF00"), SampleFiles.Returns("match")));
 
         var asked = Assert.Single(context.Machine.Vision.Queries);
-        Assert.Equal([White, Green], asked.Transparent);
-    }
-
-    /// <summary>只写一个颜色也算数：一个颜色就是一个值，几个颜色才是一个列表。</summary>
-    [Fact]
-    public async Task One_colour_written_alone_is_a_list_of_one()
-    {
-        var context = Points();
-        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
-
-        await Run(context, Step(Pictures("ok.png"), Colours("#00FF00"),
-            SampleFiles.Returns("match")));
-
-        Assert.Equal([Green], Assert.Single(context.Machine.Vision.Queries).Transparent);
+        Assert.Equal([new TransparentColour(White, 0), new TransparentColour(Green, 0)],
+            asked.Transparent);
     }
 
     /// <summary>
-    /// 变量里装着整个列表时照读：列表里的列表按颜色逐个读下去，所以底色可以由别的一步算出来。
+    /// 每个颜色各自一个容差：行里写了就用它，没写就用这一格自己的「容差 %」。
     /// </summary>
     [Fact]
-    public async Task A_variable_that_holds_a_list_of_colours_is_read_through()
+    public async Task Each_colour_carries_the_tolerance_it_asks_for()
     {
         var context = Points();
         context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
-        ((IRunContext)context).Variables.Set("bg",
-            Value.FromList([Value.FromText("#00FF00"), Value.FromList([Value.FromText("#112233")])]));
 
         await Run(context, Step(Pictures("ok.png"),
-            Fields.Computed("transparentColors", Formula.Name("bg")),
+            Fields.Text("tolerance", "3"),
+            Colours(("#FFFFFF", ""), ("#00FF00", "12")),
             SampleFiles.Returns("match")));
 
-        var asked = Assert.Single(context.Machine.Vision.Queries);
-        Assert.Equal([Green, new PixelColor(0x11, 0x22, 0x33)], asked.Transparent);
+        Assert.Equal([new TransparentColour(White, 3), new TransparentColour(Green, 12)],
+            Assert.Single(context.Machine.Vision.Queries).Transparent);
+    }
+
+    /// <summary>
+    /// 行里装着颜色的变量时按形状读：颜色在跑到这一步的时候才取，所以底色可以由别的一步算出来。
+    /// </summary>
+    [Fact]
+    public async Task A_colour_a_variable_holds_is_read_when_the_step_runs()
+    {
+        var context = Points();
+        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
+        ((IRunContext)context).Variables.Set("bg", Value.FromText("#00FF00"));
+
+        await Run(context, Step(Pictures("ok.png"),
+            Fields.Rows("transparentColors", Cells.Of(("colour", Formula.Name("bg")))),
+            SampleFiles.Returns("match")));
+
+        Assert.Equal([new TransparentColour(Green, 0)],
+            Assert.Single(context.Machine.Vision.Queries).Transparent);
     }
 
     /// <summary>四角同色时那一个自动算进去，不必手写：换个底色也认得出同一个图标。</summary>
@@ -132,7 +138,28 @@ public class TransparentColourTests
 
         await Run(context, Step(Pictures("ok.png"), SampleFiles.Returns("match")));
 
-        Assert.Equal([White], Assert.Single(context.Machine.Vision.Queries).Transparent);
+        Assert.Equal([new TransparentColour(White, 0)],
+            Assert.Single(context.Machine.Vision.Queries).Transparent);
+    }
+
+    /// <summary>四角的比较用这一格自己的容差：默认 0 时，四角只差一点点也不算同色。</summary>
+    [Fact]
+    public async Task The_corners_are_compared_with_the_tolerance_the_field_gives_them()
+    {
+        var context = Points();
+        var near = new PixelColor(0xFA, 0xFA, 0xFA);
+        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, near);
+
+        await Run(context, Step(Pictures("ok.png"), SampleFiles.Returns("match")));
+        var strict = Assert.Single(context.Machine.Vision.Queries);
+        Assert.Null(strict.Transparent);
+
+        context.Machine.Vision.Queries.Clear();
+        await Run(context, Step(Pictures("ok.png"),
+            Fields.Text("tolerance", "5"), SampleFiles.Returns("match")));
+
+        Assert.Equal([new TransparentColour(White, 5)],
+            Assert.Single(context.Machine.Vision.Queries).Transparent);
     }
 
     /// <summary>四角颜色不一样的图，自动那一档就什么也不加：那不是底色。</summary>
@@ -185,8 +212,10 @@ public class TransparentColourTests
             Fields.Text("imageSet", "every"), SampleFiles.Returns("match", "every")));
 
         Assert.Equal(2, context.Machine.Vision.Queries.Count);
-        Assert.Equal([White], context.Machine.Vision.Queries[0].Transparent);
-        Assert.Equal([Green], context.Machine.Vision.Queries[1].Transparent);
+        Assert.Equal([new TransparentColour(White, 0)],
+            context.Machine.Vision.Queries[0].Transparent);
+        Assert.Equal([new TransparentColour(Green, 0)],
+            context.Machine.Vision.Queries[1].Transparent);
     }
 
     /// <summary>读不出来的颜色报的是那个词，而不是被当成黑色掩掉。</summary>
@@ -201,6 +230,21 @@ public class TransparentColourTests
         var failure = Assert.IsType<StepFailure>(result);
         Assert.Equal(RunKeys.BadPoint, failure.Key);
         Assert.Equal("zzz", failure.Detail);
+        Assert.Empty(context.Machine.Vision.Queries);
+    }
+
+    /// <summary>容差写成一个读不出的词，报的也是那个词，而不是悄悄按默认值算。</summary>
+    [Fact]
+    public async Task A_tolerance_nobody_can_read_stops_the_step()
+    {
+        var context = Points();
+
+        var result = await Record.ExceptionAsync(() => Run(context, Step(Pictures("ok.png"),
+            Colours(("#FFFFFF", "半")), SampleFiles.Returns("match"))));
+
+        var failure = Assert.IsType<StepFailure>(result);
+        Assert.Equal(RunKeys.BadPoint, failure.Key);
+        Assert.Equal("半", failure.Detail);
         Assert.Empty(context.Machine.Vision.Queries);
     }
 }

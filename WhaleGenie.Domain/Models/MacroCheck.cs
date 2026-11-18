@@ -65,6 +65,7 @@ public static partial class MacroCheck
 
         // A child list whose rows do not fit its columns.
         MacroProblemCode.UnknownRowColumn, MacroProblemCode.MissingRowColumn, MacroProblemCode.ExclusiveRowColumn,
+        MacroProblemCode.UnexpectedRowValue,
 
         // A call whose arguments or results do not fit the macro being called.
         MacroProblemCode.MacroNotFound, MacroProblemCode.NoMacro, MacroProblemCode.MissingArgument, MacroProblemCode.UndeclaredArgument, MacroProblemCode.DuplicateArgument,

@@ -8759,13 +8759,25 @@
       {
         "Name": "transparentColors",
         "Group": "target",
-        "Shape": "List",
+        "Shape": "Rows",
         "ValueForm": "Value",
         "Picker": "Color",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          },
+          {
+            "Name": "tolerance",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "autoTransparent",
@@ -9192,13 +9204,25 @@
       {
         "Name": "transparentColors",
         "Group": "target",
-        "Shape": "List",
+        "Shape": "Rows",
         "ValueForm": "Value",
         "Picker": "Color",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          },
+          {
+            "Name": "tolerance",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "autoTransparent",
@@ -9619,13 +9643,25 @@
       {
         "Name": "transparentColors",
         "Group": "target",
-        "Shape": "List",
+        "Shape": "Rows",
         "ValueForm": "Value",
         "Picker": "Color",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          },
+          {
+            "Name": "tolerance",
+            "Role": "Text",
+            "Required": false
+          }
+        ]
       },
       {
         "Name": "autoTransparent",

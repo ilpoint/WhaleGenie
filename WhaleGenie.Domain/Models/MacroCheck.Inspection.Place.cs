@@ -110,6 +110,15 @@ public static partial class MacroCheck
                     continue;
                 }
 
+                // A list says what it holds in its rows. A value written beside them is the shape
+                // this field used to have, and nothing reads it any more: saying so is better than
+                // a step whose colours are quietly ignored and whose picture is compared whole.
+                if (!Formula.IsNothing(parameter.Written))
+                {
+                    Add(step, MacroProblemCode.UnexpectedRowValue, Strings.Format(
+                        "Editor.Problem.UnexpectedRowValue", definition.LocalLabel));
+                }
+
                 foreach (var row in parameter.Rows)
                 {
                     foreach (var column in row.Cells.Keys)

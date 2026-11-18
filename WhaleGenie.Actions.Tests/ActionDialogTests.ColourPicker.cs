@@ -1,4 +1,5 @@
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -9,7 +10,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 
-// 颜色那一格与吸管：取到的颜色要真的进到这一步里，取第二个透明色时要添进去而不是顶掉。
+// 颜色那一格与色块条：取到的颜色要进到这一步里；透明色一行一个，每行带着自己的容差。
 public partial class ActionDialogTests
 {
     /// <summary>
@@ -26,19 +27,19 @@ public partial class ActionDialogTests
 
             Pick(window, colour, hook);
 
-            Assert.True(await Settled(() => Colours(colour).SequenceEqual(["#112233"])),
-                $"the step holds {string.Join(", ", Colours(colour))} rather than the colour that was picked");
+            Assert.True(await Settled(() => Plain(colour) == "#112233"),
+                $"the step holds {Plain(colour)} rather than the colour that was picked");
             window.Close();
             return true;
         });
     }
 
     /// <summary>
-    /// 一个图标可能带着不止一种底色，所以「透明色」那格要能收好几个：每取一次添一个，不顶掉，
-    /// 同一个颜色取第二次也不会写两遍。
+    /// 透明色一行一个颜色：吸管每取一次添一行，不顶掉前面的，同一个颜色取第二次不会添第二行；
+    /// 输入框那行按顺序把它们读出来；每行自己的容差写在它旁边那格，并原样进到这一步里。
     /// </summary>
     [Fact]
-    public void A_second_transparent_colour_is_added_to_the_first()
+    public void A_second_transparent_colour_is_added_as_another_row()
     {
         Ui.RunAsync(async () =>
         {
@@ -48,26 +49,65 @@ public partial class ActionDialogTests
                 .First(parameter => parameter.Definition.Name == "transparentColors");
 
             Pick(window, colours, hook);
-            Assert.True(await Settled(() => Colours(colours).SequenceEqual(["#112233"])),
-                $"the first colour did not land: {string.Join(", ", Colours(colours))}");
+            Assert.True(await Settled(() => colours.ColourRows.Count == 1),
+                $"the first colour did not land: {colours.ColourRows.Count} rows");
+            Assert.Equal("#112233", colours.ColourRows[0].Colour);
 
             screen.Colour = new PixelColor(0x44, 0x55, 0x66);
             Pick(window, colours, hook);
-            Assert.True(await Settled(() => Colours(colours).SequenceEqual(["#112233", "#445566"])),
-                $"the second colour was not added: {string.Join(", ", Colours(colours))}");
+            Assert.True(await Settled(() => colours.ColourRows.Count == 2),
+                $"the second colour replaced the first: {colours.ColourRows.Count} rows");
+            Assert.Equal(["#112233", "#445566"], colours.ColourRows.Select(row => row.Colour));
 
-            // Picking a colour that is already there leaves the list as it was.
+            // The box reads the list in the order the rows stand in.
+            Assert.Contains("#112233", colours.DisplayLine);
+            Assert.Contains("#445566", colours.DisplayLine);
+
+            // A colour that is already listed adds no second row.
             screen.Colour = new PixelColor(0x11, 0x22, 0x33);
             Pick(window, colours, hook);
-            Assert.True(await Settled(() => Colours(colours).SequenceEqual(["#112233", "#445566"])),
-                $"a repeated colour was written twice: {string.Join(", ", Colours(colours))}");
+            Assert.True(await Settled(() => colours.ColourRows.Count == 2),
+                $"a repeated colour was added: {colours.ColourRows.Count} rows");
 
+            // The strip sits under the box and lays the colours out in list order, left to right.
+            var box = window.GetVisualDescendants().OfType<TextBox>()
+                .First(item => item.IsReadOnly && ReferenceEquals(item.DataContext, colours));
+            var chips = window.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.IsEffectivelyVisible && button.Name == "RemoveColourButton")
+                .ToList();
+            Assert.Equal(2, chips.Count);
+            var boxAt = box.TranslatePoint(new Point(0, 0), window)!.Value;
+            var first = chips[0].TranslatePoint(new Point(0, 0), window)!.Value;
+            var second = chips[1].TranslatePoint(new Point(0, 0), window)!.Value;
+            Assert.True(first.Y > boxAt.Y, "the swatches are not drawn under the box");
+            Assert.True(first.X < second.X, "the swatches are not laid out in list order");
+
+            // Each colour carries its own tolerance, and an empty one follows the field's.
+            colours.ColourRows[1].Tolerance = "7";
+            var rows = viewModel.BuildStep().Parameters
+                .First(parameter => parameter.Name == "transparentColors").Rows;
+            Assert.Equal(["#112233", "#445566"], rows.Select(row => row.Text("colour")));
+            Assert.Equal(["", "7"], rows.Select(row => row.Text("tolerance")));
+
+            // The strip draws a chip per row, and its × takes that one out of the step.
+            var remove = window.GetVisualDescendants().OfType<Button>()
+                .Where(button => button.IsEffectivelyVisible && button.Name == "RemoveColourButton")
+                .First(button => ReferenceEquals(button.DataContext, colours.ColourRows[1]));
+
+            // The × is bound to the row it stands on; pressing it runs that row's own command.
+            Assert.Same(colours.ColourRows[1].RemoveCommand, remove.Command);
+            remove.Command!.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.True(await Settled(() => colours.ColourRows.Count == 1),
+                $"the row was not taken out: {colours.ColourRows.Count} rows");
+            Assert.Equal("#112233", colours.ColourRows[0].Colour);
             window.Close();
             return true;
         });
     }
 
-    /// <summary>Opens one action's form on the advanced page, with a screen that answers one colour.</summary>
+    /// <summary>Opens one action's form on the page its field stands on, with a screen that answers one colour.</summary>
     private static (Window Window, AddActionViewModel ViewModel, ColourScreen Screen,
         ClickingHook Hook) ColourDialog(string action, string field, byte r, byte g, byte b)
     {
@@ -99,12 +139,6 @@ public partial class ActionDialogTests
         hook.Click(700, 500);
     }
 
-    /// <summary>
-    /// The colours the step would keep, however the field was written: the items of a list, or the
-    /// one colour a field that holds one stands for.
-    /// </summary>
-    private static string[] Colours(StepParameterViewModel parameter)
-        => parameter.Written is ListNode list
-            ? [.. list.Items.Select(item => Formula.Plain(item).Trim())]
-            : [Formula.Plain(parameter.Written).Trim()];
+    /// <summary>The value the step would keep for a field that holds one colour.</summary>
+    private static string Plain(StepParameterViewModel parameter) => Formula.Plain(parameter.Written).Trim();
 }
