@@ -13,6 +13,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using WhaleGenie.Converters;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -239,8 +240,9 @@ public partial class MacroEditorWindow : AppWindow
         var last = boxes[^1];
         if (point.Y >= last.Top + last.Height)
         {
+            // 最后一行是块时句子要说"这一块之后"：行上画的是块，叫它"一步"读起来像另一个位置。
             Place(_viewModel.Steps, _viewModel.Steps.Count, last.Top + last.Height, 0,
-                "Editor.DropAfterStep", actionKey);
+                last.Row.IsBlock ? "Editor.DropAfterBlock" : "Editor.DropAfterStep", actionKey);
             return;
         }
 
@@ -264,7 +266,7 @@ public partial class MacroEditorWindow : AppWindow
         // it is saying "put it last", which is the same thing the row itself offers to do.
         if (row.IsAddRow && row.List is { } table)
         {
-            Place(table.Steps, table.Steps.Count, bottom, row.Depth * 16,
+            Place(table.Steps, table.Steps.Count, bottom, TreeIndent.Of(row.Depth),
                 table.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
                 actionKey);
             return;
@@ -273,22 +275,33 @@ public partial class MacroEditorWindow : AppWindow
         // A body row is one list, and the whole of it means the end of that list: a pointer over
         // "body steps" is saying "put it in there", and the end is where a person's next step
         // goes. Landing it at the top is what made an empty body feel like it swallowed the drop.
+        //
+        // The band sits one column in while the list it points into is on screen, and on the row's
+        // own column when it is folded: the steps it would land beside are not drawn, and a band
+        // indented into a column with no rows in it reads as a place that is not there.
         if (row.IsSection && row.List is { } section)
         {
-            Place(section.Steps, section.Steps.Count, BottomOf(row, boxes), (row.Depth + 1) * 16,
+            Place(section.Steps, section.Steps.Count, BottomOf(row, boxes),
+                TreeIndent.Of(row.IsExpanded ? row.Depth + 1 : row.Depth),
                 section.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
                 actionKey);
             return;
         }
 
-        // A block that runs one list is the same promise one level up: the whole row means "into
-        // it, at the end", whether it is open or folded. A block that runs several lists leaves
-        // "inside" to its body rows, because "inside" there would not say which.
-        if (row.IsBlock && row.Step.StepLists.Count() == 1 && row.Body is { } body)
+        // An open block that runs one list is the same promise one level up: the whole row means
+        // "into it, at the end". A block that runs several lists leaves "inside" to its body rows,
+        // because "inside" there would not say which.
+        //
+        // A folded block promises nothing of the sort: none of its steps is on screen, so there is
+        // no place inside it to point at. The whole of its row then means what the row of any other
+        // step means — before it, or after it — and the band is drawn where that step would land.
+        // Adding inside a folded block is still done by picking the block and asking for a step,
+        // which opens the block and puts the step at the end of its body.
+        if (row.IsExpanded && row.IsBlock && row.Step.StepLists.Count() == 1 && row.Body is { } body)
         {
             var tail = row.Children.FirstOrDefault(child => child.IsSection);
             Place(body.Steps, body.Steps.Count,
-                tail is null ? bottom : BottomOf(tail, boxes), (row.Depth + 1) * 16,
+                tail is null ? bottom : BottomOf(tail, boxes), TreeIndent.Of(row.Depth + 1),
                 body.Steps.Count == 0 ? "Editor.DropIntoEmptyList" : "Editor.DropAtBlockEnd",
                 actionKey);
             return;
@@ -296,7 +309,7 @@ public partial class MacroEditorWindow : AppWindow
 
         var before = point.Y < top + (box.Height / 2);
         var (list, index) = before ? Before(row) : After(row);
-        Place(list, index, before ? top : bottom, row.Depth * 16,
+        Place(list, index, before ? top : bottom, TreeIndent.Of(row.Depth),
             row.IsBlock ? (before ? "Editor.DropBeforeBlock" : "Editor.DropAfterBlock")
                         : (before ? "Editor.DropBeforeStep" : "Editor.DropAfterStep"),
             actionKey);
@@ -344,13 +357,21 @@ public partial class MacroEditorWindow : AppWindow
     private static int LastRowIndex(StepRow row)
         => row.Children.Count == 0 ? row.RowIndex : Math.Max(row.RowIndex, LastRowIndex(row.Children[^1]));
 
-    /// <summary>The row headers on screen, top to bottom, as the tree actually laid them out.</summary>
+    /// <summary>
+    /// The row headers on screen, top to bottom, as the tree actually laid them out.
+    /// </summary>
+    /// <remarks>
+    /// 折叠一个块只是把子行那个 presenter 藏起来：那些行还在视觉树里，`Bounds` 也还是折叠前
+    /// 那一份。只看"有没有高度"会把它们算成屏幕上的位置，于是折叠之后，指针走到原来放循环体的
+    /// 那一段仍会命中一行看不见的体行，插入带便回到已经收起来的那一层。屏幕上有没有这一行，
+    /// 问的是它此刻可不可见。
+    /// </remarks>
     private List<RowBox> HeaderBoxes()
         => _stepList is null
             ? []
             : [.. _stepList.GetVisualDescendants()
                 .OfType<Panel>()
-                .Where(panel => panel.Name == "RowHeader")
+                .Where(panel => panel.Name == "RowHeader" && panel.IsEffectivelyVisible)
                 .Select(panel => (
                     Panel: panel,
                     Row: panel.DataContext as StepRow,

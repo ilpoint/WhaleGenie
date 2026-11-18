@@ -303,6 +303,47 @@ public class StepPlacementTests
         });
     }
 
+    /// <summary>
+    /// 落点所在的各层循环已经在用的名字。表单要靠它给新的计数循环起一个不撞的名字，所以它问的是
+    /// 编辑器此刻指向的那个落点——与保存时用的是同一个落点。
+    /// </summary>
+    [Fact]
+    public void A_place_inside_loops_says_which_names_they_keep()
+    {
+        Ui.Run(() =>
+        {
+            var editor = new MacroEditorViewModel();
+            var counting = Step("control.for", Name("name", "i"), Body("body"));
+            var each = Step("control.forEach",
+                Name("itemVariable", "entry"), Name("indexVariable", "round"), Body("body"));
+            counting.StepLists.Single().Steps.Add(each);
+            editor.AddStep(counting);
+
+            // 两层：直接的祖先各算各的，再往上一层的名字也是外层循环的。
+            var inEach = each.StepLists.Single();
+            editor.PrepareInsertionAt(inEach.Steps, 0);
+            Assert.Equal(["entry", "i", "round"],
+                editor.LoopNamesInScope().Order(StringComparer.Ordinal));
+
+            // 同一条链上但不在「for each」里：只有计数循环的名字要躲。
+            var inCounting = counting.StepLists.Single();
+            editor.PrepareInsertionAt(inCounting.Steps, 0);
+            Assert.Equal(["i"], editor.LoopNamesInScope());
+
+            // 顶层没有外层循环，所以没有名字要躲。
+            editor.PrepareInsertionAt(editor.Steps, editor.Steps.Count);
+            Assert.Empty(editor.LoopNamesInScope());
+        });
+    }
+
+    private static StepParameter Name(string name, string value)
+        => new()
+        {
+            Name = name,
+            Kind = ActionParameterKind.Text,
+            Written = Formula.Name(value),
+        };
+
     private static MacroStep Switch(params MacroStep[] cases)
         => Step("control.switch",
             Body("cases", cases),

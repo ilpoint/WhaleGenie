@@ -109,6 +109,37 @@ public partial class MacroEditorViewModel
     }
 
     /// <summary>
+    /// The loop variables the place a step is going already uses. A counting loop added inside one
+    /// of them takes a name of its own: borrowing an outer loop's counter would lose that loop's
+    /// value when the inner one ends, which is the one thing the design-time check has to warn
+    /// about for a loop written the ordinary way.
+    /// </summary>
+    /// <remarks>
+    /// The place is the one <see cref="AddStepHere"/> will use, down to the same fallback, because
+    /// the dialog is handed this answer before that step exists. Only the loops the place really
+    /// sits inside count: two loops side by side may share a name without either losing anything,
+    /// and the check does not report them either.
+    /// </remarks>
+    public IReadOnlyCollection<string> LoopNamesInScope()
+    {
+        var target = _insertAt ?? InsertionPoint() ?? TargetForList(Steps, Steps.Count);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var walked = new HashSet<MacroStep>();
+
+        // Up the tree one list at a time: the owner of the list a step is going into, then the
+        // owner of the list that step sits in, until the top of the macro. The set is walked too,
+        // so a document that somehow holds itself stops here rather than forever.
+        var owner = target.Owner;
+        while (owner is not null && walked.Add(owner))
+        {
+            names.UnionWith(LoopNames.Of(owner));
+            owner = ListOf(owner) is { } list ? OwnerOfList(list)?.Owner : null;
+        }
+
+        return names;
+    }
+
+    /// <summary>
     /// Appends the steps a recording produced. They arrive together, so one undo puts the
     /// list back the way it was before the recording started.
     /// </summary>

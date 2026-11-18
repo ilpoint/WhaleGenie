@@ -41,6 +41,10 @@ public partial class AddActionViewModel
             var variables = CollectVariables();
             var steps = StepsOfferedTo(definition);
 
+            // The counter a counting loop opens on, worked out once for this form: the loops the
+            // place already sits inside are the ones a new loop may not take its name from.
+            var counter = CounterFor(definition);
+
             // A call's form is built for whichever macro it names, so the name is put back into the
             // box it was read from before the fields that only exist because of it.
             var calling = CallsMacro(definition);
@@ -60,6 +64,16 @@ public partial class AddActionViewModel
                     }
 
                     var editor = AddEditor(parameter, CalledResults(definition), variables, steps);
+
+                    // The name goes in as a shape rather than into the line: what the step keeps is
+                    // the shape, so a line that says one name and a step that carries another is
+                    // the one mistake this fill could make. It is put in once, when the field is
+                    // built, so a name typed afterwards is the author's and is left alone.
+                    if (counter is not null && LoopNames.WritesCounter(definition.Key, parameter.Name))
+                    {
+                        editor.WriteValue(Formula.Name(counter));
+                    }
+
                     if (calling && parameter.Name == "macro" && _callMacro.Length > 0)
                     {
                         editor.WriteValue(Formula.Text(_callMacro));
@@ -127,6 +141,26 @@ public partial class AddActionViewModel
 
         Parameters.Add(editor);
         return editor;
+    }
+
+    /// <summary>
+    /// The name a counting loop opens on when the place it is going already sits inside a loop: the
+    /// first name the loops around it are not using. Nothing for an action that writes no counter,
+    /// for a step that already exists, and for a place that is not inside any loop — in all three
+    /// cases the field keeps the name the catalogue starts it with.
+    /// </summary>
+    private string? CounterFor(ActionDefinition definition)
+    {
+        if (!_isNewStep
+            || _loopNames.Count == 0
+            || definition.Parameters.FirstOrDefault(parameter =>
+                LoopNames.WritesCounter(definition.Key, parameter.Name)) is not { } field
+            || field.LocalDefault.Trim() is not { Length: > 0 } preferred)
+        {
+            return null;
+        }
+
+        return LoopNames.Free(_loopNames, preferred);
     }
 
     /// <summary>The macro the call names right now, or null while it names one that is not there.</summary>

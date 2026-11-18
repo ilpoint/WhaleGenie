@@ -11,6 +11,7 @@ using Avalonia.VisualTree;
 using Lucide.Avalonia;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
@@ -306,4 +307,63 @@ public partial class ActionDialogTests
             Assert.Equal("control.delay", Assert.Single(saved.StepLists.Single().Steps).Type);
         });
     }
+
+    /// <summary>
+    /// 计数循环写在外层循环里时，默认的计数器名字换成外层没在用的那个。内层用外层的名字，内层结束
+    /// 时外层的值就没有了；那正是编辑器事后要标出来的问题，而在这里改掉它比事后提示更有用。
+    ///
+    /// 表单上写的就是保存下来的：名字以形状写进字段，而不是只改框里那行字。
+    /// </summary>
+    [Fact]
+    public void A_counting_loop_is_named_around_the_loops_it_goes_into()
+    {
+        Ui.Run(() =>
+        {
+            var inner = Named("control.for", newStepId: "abcd", loopNames: ["i"]);
+            Assert.Equal("i2", Value(inner, "name"));
+            Assert.Equal("i2", inner.BuildStep().Text("name"));
+
+            // 顶层没有外层循环：字段仍是目录里的起点，名字跟着它读的那一层走。
+            Assert.Equal("i", Value(Named("control.for", newStepId: "efgh"), "name"));
+
+            // 已有的步骤不改名：名字是作者写的，遮蔽仍由检查去提示，不在这里静默改掉。
+            Assert.Equal("i", Value(Named("control.for", existing: Counter("i"), loopNames: ["i"]),
+                "name"));
+        });
+    }
+
+    /// <summary>The form on a counting loop: a new step of the editor's, an existing one, or neither.</summary>
+    private static AddActionViewModel Named(string key, string? newStepId = null,
+        MacroStep? existing = null, IReadOnlyList<string>? loopNames = null)
+    {
+        var window = new ActionEditorWindow(existing, ActionCatalog.Definitions, [], [],
+            newStepId: newStepId, loopNames: loopNames);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        var viewModel = (AddActionViewModel)window.DataContext!;
+        if (existing is null)
+        {
+            viewModel.SelectAction(key);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+        return viewModel;
+    }
+
+    /// <summary>A counting loop that already counts in one name.</summary>
+    private static MacroStep Counter(string name)
+        => new()
+        {
+            Type = "control.for",
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "name",
+                    Kind = ActionParameterKind.Text,
+                    Written = Formula.Name(name),
+                },
+            ],
+        };
 }

@@ -192,12 +192,12 @@ public partial class ActionEditorView : UserControl
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
         IReadOnlyList<WindowRuleChoice>? windowRules = null, bool followsWindowAbove = false,
         string? windowAbove = null, PersistedVariables? persisted = null,
-        VariableSession? session = null)
+        VariableSession? session = null, IReadOnlyCollection<string>? loopNames = null)
     {
         InitializeComponent();
 
         var viewModel = new AddActionViewModel(actions, variables, macros, steps, newStepId,
-            windowRules, followsWindowAbove, windowAbove)
+            windowRules, followsWindowAbove, windowAbove, loopNames)
         {
             Persisted = persisted ?? new PersistedVariables(),
             Variables = session ?? new VariableSession(),

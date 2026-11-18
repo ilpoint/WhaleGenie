@@ -31,8 +31,13 @@
                                              Converter="{x:Static conv:StepIndentConverter.Instance}" />
                                 </Grid.Margin>
                                 <!-- 展开钮的格子宽度固定：叶子行没有箭头，但那一格还在，所以
-                                     同一层的标题永远对在同一条竖线上。 -->
-                                <Panel Name="PART_ExpandCollapseChevronContainer"
+                                     同一层的标题永远对在同一条竖线上。
+
+                                     这一格压在内容列之上（ZIndex）：树线是内容列里画出来的，
+                                     绘制顺序排在方块之后，那条穿过方块中线的虚线会正盖在钮上
+                                     ——"折叠钮和折叠虚线分不清"就是这么来的。抬高之后方块成了
+                                     压在线上的一枚实心钮，线从它下面穿过去。 -->
+                                <Panel Name="PART_ExpandCollapseChevronContainer" ZIndex="1"
                                        Width="14" Margin="12,0,12,0">
                                     <!-- 折叠方块只长在"自己跑步骤"的那一行上：块的体（循环体步骤）是块的一部分，
                                          在它上面再放一枚方块，等于说体自己会折叠，而它不会。 -->
@@ -62,14 +67,22 @@
             </Setter>
         </ControlTheme>
 
-        <!-- 展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。 -->
+        <!--
+          展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。
+
+          **它得先被读成一枚钮，然后才是一枚箭头。** 树线是虚线，而方块原来只有一层几乎与
+          背景同深的淡底，穿过中线的虚线又画在它上面，于是"这里可以折叠"和"这里是一条线"在
+          屏幕上没有分别。所以：实心底（SurfaceControl，比背后的行和线都亮一档）、一圈描边
+          压住穿过它的线、字形用主文字色而不是次要色。悬停与按下各自换底和边，四态可读；焦点
+          仍归容器行模板的 FocusAdorner（这一格 Focusable="False"），不另写一层焦点环。
+        -->
         <ControlTheme x:Key="StepChevron" TargetType="ToggleButton">
             <Setter Property="Width" Value="14" />
             <Setter Property="Height" Value="14" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
@@ -77,12 +90,19 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}">
                         <Path Name="Glyph" Data="M 5,4 L 8,7 L 5,10"
-                              Stroke="{DynamicResource TextSecondary}"
-                              StrokeThickness="1.3"
+                              Stroke="{DynamicResource TextPrimary}"
+                              StrokeThickness="1.6"
                               StrokeLineCap="Round" StrokeJoin="Round" />
                     </Border>
                 </ControlTemplate>
             </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
+            </Style>
             <!-- 展开时整枚钮转 90 度：箭头从"朝右"变成"朝下"，一套图形两种状态。 -->
             <Style Selector="^:checked">
                 <Setter Property="RenderTransform" Value="rotate(90deg)" />

@@ -160,10 +160,15 @@ public partial class MacroEditorWindow : AppWindow
             .NearestAbove(_viewModel.Steps, _viewModel.SelectedSteps.LastOrDefault()?.Id);
         var follows = editing is null && windowAbove.Length > 0;
 
+        // A counting loop written inside another one starts from a counter the outer loop is not
+        // using; the place is still the one the editor is pointing at, so the editor is what knows
+        // which loops that is. An edited step keeps the name it already has.
+        var counterNames = editing is null ? _viewModel.LoopNamesInScope() : [];
+
         var dialog = new ActionEditorWindow(editing, actions, _viewModel.CollectVariables(),
             MacroCalls(), presetKey, _session.AssetFolder, _viewModel.StepChoices(),
             editing?.Id ?? _viewModel.NewStepId(), windowRules, follows, windowAbove,
-            _rootViewModel.Persisted, _variables)
+            _rootViewModel.Persisted, _variables, counterNames)
         {
             Devices = Layer,
             Macros = BuildLibrary(),

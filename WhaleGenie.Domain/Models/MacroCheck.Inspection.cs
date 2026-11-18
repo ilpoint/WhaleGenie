@@ -191,7 +191,7 @@ public static partial class MacroCheck
 
                 // A loop's own variables belong to the innermost loop that names them, so one
                 // that borrows a name from a loop around it loses the outer value when it ends.
-                var ownNames = LoopVariableNames(step);
+                var ownNames = LoopNames.Of(step);
                 foreach (var name in ownNames)
                 {
                     if (loopNames.Contains(name))

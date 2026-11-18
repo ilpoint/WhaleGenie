@@ -35,6 +35,13 @@ public partial class AddActionViewModel : ViewModelBase
     private string _assetFolder = string.Empty;
 
     /// <summary>
+    /// The loop variables the place this step is going already uses. A counting loop starts its
+    /// counter at a name none of them is using, so a loop nested in another does not take the outer
+    /// one's counter — which would lose the outer value when the inner loop ends.
+    /// </summary>
+    private readonly IReadOnlyCollection<string> _loopNames;
+
+    /// <summary>
     /// True when the form's arguments and results are declarations of the macro this step names.
     /// The catalogue says that, so another action with the same shape needs no branch here.
     /// </summary>
@@ -111,13 +118,15 @@ public partial class AddActionViewModel : ViewModelBase
         IReadOnlyList<VariableChoice>? variables = null, IReadOnlyList<MacroCallable>? macros = null,
         IReadOnlyList<ActionParameterOption>? steps = null, string? newStepId = null,
         IReadOnlyList<WindowRuleChoice>? windowRules = null,
-        bool followsWindowAbove = false, string? windowAbove = null)
+        bool followsWindowAbove = false, string? windowAbove = null,
+        IReadOnlyCollection<string>? loopNames = null)
     {
         AvailableActions = actions;
         _variables = variables ?? [];
         _macros = macros ?? [];
         StepChoices = steps ?? [];
         WindowRules = windowRules ?? [];
+        _loopNames = loopNames ?? [];
         _followsWindowAbove = followsWindowAbove;
         WindowAbove = windowAbove ?? string.Empty;
 

@@ -65,31 +65,6 @@ public static partial class MacroCheck
     }
 
     /// <summary>
-    /// The names a loop writes for its own rounds: the item and round number of a "for each" and
-    /// the counter of a counting loop. A repeat or a while counts the rounds in the runner's head,
-    /// so there is no name of the macro's to keep.
-    /// </summary>
-    private static string[] LoopVariableNames(MacroStep step)
-    {
-        switch (step.Type)
-        {
-            case "control.forEach":
-                var item = step.Text("itemVariable").Trim();
-                var index = step.Text("indexVariable").Trim();
-                return
-                [
-                    .. new[] { item.Length == 0 ? "item" : item, index }
-                        .Where(name => name.Length > 0),
-                ];
-            case "control.for":
-                var counter = step.Text("name").Trim();
-                return [counter.Length == 0 ? "i" : counter];
-            default:
-                return [];
-        }
-    }
-
-    /// <summary>
     /// The names a macro may read: the ones WhaleGenie provides, the shared ones, the ones its own
     /// steps create, and the ones a call asks a called macro to bring back. A name the macro
     /// defines anywhere counts, because whether a step runs before the one that reads it is a

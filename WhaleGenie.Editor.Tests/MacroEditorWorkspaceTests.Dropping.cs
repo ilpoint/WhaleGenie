@@ -206,4 +206,66 @@ public partial class MacroEditorWorkspaceTests
             Ui.CloseAndAnswer(window);
         });
     }
+
+    /// <summary>
+    /// 在外层循环的循环体里新建一个计数循环：表单里默认的计数器名字换成外层没在用的那个，保存下来
+    /// 就是它。表单问的是编辑器此刻的落点，与步骤真正落进去的那一层是同一个答案。
+    /// </summary>
+    [Fact]
+    public void A_counting_loop_dropped_inside_another_takes_a_counter_of_its_own()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var editor = (MacroEditorViewModel)window.DataContext!;
+            var outer = Step("control.for",
+                new StepParameter
+                {
+                    Name = "name",
+                    Kind = ActionParameterKind.Text,
+                    Written = Formula.Name("i"),
+                },
+                new StepParameter
+                {
+                    Name = "body",
+                    Kind = ActionParameterKind.Steps,
+                    Steps = [Step("control.log")],
+                });
+            editor.AddStep(outer);
+            Dispatcher.UIThread.RunJobs();
+
+            var list = window.FindControl<TreeView>("StepList")!;
+            var body = Header(list, row => row.IsSection);
+            var middle = body.TranslatePoint(
+                new Point(body.Bounds.Width / 2, body.Bounds.Height / 2), list)!.Value;
+            var transfer = new ActionDragPayload(
+                ActionPaletteCardKind.Action, "control.for").Transfer();
+
+            DragAt(list, DragDrop.DropEvent, transfer, middle);
+            Dispatcher.UIThread.RunJobs();
+
+            var action = Assert.Single(window.OwnedWindows.OfType<ActionEditorWindow>());
+            var form = (AddActionViewModel)action.DataContext!;
+            var counter = form.Parameters.First(parameter => parameter.Definition.Name == "name");
+            Assert.Equal("i2", counter.Text);
+
+            form.SaveCommand.Execute(null);
+            Dispatcher.UIThread.RunJobs();
+            Dispatcher.UIThread.RunJobs();
+
+            var inner = outer.StepLists.Single().Steps[^1];
+            Assert.Equal("control.for", inner.Type);
+            Assert.Equal("i2", inner.Text("name"));
+
+            // 借了外层的名字才会被标出来；按这个名字写的不会。
+            Assert.DoesNotContain(editor.Problems, problem =>
+                problem.Step == inner && problem.Code == MacroProblemCode.LoopVariableShadowed);
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
 }
