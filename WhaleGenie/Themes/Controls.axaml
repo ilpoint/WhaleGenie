@@ -88,8 +88,37 @@
                 <Setter Property="RenderTransform" Value="rotate(90deg)" />
             </Style>
         </ControlTheme>
-        <!--
-          右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
+<!--
+      设置分组：标题、说明与行平铺，没有展开动作。行仍由 FASettingsExpanderItem 呈现，组只给
+      卡片描边、标题底与标题下那条 1px 缝；行与行之间靠内容里的 StackPanel Spacing="1" 透出窗口底。
+    -->
+    <ControlTheme x:Key="{x:Type views:SettingsGroup}" TargetType="views:SettingsGroup">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border BorderBrush="{DynamicResource BorderSubtle}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusControl}"
+                        ClipToBounds="True">
+                    <StackPanel>
+                        <Border Background="{DynamicResource SurfaceCard}"
+                                BorderBrush="{DynamicResource BorderSubtle}"
+                                BorderThickness="0,0,0,1"
+                                Padding="{DynamicResource PadRow}">
+                            <ContentPresenter Content="{TemplateBinding Header}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
           ControlThemes 里有 Menu、MenuItem、MenuFlyoutPresenter 与 Separator，唯独没有 ContextMenu
           （逐个核过 amwx/FluentAvalonia 的 ControlThemes/BasicControls 目录）。
 
@@ -1236,6 +1265,56 @@
     <Style Selector="Button.Tab.Root.Compact">
         <Setter Property="MinHeight" Value="28" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
+    </Style>
+
+    <!--
+      设置窗顶部三个分组页签的胶囊档。`Root` 的下划线选中留给主窗与宏设置，这里只做窄化。
+      不叫 `Pill`：`Button.Pill` 已经是另一个东西，窄化规则会把它一起算进来。
+    -->
+    <Style Selector="Button.Tab.Root.Capsule">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule:pointerover">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule:pressed">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule.selected:pointerover">
+        <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule.selected:pressed">
+        <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <!--
+      设置窗左栏的图标跟着行的状态换色。不能绑 `FANavigationViewItem.Foreground`：库的选中态把
+      颜色写在模板里的两个 ContentPresenter 上，item 自己的前景始终是静息色。
+    -->
+    <Style Selector="fa|FANavigationViewItem views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <Style Selector="fa|FANavigationViewItem:pointerover views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="fa|FANavigationViewItem:selected views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
     </Style>
 
     <!-- 侧栏页签：选中时整行铺强调浅底，左侧一条竖线标位置。 -->

@@ -43,8 +43,8 @@ public partial class SettingsViewModel
     public bool HasProject => Project is not null;
 
     /// <summary>
-    /// The page the window is showing. It is the only place a page is named: the group at the top of
-    /// the window is derived from it rather than stored beside it, so the two cannot disagree.
+    /// The page the window is showing. It is the only place a page is named: the group in the list on
+    /// the left is derived from it rather than stored beside it, so the two cannot disagree.
     /// </summary>
     [ObservableProperty]
     public partial SettingsSubPage SelectedPage { get; set; } = SettingsSubPage.General;
@@ -60,7 +60,8 @@ public partial class SettingsViewModel
     public bool IsWheelActionsPage => SelectedPage == SettingsSubPage.WheelActions;
     public bool IsThemePage => SelectedPage == SettingsSubPage.Theme;
 
-    /// <summary>The group the open page belongs to; the three tabs at the top of the window read it.</summary>
+    /// <summary>The group the open page belongs to; the three items in the list on the left read it,
+    /// and it decides which row of page tabs is shown.</summary>
     public SettingsRoot SelectedRoot => RootOf(SelectedPage);
 
     public bool IsSystemRoot => SelectedRoot == SettingsRoot.System;

@@ -109,6 +109,13 @@ public partial class SettingsWindow
 
         if (e.Key == Key.Escape)
         {
+            // 气泡固定着时 Esc 先收气泡，窗口留着；没有气泡才按原来的意思关窗。
+            if (HintBubbleHost.For(this).DismissIfOpen(HintBubbleCloseReason.Escape))
+            {
+                e.Handled = true;
+                return;
+            }
+
             Close();
             e.Handled = true;
         }
@@ -155,8 +162,6 @@ public partial class SettingsWindow
         _viewModel.CaptureMenuLauncher(binding);
         e.Handled = true;
     }
-
-    /// <summary>Whether a press landed on one of the buttons that set, cancel or clear a hotkey.</summary>
 
     /// <summary>Whether a press landed on one of the buttons that set, cancel or clear a hotkey.</summary>
     private static bool IsHotkeyButton(object? source)

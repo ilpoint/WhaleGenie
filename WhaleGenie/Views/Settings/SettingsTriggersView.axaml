@@ -16,294 +16,342 @@
     <StackPanel Spacing="10">
         <!-- ── 菜单呼出 ─────────────────────────────────────────── -->
         <StackPanel IsVisible="{Binding IsMenuLauncherPage}" Spacing="10">
-            <fa:FASettingsExpander Header="{Binding [Settings.MenuLauncher], Source={x:Static loc:Strings.Current}}"
-                IsExpanded="True">
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="Hint" TextWrapping="Wrap"
-                            Text="{Binding MenuLauncherStatus}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.MenuLauncherHint], Source={x:Static loc:Strings.Current}}" />
-                        <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,8,0,0">
-                            <CheckBox Classes="Field" IsChecked="{Binding MenuLauncherMiddle}"
-                                Content="{Binding [Settings.MiddleButton], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding MenuLauncherCustom}"
-                                Content="{Binding [Settings.CustomKey], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.MenuLauncher], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.MenuLauncherNote], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
-                                TextAlignment="Right" Text="{Binding MenuLauncherDisplay}" />
-                            <Button Name="CaptureMenuLauncherButton" Classes="Secondary" Height="30"
-                                Content="{Binding MenuLauncherButton}" />
-                            <Button Name="ClearMenuLauncherButton" Classes="Secondary" Height="30"
-                                Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                Text="{Binding MenuLauncherStatus}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.MenuLauncherHint], Source={x:Static loc:Strings.Current}}" />
+                            <StackPanel Orientation="Horizontal" Spacing="18" Margin="0,8,0,0">
+                                <CheckBox Classes="Field" IsChecked="{Binding MenuLauncherMiddle}"
+                                    Content="{Binding [Settings.MiddleButton], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding MenuLauncherCustom}"
+                                    Content="{Binding [Settings.CustomKey], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
                         </StackPanel>
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
-            </fa:FASettingsExpander>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
+                                    TextAlignment="Right" Text="{Binding MenuLauncherDisplay}" />
+                                <Button Name="CaptureMenuLauncherButton" Classes="Secondary" Height="30"
+                                    Content="{Binding MenuLauncherButton}" />
+                                <Button Name="ClearMenuLauncherButton" Classes="Secondary" Height="30"
+                                    Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
         </StackPanel>
 
         <!-- ── 窗口规则 ─────────────────────────────────────────── -->
         <StackPanel IsVisible="{Binding IsWindowRulesPage}" Spacing="10">
-            <fa:FASettingsExpander Header="{Binding [Settings.MenuWindowRules], Source={x:Static loc:Strings.Current}}"
-                IsExpanded="True">
-                <fa:FASettingsExpanderItem IsEnabled="{Binding HasProject}">
-                    <StackPanel>
-                        <ListBox Name="MenuRuleList" ItemsSource="{Binding MenuRules}" Height="230">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:MenuRuleRow">
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="4,3">
-                                        <TextBlock Text="{Binding Summary}" FontSize="12.5"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="1" Text="{Binding PageCountLabel}"
-                                            FontSize="10.5" Foreground="{DynamicResource TextTertiary}" />
-                                        <TextBlock Grid.Column="2" Text="{Binding [Settings.MenuRuleDefault], Source={x:Static loc:Strings.Current}}"
-                                            FontSize="10.5" Foreground="{DynamicResource TextTertiary}"
-                                            IsVisible="{Binding IsDefault}" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                        <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
-                            <Button Name="AddMenuRuleButton" Classes="Secondary" Height="30"
-                                Click="OnAddMenuRule"
-                                Content="{Binding [Settings.MenuRuleAdd], Source={x:Static loc:Strings.Current}}" />
-                            <Button Name="EditMenuRuleButton" Classes="Secondary" Height="30"
-                                Click="OnEditMenuRule"
-                                Content="{Binding [Settings.MenuRuleEdit], Source={x:Static loc:Strings.Current}}" />
-                            <Button Name="RemoveMenuRuleButton" Classes="Secondary" Height="30"
-                                Click="OnRemoveMenuRule"
-                                Content="{Binding [Settings.MenuRuleRemove], Source={x:Static loc:Strings.Current}}" />
-                            <Button Name="AddMenuRulePageButton" Classes="Secondary" Height="30"
-                                Click="OnAddMenuRulePage"
-                                Content="{Binding [Settings.MenuRuleAddPage], Source={x:Static loc:Strings.Current}}" />
-                            <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleUp"
-                                Content="{Binding [Settings.MenuRuleUp], Source={x:Static loc:Strings.Current}}" />
-                            <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleDown"
-                                Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
-                        </StackPanel>
-                        <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
-                            Foreground="{DynamicResource Warning}"
-                            Text="{Binding MenuRuleProblem}" />
-                        <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.MenuWindowRules], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.MenuWindowRulesNote], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
-                </fa:FASettingsExpanderItem>
-            </fa:FASettingsExpander>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem IsEnabled="{Binding HasProject}">
+                        <StackPanel>
+                            <ListBox Name="MenuRuleList" ItemsSource="{Binding MenuRules}" Height="230">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:MenuRuleRow">
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="4,3">
+                                            <TextBlock Text="{Binding Summary}" FontSize="12.5"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding PageCountLabel}"
+                                                FontSize="10.5" Foreground="{DynamicResource TextTertiary}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding [Settings.MenuRuleDefault], Source={x:Static loc:Strings.Current}}"
+                                                FontSize="10.5" Foreground="{DynamicResource TextTertiary}"
+                                                IsVisible="{Binding IsDefault}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+                                <Button Name="AddMenuRuleButton" Classes="Secondary" Height="30"
+                                    Click="OnAddMenuRule"
+                                    Content="{Binding [Settings.MenuRuleAdd], Source={x:Static loc:Strings.Current}}" />
+                                <Button Name="EditMenuRuleButton" Classes="Secondary" Height="30"
+                                    Click="OnEditMenuRule"
+                                    Content="{Binding [Settings.MenuRuleEdit], Source={x:Static loc:Strings.Current}}" />
+                                <Button Name="RemoveMenuRuleButton" Classes="Secondary" Height="30"
+                                    Click="OnRemoveMenuRule"
+                                    Content="{Binding [Settings.MenuRuleRemove], Source={x:Static loc:Strings.Current}}" />
+                                <Button Name="AddMenuRulePageButton" Classes="Secondary" Height="30"
+                                    Click="OnAddMenuRulePage"
+                                    Content="{Binding [Settings.MenuRuleAddPage], Source={x:Static loc:Strings.Current}}" />
+                                <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleUp"
+                                    Content="{Binding [Settings.MenuRuleUp], Source={x:Static loc:Strings.Current}}" />
+                                <Button Classes="Secondary" Height="30" Click="OnMoveMenuRuleDown"
+                                    Content="{Binding [Settings.MenuRuleDown], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                                Foreground="{DynamicResource Warning}"
+                                Text="{Binding MenuRuleProblem}" />
+                            <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.MenuRuleHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
         </StackPanel>
 
         <!-- ── 轮盘菜单 ─────────────────────────────────────────── -->
         <StackPanel IsVisible="{Binding IsWheelMenuPage}" Spacing="10">
-            <fa:FASettingsExpander Header="{Binding [Settings.WheelTitle], Source={x:Static loc:Strings.Current}}"
-                IsExpanded="True">
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="Hint" TextWrapping="Wrap"
-                            Foreground="{DynamicResource Warning}"
-                            Text="{Binding WheelLauncherStatus}" />
-                        <Button Name="EnableSystemButton" Classes="Secondary" Height="30"
-                            HorizontalAlignment="Left" Margin="0,8,0,0"
-                            IsVisible="{Binding IsSystemOff}" Click="OnEnableSystem"
-                            Content="{Binding [Settings.WheelEnableSystem], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="FieldLabel" Margin="0,10,0,0"
-                            Text="{Binding [Settings.WheelLauncher], Source={x:Static loc:Strings.Current}}" />
-                        <ComboBox Classes="Field" Width="200" Margin="0,6,0,0"
-                            HorizontalAlignment="Left"
-                            ItemsSource="{Binding WheelLauncherChoices}"
-                            SelectedItem="{Binding SelectedWheelLauncher}" />
-                        <TextBlock Classes="Hint" Margin="0,6,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelGestureHint], Source={x:Static loc:Strings.Current}}" />
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.WheelTitle], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.WheelTitleNote], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
-                </fa:FASettingsExpanderItem>
-
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelEnabled], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelEnabledHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding WheelEnabled}" />
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
-
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <CheckBox Name="OnlyInProgramsCheck" Classes="Field"
-                            IsChecked="{Binding OnlyInPrograms}"
-                            Content="{Binding [Settings.WheelOnlyInPrograms], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,6,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelOnlyInProgramsHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                </fa:FASettingsExpanderItem>
-
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelSize], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelSizeHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <fa:FANumberBox Width="120" Minimum="150" Maximum="600" SmallChange="10"
-                                SimpleNumberFormat="0" Value="{Binding WheelDiameter}" />
-                            <TextBlock Classes="Hint" VerticalAlignment="Center"
-                                Text="{Binding [Settings.WheelSizeUnit], Source={x:Static loc:Strings.Current}}" />
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                Foreground="{DynamicResource Warning}"
+                                Text="{Binding WheelLauncherStatus}" />
+                            <Button Name="EnableSystemButton" Classes="Secondary" Height="30"
+                                HorizontalAlignment="Left" Margin="0,8,0,0"
+                                IsVisible="{Binding IsSystemOff}" Click="OnEnableSystem"
+                                Content="{Binding [Settings.WheelEnableSystem], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="FieldLabel" Margin="0,10,0,0"
+                                Text="{Binding [Settings.WheelLauncher], Source={x:Static loc:Strings.Current}}" />
+                            <ComboBox Classes="Field" Width="200" Margin="0,6,0,0"
+                                HorizontalAlignment="Left"
+                                ItemsSource="{Binding WheelLauncherChoices}"
+                                SelectedItem="{Binding SelectedWheelLauncher}" />
+                            <TextBlock Classes="Hint" Margin="0,6,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelGestureHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
+                    </fa:FASettingsExpanderItem>
 
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelTextSize], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelTextSizeHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <fa:FANumberBox Width="120" Minimum="8" Maximum="24" SmallChange="1"
-                                SimpleNumberFormat="0" Value="{Binding WheelFontSize}" />
-                            <TextBlock Classes="Hint" VerticalAlignment="Center"
-                                Text="{Binding [Settings.WheelSizeUnit], Source={x:Static loc:Strings.Current}}" />
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelEnabled], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelEnabledHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding WheelEnabled}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
 
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelThird], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelThirdHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <ComboBox Classes="Field" Width="180" ItemsSource="{Binding ThirdCapacityOptions}"
-                            SelectedItem="{Binding SelectedThirdCapacity}" />
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
-
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelLayout], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelLayoutHint], Source={x:Static loc:Strings.Current}}" />
-                        <WrapPanel Margin="0,8,0,0" ItemWidth="220" ItemHeight="30">
-                            <CheckBox Classes="Field" IsChecked="{Binding WideOuter}"
-                                Content="{Binding [Settings.WheelWideOuter], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding HideEmptyOuter}"
-                                Content="{Binding [Settings.WheelHideEmptyOuter], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding HideWheelLabelWithIcon}"
-                                Content="{Binding [Settings.WheelIconOnly], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding CenterName}"
-                                Content="{Binding [Settings.WheelCenterName], Source={x:Static loc:Strings.Current}}" />
-                        </WrapPanel>
-                    </StackPanel>
-                </fa:FASettingsExpanderItem>
-
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelTimeout], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelTimeoutHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <fa:FANumberBox Width="140" Minimum="0" Maximum="120000" SmallChange="1000"
-                                SimpleNumberFormat="0" Value="{Binding WheelTimeoutMs}" />
-                            <TextBlock Classes="Hint" VerticalAlignment="Center"
-                                Text="{Binding [Settings.WheelTimeoutUnit], Source={x:Static loc:Strings.Current}}" />
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <CheckBox Name="OnlyInProgramsCheck" Classes="Field"
+                                    IsChecked="{Binding OnlyInPrograms}"
+                                    Content="{Binding [Settings.WheelOnlyInPrograms], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.WheelOnlyInProgramsInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,6,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelOnlyInProgramsHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
+                    </fa:FASettingsExpanderItem>
 
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelRepeat], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelRepeatHint], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                    <fa:FASettingsExpanderItem.Footer>
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Classes="Note" MinWidth="70" VerticalAlignment="Center"
-                                TextAlignment="Right" Text="{Binding WheelRepeatKey}" />
-                            <Button Tag="HotkeyButton" Classes="Secondary" Height="30"
-                                Click="OnCaptureWheelRepeat"
-                                Content="{Binding WheelRepeatButton}" />
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelSize], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelSizeHint], Source={x:Static loc:Strings.Current}}" />
                         </StackPanel>
-                    </fa:FASettingsExpanderItem.Footer>
-                </fa:FASettingsExpanderItem>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:FANumberBox Width="120" Minimum="150" Maximum="600" SmallChange="10"
+                                    SimpleNumberFormat="0" Value="{Binding WheelDiameter}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Settings.WheelSizeUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
 
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelBehaviour], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelBehaviourHint], Source={x:Static loc:Strings.Current}}" />
-                        <WrapPanel Margin="0,8,0,0" ItemWidth="220" ItemHeight="30">
-                            <CheckBox Classes="Field" IsChecked="{Binding ClampToScreen}"
-                                Content="{Binding [Settings.WheelClamp], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding MovePointerToCenter}"
-                                Content="{Binding [Settings.WheelMovePointer], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding ShowGuide}"
-                                Content="{Binding [Settings.WheelGuide], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding ExtendedHint}"
-                                Content="{Binding [Settings.WheelExtendedHint], Source={x:Static loc:Strings.Current}}" />
-                        </WrapPanel>
-                    </StackPanel>
-                </fa:FASettingsExpanderItem>
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelTextSize], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelTextSizeHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:FANumberBox Width="120" Minimum="8" Maximum="24" SmallChange="1"
+                                    SimpleNumberFormat="0" Value="{Binding WheelFontSize}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Settings.WheelSizeUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
 
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="FieldLabel"
-                            Text="{Binding [Settings.WheelAppearance], Source={x:Static loc:Strings.Current}}" />
-                        <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelAppearanceHint], Source={x:Static loc:Strings.Current}}" />
-                        <WrapPanel Margin="0,8,0,0" ItemWidth="220" ItemHeight="30">
-                            <CheckBox Classes="Field" IsChecked="{Binding FollowTheme}"
-                                Content="{Binding [Settings.WheelFollowTheme], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding Gloss}"
-                                Content="{Binding [Settings.WheelGloss], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding HoverBorder}"
-                                Content="{Binding [Settings.WheelHoverBorder], Source={x:Static loc:Strings.Current}}" />
-                            <CheckBox Classes="Field" IsChecked="{Binding PopAnimation}"
-                                Content="{Binding [Settings.WheelPopAnimation], Source={x:Static loc:Strings.Current}}" />
-                        </WrapPanel>
-                    </StackPanel>
-                </fa:FASettingsExpanderItem>
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.WheelThird], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.WheelThirdInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelThirdHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ComboBox Classes="Field" Width="180" ItemsSource="{Binding ThirdCapacityOptions}"
+                                SelectedItem="{Binding SelectedThirdCapacity}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
 
-                <fa:FASettingsExpanderItem>
-                    <StackPanel>
-                        <TextBlock Classes="Hint" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelPreviewHint], Source={x:Static loc:Strings.Current}}" />
-                        <Button Name="PreviewWheelButton" Classes="Secondary" Height="32"
-                            HorizontalAlignment="Left" Margin="0,10,0,0"
-                            Click="OnPreviewWheel"
-                            Content="{Binding [Settings.WheelPreview], Source={x:Static loc:Strings.Current}}" />
-                    </StackPanel>
-                </fa:FASettingsExpanderItem>
-            </fa:FASettingsExpander>
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelLayout], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelLayoutHint], Source={x:Static loc:Strings.Current}}" />
+                            <WrapPanel Margin="0,8,0,0" ItemWidth="220" ItemHeight="30">
+                                <CheckBox Classes="Field" IsChecked="{Binding WideOuter}"
+                                    Content="{Binding [Settings.WheelWideOuter], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding HideEmptyOuter}"
+                                    Content="{Binding [Settings.WheelHideEmptyOuter], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding HideWheelLabelWithIcon}"
+                                    Content="{Binding [Settings.WheelIconOnly], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding CenterName}"
+                                    Content="{Binding [Settings.WheelCenterName], Source={x:Static loc:Strings.Current}}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.WheelTimeout], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.WheelTimeoutInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelTimeoutHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:FANumberBox Width="140" Minimum="0" Maximum="120000" SmallChange="1000"
+                                    SimpleNumberFormat="0" Value="{Binding WheelTimeoutMs}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Settings.WheelTimeoutUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelRepeat], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelRepeatHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="Note" MinWidth="70" VerticalAlignment="Center"
+                                    TextAlignment="Right" Text="{Binding WheelRepeatKey}" />
+                                <Button Tag="HotkeyButton" Classes="Secondary" Height="30"
+                                    Click="OnCaptureWheelRepeat"
+                                    Content="{Binding WheelRepeatButton}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelBehaviour], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelBehaviourHint], Source={x:Static loc:Strings.Current}}" />
+                            <WrapPanel Margin="0,8,0,0" ItemWidth="220" ItemHeight="30">
+                                <CheckBox Classes="Field" IsChecked="{Binding ClampToScreen}"
+                                    Content="{Binding [Settings.WheelClamp], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding MovePointerToCenter}"
+                                    Content="{Binding [Settings.WheelMovePointer], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding ShowGuide}"
+                                    Content="{Binding [Settings.WheelGuide], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding ExtendedHint}"
+                                    Content="{Binding [Settings.WheelExtendedHint], Source={x:Static loc:Strings.Current}}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.WheelAppearance], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelAppearanceHint], Source={x:Static loc:Strings.Current}}" />
+                            <WrapPanel Margin="0,8,0,0" ItemWidth="220" ItemHeight="30">
+                                <CheckBox Classes="Field" IsChecked="{Binding FollowTheme}"
+                                    Content="{Binding [Settings.WheelFollowTheme], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding Gloss}"
+                                    Content="{Binding [Settings.WheelGloss], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding HoverBorder}"
+                                    Content="{Binding [Settings.WheelHoverBorder], Source={x:Static loc:Strings.Current}}" />
+                                <CheckBox Classes="Field" IsChecked="{Binding PopAnimation}"
+                                    Content="{Binding [Settings.WheelPopAnimation], Source={x:Static loc:Strings.Current}}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelPreviewHint], Source={x:Static loc:Strings.Current}}" />
+                            <Button Name="PreviewWheelButton" Classes="Secondary" Height="32"
+                                HorizontalAlignment="Left" Margin="0,10,0,0"
+                                Click="OnPreviewWheel"
+                                Content="{Binding [Settings.WheelPreview], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
         </StackPanel>
 
         <!-- ── 轮盘动作管理 ─────────────────────────────────────────── -->
         <StackPanel IsVisible="{Binding IsWheelActionsPage}" Spacing="10">
-            <fa:FASettingsExpander Header="{Binding [Settings.WheelActions], Source={x:Static loc:Strings.Current}}"
-                IsExpanded="True">
-                <fa:FASettingsExpanderItem IsEnabled="{Binding HasProject}">
-                    <StackPanel>
-                        <ContentControl Name="WheelEditorHost" />
-                        <TextBlock Classes="Hint" Margin="0,10,0,0" TextWrapping="Wrap"
-                            Text="{Binding [Settings.WheelActionsHint], Source={x:Static loc:Strings.Current}}" />
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.WheelActions], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.WheelActionsNote], Source={x:Static loc:Strings.Current}}" />
                     </StackPanel>
-                </fa:FASettingsExpanderItem>
-            </fa:FASettingsExpander>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem IsEnabled="{Binding HasProject}">
+                        <StackPanel>
+                            <ContentControl Name="WheelEditorHost" />
+                            <TextBlock Classes="Hint" Margin="0,10,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.WheelActionsHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
         </StackPanel>
     </StackPanel>
 </UserControl>

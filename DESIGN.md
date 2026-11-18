@@ -52,7 +52,8 @@
   `SurfaceCard`、`SurfaceFlyout`、`SurfaceHover`、`SurfacePressed`、`SurfaceControl` 及其
   悬停/按下变体。层级用表面区分，不靠阴影堆叠。
 - **文字**：`TextPrimary`、`TextSecondary`、`TextTertiary`、`TextDisabled`、`TextOnAccent`。
-  正文用 Primary，说明与次要信息用 Secondary/Tertiary，禁用态才用 Disabled。
+  正文用 Primary，说明与次要信息用 Secondary/Tertiary，禁用态才用 Disabled。浮层里的正文也要显式
+  取 `TextPrimary`，不靠继承或控件默认色——浮层是独立顶层，继承链不可控。
 - **边框与焦点**：`BorderSubtle`、`BorderControl`、`BorderControlHover`、`BorderStrong`、
   `FocusRing`。焦点必须可见，不能只靠悬停色暗示。
 - **强调**：`AccentFill` 家族（Fill/Hover/Pressed/Text/Surface）。一个界面只有一个强调色家族；
@@ -74,7 +75,8 @@
 
 - 正文使用 `UiFont`；代码、表达式和需要等宽的内容使用 `UiCodeFont`，不用等宽字体做普通界面字。
 - 字号/行高只使用 `UiCaption`、`UiBodySmall`、`UiBody`、`UiSubtitle`、`UiTitle`、`UiDisplay`
-  这组角色（每档对应 `*Size` / `*Line` 两个令牌）；不新增“差不多大”的字号档。
+  这组角色（每档对应 `*Size` / `*Line` 两个令牌）；不新增“差不多大”的字号档。字号与行高必须成对
+  取同一档，说明浮层正文是 `UiBodySmall`（12 / 16）。
 - 密度沿用 Fluent v2 的默认密度；FluentAvaloniaTheme 没有单独的密度开关，表格行、列表项、
   菜单项随库样式走，不为了“紧凑”再手写一套行高。
 - Fluent v2 的基础控件字号是 14（`ControlContentThemeFontSize`）；项目把它映射为 `UiBody` 的
@@ -96,6 +98,9 @@
   `ControlCornerRadius=4`、`OverlayCornerRadius=8`，项目把前者映射到 `RadiusControl`、后者映射到
   `RadiusOverlay`；`RadiusContainer=6` 用于卡片/面板，不另写按钮、输入框的圆角。
 - 列宽、窗口尺寸、图标尺寸等结构尺寸可以单独写；同一模式重复出现时抽成令牌或共享常量，不散落魔法数。
+- 行内说明图标：视觉 14×14、命中区 24×24、行高 24，图标与同行文字的间距 6；带图标的行内标签
+  不带走 `GapField` 的下边距，普通字段仍保留 8。勾选框与图标同行时按同一 24 行高收敛，不裁字。
+  这条对齐只在 `HintInfo` 一处实现，视图里不写逐行 `Margin`。
 
 ## 7. 状态与交互
 
@@ -132,7 +137,8 @@
 
 - 深色与浅色都必须通过同一组语义令牌；主题相关值使用 `DynamicResource` 或主题画笔，快照只用于检查。
 - 文字与背景的对比度、强调色文字与窗口的对比度按 `ThemePalette` 的底线执行；自定义强调色不满足
-  底线时必须拒绝或回退，不能静默换成另一个颜色。
+  底线时必须拒绝或回退，不能静默换成另一个颜色。说明浮层正文的对比度：任何主题 ≥7:1，深色 ≥10:1，
+  浅色 ≥12:1；选中高亮下文字仍需可读。
 - 键盘焦点、禁用态、错误态和选中态不能只靠颜色区分；图标、边框、文本至少再给一个信号。
 - 用户可见文字统一来自 `Strings` / `ActionStrings`，不在 XAML 或代码里写死。
 - 100% 与 150% DPI 下检查裁字、错位和点击目标；窗口最小尺寸下允许内容滚动，不允许控件互相覆盖。
@@ -147,9 +153,15 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 
 ## 10. FluentAvalonia 控件选择
 
-- 设置窗口的分组/行使用 `FASettingsExpander` / `FASettingsExpanderItem`：组负责标题、说明和展开，
-  行把控件放在 `Footer`；不另写一套设置卡片。
-- 设置左侧导航使用 `FANavigationView`；顶部三组沿用项目现有根页签，不为了控件一致改成第二层导航。
+- 设置窗口的分组/行使用 `SettingsGroup` / `FASettingsExpanderItem`：组负责标题与说明并平铺全部行，
+  没有展开动作，标题不是按钮、也不能聚焦；行把控件放在 `Footer`。分组底色、描边、圆角与标题下那道
+  1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表的 `Spacing` 透出，不在视图里重写模板。
+- 设置行里的说明图标与同行文字的对齐由 `HintInfo` 单一实现：挂载时把直接兄弟收成同一中线，只在
+  带图标的那一行局部清零 `GapField` 下边距。不为对齐新增样式类、附加属性或逐行 XAML 值。
+- 设置左侧导航使用 `FANavigationView`：左栏是「系统、触发器、外观」三个分组，每一项是 Lucide
+  图标加组名，选中行铺 `AccentFill`，文字与图标用 `TextOnAccent`；内容列顶上是当前分组的页签
+  `Button.Tab.Root.Capsule`，选中是同一对颜色。这对颜色由 `ThemePalette` 的派生保证至少
+  4.5:1（含自定义强调色），所以允许铺底。
 - 数字输入使用 `FANumberBox`，项目已有 `HasChip` 样式；不要用普通 `TextBox` 或另造数字框。
 - 内联、可关闭的全局提示用 `InfoBar`，由 `Severity` 决定状态色与图标；需要用户选择时仍走项目
   `ConfirmDialog` / `TextPromptDialog`，不把 `InfoBar` 当对话框。
@@ -158,8 +170,9 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 - `TabView` 只在需要可拖动/可关闭的文档页签时使用；主窗的根视图是项目自己的 `Tab.Root` 按钮，
   不为统一控件而替换。
 - 分类 dock（变量中心的五个分组、动作库顶部的四个来源）是同一个 `ListBox.Dock`：静息是一行字、
-  悬停叠一层半透明反馈、选中用 `AccentSurface` 底 + `AccentText` 字 + 同色描边；不把 `AccentFill`
-  铺在字后面——浅色主题下那组字只有 3.5:1。选中态不靠字号或字重变化，行宽在切换时不动。
+  悬停叠一层半透明反馈、选中用 `AccentSurface` 底 + `AccentText` 字 + 同色描边；不把 `AccentText`
+  压在 `AccentFill` 上——浅色主题下那一对只有 3.5:1。要用强调色铺底，字必须是 `TextOnAccent`。
+  选中态不靠字号或字重变化，行宽在切换时不动。
   同一个 dock 不在窗口里另写一套分类按钮。
 - 图标继续使用项目 `AppIcons` 与 Lucide 的现有族；不混入第二套图标库。
 
@@ -175,12 +188,16 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 模板部件存在，颜色/状态读取实际部件 | `TemplatePartTests` |
 | 普通窗口统一走 `WindowChrome` | `WindowChromeTests` |
 | 分类 dock 的静息/悬停/按下/选中/禁用读实际部件，选中字色过对比度底线 | `DockStyleTests` |
+| 设置窗导航选中行与分组页签铺强调色、字为白、过对比度底线 | `SettingsChromeTests` |
+| 说明浮层正文取主文字色、成对行高、对比度底线与行内图标中线/命中区 | `SettingsHintVisualTests` |
 | 强调色派生与对比度底线 | `ThemePaletteTests` |
 
 人工检查：
 
 - 深色与浅色各走一遍受影响窗口；100% 与 150% DPI 至少各看一次。
 - 检查标题栏、窗口按钮、焦点环、禁用态、错误态、长中文/长英文换行和最小窗口尺寸。
+- 深色下打开一条说明气泡：正文要能看清（主文字色压卡片底）；行内图标与文字同一中线，图标命中区
+  24×24、与文字间距 6；150% DPI 下重复同一组读数。
 - 出图优先用 Debug 自省通道截运行中的窗口；手动清单见 [docs/dev/validation.md](docs/dev/validation.md)。
 
 ## 12. 变更流程

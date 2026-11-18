@@ -125,14 +125,31 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.5 设置窗口
 
-`Views/Settings/SettingsWindow.axaml` 顶上三个 `Button`（`Classes="Tab Root"`，与主窗的停靠页同一族）标出
-"系统、触发器、外观"三组，`Classes.selected` 跟着 `SettingsViewModel.IsXxxRoot`；下面是一个
-`FANavigationView`，左侧只列当前组的页面，右侧是共享一个 `ScrollViewer` 的页面面板。每个设置项是
-一个 `FASettingsExpanderItem`：左边是标题与说明（`Classes` 仍是 `FieldLabel` 与 `Hint`，与其它窗口
-一致），右边 `Footer` 放控件。分组用 `FASettingsExpander`，`IsExpanded` 默认展开。
+`Views/Settings/SettingsWindow.axaml` 是一个 `FANavigationView`：左侧列「系统、触发器、外观」三个
+分组，每一项是 Lucide 图标加组名，选中行铺 `AccentFill`；右侧内容列顶上列当前分组的那几页
+（`Classes="Tab Root Capsule"`），`Classes.selected` 跟着 `SettingsViewModel.IsXxxPage`，下面是与页签
+共享一个 `ScrollViewer` 的页面面板。
+每个设置项是一个 `FASettingsExpanderItem`：左边是标题与说明（`Classes` 仍是 `FieldLabel` 与 `Hint`，
+与其它窗口一致），右边 `Footer` 放控件；说得清的部分只用一句 `Hint`，一句说不清的标题旁挂
+`HintInfo`，悬停看长说明。分组用 `SettingsGroup` 平铺标题、说明与全部行，不提供展开动作，标题不可
+聚焦；卡片底色、描边、圆角与标题下那道 1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表
+的 `Spacing` 透出。页签共用一个滚动区，换页时窗口记住离开那页的位置并在新页布局后放回，所以返回原页
+签是离开时的那一屏，新开的页签从顶部开始。
+
+说明气泡由每个顶层一个 `HintBubbleHost` 负责：指针在图标上停 350 毫秒打开，离开图标或气泡 200 毫秒
+后收起；判定只看指针是否落在图标与气泡矩形内，不再依赖成对的进出事件。同一顶层只有一个气泡，打开
+另一个先关旧的；Esc 与点击气泡外收起固定态，切页签、隐藏行、最小化或关窗立即收起。气泡正文是
+`SelectableTextBlock`，前景显式取 `TextPrimary`、字号与行高成对取 `UiBodySmallSize`/`UiBodySmallLine`，
+底色 `SurfaceCard`、边框 `BorderControl`，全部从所属顶层的资源观察取得，打开中切主题即时刷新。限宽
+360、限高 320，超长时内部滚动。
+
+行内说明图标的对齐只在 `HintInfo` 一处实现：挂载时把同一行里的文字、勾选框与纯文字 `Panel` 收成
+`VerticalAlignment=Center`，并只在带图标的那一行清零 `FieldLabel` 的下边距；图标视觉 14×14、命中区
+24×24、行高 24。三份设置视图与其它窗口的使用点都只写 `Text`，不为对齐加裸 `Margin` 或样式类。
 
 页面只有一处来源：`SettingsViewModel.SelectedPage`。组由它推导（`SelectedRoot` 与 `RootOf`），不是
-另存一份状态，所以点顶部的组就是"落到该组第一页"，两者不会各说各的。导航项的 `Tag` 就是页面枚举名，
-`SelectionChanged` 据此写枚举；`SelectedPage` 变化时窗口再按组切换导航项的 `IsVisible` 与 `IsEnabled`，
-并把 `SelectedItem` 指向对应项——只折叠、不重建 `MenuItems`，否则选择会留在已被移出的项上。
+另存一份状态，所以点左栏的分组就是"落到该组第一页"，两者不会各说各的。左栏项的 `Tag` 是分组枚举名，
+`SelectionChanged` 据此换组；页签的 `Tag` 是页面枚举名，点击后写 `SelectedPage`。组切换时三排页签只
+按 `IsXxxRoot` 显示当前那一排，控件本身不重建，所以页签的选中与顺序都不受切换影响。
+`SelectedPage` 变化时窗口把左栏 `SelectedItem` 指向所属分组。
 设置项一律即时生效并立即落盘，打开窗口本身不写文件。

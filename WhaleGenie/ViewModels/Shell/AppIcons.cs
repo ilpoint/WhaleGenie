@@ -61,6 +61,14 @@ public static class AppIcons
     public static LucideIconKind QuestionMark => LucideIconKind.CircleQuestionMark;
 
     /// <summary>
+    /// 设置窗左栏三个分组的图标。名字说的是那一组回答什么，不是画的是什么；换图标时只改这里，
+    /// 窗口里的绑定不动。
+    /// </summary>
+    public static LucideIconKind SettingsSystem => LucideIconKind.SlidersHorizontal;
+    public static LucideIconKind SettingsTriggers => LucideIconKind.Radar;
+    public static LucideIconKind SettingsAppearance => LucideIconKind.Palette;
+
+    /// <summary>
     /// 动作表单里每一块问的是什么。块头原来是一个圈里的序号，序号只说得清"第几块"，说不出
     /// "这一块问什么"；换成图标以后，扫一眼就知道该往哪儿看。没有对应的块返回 null，那里仍然
     /// 显示序号，不至于空着一个圈。

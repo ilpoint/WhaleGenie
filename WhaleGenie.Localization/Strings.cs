@@ -1108,17 +1108,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Nav.MenuLauncher"] = "Menu",
         ["Settings.Nav.WindowRules"] = "Window rules",
         ["Settings.Nav.Theme"] = "Theme",
-        ["Settings.FramesCard"] = "Frames",
-        ["Settings.FrameRate"] = "Frame cap",
+        ["Settings.FramesCard"] = "Capturing frames",
+        ["Settings.FrameRate"] = "Captures per second",
         ["Settings.FrameRateUnit"] = "per second",
         ["Settings.FrameRateFollow"] = "Follow the display",
         ["Settings.FrameRateNote"] = "This display runs at {0} Hz.",
-        ["Settings.FrameRateHint"] = "Range 1 to the display's rate, following it by default; every macro shares it, and lower means later notice.",
-        ["Settings.FrameCache"] = "Reuse the last frame",
-        ["Settings.FrameCacheHint"] = "On when several steps read one picture, in this macro or another; off by default.",
-        ["Settings.FrameCacheAge"] = "Keep it for",
+        ["Settings.FrameRateHint"] = "The most picture reads per second, shared by every macro. Range 1 to the display's rate, following it by default; lower means later notice.",
+        ["Settings.FrameCache"] = "Cache captured frames",
+        ["Settings.FrameCacheHint"] = "Checks within the cache lifetime reuse the last capture instead of grabbing the screen again; off by default.",
+        ["Settings.FrameCacheAge"] = "Cache for",
         ["Settings.FrameCacheAgeUnit"] = "ms",
-        ["Settings.FrameCacheAgeHint"] = "The oldest a reused picture may be. Range 0–1000 ms, default 100.",
+        ["Settings.FrameCacheAgeHint"] = "The oldest a cached picture may be. Range 0–1000 ms, default 100.",
         ["Settings.Reading"] = "Reading pictures",
         ["Settings.MenuLauncher"] = "Menu shortcut",
         ["Settings.MenuLauncherMissing"] = "Not set",
@@ -1868,6 +1868,89 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.CustomizeTheme"] = "Custom accent…",
         ["Settings.CustomizeThemeHint"] = "Applies to every window and is kept for the next start.",
         ["Settings.Colors"] = "Colors",
+        // 设置窗每张卡片标题旁的一行小字：说这张卡回答什么，不重复行里的说明。
+        ["Settings.GeneralCardNote"] = "What happens at start",
+        ["Settings.StorageNote"] = "Kept across updates",
+        ["Settings.HotkeysNote"] = "Works in any window",
+        ["Settings.SoundsNote"] = "A cue when it switches",
+        ["Settings.ReadingNote"] = "Where the picture comes from",
+        ["Settings.FramesCardNote"] = "How often, and whether it is reused",
+        ["Settings.InputCardNote"] = "How your input is counted",
+        ["Settings.DriverNote"] = "Input that looks real",
+        ["Settings.AdminNote"] = "What the rights reach",
+        ["Settings.MenuLauncherNote"] = "One key opens the menu",
+        ["Settings.MenuWindowRulesNote"] = "The foreground window decides",
+        ["Settings.WheelTitleNote"] = "Hold, move, aim, release",
+        ["Settings.WheelActionsNote"] = "One action per position",
+        ["Settings.ColorsNote"] = "Dark, light and the accent",
+
+        // 设置项旁的说明：一句话说不清的才写；Hint 说得清的仍然只用 Hint。
+        ["Settings.FrameRateInfo"] =
+            "One cap is shared by every macro on the machine, not one per macro; each read takes its turn in that queue.\n"
+            + "The display rate is the ceiling because the screen only draws that many times a second: reading faster returns the same picture.\n\n"
+            + "Lowering it saves some work, but a change is noticed later, and a macro waiting for something to appear waits longer.",
+        ["Settings.CaptureWindowInfo"] =
+            "Automatic tries one way of reading the window and falls back when that fails; pick one when the automatic choice gives a blank or misplaced picture.\n\n"
+            + "PrintWindow asks the program to draw itself: the most compatible, but a few programs draw a blank or a stale picture.\n\n"
+            + "Graphics Capture uses the system's window capture: faster for most modern programs, but it cannot read a minimized window.",
+        ["Settings.CaptureScreenInfo"] =
+            "Desktop duplication reads the desktop through the graphics card; exclusive full-screen games usually need it.\n\n"
+            + "Desktop (GDI) is the most compatible and slower.\n\n"
+            + "Automatic tries whatever works on the current desktop. Switch when a picture comes out blank.",
+        ["Settings.PreloadOcrInfo"] =
+            "The first text recognition loads a model into memory and makes you wait for it.\n"
+            + "Loading it at startup removes that first wait, at the cost of memory that stays resident even when no text is ever read.",
+        ["Settings.FrameCacheInfo"] =
+            "By default, every text or image check captures the screen again. That always shows the present, at the cost of capturing it over and over.\n"
+            + "When it is on:\n"
+            + "· The last capture stays in memory, and checks within its lifetime read it\n"
+            + "· Macros running at the same time share that one picture\n"
+            + "· Bursts of checks save the CPU and graphics work of repeated captures, at the cost of a picture up to one lifetime old\n"
+            + "When it is off:\n"
+            + "· Every check captures the screen again, so it sees the screen as it is now\n"
+            + "· This is the safer choice when the screen changes quickly\n\n"
+            + "Keep it off while a macro waits for something to disappear: a cached picture may still show it.",
+        ["Settings.IgnoreOwnInputInfo"] =
+            "On: the keys and clicks this program sends are not counted as yours by triggers or recording. This is what stops a simulated key from firing another macro.\n\n"
+            + "Off: the program cannot tell your input from its own, so that loop really happens.",
+        ["Settings.DriverInfo"] =
+            "Driver-level input puts a virtual keyboard and mouse on the system through usbip-win2. The target program sees real hardware instead of ordinary simulated input.\n\n"
+            + "Some games and programs with anti-cheat ignore ordinary simulation and accept only this kind.\n\n"
+            + "Installing the driver needs administrator rights.",
+        ["Settings.DriverAttachAtStartInfo"] =
+            "On: the virtual devices are attached at startup, so the first use does not wait for them.\n\n"
+            + "The start takes two or three seconds longer even when no macro runs. Off by default; the change applies at the next start.",
+        ["Settings.RunAsAdminInfo"] =
+            "A program without administrator rights cannot send input to a window that has them, and cannot read that window's picture.\n\n"
+            + "To work with such windows, WhaleGenie itself has to run with administrator rights.\n\n"
+            + "On: every start asks once. Declining still starts the program with ordinary rights.",
+        ["Settings.SystemAtStartInfo"] =
+            "The system switch holds every trigger: while it is off, shortcuts, the menu and the wheel do nothing.\n\n"
+            + "On: it is switched on as the program starts. Off: every start begins switched off, and you turn it on yourself.",
+        ["Settings.LogCountInfo"] =
+            "Failure and MCP logs keep the newest files up to this count, oldest removed first.\n\n"
+            + "They are there to answer why a run stopped. No macro running means no new files.",
+        ["Settings.SystemHotkeyInfo"] =
+            "A global shortcut: pressing it in any program switches the whole system on or off.\n\n"
+            + "Letters, digits, F1 to F24 and their combinations work. Empty disables it.\n\n"
+            + "It cannot be the same key as the menu shortcut or the wheel trigger.",
+        ["Settings.RecordStopInfo"] =
+            "In the macro editor, press it to start a recording and press it again to stop.\n\n"
+            + "The recording turns the keys and clicks you really made into steps. Default Ctrl+F10; empty means recording cannot start.",
+        ["Settings.WheelOnlyInProgramsInfo"] =
+            "On: the wheel opens only where a program scene has a matching window rule. Everywhere else the trigger stays an ordinary button.\n\n"
+            + "Off: it opens anywhere. This does not change the system switch.",
+        ["Settings.WheelTimeoutInfo"] =
+            "A wheel left open cancels itself after this long, so it does not stay on screen.\n\n"
+            + "0 means no timeout: it waits until the trigger is released.\n\n"
+            + "Milliseconds, 20000 by default, which is 20 seconds.",
+        ["Settings.WheelThirdInfo"] =
+            "Besides the two circles, one more resident circle can be added.\n\n"
+            + "It holds 0, 8, 16 or 24 positions. Zero keeps the two circles.",
+        ["Settings.CustomizeThemeInfo"] =
+            "A custom theme picks one accent colour and derives the rest from it: buttons, selected rows and switches all follow.\n\n"
+            + "The derivation moves the colour until white text is readable on it and it is readable on the window. A colour that cannot reach 4.5:1 is refused.\n\n"
+            + "The choice applies to every window at once and is kept for the next start.",
         ["Theme.Mode.Dark"] = "Dark",
         ["Theme.Mode.Light"] = "Light",
         ["Theme.Mode.Custom"] = "Custom",
@@ -1939,7 +2022,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.AdminRestart"] = "Restart with administrator rights",
         ["Settings.RunAsAdmin"] = "Ask for administrator rights at startup",
         ["Settings.RunAsAdminHint"] = "Off by default; on asks at every start and can be declined.",
-        ["Settings.Close"] = "Close",
 
         ["Confirm.Cancel"] = "Cancel",
         ["Common.Ok"] = "OK",
@@ -3564,17 +3646,17 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.Nav.MenuLauncher"] = "菜单",
         ["Settings.Nav.WindowRules"] = "窗口规则",
         ["Settings.Nav.Theme"] = "主题",
-        ["Settings.FramesCard"] = "取帧",
-        ["Settings.FrameRate"] = "取帧上限",
+        ["Settings.FramesCard"] = "画面捕获",
+        ["Settings.FrameRate"] = "每秒最多捕获",
         ["Settings.FrameRateUnit"] = "帧/秒",
         ["Settings.FrameRateFollow"] = "跟随屏幕刷新率",
         ["Settings.FrameRateNote"] = "此显示器 {0} 赫兹。",
-        ["Settings.FrameRateHint"] = "范围 1 到刷新率，默认跟随，所有宏共用；调小后更晚发现变化。",
-        ["Settings.FrameCache"] = "复用上次的画面",
-        ["Settings.FrameCacheHint"] = "连续识别同一张画面时打开，同时跑着的宏也读这张；默认关闭。",
-        ["Settings.FrameCacheAge"] = "保留时长",
+        ["Settings.FrameRateHint"] = "每秒最多取几张画面，所有宏共用；范围 1 到刷新率，默认跟随，调小后更晚发现变化。",
+        ["Settings.FrameCache"] = "缓存捕获的画面",
+        ["Settings.FrameCacheHint"] = "有效期内的检测复用上一次捕获，不再重新截屏；默认关闭。",
+        ["Settings.FrameCacheAge"] = "缓存有效期",
         ["Settings.FrameCacheAgeUnit"] = "毫秒",
-        ["Settings.FrameCacheAgeHint"] = "复用画面的最旧时长。范围 0–1000 毫秒，默认 100。",
+        ["Settings.FrameCacheAgeHint"] = "缓存的画面最多可以有多旧。范围 0–1000 毫秒，默认 100。",
         ["Settings.Reading"] = "读取方式",
         ["Settings.MenuLauncher"] = "菜单呼出键",
         ["Settings.MenuLauncherMissing"] = "未设置",
@@ -4656,6 +4738,87 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.CustomizeTheme"] = "自定义强调色…",
         ["Settings.CustomizeThemeHint"] = "立即作用到所有窗口，并留到下次启动。",
         ["Settings.Colors"] = "配色",
+        ["Settings.GeneralCardNote"] = "启动时做什么",
+        ["Settings.StorageNote"] = "升级不会带走",
+        ["Settings.HotkeysNote"] = "在任何窗口里都能按",
+        ["Settings.SoundsNote"] = "切换时给个提示音",
+        ["Settings.ReadingNote"] = "画面从哪里取",
+        ["Settings.FramesCardNote"] = "多久看一次，能否复用",
+        ["Settings.InputCardNote"] = "发出的键鼠怎么算",
+        ["Settings.DriverNote"] = "让输入像真实硬件",
+        ["Settings.AdminNote"] = "权限决定能操作谁",
+        ["Settings.MenuLauncherNote"] = "一个按键唤出菜单",
+        ["Settings.MenuWindowRulesNote"] = "前台窗口决定菜单内容",
+        ["Settings.WheelTitleNote"] = "按住并移动，指向即执行",
+        ["Settings.WheelActionsNote"] = "每个位置放一个动作",
+        ["Settings.ColorsNote"] = "深色、浅色与强调色",
+
+        ["Settings.FrameRateInfo"] =
+            "每秒能取几张画面是整台机器共用的上限，所有宏一起排队，不是每个宏各有一份。\n"
+            + "以刷新率为上限，是因为屏幕每秒只画那么多次：取快了拿到的还是同一幅画面。\n\n"
+            + "调低会省一点开销，但画面变化被发现得更晚；宏在等某个东西出现时，等待会变长。",
+        ["Settings.CaptureWindowInfo"] =
+            "自动会先试一种取法，取不到再退到另一种；自动取成空白或错位时，指定一种再看。\n\n"
+            + "窗口（PrintWindow）让程序自己把画面画出来，兼容性最好，少数程序会给出空白或旧画面。\n\n"
+            + "Graphics Capture 走系统的窗口捕获，多数现代程序更快，但最小化的窗口取不到。",
+        ["Settings.CaptureScreenInfo"] =
+            "桌面复制（DXGI）经显卡读桌面，独占全屏的游戏通常只有它能取到。\n\n"
+            + "桌面（GDI）兼容性最好，速度慢一些。\n\n"
+            + "自动会按当前桌面挑能用的取法；取成空白时换一档再看。",
+        ["Settings.PreloadOcrInfo"] =
+            "第一次做文字识别时，模型要读进内存，这一次会等一会儿。\n"
+            + "启动时预加载把这一步提前到启动：第一次识别不用等，代价是这部分内存常驻，即使一次也没用到。",
+        ["Settings.FrameCacheInfo"] =
+            "默认情况下，宏每执行一次文字或图像检测都会重新捕获屏幕。这样看到的总是最新画面，代价是重复捕获的开销。\n"
+            + "打开后：\n"
+            + "· 上一次捕获的画面留在内存里，有效期内的检测直接读它\n"
+            + "· 同时运行的宏共用这一张画面\n"
+            + "· 连续检测时省下重复截屏的 CPU 与显卡开销，代价是画面最多陈旧一个有效期\n"
+            + "关闭后：\n"
+            + "· 每次检测都重新捕获，看到的是当下屏幕\n"
+            + "· 屏幕内容变化很快时更可靠\n\n"
+            + "需要等某样东西消失时保持关闭：缓存里的旧画面可能还留着它。",
+        ["Settings.IgnoreOwnInputInfo"] =
+            "打开后，本程序发出的键鼠不会被触发器和录制当成你按下的。宏里模拟的按键又触发另一个宏，这种回环就断在这里。\n\n"
+            + "关闭后，程序分不清你的输入和它自己的，这类回环会真的发生。",
+        ["Settings.DriverInfo"] =
+            "驱动级输入通过 usbip-win2 在系统里挂上虚拟键盘与鼠标，目标程序看到的是真实硬件，而不是普通的模拟输入。\n\n"
+            + "有些游戏和带反作弊的程序会忽略普通模拟，只认这一类。\n\n"
+            + "安装驱动需要管理员权限。",
+        ["Settings.DriverAttachAtStartInfo"] =
+            "打开后，程序启动时就把虚拟设备挂好，第一次用到时不用等。\n\n"
+            + "即使这次不跑宏，启动也会慢两三秒。默认关闭，改动在下次启动生效。",
+        ["Settings.RunAsAdminInfo"] =
+            "没有管理员权限的程序，不能向管理员权限的窗口发送输入，也读不到它的画面。\n\n"
+            + "要操作这类窗口，鲸灵自己也得用管理员权限运行。\n\n"
+            + "打开后每次启动弹一次系统确认；拒绝仍然以普通权限启动。",
+        ["Settings.SystemAtStartInfo"] =
+            "系统总开关管着所有触发器：关着的时候，快捷键、菜单和轮盘都不响应。\n\n"
+            + "打开这一项，程序启动即把总开关打开；关闭则每次启动都是停用状态，需要手动开。",
+        ["Settings.LogCountInfo"] =
+            "失败日志与 MCP 日志各保留最近若干份，从新到旧，超出就删最旧的。\n\n"
+            + "它们用来回答一次运行为什么停下；不跑宏时不会产生新文件。",
+        ["Settings.SystemHotkeyInfo"] =
+            "这是一个全局快捷键，在任何程序里按下都会切换系统总开关。\n\n"
+            + "支持字母、数字、F1 到 F24 以及它们的组合；留空则停用。\n\n"
+            + "它不能和菜单呼出键、轮盘触发键是同一个。",
+        ["Settings.RecordStopInfo"] =
+            "在宏编辑器里按它开始一次录制，再按一次结束。\n\n"
+            + "录制会把期间真实发生的键鼠操作写成步骤。默认 Ctrl+F10；留空则不能开始录制。",
+        ["Settings.WheelOnlyInProgramsInfo"] =
+            "打开后，只有在窗口规则里配过程序场景的窗口中，轮盘才弹出；其他程序里触发键仍是普通按键。\n\n"
+            + "关闭后，哪里都能弹出。这个开关不影响系统总开关。",
+        ["Settings.WheelTimeoutInfo"] =
+            "轮盘开着一直不动，超过这个时间就自动取消，不会一直挂在屏幕上。\n\n"
+            + "填 0 表示不超时，一直等到松开触发键。\n\n"
+            + "单位是毫秒，默认 20000，也就是 20 秒。",
+        ["Settings.WheelThirdInfo"] =
+            "除了内外两圈，还可以再加一圈常驻的第三圈。\n\n"
+            + "容量只能是 0、8、16 或 24 格；选 0 保持两圈。",
+        ["Settings.CustomizeThemeInfo"] =
+            "自定义只挑一个强调色，其余颜色由它派生：按钮、选中行和开关都跟着变。\n\n"
+            + "派生会把颜色调到能承载白字、也能在窗口上读清的程度；达不到 4.5:1 的颜色会被拒绝。\n\n"
+            + "选择立即作用到所有窗口，并留到下次启动。",
         ["Theme.Mode.Dark"] = "深色",
         ["Theme.Mode.Light"] = "浅色",
         ["Theme.Mode.Custom"] = "自定义",
@@ -4727,7 +4890,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.AdminRestart"] = "以管理员权限重新启动",
         ["Settings.RunAsAdmin"] = "启动时请求管理员权限",
         ["Settings.RunAsAdminHint"] = "默认关闭；打开后每次启动都要确认，可以拒绝。",
-        ["Settings.Close"] = "关闭",
 
         ["Confirm.Cancel"] = "取消",
         ["Common.Ok"] = "确定",

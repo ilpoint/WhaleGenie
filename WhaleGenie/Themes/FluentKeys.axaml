@@ -280,6 +280,39 @@
             <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePressed" ResourceKey="AccentFillPressed" />
             <StaticResource x:Key="ToggleButtonBorderBrushIndeterminateDisabled" ResourceKey="BorderSubtle" />
 
+            <!--
+              设置窗的导航（FluentAvalonia 的 NavigationView）。选中行铺强调色，文字与图标用白：
+              强调色的派生保证这一对至少 4.5:1（见 ThemePalette）。窗格与内容区差一层表面，卡片
+              再亮一档，三层靠底色分开而不是靠阴影。项高与圆角沿库默认，只在外面补内外缩。
+            -->
+            <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="SurfaceWindow" />
+            <StaticResource x:Key="NavigationViewExpandedPaneBackground" ResourceKey="SurfaceWindow" />
+            <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="SurfaceSunken" />
+            <StaticResource x:Key="NavigationViewContentMargin" ResourceKey="Pad0" />
+            <StaticResource x:Key="NavigationViewContentPresenterMargin" ResourceKey="Pad0" />
+            <StaticResource x:Key="NavigationViewContentGridBorderThickness" ResourceKey="Pad0" />
+            <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent" />
+            <StaticResource x:Key="NavigationViewItemBackgroundPointerOver" ResourceKey="OverlayHover" />
+            <StaticResource x:Key="NavigationViewItemBackgroundPressed" ResourceKey="OverlayPressed" />
+            <StaticResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="AccentFill" />
+            <StaticResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="NavigationViewItemForeground" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="NavigationViewItemForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="NavigationViewItemForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="NavigationViewItemForegroundSelected" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="NavigationViewItemForegroundSelectedPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="NavigationViewItemForegroundSelectedPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="NavigationViewItemMargin" ResourceKey="PadChip" />
+            <StaticResource x:Key="NavigationViewItemContentPresenterMargin" ResourceKey="PadControl" />
+            <StaticResource x:Key="NavigationViewSelectionIndicatorForeground" ResourceKey="AccentFill" />
+
+            <!--
+              设置分组平铺，不再有展开动作：底、描边与标题下的缝由 SettingsGroup 模板直接取
+              SurfaceCard / BorderSubtle，行间缝由行列表的 Spacing 透出；展开相关的键没有消费者，
+              不在这里留空映射。
+            -->
+
             <!-- 表格：行底卡片色，靠 hover 与选中区分（表头底色没有键，只有分隔线） -->
             <StaticResource x:Key="TableViewRowBackground" ResourceKey="SurfaceCard" />
             <StaticResource x:Key="TableViewRowBackgroundPointerOver" ResourceKey="SurfaceHover" />
@@ -544,6 +577,39 @@
             <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePointerOver" ResourceKey="AccentFillHover" />
             <StaticResource x:Key="ToggleButtonBorderBrushIndeterminatePressed" ResourceKey="AccentFillPressed" />
             <StaticResource x:Key="ToggleButtonBorderBrushIndeterminateDisabled" ResourceKey="BorderSubtle" />
+
+            <!--
+              设置窗的导航（FluentAvalonia 的 NavigationView）。选中行铺强调色，文字与图标用白：
+              强调色的派生保证这一对至少 4.5:1（见 ThemePalette）。窗格与内容区差一层表面，卡片
+              再亮一档，三层靠底色分开而不是靠阴影。项高与圆角沿库默认，只在外面补内外缩。
+            -->
+            <StaticResource x:Key="NavigationViewDefaultPaneBackground" ResourceKey="SurfaceWindow" />
+            <StaticResource x:Key="NavigationViewExpandedPaneBackground" ResourceKey="SurfaceWindow" />
+            <StaticResource x:Key="NavigationViewContentBackground" ResourceKey="SurfaceSunken" />
+            <StaticResource x:Key="NavigationViewContentMargin" ResourceKey="Pad0" />
+            <StaticResource x:Key="NavigationViewContentPresenterMargin" ResourceKey="Pad0" />
+            <StaticResource x:Key="NavigationViewContentGridBorderThickness" ResourceKey="Pad0" />
+            <SolidColorBrush x:Key="NavigationViewItemBackground" Color="Transparent" />
+            <StaticResource x:Key="NavigationViewItemBackgroundPointerOver" ResourceKey="OverlayHover" />
+            <StaticResource x:Key="NavigationViewItemBackgroundPressed" ResourceKey="OverlayPressed" />
+            <StaticResource x:Key="NavigationViewItemBackgroundSelected" ResourceKey="AccentFill" />
+            <StaticResource x:Key="NavigationViewItemBackgroundSelectedPointerOver" ResourceKey="AccentFillHover" />
+            <StaticResource x:Key="NavigationViewItemBackgroundSelectedPressed" ResourceKey="AccentFillPressed" />
+            <StaticResource x:Key="NavigationViewItemForeground" ResourceKey="TextSecondary" />
+            <StaticResource x:Key="NavigationViewItemForegroundPointerOver" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="NavigationViewItemForegroundPressed" ResourceKey="TextPrimary" />
+            <StaticResource x:Key="NavigationViewItemForegroundSelected" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="NavigationViewItemForegroundSelectedPointerOver" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="NavigationViewItemForegroundSelectedPressed" ResourceKey="TextOnAccent" />
+            <StaticResource x:Key="NavigationViewItemMargin" ResourceKey="PadChip" />
+            <StaticResource x:Key="NavigationViewItemContentPresenterMargin" ResourceKey="PadControl" />
+            <StaticResource x:Key="NavigationViewSelectionIndicatorForeground" ResourceKey="AccentFill" />
+
+            <!--
+              设置分组平铺，不再有展开动作：底、描边与标题下的缝由 SettingsGroup 模板直接取
+              SurfaceCard / BorderSubtle，行间缝由行列表的 Spacing 透出；展开相关的键没有消费者，
+              不在这里留空映射。
+            -->
 
             <!-- 表格：行底卡片色，靠 hover 与选中区分（表头底色没有键，只有分隔线） -->
             <StaticResource x:Key="TableViewRowBackground" ResourceKey="SurfaceCard" />

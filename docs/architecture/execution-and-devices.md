@@ -214,4 +214,4 @@ CSV 统一由 `CsvHelper` 解析。文本读取优先采用 BOM；无 BOM 时先
 引擎通过 `IDeviceLayer.Frames` 读取。它同时保管下一次可以看屏的时刻、以及每个来源最近一张画面，
 所以这两样都是全程序共用的：同时运行的宏轮流占取帧回合，后来的宏读前一个宏刚取到的那张，
 而不是各自按上限取一张。`ScreenSight` 只在取画面时用这份保管，节拍与画面都不进 `RunState`；
-`IScreenDevice.RefreshHertz` 让设置页能显示显示器自己的赫兹数并把它当作取帧上限。
+`IScreenDevice.RefreshHertz` 让设置页能显示显示器自己的赫兹数并把它当作每秒捕获的上限。
