@@ -2,6 +2,8 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
@@ -82,12 +84,31 @@ public partial class ActionDialogTests
             Assert.True(first.Y > boxAt.Y, "the swatches are not drawn under the box");
             Assert.True(first.X < second.X, "the swatches are not laid out in list order");
 
+            // The tolerance cell centres what it shows: the number that is typed, and the word that
+            // says the cell will follow the field, which the cell draws itself rather than the box.
+            var emptyRow = colours.ColourRows[0];
+            var toleranceBox = window.GetVisualDescendants().OfType<TextBox>()
+                .First(item => item.Name == "ColourToleranceBox"
+                    && ReferenceEquals(item.DataContext, emptyRow));
+            var hint = window.GetVisualDescendants().OfType<TextBlock>()
+                .First(item => item.Name == "ColourToleranceDefault"
+                    && ReferenceEquals(item.DataContext, emptyRow));
+            Assert.Equal(TextAlignment.Center, toleranceBox.TextAlignment);
+            Assert.Equal(HorizontalAlignment.Center, hint.HorizontalAlignment);
+            Assert.True(hint.IsEffectivelyVisible,
+                "the word saying the cell follows the field is not drawn while it is empty");
+
             // Each colour carries its own tolerance, and an empty one follows the field's.
             colours.ColourRows[1].Tolerance = "7";
             var rows = viewModel.BuildStep().Parameters
                 .First(parameter => parameter.Name == "transparentColors").Rows;
             Assert.Equal(["#112233", "#445566"], rows.Select(row => row.Text("colour")));
             Assert.Equal(["", "7"], rows.Select(row => row.Text("tolerance")));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(window.GetVisualDescendants().OfType<TextBlock>()
+                .First(item => item.Name == "ColourToleranceDefault"
+                    && ReferenceEquals(item.DataContext, colours.ColourRows[1])).IsEffectivelyVisible,
+                "the word saying the cell follows the field stays over a tolerance that was typed");
 
             // The strip draws a chip per row, and its × takes that one out of the step.
             var remove = window.GetVisualDescendants().OfType<Button>()

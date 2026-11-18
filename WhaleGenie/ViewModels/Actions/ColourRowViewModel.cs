@@ -31,6 +31,7 @@ public partial class ColourRowViewModel : ViewModelBase
     /// field gives every colour.
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FollowsTheField))]
     public partial string Tolerance { get; set; }
 
     /// <summary>True when this row brings no reach of its own and follows the field's.</summary>

@@ -422,11 +422,20 @@
                                     ToolTip.Tip="{Binding [Add.ColourSwatchRemove], Source={x:Static loc:Strings.Current}}"
                                     Command="{Binding RemoveCommand}" />
                             </Grid>
-                            <TextBox Classes="Field" Name="ColourToleranceBox"
-                                Height="24" FontSize="11" Padding="4,0" TextAlignment="Center"
-                                Text="{Binding Tolerance, Mode=TwoWay}"
-                                PlaceholderText="{Binding [Add.ColourSwatchDefault], Source={x:Static loc:Strings.Current}}"
-                                ToolTip.Tip="{Binding [Add.ColourSwatchTolerance], Source={x:Static loc:Strings.Current}}" />
+                            <Grid>
+                                <TextBox Classes="Field" Name="ColourToleranceBox"
+                                    Height="24" FontSize="11" Padding="4,0" TextAlignment="Center"
+                                    Text="{Binding Tolerance, Mode=TwoWay}"
+                                    ToolTip.Tip="{Binding [Add.ColourSwatchTolerance], Source={x:Static loc:Strings.Current}}" />
+                                <!-- 留空表示「跟下面那格容差一样」。这两个字由格子自己居中画出来，
+                                     不交给输入框的占位文字：占位文字落在模板给它的位置，这里只有两个字。 -->
+                                <TextBlock Name="ColourToleranceDefault"
+                                    FontSize="11" Foreground="{DynamicResource TextTertiary}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsHitTestVisible="False"
+                                    Text="{Binding [Add.ColourSwatchDefault], Source={x:Static loc:Strings.Current}}"
+                                    IsVisible="{Binding FollowsTheField}" />
+                            </Grid>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
