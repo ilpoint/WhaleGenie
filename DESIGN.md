@@ -96,7 +96,8 @@
 - `Gap*` 只用于没有父容器能提供间距的少数位置；新增 `Gap*` 前先说明为什么 `Spacing` 做不到。
 - 圆角只用 `RadiusControl`、`RadiusContainer`、`RadiusOverlay` 三个角色。Fluent v2 默认
   `ControlCornerRadius=4`、`OverlayCornerRadius=8`，项目把前者映射到 `RadiusControl`、后者映射到
-  `RadiusOverlay`；`RadiusContainer=6` 用于卡片/面板，不另写按钮、输入框的圆角。
+  `RadiusOverlay`；`RadiusContainer=6` 用于卡片/面板，不另写按钮、输入框的圆角。标题栏上
+  与系统 caption 按钮同形的自绘按钮是唯一例外，取直角并贴顶，见第 8 节。
 - 列宽、窗口尺寸、图标尺寸等结构尺寸可以单独写；同一模式重复出现时抽成令牌或共享常量，不散落魔法数。
 - 行内说明图标：视觉 14×14、命中区 24×24、行高 24，图标与同行文字的间距 6；带图标的行内标签
   不带走 `GapField` 的下边距，普通字段仍保留 8。勾选框与图标同行时按同一 24 行高收敛，不裁字。
@@ -125,6 +126,14 @@
   不在每个窗口里重算；把可交互控件放进拖动区时，用 `TitleBarHitTestType` 或自定义拖动矩形解决。
 - 标题栏颜色用 `TitleBar.*Color`，不在内容里铺一层假标题栏。`SetWindowBorderColor` 只用于
   Windows 11；任务栏进度只在长任务需要时使用，不把标题栏当状态面板。
+- 系统画的 caption 按钮（最小化、最大化、关闭）颜色也由窗口框架交给 `TitleBar`：静息与未激活
+  底透明，悬停 `SurfaceControlHover`、按下 `SurfaceControlPressed`，字形 `TextPrimary`，未激活
+  字形与激活态同色——标题栏里的鲸鱼与标题是自绘的，本来就不随失活变暗，只压暗三个系统按钮会
+  让旁边的置顶钮显得还亮着。关窗红仍是系统语义色，不跟着这组灰走。不设这组值时按钮会退回系统
+  自己的灰，与标题栏里自绘的钮在深浅两套主题下都不是一个颜色。
+- 标题栏上的自绘按钮与系统 caption 按钮同形：46×32，贴标题栏顶边（不是 40 像素条里的垂直居中），
+  直角，紧挨系统按钮左侧，系统按钮的宽度仍由窗口框架在行尾留出。圆角只有这一处不取
+  `RadiusControl`；它不是在内容区里的控件，而是一块系统按钮的邻居。
 - 主窗口、宏编辑器、动作编辑器、运行窗把内容扩展到标题栏；其他普通窗口使用库默认标题栏。
 - 设置、宏编辑器、运行窗是并列窗口，不是主窗的模态附属；拾取器打开期间按既定规则收起鲸灵窗口，
   结束后恢复。
@@ -187,6 +196,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 右键菜单有主题、有尺寸和 `ItemsPresenter` | `MenuThemeTests` |
 | 模板部件存在，颜色/状态读取实际部件 | `TemplatePartTests` |
 | 普通窗口统一走 `WindowChrome` | `WindowChromeTests` |
+| 标题栏置顶钮与系统 caption 按钮同形、贴顶、同色，置顶态用强调色面与强调色图标 | `MainTitleBarTests`、`MacroEditorChromeTests` |
 | 分类 dock 的静息/悬停/按下/选中/禁用读实际部件，选中字色过对比度底线 | `DockStyleTests` |
 | 设置窗导航选中行与分组页签铺强调色、字为白、过对比度底线 | `SettingsChromeTests` |
 | 说明浮层正文取主文字色、成对行高、对比度底线与行内图标中线/命中区 | `SettingsHintVisualTests` |

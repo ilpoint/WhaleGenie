@@ -459,12 +459,16 @@
       工具钮是"在这里做点什么"，关闭键是"离开这里"。`Close` 那一档只为它自己：悬停底换成
       `CaptionCloseHover`（WinUI 的关窗红），字形同时转白——红底上留深色字，浅色主题里会糊。
       图标用 `IconView` 画，笔画是它自己的属性，不是 `Foreground`，所以这里连它一起给。
+
+      直角不是漏写圆角：系统画的 caption 按钮就是一块贴顶的直角热区（悬停时整块 46×32 变色），
+      自绘的置顶钮挨着它们，圆角会让它看起来像浮在标题栏上的一张卡片。三档圆角管的是内容区里的
+      控件，标题栏按钮跟系统同形，是这条契约唯一的例外。
     -->
     <Style Selector="Button.Caption">
         <Setter Property="Width" Value="46" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="CornerRadius" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />

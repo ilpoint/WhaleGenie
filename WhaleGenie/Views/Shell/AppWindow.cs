@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using FluentAvalonia.UI.Windowing;
 
@@ -22,8 +23,50 @@ public class AppWindow : FAAppWindow
         // The bar is the only place a window can be dragged by, so it is taller than the library's
         // 32: at that height the strip reads as an edge rather than as something to grab.
         TitleBar.Height = 40;
+        ApplyCaptionButtonColors();
+
+        // The caption buttons belong to the system, but their colours are ours: without this they
+        // keep the system's own hover grey, which is a shade off `SurfaceControlHover` and does not
+        // change with the light theme. A window's colours are tokens, and the title bar is part of
+        // the window.
+        ActualThemeVariantChanged += (_, _) => ApplyCaptionButtonColors();
         ForgetHandlelessWindow();
     }
+
+    /// <summary>
+    /// Paints the system caption buttons with the same tokens as the buttons in the title bar, so a
+    /// pin sitting beside minimize, maximize and close shares their rest, hover and pressed greys.
+    /// The close button keeps the system's red — that hover says "this closes the window", not
+    /// "this is a button".
+    /// </summary>
+    /// <remarks>
+    /// The colours are plain CLR properties on the library's title bar, not styled properties, so
+    /// they take a value rather than a <c>DynamicResource</c>: the theme's tokens are read here and
+    /// read again when the window's variant changes. A missing token is passed on as no colour
+    /// rather than hidden behind a private fallback; the token checks are what keep it from missing.
+    /// </remarks>
+    private void ApplyCaptionButtonColors()
+    {
+        TitleBar.ButtonBackgroundColor = Colors.Transparent;
+        TitleBar.ButtonHoverBackgroundColor = CaptionColor("SurfaceControlHoverColor");
+        TitleBar.ButtonPressedBackgroundColor = CaptionColor("SurfaceControlPressedColor");
+        TitleBar.ButtonForegroundColor = CaptionColor("TextPrimaryColor");
+        TitleBar.ButtonHoverForegroundColor = CaptionColor("TextPrimaryColor");
+        TitleBar.ButtonPressedForegroundColor = CaptionColor("TextPrimaryColor");
+        TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+
+        // The bar's own title and whale are custom-drawn and stay at TextPrimary when the window is
+        // inactive, so the system glyphs keep that colour too. Dimming only the three system buttons
+        // would leave the pin beside them looking lit while the rest of the bar is quiet.
+        TitleBar.ButtonInactiveForegroundColor = CaptionColor("TextPrimaryColor");
+    }
+
+    private Color? CaptionColor(string key)
+        => Application.Current is { } app
+            && app.TryGetResource(key, ActualThemeVariant, out var found)
+            && found is Color color
+                ? color
+                : null;
 
     /// <summary>
     /// Drags the window by its own title bar when the content stands in the bar's place.

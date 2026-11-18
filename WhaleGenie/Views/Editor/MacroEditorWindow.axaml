@@ -236,11 +236,11 @@
             </StackPanel>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
-                        VerticalAlignment="Center">
+                        VerticalAlignment="Top">
                 <Button Classes="Caption" Name="PinButton"
                         ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
                     <views:IconView Name="PinIcon" Width="14" Height="14"
-                                    Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4"
+                                    StrokeThickness="1.4"
                                     FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
                 </Button>
             </StackPanel>
