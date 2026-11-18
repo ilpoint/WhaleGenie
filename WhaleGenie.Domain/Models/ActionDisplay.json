@@ -2269,7 +2269,8 @@
         "Advanced": true
       },
       "transparentColors": {
-        "Kind": "Colours",
+        "Kind": "Color",
+        "Placeholder": "[\"#FFFFFF\", \"#00FF00\"]",
         "Advanced": true
       },
       "autoTransparent": {
@@ -2382,7 +2383,8 @@
         "Advanced": true
       },
       "transparentColors": {
-        "Kind": "Colours",
+        "Kind": "Color",
+        "Placeholder": "[\"#FFFFFF\", \"#00FF00\"]",
         "Advanced": true
       },
       "autoTransparent": {
@@ -2495,7 +2497,8 @@
         "Advanced": true
       },
       "transparentColors": {
-        "Kind": "Colours",
+        "Kind": "Color",
+        "Placeholder": "[\"#FFFFFF\", \"#00FF00\"]",
         "Advanced": true
       },
       "autoTransparent": {

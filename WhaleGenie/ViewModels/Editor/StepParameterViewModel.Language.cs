@@ -157,9 +157,6 @@ public partial class StepParameterViewModel : ViewModelBase
         // written is a step that would be refused at run time, so it is refused here instead.
         ActionParameterKind.ColourPoints => ColourPointRows.Count == 0
             || ColourPointRows.Any(row => !row.IsComplete),
-        // A list of colours may be left out altogether; a row of it that says nothing is a step the
-        // engine would refuse, so it is refused here instead.
-        ActionParameterKind.Colours => ColourRows.Any(row => row.Colour.Trim().Length == 0),
         // Handing nothing over is a legitimate answer here: the step simply leaves no result.
         ActionParameterKind.Returns => false,
         _ => string.IsNullOrWhiteSpace(CurrentText),
@@ -178,7 +175,6 @@ public partial class StepParameterViewModel : ViewModelBase
         ActionParameterKind.Steps => HasNestedSteps,
         ActionParameterKind.Region => Regions.Count > 0,
         ActionParameterKind.ColourPoints => ColourPointRows.Count > 0,
-        ActionParameterKind.Colours => ColourRows.Count > 0,
         ActionParameterKind.KeySequence => HasKeyPress,
         ActionParameterKind.Images => Pictures.Any(picture => !string.IsNullOrWhiteSpace(picture.Text)),
         ActionParameterKind.Narrow => HasNarrowRows,

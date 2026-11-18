@@ -197,8 +197,7 @@ public partial class DeviceActionTests
         var (_, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"), Param("confidence", "88"),
-                Param("detectAlgorithm", "feature"),
-                Rows("transparentColors", Cells.Of(("colour", "#00FF00"))),
+                Param("detectAlgorithm", "feature"), Param("transparentColors", "#00FF00"),
                 Param("tolerance", "10"), Param("minFeatures", "12"),
                 Hit("match", "where")),
         ], devices);
@@ -272,8 +271,7 @@ public partial class DeviceActionTests
         var (result, _, _) = await RunAsync(
         [
             Step("vision.findImage", Pictures("ok.png"),
-                Rows("transparentColors", Cells.Of(("colour", "not a colour"))),
-                Hit("match", "where")),
+                Param("transparentColors", "not a colour"), Hit("match", "where")),
         ], devices);
 
         Assert.False(result.Succeeded);

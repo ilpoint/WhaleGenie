@@ -193,6 +193,7 @@ internal static class BenchFixtures
         ["writeValue"] = "1",
         ["values"] = "bench",
         ["points"] = "0,0,#FFFFFF",
+        ["transparentColors"] = "#FFFFFF",
         ["registryPath"] = RegistryPath,
         ["registryData"] = "bench",
         ["environmentValue"] = "bench",
@@ -466,13 +467,6 @@ internal static class BenchFixtures
 
             // The colours a pattern wants around its base colour: one offset and the colour at it,
             // so the step has a pattern to look for rather than an empty list it would refuse.
-            // The colours a picture is found regardless of.
-            case "transparentColors":
-                return new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["colour"] = "#000000",
-                };
-
             case "points":
                 return new Dictionary<string, string>(StringComparer.Ordinal)
                 {

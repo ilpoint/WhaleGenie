@@ -87,18 +87,11 @@ public class ExpressionFieldTests
             {
                 // A number, an expression and a colour have editors of their own that already
                 // write the whole value as a formula; asking the catalogue to offer the builder
-                // again would draw the same question twice.
+                // again would draw the same question twice. A colour field that holds several
+                // colours is still one value — a list of them — so it is one of these too.
                 if (parameter.Kind is ActionParameterKind.Number
-                    or ActionParameterKind.Expression or ActionParameterKind.Condition)
-                {
-                    Assert.Equal(WhaleGenie.Core.Execution.ActionValueForm.Value,
-                        parameter.ValueForm);
-                    continue;
-                }
-
-                // A colour field is one value: the magnifier writes it as a formula. A list of
-                // colours is a list rather than one value, so it is not asked for the builder.
-                if (parameter.Kind is ActionParameterKind.Color)
+                    or ActionParameterKind.Expression or ActionParameterKind.Condition
+                    or ActionParameterKind.Color)
                 {
                     Assert.Equal(WhaleGenie.Core.Execution.ActionValueForm.Value,
                         parameter.ValueForm);

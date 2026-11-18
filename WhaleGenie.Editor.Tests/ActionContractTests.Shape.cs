@@ -94,7 +94,13 @@ public partial class ActionContractTests
                     }
 
                     var field = $"{display.Key}.{parameter.Name}";
-                    SameValue(problems, field, "shape", ShapeOf(parameter.Kind), facts.Shape);
+                    // A colour field holds one colour, or a list of them: both are the same
+                    // editor with the magnifier on it, and which one is a property of the field.
+                    if (!(parameter.Kind is ActionParameterKind.Color
+                          && facts.Shape is ActionValueShape.List))
+                    {
+                        SameValue(problems, field, "shape", ShapeOf(parameter.Kind), facts.Shape);
+                    }
                     SameValue(problems, field, "required", parameter.Required, facts.Required);
                     SameValue(problems, field, "default", parameter.DefaultValue, facts.DefaultValue);
                     SameValue(problems, field, "value form", parameter.ValueForm, facts.ValueForm);

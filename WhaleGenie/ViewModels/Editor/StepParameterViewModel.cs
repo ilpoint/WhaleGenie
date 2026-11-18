@@ -205,15 +205,6 @@ public partial class StepParameterViewModel : ViewModelBase
     /// <summary>True when this parameter is the pattern of a multi-point colour search.</summary>
     public bool IsColourPoints => Definition.Kind is ActionParameterKind.ColourPoints;
 
-    /// <summary>The colours a step leaves out of a comparison, one row each.</summary>
-    public ObservableCollection<ColourRowViewModel> ColourRows { get; } = [];
-
-    /// <summary>True when this parameter is a list of colours rather than one colour.</summary>
-    public bool IsColours => Definition.Kind is ActionParameterKind.Colours;
-
-    /// <summary>True while the list has at least one colour written down.</summary>
-    public bool HasColours => ColourRows.Count > 0;
-
     /// <summary>True while the pattern has at least one row, which is what makes it a pattern.</summary>
     public bool HasColourPoints => ColourPointRows.Count > 0;
 

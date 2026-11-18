@@ -13,7 +13,6 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -123,60 +122,6 @@ public partial class ActionEditorView : UserControl
         {
             parameter.AddRegion();
         }
-    }
-
-    /// <summary>Adds an empty colour to the list a step leaves out of its comparison.</summary>
-    internal void OnAddColourRow(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { DataContext: StepParameterViewModel parameter } && parameter.IsColours)
-        {
-            parameter.AddColourRow();
-        }
-    }
-
-    /// <summary>
-    /// Takes one colour off the screen and adds it to the list. It is added rather than written over
-    /// the first one: a picture cut out of a screenshot may carry more than one background colour,
-    /// and the point of this list is that every one of them can be left out.
-    /// </summary>
-    internal async void OnPickColourRow(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Control { DataContext: StepParameterViewModel parameter }
-            || !parameter.IsColours)
-        {
-            return;
-        }
-
-        if (await ColorPickerWindow.PickAsync(HostWindow!, Devices.Screen, Devices.Input, Devices.Hook)
-            is not { } picked)
-        {
-            return;
-        }
-
-        parameter.TakeColour(picked.Colour);
-    }
-
-    /// <summary>
-    /// Opens the variable picker on one colour of the list and drops the name in where the caret is:
-    /// which colours a step ignores may be a value another step worked out, so a row holds a name as
-    /// readily as it holds a colour.
-    /// </summary>
-    internal async void OnPickColourCell(object? sender, RoutedEventArgs e)
-    {
-        if (sender is not Control { DataContext: ColourRowViewModel row } button
-            || DataContext is not AddActionViewModel viewModel)
-        {
-            return;
-        }
-
-        if (await ValuePickerWindow.ShowFor(HostWindow!, null, viewModel.CollectVariables(),
-                ActionValueForm.Name, lookAtStep: LookAtStep) is not { Chosen: true } picked)
-        {
-            return;
-        }
-
-        var caret = button.FindAncestorOfType<TextBox>(true)?.CaretIndex;
-        row.InsertVariable(Formula.NameOf(picked.Value), caret ?? row.Colour.Length);
     }
 
     /// <summary>Adds another colour to the pattern the step is matching.</summary>

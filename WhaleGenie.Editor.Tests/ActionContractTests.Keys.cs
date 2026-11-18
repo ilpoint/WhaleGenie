@@ -83,7 +83,6 @@ public partial class ActionContractTests
             ["images"] = ["image"],
             ["keySequence"] = ["keys", "holdMs", "gapMs"],
             ["points"] = ["dx", "dy", "colour", "mustNot", "tolerance"],
-            ["transparentColors"] = ["colour"],
         };
 
         foreach (var action in ActionSemanticsCatalog.All)
@@ -136,7 +135,7 @@ public partial class ActionContractTests
         ActionParameterKind.Region or ActionParameterKind.KeySequence
             or ActionParameterKind.Images or ActionParameterKind.Returns
             or ActionParameterKind.Arguments or ActionParameterKind.Narrow
-            or ActionParameterKind.ColourPoints or ActionParameterKind.Colours
+            or ActionParameterKind.ColourPoints
             => ActionValueShape.Rows,
         ActionParameterKind.Image => ActionValueShape.Image,
         ActionParameterKind.Record => ActionValueShape.Record,

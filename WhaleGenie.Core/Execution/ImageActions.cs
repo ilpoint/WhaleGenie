@@ -329,18 +329,11 @@ internal static class ImageActions
     {
         var args = run.Args(step);
         var colours = new List<PixelColor>();
-        foreach (var row in step.Rows("transparentColors"))
+        foreach (var written in Text(args.ValueOf("transparentColors")))
         {
-            // A cell holds a colour, or a name whose value is one: it is read as the shape it is,
-            // so a colour another step worked out is read at this look rather than typed in.
-            var written = run.Text(row, "colour").Trim();
-            if (written.Length == 0)
-            {
-                continue;
-            }
-
-            colours.Add(ColourList.Read(written)
-                ?? throw new StepFailure(RunKeys.BadPoint, written));
+            colours.Add(PixelColor.TryParse(written, out var colour)
+                ? colour
+                : throw new StepFailure(RunKeys.BadPoint, written));
         }
 
         if (run.Flag(step, "autoTransparent", true) && Corner(picture, args.Number("tolerance")) is { } corner
@@ -350,6 +343,26 @@ internal static class ImageActions
         }
 
         return colours.Count > 0 ? colours : null;
+    }
+
+    /// <summary>
+    /// What a field holding colours says, piece by piece: a list of them, one of them, or nothing
+    /// at all. A list inside a list is read through rather than counted as one, so the colours of a
+    /// list held in a variable take part just as the ones typed in beside them do.
+    /// </summary>
+    private static IEnumerable<string> Text(Value value)
+    {
+        if (value.IsNull)
+        {
+            return [];
+        }
+
+        if (!value.IsList)
+        {
+            return [value.AsText()];
+        }
+
+        return value.Items.SelectMany(item => item.IsList ? Text(item) : [item.AsText()]);
     }
 
     /// <summary>

@@ -36,7 +36,6 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             ActionParameterKind.Region => [.. Regions.Select(row => row.ToRow())],
             ActionParameterKind.ColourPoints => [.. ColourPointRows.Select(row => row.ToRow())],
-            ActionParameterKind.Colours => [.. ColourRows.Select(row => row.ToRow())],
             ActionParameterKind.KeySequence => [.. KeyRows.Select(row => row.ToRow())],
             ActionParameterKind.Images => [.. Pictures.Select(picture => picture.ToRow())],
             ActionParameterKind.Narrow => [.. NarrowRows.Select(row => row.ToRow())
@@ -96,17 +95,6 @@ public partial class StepParameterViewModel : ViewModelBase
             foreach (var row in stored.Rows)
             {
                 AddColourPoint(ColourPointRowViewModel.From(row));
-            }
-
-            return;
-        }
-
-        if (Definition.Kind is ActionParameterKind.Colours)
-        {
-            ColourRows.Clear();
-            foreach (var row in stored.Rows)
-            {
-                AddColourRow(ColourRowViewModel.From(row));
             }
 
             return;

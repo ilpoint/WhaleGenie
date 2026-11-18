@@ -23,9 +23,11 @@ public class TransparentColourTests
     private static ExecutableStep Step(params ExecutableParameter[] parameters)
         => new() { Type = "vision.findImage", Parameters = parameters };
 
-    /// <summary>The colours the step leaves out, one row each, as the form writes them.</summary>
-    private static ExecutableParameter Rows(params (string Column, string Text)[] cells)
-        => Fields.Rows("transparentColors", [.. cells.Select(cell => Cells.Of(cell))]);
+    /// <summary>The colours a step leaves out: a list of them, or the one colour it names.</summary>
+    private static ExecutableParameter Colours(params string[] written)
+        => Fields.Computed("transparentColors", written.Length == 1
+            ? Formula.Text(written[0])
+            : Formula.List([.. written.Select(colour => (ExpressionNode)Formula.Text(colour))]));
 
     private static ExecutableParameter Pictures(params string[] names)
         => Fields.Rows("images", [.. names.Select(name => Cells.Of(("image", name)))]);
@@ -83,10 +85,42 @@ public class TransparentColourTests
         context.Images["ok.png"] = Frame(White, Inside);
 
         await Run(context, Step(Pictures("ok.png"),
-            Rows(("colour", "#FFFFFF"), ("colour", "#00FF00")), SampleFiles.Returns("match")));
+            Colours("#FFFFFF", "#00FF00"), SampleFiles.Returns("match")));
 
         var asked = Assert.Single(context.Machine.Vision.Queries);
         Assert.Equal([White, Green], asked.Transparent);
+    }
+
+    /// <summary>只写一个颜色也算数：一个颜色就是一个值，几个颜色才是一个列表。</summary>
+    [Fact]
+    public async Task One_colour_written_alone_is_a_list_of_one()
+    {
+        var context = Points();
+        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
+
+        await Run(context, Step(Pictures("ok.png"), Colours("#00FF00"),
+            SampleFiles.Returns("match")));
+
+        Assert.Equal([Green], Assert.Single(context.Machine.Vision.Queries).Transparent);
+    }
+
+    /// <summary>
+    /// 变量里装着整个列表时照读：列表里的列表按颜色逐个读下去，所以底色可以由别的一步算出来。
+    /// </summary>
+    [Fact]
+    public async Task A_variable_that_holds_a_list_of_colours_is_read_through()
+    {
+        var context = Points();
+        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
+        ((IRunContext)context).Variables.Set("bg",
+            Value.FromList([Value.FromText("#00FF00"), Value.FromList([Value.FromText("#112233")])]));
+
+        await Run(context, Step(Pictures("ok.png"),
+            Fields.Computed("transparentColors", Formula.Name("bg")),
+            SampleFiles.Returns("match")));
+
+        var asked = Assert.Single(context.Machine.Vision.Queries);
+        Assert.Equal([Green, new PixelColor(0x11, 0x22, 0x33)], asked.Transparent);
     }
 
     /// <summary>四角同色时那一个自动算进去，不必手写：换个底色也认得出同一个图标。</summary>
@@ -155,24 +189,6 @@ public class TransparentColourTests
         Assert.Equal([Green], context.Machine.Vision.Queries[1].Transparent);
     }
 
-    /// <summary>
-    /// 一行也可以是一个装着颜色的变量：形状是名字，颜色在跑到这一步的时候才取，所以换底色只要改变量。
-    /// </summary>
-    [Fact]
-    public async Task A_colour_a_variable_holds_is_read_when_the_step_runs()
-    {
-        var context = Points();
-        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
-        ((IRunContext)context).Variables.Set("bg", Value.FromText("#00FF00"));
-
-        await Run(context, Step(Pictures("ok.png"),
-            Fields.Rows("transparentColors",
-                Cells.Of(("colour", Formula.Name("bg")))),
-            SampleFiles.Returns("match")));
-
-        Assert.Equal([Green], Assert.Single(context.Machine.Vision.Queries).Transparent);
-    }
-
     /// <summary>读不出来的颜色报的是那个词，而不是被当成黑色掩掉。</summary>
     [Fact]
     public async Task A_colour_nobody_can_read_stops_the_step()
@@ -180,7 +196,7 @@ public class TransparentColourTests
         var context = Points();
 
         var result = await Record.ExceptionAsync(() => Run(context, Step(Pictures("ok.png"),
-            Rows(("colour", "#FFFFFF"), ("colour", "zzz")), SampleFiles.Returns("match"))));
+            Colours("#FFFFFF", "zzz"), SampleFiles.Returns("match"))));
 
         var failure = Assert.IsType<StepFailure>(result);
         Assert.Equal(RunKeys.BadPoint, failure.Key);
