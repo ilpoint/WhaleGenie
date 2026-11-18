@@ -121,21 +121,22 @@ internal static class ImageActions
     /// <summary>
     /// The hits, once there are enough of them. How long that may take is the step's own timeout
     /// and nothing else: the wait ends where the clock does, and the step it belongs to is what
-    /// fails, retries or gives up from there.
+    /// fails, retries or gives up from there. The beat between two looks is the machine's, so a wait
+    /// running beside another macro's takes its turn rather than looking beside it.
     /// </summary>
     private static async Task<Found> HitsUntil(IRunContext run, ExecutableStep step,
         CancellationToken token)
     {
-        var interval = run.Reads.Beat();
-
-        Found? Enough()
+        while (true)
         {
             var hits = Hits(run, step, token);
-            return SearchHits.Choose(run, hits, step) is { } match ? new Found(hits, match) : null;
-        }
+            if (SearchHits.Choose(run, hits, step) is { } match)
+            {
+                return new Found(hits, match);
+            }
 
-        return await Pacing.WaitForValueAsync(Enough, interval, token)
-               ?? throw new StepFailure(RunKeys.ImageNotFound, StepRows.Written(step.Rows("images")));
+            await run.Reads.WaitForScreen(token);
+        }
     }
 
     /// <summary>

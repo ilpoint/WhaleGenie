@@ -49,8 +49,6 @@ public sealed partial class MacroRunner : IRunContext, IRunPoints, IScreenReads,
 
     void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at) => ClickAt(step, at);
 
-    int IScreenReads.Beat() => _sight.LookBeat();
-
     IScreenShots IRunContext.Shots => this;
 
     IReadOnlyList<(string Name, ImageFrame Frame)> IRunContext.Pictures(ExecutableStep step)

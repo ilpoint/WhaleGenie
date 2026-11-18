@@ -124,7 +124,6 @@ internal static class OcrActions
     {
         var wanted = run.Args(step).ValueOf("queryText").AsText();
         var way = TextWay(run, step, wanted);
-        var interval = run.Reads.Beat();
 
         // The readings of the last look are kept, so the look handed over at the end is of the
         // screen as it was when the step gave up or found what it wanted.
@@ -140,8 +139,12 @@ internal static class OcrActions
             return hits.Count > 0 ? hits[0] : null;
         }
 
-        var span = await Pacing.WaitForValueAsync(Look, interval, token)
-            ?? throw new StepFailure(RunKeys.TextNotFound, wanted);
+        TextSpan? span;
+        while ((span = Look()) is null)
+        {
+            await run.Reads.WaitForScreen(token);
+        }
+
         run.Reads.SawSearch(step, LookKind.Text, areas, TextMarks.Of(readings, default), chosen, wanted,
             minimum: run.Args(step).Number("minScore"));
 

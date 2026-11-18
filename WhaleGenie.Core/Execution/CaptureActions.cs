@@ -291,7 +291,6 @@ internal static class CaptureActions
         var tolerance = args.ValueOf("tolerance").AsNumber();
         var allowed = args.ValueOf("changedPercent").AsNumber() / 100;
         var quiet = Math.Max(0, args.Number("quietMs"));
-        var interval = run.Reads.Beat();
 
         var started = Stopwatch.GetTimestamp();
         long Elapsed() => (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
@@ -301,7 +300,7 @@ internal static class CaptureActions
 
         while (true)
         {
-            await Pacing.Pause(interval, token);
+            await run.Reads.WaitForScreen(token);
             var now = run.Reads.Areas(step);
             if (Still(anchor, now, tolerance, allowed))
             {

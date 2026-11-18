@@ -87,8 +87,6 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
     void IScreenReads.ClickAt(ExecutableStep step, ScreenPoint at)
         => Machine.Input.Click("left", at.X, at.Y, 1, 0);
 
-    int IScreenReads.Beat() => 0;
-
     IScreenShots IRunContext.Shots => this;
 
     IReadOnlyList<(string Name, ImageFrame Frame)> IRunContext.Pictures(ExecutableStep step)

@@ -90,8 +90,8 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 被所有族共用的六层已经各自成为独立的类，而不是继续挂在运行器上：`StepResults` 交付结果
 （`Give`、`Store`、`GiveMatch`、`GiveNothing`、`GiveEvery` 与点记录），`WindowFacts` 认窗口
 （规则解析、`Lookup`、`Locate`、锚点与后台投递的目标），`ScreenPoints` 认点（屏幕/窗口坐标、
-记录自带的基准、拖拽两端、漂移与输入路由），`ScreenSight` 看屏（搜索区域、抓屏与复用、帧节拍、
-试看标记），`ScreenReads` 读屏（区域读数、识别修正、命中计数），`ReferencePictures` 认参考图
+记录自带的基准、拖拽两端、漂移与输入路由），`ScreenSight` 看屏（搜索区域、按机器保管的回合与画面
+取图、试看标记），`ScreenReads` 读屏（区域读数、识别修正、命中计数），`ReferencePictures` 认参考图
 （变量里的图、磁盘上的图与按写入时间做的缓存）。运行器持有这六个对象并把接口转发给它们；
 动作族通过 `IRunPoints`、`IScreenReads` 与 `IScreenShots` 取用，不必知道这些规则住在哪。
 
@@ -209,8 +209,9 @@ CSV 统一由 `CsvHelper` 解析。文本读取优先采用 BOM；无 BOM 时先
 多显示器画面按虚拟桌面坐标拼接，源图未覆盖的区域保持黑色。窗口与显示器会话需要明确释放；
 共享会话由 `SharedDevices` 持有到退出。
 
-一次运行多久取一次画面、取到的画面能不能再读一次，同样属于"这台机器"而不是某一步：
-`FramePolicy`（`Core/Devices/DeviceTypes.cs`）与 `CaptureChoice` 并列，由界面在启动和每次改动时
-写入，引擎通过 `IDeviceLayer.Frames` 读取。`MacroRunner` 因此只保留一个运行级的
-`_lastFrame` 时间戳与一份按"来源 + 抓法"键控的帧缓存，不按步骤记节拍；`IScreenDevice.RefreshHertz`
-让设置页能显示显示器自己的赫兹数并把它当作取帧上限。
+多久看一次屏幕、看到的画面能不能再读一次，同样属于“这台机器”而不是某一步或某一次运行：
+`FrameShelf`（`Core/Devices/Frames.cs`）与 `CaptureChoice` 并列，由界面在启动和每次改动时写入，
+引擎通过 `IDeviceLayer.Frames` 读取。它同时保管下一次可以看屏的时刻、以及每个来源最近一张画面，
+所以这两样都是全程序共用的：同时运行的宏轮流占取帧回合，后来的宏读前一个宏刚取到的那张，
+而不是各自按上限取一张。`ScreenSight` 只在取画面时用这份保管，节拍与画面都不进 `RunState`；
+`IScreenDevice.RefreshHertz` 让设置页能显示显示器自己的赫兹数并把它当作取帧上限。

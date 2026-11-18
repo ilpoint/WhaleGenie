@@ -72,12 +72,12 @@ public interface IDeviceLayer
     ICaptureChoice Capture { get; }
 
     /// <summary>
-    /// How often this machine is willing to hand over a picture, and how long one already handed
-    /// over stays worth reading again. Here beside the capture choice and for the same reason: it
-    /// is an answer about the machine and not a way of reading pixels, and a layer handed in by a
-    /// check can hold a policy the check sets instead of the one the settings window stores.
+    /// The pictures this machine hands out: how often it will hand one over, and how long one
+    /// already handed over stays worth reading again. Here beside the capture choice and for the
+    /// same reason: it is an answer about the machine and not a way of reading pixels, and a layer
+    /// handed in by a check can hold pictures of its own instead of the ones the program is using.
     /// </summary>
-    IFramePolicy Frames => FramePolicy.Current;
+    FrameShelf Frames => FrameShelf.Current;
 
     IScreenDevice Screen { get; }
 

@@ -370,7 +370,7 @@ public class LocalSettingsTests
     {
         InOwnFile(_ =>
         {
-            var was = FramePolicy.Current.CacheMilliseconds;
+            var was = FrameShelf.Current.CacheMilliseconds;
             try
             {
                 Assert.False(LocalSettings.LoadFrameCache());
@@ -391,7 +391,7 @@ public class LocalSettingsTests
             {
                 // The engine's copy is one per process and stays behind after the temporary file is
                 // thrown away, so it is put back rather than left on this test's last answer.
-                FramePolicy.Current.CacheMilliseconds = was;
+                FrameShelf.Current.CacheMilliseconds = was;
             }
         });
     }

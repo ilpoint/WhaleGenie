@@ -81,18 +81,16 @@ internal static class DetectionActions
     private static async Task<FoundObjects> SightingsUntil(IRunContext run, ExecutableStep step,
         CancellationToken token)
     {
-        var interval = run.Reads.Beat();
-
-        FoundObjects? Enough()
+        while (true)
         {
             var found = Sightings(run, step, token);
-            return SearchHits.Choose(run, found, step) is { } match
-                ? new FoundObjects(found, match)
-                : null;
-        }
+            if (SearchHits.Choose(run, found, step) is { } match)
+            {
+                return new FoundObjects(found, match);
+            }
 
-        return await Pacing.WaitForValueAsync(Enough, interval, token)
-            ?? throw new StepFailure(RunKeys.DetectNotFound, SearchHits.Looking(run, step));
+            await run.Reads.WaitForScreen(token);
+        }
     }
 
     /// <summary>Looks once and writes where the thing was, or an empty value when it was not there.</summary>

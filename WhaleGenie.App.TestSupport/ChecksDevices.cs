@@ -202,6 +202,13 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public ICaptureChoice Capture => NullDeviceLayer.Instance.Capture;
 
+    /// <summary>
+    /// The pictures this pretend machine has in hand. A check gets its own rather than the ones the
+    /// program is running with, so one check's beat and one check's kept picture cannot be read by
+    /// another.
+    /// </summary>
+    public FrameShelf Frames { get; } = new();
+
     public IScreenDevice Screen { get; set; } = NullDeviceLayer.Instance.Screen;
 
     public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;

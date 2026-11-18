@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -260,8 +259,8 @@ internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables,
             : devices.Capture.ForWindow();
 
         var source = window?.Handle ?? 0;
-        var age = Math.Max(0, devices.Frames.CacheMilliseconds);
-        if (age == 0)
+        var age = devices.Frames.CacheMilliseconds;
+        if (age <= 0)
         {
             // Nothing already taken is old enough to do, so the rectangle asked for is the rectangle
             // read: this is the reading a macro has always done, at the cost it has always had.
@@ -271,36 +270,27 @@ internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables,
             return exact;
         }
 
-        var key = Reused(source, method);
-        var now = Stopwatch.GetTimestamp();
-        if (run.Frames.TryGetValue(key, out var kept)
-            && Stopwatch.GetElapsedTime(kept.TakenAt, now).TotalMilliseconds <= age
+        if (devices.Frames.Recall(source, method, age, out var kept)
             && Covers(kept.Frame, kept.Origin, x, y, width, height))
         {
             Taken(window, kept.Method);
             return Cut(kept.Frame, kept.Origin, x, y, width, height, kept.Method);
         }
 
-        // The whole of what the step is reading, so that the next step wanting another part of it
-        // is served without reading the screen again: asking for one rectangle costs more than that
-        // rectangle, and asking for the whole source is what makes the next look free.
-        var whole = Whole(method, window);
-        run.Frames[key] = (whole.Frame, whole.Origin, whole.Method, now);
-        Taken(window, whole.Method);
-        return Cut(whole.Frame, whole.Origin, x, y, width, height, whole.Method);
-    }
+        // The whole of what the step is reading, so that the other regions of the same step — and
+        // the look after it — are served without reading the screen again: asking for one rectangle
+        // costs more than that rectangle, and asking for the whole source is what makes the next
+        // look free. A picture kept for less than one beat can only serve a look taken at the same
+        // moment, so a short keep reads the rectangle asked for instead of paying for a whole screen
+        // it would never hand out again.
+        var taken = age >= FrameGap()
+            ? Whole(method, window)
+            : devices.Screen.Capture(new ScreenCaptureRequest(x, y, width, height, method, source));
 
-    /// <summary>
-    /// Which pictures are worth keeping for a second look: one to each source, one to each way of
-    /// reading it. Two steps reading the same window the same way see the same picture, and a step
-    /// reading it another way gets its own — a window copied off the screen and a window read as the
-    /// window itself shows it are not the same pixels. What is keyed on is the way that was asked
-    /// for rather than the one that came back, because the next step has to look its picture up
-    /// before anything is read: the automatic choice is a question, and this machine answers it the
-    /// same way twice in a run.
-    /// </summary>
-    private static (long Source, CaptureWay Method) Reused(long source, CaptureWay method)
-        => (source, method);
+        devices.Frames.Keep(source, method, taken);
+        Taken(window, taken.Method);
+        return Cut(taken.Frame, taken.Origin, x, y, width, height, taken.Method);
+    }
 
     /// <summary>The whole of what a step reads from: the window, or the screen.</summary>
     private ScreenShot Whole(CaptureWay method, WindowInfo? window)
@@ -356,30 +346,28 @@ internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables,
     }
 
     /// <summary>
-    /// Notes what the picture a step is about to be given was taken of, and when. Every look passes
-    /// through here, whether it read the screen or reused a picture, so this is also the run's own
-    /// clock: the next look is measured from it, and a step that waits its beat out keeps the same
-    /// clock as one that looks once.
+    /// Notes what the picture a step is about to be given was taken of. Every look passes through
+    /// here, whether it read the screen or read a picture already in hand, so a step that came out
+    /// wrong can be asked what it was really looking at.
     /// </summary>
     private void Taken(WindowInfo? window, CaptureWay method)
     {
         here.TakenWindow = window?.Title ?? string.Empty;
         here.TakenMethod = method;
-        run.LastFrame = Stopwatch.GetTimestamp();
     }
 
     /// <summary>Tells whoever is watching which window the next picture comes out of.</summary>
     private void Reading(WindowInfo? window) => looks?.Reading(window);
 
     /// <summary>
-    /// Waits out however much of the run's frame gap is left and notes the look. Every step that
-    /// reads the screen comes through here, so the beat is the run's rather than a step's: a step is
-    /// held to it whichever way it reads, and ten steps in one loop share it instead of each taking
-    /// a picture of their own.
+    /// Waits for this look's turn. Every step that reads the screen comes through here, so the beat
+    /// is neither a step's nor a run's but the machine's: ten steps in one loop — or ten macros
+    /// recognising pictures at the same moment — share it instead of each taking a picture of its
+    /// own.
     /// </summary>
     public async Task Gate(CancellationToken token)
     {
-        var left = Until();
+        var left = devices.Frames.Turn(FrameGap());
         if (left > 0)
         {
             await Pacing.Pause(left, token);
@@ -387,24 +375,10 @@ internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables,
     }
 
     /// <summary>
-    /// How long the run still has to wait before it may take another picture: nothing when it has
-    /// never taken one, or when the policy leaves no gap at all.
-    /// </summary>
-    private int Until()
-    {
-        if (run.LastFrame == 0)
-        {
-            return 0;
-        }
-
-        return Math.Max(0, FrameGap() - (int)Stopwatch.GetElapsedTime(run.LastFrame).TotalMilliseconds);
-    }
-
-    /// <summary>
-    /// The shortest wait the run keeps between two pictures, from what the settings window stores:
-    /// the cap the person set, or the display's own rate when that cap is absent or higher. A
-    /// picture that has not been drawn again cannot differ from the one already read, so anything
-    /// above the display's rate would only read the same frame twice at the cost of reading it.
+    /// The shortest wait between two looks, from what the settings window stores: the cap the person
+    /// set, or the display's own rate when that cap is absent or higher. A picture that has not been
+    /// drawn again cannot differ from the one already read, so anything above the display's rate
+    /// would only read the same frame twice at the cost of reading it.
     /// </summary>
     public int FrameGap()
     {
@@ -623,15 +597,6 @@ internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables,
 
         return (new ImageFrame(width, height, pixels), new ScreenPoint(left, top));
     }
-
-    /// <summary>
-    /// The beat between two looks at the screen, from the display's own rate or the cap the person
-    /// set. A picture that has not been drawn again cannot differ from the one just read, so a look
-    /// that comes sooner reads the same frame twice. The beat is the run's rather than the step's,
-    /// because a loop of ten vision steps was taking ten pictures a pass of a screen that cannot
-    /// change between them.
-    /// </summary>
-    public int LookBeat() => FrameGap();
 
     /// <summary>
     /// The colour of one pixel. A pixel the step counts from the screen is read straight off the

@@ -125,9 +125,11 @@ internal static class ColourActions
 
         // The corner is looked up again on every check, so a wait that watches a window keeps
         // watching the same spot inside it even if the window is moved while the macro waits.
-        var interval = run.Reads.Beat();
-        await Pacing.WaitForFlagAsync(
-            () => Reading(run, step).Matches(target, tolerance), interval, token);
+        while (!Reading(run, step).Matches(target, tolerance))
+        {
+            await run.Reads.WaitForScreen(token);
+        }
+
         var (point, window) = run.Shots.Spot(step);
         run.Points.GivePointAt(step, point, window);
         run.Shots.SawPixel(step, point, target.ToHex(), window);
@@ -259,7 +261,6 @@ internal static class ColourActions
         var target = PixelColor.Parse(args.ValueOf("color").AsText());
         var tolerance = args.ValueOf("tolerance").AsNumber();
         var least = args.ValueOf("minCoverage").AsNumber() / 100;
-        var interval = run.Reads.Beat();
 
         // Enough of the region showing the colour is not the same question as the hit the step
         // asked for being there: a step that asks for the second hit of a colour that is in one
@@ -273,9 +274,13 @@ internal static class ColourActions
                 : null;
         }
 
-        var found = await Pacing.WaitForValueAsync(Present, interval, token)
-                    ?? throw new StepFailure(RunKeys.ColourNotFound, target.ToHex());
-        var match = SearchHits.Choose(run, found.Hits, step)!;
+        ColourPass? present;
+        while ((present = Present()) is null)
+        {
+            await run.Reads.WaitForScreen(token);
+        }
+
+        var match = SearchHits.Choose(run, present.Hits, step)!;
 
         // The click aims at the middle of what was found, moved by the offset the step gives, so a
         // click can land beside the colour it recognised rather than on it.
@@ -286,7 +291,7 @@ internal static class ColourActions
         // Where it was found and everywhere it was found, as the searching action hands them over:
         // a step that clicks something is also a step whose position a later one may want.
         run.GiveMatch(step, match.Location, match.Size, match.Score);
-        run.GiveEvery(step, HitRecord.Each(found.Hits));
+        run.GiveEvery(step, HitRecord.Each(present.Hits));
 
         run.Reads.ClickAt(step, at);
         run.Log(LogLevel.Info, depth, step.Type, LogKeys.ClickedColour, at.X, at.Y);

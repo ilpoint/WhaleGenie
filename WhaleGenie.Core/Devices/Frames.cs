@@ -1,5 +1,8 @@
 using System;
-using System.Globalization;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using WhaleGenie.GraphicsCapture;
 
 
@@ -116,44 +119,149 @@ public sealed class CaptureChoice : ICaptureChoice
 }
 
 /// <summary>
-/// How often the screen may be read, and how long a picture that was already read stays worth
-/// reading again. Both answers are about the machine rather than about a step: a display cannot
-/// draw anything new faster than it refreshes, so a second look inside one refresh reads the same
-/// picture twice, and a macro that looks at the same window several times in a row is served by
-/// the picture it already has.
+/// The pictures this machine hands out: how often it will hand one over, how long one already
+/// handed over stays worth reading again, and the last picture it took of each thing it reads.
+/// Every run shares it, because there is one screen — two macros recognising pictures at the same
+/// moment are looking at the same picture, and a ceiling on what the machine hands out is not one
+/// each run gets for itself.
 /// </summary>
-public interface IFramePolicy
+/// <remarks>
+/// Like <see cref="CaptureChoice"/> it lives here rather than in the settings file, which the engine
+/// cannot read: the interface hands the answers over once at start-up and again whenever they
+/// change, and a run picks a change up at its next look.
+/// </remarks>
+public sealed class FrameShelf
 {
+    /// <summary>The pictures this machine is running with.</summary>
+    public static FrameShelf Current { get; } = new();
+
     /// <summary>
-    /// How long a picture that was taken stays worth reusing, in milliseconds. Zero means every
-    /// look takes a fresh one. Anything longer is a deliberate trade: the frame is read again
+    /// How many things are kept pictures of at once. Reuse pays only when a look comes back to
+    /// something it has just read, and a macro walking through more windows than this inside one
+    /// keep gains nothing from a picture held for it — while each one is a whole screen's worth of
+    /// memory, held for a second at most.
+    /// </summary>
+    private const int Kept = 4;
+
+    private readonly Lock _gate = new();
+
+    /// <summary>The last picture of each source, under the way it was read.</summary>
+    private readonly Dictionary<(long Source, CaptureWay Method), (ScreenShot Shot, long Taken)>
+        _kept = [];
+
+    /// <summary>When the last look was allowed, which is what the next one is measured from.</summary>
+    private long _turn;
+
+    /// <summary>Whether <see cref="_turn"/> means anything yet.</summary>
+    private bool _turned;
+
+    private int _cache;
+
+    /// <summary>
+    /// How long a picture that was taken stays worth reading again, in milliseconds. Zero means
+    /// every look takes a fresh one. Anything longer is a deliberate trade: the frame is read again
     /// instead of taken again, so a run spends less on capturing and matching, and a step can be
     /// handed a picture of the screen as it was that many milliseconds ago.
     /// </summary>
-    int CacheMilliseconds { get; }
+    public int CacheMilliseconds
+    {
+        get => _cache;
+        set
+        {
+            _cache = Math.Max(0, value);
+            if (_cache > 0)
+            {
+                return;
+            }
+
+            // Nothing in hand may be read any more, and a picture of a whole screen is worth letting
+            // go of now rather than holding until some later look happens to replace it.
+            lock (_gate)
+            {
+                _kept.Clear();
+            }
+        }
+    }
 
     /// <summary>
-    /// The most pictures a second the run asks for. Zero, or anything at or above the display's
+    /// The most pictures a second the machine hands out. Zero, or anything at or above the display's
     /// own rate, means the display's rate: asking for more only reads the same frame twice.
     /// </summary>
-    int MaxFramesPerSecond { get; }
-}
-
-/// <summary>
-/// The frame policy the program is running with. Like <see cref="CaptureChoice"/> it lives here
-/// because the engine cannot read the settings file: the interface hands the answers over once at
-/// start-up and again whenever they change, and a run picks a change up at its next look.
-/// </summary>
-public sealed class FramePolicy : IFramePolicy
-{
-    /// <summary>The policy this machine's screen is read with.</summary>
-    public static FramePolicy Current { get; } = new();
-
-    /// <summary>How long a taken picture is reused, zero when every look takes a fresh one.</summary>
-    public int CacheMilliseconds { get; set; }
-
-    /// <summary>The most pictures a second, zero to follow the display's own rate.</summary>
     public int MaxFramesPerSecond { get; set; }
+
+    /// <summary>
+    /// How long a look waits for its turn, in milliseconds, and the booking that keeps two runs from
+    /// taking the same turn: a look that asks while another is waiting is given the turn after it.
+    /// That is what makes the ceiling the machine's — several macros recognising pictures at once
+    /// take one look each in turn rather than each taking a ceiling's worth.
+    /// </summary>
+    public int Turn(int gap)
+    {
+        lock (_gate)
+        {
+            var now = Stopwatch.GetTimestamp();
+            if (!_turned || now >= _turn)
+            {
+                _turned = true;
+                _turn = now + Ticks(gap);
+                return 0;
+            }
+
+            var left = _turn - now;
+            _turn += Ticks(gap);
+            return Math.Max(1, (int)Math.Ceiling(Milliseconds(left)));
+        }
+    }
+
+    /// <summary>
+    /// The picture in hand of one source, when it was taken no longer ago than
+    /// <paramref name="age"/>. A picture older than that is dropped rather than kept for a look
+    /// that could not use it.
+    /// </summary>
+    public bool Recall(long source, CaptureWay method, int age, out ScreenShot kept)
+    {
+        var key = (source, method);
+        lock (_gate)
+        {
+            kept = default;
+            if (!_kept.TryGetValue(key, out var picture))
+            {
+                return false;
+            }
+
+            if (Stopwatch.GetElapsedTime(picture.Taken).TotalMilliseconds > age)
+            {
+                _kept.Remove(key);
+                return false;
+            }
+
+            kept = picture.Shot;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Keeps one picture for the look after this one. The oldest is let go when the shelf is full,
+    /// so a macro reading one thing after another cannot grow it without a ceiling.
+    /// </summary>
+    public void Keep(long source, CaptureWay method, ScreenShot shot)
+    {
+        lock (_gate)
+        {
+            _kept[(source, method)] = (shot, Stopwatch.GetTimestamp());
+            while (_kept.Count > Kept)
+            {
+                _kept.Remove(_kept.MinBy(picture => picture.Value.Taken).Key);
+            }
+        }
+    }
+
+    /// <summary>One gap of milliseconds in the clock's own ticks.</summary>
+    private static long Ticks(int milliseconds)
+        => milliseconds <= 0 ? 0 : (long)milliseconds * Stopwatch.Frequency / 1000;
+
+    /// <summary>The same gap read back, for a caller that waits in milliseconds.</summary>
+    private static double Milliseconds(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
 }
 
 /// <summary>

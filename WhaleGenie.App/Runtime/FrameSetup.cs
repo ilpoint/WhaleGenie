@@ -5,10 +5,11 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Runtime;
 
 /// <summary>
-/// Keeps the engine's idea of how often this machine may hand over a picture in step with what the
-/// settings window stores. The engine cannot read the settings file, so the two answers are handed
-/// over here: once when the program starts, and again whenever they change. A macro that is running
-/// picks a change up at its next look.
+/// Keeps the engine's idea of how often this machine may hand over a picture — and of how long one
+/// it has handed over stays worth reading again — in step with what the settings window stores. The
+/// engine cannot read the settings file, so the two answers are handed over here: once when the
+/// program starts, and again whenever they change. A macro that is running picks a change up at its
+/// next look.
 /// </summary>
 public static class FrameSetup
 {
@@ -16,11 +17,12 @@ public static class FrameSetup
     public static void Load()
     {
         var hertz = SharedDevices.Current.Screen.RefreshHertz;
-        FramePolicy.Current.MaxFramesPerSecond = LocalSettings.LoadFrameRateFollow()
+        FrameShelf.Current.MaxFramesPerSecond = LocalSettings.LoadFrameRateFollow()
             ? 0
-            : Math.Min(LocalSettings.LoadFrameRate(), hertz);
-        FramePolicy.Current.CacheMilliseconds =
-            LocalSettings.LoadFrameCache() ? LocalSettings.LoadFrameCacheAge() : 0;
+            : Math.Clamp(LocalSettings.LoadFrameRate(), 1, hertz);
+        FrameShelf.Current.CacheMilliseconds = LocalSettings.LoadFrameCache()
+            ? Math.Clamp(LocalSettings.LoadFrameCacheAge(), 0, LocalSettings.FrameCacheOldest)
+            : 0;
     }
 
     /// <summary>
@@ -40,7 +42,7 @@ public static class FrameSetup
             LocalSettings.StoreFrameRate(rate);
         }
 
-        FramePolicy.Current.MaxFramesPerSecond = followDisplay ? 0 : rate;
+        FrameShelf.Current.MaxFramesPerSecond = followDisplay ? 0 : rate;
     }
 
     /// <summary>Stores whether a picture may be read again, and how old it may be.</summary>
@@ -49,6 +51,6 @@ public static class FrameSetup
         var age = Math.Clamp(milliseconds, 0, LocalSettings.FrameCacheOldest);
         LocalSettings.StoreFrameCache(reuse);
         LocalSettings.StoreFrameCacheAge(age);
-        FramePolicy.Current.CacheMilliseconds = reuse ? age : 0;
+        FrameShelf.Current.CacheMilliseconds = reuse ? age : 0;
     }
 }

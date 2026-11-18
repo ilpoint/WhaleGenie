@@ -23,25 +23,6 @@ internal sealed class RunState
     public Dictionary<string, ImageFrame> Images { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// The last picture taken of each source, kept for as long as the frame policy says a picture
-    /// stays worth reading. A macro that looks at the same window several times in a row then reads
-    /// it once, which is what a budget of looks is really about. It lives for one run: what a macro
-    /// sees is what it saw while it was running, and the next run starts by looking again.
-    /// </summary>
-    public Dictionary<(long Source, CaptureWay Method),
-        (ImageFrame Frame, ScreenPoint Origin, CaptureWay Method, long TakenAt)> Frames
-    { get; } = [];
-
-    /// <summary>
-    /// When this run last took a picture, which is the one clock every look at the screen is held
-    /// to. It is the run's clock rather than a step's: a display cannot draw anything new faster
-    /// than it refreshes, so two steps reading it inside one refresh spend the second read on the
-    /// same pixels. A run that is started again begins by looking, which is why it is emptied at
-    /// the start rather than kept beside the runner.
-    /// </summary>
-    public long LastFrame { get; set; }
-
-    /// <summary>
     /// The steps this run has already been told yes to, by the identity written into the file. A
     /// loop that repeats a step a hundred times asks once: the question is about the step, not about
     /// this time round. A run that is started again asks again, which is why the set is emptied at
@@ -176,7 +157,6 @@ internal sealed class RunState
         Switches = 0;
         BrowserHolds = 0;
         InputHolds = 0;
-        LastFrame = 0;
         LocalGrowthWarned = false;
         StoppedInsideScript = false;
         ReturnedInsideScript = false;
@@ -187,7 +167,6 @@ internal sealed class RunState
         Cleanup = null;
 
         Images.Clear();
-        Frames.Clear();
         Agreed.Clear();
         Log.Clear();
         HeldKeys.Clear();

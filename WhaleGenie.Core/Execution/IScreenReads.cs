@@ -29,7 +29,11 @@ internal interface IScreenReads
     (List<TextSpan> Hits, int Chosen) Counting(ExecutableStep step,
         IReadOnlyList<TextSpan> readings, string wanted, string mode);
 
-    /// <summary>Waits out the run's frame gap, so two looks do not read the same frame twice.</summary>
+    /// <summary>
+    /// Waits for the machine's next turn to be looked at, so two looks — of one macro or of two —
+    /// do not read the same frame twice, and no more looks a second are taken than the machine was
+    /// asked for.
+    /// </summary>
     Task WaitForScreen(CancellationToken token);
 
     /// <summary>Runs a look and hands what it saw to whoever is watching.</summary>
@@ -52,7 +56,4 @@ internal interface IScreenReads
 
     /// <summary>Clicks where a step just worked out, and marks it on the look it came from.</summary>
     void ClickAt(ExecutableStep step, ScreenPoint at);
-
-    /// <summary>The beat between two looks at the screen.</summary>
-    int Beat();
 }
