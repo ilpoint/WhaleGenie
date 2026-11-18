@@ -281,7 +281,8 @@ public partial class DeviceActionTests
 
     /// <summary>
     /// The surest place is not always the first one in reading order, so a step that wants the one
-    /// that looks most like the picture has to be able to ask for it.
+    /// that looks most like the picture asks for the weighted score: a picture search finds every
+    /// box at the reference picture's own size, so that score is the likeness alone.
     /// </summary>
     [Fact]
     public async Task The_surest_picture_can_be_the_one_taken()
@@ -293,7 +294,7 @@ public partial class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "score"),
+            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "combined"),
                 Hit("match", "where", every: true)),
         ], devices);
 
@@ -302,8 +303,9 @@ public partial class DeviceActionTests
     }
 
     /// <summary>
-    /// Looked for by features a picture comes back at whatever size it was drawn at, so the biggest
-    /// box is how a step says "the whole banner, not a piece of it".
+    /// Looked for by features a picture comes back at whatever size it was drawn at, so weighing the
+    /// size alone is how a step says "the whole banner, not a piece of it": a share of 0 leaves the
+    /// likeness out of the weighted score.
     /// </summary>
     [Fact]
     public async Task The_biggest_picture_can_be_the_one_taken()
@@ -315,8 +317,8 @@ public partial class DeviceActionTests
 
         var (_, _, store) = await RunAsync(
         [
-            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "area"),
-                Hit("match", "where", every: true)),
+            Step("vision.findImage", Pictures("ok.png"), Param("orderBy", "combined"),
+                Param("scoreWeight", "0"), Hit("match", "where", every: true)),
         ], devices);
 
         Assert.Equal("70,30", Centre(store, "where"));

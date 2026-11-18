@@ -46,11 +46,18 @@ public enum MatchAlgorithm
     Feature,
 }
 
-/// <summary>What order the hits are handed back in, which is what "the third one" means.</summary>
+/// <summary>
+/// What order the hits are counted in, which is what "the third one" means. Which of these a step
+/// is offered is the catalogue's answer rather than this list's: a pixel hit has no size to weigh,
+/// and writing read off the screen is counted the way the model read it.
+/// </summary>
 public enum MatchOrder
 {
-    /// <summary>Down the screen first and then across, the order a person counts them in.</summary>
+    /// <summary>Across each line from the left, lines from the top, the order a person counts them in.</summary>
     Reading,
+
+    /// <summary>The same reading, from the right of the area to the left.</summary>
+    ReadingBack,
 
     /// <summary>
     /// The same reading, from the bottom of the area upwards. A list of things stacked against the
@@ -58,19 +65,29 @@ public enum MatchOrder
     /// </summary>
     ReadingUp,
 
-    /// <summary>The same reading, from the right of the area to the left.</summary>
-    ReadingBack,
-
     /// <summary>From the bottom right corner of the area to the top left, the way round that is left.</summary>
     ReadingBackUp,
 
-    /// <summary>The surest first, wherever on the screen it is.</summary>
+    /// <summary>
+    /// A weighted score of how alike a hit is and how big its box is, which is one answer rather
+    /// than "the surest" and "the biggest" pulling against each other. A picture search weighs in
+    /// only its likeness: every box it finds is the reference picture's own size.
+    /// </summary>
+    Combined,
+
+    /// <summary>
+    /// The one nearest a point on the screen — the step's own specified point, or the middle of
+    /// what it searched. The point is re-read on every look, so it can follow whatever the macro
+    /// wrote there.
+    /// </summary>
+    Near,
+
+    /// <summary>The surest first, wherever on the screen it is. Kept for the hit kinds that have no box to weigh.</summary>
     Score,
 
     /// <summary>
-    /// The biggest box first. A picture looked for by features comes back at whatever size it was
-    /// drawn at, and a reading of writing can be a whole line or one word, so the biggest one is
-    /// how a step says "the whole banner, not a piece of it".
+    /// The biggest box first. A reading of writing can be a whole line or one word, so the biggest
+    /// one is how a step says "the whole banner, not a piece of it".
     /// </summary>
     Area,
 
@@ -80,14 +97,51 @@ public enum MatchOrder
     Random,
 }
 
-/// <summary>One search asked for: how it is done, how sure it has to be, and what to leave out.</summary>
+/// <summary>
+/// How a search walks the places it considers, which is what decides which hits come back at all:
+/// a step that wants the third one in reading order cannot be answered by a search that hands over
+/// the three surest and leaves the re-ordering to the caller. The four directions and a point are
+/// walked by the device itself; everything else is the search's own order — surest first — which
+/// the caller then sorts.
+/// </summary>
+public enum SearchWalk
+{
+    /// <summary>The search's own order: the surest places first, wherever they are.</summary>
+    Score,
+
+    /// <summary>Across each line from the left, lines from the top.</summary>
+    Reading,
+
+    /// <summary>Across each line from the right, lines from the top.</summary>
+    ReadingBack,
+
+    /// <summary>Across each line from the left, lines from the bottom.</summary>
+    ReadingUp,
+
+    /// <summary>Across each line from the right, lines from the bottom.</summary>
+    ReadingBackUp,
+
+    /// <summary>However far from <see cref="VisionQuery.Near"/> each place is, nearest first.</summary>
+    Near,
+}
+
+/// <summary>
+/// One search asked for: how it is done, how sure it has to be, what to leave out, and which way
+/// round the places are walked.
+/// </summary>
+/// <remarks>
+/// <see cref="Limit"/> counts the answers in the walk's own order rather than the surest ones:
+/// asking for three of them down the screen is three, not the three best sorted afterwards.
+/// </remarks>
 public sealed record VisionQuery(
     MatchAlgorithm Algorithm = MatchAlgorithm.Normed,
     double ConfidencePercent = 90,
     int MinFeatures = 6,
     PixelColor? Transparent = null,
     int Limit = 1,
-    double TolerancePercent = 0);
+    double TolerancePercent = 0,
+    SearchWalk Walk = SearchWalk.Score,
+    ScreenPoint Near = default);
 
 /// <summary>
 /// One run of a detection model over a region: how sure a guess has to be, how many pixels of the

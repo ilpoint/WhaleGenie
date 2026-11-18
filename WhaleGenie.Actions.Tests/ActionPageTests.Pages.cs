@@ -56,7 +56,7 @@ public partial class ActionPageTests
     /// </summary>
     private static readonly string[] Tuning =
     [
-        "minFeatures", "transparentColor", "matchIndex", "orderBy",
+        "minFeatures", "transparentColor", "matchIndex", "orderBy", "nearX", "nearY", "scoreWeight",
         "style",
         "preprocess", "colorFilter", "colorTolerance", "fixText",
         "expected", "minScore", "contentPattern", "encoding", "outputEncoding", "lineEnding", "quoteAll",

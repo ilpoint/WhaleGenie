@@ -1621,8 +1621,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Group.point.hint"] =
             "The point to look at: take it from the pointer, or write where it is.",
         ["Add.Group.colour.hint"] = "The colour to look for, and how far off it may be.",
-        ["Add.Group.found.hint"] =
-            "What counts as found: which of the hits to act on, and whether missing is a failure.",
+        ["Add.Group.found.hint"] = "What counts as found: which order the hits are counted in, "
+            + "which of them to act on, and whether missing is a failure.",
         ["Add.Group.press.hint"] =
             "How it is pressed: which button, how many times, and the gap between down and up.",
         ["Add.Group.keys.hint"] = "The keys or combinations to send, in this order.",
@@ -4127,7 +4127,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.Group.area.hint"] = "这一步在屏幕的哪一块里看。可以是一处，也可以几处；一处都不写就是整块屏幕，命名了窗口时是它的整个客户区。区域与坐标都从这一基准的左上角算起。",
         ["Add.Group.point.hint"] = "要看的那一点落在哪儿：从指针取，或者直接写出来。",
         ["Add.Group.colour.hint"] = "要找的颜色，以及允许偏多少。",
-        ["Add.Group.found.hint"] = "什么算找到：几处里取第几处，找不到时算不算失败。",
+        ["Add.Group.found.hint"] = "什么算找到：按哪一列数、取第几处，找不到时算不算失败。",
         ["Add.Group.press.hint"] = "这一下怎么按：哪个键、按几次、按下与抬起之间隔多久。",
         ["Add.Group.keys.hint"] = "要发的键或组合键，按这个顺序发。",
         ["Add.Group.sender.hint"] = "输入发给谁、怎么发：前台窗口、后台消息，还是驱动级。",

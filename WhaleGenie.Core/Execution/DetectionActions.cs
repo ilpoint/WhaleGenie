@@ -54,6 +54,7 @@ internal static class DetectionActions
         var model = SearchHits.ModelOf(run, step);
         var query = Query(run, step);
         var areas = run.Reads.Areas(step);
+        var order = HitOrder.Of(run.Args(step), () => run.Points.AnchorOf(step).Corner, areas);
         var found = new List<Sighting>();
         foreach (var (area, origin) in areas)
         {
@@ -72,7 +73,10 @@ internal static class DetectionActions
             }
         }
 
-        SearchHits.Sort(found, step);
+        // Every box the model drew is in hand by now, so the order is worked out over the whole
+        // set: the weighted score and the distance both ask about places the model did not put
+        // first, which is why the query above asks for all of them.
+        HitSort.Sort(found, order);
         SawDetections(run, step, areas, found);
         return found;
     }

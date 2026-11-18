@@ -5,7 +5,7 @@ using OpenCvSharp;
 namespace WhaleGenie.Platform.Windows;
 
 /// <summary>Looks for a reference picture on screen, either pixel for pixel or by its features.</summary>
-public sealed class OpenCvVisionDevice : IVisionDevice
+public sealed partial class OpenCvVisionDevice : IVisionDevice
 {
     /// <summary>
     /// How much better one pair of features has to be than the next best pair for the same feature
@@ -59,26 +59,24 @@ public sealed class OpenCvVisionDevice : IVisionDevice
     }
 
     /// <summary>
-    /// Looks for the reference picture by comparing the two pictures pixel for pixel, and reports
-    /// every place it was found. The whole map of scores is worked out once, and then the best
-    /// place is taken out of it and the next best is read off the same map: a reference picture the
-    /// size of the area cannot overlap itself, so blanking the patch a hit covers is enough to move
-    /// on to a different place.
+    /// Looks for the reference picture by comparing the two pictures pixel for pixel. The whole map
+    /// of scores is worked out once; which places are handed over and in which order is the walk
+    /// the step asked for, because the same map answers "the surest", "the third one down the
+    /// screen" and "the nearest one" — and the last two cannot be answered by taking the surest
+    /// few first and sorting them afterwards.
     /// </summary>
     private static List<ImageMatch> ByTemplate(ImageFrame haystack, ImageFrame needle,
         VisionQuery query)
     {
-        var found = new List<ImageMatch>();
         using (var hay = Bgr(haystack))
         using (var pin = Bgr(needle))
         {
             if (pin.Width > hay.Width || pin.Height > hay.Height)
             {
-                return found;
+                return [];
             }
 
             using var result = new Mat();
-            var exact = query.Algorithm is MatchAlgorithm.Difference;
             if (query.Transparent is { } transparent)
             {
                 using var mask = Mask(needle, transparent, query.TolerancePercent);
@@ -90,25 +88,13 @@ public sealed class OpenCvVisionDevice : IVisionDevice
             }
 
             var size = new ScreenSize(pin.Width, pin.Height);
-            while (found.Count < query.Limit)
+            return query.Walk switch
             {
-                Cv2.MinMaxLoc(result, out var low, out var high, out var lowAt, out var highAt);
-
-                // A square difference is the distance between the pictures rather than how alike
-                // they are: the smallest one is the best, and it is read out the other way round so
-                // that a macro's confidence means "bigger is surer" whichever way was chosen.
-                var where = exact ? lowAt : highAt;
-                var score = exact ? 1 - low : Math.Clamp(high, -1, 1);
-                if (score * 100 < query.ConfidencePercent)
-                {
-                    break;
-                }
-
-                found.Add(new ImageMatch(score, new ScreenPoint(where.X, where.Y), size));
-                Suppress(result, where, pin.Width, pin.Height);
-            }
-
-            return found;
+                SearchWalk.Reading or SearchWalk.ReadingBack or SearchWalk.ReadingUp
+                    or SearchWalk.ReadingBackUp => ByDirection(result, query, size),
+                SearchWalk.Near => ByNearest(result, query, size),
+                _ => ByScore(result, query, size),
+            };
         }
     }
 
@@ -255,16 +241,21 @@ public sealed class OpenCvVisionDevice : IVisionDevice
         return gray;
     }
 
-    /// <summary>Blanks out the patch one hit covers, so the next look lands somewhere else.</summary>
-    private static void Suppress(Mat result, Point where, int width, int height)
+    /// <summary>
+    /// Blanks out the patch one hit covers, so the next look lands somewhere else. What is written
+    /// is outside what the comparing can produce on either side: a square difference reads its
+    /// smallest place as the best, so a patch marked the way a correlation marks it would be read
+    /// as the best place in the area and found again for ever.
+    /// </summary>
+    private static void Suppress(Mat result, Point where, ScreenSize size, bool exact)
     {
         var left = Math.Clamp(where.X, 0, result.Width - 1);
         var top = Math.Clamp(where.Y, 0, result.Height - 1);
-        var right = Math.Clamp(where.X + width, left + 1, result.Width);
-        var bottom = Math.Clamp(where.Y + height, top + 1, result.Height);
+        var right = Math.Clamp(where.X + size.Width, left + 1, result.Width);
+        var bottom = Math.Clamp(where.Y + size.Height, top + 1, result.Height);
 
         using var patch = new Mat(result, new Rect(left, top, right - left, bottom - top));
-        patch.SetTo(new Scalar(-1));
+        patch.SetTo(new Scalar(exact ? float.MaxValue : float.MinValue));
     }
 
     /// <summary>

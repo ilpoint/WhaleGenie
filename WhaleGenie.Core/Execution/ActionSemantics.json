@@ -8820,10 +8820,40 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "area",
+          "readingBack",
+          "readingUp",
+          "readingBackUp",
+          "combined",
+          "near",
+          "centre",
           "random"
         ],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearX",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearY",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
         "ChildKeys": []
       },
       {
@@ -9212,10 +9242,40 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "area",
+          "readingBack",
+          "readingUp",
+          "readingBackUp",
+          "combined",
+          "near",
+          "centre",
           "random"
         ],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearX",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearY",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
         "ChildKeys": []
       },
       {
@@ -9598,10 +9658,40 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "area",
+          "readingBack",
+          "readingUp",
+          "readingBackUp",
+          "combined",
+          "near",
+          "centre",
           "random"
         ],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearX",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearY",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
         "ChildKeys": []
       },
       {
@@ -11704,10 +11794,55 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "area",
+          "readingBack",
+          "readingUp",
+          "readingBackUp",
+          "combined",
+          "near",
+          "centre",
           "random"
         ],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearX",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearY",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "scoreWeight",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "Minimum": 0,
+        "Maximum": 100,
+        "EmptyMeans": "Unset",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "50",
+        "Options": [],
         "ChildKeys": []
       },
       {
@@ -12068,10 +12203,55 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "area",
+          "readingBack",
+          "readingUp",
+          "readingBackUp",
+          "combined",
+          "near",
+          "centre",
           "random"
         ],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearX",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearY",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "scoreWeight",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "Minimum": 0,
+        "Maximum": 100,
+        "EmptyMeans": "Unset",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "50",
+        "Options": [],
         "ChildKeys": []
       },
       {
@@ -12426,10 +12606,55 @@
         "DefaultValue": "reading",
         "Options": [
           "reading",
-          "score",
-          "area",
+          "readingBack",
+          "readingUp",
+          "readingBackUp",
+          "combined",
+          "near",
+          "centre",
           "random"
         ],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearX",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "nearY",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Pixels",
+        "EmptyMeans": "Zero",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "0",
+        "Options": [],
+        "ChildKeys": []
+      },
+      {
+        "Name": "scoreWeight",
+        "Group": "found",
+        "Shape": "Number",
+        "Unit": "Percent",
+        "Minimum": 0,
+        "Maximum": 100,
+        "EmptyMeans": "Unset",
+        "ValueForm": "Value",
+        "Picker": "None",
+        "Required": true,
+        "DefaultValue": "50",
+        "Options": [],
         "ChildKeys": []
       },
       {

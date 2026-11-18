@@ -110,24 +110,27 @@ public partial class ActionDialogTests
     }
 
     /// <summary>
-    /// A colour is found one pixel at a time, so every hit a colour search reports is the same
-    /// size and asking for "the biggest one" could not change the answer. Offering it would be a
-    /// choice that does nothing.
+    /// 颜色命中都是一像素，尺寸对它们没有意义，所以颜色只有四向的四种数法；找图与检测才有
+    /// 综合评分与两种“离某处最近”，因为它们的命中是一块一块的框。
     /// </summary>
     [Fact]
-    public void A_colour_search_is_not_offered_the_biggest_hit()
+    public void A_colour_search_is_offered_only_the_directions()
     {
         Ui.Run(() =>
         {
             var order = Open("vision.findColor").Parameters
                 .First(parameter => parameter.Definition.Name == "orderBy");
-            // 颜色只有四向搜索的四种数法：两个方向各两个起点，面积对一像素的命中没有意义。
+
             Assert.Equal(["reading", "readingBack", "readingUp", "readingBackUp"],
                 order.Definition.Options);
 
             var picture = Open("vision.findImage").Parameters
                 .First(parameter => parameter.Definition.Name == "orderBy");
-            Assert.Contains("area", picture.Definition.Options);
+
+            Assert.Equal(
+                ["reading", "readingBack", "readingUp", "readingBackUp", "combined", "near",
+                    "centre", "random"],
+                picture.Definition.Options);
         });
     }
 

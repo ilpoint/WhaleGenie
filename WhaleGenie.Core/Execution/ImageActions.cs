@@ -141,8 +141,9 @@ internal static class ImageActions
 
     /// <summary>
     /// Every place the reference picture appears in the search areas, in screen coordinates and in
-    /// reading order: down the screen first, then across. That is the order a person counts them in
-    /// when looking at a screenshot, which is what "the third one" has to mean to be useful.
+    /// the order the step asked to count them in. That order is not one the answer is sorted into
+    /// afterwards: the search itself walks the areas the way the step counts, so "the third one
+    /// down the screen" is the third down the screen rather than the third of the surest three.
     /// Which of the pictures the step listed it goes with is the step's own choice: the first one
     /// that turns up, whichever scored closest, or all of them at once. The hits that come back are
     /// the hits of the one picture the step went with, and "the third one" counts inside it.
@@ -150,8 +151,9 @@ internal static class ImageActions
     internal static List<ImageMatch> Hits(IRunContext run, ExecutableStep step,
         CancellationToken token)
     {
-        var query = SearchQuery(run, step);
         var areas = run.Reads.Areas(step);
+        var order = HitOrder.Of(run.Args(step), () => run.Points.AnchorOf(step).Corner, areas);
+        var query = SearchQuery(run, step, order);
         var wanted = run.Pictures(step);
 
         // One picture, looked for in every area the step named: the places it turned up, in the
@@ -164,7 +166,17 @@ internal static class ImageActions
                 // 匹配是整个宏里最贵的一次同步调用（整屏找图中位数二百毫秒），它中途读不到取消
                 // 令牌；至少在每块区域前后问一次，让「停止」在两块之间就能生效。
                 token.ThrowIfCancellationRequested();
-                foreach (var found in run.Devices.Vision.FindAll(area, wanted[number].Frame, query))
+
+                // A point is given to the search in the area's own pixels, because that is the
+                // picture it is handed; the hits come back moved to the screen below.
+                var asked = order.Kind is MatchOrder.Near
+                    ? query with
+                    {
+                        Near = new ScreenPoint(order.Near.X - origin.X, order.Near.Y - origin.Y),
+                    }
+                    : query;
+
+                foreach (var found in run.Devices.Vision.FindAll(area, wanted[number].Frame, asked))
                 {
                     hits.Add(found with
                     {
@@ -174,7 +186,9 @@ internal static class ImageActions
                 }
             }
 
-            SearchHits.Sort(hits, step);
+            // Each area answered in the step's own order; putting the areas' answers together is
+            // the one sort that is left. Ties fall back to reading order so the count is stable.
+            HitSort.Sort(hits, order);
             return hits;
         }
 
@@ -273,9 +287,9 @@ internal static class ImageActions
 
     /// <summary>
     /// How a step asked for a picture to be looked for: which way, how sure, what to leave out of
-    /// the comparing, and how many hits it wants.
+    /// the comparing, how many places it counts along the way, and which way round it counts them.
     /// </summary>
-    private static VisionQuery SearchQuery(IRunContext run, ExecutableStep step)
+    private static VisionQuery SearchQuery(IRunContext run, ExecutableStep step, HitOrder order)
     {
         var args = run.Args(step);
         var confidence = args.Number("confidence");
@@ -302,9 +316,21 @@ internal static class ImageActions
             confidence,
             features > 0 ? features : 6,
             transparent,
-            SearchHits.Wanted(run, step),
-            args.Number("tolerance"));
+            Wanted(run, step, order),
+            args.Number("tolerance"),
+            order.Walk);
     }
+
+    /// <summary>
+    /// How many places the search is asked for, counted along the way it was asked to walk. The
+    /// search answers in that walk's order, so the number it may stop at is the hit the step counts
+    /// to — except where the whole set is wanted, which is one of the returns or an order that picks
+    /// a place at random from all of them.
+    /// </summary>
+    private static int Wanted(IRunContext run, ExecutableStep step, HitOrder order)
+        => run.Wants(step, "every") || order.Kind is MatchOrder.Random
+            ? RunLimits.Matches
+            : run.Index(step, "matchIndex", 1);
 
     /// <summary>
     /// How a step asked for a picture to be looked for, as written in its field. One field answers

@@ -201,18 +201,40 @@ internal static class ActionStrings
         "只在识别算法选“特征比对”时有效。要配对上多少对特征点才算找到，1–500，越大越严格，"
         + "默认 6。";
 
-    /// <summary>The hint every "what order the hits are counted in" picker shares.</summary>
+    /// <summary>The hint the picture actions share for how their hits are counted.</summary>
     private const string MatchOrderHint =
-        "命中按什么顺序编号，也就是“第几个命中”数的是哪一个，默认阅读顺序。阅读顺序：先向下"
-        + "再向右。分数最高：最像的那一个优先。面积最大：框最大的那一个优先。随机：打乱，"
-        + "用于不希望每次都挑同一个的场景。";
+        "命中按什么顺序编号，也就是「第几个命中」数的是哪一个。默认从左到右、从上到下，另三向从别的角开始数；这一档数位置不数相似度。综合评分：越像越靠前，找图的框同大，只比相似度。离指定点最近按到两格「指定点」的距离数，离画面中心最近从搜索范围中心往外数。同分同距按阅读顺序。随机：打乱。";
+
+    /// <summary>The same for the detection actions, whose boxes differ in size and are weighed in.</summary>
+    private const string MatchOrderDetectHint =
+        "命中按什么顺序编号，也就是「第几个命中」数的是哪一个。默认从左到右、从上到下，另三向从别的角开始数；这一档数位置不数相似度。综合评分：相似度与框的大小按「分数权重」加权，0 只看框、100 只看分数。离指定点最近按到「指定点」两格的距离数，离画面中心最近从搜索范围中心往外数。同分同距按阅读顺序。随机：打乱。";
+
+    /// <summary>The same for reading writing, which has no directions of its own.</summary>
+    private const string MatchOrderReadHint =
+        "命中按什么顺序编号，也就是「第几个命中」数的是哪一个。按识别顺序：识别模型读出来的先后，也就是"
+        + "人读的顺序；这一族不给四向，因为把读到的字按位置重排会把一行拆开。分数最高：识别分最高的优先。"
+        + "面积最大：框最宽的优先，用来取整行而不是一个词。随机：打乱。";
+
+    /// <summary>
+    /// The hint the two coordinates of "closest to a point" share: where the point is counted from,
+    /// and that either of them may be a value the macro worked out.
+    /// </summary>
+    private const string NearPointHint =
+        "「离指定点最近」按命中中心到这个点的距离数。两格与搜索区域同一基准：屏幕档是屏幕像素，窗口档是"
+        + "目标窗口客户区里的像素，窗口挪了它跟着走。可以写变量或算式，例如上一步命中的 x；默认 0，"
+        + "两格都留空就是基准的左上角。";
+
+    /// <summary>How much of the weighted score is likeness rather than size.</summary>
+    private const string ScoreWeightHint =
+        "「综合评分」里分数占多少，0–100%，默认 50。0 只看框的大小，100 只看分数，中间按比例相加；"
+        + "分数与面积先各按这一次命中的最大值归一化。";
 
     /// <summary>
     /// The same for the colour finders, whose hits are all one pixel: they are not offered a
     /// "biggest first", so their hint must not talk about one.
     /// </summary>
     private const string MatchOrderColourHint =
-        "命中按什么顺序编号，也就是“第几个命中”数的是哪一个，也就是找色的四向搜索顺序："
+        "命中按什么顺序编号，也就是「第几个命中」数的是哪一个，也就是找色的四向搜索顺序："
         + "从左到右、从上到下（默认），从右到左、从上到下，从左到右、从下往上，从右到左、从下往上。"
         + "默认那种就是人读一页字的顺序；另外三种从别的角开始数，贴着窗口右边或底边排的一排按钮，"
         + "从那个角数第一个才是人眼里的第一个。";
@@ -1896,10 +1918,18 @@ internal static class ActionStrings
         ["vision.findImage.minFeatures.hint"] = MinFeaturesHint,
         ["vision.findImage.orderBy.label"] = "命中排序",
         ["vision.findImage.orderBy.hint"] = MatchOrderHint,
-        ["vision.findImage.orderBy.option.reading"] = "阅读顺序",
-        ["vision.findImage.orderBy.option.score"] = "分数最高",
-        ["vision.findImage.orderBy.option.area"] = "面积最大",
+        ["vision.findImage.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.findImage.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.findImage.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.findImage.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.findImage.orderBy.option.combined"] = "综合评分",
+        ["vision.findImage.orderBy.option.near"] = "离指定点最近",
+        ["vision.findImage.orderBy.option.centre"] = "离画面中心最近",
         ["vision.findImage.orderBy.option.random"] = "随机",
+        ["vision.findImage.nearX.label"] = "指定点 X",
+        ["vision.findImage.nearX.hint"] = NearPointHint,
+        ["vision.findImage.nearY.label"] = "指定点 Y",
+        ["vision.findImage.nearY.hint"] = NearPointHint,
         ["vision.findImage.matchIndex.label"] = "第几个命中",
         ["vision.findImage.matchIndex.hint"] = MatchIndexHint,
         ["vision.findImage.return.match.label"] = HitRecordLabel,
@@ -1928,10 +1958,18 @@ internal static class ActionStrings
         ["vision.waitImage.minFeatures.hint"] = MinFeaturesHint,
         ["vision.waitImage.orderBy.label"] = "命中排序",
         ["vision.waitImage.orderBy.hint"] = MatchOrderHint,
-        ["vision.waitImage.orderBy.option.reading"] = "阅读顺序",
-        ["vision.waitImage.orderBy.option.score"] = "分数最高",
-        ["vision.waitImage.orderBy.option.area"] = "面积最大",
+        ["vision.waitImage.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.waitImage.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.waitImage.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.waitImage.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.waitImage.orderBy.option.combined"] = "综合评分",
+        ["vision.waitImage.orderBy.option.near"] = "离指定点最近",
+        ["vision.waitImage.orderBy.option.centre"] = "离画面中心最近",
         ["vision.waitImage.orderBy.option.random"] = "随机",
+        ["vision.waitImage.nearX.label"] = "指定点 X",
+        ["vision.waitImage.nearX.hint"] = NearPointHint,
+        ["vision.waitImage.nearY.label"] = "指定点 Y",
+        ["vision.waitImage.nearY.hint"] = NearPointHint,
         ["vision.waitImage.region.label"] = "搜索区域",
         ["vision.waitImage.region.hint"] = RegionHintText,
         ["vision.waitImage.matchIndex.label"] = "第几个命中",
@@ -1962,10 +2000,18 @@ internal static class ActionStrings
         ["vision.clickImage.minFeatures.hint"] = MinFeaturesHint,
         ["vision.clickImage.orderBy.label"] = "命中排序",
         ["vision.clickImage.orderBy.hint"] = MatchOrderHint,
-        ["vision.clickImage.orderBy.option.reading"] = "阅读顺序",
-        ["vision.clickImage.orderBy.option.score"] = "分数最高",
-        ["vision.clickImage.orderBy.option.area"] = "面积最大",
+        ["vision.clickImage.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.clickImage.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.clickImage.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.clickImage.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.clickImage.orderBy.option.combined"] = "综合评分",
+        ["vision.clickImage.orderBy.option.near"] = "离指定点最近",
+        ["vision.clickImage.orderBy.option.centre"] = "离画面中心最近",
         ["vision.clickImage.orderBy.option.random"] = "随机",
+        ["vision.clickImage.nearX.label"] = "指定点 X",
+        ["vision.clickImage.nearX.hint"] = NearPointHint,
+        ["vision.clickImage.nearY.label"] = "指定点 Y",
+        ["vision.clickImage.nearY.hint"] = NearPointHint,
         ["vision.clickImage.matchIndex.label"] = "第几个命中",
         ["vision.clickImage.matchIndex.hint"] = MatchIndexHint,
         ["vision.clickImage.imageSet.label"] = "认哪一张",
@@ -2147,11 +2193,21 @@ internal static class ActionStrings
         ["vision.detect.iou.label"] = "允许重叠 %",
         ["vision.detect.iou.hint"] = DetectOverlapHint,
         ["vision.detect.orderBy.label"] = "命中排序",
-        ["vision.detect.orderBy.hint"] = MatchOrderHint,
-        ["vision.detect.orderBy.option.reading"] = "阅读顺序",
-        ["vision.detect.orderBy.option.score"] = "分数最高",
-        ["vision.detect.orderBy.option.area"] = "面积最大",
+        ["vision.detect.orderBy.hint"] = MatchOrderDetectHint,
+        ["vision.detect.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.detect.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.detect.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.detect.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.detect.orderBy.option.combined"] = "综合评分",
+        ["vision.detect.orderBy.option.near"] = "离指定点最近",
+        ["vision.detect.orderBy.option.centre"] = "离画面中心最近",
         ["vision.detect.orderBy.option.random"] = "随机",
+        ["vision.detect.nearX.label"] = "指定点 X",
+        ["vision.detect.nearX.hint"] = NearPointHint,
+        ["vision.detect.nearY.label"] = "指定点 Y",
+        ["vision.detect.nearY.hint"] = NearPointHint,
+        ["vision.detect.scoreWeight.label"] = "分数权重 %",
+        ["vision.detect.scoreWeight.hint"] = ScoreWeightHint,
         ["vision.detect.matchIndex.label"] = "第几个命中",
         ["vision.detect.matchIndex.hint"] = MatchIndexHint,
         ["vision.detect.anchorMode.label"] = "识别方式",
@@ -2186,11 +2242,21 @@ internal static class ActionStrings
         ["vision.waitDetect.iou.label"] = "允许重叠 %",
         ["vision.waitDetect.iou.hint"] = DetectOverlapHint,
         ["vision.waitDetect.orderBy.label"] = "命中排序",
-        ["vision.waitDetect.orderBy.hint"] = MatchOrderHint,
-        ["vision.waitDetect.orderBy.option.reading"] = "阅读顺序",
-        ["vision.waitDetect.orderBy.option.score"] = "分数最高",
-        ["vision.waitDetect.orderBy.option.area"] = "面积最大",
+        ["vision.waitDetect.orderBy.hint"] = MatchOrderDetectHint,
+        ["vision.waitDetect.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.waitDetect.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.waitDetect.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.waitDetect.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.waitDetect.orderBy.option.combined"] = "综合评分",
+        ["vision.waitDetect.orderBy.option.near"] = "离指定点最近",
+        ["vision.waitDetect.orderBy.option.centre"] = "离画面中心最近",
         ["vision.waitDetect.orderBy.option.random"] = "随机",
+        ["vision.waitDetect.nearX.label"] = "指定点 X",
+        ["vision.waitDetect.nearX.hint"] = NearPointHint,
+        ["vision.waitDetect.nearY.label"] = "指定点 Y",
+        ["vision.waitDetect.nearY.hint"] = NearPointHint,
+        ["vision.waitDetect.scoreWeight.label"] = "分数权重 %",
+        ["vision.waitDetect.scoreWeight.hint"] = ScoreWeightHint,
         ["vision.waitDetect.matchIndex.label"] = "第几个命中",
         ["vision.waitDetect.matchIndex.hint"] = MatchIndexHint,
         ["vision.waitDetect.anchorMode.label"] = "识别方式",
@@ -2236,11 +2302,21 @@ internal static class ActionStrings
         ["vision.clickDetect.offsetY.hint"] =
             "点击位置在框中心基础上垂直偏移的像素数，正数向下，默认 0，即点在框中心。",
         ["vision.clickDetect.orderBy.label"] = "命中排序",
-        ["vision.clickDetect.orderBy.hint"] = MatchOrderHint,
-        ["vision.clickDetect.orderBy.option.reading"] = "阅读顺序",
-        ["vision.clickDetect.orderBy.option.score"] = "分数最高",
-        ["vision.clickDetect.orderBy.option.area"] = "面积最大",
+        ["vision.clickDetect.orderBy.hint"] = MatchOrderDetectHint,
+        ["vision.clickDetect.orderBy.option.reading"] = "从左到右，从上到下",
+        ["vision.clickDetect.orderBy.option.readingBack"] = "从右到左，从上到下",
+        ["vision.clickDetect.orderBy.option.readingUp"] = "从左到右，从下往上",
+        ["vision.clickDetect.orderBy.option.readingBackUp"] = "从右到左，从下往上",
+        ["vision.clickDetect.orderBy.option.combined"] = "综合评分",
+        ["vision.clickDetect.orderBy.option.near"] = "离指定点最近",
+        ["vision.clickDetect.orderBy.option.centre"] = "离画面中心最近",
         ["vision.clickDetect.orderBy.option.random"] = "随机",
+        ["vision.clickDetect.nearX.label"] = "指定点 X",
+        ["vision.clickDetect.nearX.hint"] = NearPointHint,
+        ["vision.clickDetect.nearY.label"] = "指定点 Y",
+        ["vision.clickDetect.nearY.hint"] = NearPointHint,
+        ["vision.clickDetect.scoreWeight.label"] = "分数权重 %",
+        ["vision.clickDetect.scoreWeight.hint"] = ScoreWeightHint,
         ["vision.clickDetect.matchIndex.label"] = "第几个命中",
         ["vision.clickDetect.matchIndex.hint"] = MatchIndexHint,
         ["vision.clickDetect.anchorMode.label"] = "识别方式",
@@ -2454,8 +2530,8 @@ internal static class ActionStrings
         ["ocr.findText.minScore.label"] = "最低识别分",
         ["ocr.findText.minScore.hint"] = MinScoreHint,
         ["ocr.findText.orderBy.label"] = "命中排序",
-        ["ocr.findText.orderBy.hint"] = MatchOrderHint,
-        ["ocr.findText.orderBy.option.reading"] = "阅读顺序",
+        ["ocr.findText.orderBy.hint"] = MatchOrderReadHint,
+        ["ocr.findText.orderBy.option.reading"] = "按识别顺序",
         ["ocr.findText.orderBy.option.score"] = "分数最高",
         ["ocr.findText.orderBy.option.area"] = "面积最大",
         ["ocr.findText.orderBy.option.random"] = "随机",
@@ -2505,8 +2581,8 @@ internal static class ActionStrings
         ["ocr.clickText.minScore.label"] = "最低识别分",
         ["ocr.clickText.minScore.hint"] = MinScoreHint,
         ["ocr.clickText.orderBy.label"] = "命中排序",
-        ["ocr.clickText.orderBy.hint"] = MatchOrderHint,
-        ["ocr.clickText.orderBy.option.reading"] = "阅读顺序",
+        ["ocr.clickText.orderBy.hint"] = MatchOrderReadHint,
+        ["ocr.clickText.orderBy.option.reading"] = "按识别顺序",
         ["ocr.clickText.orderBy.option.score"] = "分数最高",
         ["ocr.clickText.orderBy.option.area"] = "面积最大",
         ["ocr.clickText.orderBy.option.random"] = "随机",

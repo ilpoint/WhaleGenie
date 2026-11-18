@@ -75,6 +75,7 @@ internal sealed class ScreenReads(IDeviceLayer devices, VariableStore variables,
     {
         var areas = sight.SearchAreas(step);
         here.Read = areas;
+        var order = HitOrder.Of(Args(step), () => sight.AnchorOf(step).Corner, areas);
 
         var spans = new List<TextSpan>();
         foreach (var (area, origin) in areas)
@@ -85,7 +86,9 @@ internal sealed class ScreenReads(IDeviceLayer devices, VariableStore variables,
             }));
         }
 
-        SearchHits.Sort(spans, step);
+        // The model hands its lines over in the order a person reads them; the orders that are not
+        // that one rank the whole reading rather than the first few of it.
+        HitSort.Sort(spans, order);
         return (spans, areas);
     }
 

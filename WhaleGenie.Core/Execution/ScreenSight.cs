@@ -28,6 +28,14 @@ internal sealed class ScreenSight(IDeviceLayer devices, VariableStore variables,
     private Value Read(ExpressionNode written) => Expression.Evaluate(written, variables);
 
     /// <summary>
+    /// The corner a step's own numbers are counted from, and the window they belong to. Reading
+    /// writing goes through this class rather than through a family, so the one question "where do
+    /// this step's numbers start" is answered in one place for both.
+    /// </summary>
+    public (ScreenPoint? Corner, WindowInfo? Window) AnchorOf(ExecutableStep step)
+        => windows.AnchorOf(step);
+
+    /// <summary>
     /// The places to search: the whole screen unless the step names regions, each of which may be
     /// counted from a window's corner when the step says so. One row of the step's region is either
     /// a rectangle written out — which is what the region picker fills in — or the name of a

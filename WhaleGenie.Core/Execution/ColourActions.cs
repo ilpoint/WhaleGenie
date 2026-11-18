@@ -307,9 +307,10 @@ internal static class ColourActions
     {
         var wanted = SearchHits.Wanted(run, step);
         var areas = run.Reads.Areas(step);
+        var order = HitOrder.Of(run.Args(step), () => run.Points.AnchorOf(step).Corner, areas);
         // Asked for by score, the pixels closest to the colour are the hits; the rest of the time
         // the first ones read left to right and top to bottom are, which is the cheaper walk.
-        var surest = SearchHits.OrderOf(step) is MatchOrder.Score;
+        var surest = order.Kind is MatchOrder.Combined or MatchOrder.Score;
         var hits = new List<ImageMatch>();
         long matched = 0;
         long total = 0;
@@ -330,7 +331,7 @@ internal static class ColourActions
             }
         }
 
-        SearchHits.Sort(hits, step);
+        HitSort.Sort(hits, order);
         run.Reads.SawSearch(step, LookKind.Colour, areas,
             [.. hits.Select(hit => (hit, (string?)null))],
             SearchHits.WentWith(run, hits, step), target.ToHex());
@@ -353,6 +354,7 @@ internal static class ColourActions
 
         var wanted = SearchHits.Wanted(run, step);
         var areas = run.Reads.Areas(step);
+        var order = HitOrder.Of(run.Args(step), () => run.Points.AnchorOf(step).Corner, areas);
         var hits = new List<ImageMatch>();
         foreach (var (area, origin) in areas)
         {
@@ -365,7 +367,7 @@ internal static class ColourActions
             }
         }
 
-        SearchHits.Sort(hits, step);
+        HitSort.Sort(hits, order);
         var taken = SearchHits.WentWith(run, hits, step);
         var marks = new List<(ImageMatch Match, string? Label)>(
             hits.Select(hit => (hit, (string?)null)));

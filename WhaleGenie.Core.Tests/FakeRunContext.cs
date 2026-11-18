@@ -46,12 +46,24 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
     /// <summary>The searches a family under test handed to whoever is watching.</summary>
     public List<(string Wanted, int Chosen, int Found)> Searches { get; } = [];
 
+    /// <summary>
+    /// Where the area a search reads starts on the screen. The whole desk from its own corner by
+    /// default; a check about a region or a window sets it so the origin is not the screen's.
+    /// </summary>
+    public ScreenPoint AreaOrigin { get; set; }
+
+    /// <summary>
+    /// Where the step's own numbers are counted from, which is the target window's corner for a
+    /// step that works on one. Null is a step counted from the screen.
+    /// </summary>
+    public ScreenPoint? AnchorCorner { get; set; }
+
     IReadOnlyList<(ImageFrame Frame, ScreenPoint Origin)> IScreenReads.Areas(
         ExecutableStep step)
     {
         var desk = Machine.Screen.Desktop.Bounds;
-        var shot = Machine.Screen.Capture(
-            new ScreenCaptureRequest(desk.Left, desk.Top, desk.Width, desk.Height));
+        var shot = Machine.Screen.Capture(new ScreenCaptureRequest(AreaOrigin.X, AreaOrigin.Y,
+            desk.Width, desk.Height));
         return [(shot.Frame, shot.Origin)];
     }
 
@@ -139,7 +151,7 @@ internal sealed class FakeRunContext : IRunContext, IRunPoints, IScreenReads, IS
         => ((IRunPoints)this).Point(step, end + "X", end + "Y");
 
     (ScreenPoint? Corner, WindowInfo? Window) IRunPoints.AnchorOf(ExecutableStep step)
-        => (null, null);
+        => (AnchorCorner, null);
 
     bool IRunPoints.PostsMessages(ExecutableStep step) => false;
 
