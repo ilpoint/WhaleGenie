@@ -1,7 +1,7 @@
 using System.IO;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Models;
+using WhaleGenie.Platform.Windows;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
@@ -19,17 +19,13 @@ public class TriggerWatchTests
     {
         Ui.Run(() =>
         {
-            var macro = new MacroItem
-            {
-                Name = "等一个不存在的窗口",
-                TriggerMode = MacroTrigger.Window,
-                WindowTarget = new WindowRule(Title: "鲸灵等不到的这个窗口标题"),
-                WindowChange = WindowChangeKind.Appeared,
-            };
+            var macro = new MacroItem { Name = "等一个不存在的窗口" };
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
+            var spec = new WindowSpec(new WindowRule(Title: "鲸灵等不到的这个窗口标题"));
 
             using var service = new MacroTriggerService(
-                () => [macro], new WindowsDeviceLayer(), new NoWindowEvents());
+                new WindowsDeviceLayer(), new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlans.For(macro, spec));
 
             var before = DateTime.Now;
             service.Look();
@@ -54,17 +50,13 @@ public class TriggerWatchTests
         {
             var windows = new WindowsForChecks().Add(1, "Untitled - Notepad", "notepad", "Notepad");
 
-            var macro = new MacroItem
-            {
-                Name = "等这个程序",
-                TriggerMode = MacroTrigger.Window,
-                WindowTarget = new WindowRule(Process: "notepad", How: WindowHow.Process),
-                WindowChange = WindowChangeKind.Appeared,
-            };
+            var macro = new MacroItem { Name = "等这个程序" };
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [macro], new ChecksDevices { Windows = windows }, new NoWindowEvents());
+                new ChecksDevices { Windows = windows }, new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlans.For(macro,
+                new WindowSpec(new WindowRule(Process: "notepad", How: WindowHow.Process))));
 
             service.Look();
 
@@ -74,7 +66,8 @@ public class TriggerWatchTests
 
             // A rule nothing answers to waits, rather than being taken for the window it is not.
             // The window list is looked at every half second, which is what the wait is for.
-            macro.WindowTarget = macro.WindowTarget with { Process = "excel" };
+            service.Publish(TriggerPlans.For(macro,
+                new WindowSpec(new WindowRule(Process: "excel", How: WindowHow.Process))));
             await Task.Delay(600);
             service.Look();
 
@@ -88,35 +81,32 @@ public class TriggerWatchTests
     {
         Ui.Run(() =>
         {
-            var waiting = new MacroItem
-            {
-                Name = "等窗口",
-                TriggerMode = MacroTrigger.Window,
-                WindowTarget = new WindowRule(Title: "鲸灵等不到的这个窗口标题"),
-            };
+            var waiting = new MacroItem { Name = "等窗口" };
             waiting.Steps.Add(new MacroStep { Type = "control.stop" });
 
             // A key binding answers a key rather than being waited for, and a macro that is switched
             // off is not waiting for anything: neither has a moment it was last looked at.
-            var bound = new MacroItem { Name = "按键的", TriggerMode = MacroTrigger.KeystrokesButtonInputs };
+            var bound = new MacroItem { Name = "按键的" };
             bound.Steps.Add(new MacroStep { Type = "control.stop" });
 
-            var off = new MacroItem
-            {
-                Name = "关掉的",
-                IsEnabled = false,
-                TriggerMode = MacroTrigger.Window,
-                WindowTarget = new WindowRule(Title: "鲸灵等不到的这个窗口标题"),
-            };
+            var off = new MacroItem { Name = "关掉的", IsEnabled = false };
             off.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [waiting, bound, off], new WindowsDeviceLayer(), new NoWindowEvents());
+                new WindowsDeviceLayer(), new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlans.Build()
+                .Macro(waiting, new WindowSpec(new WindowRule(Title: "鲸灵等不到的这个窗口标题")))
+                .Macro(bound, new KeySpec("F8"))
+                .Macro(off, new WindowSpec(new WindowRule(Title: "鲸灵等不到的这个窗口标题")))
+                .Build());
 
             service.Look();
 
-            var watch = Assert.Single(service.Watches());
-            Assert.Equal("等窗口", watch.Macro);
+            // The key row is listed too, because it is something the runtime is waiting for; the
+            // switched-off macro is not.
+            Assert.Equal(2, service.Watches().Count);
+            Assert.Contains(service.Watches(), watch => watch.Macro == "等窗口");
+            Assert.DoesNotContain(service.Watches(), watch => watch.Macro == "关掉的");
         });
     }
 
@@ -126,17 +116,13 @@ public class TriggerWatchTests
         Ui.Run(() =>
         {
             var mine = Path.GetFileNameWithoutExtension(Environment.ProcessPath!);
-            var macro = new MacroItem
-            {
-                Name = "等自己这个程序",
-                TriggerMode = MacroTrigger.Process,
-                ProcessName = mine,
-                ProcessChange = ProcessChangeKind.Started,
-            };
+            var macro = new MacroItem { Name = "等自己这个程序" };
             macro.Steps.Add(new MacroStep { Type = "control.stop" });
 
             using var service = new MacroTriggerService(
-                () => [macro], new WindowsDeviceLayer(), new NoWindowEvents());
+                new WindowsDeviceLayer(), new VariableSession(), new NoWindowEvents());
+            service.Publish(TriggerPlans.For(macro,
+                new ProcessSpec(mine, ProcessChangeKind.Started)));
 
             // The reading before this one is where counting starts, so what is running now is what
             // was running then, not something that has just started.
@@ -150,5 +136,4 @@ public class TriggerWatchTests
             Assert.True(Assert.Single(service.Watches()).Checked >= first.Checked);
         });
     }
-
 }

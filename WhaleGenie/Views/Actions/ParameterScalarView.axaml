@@ -1,0 +1,448 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+        x:Class="WhaleGenie.Views.ParameterScalarView"
+        x:DataType="vm:StepParameterViewModel">
+
+    <UserControl.Resources>
+        <conv:HexColorToBrushConverter x:Key="HexBrush" />
+    </UserControl.Resources>
+
+    <Design.DataContext>
+        <vm:StepParameterViewModel />
+    </Design.DataContext>
+
+    <StackPanel>
+        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="4"
+            Margin="{DynamicResource GapField}"
+            IsVisible="{Binding ShowsLabel}">
+            <views:IconView Width="16" Height="16" Data="SquareFunction"
+                Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
+                VerticalAlignment="Center"
+                IsVisible="{Binding TakesFormula}"
+                ToolTip.Tip="{Binding [Add.FieldTakesFormula], Source={x:Static loc:Strings.Current}}" />
+            <views:IconView Grid.Column="1" Width="16" Height="16" Data="Variable"
+                Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.5"
+                VerticalAlignment="Center"
+                IsVisible="{Binding ShowsNameMark}"
+                ToolTip.Tip="{Binding [Add.FieldIsText], Source={x:Static loc:Strings.Current}}" />
+            <TextBlock Grid.Column="2" Classes="FieldLabel" Margin="0"
+                Text="{Binding Label}" />
+            <views:HintInfo Grid.Column="3" Text="{Binding Hint}" />
+        </Grid>
+
+        <Grid IsVisible="{Binding IsPlainText}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Classes="Field" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <!-- A path is the one value the machine can offer a list of. -->
+            <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                IsVisible="{Binding IsPath}"
+                Content="{Binding PathButton}"
+                ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnBrowsePath" />
+        </Grid>
+
+        <!-- A key is chosen as a character button: the field itself opens the keyboard
+            laid out on screen, while capture takes the key pressed on the physical
+            keyboard instead of hunting for it on the drawing. -->
+        <Grid IsVisible="{Binding IsKey}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <Button Classes="Field"
+                Content="{Binding KeyFieldDisplay}"
+                ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnOpenKeyPad" />
+            <Button Grid.Column="1" Classes="Secondary" Height="34" Padding="9,0"
+                Content="{Binding KeyCaptureLabel}"
+                ToolTip.Tip="{Binding [Add.CaptureKeyHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnCaptureKey" />
+        </Grid>
+
+        <!-- A combination is built the same way the keyboard drawn on screen builds it:
+            one key at a time, so the keys pressed are joined to what is already there. -->
+        <Grid IsVisible="{Binding IsKeys}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <Button Classes="Field"
+                Content="{Binding KeyFieldDisplay}"
+                ToolTip.Tip="{Binding [Add.OpenKeyPadHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnOpenKeyPad" />
+            <Button Grid.Column="1" Classes="Secondary" Height="34" Padding="9,0"
+                Content="{Binding KeyCaptureLabel}"
+                ToolTip.Tip="{Binding [Add.CaptureComboHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnCaptureKey" />
+        </Grid>
+
+        <!-- 窗口是一个字段，但它记得好几件事。以前这里一排三颗按钮：获取窗口（要按 F1
+            对准窗口点一下）、变量、清除——同一个窗口在一页页宏里要用二十次，就得捕获二十
+            次。现在一颗「选择窗口」收着全部走法：前台窗口、沿用上一次、本宏用过的窗口、
+            已经打开的窗口（直接点，不必按 F1）、捕获新的、变量里的。 -->
+        <Border IsVisible="{Binding IsWindowRule}" Background="{DynamicResource SurfaceField}"
+            BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
+            CornerRadius="5" Padding="10,8">
+            <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                    <StackPanel VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding WindowRuleSummary}" FontSize="12.5"
+                            Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <views:HintInfo Grid.Column="1"
+                        Text="{Binding [WindowRule.FieldHint], Source={x:Static loc:Strings.Current}}" />
+                    <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
+                        Content="{Binding [WindowRule.Choose], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [WindowRule.ChooseHint], Source={x:Static loc:Strings.Current}}"
+                        Click="OnChooseWindow" />
+                    <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="10,0"
+                        Content="{Binding [WindowRule.Clear], Source={x:Static loc:Strings.Current}}"
+                        Click="OnClearWindowRule" />
+                </Grid>
+
+            </StackPanel>
+        </Border>
+
+        <!-- A value that may name variables: the names are offered while it is typed in,
+            and a whole value may be built with the expression editor. A window is written
+            here like anything else, with the picker beside it that fills in one of the
+            windows that are open right now. -->
+        <Grid IsVisible="{Binding OffersVariables}" ColumnDefinitions="*,Auto,Auto"
+            ColumnSpacing="6">
+            <!-- 一格值有两种样子。值是"文字里夹着名字"时，它就按那个样子编辑：文字是能直接
+                改的窄框，名字各占一块、可以摘掉，中间没有哪个字符表示"变量从这里开始"。
+                值是整条公式时它仍是一只框——公式不是一句话，它的碎片不是词。 -->
+            <Grid Grid.Column="0">
+                <Border Classes="TokenField" IsVisible="{Binding ShowsParts}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <ItemsControl Grid.Column="0" ItemsSource="{Binding Parts}"
+                            VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.DataTemplates>
+                                <DataTemplate DataType="vm:TextPart">
+                                    <!-- 值不再从框里敲进去：文字片只是显示，改值走取值窗口。 -->
+                                    <SelectableTextBlock Classes="Part" Text="{Binding Text}"
+                                        VerticalAlignment="Center" />
+                                </DataTemplate>
+                                <DataTemplate DataType="vm:NamePart">
+                                    <Border Classes="Token Name" VerticalAlignment="Center">
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <TextBlock Text="{Binding Name}"
+                                                VerticalAlignment="Center" />
+                                            <Button Classes="TokenClose"
+                                                Command="{Binding Remove}"
+                                                Content="{Binding [Add.RemoveValue], Source={x:Static loc:Strings.Current}}"
+                                                ToolTip.Tip="{Binding [Add.RemoveValueHint], Source={x:Static loc:Strings.Current}}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.DataTemplates>
+                        </ItemsControl>
+                        <!-- 取值按钮跟到读法这一侧：一格值不点开也该能换掉。 -->
+                        <Button Grid.Column="1" Classes="ValueChip" Click="OnOpenValuePicker"
+                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                    </Grid>
+                </Border>
+
+                <!-- 写名字的格子也只读：名字从取值窗口或变量墙来，框只把它显示出来。 -->
+                <TextBox Classes="Field HasChip" IsVisible="{Binding !ShowsParts}"
+                    Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                    PlaceholderText="{Binding Placeholder}">
+                    <TextBox.InnerRightContent>
+                        <Button Classes="ValueChip" Click="OnOpenValuePicker"
+                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                    </TextBox.InnerRightContent>
+                </TextBox>
+            </Grid>
+
+            <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                IsVisible="{Binding IsPath}"
+                Content="{Binding PathButton}"
+                ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnBrowsePath" />
+            <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
+                IsVisible="{Binding IsWindow}"
+                Content="{Binding [Add.PickWindow], Source={x:Static loc:Strings.Current}}"
+                ToolTip.Tip="{Binding [Add.PickWindowHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnPickWindow" />
+        </Grid>
+
+        <!-- A UI Automation selector: written out by hand, or taken off the screen by
+            pointing at the control. -->
+        <Grid IsVisible="{Binding IsSelector}" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <TextBox Classes="Field" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                Content="{Binding [Add.PickElement], Source={x:Static loc:Strings.Current}}"
+                ToolTip.Tip="{Binding [Add.PickElementHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnPickElement" />
+            <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
+                Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
+                ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnTestElement" />
+        </Grid>
+
+        <!-- An element of a page: written out by hand, or taken off the page by pointing
+            at it in the browser. The box is several lines tall because a page that has
+            been redesigned is met by writing a second way of naming the element under the
+            first, and the other ways a pick found are offered under the box to add. -->
+        <StackPanel IsVisible="{Binding IsBrowserTarget}" Spacing="6">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                <TextBox Classes="Field" Classes.HasChip="{Binding OffersPageVariables}"
+                    Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                    AcceptsReturn="True" TextWrapping="Wrap" MinHeight="56"
+                    PlaceholderText="{Binding Placeholder}">
+                    <TextBox.InnerRightContent>
+                        <Button Classes="ValueChip" Margin="0,6,4,0" VerticalAlignment="Top"
+                            IsVisible="{Binding OffersPageVariables}"
+                            Click="OnPickBrowserVariable"
+                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                    </TextBox.InnerRightContent>
+                </TextBox>
+                <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                    VerticalAlignment="Top"
+                    Content="{Binding [Add.PickBrowserElement], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.PickBrowserElementHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnPickBrowserElement" />
+                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
+                    VerticalAlignment="Top"
+                    Content="{Binding [Add.TestElement], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.TestElementHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnTestBrowserElement" />
+            </Grid>
+
+            <StackPanel IsVisible="{Binding HasCandidates}" Spacing="5">
+                <TextBlock Classes="Hint" TextWrapping="Wrap"
+                    Text="{Binding [Add.BrowserWayMore], Source={x:Static loc:Strings.Current}}" />
+                <ItemsControl ItemsSource="{Binding Candidates}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BrowserWayViewModel">
+                            <Button Classes="Secondary" Height="30" Padding="10,0"
+                                Margin="0,0,6,6" Content="{Binding Text}"
+                                ToolTip.Tip="{Binding [Add.BrowserWayAdd], Source={x:Static loc:Strings.Current}}"
+                                Click="OnAddBrowserWay" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </StackPanel>
+
+        <!-- A stretch of text that is handed over whole — what gets typed, written or put on
+            the clipboard — may be built with the expression editor like any other value:
+            what it makes there is what the step hands over. A box holding a program is
+            taller than one holding a sentence and keeps its lines as they were written:
+            a script of a dozen lines is not read through a window four lines high, and
+            its indentation is part of what it says. -->
+        <Grid IsVisible="{Binding IsMultiline}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Classes="Field" Classes.HasChip="{Binding OffersFormula}"
+                Classes.Code="{Binding IsCode}"
+                Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                AcceptsReturn="True" TextWrapping="{Binding Wrap}"
+                Height="{Binding MultilineHeight}"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <!-- 多行框里的片贴右上角：跟着框高居中会漂在文字中间，像另一段内容。 -->
+                    <Button Classes="ValueChip" Margin="0,6,4,0" VerticalAlignment="Top"
+                        IsVisible="{Binding OffersValueWindow}"
+                        Click="OnOpenValuePicker"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                VerticalAlignment="Top"
+                IsVisible="{Binding IsPath}"
+                Content="{Binding PathButton}"
+                ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnBrowsePath" />
+        </Grid>
+
+        <!-- A number is typed in, or written as an expression. Both boxes in this cell carry
+            the same「取值」chip on their right edge, so switching between the two does not
+            move it. -->
+        <Grid IsVisible="{Binding IsNumber}" ColumnDefinitions="*,Auto,Auto"
+            ColumnSpacing="6">
+            <fa:FANumberBox IsVisible="{Binding IsNumberValue}"
+                Classes.HasChip="{Binding OffersExpressionBuilder}"
+                Value="{Binding NumberValue, Converter={StaticResource Number}}"
+                Minimum="{Binding Minimum, Converter={StaticResource Number}}"
+                Maximum="{Binding Maximum, Converter={StaticResource Number}}"
+                SmallChange="{Binding Increment, Converter={StaticResource Number}}"
+                SimpleNumberFormat="0.###"
+                HorizontalAlignment="Stretch" />
+
+            <TextBox Grid.Column="0" Classes="Field"
+                Classes.HasChip="{Binding OffersExpressionBuilder}"
+                IsVisible="{Binding IsNumberFormula}"
+                Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding FormulaPlaceholder}" />
+
+            <!-- A length of time also says which unit the number is written in. -->
+            <ComboBox Grid.Column="1" Classes="Field"
+                ItemsSource="{Binding DurationUnits}"
+                SelectedItem="{Binding Unit}"
+                IsVisible="{Binding IsDurationEditor}"
+                Width="118" HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:DurationUnit">
+                        <TextBlock Text="{Binding Label}"
+                            FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <!-- A length of time can be given some give, so a wait is never the same
+                number twice. It lives beside the box rather than behind the fold: it is
+                part of how long the step waits, not a tuning knob. -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5"
+                IsVisible="{Binding IsDuration}"
+                ToolTip.Tip="{Binding [Add.JitterHint], Source={x:Static loc:Strings.Current}}">
+                <TextBlock Classes="Caption" VerticalAlignment="Center"
+                    Text="{Binding [Add.JitterSign], Source={x:Static loc:Strings.Current}}" />
+                <fa:FANumberBox Name="JitterBox" Width="76" SmallChange="5" SimpleNumberFormat="0.##"
+                    Minimum="0" Maximum="100" VerticalAlignment="Center"
+                    Value="{Binding JitterPercent, Converter={StaticResource Number}}" />
+                <TextBlock Classes="Caption" VerticalAlignment="Center"
+                    Text="{Binding [Add.JitterUnit], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+
+            <!-- The same chip every other value field carries, on the edge the up and down
+                buttons used to have: inside the box it answers for, so there is no need
+                to guess which field it belongs to. -->
+            <Button Grid.Column="0" Classes="ValueChip"
+                HorizontalAlignment="Right"
+                IsVisible="{Binding OffersExpressionBuilder}"
+                Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnOpenValuePicker" />
+        </Grid>
+
+        <!-- 百分比：滑条与数字框说的是同一个值。滑条负责"大概这么多"，数字框负责精确的那一下；
+            容差这类按颜色通道量的百分比，下面再写一句它等于每通道多少。滑条的高度压到
+            拇指放得下为止：模板给的那一圈空会把这一格撑成两格的高度。 -->
+        <StackPanel IsVisible="{Binding IsPercent}" Spacing="2" Margin="0,4,0,0">
+            <Slider Minimum="0" Maximum="100" SmallChange="1" LargeChange="5" Height="24"
+                VerticalAlignment="Center"
+                Value="{Binding PercentValue, Mode=TwoWay}" />
+            <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
+                IsVisible="{Binding HasChannelNote}"
+                Text="{Binding ChannelNote}" />
+        </StackPanel>
+
+        <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
+            IsVisible="{Binding HasJitterRange}"
+            Text="{Binding JitterRange}" />
+
+        <StackPanel IsVisible="{Binding IsNumberFormula}">
+            <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
+                Text="{Binding FormulaNote}"
+                IsVisible="{Binding IsNumberFormula}" />
+            <TextBlock Classes="Hint" Margin="2,5,0,0" TextWrapping="Wrap"
+                Text="{Binding [Add.FormulaMilliseconds], Source={x:Static loc:Strings.Current}}"
+                IsVisible="{Binding IsDurationFormula}" />
+            <TextBlock Classes="Hint" Margin="2,5,0,0"
+                TextWrapping="Wrap"
+                Foreground="{DynamicResource Danger}"
+                Text="{Binding ExpressionMessage}"
+                IsVisible="{Binding ShowExpressionError}" />
+            <TextBlock Classes="Hint" Margin="2,5,0,0"
+                TextWrapping="Wrap"
+                Foreground="{DynamicResource Success}"
+                Text="{Binding ExpressionMessage}"
+                IsVisible="{Binding ShowExpressionSuccess}" />
+        </StackPanel>
+
+        <!-- Colour parameters open the screen magnifier, and may be a variable holding one. -->
+        <Grid IsVisible="{Binding IsColor}"
+            ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+            <TextBox Classes="Field HasChip" Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <Border Grid.Column="1" Width="33" Height="33" CornerRadius="5"
+                Background="{Binding DisplayLine, Converter={StaticResource HexBrush}}"
+                BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
+            <Button Grid.Column="2" Classes="Secondary" Name="PickColourButton"
+                Width="38" Height="33" Padding="0"
+                ToolTip.Tip="{Binding [Editor.PickColor], Source={x:Static loc:Strings.Current}}"
+                Click="OnPickParameterColor">
+                <views:IconView Width="17" Height="17" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.5" FitToBounds="True" Data="{x:Static vm:AppIcons.Dropper}" />
+            </Button>
+        </Grid>
+
+        <!-- 透明色：一行一个颜色，色块在输入框下面按列表顺序排开；每块下面那格是它自己的容差，
+            留空就用下面那格「容差 %」。色块只是同一份行表的另一种读法，删和改都落在行上，
+            所以这里没有第二份值要同步。 -->
+        <StackPanel IsVisible="{Binding IsColourRows}" Spacing="5" Margin="0,6,0,0">
+            <ItemsControl ItemsSource="{Binding ColourRows}" HorizontalAlignment="Left">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ColourRowViewModel">
+                        <StackPanel Width="64" Spacing="2" Margin="0,0,6,6">
+                            <Grid Height="20">
+                                <Border CornerRadius="3"
+                                    Background="{Binding Colour, Converter={StaticResource HexBrush}}"
+                                    BorderBrush="{DynamicResource BorderControl}"
+                                    BorderThickness="1" />
+                                <Button Classes="Ghost" Name="RemoveColourButton"
+                                    Width="16" Height="16" Padding="0" FontSize="11"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                    Content="×"
+                                    ToolTip.Tip="{Binding [Add.ColourSwatchRemove], Source={x:Static loc:Strings.Current}}"
+                                    Command="{Binding RemoveCommand}" />
+                            </Grid>
+                            <Grid>
+                                <TextBox Classes="Field" Name="ColourToleranceBox"
+                                    Height="24" FontSize="11" Padding="4,0" TextAlignment="Center"
+                                    Text="{Binding Tolerance, Mode=TwoWay}"
+                                    ToolTip.Tip="{Binding [Add.ColourSwatchTolerance], Source={x:Static loc:Strings.Current}}" />
+                                <!-- 留空表示「跟下面那格容差一样」。这两个字由格子自己居中画出来，
+                                     不交给输入框的占位文字：占位文字落在模板给它的位置，这里只有两个字。 -->
+                                <TextBlock Name="ColourToleranceDefault"
+                                    FontSize="11" Foreground="{DynamicResource TextTertiary}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    IsHitTestVisible="False"
+                                    Text="{Binding [Add.ColourSwatchDefault], Source={x:Static loc:Strings.Current}}"
+                                    IsVisible="{Binding FollowsTheField}" />
+                            </Grid>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                Text="{Binding [Add.ColourSwatchEmpty], Source={x:Static loc:Strings.Current}}"
+                IsVisible="{Binding !HasColours}" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

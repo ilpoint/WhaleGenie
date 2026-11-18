@@ -1,0 +1,114 @@
+using System;
+using System.Globalization;
+using System.IO;
+using WhaleGenie.Core.Devices;
+
+namespace WhaleGenie.Storage;
+
+/// <summary>
+/// The pictures a macro looks for on screen: where a new one is put, how a rectangle of the
+/// screen becomes one, and which file a stored value points at.
+/// </summary>
+public static class ImageAssets
+{
+    /// <summary>
+    /// Where a freshly taken picture goes: beside the macro package, so it travels with it,
+    /// or in WhaleGenie's own folder while the project has not been saved yet.
+    /// </summary>
+    public static string FolderFor(string? packagePath)
+        => string.IsNullOrWhiteSpace(packagePath)
+            ? DefaultFolder()
+            : MacroPackage.AssetFolderFor(packagePath!);
+
+    /// <summary>
+    /// Where pictures taken before the project has a file of its own go: a folder of the program's
+    /// inside the person's pictures, so a screenshot a macro took can be found and looked at without
+    /// digging through application data. A machine with no pictures folder — a server, or a profile
+    /// that has been stripped down — falls back to the program's own folder, which always exists.
+    /// </summary>
+    public static string DefaultFolder()
+    {
+        var pictures = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+        return pictures.Length > 0
+            ? Path.Combine(pictures, "WhaleGenie")
+            : Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WhaleGenie",
+                "images");
+    }
+
+    /// <summary>Writes a block of pixels out as an opaque PNG and reports the file it made.</summary>
+    public static string Save(ImageFrame frame, string folder)
+    {
+        if (frame.IsEmpty)
+        {
+            throw new ArgumentException("There are no pixels to save.", nameof(frame));
+        }
+
+        Directory.CreateDirectory(folder);
+        var path = UniquePath(folder, Name());
+        File.WriteAllBytes(path, PngWriter.Encode(frame));
+        return path;
+    }
+
+    /// <summary>
+    /// Copies a picture beside the project and reports the copy. A menu cell or a wheel position
+    /// that pointed at the file it was picked from would lose its icon as soon as that file moved.
+    /// </summary>
+    public static string Adopt(string source, string? packagePath)
+    {
+        var folder = FolderFor(packagePath);
+        Directory.CreateDirectory(folder);
+        var extension = Path.GetExtension(source).ToLowerInvariant();
+        if (extension is not (".png" or ".jpg" or ".jpeg" or ".bmp"))
+        {
+            extension = ".png";
+        }
+
+        var target = Path.Combine(folder,
+            "icon-" + Guid.NewGuid().ToString("N")[..10] + extension);
+        File.Copy(source, target, overwrite: false);
+        return target;
+    }
+
+    /// <summary>
+    /// The file a stored picture value points at, or null when there is nothing to show. An
+    /// absolute path is used as it stands; anything else is looked for beside the package.
+    /// </summary>
+    public static string? Resolve(string? value, string folder)
+    {
+        var text = (value ?? string.Empty).Trim().Trim('"');
+        if (text.Length == 0)
+        {
+            return null;
+        }
+
+        if (Path.IsPathRooted(text))
+        {
+            return File.Exists(text) ? text : null;
+        }
+
+        var root = string.IsNullOrEmpty(folder) ? "." : folder;
+        var candidate = Path.Combine(root, text.Replace('/', Path.DirectorySeparatorChar));
+        return File.Exists(candidate) ? Path.GetFullPath(candidate) : null;
+    }
+
+    /// <summary>A name that says when the picture was taken, which reads better in a folder listing.</summary>
+    private static string Name()
+        => "screen-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+
+    private static string UniquePath(string folder, string name)
+    {
+        var candidate = Path.Combine(folder, name + ".png");
+        var counter = 1;
+
+        while (File.Exists(candidate))
+        {
+            counter++;
+            candidate = Path.Combine(folder, string.Create(CultureInfo.InvariantCulture,
+                $"{name}-{counter}.png"));
+        }
+
+        return candidate;
+    }
+}

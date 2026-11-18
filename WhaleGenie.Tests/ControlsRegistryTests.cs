@@ -169,7 +169,8 @@ public class ControlsRegistryTests
 
         return string.Join(
             "\n",
-            Directory.EnumerateFiles(folder, "*.axaml").Select(File.ReadAllText));
+            Directory.EnumerateFiles(folder, "*.axaml", SearchOption.AllDirectories)
+                .Select(File.ReadAllText));
     }
 
     private static string Read(string file)

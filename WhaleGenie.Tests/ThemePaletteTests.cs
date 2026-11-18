@@ -126,6 +126,12 @@ public class ThemePaletteTests
                 Assert.Equal(tokens.Fill, ColorAt("AccentFillColor", ThemeVariant.Dark));
                 Assert.Equal(tokens.Text, ColorAt("AccentText", ThemeVariant.Dark));
                 Assert.Equal(tokens.Surface, ColorAt("AccentSurface", ThemeVariant.Dark));
+
+                // 设置窗左栏的选中行也铺强调色，它的三个键同样是静态别名：自定义强调色不写这三个，
+                // 选中行会停在字典解析时的那个橙。
+                Assert.Equal(tokens.Fill, ColorAt("NavigationViewItemBackgroundSelected", ThemeVariant.Dark));
+                Assert.Equal(tokens.Hover, ColorAt("NavigationViewItemBackgroundSelectedPointerOver", ThemeVariant.Dark));
+                Assert.Equal(tokens.Pressed, ColorAt("NavigationViewItemBackgroundSelectedPressed", ThemeVariant.Dark));
             }
             finally
             {
@@ -193,11 +199,11 @@ public class ThemePaletteTests
 
                 var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
                 Assert.Equal(3, viewModel.ThemeOptions.Count);
-                viewModel.SetPage(SettingsRootPage.Appearance, SettingsSubPage.Theme);
+                viewModel.SetPage(SettingsSubPage.Theme);
                 viewModel.SelectedTheme = viewModel.ThemeOptions.Single(option => option.Mode == ThemeMode.Custom);
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
-                var button = window.FindControl<Avalonia.Controls.Button>("CustomizeThemeButton");
+                var button = SettingsView.Find<Avalonia.Controls.Button>(window, "CustomizeThemeButton");
                 Assert.NotNull(button);
                 Assert.True(button!.IsVisible);
                 Assert.Equal(ThemeMode.Custom, LocalSettings.LoadTheme().Mode);

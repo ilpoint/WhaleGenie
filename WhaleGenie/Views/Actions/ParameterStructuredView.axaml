@@ -1,0 +1,486 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+        x:Class="WhaleGenie.Views.ParameterStructuredView"
+        x:DataType="vm:StepParameterViewModel">
+
+    <UserControl.Resources>
+        <conv:HexColorToBrushConverter x:Key="HexBrush" />
+        <DataTemplate x:Key="NumberCellTight" x:DataType="vm:NumberCellViewModel">
+        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+        <TextBlock VerticalAlignment="Center" FontSize="12"
+        Foreground="{DynamicResource TextSecondary}"
+        Text="{Binding ShortLabel}"
+        ToolTip.Tip="{Binding Hint}" />
+
+        <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0" Classes="HasChip"
+        IsVisible="{Binding IsPlain}" MinWidth="92"
+        HorizontalAlignment="Stretch"
+        Value="{Binding Number, Converter={StaticResource Number}}" />
+
+        <TextBox Grid.Column="1" Classes="Field HasChip"
+        IsVisible="{Binding IsFormula}"
+        Text="{Binding Text, Mode=OneWay}" IsReadOnly="True"
+        PlaceholderText="{Binding Placeholder}" />
+
+        <Button Grid.Column="1" Classes="ValueChip" HorizontalAlignment="Right"
+        Tag="{Binding}"
+        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}"
+        Click="OnOpenCellExpression" />
+        </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Design.DataContext>
+        <vm:StepParameterViewModel />
+    </Design.DataContext>
+
+    <StackPanel>
+        <!-- A picture the action looks for: taken from a file, or straight off the
+            screen, and shown underneath so it is clear which one is meant. -->
+        <StackPanel IsVisible="{Binding IsImage}">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                <!-- A picture is a file or the picture an earlier Capture saved under a
+                    name, so the names are offered over the box the same way they are over
+                    any other box that takes one. -->
+                <AutoCompleteBox Classes="Field"
+                    ItemsSource="{Binding NameChoices}"
+                    Text="{Binding Text}"
+                    PlaceholderText="{Binding Placeholder}"
+                    MinimumPrefixLength="{Binding NamePrefix}"
+                    FilterMode="Contains" />
+                <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                    Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnBrowseImage" />
+                <Button Grid.Column="2" Classes="Secondary" Height="33" Padding="11,0"
+                    Content="{Binding [Add.CaptureImage], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnCaptureImage" />
+                <Button Grid.Column="3" Classes="Secondary" Height="33" Padding="11,0"
+                    Content="{Binding [Add.ClearImage], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.ClearImageHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnClearImage" />
+            </Grid>
+
+            <Border IsVisible="{Binding HasThumbnail}" Margin="0,8,0,0"
+                Background="{DynamicResource SurfaceWindow}" BorderBrush="{DynamicResource BorderControl}" BorderThickness="1"
+                CornerRadius="5" Padding="4" HorizontalAlignment="Left">
+                <Image Source="{Binding Thumbnail}" MaxWidth="240" MaxHeight="110"
+                    Stretch="Uniform" />
+            </Border>
+        </StackPanel>
+
+        <!-- The pictures a search looks for: one row each, tried in the order they are
+            listed. A thing that is drawn differently from one screen to the next is
+            several pictures rather than several branches. -->
+        <StackPanel IsVisible="{Binding IsImageList}" Spacing="7">
+            <ItemsControl ItemsSource="{Binding Pictures}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ImageRowViewModel">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6"
+                            Margin="0,0,0,4">
+                            <Border Grid.Column="0" Width="54" Height="34"
+                                Background="{DynamicResource SurfaceWindow}" BorderBrush="{DynamicResource BorderControl}"
+                                BorderThickness="1" CornerRadius="4" Padding="2">
+                                <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                            </Border>
+                            <AutoCompleteBox Grid.Column="1" Classes="Field"
+                                ItemsSource="{Binding Suggestions}"
+                                Text="{Binding Text}"
+                                PlaceholderText="{Binding Placeholder}"
+                                MinimumPrefixLength="1"
+                                FilterMode="Contains" />
+                            <Button Grid.Column="2" Classes="Secondary" Height="33"
+                                Padding="11,0"
+                                Content="{Binding [Add.BrowseImage], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.BrowseImageHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnBrowseImageRow" />
+                            <Button Grid.Column="3" Classes="Secondary" Height="33"
+                                Padding="11,0"
+                                Content="{Binding [Add.CaptureImage], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.CaptureImageHint], Source={x:Static loc:Strings.Current}}"
+                                Click="OnCaptureImageRow" />
+                            <Button Grid.Column="4" Classes="Secondary" Height="33"
+                                Padding="9,0"
+                                Content="{Binding [Add.ImageMoveUp], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ImageMoveUpHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding MoveUpCommand}" />
+                            <Button Grid.Column="5" Classes="Secondary" Height="33"
+                                Padding="9,0"
+                                Content="{Binding [Add.ImageMoveDown], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ImageMoveDownHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding MoveDownCommand}" />
+                            <Button Grid.Column="6" Classes="Secondary" Height="33"
+                                Padding="11,0"
+                                Content="{Binding [Add.ImageRemove], Source={x:Static loc:Strings.Current}}"
+                                ToolTip.Tip="{Binding [Add.ImageRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding RemoveCommand}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button Classes="Secondary" Height="30" Padding="10,0"
+                    Content="{Binding [Add.ImageAdd], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.ImageAddHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnAddImageRow" />
+                <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    Text="{Binding [Add.ImageEmpty], Source={x:Static loc:Strings.Current}}"
+                    IsVisible="{Binding !HasPictures}" />
+            </Grid>
+        </StackPanel>
+
+        <!-- Whether the step recognises the right window is otherwise only visible by
+            running the macro, so the windows this rule picks out right now are listed
+            under the fields that make up the rule. -->
+        <StackPanel IsVisible="{Binding ShowsWindowPreview}" Margin="0,8,0,0" Spacing="4">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <TextBlock Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap"
+                    Text="{Binding WindowPreview.Summary}" />
+                <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
+                    Content="{Binding [WindowPicker.Refresh], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [WindowPicker.RefreshHint], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding WindowPreview.RefreshCommand}" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding WindowPreview.Rows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WindowPreviewRow">
+                        <StackPanel Margin="2,0,0,0">
+                            <TextBlock FontSize="12" Foreground="{DynamicResource TextPrimary}"
+                                TextTrimming="CharacterEllipsis"
+                                Text="{Binding Title}" />
+                            <StackPanel Orientation="Horizontal" Spacing="5"
+                                IsVisible="{Binding HasPart}">
+                                <TextBlock Classes="Note" FontSize="11"
+                                    Text="{Binding PartLabel}" />
+                                <TextBlock Classes="Note" FontSize="11"
+                                    TextTrimming="CharacterEllipsis"
+                                    Text="{Binding Part}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding WindowPreview.More}"
+                IsVisible="{Binding WindowPreview.HasMore}" />
+            <TextBlock Classes="Hint" TextWrapping="Wrap" Text="{Binding WindowPreview.Note}"
+                IsVisible="{Binding WindowPreview.HasNote}" />
+        </StackPanel>
+
+        <!-- Where a step looks: one row per rectangle, so looking at two halves of a
+            screen reads as two things. A row says its rectangle as four numbers — each of
+            them an ordinary number field, which may be written as an expression — or names
+            one variable that says where to look. -->
+        <StackPanel IsVisible="{Binding IsRegion}" Spacing="9">
+            <ItemsControl ItemsSource="{Binding Regions}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RegionRowViewModel">
+                        <StackPanel Margin="0,0,0,9" Spacing="5">
+                            <!-- The four numbers of the rectangle on one line: where the
+                                corner is, then how far it reaches. Each is a short name and
+                                a box with the「取值」chip on its own right edge — four
+                                buttons of their own would not fit, and a place to look is
+                                one line of four numbers, not a block. -->
+                            <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                                <ContentControl Grid.Column="0"
+                                    Content="{Binding X}"
+                                    ContentTemplate="{StaticResource NumberCellTight}" />
+                                <ContentControl Grid.Column="1"
+                                    Content="{Binding Y}"
+                                    ContentTemplate="{StaticResource NumberCellTight}" />
+                                <ContentControl Grid.Column="2"
+                                    Content="{Binding Width}"
+                                    ContentTemplate="{StaticResource NumberCellTight}" />
+                                <ContentControl Grid.Column="3"
+                                    Content="{Binding Height}"
+                                    ContentTemplate="{StaticResource NumberCellTight}" />
+                            </Grid>
+
+                            <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
+                                Foreground="{DynamicResource Danger}"
+                                Text="{Binding CellMessage}"
+                                IsVisible="{Binding ShowCellError}" />
+                            <TextBlock Classes="Hint" Margin="2,0,0,0" TextWrapping="Wrap"
+                                Foreground="{DynamicResource Success}"
+                                Text="{Binding CellMessage}"
+                                IsVisible="{Binding ShowCellResult}" />
+
+                            <!-- One variable instead of the four numbers: what says where to
+                                look may be a picture taken earlier, or a rectangle some
+                                earlier step worked out. -->
+                            <WrapPanel>
+                                <TextBlock Classes="Note" VerticalAlignment="Center"
+                                    Margin="0,0,6,0"
+                                    Text="{Binding [Add.RegionOrVariable], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding VariableHint}" />
+                                <TextBox Width="190" Classes="Field HasChip" Margin="0,0,6,0"
+                                    Text="{Binding OrVariable}"
+                                    PlaceholderText="{Binding VariablePlaceholder}"
+                                    ToolTip.Tip="{Binding VariableHint}">
+                                    <TextBox.InnerRightContent>
+                                        <Button Classes="ValueChip" Click="OnPickRegionVariable"
+                                            Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                            ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                    </TextBox.InnerRightContent>
+                                </TextBox>
+                                <Button Classes="Secondary" Height="33" Padding="11,0"
+                                    Margin="0,0,6,0"
+                                    Content="{Binding [Add.PickRegion], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.PickRegionHint], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnPickRegionRow" />
+                                <Button Classes="Secondary" Height="26" Padding="9,0"
+                                    Content="{Binding [Add.RegionRemove], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.RegionRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                    Command="{Binding RemoveCommand}" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button Classes="Secondary" Height="30" Padding="10,0"
+                    Content="{Binding [Add.RegionAdd], Source={x:Static loc:Strings.Current}}"
+                    Click="OnAddRegionRow" />
+                <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                    Text="{Binding [Add.RegionEmpty], Source={x:Static loc:Strings.Current}}"
+                    IsVisible="{Binding !HasRegions}" />
+            </Grid>
+
+        </StackPanel>
+
+        <!-- 基准色周围要对的颜色：一处一行。四件事按人想它们的顺序排：往右多少、往下多少、
+            是什么颜色（几种都行就并排写）、这一处是「要是」还是「不能是」、容差多少。
+            和三段标点比起来，行不会少一段、也不会把分隔符写进颜色里；每一格仍然可以写算式
+            或变量，所以整块图案能跟着另一步算出来的数一起挪。 -->
+        <StackPanel IsVisible="{Binding IsColourPoints}" Spacing="8">
+            <!-- 整张表放在一张卡片里：表头一条、下面一条分隔线，几行输入才看得出是同一张表。 -->
+            <Border Classes="Card" Padding="10,9,10,9">
+                <StackPanel Spacing="7">
+                    <Grid ColumnDefinitions="*,*,2.4*,72,0.9*,28" ColumnSpacing="10">
+                        <TextBlock Classes="ColumnHeader"
+                            Text="{Binding [Add.ColourPointDx], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="1" Classes="ColumnHeader"
+                            Text="{Binding [Add.ColourPointDy], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="2" Classes="ColumnHeader" TextWrapping="Wrap"
+                            ToolTip.Tip="{Binding [Add.ColourPointColourHint], Source={x:Static loc:Strings.Current}}"
+                            Text="{Binding [Add.ColourPointColour], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="3" Classes="ColumnHeader" TextWrapping="Wrap"
+                            HorizontalAlignment="Center"
+                            ToolTip.Tip="{Binding [Add.ColourPointMustNotHint], Source={x:Static loc:Strings.Current}}"
+                            Text="{Binding [Add.ColourPointMustNot], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Grid.Column="4" Classes="ColumnHeader"
+                            Text="{Binding [Add.ColourPointTolerance], Source={x:Static loc:Strings.Current}}" />
+                    </Grid>
+                    <Border Height="1" Background="{DynamicResource BorderSubtle}" />
+
+                    <ItemsControl ItemsSource="{Binding ColourPointRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ColourPointRowViewModel">
+                                <Grid ColumnDefinitions="*,*,2.4*,72,0.9*,28" ColumnSpacing="10" Margin="0,0,0,6">
+                                    <TextBox Classes="Field" Text="{Binding Dx}" PlaceholderText="0" />
+                                    <TextBox Grid.Column="1" Classes="Field" Text="{Binding Dy}"
+                                        PlaceholderText="0" />
+                                    <Grid Grid.Column="2" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                        <TextBox Classes="Field" Text="{Binding Colour, Mode=TwoWay}"
+                                            PlaceholderText="#RRGGBB"
+                                            ToolTip.Tip="{Binding [Add.ColourPointColourHint], Source={x:Static loc:Strings.Current}}" />
+                                        <!-- 写下的每个颜色当场看得见：十六进制数读不出对不对；写了两三个，
+                                            这里就排开两三块，看得出竖线是分隔符而不是颜色的一部分。 -->
+                                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Colours}"
+                                            VerticalAlignment="Center">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="3" />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="14" Height="14" CornerRadius="3"
+                                                        BorderThickness="1"
+                                                        BorderBrush="{DynamicResource BorderControl}"
+                                                        Background="{Binding Converter={StaticResource HexBrush}}" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                    <!-- 「要是」还是「不能是」：勾上就是这一处不能是这些颜色，
+                                        用来写「这里应该是空的」。 -->
+                                    <CheckBox Grid.Column="3" HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" MinWidth="0"
+                                        IsChecked="{Binding MustNot, Mode=TwoWay}"
+                                        ToolTip.Tip="{Binding [Add.ColourPointMustNotHint], Source={x:Static loc:Strings.Current}}" />
+                                    <!-- 容差留空就跟着基准色那一格：一处要严、其余放宽，是这块最常调的。 -->
+                                    <TextBox Grid.Column="4" Classes="Field" Text="{Binding Tolerance}"
+                                        PlaceholderText="{Binding [Add.ColourPointGlobal], Source={x:Static loc:Strings.Current}}"
+                                        ToolTip.Tip="{Binding [Add.ColourPointToleranceHint], Source={x:Static loc:Strings.Current}}" />
+                                    <Button Grid.Column="5" Classes="Ghost" Width="26" Height="26"
+                                        Content="×"
+                                        ToolTip.Tip="{Binding [Add.ColourPointRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                        Command="{Binding RemoveCommand}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                <Button Classes="Secondary" Height="28" Padding="10,0"
+                    Content="{Binding [Add.ColourPointAdd], Source={x:Static loc:Strings.Current}}"
+                    Click="OnAddColourPoint" />
+                <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
+                    Content="{Binding [Add.PickColours], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.PickColoursHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnPickColourPoints" />
+                <TextBlock Grid.Column="2" Classes="Hint" VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    Text="{Binding [Add.ColourPointEmpty], Source={x:Static loc:Strings.Current}}"
+                    IsVisible="{Binding !HasColourPoints}" />
+                <!-- 两条规则只在 tooltip 里说，等于没说过；常驻又会把这张表撑长。 -->
+                <views:HintInfo Grid.Column="3"
+                    Text="{Binding [Add.ColourPointNote], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+        </StackPanel>
+
+        <!-- A run of key combinations: one row per press, in the order they are sent. A
+            combo is a sequence of presses whose beat is part of what it is, so the run is
+            a list rather than one long line of keys. -->
+        <StackPanel IsVisible="{Binding IsKeySequence}" Spacing="7">
+            <ItemsControl ItemsSource="{Binding KeyRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:KeyRowViewModel">
+                        <!-- The combination takes the whole first line; its beat and the
+                            button that takes it out sit under it, so a long chord never
+                            pushes the numbers off the side. -->
+                        <StackPanel Margin="0,0,0,8" Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                <Button Classes="Field"
+                                    Content="{Binding KeysDisplay}"
+                                    ToolTip.Tip="{Binding [Add.KeyRunKeyHint], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnPickKeyRow" />
+                                <Button Grid.Column="1" Classes="Secondary"
+                                    Height="34" Padding="9,0"
+                                    Content="{Binding CaptureLabel}"
+                                    ToolTip.Tip="{Binding [Add.CaptureKeyRunHint], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnCaptureKeyRow" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Add.KeyRunHold], Source={x:Static loc:Strings.Current}}" />
+                                <fa:FANumberBox Width="84" SimpleNumberFormat="0" PlaceholderText="50"
+                                    Value="{Binding HoldMs, Converter={StaticResource Number}}"
+                                    ToolTip.Tip="{Binding [Add.KeyRunHoldHint], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Caption" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Caption" VerticalAlignment="Center"
+                                    Text="{Binding [Add.KeyRunGap], Source={x:Static loc:Strings.Current}}" />
+                                <fa:FANumberBox Width="84" SimpleNumberFormat="0" PlaceholderText="120"
+                                    Value="{Binding GapMs, Converter={StaticResource Number}}"
+                                    ToolTip.Tip="{Binding [Add.KeyRunGapHint], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Classes="Caption" Margin="0,0,8,0" VerticalAlignment="Center"
+                                    Text="{Binding [Add.KeyRunMilliseconds], Source={x:Static loc:Strings.Current}}" />
+                                <Button Classes="Secondary"
+                                    Height="26" Padding="9,0" VerticalAlignment="Center"
+                                    Content="{Binding [Add.KeyRunRemove], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.KeyRunRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                    Command="{Binding RemoveCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button Classes="Secondary" Height="30" Padding="10,0"
+                    Content="{Binding [Add.KeyRunAdd], Source={x:Static loc:Strings.Current}}"
+                    Click="OnAddKeyRow" />
+                <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                    Text="{Binding [Add.KeyRunEmpty], Source={x:Static loc:Strings.Current}}"
+                    IsVisible="{Binding !HasKeyRows}" />
+            </Grid>
+        </StackPanel>
+
+        <!-- What a page step says the element it means has to be like, one row each, all of
+            them holding at once. It is what tells one of several elements that a selector
+            names from the others: a page that shows the same button twice is told apart by
+            what the one that is meant says, which is not something a person can read off
+            the page and count. -->
+        <StackPanel IsVisible="{Binding IsNarrow}" Spacing="7">
+            <ItemsControl ItemsSource="{Binding NarrowRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NarrowRowViewModel">
+                        <StackPanel Margin="0,0,0,8" Spacing="5">
+                            <!-- The way of narrowing, then what to look for by it: reading
+                                them together is the sentence the row says. Each row can be
+                                looked at on the page on its own, which is how a person
+                                sees whether adding it helped. -->
+                            <Grid ColumnDefinitions="210,*,Auto,Auto,Auto" ColumnSpacing="6">
+                                <ComboBox Classes="Field"
+                                    ItemsSource="{Binding Choices}"
+                                    SelectedItem="{Binding Way}"
+                                    Width="210" HorizontalAlignment="Left">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:NarrowWay">
+                                            <TextBlock Text="{Binding Display}"
+                                                FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBox Grid.Column="1" Classes="Field"
+                                    IsVisible="{Binding NeedsValue}"
+                                    Text="{Binding Value}"
+                                    PlaceholderText="{Binding ValueHint}" />
+                                <Button Grid.Column="2" Classes="Secondary" Height="33"
+                                    Padding="11,0"
+                                    IsVisible="{Binding OnPage}"
+                                    Content="{Binding [Add.NarrowPick], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.NarrowPickHint], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnPickNarrowValue" />
+                                <Button Grid.Column="3" Classes="Secondary" Height="33"
+                                    Padding="11,0"
+                                    IsVisible="{Binding OnPage}"
+                                    Content="{Binding [Add.NarrowLook], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.NarrowLookHint], Source={x:Static loc:Strings.Current}}"
+                                    Click="OnLookNarrowRow" />
+                                <Button Grid.Column="4" Classes="Secondary" Height="33"
+                                    Padding="11,0"
+                                    Content="{Binding [Add.NarrowRemove], Source={x:Static loc:Strings.Current}}"
+                                    ToolTip.Tip="{Binding [Add.NarrowRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                    Command="{Binding RemoveCommand}" />
+                            </Grid>
+                            <TextBlock Classes="Note" Margin="2,0,0,0" TextWrapping="Wrap"
+                                Text="{Binding Count}"
+                                IsVisible="{Binding HasCount}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button Classes="Secondary" Height="30" Padding="10,0"
+                    Content="{Binding [Add.NarrowAdd], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.NarrowAddHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnAddNarrowRow" />
+                <TextBlock Grid.Column="1" Classes="Hint" VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    Text="{Binding [Add.NarrowEmpty], Source={x:Static loc:Strings.Current}}"
+                    IsVisible="{Binding !HasNarrowRows}" />
+            </Grid>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

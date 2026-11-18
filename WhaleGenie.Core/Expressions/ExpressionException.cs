@@ -48,7 +48,7 @@ public sealed class ExpressionException : Exception
 
     public static ExpressionException Syntax(string detail) => new(ExpressionErrorCode.Syntax, detail);
 
-    public static ExpressionException UnknownVariable(string name) => new(ExpressionErrorCode.UnknownVariable, "$" + name);
+    public static ExpressionException UnknownVariable(string name) => new(ExpressionErrorCode.UnknownVariable, name);
 
     public static ExpressionException UnknownFunction(string name) => new(ExpressionErrorCode.UnknownFunction, name);
 

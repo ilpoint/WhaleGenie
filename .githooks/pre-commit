@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# Reports files that crossed the size signals before they enter the repository. It reads the staged
+# blob rather than the working tree, so a file that is only partly staged is judged by what will be
+# committed.
+#
+# Code is measured in lines, documents in bytes. A line count says how much a task has to read; a
+# byte count says how long a page of prose is. The numbers are signals, not commands: a cohesive
+# file that changes rarely may stay large, while a file mixing independently changing concerns
+# should be split by those concerns.
+
+set -euo pipefail
+
+code_debt=700
+code_suggest=500
+code_check=300
+doc_signal=20000
+root="$(git rev-parse --show-toplevel)"
+inventory_file="$root/.githooks/large-file-inventory.tsv"
+declare -A inventory_metric=()
+declare -A inventory_review=()
+
+if [[ -f "$inventory_file" ]]; then
+  while IFS=$'\t' read -r metric path review || [[ -n "$metric$path" ]]; do
+    metric="${metric%$'\r'}"
+    path="${path%$'\r'}"
+    review="${review%$'\r'}"
+    [[ -z "$metric" || "$metric" == \#* ]] && continue
+    inventory_metric["$path"]="$metric"
+    inventory_review["$path"]="${review:-pending review}"
+  done < "$inventory_file"
+fi
+
+is_code() {
+  case "$1" in
+    *.cs|*.axaml|*.ps1) return 0 ;;
+  esac
+  return 1
+}
+
+# These files are generated, lockfiles, build output, or external material. Their size says
+# nothing about how a task reads this repository, so they are not reported.
+skipped() {
+  case "$1" in
+    .githooks/large-file-inventory.tsv|*/.githooks/large-file-inventory.tsv) return 0 ;;
+    .git/*|*/.git/*|bin/*|*/bin/*|obj/*|*/obj/*|dist/*|*/dist/*|_site/*|*/_site/*) return 0 ;;
+    TestResults/*|*/TestResults/*|third_party/*|LICENSE.txt|NOTICE) return 0 ;;
+    package-lock.json|*/package-lock.json|yarn.lock|*/yarn.lock|pnpm-lock.yaml|*/pnpm-lock.yaml) return 0 ;;
+    *.lock|*.lock.json|*.g.cs|*.designer.cs|*.generated.*|*.min.js|*.min.css) return 0 ;;
+  esac
+  return 1
+}
+
+# Git already records whether a staged change is binary, so ask it rather than streaming a large
+# blob through a pipe that would close early.
+is_binary() {
+  local stats added
+  stats="$(git diff --cached --numstat -- "$1")" || return 1
+  added="${stats%%$'\t'*}"
+  [[ "$added" == "-" ]]
+}
+
+# Lines for code, bytes for everything else. A blob without a trailing newline still has a last
+# line, which is why the count comes from awk rather than from counting newlines.
+measure() {
+  if is_code "$1"; then
+    git cat-file blob ":$1" | awk 'END { print NR }'
+  else
+    git cat-file -s ":$1"
+  fi
+}
+
+notices=()
+
+while IFS= read -r -d '' status && IFS= read -r -d '' path; do
+  if [[ "$status" == R* || "$status" == C* ]]; then
+    IFS= read -r -d '' path || break
+  fi
+
+  skipped "$path" && continue
+  is_binary "$path" && continue
+  value="$(measure "$path" 2>/dev/null)" || continue
+  review="${inventory_review["$path"]:-}"
+  previous="${inventory_metric["$path"]:-0}"
+
+  if is_code "$path"; then
+    if (( value > code_debt )); then
+      if [[ "$review" == exempt* ]]; then
+        (( value > previous )) && notices+=("$path"$'\t'"$value"$'\t'"exempt"$'\t'"$previous")
+      else
+        notices+=("$path"$'\t'"$value"$'\t'"debt"$'\t'"$previous")
+      fi
+      continue
+    fi
+
+    if (( value >= code_suggest )); then
+      if [[ -z "$review" ]]; then
+        notices+=("$path"$'\t'"$value"$'\t'"suggest"$'\t'"$previous")
+      elif [[ "$review" == pending* ]]; then
+        notices+=("$path"$'\t'"$value"$'\t'"pending"$'\t'"$previous")
+      elif (( value > previous )); then
+        notices+=("$path"$'\t'"$value"$'\t'"grown"$'\t'"$previous")
+      fi
+      continue
+    fi
+
+    if (( value >= code_check )); then
+      if [[ -z "$review" ]]; then
+        notices+=("$path"$'\t'"$value"$'\t'"check"$'\t'"$previous")
+      elif [[ "$review" == pending* ]]; then
+        notices+=("$path"$'\t'"$value"$'\t'"pending"$'\t'"$previous")
+      elif (( value > previous )); then
+        notices+=("$path"$'\t'"$value"$'\t'"grown"$'\t'"$previous")
+      fi
+      continue
+    fi
+
+    # Under 300 lines is healthy; a stale entry is simply not reported.
+    continue
+  fi
+
+  (( value > doc_signal )) || continue
+  if [[ -z "$review" ]]; then
+    notices+=("$path"$'\t'"$value"$'\t'"doc-new"$'\t'"0")
+  elif [[ "$review" == pending* ]]; then
+    notices+=("$path"$'\t'"$value"$'\t'"doc-pending"$'\t'"$previous")
+  elif (( value > previous )); then
+    notices+=("$path"$'\t'"$value"$'\t'"doc-grown"$'\t'"$previous")
+  fi
+done < <(git diff --cached --name-status -z --diff-filter=ACMR)
+
+if (( ${#notices[@]} == 0 )); then
+  exit 0
+fi
+
+printf '文件规模检查（提示，不阻止提交）：\n' >&2
+for item in "${notices[@]}"; do
+  IFS=$'\t' read -r path value kind previous <<< "$item"
+  if is_code "$path"; then
+    case "$kind" in
+      debt) printf '  %s：%s 行（超过 %s 行，须拆分并登记技术债）\n' "$path" "$value" "$code_debt" >&2 ;;
+      suggest) printf '  %s：%s 行（超过 %s 行，建议拆分并评估内聚性）\n' "$path" "$value" "$code_suggest" >&2 ;;
+      check) printf '  %s：%s 行（超过 %s 行，检查内聚性）\n' "$path" "$value" "$code_check" >&2 ;;
+      exempt) printf '  %s：%s 行（文案查表已豁免，原 %s 行，本次增长）\n' "$path" "$value" "$previous" >&2 ;;
+      pending) printf '  %s：%s 行（清单中仍待评估）\n' "$path" "$value" >&2 ;;
+      grown) printf '  %s：%s 行（已评估，原 %s 行，本次增长）\n' "$path" "$value" "$previous" >&2 ;;
+    esac
+  else
+    case "$kind" in
+      doc-new) printf '  %s：%s 字节（文档超过 %s 字节，尚未评估）\n' "$path" "$value" "$doc_signal" >&2 ;;
+      doc-pending) printf '  %s：%s 字节（清单中仍待评估）\n' "$path" "$value" >&2 ;;
+      doc-grown) printf '  %s：%s 字节（已评估，原 %s 字节，本次增长）\n' "$path" "$value" "$previous" >&2 ;;
+    esac
+  fi
+done
+cat >&2 <<'EOF'
+代码按行数判断，文档按字节判断：
+  超过 700 行：强制拆分，登记技术债，尽快处理
+  500–700 行：建议拆分，先评估内聚性，可推迟到下一个迭代
+  300–500 行：检查内聚性，确认是否单一职责
+  少于 300 行：健康
+不要为凑数字机械切割。按业务关注点拆分，让一次任务只读取相关内容，不按 helpers/utils 拆分。
+评估后把当前行数（文档为字节数）与结论写进 .githooks/large-file-inventory.tsv：
+  keep: 内聚理由        确认单一职责，可保留
+  split: 拆分理由       确认混合关注点，增长时再提示
+  exempt: 查表理由      文案查表，豁免 700 行强制拆分
+这次提交继续执行。
+EOF
+exit 0

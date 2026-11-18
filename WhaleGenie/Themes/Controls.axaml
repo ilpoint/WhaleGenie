@@ -1,4 +1,4 @@
-﻿<Styles xmlns="https://github.com/avaloniaui"
+<Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:views="using:WhaleGenie.Views"
         xmlns:conv="using:WhaleGenie.Converters"
@@ -31,8 +31,13 @@
                                              Converter="{x:Static conv:StepIndentConverter.Instance}" />
                                 </Grid.Margin>
                                 <!-- 展开钮的格子宽度固定：叶子行没有箭头，但那一格还在，所以
-                                     同一层的标题永远对在同一条竖线上。 -->
-                                <Panel Name="PART_ExpandCollapseChevronContainer"
+                                     同一层的标题永远对在同一条竖线上。
+
+                                     这一格压在内容列之上（ZIndex）：树线是内容列里画出来的，
+                                     绘制顺序排在方块之后，那条穿过方块中线的虚线会正盖在钮上
+                                     ——"折叠钮和折叠虚线分不清"就是这么来的。抬高之后方块成了
+                                     压在线上的一枚实心钮，线从它下面穿过去。 -->
+                                <Panel Name="PART_ExpandCollapseChevronContainer" ZIndex="1"
                                        Width="14" Margin="12,0,12,0">
                                     <!-- 折叠方块只长在"自己跑步骤"的那一行上：块的体（循环体步骤）是块的一部分，
                                          在它上面再放一枚方块，等于说体自己会折叠，而它不会。 -->
@@ -62,14 +67,22 @@
             </Setter>
         </ControlTheme>
 
-        <!-- 展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。 -->
+        <!--
+          展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。
+
+          **它得先被读成一枚钮，然后才是一枚箭头。** 树线是虚线，而方块原来只有一层几乎与
+          背景同深的淡底，穿过中线的虚线又画在它上面，于是"这里可以折叠"和"这里是一条线"在
+          屏幕上没有分别。所以：实心底（SurfaceControl，比背后的行和线都亮一档）、一圈描边
+          压住穿过它的线、字形用主文字色而不是次要色。悬停与按下各自换底和边，四态可读；焦点
+          仍归容器行模板的 FocusAdorner（这一格 Focusable="False"），不另写一层焦点环。
+        -->
         <ControlTheme x:Key="StepChevron" TargetType="ToggleButton">
             <Setter Property="Width" Value="14" />
             <Setter Property="Height" Value="14" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="3" />
+            <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
             <Setter Property="Template">
                 <ControlTemplate>
                     <Border Background="{TemplateBinding Background}"
@@ -77,19 +90,55 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}">
                         <Path Name="Glyph" Data="M 5,4 L 8,7 L 5,10"
-                              Stroke="{DynamicResource TextSecondary}"
-                              StrokeThickness="1.3"
+                              Stroke="{DynamicResource TextPrimary}"
+                              StrokeThickness="1.6"
                               StrokeLineCap="Round" StrokeJoin="Round" />
                     </Border>
                 </ControlTemplate>
             </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
+            </Style>
             <!-- 展开时整枚钮转 90 度：箭头从"朝右"变成"朝下"，一套图形两种状态。 -->
             <Style Selector="^:checked">
                 <Setter Property="RenderTransform" Value="rotate(90deg)" />
             </Style>
         </ControlTheme>
-        <!--
-          右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
+<!--
+      设置分组：标题、说明与行平铺，没有展开动作。行仍由 FASettingsExpanderItem 呈现，组只给
+      卡片描边、标题底与标题下那条 1px 缝；行与行之间靠内容里的 StackPanel Spacing="1" 透出窗口底。
+    -->
+    <ControlTheme x:Key="{x:Type views:SettingsGroup}" TargetType="views:SettingsGroup">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border BorderBrush="{DynamicResource BorderSubtle}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource RadiusControl}"
+                        ClipToBounds="True">
+                    <StackPanel>
+                        <Border Background="{DynamicResource SurfaceCard}"
+                                BorderBrush="{DynamicResource BorderSubtle}"
+                                BorderThickness="0,0,0,1"
+                                Padding="{DynamicResource PadRow}">
+                            <ContentPresenter Content="{TemplateBinding Header}"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="Stretch" />
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+
+    <!--
+      右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
           ControlThemes 里有 Menu、MenuItem、MenuFlyoutPresenter 与 Separator，唯独没有 ContextMenu
           （逐个核过 amwx/FluentAvalonia 的 ControlThemes/BasicControls 目录）。
 
@@ -131,11 +180,34 @@
     </Styles.Resources>
 
     <!--
-      数字输入框的微调按钮放进取焦才开的弹层。它们夹在数字右边时，一行四个数字的宽度就被它们吃掉
-      一截；以前这件事靠一个子类在运行时把按钮压到 16×15 来做，现在由控件自己的摆放模式说清楚。
+      指针停在某样东西上时浮出来的那一块。它画在这里而不是某个窗口里：提示框不画在所属窗口
+      内部，它站在自己的弹层里，窗口级的样式够不到它；应用级的样式才跟着弹层走。
+    -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="Padding" Value="10,9" />
+    </Style>
+
+    <!--
+      数字输入框没有上下按钮。它们原来折进取焦才开的弹层，为的是一行四个数字时不吃宽度；可弹层
+      开在框的右端，正好压住框里的数字：76 宽的抖动框只剩两个数字的位置。带片的数字格现在把那
+      一端留给「取值」片（见下面的 `HasChip`），数字照旧手打，要算式的走「取值」。
     -->
     <Style Selector="fa|FANumberBox">
-        <Setter Property="SpinButtonPlacementMode" Value="Compact" />
+        <Setter Property="SpinButtonPlacementMode" Value="Hidden" />
+    </Style>
+
+    <!--
+      带片的数字框：片浮在框的右端，字让开它。数字框的模板只有内嵌**左**内容的位置，右侧那一格
+      被上下按钮占着，所以这里换一种让法——改内层输入框的右内边距，与 `TextBox.HasChip` 同一个数。
+      片本身是这个框的兄弟（在同一个格子里右对齐），画在框的上面，读起来仍在框里。
+    -->
+    <Style Selector="fa|FANumberBox.HasChip /template/ TextBox#InputBox">
+        <Setter Property="Padding" Value="8,6,48,6" />
     </Style>
 
     <!--
@@ -210,6 +282,7 @@
       LAYER1 ComboBox.Field.Cell ComboBox
       LAYER1 AutoCompleteBox.Field TextControl
       STATIC AutoCompleteBox.HasChip
+      STATIC fa|FANumberBox.HasChip
       STATIC ListBox.Panel
       STATIC ListBox.Chips
       STATIC TextBox.HasChip
@@ -230,6 +303,8 @@
       STATIC Border.Readout
       STATIC Border.Section
       STATIC Border.Sunken
+      STATIC Border.Token
+      STATIC SelectableTextBlock.Part
       STATIC Border.Tag
       STATIC ListBox.List
       STATIC ListBox.List.Bare
@@ -404,12 +479,16 @@
       工具钮是"在这里做点什么"，关闭键是"离开这里"。`Close` 那一档只为它自己：悬停底换成
       `CaptionCloseHover`（WinUI 的关窗红），字形同时转白——红底上留深色字，浅色主题里会糊。
       图标用 `IconView` 画，笔画是它自己的属性，不是 `Foreground`，所以这里连它一起给。
+
+      直角不是漏写圆角：系统画的 caption 按钮就是一块贴顶的直角热区（悬停时整块 46×32 变色），
+      自绘的置顶钮挨着它们，圆角会让它看起来像浮在标题栏上的一张卡片。三档圆角管的是内容区里的
+      控件，标题栏按钮跟系统同形，是这条契约唯一的例外。
     -->
     <Style Selector="Button.Caption">
         <Setter Property="Width" Value="46" />
         <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="CornerRadius" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
@@ -595,6 +674,70 @@
     <Style Selector="Button.ValueChip:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
     </Style>
+    <!-- 值的读法：一个名字是一块，块里就是它的名字；文字是文字，不带框。
+         一块与一行文字之间只留字距，让读的人先看见句子，再看见句子里的名字。 -->
+    <Style Selector="Border.Token">
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.Token.Name">
+        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="5,0" />
+        <Setter Property="Margin" Value="1,0" />
+    </Style>
+    <Style Selector="Border.Token > TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.Token.Name > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+
+    <!-- 一格值里的一段文字：只读显示，看起来只是字。名字各占一块，中间不需要空框来填。 -->
+    <Style Selector="SelectableTextBlock.Part">
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.TokenClose">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Button.TokenClose:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+    <Style Selector="Border.Token.Name:pointerover Button.TokenClose">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+
+    <!-- 一块地方装着读法本身：它不像输入框，但点一下就是输入框。 -->
+    <Style Selector="Border.TokenField">
+        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Padding" Value="{DynamicResource PadField}" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Cursor" Value="IBeam" />
+    </Style>
+    <Style Selector="Border.TokenField:pointerover">
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+    </Style>
+
     <Style Selector="TextBox.HasChip">
         <Setter Property="Padding" Value="8,0,48,0" />
     </Style>
@@ -642,6 +785,7 @@
         <Setter Property="Padding" Value="{DynamicResource PadField}" />
         <Setter Property="MinHeight" Value="58" />
         <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
         <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -1147,6 +1291,56 @@
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
     </Style>
 
+    <!--
+      设置窗顶部三个分组页签的胶囊档。`Root` 的下划线选中留给主窗与宏设置，这里只做窄化。
+      不叫 `Pill`：`Button.Pill` 已经是另一个东西，窄化规则会把它一起算进来。
+    -->
+    <Style Selector="Button.Tab.Root.Capsule">
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule:pointerover">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule:pressed">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule.selected">
+        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule.selected:pointerover">
+        <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule.selected:pressed">
+        <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+    <Style Selector="Button.Tab.Root.Capsule:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <!--
+      设置窗左栏的图标跟着行的状态换色。不能绑 `FANavigationViewItem.Foreground`：库的选中态把
+      颜色写在模板里的两个 ContentPresenter 上，item 自己的前景始终是静息色。
+    -->
+    <Style Selector="fa|FANavigationViewItem views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <Style Selector="fa|FANavigationViewItem:pointerover views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="fa|FANavigationViewItem:selected views|IconView">
+        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
+    </Style>
+
     <!-- 侧栏页签：选中时整行铺强调浅底，左侧一条竖线标位置。 -->
     <Style Selector="Button.Tab.Side">
         <Setter Property="Height" Value="32" />
@@ -1377,6 +1571,79 @@
         <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
         <Setter Property="Margin" Value="{DynamicResource GapDivider}" />
     </Style>
+    <!--
+      分类 dock：一排按钮把一大片收窄成一组。变量中心的分组与动作库的四个来源都站在这上面，
+      所以它只有一个样子——不在窗口里各写一套分类按钮。
+
+      静息是一行字，悬停叠一层透明色（悬停与按下都用叠层令牌：dock 底下是什么表面都不该换颜色），
+      选中的那一枚用强调底与强调字：与 `Button.ChipWord`、`ToggleButton.Chip` 同一个语汇。
+      `AccentFill` 留给"按下去"的实心钮——它上面的 `TextPrimary` 在浅色主题只有 3.54:1，
+      `AccentSurface` + `AccentText` 两套都是 5.7:1。这不是偏好，是第 9 节那条底线。
+
+      边是 1px，静息就占着（透明），选中才亮出来：选中因此有底、字、边框三重信号，尺寸一次都不动。
+      态写在模板的 `ContentPresenter` 上——这是 `ListBoxItem` 一族画底的地方，与 `ListBox.List` 同一条。
+    -->
+    <Style Selector="ListBox.Dock">
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem">
+        <!-- 主题给每一行 88 像素的下限；分类名很短，"全部"要 30 却拿到 88。 -->
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <!-- 行自己不写 Margin：库的 ListBoxItem 模板已经把内容内缩 2 像素，两块相邻的选中底之间
+             因此仍有 4 像素。再补一道家族的缝，四条中文来源就正好卡在 44 与 44.44 之间——
+             100% DPI 一行放得下，150% 就折成两行。 -->
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <!--
+      前景色写两处，是因为它有两种读者：字在模板里，继承 ContentPresenter 的那一份；图标是模板里的
+      另一个控件，绑的是这一行自己的 Foreground（它没有可继承的字体色）。只改 presenter 的话，
+      选中时字变了、图标不动；两处同写，随行的每一个信号一起变。
+    -->
+    <Style Selector="ListBox.Dock ListBoxItem:pointerover:not(:selected) /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:pointerover:not(:selected)">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:pressed:not(:selected) /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:selected:not(:disabled) /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:selected:not(:disabled)">
+        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+    </Style>
+    <Style Selector="ListBox.Dock ListBoxItem:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+    <!--
+      库在选中那一行里还画一条 3 像素的强调竖条。dock 的选中已经由底、字、边框三重信号说清，
+      再叠一条竖条就成了四重，而且圆角里的竖条看起来像多出来的一截括号。
+    -->
+    <Style Selector="ListBox.Dock ListBoxItem /template/ Rectangle#SelectionIndicator">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
     <!--
       列表一族：四个壳 + 两种行。
 

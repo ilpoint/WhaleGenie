@@ -1,0 +1,85 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:vm="using:WhaleGenie.ViewModels"
+                    xmlns:models="using:WhaleGenie.Models"
+                    xmlns:loc="using:WhaleGenie.Localization"
+                    xmlns:views="using:WhaleGenie.Views"
+                    xmlns:fa="using:FluentAvalonia.UI.Controls"
+                    x:Class="WhaleGenie.Views.ActionEditorTemplates">
+
+        <!-- One length of time in the step settings: the number plus the unit it is written in. -->
+        <DataTemplate x:Key="DurationSetting" x:DataType="vm:DurationSettingViewModel">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                <fa:FANumberBox Value="{Binding Value, Converter={StaticResource Number}}"
+                               Minimum="{Binding Minimum, Converter={StaticResource Number}}"
+                               Maximum="{Binding Maximum, Converter={StaticResource Number}}"
+                               SmallChange="1" SimpleNumberFormat="0.###"
+                               HorizontalAlignment="Stretch" />
+                <ComboBox Grid.Column="1" Classes="Field"
+                          ItemsSource="{Binding Units}"
+                          SelectedItem="{Binding Unit}"
+                          Width="118" HorizontalAlignment="Left">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:DurationUnit">
+                            <TextBlock Text="{Binding Label}"
+                                       FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+        </DataTemplate>
+
+        <!-- The same number, pressed onto one line: a short name, and a box that carries the
+             same「取值」chip every other value field does on its right edge. Four of these make the
+             four sides of a rectangle, so the box has to stay readable once the chip has taken its
+             share of the width — hence the floor below. -->
+        <DataTemplate x:Key="NumberCellTight" x:DataType="vm:NumberCellViewModel">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+                <TextBlock VerticalAlignment="Center" FontSize="12"
+                           Foreground="{DynamicResource TextSecondary}"
+                           Text="{Binding ShortLabel}"
+                           ToolTip.Tip="{Binding Hint}" />
+
+                <fa:FANumberBox Grid.Column="1" SimpleNumberFormat="0" Classes="HasChip"
+                               IsVisible="{Binding IsPlain}" MinWidth="92"
+                               HorizontalAlignment="Stretch"
+                               Value="{Binding Number, Converter={StaticResource Number}}" />
+
+                <TextBox Grid.Column="1" Classes="Field HasChip"
+                         IsVisible="{Binding IsFormula}"
+                         Text="{Binding Text, Mode=OneWay}" IsReadOnly="True"
+                         PlaceholderText="{Binding Placeholder}" />
+
+                <Button Grid.Column="1" Classes="ValueChip" HorizontalAlignment="Right"
+                        Tag="{Binding}"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}"
+                        Click="OnOpenCellExpression" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- One argument a call passes: the name the called macro declares, the value going into
+             it, and the box that says the empty value is meant rather than left out. A name the
+             macro no longer declares keeps its row and says so, because a save that deletes a value
+             the author typed is a loss nobody notices until the macro behaves differently. -->
+        <DataTemplate x:Key="CallArgumentRowEditor" x:DataType="vm:CallArgumentRowViewModel">
+            <StackPanel Margin="0,0,0,14">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextPrimary}" />
+                    <CheckBox Grid.Column="1" IsChecked="{Binding Given}"
+                              Content="{Binding [Add.CallArgumentGiven], Source={x:Static loc:Strings.Current}}"
+                              ToolTip.Tip="{Binding [Add.CallArgumentGivenHint], Source={x:Static loc:Strings.Current}}" />
+                </Grid>
+                <TextBox Classes="Field" Text="{Binding Value}" Margin="0,4,0,0"
+                         IsEnabled="{Binding !Given}" />
+                <TextBlock Classes="Hint" Text="{Binding Hint}" IsVisible="{Binding HasHint}"
+                           TextWrapping="Wrap" Margin="0,3,0,0" />
+                <!-- 用到了还没声明的参数：**"现在就不行" → Danger**（与字段不合法同类）。 -->
+                <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Danger}"
+                           Margin="0,3,0,0" IsVisible="{Binding IsUndeclared}"
+                           Text="{Binding [Add.CallArgumentUndeclared], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+        </DataTemplate>
+
+</ResourceDictionary>

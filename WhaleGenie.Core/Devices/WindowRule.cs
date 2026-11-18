@@ -86,7 +86,10 @@ public sealed record WindowRule(
     {
         rule = Empty;
         var written = (text ?? string.Empty).Trim();
-        if (written.Length == 0 || written[0] == '$')
+        // A window rule is a JSON object. Anything else — including a line that names a variable
+        // instead of holding the rule — is rejected by the parser below; there is no need to pick
+        // out one character in front of it.
+        if (written.Length == 0)
         {
             return false;
         }

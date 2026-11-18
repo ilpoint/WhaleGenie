@@ -7,6 +7,7 @@ using Avalonia.Headless;
 using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -42,9 +43,27 @@ internal static class Ui
         });
 
     public static T Run<T>(Func<T> body)
-        => Session.Dispatch(() => Task.FromResult(body()), CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+    {
+        var result = default(T)!;
+        var ran = false;
+        MacroTriggerGate.ResetForChecks();
+        try
+        {
+            Session.Dispatch(() =>
+            {
+                result = body();
+                ran = true;
+                return true;
+            }, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (InvalidProgramException error) when (ran && IsDispatcherLoop(error))
+        {
+            // The body finished. What failed is the session's teardown, which pumps whatever the
+            // call left queued within a five-second budget — see below.
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// The same, for a check that has to wait. A callback that has to come back to this thread
@@ -52,9 +71,40 @@ internal static class Ui
     /// here rather than inside the body.
     /// </summary>
     public static T RunAsync<T>(Func<Task<T>> body)
-        => Session.Dispatch(body, CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+    {
+        var result = default(T)!;
+        var ran = false;
+        MacroTriggerGate.ResetForChecks();
+        try
+        {
+            Session.Dispatch(async () =>
+            {
+                result = await body();
+                ran = true;
+                return true;
+            }, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (InvalidProgramException error) when (ran && IsDispatcherLoop(error))
+        {
+            // As above: the body returned, the teardown could not finish pumping.
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Whether the failure is the session's teardown giving up on a queue that keeps refilling.
+    /// </summary>
+    /// <remarks>
+    /// After every call the session pumps the queue and then shuts the application down, with a
+    /// five-second budget. A call that leaves a pass posting its next turn — a render loop, an
+    /// animation, a run still talking to the interface — spends that budget and the teardown throws.
+    /// The check itself has already run and has its result; the leftover queue belongs to the
+    /// application that is being thrown away, and the next call starts a new dispatcher. Failing the
+    /// check for that is how an unrelated test ends up reporting "You've caused dispatcher loop".
+    /// </remarks>
+    private static bool IsDispatcherLoop(InvalidProgramException error)
+        => error.Message.Contains("dispatcher loop", StringComparison.Ordinal);
 
     /// <summary>
     /// Waits for something the interface does on its own schedule — a dialog that is about to open,

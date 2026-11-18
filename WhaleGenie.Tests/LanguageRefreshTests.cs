@@ -1,3 +1,4 @@
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -59,13 +60,13 @@ public class LanguageRefreshTests
         Ui.Run(() => InterfaceLanguage.InEnglish(() =>
         {
             macro = new MacroItem();
-            english = macro.Trigger;
+            english = macro.ToggleLabel;
         }));
 
         Ui.Run(() => InterfaceLanguage.InChinese(() =>
         {
             macro!.RefreshLanguage();
-            Assert.NotEqual(english, macro.Trigger);
+            Assert.NotEqual(english, macro.ToggleLabel);
         }));
     }
 
@@ -123,7 +124,7 @@ public class LanguageRefreshTests
                 {
                     Name = "total",
                     Scope = VariableScope.Global,
-                    Type = "number",
+                    Type = ValueKind.Number,
                 },
             ]);
             button = model.NewLabel;

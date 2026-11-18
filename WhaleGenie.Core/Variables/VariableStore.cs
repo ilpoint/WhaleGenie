@@ -4,16 +4,6 @@ using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Variables;
 
-/// <summary>Which scope a value is written to.</summary>
-public enum VariableTarget
-{
-    /// <summary>The macro's own value, invisible to every other macro.</summary>
-    Local,
-
-    /// <summary>A value every macro shares.</summary>
-    Global,
-}
-
 /// <summary>
 /// Values WhaleGenie provides that are only true for the moment they are read: where the pointer is,
 /// what the clipboard holds, what the clock says. They are asked for rather than kept, because a
@@ -66,21 +56,61 @@ public sealed class VariableStore : IVariableResolver
     /// <summary>Values every macro shares.</summary>
     public VariableBag Global { get; }
 
-    /// <summary>Values only the running macro sees.</summary>
-    public VariableBag Local { get; private set; } = new();
+    /// <summary>
+    /// Where a global's declared starting value comes from, for the steps that put one back. The
+    /// engine does not know the variable catalogue, so the program hands in the reader; without
+    /// one, clearing a global writes the empty value rather than guessing at a declaration.
+    /// </summary>
+    public Func<string, Value?>? GlobalDefault { get; set; }
 
     /// <summary>
-    /// Hands the running macro's values over to <paramref name="next"/> and gives back the table
-    /// that was in use, so the caller can have its own back when the call is over. A macro called
-    /// by another one runs on a table of its own — that is what "only the running macro sees"
-    /// means — so what it works with is what it was handed, and what it leaves behind is whatever
-    /// the call asked to have back.
+    /// The tables of the calls that are running, outermost first. A call pushes its own table and
+    /// pops it when it returns, so a reader always sees one frame whole rather than whichever one
+    /// happened to be current when it asked.
     /// </summary>
-    public VariableBag SwapLocal(VariableBag next)
+    private readonly List<VariableBag> _frames = [new()];
+
+    private readonly object _framesGate = new();
+
+    /// <summary>Values only the running macro sees.</summary>
+    public VariableBag Local
     {
-        var previous = Local;
-        Local = next;
-        return previous;
+        get
+        {
+            lock (_framesGate)
+            {
+                return _frames[^1];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Runs a called macro on a table of its own and gives back the table that was in use, so the
+    /// caller can have its own back when the call is over. A macro called by another one runs on a
+    /// table of its own — that is what "only the running macro sees" means — so what it works with
+    /// is what it was handed, and what it leaves behind is whatever the call asked to have back.
+    /// </summary>
+    public void PushLocal(VariableBag next)
+    {
+        lock (_framesGate)
+        {
+            _frames.Add(next);
+        }
+    }
+
+    /// <summary>Ends a call and answers with the table it was running on.</summary>
+    public VariableBag PopLocal()
+    {
+        lock (_framesGate)
+        {
+            var top = _frames[^1];
+            if (_frames.Count > 1)
+            {
+                _frames.RemoveAt(_frames.Count - 1);
+            }
+
+            return top;
+        }
     }
 
     /// <summary>
@@ -90,47 +120,33 @@ public sealed class VariableStore : IVariableResolver
     /// </summary>
     public bool TryGet(string name, out Value value)
     {
-        if (Local.TryGet(name, out value) || Global.TryGet(name, out value))
+        // One spelling for the whole question: a name with a space around it is the same name, and
+        // the live source is asked with that spelling too, or a built-in would fall back to the
+        // value it was seeded with instead of the one the machine answers.
+        var key = name.Trim();
+
+        // One frame for the whole question: the call under way may finish between the two lookups,
+        // and half of a caller's table beside half of a callee's is a value nobody wrote.
+        var local = Local;
+        if (local.TryGet(key, out value) || Global.TryGet(key, out value))
         {
             return true;
         }
 
-        // Outside a loop the name exists but has no value. Falling through to the seeded system
-        // value would make it read as round zero, which is a number no loop has reached.
-        if (string.Equals(name, LoopIndexName, StringComparison.OrdinalIgnoreCase))
-        {
-            value = Value.Null;
-            return true;
-        }
-
-        return (Live is { } live && live.TryGet(name, out value))
-            || System.TryGet(name, out value);
+        return (Live is { } live && live.TryGet(key, out value))
+            || System.TryGet(key, out value);
     }
 
-    /// <summary>Writes a value into one scope.</summary>
-    public void Set(string name, Value value, VariableTarget target = VariableTarget.Local)
-    {
-        var bag = target is VariableTarget.Global ? Global : Local;
-        bag.Set(name, value);
-    }
-
-    public void SetText(string name, string? text, VariableTarget target = VariableTarget.Local)
-        => Set(name, Value.FromText(text), target);
-
-    public void SetNumber(string name, double number, VariableTarget target = VariableTarget.Local)
-        => Set(name, Value.FromNumber(number), target);
+    /// <summary>Writes a value the running macro keeps. A caller that means a global names it.</summary>
+    public void Set(string name, Value value) => Local.Set(name, value);
 
     /// <summary>Every visible value in one dictionary, which is what a watcher shows.</summary>
     public IReadOnlyDictionary<string, Value> Flatten()
     {
+        var local = Local;
         var all = new Dictionary<string, Value>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in System.Values)
         {
-            if (string.Equals(name, LoopIndexName, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
             // The watch list says what a macro reads while it runs, so the ones that move are read
             // again here rather than reported at the value they had when the run began.
             all[name] = Live is { } live && live.TryGet(name, out var current) ? current : value;
@@ -141,7 +157,7 @@ public sealed class VariableStore : IVariableResolver
             all[name] = value;
         }
 
-        foreach (var (name, value) in Local.Values)
+        foreach (var (name, value) in local.Values)
         {
             all[name] = value;
         }

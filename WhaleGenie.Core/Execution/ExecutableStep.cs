@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -11,11 +12,15 @@ public sealed class ExecutableParameter
 {
     public required string Name { get; init; }
 
-    /// <summary>The value as written; the runner reads it as an expression when it needs to.</summary>
-    public string Text { get; init; } = string.Empty;
+    /// <summary>
+    /// What the field holds, as the shape it was written in: a piece of text, a name, a formula, or
+    /// several of those standing next to each other. Nothing here has to be read before it can be
+    /// used, which is what keeps the runner from having a language of its own to parse.
+    /// </summary>
+    public ExpressionNode Written { get; init; } = Formula.Nothing;
 
     /// <summary>
-    /// How far <see cref="Text"/> may move each run, as a fraction of it: 0.2 means "somewhere
+    /// How far <see cref="Written"/> may move each run, as a fraction of it: 0.2 means "somewhere
     /// from 80% to 120% of what was written". Zero uses the value as written. Only lengths of
     /// time are given one, which is what keeps a macro's waits from looking like a machine's.
     /// </summary>
@@ -29,7 +34,7 @@ public sealed class ExecutableParameter
     /// in: what each column of one row says, by name. What the columns are is the action's own
     /// business, so this carries the names and the values and nothing else.
     /// </summary>
-    public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows { get; init; } = [];
+    public IReadOnlyList<IReadOnlyDictionary<string, ExpressionNode>> Rows { get; init; } = [];
 
 }
 
@@ -48,14 +53,21 @@ public sealed class ExecutableStep
 
     public StepMeta Meta { get; init; } = StepMeta.Empty;
 
-    /// <summary>The text of a named parameter, or an empty string when it has none.</summary>
-    public string Text(string name) => Parameter(name)?.Text ?? string.Empty;
+    /// <summary>What a named parameter holds, or nothing when the step has no such parameter.</summary>
+    public ExpressionNode Written(string name) => Parameter(name)?.Written ?? Formula.Nothing;
+
+    /// <summary>
+    /// The line a named parameter was written as. This is a rendering for the places that still
+    /// speak lines — a failure message, a log, a mode the catalogue declares — and nothing is read
+    /// back out of it: what a step holds is <see cref="Written"/>.
+    /// </summary>
+    public string Text(string name) => Formula.Word(Parameter(name)?.Written);
 
     /// <summary>The child steps held by a named parameter.</summary>
     public IReadOnlyList<ExecutableStep> Children(string name) => Parameter(name)?.Steps ?? [];
 
     /// <summary>The rows held by a named parameter, or nothing when it holds none.</summary>
-    public IReadOnlyList<IReadOnlyDictionary<string, string>> Rows(string name)
+    public IReadOnlyList<IReadOnlyDictionary<string, ExpressionNode>> Rows(string name)
         => Parameter(name)?.Rows ?? [];
 
     /// <summary>
@@ -73,10 +85,11 @@ public sealed class ExecutableStep
             foreach (var row in parameter.Rows)
             {
                 if (row.TryGetValue(FieldNames.Key, out var written)
-                    && string.Equals(written.Trim(), key, StringComparison.OrdinalIgnoreCase))
+                    && string.Equals(Formula.Word(written).Trim(), key,
+                        StringComparison.OrdinalIgnoreCase))
                 {
                     return row.TryGetValue(FieldNames.Name, out var name)
-                        ? name.Trim()
+                        ? Formula.NameOf(name)
                         : string.Empty;
                 }
             }
@@ -201,6 +214,13 @@ public interface IRunHost
     /// <see cref="AskAnswer.Cancel"/> rather than waiting, which is what a triggered run does.
     /// </summary>
     Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token);
+
+    /// <summary>
+    /// Asked before a step that cannot be undone is carried out. The host words the question from
+    /// the step's own action, because the engine keeps no user-facing words; a host with nobody to
+    /// ask answers false, which is what a triggered run and a tool call have to do.
+    /// </summary>
+    Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token);
 }
 
 /// <summary>A host that keeps the log and answers nothing, used when nobody is watching.</summary>
@@ -228,6 +248,10 @@ public sealed class SilentRunHost : IRunHost
 
     public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
         => Task.FromResult(AskAnswer.Cancel);
+
+    /// <summary>Nobody to agree to anything: a step that cannot be undone does not run.</summary>
+    public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+        => Task.FromResult(false);
 }
 
 /// <summary>

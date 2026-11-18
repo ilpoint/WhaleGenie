@@ -1,0 +1,125 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+        x:Class="WhaleGenie.Views.ParameterTailView"
+        x:DataType="vm:StepParameterViewModel">
+
+    <Design.DataContext>
+        <vm:StepParameterViewModel />
+    </Design.DataContext>
+
+    <StackPanel>
+        <ToggleSwitch IsVisible="{Binding IsBool}"
+            IsChecked="{Binding Flag}"
+            OnContent="" OffContent="" />
+
+        <Grid IsVisible="{Binding IsChoice}" ColumnDefinitions="Auto,Auto" ColumnSpacing="6"
+            HorizontalAlignment="Left">
+            <ComboBox Classes="Field"
+                ItemsSource="{Binding Choices}"
+                SelectedItem="{Binding Option}"
+                IsEnabled="{Binding IsEnabled}"
+                Width="240" HorizontalAlignment="Left">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:ActionParameterOption">
+                        <TextBlock Text="{Binding Display}"
+                            FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <!-- A control of the virtual controller says which one it is on a pad drawn
+                on screen, where the button that is meant is in the place the hand
+                already knows it in. -->
+            <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                IsVisible="{Binding IsGamepadPad}"
+                Content="{Binding [Add.OpenGamepad], Source={x:Static loc:Strings.Current}}"
+                ToolTip.Tip="{Binding [Add.OpenGamepadHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnOpenGamepadPad" />
+        </Grid>
+
+        <!-- A variable, which may also be a whole value of its own: an operand of a
+            calculation is written here, and may be built with the expression editor. -->
+        <!-- A step of this macro, which is picked out of the steps that are in it: the name
+            is four characters that nobody should have to copy by eye, and the note and the
+            action beside it are how the user tells one step from another. -->
+        <ComboBox Classes="Field" IsVisible="{Binding IsStepChoice}"
+            ItemsSource="{Binding Choices}"
+            SelectedItem="{Binding Option}"
+            Width="360" HorizontalAlignment="Left">
+            <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="models:ActionParameterOption">
+                    <TextBlock Text="{Binding Display}"
+                        FontSize="12.5" Foreground="{DynamicResource TextPrimary}" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <Grid IsVisible="{Binding IsVariable}" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Classes="Field HasChip"
+                Text="{Binding Text, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <!-- 一格一个入口：名字与公式都从取值窗口来，框只负责显示。 -->
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <Button Grid.Column="1" Classes="Secondary" Height="33" Padding="11,0"
+                IsVisible="{Binding IsPath}"
+                Content="{Binding PathButton}"
+                ToolTip.Tip="{Binding [Add.BrowsePathHint], Source={x:Static loc:Strings.Current}}"
+                Click="OnBrowsePath" />
+        </Grid>
+
+        <AutoCompleteBox Classes="Field" IsVisible="{Binding IsMacro}"
+            ItemsSource="{Binding Macros}"
+            Text="{Binding Text}"
+            PlaceholderText="{Binding Placeholder}"
+            MinimumPrefixLength="0"
+            FilterMode="Contains" />
+
+        <!-- 条件不是一格表达式：行表适合把"甲且乙且丙"一条条填进去，条件树适合
+            "甲且（乙或丙）"。两者写出来的仍是同一格表达式，引擎与文件格式都不用动。 -->
+        <ContentControl IsVisible="{Binding IsCondition}"
+            Content="{Binding ConditionEditor}">
+            <ContentControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:ConditionEditorViewModel">
+                    <views:ConditionEditorView />
+                </DataTemplate>
+            </ContentControl.ContentTemplate>
+        </ContentControl>
+
+        <StackPanel IsVisible="{Binding IsExpression}">
+            <TextBox Classes="Field HasChip"
+                Text="{Binding DisplayLine, Mode=OneWay}" IsReadOnly="True"
+                PlaceholderText="{Binding Placeholder}">
+                <TextBox.InnerRightContent>
+                    <Button Classes="ValueChip" Click="OnOpenValuePicker"
+                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                </TextBox.InnerRightContent>
+            </TextBox>
+            <TextBlock Classes="Hint" Margin="2,5,0,0"
+                TextWrapping="Wrap"
+                Foreground="{DynamicResource Danger}"
+                Text="{Binding ExpressionMessage}"
+                IsVisible="{Binding ShowExpressionError}" />
+            <TextBlock Classes="Hint" Margin="2,5,0,0"
+                TextWrapping="Wrap"
+                Foreground="{DynamicResource Success}"
+                Text="{Binding ExpressionMessage}"
+                IsVisible="{Binding ShowExpressionSuccess}" />
+        </StackPanel>
+
+        <!-- 说明不铺在这里：它收在标签右边那枚信息图标里（点开看）。一段话常驻在每一格
+            底下，是这套表单最长的那块版面，读的人多半会跳过它。 -->
+    </StackPanel>
+</UserControl>

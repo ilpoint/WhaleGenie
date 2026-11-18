@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -10,11 +11,19 @@ namespace WhaleGenie.Core.Execution;
 /// a call that names something the macro never declared is a mistake rather than a value nobody
 /// happens to read.
 /// </summary>
-public sealed record MacroArgument(string Name, string Default, bool Required,
-    ActionReturnType Type = ActionReturnType.Text);
+public sealed record MacroArgument(string Name, ExpressionNode Default, bool Required,
+    ValueKind Type = ValueKind.Text);
 
 /// <summary>One value a macro offers to hand back: the name and what kind of value it is.</summary>
-public sealed record MacroReturn(string Name, ActionReturnType Type = ActionReturnType.Text);
+public sealed record MacroReturn(string Name, ValueKind Type = ValueKind.Text);
+
+/// <summary>
+/// One value a macro declares for itself. The name is read by its own steps only, and
+/// <paramref name="Initial"/> is written into the macro's own table before the first step — on every
+/// run, not only when the name happens to be missing.
+/// </summary>
+public sealed record MacroLocal(string Name, ExpressionNode Initial,
+    ValueKind Type = ValueKind.Text);
 
 /// <summary>
 /// One value supplied to a direct run, the way a call supplies an argument. <paramref name="Given"/>
@@ -23,15 +32,15 @@ public sealed record MacroReturn(string Name, ActionReturnType Type = ActionRetu
 public sealed record MacroStartArgument(string Name, string Text, bool Given);
 
 /// <summary>
-/// What a macro asks of a call to it: the values that have to be filled in, and the names it may
-/// hand back. A macro that declares neither is called the way every call used to work, so a macro
-/// written before this existed still runs.
+/// What a macro asks of a call to it — the values that have to be filled in and the names it may
+/// hand back — together with the values it keeps for itself.
 /// </summary>
 public sealed record MacroSignature(
-    IReadOnlyList<MacroArgument> Arguments, IReadOnlyList<MacroReturn> Results)
+    IReadOnlyList<MacroArgument> Arguments, IReadOnlyList<MacroReturn> Results,
+    IReadOnlyList<MacroLocal> Locals)
 {
     /// <summary>What a macro that declares nothing asks for.</summary>
-    public static MacroSignature Empty { get; } = new([], []);
+    public static MacroSignature Empty { get; } = new([], [], []);
 
     /// <summary>The declared argument of this name, or null when there is none.</summary>
     public MacroArgument? Argument(string name)
@@ -51,15 +60,23 @@ public sealed record MacroSignature(
     /// itself. A call that passed a value under a duplicate name would have one of the two
     /// silently overwritten, and a parameter named like a built-in would read as the built-in
     /// inside the called macro. A name the macro language cannot read is just as unusable: a
-    /// caller has no way to write it, so <c>$name</c> never works inside the called macro.
+    /// caller has no way to name it, so no reference inside the called macro can reach it.
     /// </summary>
     public IReadOnlyList<(MacroSignatureFault Fault, string Name)> Problems()
     {
         var problems = new List<(MacroSignatureFault, string)>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        Collect(Arguments.Select(argument => argument.Name), seen, problems);
-        seen.Clear();
-        Collect(Results.Select(result => result.Name), seen, problems);
+        var declared = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Collect(Arguments.Select(argument => argument.Name), declared, problems);
+
+        // A result may share an argument's name: the call passes a value in and takes the same one
+        // back out. Only a repeat within the results themselves is a mistake.
+        var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Collect(Results.Select(result => result.Name), results, problems);
+        declared.UnionWith(results);
+
+        // A local is written before the first step, so a name it shares with a value the caller
+        // filled in — or with another local — would be one of the two silently replaced.
+        Collect(Locals.Select(local => local.Name), declared, problems);
 
         // A required argument with a default has two answers to "what if the call leaves it
         // out": the declaration says the call must fill it in, and the default says it need
@@ -67,9 +84,22 @@ public sealed record MacroSignature(
         foreach (var argument in Arguments)
         {
             var name = argument.Name.Trim();
-            if (name.Length > 0 && argument.Required && argument.Default.Trim().Length > 0)
+            if (name.Length > 0 && argument.Required && !Formula.IsNothing(argument.Default))
             {
                 problems.Add((MacroSignatureFault.RequiredWithDefault, name));
+            }
+        }
+
+        // An in-out name is one value going in and coming back out, so the two declarations have
+        // to agree on what kind it is. Two kinds would make the write on one side decide what the
+        // read on the other side gets, which is the same contradiction one name cannot hold.
+        foreach (var result in Results.DistinctBy(result => result.Name.Trim(),
+                     StringComparer.OrdinalIgnoreCase))
+        {
+            var name = result.Name.Trim();
+            if (Argument(name) is { } argument && argument.Type != result.Type)
+            {
+                problems.Add((MacroSignatureFault.TypeMismatch, name));
             }
         }
 
@@ -95,7 +125,7 @@ public sealed record MacroSignature(
                 continue;
             }
 
-            if (!VariableText.IsName(name))
+            if (!VariableName.IsName(name))
             {
                 problems.Add((MacroSignatureFault.InvalidName, name));
                 continue;
@@ -107,16 +137,13 @@ public sealed record MacroSignature(
                 continue;
             }
 
-            if (Reserved(name))
+            if (MacroRunner.IsReservedName(name))
             {
                 problems.Add((MacroSignatureFault.ReservedName, name));
             }
         }
     }
 
-    private static bool Reserved(string name)
-        => name.StartsWith("sys.", StringComparison.OrdinalIgnoreCase)
-           || MacroRunner.IsRunStepName(name);
 }
 
 /// <summary>What is wrong with a macro's declared names.</summary>
@@ -132,4 +159,7 @@ public enum MacroSignatureFault
 
     /// <summary>A required argument also has a default, so omitting it has two answers.</summary>
     RequiredWithDefault,
+
+    /// <summary>A result and an argument share a name but not a kind, so one value has two shapes.</summary>
+    TypeMismatch,
 }

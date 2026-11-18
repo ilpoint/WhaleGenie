@@ -1,0 +1,333 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="940" d:DesignHeight="760"
+        x:Class="WhaleGenie.Views.MacroEditorWindow"
+        x:DataType="vm:MacroEditorViewModel"
+        Title="Macro Editor"
+        Width="1486" Height="800"
+        MinWidth="1320" MinHeight="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Design.DataContext>
+        <vm:MacroEditorViewModel />
+    </Design.DataContext>
+
+    <Window.KeyBindings>
+        <!-- Ctrl + F10 starts and stops recording. Escape is deliberately left unbound: it is a
+             key the work being recorded is likely to use, and it must not end the recording or
+             throw the editor away. -->
+        <KeyBinding Gesture="Ctrl+F10" Command="{Binding ToggleRecordCommand}" />
+        <KeyBinding Gesture="Insert" Command="{Binding NewStepCommand}" />
+    </Window.KeyBindings>
+
+    <Window.Resources>
+        <conv:BoolToOpacityConverter x:Key="RowOpacity" />
+        <conv:HexColorToBrushConverter x:Key="HexBrush" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <!-- Line-art icon used beside each recordable action row -->
+        <Style Selector="views|IconView.RecordIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="FitToBounds" Value="True" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- Idle: red record dot. Recording: white stop square. -->
+        <Style Selector="Path.RecordIndicator">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Fill" Value="#E23B18" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Path.RecordIndicator.Stop">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Fill" Value="{DynamicResource TextOnAccent}" />
+            <Style.Animations>
+                <!-- Slow pulse so an in-progress recording is obvious at a glance. -->
+                <Animation Duration="0:0:1.2" IterationCount="INFINITE" PlaybackDirection="Alternate">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="1" />
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="0.35" />
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+
+
+        <Style Selector="views|IconView.ProblemMark">
+            <Setter Property="Width" Value="15" />
+            <Setter Property="Height" Value="15" />
+            <Setter Property="Stroke" Value="{DynamicResource Warning}" />
+            <Setter Property="StrokeThickness" Value="1.4" />
+            <Setter Property="FitToBounds" Value="True" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- The warning itself is small, but its tooltip has to be easy to reach with the pointer. -->
+        <Style Selector="Border.ProblemTip">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.DropTarget">
+            <Setter Property="Background" Value="#33FF6A35" />
+            <Setter Property="BorderBrush" Value="#FF6A35" />
+        </Style>
+        <Style Selector="Border.DropTarget.Rejected">
+            <Setter Property="Background" Value="#33E06C75" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+
+        <!-- The two ends of a block: the line its steps start under, and the line that closes it.
+             They are what makes "inside the loop" and "after the loop" tell themselves apart. -->
+        <!-- 行尾的移除钮：几何交给 `Button.Ghost`（24×24 图标钮），这里只说一件事——
+             **悬停转危红**，"这一下会删掉东西"要看得出来。
+             原先它的样式定义在 `RunWindow` 里，够不着本窗，所以这个钮一直露着 Fluent 默认外观，
+             而测试按类名找得到它、点得动它，于是没人发现。 -->
+        <Style Selector="Button.Ghost.RemoveButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+        </Style>
+
+        <Style Selector="Border.StepHead">
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+        <Style Selector="Border.StepFoot">
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceHover}" />
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+            <Setter Property="Padding" Value="8,1" />
+        </Style>
+
+        <!-- Fold arrow on a block, and the "add a step in here" button on a block's title. -->
+        <Style Selector="Button.Ghost.Tiny views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="StrokeThickness" Value="1.2" />
+            <Setter Property="FitToBounds" Value="True" />
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="10" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.Ghost.Tiny:pointerover views|IconView">
+            <Setter Property="Stroke" Value="#FF8A5C" />
+        </Style>
+
+        <!-- Record toggle, idle: dark plate with a red dot.
+             这块暗红板是**刻意做深**的（录音族那条例外），所以白字在两套主题下都成立——
+             这里的 `#FFFFFF` 是真·暗底白字，不是"只在暗色主题下对"。要换得连板子一起换。 -->
+        <!--
+          **录音族 15 处裸值判为"功能身份色"，留字面、不进令牌、不算债务。**
+
+          判据：**它描述"这个功能长什么样" → 数据；它描述"界面通用语义" → 样式。**
+          录音的红板（底 `#4A2417`、边 `#8A4227`、录制中 `#D8451B`、脉冲 `#E23B18`/`#FF6A35`/`#FF8A5C`、
+          浅字 `#FFE3D6`、深底 `#5C2D1C`/`#3D1D12` …）与**动作类别色**同一类：
+          由功能的作者定、不随主题变、是那个东西的标识。**所以跟着功能走，不跟着主题走。**
+
+          为什么不是"等产品决定"：那 15 处只是**一个功能的配色**，不是"界面要不要表达录制中"——
+          后者早就答了（红板 + 脉冲是这一轮唯一表达"正在进行"的手势）。**表述方式已定，配色随它走。**
+        -->
+        <Style Selector="Button.RecordButton">
+            <Setter Property="Background" Value="#4A2417" />
+            <Setter Property="BorderBrush" Value="#8A4227" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.RecordButton:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#5C2D1C" />
+            <Setter Property="BorderBrush" Value="#A6512F" />
+            <Setter Property="BorderThickness" Value="1.5" />
+        </Style>
+        <Style Selector="Button.RecordButton:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3D1D12" />
+            <Setter Property="BorderBrush" Value="#A6512F" />
+            <Setter Property="BorderThickness" Value="1.5" />
+        </Style>
+
+        <!-- Recording: hot red plate with a white stop square and a heavier border. -->
+        <Style Selector="Button.RecordButton.Recording">
+            <Setter Property="Background" Value="#D8451B" />
+            <Setter Property="BorderBrush" Value="#FF7A4D" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.RecordButton.Recording /template/ ContentPresenter">
+            <Setter Property="Background" Value="#D8451B" />
+            <Setter Property="BorderBrush" Value="#FF7A4D" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.RecordButton.Recording:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#E8501F" />
+            <Setter Property="BorderBrush" Value="#FF9A70" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+        <Style Selector="Button.RecordButton.Recording:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#C23D16" />
+            <Setter Property="BorderBrush" Value="#FF9A70" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+
+        <Style Selector="Button.Chrome.Icon.pinned /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+
+        <!-- 图标块：外观全由 `Button.Icon` 给（34×32 逐格一致），这里只补"图标本身用什么色、
+             多粗"——图元不是控件，词汇表管不到它的描边。 -->
+        <Style Selector="Button.Icon views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+        </Style>
+
+        <!-- 命令入口按裁定回落到强调色：它和别的调色板钮不靠色相区分，靠位置与文案。
+             那 44 的宽是"这一格更要醒目"的存量度量，留在这里并记账（宽度不在三档里，
+             但它不是高度，收敛规则管不到它）。 -->
+        <Style Selector="Button.Icon.primary">
+            <Setter Property="Width" Value="44" />
+        </Style>
+        <Style Selector="Button.Icon.primary /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        </Style>
+        <Style Selector="Button.Icon.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFillHover}" />
+        </Style>
+        <Style Selector="Button.Icon.primary:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
+        </Style>
+        <Style Selector="Button.Icon.primary views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
+            <Setter Property="StrokeThickness" Value="1.7" />
+        </Style>
+        <Style Selector="Button.Icon.primary:disabled views|IconView">
+            <Setter Property="Stroke" Value="{DynamicResource TextDisabled}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="40,*">
+
+        <!--
+          标题栏（内容扩展进标题栏，见 MacroEditorWindow.axaml.cs）：库不再画图标与标题，这一行自己画；
+          右边是与系统按钮同尺寸的置顶钮，行尾留出它们的宽度。拖动由 `AppWindow` 在这条上做。
+        -->
+        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="12,0"
+                        VerticalAlignment="Center">
+                <Image Source="/Assets/WhaleGenie.png" Width="22" Height="22" Stretch="Uniform" />
+                <TextBlock Foreground="{DynamicResource TextPrimary}" FontSize="13"
+                           VerticalAlignment="Center"
+                           Text="{Binding [Editor.Title], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,138,0"
+                        VerticalAlignment="Top">
+                <Button Classes="Caption" Name="PinButton"
+                        ToolTip.Tip="{Binding [Common.Pin], Source={x:Static loc:Strings.Current}}">
+                    <views:IconView Name="PinIcon" Width="14" Height="14"
+                                    StrokeThickness="1.4"
+                                    FitToBounds="True" Data="{x:Static vm:AppIcons.Pin}" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280" MinWidth="280" />
+                <!-- 列宽 = 分隔条的宽度（6）。**列比条宽的那部分会露出窗口底色**，
+                     看起来就是一条更粗的缝——条本身没问题，是列宽在管观感。 -->
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" MinWidth="480" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="360" MinWidth="360" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: the action library. -->
+            <Grid Grid.Column="0" Name="ActionLibraryColumn" RowDefinitions="*,Auto">
+                <views:ActionPaletteView Grid.Row="0" Name="ActionPalette" />
+                <Button Grid.Row="1" Classes="Secondary" Height="34" Margin="4,2,4,4"
+                        Click="OnShowRecording">
+                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
+                        <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Grid Grid.Column="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*" MinHeight="180" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="3*" MinHeight="240" />
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Name="VariableCenterPanel"
+                        Background="{DynamicResource SurfacePanel}" CornerRadius="6"
+                        Padding="12,10,12,8">
+                    <Grid RowDefinitions="Auto,*">
+                        <!-- 两个按钮并排：这个宏自己的变量，与整个项目共享的变量。以前只有一个
+                             「管理全局变量」，局部变量只能靠右键一个个改。说明不再常驻一行——在这
+                             个 290 像素高的面板里它值三十像素，现在鼠标停在墙上方才出现。 -->
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                            <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
+                                       FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                                       VerticalAlignment="Center" Margin="4,0,0,0" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                        VerticalAlignment="Center">
+                                <Button Name="ManageLocalsButton" Classes="Secondary"
+                                        Height="28" Padding="10,0"
+                                        ToolTip.Tip="{Binding [Editor.ManageLocalsHint], Source={x:Static loc:Strings.Current}}"
+                                        Content="{Binding [Editor.ManageLocals], Source={x:Static loc:Strings.Current}}"
+                                        Click="OnManageLocals" />
+                                <Button Name="ManageGlobalsButton" Classes="Secondary"
+                                        Height="28" Padding="10,0"
+                                        ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
+                                        Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
+                                        Click="OnManageGlobals" />
+                            </StackPanel>
+                        </Grid>
+                        <views:VariableWall Grid.Row="1" Name="VariableCenterWall"
+                                            ToolTip.Tip="{Binding [Editor.VariableCenterHint], Source={x:Static loc:Strings.Current}}"
+                                            DataContext="{Binding VariableCenter.Wall}" />
+                    </Grid>
+                </Border>
+
+                <GridSplitter Grid.Row="1" Height="6" Classes="Split" Background="Transparent"
+                              ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                              Cursor="SizeNorthSouth" />
+
+                <views:MacroSettingsView Grid.Row="2" Name="MacroSettings" />
+            </Grid>
+
+<!-- Middle: the step documents and their current list. -->
+            <views:MacroDocumentView Grid.Column="2" Name="MacroDocument" />
+
+            <GridSplitter Grid.Column="1" Width="6" Classes="Split" Background="Transparent"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWestEast" />
+
+            <GridSplitter Grid.Column="3" Width="6" Classes="Split" Background="Transparent"
+                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          Cursor="SizeWestEast" />
+
+            <views:MacroRecordingView Grid.Column="2" Name="MacroRecording" />
+
+        </Grid>
+    </Grid>
+</views:AppWindow>
+

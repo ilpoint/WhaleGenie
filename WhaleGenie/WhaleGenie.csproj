@@ -50,16 +50,6 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <!--
-      Labels, hints and editor kinds are the interface's own projection. Engine facts stay in
-      WhaleGenie.Core so this file cannot become a second action catalogue.
-    -->
-    <EmbeddedResource Include="Models\ActionDisplay.json" />
-    <!--
-      状态提示音。作为程序集资源随 exe 走，不落到磁盘上：换机、升级、被清理工具扫到都不会丢，
-      也不需要在启动时初始化 Avalonia 才能读出来。
-    -->
-    <EmbeddedResource Include="Sounds\*.wav" />
-    <!--
       "关于"窗口要能显示第三方说明，发行包里也要求它跟着 exe 走。同一份文件链接进来，不抄
       第二遍：程序里显示的、仓库里放的就永远是同一段文字。
     -->
@@ -68,15 +58,13 @@
 
   <ItemGroup>
     <!--
-      The MCP server speaks over the pipe a client gives it: stdin and stdout, which is what a local
-      helper should use. No Kestrel, no port, no listener waiting for something on the network —
-      ASP.NET Core is not referenced here at all. The SDK supplies the protocol, the transport over
-      a pair of streams, and tool discovery. Nothing of this reaches WhaleGenie.Core.
+      The interface builds the container the window and its tools come from; the server, its
+      transport and the tools themselves live in WhaleGenie.App, which is why no MCP package is
+      named here.
     -->
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
     <PackageReference Include="FluentAvaloniaUI" Version="3.1.0" />
-    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -101,11 +89,29 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.App\WhaleGenie.App.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- The interface tests look at the view models and the trigger matching directly. -->
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
   </ItemGroup>
+
+  <!--
+    界面都是 XAML，不靠声明式视图工厂创建。AgentTools 带进来的生成器按类声明逐个注册视图，
+    窗口拆成分部类后会重复生成同名 hintName 而报 CS8785；编译前移除它，运行时仍保留自省通道。
+  -->
+  <Target Name="DropDeclarativeViewFactoryGenerator" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)"
+                Condition="'%(Filename)' == 'Avalonia.Markup.Declarative.SourceGenerator'" />
+    </ItemGroup>
+  </Target>
 </Project>

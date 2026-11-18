@@ -47,4 +47,11 @@ internal sealed class UiThreadRunHost(IRunHost host) : IRunHost
     /// <summary>Waited on for the same reason a failure question is: the answer is what runs next.</summary>
     public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
         => Dispatcher.UIThread.InvokeAsync(() => host.AskUser(question, token));
+
+    /// <summary>
+    /// Waited on as well: a step that cannot be undone does not go on to the next one until the
+    /// person has answered, and the box asking is a window that only this thread may open.
+    /// </summary>
+    public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+        => Dispatcher.UIThread.InvokeAsync(() => host.ConfirmIrreversible(step, token));
 }

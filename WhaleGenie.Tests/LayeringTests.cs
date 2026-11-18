@@ -19,7 +19,7 @@ public class LayeringTests
     /// The two files that are the composition root: they name the Windows implementations because
     /// deciding which ones to use is the whole of their job.
     /// </summary>
-    private static readonly string[] Assembling = ["App.axaml.cs", "SharedDevices.cs"];
+    private static readonly string[] Assembling = ["App.axaml.cs", "Program.cs", "SharedDevices.cs"];
 
     [Fact]
     public void The_interface_names_no_Windows_implementation()
@@ -33,7 +33,7 @@ public class LayeringTests
                 continue;
             }
 
-            if (File.ReadAllText(file).Contains("WhaleGenie.Core.Devices.Platform", StringComparison.Ordinal))
+            if (File.ReadAllText(file).Contains("WhaleGenie.Platform.Windows", StringComparison.Ordinal))
             {
                 offenders.Add(Path.GetRelativePath(Repository(), file));
             }
@@ -42,6 +42,49 @@ public class LayeringTests
         Assert.True(offenders.Count == 0,
             "these files name a Windows implementation instead of the interface they were handed: "
             + string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void The_application_layer_does_not_reference_a_window_toolkit()
+    {
+        var referenced = typeof(WhaleGenie.AppServices).Assembly
+            .GetReferencedAssemblies()
+            .Select(assembly => assembly.Name ?? string.Empty)
+            .ToList();
+
+        Assert.DoesNotContain(referenced, name =>
+            name.StartsWith("Avalonia", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_engine_does_not_reference_the_Windows_adapters()
+    {
+        var referenced = typeof(WhaleGenie.Core.Execution.MacroRunner).Assembly
+            .GetReferencedAssemblies()
+            .Select(assembly => assembly.Name)
+            .ToList();
+
+        Assert.DoesNotContain("WhaleGenie.Platform.Windows", referenced);
+    }
+
+    [Fact]
+    public void The_document_and_the_server_do_not_reference_the_window()
+    {
+        static string[] Referenced(Type type)
+            => [.. type.Assembly.GetReferencedAssemblies()
+                .Select(assembly => assembly.Name ?? string.Empty)];
+
+        var document = Referenced(typeof(WhaleGenie.Models.ProjectWorkspace));
+        var server = Referenced(typeof(WhaleGenie.Mcp.McpServerHost));
+
+        Assert.DoesNotContain("WhaleGenie", document);
+        Assert.DoesNotContain("WhaleGenie", server);
+
+        foreach (var name in document.Concat(server))
+        {
+            Assert.False(name.StartsWith("Avalonia", StringComparison.Ordinal),
+                $"the document or the MCP server references {name}");
+        }
     }
 
     [Fact]
@@ -73,10 +116,14 @@ public class LayeringTests
                            && !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
                                StringComparison.Ordinal));
 
-    /// <summary>Every source file of the program the user runs — the engine's are free to name them.</summary>
+    /// <summary>
+    /// Every source file of the program the user runs, window and application layer both: the
+    /// engine's are free to name a Windows implementation, these two are not.
+    /// </summary>
     private static IEnumerable<string> Sources()
-        => Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie"), "*.*",
-                SearchOption.AllDirectories)
+        => new[] { "WhaleGenie", "WhaleGenie.App" }
+            .SelectMany(project => Directory.EnumerateFiles(Path.Combine(Repository(), project), "*.*",
+                SearchOption.AllDirectories))
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                            || file.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",

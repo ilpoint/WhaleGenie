@@ -1,0 +1,160 @@
+# 界面与主题
+
+所属：[WhaleGenie 架构](../architecture.md)。
+
+## 7. 界面与 FluentAvalonia
+
+### 7.1 状态边界
+
+| 状态 | 主要持有者 |
+| --- | --- |
+| 项目文档态 | `MainViewModel`：宏、触发器、路径、修订号和「磁盘上的包已过期」这一标记 |
+| 编辑态 | `MacroEditorSession` 与编辑器 ViewModel：文档页、子宏、录制、编辑操作，以及「这次编辑有未保存内容」 |
+| 运行期态 | `TriggerRuntime`、运行宿主和窗口字段：触发快照、浮动界面、恢复和运行显示 |
+| 纯界面态 | 窗口与控件：拖动、落点、滚动、焦点和弹出层 |
+
+编辑器里的改动由会话记一次：页面自己知道内容变没变，会话把它们与「新增了文档、抬出了子宏」这类
+没有页面承载的改动合成一个答案，窗口再把它发布到项目文档态。关闭、恢复草稿与关闭确认问的是同一个
+答案，不会各自拼一遍。草稿本身由 `RecoveryDraft` 保管：第一次变脏立刻写、之后的改动等停顿再写、
+退出时只收回自己写过的——「谁写的谁收回」这条规则因此只有一处实现，打开又关掉一个编辑器不会顺手
+丢掉上一次运行留下的草稿。两个窗口都用它，差别只在一次写往磁盘上放什么：编辑器放正在写的那个宏，
+主窗放整个项目。
+
+一次保存由 `EditorCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、收下之后
+才清脏并收草稿。它给出三种结局——页面挡住了、项目没收、已经进包——窗口只负责把它们说出来：把挡住
+的那一页翻到前面、点明项目为什么没收、或者关窗。宏交给项目后的落位与去重由 `ProjectMacroCommit`
+回答：目标宏是否还在列表、抬出的子宏是否只加入一次、未改动时是否真的写回，以及新宏落在菜单还是
+轮盘。页签也有同一处回答：哪个页面代表某个宏、关掉一页之后谁在前。后者要记住按下关闭按钮时的
+前台，因为按钮长在页签上，按下的那一刻前台已经换成要走的那一页。
+
+窗口与视图按功能分目录：`Views/Editor`（宏编辑窗、步骤树、变量墙、菜单与窗口规则）、
+`Views/Actions`（动作对话框与参数行）、`Views/Pickers`（取值与各类拾取窗口）、`Views/Run`
+（运行窗与屏幕叠层）、`Views/Variables`、`Views/Settings`、`Views/Shell`（主窗、窗口外壳与通用
+对话框）与 `Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应，只有 MCP 与取值窗口两处各占一边。命名空间仍是
+`WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条
+`avares` 路径。
+
+XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口后置代码继续处理拖放、窗口生命周期
+和控件交互，不以“窗口零逻辑”为目标；项目与设备等有状态服务仍由组合根提供。
+
+### 7.2 步骤、条件与取值编辑器
+
+步骤列表使用 `TreeView` 表达已有层级：一行一步，选中行原处展开，双击只作用于步骤行本身。展开的单列表块行
+与体行都是子列表末端的拖放落点；折叠的块体内一行都不画，整行只给「块前 / 块后」两缝。折叠只改变子节点可见性，
+不重建步骤。横向滚动保持关闭，避免摘要宽度把缩进与树线推出视口；`StepRow.IndentWidth` 统一给出 26 像素缩进，
+`GuideLinesView` 按绝对纵坐标绘制连续树线，插入带的缩进取同一份 `TreeIndent`，`StepGuideTests` 检查树线的
+起止位置，`StepDropTests` 检查插入带落在哪一列。
+
+循环自己用的名字由 `Domain/Models/LoopNames.cs` 回答：检查用它判嵌套遮蔽，动作对话框在新建计数循环时用它
+取一个外层没在用的计数器（`i` 被占就是 `i2`）。两处读的是同一份读法，界面不另写一套规则；落点由编辑器提供
+（`MacroEditorViewModel.LoopNamesInScope`），与保存时用的是同一个落点。
+
+每个步骤使用四字符 `StepIds` 标识，供断点、运行高亮和状态读取使用。新建、复制、粘贴、录制和 MCP
+写入时发号；载入或合并发现重复时，为后到步骤重新发号，只改写其子树内按引用读取的
+`step.<旧标识>`，并向用户报告变更。
+
+条件行表与条件树读取同一份分组比较模型，写回原有表达式字符串，不增加第二种文件格式。读回只拆
+同层 `&&` / `||` 和可识别的简单比较；函数、括号或否定语义无法安全还原时保留原文并切到表达式模式。
+`control.if`、`control.while` 与 `control.waitUntil` 共用条件编辑器；多分支的值与分支步骤仍属于步骤模型。
+
+所有值字段共用框内取值片，字段只读，唯一入口是取值窗口。窗口按字段声明的 `ValueForm` 分四模式，
+不再有第二个变量窗口：`Text` 是一整段文字，`Run` 是文字与名字组成的序列，`Value` 是 token 树，
+`Name` 是名字列表加一行新建。窗口判断一格能不能用时不再渲染成一行再读回：字段自己的读法决定结果。
+
+`Value` 的根只有一个表达式，空位只属于容器：函数的参数槽、二元/一元的操作数槽、括号组和列表项槽。
+二元和一元是一个容器 token，运算符是容器里的一枚可点按钮，不是兄弟块，缺的操作数在容器内部；
+函数参数的空位保持现状。列表是 `[` 项 `]` 一个 token；括号组是一个 `GroupNode`，引擎对它透明求值，
+文件写成 `{"group": …}`，界面画成一对括号包住里面那一块。根上不会并排出现两个表达式：没有槽位时，
+值、名字和函数都拒绝写入并说明原因，运算符则包住选中或光标前的完整表达式。
+
+选中一块（`SlotNode.IsSelected`）后，运算符、括号和列表都作用在它上面；没有选中时作用在光标前的
+完整表达式或整个根上。拖拽只拖 token，根和 run 不是 token，空白处按下只移动光标；移动先合拢源位置，
+再把块插到落点，整次移动是一条历史。删除走 `ShapeTree.Cut`：文字片和名字片移除后合拢相邻文字，
+列表项直接移除，二元运算保留另一侧。光标是 `CaretPlace(Path, After)`，`CaretOffset` 从形状投影出
+窗口画的接缝；可写接缝由形状收集，二元/一元内部只保留整个结构的外侧和其中的空位。历史同时保存值
+和光标，撤销把两者一起放回；删除后 ViewModel 显式把光标放回删除接缝。
+
+小输入框一次只写一个材料：数字按语言认的写法，文字加引号转义；`Run` 里打进去的就是文字本身。
+结构带有焦点时，退格删除竖线前一块，Delete 删除后一块，两者都走 `Cut`；没有变量声明的名字描红边。
+
+值是"文字里夹着名字"时，字段显示 `ValuePart` 的序列：每段文字是一只只读的 `SelectableTextBlock`，
+每个名字是一块 `NamePart`（`Border.Token`），带一枚摘掉它的叉。序列只是显示，值由窗口写回（`Compose`）；
+`RebuildParts` 用 `_composing` 标志挡住"碎片写回时又去重建碎片"的循环。字段本身没有文字编辑：
+摘掉名字片走它自己的叉，键盘删除在取值窗口的结构带上完成，叉、退格和 Delete 都走 `Cut`。
+名字本身就是它的名字，前面不带记号；变量墙也照此显示（`剪贴板 (sys.clipboard)`）。
+
+### 7.3 主题资源
+
+视觉契约与令牌角色的用法见 [DESIGN.md](../../DESIGN.md)；本节只记实现层的资源分层与例外。
+
+`App.axaml` 使用 `FluentAvaloniaTheme`，控件模板和密度由 FluentAvalonia 提供。项目自身维护三层资源：
+
+| 层 | 文件 | 职责 |
+| --- | --- | --- |
+| 语义令牌 | `Themes/Tokens.axaml` | 深色、浅色和自定义主题的颜色、画笔、字号、间距与圆角 |
+| Fluent 资源键 | `Themes/FluentKeys.axaml` | 将 FluentAvalonia 模板读取的资源键映射到项目令牌 |
+| 自定义控件类 | `Themes/Controls.axaml` | 项目控件族及其状态、变体和必要模板补充 |
+
+ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
+`Themes/Fluent/Fluent.xaml` 引入；`Avalonia.Themes.Fluent` 不作为应用主主题。`ThemePalette` 与
+`ThemeController` 负责应用和保存主题选择。新增样式时须遵守 `Controls.axaml` 文件头的登记规则，
+并通过相关样式测试。
+
+`App.axaml` 只合并主题与上面三层资源，不写控件样式：控件类一律落在 `Themes/Controls.axaml`，
+这样选择器的顺序与登记表只有一处。`ClassAuditTests` 连 `App.axaml` 一起读，样式若再漂回应用层，
+“挂了类却没有样式”的报告仍看得见，不需要另开白名单。
+
+`FluentAvaloniaTheme` 没有接手 `ContextMenu` 的控件主题。库的 `ControlThemes/BasicControls` 里有
+`Menu`、`MenuItem`、`MenuFlyoutPresenter` 和 `Separator`，唯独没有 `ContextMenu`，而它的模板原本由
+`FluentTheme` 提供。`Themes/Controls.axaml` 的 `Styles.Resources` 里因此有一份按项目令牌写的
+`ContextMenu` 模板：删掉它，每个右键菜单仍会打开、`IsOpen` 仍为真，但屏幕上不画任何东西。
+不要为此重新引入 `<FluentTheme/>`，那会盖掉层 1 已经映射好的颜色。`MenuThemeTests` 核对这份主题
+存在、打开后的菜单有尺寸和 `ItemsPresenter`。
+
+### 7.4 窗口与覆盖层
+
+普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。主窗、宏编辑器、动作编辑器和运行窗将内容
+扩展到标题栏，`AppWindow` 负责该区域的拖动；其他普通窗口使用库提供的默认标题栏。
+`WindowChrome.Attach(this)` 把这条约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，
+并留出系统按钮需要的宽度。全局变量、这一步看到了什么、表达式、断点条件与设置窗口在构造函数里
+调用它；标题文字跟随 `Window.Title`，所以运行中会改名的窗口（表达式构建器）不必自己同步。
+
+框选、取色、点与元素拾取、屏幕框、菜单浮窗和浮动面板等无标题栏覆盖层继续使用 Avalonia `Window`。
+拾取器打开时先通过 `AppWindows.StepAside` 隐藏鲸灵窗口，再取屏幕；取图一律经过 `ScreenReady`：
+它连拍到相邻两张一致为止，因为桌面复制器在收不到新帧时会继续交出隐藏前的画面，只等合成器
+（`DwmFlush`）不足以保证这一点。取色器铺满整个桌面并显示这张冻结的画面，放大镜是它上面的浮层，
+所以看到的就是取到的，滚轮也不会翻动后面的内容。
+
+无头平台的窗口句柄均为 0，`AppWindow` 清理 FluentAvalonia 在此情形下重复使用的内部句柄表。
+该处理只服务无头会话，真实窗口仍由 FluentAvalonia 管理。
+
+### 7.5 设置窗口
+
+`Views/Settings/SettingsWindow.axaml` 是一个 `FANavigationView`：左侧列「系统、触发器、外观」三个
+分组，每一项是 Lucide 图标加组名，选中行铺 `AccentFill`；右侧内容列顶上列当前分组的那几页
+（`Classes="Tab Root Capsule"`），`Classes.selected` 跟着 `SettingsViewModel.IsXxxPage`，下面是与页签
+共享一个 `ScrollViewer` 的页面面板。
+每个设置项是一个 `FASettingsExpanderItem`：左边是标题与说明（`Classes` 仍是 `FieldLabel` 与 `Hint`，
+与其它窗口一致），右边 `Footer` 放控件；说得清的部分只用一句 `Hint`，一句说不清的标题旁挂
+`HintInfo`，悬停看长说明。分组用 `SettingsGroup` 平铺标题、说明与全部行，不提供展开动作，标题不可
+聚焦；卡片底色、描边、圆角与标题下那道 1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表
+的 `Spacing` 透出。页签共用一个滚动区，换页时窗口记住离开那页的位置并在新页布局后放回，所以返回原页
+签是离开时的那一屏，新开的页签从顶部开始。
+
+说明气泡由每个顶层一个 `HintBubbleHost` 负责：指针在图标上停 350 毫秒打开，离开图标或气泡 200 毫秒
+后收起；判定只看指针是否落在图标与气泡矩形内，不再依赖成对的进出事件。同一顶层只有一个气泡，打开
+另一个先关旧的；Esc 与点击气泡外收起固定态，切页签、隐藏行、最小化或关窗立即收起。气泡正文是
+`SelectableTextBlock`，前景显式取 `TextPrimary`、字号与行高成对取 `UiBodySmallSize`/`UiBodySmallLine`，
+底色 `SurfaceCard`、边框 `BorderControl`，全部从所属顶层的资源观察取得，打开中切主题即时刷新。限宽
+360、限高 320，超长时内部滚动。
+
+行内说明图标的对齐只在 `HintInfo` 一处实现：挂载时把同一行里的文字、勾选框与纯文字 `Panel` 收成
+`VerticalAlignment=Center`，并只在带图标的那一行清零 `FieldLabel` 的下边距；图标视觉 14×14、命中区
+24×24、行高 24。三份设置视图与其它窗口的使用点都只写 `Text`，不为对齐加裸 `Margin` 或样式类。
+
+页面只有一处来源：`SettingsViewModel.SelectedPage`。组由它推导（`SelectedRoot` 与 `RootOf`），不是
+另存一份状态，所以点左栏的分组就是"落到该组第一页"，两者不会各说各的。左栏项的 `Tag` 是分组枚举名，
+`SelectionChanged` 据此换组；页签的 `Tag` 是页面枚举名，点击后写 `SelectedPage`。组切换时三排页签只
+按 `IsXxxRoot` 显示当前那一排，控件本身不重建，所以页签的选中与顺序都不受切换影响。
+`SelectedPage` 变化时窗口把左栏 `SelectedItem` 指向所属分组。
+设置项一律即时生效并立即落盘，打开窗口本身不写文件。

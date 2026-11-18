@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -37,8 +38,12 @@ public static class RunKeys
     public const string BadArgumentType = "Run.BadArgumentType";
     public const string BadBase64 = "Run.BadBase64";
     public const string BadEnvironment = "Run.BadEnvironment";
+    public const string BadEnvironmentName = "Run.BadEnvironmentName";
     public const string BadExpression = "Run.BadExpression";
     public const string BadDeclaration = "Run.BadDeclaration";
+
+    /// <summary>A local variable's declared starting value cannot be read as the kind it declares.</summary>
+    public const string BadInitial = "Run.BadInitial";
     public const string BadJson = "Run.BadJson";
     public const string BadJsonPath = "Run.BadJsonPath";
     public const string BadList = "Run.BadList";
@@ -50,10 +55,10 @@ public static class RunKeys
     public const string BadPoint = "Run.BadPoint";
     public const string BadPoints = "Run.BadPoints";
     public const string BadPosition = "Run.BadPosition";
-    public const string BadProcessId = "Run.BadProcessId";
     public const string BadRegion = "Run.BadRegion";
     public const string BadResult = "Run.BadResult";
-    public const string BadResultType = "Run.BadResultType";
+    public const string BadRegistryData = "Run.BadRegistryData";
+    public const string BadRegistryName = "Run.BadRegistryName";
     public const string BadRowColumn = "Run.BadRowColumn";
     public const string BadUserFailureKey = "Run.BadUserFailureKey";
     public const string BadZip = "Run.BadZip";
@@ -97,12 +102,14 @@ public static class RunKeys
     public const string EmptyChord = "Run.EmptyChord";
     public const string EmptyRegion = "Run.EmptyRegion";
     public const string EmptySelector = "Run.EmptySelector";
+
+    /// <summary>写这个环境变量被机器拒绝了：写给这台机器要有管理员权限。</summary>
+    public const string EnvironmentRefused = "Run.EnvironmentRefused";
     public const string Failed = "Run.Failed";
     public const string FileFailed = "Run.FileFailed";
     public const string FileNotFound = "Run.FileNotFound";
     public const string FolderNotFound = "Run.FolderNotFound";
     public const string GlobalMustExist = "Run.GlobalMustExist";
-
     /// <summary>An argument was both given a value and marked as supplied empty.</summary>
     public const string GivenWithValue = "Run.GivenWithValue";
     public const string ImageNotFound = "Run.ImageNotFound";
@@ -138,6 +145,13 @@ public static class RunKeys
     public const string MissingInterpreter = "Run.MissingInterpreter";
     public const string MissingItem = "Run.MissingItem";
     public const string MissingJsonPath = "Run.MissingJsonPath";
+
+    /// <summary>
+    /// A step that cannot be undone was reached with nobody agreeing to it, either because they
+    /// said no or because there was nobody to ask — a triggered run and the machine-facing tools
+    /// both come to that. The step's own failure rule decides what happens next.
+    /// </summary>
+    public const string NotConfirmed = "Run.NotConfirmed";
     public const string MissingModel = "Run.MissingModel";
     public const string MissingName = "Run.MissingName";
     public const string MissingPath = "Run.MissingPath";
@@ -145,7 +159,6 @@ public static class RunKeys
     public const string MissingQuestion = "Run.MissingQuestion";
     public const string MissingScript = "Run.MissingScript";
     public const string MissingScriptExtension = "Run.MissingScriptExtension";
-    public const string MissingStep = "Run.MissingStep";
     public const string MissingTargetWindow = "Run.MissingTargetWindow";
 
     /// <summary>A window field did not hold the one record shape every window rule uses.</summary>
@@ -187,12 +200,21 @@ public static class RunKeys
     public const string ProgramNotFound = "Run.ProgramNotFound";
     public const string RecordWhereNumber = "Run.RecordWhereNumber";
     public const string RegexTimeout = "Run.RegexTimeout";
+
+    /// <summary>这一次注册表操作被机器拒绝了：通常是权限或策略，而不是宏写错了。</summary>
+    public const string RegistryRefused = "Run.RegistryRefused";
     public const string ScreenNotStable = "Run.ScreenNotStable";
     public const string ScriptBridgeLost = "Run.ScriptBridgeLost";
     public const string ScriptCompileFailed = "Run.ScriptCompileFailed";
     public const string ScriptFailed = "Run.ScriptFailed";
     public const string SoundRefused = "Run.SoundRefused";
     public const string StepFailedByMacro = "Run.StepFailedByMacro";
+
+    /// <summary>
+    /// A file of variables carried a name the program keeps for itself. Those values belong to the
+    /// run — the clock, the clipboard, the window in front — so a snapshot may not put one there.
+    /// </summary>
+    public const string SystemVariableReadOnly = "Run.SystemVariableReadOnly";
     public const string TextNotFound = "Run.TextNotFound";
 
     /// <summary>No window took the text that was typed.</summary>
@@ -217,6 +239,15 @@ public static class RunKeys
     public const string UnknownSystemField = "Run.UnknownSystemField";
     public const string UnknownVolumeAction = "Run.UnknownVolumeAction";
     public const string Unsupported = "Run.Unsupported";
+
+    /// <summary>Two declarations of this run want one name, so neither can own the value.</summary>
+
+    /// <summary>A value was written that the declared name cannot hold.</summary>
+    public const string VariableTypeMismatch = "Run.VariableTypeMismatch";
+
+    /// <summary>The run's own table has reached the number of names it may hold.</summary>
+    public const string VariableTableFull = "Run.VariableTableFull";
+
     public const string WaitColorTimeout = "Run.WaitColorTimeout";
     public const string WaitTimeout = "Run.WaitTimeout";
     public const string WindowFailed = "Run.WindowFailed";
@@ -241,7 +272,7 @@ public static class UserFailureKeys
     {
         var key = (written ?? string.Empty).Trim();
         return key.StartsWith(Prefix, StringComparison.Ordinal)
-            && VariableText.IsName(key[Prefix.Length..]);
+            && VariableName.IsName(key[Prefix.Length..]);
     }
 }
 
@@ -284,6 +315,7 @@ public static class LogKeys
     public const string CancelledRun = "Log.CancelledRun";
     public const string CleanupFailed = "Log.CleanupFailed";
     public const string ClearedClipboard = "Log.ClearedClipboard";
+    public const string ClearedVariable = "Log.ClearedVariable";
     public const string ClickedColour = "Log.ClickedColour";
 
     public const string ClickedElement = "Log.ClickedElement";
@@ -367,6 +399,9 @@ public static class LogKeys
     public const string ReadFile = "Log.ReadFile";
     public const string ReadFileLines = "Log.ReadFileLines";
     public const string ReadTable = "Log.ReadTable";
+    public const string RegistryDeleted = "Log.RegistryDeleted";
+    public const string RegistryRead = "Log.RegistryRead";
+    public const string RegistryWritten = "Log.RegistryWritten";
     public const string RecycledFile = "Log.RecycledFile";
     public const string RemovedFolder = "Log.RemovedFolder";
     public const string RestoredWindow = "Log.RestoredWindow";
@@ -382,6 +417,7 @@ public static class LogKeys
     public const string ScrolledElement = "Log.ScrolledElement";
     public const string SelectedItem = "Log.SelectedItem";
     public const string Set = "Log.Set";
+    public const string SetEnvironment = "Log.SetEnvironment";
     public const string Skipped = "Log.Skipped";
     public const string SoundOff = "Log.SoundOff";
     public const string SoundOn = "Log.SoundOn";
@@ -396,6 +432,7 @@ public static class LogKeys
     public const string TextMissing = "Log.TextMissing";
     public const string UnknownCondition = "Log.UnknownCondition";
     public const string Unzipped = "Log.Unzipped";
+    public const string VariableTableLarge = "Log.VariableTableLarge";
     public const string Volume = "Log.Volume";
     public const string WaitedFor = "Log.WaitedFor";
     public const string WaitedRun = "Log.WaitedRun";

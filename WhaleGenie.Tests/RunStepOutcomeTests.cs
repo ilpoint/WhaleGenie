@@ -1,5 +1,6 @@
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -22,8 +23,8 @@ public class RunStepOutcomeTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "n" },
-                    new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = "1" },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("n") },
+                    new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Formula.Number(1) },
                 ],
             };
             StepIds.Settle([step]);
@@ -68,7 +69,7 @@ public class RunStepOutcomeTests
 
     /// <summary>
     /// How a step ended is a value the macro can read: the step that comes after it names
-    /// <c>$step.&lt;id&gt;.outcome</c> and gets <c>failed</c>. The reason is deliberately not a
+    /// <c>step.&lt;id&gt;.outcome</c> and gets <c>failed</c>. The reason is deliberately not a
     /// second value — a macro that needs it catches the failure in a <c>try</c> and reads
     /// <c>caught.key</c>.
     /// </summary>
@@ -82,7 +83,7 @@ public class RunStepOutcomeTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Value = "F5" },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Fields.Shape("F5") },
                 ],
                 Meta = new StepMeta { OnError = StepErrorAction.Continue },
             };
@@ -95,13 +96,13 @@ public class RunStepOutcomeTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "why" },
-                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("why") },
+                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
                     new StepParameter
                     {
                         Name = "value",
                         Kind = ActionParameterKind.Text,
-                        Value = "$step." + broken.Id + ".outcome",
+                        Written = Formula.Name("step." + broken.Id + ".outcome"),
                     },
                 ],
             };
@@ -135,7 +136,7 @@ public class RunStepOutcomeTests
                 Type = "input.keyPress",
                 Parameters =
                 [
-                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Value = "F5" },
+                    new StepParameter { Name = "key", Kind = ActionParameterKind.Text, Written = Fields.Shape("F5") },
                 ],
                 Meta = new StepMeta { OnError = StepErrorAction.Continue },
             };

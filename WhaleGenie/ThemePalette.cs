@@ -5,33 +5,6 @@ using Avalonia.Styling;
 
 namespace WhaleGenie;
 
-/// <summary>The three choices the theme picker offers.</summary>
-public enum ThemeMode
-{
-    Dark,
-    Light,
-    Custom,
-}
-
-/// <summary>
-/// The whole theme choice: a built-in variant, or one accent colour over one of the two control
-/// variants. Everything a custom theme paints is derived from that single colour, so the two
-/// variants cannot be left half-customised the way twenty-two per-colour rows could.
-/// </summary>
-public sealed record ThemeSelection(ThemeMode Mode, bool BaseLight, string? AccentHex)
-{
-    /// <summary>
-    /// The same choice under another mode. Picking a built-in mode also picks its variant: a choice
-    /// that says "light" while keeping the dark base would paint light colours on dark controls.
-    /// </summary>
-    public ThemeSelection WithMode(ThemeMode mode) => mode switch
-    {
-        ThemeMode.Light => this with { Mode = mode, BaseLight = true },
-        ThemeMode.Dark => this with { Mode = mode, BaseLight = false },
-        _ => this with { Mode = mode },
-    };
-}
-
 /// <summary>The five accent colours a picked colour turns into.</summary>
 public readonly record struct AccentTokens(Color Fill, Color Hover, Color Pressed, Color Text, Color Surface);
 
@@ -227,6 +200,13 @@ public static class ThemePalette
         // parsed, so it would keep the accent the user chose before this one. Writing it here as
         // well is what makes a custom accent reach the tab under the window it was chosen in.
         app.Resources["PivotHeaderItemSelectedPipeFill"] = new SolidColorBrush(tokens.Fill);
+
+        // The settings window's left column fills its selected row with the same accent, and those
+        // keys are static aliases too. Three of them rather than one: the row still has to answer
+        // the pointer, and a hover that fell back to the parsed accent would be the wrong colour.
+        app.Resources["NavigationViewItemBackgroundSelected"] = new SolidColorBrush(tokens.Fill);
+        app.Resources["NavigationViewItemBackgroundSelectedPointerOver"] = new SolidColorBrush(tokens.Hover);
+        app.Resources["NavigationViewItemBackgroundSelectedPressed"] = new SolidColorBrush(tokens.Pressed);
     }
 
     private static void Set(Application app, string token, Color colour)
@@ -244,5 +224,8 @@ public static class ThemePalette
         }
 
         app.Resources.Remove("PivotHeaderItemSelectedPipeFill");
+        app.Resources.Remove("NavigationViewItemBackgroundSelected");
+        app.Resources.Remove("NavigationViewItemBackgroundSelectedPointerOver");
+        app.Resources.Remove("NavigationViewItemBackgroundSelectedPressed");
     }
 }

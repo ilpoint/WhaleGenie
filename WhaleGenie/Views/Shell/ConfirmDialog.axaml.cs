@@ -1,0 +1,59 @@
+using System.Threading.Tasks;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using WhaleGenie.ViewModels;
+
+namespace WhaleGenie.Views;
+
+public partial class ConfirmDialog : AppWindow
+{
+    public ConfirmDialog()
+        : this(new ConfirmDialogViewModel())
+    {
+    }
+
+    public ConfirmDialog(ConfirmDialogViewModel viewModel)
+    {
+        InitializeComponent();
+
+        DataContext = viewModel;
+        Title = viewModel.Header;
+        viewModel.CloseRequested += choice => Close(choice);
+
+        AddHandler(KeyDownEvent, OnPreviewKeyDown, RoutingStrategies.Tunnel);
+    }
+
+    /// <summary>Shows the dialog over <paramref name="owner"/> and reports the choice.</summary>
+    public static Task<ConfirmChoice> ShowAsync(Window owner, string header, string message,
+        string primaryLabel, string? secondaryLabel = null, bool showCancel = true,
+        string? cancelLabel = null, double height = 210, ConfirmTone tone = ConfirmTone.Normal)
+    {
+        var dialog = new ConfirmDialog(new ConfirmDialogViewModel
+        {
+            Header = header,
+            Message = message,
+            PrimaryLabel = primaryLabel,
+            SecondaryLabel = secondaryLabel,
+            ShowCancel = showCancel,
+            CancelLabel = cancelLabel,
+            WindowHeight = height,
+            Tone = tone,
+        });
+
+        return dialog.ShowDialogOver<ConfirmChoice>(owner);
+    }
+
+    private void OnPreviewKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not Key.Escape || DataContext is not ConfirmDialogViewModel viewModel)
+        {
+            return;
+        }
+
+        viewModel.CancelCommand.Execute(null);
+        e.Handled = true;
+    }
+
+
+}

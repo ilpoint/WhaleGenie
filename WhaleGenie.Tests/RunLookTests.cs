@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
@@ -34,18 +35,18 @@ public class RunLookTests
         [
             new StepParameterRow
             {
-                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                {
-                    ["key"] = key,
-                    ["name"] = name,
-                },
+                Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["key"] = Formula.Text(key),
+            ["name"] = Formula.Text(name),
+        },
             },
         ],
     };
 
     /// <summary>One of the four numbers a capture step works on, written the way the file writes it.</summary>
     private static StepParameter Number(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Number, Value = value };
+        => new() { Name = name, Kind = ActionParameterKind.Number, Written = Fields.Shape(value) };
 
     [Fact]
     public void A_step_that_looked_at_the_screen_gets_a_picture_on_its_row()
@@ -61,13 +62,13 @@ public class RunLookTests
                     {
                         Name = "images",
                         Kind = ActionParameterKind.Images,
-                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                        Rows = [StepParameterRow.Of("image", Formula.Text(@"C:\images\ok.png"))],
                     },
                     new StepParameter
                     {
                         Name = "confidence",
                         Kind = ActionParameterKind.Number,
-                        Value = "90",
+                        Written = Formula.Number(90),
                     },
                     Handed("match", "match"),
                 ],
@@ -115,13 +116,13 @@ public class RunLookTests
                     {
                         Name = "images",
                         Kind = ActionParameterKind.Images,
-                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                        Rows = [StepParameterRow.Of("image", Formula.Text(@"C:\images\ok.png"))],
                     },
                     new StepParameter
                     {
                         Name = "confidence",
                         Kind = ActionParameterKind.Number,
-                        Value = "90",
+                        Written = Formula.Number(90),
                     },
                     Handed("match", "match"),
                 ],
@@ -184,7 +185,7 @@ public class RunLookTests
                     {
                         Name = "images",
                         Kind = ActionParameterKind.Images,
-                        Rows = [StepParameterRow.Of("image", @"C:\images\ok.png")],
+                        Rows = [StepParameterRow.Of("image", Formula.Text(@"C:\images\ok.png"))],
                     },
                     Number("confidence", "90"),
                     Handed("match", "match"),
@@ -285,7 +286,7 @@ public class RunLookTests
                     {
                         Name = "title",
                         Kind = ActionParameterKind.Text,
-                        Value = "Notepad",
+                        Written = Fields.Shape("Notepad"),
                     },
                     Handed("image", "shot"),
                 ],
@@ -366,7 +367,7 @@ public class RunLookTests
             {
                 Name = "title",
                 Kind = ActionParameterKind.Text,
-                Value = "Notepad",
+                Written = Fields.Shape("Notepad"),
             },
             Handed("image", "shot"),
         ],
@@ -394,6 +395,8 @@ public class RunLookTests
             => Filter(value, match, compare, options: options).FirstOrDefault();
 
         public string ProcessOf(long handle) => "notepad";
+
+        public int ProcessIdOf(long handle) => 0;
 
         public string ClassOf(long handle) => "Notepad";
 
@@ -516,6 +519,8 @@ public class RunLookTests
             => Filter(value, match, compare, options: options).FirstOrDefault();
 
         public string ProcessOf(long handle) => string.Empty;
+
+        public int ProcessIdOf(long handle) => 0;
 
         public string ClassOf(long handle) => string.Empty;
 
