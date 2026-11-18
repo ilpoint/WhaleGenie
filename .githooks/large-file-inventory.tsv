@@ -41,6 +41,7 @@
 355	WhaleGenie.Platform.Tests/MessageInputDeviceTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 439	WhaleGenie.Platform.Tests/RecordingTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 323	WhaleGenie.TestSupport/SampleFiles.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
+306	WhaleGenie.App.TestSupport/ChecksDevices.cs	keep: 界面检查用的一整套设备契约替身，成员由 IDeviceLayer 决定，无独立关注点
 420	WhaleGenie.Platform.Tests/ScriptBridgeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 457	WhaleGenie.Core.Tests/StepOutcomeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 485	WhaleGenie.Platform.Tests/ViiperInputTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -66,7 +67,7 @@
 428374	WhaleGenie.Core/Execution/ActionSemantics.json	keep: 机器可读动作目录，MCP、检查与测试共用一份
 480	WhaleGenie.Core/Execution/MacroRunner.Attempts.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
 450	WhaleGenie.Core/Execution/MacroRunner.Dispatch.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
-662	WhaleGenie.Core/Execution/ScreenSight.cs	keep: 看屏的一层：搜索区域、抓屏与复用、帧节拍、试看标记
+627	WhaleGenie.Core/Execution/ScreenSight.cs	keep: 看屏的一层：搜索区域、按机器保管的回合与画面取图、试看标记
 344	WhaleGenie.Core/Execution/ScreenPoints.cs	keep: 认点的一层：屏幕/窗口坐标、拖拽两端、漂移与输入路由
 311	WhaleGenie.Core/Execution/ScreenReads.cs	keep: 读屏的一层：区域读数、识别修正、命中计数
 313	WhaleGenie.Core/Execution/MacroRunner.Loops.cs	keep: 执行引擎的一族，按执行阶段拆分后单一职责
@@ -76,8 +77,8 @@
 487	WhaleGenie.Core/Execution/UiaActions.cs	keep: 一类动作：找到元素、操作元素、读元素与读表格
 535	WhaleGenie.Core/Execution/FileActions.cs	keep: 一类动作：文本、单个文件、文件夹与归档、列表与变量快照
 355	WhaleGenie.Core/Execution/CaptureActions.cs	keep: 一类动作：截图、整窗截图与等屏幕静止共用同一次取图
-538	WhaleGenie.Core/Execution/ColourActions.cs	keep: 一类动作：像素读色、比色与找色；图案解析属于找色本身
-328	WhaleGenie.Core/Execution/ImageActions.cs	keep: 一类动作：找图、等图与点图；参考图与命中规则已抽出
+543	WhaleGenie.Core/Execution/ColourActions.cs	keep: 一类动作：像素读色、比色与找色；图案解析属于找色本身
+329	WhaleGenie.Core/Execution/ImageActions.cs	keep: 一类动作：找图、等图与点图；参考图与命中规则已抽出
 379	WhaleGenie.Core/Execution/FileCsvActions.cs	keep: 一类动作：CSV 读写、列名与行筛选
 338	WhaleGenie.Core/Execution/PointerActions.cs	keep: 一类动作：移动、点击、双击、滚轮与拖拽
 659	WhaleGenie.Core/Execution/BrowserActions.cs	keep: 一类动作：打开页面、读写页面与元素、等待、下载、对话框
