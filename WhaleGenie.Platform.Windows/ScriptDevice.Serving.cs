@@ -189,8 +189,12 @@ public sealed partial class ScriptDevice : IScriptDevice
             // all, which is a different thing from a script that failed and said why.
             if (how.Lost.Length > 0 && !reached.Task.IsCompletedSuccessfully)
             {
-                throw new DeviceActionException(how.Lost,
-                    complained.Count > 0 ? complained[^1] : program);
+                // What the process said is worth more than anything this side knows, and when it
+                // said nothing at all the exit code is what is left: a copy of the program that
+                // could not start at all is a different story from one that started and ended.
+                throw new DeviceActionException(how.Lost, complained.Count > 0
+                    ? complained[^1]
+                    : $"{program} ({exitCode})");
             }
         }
         finally

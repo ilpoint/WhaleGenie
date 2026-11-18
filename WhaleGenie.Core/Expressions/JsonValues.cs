@@ -28,8 +28,13 @@ public static class JsonValues
             case ValueKind.Date:
                 // JSON has no date. The one field an object must have to be read back as a moment
                 // is $date, so a saved date returns as a date instead of as the line it was written
-                // as — which is what a persistent global needs to survive a restart.
-                return new JsonObject { ["$date"] = Value.TextOf(value.Date) };
+                // as — which is what a persistent global needs to survive a restart. What is written
+                // carries its offset: a moment is an instant, and a stamp without one is read at the
+                // offset of whichever machine opens the file, which moves it by the difference.
+                return new JsonObject
+                {
+                    ["$date"] = value.Date.ToString("o", CultureInfo.InvariantCulture),
+                };
             case ValueKind.Image:
                 // The handle, not the pixels: a picture belongs to the run that took it, and what
                 // is written down is how to name it.

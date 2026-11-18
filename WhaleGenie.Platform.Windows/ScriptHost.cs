@@ -28,8 +28,12 @@ namespace WhaleGenie.Platform.Windows;
 /// </remarks>
 public static class ScriptHost
 {
-    /// <summary>How long the host waits for the macro's pipe before giving up on it.</summary>
-    private const int ConnectWaitMs = 10000;
+    /// <summary>
+    /// How long the host waits for the macro's pipe before giving up on it. A machine that has just
+    /// started, with the program being read from disk for the first time, takes seconds to reach
+    /// this line; the script's own timeout is what bounds the script, not this.
+    /// </summary>
+    private const int ConnectWaitMs = 30000;
 
     /// <summary>Whether this run of the program is a script being run rather than the program itself.</summary>
     public static bool Asked(IReadOnlyList<string> arguments)

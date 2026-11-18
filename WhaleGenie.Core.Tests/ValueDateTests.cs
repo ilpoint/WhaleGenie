@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Nodes;
 using WhaleGenie.Core.Expressions;
 using Xunit;
 
@@ -48,6 +49,25 @@ public class ValueDateTests
 
         Assert.True(read.IsDate);
         Assert.Equal(date.Date.UtcTicks, read.Date.UtcTicks);
+    }
+
+    /// <summary>
+    /// 存下来的时刻带着它的偏移：JSON 里没有「日期」这种类型，写成一个不带偏移的时间，换一台机器
+    /// 或换一个时区打开，读到的就是别的那一刻。这条钉住写出去的形状，免得有人又换回给人读的那一行。
+    /// </summary>
+    [Fact]
+    public void A_saved_moment_is_written_with_the_offset_it_was_read_at()
+    {
+        var date = Value.FromDate(new DateTimeOffset(2024, 3, 1, 9, 30, 0, TimeSpan.FromHours(5.5)));
+
+        // The stamp is read as a string, not as the text of the whole document: JSON escapes a
+        // plus sign, so looking for it in the document would find an escape rather than the offset.
+        var stamp = Assert.IsType<JsonObject>(JsonValues.Node(date))["$date"]!.GetValue<string>();
+        Assert.Contains("+05:30", stamp, StringComparison.Ordinal);
+
+        var read = JsonValues.FromJson(JsonValues.Node(date));
+        Assert.Equal(date.Date.UtcTicks, read.Date.UtcTicks);
+        Assert.Equal(date.Date.Offset, read.Date.Offset);
     }
 
     [Fact]

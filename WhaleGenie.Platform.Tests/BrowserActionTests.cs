@@ -487,12 +487,16 @@ public class BrowserActionTests : IDisposable
     [RealBrowserFact]
     public void The_state_of_an_element_of_the_page_is_asked_about_rather_than_waited_for()
     {
+        // The change is caused by the check rather than by a timer the page sets for itself: a
+        // runner loaded to a crawl can get past a 300 millisecond timer before the first question
+        // is asked, and then the question answers about a page that has already moved on.
         Site("<p id=spinner>loading</p>"
-            + "<script>setTimeout(() => {"
+            + "<button id=go>go</button>"
+            + "<script>document.getElementById('go').onclick = () => {"
             + " document.getElementById('spinner').remove();"
             + " const row = document.createElement('p');"
             + " row.id = 'row'; row.textContent = 'ready';"
-            + " document.body.appendChild(row); }, 300);</script>");
+            + " document.body.appendChild(row); };</script>");
 
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address(), headless: true, profile: string.Empty);
@@ -504,6 +508,7 @@ public class BrowserActionTests : IDisposable
         Assert.False(device.Exists(At("#row"), ElementWait.Attached));
         Assert.True(device.Exists(At("#row"), ElementWait.Detached));
 
+        device.Click(At("#go"), ClickWay.Single, force: false, timeoutMs: 5000);
         device.WaitFor(At("#row"), ElementWait.Visible, 5000);
 
         Assert.True(device.Exists(At("#row"), ElementWait.Attached));
