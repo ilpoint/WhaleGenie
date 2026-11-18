@@ -100,10 +100,10 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private sealed class TrialFrames(ActionEditorView window) : IRunLooks
     {
-        public void Look(StepLook look)
-        {
-            // What the trial found is shown by the trial itself; there is nothing to keep here.
-        }
+        /// <summary>The last thing the step saw, which is the one worth showing once it is done.</summary>
+        public StepLook? Seen { get; private set; }
+
+        public void Look(StepLook look) => Seen = look;
 
         /// <summary>What a trial came to is on the line under it; there is nothing to keep here.</summary>
         public void Ran(StepRun run)

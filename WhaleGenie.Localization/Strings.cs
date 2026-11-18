@@ -373,9 +373,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.KeyRunPress"] = "press {0} of the run",
         ["Add.RunStep"] = "Run",
         ["Add.Running"] = "Running…",
-        ["Add.RunStepHint"] = "Do this step once, the way it is written. A step that looks at the "
-            + "screen only looks, and shows what it found. Every window of WhaleGenie is out of the "
-            + "way while it runs, so the step sees what it is meant to look at.",
+        ["Add.RunStepHint"] = "Do this step once, the way it is written: a click clicks, a key is "
+            + "pressed. Every window of WhaleGenie is out of the way while it runs, so the step acts "
+            + "on what it is meant to act on; one that looked at the screen shows what it saw when "
+            + "it is done.",
         ["Add.RanStep"] = "Ran {0}.",
         ["Add.PickOffset"] = "Pick the click point…",
         ["Add.PickOffsetHint"] = "Looks once with this step's own fields, then lets the point be "
@@ -2974,8 +2975,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Add.KeyRunPress"] = "序列的第 {0} 次按键",
         ["Add.RunStep"] = "运行",
         ["Add.Running"] = "正在运行…",
-        ["Add.RunStepHint"] = "按当前写法执行一次这一步。需要查看屏幕的动作只查找、不点击，"
-            + "找到什么直接显示出来。运行期间鲸灵自己的窗口全部收起来，这一步就不会看见它们。",
+        ["Add.RunStepHint"] = "按当前写法执行一次这一步：要点的就点，要按的就按。运行期间鲸灵自己的"
+            + "窗口全部收起来，这一步动的是它该动的那个窗口；看屏幕的动作跑完再把看到的画面显示出来。",
         ["Add.RanStep"] = "已运行 {0}。",
         ["Add.PickOffset"] = "拾取点位…",
         ["Add.PickOffsetHint"] = "先按这一步现在的写法识别一次，再在识别到的那张画面上点出要点的位置："

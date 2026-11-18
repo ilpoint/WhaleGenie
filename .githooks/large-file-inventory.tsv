@@ -41,7 +41,7 @@
 355	WhaleGenie.Platform.Tests/MessageInputDeviceTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 439	WhaleGenie.Platform.Tests/RecordingTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 323	WhaleGenie.TestSupport/SampleFiles.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-306	WhaleGenie.App.TestSupport/ChecksDevices.cs	keep: 界面检查用的一整套设备契约替身，成员由 IDeviceLayer 决定，无独立关注点
+310	WhaleGenie.App.TestSupport/ChecksDevices.cs	keep: 界面检查用的一整套设备契约替身，成员由 IDeviceLayer 决定，无独立关注点
 420	WhaleGenie.Platform.Tests/ScriptBridgeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 457	WhaleGenie.Core.Tests/StepOutcomeTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 485	WhaleGenie.Platform.Tests/ViiperInputTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -141,7 +141,7 @@
 4289	WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 2471	WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
 553	WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
-5451	WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+5614	WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	WhaleGenie.Mcp/ActionKnowledge.cs	keep: 一组同域工具与它们的输入输出
 384	WhaleGenie.Mcp/McpDraftStore.cs	keep: 一组同域工具与它们的输入输出
 315	WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出

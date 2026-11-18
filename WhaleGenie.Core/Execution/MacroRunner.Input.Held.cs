@@ -94,7 +94,7 @@ public sealed partial class MacroRunner
     /// than raised, because the run already has its answer and a stuck key is not made better by
     /// throwing.
     /// </summary>
-    private void LetGoOfHeldInput()
+    internal void LetGoOfHeldInput()
     {
         if (_run.HeldKeys.Count == 0 && _run.HeldButtons.Count == 0 && !_run.GamepadUsed)
         {

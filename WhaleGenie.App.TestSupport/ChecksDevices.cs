@@ -211,7 +211,11 @@ internal sealed class ChecksDevices : IDeviceLayer
 
     public IScreenDevice Screen { get; set; } = NullDeviceLayer.Instance.Screen;
 
-    public IVisionDevice Vision => NullDeviceLayer.Instance.Vision;
+    /// <summary>
+    /// The pictures a check puts on the screen, when what is being checked is a search that has to
+    /// find one.
+    /// </summary>
+    public IVisionDevice Vision { get; set; } = NullDeviceLayer.Instance.Vision;
 
     public IDetectorDevice Detector => NullDeviceLayer.Instance.Detector;
 

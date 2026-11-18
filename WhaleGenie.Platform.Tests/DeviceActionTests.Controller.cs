@@ -108,7 +108,7 @@ public partial class DeviceActionTests
     public async Task A_step_can_be_tried_on_its_own()
     {
         var devices = new FakeDeviceLayer();
-        var outcome = await MacroRunner.TryAsync(
+        var outcome = await StepTrial.TryAsync(
             Step("input.keyPress", Param("key", "F5"), Param("holdMs", "30")), devices);
 
         Assert.Equal(RunStatus.Completed, outcome.Status);
@@ -123,7 +123,7 @@ public partial class DeviceActionTests
     public async Task A_tried_step_goes_the_way_its_own_settings_say()
     {
         var devices = new FakeDeviceLayer();
-        await MacroRunner.TryAsync(
+        await StepTrial.TryAsync(
             Step("input.keyPress", Param("key", "A"), Param("inputMode", "driver")), devices);
 
         Assert.Equal(InputDelivery.Driver, Assert.Single(devices.Input.Routes).Delivery);
@@ -135,7 +135,7 @@ public partial class DeviceActionTests
         var devices = new FakeDeviceLayer();
 
         // Posting to a window needs the step to name one, and this one does not.
-        var outcome = await MacroRunner.TryAsync(
+        var outcome = await StepTrial.TryAsync(
             Step("input.keyPress", Param("key", "A"), Param("inputMode", "background")), devices);
 
         Assert.Equal(RunStatus.Failed, outcome.Status);
@@ -147,7 +147,7 @@ public partial class DeviceActionTests
     public async Task A_tried_controller_button_is_let_go_of_again()
     {
         var devices = new FakeDeviceLayer();
-        var outcome = await MacroRunner.TryAsync(
+        var outcome = await StepTrial.TryAsync(
             Step("gamepad.button", Param("button", "a"), Param("buttonMode", "down")), devices);
 
         Assert.Equal(RunStatus.Completed, outcome.Status);
@@ -162,7 +162,7 @@ public partial class DeviceActionTests
     public async Task A_tried_key_held_down_is_let_go_of_again()
     {
         var devices = new FakeDeviceLayer();
-        await MacroRunner.TryAsync(Step("input.keyDown", Param("key", "Shift")), devices);
+        await StepTrial.TryAsync(Step("input.keyDown", Param("key", "Shift")), devices);
 
         Assert.Equal("keyDown Shift", devices.Calls[0]);
         Assert.Equal("keyUp Shift", devices.Calls[^1]);

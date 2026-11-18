@@ -394,7 +394,8 @@ public sealed partial class MacroRunner
     /// Runs one step, turning a broken expression into a failure the step can report and
     /// the failure rules can act on, instead of letting it bring the whole run down.
     /// </summary>
-    private async Task<Signal> ExecuteChecked(ExecutableStep step, int depth, CancellationToken token)
+    internal async Task<Signal> ExecuteChecked(ExecutableStep step, int depth,
+        CancellationToken token)
     {
         try
         {

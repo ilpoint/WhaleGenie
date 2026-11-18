@@ -24,7 +24,7 @@ public sealed partial class MacroRunner
     // One attempt: _here, which is what the step being tried has worked out so far — see
     // StepProgress for that. What is left in the partial files beside this one is the interpreter
     // itself: the step loop, attempts and failure rules, dispatch, loops, conditions, the held
-    // input, the trial look a dialog asks for, and the one door a script runs a step through.
+    // input, and the one door a script runs a step through.
 
     private readonly IRunHost _host;
     private readonly IDeviceLayer _devices;
@@ -69,6 +69,13 @@ public sealed partial class MacroRunner
     /// so a retried step starts from nothing.
     /// </summary>
     private readonly StepProgress _here = new();
+
+    /// <summary>
+    /// The failure this step reports when its own clock runs out, in the words its kind of step
+    /// says it in. A step run on its own (<see cref="StepTrial"/>) is answered with the same
+    /// failure a run would have written, so the dialog and the run agree about what went wrong.
+    /// </summary>
+    internal StepFailure TimeoutOf(ExecutableStep step) => _timeout.For(step);
 
     /// <summary>
     /// How long the clean-up blocks of one stopped run may take together. A stop that waited for

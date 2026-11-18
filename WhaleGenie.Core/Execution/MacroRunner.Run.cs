@@ -34,12 +34,6 @@ public sealed partial class MacroRunner
     /// <summary>How long a controller button stays down when the step asked for no time in particular.</summary>
     private const int ShortestPressMs = 50;
 
-    /// <summary>
-    /// How long what one tried step left behind is left alone before it is let go of, so a game
-    /// that reads the controller on its own schedule has the chance to notice it.
-    /// </summary>
-    private const int TrialWatchMs = 300;
-
     public MacroRunner(VariableStore variables, IRunHost? host = null, IDeviceLayer? devices = null,
         double delayScale = 1, IMacroLibrary? macros = null, IRunLooks? looks = null)
     {
@@ -118,46 +112,6 @@ public sealed partial class MacroRunner
     /// <summary>A length of time the macro asked for, at this run's speed.</summary>
     private int Pace(int milliseconds)
         => milliseconds <= 0 ? 0 : (int)Math.Round(milliseconds * DelayScale);
-
-    /// <summary>
-    /// Does one step for real, on its own, and reports how it went. This is the "test" button
-    /// beside a field in the action dialog, and the "run" button the dialog itself carries: the step
-    /// is written, and the question is whether it really does what the user meant — a key spelled
-    /// another way, a control that is not the one they had in mind — which is answered by sending it
-    /// once and letting them watch.
-    /// </summary>
-    /// <remarks>
-    /// The step goes through the same code a run puts it through, so what is tried is what would
-    /// happen: where the input is delivered, how long a control is held, which device answers.
-    /// Nothing else of the macro runs, and whatever the step leaves held is let go of a moment
-    /// later, because the end of a run is not here to do it — a button tried out and left down
-    /// would stay down in the game long after the dialog was closed. The macros and the variables a
-    /// caller hands in are the ones the step is run with, so a step calling another macro or reading
-    /// a system variable behaves here the way it will in the run.
-    /// </remarks>
-    public static async Task<RunResult> TryAsync(ExecutableStep step, IDeviceLayer devices,
-        CancellationToken token = default, IRunLooks? looks = null, IMacroLibrary? macros = null,
-        VariableStore? variables = null)
-    {
-        var runner = new MacroRunner(variables ?? new VariableStore(), devices: devices, looks: looks,
-            macros: macros);
-        try
-        {
-            await runner.ExecuteChecked(step, 0, token);
-
-            // Long enough for what the step did to be seen before it is taken back.
-            await Task.Delay(TrialWatchMs, token);
-            return new RunResult(RunStatus.Completed, string.Empty, string.Empty, 1);
-        }
-        catch (StepFailure failure)
-        {
-            return new RunResult(RunStatus.Failed, failure.Key, failure.Detail, 0);
-        }
-        finally
-        {
-            runner.LetGoOfHeldInput();
-        }
-    }
 
     /// <summary>Runs the steps and reports how the run ended.</summary>
     public async Task<RunResult> RunAsync(IReadOnlyList<ExecutableStep> steps,

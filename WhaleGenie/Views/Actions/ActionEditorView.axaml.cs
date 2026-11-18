@@ -98,7 +98,7 @@ public partial class ActionEditorView : UserControl
     /// </summary>
     private readonly ScreenFrames _previewFrames = new();
 
-    /// <summary>The frame around the window a "try looking" is reading, while it reads it.</summary>
+    /// <summary>The frame around the window a trial is reading, while it reads it.</summary>
     private readonly ScreenFrames _trialFrames = new();
 
     /// <summary>The windows the preview has framed on the screen right now, which is what the list

@@ -22,7 +22,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-// Trying the step out: what it would run, the two ways it can be tried, and the windows put away first.
+// Trying the step out: the one way it is run, and the windows put away first.
 public partial class ActionEditorView : UserControl
 {
     /// <summary>
@@ -54,10 +54,10 @@ public partial class ActionEditorView : UserControl
             : Strings.Format(outcome.Key, outcome.Detail);
 
     /// <summary>
-    /// Runs the step being written, once, without closing the dialog or going into a run. What it
-    /// does follows from what the step is: a step that looks at the screen only looks and shows what
-    /// turned up — trying <c>vision.clickImage</c> for real would click on whatever the user has on
-    /// screen — and every other step is sent for real, the same way the field's own test sends it.
+    /// Runs the step being written, once, without closing the dialog or going into a run. What the
+    /// step is written to do is what happens: a click clicks, a key is pressed, a wait waits. Every
+    /// window of this program is out of the way while it runs, so it acts on what it is meant to act
+    /// on, and a step that looked at the screen shows what it saw when it is done.
     /// </summary>
     private async void OnRunStep(object? sender, RoutedEventArgs e)
     {
@@ -80,64 +80,46 @@ public partial class ActionEditorView : UserControl
             return;
         }
 
-        if (MacroRunner.CanLook(step.Type))
-        {
-            await RunLookingAsync(step);
-            return;
-        }
-
         await RunForRealAsync(viewModel, step);
     }
 
     /// <summary>
-    /// Looks at the screen the way the step would and shows what turned up, without doing anything
-    /// about it: no click, no key, no variable written.
-    /// </summary>
-    private async Task RunLookingAsync(ExecutableStep step)
-    {
-        // Off the thread that draws the window, and with this program's windows out of the picture:
-        // reading the screen and matching a picture can take a moment, the dialog has to stay able
-        // to come back when it is done, and a look that has the window asking in front of it reads
-        // the window asking rather than what the user wanted to look at.
-        var outcome = await AwayAsync(() => MacroRunner.LookOnce(step, Devices, new TrialFrames(this)));
-
-        // Nothing is being read any more, so the frame comes down with the reading.
-        _trialFrames.Clear();
-
-        if (outcome.Look is null)
-        {
-            await ReportTestAsync(TrialFailure(
-                new RunResult(RunStatus.Failed, outcome.Key, outcome.Detail, 0)));
-            return;
-        }
-
-        // The step and the machine go along with the look, which is what lets this window look
-        // again: what is being tried is this very step, and the threshold on it is usually the
-        // thing being changed to get a better answer.
-        LookWindow.Show(outcome.Look, HostWindow!, step, Devices);
-    }
-
-    /// <summary>
-    /// Sends the step for real, the way a run would. Input steps are sent with every window of this
-    /// program out of the way, because a key or a click lands on whatever is in front, and a window
-    /// in front of the window the user meant would be one of ours.
+    /// Sends the step for real, the way a run would, and hands what it saw to the picture window.
+    /// Input steps are sent with every window of this program out of the way, because a key or a
+    /// click lands on whatever is in front, and a window in front of the window the user meant would
+    /// be one of ours.
     /// </summary>
     private async Task RunForRealAsync(AddActionViewModel viewModel, ExecutableStep step)
     {
         viewModel.IsRunning = true;
         RunResult outcome;
+        StepLook? seen;
+        var frames = new TrialFrames(this);
         try
         {
             // Off the thread that draws the window: a device call can wait on hardware, and the
             // dialog has to stay able to come back when it is done.
-            outcome = await AwayForAsync(() => MacroRunner.TryAsync(step, Devices,
+            outcome = await AwayForAsync(() => StepTrial.TryAsync(step, Devices, looks: frames,
                 variables: MacroVariables.Seed(new SystemVariableReader(Devices),
                     viewModel.Variables),
                 macros: Macros));
+            seen = frames.Seen;
         }
         finally
         {
             viewModel.IsRunning = false;
+
+            // Nothing is being read any more, so the frame comes down with the reading.
+            _trialFrames.Clear();
+        }
+
+        // What was seen is worth having whichever way the step went: the picture that was clicked is
+        // the answer to "did it hit the right one", and the picture that was not found is the answer
+        // to why nothing was clicked. It goes up first, so the reason a failed step gives is read
+        // with the screen that caused it still on show rather than after it has been dismissed.
+        if (seen is not null && !_closed)
+        {
+            LookWindow.Show(seen, HostWindow!, step, Devices);
         }
 
         if (outcome.Status is not RunStatus.Completed)
@@ -146,11 +128,11 @@ public partial class ActionEditorView : UserControl
             {
                 await ReportTestAsync(TrialFailure(outcome));
             }
-
-            return;
         }
-
-        Say(Strings.Format("Add.RanStep", viewModel.SelectedActionName));
+        else
+        {
+            Say(Strings.Format("Add.RanStep", viewModel.SelectedActionName));
+        }
     }
 
     /// <summary>
