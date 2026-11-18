@@ -7,10 +7,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
+using WhaleGenie.Core.Devices.Platform;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
-using WhaleGenie.Platform.Windows;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -19,6 +19,12 @@ namespace WhaleGenie;
 
 public partial class App : Application
 {
+    /// <summary>
+    /// What a launch that serves MCP without a window asked for, or null for the ordinary one. It is
+    /// set before the application is built, because the command line is read before there is one.
+    /// </summary>
+    internal static McpHostOptions? Headless { get; set; }
+
 #if DEBUG
     /// <summary>
     /// Whether this launch is the throwaway theme probe rather than the program. Debug only: the
@@ -34,20 +40,26 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        // A window is about to be shown, so the machine is prepared the same way it always was.
-        // A headless MCP run prepares itself before it builds Avalonia at all.
+        // Both kinds of run open a project and may look at the screen, so both get these two.
         PrepareProject();
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            if (Headless is { } options)
+            {
+                // Nothing will ever be shown, so the lifetime must not end when the last window
+                // closes: there was never a window to close, and the server is the whole run.
+                desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+                McpHeadless.Start(desktop, options);
+            }
 #if DEBUG
-            if (ThemeProbe)
+            else if (ThemeProbe)
             {
                 // No devices, no project, no snapshot: looking at colours must not touch the machine.
                 ThemeProbeWindow.Show(desktop);
             }
-            else
 #endif
+            else
             {
                 PrepareWindow();
                 ShowWindow(desktop);
@@ -58,7 +70,29 @@ public partial class App : Application
     }
 
     /// <summary>What a project needs whatever kind of run this is.</summary>
-    private static void PrepareProject() => RuntimeSetup.Prepare();
+    private static void PrepareProject()
+    {
+        // Values a macro wrote are read back by the project before it is handed to an MCP client.
+        PersistentVariables.Initialize();
+
+        // How this machine reads the screen is what a capture answers with, so it is told here
+        // rather than when a window happens to open.
+        CaptureSetup.Load();
+
+        // The ceiling on how fast input may leave is read before anything can send any: a trigger
+        // can fire while the window is still being built.
+        Core.Devices.InputLimit.PerSecond = LocalSettings.LoadInputRate();
+
+        // The same for whether the program listens to what it sent itself: the hook is already
+        // answering keys by the time a window exists, and a trigger must not act on a macro's own
+        // output in the moment it takes to open one.
+        Core.Devices.WhaleGenieInputGate.IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
+
+        // Old run logs are cleared before this start can add to them, so the folder holds what the
+        // setting says rather than one more than that. A folder that cannot be read is not a reason
+        // to stop starting up.
+        LogRetention.Prune(AppPaths.Logs, LocalSettings.LoadLogCount());
+    }
 
     /// <summary>
     /// What only a run with a window needs: something to refresh, something to pack, and the
@@ -93,7 +127,7 @@ public partial class App : Application
 
     private static void ShowWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
-        var services = WindowedServices.Build();
+        var services = AppServices.Build();
         var window = services.GetRequiredService<MainWindow>();
         var viewModel = (MainViewModel)window.DataContext!;
 
@@ -136,7 +170,7 @@ public partial class App : Application
         McpControl.Stored = McpGrants.Current;
         McpPipe.Serve(async pipe =>
         {
-            var host = AppServices.Host(services);
+            var host = new McpServerHost(viewModel, services);
             host.Start(pipe, pipe);
             await host.WaitForShutdownAsync().ConfigureAwait(false);
             await host.DisposeAsync().ConfigureAwait(false);
@@ -152,18 +186,9 @@ public partial class App : Application
             WindowFront.Bring(window);
         }));
 
-        var exited = false;
         desktop.Exit += (_, _) =>
         {
-            // Closing the last window can end the lifetime on its own, and the way out asks for a
-            // shutdown as well: the event arrives twice, and the second time the container is gone.
-            if (exited)
-            {
-                return;
-            }
-
-            exited = true;
-            services.GetRequiredService<PersistedVariables>().Dispose();
+            PersistentVariables.Flush();
             window.Tray?.Dispose();
 
             // The trigger service the container owns watches the machine through the device layer,

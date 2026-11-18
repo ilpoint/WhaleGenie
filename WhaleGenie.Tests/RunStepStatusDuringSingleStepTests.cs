@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using Xunit;
@@ -75,9 +74,9 @@ public class RunStepStatusDuringSingleStepTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = value },
         ],
     };
 }

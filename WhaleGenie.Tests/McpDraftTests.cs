@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
@@ -32,7 +31,7 @@ public class McpDraftTests
                 project.CurrentPath = path;
                 project.SavePackage(path);
 
-                var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+                var live = new McpLiveProject(project);
                 var basis = await live.SnapshotAsync();
                 var drafts = new McpDraftStore();
                 var draft = drafts.Create(basis).Draft;
@@ -68,7 +67,7 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var project = new MainViewModel();
-            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(project);
             var draft = new McpDraftStore().Create(await live.SnapshotAsync()).Draft;
 
             // A run reports every step as step.<id>.outcome, so a macro written through MCP has to
@@ -87,7 +86,7 @@ public class McpDraftTests
                         ["type"] = "control.if",
                         ["params"] = new JsonObject
                         {
-                            ["condition"] = "sys.screenWidth > 1",
+                            ["condition"] = "$sys.screenWidth > 1",
                             ["then"] = new JsonArray(new JsonObject
                             {
                                 ["type"] = "control.delay",
@@ -130,7 +129,7 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var store = new McpDraftStore();
-            var basis = await new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance).SnapshotAsync();
+            var basis = await new McpLiveProject(new MainViewModel()).SnapshotAsync();
 
             for (var index = 0; index < McpDraftStore.MaxDrafts; index++)
             {
@@ -155,7 +154,7 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var store = new McpDraftStore();
-            var basis = await new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance).SnapshotAsync();
+            var basis = await new McpLiveProject(new MainViewModel()).SnapshotAsync();
 
             var first = store.Create(basis).Draft;
             for (var index = 1; index < McpDraftStore.MaxDrafts; index++)
@@ -182,7 +181,7 @@ public class McpDraftTests
         {
             var project = new MainViewModel();
             project.AddMacro(new MacroItem { Name = "原宏" });
-            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(project);
             var basis = await live.SnapshotAsync();
             var draft = new McpDraftStore().Create(basis).Draft;
 
@@ -199,7 +198,7 @@ public class McpDraftTests
     {
         Ui.RunAsync(async () =>
         {
-            var live = new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(new MainViewModel());
             await Assert.ThrowsAsync<McpFailure>(() => live.SaveAsync());
             return true;
         });
@@ -212,7 +211,7 @@ public class McpDraftTests
         {
             var project = new MainViewModel();
             project.AddMacro(new MacroItem { Name = "原宏" });
-            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(project);
             var draft = new McpDraftStore().Create(await live.SnapshotAsync()).Draft;
             var bad = new MacroItem { Name = "非法分支" };
             bad.Steps.Add(new MacroStep
@@ -224,7 +223,7 @@ public class McpDraftTests
                     {
                         Name = "values",
                         Kind = ActionParameterKind.Text,
-                        Written = Fields.Shape("a"),
+                        Value = "a",
                     },
                     new StepParameter
                     {

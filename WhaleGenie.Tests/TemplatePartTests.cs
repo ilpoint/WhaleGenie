@@ -9,7 +9,6 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using FluentAvalonia.UI.Controls;
 
 namespace WhaleGenie.Tests;
 
@@ -79,20 +78,15 @@ public class TemplatePartTests
         // 插槽上的两枚小按钮：参数的叉与表头的撤销恢复，各自画自己的悬停。
         ("Button", "SlotRemove", "ContentPresenter"),
         ("Button", "SlotStep", "ContentPresenter"),
-        ("Button", "SlotOperatorInline", "ContentPresenter"),
         ("Button", "Thumb", "ContentPresenter"),
         ("ToggleButton", "Chip", "ContentPresenter"),
         ("ToggleButton", "Chip Key", "ContentPresenter"),
         ("ListBoxItem", "", "ContentPresenter"),
-        // 分类 dock：切走库画在选中行里的那条 3 像素竖条——dock 的选中态有自己的三件事要说。
-        ("ListBoxItem", "", "Rectangle#SelectionIndicator"),
         // 树的行：选中态由卡片自己画，模板里那层底与那条小竖条都让开。
         ("TreeViewItem", "", "Border#PART_LayoutRoot"),
         ("TreeViewItem", "", "Grid#PART_Header"),
         ("TreeViewItem", "", "ToggleButton#PART_ExpandCollapseChevron"),
         ("ScrollViewer", "VarWallScroll", "ScrollBar#PART_VerticalScrollBar"),
-        // 数字框的右端：带片的那一档把内层输入框的右内边距让出来（模板没有内嵌右内容的位置）。
-        ("fa|FANumberBox", "HasChip", "TextBox#InputBox"),
     ];
 
     /// <summary>
@@ -265,7 +259,7 @@ public class TemplatePartTests
         var files = Directory
             .EnumerateFiles(Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes"), "*.axaml")
             .Concat(Directory.EnumerateFiles(
-                Path.Combine(RepositoryRoot(), "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories));
+                Path.Combine(RepositoryRoot(), "WhaleGenie", "Views"), "*.axaml"));
 
         foreach (var file in files)
         {
@@ -328,8 +322,6 @@ public class TemplatePartTests
         "GridSplitter" => new GridSplitter(),
         // 单选卡：模板整份重写过，卡、圆点、圆心里的小点都是它自己的部件。
         "RadioButton" => new RadioButton { Content = "x" },
-        // 数字框：模板来自 FluentAvalonia，内层输入框的名字就是 `InputBox`。
-        "fa|FANumberBox" => new FANumberBox { Width = 200 },
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "no probe for this host"),
     };
 

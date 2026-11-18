@@ -15,7 +15,7 @@ namespace WhaleGenie.Tests;
 public class SharedStateTests
 {
     [Fact]
-    public void Restoring_puts_back_the_language_and_the_settings_path()
+    public void Restoring_puts_back_the_language_the_settings_path_and_the_catalogue()
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-state-" + Guid.NewGuid().ToString("N"));
 
@@ -26,11 +26,15 @@ public class SharedStateTests
             {
                 Strings.Current.Language = Other(before.Language);
                 LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+                VariableCatalog.Globals.Add(new VariableDefinition { Name = "leakedByAccident" });
 
                 before.Restore();
 
                 Assert.Equal(before.Language, Strings.Current.Language);
                 Assert.Equal(before.SettingsPath, LocalSettings.FilePath);
+                Assert.Equal(
+                    before.Globals.Select(definition => definition.Name),
+                    VariableCatalog.Globals.Select(definition => definition.Name));
             }
             finally
             {

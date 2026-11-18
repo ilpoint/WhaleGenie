@@ -1,0 +1,543 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Avalonia.Controls;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
+using WhaleGenie.Localization;
+using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
+
+namespace WhaleGenie.Tests;
+
+/// <summary>
+/// Choosing a variable: the wall of buttons, the small picker a field opens, and what a step
+/// leaves behind for either of them to offer. Writing a name out of memory is what all of this is
+/// there to avoid, so the checks are about what is in front of the user rather than about names.
+/// </summary>
+[RestoreSharedState]
+public class VariableWallTests
+{
+    private static VariableChoice Local(string name) =>
+        new() { Name = name, Scope = VariableScope.Local, Type = "text" };
+
+    private static VariableChoice Global(string name, bool persistent = false) =>
+        new()
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+            Type = "number",
+            Description = "总数",
+            IsPersistent = persistent,
+        };
+
+    private static VariableChoice System(string name) =>
+        new() { Name = name, Scope = VariableScope.System, Type = "text", Description = "今天" };
+
+    private static VariableChoice Outcome(string name) =>
+        new()
+        {
+            Name = name,
+            Scope = VariableScope.Local,
+            Description = Strings.Get("VarWall.Outcome"),
+            Source = "读订单表 · 读取 CSV · k3f9",
+            IsStepResult = true,
+        };
+
+    private static VariableWallViewModel Wall() => new(
+    [
+        Local("rows"),
+        Global("total"),
+        System("sys.date"),
+        Outcome("step.k3f9.outcome"),
+    ]);
+
+    [Fact]
+    public void The_wall_starts_on_what_the_macro_made_for_itself()
+    {
+        var wall = Wall();
+
+        Assert.Equal(["rows"], wall.Shown.Select(choice => choice.Name));
+        Assert.False(wall.IsEmpty);
+    }
+
+    /// <summary>
+    /// A macro interface default has no local variables of its own: it is read in the caller's
+    /// scope, where only the shared names are known. Opening on the empty local page would hide
+    /// the values the field can actually use, so the wall falls back to All.
+    /// </summary>
+    [Fact]
+    public void A_wall_without_local_variables_starts_on_all_so_shared_values_are_visible()
+    {
+        var wall = new VariableWallViewModel([Global("total"), System("sys.date")]);
+
+        Assert.Equal(VariableGroup.All, wall.SelectedFilter!.Group);
+        Assert.Equal(["total", "sys.date"], wall.Shown.Select(choice => choice.Name));
+        Assert.False(wall.IsEmpty);
+
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Global);
+        Assert.Equal(["total"], wall.Shown.Select(choice => choice.Name));
+    }
+
+    /// <summary>
+    /// WhaleGenie's own variables are the ones whose names nobody chose, so those are the ones a
+    /// button says in Chinese with the code name beside it: 剪贴板 ($sys.clipboard). A macro's own
+    /// variables keep the name their author gave them, and what a button puts in a field is still
+    /// the code name either way.
+    /// </summary>
+    [Fact]
+    public void A_system_variable_is_named_in_both_languages()
+    {
+        Ui.Run(() => InterfaceLanguage.InChinese(() =>
+        {
+            var wall = new VariableWallViewModel(VariableChoices.For([]));
+            wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.System);
+            var clipboard = wall.Shown.First(choice => choice.Name == "sys.clipboard");
+
+            Assert.Equal("剪贴板 ($sys.clipboard)", clipboard.Display);
+            Assert.Equal("$sys.clipboard", clipboard.Token);
+
+            string? chosen = null;
+            wall.Chosen += token => chosen = token;
+            wall.ChooseCommand.Execute(clipboard);
+            Assert.Equal("$sys.clipboard", chosen);
+
+            // A macro's own variable has no second name to show.
+            var own = Local("rows");
+            Assert.Equal("$rows", own.Display);
+        }));
+    }
+
+    [Fact]
+    public void The_macro_interface_is_part_of_the_wall()
+    {
+        Ui.Run(() =>
+        {
+            var variables = VariableChoices.For([],
+                [new MacroParameter
+                {
+                    Name = "次数",
+                    Type = ActionReturnType.Number,
+                    Description = "要做多少遍。",
+                }],
+                [new MacroResult
+                {
+                    Name = "答案",
+                    Type = ActionReturnType.Record,
+                    Description = "整理完留下的答案。",
+                }]);
+            var wall = new VariableWallViewModel(variables);
+            wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Local);
+
+            Assert.Equal(["次数", "答案"], wall.Shown.Select(choice => choice.Name));
+
+            wall.Looking = wall.Shown.First(choice => choice.Name == "答案");
+            Assert.Contains(Strings.Get("VarWall.Result"), wall.Details, StringComparison.Ordinal);
+            Assert.Contains(Strings.Get("Variable.Type.record"), wall.Details, StringComparison.Ordinal);
+
+            wall.Looking = wall.Shown.First(choice => choice.Name == "次数");
+            Assert.Contains(Strings.Get("VarWall.Parameter"), wall.Details, StringComparison.Ordinal);
+            Assert.Contains(Strings.Get("Variable.Type.number"), wall.Details, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void Each_button_narrows_the_wall_to_its_own_group()
+    {
+        var wall = Wall();
+
+        foreach (var (group, expected) in new[]
+        {
+            (VariableGroup.All, new[] { "rows", "total", "sys.date", "step.k3f9.outcome" }),
+            (VariableGroup.Global, ["total"]),
+            (VariableGroup.System, ["sys.date"]),
+            (VariableGroup.StepResult, ["step.k3f9.outcome"]),
+        })
+        {
+            wall.SelectedFilter = wall.Filters.First(filter => filter.Group == group);
+            Assert.Equal(expected, wall.Shown.Select(choice => choice.Name));
+        }
+    }
+
+    [Fact]
+    public void Searching_narrows_the_current_group_without_changing_the_filter()
+    {
+        var wall = Wall();
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.All);
+
+        wall.SearchText = "总数";
+
+        Assert.Equal(VariableGroup.All, wall.SelectedFilter!.Group);
+        Assert.Equal(["total"], wall.Shown.Select(choice => choice.Name));
+
+        wall.SearchText = "not here";
+        Assert.True(wall.IsEmpty);
+    }
+
+    [Fact]
+    public void Refreshing_keeps_the_filter_and_the_variable_under_the_pointer()
+    {
+        var wall = Wall();
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Global);
+        wall.Looking = wall.Shown.Single();
+
+        wall.SetVariables([Local("rows"), Global("total", persistent: true), System("sys.date")]);
+
+        Assert.Equal(VariableGroup.Global, wall.SelectedFilter!.Group);
+        Assert.Equal("total", wall.Looking?.Name);
+        Assert.True(wall.Looking?.IsPersistent);
+        Assert.Equal(Strings.Get("VarWall.Persistent"), wall.Looking?.PersistenceBadge);
+    }
+
+    [Fact]
+    public void A_group_with_nothing_in_it_says_so_rather_than_standing_empty()
+    {
+        var wall = new VariableWallViewModel([Local("rows")]);
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Global);
+
+        Assert.True(wall.IsEmpty);
+        Assert.Equal(Strings.Get("VarWall.Empty"), wall.Details);
+    }
+
+    [Fact]
+    public void A_variable_bubble_shows_its_content_and_record_fields()
+    {
+        var choice = new VariableChoice
+        {
+            Name = "hit",
+            Scope = VariableScope.Global,
+            Type = "record",
+            ContentReader = () => "{ x: 12, y: 8 }",
+            Fields =
+            [
+                new ActionReturnField { Name = "x", Type = ActionReturnType.Number },
+                new ActionReturnField { Name = "name", Type = ActionReturnType.Text },
+            ],
+        };
+
+        Assert.Contains(Strings.Format("VarWall.ContentLine", "{ x: 12, y: 8 }"),
+            choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains("x", choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains("name", choice.HoverText, StringComparison.Ordinal);
+        Assert.Contains(Strings.Get("Variable.Type.number"), choice.HoverText,
+            StringComparison.Ordinal);
+
+        var local = new VariableChoice
+        {
+            Name = "answer",
+            Scope = VariableScope.Local,
+            Type = "text",
+        };
+        Assert.Contains(Strings.Get("VarWall.NoRuntimeValue"), local.HoverText,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The two kinds of variable a macro's author owns are named the way the run window's variable
+    /// page names them — one word for one idea rather than a second set that has to be mapped onto
+    /// the first. The group's name also goes into the line under the buttons, so the table has to
+    /// hold it: a missing one is shown as the raw key it is written with.
+    /// </summary>
+    [Fact]
+    public void The_two_kinds_of_variable_are_named_the_way_the_variable_page_names_them()
+    {
+        var wall = Wall();
+
+        Assert.Equal(Strings.Get("Variable.Tab.Local"),
+            wall.Filters.First(filter => filter.Group == VariableGroup.Local).Label);
+        Assert.Equal(Strings.Get("Variable.Tab.Global"),
+            wall.Filters.First(filter => filter.Group == VariableGroup.Global).Label);
+
+        foreach (var group in new[]
+        {
+            VariableGroup.Local, VariableGroup.Global,
+            VariableGroup.System, VariableGroup.StepResult,
+        })
+        {
+            var key = $"VarWall.Group.{group}";
+            Assert.True(Strings.English.ContainsKey(key), $"{key} has no English text");
+            Assert.True(Strings.Chinese.ContainsKey(key), $"{key} has no Chinese text");
+        }
+
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.All);
+        var details = wall.Shown.First(choice => choice.Group == VariableGroup.Local).Details;
+        Assert.DoesNotContain("VarWall.", details, StringComparison.Ordinal);
+        Assert.Contains(Strings.Get("VarWall.Group.Local"), details, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Picking_a_variable_hands_back_the_text_a_field_holds()
+    {
+        var wall = Wall();
+        var picked = new List<string>();
+        wall.Chosen += picked.Add;
+
+        wall.ChooseCommand.Execute(wall.Shown[0]);
+
+        Assert.Equal(["$rows"], picked);
+    }
+
+    /// <summary>
+    /// What is on the line under the buttons: a name on a button says nothing about which variable
+    /// it is, and a wall of names is a wall of guesses without it.
+    /// </summary>
+    [Fact]
+    public void The_line_under_the_buttons_says_what_the_variable_under_the_pointer_is()
+    {
+        var wall = Wall();
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.All);
+
+        wall.Looking = wall.Shown.First(choice => choice.Name == "step.k3f9.outcome");
+        Assert.Contains("k3f9", wall.Details);
+        Assert.Contains(Strings.Get("VarWall.Outcome"), wall.Details);
+
+        wall.Looking = null;
+        Assert.Equal(Strings.Get("VarWall.Pick"), wall.Details);
+    }
+
+    [Fact]
+    public void A_variable_goes_into_the_field_where_the_caret_is()
+    {
+        Ui.Run(() =>
+        {
+            var definition = ActionCatalog.Find("file.readText")
+                ?? throw new InvalidOperationException("file.readText is missing from the catalogue.");
+            var field = new StepParameterViewModel(
+                definition.Parameters.First(parameter => parameter.Name == "path"));
+
+            field.Text = @"C:\logs\.txt";
+            field.InsertVariable("$name", 8);
+
+            Assert.Equal(@"C:\logs\$name.txt", field.Text);
+        });
+    }
+
+    [Fact]
+    public void A_step_offers_what_it_leaves_behind_and_what_its_run_came_to()
+    {
+        var step = new MacroStep
+        {
+            Type = "file.readCsv",
+            Id = "k3f9",
+            Parameters =
+            [
+                Handed("rows", "上月订单"),
+            ],
+        };
+
+        var rows = VariableChoices.For([step]);
+        var result = rows.First(row => row.Name == "上月订单");
+        var ending = rows.First(row => row.Name == "step.k3f9.outcome");
+
+        // Both say which step they came from, which is the one thing a name on its own cannot.
+        Assert.Contains("k3f9", result.Source);
+        Assert.False(result.IsStepResult);
+        Assert.Equal(VariableGroup.Local, result.Group);
+        // What it holds comes from the result the step was told to hand over.
+        Assert.Equal("list", result.Type);
+        Assert.True(ending.IsStepResult);
+        Assert.Equal(VariableGroup.StepResult, ending.Group);
+
+        // One row per step, not two: the reason is only readable inside a try, so it is not
+        // offered here as a second name.
+        Assert.DoesNotContain(rows, row => row.Name == "step.k3f9.error");
+
+        // And the ones the macro does not make are offered as well: the fields may read those too.
+        Assert.Contains(rows, row => row.Group == VariableGroup.System);
+
+        // A result nobody ticked is not a variable at all, so it is not offered anywhere.
+        var unticked = new MacroStep { Type = "file.readCsv", Id = "bbbb" };
+        Assert.DoesNotContain(VariableChoices.For([unticked]),
+            row => row.Group == VariableGroup.Local && !row.IsStepResult);
+    }
+
+    /// <summary>
+    /// A step told to hand one result over, written the way the file writes it.
+    /// </summary>
+    private static StepParameter Handed(string key, string name) => new()
+    {
+        Name = "returns",
+        Kind = ActionParameterKind.Returns,
+        Rows =
+        [
+            new StepParameterRow
+            {
+                Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["key"] = key,
+                    ["name"] = name,
+                },
+            },
+        ],
+    };
+
+    /// <summary>
+    /// The button only exists if the dialog draws it, so the rows a field can be filled in from are
+    /// read off the markup: the picker is on both kinds of field that may name a variable.
+    /// </summary>
+    [Fact]
+    public void The_dialog_puts_the_picker_on_every_field_that_may_name_a_variable()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
+
+        var value = markup.IndexOf("IsVisible=\"{Binding OffersVariables}\"", StringComparison.Ordinal);
+        Assert.True(value >= 0, "the dialog stopped offering a field that may name variables");
+        Assert.Contains("Click=\"OnPickVariable\"",
+            markup[value..markup.IndexOf("</Grid>", value, StringComparison.Ordinal)],
+            StringComparison.Ordinal);
+
+        var name = markup.IndexOf("IsVisible=\"{Binding IsVariable}\"", StringComparison.Ordinal);
+        Assert.True(name >= 0, "the dialog stopped offering a field that names a variable");
+        Assert.Contains("Click=\"OnPickVariable\"",
+            markup[name..markup.IndexOf("</Grid>", name, StringComparison.Ordinal)],
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>The repository root, found by walking up from the test binaries.</summary>
+    private static string Repository()
+    {
+        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
+        {
+            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
+            {
+                return at.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
+    }
+
+    private static StepParameter Text(string name, string value)
+        => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
+
+    private static MacroStep Writes(string name, string id = "")
+        => new()
+        {
+            Type = "control.setVariable",
+            Id = id,
+            Parameters = [Text("name", name), Text("value", "0")],
+        };
+
+    private static MacroStep Reads(string expression, string comment = "")
+        => new()
+        {
+            Type = "control.log",
+            Meta = new WhaleGenie.Core.Execution.StepMeta { Comment = comment },
+            Parameters = [Text("message", expression)],
+        };
+
+    /// <summary>
+    /// 反查：一个变量被哪几步读。按钮上只有一个名字，而"改它的名字安不安全、它还留不留"要靠这一条
+    /// 回答；定义它的那一步不是读它 —— 往变量名的字段里写名字是定义。
+    /// </summary>
+    [Fact]
+    public void A_variable_says_which_steps_read_it()
+    {
+        var writes = Writes("rows", "k3f9");
+        var reads = Reads("这次有 $rows 行", "记一行");
+
+        var rows = VariableChoices.For([writes, reads]).First(choice => choice.Name == "rows");
+
+        var use = Assert.Single(rows.Uses);
+        Assert.Same(reads, use.Step);
+        Assert.Contains("记一行", use.Label);
+        Assert.DoesNotContain(rows.Uses, item => ReferenceEquals(item.Step, writes));
+
+        // 没人读的变量照实说没人读，而不是把定义它的那一步也算上。
+        Assert.Empty(VariableChoices.For([writes]).First(choice => choice.Name == "rows").Uses);
+    }
+
+    /// <summary>那一串步骤是点得动的：点一下就是"让我看看它在哪儿"。</summary>
+    [Fact]
+    public void Pressing_one_of_those_steps_asks_for_it_to_be_shown()
+    {
+        var reads = Reads("$rows");
+        var wall = new VariableWallViewModel(VariableChoices.For([Writes("rows"), reads]));
+        wall.SelectedFilter = wall.Filters.First(filter => filter.Group == VariableGroup.Local);
+
+        // 还没有停在任何一个变量上：没有可反查的东西。
+        Assert.False(wall.HasUses);
+
+        wall.Looking = wall.Shown.First(choice => choice.Token == "$rows");
+
+        Assert.True(wall.HasUses);
+        var use = Assert.Single(wall.Uses);
+
+        MacroStep? asked = null;
+        wall.Jumped += step => asked = step;
+        wall.JumpCommand.Execute(use);
+
+        Assert.Same(reads, asked);
+    }
+
+    /// <summary>
+    /// 反查要真的落到那一步上：藏在折叠块里的步骤，先把块展开再选上，否则"找到了"和"看不见"是
+    /// 同一件事。
+    /// </summary>
+    [Fact]
+    public void Showing_a_step_opens_the_block_it_is_hidden_in()
+    {
+        Ui.Run(() =>
+        {
+            var inside = Reads("$rows");
+            var loop = new MacroStep
+            {
+                Type = "control.repeat",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "body",
+                        Kind = ActionParameterKind.Steps,
+                        Steps = [inside],
+                    },
+                ],
+            };
+
+            var editor = new MacroEditorViewModel();
+            editor.AddStep(loop);
+            editor.SetExpanded(loop, false);
+            Assert.DoesNotContain(editor.Rows, row => row.IsStep && ReferenceEquals(row.Step, inside));
+
+            Assert.True(editor.Reveal(inside));
+            Assert.True(loop.IsExpanded);
+            Assert.Contains(editor.Rows, row => row.IsStep && ReferenceEquals(row.Step, inside));
+
+            // 不在这个宏里的步骤：什么也不做，也不假装找到过。
+            Assert.False(editor.Reveal(Reads("$rows")));
+        });
+    }
+
+    /// <summary>算出来的东西要有地方画：那一串步骤挂在墙上，不是一个只在内存里的列表。</summary>
+    [Fact]
+    public void The_wall_draws_that_list()
+    {
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "VariableWall.axaml"));
+
+        Assert.Contains("ItemsSource=\"{Binding Uses}\"", markup, StringComparison.Ordinal);
+        Assert.Contains("JumpCommand", markup, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 一排长得一样的词，看不出下面列的是哪一类。始终有一枚按钮代表墙上的那一组，切换时跟着换。
+    /// </summary>
+    [Fact]
+    public void One_filter_button_stands_for_the_group_on_show()
+    {
+        var wall = new VariableWallViewModel([Local("count"), Global("total")]);
+
+        Assert.NotNull(wall.SelectedFilter);
+        Assert.True(wall.SelectedFilter!.IsSelected);
+        Assert.Single(wall.Filters, filter => filter.IsSelected);
+
+        var other = wall.Filters.First(filter => !ReferenceEquals(filter, wall.SelectedFilter));
+        wall.SelectedFilter = other;
+
+        Assert.True(other.IsSelected);
+        Assert.Single(wall.Filters, filter => filter.IsSelected);
+    }
+}

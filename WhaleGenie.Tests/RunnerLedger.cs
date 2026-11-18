@@ -7,7 +7,7 @@ namespace WhaleGenie.Tests;
 
 /// <summary>
 /// Which code an action is answered by, and which results that code can write — read out of the
-/// engine's own source rather than out of a list somebody maintains.
+/// runner's own source rather than out of a list somebody maintains.
 ///
 /// The question this answers is the one a whole-folder search cannot: not "does the text <c>"hit"</c>
 /// appear anywhere in the engine" but "does the path <c>vision.findImage</c> takes write the result
@@ -40,13 +40,16 @@ internal static class RunnerLedger
         var texts = sources.ToList();
         var methods = Methods(texts);
 
-        // Only a table over the step type routes actions. Every other collection in the engine is
-        // about something else — a match mode, a list direction — and its keys are words, not
-        // action keys.
+        // Only a switch over the step type routes actions. Every other switch in the engine is about
+        // a value — a match mode, a list direction — and its cases are words, not action keys.
         var ledger = new Dictionary<string, Path>(StringComparer.Ordinal);
-        foreach (var text in texts)
+        var dispatches = methods
+            .Where(method => method.Key.StartsWith("Dispatch", StringComparison.Ordinal))
+            .SelectMany(method => method.Value.Select(body => body.Body));
+
+        foreach (var dispatch in dispatches)
         {
-            foreach (var (action, segment) in Entries(text))
+            foreach (var (action, segment) in Branches(dispatch))
             {
                 var keys = new HashSet<string>(StringComparer.Ordinal);
                 Collect(segment, constants, keys);
@@ -180,13 +183,6 @@ internal static class RunnerLedger
             foreach (Match declared in Regex.Matches(text,
                 "(private|public|internal|protected)[^;{}]*?\\b([A-Z][A-Za-z0-9_]*)\\s*\\("))
             {
-                // A delegate declares a signature, not a body; the next brace belongs to something
-                // else, and reading it as this method would put a table's keys in the wrong path.
-                if (declared.Value.Contains("delegate", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
                 var open = text.IndexOf('{', declared.Index + declared.Length);
                 if (open < 0 || !TryBody(text, open, out var close))
                 {
@@ -233,61 +229,27 @@ internal static class RunnerLedger
     }
 
     /// <summary>
-    /// The entries of the engine's action tables: each key and the handler written for it, up to the
-    /// next key. Only a table of handlers counts — the preview table names the same actions for a
-    /// different purpose, and reading its keys as routes would say a click is answered by a look.
-    /// A family that has left the runner declares its table in its own class, so the shape is read
-    /// rather than the file name.
+    /// The branches of a switch over the step type: each case label and the code up to the next one.
+    /// A case whose body runs into the next label (an empty case used as a fall-through) comes back
+    /// with the short segment, which is what its path actually is.
     /// </summary>
-    private static IReadOnlyList<(string Action, string Segment)> Entries(string text)
+    private static IReadOnlyList<(string Action, string Segment)> Branches(string body)
     {
-        var entries = new List<(string Action, string Segment)>();
-        foreach (Match table in ActionTables.Matches(text))
+        var branches = new List<(string Action, string Segment)>();
+        var labels = Regex.Matches(body, "case \\\"([a-zA-Z0-9_.]+)\\\":");
+        for (var index = 0; index < labels.Count; index++)
         {
-            var open = text.IndexOf('{', table.Index);
-            if (open < 0 || !TryBody(text, open, out var close))
-            {
-                continue;
-            }
-
-            var body = text[open..(close + 1)];
-            var labels = Regex.Matches(body, "(?m)^\\s+\\[\"([a-zA-Z0-9_.]+)\"\\] =");
-            for (var index = 0; index < labels.Count; index++)
-            {
-                var at = labels[index].Index + labels[index].Length;
-                var next = index + 1 < labels.Count
-                    ? labels[index + 1].Index
-                    : body.Length;
-                entries.Add((labels[index].Groups[1].Value, body[at..next]));
-            }
+            var at = labels[index].Index + labels[index].Length;
+            var next = index + 1 < labels.Count ? labels[index + 1].Index : body.Length;
+            branches.Add((labels[index].Groups[1].Value, body[at..next]));
         }
 
-        return entries;
+        return branches;
     }
 
-    /// <summary>The action keys one source routes, for a check that only wants the names.</summary>
-    internal static IReadOnlyList<string> RoutedKeys(string text)
-        => [.. Entries(text).Select(entry => entry.Action).Distinct(StringComparer.Ordinal)];
-
-    /// <summary>
-    /// A table whose values are action handlers: the runner's own families
-    /// (<c>Dictionary&lt;string, ActionHandler&gt;</c>) and the ones that have moved out to a class
-    /// of their own (<c>IReadOnlyDictionary&lt;string, Handler&gt;</c>). The preview table is not
-    /// one of these: its values are looks, not routes.
-    /// </summary>
-    private static readonly Regex ActionTables = new(
-        "(?:private|internal|public)\\s+(?:static\\s+)?(?:readonly\\s+)?"
-        + "(?:IReadOnlyDictionary|Dictionary)<string,\\s*"
-        + "(?:RunActionHandler|ActionHandler|Handler)>\\s+[A-Za-z_]",
-        RegexOptions.Compiled);
-
-    /// <summary>
-    /// The engine's own methods a stretch of code calls with the step among the arguments. A family
-    /// that has moved out passes the run first (<c>Write(run, step, depth)</c>), so the step is not
-    /// always the first argument.
-    /// </summary>
+    /// <summary>The runner's own methods a stretch of code calls with the step as the first argument.</summary>
     private static IReadOnlyList<string> CalledWithStep(string code)
-        => [.. Regex.Matches(code, "\\b([A-Z][A-Za-z0-9_]*)\\s*\\([^()]*\\bstep\\b")
+        => [.. Regex.Matches(code, "\\b([A-Z][A-Za-z0-9_]*)\\s*\\(\\s*step\\b")
             .Select(match => match.Groups[1].Value)
             .Distinct(StringComparer.Ordinal)];
 }

@@ -35,8 +35,8 @@ $copies = @(
     @{ From = 'WhaleGenie/Assets/WhaleGenie.png'; To = 'logo.png' },
     @{ From = 'WhaleGenie/Assets/DonateWeChat.png'; To = 'donate-wechat.png' },
     @{ From = 'WhaleGenie/Assets/DonateAlipay.png'; To = 'donate-alipay.png' },
-    @{ From = 'docs/images/main-window.png'; To = 'main-window.png' },
-    @{ From = 'docs/images/macro-editor.png'; To = 'macro-editor.png' }
+    @{ From = 'doc/images/main-window.png'; To = 'main-window.png' },
+    @{ From = 'doc/images/macro-editor.png'; To = 'macro-editor.png' }
 )
 
 foreach ($copy in $copies) {

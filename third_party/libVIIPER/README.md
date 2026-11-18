@@ -34,5 +34,5 @@ https://github.com/Alia5/VIIPER/releases/download/v0.9.0/viiper-libVIIPER-window
 2. 按上表重算三份 SHA256，改这张表和本文件开头的版本号（顺手看一眼 `libVIIPER.h`：函数名、结构体
    字段变了，`LibViiper.cs` 与 `ViiperLink.cs` 要一起改）。
 3. 升级要单独一次提交，说明这次改了哪一版、为什么；提交信息里带上新版本的标签。
-4. 真机上按 `docs/dev/validation.md` 的手动用例过一遍驱动级输入（驱动装一次，键鼠、手柄各跑一次）——这一层
+4. 真机上按 `doc/dev.md` 的手动用例过一遍驱动级输入（驱动装一次，键鼠、手柄各跑一次）——这一层
    在无头会话里得不出结论。

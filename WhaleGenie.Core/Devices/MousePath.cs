@@ -24,12 +24,6 @@ public enum MouseRoute
 /// </summary>
 public static class MousePath
 {
-    /// <summary>
-    /// How long a move with no duration of its own takes: long enough that a bent or hand-like path
-    /// has room to be seen as one, short enough that a macro does not feel like it is waiting.
-    /// </summary>
-    public const int DefaultMoveMs = 200;
-
     /// <summary>The most a path may bow away from the straight line, in pixels.</summary>
     private const double MostBow = 120;
 

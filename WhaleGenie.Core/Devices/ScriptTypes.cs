@@ -127,13 +127,6 @@ public interface IScriptHost
 public interface IScriptDevice
 {
     /// <summary>
-    /// The AutoHotkey program this machine would run a script with, or null when it has none. The
-    /// engine asks the device rather than looking for an installed program itself: which program
-    /// exists is a fact about the machine, and a layer with no devices answers null.
-    /// </summary>
-    string? AutoHotkeyProgram { get; }
-
-    /// <summary>
     /// Runs a Python script to the end, serving the ways back into the macro while it goes,
     /// <paramref name="onOutput"/> and <paramref name="onError"/> being handed each line as it
     /// arrives. A script that runs past its time is stopped where it stands.

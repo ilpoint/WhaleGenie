@@ -86,8 +86,11 @@ public class SettingsMenuTests
             project.Macros.Add(macro);
             project.Triggers.Entries.Add(new TriggerEntry
             {
+                Kind = TriggerKind.Menu,
                 MacroName = macro.Name,
-                Spec = new MenuSpec(project.Triggers.CommonMenuPages()[0].Id, 0, 0),
+                MenuPageId = project.Triggers.CommonMenuPages()[0].Id,
+                MenuRow = 0,
+                MenuColumn = 0,
             });
             Assert.Equal(Strings.Get("Settings.MenuReady"), viewModel.MenuLauncherStatus);
         });
@@ -118,14 +121,15 @@ public class SettingsMenuTests
         Ui.Run(() =>
         {
             var project = new MainViewModel();
-            var window = new SettingsWindow(project, null, SettingsSubPage.MenuLauncher);
+            var window = new SettingsWindow(project, null,
+                SettingsRootPage.Triggers, SettingsSubPage.MenuLauncher);
             window.Show();
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            Assert.Equal(SettingsSubPage.MenuLauncher, viewModel.SelectedPage);
+            Assert.True(viewModel.IsTriggersRoot);
             Assert.True(viewModel.IsMenuLauncherPage);
-            Assert.NotNull(SettingsView.Find<Button>(window, "CaptureMenuLauncherButton"));
-            Assert.NotNull(SettingsView.Find<ListBox>(window, "MenuRuleList"));
+            Assert.NotNull(window.FindControl<Button>("CaptureMenuLauncherButton"));
+            Assert.NotNull(window.FindControl<ListBox>("MenuRuleList"));
             window.Close();
         });
     }

@@ -99,12 +99,8 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/modelcontextprotocol/csharp-sdk>
   MCP 服务器用它说话：协议、工具发现与那一对标准输入输出流上的传输都在这里。没有 HTTP、
   没有监听端口，所以不再引用 ASP.NET Core。不随包分发额外的原生库。
-- Microsoft.Extensions.DependencyInjection — MIT
-  <https://github.com/dotnet/runtime>
-  组合根用它把有状态的服务装一次、按需取用：窗口、触发器和无窗口的 MCP 会话共用同一份注册，
-  而不是各自 new 一份。
-- Microsoft.Extensions.Hosting（以及它带进来的 Hosting.Abstractions、Logging、Configuration
-  等同族包）— MIT
+- Microsoft.Extensions.Hosting（以及它带进来的 Hosting.Abstractions、DependencyInjection、
+  Logging、Configuration 等同族包）— MIT
   <https://github.com/dotnet/runtime>
   无窗口那个 MCP 会话跑在一个通用宿主里：装配工具、启动会话、在流关闭时收尾。它不装控制台
   生命周期，也不打印任何东西——那些流上的标准输出就是协议本身。
@@ -131,7 +127,7 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/dotnet/runtime>
   下载 C# 脚本要用的 NuGet 包时做签名校验。程序的目标框架是 net10.0-windows，这一份由
   WindowsDesktop 共享框架提供，所以包里没有它自己的文件；引擎为什么把它单独钉一个版本，
-  见 docs/dev/environment.md 的「主要依赖」。
+  见 doc/dev.md 的「依赖的包」。
 - MicroCom.Runtime、Tmds.DBus.Protocol、Microsoft.Extensions.* — MIT
 
 ## 只在编译时用到的组件

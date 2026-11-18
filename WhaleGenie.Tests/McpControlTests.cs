@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using ModelContextProtocol.Protocol;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Mcp;
 using WhaleGenie.ViewModels;
@@ -34,7 +33,7 @@ public class McpControlTests : IDisposable
         _devices.Screen = _screen;
         _devices.Windows = _windows;
         _devices.Ui = _ui;
-        _tools = new McpControlTools(() => _devices, NoWindowAside.Instance);
+        _tools = new McpControlTools(() => _devices);
     }
 
     /// <summary>The gate is the machine's, not one check's: it goes back off whatever happened.</summary>

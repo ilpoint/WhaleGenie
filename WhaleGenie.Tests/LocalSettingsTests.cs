@@ -138,7 +138,7 @@ public class LocalSettingsTests
         InOwnFile(_ =>
         {
             var viewModel = new MainViewModel();
-            viewModel.SelectedView = MacroView.All;
+            viewModel.SelectedDock = DockPage.Keys;
 
             viewModel.AddMacro(new MacroItem { Name = "停用一", IsEnabled = false });
             viewModel.AddMacro(new MacroItem { Name = "启用一" });
@@ -167,7 +167,7 @@ public class LocalSettingsTests
         {
             LocalSettings.StoreEnabledFirst(true);
             var viewModel = new MainViewModel();
-            viewModel.SelectedView = MacroView.All;
+            viewModel.SelectedDock = DockPage.Keys;
 
             var first = new MacroItem { Name = "甲" };
             var second = new MacroItem { Name = "乙", IsEnabled = false };
@@ -362,41 +362,6 @@ public class LocalSettingsTests
     }
 
     /// <summary>
-    /// 复用上次的画面默认关闭：一张画面里连续识别几样东西时才值得打开，而等某样东西消失的宏不能
-    /// 被一张旧画面骗过去。默认值就是全新安装第一次打开时的样子，所以这里既查文件也查窗口。
-    /// </summary>
-    [Fact]
-    public void Reusing_the_last_picture_is_off_until_it_is_turned_on()
-    {
-        InOwnFile(_ =>
-        {
-            var was = FrameShelf.Current.CacheMilliseconds;
-            try
-            {
-                Assert.False(LocalSettings.LoadFrameCache());
-                Assert.Equal(100, LocalSettings.LoadFrameCacheAge());
-
-                var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
-                Assert.False(viewModel.FrameCache);
-                Assert.False(viewModel.FrameCacheAgeEnabled);
-
-                viewModel.FrameCache = true;
-                Assert.True(LocalSettings.LoadFrameCache());
-                Assert.True(viewModel.FrameCacheAgeEnabled);
-
-                viewModel.FrameCache = false;
-                Assert.False(LocalSettings.LoadFrameCache());
-            }
-            finally
-            {
-                // The engine's copy is one per process and stays behind after the temporary file is
-                // thrown away, so it is put back rather than left on this test's last answer.
-                FrameShelf.Current.CacheMilliseconds = was;
-            }
-        });
-    }
-
-    /// <summary>
     /// The switch itself, as the window draws it: a choice nothing on the window is wired to would
     /// store whatever the window happened to hold rather than what the person clicked.
     /// </summary>
@@ -408,12 +373,7 @@ public class LocalSettingsTests
             var window = new SettingsWindow();
             window.Show();
 
-            var viewModel = window.DataContext as SettingsViewModel;
-            Assert.True(viewModel is not null);
-            viewModel.SetPage(SettingsSubPage.Screen);
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-            var box = SettingsView.Find<ToggleSwitch>(window, "PreloadOcrCheck");
+            var box = window.FindControl<CheckBox>("PreloadOcrCheck");
             Assert.True(box is not null, "the settings window stopped offering to load the models");
             Assert.False(box.IsChecked);
 
@@ -430,15 +390,15 @@ public class LocalSettingsTests
         InOwnFile(_ =>
         {
             Assert.Equal("Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(MacroView.All, LocalSettings.LoadView());
+            Assert.Equal(DockPage.Keys, LocalSettings.LoadDockPage());
             Assert.Equal(string.Empty, LocalSettings.LoadMenuLauncher());
 
             LocalSettings.StoreSystemHotkey("Ctrl+Alt+Home");
-            LocalSettings.StoreView(MacroView.Menu);
+            LocalSettings.StoreDockPage(DockPage.Menu);
             LocalSettings.StoreMenuLauncher("F9");
 
             Assert.Equal("Ctrl+Alt+Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(MacroView.Menu, LocalSettings.LoadView());
+            Assert.Equal(DockPage.Menu, LocalSettings.LoadDockPage());
             Assert.Equal("F9", LocalSettings.LoadMenuLauncher());
         });
     }
@@ -496,15 +456,21 @@ public class LocalSettingsTests
     }
 
     /// <summary>
-    /// 每次运行带的是它那个宏自己的限速，而不是装配时另外猜一个：三条启动路径都把宏里那一格
-    /// 原样交过来，没写的传 null，运行就跟随程序设置。
+    /// 独占输入是程序的设置，默认关闭：存下来之后，装配出来的那一次运行拿到的就是这个答案。
+    /// 触发、调试与 MCP 三条路都从这里取，所以它只读一次。
     /// </summary>
     [Fact]
-    public void A_run_carries_the_input_limit_its_macro_asked_for()
+    public void A_run_is_told_what_the_settings_say_about_the_input_door()
     {
-        Assert.Null(RunFactory.Create(NeedsNothing()).InputRate);
-        Assert.Equal(300, RunFactory.Create(NeedsNothing() with { InputRate = 300 }).InputRate);
-        Assert.Equal(0, RunFactory.Create(NeedsNothing() with { InputRate = 0 }).InputRate);
+        InOwnFile(_ =>
+        {
+            Assert.False(LocalSettings.LoadExclusiveInput());
+            Assert.False(RunFactory.Create(NeedsNothing()).ExclusiveInput);
+
+            LocalSettings.StoreExclusiveInput(true);
+            Assert.True(LocalSettings.LoadExclusiveInput());
+            Assert.True(RunFactory.Create(NeedsNothing()).ExclusiveInput);
+        });
 
         static RunRequest NeedsNothing() => new()
         {

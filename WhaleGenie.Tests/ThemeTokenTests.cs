@@ -79,25 +79,6 @@ public class ThemeTokenTests
     }
 
     /// <summary>
-    /// The built-in accent is one brand colour, #C8401C: both variants paint their fill with it, and
-    /// it is where the accent picker starts. Three places carry that number (two variant
-    /// dictionaries and <see cref="ThemePalette.DefaultAccent"/>), and getting one of them wrong
-    /// fails nothing — the interface simply comes up in another colour. So it is pinned here.
-    /// </summary>
-    [Fact]
-    public void The_built_in_accent_is_the_brand_colour()
-    {
-        Ui.Run(() =>
-        {
-            var brand = Color.Parse("#C8401C");
-
-            Assert.Equal(brand, ColorOf("AccentFillColor", ThemeVariant.Dark));
-            Assert.Equal(brand, ColorOf("AccentFillColor", ThemeVariant.Light));
-            Assert.Equal(brand, Color.Parse(ThemePalette.DefaultAccent));
-        });
-    }
-
-    /// <summary>
     /// The tokens that are not colours — fonts, sizes, spacing, radii — are read out of the file the
     /// same way, because a missing one of those does not fail anything either: a style that names it
     /// just gets no value, and the next person fills the gap with a literal.

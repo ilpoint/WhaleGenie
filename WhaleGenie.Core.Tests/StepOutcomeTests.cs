@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
@@ -17,11 +16,7 @@ public class StepOutcomeTests
         => new() { Type = type, Id = id, Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => Fields.Text(name, text);
-
-    /// <summary>One field whose value is already a shape rather than a line.</summary>
-    private static ExecutableParameter Param(string name, ExpressionNode value)
-    => Fields.Computed(name, value);
+        => new() { Name = name, Text = text };
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
@@ -31,17 +26,14 @@ public class StepOutcomeTests
     private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => Fields.Steps(name, steps);
+        => new() { Name = name, Steps = steps };
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => Fields.Run(name, TestConditions.Expression(step));
+        => new() { Name = name, Text = TestConditions.Expression(step) };
 
     private static ExecutableStep Set(string id, string name, string value)
-        => Set(id, name, Cells.Line(value));
-
-    private static ExecutableStep Set(string id, string name, ExpressionNode value)
         => Step("control.setVariable", id, Param("name", name), Param("scope", "local"),
-            Fields.Computed("value", value));
+            Param("value", value));
 
     /// <summary>A step that fails however it is run: a key press with no keyboard to press it on.</summary>
     private static ExecutableStep Broken(string id, StepErrorAction action = StepErrorAction.Stop)
@@ -220,11 +212,11 @@ public class StepOutcomeTests
     [Fact]
     public async Task A_note_does_nothing_and_still_reads_ok()
     {
-        // A note is prose, so brackets and signs in it are characters rather than a formula to
-        // work out: the field holds text, and nothing reads a language back out of it.
+        // The text is deliberately not a valid expression: a note is taken as it stands, and a
+        // macro that writes brackets in one should not be stopped by them.
         var store = await RunAsync(
         [
-            Step("control.note", "aaaa", Fields.Text("note", "$((")),
+            Step("control.note", "aaaa", Param("note", "$((")),
             Set("bbbb", "n", "1"),
         ]);
 
@@ -272,7 +264,7 @@ public class StepOutcomeTests
             Step("control.try", "aaaa",
                 Returns("error=why"),
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", Formula.Name("step.bbbb.outcome"))),
+                Body("catch", Set("cccc", "seen", "$step.bbbb.outcome")),
                 Body("finally", Set("dddd", "tidied", "1"))),
         ]);
 
@@ -296,7 +288,7 @@ public class StepOutcomeTests
         [
             Step("control.try", "aaaa",
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", Formula.Name("caught.key")))),
+                Body("catch", Set("cccc", "seen", "$caught.key"))),
         ]);
 
         Assert.Equal("failed", Outcome(store, "bbbb"));
@@ -434,10 +426,6 @@ public class StepOutcomeTests
 
         public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
             => Task.FromResult(AskAnswer.Cancel);
-
-        /// <summary>Nothing these runs reach cannot be undone.</summary>
-        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
-            => Task.FromResult(true);
     }
 
     /// <summary>A library whose one macro turns up only on the second ask.</summary>

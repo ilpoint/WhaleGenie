@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - "site/**"
-      - "docs/images/**"
+      - "doc/images/**"
       - "WhaleGenie/Assets/WhaleGenie.png"
       - "WhaleGenie/Assets/DonateWeChat.png"
       - "WhaleGenie/Assets/DonateAlipay.png"

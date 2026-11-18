@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using WhaleGenie.Core.Devices.Platform;
 
 namespace WhaleGenie.Core.Devices;
 
@@ -19,15 +20,15 @@ public static class KeyNames
     /// each side named, because both are written by macros: a chord reads better short, while a
     /// trigger is bound to one particular key and the two shift keys are two different keys.
     /// </summary>
-    public static IReadOnlyList<string> Names => KeyTable.Names;
+    public static IReadOnlyList<string> Names => SharpKeys.Names;
 
     /// <summary>The key for a name, or null when the name means nothing.</summary>
     public static HookKey? Resolve(string? name)
-        => KeyTable.ResolveCode(name) is { } code ? KeyTable.Key(code) : null;
+        => SharpKeys.ResolveCode(name) is { } code ? SharpKeys.Key(code) : null;
 
     /// <summary>Splits a chord such as <c>Ctrl+Shift+S</c> into keys.</summary>
     public static List<HookKey> ResolveChord(string? chord, out string? unknown)
-        => KeyTable.ResolveChordCodes(chord, out unknown).ConvertAll(KeyTable.Key);
+        => SharpKeys.ResolveChordCodes(chord, out unknown).ConvertAll(SharpKeys.Key);
 
     /// <summary>
     /// The name a macro writes for a key, the opposite of <see cref="Resolve"/>. Modifiers are
@@ -41,7 +42,7 @@ public static class KeyNames
     /// keys; the side-agnostic name stays the default for chords and recordings, where the
     /// shorter spelling reads better.
     /// </summary>
-    public static string Name(HookKey key, bool sided) => KeyTable.Name(KeyTable.Code(key), sided);
+    public static string Name(HookKey key, bool sided) => SharpKeys.Name(SharpKeys.Code(key), sided);
 
     /// <summary>
     /// The other names one key arrives under, so that "is this key our own output" is answered for
@@ -50,7 +51,7 @@ public static class KeyNames
     /// answered with Home.
     /// </summary>
     public static IReadOnlyList<string> AlsoSeenAs(HookKey key)
-        => KeyTable.AlsoSeenAs(KeyTable.Code(key));
+        => SharpKeys.AlsoSeenAs(SharpKeys.Code(key));
 
     /// <summary>
     /// The name a macro writes for a mouse button, so a trigger bound to one reads the same
@@ -58,12 +59,12 @@ public static class KeyNames
     /// to draw the mouse icon rather than the keyboard one.
     /// </summary>
     public static string MouseName(HookMouseButton button)
-        => KeyTable.MouseName(button);
+        => SharpKeys.MouseName(SharpKeys.Button(button));
 
     /// <summary>
     /// The name a macro writes for one notch of the wheel. The sign follows the input device, so
     /// a recording and a trigger agree on which way the wheel was turned.
     /// </summary>
     public static string WheelName(HookWheelAxis axis, int rotation)
-        => KeyTable.WheelName(axis, rotation);
+        => SharpKeys.WheelName(SharpKeys.Direction(axis), rotation);
 }

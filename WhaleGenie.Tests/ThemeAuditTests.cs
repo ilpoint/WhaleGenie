@@ -28,7 +28,7 @@ public class ThemeAuditTests
 
         Assert.NotNull(root);
         var offenders = Directory
-            .EnumerateFiles(Path.Combine(root!.FullName, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories)
+            .EnumerateFiles(Path.Combine(root!.FullName, "WhaleGenie", "Views"), "*.axaml")
             .SelectMany(path => File.ReadAllLines(path)
                 .Select((line, index) => (Path: path, Line: line, Number: index + 1)))
             .Where(item => DarkSurfaceColours.Any(colour =>

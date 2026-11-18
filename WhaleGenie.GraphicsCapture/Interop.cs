@@ -171,9 +171,7 @@ internal static class Interop
         }
         finally
         {
-            // The string is released whether or not the caller used it; there is no recovery from
-            // a failing release here, and the alternative is leaking it.
-            _ = WindowsDeleteString(classId);
+            WindowsDeleteString(classId);
         }
     }
 

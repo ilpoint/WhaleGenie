@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
@@ -17,11 +16,7 @@ public class AskUserTests
         => new() { Type = type, Id = "aaaa", Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => Fields.Text(name, text);
-
-    /// <summary>One field whose value is already a shape rather than a line.</summary>
-    private static ExecutableParameter Param(string name, ExpressionNode value)
-    => Fields.Computed(name, value);
+        => new() { Name = name, Text = text };
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
@@ -150,9 +145,5 @@ public class AskUserTests
             _index++;
             return Task.FromResult(answer);
         }
-
-        /// <summary>Nothing in these runs cannot be undone.</summary>
-        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
-            => Task.FromResult(true);
     }
 }

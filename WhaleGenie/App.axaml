@@ -1,6 +1,7 @@
 ﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="WhaleGenie.App"
+             xmlns:local="using:WhaleGenie"
              xmlns:conv="using:WhaleGenie.Converters"
              xmlns:styling="using:Avalonia.Styling"
              xmlns:fa="using:FluentAvalonia.Styling"
@@ -30,10 +31,14 @@
         </ResourceDictionary>
     </Application.Resources>
 
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
     <Application.Styles>
         <!--
-          密度沿用 Fluent v2 的默认样式（表格行、列表项、菜单项都跟着变）；我们只覆盖颜色与
-          圆角，不再自己写一套行高。
+          Compact 收紧 Fluent 自己的行高与控件内边距（表格行、列表项、菜单项都跟着变）。
+          我们只覆盖颜色与圆角，密度用它给的，不再自己写一套行高。
         -->
         <fa:FluentAvaloniaTheme PreferSystemTheme="False" PreferUserAccentColor="False" />
 
@@ -51,5 +56,38 @@
         -->
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
 
+        <!-- The dock that narrows a wall of buttons to one group of them. The variable wall and the
+             expression builder's list of functions each stand one on screen, and one control with
+             one look is worth a style above both windows rather than two that drift apart. -->
+        <Style Selector="ListBox.Dock ListBoxItem">
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="11,3" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <!--
+              The theme gives every list item a minimum width of 88 pixels. It is invisible until
+              the labels are short: "全部" wants 30 and gets 88, so five chips need 452 pixels in a
+              336 pixel column. That is not a density we chose, it is a size nobody wrote.
+            -->
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+        <Style Selector="ListBox.Dock ListBoxItem:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
+        </Style>
+        <Style Selector="ListBox.Dock ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentFill}" />
+        </Style>
+
+        <!-- What comes up when the pointer rests on something. It is painted here rather than in a
+             window because a tooltip is not drawn inside the window it belongs to: it stands in a
+             popup of its own, where the window's styles do not reach it. -->
+        <Style Selector="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="10,9" />
+        </Style>
     </Application.Styles>
 </Application>

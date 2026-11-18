@@ -31,8 +31,8 @@ public class SiteTests
             ["logo.png"] = Path.Combine("WhaleGenie", "Assets", "WhaleGenie.png"),
             ["donate-wechat.png"] = Path.Combine("WhaleGenie", "Assets", "DonateWeChat.png"),
             ["donate-alipay.png"] = Path.Combine("WhaleGenie", "Assets", "DonateAlipay.png"),
-            ["main-window.png"] = Path.Combine("docs", "images", "main-window.png"),
-            ["macro-editor.png"] = Path.Combine("docs", "images", "macro-editor.png"),
+            ["main-window.png"] = Path.Combine("doc", "images", "main-window.png"),
+            ["macro-editor.png"] = Path.Combine("doc", "images", "macro-editor.png"),
         };
 
         foreach (var name in wanted)
@@ -76,8 +76,8 @@ public class SiteTests
         Assert.Contains("actions/deploy-pages", workflow, StringComparison.Ordinal);
 
         // The screenshots and the logo stay in the places the rest of the repository already reads.
-        Assert.Contains("docs/images/main-window.png", script, StringComparison.Ordinal);
-        Assert.Contains("docs/images/macro-editor.png", script, StringComparison.Ordinal);
+        Assert.Contains("doc/images/main-window.png", script, StringComparison.Ordinal);
+        Assert.Contains("doc/images/macro-editor.png", script, StringComparison.Ordinal);
         Assert.Contains("WhaleGenie/Assets/WhaleGenie.png", script, StringComparison.Ordinal);
         Assert.Contains("WhaleGenie/Assets/DonateWeChat.png", script, StringComparison.Ordinal);
     }

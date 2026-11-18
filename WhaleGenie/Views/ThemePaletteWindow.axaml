@@ -1,0 +1,96 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:cp="using:Avalonia.Controls"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="420"
+        x:Class="WhaleGenie.Views.ThemePaletteWindow"
+        x:DataType="vm:ThemePaletteViewModel"
+        Title="WhaleGenie"
+        Width="560" Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Design.DataContext>
+        <vm:ThemePaletteViewModel />
+    </Design.DataContext>
+
+
+    <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" Margin="16,12" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+            <StackPanel Grid.Row="0" Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="{Binding [Theme.Base], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
+                               VerticalAlignment="Center" />
+                    <ToggleSwitch IsChecked="{Binding BaseLight}"
+                                  OnContent="{Binding [Theme.Base.Light], Source={x:Static loc:Strings.Current}}"
+                                  OffContent="{Binding [Theme.Base.Dark], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Theme.Base.Hint], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{Binding [Theme.Accent], Source={x:Static loc:Strings.Current}}"
+                           Foreground="{DynamicResource TextPrimary}" FontSize="13" FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding AccentHex}" Foreground="{DynamicResource TextTertiary}"
+                           FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <cp:ColorView Grid.Row="2" Color="{Binding Accent, Mode=TwoWay}"
+                          IsAlphaEnabled="False" IsAlphaVisible="False"
+                          IsColorPreviewVisible="True" IsColorPaletteVisible="True"
+                          IsColorSpectrumVisible="True" IsHexInputVisible="True"
+                          IsColorComponentsVisible="True" IsComponentSliderVisible="True"
+                          IsComponentTextInputVisible="True"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+
+            <!-- 三张预览卡就是这套强调色落地的三个地方：实心按钮、选中行、放在窗口底上的强调文字。 -->
+            <Grid Grid.Row="3" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <Border Background="{Binding FillPreview}" CornerRadius="4" Height="38" Padding="8,0">
+                    <TextBlock Text="{Binding [Theme.Preview.Primary], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextOnAccent}" FontSize="12"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border Grid.Column="1" Background="{Binding SurfacePreview}" CornerRadius="4"
+                        Height="38" Padding="8,0">
+                    <TextBlock Text="{Binding [Theme.Preview.Selected], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="12"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <Border Grid.Column="2" Background="{DynamicResource SurfaceWindow}" CornerRadius="4"
+                        Height="38" Padding="8,0"
+                        BorderBrush="{DynamicResource BorderControl}" BorderThickness="1">
+                    <TextBlock Text="{Binding [Theme.Preview.AccentText], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{Binding TextPreview}" FontSize="12" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Grid>
+
+            <StackPanel Grid.Row="4" Spacing="4">
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Theme.Accent.Hint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Hint"
+                           Text="{Binding [Theme.Palette.Hint], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Classes="Hint" Foreground="{DynamicResource Danger}"
+                           IsVisible="{Binding !AccentUsable}"
+                           Text="{Binding [Theme.Accent.Rejected], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="16,0,16,14">
+            <Button Classes="Secondary" Height="32"
+                    Content="{Binding [Theme.ResetAccent], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ResetAccentCommand}" />
+            <Button Grid.Column="2" Classes="Secondary" Height="32"
+                    Content="{Binding [Theme.Done], Source={x:Static loc:Strings.Current}}"
+                    Click="OnDone" />
+        </Grid>
+    </Grid>
+</views:AppWindow>

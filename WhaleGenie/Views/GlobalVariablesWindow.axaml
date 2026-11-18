@@ -1,0 +1,261 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        x:Class="WhaleGenie.Views.GlobalVariablesWindow"
+        x:DataType="vm:GlobalVariablesViewModel"
+        Title="WhaleGenie"
+        Width="1040" Height="720" MinWidth="860" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+    </Window.KeyBindings>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.SectionLabel">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!--
+          字段级错误：红 `#E06C75` 不在词表里，换成 `Danger` 令牌（琥珀 `#E0A23C` 才是 `Warning`，
+          那是"提醒、可继续"，这是"必须改"——**同名的类，不同色的语义**）。
+          类仍留本窗：词表暂时没有"字段级错误"这一档；第二个窗口出现同形态时升 `TextBlock.FieldError`。
+        -->
+        <Style Selector="TextBlock.FieldProblem">
+            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style Selector="ListBox.FilterList > ListBoxItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="Margin" Value="0,0,4,4" />
+        </Style>
+        <Style Selector="ListBox.FilterList > ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        </Style>
+        <Style Selector="ListBox.FilterList > ListBoxItem:selected TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        </Style>
+
+        <Style Selector="ListBox.List > ListBoxItem">
+            <!-- The library gives rows no divider; this list reads as a table of names and needs one. -->
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*">
+        <Grid Grid.Row="0" Margin="18,14,18,0" RowDefinitions="Auto,*,Auto" RowSpacing="12">
+            <TextBlock Text="{Binding Help}" TextWrapping="Wrap"
+                       FontSize="12" Foreground="{DynamicResource TextTertiary}" />
+
+            <Grid Grid.Row="1" ColumnDefinitions="300,12,*">
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                        <TextBox Name="SearchBox" Text="{Binding SearchText}"
+                                 PlaceholderText="{Binding [VarWall.Search], Source={x:Static loc:Strings.Current}}" />
+                        <Button Grid.Column="1" Classes="Secondary" Height="30" Padding="9,0"
+                                Content="{Binding [GlobalVariables.ClearFilters], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding ClearFiltersCommand}"
+                                IsVisible="{Binding CanClearFilters}" />
+                    </Grid>
+
+                    <ListBox Grid.Row="1" Name="FilterList" Classes="FilterList"
+                             ItemsSource="{Binding Filters}"
+                             SelectedItem="{Binding SelectedFilter, Mode=TwoWay}" SelectionMode="Single"
+                             Background="Transparent" BorderThickness="0" Padding="0">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GlobalVariableFilter">
+                                <TextBlock Text="{Binding Label}" FontSize="12" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <ListBox Grid.Row="2" Name="VariableList" Classes="List"
+                             ItemsSource="{Binding Shown}"
+                             SelectedItem="{Binding Selected, Mode=TwoWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:VariableDefinitionDraft">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                    <views:IconView Width="13" Height="13" Margin="0,2,0,0"
+                                                   Stroke="{DynamicResource Danger}" StrokeThickness="1.4"
+                                                   FitToBounds="True"
+                                                   IsVisible="{Binding HasProblem}"
+                                                   ToolTip.Tip="{Binding [GlobalVariables.HasProblemHint], Source={x:Static loc:Strings.Current}}"
+                                                   Data="{x:Static vm:AppIcons.WarningTriangle}" />
+                                    <TextBlock Grid.Column="1" Text="{Binding DisplayName}"
+                                               FontFamily="Consolas" TextWrapping="Wrap" />
+                                    <StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Right">
+                                        <TextBlock Text="{Binding LocalType}" FontSize="11.5"
+                                                   Foreground="{DynamicResource TextTertiary}" />
+                                        <TextBlock Text="{Binding [VarWall.Persistent], Source={x:Static loc:Strings.Current}}"
+                                                   FontSize="10.5" Foreground="{DynamicResource Success}"
+                                                   IsVisible="{Binding PersistValue}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Grid Grid.Row="3" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                        <Button Name="NewButton" Classes="Secondary" Height="32"
+                                Content="{Binding NewLabel}" Command="{Binding NewCommand}" />
+                        <Button Grid.Column="1" Name="RemoveButton" Classes="Secondary" Height="32"
+                                Content="{Binding RemoveLabel}" Click="OnRemove" />
+                    </Grid>
+                </Grid>
+
+                <Border Grid.Column="2" Padding="16" CornerRadius="6"
+                        Background="{DynamicResource SurfaceField}">
+                    <Grid>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel IsVisible="{Binding HasSelection}" Spacing="10">
+                                <TextBlock Classes="SectionLabel"
+                                           Text="{Binding [GlobalVariables.Definition], Source={x:Static loc:Strings.Current}}" />
+
+                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
+                                    <TextBlock Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <TextBox Name="NameBox" Text="{Binding Editor.Name}" />
+                                        <TextBlock Classes="Hint"
+                                                   Text="{Binding [GlobalVariables.NameHint], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock Classes="FieldProblem"
+                                                   Text="{Binding Editor.NameProblem}"
+                                                   IsVisible="{Binding Editor.HasNameProblem}" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
+                                    <TextBlock Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}"
+                                               VerticalAlignment="Center" />
+                                    <ComboBox Grid.Column="1" ItemsSource="{Binding Editor.TypeOptions}"
+                                              SelectedItem="{Binding Editor.SelectedType}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:ActionParameterOption">
+                                                <TextBlock Text="{Binding Display}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+
+                                <Grid ColumnDefinitions="170,*,Auto" ColumnSpacing="10">
+                                    <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <TextBox Name="DefaultValueBox" Text="{Binding Editor.DefaultValue}"
+                                                 PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}" />
+                                        <TextBlock Classes="Hint" Text="{Binding Editor.DefaultPreview}"
+                                                   IsVisible="{Binding !Editor.HasDefaultProblem}" />
+                                        <TextBlock Classes="FieldProblem" Text="{Binding Editor.DefaultProblem}"
+                                                   IsVisible="{Binding Editor.HasDefaultProblem}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
+                                            Content="{Binding [Add.UseExpression], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding BuildDefaultExpressionCommand}" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="170,*,Auto" ColumnSpacing="10">
+                                    <TextBlock Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}"
+                                               VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" Spacing="4">
+                                        <TextBox Name="CurrentValueBox" Text="{Binding Editor.CurrentValue}" />
+                                        <TextBlock Classes="Hint" Text="{Binding Editor.CurrentPreview}"
+                                                   IsVisible="{Binding !Editor.HasCurrentProblem}" />
+                                        <TextBlock Classes="FieldProblem" Text="{Binding Editor.CurrentProblem}"
+                                                   IsVisible="{Binding Editor.HasCurrentProblem}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Classes="Secondary" Height="32"
+                                            Content="{Binding [GlobalVariables.UseCurrentExpression], Source={x:Static loc:Strings.Current}}"
+                                            Command="{Binding BuildCurrentExpressionCommand}" />
+                                </Grid>
+
+                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
+                                    <TextBlock Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}"
+                                               VerticalAlignment="Center" />
+                                    <TextBox Grid.Column="1" Text="{Binding Editor.Description}" />
+                                </Grid>
+
+                                <CheckBox IsChecked="{Binding Editor.PersistValue}"
+                                          Content="{Binding [Variable.Persist], Source={x:Static loc:Strings.Current}}"
+                                          ToolTip.Tip="{Binding [Variable.PersistHint], Source={x:Static loc:Strings.Current}}" />
+
+                                <TextBlock Classes="FieldProblem" Text="{Binding Editor.RenameProblem}"
+                                           IsVisible="{Binding Editor.HasRenameProblem}" />
+                                <TextBlock Margin="0,8,0,0" Classes="SectionLabel"
+                                           Text="{Binding [GlobalVariables.Uses], Source={x:Static loc:Strings.Current}}" />
+                                <TextBlock Text="{Binding [GlobalVariables.NoUses], Source={x:Static loc:Strings.Current}}"
+                                           IsVisible="{Binding !Editor.HasUses}"
+                                           Foreground="{DynamicResource TextTertiary}" />
+                                <ItemsControl ItemsSource="{Binding Editor.Uses}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="models:VariableUse">
+                                            <TextBlock Text="{Binding Label}" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource TextTertiary}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <!-- 这么改名会出问题：**"这么做会不行" → Warning**（对未来操作的提醒，当前状态没问题）。 -->
+                                <TextBlock Text="{Binding RenameWarning}" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource Warning}"
+                                           IsVisible="{Binding HasRenameWarning}" />
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <StackPanel IsVisible="{Binding ShowsNoVariables}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Spacing="10" MaxWidth="360">
+                            <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextTertiary}"
+                                       TextAlignment="Center" />
+                            <Button Classes="Secondary" Height="32" MinWidth="120"
+                                    HorizontalAlignment="Center"
+                                    Content="{Binding NewLabel}" Command="{Binding NewCommand}" />
+                        </StackPanel>
+
+                        <StackPanel IsVisible="{Binding ShowsNoMatches}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Spacing="10" MaxWidth="360">
+                            <TextBlock Text="{Binding EmptyMessage}" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextTertiary}"
+                                       TextAlignment="Center" />
+                            <Button Classes="Secondary" Height="32" MinWidth="120"
+                                    HorizontalAlignment="Center"
+                                    Content="{Binding [GlobalVariables.ClearFilters], Source={x:Static loc:Strings.Current}}"
+                                    Command="{Binding ClearFiltersCommand}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto"
+                  ColumnSpacing="8" Margin="0,0,0,14">
+                <TextBlock Name="ProblemStatus" Text="{Binding ValidationMessage}"
+                           TextWrapping="Wrap" VerticalAlignment="Center"
+                           Foreground="{DynamicResource Danger}"
+                           IsVisible="{Binding HasValidationProblem}" />
+                <Button Grid.Column="1" Name="CancelButton" Classes="Secondary"
+                        Height="36" MinWidth="92" Content="{Binding CancelLabel}"
+                        Command="{Binding CancelCommand}" />
+                <Button Grid.Column="2" Name="SaveButton" Classes="Primary"
+                        Height="36" MinWidth="110" Content="{Binding SaveLabel}"
+                        Command="{Binding SaveCommand}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</views:AppWindow>

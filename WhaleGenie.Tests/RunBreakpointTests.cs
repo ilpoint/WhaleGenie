@@ -8,7 +8,6 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -38,9 +37,9 @@ public class RunBreakpointTests
             var panel = window.OwnedWindows.OfType<BreakpointWindow>().Single();
             var form = (BreakpointViewModel)panel.DataContext!;
             Assert.Contains("n", form.Variables);
-            Assert.Contains("n", form.ExpressionSuggestions);
+            Assert.Contains("$n", form.ExpressionSuggestions);
 
-            form.Expression = Formula.Binary(">", Formula.Name("n"), Formula.Number(3));
+            form.Expression = "$n > 3";
             form.HitTimes = 2;
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -51,11 +50,11 @@ public class RunBreakpointTests
             Assert.Empty(window.OwnedWindows.OfType<BreakpointWindow>());
             Assert.True(row.HasBreakpoint);
             var rule = viewModel.BreakpointRuleOf(row.Id)!;
-            Assert.Equal("n > 3", Expression.Render(rule.Expression));
+            Assert.Equal("$n > 3", rule.Expression);
             Assert.Equal(2, rule.HitTimes);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
-            Assert.Contains("「n」 > 3", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("$n > 3", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.Contains("2", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.True(row.HasCondition);
 
@@ -63,7 +62,7 @@ public class RunBreakpointTests
             Click(window, row, "condition");
             var again = (BreakpointViewModel)window.OwnedWindows.OfType<BreakpointWindow>().Single()
                 .DataContext!;
-            Assert.Equal("n > 3", Expression.Render(again.Expression));
+            Assert.Equal("$n > 3", again.Expression);
             Assert.Equal(2, again.HitTimes);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
@@ -94,7 +93,7 @@ public class RunBreakpointTests
                     {
                         Name = "condition",
                         Kind = ActionParameterKind.Expression,
-                        Written = Formula.Binary("==", Formula.Name("n"), Formula.Number("1", 1d)),
+                        Value = "$n == 1",
                     },
                     new StepParameter
                     {
@@ -152,7 +151,7 @@ public class RunBreakpointTests
             Assert.Equal(Strings.Get("Run.BreakpointSet"), On(items, "toggle", "Run.BreakpointSet").Header);
             Assert.False(Shown(items, "toggle", "Run.BreakpointOff"));
             Assert.True(Shown(items, "condition", "Run.BreakpointCondition"));
-            Assert.False(Shown(items, "clear", "Run.BreakpointClearCondition"));
+            Assert.False(Shown(items, "clear", "Run.BreakpointClear"));
             Assert.DoesNotContain(items, item => Equals(item.Tag, "skip"));
 
             // 点一下「下断点」：断点真的下上了，标题换成「取消断点」。
@@ -162,7 +161,7 @@ public class RunBreakpointTests
             var after = line.ContextMenu.Items.OfType<MenuItem>().ToList();
             Assert.True(Shown(after, "toggle", "Run.BreakpointOff"));
             Assert.False(Shown(after, "toggle", "Run.BreakpointSet"));
-            Assert.False(Shown(after, "clear", "Run.BreakpointClearCondition"));
+            Assert.False(Shown(after, "clear", "Run.BreakpointClear"));
 
             // 再点一下：断点收回去。
             Click(window, row, "toggle");
@@ -205,7 +204,8 @@ public class RunBreakpointTests
     [Fact]
     public void The_red_of_a_breakpoint_beats_the_hover_colour()
     {
-        var markup = ViewSource.Markup("RunWindow.axaml");
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
 
         foreach (var state in new[] { "", ":pointerover", ":pressed" })
         {
@@ -332,9 +332,9 @@ public class RunBreakpointTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = value },
         ],
     };
 

@@ -1,0 +1,446 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using WhaleGenie.Models;
+using WhaleGenie.Runtime;
+
+namespace WhaleGenie.Storage;
+
+/// <summary>
+/// The macro the editor was holding when the program stopped, and which macro in the list it
+/// stood for. The editor is a window of its own and its work is not in the list yet, so it has to
+/// be kept apart from the project the snapshot also carries.
+/// </summary>
+public sealed class RecoveryEditor
+{
+    public required MacroItem Macro { get; init; }
+
+    /// <summary>Name of the macro the draft was editing, or empty when it was a new macro.</summary>
+    public required string Replaces { get; init; }
+
+    /// <summary>
+    /// True while the draft holds something a person would miss. A macro that is still called what
+    /// a new one is called, with no step in it and nothing written about it, is the state the editor
+    /// opened in: offering it back asks a question whose answer is the same blank form, on every
+    /// run, for as long as the file is left behind.
+    /// </summary>
+    public bool IsWorthKeeping => Macro.Steps.Count > 0
+        || Macro.Description.Trim().Length > 0
+        || Macro.BindKey.Trim().Length > 0
+        || !MacroNames.IsDefault(Macro.Name);
+}
+
+/// <summary>Everything the program was holding that had not been written to a package.</summary>
+public sealed class RecoveryContents
+{
+    public required IReadOnlyList<MacroItem> Macros { get; init; }
+
+    public required IReadOnlyList<VariableDefinition> Globals { get; init; }
+
+    public ProjectTriggers Triggers { get; init; } = new();
+
+    /// <summary>Package the macro list came from, or null when it had never been saved.</summary>
+    public string? PackagePath { get; init; }
+
+    /// <summary>The macro the editor was holding, or null when no editor was open.</summary>
+    public RecoveryEditor? Editor { get; init; }
+
+    /// <summary>When this snapshot was last written.</summary>
+    public DateTime? SavedUtc { get; init; }
+
+    /// <summary>True when there is nothing in it worth offering back.</summary>
+    public bool IsEmpty => Macros.Count == 0 && PackagePath is null
+        && (Editor is null || !Editor.IsWorthKeeping);
+}
+
+/// <summary>
+/// The safety net under the two places work is written by hand: the macro list, which only
+/// reaches disk when the project is saved, and the macro editor, whose macro has not joined the
+/// list yet. Neither is on disk when the program is stopped without notice — a crash, or the
+/// machine losing power — so the work is written out as it changes, and the next run can offer
+/// it back.
+/// </summary>
+/// <remarks>
+/// One file holds both the project and the editor draft, written by whoever has something to
+/// keep. Each writer changes only its own part and leaves the other where it was, so the two
+/// never overwrite each other's work. Writes go to a temporary file and are moved into place,
+/// the way a package is written, so a stop in the middle of a write cannot leave a half file
+/// where a whole one was.
+/// </remarks>
+public static class RecoveryStore
+{
+    private static readonly object Gate = new();
+
+    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+
+    /// <summary>
+    /// What the file on disk was built from: everything in it but the moment it was taken and the
+    /// version that took it, or nothing while there is no file to speak of. Work that comes to the
+    /// same text as this is not written again.
+    /// </summary>
+    /// <remarks>
+    /// It is the whole of the file rather than one part of it, because the parts are written by two
+    /// windows and a part written beside another is only the same file if what stood next to it
+    /// stood there too. It is emptied whenever the file stops being what it says — it is removed,
+    /// or a file that cannot be read is taken away — so that work written again after the snapshot
+    /// went is written out rather than taken for already kept.
+    /// </remarks>
+    private static string _written = string.Empty;
+
+    private static string _path = AppPaths.Recovery;
+
+    /// <summary>
+    /// Where the snapshot lives: beside the program, with the settings, so the safety net belongs
+    /// to this copy and can be moved out of the way by a check. Moving it forgets what was written
+    /// to the file it used to point at, which is what a check that gives itself a file of its own
+    /// is counting on.
+    /// </summary>
+    internal static string FilePath
+    {
+        get => _path;
+        set
+        {
+            lock (Gate)
+            {
+                _path = value;
+                _written = string.Empty;
+            }
+        }
+    }
+
+    /// <summary>True when the last run left something behind.</summary>
+    public static bool Exists
+    {
+        get
+        {
+            lock (Gate)
+            {
+                return File.Exists(FilePath);
+            }
+        }
+    }
+
+    /// <summary>Records the macro list, its shared variables and the package it came from.</summary>
+    public static void SaveProject(IReadOnlyList<MacroItem> macros,
+        IReadOnlyList<VariableDefinition> globals, string? packagePath)
+        => SaveProject(macros, ProjectTriggers.FromMacros(macros), globals, packagePath);
+
+    public static void SaveProject(IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
+        IReadOnlyList<VariableDefinition> globals, string? packagePath)
+    {
+        var entries = new JsonArray();
+        foreach (var macro in macros)
+        {
+            entries.Add(new JsonObject
+            {
+                ["enabled"] = macro.IsEnabled,
+                ["document"] = macro.ToJson(),
+            });
+        }
+
+        var variables = new JsonArray();
+        foreach (var variable in globals)
+        {
+            variables.Add(new JsonObject
+            {
+                ["name"] = variable.Name,
+                ["type"] = variable.Type,
+                ["default"] = variable.DefaultValue,
+                ["description"] = variable.Description,
+            });
+        }
+
+        var project = new JsonObject
+        {
+            ["macros"] = entries,
+            ["triggers"] = triggers.ToJson(),
+            ["variables"] = variables,
+        };
+
+        if (!string.IsNullOrEmpty(packagePath))
+        {
+            project["package"] = packagePath;
+        }
+
+        Update("project", project);
+    }
+
+    /// <summary>Forgets the macro list, because it is saved or the user let it go.</summary>
+    public static void ClearProject() => Update("project", null);
+
+    /// <summary>Records the macro the editor is holding, and what it stands for.</summary>
+    public static void SaveEditor(MacroItem macro, string replaces)
+    {
+        // 什么都没写的草稿不写：它下次打开就是同一张空表单，留着只会让下次启动问一句
+        // "发现上次未保存的内容"，答了也没有东西回来。
+        if (!new RecoveryEditor { Macro = macro, Replaces = replaces }.IsWorthKeeping)
+        {
+            Update("editor", null);
+            return;
+        }
+
+        var editor = new JsonObject { ["macro"] = macro.ToJson(includeTriggers: true) };
+        if (!string.IsNullOrEmpty(replaces))
+        {
+            editor["replaces"] = replaces;
+        }
+
+        Update("editor", editor);
+    }
+
+    /// <summary>Forgets the editor draft, because the editor closed or handed its macro over.</summary>
+    public static void ClearEditor() => Update("editor", null);
+
+    /// <summary>Removes the whole snapshot.</summary>
+    public static void Clear()
+    {
+        lock (Gate)
+        {
+            _written = string.Empty;
+            Remove();
+        }
+    }
+
+    /// <summary>Reads the snapshot back, or null when there is nothing to recover.</summary>
+    public static RecoveryContents? Load()
+    {
+        lock (Gate)
+        {
+            try
+            {
+                var contents = Parse(ReadRoot());
+
+                // 空快照（早先留下的空草稿）读到时顺手丢掉：留着它，每次启动都会再读一遍同一个
+                // "没有东西可恢复"，而它永远不会自己消失。
+                if (contents is null)
+                {
+                    _written = string.Empty;
+                    Remove();
+                }
+
+                return contents;
+            }
+            catch
+            {
+                // A file that cannot be read is not worth keeping and must not stop the program
+                // from opening; the next write replaces it. What was written is forgotten with it,
+                // so work that comes to the same text as the file that went is written out rather
+                // than taken for already kept.
+                _written = string.Empty;
+                Remove();
+                return null;
+            }
+        }
+    }
+
+    private static RecoveryContents? Parse(JsonObject? root)
+    {
+        if (root is null)
+        {
+            return null;
+        }
+
+        if (root["formatVersion"]?.GetValue<int>() != MacroPackage.FormatVersion)
+        {
+            throw new InvalidDataException("The recovery snapshot uses an older project format.");
+        }
+
+        var project = root["project"] as JsonObject;
+        var macros = new List<MacroItem>();
+        foreach (var item in project?["macros"] as JsonArray ?? [])
+        {
+            if (item is not JsonObject entry || entry["document"] is not JsonObject document)
+            {
+                continue;
+            }
+
+            var macro = MacroItem.FromJson(document);
+            macro.IsEnabled = entry["enabled"]?.GetValue<bool>() ?? true;
+            macros.Add(macro);
+        }
+
+        var globals = new List<VariableDefinition>();
+        foreach (var item in project?["variables"] as JsonArray ?? [])
+        {
+            if (item is not JsonObject variable
+                || variable["name"]?.GetValue<string>() is not { Length: > 0 } name)
+            {
+                continue;
+            }
+
+            globals.Add(new VariableDefinition
+            {
+                Name = name,
+                Scope = VariableScope.Global,
+                Type = variable["type"]?.GetValue<string>() is { Length: > 0 } type ? type : "text",
+                DefaultValue = variable["default"]?.GetValue<string>() ?? string.Empty,
+                Description = variable["description"]?.GetValue<string>() ?? string.Empty,
+            });
+        }
+
+        var triggers = ResumeTriggers(project, macros);
+
+        RecoveryEditor? editor = null;
+        if (root["editor"] is JsonObject editorEntry && editorEntry["macro"] is JsonObject macroNode)
+        {
+            editor = new RecoveryEditor
+            {
+                Macro = MacroItem.FromJson(macroNode),
+                Replaces = editorEntry["replaces"]?.GetValue<string>() ?? string.Empty,
+            };
+        }
+
+        var contents = new RecoveryContents
+        {
+            Macros = macros,
+            Triggers = triggers,
+            Globals = globals,
+            PackagePath = project?["package"]?.GetValue<string>(),
+            Editor = editor,
+            SavedUtc = DateTime.TryParse(root["savedUtc"]?.GetValue<string>(),
+                CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var saved)
+                ? saved
+                : null,
+        };
+
+        return contents.IsEmpty ? null : contents;
+    }
+
+    private static ProjectTriggers ResumeTriggers(JsonObject? project, IReadOnlyList<MacroItem> macros)
+    {
+        if (project?["triggers"] is JsonObject stored)
+        {
+            var triggers = ProjectTriggers.FromJson(stored);
+            triggers.Attach(macros);
+            return triggers;
+        }
+
+        return ProjectTriggers.FromMacros(macros);
+    }
+
+    /// <summary>
+    /// Puts one part of the snapshot in place, or takes it out when <paramref name="node"/> is
+    /// nothing, and removes the file once neither part is left. Everything under one lock, so the
+    /// project writer and the editor writer never leave each other a half-read file.
+    ///
+    /// What the whole file would come to is read before anything is written, and the file is left
+    /// alone when it already says that. The file is only there to be found after a stop without
+    /// notice, so writing it again over work that has not moved costs a disk write, moves the time
+    /// it says it was taken, and tells whoever looks at the file that work is seconds old when it
+    /// may be hours old.
+    /// </summary>
+    private static void Update(string part, JsonObject? node)
+    {
+        lock (Gate)
+        {
+            try
+            {
+                var root = ReadRoot() ?? new JsonObject();
+                if (node is null)
+                {
+                    root.Remove(part);
+                }
+                else
+                {
+                    root[part] = node;
+                }
+
+                var content = Content(root);
+                if (content.Length == 0)
+                {
+                    // Neither part is left, so there is nothing to be offered back. What the file
+                    // held is forgotten with it: work that arrives later is written out afresh.
+                    _written = string.Empty;
+                    Remove();
+                    return;
+                }
+
+                if (content == _written && File.Exists(FilePath))
+                {
+                    return;
+                }
+
+                root["appVersion"] = AppVersion.Text;
+                root["formatVersion"] = MacroPackage.FormatVersion;
+                root["savedUtc"] = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+                Write(root);
+                _written = content;
+            }
+            catch
+            {
+                // The safety net failing must never be what takes the program down.
+            }
+        }
+    }
+
+    /// <summary>
+    /// What the snapshot is about, as text, or nothing when it is about nothing: the two parts the
+    /// file carries, without the moment it was taken and the version that took it.
+    /// </summary>
+    private static string Content(JsonObject root)
+    {
+        var parts = new JsonObject();
+        foreach (var name in new[] { "project", "editor" })
+        {
+            if (root[name] is { } part)
+            {
+                // A copy, because a node stands in one place at a time and this one is also the
+                // file's own.
+                parts[name] = part.DeepClone();
+            }
+        }
+
+        return parts.Count == 0 ? string.Empty : parts.ToJsonString();
+    }
+
+    private static JsonObject? ReadRoot()
+    {
+        if (!File.Exists(FilePath))
+        {
+            return null;
+        }
+
+        return JsonNode.Parse(File.ReadAllText(FilePath, Encoding.UTF8)) as JsonObject;
+    }
+
+    private static void Write(JsonObject root)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+
+        // Built beside the file first, so a stop in the middle cannot damage what was there.
+        var temporary = FilePath + ".tmp";
+        try
+        {
+            File.WriteAllText(temporary, root.ToJsonString(Indented), new UTF8Encoding(false));
+            File.Move(temporary, FilePath, true);
+        }
+        catch
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+
+            throw;
+        }
+    }
+
+    private static void Remove()
+    {
+        try
+        {
+            if (File.Exists(FilePath))
+            {
+                File.Delete(FilePath);
+            }
+        }
+        catch
+        {
+            // Nothing to do about a file that will not go; the next run offers it once more.
+        }
+    }
+}

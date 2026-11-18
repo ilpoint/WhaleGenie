@@ -32,12 +32,10 @@ jobs:
         run: dotnet build WhaleGenie.slnx -c Release --no-restore
 
       - name: Test
-        # The suites run side by side: six of them mostly wait on a window session or on a real
-        # device, and one project at a time spent a minute and a half waiting for another to finish.
-        # Measured on this machine, two runs: 5m42 and 6m28 side by side, against 7m one at a time.
-        # WhaleGenie.TestSupport and WhaleGenie.App.TestSupport are libraries, not suites, and say
-        # so themselves, so the solution lists them without a run of their own.
-        run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore --logger "trx;LogFileName=results.trx"
+        # One project at a time. The three suites otherwise run side by side on a runner with four
+        # cores, and a check that reads how long a wait took then fails over another suite's CPU
+        # time rather than over anything the engine did.
+        run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore -m:1 --logger "trx;LogFileName=results.trx"
 
       - name: Keep the test report
         # act cannot use GitHub's artifact service; its bundled server rejects upload-artifact v6.

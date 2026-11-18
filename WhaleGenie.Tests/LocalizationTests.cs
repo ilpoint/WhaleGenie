@@ -206,15 +206,15 @@ public class LocalizationTests
         var actions = ActionCatalog.Definitions;
         var languages = new (string Label, Dictionary<string, string> Table)[]
         {
-            ("中文", ActionStrings.Chinese),
-            ("English", ActionEnglish.English),
+            ("中文", Strings.Chinese),
+            ("English", Strings.English),
         };
 
         foreach (var (label, table) in languages)
         {
             var same = actions
                 .Select(action => (action.Key,
-                    Name: table.GetValueOrDefault(action.Key + ".name", action.Key)))
+                    Name: table.GetValueOrDefault(action.Key + ".name", action.DisplayName)))
                 .GroupBy(named => named.Name)
                 .Where(group => group.Count() > 1)
                 .Select(group => $"{label} {group.Key}: "
@@ -413,12 +413,12 @@ public class LocalizationTests
             {
                 foreach (var parameter in definition.Parameters)
                 {
-                    var key = $"{definition.Key}.{parameter.Name}.hint";
-                    if (!ActionEnglish.English.ContainsKey(key))
+                    if (parameter.Hint.Length == 0)
                     {
                         missing.Add($"{definition.Key}.{parameter.Name} (English)");
                     }
 
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
                     if (!ActionStrings.Chinese.ContainsKey(key))
                     {
                         missing.Add(key);
@@ -442,31 +442,6 @@ public class LocalizationTests
     }
 
     /// <summary>
-    /// A hint is read standing beside the field it belongs to, not as a chapter. A page holds a
-    /// dozen of them, so one that runs to five lines is skipped by the reader and still fills the
-    /// form. The four families that have been through this pass are held to it; the rest follow one
-    /// family at a time, which is why the rule names them rather than applying to everything.
-    /// </summary>
-    [Fact]
-    public void A_hint_is_read_beside_its_field_not_as_a_chapter()
-    {
-        ActionCategory[] shortened =
-        [
-            ActionCategory.Vision, ActionCategory.Ocr, ActionCategory.Uia, ActionCategory.Browser,
-        ];
-
-        var long_ = Ui.Run(() => ActionCatalog.Definitions
-            .Where(definition => shortened.Contains(definition.Category))
-            .SelectMany(definition => definition.Parameters
-                .Where(parameter => parameter.Hint.Length > 160)
-                .Select(parameter => $"{definition.Key}.{parameter.Name} ({parameter.Hint.Length})"))
-            .Order()
-            .ToList());
-
-        Assert.Empty(long_);
-    }
-
-    /// <summary>
     /// A number that is already filled in is one the reader does not have to answer, so the one thing
     /// its line has to say is what the filled-in value is. Numbers are what this is about: a choice
     /// says which option it starts on in the option's own words.
@@ -487,13 +462,12 @@ public class LocalizationTests
                         continue;
                     }
 
-                    var key = $"{definition.Key}.{parameter.Name}.hint";
-                    if (!ActionEnglish.English.TryGetValue(key, out var english)
-                        || !english.Contains("default", StringComparison.OrdinalIgnoreCase))
+                    if (!parameter.Hint.Contains("default", StringComparison.OrdinalIgnoreCase))
                     {
                         missing.Add($"{definition.Key}.{parameter.Name} (English)");
                     }
 
+                    var key = $"{definition.Key}.{parameter.Name}.hint";
                     if (!ActionStrings.Chinese.TryGetValue(key, out var chinese)
                         || !chinese.Contains("默认"))
                     {
@@ -600,11 +574,6 @@ public class LocalizationTests
                 Look($"ActionStrings.Chinese[{key}]", text);
             }
 
-            foreach (var (key, text) in ActionEnglish.English)
-            {
-                Look($"ActionEnglish.English[{key}]", text);
-            }
-
             foreach (var definition in ActionCatalog.Definitions)
             {
                 Look($"{definition.Key}.Description", definition.Description);
@@ -631,44 +600,6 @@ public class LocalizationTests
         });
 
         Assert.Empty(marked.Order());
-    }
-
-    /// <summary>
-    /// Every action, field and result has English text under the key the form asks for. Chinese may
-    /// fall back to English — that is how a half-translated catalogue still reads — but English has
-    /// nothing behind it: a field with no entry would show its internal name instead of a label.
-    /// </summary>
-    [Fact]
-    public void Every_action_field_and_result_has_English_text()
-    {
-        var missing = new List<string>();
-
-        foreach (var action in ActionCatalog.Definitions)
-        {
-            void Need(string key)
-            {
-                if (!ActionEnglish.English.ContainsKey(key))
-                {
-                    missing.Add(key);
-                }
-            }
-
-            Need($"{action.Key}.name");
-            Need($"{action.Key}.desc");
-            foreach (var parameter in action.Parameters)
-            {
-                Need($"{action.Key}.{parameter.Name}.label");
-                Need($"{action.Key}.{parameter.Name}.hint");
-            }
-
-            foreach (var result in action.Returns)
-            {
-                Need($"{action.Key}.return.{result.Key}.label");
-                Need($"{action.Key}.return.{result.Key}.hint");
-            }
-        }
-
-        Assert.Empty(missing);
     }
 
     /// <summary>

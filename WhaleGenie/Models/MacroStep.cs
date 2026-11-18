@@ -1,0 +1,914 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
+using System.Text.Json.Nodes;
+using WhaleGenie.Core.Execution;
+using WhaleGenie.Localization;
+
+namespace WhaleGenie.Models;
+
+/// <summary>
+/// One parameter value captured for a step. The value stays as text while the
+/// editor is open and is converted to its JSON type only when the tree is written.
+/// </summary>
+public class StepParameter
+{
+    public required string Name { get; init; }
+
+    public required ActionParameterKind Kind { get; init; }
+
+    public string Value { get; set; } = string.Empty;
+
+    /// <summary>
+    /// How much the value may move from run to run, written as a fraction of it: 0.2 is "20%
+    /// either way", so 500 lands somewhere between 400 and 600. Only lengths of time are given
+    /// one, which is what keeps a wait from looking mechanical.
+    /// </summary>
+    public decimal Jitter { get; init; }
+
+    /// <summary>True when the value was written with some give in it.</summary>
+    public bool HasJitter => Jitter > 0m;
+
+    /// <summary>Child steps, filled in when <see cref="Kind"/> is <see cref="ActionParameterKind.Steps"/>.</summary>
+    public List<MacroStep> Steps { get; init; } = [];
+
+    /// <summary>
+    /// Whether this list is open in the editor. A block that runs several lists gives each of them
+    /// a row of its own, and those rows fold like a block does. It is the editor's memory rather
+    /// than part of the macro, so it is never written to the file.
+    /// </summary>
+    public bool IsExpanded { get; set; } = true;
+
+    /// <summary>
+    /// The rows of a parameter that holds a list of them, filled in when <see cref="Kind"/> is
+    /// <see cref="ActionParameterKind.Region"/>, <see cref="ActionParameterKind.KeySequence"/> or
+    /// <see cref="ActionParameterKind.Images"/>; a <see cref="ActionParameterKind.Returns"/> holds
+    /// one row per result the step hands over, a <see cref="ActionParameterKind.Narrow"/> one row
+    /// per thing the element has to be like, and a <see cref="ActionParameterKind.ColourPoints"/>
+    /// one row per colour the pattern wants beside its base colour. What the columns of a row mean
+    /// belongs to the action, so this holds the names and what they say rather than a shape of its
+    /// own.
+    /// </summary>
+    public List<StepParameterRow> Rows { get; init; } = [];
+
+    /// <summary>
+    /// True when the value is a list of rows rather than one thing. Those are the parameters whose
+    /// value is written in the file as an array of objects, and what a reader makes of one depends
+    /// on the action rather than on the shape: every place a step looks is a name it has to have,
+    /// while every press of a key run is only itself.
+    /// </summary>
+    public bool IsRowList => Kind is ActionParameterKind.Region
+        or ActionParameterKind.KeySequence or ActionParameterKind.Images or ActionParameterKind.Returns
+        or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+        or ActionParameterKind.ColourPoints;
+
+    /// <summary>Everything written in the rows of a list parameter, by row.</summary>
+    public IEnumerable<string> RowValues => Rows.SelectMany(row => row.Columns.Values);
+
+    /// <summary>Writes the value as the JSON type the runtime expects.</summary>
+    /// <remarks>
+    /// A number is written as the number it is, and anything else is written as what it says. A
+    /// number field may hold an expression — <c>$sys.mouseX</c>, the place the pointer is at when
+    /// the step runs — which the engine reads and works out; writing that as a zero because it is
+    /// not digits would save a step that clicks the corner of the screen instead of the mouse, and
+    /// the loss would be silent, because the file it is read back from says a number.
+    /// </remarks>
+    public JsonNode? ToJson() => Kind switch
+    {
+        ActionParameterKind.Number => NumberJson(),
+        ActionParameterKind.Bool => JsonValue.Create(
+            string.Equals(Value, "true", StringComparison.OrdinalIgnoreCase)),
+        ActionParameterKind.Steps => BuildArray(Steps),
+        ActionParameterKind.Region or ActionParameterKind.KeySequence or ActionParameterKind.Images
+            or ActionParameterKind.Returns or ActionParameterKind.Arguments
+            or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => RowsJson(),
+        ActionParameterKind.WindowRule when Value.TrimStart().StartsWith('{')
+            => JsonNode.Parse(Value),
+        _ => JsonValue.Create(Value),
+    };
+
+    /// <summary>
+    /// A number field as the file holds it: the number it says, or the text of the expression it
+    /// says instead. A field nobody answered — only ever written by hand, because the editor leaves
+    /// an unanswered number out of the step — stays the zero it has always been read as.
+    /// </summary>
+    private JsonNode? NumberJson()
+    {
+        if (Value.Trim().Length == 0)
+        {
+            return JsonValue.Create(0m);
+        }
+
+        return decimal.TryParse(Value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+            ? JsonValue.Create(number)
+            : JsonValue.Create(Value);
+    }
+
+    /// <summary>
+    /// The rows as a JSON array with one object per row and one member per column. A column that
+    /// says a number is written as one, so the file reads the way the field was filled in, and a
+    /// column that says nothing is left out rather than written down as nothing.
+    /// </summary>
+    private JsonArray RowsJson()
+    {
+        var array = new JsonArray();
+        foreach (var row in Rows)
+        {
+            var written = new JsonObject();
+            foreach (var (column, value) in row.Columns)
+            {
+                if (value.Length == 0)
+                {
+                    continue;
+                }
+
+                written[column] = decimal.TryParse(value, NumberStyles.Number,
+                    CultureInfo.InvariantCulture, out var number)
+                        ? JsonValue.Create(number)
+                        : JsonValue.Create(value);
+            }
+
+            if (written.Count > 0)
+            {
+                array.Add(written);
+            }
+        }
+
+        return array;
+    }
+
+    /// <summary>Rebuilds a parameter from the JSON node written by <see cref="ToJson"/>.</summary>
+    public static StepParameter FromJson(string name, JsonNode? node, ActionDefinition? owner,
+        decimal jitter = 0m)
+    {
+        var definition = owner?.Parameters.FirstOrDefault(candidate => candidate.Name == name);
+        return node switch
+        {
+            JsonArray rows when definition?.Kind is ActionParameterKind.Region
+                or ActionParameterKind.KeySequence or ActionParameterKind.Images
+                or ActionParameterKind.Returns or ActionParameterKind.Arguments
+                or ActionParameterKind.Narrow or ActionParameterKind.ColourPoints => new StepParameter
+                {
+                    Name = name,
+                    Kind = definition!.Kind,
+                    Rows = [.. rows.OfType<JsonObject>().Select(Row)],
+                },
+            JsonArray array => new StepParameter
+            {
+                Name = name,
+                Kind = ActionParameterKind.Steps,
+                Steps = [.. array.OfType<JsonObject>().Select(MacroStep.FromJson)],
+            },
+            JsonObject record when definition?.Kind is ActionParameterKind.WindowRule => new StepParameter
+            {
+                Name = name,
+                Kind = ActionParameterKind.WindowRule,
+                Value = record.ToJsonString(),
+            },
+            _ => new StepParameter
+            {
+                Name = name,
+                Kind = definition?.Kind ?? ActionParameterKind.Text,
+                Value = ReadValue(node),
+                Jitter = jitter,
+            },
+        };
+    }
+
+    /// <summary>One row of a list parameter, read back out of the object it was written as.</summary>
+    private static StepParameterRow Row(JsonObject written)
+    {
+        var row = new StepParameterRow();
+        foreach (var (column, value) in written)
+        {
+            if (value is not null)
+            {
+                row.Columns[column] = ReadValue(value);
+            }
+        }
+
+        return row;
+    }
+
+    /// <summary>Reads a scalar node back as the text the editors work with.</summary>
+    private static string ReadValue(JsonNode? node)
+    {
+        if (node is not JsonValue value)
+        {
+            return string.Empty;
+        }
+
+        return value.TryGetValue<string>(out var text) ? text : value.ToJsonString();
+    }
+
+    /// <summary>Writes a nested step list as a JSON array.</summary>
+    public static JsonArray BuildArray(IEnumerable<MacroStep> steps)
+    {
+        var array = new JsonArray();
+        foreach (var step in steps)
+        {
+            array.Add(step.ToJson());
+        }
+
+        return array;
+    }
+}
+
+/// <summary>
+/// One row of a parameter that holds a list of rows, such as the regions a search looks in: what
+/// each of the row's columns says, by name. Which columns there are and what they mean belongs to
+/// the action, so a row is written down as it is rather than as a shape of its own — the same row
+/// therefore serves a search region and, later, a chord of a key sequence.
+/// </summary>
+public class StepParameterRow
+{
+    /// <summary>What each column of this row says, by column name.</summary>
+    public Dictionary<string, string> Columns { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>What a column says, or nothing when the row has no such column.</summary>
+    public string Text(string column) => Columns.TryGetValue(column, out var value) ? value : string.Empty;
+
+    /// <summary>A row that says one thing in one column, which is how a named region is written.</summary>
+    public static StepParameterRow Of(string column, string value) => new()
+    {
+        Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [column] = value },
+    };
+
+    /// <summary>A copy, so a duplicated step does not share its rows with the step it came from.</summary>
+    public StepParameterRow Copy() => new()
+    {
+        Columns = new Dictionary<string, string>(Columns, StringComparer.OrdinalIgnoreCase),
+    };
+}
+
+/// <summary>A single step of a macro, saved as one node of the macro's JSON tree.</summary>
+public class MacroStep : INotifyPropertyChanged
+{
+    /// <summary>Fully qualified action key, for example <c>input.keyPress</c>.</summary>
+    public required string Type { get; init; }
+
+    /// <summary>
+    /// The short name this step is known by, written into the macro file so that it survives
+    /// saving: a result variable carries it, a condition points at it, and a run reports the step
+    /// under it. Empty on steps that have never been saved since ids were introduced, which is
+    /// what <see cref="StepIds.Settle"/> fills in when the macro is opened.
+    /// </summary>
+    public string Id { get; internal set; } = string.Empty;
+
+    public List<StepParameter> Parameters { get; init; } = [];
+
+    /// <summary>
+    /// True while the editor shows the steps written inside this one. It is editor state rather
+    /// than part of the macro, so it is never written to the file: a macro saved with a block
+    /// folded away is the same macro as one saved with it open.
+    /// </summary>
+    public bool IsExpanded { get; set; } = true;
+
+    /// <summary>The parameters of this step that hold steps, in the order they were written.</summary>
+    public IEnumerable<StepParameter> StepLists
+        => Parameters.Where(parameter => parameter.Kind == ActionParameterKind.Steps);
+
+    /// <summary>
+    /// Restores the empty child lists the action catalogue declares but the file or form omitted.
+    /// An empty block still has a place for its first child; that place is part of the action's
+    /// shape, not data that only exists after a child has been added.
+    /// </summary>
+    public void EnsureDeclaredLists()
+    {
+        if (Definition is { } definition)
+        {
+            foreach (var declared in definition.Parameters
+                         .Where(parameter => parameter.Kind == ActionParameterKind.Steps))
+            {
+                if (!Parameters.Any(parameter => parameter.Name == declared.Name))
+                {
+                    Parameters.Add(new StepParameter
+                    {
+                        Name = declared.Name,
+                        Kind = ActionParameterKind.Steps,
+                    });
+                }
+            }
+        }
+
+        foreach (var child in Parameters.SelectMany(parameter => parameter.Steps))
+        {
+            child.EnsureDeclaredLists();
+        }
+    }
+
+    /// <summary>How many steps are written inside this one, all of its lists together.</summary>
+    public int ChildCount => StepLists.Sum(list => list.Steps.Count);
+
+    /// <summary>True when there are steps inside this one, so it can be folded open and shut.</summary>
+    public bool HasChildren => ChildCount > 0;
+
+    private StepMeta _meta = StepMeta.Empty;
+
+    /// <summary>
+    /// Settings that apply to the step itself whatever its action is: a note, whether it
+    /// is skipped, its timeout, its retries and the pauses around it.
+    /// </summary>
+    public StepMeta Meta
+    {
+        get => _meta;
+        set
+        {
+            _meta = value;
+            Raise(nameof(Meta));
+            Raise(nameof(Comment));
+            Raise(nameof(HasComment));
+            Raise(nameof(IsSkipped));
+            Raise(nameof(SkipLabel));
+            Raise(nameof(RowOpacity));
+            Raise(nameof(MetaSummary));
+            Raise(nameof(HasMetaSummary));
+        }
+    }
+
+    /// <summary>
+    /// The step settings worth seeing without opening the dialog: the retries it gets, the timeout
+    /// it is held to, the pauses around it, and what a failure does instead of stopping the macro.
+    /// Empty for an ordinary step, so the list stays quiet.
+    /// </summary>
+    public string MetaSummary
+    {
+        get
+        {
+            var meta = Meta;
+            var parts = new List<string>();
+
+            if (meta.RetryCount > 0)
+            {
+                parts.Add(Strings.Format(meta.RetryBackoff switch
+                {
+                    RetryBackoff.Doubling => "Editor.Meta.RetryDoubling",
+                    RetryBackoff.Jitter => "Editor.Meta.RetryJitter",
+                    _ => "Editor.Meta.Retry",
+                }, meta.RetryCount));
+            }
+
+            if (meta.TimeoutMs > 0)
+            {
+                parts.Add(Strings.Format("Editor.Meta.Timeout", DurationUnit.Written(meta.TimeoutMs)));
+            }
+
+            if (meta.DelayBeforeMs > 0 || meta.DelayAfterMs > 0)
+            {
+                parts.Add(Strings.Format("Editor.Meta.Pauses",
+                    DurationUnit.Written(meta.DelayBeforeMs),
+                    DurationUnit.Written(meta.DelayAfterMs)));
+            }
+
+            switch (meta.OnError)
+            {
+                case StepErrorAction.Continue:
+                    parts.Add(Strings.Get("Editor.Meta.OnErrorContinue"));
+                    break;
+                case StepErrorAction.NextIteration:
+                    parts.Add(Strings.Get("Editor.Meta.OnErrorNextIteration"));
+                    break;
+                case StepErrorAction.AskUser:
+                    parts.Add(Strings.Get("Editor.Meta.OnErrorAsk"));
+                    break;
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
+
+    /// <summary>True when there is something about this step worth showing.</summary>
+    public bool HasMetaSummary => MetaSummary.Length > 0;
+
+    /// <summary>Note the user wrote about this step, shown under its name.</summary>
+    public string Comment => Meta.Comment;
+
+    public bool HasComment => Meta.Comment.Length > 0;
+
+    /// <summary>True when the macro skips this step.</summary>
+    public bool IsSkipped => !Meta.IsEnabled;
+
+    /// <summary>Marker drawn on a step the macro will skip.</summary>
+    public string SkipLabel => Strings.Get("Editor.StepDisabled");
+
+    /// <summary>Name of the field that says where a step's input is sent.</summary>
+    private const string InputModeParameter = "inputMode";
+
+    /// <summary>
+    /// 这一步的输入往哪儿送：前台 / 后台消息 / 驱动级。Empty for a step that sends no input at
+    /// all, and for an action that has no such field.
+    /// </summary>
+    /// <remarks>
+    /// Whether the input goes in front, is posted at a window, or goes through the virtual device is
+    /// what the user pays for — a window that has to be in front, a window that has to be named
+    /// rightly, or a driver installed and a server running — and it is the first thing to check when
+    /// a step that works by hand does nothing in a macro. Reading it off the row beats opening the
+    /// step. A step that never wrote the field is in front, because that is what the catalogue
+    /// starts the field at.
+    /// </remarks>
+    public string InputMark
+    {
+        get
+        {
+            var parameter = Parameters.FirstOrDefault(item => item.Name == InputModeParameter);
+            if (parameter is null)
+            {
+                var declared = Definition?.Parameters
+                    .Any(item => item.Name == InputModeParameter) ?? false;
+                return declared ? Strings.Get("Editor.InputForeground") : string.Empty;
+            }
+
+            return parameter.Value switch
+            {
+                "foreground" => Strings.Get("Editor.InputForeground"),
+                "background" => Strings.Get("Editor.InputBackground"),
+                "driver" => Strings.Get("Editor.InputDriver"),
+                _ => string.Empty,
+            };
+        }
+    }
+
+    /// <summary>A skipped step fades so it is easy to tell apart while reading the list.</summary>
+    public double RowOpacity => Meta.IsEnabled ? 1 : 0.45;
+
+    public ActionDefinition? Definition => ActionCatalog.Find(Type);
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    /// <summary>Human readable name, falling back to the raw key when it is unknown.</summary>
+    public string DisplayName => Definition?.LocalName ?? Type;
+
+    /// <summary>
+    /// This step named the way anything that has to point at one names it: the note the user wrote,
+    /// the action it is, and the short name it goes by. The note comes first because that is the
+    /// one part that says what the step is for; the name is last because that is what a condition
+    /// stores. Whichever parts are empty are left out rather than leaving a gap.
+    /// </summary>
+    public string PickerLabel => string.Join(" · ",
+        new[] { Comment, DisplayName, Id }.Where(part => part.Length > 0));
+
+    /// <summary>Action key plus the parameters that have a value, shown under the name.</summary>
+    public string Detail
+    {
+        get
+        {
+            if (Type == "control.switch")
+            {
+                return SwitchDetail;
+            }
+
+            // A condition reads as the sentence it is. The type key and the field name in front of
+            // it say which action and which box, and neither is anything the person reading the
+            // list needs to be told again: the row already carries the action's name and icon.
+            if (Type == "control.if")
+            {
+                var condition = Text("condition").Trim();
+                return condition.Length == 0 ? Strings.Get("Editor.IfNoCondition") : condition;
+            }
+
+            // The other flow actions stand for one sentence each: how many rounds, which items,
+            // which value is compared. Their field names are how the form asks the question, and
+            // six "name = value" pairs never fit in a thirty-pixel row.
+            if (FlowDetail() is { } flow)
+            {
+                return flow;
+            }
+
+            var parts = new List<string>();
+            foreach (var parameter in Parameters)
+            {
+                var label = ParameterLabel(parameter);
+                switch (parameter.Kind)
+                {
+                    case ActionParameterKind.Region when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.RegionCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.KeySequence when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.KeyCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.Images when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.PictureCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.Returns when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ReturnCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.Arguments when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ArgumentCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.Narrow when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.NarrowCount", parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.ColourPoints when parameter.Rows.Count > 0:
+                        parts.Add($"{label} = {Strings.Format("Editor.ColourPointCount",
+                            parameter.Rows.Count)}");
+                        break;
+                    case ActionParameterKind.Steps or ActionParameterKind.Region
+                        or ActionParameterKind.KeySequence
+                        or ActionParameterKind.Images or ActionParameterKind.Returns
+                        or ActionParameterKind.Arguments or ActionParameterKind.Narrow
+                        or ActionParameterKind.ColourPoints:
+                        break;
+                    default:
+                        if (!string.IsNullOrWhiteSpace(parameter.Value))
+                        {
+                            parts.Add($"{label} = {DescribeValue(parameter)}{JitterNote(parameter)}");
+                        }
+                        break;
+                }
+            }
+
+            var values = string.Join(", ", parts);
+            return values.Length == 0 ? Type : $"{Type} · {values}";
+        }
+    }
+
+    /// <summary>How much a value is allowed to move, shown after it, or nothing when it is fixed.</summary>
+    private static string JitterNote(StepParameter parameter)
+        => parameter.HasJitter
+            ? " " + Strings.Format("Editor.JitterDetail",
+                (parameter.Jitter * 100m).ToString("0.##", CultureInfo.InvariantCulture))
+            : string.Empty;
+
+    /// <summary>
+    /// What a switch says on its own row: the value it compares and how it compares them. The two
+    /// field names ("value (operand)", "match mode (operator)") are how the form asks for them, not
+    /// how the block reads — with the branches laid out underneath, the one sentence the block
+    /// stands for is "this value, compared this way", and spelling out which field is which twice
+    /// per switch costs the row its whole line without saying anything more.
+    /// </summary>
+    private string SwitchDetail
+    {
+        get
+        {
+            var value = Text("switchValue").Trim();
+            var mode = Text("switchMode").Trim();
+            var how = mode.Length == 0
+                ? string.Empty
+                : Strings.Get($"control.switch.switchMode.option.{mode}", mode);
+            if (value.Length == 0)
+            {
+                return Strings.Get("Editor.SwitchNoValue");
+            }
+
+            return how.Length == 0 ? value : $"{value} {how}";
+        }
+    }
+
+    /// <summary>
+    /// The one sentence a flow action stands for, or null when this step is some other action.
+    /// Every branch keeps the field names out of the sentence: the row already says which action
+    /// it is, and "次数 = 10" is the form's way of asking rather than the reader's way of saying.
+    /// </summary>
+    private string? FlowDetail() => Type switch
+    {
+        "control.repeat" => FlowRepeat,
+        "control.for" => FlowFor,
+        "control.forEach" => FlowForEach,
+        "control.while" => FlowWhile,
+        "control.waitUntil" => FlowWaitUntil,
+        "control.try" => FlowTry,
+        "control.ask" or "control.input" => Text("message").Trim(),
+        "control.runMacro" => FlowCall,
+        _ => null,
+    };
+
+    private string FlowRepeat
+    {
+        get
+        {
+            var times = Text("times").Trim();
+            if (times.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var sentence = Strings.Format("Editor.FlowRepeat", times);
+            var interval = Text("intervalMs").Trim();
+            if (interval.Length > 0 && SpansTime(interval))
+            {
+                sentence = Strings.Format("Editor.FlowInterval", sentence, interval);
+            }
+
+            return WithResults(sentence);
+        }
+    }
+
+    private string FlowFor
+    {
+        get
+        {
+            var from = Text("rangeFrom").Trim();
+            var to = Text("rangeTo").Trim();
+            if (from.Length == 0 || to.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var sentence = Strings.Format("Editor.FlowFor", from, to);
+            var step = WholeNumber(Text("stepSize").Trim());
+            if (step > 0)
+            {
+                sentence = Strings.Format("Editor.FlowForUp", sentence, step.Value);
+            }
+            else if (step < 0)
+            {
+                sentence = Strings.Format("Editor.FlowForDown", sentence, -step.Value);
+            }
+
+            var name = Text("name").Trim();
+            if (name.Length > 0)
+            {
+                sentence = Strings.Format("Editor.FlowForNamed", sentence, name);
+            }
+
+            return WithResults(sentence);
+        }
+    }
+
+    private string FlowForEach
+    {
+        get
+        {
+            var items = Text("items").Trim();
+            if (items.Length == 0)
+            {
+                return Strings.Get("Editor.FlowNoItems");
+            }
+
+            var sentence = Strings.Format("Editor.FlowForEach", items);
+            if (string.Equals(Text("reverse").Trim(), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                sentence = Strings.Format("Editor.FlowReverse", sentence);
+            }
+
+            return WithResults(sentence);
+        }
+    }
+
+    private string FlowWhile
+    {
+        get
+        {
+            var condition = Text("condition").Trim();
+            if (condition.Length == 0)
+            {
+                return Strings.Get("Editor.IfNoCondition");
+            }
+
+            var limit = Text("maxIterations").Trim();
+            var sentence = limit.Length == 0
+                ? condition
+                : Strings.Format("Editor.FlowAtMost", condition, limit);
+
+            var interval = Text("intervalMs").Trim();
+            if (interval.Length > 0 && SpansTime(interval))
+            {
+                sentence = Strings.Format("Editor.FlowInterval", sentence, interval);
+            }
+
+            return WithResults(sentence);
+        }
+    }
+
+    private string FlowWaitUntil
+    {
+        get
+        {
+            var condition = Text("condition").Trim();
+            return condition.Length == 0
+                ? Strings.Get("Editor.IfNoCondition")
+                : WithResults(condition);
+        }
+    }
+
+    /// <summary>
+    /// How the attempt is built: three lists of steps, and the only thing worth saying on the row
+    /// is how much sits in each. The counts come from the lists themselves, so a row cannot claim
+    /// a block has steps it does not have.
+    /// </summary>
+    private string FlowTry
+        => WithResults(Strings.Format("Editor.FlowTry",
+            StepsIn("body"), StepsIn("catch"), StepsIn("finally")));
+
+    private string FlowCall
+    {
+        get
+        {
+            var macro = Text("macro").Trim();
+            return macro.Length == 0 ? Strings.Get("Editor.FlowNoMacro") : WithResults(macro);
+        }
+    }
+
+    /// <summary>What the step hands over, added as a closing clause when it hands anything over.</summary>
+    private string WithResults(string sentence)
+    {
+        var returns = Parameters.FirstOrDefault(parameter => parameter.Kind == ActionParameterKind.Returns);
+        if (returns is null || returns.Rows.Count == 0)
+        {
+            return sentence;
+        }
+
+        var kept = Strings.Format("Editor.FlowReturns", returns.Rows.Count);
+        return sentence.Length == 0 ? kept : Strings.Format("Editor.FlowWithResults", sentence, kept);
+    }
+
+    private int StepsIn(string name)
+        => Parameters.FirstOrDefault(parameter => parameter.Name == name)?.Steps.Count ?? 0;
+
+    /// <summary>
+    /// Whether the cell asks for a wait. An expression counts as one: it is read at run time, so
+    /// the row cannot tell, and leaving the clause in is the honest reading.
+    /// </summary>
+    private static bool SpansTime(string text) => WholeNumber(text) != 0;
+
+    /// <summary>The number as written, or null when the cell holds an expression instead.</summary>
+    private static int? WholeNumber(string text)
+        => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            ? number
+            : null;
+
+    /// <summary>Localized label of a parameter, falling back to its raw name.</summary>
+    public string ParameterLabel(StepParameter parameter)
+        => ParameterDefinition(parameter)?.LocalLabel ?? parameter.Name;
+
+    /// <summary>Choice values are shown with their display text, everything else as typed.</summary>
+    private string DescribeValue(StepParameter parameter)
+    {
+        if (parameter.Kind is ActionParameterKind.Choice
+            && ParameterDefinition(parameter) is { } definition)
+        {
+            return Strings.Get($"{definition.OwnerKey}.{definition.Name}.option.{parameter.Value}",
+                parameter.Value);
+        }
+
+        return parameter.Value;
+    }
+
+    /// <summary>The catalogue entry for a parameter of this step, or null when it is unknown.</summary>
+    public ActionParameter? ParameterDefinition(StepParameter parameter)
+        => Definition?.Parameters.FirstOrDefault(parameterDefinition =>
+            parameterDefinition.Name == parameter.Name);
+
+    /// <summary>The text of a named parameter, or nothing when the step has no such parameter.</summary>
+    /// <remarks>
+    /// Read by the things that look at a step without running it — the design-time check and the
+    /// dialog that fills one in — which is the same question the engine asks of the step it runs.
+    /// </remarks>
+    public string Text(string name)
+        => Parameters.FirstOrDefault(parameter => parameter.Name == name)?.Value ?? string.Empty;
+
+    /// <summary>
+    /// Collects the variables this step creates, including the ones nested inside it,
+    /// so the variable pickers can offer them.
+    /// </summary>
+    public void CollectVariables(ICollection<string> names)
+    {
+        foreach (var parameter in Parameters)
+        {
+            switch (parameter.Kind)
+            {
+                case ActionParameterKind.Steps:
+                    foreach (var child in parameter.Steps)
+                    {
+                        child.CollectVariables(names);
+                    }
+                    break;
+                // The results a step hands over are named one by one on the returns page, so what
+                // this step creates is read from those rows rather than from a single value.
+                case ActionParameterKind.Returns:
+                    foreach (var (_, name) in ReturnedResults(parameter))
+                    {
+                        names.Add(name);
+                    }
+                    break;
+                default:
+                    if (DefinesVariable(parameter)
+                        && !(Type == "control.setVariable"
+                             && string.Equals(Text("scope").Trim(), "global",
+                                 System.StringComparison.OrdinalIgnoreCase))
+                        && !string.IsNullOrWhiteSpace(parameter.Value))
+                    {
+                        names.Add(parameter.Value.Trim());
+                    }
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    /// The results this step was told to hand over, in the order they are written: one per ticked
+    /// result, each row of the <c>returns</c> parameter carrying the key of the result and the name
+    /// it goes by.
+    /// </summary>
+    public IEnumerable<(string Key, string Name)> ReturnedResults(StepParameter parameter)
+    {
+        foreach (var row in parameter.Rows)
+        {
+            var name = row.Text(FieldNames.Name).Trim();
+            if (name.Length > 0)
+            {
+                yield return (row.Text(FieldNames.Key).Trim(), name);
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when the parameter creates a variable rather than referencing one. What a step leaves
+    /// behind is now named one result at a time on the returns page, so this is left with the names
+    /// that are part of writing the step itself: the loop's own variables, and the name a "set
+    /// variable", "calculate" or "create list" step writes into.
+    /// </summary>
+    public bool DefinesVariable(StepParameter parameter) => DefinesVariable(Type, parameter.Name);
+
+    /// <summary>
+    /// The same question asked of a step that is still being written, which is a type and a field
+    /// name rather than a step: the dialog has both while the step is on the screen, and asking it
+    /// this way keeps one answer to "which fields have a macro make a variable" rather than two.
+    /// </summary>
+    public static bool DefinesVariable(string? type, string parameterName) => parameterName switch
+    {
+        "itemVariable" or "indexVariable" => true,
+        "name" => type is "control.setVariable"
+            or "control.for",
+        _ => false,
+    };
+
+    /// <summary>Builds the <c>{ "type": …, "params": { … } }</c> node for this step.</summary>
+    public JsonObject ToJson()
+    {
+        var parameters = new JsonObject();
+        foreach (var parameter in Parameters)
+        {
+            parameters[parameter.Name] = parameter.ToJson();
+        }
+
+        var node = new JsonObject
+        {
+            ["type"] = Type,
+            ["params"] = parameters,
+        };
+
+        // Written only when there is one, so a step edited by hand or saved by an older build
+        // still round-trips exactly as it was.
+        if (Id.Length > 0)
+        {
+            node["id"] = Id;
+        }
+
+        // How much a length of time may move is written beside the parameters rather than inside
+        // them, so a step saved before this existed still reads back exactly as it was.
+        var jitter = new JsonObject();
+        foreach (var parameter in Parameters.Where(parameter => parameter.HasJitter))
+        {
+            jitter[parameter.Name] = JsonValue.Create(parameter.Jitter);
+        }
+
+        if (jitter.Count > 0)
+        {
+            node["jitter"] = jitter;
+        }
+
+        if (!Meta.IsEmpty)
+        {
+            node["meta"] = Meta.ToJson();
+        }
+
+        return node;
+    }
+
+    /// <summary>Rebuilds a step from the JSON node written by <see cref="ToJson"/>.</summary>
+    public static MacroStep FromJson(JsonObject node)
+    {
+        var step = new MacroStep
+        {
+            Type = node["type"]?.GetValue<string>() ?? string.Empty,
+            Id = node["id"]?.GetValue<string>()?.Trim() ?? string.Empty,
+            Meta = StepMeta.FromJson(node["meta"] as JsonObject),
+        };
+
+        if (node["params"] is JsonObject parameters)
+        {
+            var definition = ActionCatalog.Find(step.Type);
+            var jitters = node["jitter"] as JsonObject;
+            foreach (var (name, value) in parameters)
+            {
+                step.Parameters.Add(
+                    StepParameter.FromJson(name, value, definition, JitterOf(jitters, name)));
+            }
+        }
+
+        step.EnsureDeclaredLists();
+
+        return step;
+    }
+
+    /// <summary>Reads the give a parameter was written with, or zero when it has none.</summary>
+    private static decimal JitterOf(JsonObject? jitters, string name)
+        => jitters?[name] is JsonValue value && value.TryGetValue<decimal>(out var fraction)
+            ? Math.Max(0m, fraction)
+            : 0m;
+}

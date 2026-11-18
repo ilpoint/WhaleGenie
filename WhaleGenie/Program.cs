@@ -7,7 +7,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Platform.Windows;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Runtime;
@@ -39,7 +38,7 @@ sealed class Program
 
         AppDomain.CurrentDomain.UnhandledException += (_, error) =>
             AppDiagnostics.Record("process.unhandled",
-                error.ExceptionObject as Exception ?? new InvalidOperationException(error.ExceptionObject?.ToString()));
+                error.ExceptionObject as Exception ?? new Exception(error.ExceptionObject?.ToString()));
         TaskScheduler.UnobservedTaskException += (_, error) =>
         {
             AppDiagnostics.Record("process.task", error.Exception);
@@ -94,7 +93,8 @@ sealed class Program
                 return 2;
             }
 
-            return McpHeadless.Run(options);
+            App.Headless = options;
+            return RunHeadless();
         }
 
 #if DEBUG
@@ -135,6 +135,9 @@ sealed class Program
     /// Runs with no window. The lifetime is asked to end only when told to, because a lifetime that
     /// ends with its last window would end immediately when there is no window at all.
     /// </summary>
+    private static int RunHeadless()
+        => BuildAvaloniaApp().StartWithClassicDesktopLifetime([], ShutdownMode.OnExplicitShutdown);
+
     private static void Run(string[] args)
     {
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);

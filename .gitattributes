@@ -4,12 +4,6 @@
 * text=auto
 
 ###############################################################################
-# Git 钩子由 bash 读取，必须保持 LF；基线是逐行格式，也不随各机器换行习惯变化。
-###############################################################################
-.githooks/pre-commit text eol=lf
-.githooks/large-file-inventory.tsv text eol=lf
-
-###############################################################################
 # Set default behavior for command prompt diff.
 #
 # This is need for earlier builds of msysgit that does not have it on by

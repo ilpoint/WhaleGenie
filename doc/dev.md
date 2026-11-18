@@ -1,0 +1,435 @@
+﻿# WhaleGenie 开发说明
+
+本文件说明如何构建、修改、验证和发布 WhaleGenie。长期规范见仓库根目录的
+[AGENTS.md](../AGENTS.md)，当前实现结构见 [architecture.md](architecture.md)，未完成工作见
+[roadmap.md](roadmap.md)，用户操作与动作语义见 [manual.md](manual.md)。
+
+## 常用命令
+
+```powershell
+dotnet build WhaleGenie.slnx -c Release
+dotnet test WhaleGenie.slnx -c Release
+dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
+dotnet run --project WhaleGenie
+pwsh build/site.ps1
+```
+
+解决方案只提供 `x64` 平台。根目录 `Directory.Build.props` 统一设置目标平台并将警告视为错误，
+因此构建通过也意味着没有编译警告。
+
+运行测试时不要混用解决方案构建与 `dotnet test <工程> --no-build`：两种调用可能使用不同的输出
+目录。直接运行 `dotnet test <工程> -c Release`，或为构建和测试显式指定相同的
+`-p:Platform=x64`。
+
+动作矩阵与 MCP 自检分别使用：
+
+```powershell
+$env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
+dotnet test WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+Remove-Item Env:ACTION_MATRIX_REPORT
+
+dotnet run --project WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md
+dotnet run --project WhaleGenie -c Release -- --mcp
+```
+
+报告属于本机验证产物，不提交到仓库。MCP 服务使用标准输入输出，不监听网络端口；权限来自
+`settings.json`，命令行不提供权限参数。
+
+## 文档修改与检查
+
+只修改文档时，至少运行：
+
+```powershell
+git diff --check
+```
+
+并检查 Markdown 相对链接：
+
+```powershell
+$files = @("README.md", "AGENTS.md") + (Get-ChildItem doc\*.md).FullName
+$missing = foreach ($file in $files) {
+  $resolved = Resolve-Path $file
+  $base = Split-Path $resolved
+  $text = Get-Content -Raw $resolved
+  foreach ($match in [regex]::Matches($text, '\]\(([^)]+)\)')) {
+    $target = $match.Groups[1].Value.Split('#')[0]
+    if ($target -and $target -notmatch '^[a-z][a-z0-9+.-]*:' -and $target -notmatch '^/') {
+      if (-not (Test-Path (Join-Path $base $target))) { "$resolved -> $target" }
+    }
+  }
+}
+if ($missing) { $missing; exit 1 }
+```
+
+修改手册函数表、失败键表或文案时，还需运行对应的 `FunctionTableTests`、`FailureKeyTests` 或
+`LocalizationTests`。测试失败须先定位原因；偶发失败也不得仅凭一次重跑通过就直接放行。
+
+## 文档职责与事实来源
+
+| 文档 | 职责 | 不应包含 |
+| --- | --- | --- |
+| `README.md` | 项目简介、启动方式和文档入口 | 动作细节、工程命令、未完成计划 |
+| [manual.md](manual.md) | 已实现的用户行为、动作、字段、失败键与限制 | 实现细节、发布流程、未来行为 |
+| `AGENTS.md` | 长期定位、开发规范、跨子系统约定 | 操作手册、阶段计划、完成历史 |
+| `doc/dev.md` | 命令、依赖、修改流程、测试、出图、CI 与发布 | 子系统详细设计、路线排序 |
+| [architecture.md](architecture.md) | 三个产品工程、依赖方向、主链路、子系统边界与当前限制 | 操作命令、逐字段用户语义、阶段计划 |
+| [roadmap.md](roadmap.md) | 未完成阶段、依赖、验收、待评估事项与非目标 | 已完成清单、工期、重复的开发规范 |
+| [mcp-usability.md](mcp-usability.md) | MCP 自检指标与遗留项 | 未由检查支撑的评价 |
+| [performance.md](performance.md) | 抓屏、识别与检测的单位成本及量法 | 用户教程、阶段计划 |
+
+事实来源按以下规则确定：
+
+- 用户可见行为以 `manual.md` 为准；动作字段的机器可读语义以 `ActionSemantics.json` 为准。
+- 界面展示元数据只放在 `ActionDisplay.json`，不得复制引擎事实。
+- 失败键以 `RunKeys` 与手册失败键表为准，由 `FailureKeyTests` 对账。
+- 当前结构以代码和 `architecture.md` 为准；未完成工作只登记在 `roadmap.md`；变更历史以 git 为准。
+- 文档中的数量、体积和耗时必须可重新测量。无法保持准确时，不写具体数值。
+
+## 工程结构
+
+| 项目 | 职责 |
+| --- | --- |
+| `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、应用服务、宏文件模型、包读写、触发器、文案和 MCP 宿主 |
+| `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量、设备契约及 Windows 设备实现 |
+| `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
+| `WhaleGenie.Tests` | 界面、包、MCP、文案和文档对账测试，运行于 Avalonia 无头平台 |
+| `WhaleGenie.Core.Tests` | 引擎与动作契约测试，使用替身设备层，不操作真实桌面 |
+| `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用和矩形落位测试；真实 Windows 取画面另行手动验收 |
+
+依赖方向和主要类型见 [architecture.md](architecture.md)。开发时不必在本文重复维护文件规模、
+动作数量或测试数量。
+
+## 主要依赖
+
+版本以各项目文件为准，本节只说明用途。新增依赖时同步更新本节和
+`THIRD-PARTY-NOTICES.md`。
+
+| 依赖 | 使用位置与用途 |
+| --- | --- |
+| `SharpHook` | Core：全局键鼠钩子、前台输入、录制和拾取 |
+| `libVIIPER` | Core：驱动级虚拟键鼠和 Xbox 360 手柄；原生库位于 `third_party/libVIIPER/` |
+| `OpenCvSharp5.Windows` | Core：找图、找色和 YOLO 检测 |
+| `Sdcb.SimdPaddleOCR`、`Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny` | Core：离线 OCR 与中文模型 |
+| `FlaUI.UIA3` | Core：UI Automation 查询与操作 |
+| `Microsoft.Playwright` | Core：浏览器自动化，默认使用系统 Edge |
+| `CsvHelper` | Core：CSV 的引号、换行、空行和行尾处理 |
+| `Microsoft.CodeAnalysis.CSharp` | Core：编译 C# 脚本 |
+| `NuGet.Protocol`、`NuGet.Packaging`、`NuGet.Frameworks`、`NuGet.Versioning` | Core：下载并解析脚本使用的 NuGet 包 |
+| `System.Security.Cryptography.Pkcs` | Core：固定安全修复版本，避免 NuGet 审计警告阻断还原 |
+| `Vortice.Direct3D11`、`Vortice.DXGI` | GraphicsCapture：Windows Graphics Capture 与桌面复制 |
+| `Avalonia`、`Avalonia.Desktop`、`Avalonia.Fonts.Inter` | 界面：桌面应用、输入、渲染和统一字体 |
+| `FluentAvaloniaUI` | 界面：`FluentAvaloniaTheme`、控件模板和 `FAAppWindow` 标题栏 |
+| `Avalonia.Controls.DataGrid` | 界面：表格展示与编辑 |
+| `Avalonia.Controls.ColorPicker`、`Avalonia.Themes.Fluent` | 界面：自定义强调色及相关 Fluent 资源；应用主主题由 FluentAvalonia 提供，ColorPicker 样式文件来自 ColorPicker 包 |
+| `CommunityToolkit.Mvvm` | 界面：可观察属性和源生成命令 |
+| `Lucide.Avalonia` | 界面：动作、工具栏和菜单图标 |
+| `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | 界面：stdio MCP 服务、工具发现与通用宿主 |
+| `AvaloniaUI.DiagnosticsSupport` | 仅 Debug：界面诊断支持 |
+
+## 修改动作的流程
+
+1. **检索现有契约。** 在动作目录、`MacroRunner`、`MacroCheck`、手册和测试中检查动作键、字段名、
+   记录字段及同义概念，优先复用现有名称。
+2. **修改语义目录。** 在 `WhaleGenie.Core/Execution/ActionSemantics.json` 声明动作分类、参数、
+   读法、形状、单位、空值、范围、默认值、必填与选项失败键、拾取器、副作用、等待、子列表和返回值。
+3. **实现引擎分派。** 在对应的 `MacroRunner.<Family>.cs` 中增加分派和实现。读值与范围检查使用目录，
+   记录字段使用 `FieldNames`，不得按 `type` 前缀推断行为。
+4. **更新展示与文案。** 在 `ActionDisplay.json` 维护标签、提示、编辑器种类和页面归属；同步更新
+   `Strings` 与 `ActionStrings`。图标映射位于 `ViewModels/AppIcons.cs`，菜单图标键位于
+   `ViewModels/MenuIconCatalog.cs`。
+5. **补齐失败键。** 新失败键同时进入 `RunKeys` 和手册失败键表；日志键使用独立的 `Log.*` 词表。
+6. **补齐页面与返回值。** 参数只归属于一个页面；返回值页、目录声明、引擎写入键和记录字段保持一致。
+7. **增加自动化用例。** 至少一条引擎用例执行新动作，并补充读法、形状、范围、副作用、返回形状、
+   失败键、页面、文案及结果清空等契约断言。
+8. **删除被取代的形状。** 同版移除旧参数、开关、文案、测试和文档，不保留别名或双读；不兼容的
+   文件形状变化须升级包格式版本。仅删除可安全忽略的字段时可以保持版本，但不得增加迁移逻辑。
+9. **完成手动验收。** 涉及真实桌面行为时，按本文手动清单记录环境、步骤和观察结果。
+10. **收尾验证。** 更新手册、依赖与许可说明；完成路线图对应事项后删除该事项；运行构建、全部测试和
+    格式检查。
+
+## 测试分层与契约
+
+| 层 | 位置 | 验证范围 |
+| --- | --- | --- |
+| 引擎逻辑 | `WhaleGenie.Core.Tests` | 动作行为、变量、表达式、设备请求、返回形状和输入路由 |
+| 动作矩阵 | `WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
+| 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用、矩形越界与图片落位 |
+| 界面与应用 | `WhaleGenie.Tests` | 参数成型、绑定、触发器、包往返、MCP、文案和无头交互 |
+| 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
+| 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
+| 界面观感 | agent 自省通道（Debug）连运行中的程序读树、点、截图
+契约测试应遍历目录或扫描源码，避免手写第二份动作清单。新增目录事实时先增加可失败的断言，
+再修改实现。主要对账关系如下：
+
+| 契约 | 主要用例 |
+| --- | --- |
+| 字段读法、形状、单位、空值、范围、位置与矩形 | `ExpressionFieldTests`、`ActionContractTests`、`ValueReadTests`、`ActionPageTests` |
+| 参数约束、行列表、类型检查和设计期诊断 | `MacroRunnerTests`、`MacroCheckTests`、`ActionContractTests` |
+| 宏声明、直接运行、调用参数和结果交付 | `MacroSignatureTests`、`MacroCallTests`、`RunDebugTests` |
+| 输入副作用、互斥门和宏调用图 | `ActionContractTests`、`DeviceActionTests`、`MacroRunnerTests` |
+| 返回页、引擎返回键和记录字段 | `ReturnsPageTests`、`ActionContractTests`、`DeviceActionTests` |
+| 失败键、函数表和中英文文案 | `FailureKeyTests`、`FunctionTableTests`、`LocalizationTests` |
+| 字段命名与步骤落点 | `FieldNameTests`、`StepPlacementTests`、`MacroEditorWorkspaceTests` |
+| 依赖方向与主题资源 | `LayeringTests`、`ControlsRegistryTests`、`StyleVocabularyTests`、`TemplatePartTests` |
+
+**保留同名**（同 `Kind`、`Shape`、读法；选项或标签随动作变化，理由写在这里）
+
+| 名字 | 保留理由 |
+| --- | --- |
+| `anchorMode` | 识别方式只有屏幕与窗口两档，是基础设置第一行；窗口规则紧随其后且只在窗口档显示 |
+| `body` | 都是子步骤列表；标签按容器叫“试运行 / 接住 / 收尾 / 分支”，名字不必跟着容器换 |
+| `button` | 手柄按键与鼠标按键共用“哪个键”这个词，但选项表由动作给出 |
+| `color` | 都是颜色；标签统一为“颜色” |
+| `tolerance` | 都是容差；标签统一为“容差 %”，说明文字按动作写清它容的是颜色还是画面 |
+| `confidence` | 都是匹配可信度；标签统一为“置信度（%）” |
+| `dataText` | 都是要编码、解码或摘要的文本；标签说明这一次拿它做什么 |
+| `encoding` | 都是文本编码；读取脚本时另多一档自动 |
+| `elementState` | 都是页面上元素的可见或存在状态 |
+| `folder` | 都是文件夹路径，都是文本框；标签说明它是工作目录、解包位置还是下载位置 |
+| `force` | 都是“仍然继续”；标签说明继续的是什么 |
+| `from` | 都是来源路径；标签说明复制、移动还是解压 |
+| `height`、`width` | 都是长度；标签说明方向 |
+| `holdMs` | 都是按住多久 |
+| `inputMode` | 都是键鼠输入方式；相对移动只提供前台与驱动级，不提供后台 |
+| `intervalMs` | 都是间隔；标签统一为“间隔”，提示说明隔开的是什么；原来的 `pollMs` 已并到这里 |
+| `items` | 都是初始项或要遍历的项 |
+| `kind` | 都问“哪一种”：脚本的 `kind` 是交给谁跑，列文件的 `kind` 是收文件还是收文件夹，选项各随动作 |
+| `macro` | 都是“调用哪一个宏”；「执行子宏」这一格叫「子宏」，已退役的「启动其他宏」仍写「宏」 |
+| `matchMode` | 都是文字比较的五档词，改名后只剩这一个用途 |
+| `maxRows` | 都是最多读多少行 |
+| `message` | 都是给人看或问的一句话，都是多行文本框 |
+| `name` | 都是要写入或使用的变量名；标签说明它是计数器、列表还是变量 |
+| `orderBy` | 都是“有多处命中时选哪一处”，随机只出现在适用处 |
+| `path` | 都是文件或文件夹路径；标签说明用途 |
+| `points` | 都是颜色点列表 |
+| `queryText` | 都是要在屏幕上找的文字 |
+| `recurse` | 都是“连里面一起”；标签说明删子项还是列子文件夹 |
+| `repeat` | 都是重复次数 |
+| `separator` | 都是分隔符；读取时另多一档自动 |
+| `skipBlankLines` | 都是“空行不算”；标签说明读取时跳过还是写入时留下 |
+| `to` | 都是目标路径；标签说明复制、移动还是压缩 |
+| `trim` | 比较前去掉两端的空格；只在「等于 / 不等于」出现，默认开。读文件时的整行或整格去空格另叫 `trimLines` / `trimCells` |
+| `value` | 剩下的都是要存或要算的一个值，同为表达式控件；标签说明它在动作里的角色 |
+| `writeMode` | 都是覆盖还是追加；两种写入的选项文案各说各的对象 |
+| `x`、`y` | 都是坐标；标签说明是左上角还是单点。字面量写法仍用这两格，记录写法走 `place` / `rect` |
+
+同名字段的新增例外必须同时写入本表，并由 `FieldNameTests` 核对。
+
+### 界面与无头测试注意事项
+
+- 主题资源查询须携带 `ActualThemeVariant`。属性需要跟随主题时使用 `DynamicResource` 或
+  `ThemeBrush.Assign`；`ThemeBrush.Of` 只提供快照。
+- 验证样式时读取模板中实际接收颜色或状态的部件，不能只读控件静息属性。需要按名称命中模板部件时，
+  使用 `TemplatePartTests` 验证部件存在。
+- 普通窗口继承 `AppWindow`。无头平台的 `HWND` 为 0，`AppWindow` 已处理 FluentAvalonia 的句柄表；
+  标题栏的实际外观仍需在真机检查。覆盖层不强制继承 `AppWindow`。
+- 带内容的窗口在构造函数里调用 `WindowChrome.Attach(this)`，不要自己搭标题栏：它负责把标题栏交给
+  内容、画鲸鱼与标题、留出系统按钮的宽度。漏掉它的窗口会退回库的默认标题栏——没有鲸鱼，也拖不动；
+  `WindowChromeTests` 核对这一点。
+- `DataTemplate` 内不使用 `x:Name` 作为实例定位手段。按类名查找元素时同时限定具体控件类型，
+  避免继承关系导致多个匹配。
+- 修改样式类时同时添加类并移除与其重复的本地属性；样式不设置由布局决定的宽、高或对齐。
+- 列表行的高度写下限（`MinHeight`），不写定高。步骤行是两行字，名称与徽标还会换行；`Height` 定死之后
+  多出来的那一行压到卡片边线下面，看起来只是"字被边框挡住"，而行本身没有任何报错。
+  `MacroEditorTests` 核对行高不小于卡片高度。
+- 一行里并排的东西各占一列。同一个 `Grid` 单元格里放两个元素，它们会叠在一起而不是左右排开，
+  而且叠上去的那个往往有底色：运行调试的步骤缩略图就这样盖住过「第 1 次 20 毫秒」。
+  `RunLookTests` 用两个元素的矩形是否相交来核对这一点。
+- 提示只挂在说到它的那个小部件上。整张卡片挂一条 ID 提示，等于指针落在任何一处都弹同一句、
+  挡住正文；`MacroEditorTests` 核对卡片上没有提示、ID 徽标上有。
+- 一个参数模板里画着好几支（单行、数字、多行、变量…），只有一支显示，其余仍会生成控件。
+  在测试里按 `DataContext` 加按钮文字去找会命中多枚，`IsVisible` 也仍是 `true`（局部值不看祖先）；
+  要按位置找，或直接断言模型上的标志与行集合。
+- 由工具写入的值在显示数据里标 `WrittenByTool`（不是语义里的 `Hidden`：契约测试禁止显示层重复
+  引擎字段名），`BuildRows` 据此不给它生成行。值本身照常保存、校验，并在写入它的那扇窗里编辑。
+- 控件模板的归属要查清楚。`FluentAvaloniaTheme` 覆盖大部分 Avalonia 控件，但 `ContextMenu` 没有：
+  删掉 `Themes/Controls.axaml` 里那份模板，所有右键菜单都会打开却什么都不画，而无头用例不会发现。
+  菜单类改动在无头里能验证的是主题存在、菜单有尺寸与 `ItemsPresenter`（`MenuThemeTests`）；
+  外观与落点仍需真机检查。
+- 读屏幕的图必须经过 `ScreenReady`，不要直接 `screen.Capture`：桌面复制器会把隐藏前的画面继续交出来，
+  `DwmFlush` 并不能保证新帧已经到了。拾取器、框选后的成图和单步试看都走这一条。
+- 一个矩形的四个数（`vision.capture`、`ocr.recognize` 的 x/y/width/height）现在压在一行里，
+  每格是 `NumberCellViewModel`（短名 + 框 + ƒ），不再各自是一个参数对象：测试里按参数
+  `DataContext` 找数字框会落空，要看 `ParameterRowViewModel.IsQuad` 与 `QuadCells`，或者按可见的
+  数字框找。格与参数之间的同步在 `ParameterRowViewModel.Cell` 里，数字字段要连 `NumberValue`
+  一起写，只写 `Text` 会让框里有字、步骤却是空的。
+- 拾取窗口的检查用 `WindowRuleWindow.Picking` 换掉桌面那一步，不真的让位与指窗口；拾取器本身
+  （`WindowPickWindow`）用 `ProbeAt`/`Confirm` 驱动，和元素拾取器一样。
+- 拾取器的确认键要从 `IInputHook` 读，不能只靠窗口自己的 `KeyDown`：拾取器开在最上面，但 Windows
+  不保证把前台交给它，交不出去时 F1/Esc 就落到别的窗口上了。`RegionPickerWindow` 与 `WindowPickWindow`
+  都同时挂了钩子与窗口按键，`Finish` 只做一次。
+- `WindowPickWindow` 的鼠标事件不设 `Suppress`：拾取时还要点别的窗口、点任务栏启动应用。取走只由 F1
+  决定，左键最多把框挪过去。窗口让位期间，`WindowRuleWindow.OnLocalKeyDown` 要跳过 Esc——焦点可能还在
+  那个藏起来的窗口里，否则一下 Esc 会把对话框本身关掉。
+- `ocr.recognize` 的矩形是一张 `region` 列表（与找色、找字同一个参数），不再有 `x`/`y`/`width`/`height`/`rect`。
+  核心测试用 `Region((x, y, w, h))` 或 `RegionFrom("$record")`，界面测试看 `StepParameterViewModel.Regions`
+  与 `ApplyRegion`（它往列表里加一行）。`vision.capture` 仍是四个数，两边的界面结构不同是有意的。
+
+- 「还要像什么样」(`narrow`) 现在两族共用一张行表，但问的事不同，由目录声明：
+  `ActionSemantics.NarrowOn` 取 `Page` 或 `Element`，`ActionParameter.NarrowFamily` 读它，
+  `NarrowWay.For(family)` 给出该族的选项（网页六种：里面 / 含有文字 / 不含 / 有元素 / 没有元素 /
+  看得见；桌面元素四种：看得见 / 能用 / 名字含 / 名字不含）。空着或写了不认识的族会抛异常，
+  `Every_narrow_list_says_which_family_it_asks_about` 守着这一条。网页行上的「从页面选取」
+  「看看效果」两颗按钮由 `NarrowRowViewModel.OnPage` 决定画不画。
+- 桌面的窄条件读成 `UiCondition`（`UiConditionHow` + 值），从步骤的 `narrow` 行读；
+  `FlaUiDevice.Matches` 逐条比，`Search` 在有窄条件时走「先按选择器缩，再逐项比」那条路。
+  不认识的 `how` 报 `Run.ElementBadCondition`，这一条同时登记在 `doc/manual.md` 的失败键表里。
+- 动作名：`uia.*` 说「界面」、`browser.*` 说「网页」；`No_two_actions_are_called_the_same_thing`
+  直接读 `Strings.Chinese` / `Strings.English` 两张表来查重，不要改全局语言——测试并行跑，
+  换语言会改到别人正在读的表。
+
+- 已知抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`
+  与 `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing` 在**全量**跑时偶发失败
+  （单跑、单类跑都过），两条都动 `VariableCatalog.Globals` / `SharedVariables` / `PersistentVariables`
+  这类进程级状态。全量跑时 `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`
+  也偶发同一种挂法（单跑通过），同样是进程级状态；`GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`
+  全量跑时也遇到过一次（单跑通过）；`LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types`
+全量跑时也偶发（单跑通过）；`StepTreeTests.Double_clicking_a_step_inside_a_block_edits_that_step`
+  在全量跑时偶尔不认第二次点击（连续三次单跑都过），属于同一种"机器忙时手势计时被拉长"。
+再遇到时先确认是不是只有全量跑才挂，别急着改被测代码。
+
+- 修改类名、资源键或选择器后，检索 XAML、代码和测试中的旧引用，并运行全量测试。
+- 会弹出模态确认的窗口必须在原用例中完成回答和关闭，可使用 `Ui.CloseAndAnswer` 或
+  `Ui.AnswerUnsavedWork`，避免遗留调度器循环。
+- 等待条件使用事件、`TaskCompletionSource` 或 `Ui.Until`，不使用固定睡眠推断异步操作已完成。
+- 修改全局状态的测试使用 `[RestoreSharedState]` 并在界面线程还原；共享变量值由相关用例自行清理。
+
+### 看图与看运行中的程序
+
+调试版里开着一条给 agent 的界面自省通道（`Declarative.Avalonia.AgentTools`，只在 Debug 编译，
+Release 既不还原这个包也不注册它）：进程起来后在 `127.0.0.1:5599` 上跑一个 loopback 的 MCP，
+可以读视觉树、读布局、点、输入、按键、截图，**看的是真的那一扇窗，不是无头重绘**。这是首选的
+查看方式——离屏渲染看不出真实的字体、主题、滚动条和 POPUP。
+
+```bash
+# 1. 按 x64 编调试版（见下面那一段，路径别弄错），把它放到后台跑起来
+#    前台跑会一直占着这次调用，超时被杀；后台跑才连得上
+WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
+
+# 2. 在 agent 里连它：先 get_app_info 认路，再按需取图与操作
+#    get_app_info            → 有哪几扇窗、主题、焦点、开着几个 popup
+#    screenshot_window       → 整扇窗（maxWidth 压到 1100 以内够看版式）
+#    screenshot_region       → 放大看一块（scale=3，最近邻，字不会糊）
+#    hit_test / find_text    → 坐标反查控件、按文字找控件
+#    tap / click_at / invoke / type / key → 真的合成输入，流程能一路点下去
+#    get_errors              → 绑定错误、转换器错误、事件里的异常
+```
+
+MCP 的连接方式（`~/.workbuddy/mcp.json` 里的 `avalonia-agent-inspector`，`streamableHttp`，
+`http://127.0.0.1:5599`）由使用者配置；程序这边只负责在 Debug 下把服务开起来。
+`EnableInteraction` 打开后才有 `tap`/`invoke`/`type` 这一类真驱动界面的工具，只读那一层默认就有。
+
+**踩过的坑，按发生频率排**：
+
+- **进程必须在后台活着**。这条路连的是"一扇正在跑的窗口"，进程退出就没有可看的东西。在 shell 里用
+  `&` 起进程不算后台：调用一返回它就被收走，下一次 `get_app_info` 直接报 POST 失败。用工具自带的
+  后台运行起进程；前台跑会一直占着这次调用，超时被杀，等于什么都没看。
+- **发的是旧二进制**。调试版的输出在 `bin/x64/Debug/<框架>/`，而 `dotnet build WhaleGenie/WhaleGenie.csproj`
+  默认写到 `bin/Debug/<框架>/`——两者不是同一份文件。改完代码要么 `-p:Platform=x64`，要么整解编译；
+  启动前先 `taskkill /IM WhaleGenie.exe /F`，否则文件被锁、跑的还是上一次的进程。
+- **窗口截图里没有 popup**。下拉、`Flyout`、菜单都是独立的 top-level，`screenshot_window` 只画这一扇窗，
+  所以"截图里没看到"不等于"没弹出来"。用 `get_app_info` 的 `Open popups` 计数判断，确实要看图时
+  用程序自己的抓屏读那块屏幕。
+- **交互是异步的**。点完先 `wait_idle` 或再取一次 `get_app_info`，再截图；窗口列表里窗口消失往往
+  就是"按钮按下去、对话框关掉"的证据。
+- **`screenshot_window` 的 `windowId`** 写窗口标题（"宏编辑器"、"动作编辑器"）比写序号稳，序号会随
+  窗口开合变。
+
+## 手动验收清单
+
+按受影响范围选择项目，并在提交信息中记录 Windows 版本、DPI、显示器数量、相关外部程序版本、
+操作步骤和观察结果。环境变化后重新验收受影响项目。
+
+- **输入与取色**：在记事本等现有程序中验证点击、输入、拖选和滚轮；在已知颜色位置验证抓屏取色。
+- **五类拾取器**：框选、取色、点、元素和窗口规则分别进入与退出，检查焦点、Esc、回车、右键、
+  鲸灵窗口隐藏与恢复；在添加动作窗口中至少验证一次。
+- **识别画面上的拾取**（`LookPickWindow`）：点击图片 / 点击文字 / 点击检测到的物体的「拾取点位…」，
+  以及多点找色的「拾取偏移与颜色…」。要验的是偏移以命中中心为原点、点在框外仍然有效、
+  颜色取自打开那一刻的识别画面（不是此刻的屏幕），以及这一步没找到东西时给出说明而不是空窗。
+  多点找色还要验：表单上不再有「周围要对的颜色」一格；「对比色（N 处）」一节（标题、序号/偏移/
+  颜色/色块那一列与拾取按钮）在**容差之后**，拾完后这一列随即更新；拾取器打开时带出已有
+  那几处，确定后整张表写回、取消不改；圆点与列表上的序号对得上；拖圆点改一条、右键圆点出菜单、
+  空白右键不多条、滚轮键单击新增；左上的「+」与每行「编辑…」都开得出一行三框、框末带表达式的窗口。
+- **定格与框选**：取色后移动背景窗口或播放视频，确认读数仍来自打开时的画面；框选图不得包含鲸灵窗口。
+- **FluentAvalonia 窗口**：在深色和浅色主题下检查标题栏、窗口控制按钮、扩展标题栏拖动、文本对比度和
+  关键控件布局。
+- **驱动级输入**：安装 usbip-win2，分别验证启动时加载与否、键鼠动作和手柄；退出后确认虚拟设备已移除。
+- **识别与录制**：验证 YOLO 检测、等待与点击落点；验证录制热键、动作翻译和停止流程。
+- **脚本与依赖**：验证批处理、PowerShell、Python、C#、AutoHotkey、包安装及断网失败路径。
+- **编辑器交互**：验证表达式拖放、动作落点、取消与保存、公共宏版本复制及重启后的公共宏库。
+- **其他发布资源**：涉及收款码变更时，分别用手机扫码验证内容。
+
+真实输入须在交互式 Windows 会话中验证。不要通过落入会话 0 的 SSH 会话判断桌面输入或窗口行为。
+
+## 界面出图
+
+界面截图用于视觉评审，不作为行为正确性的测试证据。评审时优先用上一节的 agent 自省通道截**运行中
+的窗口**：它画的是真的那一扇窗，主题、字体、DPI 缩放都是真的。
+
+## 介绍页与短片
+
+`site/` 是 GitHub Pages 源目录，`build/site.ps1` 将页面及引用资源组装到 `_site/`。推送到
+`master` 后由 `.github/workflows/pages.yml` 发布；首次使用前需在仓库 Pages 设置中选择
+GitHub Actions。
+
+重录 `site/vibe/index.html` 对应的短片时，使用临时 Playwright 安装和本机 Edge：
+
+```powershell
+npm install --prefix "$env:TEMP\whalegenie-site-tools" playwright-core@1.64.1
+npx --yes playwright@1.64.1 install ffmpeg
+$env:WHALEGENIE_PLAYWRIGHT = "$env:TEMP\whalegenie-site-tools\node_modules\playwright-core"
+node build/record-vibe.mjs .
+```
+
+该脚本生成无声 H.264 短片、海报和社交分享图，发布成品写入 `site/assets/`。手工评审图仍按上一节
+保存到 `%temp%\WhaleGenie`。录制工具不是应用运行依赖，机器需另有 `ffmpeg` 和 Edge。
+
+## 性能测量
+
+抓屏、识别和检测的单位成本记录于 [performance.md](performance.md)。修改画面获取或匹配算法后，
+按该文档的方法重新测量并比较结果。测量程序使用真实引擎设备，先预热，再取多次测量的中位数；
+临时程序不留在仓库中。
+
+## 提交与 CI
+
+`master` 是发布主线。`.github/workflows/ci.yml` 在推送和拉取请求上运行格式检查、构建及全部测试。
+三个测试工程在 CI 中串行执行，避免计时相关用例争用处理器；失败报告保留 7 天，成功运行不保存报告。
+
+需要在本地复现 CI 时，可使用 `act`：
+
+```powershell
+act -W .github/workflows/ci.yml -j build-and-test -P windows-latest=-self-hosted `
+  --env ACT=true --env DOTNET_INSTALL_DIR="$env:LOCALAPPDATA\act-dotnet"
+```
+
+提交信息使用中文并说明原因。手动验收结果须包含环境和观察结果，不能只写“已手动验证”。
+
+## 发布
+
+发布由 `.github/workflows/release.yml` 完成。推送以 `v` 开头的标签，或在 Actions 中手动运行
+Release 工作流并填写版本号：
+
+```powershell
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+标签是压缩包名称和程序集版本的唯一来源。工作流生成两个 Windows x64 包：
+
+| 包 | 运行环境 |
+| --- | --- |
+| `WhaleGenie-<版本>-win-x64.zip` | 需要预装 .NET 10 桌面运行时 |
+| `WhaleGenie-<版本>-win-x64-standalone.zip` | 自包含，无需预装 .NET |
+
+本地打包使用：
+
+```powershell
+pwsh build/package.ps1 -Tag v0.1.1
+```
+
+产物写入已忽略的 `dist/`。发布包采用单文件托管发布，原生库保留在 `lib/`，Playwright 驱动位于
+`.playwright/`；包根包含手册、许可证和第三方说明。只发布 Windows x64，不启用裁剪，以避免 Avalonia、
+UIA 和 OCR 的反射路径被破坏。
+
+程序按 AGPL-3.0 发布，`LICENSE.txt` 保持许可原文，`NOTICE` 保存署名。发布前确认 GitHub Actions
+具有创建 Release 所需的写权限。面向用户的版本说明维护在 `.github/release-notes.md`。

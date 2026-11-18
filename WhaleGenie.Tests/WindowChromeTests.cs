@@ -104,7 +104,7 @@ public class WindowChromeTests
                      "SettingsWindow.axaml.cs",
                  })
         {
-            var source = ViewSource.All(name);
+            var source = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Views", name));
             Assert.Contains("WindowChrome.Attach(this);", source, StringComparison.Ordinal);
         }
     }

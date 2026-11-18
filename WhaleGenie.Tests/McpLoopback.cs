@@ -37,7 +37,7 @@ internal sealed class McpLoopback : IAsyncDisposable
     {
         var (serverIn, clientOut) = LoopbackStream.Pair();
         var (clientIn, serverOut) = LoopbackStream.Pair();
-        var host = AppServices.HostFor(project.Workspace);
+        var host = new McpServerHost(project);
         host.Start(serverIn, serverOut);
         return new McpLoopback(host, clientOut, clientIn);
     }

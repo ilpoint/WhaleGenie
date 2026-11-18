@@ -80,7 +80,7 @@ public class FailedStepAskTests
         var broken = new ExecutableStep
         {
             Type = "input.keyPress",
-            Parameters = [Fields.Text("key", "F5")],
+            Parameters = [new ExecutableParameter { Name = "key", Text = "F5" }],
             Meta = new StepMeta
             {
                 OnError = StepErrorAction.AskUser,

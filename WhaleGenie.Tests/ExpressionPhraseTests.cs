@@ -17,8 +17,8 @@ namespace WhaleGenie.Tests;
 public class ExpressionPhraseTests
 {
     /// <summary>A formula said out loud, with the names WhaleGenie's own variables go by.</summary>
-    private static string Say(ExpressionNode shape)
-        => ExpressionPhrase.Say(shape, VariableCatalog.Spoken);
+    private static string Say(string formula)
+        => ExpressionPhrase.Say(Expression.Parse(formula), VariableCatalog.Spoken);
 
     /// <summary>
     /// Reads the sentences with the interface in Chinese, on the one thread that may change the
@@ -31,7 +31,7 @@ public class ExpressionPhraseTests
     public void The_line_reads_a_formula_built_out_of_formulas()
     {
         InChinese(() => Assert.Equal("取【剪贴板】里的【第1项】的【月份】字段",
-            Say(Formula.Call("field", Formula.Call("get", Formula.Name("sys.clipboard"), Formula.Number("0", 0d)), Formula.Text("月份")))));
+            Say("""field(get($sys.clipboard, 0), "月份")""")));
     }
 
     [Fact]
@@ -50,16 +50,16 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("取【rows】里的【第1项】", Say(Formula.Call("get", Formula.Name("rows"), Formula.Number("0", 0d))));
-            Assert.Equal("取【rows】从第【3】项开始", Say(Formula.Call("slice", Formula.Name("rows"), Formula.Number("2", 2d))));
-            Assert.Equal("取【text】从第【3】个字开始", Say(Formula.Call("substring", Formula.Name("text"), Formula.Number("2", 2d))));
+            Assert.Equal("取【rows】里的【第1项】", Say("get($rows, 0)"));
+            Assert.Equal("取【rows】从第【3】项开始", Say("slice($rows, 2)"));
+            Assert.Equal("取【text】从第【3】个字开始", Say("substring($text, 2)"));
         });
     }
 
     [Fact]
     public void A_place_written_as_a_variable_is_read_out_as_it_stands()
     {
-        InChinese(() => Assert.Equal("取【rows】里的【第i项】", Say(Formula.Call("get", Formula.Name("rows"), Formula.Name("i")))));
+        InChinese(() => Assert.Equal("取【rows】里的【第i项】", Say("get($rows, $i)")));
     }
 
     /// <summary>
@@ -71,11 +71,11 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("取【text】从第【2】个字开始", Say(Formula.Call("substring", Formula.Name("text"), Formula.Number("1", 1d))));
-            Assert.Equal("取【text】从第【2】个字开始，要【3】个字", Say(Formula.Call("substring", Formula.Name("text"), Formula.Number("1", 1d), Formula.Number("3", 3d))));
-            Assert.Equal("随机取一个数", Say(Formula.Call("random")));
-            Assert.Equal("随机取一个数，在【1】到【10】之间", Say(Formula.Call("random", Formula.Number("1", 1d), Formula.Number("10", 10d))));
-            Assert.Equal("现在的时间", Say(Formula.Call("now")));
+            Assert.Equal("取【text】从第【2】个字开始", Say("substring($text, 1)"));
+            Assert.Equal("取【text】从第【2】个字开始，要【3】个字", Say("substring($text, 1, 3)"));
+            Assert.Equal("随机取一个数", Say("random()"));
+            Assert.Equal("随机取一个数，在【1】到【10】之间", Say("random(1, 10)"));
+            Assert.Equal("现在的时间", Say("now()"));
         });
     }
 
@@ -84,9 +84,9 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("真", Say(Formula.Constant("true")));
-            Assert.Equal("假", Say(Formula.Constant("false")));
-            Assert.Equal("空", Say(Formula.Constant("null")));
+            Assert.Equal("真", Say("true"));
+            Assert.Equal("假", Say("false"));
+            Assert.Equal("空", Say("null"));
         });
     }
 
@@ -100,11 +100,11 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("count加上1", Say(Formula.Binary("+", Formula.Name("count"), Formula.Number("1", 1d))));
-            Assert.Equal("（1加上2）乘上3", Say(Formula.Binary("*", Formula.Binary("+", Formula.Number("1", 1d), Formula.Number("2", 2d)), Formula.Number("3", 3d))));
-            Assert.Equal("a大于或等于3并且并非b小于2", Say(Formula.Binary("and", Formula.Binary(">=", Formula.Name("a"), Formula.Number("3", 3d)), Formula.Unary("not", Formula.Binary("<", Formula.Name("b"), Formula.Number("2", 2d))))));
-            Assert.Equal("text等于ab", Say(Formula.Binary("==", Formula.Name("text"), Formula.Text("ab"))));
-            Assert.Equal("负的5", Say(Formula.Unary("-", Formula.Number("5", 5d))));
+            Assert.Equal("count加上1", Say("$count + 1"));
+            Assert.Equal("（1加上2）乘上3", Say("(1 + 2) * 3"));
+            Assert.Equal("a大于或等于3并且并非b小于2", Say("$a >= 3 and not ($b < 2)"));
+            Assert.Equal("text等于ab", Say("$text == \"ab\""));
+            Assert.Equal("负的5", Say("-5"));
         });
     }
 
@@ -117,12 +117,12 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("由1、a组成的列表", Say(Formula.List(Formula.Number("1", 1d), Formula.Text("a"))));
-            Assert.Equal("造一张列表", Say(Formula.Call("list")));
-            Assert.Equal("造一张列表，里面有1、2", Say(Formula.Call("list", Formula.Number("1", 1d), Formula.Number("2", 2d))));
-            Assert.Equal("把a、和、b接成一段文字", Say(Formula.Call("concat", Formula.Name("a"), Formula.Text("和"), Formula.Name("b"))));
-            Assert.Equal("取1、2里最小的", Say(Formula.Call("min", Formula.Number("1", 1d), Formula.Number("2", 2d))));
-            Assert.Equal("造一条记录，字段名和值依次是a、1", Say(Formula.Call("jsonOf", Formula.Text("a"), Formula.Number("1", 1d))));
+            Assert.Equal("由1、a组成的列表", Say("""[1, "a"]"""));
+            Assert.Equal("造一张列表", Say("list()"));
+            Assert.Equal("造一张列表，里面有1、2", Say("list(1, 2)"));
+            Assert.Equal("把a、和、b接成一段文字", Say("""concat($a, "和", $b)"""));
+            Assert.Equal("取1、2里最小的", Say("min(1, 2)"));
+            Assert.Equal("造一条记录，字段名和值依次是a、1", Say("""jsonOf("a", 1)"""));
         });
     }
 
@@ -131,11 +131,11 @@ public class ExpressionPhraseTests
     {
         InChinese(() =>
         {
-            Assert.Equal("把【name】写成大写", Say(Formula.Call("upper", Formula.Name("name"))));
-            Assert.Equal("如果count大于3，就取【多】，不然取【少】", Say(Formula.Call("if", Formula.Binary(">", Formula.Name("count"), Formula.Number("3", 3d)), Formula.Text("多"), Formula.Text("少"))));
-            Assert.Equal("把【rows】复制一份", Say(Formula.Call("append", Formula.Name("rows"))));
-            Assert.Equal("把【rows】复制一份，末尾加上4、5", Say(Formula.Call("append", Formula.Name("rows"), Formula.Number("4", 4d), Formula.Number("5", 5d))));
-            Assert.Equal("把【原样】插到【rows】的第【2】项前面", Say(Formula.Call("insertAt", Formula.Name("rows"), Formula.Number("1", 1d), Formula.Text("原样"))));
+            Assert.Equal("把【name】写成大写", Say("upper($name)"));
+            Assert.Equal("如果count大于3，就取【多】，不然取【少】", Say("""if($count > 3, "多", "少")"""));
+            Assert.Equal("把【rows】复制一份", Say("append($rows)"));
+            Assert.Equal("把【rows】复制一份，末尾加上4、5", Say("append($rows, 4, 5)"));
+            Assert.Equal("把【原样】插到【rows】的第【2】项前面", Say("""insertAt($rows, 1, "原样")"""));
         });
     }
 

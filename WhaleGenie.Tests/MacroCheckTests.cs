@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -13,7 +12,7 @@ namespace WhaleGenie.Tests;
 /// from the steps alone — and the ones it must keep quiet about.
 /// </summary>
 [RestoreSharedState]
-public partial class MacroCheckTests
+public class MacroCheckTests
 {
     private static MacroStep Step(string type, params StepParameter[] parameters)
         => new() { Type = type, Parameters = [.. parameters] };
@@ -21,22 +20,22 @@ public partial class MacroCheckTests
     private static StepParameter Steps(string name, params MacroStep[] steps)
         => new() { Name = name, Kind = ActionParameterKind.Steps, Steps = [.. steps] };
 
-    private static StepParameter When(string name, ExpressionNode expression)
-        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = expression };
+    private static StepParameter When(string name, string expression)
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Value = expression };
 
     private static StepParameter Text(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Text, Written = Fields.Shape(value) };
+        => new() { Name = name, Kind = ActionParameterKind.Text, Value = value };
 
     private static StepParameter Name(string name, string value)
-        => new() { Name = name, Kind = ActionParameterKind.Variable, Written = Fields.Shape(value) };
+        => new() { Name = name, Kind = ActionParameterKind.Variable, Value = value };
 
-    private static StepParameter Value(string name, ExpressionNode value)
-        => new() { Name = name, Kind = ActionParameterKind.Expression, Written = value };
+    private static StepParameter Value(string name, string value)
+        => new() { Name = name, Kind = ActionParameterKind.Expression, Value = value };
 
     private static StepParameter Flag(string name, bool value)
-        => new() { Name = name, Kind = ActionParameterKind.Bool, Written = Fields.Shape(value ? "true" : "false") };
+        => new() { Name = name, Kind = ActionParameterKind.Bool, Value = value ? "true" : "false" };
 
-    private static MacroStep Set(string name, ExpressionNode value)
+    private static MacroStep Set(string name, string value)
         => Step("control.setVariable", Text("name", name), Text("scope", "local"), Value("value", value));
 
     private static MacroStep Repeat(params MacroStep[] body)
@@ -51,15 +50,15 @@ public partial class MacroCheckTests
 
     /// <summary>The results a step hands over, one row each, named the way the file writes them.</summary>
     /// <summary>What a call passes, one row per argument, written the way a call is written.</summary>
-    private static StepParameter Arguments(params (string Name, ExpressionNode Value)[] arguments)
+    private static StepParameter Arguments(params (string Name, string Value)[] arguments)
         => ArgumentRows(arguments, given: false);
 
     /// <summary>The same rows, each saying the empty value is the value it passes.</summary>
-    private static StepParameter ArgumentsGiven(params (string Name, ExpressionNode Value)[] arguments)
+    private static StepParameter ArgumentsGiven(params (string Name, string Value)[] arguments)
         => ArgumentRows(arguments, given: true);
 
     private static StepParameter ArgumentRows(
-        (string Name, ExpressionNode Value)[] arguments, bool given)
+        (string Name, string Value)[] arguments, bool given)
         => new()
         {
             Name = FieldNames.Arguments,
@@ -68,11 +67,11 @@ public partial class MacroCheckTests
             [
                 .. arguments.Select(argument => new StepParameterRow
                 {
-                    Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                     {
-                        [FieldNames.Name] = Formula.Text(argument.Name),
+                        [FieldNames.Name] = argument.Name,
                         [FieldNames.Value] = argument.Value,
-                        [FieldNames.Given] = given ? Formula.Constant("true") : Formula.Constant("false"),
+                        [FieldNames.Given] = given ? "true" : "false",
                     },
                 }),
             ],
@@ -91,10 +90,10 @@ public partial class MacroCheckTests
             [
                 .. results.Select(result => new StepParameterRow
                 {
-                    Cells = new Dictionary<string, ExpressionNode>(System.StringComparer.OrdinalIgnoreCase)
+                    Columns = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
                     {
-                        ["key"] = Formula.Text(result.Key),
-                        ["name"] = Formula.Text(result.Name),
+                        ["key"] = result.Key,
+                        ["name"] = result.Name,
                     },
                 }),
             ],
@@ -112,14 +111,1233 @@ public partial class MacroCheckTests
     /// whose icons are Avalonia geometries.
     /// </summary>
     private static IReadOnlyList<MacroProblem> Inspect(params MacroStep[] steps)
-        => Inspect([], steps);
-
-    /// <summary>The same with a project's shared declarations, which decide what a name means.</summary>
-    private static IReadOnlyList<MacroProblem> Inspect(
-        IReadOnlyList<VariableDefinition> globals, params MacroStep[] steps)
-        => Ui.Run(() => MacroCheck.Inspect(steps, null, [], globals));
+        => Ui.Run(() => MacroCheck.Inspect(steps, null, []));
 
     private static IReadOnlyList<MacroProblem> Against(string ownName, MacroCallable[] macros,
         params MacroStep[] steps)
-        => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros, []));
+        => Ui.Run(() => MacroCheck.Inspect(steps, Callable(ownName), macros));
+
+    /// <summary>
+    /// A call to a submacro is a call to a macro of this document. With the submacro in the list
+    /// the check has nothing to say about it; with nothing in the list the step is a call into
+    /// thin air, which is what it used to say about a submacro that was right there in the file.
+    /// </summary>
+    [Fact]
+    public void A_call_to_a_submacro_is_known_when_the_submacro_is()
+    {
+        var call = Step("control.runMacro", Text("macro", "里面"));
+
+        Assert.DoesNotContain(Against("外面", [Callable("里面")], call), problem =>
+            problem.Code == "MacroNotFound");
+        Assert.Contains(Against("外面", [], call), problem =>
+            problem.Code == "MacroNotFound");
+    }
+
+    /// <summary>
+    /// A step that sends keys, written the way the file writes one. What it sends does not matter to
+    /// the check — that it sends anything at all is the whole of the question.
+    /// </summary>
+    private static MacroStep Pressing()
+        => Step("input.keyPress", Text("key", "F5"));
+
+    /// <summary>
+    /// 项目里还有别的宏也发键鼠时，说一次：两个宏同时跑，输入会写进对方中间，而单看哪一个宏都
+    /// 看不出这件事。提示落在第一次发输入的那一步上，一句话就够。
+    /// </summary>
+    [Fact]
+    public void Sending_input_next_to_another_macro_that_does_is_said_once()
+    {
+        var first = Pressing();
+        var second = Pressing();
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([first, second], null, [], inputShared: true));
+
+        var problem = Assert.Single(problems);
+        Assert.Same(first, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
+
+        // 没人跟它抢的时候什么也不说，没勾上的宏也一样。
+        Assert.Empty(Inspect(first, second));
+    }
+
+    /// <summary>
+    /// 只看屏幕的宏不掺和这件事：两边都读屏幕没有任何要排队的地方。
+    /// </summary>
+    [Fact]
+    public void A_macro_that_only_looks_at_the_screen_is_not_warned_about()
+    {
+        var reading = Step("vision.capture");
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], null, [], inputShared: true)));
+    }
+
+    [Fact]
+    public void A_case_outside_a_switch_is_marked_on_the_case()
+    {
+        var misplaced = Case("a");
+
+        var problem = Assert.Single(Inspect(misplaced));
+
+        Assert.Same(misplaced, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.CaseOutsideSwitch"), problem.Message);
+    }
+
+    [Fact]
+    public void An_ordinary_step_inside_a_case_list_is_marked_where_it_sits()
+    {
+        var misplaced = Step("control.log", Text("message", "x"), Text("level", "info"));
+        var choice = Step("control.switch",
+            Text("switchValue", "a"),
+            Text("switchMode", "equals"),
+            Steps("cases", Case("a"), misplaced),
+            Steps("otherwise", Step("control.log", Text("message", "y"), Text("level", "info"))));
+
+        var problem = Assert.Single(Inspect(choice));
+
+        Assert.Same(misplaced, problem.Step);
+        Assert.Equal(Strings.Format("Editor.Problem.WrongStepKind",
+            ActionCatalog.Find("control.case")!.LocalName), problem.Message);
+    }
+
+    [Fact]
+    public void A_case_in_the_list_that_declares_it_is_not_marked()
+    {
+        var choice = Step("control.switch",
+            Text("switchValue", "a"),
+            Text("switchMode", "equals"),
+            Steps("cases", Case("a")),
+            Steps("otherwise"));
+
+        Assert.Empty(Inspect(choice));
+    }
+
+    /// <summary>
+    /// 这个项目里还有别的宏用浏览器时，说一次：整个程序只有一份浏览器与当前页，两条宏同时跑时
+    /// 一条切页会改变另一条读到的页面。
+    /// </summary>
+    [Fact]
+    public void Using_the_browser_next_to_another_macro_that_does_is_said_once()
+    {
+        var first = Step("browser.switchTab", Text("tabHow", "newest"));
+        var second = Step("browser.goTo", Text("url", "https://example.com"));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([first, second], null, [],
+            browserShared: true));
+
+        var problem = Assert.Single(problems);
+        Assert.Same(first, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.SharedBrowser"), problem.Message);
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([first, second], null, [])));
+    }
+
+    /// <summary>
+    /// 脚本说它会自己发键鼠时提醒一句：这条输入不经过互斥门，另一条宏仍可能和它插队。
+    /// </summary>
+    [Fact]
+    public void A_script_that_declares_it_sends_input_is_marked()
+    {
+        var sending = Step("script.ahk",
+            Text("script", "Print(\"hi\")"), Flag("sendsInput", true));
+
+        var problem = Assert.Single(Inspect(sending));
+        Assert.Equal(Strings.Get("Editor.Problem.ScriptInput"), problem.Message);
+
+        var quiet = Step("script.ahk",
+            Text("script", "Print(\"hi\")"), Flag("sendsInput", false));
+        Assert.Empty(Inspect(quiet));
+    }
+
+    [Fact]
+    public void A_catch_condition_may_read_the_failure_it_was_given()
+    {
+        var trying = Step("control.try",
+            Steps("body", Pressing()),
+            When("catchWhen", "$caught.key == \"Run.ElementNotFound\""),
+            Steps("catch"),
+            Steps("finally"));
+
+        Assert.Empty(Inspect(trying));
+    }
+
+    /// <summary>A relative move offers foreground and driver only, so background is marked as an
+    /// option the action does not have.</summary>
+    [Fact]
+    public void A_relative_move_has_no_background_option()
+    {
+        var posted = Step("input.mouseMoveRelative",
+            Text("dx", "200"), Text("inputMode", "background"));
+
+        var problem = Assert.Single(Inspect(posted));
+
+        Assert.Same(posted, problem.Step);
+        Assert.Contains("background", problem.Message, StringComparison.Ordinal);
+
+        // 前台与驱动级各自都是从指针当前位置往前走的，不标；别的动手的事也问不到这一条。
+        Assert.Empty(Inspect(Step("input.mouseMoveRelative", Text("dx", "200"))));
+        Assert.Empty(Inspect(Step("input.mouseMoveRelative",
+            Text("dx", "200"), Text("inputMode", "driver"))));
+        Assert.Empty(Inspect(Step("input.mouseMove",
+            Text("x", "10"), Text("y", "20"), Text("inputMode", "background"),
+            Text("window", "Notepad"))));
+    }
+
+    [Fact]
+    public void A_break_outside_a_loop_is_reported()
+    {
+        var loose = Step("control.break");
+
+        var problem = Assert.Single(Inspect(loose));
+
+        Assert.Same(loose, problem.Step);
+    }
+
+    [Fact]
+    public void A_continue_outside_a_loop_is_reported()
+    {
+        var loose = Step("control.continue");
+
+        var problem = Assert.Single(Inspect(loose, Set("after", "1")));
+
+        Assert.Same(loose, problem.Step);
+    }
+
+    [Theory]
+    [InlineData("control.if")]
+    [InlineData("control.while")]
+    [InlineData("control.waitUntil")]
+    public void A_condition_block_without_a_condition_is_reported(string action)
+    {
+        var loose = Step(action);
+
+        var problem = Assert.Single(Inspect(loose));
+
+        Assert.Same(loose, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.MissingCondition"), problem.Message);
+    }
+
+    [Fact]
+    public void The_loop_round_outside_a_loop_is_reported()
+    {
+        var loose = Set("after", "$sys.loopIndex");
+
+        var problem = Assert.Single(Inspect(loose));
+
+        Assert.Same(loose, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.LoopIndexOutsideLoop"), problem.Message);
+        Assert.Empty(Inspect(Repeat(Set("seen", "$sys.loopIndex"))));
+    }
+
+    [Fact]
+    public void A_break_inside_a_loop_is_left_alone()
+        => Assert.Empty(Inspect(Repeat(Step("control.break"))));
+
+    [Fact]
+    public void A_break_inside_a_block_inside_a_loop_is_left_alone()
+    {
+        // An if branch and a plain block both let a break reach the loop around them, so neither
+        // is a place where "no loop above it" is true.
+        var ifStep = Step("control.if",
+            When("condition", "true"),
+            Steps("then", Step("control.sequence", Steps("steps", Step("control.break")))));
+
+        Assert.Empty(Inspect(Repeat(ifStep)));
+    }
+
+    [Fact]
+    public void A_break_in_a_called_macro_is_judged_on_its_own()
+    {
+        // The called macro has a loop of its own, so its break is fine even though the call
+        // sits at the top of this one.
+        Assert.Empty(Against("调用者", [Callable("半途")], Call("半途")));
+        Assert.Empty(Against("半途", [Callable("调用者")], Repeat(Step("control.break"))));
+    }
+
+    [Fact]
+    public void A_call_to_a_macro_that_is_not_there_is_reported()
+    {
+        var missing = Call("没有这个宏");
+
+        var problem = Assert.Single(Against("自己", [Callable("另一个")], missing));
+
+        Assert.Same(missing, problem.Step);
+    }
+
+    [Fact]
+    public void A_call_to_a_macro_that_is_there_is_left_alone()
+        => Assert.Empty(Against("自己", [Callable("另一个")], Call("另一个")));
+
+    [Fact]
+    public void A_call_to_the_macro_itself_without_a_branch_is_reported()
+    {
+        var call = Call("自己");
+
+        var problem = Assert.Single(Against("自己", [], call));
+
+        Assert.Same(call, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.UnguardedRecursion"), problem.Message);
+    }
+
+    [Fact]
+    public void A_call_to_the_macro_itself_inside_a_branch_or_loop_is_left_alone()
+    {
+        var branch = Step("control.if",
+            When("condition", "true"),
+            Steps("then", Call("自己")));
+        var switching = Step("control.switch",
+            Text("switchValue", "1"), Text("switchMode", "equals"),
+            Steps("cases", Step("control.case", Text("values", "1"),
+                Steps("body", Call("自己")))),
+            Steps("otherwise"));
+
+        Assert.Empty(Against("自己", [], branch));
+        Assert.Empty(Against("自己", [], switching));
+        Assert.Empty(Against("自己", [], Repeat(Call("自己"))));
+    }
+
+    /// <summary>
+    /// A record whose declaration names its fields is checkable while the macro is written; one that
+    /// names none is not, because checking against names nobody wrote down would be a guess.
+    /// </summary>
+    private static MacroCallable WithRecord(string name,
+        params (string Name, ActionReturnType Type)[] fields)
+        => new(name,
+            [
+                new MacroParameter
+                {
+                    Name = "点",
+                    Type = ActionReturnType.Record,
+                    Required = true,
+                    Fields = [.. fields.Select(field => new MacroField
+                    {
+                        Name = field.Name,
+                        Type = field.Type,
+                    })],
+                },
+            ], []);
+
+    [Fact]
+    public void A_field_a_declared_record_has_is_left_alone()
+        => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [Set("左", "field($点, \"x\")")],
+            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            [])));
+
+    [Fact]
+    public void A_field_a_declared_record_does_not_have_is_marked()
+    {
+        var step = Set("左", "field($点, \"z\")");
+
+        var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
+            [step],
+            WithRecord("自己", ("x", ActionReturnType.Number), ("y", ActionReturnType.Number)),
+            [])));
+
+        // The mark names the field that is not there and the ones that are: "wrong field" without
+        // the list would leave the author guessing at the spelling.
+        Assert.Equal("UnknownField", problem.Code);
+        Assert.Same(step, problem.Step);
+        Assert.Contains("z", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("x, y", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_record_that_names_no_fields_is_not_checked()
+        => Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [Set("左", "field($点, \"随便\")")],
+            WithRecord("自己"),
+            [])));
+
+    [Fact]
+    public void A_record_a_call_hands_back_is_checked_by_the_called_macro()
+    {
+        var called = new MacroCallable("找图",
+            [new MacroParameter { Name = "图", Required = true }],
+            [
+                new MacroResult
+                {
+                    Name = "命中",
+                    Type = ActionReturnType.Record,
+                    Fields =
+                    [
+                        new MacroField { Name = "left", Type = ActionReturnType.Number },
+                        new MacroField { Name = "top", Type = ActionReturnType.Number },
+                    ],
+                },
+            ]);
+
+        var call = Step("control.runMacro", Text("macro", "找图"), Arguments(("图", "a.png")),
+            Results("命中"));
+
+        // Reading a field of a record a call handed back is checked against the called macro's
+        // declaration: nowhere else says what is in it.
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect(
+            [call, Set("左", "field($命中, \"left\")")], Callable("自己"), [called])));
+
+        var problem = Assert.Single(Ui.Run(() => MacroCheck.Inspect(
+            [call, Set("左", "field($命中, \"middle\")")], Callable("自己"), [called])));
+        Assert.Equal("UnknownField", problem.Code);
+    }
+
+
+    [Fact]
+    public void Two_calls_side_by_side_writing_one_name_are_marked()
+    {
+        var steps = new[]
+        {
+            Step("control.runMacro", Text("macro", "甲"), Results("一")),
+            Step("control.runMacro", Text("macro", "甲"), Results("一")),
+        };
+
+        var problem = Assert.Single(Against("自己", [Callable("甲", results: ["一"])], steps),
+            candidate => candidate.Code == "DuplicateResultName");
+        Assert.Same(steps[1], problem.Step);
+    }
+
+    [Fact]
+    public void A_call_that_names_no_macro_is_reported()
+        => Assert.Single(Against("自己", [Callable("另一个")], Call("")));
+
+    [Fact]
+    public void A_call_that_fills_in_a_name_the_called_macro_never_declared_is_reported()
+    {
+        var passed = Step("control.runMacro",
+            Text("macro", "另一个"), Arguments(("别的", "1")));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], passed);
+        var problem = Assert.Single(problems, candidate =>
+            candidate.Message.Contains("别的", StringComparison.Ordinal));
+
+        Assert.Same(passed, problem.Step);
+
+        // The call also leaves the required parameter out, and that is said on its own.
+        Assert.Contains(problems, candidate =>
+            candidate.Step == passed
+            && candidate.Message == Strings.Format("Editor.Problem.MissingArgument", "次数", "另一个"));
+    }
+
+    [Fact]
+    public void A_call_that_leaves_a_required_argument_out_is_marked()
+    {
+        var call = Step("control.runMacro", Text("macro", "另一个"));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Step == call
+            && problem.Message == Strings.Format("Editor.Problem.MissingArgument", "次数", "另一个"));
+    }
+
+    [Fact]
+    public void A_given_marker_for_an_undeclared_argument_is_marked()
+    {
+        var call = Step("control.runMacro",
+            Text("macro", "另一个"), ArgumentsGiven(("别的", "")));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.UndeclaredArgument", "别的", "另一个"));
+    }
+
+    [Fact]
+    public void A_given_marker_beside_a_value_is_marked()
+    {
+        var call = Step("control.runMacro",
+            Text("macro", "另一个"), ArgumentsGiven(("次数", "1")));
+
+        var problems = Against("自己", [Callable("另一个", parameters: ["次数"])], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.GivenWithValue", "次数"));
+    }
+
+    [Fact]
+    public void A_constant_argument_of_the_wrong_kind_is_marked()
+    {
+        var called = new MacroCallable("另一个",
+            [new MacroParameter
+            {
+                Name = "数量",
+                Required = true,
+                Type = ActionReturnType.Number,
+            }], []);
+        var call = Step("control.runMacro",
+            Text("macro", "另一个"), Arguments(("数量", "不是数")));
+
+        var problems = Against("自己", [called], call);
+
+        Assert.Contains(problems, problem =>
+            problem.Step == call
+            && problem.Message == Strings.Format("Editor.Problem.ArgumentType", "数量",
+                Strings.Get("ActionType.Number")));
+    }
+
+    [Fact]
+    public void A_default_of_the_wrong_kind_is_reminded()
+    {
+        var called = new MacroCallable("另一个",
+            [new MacroParameter
+            {
+                Name = "数量",
+                Required = false,
+                Default = "不是数",
+                Type = ActionReturnType.Number,
+            }], []);
+
+        var messages = MacroCheck.DeclarationProblems(called);
+
+        Assert.Contains(messages, message =>
+            message == Strings.Format("Editor.Problem.BadDefaultType", "另一个", "数量",
+                Strings.Get("ActionType.Number")));
+    }
+
+    [Fact]
+    public void A_default_with_a_broken_expression_is_reminded()
+    {
+        var called = new MacroCallable("另一个",
+            [new MacroParameter
+            {
+                Name = "数量",
+                Required = false,
+                Default = "$ + 1",
+                Type = ActionReturnType.Number,
+            }], []);
+
+        var messages = MacroCheck.DeclarationProblems(called);
+        var prefix = Strings.Get("Editor.Problem.BadExpression").Split("{0}")[0];
+
+        Assert.Contains(messages, message => message.StartsWith(prefix, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_call_that_asks_for_a_result_the_called_macro_never_offered_is_reported()
+    {
+        var asked = Call("另一个", "别的");
+
+        var problem = Assert.Single(Against("自己",
+            [Callable("另一个", results: ["答案"])], asked));
+
+        Assert.Same(asked, problem.Step);
+    }
+
+    [Fact]
+    public void A_macro_may_read_the_results_it_declares()
+    {
+        var reading = Set("副本", "$答案");
+        var own = new MacroCallable("自己", [], [new MacroResult { Name = "答案" }], [reading]);
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
+    }
+
+    [Fact]
+    public void A_script_that_can_write_variables_makes_names_open()
+    {
+        var script = Step("script.python", Text("script", "print('hi')"));
+        var reading = Set("副本", "$madeByScript");
+
+        Assert.Empty(Inspect(script, reading));
+    }
+
+    [Fact]
+    public void A_result_no_step_writes_is_reminded()
+    {
+        var own = Callable("自己", results: ["答案"], steps: [Set("别的", "1")]);
+
+        var warning = Assert.Single(MacroCheck.DeclarationProblems(own));
+
+        Assert.Equal(Strings.Format("Editor.Problem.ResultNeverWritten", "自己", "答案"),
+            warning);
+    }
+
+    [Fact]
+    public void A_result_written_by_a_script_or_an_in_out_parameter_is_not_reminded()
+    {
+        var byScript = Callable("自己", results: ["答案"],
+            steps: [Step("script.python", Text("script", "print('hi')"))]);
+        var inOut = Callable("自己", parameters: ["答案"], results: ["答案"], steps: []);
+
+        Assert.Empty(MacroCheck.DeclarationProblems(byScript));
+        Assert.Empty(MacroCheck.DeclarationProblems(inOut));
+    }
+
+    [Fact]
+    public void A_variable_nothing_defines_is_reported()
+    {
+        var reader = Set("结果", "$没定义的 + 1");
+
+        var problem = Assert.Single(Inspect(reader));
+
+        Assert.Same(reader, problem.Step);
+    }
+
+    [Fact]
+    public void A_doubled_dollar_is_left_alone()
+    {
+        var writer = Step("file.listFiles",
+            Text("folder", "."),
+            Text("pattern", "costs $$5 and $$未知 stays as it is"));
+
+        Assert.Empty(Inspect(writer));
+    }
+
+    [Fact]
+    public void A_value_that_starts_with_a_variable_is_read_as_one()
+    {
+        // The engine reads a value that starts with $ as an expression, so a name nothing defines
+        // there stops the step rather than quietly becoming text.
+        var writer = Step("file.writeText",
+            Text("path", "notes.txt"),
+            Text("fileContent", "$未知"));
+
+        Assert.Single(Inspect(writer));
+    }
+
+    [Fact]
+    public void A_variable_the_macro_defines_itself_is_left_alone()
+        => Assert.Empty(Inspect(Set("计数", "0"), Set("结果", "$计数 + 1")));
+
+    /// <summary>
+    /// 宏自己的形参就是它读得到的名字：调用方把值交给这个名字，宏里的步骤照 $名字 读。少了这一条，
+    /// 「提为子宏」提出来的那个宏一读自己的参数就被标成"没人定义"，而那正是提子宏这一步做出来的
+    /// 形状；没声明过、别人也没交过来的名字照旧要报。
+    /// </summary>
+    [Fact]
+    public void A_macro_may_read_the_names_it_declares()
+    {
+        var reading = Step("control.log", Value("message", "$谁"));
+        var own = Callable("自己", parameters: ["谁"]);
+
+        Assert.Empty(Ui.Run(() => MacroCheck.Inspect([reading], own, [own])));
+        Assert.Single(Against("自己", [], reading));
+    }
+
+    [Fact]
+    public void A_system_variable_is_left_alone()
+        => Assert.Empty(Inspect(Set("结果", "$sys.date")));
+
+    /// <summary>
+    /// A text field names a variable only where <c>$</c> starts a readable name. Numeric names are
+    /// readable, so a literal amount needs the doubled-dollar escape while an unresolved name is
+    /// still reported.
+    /// </summary>
+    [Fact]
+    public void A_text_field_leaves_prices_and_escaped_dollars_alone()
+    {
+        var plain = Step("file.listFiles", Text("folder", "."),
+            Text("pattern", "$$100 off; price $$100; $$name"));
+        Assert.Empty(Inspect(plain));
+
+        var named = Step("file.listFiles", Text("folder", "."), Text("pattern", "$name"));
+        var problem = Assert.Single(Inspect(named));
+        Assert.Contains("name", problem.Message);
+
+        var numeric = Step("file.listFiles", Text("folder", "."), Text("pattern", "$123"));
+        Assert.Single(Inspect(numeric));
+    }
+
+    /// <summary>A whole value is a value, not a name: a bare word in it is just text.</summary>
+    [Fact]
+    public void A_bare_word_in_a_whole_value_is_not_a_variable()
+        => Assert.Empty(Inspect(Step("file.writeText", Text("path", "out.txt"),
+            Value("fileContent", "total"))));
+
+    [Fact]
+    public void A_loop_variable_is_left_alone()
+    {
+        var loop = Step("control.forEach",
+            Value("items", "[1, 2]"),
+            Text("itemVariable", "项"),
+            Steps("body", Set("结果", "$项")));
+
+        Assert.Empty(Inspect(loop));
+    }
+
+    [Fact]
+    public void A_name_a_called_macro_brings_back_is_left_alone()
+        => Assert.Empty(Against("自己", [Callable("另一个", results: ["答案"])],
+            Call("另一个", "答案"),
+            Set("结果", "$答案 + 1")));
+
+    [Fact]
+    public void Text_written_in_another_language_is_not_read_for_variables()
+    {
+        // A script's $是那个语言自己的变量，和宏的变量没有关系。
+        var script = Step("script.run",
+            Text("kind", "ps1"),
+            Text("script", "Write-Host $env:TEMP; $result = 1"),
+            Text("scriptArguments", "-Name $name"));
+
+        Assert.Empty(Inspect(script));
+    }
+
+    [Fact]
+    public void Loading_variables_from_a_file_silences_the_check()
+    {
+        // A file can hold any name at all, so nothing can be said about what the macro may read.
+        var load = Step("file.loadVariables", Text("path", "state.json"));
+
+        Assert.Empty(Inspect(load, Set("结果", "$来自文件")));
+    }
+
+    /// <summary>
+    /// A wait with no timeout is a legitimate "until it happens". Retrying it, or putting it under
+    /// a block with a clock, turns it into a step whose retry or outer budget can never shorten
+    /// the wait, so the editor says so before the run hangs.
+    /// </summary>
+    [Fact]
+    public void A_wait_without_a_timeout_is_reported_when_a_retry_or_outer_clock_relies_on_it()
+    {
+        var retried = Step("vision.waitImage");
+        retried.Meta = new StepMeta { RetryCount = 1 };
+        var problem = Assert.Single(Inspect(retried));
+        Assert.Same(retried, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.WaitWithoutTimeout"), problem.Message);
+
+        var waiting = Step("vision.waitImage");
+        var bounded = Step("control.repeat", Text("times", "1"), Steps("body", waiting));
+        bounded.Meta = new StepMeta { TimeoutMs = 1_000 };
+        Assert.Single(Inspect(bounded));
+
+        // Neither answer on its own is a reason to mark the step: waiting for ever is legal, and
+        // a timeout of its own is exactly what the check asks for.
+        Assert.Empty(Inspect(Step("vision.waitImage")));
+        var timed = Step("vision.waitImage");
+        timed.Meta = new StepMeta { RetryCount = 1, TimeoutMs = 1_000 };
+        Assert.Empty(Inspect(timed));
+    }
+
+    /// <summary>
+    /// The list of waiting actions is the engine's own: every action the catalogue says waits is
+    /// judged, and an action that does not wait is never asked for a timeout.
+    /// </summary>
+    [Fact]
+    public void Every_waiting_action_is_judged_from_the_catalogue()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var action in ActionCatalog.Definitions.Where(action => action.Waits))
+            {
+                var step = Step(action.Key);
+                step.Meta = new StepMeta { RetryCount = 1 };
+                Assert.Contains(MacroCheck.Inspect([step], null, []),
+                    problem => problem.Step == step
+                        && problem.Message == Strings.Get("Editor.Problem.WaitWithoutTimeout"));
+            }
+
+            var pressing = Pressing();
+            pressing.Meta = new StepMeta { RetryCount = 1 };
+            Assert.Empty(MacroCheck.Inspect([pressing], null, []));
+        });
+    }
+
+    /// <summary>
+    /// A step that says where it works says it once: a record, or the numbers beside it. Neither
+    /// is a step that would work at nothing, which the editor can see before the run.
+    /// </summary>
+    [Fact]
+    public void A_place_with_neither_a_record_nor_numbers_is_reported()
+    {
+        var empty = Step("window.move");
+        var problem = Assert.Single(Inspect(empty));
+        Assert.Same(empty, problem.Step);
+
+        Assert.Equal(Strings.Get("Editor.Problem.WindowBounds"), problem.Message);
+
+        // A record named in the field is a whole answer as far as the steps alone can tell.
+        var writes = Step("control.setVariable", Text("name", "spot"), Text("value", "1"));
+        Assert.Empty(Inspect(writes, Step("window.move", Text("rect", "$spot"))));
+
+        // So is a drag that starts at a record and ends at numbers.
+        Assert.Empty(Inspect(writes, Step("input.mouseDrag",
+            Text("startPlace", "$spot"), Text("endX", "10"), Text("endY", "10"))));
+    }
+
+    /// <summary>
+    /// What a name holds is known from the step that made it, so a record in a number field, a line
+    /// of text where a record is needed and a record written into text are all said before the run.
+    /// </summary>
+    [Fact]
+    public void A_value_of_the_wrong_shape_is_reported()
+    {
+        var find = Step("vision.findImage", Text("images", ""), Results("match"));
+        var number = Step("input.mouseMove", Text("x", "$match"), Text("y", "10"));
+        var text = Step("file.writeText", Text("path", "$match"), Text("text", "x"));
+        var place = Step("input.mouseMove", Text("place", "$sys.date"), Text("y", "10"));
+
+        var problems = Inspect(find, number, text, place);
+
+        var (xLabel, placeLabel, messageLabel) = Ui.Run(() =>
+        {
+            var move = ActionCatalog.Find("input.mouseMove")!;
+            var log = ActionCatalog.Find("file.writeText")!;
+            return (move.Parameters.First(parameter => parameter.Name == "x").LocalLabel,
+                move.Parameters.First(parameter => parameter.Name == "place").LocalLabel,
+                log.Parameters.First(parameter => parameter.Name == "path").LocalLabel);
+        });
+
+        Assert.Contains(problems, problem => problem.Step == number
+            && problem.Message == Strings.Format("Editor.Problem.RecordWhereNumber", xLabel));
+        Assert.Contains(problems, problem => problem.Step == text
+            && problem.Message == Strings.Format("Editor.Problem.RecordInText", "match",
+                messageLabel));
+        Assert.Contains(problems, problem => problem.Step == place
+            && problem.Message == Strings.Format("Editor.Problem.NotARecord", placeLabel,
+                "sys.date"));
+    }
+
+    /// <summary>
+    /// A window record goes into a window field as it stands: what it is compared against comes out
+    /// of the record by the way the step says to match, so this is a complete answer.
+    /// </summary>
+    [Fact]
+    public void A_window_record_can_be_the_window_a_step_names()
+    {
+        var info = Step("window.info", Text("window", "Notepad"), Results("window"));
+        var press = Step("input.keyPress", Text("key", "F5"), Text("inputMode", "background"),
+            Text("window", "$window"));
+
+        var problems = Inspect(info, press);
+        Assert.DoesNotContain(problems, problem => problem.Step == press);
+    }
+
+    /// <summary>
+    /// A call hands its values to what the called macro declared. A value whose kind is known and
+    /// does not fit is worth saying at the call site rather than at the point the called macro
+    /// reads it.
+    /// </summary>
+    [Fact]
+    public void A_call_argument_of_the_wrong_kind_is_reported()
+    {
+        var target = new MacroCallable("整理",
+            [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }], []);
+        var call = Step("control.runMacro", Text("macro", "整理"),
+            Arguments(("窗口", "$sys.date")));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [target]));
+        var problem = Assert.Single(problems, candidate => candidate.Step == call);
+        Assert.Equal(Strings.Format("Editor.Problem.ArgumentType", "窗口",
+            Strings.Get("ActionType.Record")), problem.Message);
+    }
+
+    /// <summary>
+    /// 多分支 case 里的 break 只离开这个多分支，所以不在循环里也不算错；不在循环也不在多分支里的
+    /// break 仍旧标出来。
+    /// </summary>
+    [Fact]
+    public void A_break_in_a_case_is_not_a_break_outside_a_loop()
+    {
+        var branch = Step("control.switch",
+            Text("switchValue", "a"), Text("switchMode", "equals"),
+            Steps("cases", Step("control.case", Text("values", "a"),
+                Steps("body", Step("control.break")))));
+
+        Assert.Empty(Inspect(branch));
+
+        var alone = Step("control.sequence", Steps("steps", Step("control.break")));
+        var problem = Assert.Single(Inspect(alone));
+        Assert.Equal(Strings.Get("Editor.Problem.BreakOutsideLoop"), problem.Message);
+    }
+
+    /// <summary>
+    /// 内层循环用外层的变量名时标一条：它结束之后外层的值就没有了。
+    /// </summary>
+    [Fact]
+    public void A_nested_loop_with_the_same_variable_is_marked()
+    {
+        var inner = Step("control.forEach", Text("items", "[]"), Text("itemVariable", "item"),
+            Steps("body"));
+        var outer = Step("control.forEach", Text("items", "[]"), Text("itemVariable", "item"),
+            Steps("body", inner));
+
+        var problem = Assert.Single(Inspect(outer), candidate => candidate.Step == inner);
+        Assert.Equal(Strings.Format("Editor.Problem.LoopVariableShadowed", "item"),
+            problem.Message);
+    }
+
+    /// <summary>
+    /// 调用的宏里发键鼠，也算这个宏在发：调用那一步标「与别的宏互斥发输入」的提示，不必等
+    /// 子宏自己的行。
+    /// </summary>
+    [Fact]
+    public void A_call_to_a_macro_that_sends_input_counts_as_input()
+    {
+        var input = Step("input.keyPress", Text("key", "F5"));
+        var child = Callable("输入", null, null, input);
+        var call = Step("control.runMacro", Text("macro", "输入"));
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([call], null, [child], inputShared: true));
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == call);
+        Assert.Equal(Strings.Get("Editor.Problem.SharedInput"), problem.Message);
+    }
+
+    /// <summary>两个宏互相调用时，沿调用图的分析要停下来，而不是一直跟下去。</summary>
+    [Fact]
+    public void A_circle_of_calls_does_not_make_the_analysis_run_forever()
+    {
+        var toB = Step("control.runMacro", Text("macro", "乙"));
+        var toA = Step("control.runMacro", Text("macro", "甲"));
+        var a = Callable("甲", null, null, toB);
+        var b = Callable("乙", null, null, toA);
+
+        var problems = Ui.Run(() => MacroCheck.Inspect([toA], null, [a, b], inputShared: true));
+
+        Assert.DoesNotContain(problems,
+            candidate => candidate.Message == Strings.Get("Editor.Problem.SharedInput"));
+    }
+
+    [Fact]
+    public void A_switch_with_neither_a_case_nor_an_otherwise_is_reported()
+    {
+        var empty = Step("control.switch",
+            Text("switchValue", "1"), Text("switchMode", "equals"),
+            Steps("cases"), Steps("otherwise"));
+
+        var problem = Assert.Single(Inspect(empty));
+        Assert.Same(empty, problem.Step);
+        Assert.Equal(Strings.Get("Editor.Problem.EmptySwitch"), problem.Message);
+
+        var withCase = Step("control.switch",
+            Text("switchValue", "1"), Text("switchMode", "equals"),
+            Steps("cases", Step("control.case", Text("values", "1"), Steps("body", Set("结果", "1")))),
+            Steps("otherwise"));
+        Assert.Empty(Inspect(withCase));
+
+        var withOtherwise = Step("control.switch",
+            Text("switchValue", "1"), Text("switchMode", "equals"),
+            Steps("cases"), Steps("otherwise", Set("结果", "1")));
+        Assert.Empty(Inspect(withOtherwise));
+    }
+
+    [Theory]
+    [InlineData("sys.loopIndex")]
+    [InlineData("sys.anything")]
+    [InlineData("step.abcd.outcome")]
+    public void A_variable_using_a_name_the_run_keeps_is_reported(string name)
+    {
+        var step = Set(name, "1");
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Same(step, problem.Step);
+        Assert.Equal(Strings.Format("Editor.Problem.ReservedVariable", name), problem.Message);
+    }
+
+    [Fact]
+    public void An_ordinary_variable_name_is_left_alone()
+        => Assert.Empty(Inspect(Set("count", "1")));
+
+    [Fact]
+    public void A_fail_step_reports_only_user_keys_it_can_read_back()
+    {
+        Assert.Empty(Inspect(Step("control.fail",
+            Text("failureKey", "User.NoScreen"), Text("reason", "the screen moved"))));
+
+        var problem = Assert.Single(Inspect(Step("control.fail",
+            Text("failureKey", "Run.NotMine"))));
+        Assert.Equal(Strings.Format("Editor.Problem.BadUserFailureKey", "Run.NotMine"),
+            problem.Message);
+    }
+
+    [Fact]
+    public void Assigning_a_missing_global_is_reported_before_the_run()
+    {
+        var name = "missingGlobalForCheck";
+        var step = Step("control.setVariable", Text("name", name), Text("scope", "global"),
+            Value("value", "1"));
+
+        Assert.Contains(Inspect(step),
+            problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
+
+        var definition = new VariableDefinition
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+        };
+        VariableCatalog.Globals.Add(definition);
+        try
+        {
+            Assert.DoesNotContain(Inspect(step),
+                problem => problem.Message == Strings.Format("Editor.Problem.GlobalMustExist", name));
+        }
+        finally
+        {
+            VariableCatalog.Globals.Remove(definition);
+        }
+    }
+
+    [Fact]
+    public void One_step_can_be_wrong_more_than_once_and_each_reason_is_said()
+    {
+        var step = Set("结果", "$甲 + $乙");
+
+        var problems = Inspect(step);
+
+        Assert.Equal(2, problems.Count);
+        Assert.All(problems, problem => Assert.Same(step, problem.Step));
+    }
+
+    [Fact]
+    public void An_action_the_catalogue_does_not_know_is_marked()
+    {
+        var problem = Assert.Single(Inspect(Step("old.gone", Text("anything", "1"))));
+
+        Assert.Equal(Strings.Get("Editor.Problem.UnknownAction"), problem.Message);
+    }
+
+    [Fact]
+    public void A_field_the_catalogue_does_not_know_is_marked()
+    {
+        var problem = Assert.Single(Inspect(Step("control.delay",
+            Text("ms", "1000"), Text("wait", "true"))));
+
+        Assert.Equal(Strings.Format("Editor.Problem.UnknownParameter", "wait"), problem.Message);
+    }
+
+    [Fact]
+    public void A_place_written_twice_is_marked()
+    {
+        var step = Step("window.move", Text("rect", "1,2,3,4"), Text("width", "800"));
+
+        var problem = Assert.Single(Inspect(step));
+        var label = ActionCatalog.Find("window.move")!.Parameters.First(parameter => parameter.Name == "rect")
+            .LocalLabel;
+
+        Assert.Equal(Strings.Format("Editor.Problem.PlaceAndNumbers", label), problem.Message);
+    }
+
+    [Fact]
+    public void Two_results_with_one_name_are_marked()
+    {
+        var step = Step("file.readText", Text("path", "a.txt"),
+            Returned(("text", "part"), ("lines", "part")));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.DuplicateResultName", "part"), problem.Message);
+    }
+
+    [Fact]
+    public void A_result_the_action_does_not_declare_is_marked()
+    {
+        var step = Step("file.path", Text("path", "a.txt"), Results("missing"));
+
+        var problem = Assert.Single(Inspect(step));
+        var action = ActionCatalog.Find("file.path")!.LocalName;
+
+        Assert.Equal(Strings.Format("Editor.Problem.UndeclaredActionResult", "missing", action),
+            problem.Message);
+    }
+
+    [Fact]
+    public void One_result_key_asked_for_twice_is_marked()
+    {
+        var step = Step("file.readText", Text("path", "a.txt"),
+            Returned(("text", "first"), ("text", "second")));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.DuplicateResultKey", "text"), problem.Message);
+    }
+
+    [Fact]
+    public void A_result_name_the_macro_language_cannot_read_is_marked()
+    {
+        var step = Step("file.path", Text("path", "a.txt"),
+            Returned(("path", "two words")));
+
+        var problem = Assert.Single(Inspect(step));
+
+        Assert.Equal(Strings.Format("Editor.Problem.BadResultName", "two words"),
+            problem.Message);
+    }
+
+    [Theory]
+    [InlineData("$x +", true)]
+    [InlineData("$x + 1", false)]
+    [InlineData("$$5", false)]
+    [InlineData("plain text", false)]
+    public void A_value_that_reads_as_an_expression_is_parsed_while_it_is_written(
+        string value, bool marked)
+    {
+        var step = Step("control.setVariable", Text("name", "y"), Text("scope", "local"),
+            Value("value", value));
+
+        // x is defined first, so the only question left about the value is whether it parses.
+        var problems = Inspect(Set("x", "1"), step)
+            .Where(problem => ReferenceEquals(problem.Step, step))
+            .ToList();
+
+        if (!marked)
+        {
+            Assert.Empty(problems);
+        }
+        else
+        {
+            var before = Strings.Get("Editor.Problem.BadExpression")
+                .Replace("{0}", string.Empty, StringComparison.Ordinal);
+            Assert.Contains(problems, problem =>
+                problem.Message.StartsWith(before, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void A_required_field_left_empty_is_marked()
+    {
+        var problem = Assert.Single(Inspect(Step("browser.goTo")));
+        var label = ActionCatalog.Find("browser.goTo")!.Parameters.First(parameter => parameter.Name == "url")
+            .LocalLabel;
+
+        Assert.Equal(Strings.Format("Editor.Problem.MissingField", label), problem.Message);
+    }
+
+    [Fact]
+    public void A_choice_outside_the_catalogue_is_marked()
+    {
+        var problems = Inspect(Step("file.writeText",
+            Text("path", "out.txt"), Text("writeMode", "sideways")));
+
+        Assert.Contains(problems, problem =>
+            problem.Message.Contains("sideways", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_required_field_that_only_applies_under_some_settings_is_left_alone()
+        => Assert.Empty(Inspect(Step("data.hash",
+            Text("hashSource", "text"), Text("dataText", "abc"))));
+
+    [Fact]
+    public void A_call_to_a_macro_with_a_bad_declaration_is_marked()
+    {
+        var bad = Callable("坏", ["同名", "同名"], [], []);
+        var call = Step("control.runMacro", Text("macro", "坏"));
+
+        var problems = Against("调用方", [bad], call);
+
+        var problem = Assert.Single(problems, candidate => candidate.Step == call);
+        Assert.Equal(Strings.Format("Editor.Problem.BadDeclaration", "坏", "同名"),
+            problem.Message);
+    }
+
+    [Fact]
+    public void A_row_with_an_unknown_column_is_marked()
+    {
+        var returns = new StepParameter
+        {
+            Name = "returns",
+            Kind = ActionParameterKind.Returns,
+            Rows =
+            [
+                new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["key"] = "path",
+                        ["name"] = "part",
+                        ["bogus"] = "x",
+                    },
+                },
+            ],
+        };
+
+        var problems = Inspect(Step("file.path", Text("path", "a.txt"),
+            Text("operation", "name"), returns));
+
+        Assert.Contains(problems, problem =>
+            problem.Message.Contains("bogus", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Declaration_problems_are_said_without_a_call()
+    {
+        var bad = Callable("坏", ["同名", "同名"], [""], []);
+
+        var problems = MacroCheck.DeclarationProblems(bad);
+
+        Assert.Contains(problems, message => message.Contains("同名", StringComparison.Ordinal));
+        Assert.Contains(problems, message =>
+            message == Strings.Format("Editor.Problem.EmptyDeclaration", "坏"));
+    }
+
+    [Fact]
+    public void A_broken_braced_expression_in_text_is_marked()
+    {
+        var problems = Inspect(Step("control.log", Text("message", "${1 +}"),
+            Text("level", "info")));
+
+        var prefix = Strings.Get("Editor.Problem.BadExpression").Split("{0}")[0];
+        Assert.Contains(problems, problem =>
+            problem.Message.StartsWith(prefix, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_colour_search_can_name_only_its_region()
+    {
+        var region = new StepParameter
+        {
+            Name = "region",
+            Kind = ActionParameterKind.Region,
+            Rows =
+            [
+                new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["x"] = "0",
+                        ["y"] = "0",
+                        ["width"] = "20",
+                        ["height"] = "20",
+                    },
+                },
+            ],
+        };
+
+        var problems = Inspect(Step("vision.findColor", Text("color", "#FF0000"), region));
+
+        Assert.DoesNotContain(problems, problem =>
+            problem.Message.StartsWith(Strings.Get("Editor.Problem.NoPlace").Split("{0}")[0],
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_colour_search_place_and_its_numbers_are_marked()
+    {
+        var step = Step("vision.getPixel",
+            Text("place", "$spot"), Text("x", "10"), Text("y", "20"));
+
+        var label = ActionCatalog.Find("vision.getPixel")!.Parameters
+            .First(parameter => parameter.Name == "place").LocalLabel;
+        Assert.Contains(Inspect(step), problem =>
+            problem.Message == Strings.Format("Editor.Problem.PlaceAndNumbers", label));
+    }
+
+    [Fact]
+    public void A_region_row_cannot_name_a_place_and_give_its_numbers()
+    {
+        var region = new StepParameter
+        {
+            Name = "region",
+            Kind = ActionParameterKind.Region,
+            Rows =
+            [
+                new StepParameterRow
+                {
+                    Columns = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["text"] = "game",
+                        ["x"] = "0",
+                        ["y"] = "0",
+                    },
+                },
+            ],
+        };
+
+        var problems = Inspect(Step("vision.findImage", region));
+        var label = ActionCatalog.Find("vision.findImage")!.Parameters
+            .First(parameter => parameter.Name == "region").LocalLabel;
+
+        Assert.Contains(problems, problem =>
+            problem.Message == Strings.Format("Editor.Problem.ExclusiveRowColumn", label));
+    }
 }

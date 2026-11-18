@@ -94,7 +94,7 @@ public class SampleCsvTests
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "false"),
                 SampleFiles.Returns("rows=rows")),
             SampleFiles.Step("file.writeCsv", SampleFiles.Param("path", "back.csv"),
-                Fields.Reference("rows", "rows"), SampleFiles.Param("separator", "comma"),
+                SampleFiles.Param("rows", "$rows"), SampleFiles.Param("separator", "comma"),
                 SampleFiles.Param("mode", "replace")),
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "back.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "false"),

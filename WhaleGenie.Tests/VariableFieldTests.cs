@@ -1,6 +1,5 @@
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -29,51 +28,27 @@ public class VariableFieldTests
             Assert.True(message.OffersFormula);
             Assert.False(message.IsPlainText);
             Assert.NotEmpty(message.ExpressionSuggestions);
-            Assert.Contains(message.ExpressionSuggestions, entry => entry == "count");
+            Assert.Contains(message.ExpressionSuggestions, entry => entry == "$count");
 
             Assert.True(heading.OffersVariables);
             Assert.True(heading.OffersFormula);
         });
     }
-    /// <summary>
-    /// A whole value read as one formula is not a sentence with names in it, so it keeps the one box
-    /// it has always been edited in.
-    /// </summary>
-    [Fact]
-    public void A_formula_is_edited_as_one_box()
-    {
-        Ui.Run(() =>
-        {
-            var field = Parameter(Open("system.notify"), "notificationText");
-            field.WriteValue(Formula.Binary("+", Formula.Name("count"), Formula.Number(1)));
-
-            Assert.False(field.ShowsParts);
-        });
-    }
-
-    /// <summary>What the pieces say, by the words a reader sees.</summary>
-    private static IEnumerable<string> Spoken(StepParameterViewModel field)
-        => field.Parts.Select(part => part switch
-        {
-            NamePart name => name.Name,
-            TextPart text => text.Text,
-            _ => string.Empty,
-        }).Where(text => text.Length > 0);
 
     [Fact]
     public void A_declared_record_parameter_is_offered_to_a_record_field()
     {
         Ui.Run(() =>
         {
-            var declared = VariableChoices.For([], [],
-                [new MacroParameter { Name = "窗口", Type = ValueKind.Record }],
+            var declared = VariableChoices.For([],
+                [new MacroParameter { Name = "窗口", Type = ActionReturnType.Record }],
                 []);
             var viewModel = new AddActionViewModel(ActionCatalog.Definitions, declared, []);
             viewModel.SelectAction("input.mouseMove");
 
             var place = Parameter(viewModel, "place");
 
-            Assert.Contains("窗口", place.ExpressionSuggestions);
+            Assert.Contains("$窗口", place.ExpressionSuggestions);
         });
     }
 
@@ -82,16 +57,16 @@ public class VariableFieldTests
     {
         Ui.Run(() =>
         {
-            var choices = VariableChoices.For([], [],
+            var choices = VariableChoices.For([],
                 [
                     new MacroParameter
                     {
                         Name = "点",
-                        Type = ValueKind.Record,
+                        Type = ActionReturnType.Record,
                         Fields =
                         [
-                            new MacroField { Name = "x", Type = ValueKind.Number },
-                            new MacroField { Name = "y", Type = ValueKind.Number },
+                            new MacroField { Name = "x", Type = ActionReturnType.Number },
+                            new MacroField { Name = "y", Type = ActionReturnType.Number },
                         ],
                     },
                 ], []);
@@ -101,7 +76,7 @@ public class VariableFieldTests
             var record = Assert.Single(choices, choice => choice.Name == "点");
             Assert.True(record.HasFields);
             Assert.Equal(["x", "y"], record.Fields.Select(field => field.Name));
-            Assert.All(record.Fields, field => Assert.Equal(ValueKind.Number, field.Type));
+            Assert.All(record.Fields, field => Assert.Equal(ActionReturnType.Number, field.Type));
         });
     }
 
@@ -127,7 +102,7 @@ public class VariableFieldTests
                 region.AddRegion();
                 Assert.Single(region.Regions);
                 Assert.True(region.HasRegions);
-                Assert.Empty(region.Regions[0].ToRow().Cells);
+                Assert.Empty(region.Regions[0].ToRow().Columns);
 
                 // What the region picker dragged out lands in the row that asked for it.
                 region.Regions[0].Put(10, 20, 30, 40);
@@ -136,16 +111,39 @@ public class VariableFieldTests
                 Assert.Equal("30", region.Regions[0].ToRow().Text("width"));
                 Assert.Equal("40", region.Regions[0].ToRow().Text("height"));
 
-                region.AddRegion(new RegionRowViewModel { OrVariable = "shot" });
+                region.AddRegion(new RegionRowViewModel { OrVariable = "$shot" });
                 Assert.Equal(2, region.Regions.Count);
-                Assert.Equal("shot", region.Regions[1].ToRow().Text("text"));
+                Assert.Equal("$shot", region.Regions[1].ToRow().Text("text"));
 
                 region.RemoveRegion(region.Regions[0]);
                 Assert.Single(region.Regions);
-                Assert.Equal("shot", region.Regions[0].ToRow().Text("text"));
+                Assert.Equal("$shot", region.Regions[0].ToRow().Text("text"));
             }
         });
     }
+
+    /// <summary>
+    /// A window is one captured rule rather than a text box beside a comparison choice. The field
+    /// can still be handed a variable holding a window record, through its own variable picker.
+    /// </summary>
+    [Fact]
+    public void A_window_is_one_rule_and_a_variable_can_be_used_instead()
+    {
+        Ui.Run(() =>
+        {
+            foreach (var key in new[] { "window.exists", "vision.findImage", "input.keyPress" })
+            {
+                var field = Parameter(Open(key), "window");
+
+                Assert.True(field.IsWindowRule, $"{key}'s window is not one rule field");
+                Assert.False(field.OffersFormula, $"{key}'s window offers the expression editor");
+
+                field.UseWindowVariable("count");
+                Assert.Equal("$count", field.Text);
+            }
+        });
+    }
+
     /// <summary>
     /// Every action that names a window uses the same one field shape.
     /// </summary>
@@ -187,8 +185,10 @@ public class VariableFieldTests
     /// A field that takes a variable by name is a box of text, so what it is offered has to be the
     /// names: the rows the wall lists would be spelled out as the name of their own type, and one
     /// picked from the dropdown would put that into the macro rather than the variable it stands
-    /// for. Both a name being written and a value being read go in as the name itself: a value is a
-    /// shape, and the only spelling a name has is its own.
+    /// for. What comes with the name follows what the field does with it: a name being written goes
+    /// in bare — the engine writes that text down as the name, so <c>$count</c> there would make a
+    /// variable called <c>$count</c> that nothing can read back — and a value being read goes in as
+    /// the reader writes it, with the dollar sign the wall hands back.
     /// </summary>
     [Fact]
     public void A_field_that_takes_a_variable_by_name_offers_the_names_and_takes_them_bare()
@@ -200,13 +200,13 @@ public class VariableFieldTests
             Assert.True(naming.IsVariable);
             Assert.Equal(["count", "name"], naming.NameChoices.Order(StringComparer.Ordinal));
 
-            naming.InsertVariable("count", 0);
+            naming.InsertVariable("$count", 0);
             Assert.Equal("count", naming.Text);
 
             var reading = Parameter(Open("control.if"), "condition");
-            reading.InsertVariable("count", reading.Text.Length);
-            Assert.Equal("count", reading.Text);
-            Assert.Contains("count", reading.ExpressionSuggestions);
+            reading.ApplyVariableDrop("$count");
+            Assert.Equal("$count", reading.Text);
+            Assert.Contains("$count", reading.ExpressionSuggestions);
         });
     }
 
@@ -240,11 +240,12 @@ public class VariableFieldTests
             viewModel.SelectAction("control.setVariable");
             Assert.Equal(["count", "notes"], Parameter(viewModel, "name").NameChoices);
 
-            // A value being read: every scope, by the name it has. A path is one of these, and
-            // neither a provided value nor a step's ending is something to spell from memory.
+            // A value being read: every scope, in the form the reader writes a variable in. A path
+            // is one of these, and neither a provided value nor a step's ending is something to
+            // spell from memory.
             viewModel.SelectAction("file.writeText");
             Assert.Equal(
-                ["count", "notes", "step.k3f9.outcome", "sys.date", "sys.mouseX"],
+                ["$count", "$notes", "$step.k3f9.outcome", "$sys.date", "$sys.mouseX"],
                 Parameter(viewModel, "path").NameChoices.Order(StringComparer.Ordinal));
         });
     }
@@ -275,10 +276,10 @@ public class VariableFieldTests
 
             viewModel.SelectAction("file.writeText");
             var path = Parameter(viewModel, "path");
-            Assert.Contains("sys.macroFolder", path.NameChoices);
-            Assert.Contains("step.k3f9.error", path.NameChoices);
-            Assert.Contains("sys.macroFolder", path.ExpressionSuggestions);
-            Assert.Contains("step.k3f9.error", path.ExpressionSuggestions);
+            Assert.Contains("$sys.macroFolder", path.NameChoices);
+            Assert.Contains("$step.k3f9.error", path.NameChoices);
+            Assert.Contains("$sys.macroFolder", path.ExpressionSuggestions);
+            Assert.Contains("$step.k3f9.error", path.ExpressionSuggestions);
 
             viewModel.SelectAction("control.setVariable");
             var name = Parameter(viewModel, "name");
@@ -329,7 +330,7 @@ public class VariableFieldTests
             viewModel.SelectAction("clipboard.writeImage");
             var picture = Parameter(viewModel, "imageSource");
             Assert.True(picture.IsImage);
-            Assert.Equal(["count", "shot"], picture.NameChoices);
+            Assert.Equal(["$count", "$shot"], picture.NameChoices);
 
             // Every row of a list has to say it, not only the one the dialog happens to show first.
             viewModel.SelectAction("vision.findImage");
@@ -338,7 +339,7 @@ public class VariableFieldTests
             list.AddPicture();
             Assert.Equal(2, list.Pictures.Count);
             Assert.All(list.Pictures,
-                row => Assert.Equal(["count", "shot"], row.Suggestions));
+                row => Assert.Equal(["$count", "$shot"], row.Suggestions));
         });
     }
 
@@ -367,44 +368,29 @@ public class VariableFieldTests
 
     /// <summary>
     /// The flags only mean something if the dialog's markup uses them, so the one place the
-    /// parameter editors are written down is read here: a value field is read-only and shows the
-    /// shape as rich text, with the value window as its one way in. A box that takes a typed line
-    /// would need a sign to tell a name from a word, so this check fails if one comes back.
+    /// parameter editors are written down is read here: a value field gets a list of the variables
+    /// over it, and a whole-value field gets the expression editor beside it.
     /// </summary>
     [Fact]
     public void The_dialog_puts_the_variables_on_the_fields_that_take_them()
     {
-        var markup = ViewSource.MarkupAnd("ActionEditorView.axaml", "ParameterScalarView.axaml",
-            "ParameterStructuredView.axaml", "ParameterTailView.axaml");
+        var markup = File.ReadAllText(
+            Path.Combine(Repository(), "WhaleGenie", "Views", "ActionEditorView.axaml"));
 
         var start = markup.IndexOf("IsVisible=\"{Binding OffersVariables}\"", StringComparison.Ordinal);
         Assert.True(start >= 0, "the dialog stopped offering variables in a field that takes them");
 
-        // The section runs to the next field, not to the next closing tag: the field is drawn as a
-        // reading and a box inside one another, so the first </Grid> closes the inner one.
-        var block = markup[start..markup.IndexOf("<!-- A UI Automation selector",
-            start, StringComparison.Ordinal)];
-
-        // No line is typed into a value field. An AutoCompleteBox or a suggestion list would mean
-        // a person can spell a name into a box again, which is exactly what the shape made needless.
-        Assert.DoesNotContain("AutoCompleteBox", block, StringComparison.Ordinal);
-        Assert.DoesNotContain("ExpressionSuggestions", block, StringComparison.Ordinal);
-        Assert.Contains("IsReadOnly=\"True\"", block, StringComparison.Ordinal);
-
-        // What the field shows is the shape: words and names as their own pieces, or a one-way
-        // line drawn from it for a person to read. Neither is ever read back into a value.
-        Assert.Contains("ItemsSource=\"{Binding Parts}\"", block, StringComparison.Ordinal);
-        Assert.Contains("DataType=\"vm:NamePart\"", block, StringComparison.Ordinal);
-        Assert.Contains("SelectableTextBlock", block, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding DisplayLine, Mode=OneWay}\"", block, StringComparison.Ordinal);
+        var block = markup[start..markup.IndexOf("</Grid>", start, StringComparison.Ordinal)];
+        Assert.Contains("AutoCompleteBox", block, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding ExpressionSuggestions}\"", block, StringComparison.Ordinal);
 
         // One door inside the box rather than two buttons beside it: a name and a formula are the
         // same window now, and the button sits in the field it fills.
         Assert.Contains("Classes=\"Field HasChip\"", block, StringComparison.Ordinal);
-        Assert.Contains("TextBox.InnerRightContent", block, StringComparison.Ordinal);
+        Assert.Contains("AutoCompleteBox.InnerRightContent", block, StringComparison.Ordinal);
         Assert.Contains("Classes=\"ValueChip\"", block, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnOpenValuePicker\"", block, StringComparison.Ordinal);
-        Assert.DoesNotContain("Click=\"OnPickVariable\"", block, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickVariable\"", block, StringComparison.Ordinal);
+        Assert.DoesNotContain("Click=\"OnOpenExpressionBuilder\"", block, StringComparison.Ordinal);
 
         // And a field that holds a variable by name offers the names: the box holds text, so the
         // rows of the wall listed there would be written into the macro as the name of their type.
@@ -412,18 +398,8 @@ public class VariableFieldTests
         Assert.True(named >= 0, "the dialog stopped offering variables in the field that names one");
 
         var naming = markup[named..markup.IndexOf("</Grid>", named, StringComparison.Ordinal)];
-        // A name is chosen in the value window too, never spelled into a box. The name field
-        // shows the bare name (not the 「name」 a reading of a formula would draw), read-only.
-        Assert.Contains("IsReadOnly=\"True\"", naming, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text, Mode=OneWay}\"", naming, StringComparison.Ordinal);
-        Assert.DoesNotContain("AutoCompleteBox", naming, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnOpenValuePicker\"", naming, StringComparison.Ordinal);
-
-        // The same one door: the field that names a value keeps its chip inside the box, and the
-        // expression button that used to stand beside it is gone.
-        Assert.Contains("Classes=\"Field HasChip\"", naming, StringComparison.Ordinal);
-        Assert.Contains("TextBox.InnerRightContent", naming, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"ValueChip\"", naming, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", naming, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnPickVariable\"", naming, StringComparison.Ordinal);
 
         // And a picture, which is a file or the picture an earlier step saved under a name, is
         // offered those names as well.
@@ -434,7 +410,6 @@ public class VariableFieldTests
             StringComparison.Ordinal)];
         Assert.Contains("ItemsSource=\"{Binding NameChoices}\"", pictures, StringComparison.Ordinal);
     }
-
 
     /// <summary>
     /// Every field whose hint names variables has to be a box that offers them. The ones left out
@@ -453,12 +428,12 @@ public class VariableFieldTests
             "script.run.script", "script.ahk.script", "browser.evaluate.script"];
 
         // A box of several lines: a list of names standing over one would be in the way, so these
-        // are written by hand. The first takes a name straight in, and the second is shown exactly
-        // as it was written.
+        // are written by hand. The first fills a `$name` in, and the second is shown exactly as it
+        // was written.
         string[] multiline = ["command.run.standardInput", "control.note.note"];
 
-        // The shape a reading has to fit is a pattern rather than a value: its hint shows an
-        // example pattern, not a name to offer.
+        // The shape a reading has to fit is a pattern rather than a value: the dollar signs its hint
+        // uses are the ends of a regular expression, not the start of a variable name.
         string[] aPattern = ["ocr.findText.expected", "ocr.clickText.expected"];
 
         // Only the kinds that are a bare box are looked at, because only those can be a box a name
@@ -469,13 +444,14 @@ public class VariableFieldTests
         ActionParameterKind[] boxes =
         [
             ActionParameterKind.Text, ActionParameterKind.MultilineText,
-            ActionParameterKind.Code, ActionParameterKind.Image, ActionParameterKind.Images,
+            ActionParameterKind.Image, ActionParameterKind.Images,
         ];
 
         var gaps = Ui.Run(() => ActionCatalog.Definitions
             .SelectMany(definition => definition.Parameters.Select(parameter => (definition.Key, parameter)))
             .Where(row => boxes.Contains(row.parameter.Kind))
-            .Where(row => row.parameter.Hint.Contains("variable", StringComparison.OrdinalIgnoreCase))
+            .Where(row => row.parameter.Hint.Contains("variable", StringComparison.OrdinalIgnoreCase)
+                || row.parameter.Hint.Contains('$'))
             .Where(row => !row.parameter.OffersNames)
             .Select(row => $"{row.Key}.{row.parameter.Name}")
             .Where(key => !otherNames.Contains(key) && !multiline.Contains(key)

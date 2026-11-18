@@ -18,10 +18,6 @@ namespace WhaleGenie.Core.Devices;
 /// counts once — the keys go down together, which is what it looked like from the outside — and
 /// moving the pointer counts not at all: a path of five hundred points is still one movement, and
 /// counting it would make every move action the slow one.
-///
-/// A run may bring a ceiling of its own: <see cref="Scope"/> gives it that rate and a line of events
-/// of its own, so its pauses are not spent by, and do not hold up, anything else sending at the same
-/// time. The program's setting is what every run without one still answers to.
 /// </remarks>
 public static class InputLimit
 {
@@ -32,59 +28,15 @@ public static class InputLimit
     public const int Usual = 120;
 
     /// <summary>
-    /// One line of events in time: when the last one was allowed to go. The program has one, and a
-    /// run that brought its own limit gets one of its own, so a macro that was slowed down does not
-    /// slow down whatever else is sending.
+    /// Held while the moment of the last event is worked out and moved forward, so two threads
+    /// sending input take turns instead of both deciding they are under the limit.
     /// </summary>
-    private sealed class Timeline
-    {
-        /// <summary>
-        /// Held while the moment of the last event is worked out and moved forward, so two threads
-        /// sending along the same line take turns instead of both deciding they are under the limit.
-        /// </summary>
-        public readonly object Gate = new();
-
-        public long? Last;
-    }
-
-    private static readonly Timeline Program = new();
-
-    /// <summary>
-    /// The limit and timeline of the run whose steps are running right now, or null outside a run.
-    /// It is <see cref="AsyncLocal{T}"/> rather than a field because two runs are in flight at once
-    /// and each has to see its own: a run is a chain of awaits, which is exactly what this flows
-    /// across. Work sent to a thread of its own does not inherit it, and that is the intent — a run
-    /// that leaves the chain is no longer the run's own sending.
-    /// </summary>
-    private static readonly AsyncLocal<RunScope?> CurrentRun = new();
+    private static readonly object Gate = new();
 
     private static int _perSecond = Usual;
 
-    /// <summary>One run's own answer, set for as long as its steps are running.</summary>
-    private sealed class RunScope(int rate) : IDisposable
-    {
-        private readonly RunScope? _previous = CurrentRun.Value;
-
-        public int Rate { get; } = Math.Clamp(rate, 0, Most);
-
-        public Timeline Timeline { get; } = new();
-
-        public void Dispose() => CurrentRun.Value = _previous;
-    }
-
-    /// <summary>
-    /// Gives this run its own ceiling and its own line of events, and puts both back when the run is
-    /// over. Zero turns the limit off for this run only; the program's own answer is untouched.
-    /// </summary>
-    internal static IDisposable Scope(int rate)
-    {
-        var scope = new RunScope(rate);
-        CurrentRun.Value = scope;
-        return scope;
-    }
-
-    /// <summary>The rate in force right now: this run's if it brought one, the program's otherwise.</summary>
-    internal static int Effective => CurrentRun.Value?.Rate ?? Volatile.Read(ref _perSecond);
+    /// <summary>When the last event was allowed to go, or null before anything has been sent.</summary>
+    private static long? _last;
 
     /// <summary>
     /// Events per second, from 0 to <see cref="Most"/>. Zero turns the limit off, which is what
@@ -111,17 +63,9 @@ public static class InputLimit
     /// <summary>Forgets what has been sent, which is what a check needs before it measures.</summary>
     internal static void Reset()
     {
-        lock (Program.Gate)
+        lock (Gate)
         {
-            Program.Last = null;
-        }
-
-        if (CurrentRun.Value is { } scope)
-        {
-            lock (scope.Timeline.Gate)
-            {
-                scope.Timeline.Last = null;
-            }
+            _last = null;
         }
     }
 
@@ -132,8 +76,7 @@ public static class InputLimit
     /// </summary>
     public static void Spend(int events)
     {
-        var scope = CurrentRun.Value;
-        var rate = scope?.Rate ?? Volatile.Read(ref _perSecond);
+        var rate = PerSecond;
         if (rate <= 0 || events <= 0)
         {
             return;
@@ -142,17 +85,16 @@ public static class InputLimit
         // One second's worth of the clock divided by the number of events in it: how far apart two
         // events have to be. Kept in ticks rather than seconds so every event uses the same reading.
         var spacing = (double)Stopwatch.Frequency / rate;
-        var timeline = scope?.Timeline ?? Program;
 
-        lock (timeline.Gate)
+        lock (Gate)
         {
             var now = Clock();
 
             // Nothing has been sent yet, so nothing can be too close to it — but the batch still
             // takes its own time, and the next event has to be spaced from the last one in it.
-            if (timeline.Last is not { } last)
+            if (_last is not { } last)
             {
-                timeline.Last = now + (long)Math.Round(spacing * (events - 1));
+                _last = now + (long)Math.Round(spacing * (events - 1));
                 return;
             }
 
@@ -163,7 +105,7 @@ public static class InputLimit
                 now = due;
             }
 
-            timeline.Last = now;
+            _last = now;
         }
     }
 }
@@ -226,7 +168,7 @@ public sealed class ThrottledInputDevice(IInputDevice inner) : IInputDevice
     /// </summary>
     public void TypeText(string text, int intervalMs)
     {
-        var rate = InputLimit.Effective;
+        var rate = InputLimit.PerSecond;
         var shortest = rate > 0 ? (int)Math.Ceiling(1000.0 / rate) : 0;
         var pace = Math.Max(intervalMs, shortest);
 
