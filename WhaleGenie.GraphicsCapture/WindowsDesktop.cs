@@ -202,7 +202,9 @@ internal static class WindowsDesktop
             DeleteDC(memory);
         }
 
-        ReleaseDC(IntPtr.Zero, screen);
+        // ReleaseDC's answer says whether the DC was released, which the caller cannot act on: the
+        // drawing is over either way.
+        _ = ReleaseDC(IntPtr.Zero, screen);
     }
 
     [StructLayout(LayoutKind.Sequential)]

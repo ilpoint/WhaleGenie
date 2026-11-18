@@ -24,6 +24,13 @@ public interface IInputRecorder : IDisposable
     /// </summary>
     bool RecordController { get; set; }
 
+    /// <summary>
+    /// The shortcut that ends a recording, written the way every other shortcut in the program is
+    /// written — <c>Ctrl+F10</c>, or a key on its own. It is handed in by whoever starts the
+    /// recording rather than read from a file here: the engine has no settings of its own.
+    /// </summary>
+    string StopShortcut { get; set; }
+
     /// <summary>Raised for every captured event, in the order it happened.</summary>
     event Action<RecordedInput>? Captured;
 

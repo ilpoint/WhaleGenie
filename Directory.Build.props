@@ -33,6 +33,15 @@
 
     <!-- A warning is a defect that has not been fixed yet, so the build stops on one. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!--
+      The compiler's own warnings are not the whole of it: the .NET analyzers catch the shapes that
+      compile but read wrong — a disposed stream still used, a task nobody awaits, a culture-sensitive
+      comparison. Only the product projects take the recommended set; the test projects keep the
+      compiler's warnings and the repository's own checks, because a case is allowed to be blunt
+      where a shipped path is not.
+    -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <Deterministic>true</Deterministic>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
 
@@ -45,6 +54,20 @@
       WhaleGenie.Core.csproj 里只对 Core 自己的输出生效，引用它的程序与测试仍然会全抄。
     -->
     <PlaywrightPlatform>win-x64</PlaywrightPlatform>
+  </PropertyGroup>
+
+  <!--
+    The rules the product is held to, and the ones it deliberately does not adopt. CA1001: a
+    window's overlays are released by its lifetime handlers rather than by Dispose. CA1068: the
+    engine's internal signatures read better with the token beside the depth. CA1716/CA1720: domain
+    words such as a parameter named params or a type named Handle. CA1822/CA1826/CA1859: micro-
+    optimisations that would blur what a member is for. CA1838: StringBuilder is the documented
+    shape of these Win32 calls. CA1861: array literals in message text, with no measured cost.
+    CA2020: x64-only handle conversions where a checked cast would throw on valid values.
+  -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <AnalysisLevel>latest-Recommended</AnalysisLevel>
+    <NoWarn>$(NoWarn);CA1001;CA1068;CA1716;CA1720;CA1822;CA1826;CA1838;CA1859;CA1861;CA2020</NoWarn>
   </PropertyGroup>
 
 </Project>

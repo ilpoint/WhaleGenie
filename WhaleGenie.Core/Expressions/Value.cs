@@ -11,6 +11,13 @@ public enum ValueKind
     Null,
     Number,
     Bool,
+
+    /// <summary>
+    /// A moment: a day, or a day and a time. It is its own kind rather than text because two dates
+    /// have an order before a comparison, and because "add a day" is not "add 1 to a line".
+    /// </summary>
+    Date,
+
     Text,
     List,
 
@@ -19,6 +26,14 @@ public enum ValueKind
     /// a listing are records: several answers about one thing, which belong together.
     /// </summary>
     Record,
+
+    /// <summary>
+    /// A picture the run is holding: a capture, or what the clipboard had on it. The value is the
+    /// handle the picture is known by rather than its pixels, which live with the run and are let go
+    /// of when it ends. It is its own kind so a picture is not mistaken for the line that describes
+    /// it, and so a step that wants a picture says so.
+    /// </summary>
+    Image,
 }
 
 /// <summary>
@@ -30,16 +45,18 @@ public sealed class Value : IEquatable<Value>
     private readonly double _number;
     private readonly bool _flag;
     private readonly string _text;
+    private readonly DateTimeOffset _date;
     private readonly List<Value> _items;
     private readonly List<(string Name, Value Value)> _fields;
 
     private Value(ValueKind kind, double number, bool flag, string text, List<Value>? items,
-        List<(string Name, Value Value)>? fields = null)
+        List<(string Name, Value Value)>? fields = null, DateTimeOffset date = default)
     {
         Kind = kind;
         _number = number;
         _flag = flag;
         _text = text;
+        _date = date;
         _items = items ?? [];
         _fields = fields ?? [];
     }
@@ -52,6 +69,17 @@ public sealed class Value : IEquatable<Value>
     public static Value FromNumber(double number) => new(ValueKind.Number, number, false, string.Empty, null);
 
     public static Value FromBool(bool flag) => new(ValueKind.Bool, 0, flag, string.Empty, null);
+
+    /// <summary>A moment, kept with the offset it was read at so its own wall time survives.</summary>
+    public static Value FromDate(DateTimeOffset date)
+        => new(ValueKind.Date, 0, false, string.Empty, null, date: date);
+
+    /// <summary>
+    /// A picture, written as the handle it is known by. The handle is what a log line, a file of
+    /// results and a comparison can carry; the pixels stay with the run that took them.
+    /// </summary>
+    public static Value FromImage(string handle)
+        => new(ValueKind.Image, 0, false, handle ?? string.Empty, null);
 
     public static Value FromText(string? text) => new(ValueKind.Text, 0, false, text ?? string.Empty, null);
 
@@ -70,13 +98,20 @@ public sealed class Value : IEquatable<Value>
 
     public bool IsNumber => Kind is ValueKind.Number;
 
+    public bool IsDate => Kind is ValueKind.Date;
+
     public bool IsRecord => Kind is ValueKind.Record;
+
+    public bool IsImage => Kind is ValueKind.Image;
 
     /// <summary>The raw number when <see cref="Kind"/> is <see cref="ValueKind.Number"/>.</summary>
     public double Number => _number;
 
     /// <summary>The raw flag when <see cref="Kind"/> is <see cref="ValueKind.Bool"/>.</summary>
     public bool Flag => _flag;
+
+    /// <summary>The moment when <see cref="Kind"/> is <see cref="ValueKind.Date"/>.</summary>
+    public DateTimeOffset Date => _date;
 
     /// <summary>The raw text when <see cref="Kind"/> is <see cref="ValueKind.Text"/>.</summary>
     public string Text => _text;
@@ -126,7 +161,7 @@ public sealed class Value : IEquatable<Value>
             case ValueKind.Bool:
                 return _flag ? 1 : 0;
             case ValueKind.Text:
-                if (double.TryParse(_text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+                if (ValueRules.TryNumber(_text, out var parsed))
                 {
                     return parsed;
                 }
@@ -136,6 +171,12 @@ public sealed class Value : IEquatable<Value>
                 throw ExpressionException.TypeMismatch("a list is not a number");
             case ValueKind.Record:
                 throw ExpressionException.TypeMismatch("a record is not a number");
+            case ValueKind.Date:
+                // A date has an order, not a size: turning it into a number would make "add a day"
+                // and "add 86400" look like the same idea, and one of them is wrong twice a year.
+                throw ExpressionException.TypeMismatch("a date is not a number");
+            case ValueKind.Image:
+                throw ExpressionException.TypeMismatch("a picture is not a number");
             default:
                 return 0;
         }
@@ -151,8 +192,42 @@ public sealed class Value : IEquatable<Value>
             && !string.Equals(_text, "0", StringComparison.Ordinal),
         ValueKind.List => _items.Count > 0,
         ValueKind.Record => _fields.Count > 0,
+        ValueKind.Date => true,
+        ValueKind.Image => true,
         _ => false,
     };
+
+    /// <summary>
+    /// The value as a moment, for the comparisons and list orders that have to put dates in time
+    /// order. Text is read as a date when it is written like one; anything else is not a date, and
+    /// the caller keeps whatever it did before rather than treating a number as a day.
+    /// </summary>
+    public bool TryDate(out DateTimeOffset date)
+    {
+        if (Kind is ValueKind.Date)
+        {
+            date = _date;
+            return true;
+        }
+
+        if (Kind is ValueKind.Text)
+        {
+            return DateTimeOffset.TryParse(_text, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out date);
+        }
+
+        date = default;
+        return false;
+    }
+
+    /// <summary>
+    /// A moment as the text it is read and written by. A day with no time on it says only the day:
+    /// a report that asks for "today" should not print a midnight nobody meant.
+    /// </summary>
+    public static string TextOf(DateTimeOffset moment)
+        => moment.TimeOfDay == TimeSpan.Zero
+            ? moment.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : moment.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 
     /// <summary>The value written out the way a user would read it.</summary>
     public string AsText() => Kind switch
@@ -160,8 +235,10 @@ public sealed class Value : IEquatable<Value>
         ValueKind.Number => FormatNumber(_number),
         ValueKind.Bool => _flag ? "true" : "false",
         ValueKind.Text => _text,
+        ValueKind.Date => TextOf(_date),
         ValueKind.List => string.Join(", ", _items.Select(item => item.AsText())),
         ValueKind.Record => JsonValues.Written(this),
+        ValueKind.Image => _text,
         _ => string.Empty,
     };
 
@@ -178,64 +255,45 @@ public sealed class Value : IEquatable<Value>
             : number.ToString("0.######", CultureInfo.InvariantCulture);
     }
 
-    /// <summary>Numeric comparison, so 1 equals 1.0 and "1" equals 1.</summary>
-    public bool NumericEquals(Value other)
-    {
-        try
-        {
-            return AsNumber().Equals(other.AsNumber());
-        }
-        catch (ExpressionException)
-        {
-            return string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
+    /// <summary>
+    /// True when two values are the same value of the same kind. A number is not the line that
+    /// writes it as a number and a picture is not its name: asking whether they are equal is a
+    /// different question from asking whether one can stand for the other, and
+    /// <see cref="ValueRules.Same"/> is where that second question is answered.
+    /// </summary>
     public bool Equals(Value? other)
     {
-        if (other is null)
+        if (other is null || Kind != other.Kind)
         {
             return false;
         }
 
-        if (Kind is ValueKind.List || other.Kind is ValueKind.List)
+        return Kind switch
         {
-            return Kind == other.Kind && _items.SequenceEqual(other._items);
-        }
-
-        if (Kind is ValueKind.Record || other.Kind is ValueKind.Record)
-        {
-            // Field names are compared as written while everything a user types is read without
-            // caring about case: what a record writes itself as has to be the text the comparison
-            // of two records agrees on, because that text is also their hash.
-            return Kind == other.Kind
-                && _fields.Count == other._fields.Count
+            ValueKind.Null => true,
+            ValueKind.Number => _number.Equals(other._number),
+            ValueKind.Bool => _flag == other._flag,
+            ValueKind.Text or ValueKind.Image =>
+                string.Equals(_text, other._text, StringComparison.OrdinalIgnoreCase),
+            ValueKind.Date => _date.UtcTicks == other._date.UtcTicks,
+            ValueKind.List => _items.SequenceEqual(other._items),
+            ValueKind.Record => _fields.Count == other._fields.Count
                 && _fields.Zip(other._fields).All(pair =>
                     string.Equals(pair.First.Name, pair.Second.Name, StringComparison.Ordinal)
-                    && Equals(pair.First.Value, pair.Second.Value));
-        }
-
-        if (Kind is ValueKind.Number && other.Kind is ValueKind.Number)
-        {
-            return _number.Equals(other._number);
-        }
-
-        if (Kind is ValueKind.Bool && other.Kind is ValueKind.Bool)
-        {
-            return _flag == other._flag;
-        }
-
-        if (Kind is ValueKind.Null && other.Kind is ValueKind.Null)
-        {
-            return true;
-        }
-
-        return string.Equals(AsText(), other.AsText(), StringComparison.OrdinalIgnoreCase);
+                    && Equals(pair.First.Value, pair.Second.Value)),
+            _ => false,
+        };
     }
 
     public override bool Equals(object? obj) => Equals(obj as Value);
 
-    public override int GetHashCode() => AsText().GetHashCode(StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// One line for the value, so two that are equal always hash alike: a number by its exact
+    /// digits, a moment by its instant, a line by its letters, and a list or a record by what it
+    /// holds. <see cref="ValueRules.Canonical"/> is the same idea written out.
+    /// </summary>
+    public override int GetHashCode()
+        => StringComparer.Ordinal.GetHashCode(ValueRules.Canonical(this));
 
     public override string ToString() => AsText();
 }

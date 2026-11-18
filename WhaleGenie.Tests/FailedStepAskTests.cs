@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
@@ -80,7 +80,7 @@ public class FailedStepAskTests
         var broken = new ExecutableStep
         {
             Type = "input.keyPress",
-            Parameters = [new ExecutableParameter { Name = "key", Text = "F5" }],
+            Parameters = [Fields.Text("key", "F5")],
             Meta = new StepMeta
             {
                 OnError = StepErrorAction.AskUser,

@@ -5,10 +5,10 @@ using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -18,6 +18,7 @@ namespace WhaleGenie.Tests;
 /// The file the settings window writes. Every choice lives in the one file, so storing one has to
 /// leave the others where they were — that is the mistake this file is here to catch.
 /// </summary>
+[RestoreSharedState]
 public class LocalSettingsTests
 {
     [Fact]
@@ -35,6 +36,228 @@ public class LocalSettingsTests
             LocalSettings.Store(Language.English);
             Assert.Equal(Language.English, LocalSettings.Load());
             Assert.True(LocalSettings.LoadPreloadOcr());
+        });
+    }
+
+    /// <summary>
+    /// 输入限制：默认每秒 120 个事件，边界 0 与 999 都存得住，越界的值落到边界上。
+    /// 它是"上限"而不是"节拍"，所以 0 必须能存——那是关闭，不是没填。
+    /// </summary>
+    [Fact]
+    public void The_input_limit_defaults_to_120_and_keeps_zero_as_off()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.Equal(WhaleGenie.Core.Devices.InputLimit.Usual, LocalSettings.LoadInputRate());
+            Assert.Equal(120, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(0);
+            Assert.Equal(0, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(999);
+            Assert.Equal(999, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(5000);
+            Assert.Equal(WhaleGenie.Core.Devices.InputLimit.Most, LocalSettings.LoadInputRate());
+
+            LocalSettings.StoreInputRate(-1);
+            Assert.Equal(0, LocalSettings.LoadInputRate());
+        });
+    }
+
+    /// <summary>
+    /// 改了限制立刻生效：正在跑的宏从下一个事件起就受约束，不必等下一次运行。
+    /// </summary>
+    [Fact]
+    public void Changing_the_limit_takes_effect_at_once()
+    {
+        InOwnFile(_ =>
+        {
+            var settings = new SettingsViewModel(() => DriverInputState.Ready) { InputRate = 60 };
+            Assert.Equal(60, WhaleGenie.Core.Devices.InputLimit.PerSecond);
+            Assert.Equal(60, LocalSettings.LoadInputRate());
+
+            settings.InputRate = 0;
+            Assert.Equal(0, WhaleGenie.Core.Devices.InputLimit.PerSecond);
+
+            // 收尾：把限额还给默认值，免得影响同批次的其它用例。
+            WhaleGenie.Core.Devices.InputLimit.PerSecond = WhaleGenie.Core.Devices.InputLimit.Usual;
+        });
+    }
+
+    /// <summary>
+    /// 三项启动设置：默认与今天的行为一致（打开上次项目、系统不随启动启用、宏按原顺序），
+    /// 改一项不碰其他项。默认值就是升级后第一次打开时的样子，不能悄悄改变既有行为。
+    /// </summary>
+    [Fact]
+    public void The_start_settings_default_to_what_the_program_did_before()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.True(LocalSettings.LoadLastProjectAtStart());
+            Assert.False(LocalSettings.LoadSystemAtStart());
+            Assert.False(LocalSettings.LoadEnabledFirst());
+
+            LocalSettings.StoreSystemAtStart(true);
+            LocalSettings.StoreEnabledFirst(true);
+            LocalSettings.StoreLastProjectAtStart(false);
+
+            Assert.False(LocalSettings.LoadLastProjectAtStart());
+            Assert.True(LocalSettings.LoadSystemAtStart());
+            Assert.True(LocalSettings.LoadEnabledFirst());
+
+            // 另一个选择写一次，三项都不动。
+            LocalSettings.StorePreloadOcr(true);
+            Assert.False(LocalSettings.LoadLastProjectAtStart());
+            Assert.True(LocalSettings.LoadSystemAtStart());
+            Assert.True(LocalSettings.LoadEnabledFirst());
+        });
+    }
+
+    /// <summary>
+    /// 启动时启用系统：新建主视图模型时按设置决定系统状态。默认关闭，就是按热键启用之前的样子。
+    /// </summary>
+    [Fact]
+    public void The_system_can_be_enabled_by_the_start_setting()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.False(new MainViewModel().IsRunning);
+
+            LocalSettings.StoreSystemAtStart(true);
+            Assert.True(new MainViewModel().IsRunning);
+        });
+    }
+
+    /// <summary>
+    /// 已启用的宏排在前面：关闭时保持项目原有顺序，打开后只把两组分开，组内顺序不变。
+    /// </summary>
+    [Fact]
+    public void Enabled_macros_can_be_listed_first_without_reordering_each_group()
+    {
+        InOwnFile(_ =>
+        {
+            var viewModel = new MainViewModel();
+            viewModel.SelectedView = MacroView.All;
+
+            viewModel.AddMacro(new MacroItem { Name = "停用一", IsEnabled = false });
+            viewModel.AddMacro(new MacroItem { Name = "启用一" });
+            viewModel.AddMacro(new MacroItem { Name = "停用二", IsEnabled = false });
+            viewModel.AddMacro(new MacroItem { Name = "启用二" });
+
+            Assert.Equal(["停用一", "启用一", "停用二", "启用二"],
+                viewModel.VisibleMacros.Select(macro => macro.Name));
+
+            LocalSettings.StoreEnabledFirst(true);
+            viewModel.RefreshVisibleMacros();
+
+            Assert.Equal(["启用一", "启用二", "停用一", "停用二"],
+                viewModel.VisibleMacros.Select(macro => macro.Name));
+        });
+    }
+
+    /// <summary>
+    /// 启用/停用之后列表立刻按「已启用排前」换位，菜单上写的也是接下来会发生的事 —— 否则圆点与顺序
+    /// 会各说各的，直到下一次刷新。
+    /// </summary>
+    [Fact]
+    public void Arming_a_macro_moves_it_within_the_order_at_once()
+    {
+        InOwnFile(_ =>
+        {
+            LocalSettings.StoreEnabledFirst(true);
+            var viewModel = new MainViewModel();
+            viewModel.SelectedView = MacroView.All;
+
+            var first = new MacroItem { Name = "甲" };
+            var second = new MacroItem { Name = "乙", IsEnabled = false };
+            var third = new MacroItem { Name = "丙", IsEnabled = false };
+            viewModel.AddMacro(first);
+            viewModel.AddMacro(second);
+            viewModel.AddMacro(third);
+
+            Assert.Equal(["甲", "乙", "丙"], viewModel.VisibleMacros.Select(macro => macro.Name));
+            Assert.Equal(Strings.Get("Main.DisableMacro"), first.ToggleLabel);
+            Assert.Equal(Strings.Get("Main.EnableMacro"), third.ToggleLabel);
+
+            // 丙启用：进到启用的那一组末尾，乙仍在停用组里。
+            viewModel.ToggleMacro(third);
+            Assert.Equal(["甲", "丙", "乙"], viewModel.VisibleMacros.Select(macro => macro.Name));
+            Assert.Equal(Strings.Get("Main.DisableMacro"), third.ToggleLabel);
+
+            // 甲停用：让出第一位，两个停用的仍按项目里的先后排。
+            viewModel.ToggleMacro(first);
+            Assert.Equal(["丙", "甲", "乙"], viewModel.VisibleMacros.Select(macro => macro.Name));
+            Assert.Equal(Strings.Get("Main.EnableMacro"), first.ToggleLabel);
+        });
+    }
+
+    /// <summary>
+    /// 停止录制的快捷键默认 Ctrl+F10；改过的读得回来，文件里那一格空着也回到默认 —— 一个停不下来的
+    /// 录制比一个用默认键的录制糟得多。设置窗口按下的组合键走同一条路，写坏的键不写进去。
+    /// </summary>
+    [Fact]
+    public void The_recording_stop_key_is_kept_and_falls_back_to_the_default()
+    {
+        InOwnFile(path =>
+        {
+            Assert.Equal("Ctrl+F10", LocalSettings.LoadRecordStopKey());
+
+            LocalSettings.StoreRecordStopKey("F9");
+            Assert.Equal("F9", LocalSettings.LoadRecordStopKey());
+
+            File.WriteAllText(path, """{"RecordStopKey":""}""");
+            Assert.Equal("Ctrl+F10", LocalSettings.LoadRecordStopKey());
+
+            var settings = new SettingsViewModel(() => DriverInputState.Ready);
+            Assert.True(settings.CaptureRecordStop("Ctrl+Alt+F12"));
+            Assert.Equal("Ctrl+Alt+F12", LocalSettings.LoadRecordStopKey());
+            Assert.Equal("Ctrl+Alt+F12", settings.RecordStopDisplay);
+
+            // 读不出来的键不被存下来，原来的键继续管用。
+            Assert.False(settings.CaptureRecordStop("没有这个键"));
+            Assert.Equal("Ctrl+Alt+F12", LocalSettings.LoadRecordStopKey());
+        });
+    }
+
+    /// <summary>「每次启动都请求管理员权限」默认关闭，勾上就存下来；它不会改变当前这一份的权限。</summary>
+    [Fact]
+    public void Asking_for_administrator_rights_at_start_is_a_stored_choice()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.False(LocalSettings.LoadRunAsAdmin());
+
+            var settings = new SettingsViewModel(() => DriverInputState.Ready, elevated: false)
+            {
+                RunAsAdmin = true,
+            };
+
+            Assert.True(LocalSettings.LoadRunAsAdmin());
+            Assert.True(settings.RunAsAdmin);
+
+            // 这一次运行有没有权限是启动时定下的，勾这一格不会让它变。
+            Assert.False(settings.IsElevated);
+        });
+    }
+
+    /// <summary>
+    /// The package that was open last, so the next start does not begin with an empty list. A path
+    /// that no longer exists is kept: the work may be on a drive that is not plugged in.
+    /// </summary>
+    [Fact]
+    public void The_last_project_is_remembered()
+    {
+        InOwnFile(_ =>
+        {
+            Assert.Equal(string.Empty, LocalSettings.LastProject());
+
+            LocalSettings.StoreLastProject(@"D://宏//我的.wgmacro");
+            Assert.Equal(@"D://宏//我的.wgmacro", LocalSettings.LastProject());
+
+            // Storing another choice leaves it alone, like every other choice in this file.
+            LocalSettings.StorePreloadOcr(true);
+            Assert.Equal(@"D://宏//我的.wgmacro", LocalSettings.LastProject());
         });
     }
 
@@ -139,6 +362,41 @@ public class LocalSettingsTests
     }
 
     /// <summary>
+    /// 复用上次的画面默认关闭：一张画面里连续识别几样东西时才值得打开，而等某样东西消失的宏不能
+    /// 被一张旧画面骗过去。默认值就是全新安装第一次打开时的样子，所以这里既查文件也查窗口。
+    /// </summary>
+    [Fact]
+    public void Reusing_the_last_picture_is_off_until_it_is_turned_on()
+    {
+        InOwnFile(_ =>
+        {
+            var was = FrameShelf.Current.CacheMilliseconds;
+            try
+            {
+                Assert.False(LocalSettings.LoadFrameCache());
+                Assert.Equal(100, LocalSettings.LoadFrameCacheAge());
+
+                var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
+                Assert.False(viewModel.FrameCache);
+                Assert.False(viewModel.FrameCacheAgeEnabled);
+
+                viewModel.FrameCache = true;
+                Assert.True(LocalSettings.LoadFrameCache());
+                Assert.True(viewModel.FrameCacheAgeEnabled);
+
+                viewModel.FrameCache = false;
+                Assert.False(LocalSettings.LoadFrameCache());
+            }
+            finally
+            {
+                // The engine's copy is one per process and stays behind after the temporary file is
+                // thrown away, so it is put back rather than left on this test's last answer.
+                FrameShelf.Current.CacheMilliseconds = was;
+            }
+        });
+    }
+
+    /// <summary>
     /// The switch itself, as the window draws it: a choice nothing on the window is wired to would
     /// store whatever the window happened to hold rather than what the person clicked.
     /// </summary>
@@ -150,7 +408,12 @@ public class LocalSettingsTests
             var window = new SettingsWindow();
             window.Show();
 
-            var box = window.FindControl<CheckBox>("PreloadOcrCheck");
+            var viewModel = window.DataContext as SettingsViewModel;
+            Assert.True(viewModel is not null);
+            viewModel.SetPage(SettingsSubPage.Screen);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+
+            var box = SettingsView.Find<ToggleSwitch>(window, "PreloadOcrCheck");
             Assert.True(box is not null, "the settings window stopped offering to load the models");
             Assert.False(box.IsChecked);
 
@@ -167,34 +430,119 @@ public class LocalSettingsTests
         InOwnFile(_ =>
         {
             Assert.Equal("Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(DockPage.Keys, LocalSettings.LoadDockPage());
+            Assert.Equal(MacroView.All, LocalSettings.LoadView());
+            Assert.Equal(string.Empty, LocalSettings.LoadMenuLauncher());
 
             LocalSettings.StoreSystemHotkey("Ctrl+Alt+Home");
-            LocalSettings.StoreDockPage(DockPage.Menu);
+            LocalSettings.StoreView(MacroView.Menu);
+            LocalSettings.StoreMenuLauncher("F9");
 
             Assert.Equal("Ctrl+Alt+Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(DockPage.Menu, LocalSettings.LoadDockPage());
+            Assert.Equal(MacroView.Menu, LocalSettings.LoadView());
+            Assert.Equal("F9", LocalSettings.LoadMenuLauncher());
         });
     }
 
     [Fact]
-    public void An_old_theme_choice_migrates_and_a_custom_palette_round_trips()
+    public void An_old_theme_choice_migrates_and_the_accent_round_trips()
     {
-        InOwnFile(_ =>
+        InOwnFile(path =>
         {
             LocalSettings.StoreLightTheme(true);
             Assert.Equal(ThemeMode.Light, LocalSettings.LoadTheme().Mode);
 
-            var colors = new Dictionary<string, string>(ThemePalette.Defaults(light: false))
-            {
-                ["AppAccent"] = "#112233",
-            };
-            LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Custom, false, colors));
+            // The file a custom theme left behind before this version: twenty-two colours, one per
+            // interface colour. Only the accent still means anything, so only it comes across.
+            File.WriteAllText(path, """
+                {"Theme":"custom","CustomThemeLight":true,"CustomThemeColors":{"AppAccent":"#112233","AppText":"#00FF00"}}
+                """);
 
-            var loaded = LocalSettings.LoadTheme();
-            Assert.Equal(ThemeMode.Custom, loaded.Mode);
-            Assert.False(loaded.CustomBaseLight);
-            Assert.Equal("#112233", loaded.CustomColors["AppAccent"]);
+            var migrated = LocalSettings.LoadTheme();
+            Assert.Equal(ThemeMode.Custom, migrated.Mode);
+            Assert.True(migrated.BaseLight);
+            Assert.Equal("#112233", migrated.AccentHex);
+
+            // Saving writes the new shape, and the dictionary that was read is not carried along.
+            LocalSettings.StoreTheme(migrated);
+            var written = File.ReadAllText(path);
+            Assert.DoesNotContain("CustomThemeColors", written, StringComparison.Ordinal);
+            Assert.Contains("\"Accent\":\"#112233\"", written, StringComparison.Ordinal);
+            Assert.Equal("#112233", LocalSettings.LoadTheme().AccentHex);
+
+            // A built-in variant has no accent of its own; the stored one is kept for the next time
+            // custom is picked rather than thrown away.
+            LocalSettings.StoreTheme(new ThemeSelection(ThemeMode.Dark, false, "#445566"));
+            Assert.Equal(ThemeMode.Dark, LocalSettings.LoadTheme().Mode);
+            Assert.Equal("#445566", LocalSettings.LoadTheme().AccentHex);
+        });
+    }
+
+    [Fact]
+    public void The_main_window_size_is_remembered_only_when_it_is_usable()
+    {
+        InOwnFile(path =>
+        {
+            Assert.Null(LocalSettings.LoadMainWindowSize());
+
+            LocalSettings.StoreMainWindowSize(620, 740);
+            Assert.Equal((620d, 740d), LocalSettings.LoadMainWindowSize());
+
+            LocalSettings.StoreMainWindowSize(0, -1);
+            Assert.Equal((620d, 740d), LocalSettings.LoadMainWindowSize());
+
+            File.WriteAllText(path, """{"MainWindowWidth":-4,"MainWindowHeight":0}""");
+            Assert.Null(LocalSettings.LoadMainWindowSize());
+        });
+    }
+
+    /// <summary>
+    /// 每次运行带的是它那个宏自己的限速，而不是装配时另外猜一个：三条启动路径都把宏里那一格
+    /// 原样交过来，没写的传 null，运行就跟随程序设置。
+    /// </summary>
+    [Fact]
+    public void A_run_carries_the_input_limit_its_macro_asked_for()
+    {
+        Assert.Null(RunFactory.Create(NeedsNothing()).InputRate);
+        Assert.Equal(300, RunFactory.Create(NeedsNothing() with { InputRate = 300 }).InputRate);
+        Assert.Equal(0, RunFactory.Create(NeedsNothing() with { InputRate = 0 }).InputRate);
+
+        static RunRequest NeedsNothing() => new()
+        {
+            Variables = new WhaleGenie.Core.Variables.VariableStore(),
+            Host = new AskRunHost(null),
+            Devices = NullDeviceLayer.Instance,
+            Library = WhaleGenie.Core.Execution.EmptyMacroLibrary.Instance,
+            Name = "试",
+        };
+    }
+
+    /// <summary>
+    /// 忽略自身输入默认开启，关掉之后立刻对钩子生效 —— 触发器每次按键都要问它，只存进文件的话，
+    /// 改完这一次看起来什么都没发生。
+    /// </summary>
+    [Fact]
+    public void Turning_off_own_input_reaches_the_hook_at_once()
+    {
+        InOwnFile(_ =>
+        {
+            var was = WhaleGenieInputGate.IgnoreOwnInput;
+            try
+            {
+                Assert.True(LocalSettings.LoadIgnoreOwnInput());
+
+                var settings = new SettingsViewModel(() => DriverInputState.Ready)
+                {
+                    IgnoreOwnInput = false,
+                };
+
+                Assert.False(WhaleGenieInputGate.IgnoreOwnInput);
+                Assert.False(LocalSettings.LoadIgnoreOwnInput());
+                Assert.False(settings.IgnoreOwnInput);
+            }
+            finally
+            {
+                WhaleGenieInputGate.IgnoreOwnInput = was;
+            }
         });
     }
 

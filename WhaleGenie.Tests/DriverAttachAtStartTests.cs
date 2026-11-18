@@ -9,6 +9,7 @@ namespace WhaleGenie.Tests;
 /// choice is stored beside the program, the engine is told about it when the program starts, and
 /// nothing is put on the machine until that switch is on.
 /// </summary>
+[RestoreSharedState]
 public class DriverAttachAtStartTests
 {
     [Fact]
@@ -69,8 +70,8 @@ public class DriverAttachAtStartTests
     [Fact]
     public void The_settings_window_offers_the_switch_and_says_what_it_does()
     {
-        var xaml = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "SettingsWindow.axaml"));
+        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
+            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
 
         // A switch that looks like it does something and does nothing is exactly the kind of thing a
         // settings window collects.

@@ -1,7 +1,5 @@
 using System;
-using SharpHook.Data;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Devices.Platform;
 
 namespace WhaleGenie.Core.Tests;
 
@@ -12,22 +10,22 @@ namespace WhaleGenie.Core.Tests;
 public class KeyNameTests
 {
     [Theory]
-    [InlineData(KeyCode.VcLeftShift, "左Shift")]
-    [InlineData(KeyCode.VcRightShift, "右Shift")]
-    [InlineData(KeyCode.VcLeftControl, "左Ctrl")]
-    [InlineData(KeyCode.VcRightControl, "右Ctrl")]
-    [InlineData(KeyCode.VcLeftAlt, "左Alt")]
-    [InlineData(KeyCode.VcRightAlt, "右Alt")]
-    [InlineData(KeyCode.VcLeftMeta, "左Win")]
-    [InlineData(KeyCode.VcRightMeta, "右Win")]
-    public void SidedNameKeepsTheHalf(KeyCode code, string expected)
-        => Assert.Equal(expected, KeyNames.Name(SharpKeys.Key(code), sided: true));
+    [InlineData((int)HookCode.LeftShift, "左Shift")]
+    [InlineData((int)HookCode.RightShift, "右Shift")]
+    [InlineData((int)HookCode.LeftControl, "左Ctrl")]
+    [InlineData((int)HookCode.RightControl, "右Ctrl")]
+    [InlineData((int)HookCode.LeftAlt, "左Alt")]
+    [InlineData((int)HookCode.RightAlt, "右Alt")]
+    [InlineData((int)HookCode.LeftMeta, "左Win")]
+    [InlineData((int)HookCode.RightMeta, "右Win")]
+    public void SidedNameKeepsTheHalf(int code, string expected)
+        => Assert.Equal(expected, KeyNames.Name(KeyTable.Key((HookCode)code), sided: true));
 
     [Theory]
-    [InlineData(KeyCode.VcLeftShift)]
-    [InlineData(KeyCode.VcRightShift)]
-    public void PlainNameStaysSideAgnostic(KeyCode code)
-        => Assert.Equal("Shift", KeyNames.Name(SharpKeys.Key(code)));
+    [InlineData((int)HookCode.LeftShift)]
+    [InlineData((int)HookCode.RightShift)]
+    public void PlainNameStaysSideAgnostic(int code)
+        => Assert.Equal("Shift", KeyNames.Name(KeyTable.Key((HookCode)code)));
 
     [Fact]
     public void The_list_of_names_holds_every_key_a_picker_offers()
@@ -46,31 +44,55 @@ public class KeyNameTests
     }
 
     [Fact]
+    public void A_number_pad_key_is_also_known_by_the_navigation_key_it_becomes()
+    {
+        // With NumLock off the number pad is the navigation block, and the hook names what it sees
+        // in that state: the macro writes NumPad7 and the key comes back as Home.
+        Assert.Equal(["Home"], KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.NumPad7)));
+        Assert.Equal(["Delete"], KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.NumPadDecimal)));
+
+        // A key whose name no state decides has only the one name.
+        Assert.Empty(KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.Home)));
+        Assert.Empty(KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.A)));
+    }
+
+    [Fact]
+    public void Every_second_name_is_a_name_the_engine_understands()
+    {
+        // These words are written into the input gate, which compares them against what the hook
+        // says; a name nothing ever reports would be a key whose own output is not recognised.
+        foreach (var code in Enum.GetValues<HookCode>())
+        {
+            Assert.All(KeyNames.AlsoSeenAs(KeyTable.Key(code)), name => Assert.NotNull(KeyNames.Resolve(name)));
+        }
+    }
+
+    [Fact]
     public void OtherKeysAreSpelledTheSameEitherWay()
     {
-        Assert.Equal("NumPad7", KeyNames.Name(SharpKeys.Key(KeyCode.VcNumPad7), sided: true));
-        Assert.Equal("NumPad7", KeyNames.Name(SharpKeys.Key(KeyCode.VcNumPad7)));
-        Assert.Equal("Home", KeyNames.Name(SharpKeys.Key(KeyCode.VcHome), sided: true));
+        Assert.Equal("NumPad7", KeyNames.Name(KeyTable.Key(HookCode.NumPad7), sided: true));
+        Assert.Equal("NumPad7", KeyNames.Name(KeyTable.Key(HookCode.NumPad7)));
+        Assert.Equal("Home", KeyNames.Name(KeyTable.Key(HookCode.Home), sided: true));
     }
 
     [Theory]
-    [InlineData("左Shift", KeyCode.VcLeftShift)]
-    [InlineData("右Shift", KeyCode.VcRightShift)]
-    [InlineData("LeftShift", KeyCode.VcLeftShift)]
-    [InlineData("RShift", KeyCode.VcRightShift)]
-    [InlineData("右Ctrl", KeyCode.VcRightControl)]
-    [InlineData("LAlt", KeyCode.VcLeftAlt)]
-    [InlineData("右Win", KeyCode.VcRightMeta)]
-    public void EverySpellingResolves(string name, KeyCode expected)
-        => Assert.Equal(SharpKeys.Key(expected), KeyNames.Resolve(name));
+    [InlineData("左Shift", (int)HookCode.LeftShift)]
+    [InlineData("右Shift", (int)HookCode.RightShift)]
+    [InlineData("LeftShift", (int)HookCode.LeftShift)]
+    [InlineData("RShift", (int)HookCode.RightShift)]
+    [InlineData("右Ctrl", (int)HookCode.RightControl)]
+    [InlineData("LAlt", (int)HookCode.LeftAlt)]
+    [InlineData("右Win", (int)HookCode.RightMeta)]
+    public void EverySpellingResolves(string name, int expected)
+        => Assert.Equal(KeyTable.Key((HookCode)expected), KeyNames.Resolve(name));
 
     [Fact]
     public void BareModifiersKeepMeaningTheLeftOne()
     {
-        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftShift), KeyNames.Resolve("Shift"));
-        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftControl), KeyNames.Resolve("Ctrl"));
-        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftAlt), KeyNames.Resolve("Alt"));
-        Assert.Equal(SharpKeys.Key(KeyCode.VcLeftMeta), KeyNames.Resolve("Win"));
+        Assert.Equal(KeyTable.Key(HookCode.LeftShift), KeyNames.Resolve("Shift"));
+        Assert.Equal(KeyTable.Key(HookCode.LeftControl), KeyNames.Resolve("Ctrl"));
+        Assert.Equal(KeyTable.Key(HookCode.LeftAlt), KeyNames.Resolve("Alt"));
+        Assert.Equal(KeyTable.Key(HookCode.LeftMeta), KeyNames.Resolve("Win"));
     }
 
     [Theory]
@@ -91,9 +113,9 @@ public class KeyNameTests
         Assert.Null(unknown);
         Assert.Equal(
             [
-                SharpKeys.Key(KeyCode.VcRightControl),
-                SharpKeys.Key(KeyCode.VcRightShift),
-                SharpKeys.Key(KeyCode.VcS),
+                KeyTable.Key(HookCode.RightControl),
+                KeyTable.Key(HookCode.RightShift),
+                KeyTable.Key(HookCode.S),
             ],
             chords);
     }
@@ -104,9 +126,9 @@ public class KeyNameTests
         // Which library reads the keyboard is the engine's business, and this is the seam where the
         // two vocabularies meet: a key that did not come back as the code it was made from would
         // make a trigger answer to the wrong key, and nothing else in the program would notice.
-        foreach (var code in Enum.GetValues<KeyCode>())
+        foreach (var code in Enum.GetValues<HookCode>())
         {
-            Assert.Equal(code, SharpKeys.Code(SharpKeys.Key(code)));
+            Assert.Equal(code, KeyTable.Code(KeyTable.Key(code)));
         }
     }
 

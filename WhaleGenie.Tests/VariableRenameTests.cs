@@ -1,4 +1,5 @@
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -9,17 +10,6 @@ namespace WhaleGenie.Tests;
 public class VariableRenameTests
 {
     [Fact]
-    public void Expressions_and_text_interpolation_rename_only_variable_tokens()
-    {
-        Assert.Equal("$new + $other + \"$old\"",
-            Expression.RenameVariable("$old + $other + \"$old\"", "old", "new"));
-        Assert.Equal("before $new ${new} ${$new + 1} $$old",
-            VariableText.Rename("before $old ${old} ${$old + 1} $$old", "old", "new"));
-        Assert.Equal("$new + $$123", Expression.RenameVariable("$123 + $$123", "123", "new"));
-        Assert.Equal("before $new", VariableText.Rename("before $123", "123", "new"));
-    }
-
-    [Fact]
     public void Step_rename_updates_target_fields_and_references_but_not_record_fields()
     {
         var step = new MacroStep
@@ -27,13 +17,13 @@ public class VariableRenameTests
             Type = "control.setVariable",
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "old" },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "global" },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("old") },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("global") },
                 new StepParameter
                 {
                     Name = "value",
                     Kind = ActionParameterKind.Expression,
-                    Value = "field($record, \"old\") + $old",
+                    Written = Formula.Binary("+", Formula.Call("field", Formula.Name("record"), Formula.Text("old")), Formula.Name("old")),
                 },
             ],
         };
@@ -41,7 +31,7 @@ public class VariableRenameTests
         VariableRename.RenameSteps([step], "old", "new", global: true);
 
         Assert.Equal("new", step.Text("name"));
-        Assert.Equal("field($record, \"old\") + $new", step.Text("value"));
+        Assert.Equal("field(record, old) + new", step.Text("value"));
     }
 
     [Fact]
@@ -53,8 +43,8 @@ public class VariableRenameTests
             Type = "control.setVariable",
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "old" },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("old") },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
             ],
         });
         macro.Steps.Add(new MacroStep
@@ -66,7 +56,7 @@ public class VariableRenameTests
                 {
                     Name = "script",
                     Kind = ActionParameterKind.Text,
-                    Value = "WhaleGenie.GetProperty(\"old\")",
+                    Written = Fields.Shape("WhaleGenie.GetProperty(\"old\")"),
                 },
             ],
         });
@@ -84,9 +74,9 @@ public class VariableRenameTests
             Type = "control.setVariable",
             Parameters =
             [
-                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = "old" },
-                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
-                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Value = "7" },
+                new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape("old") },
+                new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
+                new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.Number(7) },
             ],
         });
         editor.Steps.Add(new MacroStep
@@ -98,13 +88,38 @@ public class VariableRenameTests
                 {
                     Name = "message",
                     Kind = ActionParameterKind.Expression,
-                    Value = "$old + 1",
+                    Written = Formula.Binary("+", Formula.Name("old"), Formula.Number("1", 1d)),
                 },
             ],
         });
 
         Assert.True(editor.RenameLocalVariable("old", "new", out var problem), problem);
         Assert.Equal("new", editor.Steps[0].Text("name"));
-        Assert.Equal("$new + 1", editor.Steps[1].Text("message"));
+        Assert.Equal("new + 1", editor.Steps[1].Text("message"));
+    }
+
+    [Fact]
+    public void A_global_rename_updates_the_shapes_a_declaration_keeps()
+    {
+        var macro = new MacroItem { Name = "declaring" };
+        macro.Parameters.Add(new MacroParameter
+        {
+            Name = "count",
+            Required = false,
+            Default = Formula.Binary("+", Formula.Name("old"), Formula.Number(1)),
+        });
+        macro.Locals.Add(new MacroLocalVariable
+        {
+            Name = "total",
+            Initial = Formula.Run([Formula.Text("共 "), Formula.Name("old"), Formula.Text(" 件")]),
+        });
+
+        VariableRename.RenameGlobal([macro], "old", "new");
+
+        Assert.Equal(Formula.Binary("+", Formula.Name("new"), Formula.Number(1)),
+            macro.Parameters[0].Default);
+        var run = Assert.IsType<ConcatNode>(macro.Locals[0].Initial);
+        Assert.Equal(new ExpressionNode[] { Formula.Text("共 "), Formula.Name("new"), Formula.Text(" 件") },
+            run.Parts);
     }
 }

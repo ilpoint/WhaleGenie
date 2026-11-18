@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.Execution;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
 
@@ -65,6 +65,13 @@ public class RunThreadTests
         {
             threads.Add(Dispatcher.UIThread.CheckAccess());
             return Task.FromResult(AskAnswer.Cancel);
+        }
+
+        /// <summary>Nothing this run reaches cannot be undone; the thread it is asked on matters.</summary>
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+        {
+            threads.Add(Dispatcher.UIThread.CheckAccess());
+            return Task.FromResult(true);
         }
     }
 }

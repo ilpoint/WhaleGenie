@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using WhaleGenie.Core.Expressions;
 
 namespace WhaleGenie.Core.Execution;
 
@@ -25,17 +26,6 @@ public enum ActionCategory
     Script,
 }
 
-/// <summary>What an action's result holds, which is what the variable pickers call it.</summary>
-public enum ActionReturnType
-{
-    Text,
-    Number,
-    Flag,
-    List,
-    Record,
-    Image,
-}
-
 /// <summary>
 /// The shape a parameter has when the engine reads it. The editor's choice of control is a
 /// separate question; this is only what the value becomes after the read.
@@ -44,7 +34,7 @@ public enum ActionValueShape
 {
     Text,
     Number,
-    Flag,
+    Bool,
     Choice,
     Steps,
     Rows,
@@ -127,22 +117,6 @@ public enum ActionEmptyMeans
     Unset,
 }
 
-/// <summary>
-/// How the whole cell is read. The three cases are exhaustive, so a field cannot be read one way
-/// by the engine and another way by the editor.
-/// </summary>
-public enum ActionReadMode
-{
-    /// <summary>Text with <c>$name</c> replaced where it appears; <c>$$</c> is one literal dollar.</summary>
-    Text,
-
-    /// <summary>The whole cell is one value: a literal, a variable in <c>$name</c> form, or a formula.</summary>
-    WholeValue,
-
-    /// <summary>The whole cell is a bare variable name being written.</summary>
-    VariableName,
-}
-
 /// <summary>Which picker, if any, can fill this parameter from something on the machine.</summary>
 public enum ActionPickerKind
 {
@@ -182,9 +156,18 @@ public sealed class ActionParameterSemantics
 {
     public required string Name { get; init; }
 
+    /// <summary>
+    /// The block of the form this field answers, or empty for a field that stands on its own. A
+    /// block is one question the step answers — where to look, what colour, what counts as found —
+    /// and the editor draws the question once above the fields that answer it instead of letting
+    /// ten labelled boxes look equally important. The name is a stable key: what the reader sees is
+    /// a line of text in the interface language, keyed by it.
+    /// </summary>
+    public string Group { get; init; } = string.Empty;
+
     public ActionValueShape Shape { get; init; } = ActionValueShape.Text;
 
-    public ActionReadMode ReadMode { get; init; } = ActionReadMode.Text;
+    public ActionValueForm ValueForm { get; init; } = ActionValueForm.Text;
 
     public ActionPickerKind Picker { get; init; }
 
@@ -198,6 +181,14 @@ public sealed class ActionParameterSemantics
     /// gives the box its range, so the same 200 cannot be a pause in one field and a row in another.
     /// </summary>
     public ActionUnit? Unit { get; init; }
+
+    /// <summary>
+    /// 一个「还要像什么样」的列表问的是哪一族元素：<c>Page</c> 是网页，<c>Element</c> 是桌面
+    /// 元素。两族能问的事不一样，网页那边是元素里的文字、里面有什么、在哪个容器里；桌面元素这边
+    /// 只有 UI Automation 答得干脆的三件。同一个编辑器于是照着这个说法摆选项，不会把对面那一族
+    /// 的方式也列出来。
+    /// </summary>
+    public string NarrowOn { get; init; } = string.Empty;
 
     /// <summary>What a blank cell comes to. Every number field declares one; other fields do not.</summary>
     public ActionEmptyMeans? EmptyMeans { get; init; }
@@ -236,10 +227,11 @@ public sealed class ActionParameterSemantics
     public IReadOnlyList<string> Options { get; init; } = [];
 
     /// <summary>
-    /// True when the text field offers variable names while it is typed in. The read itself is
-    /// still <see cref="ActionReadMode.Text"/>; this only says the names are worth suggesting.
+    /// The values of this choice that make the step one that cannot be undone, or empty when this
+    /// field has nothing to do with that. A power step that only locks the screen costs nothing, so
+    /// the declaration lives on the choice rather than on the action.
     /// </summary>
-    public bool AcceptsVariables { get; init; }
+    public IReadOnlyList<string> IrreversibleWhen { get; init; } = [];
 
     /// <summary>
     /// The columns a row of this field may hold. A list written by hand that names a column the
@@ -292,7 +284,7 @@ public sealed class ActionParameterSemantics
            && DefaultValue.Length == 0
            && EmptyMeans is null
            && Shape is not (ActionValueShape.Steps or ActionValueShape.Rows
-               or ActionValueShape.Flag);
+               or ActionValueShape.Bool);
 }
 
 /// <summary>What a column of a row list is for.</summary>
@@ -315,6 +307,12 @@ public enum ActionRowColumnRole
 
     /// <summary>A picture path or image value.</summary>
     Image,
+
+    /// <summary>
+    /// True or false, written the way every other truth value is. A row that carries a flag says
+    /// something about the row itself rather than holding one more thing the action reads.
+    /// </summary>
+    Flag,
 }
 
 /// <summary>One column a row of a list may hold.</summary>
@@ -332,7 +330,7 @@ public sealed class ActionReturnField
 {
     public required string Name { get; init; }
 
-    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+    public ValueKind Type { get; init; } = ValueKind.Text;
 }
 
 /// <summary>One result an action can hand over.</summary>
@@ -340,7 +338,7 @@ public sealed class ActionReturnSemantics
 {
     public required string Key { get; init; }
 
-    public ActionReturnType Type { get; init; } = ActionReturnType.Text;
+    public ValueKind Type { get; init; } = ValueKind.Text;
 
     /// <summary>
     /// The fields of the record this result holds, or — for a list of records — of each item in it.
@@ -348,8 +346,25 @@ public sealed class ActionReturnSemantics
     /// </summary>
     public IReadOnlyList<ActionReturnField> Fields { get; init; } = [];
 
+    /// <summary>
+    /// True for a table: a list of records whose field names the data itself gives — the row of
+    /// column titles that was read, or A, B, C when the table keeps no such row. The names are not
+    /// written down here because they are only known while the macro runs, and a catalogue that
+    /// guessed them would fail every reading that had different columns.
+    /// </summary>
+    public bool Table { get; init; }
+
     /// <summary>True for the result a step is usually asked for first.</summary>
     public bool Primary { get; init; }
+
+    /// <summary>
+    /// True for a result that is worked out but not offered: how the picture was taken, which
+    /// window it came from. It answers a question nobody writing a macro asks — a macro cannot do
+    /// anything with the name of the capture method — and every row of the returns list costs the
+    /// reader a look. The engine still hands it over, so a macro written when it was offered keeps
+    /// working; it is simply no longer in front of somebody choosing what to keep.
+    /// </summary>
+    public bool Hidden { get; init; }
 }
 
 /// <summary>
@@ -372,6 +387,14 @@ public sealed class ActionSemantics
 
     /// <summary>True while the action waits for something outside the macro before it can finish.</summary>
     public bool Waits { get; init; }
+
+    /// <summary>
+    /// True when carrying this action out loses something that cannot be brought back, so the person
+    /// is asked before it runs and refusing is a failure of its own. An action whose choice alone
+    /// decides that says so on the field instead, which is what a power step does: locking the
+    /// screen costs nothing and is not worth stopping to ask about.
+    /// </summary>
+    public bool Irreversible { get; init; }
 
     public ActionTimeoutSource TimeoutSource { get; init; }
 
@@ -412,16 +435,18 @@ public static class ActionSemanticsCatalog
 
     private static readonly Dictionary<string, ActionSemantics> ByKey;
 
+    /// <summary>The one reader this file needs; the options are built once rather than per read.</summary>
+    private static readonly JsonSerializerOptions CatalogueOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     static ActionSemanticsCatalog()
     {
         using var stream = typeof(ActionSemanticsCatalog).Assembly.GetManifestResourceStream(Resource)
             ?? throw new InvalidOperationException($"The action catalogue resource {Resource} is missing.");
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            Converters = { new JsonStringEnumConverter() },
-        };
-        var actions = JsonSerializer.Deserialize<List<ActionSemantics>>(stream, options)
+        var actions = JsonSerializer.Deserialize<List<ActionSemantics>>(stream, CatalogueOptions)
             ?? throw new InvalidOperationException("The action catalogue is empty.");
 
         foreach (var action in actions)
@@ -451,6 +476,33 @@ public static class ActionSemanticsCatalog
                     $"{action.Key}: a called-macro signature needs a macro field and a returns list.");
             }
 
+            // The fields of a block stand together. A catalogue that put two of them on either
+            // side of another block would draw one question as two blocks with the same name, and
+            // a third would decide which of them a line belonged to. A block may still have a part
+            // on each page of the form: that is one question met twice, and the form numbers a
+            // question once for the whole action rather than once per page.
+            var seen = new List<string>();
+            foreach (var parameter in action.Parameters)
+            {
+                if (parameter.Group.Length == 0)
+                {
+                    continue;
+                }
+
+                if (seen.Count > 0 && seen[^1] == parameter.Group)
+                {
+                    continue;
+                }
+
+                if (seen.Contains(parameter.Group))
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}: the fields of block {parameter.Group} do not stand together.");
+                }
+
+                seen.Add(parameter.Group);
+            }
+
             if (action.Parameters.Select(parameter => parameter.Name)
                 .Distinct(StringComparer.Ordinal).Count() != action.Parameters.Count)
             {
@@ -473,16 +525,68 @@ public static class ActionSemanticsCatalog
                 }
 
                 if (result.Fields.Count > 0
-                    && result.Type is not (ActionReturnType.Record or ActionReturnType.List))
+                    && result.Type is not (ValueKind.Record or ValueKind.List))
                 {
                     throw new InvalidOperationException(
                         $"{action.Key}.{result.Key}: only a record has fields.");
                 }
 
-                if (result.Type == ActionReturnType.Record && result.Fields.Count == 0)
+                if (result.Type == ValueKind.Record && result.Fields.Count == 0)
                 {
                     throw new InvalidOperationException(
                         $"{action.Key}.{result.Key}: a record does not say what its fields are.");
+                }
+
+                // A table is a list whose fields come from the data, so the two ways of saying what
+                // a result holds cannot both be used: one of them would have to be ignored.
+                if (result.Table && result.Type is not ValueKind.List)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: only a list is a table.");
+                }
+
+                if (result.Table && result.Fields.Count > 0)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{result.Key}: a table takes its fields from the data.");
+                }
+            }
+
+            foreach (var parameter in action.Parameters)
+            {
+                if (parameter.IrreversibleWhen.Count == 0)
+                {
+                    continue;
+                }
+
+                // A value that is not one of the choices can never be what the step holds, so the
+                // declaration would read as protection while protecting nothing.
+                if (parameter.Shape != ActionValueShape.Choice)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{parameter.Name}: only a choice says which values it cannot undo.");
+                }
+
+                foreach (var value in parameter.IrreversibleWhen)
+                {
+                    if (!parameter.Options.Contains(value, StringComparer.Ordinal))
+                    {
+                        throw new InvalidOperationException(
+                            $"{action.Key}.{parameter.Name}: {value} is not one of its options.");
+                    }
+                }
+
+                if (parameter.IrreversibleWhen.Distinct(StringComparer.Ordinal).Count()
+                    != parameter.IrreversibleWhen.Count)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}.{parameter.Name}: a value that cannot be undone is repeated.");
+                }
+
+                if (action.Irreversible)
+                {
+                    throw new InvalidOperationException(
+                        $"{action.Key}: says it always cannot be undone and says which values do too.");
                 }
             }
 
@@ -521,4 +625,27 @@ public static class ActionSemanticsCatalog
     /// <summary>Finds one action by its fully qualified key.</summary>
     public static ActionSemantics? Find(string key)
         => ByKey.GetValueOrDefault(key);
+
+    /// <summary>
+    /// True when this very step cannot be undone: the action says so, or the value written into one
+    /// of its choices does. The step is asked about rather than the action because a power step that
+    /// only locks the screen is not one to stop and ask about. Both the editor's trial run and a
+    /// whole run ask here, so the two cannot come to different answers.
+    /// </summary>
+    public static bool CannotBeUndone(ExecutableStep step)
+    {
+        if (Find(step.Type) is not { } action)
+        {
+            return false;
+        }
+
+        if (action.Irreversible)
+        {
+            return true;
+        }
+
+        return action.Parameters.Any(parameter => parameter.IrreversibleWhen.Count > 0
+            && parameter.IrreversibleWhen.Contains(step.Text(parameter.Name).Trim(),
+                StringComparer.OrdinalIgnoreCase));
+    }
 }

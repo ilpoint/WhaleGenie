@@ -1,0 +1,66 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="470" d:DesignHeight="330"
+        x:Class="WhaleGenie.Views.DelayScaleWindow"
+        x:DataType="vm:DelayScaleViewModel"
+        Title="WhaleGenie"
+        Width="470" Height="330"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Design.DataContext>
+        <vm:DelayScaleViewModel />
+    </Design.DataContext>
+
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <TextBlock Grid.Row="0" Margin="20,16,20,0" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextTertiary}" FontSize="13" Text="{Binding Explanation}" />
+
+        <ItemsControl Grid.Row="1" Margin="20,14,20,0" ItemsSource="{Binding Presets}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ScalePresetChoice">
+                    <Button Classes="Secondary" Content="{Binding Label}" Command="{Binding Command}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Row="2" Margin="20,16,20,0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+            <TextBlock Grid.Column="0" Foreground="{DynamicResource TextTertiary}" FontSize="12.5"
+                       VerticalAlignment="Center" Text="×" />
+            <fa:FANumberBox Grid.Column="1" Value="{Binding Factor, Converter={StaticResource Number}}" Minimum="0.1" Maximum="10"
+                           SmallChange="0.1" SimpleNumberFormat="0.##" Width="130" />
+            <TextBlock Grid.Column="2" Foreground="{DynamicResource TextPrimary}" FontSize="15" FontWeight="SemiBold"
+                       VerticalAlignment="Center" Text="{Binding Display}" />
+        </Grid>
+
+        <StackPanel Grid.Row="3" Margin="20,16,20,0" Spacing="6">
+            <TextBlock Foreground="{DynamicResource TextSecondary}" FontSize="12.5" TextWrapping="Wrap"
+                       Text="{Binding Summary}" />
+            <TextBlock Foreground="{DynamicResource TextTertiary}" FontSize="12" TextWrapping="Wrap"
+                       Text="{Binding Detail}" IsVisible="{Binding HasDetail}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8"
+                    HorizontalAlignment="Right" Margin="20,0,20,20">
+            <Button Classes="Primary" Height="36" MinWidth="92"
+                    Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding ConfirmCommand}" />
+            <Button Classes="Secondary" Height="36" MinWidth="92"
+                    Content="{Binding [Confirm.Cancel], Source={x:Static loc:Strings.Current}}"
+                    Command="{Binding CancelCommand}" />
+        </StackPanel>
+    </Grid>
+</views:AppWindow>

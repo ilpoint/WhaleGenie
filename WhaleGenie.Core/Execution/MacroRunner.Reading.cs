@@ -1,16 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
@@ -18,213 +8,145 @@ using WhaleGenie.Core.Variables;
 namespace WhaleGenie.Core.Execution;
 
 /// <summary>
-/// How a step reads what it was given: one value field, one line of text, one number. These are
-/// asked of every action, so they are written here rather than beside any one family.
+/// How a step reads what it was given, and how a row of a table is read. The rules for a step's own
+/// fields live in <see cref="StepArguments"/>, which is what an action is handed; what stays here is
+/// the shorthand for making one and the readers for the rows a table action walks.
 /// </summary>
 public sealed partial class MacroRunner
 {
+    /// <summary>The reader for the fields of one step.</summary>
+    private StepArguments Args(ExecutableStep step)
+        => new(step, Variables, _devices.Screen.RefreshMilliseconds);
+
     /// <summary>
-    /// Reads one parameter the way its catalogue entry says it is read. A field that names a
-    /// variable takes the bare name; a field that holds one value takes an expression or a
-    /// literal; a field that holds text has the names in it filled in where they stand.
+    /// The rectangle a record field names, or null when nobody filled it in. A value written there
+    /// that is not a record carrying all four sides is refused with what was written.
     /// </summary>
-    private Value ReadValue(ExecutableStep step, string name)
+    private (int Left, int Top, int Width, int Height)? RecordedRect(ExecutableStep step,
+        string name)
     {
-        // A field nobody answered is "nothing was said" in every read mode. A number step that
-        // leaves a setting out gets its catalogue default, not an empty text that fails to parse.
-        if (step.Text(name).Trim().Length == 0)
+        var value = Args(step).ValueOf(name);
+        if (value.IsNull)
         {
-            return Value.Null;
+            return null;
         }
 
-        return ReadModeOf(step, name) switch
-        {
-            ActionReadMode.VariableName => ReadBareName(step.Text(name)),
-            ActionReadMode.WholeValue => Read(step.Text(name)),
-            _ => Value.FromText(ReadText(step, name)),
-        };
+        var written = step.Text(name).Trim();
+        return value.IsRecord && Sides(value) is { } sides
+            ? sides
+            : throw new StepFailure(RunKeys.BadRegion, written);
     }
 
     /// <summary>
-    /// Reads one parameter as text. Only a field the catalogue calls text has names filled in:
-    /// a choice, a number or a name being written is handed over exactly as it stands.
+    /// Which hit a step means, counted from one. Anything that does not read as a number from one
+    /// onwards falls back to the first, so a half-written step aims at something rather than at
+    /// nothing.
     /// </summary>
-    private string ReadText(ExecutableStep step, string name)
+    private int Index(ExecutableStep step, string name, int fallback)
     {
-        var written = step.Text(name);
-        return ReadModeOf(step, name) == ActionReadMode.Text ? Interpolate(written) : written;
-    }
-
-    private static ActionReadMode ReadModeOf(ExecutableStep step, string name)
-        => ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.ReadMode ?? ActionReadMode.Text;
-
-    /// <summary>
-    /// A bare variable name, read from the store or left as the text it is when nothing defines
-    /// it. A dollar sign written in front is accepted because the picker hands names back that
-    /// way, but the reader itself writes the bare form.
-    /// </summary>
-    private Value ReadBareName(string text)
-    {
-        var name = text.Trim().TrimStart('$');
-        if (name.Length == 0)
-        {
-            return Value.Null;
-        }
-
-        return Variables.TryGet(name, out var value) ? value : Value.FromText(name);
+        var text = Args(step).Text(name).Trim();
+        return text.Length == 0 ? fallback : Math.Clamp(Args(step).Number(name), 1, RunLimits.Matches);
     }
 
     /// <summary>
-    /// Reads text that stands for one value: an expression, a number or ordinary text. A bare
-    /// name is text here; only a field that names a variable makes it a variable.
+    /// A path a step named, with any <c>variable</c> already filled in. Vision and the file family
+    /// both name their target this way, so the reading lives here rather than with either of them.
     /// </summary>
-    private Value Read(string text)
+    private string PathOf(ExecutableStep step, string parameter = "path")
+        => Args(step).ValueOf(parameter).AsText();
+
+    /// <summary>
+    /// A yes/no setting. A step that says nothing takes the catalogue's own default, so a
+    /// missing switch behaves the way the action editor showed it rather than always being on.
+    /// </summary>
+    private static bool Flag(ExecutableStep step, string name, bool fallback)
     {
-        var trimmed = text.Trim();
-        if (trimmed.Length == 0)
+        var text = step.Text(name).Trim();
+        return text.Length == 0
+            ? fallback
+            : !string.Equals(text, "false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>The severity a log line was written with, and the everyday one when it says none.</summary>
+    private static LogLevel Level(string level) => level.ToLowerInvariant() switch
+    {
+        "warn" => LogLevel.Warn,
+        "error" => LogLevel.Error,
+        "debug" => LogLevel.Debug,
+        _ => LogLevel.Info,
+    };
+
+    /// <summary>What a shape comes to, with the names in it worked out where they stand.</summary>
+    private Value Read(ExpressionNode written) => Expression.Evaluate(written, Variables);
+
+    /// <summary>
+    /// Reads a line that stands for one value. Only the places that still hold a line — a default
+    /// written in the catalogue, an argument the run dialog typed — come through here; a field of a
+    /// step is already a shape.
+    /// </summary>
+    private Value Read(string text) => Read(Formula.Text(text));
+
+    /// <summary>One column of one row, worked out where it stands.</summary>
+    private string Text(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written) ? Read(written).AsText() : string.Empty;
+
+    /// <summary>
+    /// One column of one row as the word it says. Only a column that names something — a key, a
+    /// kind, the name a result is kept under — is read this way; a column holding a name rather
+    /// than a piece of text answers with the name it holds.
+    /// </summary>
+    private static string Word(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => ShapeWords.Of(row.GetValueOrDefault(column));
+
+    /// <summary>
+    /// What a column of a row comes to, worked out from the shape itself. A cell may hold a number,
+    /// a name or a sum; nothing renders it into a line to be read back. This is the reader for a
+    /// column whose value is used, as opposed to one that names something.
+    /// </summary>
+    private Value CellValue(IReadOnlyDictionary<string, ExpressionNode> row, string column)
+        => row.TryGetValue(column, out var written) ? Read(written) : Value.Null;
+
+    /// <summary>What a row of a list parameter says in one column, or nothing when it has none.</summary>
+    private static ExpressionNode Column(IReadOnlyDictionary<string, ExpressionNode> row,
+        string column)
+        => row.GetValueOrDefault(column) ?? Formula.Nothing;
+
+    /// <summary>
+    /// One number of a row that may be left empty, where empty means the run's own value: a row
+    /// only has to spell out the hold or the gap that is not the one everywhere else.
+    /// </summary>
+    private int Cell(IReadOnlyDictionary<string, ExpressionNode> row, string column, int fallback)
+        => Formula.IsNothing(Column(row, column))
+            ? fallback
+            : (int)Math.Round(Read(Column(row, column)).AsNumber());
+
+    /// <summary>One side of a rectangle held in a record, in whole screen pixels.</summary>
+    private static int Whole(Value side) => (int)Math.Round(side.AsNumber());
+
+    /// <summary>
+    /// The four sides a record says a rectangle has, in whole screen pixels: the corner it starts at
+    /// and how far it reaches from there. Nothing when the record is not a rectangle, so a record of
+    /// some other shape is refused by whoever asked for one.
+    /// </summary>
+    private static (int Left, int Top, int Width, int Height)? Sides(Value record)
+    {
+        if (record.Field(FieldNames.Left) is not { } left
+            || record.Field(FieldNames.Top) is not { } top
+            || record.Field(FieldNames.Width) is not { } width
+            || record.Field(FieldNames.Height) is not { } height)
         {
-            return Value.Null;
+            return null;
         }
 
-        // A doubled dollar is how a value field writes a literal dollar. It has to be answered
-        // before the expression reader, or "$100 off" would be taken for an expression that has
-        // to parse and would fail instead of becoming the text it was written as.
-        if (trimmed.StartsWith("$$", StringComparison.Ordinal))
-        {
-            return Value.FromText(Interpolate(trimmed));
-        }
-
-        if (Expression.TryEvaluate(trimmed, Variables, out var value, out var error))
-        {
-            return value;
-        }
-
-        // Text that was written as an expression has to work, so a typo shows up as a
-        // failure rather than quietly becoming a literal.
-        if (LooksLikeExpression(trimmed))
-        {
-            throw error!;
-        }
-
-        // Numbers are read without a thousands separator: text like "10,20,30,40" or "1,000"
-        // is text, not a number, and a comma means a separator rather than a digit group.
-        if (double.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
-        {
-            return Value.FromNumber(number);
-        }
-
-        return Value.FromText(Interpolate(trimmed));
+        return (Whole(left), Whole(top), Math.Max(1, Whole(width)), Math.Max(1, Whole(height)));
     }
 
     /// <summary>
-    /// True when the text can only be meant as an expression: it opens with the variable sign, so
-    /// the author was writing a value rather than words.
+    /// The switches a text comparison carries. Spacing is a question only "exactly" asks by
+    /// default; leaving the switch out keeps that default, while writing it false keeps the spaces
+    /// the text actually has.
     /// </summary>
-    /// <remarks>
-    /// Brackets and parentheses used to count as the same sign, and they are exactly what a
-    /// selector or a path is made of — <c>[data-testid="row-2"]</c>, <c>div &gt; p:nth-of-type(2)</c>,
-    /// <c>C:\Program Files (x86)\a.log</c> — so a value that was plainly one of those came back as
-    /// "not a valid expression" instead of being used. A "$" at the front is the one opening that
-    /// cannot be anything else; a "$" in the middle is left alone, because a written-out dollar
-    /// sign looks like that too.
-    /// </remarks>
-    private static bool LooksLikeExpression(string text) => text[0] == '$';
-
-    /// <summary>Fills in every known <c>$name</c>; <c>$$</c> stands for one literal dollar.</summary>
-    private string Interpolate(string text)
-        => VariableText.Replace(text,
-            name => Variables.TryGet(name, out var value) ? value.AsText() : null,
-            expression => Expression.Evaluate(expression, Variables).AsText());
-
-    /// <summary>
-    /// A number a step names, read the way every other field is: as a value. A field nobody
-    /// answered takes whatever the catalogue says an empty cell means, so "zero", "the edge of the
-    /// screen" and "the value the action starts with" are decided in one place rather than at each
-    /// call. A value that cannot be worked out is left as the broken expression it is, so the step
-    /// reports <c>Run.BadExpression</c> like a text field would — swallowing it into a zero is how
-    /// a click meant for something that was found ends up at the corner of the screen, with
-    /// nothing anywhere saying why.
-    /// </summary>
-    private int Number(ExecutableStep step, string name)
-    {
-        if (!Given(step, name))
-        {
-            return EmptyNumber(step, name);
-        }
-
-        var value = ReadValue(step, name);
-
-        // A record is a set of fields, not a number: reading one as a number would either pick a
-        // field nobody named or quietly come out as zero, so a step that put one here is told.
-        if (value.IsRecord)
-        {
-            throw new StepFailure(RunKeys.RecordWhereNumber, name);
-        }
-
-        var number = (int)value.AsNumber();
-
-        // The range the field declares — its own limit, or the one its unit gives — is what the
-        // number box offers; the engine holds to the same range instead of clamping behind the
-        // author's back or passing a value the action cannot mean.
-        if (ActionSemanticsCatalog.Find(step.Type)?.Parameter(name) is { Shape: ActionValueShape.Number } facts
-            && (number < facts.MinimumValue || number > facts.MaximumValue))
-        {
-            throw new StepFailure(RunKeys.OutOfRange,
-                name + ": " + number.ToString(CultureInfo.InvariantCulture));
-        }
-
-        return Vary(step, name, number);
-    }
-
-    /// <summary>
-    /// What a blank cell comes to, from the catalogue. "To the edge" and "keep what the window has"
-    /// are answered where the rectangle or the window is at hand, so those two read as zero here.
-    /// </summary>
-    private int EmptyNumber(ExecutableStep step, string name)
-        => Empties(step, name) switch
-        {
-            ActionEmptyMeans.ScreenRefresh => Math.Max(1, _devices.Screen.RefreshMilliseconds),
-            ActionEmptyMeans.Unset => Starting(step, name),
-            _ => 0,
-        };
-
-    /// <summary>
-    /// The number an action starts a field with, for a field nobody wrote. It is the same value a
-    /// new step is given, so a hand-written step and one the editor made agree.
-    /// </summary>
-    private static int Starting(ExecutableStep step, string name)
-    {
-        var written = ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.DefaultValue;
-        return double.TryParse(written, NumberStyles.Float, CultureInfo.InvariantCulture,
-            out var value)
-            ? (int)value
-            : 0;
-    }
-
-    /// <summary>True when the step wrote anything at all into a number field.</summary>
-    private static bool Given(ExecutableStep step, string name)
-        => step.Text(name).Trim().Length > 0;
-
-    /// <summary>What a blank cell of this field means, from the catalogue.</summary>
-    private static ActionEmptyMeans Empties(ExecutableStep step, string name)
-        => ActionSemanticsCatalog.Find(step.Type)?.Parameter(name)?.EmptyMeans
-            ?? ActionEmptyMeans.Zero;
-
-    /// <summary>
-    /// Bends a number by whatever slack the step asked for. Only lengths of time are written with
-    /// one, so this is what stops a macro's waits from looking like a machine's: 500 written with
-    /// 20% of give comes out anywhere from 400 to 600, a fresh number every time the step runs.
-    /// </summary>
-    private static int Vary(ExecutableStep step, string name, int value)
-    {
-        var jitter = Math.Min(1m, Math.Max(0m, step.Jitter(name)));
-        if (jitter == 0m || value == 0)
-        {
-            return value;
-        }
-
-        var bend = 1 + (((System.Random.Shared.NextDouble() * 2) - 1) * (double)jitter);
-        return (int)Math.Round(value * bend);
-    }
-
+    private TextCompareOptions OptionsOf(ExecutableStep step, string way)
+        => TextRule.Options(way, Flag(step, "caseSensitive", false), Flag(step, "trim", true),
+            Flag(step, "multiline", false));
 }

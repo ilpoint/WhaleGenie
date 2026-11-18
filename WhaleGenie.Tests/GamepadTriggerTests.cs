@@ -1,7 +1,8 @@
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
 
@@ -24,21 +25,24 @@ public class GamepadTriggerTests
 
             pad.Down = GamepadButtons.A;
             service.LookAtGamepad();
-            Assert.True(service.IsRunning(macro), "the held controller button did not start its macro");
+            Assert.True(service.IsRunning(macro.Macro.Name),
+                "the held controller button did not start its macro");
 
             // Still held: reading it again and again is one press, not one press per reading. A run
             // that was stopped while the button stays down must therefore stay stopped.
-            service.Stop(macro);
+            service.Stop(macro.Macro.Name);
             service.LookAtGamepad();
             service.LookAtGamepad();
-            Assert.False(service.IsRunning(macro), "holding a button counts as pressing it again");
+            Assert.False(service.IsRunning(macro.Macro.Name),
+                "holding a button counts as pressing it again");
 
             // Let go and press again, and it is a press once more.
             pad.Down = GamepadButtons.None;
             service.LookAtGamepad();
             pad.Down = GamepadButtons.A;
             service.LookAtGamepad();
-            Assert.True(service.IsRunning(macro), "a second press did not start the macro again");
+            Assert.True(service.IsRunning(macro.Macro.Name),
+                "a second press did not start the macro again");
 
             service.StopAll();
             return true;
@@ -63,15 +67,19 @@ public class GamepadTriggerTests
 
             pad.Down = GamepadButtons.A;
             service.LookAtGamepad();
-            Assert.True(service.IsRunning(onPress), "the press did not run the macro waiting for it");
-            Assert.False(service.IsRunning(onRelease), "the release ran before the button came up");
+            Assert.True(service.IsRunning(onPress.Macro.Name),
+                "the press did not run the macro waiting for it");
+            Assert.False(service.IsRunning(onRelease.Macro.Name),
+                "the release ran before the button came up");
 
             service.StopAll();
 
             pad.Down = GamepadButtons.None;
             service.LookAtGamepad();
-            Assert.True(service.IsRunning(onRelease), "the release did not run the macro waiting for it");
-            Assert.False(service.IsRunning(onPress), "the release ran the macro waiting for the press");
+            Assert.True(service.IsRunning(onRelease.Macro.Name),
+                "the release did not run the macro waiting for it");
+            Assert.False(service.IsRunning(onPress.Macro.Name),
+                "the release ran the macro waiting for the press");
 
             service.StopAll();
             return true;
@@ -94,11 +102,13 @@ public class GamepadTriggerTests
 
             pad.Down = GamepadButtons.A;
             service.LookAtGamepad();
-            Assert.False(service.IsRunning(letter), "a controller button answered a binding named A");
+            Assert.False(service.IsRunning(letter.Macro.Name),
+                "a controller button answered a binding named A");
 
             pad.Down = GamepadButtons.B;
             service.LookAtGamepad();
-            Assert.False(service.IsRunning(letter), "another controller button answered it");
+            Assert.False(service.IsRunning(letter.Macro.Name),
+                "another controller button answered it");
 
             service.StopAll();
             return true;
@@ -120,12 +130,13 @@ public class GamepadTriggerTests
             service.IsEnabled = true;
 
             service.Answer(Key("F6"), pressed: true);
-            Assert.False(service.IsRunning(macro), "the key alone answered a combination");
+            Assert.False(service.IsRunning(macro.Macro.Name), "the key alone answered a combination");
 
             pad.Down = GamepadButtons.A;
             service.LookAtGamepad();
             service.Answer(Key("F6"), pressed: true);
-            Assert.True(service.IsRunning(macro), "the combination did not start its macro");
+            Assert.True(service.IsRunning(macro.Macro.Name),
+                "the combination did not start its macro");
 
             service.StopAll();
             return true;
@@ -149,17 +160,20 @@ public class GamepadTriggerTests
             service.IsEnabled = true;
 
             service.LookAtGamepad();
-            Assert.False(service.IsRunning(once), "a machine with no controller started a macro");
+            Assert.False(service.IsRunning(once.Macro.Name),
+                "a machine with no controller started a macro");
 
             // Plugged in, B held: the macro that runs while it is held starts.
             pad.Connected = true;
             service.LookAtGamepad();
-            Assert.True(service.IsRunning(holding), "the held button did not start the holding macro");
+            Assert.True(service.IsRunning(holding.Macro.Name),
+                "the held button did not start the holding macro");
 
             // Unplugged while it is still held: as far as the trigger is concerned it was let go.
             pad.Connected = false;
             service.LookAtGamepad();
-            Assert.False(service.IsRunning(holding), "a controller going away left the macro running");
+            Assert.False(service.IsRunning(holding.Macro.Name),
+                "a controller going away left the macro running");
 
             service.StopAll();
             return true;
@@ -170,15 +184,9 @@ public class GamepadTriggerTests
     /// A macro that does one slow thing, so "is it running" has something to see: a run of no steps
     /// is over before it is asked about.
     /// </summary>
-    private static MacroItem Macro(string bind, MacroLoop loop, string name = "手柄触发的")
+    private static Triggered Macro(string bind, MacroLoop loop, string name = "手柄触发的")
     {
-        var macro = new MacroItem
-        {
-            Name = name,
-            TriggerMode = MacroTrigger.KeystrokesButtonInputs,
-            BindKey = bind,
-            LoopMode = loop,
-        };
+        var macro = new MacroItem { Name = name };
 
         macro.Steps.Add(new MacroStep
         {
@@ -189,16 +197,30 @@ public class GamepadTriggerTests
                 {
                     Name = "ms",
                     Kind = ActionParameterKind.Number,
-                    Value = "800",
+                    Written = Formula.Number(800),
                 },
             ],
         });
 
-        return macro;
+        return new Triggered(macro, new KeySpec(bind, loop));
     }
 
-    private static MacroTriggerService Service(FakeGamepad pad, params MacroItem[] macros)
-        => new(() => macros, new ChecksDevices { GamepadReading = pad }, new NoWindowEvents());
+    private static MacroTriggerService Service(FakeGamepad pad, params Triggered[] triggers)
+    {
+        var devices = new ChecksDevices { GamepadReading = pad };
+        var service = new MacroTriggerService(devices, new VariableSession(), new NoWindowEvents());
+        var plan = TriggerPlans.Build();
+        foreach (var trigger in triggers)
+        {
+            plan.Macro(trigger.Macro, trigger.Spec);
+        }
+
+        service.Publish(plan.Build());
+        return service;
+    }
 
     private static HookKey Key(string name) => KeyNames.Resolve(name)!.Value;
+
+    /// <summary>One macro and the key that starts it, which is what these checks are about.</summary>
+    private sealed record Triggered(MacroItem Macro, KeySpec Spec);
 }

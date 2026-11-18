@@ -35,6 +35,13 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/AvaloniaUI/Avalonia>
 - Avalonia.Controls.ColorPicker — MIT
   <https://github.com/AvaloniaUI/Avalonia>
+- Avalonia.Controls.DataGrid — MIT
+  <https://github.com/AvaloniaUI/Avalonia>
+- FluentAvalonia（FluentAvaloniaUI）— MIT
+  <https://github.com/amwx/FluentAvalonia>
+  它把 WinUI 的控件与模板带到 Avalonia；WinUI 与 Avalonia 均为 MIT。
+- MicroCom.Runtime — MIT
+  <https://github.com/kekekeks/MicroCom>
   Avalonia.Fonts.Inter 里带的是 Inter 字体，字体本身按 SIL OFL 1.1 授权：
   <https://github.com/rsms/inter>
 - Avalonia.Angle.Windows.Natives（OpenGL 后端，ANGLE 的 libGLESv2）— BSD-3-Clause
@@ -88,10 +95,19 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
 - Playwright（Microsoft.Playwright）— Apache-2.0
   <https://github.com/microsoft/playwright-dotnet>
   随包分发的是它的驱动，里面带一份 Node.js；浏览器本体不在这里，见下面「用户自己装的组件」。
-- ModelContextProtocol.AspNetCore — Apache-2.0（项目同时保留 MIT 过渡声明）
+- ModelContextProtocol（以及 `ModelContextProtocol.Core`）— Apache-2.0（项目同时保留 MIT 过渡声明）
   <https://github.com/modelcontextprotocol/csharp-sdk>
-  本机 MCP 服务器用它在鲸灵自己的进程里映射 HTTP 端点；依赖的 `ModelContextProtocol` 与
-  `ModelContextProtocol.Core` 同属这一份 SDK。不随包分发额外的原生库。
+  MCP 服务器用它说话：协议、工具发现与那一对标准输入输出流上的传输都在这里。没有 HTTP、
+  没有监听端口，所以不再引用 ASP.NET Core。不随包分发额外的原生库。
+- Microsoft.Extensions.DependencyInjection — MIT
+  <https://github.com/dotnet/runtime>
+  组合根用它把有状态的服务装一次、按需取用：窗口、触发器和无窗口的 MCP 会话共用同一份注册，
+  而不是各自 new 一份。
+- Microsoft.Extensions.Hosting（以及它带进来的 Hosting.Abstractions、Logging、Configuration
+  等同族包）— MIT
+  <https://github.com/dotnet/runtime>
+  无窗口那个 MCP 会话跑在一个通用宿主里：装配工具、启动会话、在流关闭时收尾。它不装控制台
+  生命周期，也不打印任何东西——那些流上的标准输出就是协议本身。
 - CsvHelper — Apache-2.0 与 MS-PL 双许可
   <https://github.com/JoshClose/CsvHelper>
   读写的都是带分隔符的文本文件（`file.readCsv` / `file.writeCsv`）：引号、单元格里的换行、
@@ -115,7 +131,7 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/dotnet/runtime>
   下载 C# 脚本要用的 NuGet 包时做签名校验。程序的目标框架是 net10.0-windows，这一份由
   WindowsDesktop 共享框架提供，所以包里没有它自己的文件；引擎为什么把它单独钉一个版本，
-  见 doc/dev.md 的「依赖的包」。
+  见 docs/dev/environment.md 的「主要依赖」。
 - MicroCom.Runtime、Tmds.DBus.Protocol、Microsoft.Extensions.* — MIT
 
 ## 只在编译时用到的组件

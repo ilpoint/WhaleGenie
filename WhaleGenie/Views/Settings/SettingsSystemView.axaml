@@ -1,0 +1,556 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        x:Class="WhaleGenie.Views.SettingsSystemView"
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+        x:DataType="vm:SettingsViewModel">
+
+    <Design.DataContext>
+        <vm:SettingsViewModel />
+    </Design.DataContext>
+
+    <StackPanel Spacing="10">
+        <!-- ── 通用 ─────────────────────────────────────────────── -->
+        <StackPanel IsVisible="{Binding IsGeneralPage}" Spacing="10">
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="Title"
+                        Text="{Binding [Settings.GeneralCard], Source={x:Static loc:Strings.Current}}" />
+                    <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                        Text="{Binding [Settings.GeneralCardNote], Source={x:Static loc:Strings.Current}}" />
+                </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.Language], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.LanguageHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ComboBox Classes="Field" Width="180" ItemsSource="{Binding Languages}"
+                                SelectedItem="{Binding SelectedLanguage}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="LoadLastProjectCheck">
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.LoadLastProject], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.LoadLastProjectHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding LoadLastProjectAtStart}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="SystemAtStartCheck">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.SystemAtStart], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.SystemAtStartInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.SystemAtStartHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding SystemAtStart}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="EnabledFirstCheck">
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.EnabledFirst], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.EnabledFirstHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding EnabledFirst}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+
+            <!-- 东西都放在哪儿：写在窗口里而不是只写在手册里，"我的 macros.assets 去哪了"
+                是这扇窗该直接回答的问题。每一行都能打开所在文件夹。 -->
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.Storage], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.StorageNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                Text="{Binding [Settings.StorageHint], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Name="StorageProblem" Classes="Hint" Margin="0,6,0,0"
+                                IsVisible="False" TextWrapping="Wrap"
+                                Text="{Binding [Settings.StorageProblem], Source={x:Static loc:Strings.Current}}"
+                                Foreground="{DynamicResource Warning}" />
+
+                            <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding StorageRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:StorageRow">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock FontSize="12.5" Foreground="{DynamicResource TextPrimary}"
+                                                    Text="{Binding Name}" />
+                                                <TextBlock Classes="Hint" Margin="0,2,0,0" TextWrapping="Wrap"
+                                                    Text="{Binding What}" />
+                                                <TextBlock Classes="Mono" FontSize="11.5" Margin="0,3,0,0"
+                                                    TextWrapping="Wrap"
+                                                    Foreground="{DynamicResource TextTertiary}"
+                                                    Text="{Binding Where}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Classes="Secondary" Height="28"
+                                                Padding="10,0" VerticalAlignment="Center"
+                                                Tag="{Binding Folder}"
+                                                Click="OnOpenStorage"
+                                                Content="{Binding [Settings.OpenFolder], Source={x:Static loc:Strings.Current}}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+
+                    <!-- 日志只留最近的那些：一个文件一次失败、一天一次 MCP，攒上一年谁也不会翻。 -->
+                    <fa:FASettingsExpanderItem Name="LogCountBox">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.LogCount], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.LogCountInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.LogCountHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:FANumberBox Width="120" Minimum="1" Maximum="999" SmallChange="10"
+                                    SimpleNumberFormat="0" Value="{Binding LogCount}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Settings.LogCountUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+        </StackPanel>
+
+        <!-- ── 快捷键与声音 ─────────────────────────────────────── -->
+        <StackPanel IsVisible="{Binding IsHotkeysPage}" Spacing="10">
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.Hotkeys], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.HotkeysNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.SystemHotkey], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.SystemHotkeyInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.HotkeyHint], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Foreground="{DynamicResource Warning}"
+                                Text="{Binding SystemHotkeyProblem}"
+                                IsVisible="{Binding SystemHotkeyProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
+                                    TextAlignment="Right"
+                                    Text="{Binding SystemHotkeyDisplay}" />
+                                <Button Classes="Secondary" Height="30" Name="CaptureSystemHotkeyButton"
+                                    Content="{Binding SystemHotkeyButton}" />
+                                <Button Classes="Secondary" Height="30" Name="ClearSystemHotkeyButton"
+                                    Content="{Binding [Settings.HotkeyClear], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.RecordStopKey], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.RecordStopInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.RecordStopHint], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Foreground="{DynamicResource Warning}"
+                                Text="{Binding RecordStopProblem}"
+                                IsVisible="{Binding RecordStopProblem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="Note" MinWidth="90" VerticalAlignment="Center"
+                                    TextAlignment="Right"
+                                    Text="{Binding RecordStopDisplay}" />
+                                <Button Name="CaptureRecordStopButton" Classes="Secondary" Height="30"
+                                    Content="{Binding RecordStopButton}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.Sounds], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.SoundsNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem Name="SoundSystemCheck">
+                        <TextBlock Classes="FieldLabel"
+                            Text="{Binding [Settings.SoundSystem], Source={x:Static loc:Strings.Current}}" />
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding SoundSystem}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="SoundMacroCheck">
+                        <TextBlock Classes="FieldLabel"
+                            Text="{Binding [Settings.SoundMacro], Source={x:Static loc:Strings.Current}}" />
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding SoundMacro}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+        </StackPanel>
+
+        <!-- ── 屏幕捕获 ─────────────────────────────────────────── -->
+        <!-- 「怎么看」与「多久看一次」在同一页：调取帧频率时要看的是同一张画面。 -->
+        <StackPanel IsVisible="{Binding IsScreenPage}" Spacing="10">
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.Reading], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.ReadingNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.CaptureWindow], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.CaptureWindowInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.CaptureWindowHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ComboBox Classes="Field" Width="200" ItemsSource="{Binding WindowWays}"
+                                SelectedItem="{Binding SelectedWindowWay}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.CaptureScreen], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.CaptureScreenInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.CaptureScreenHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ComboBox Classes="Field" Width="200" ItemsSource="{Binding ScreenWays}"
+                                SelectedItem="{Binding SelectedScreenWay}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.PreloadOcr], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.PreloadOcrInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.PreloadOcrHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch Name="PreloadOcrCheck" OnContent="" OffContent=""
+                                IsChecked="{Binding PreloadOcr}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.FramesCard], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.FramesCardNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem Name="FrameRateFollowCheck">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.FrameRate], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.FrameRateInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.FrameRateHint], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Note" Margin="0,6,0,0" TextWrapping="Wrap"
+                                Foreground="{DynamicResource TextSecondary}"
+                                Text="{Binding FrameRateNote}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Spacing="8" HorizontalAlignment="Right">
+                                <ToggleSwitch OnContent="" OffContent=""
+                                    Content="{Binding [Settings.FrameRateFollow], Source={x:Static loc:Strings.Current}}"
+                                    IsChecked="{Binding FrameRateFollow}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8"
+                                    IsEnabled="{Binding FrameRateEnabled}">
+                                    <fa:FANumberBox Name="FrameRateBox" Width="110"
+                                        Minimum="1" Maximum="{Binding FastestRate}"
+                                        SmallChange="5" SimpleNumberFormat="0"
+                                        Value="{Binding FrameRate}" />
+                                    <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                        Text="{Binding [Settings.FrameRateUnit], Source={x:Static loc:Strings.Current}}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="FrameCacheCheck">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.FrameCache], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.FrameCacheInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.FrameCacheHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding FrameCache}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="FrameCacheAgeRow">
+                        <StackPanel>
+                            <TextBlock Classes="FieldLabel"
+                                Text="{Binding [Settings.FrameCacheAge], Source={x:Static loc:Strings.Current}}" />
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.FrameCacheAgeHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                IsEnabled="{Binding FrameCacheAgeEnabled}">
+                                <fa:FANumberBox Name="FrameCacheAgeBoxValue" Width="110"
+                                    Minimum="0" Maximum="1000" SmallChange="50"
+                                    SimpleNumberFormat="0" Value="{Binding FrameCacheAge}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Settings.FrameCacheAgeUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+        </StackPanel>
+
+        <!-- ── 输入 ─────────────────────────────────────────────── -->
+        <StackPanel IsVisible="{Binding IsInputPage}" Spacing="10">
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.InputCard], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.InputCardNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem Name="InputLimitBox">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.InputLimit], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo Text="{Binding [Common.InputLimitInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.InputLimitHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <fa:FANumberBox Width="120" Minimum="0" Maximum="999" SmallChange="10"
+                                    SimpleNumberFormat="0" Value="{Binding InputRate}" />
+                                <TextBlock Classes="Hint" VerticalAlignment="Center"
+                                    Text="{Binding [Settings.InputLimitUnit], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="IgnoreOwnInputCheck">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.IgnoreOwnInput], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.IgnoreOwnInputInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.IgnoreOwnInputHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding IgnoreOwnInput}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+        </StackPanel>
+
+        <!-- ── 设备与权限 ───────────────────────────────────────── -->
+        <StackPanel IsVisible="{Binding IsDevicesPage}" Spacing="10">
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.Driver], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.DriverNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Panel>
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                        Text="{Binding DriverStatus}" IsVisible="{Binding !DriverReady}" />
+                                    <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
+                                        Text="{Binding DriverStatus}" IsVisible="{Binding DriverReady}" />
+                                </Panel>
+                                <views:HintInfo
+                                    Text="{Binding [Settings.DriverInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,8,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.DriverHint], Source={x:Static loc:Strings.Current}}" />
+                            <Button Classes="Secondary" Name="DriverInstallButton" Height="32"
+                                HorizontalAlignment="Left" Margin="0,10,0,0"
+                                Click="OnInstallDriverClicked"
+                                Content="{Binding [Settings.DriverInstall], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="DriverAttachCheck">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.DriverAttachAtStart], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.DriverAttachAtStartInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.DriverAttachAtStartHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding AttachDriverAtStart}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+
+            <views:SettingsGroup>
+                <views:SettingsGroup.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Classes="Title"
+                            Text="{Binding [Settings.Admin], Source={x:Static loc:Strings.Current}}" />
+                        <TextBlock Classes="Hint" TextWrapping="NoWrap" VerticalAlignment="Center"
+                            Text="{Binding [Settings.AdminNote], Source={x:Static loc:Strings.Current}}" />
+                    </StackPanel>
+                </views:SettingsGroup.Header>
+                <StackPanel Spacing="1">
+                    <fa:FASettingsExpanderItem>
+                        <StackPanel>
+                            <TextBlock Classes="Hint" TextWrapping="Wrap"
+                                Text="{Binding AdminStatus}" IsVisible="{Binding !IsElevated}" />
+                            <TextBlock Classes="Hint" TextWrapping="Wrap" Foreground="{DynamicResource Success}"
+                                Text="{Binding AdminStatus}" IsVisible="{Binding IsElevated}" />
+                        </StackPanel>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem Name="RunAsAdminCheck">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Classes="FieldLabel"
+                                    Text="{Binding [Settings.RunAsAdmin], Source={x:Static loc:Strings.Current}}" />
+                                <views:HintInfo
+                                    Text="{Binding [Settings.RunAsAdminInfo], Source={x:Static loc:Strings.Current}}" />
+                            </StackPanel>
+                            <TextBlock Classes="Hint" Margin="0,4,0,0" TextWrapping="Wrap"
+                                Text="{Binding [Settings.RunAsAdminHint], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                        <fa:FASettingsExpanderItem.Footer>
+                            <ToggleSwitch OnContent="" OffContent=""
+                                IsChecked="{Binding RunAsAdmin}" />
+                        </fa:FASettingsExpanderItem.Footer>
+                    </fa:FASettingsExpanderItem>
+
+                    <fa:FASettingsExpanderItem>
+                        <Button Classes="Secondary" Name="AdminRestartButton" Height="32"
+                            HorizontalAlignment="Left"
+                            IsVisible="{Binding !IsElevated}"
+                            Click="OnRestartElevatedClicked"
+                            Content="{Binding [Settings.AdminRestart], Source={x:Static loc:Strings.Current}}" />
+                    </fa:FASettingsExpanderItem>
+                </StackPanel>
+            </views:SettingsGroup>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

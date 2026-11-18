@@ -1,7 +1,15 @@
+using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Threading;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
+using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
 // The headless session is one thread carrying one Avalonia application. Two test classes that
 // start at the same time race to set that up, and the one that loses is told its own dispatcher
@@ -35,9 +43,27 @@ internal static class Ui
         });
 
     public static T Run<T>(Func<T> body)
-        => Session.Dispatch(() => Task.FromResult(body()), CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+    {
+        var result = default(T)!;
+        var ran = false;
+        MacroTriggerGate.ResetForChecks();
+        try
+        {
+            Session.Dispatch(() =>
+            {
+                result = body();
+                ran = true;
+                return true;
+            }, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (InvalidProgramException error) when (ran && IsDispatcherLoop(error))
+        {
+            // The body finished. What failed is the session's teardown, which pumps whatever the
+            // call left queued within a five-second budget — see below.
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// The same, for a check that has to wait. A callback that has to come back to this thread
@@ -45,9 +71,128 @@ internal static class Ui
     /// here rather than inside the body.
     /// </summary>
     public static T RunAsync<T>(Func<Task<T>> body)
-        => Session.Dispatch(body, CancellationToken.None)
-            .GetAwaiter()
-            .GetResult();
+    {
+        var result = default(T)!;
+        var ran = false;
+        MacroTriggerGate.ResetForChecks();
+        try
+        {
+            Session.Dispatch(async () =>
+            {
+                result = await body();
+                ran = true;
+                return true;
+            }, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (InvalidProgramException error) when (ran && IsDispatcherLoop(error))
+        {
+            // As above: the body returned, the teardown could not finish pumping.
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Whether the failure is the session's teardown giving up on a queue that keeps refilling.
+    /// </summary>
+    /// <remarks>
+    /// After every call the session pumps the queue and then shuts the application down, with a
+    /// five-second budget. A call that leaves a pass posting its next turn — a render loop, an
+    /// animation, a run still talking to the interface — spends that budget and the teardown throws.
+    /// The check itself has already run and has its result; the leftover queue belongs to the
+    /// application that is being thrown away, and the next call starts a new dispatcher. Failing the
+    /// check for that is how an unrelated test ends up reporting "You've caused dispatcher loop".
+    /// </remarks>
+    private static bool IsDispatcherLoop(InvalidProgramException error)
+        => error.Message.Contains("dispatcher loop", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Waits for something the interface does on its own schedule — a dialog that is about to open,
+    /// a window that is about to close — by pumping the dispatcher until it is true.
+    /// </summary>
+    /// <remarks>
+    /// The alternative, "sleep 20ms and assert", turns a slow machine into a failing check: the whole
+    /// suite takes minutes, and the same wait that is generous on its own is not generous at the end
+    /// of a long run. This waits for the thing itself and gives up with the reason it was waiting,
+    /// so a real failure reads as one.
+    /// </remarks>
+    public static async Task Until(Func<bool> condition, string because, int timeoutMs = 3000)
+    {
+        for (var waited = 0; waited < timeoutMs && !condition(); waited += 10)
+        {
+            await Task.Delay(10);
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        Assert.True(condition(), because);
+    }
+
+    /// <summary>
+    /// Closes a window and answers the "unsaved work" question it asks on the way out.
+    /// </summary>
+    /// <remarks>
+    /// The question is modal, so it runs a nested dispatcher loop inside the dispatch the check is
+    /// standing in. A check that walks away from that loop leaves it behind, and the next dispatch
+    /// on this thread dies with "You've caused dispatcher loop" — on whichever check happens to be
+    /// next rather than the one that opened it. The window that asks owns its prompt, so what is
+    /// answered here is that window's own owned windows.
+    /// </remarks>
+    public static void CloseAndAnswer(Window window)
+    {
+        window.Close();
+        AnswerUnsavedWork(window);
+    }
+
+    /// <summary>
+    /// Closes a window and throws away whatever it asks about on the way out.
+    /// </summary>
+    /// <remarks>
+    /// A close on a window with unsaved work is answered in two steps: the window says no, then
+    /// posts the question. A check that ends on a bare <c>Close()</c> therefore walks away before
+    /// the question exists, and it is asked during whichever dispatch pumps the dispatcher next —
+    /// its modal loop then belongs to a check that never opened it, and the one after dies with
+    /// "You've caused dispatcher loop". Closing through here keeps the question inside the check
+    /// that asked for it, and answers it with the way out that leaves nothing behind.
+    /// </remarks>
+    public static void CloseAndDiscard(Window window)
+    {
+        window.Close();
+
+        // The question is posted, so it takes a pump to appear; answering it is what ends its loop.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            Dispatcher.UIThread.RunJobs();
+            var prompts = window.OwnedWindows.OfType<ConfirmDialog>().ToList();
+            if (prompts.Count == 0)
+            {
+                if (!window.IsVisible)
+                {
+                    return;
+                }
+
+                continue;
+            }
+
+            foreach (var prompt in prompts)
+            {
+                ((ConfirmDialogViewModel)prompt.DataContext!).SecondaryCommand.Execute(null);
+            }
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    /// <summary>Dismisses the question <paramref name="window"/> is showing about unsaved work.</summary>
+    public static void AnswerUnsavedWork(Window window)
+    {
+        Dispatcher.UIThread.RunJobs();
+        foreach (var prompt in window.OwnedWindows.OfType<ConfirmDialog>().ToList())
+        {
+            ((ConfirmDialogViewModel)prompt.DataContext!).CancelCommand.Execute(null);
+        }
+
+        Dispatcher.UIThread.RunJobs();
+    }
 }
 
 /// <summary>

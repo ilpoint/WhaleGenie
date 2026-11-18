@@ -4,8 +4,16 @@ using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Execution;
+using WhaleGenie.Platform.Windows;
+using WhaleGenie.Localization;
+using WhaleGenie.Mcp;
+using WhaleGenie.Runtime;
+#if DEBUG
+using Declarative.Avalonia.AgentTools;
+#endif
 
 namespace WhaleGenie;
 
@@ -24,9 +32,14 @@ sealed class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // The model layer remembers what language the person chose through these two, so it can stay
+        // free of the interface's settings file. Set before anything is drawn or said.
+        Strings.LoadLanguage = LocalSettings.Load;
+        Strings.SaveLanguage = LocalSettings.Store;
+
         AppDomain.CurrentDomain.UnhandledException += (_, error) =>
             AppDiagnostics.Record("process.unhandled",
-                error.ExceptionObject as Exception ?? new Exception(error.ExceptionObject?.ToString()));
+                error.ExceptionObject as Exception ?? new InvalidOperationException(error.ExceptionObject?.ToString()));
         TaskScheduler.UnobservedTaskException += (_, error) =>
         {
             AppDiagnostics.Record("process.task", error.Exception);
@@ -54,10 +67,74 @@ sealed class Program
             return ScriptBridge.Run(args);
         }
 
+        // The doctor is a client, not a host: it talks to an MCP server over the loopback and
+        // prints what it found, so it belongs here where nothing of the window has been built yet.
+        if (McpCommandLine.DoctorAsked(args))
+        {
+            return McpDoctor.Run(args);
+        }
+
+        // And this one is a host with no window: the interface still has to exist, because the
+        // project lives on its thread, but nothing is ever shown.
+        if (McpCommandLine.HostAsked(args))
+        {
+            // A window is already running with the project the person is editing: this process is
+            // only here to carry the client's words to it. That is the whole point of the pipe, and
+            // it is what makes the draft a copy of what is on screen rather than of what is on disk.
+            if (McpPipe.TryBridge(Console.OpenStandardInput(), Console.OpenStandardOutput()))
+            {
+                return 0;
+            }
+
+            var options = McpCommandLine.ParseHost(args, out var error);
+            if (options is null)
+            {
+                Console.Error.WriteLine($"whalegenie: {error}");
+                Console.Error.WriteLine(McpCommandLine.Usage);
+                return 2;
+            }
+
+            return McpHeadless.Run(options);
+        }
+
+#if DEBUG
+        // A throwaway window with six bare controls, for looking at what the Fluent key overrides
+        // actually did. Looking at colours must not touch the machine: nothing of the ordinary
+        // start-up runs with it — no devices, no project, no recovery snapshot, no single-instance
+        // name — which is the whole reason this branch exists.
+        if (args.Contains("--theme-probe", System.StringComparer.Ordinal))
+        {
+            App.ThemeProbe = true;
+            Run(args);
+            return 0;
+        }
+#endif
+
+        // One window, one program. A second launch is somebody double-clicking the icon while the
+        // window is already out of the way, so the window is asked to come back and this copy ends.
+        // The headless forms above are not part of that rule: a client may start as many servers as
+        // it has clients, and they are not windows.
+        if (!SingleInstance.TryAcquire())
+        {
+            SingleInstance.AskToComeBack();
+            return 0;
+        }
+
+        // 设置里要求以管理员身份启动：提权是另一份进程的事，这一份让出位置。放在拿到单实例之后，
+        // 第二次启动仍然是"把窗口叫回来"，不会因为设置里那一格而变成一记 UAC。
+        if (ProcessRights.AutoRestart(args))
+        {
+            return 0;
+        }
+
         Run(args);
         return 0;
     }
 
+    /// <summary>
+    /// Runs with no window. The lifetime is asked to end only when told to, because a lifetime that
+    /// ends with its last window would end immediately when there is no window at all.
+    /// </summary>
     private static void Run(string[] args)
     {
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
@@ -124,6 +201,10 @@ sealed class Program
             .UsePlatformDetect()
 #if DEBUG
             .WithDeveloperTools()
+            // 给 agent 的界面自省：loopback 的 MCP，只在调试版里开，随进程一起结束。
+            // 只读那一层默认就在；EnableInteraction 打开后才有 tap / click_at / invoke 这些
+            // 真正驱动界面的工具，它们也才登记上来。不加这一项，连接器里只会有 22 个只读工具。
+            .UseAgentInspector(options => options.EnableInteraction = true)
 #endif
             .WithInterFont()
             .LogToTrace();

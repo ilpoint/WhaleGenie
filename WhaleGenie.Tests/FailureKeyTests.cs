@@ -26,7 +26,7 @@ public class FailureKeyTests
     public void Every_failure_constant_is_thrown_or_logged_by_the_engine()
     {
         var used = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var file in CoreSources())
+        foreach (var file in EngineSources())
         {
             var source = File.ReadAllText(file);
             foreach (Match match in Regex.Matches(source, @"\bRunKeys\.([A-Za-z0-9_]+)"))
@@ -49,7 +49,7 @@ public class FailureKeyTests
     [Fact]
     public void The_engine_spells_no_vocabulary_key_by_hand()
     {
-        foreach (var file in CoreSources())
+        foreach (var file in EngineSources())
         {
             var source = File.ReadAllText(file);
             Assert.DoesNotContain("\"Run.", source, StringComparison.Ordinal);
@@ -93,22 +93,34 @@ public class FailureKeyTests
 
     private static string Section(string heading)
     {
-        var manual = File.ReadAllText(Path.Combine(Repository(), "doc", "manual.md"));
+        var manual = ManualDocument.AllText();
         var start = manual.IndexOf(heading, StringComparison.Ordinal);
         Assert.True(start >= 0, $"the manual has no {heading} section");
         var next = Regex.Match(manual[(start + heading.Length)..], @"\n#{2,3} ");
         return next.Success ? manual[start..(start + heading.Length + next.Index)] : manual[start..];
     }
 
-    private static IEnumerable<string> CoreSources()
+    /// <summary>
+    /// The engine and the Windows adapters: both may throw a failure key, and a key the adapters
+    /// spell is as much a contract with a macro as one the interpreter spells. The vocabulary
+    /// table itself is left out — it declares the keys rather than using them.
+    /// </summary>
+    private static IEnumerable<string> EngineSources()
     {
-        var core = Path.Combine(Repository(), "WhaleGenie.Core");
-        return Directory.EnumerateFiles(core, "*.cs", SearchOption.AllDirectories)
-            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
-                              StringComparison.Ordinal)
-                          && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
-                              StringComparison.Ordinal)
-                          && Path.GetFileName(file) != "RunVocabulary.cs");
+        foreach (var project in new[] { "WhaleGenie.Core", "WhaleGenie.Platform.Windows" })
+        {
+            var root = Path.Combine(Repository(), project);
+            foreach (var file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+                         .Where(file =>
+                             !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
+                                 StringComparison.Ordinal)
+                             && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                                 StringComparison.Ordinal)
+                             && Path.GetFileName(file) != "RunVocabulary.cs"))
+            {
+                yield return file;
+            }
+        }
     }
 
     private static string Repository()

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -14,6 +15,7 @@ namespace WhaleGenie.Tests;
 /// question: only the macro being edited was asked about, so a project that had grown a second
 /// macro was thrown away at exit without a word. The main window asks this before the program stops.
 /// </summary>
+[RestoreSharedState]
 public class ProjectSaveTests
 {
     [Fact]
@@ -35,6 +37,87 @@ public class ProjectSaveTests
 
         // Nothing is left and there is no file it came from, so there is nothing to lose either.
         Assert.False(viewModel.HasUnsavedChanges);
+    }
+
+    /// <summary>
+    /// Every save keeps the file it replaced as .bak. The window's own Save goes through the package
+    /// writer just as the MCP tool does, so this is the one place that has to remember — a save that
+    /// turns out to be wrong is the one mistake nobody can undo from inside the program.
+    /// </summary>
+    [Fact]
+    public void Every_save_keeps_the_file_it_replaced()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+            var first = new MainViewModel();
+            first.AddMacro(new MacroItem { Name = "login" });
+            first.SavePackage(path);
+
+            // Nothing was replaced yet, so there is nothing to keep.
+            Assert.False(File.Exists(MacroPackage.BackupPathFor(path)));
+
+            var second = new MainViewModel();
+            second.AddMacro(new MacroItem { Name = "logout" });
+            second.SavePackage(path);
+
+            // What is kept is the package that was there before, not the one just written.
+            var kept = MacroPackage.Load(MacroPackage.BackupPathFor(path));
+            Assert.Contains(kept.Macros, macro => macro.Name == "login");
+            Assert.DoesNotContain(kept.Macros, macro => macro.Name == "logout");
+            Assert.Contains(MacroPackage.Load(path).Macros, macro => macro.Name == "logout");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    /// <summary>
+    /// Opening a package replaces the shared variables instead of merging into whatever the last
+    /// project left behind. Two projects that both declare `count` would otherwise end up with two
+    /// of them, and one of the two would quietly become unreachable.
+    /// </summary>
+    [Fact]
+    public void Opening_another_project_replaces_the_shared_variables()
+    {
+        var folder = TempFolder();
+        try
+        {
+            var first = Path.Combine(folder, "first" + MacroPackage.Extension);
+            var second = Path.Combine(folder, "second" + MacroPackage.Extension);
+
+            var a = new MainViewModel();
+            a.AddMacro(new MacroItem { Name = "one" });
+            a.Variables.Adopt(new VariableDefinition
+            {
+                Name = "fromFirst",
+                Scope = VariableScope.Global,
+            });
+            a.SavePackage(first);
+
+            var b = new MainViewModel();
+            b.AddMacro(new MacroItem { Name = "two" });
+            b.SavePackage(second);
+
+            // A project that was open a moment ago still holds its own variables; opening another
+            // package takes them away rather than merging the two tables.
+            var opened = new MainViewModel();
+            opened.Variables.Adopt(new VariableDefinition
+            {
+                Name = "fromFirst",
+                Scope = VariableScope.Global,
+            });
+            opened.OpenPackage(second);
+
+            Assert.Empty(opened.Variables.Globals);
+            Assert.Contains(a.Variables.Globals, variable => variable.Name == "fromFirst");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]
@@ -72,7 +155,7 @@ public class ProjectSaveTests
             viewModel.AddMacro(macro);
             viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
 
-            viewModel.ReplaceMacro(macro, new MacroItem { Name = "login", BindKey = "F5" });
+            viewModel.ReplaceMacro(macro, new MacroItem { Name = "login", Description = "edited" });
 
             Assert.True(viewModel.HasUnsavedChanges);
         }
@@ -142,21 +225,20 @@ public class ProjectSaveTests
             viewModel.AddMacro(new MacroItem { Name = "login" });
             viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
 
-            var before = MainViewModel.SharedVariables();
-            Assert.False(MainViewModel.SharedVariablesChangedSince(before));
+            var before = viewModel.Globals();
+            Assert.False(viewModel.GlobalsChangedSince(before));
 
             // The Variable Center writes straight into the shared list, so nothing on the macro
             // list moves and the change would otherwise go unnoticed.
-            VariableCatalog.Globals.Add(variable);
+            viewModel.Variables.Adopt(variable);
 
-            Assert.True(MainViewModel.SharedVariablesChangedSince(before));
+            Assert.True(viewModel.GlobalsChangedSince(before));
 
-            viewModel.MarkSharedVariablesChanged();
+            viewModel.MarkGlobalsChanged();
             Assert.True(viewModel.HasUnsavedChanges);
         }
         finally
         {
-            VariableCatalog.Globals.Remove(variable);
             Directory.Delete(folder, true);
         }
     }
@@ -241,7 +323,7 @@ public class ProjectSaveTests
         {
             Ui.Run(() =>
             {
-                var macro = new MacroItem { Name = "click", BindKey = "F5" };
+                var macro = new MacroItem { Name = "click" };
                 macro.Steps.Add(new MacroStep
                 {
                     Type = "input.mouseClick",
@@ -249,26 +331,26 @@ public class ProjectSaveTests
                     [
                         new StepParameter
                         {
-                            Name = "button", Kind = ActionParameterKind.Choice, Value = "left",
+                            Name = "button", Kind = ActionParameterKind.Choice, Written = Fields.Shape("left"),
                         },
                         new StepParameter
                         {
-                            Name = "x", Kind = ActionParameterKind.Number, Value = "$sys.mouseX",
+                            Name = "x", Kind = ActionParameterKind.Number, Written = Formula.Name("sys.mouseX"),
                         },
                         new StepParameter
                         {
-                            Name = "y", Kind = ActionParameterKind.Number, Value = "$sys.mouseY",
+                            Name = "y", Kind = ActionParameterKind.Number, Written = Formula.Name("sys.mouseY"),
                         },
                     ],
                 });
 
                 var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
-                MacroPackage.Save(path, [macro], [], "v0");
+                MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "v0");
                 var read = MacroPackage.Load(path).Macros[0];
 
-                Assert.Equal("$sys.mouseX", read.Steps[0].Parameters
+                Assert.Equal("sys.mouseX", read.Steps[0].Parameters
                     .First(parameter => parameter.Name == "x").Value);
-                Assert.Equal("$sys.mouseY", read.Steps[0].Parameters
+                Assert.Equal("sys.mouseY", read.Steps[0].Parameters
                     .First(parameter => parameter.Name == "y").Value);
             });
         }

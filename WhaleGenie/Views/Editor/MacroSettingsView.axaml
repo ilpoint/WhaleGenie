@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        x:Class="WhaleGenie.Views.MacroSettingsView"
+        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+        x:DataType="vm:MacroEditorViewModel">
+
+    <UserControl.Resources>
+        <conv:HexColorToBrushConverter x:Key="HexBrush" />
+    </UserControl.Resources>
+
+    <Design.DataContext>
+        <vm:MacroEditorViewModel />
+    </Design.DataContext>
+
+    <Border Name="MacroSettingsDrawer"
+        IsVisible="True" Background="{DynamicResource SurfacePanel}" CornerRadius="6">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="7" Margin="18,14,18,0">
+                <views:IconView Width="15" Height="15"
+                    Stroke="{DynamicResource TextPrimary}"
+                    StrokeThickness="1.4" FitToBounds="True"
+                    Data="{x:Static vm:AppIcons.Settings}" />
+                <TextBlock Grid.Column="1" Name="MacroSettingsTitle"
+                    VerticalAlignment="Center"
+                    FontSize="13" FontWeight="SemiBold"
+                    Foreground="{DynamicResource TextPrimary}"
+                    Text="{Binding [Editor.MacroSettings], Source={x:Static loc:Strings.Current}}" />
+            </Grid>
+
+            <!-- Two halves of the same settings, the way the settings window splits its
+                own: the title and this strip stay put while only one page scrolls. -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="2" Margin="16,6,16,0">
+                <Button Classes="Tab Root Compact" Tag="General" Click="OnSettingsPageClicked"
+                    Classes.selected="{Binding IsGeneralSettingsPage}"
+                    Content="{Binding [Editor.MacroSettings.General], Source={x:Static loc:Strings.Current}}" />
+                <Button Classes="Tab Root Compact" Tag="Specific" Click="OnSettingsPageClicked"
+                    Classes.selected="{Binding IsSpecificSettingsPage}"
+                    Content="{Binding [Editor.MacroSettings.Specific], Source={x:Static loc:Strings.Current}}" />
+            </StackPanel>
+
+            <ScrollViewer Grid.Row="2" Padding="18,10,18,8" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <views:MacroSettingsGeneralView Name="GeneralSettings" />
+
+                    <views:MacroSettingsSpecificView Name="SpecificSettings" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Save stays in this window; the title-bar close is the way out. The run
+                beside it loads the steps and stops in its own window. -->
+            <StackPanel Grid.Row="3">
+                <TextBlock Name="SavedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
+                    Foreground="{DynamicResource Success}"
+                    Text="{Binding [Editor.SavedNotice], Source={x:Static loc:Strings.Current}}" />
+                <TextBlock Name="CommitRejectedNotice" Classes="Hint" IsVisible="False" Margin="14,4,14,0"
+                    TextWrapping="Wrap"
+                    Foreground="{DynamicResource Danger}"
+                    Text="{Binding [Editor.CommitRejectedNotice], Source={x:Static loc:Strings.Current}}" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="6" Margin="12,8,12,12">
+                    <Button Name="SaveButton" Classes="Primary"
+                        Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"
+                            HorizontalAlignment="Center">
+                            <views:IconView Width="13" Height="13"
+                                Stroke="{DynamicResource TextPrimary}"
+                                StrokeThickness="1.3" FitToBounds="True"
+                                Data="{x:Static vm:AppIcons.Save}" />
+                            <TextBlock Text="{Binding [Editor.Save], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" Name="RunDebugButton" Classes="Secondary"
+                        Command="{Binding RunCommand}" IsEnabled="{Binding HasSteps}">
+                        <StackPanel Orientation="Horizontal" Spacing="6"
+                            HorizontalAlignment="Center">
+                            <views:IconView Width="13" Height="13"
+                                Stroke="{DynamicResource TextPrimary}"
+                                StrokeThickness="1.3" FitToBounds="True"
+                                Data="{x:Static vm:AppIcons.BugPlay}" />
+                            <TextBlock Text="{Binding [Editor.RunDebug], Source={x:Static loc:Strings.Current}}" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

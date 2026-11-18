@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 
 namespace WhaleGenie.Core.Tests;
@@ -16,7 +17,11 @@ public class StepOutcomeTests
         => new() { Type = type, Id = id, Parameters = parameters };
 
     private static ExecutableParameter Param(string name, string text = "")
-        => new() { Name = name, Text = text };
+        => Fields.Text(name, text);
+
+    /// <summary>One field whose value is already a shape rather than a line.</summary>
+    private static ExecutableParameter Param(string name, ExpressionNode value)
+    => Fields.Computed(name, value);
 
     /// <summary>See <see cref="SampleFiles.Returns"/>: the results a step hands over.</summary>
     private static ExecutableParameter Returns(params string[] results)
@@ -26,14 +31,17 @@ public class StepOutcomeTests
     private static ExecutableParameter Hit(string key, string name) => SampleFiles.Hit(key, name);
 
     private static ExecutableParameter Body(string name, params ExecutableStep[] steps)
-        => new() { Name = name, Steps = steps };
+        => Fields.Steps(name, steps);
 
     private static ExecutableParameter When(string name, ExecutableStep step)
-        => new() { Name = name, Text = TestConditions.Expression(step) };
+        => Fields.Run(name, TestConditions.Expression(step));
 
     private static ExecutableStep Set(string id, string name, string value)
+        => Set(id, name, Cells.Line(value));
+
+    private static ExecutableStep Set(string id, string name, ExpressionNode value)
         => Step("control.setVariable", id, Param("name", name), Param("scope", "local"),
-            Param("value", value));
+            Fields.Computed("value", value));
 
     /// <summary>A step that fails however it is run: a key press with no keyboard to press it on.</summary>
     private static ExecutableStep Broken(string id, StepErrorAction action = StepErrorAction.Stop)
@@ -77,9 +85,6 @@ public class StepOutcomeTests
 
     private static string Outcome(VariableStore store, string id)
         => store.Local.Values[$"step.{id}.outcome"].AsText();
-
-    private static string Error(VariableStore store, string id)
-        => store.Local.Values[$"step.{id}.error"].AsText();
 
     [Fact]
     public async Task A_step_that_does_its_work_reads_ok()
@@ -187,7 +192,7 @@ public class StepOutcomeTests
     }
 
     [Fact]
-    public async Task A_step_the_macro_calls_failed_reads_failed_with_its_own_reason()
+    public async Task A_step_the_macro_calls_failed_reads_failed()
     {
         var store = await RunAsync(
         [
@@ -196,7 +201,6 @@ public class StepOutcomeTests
         ]);
 
         Assert.Equal("failed", Outcome(store, "aaaa"));
-        Assert.Equal("Run.StepFailedByMacro", Error(store, "aaaa"));
         Assert.Equal("skipped", Outcome(store, "bbbb"));
     }
 
@@ -216,11 +220,11 @@ public class StepOutcomeTests
     [Fact]
     public async Task A_note_does_nothing_and_still_reads_ok()
     {
-        // The text is deliberately not a valid expression: a note is taken as it stands, and a
-        // macro that writes brackets in one should not be stopped by them.
+        // A note is prose, so brackets and signs in it are characters rather than a formula to
+        // work out: the field holds text, and nothing reads a language back out of it.
         var store = await RunAsync(
         [
-            Step("control.note", "aaaa", Param("note", "$((")),
+            Step("control.note", "aaaa", Fields.Text("note", "$((")),
             Set("bbbb", "n", "1"),
         ]);
 
@@ -268,7 +272,7 @@ public class StepOutcomeTests
             Step("control.try", "aaaa",
                 Returns("error=why"),
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", "$step.bbbb.outcome")),
+                Body("catch", Set("cccc", "seen", Formula.Name("step.bbbb.outcome"))),
                 Body("finally", Set("dddd", "tidied", "1"))),
         ]);
 
@@ -292,7 +296,7 @@ public class StepOutcomeTests
         [
             Step("control.try", "aaaa",
                 Body("body", Broken("bbbb")),
-                Body("catch", Set("cccc", "seen", "$step.bbbb.error"))),
+                Body("catch", Set("cccc", "seen", Formula.Name("caught.key")))),
         ]);
 
         Assert.Equal("failed", Outcome(store, "bbbb"));
@@ -332,12 +336,12 @@ public class StepOutcomeTests
         ]);
 
         Assert.False(store.TryGet("step..outcome", out _));
-        Assert.False(store.TryGet("step..error", out _));
+        Assert.False(store.TryGet("step..outcome", out _));
         Assert.Equal("1", store.Local.Values["n"].AsText());
     }
 
     [Fact]
-    public async Task Why_a_step_failed_is_written_down_under_it_and_nowhere_else()
+    public async Task Why_a_step_failed_is_not_a_second_variable()
     {
         var store = await RunAsync(
         [
@@ -345,26 +349,11 @@ public class StepOutcomeTests
             Set("bbbb", "n", "1"),
         ]);
 
-        // A key rather than the words on screen, so the macro reads the same thing whatever
-        // language the interface is in.
-        Assert.Equal("Run.NoDevice", Error(store, "aaaa"));
-
-        // A step that worked has nothing to say about a reason.
-        Assert.Equal(string.Empty, Error(store, "bbbb"));
+        // One value per step. The reason is only readable inside a try, as caught.key — a second
+        // name for every step would double a list that is already one row per step.
+        Assert.Equal("failed", Outcome(store, "aaaa"));
+        Assert.False(store.TryGet("step.aaaa.error", out _));
         Assert.Equal("ok", Outcome(store, "bbbb"));
-    }
-
-    [Fact]
-    public async Task The_steps_that_did_not_run_leave_an_empty_reason_behind()
-    {
-        var store = await RunAsync(
-        [
-            Step("control.stop", "aaaa"),
-            Set("bbbb", "n", "1"),
-        ]);
-
-        Assert.Equal(string.Empty, Error(store, "aaaa"));
-        Assert.Equal(string.Empty, Error(store, "bbbb"));
     }
 
     [Fact]
@@ -445,6 +434,10 @@ public class StepOutcomeTests
 
         public Task<AskAnswer> AskUser(AskQuestion question, CancellationToken token)
             => Task.FromResult(AskAnswer.Cancel);
+
+        /// <summary>Nothing these runs reach cannot be undone.</summary>
+        public Task<bool> ConfirmIrreversible(ExecutableStep step, CancellationToken token)
+            => Task.FromResult(true);
     }
 
     /// <summary>A library whose one macro turns up only on the second ask.</summary>

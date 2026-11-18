@@ -1,10 +1,32 @@
 namespace WhaleGenie.Core.Devices;
 
 /// <summary>
-/// One colour a pattern asks for and where it has to be: the offset is counted from the pixel the
-/// pattern's own colour was found at, so the whole thing is found wherever on the screen it sits.
+/// One place in a colour pattern: how far it sits from the base colour, which colour has to be
+/// there — or which ones may be, when a shape is drawn in more than one shade — how far off that
+/// colour may be, and whether the place has to be one of them or has to be none of them.
 /// </summary>
-public readonly record struct ColourStep(int Dx, int Dy, PixelColor Colour);
+/// <remarks>
+/// The offset is counted from the pixel the base colour was found at, so the whole pattern is found
+/// wherever on the screen it sits. A point that names no tolerance uses the one the whole search
+/// was given, which is the base colour's.
+/// </remarks>
+public readonly record struct ColourStep(int Dx, int Dy, PixelColor Colour,
+    double? Tolerance = null, IReadOnlyList<PixelColor>? Alternatives = null, bool MustNot = false)
+{
+    /// <summary>
+    /// Whether the colour actually at this place satisfies the point. A point that must not be the
+    /// colour is satisfied by anything else, which is how a pattern says "here is not the empty slot"
+    /// without listing every colour the slot could be.
+    /// </summary>
+    public bool Holds(PixelColor actual, double tolerance)
+    {
+        var any = actual.Matches(Colour, tolerance)
+            || (Alternatives is not null
+                && Alternatives.Any(other => actual.Matches(other, tolerance)));
+
+        return MustNot ? !any : any;
+    }
+}
 
 /// <summary>
 /// Looking for a colour in a picture. It needs no hardware, so it sits beside the device types
@@ -134,8 +156,11 @@ public static class PixelSearch
         foreach (var step in around)
         {
             var at = new ScreenPoint(x + step.Dx, y + step.Dy);
+            // Each point may have a tolerance of its own: an anchor that has to be exact often sits
+            // beside shapes whose shading drifts, and one number for both is either too loose for
+            // the anchor or too tight for the rest.
             if (at.X < 0 || at.Y < 0 || at.X >= frame.Width || at.Y >= frame.Height
-                || !frame[at.X, at.Y].Matches(step.Colour, tolerancePercent))
+                || !step.Holds(frame[at.X, at.Y], step.Tolerance ?? tolerancePercent))
             {
                 return false;
             }

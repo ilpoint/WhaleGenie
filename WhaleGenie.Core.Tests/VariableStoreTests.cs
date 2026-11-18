@@ -12,7 +12,7 @@ public class VariableStoreTests
     public void A_local_value_hides_a_global_one_of_the_same_name()
     {
         var store = new VariableStore();
-        store.Set("size", Value.FromNumber(1), VariableTarget.Global);
+        store.Global.Set("size", Value.FromNumber(1));
         store.Set("size", Value.FromNumber(2));
 
         Assert.True(store.TryGet("size", out var value));
@@ -24,7 +24,7 @@ public class VariableStoreTests
     {
         var store = new VariableStore();
         store.System.SetNumber("counter", 0);
-        store.Set("counter", Value.FromNumber(7), VariableTarget.Global);
+        store.Global.Set("counter", Value.FromNumber(7));
 
         Assert.True(store.TryGet("counter", out var value));
         Assert.Equal(7, value.AsNumber());
@@ -61,7 +61,7 @@ public class VariableStoreTests
         Assert.Equal(11, second.AsNumber());
 
         // And through an expression, which is how the fields of a step read it.
-        Assert.Equal("12", Expression.Evaluate("$sys.tick", store).AsText());
+        Assert.Equal("12", Expression.Evaluate(Formula.Name("sys.tick"), store).AsText());
     }
 
     /// <summary>
@@ -121,10 +121,10 @@ public class VariableStoreTests
     public void The_store_is_a_resolver_an_expression_can_use()
     {
         var store = new VariableStore();
-        store.SetNumber("count", 4);
+        store.Local.SetNumber("count", 4);
         store.Set("names", Value.FromList(new[] { Value.FromText("a"), Value.FromText("b") }));
 
-        Assert.Equal("4/2", Expression.Evaluate("$count + \"/\" + length($names)", store).AsText());
+        Assert.Equal("4/2", Expression.Evaluate(Formula.Binary("+", Formula.Binary("+", Formula.Name("count"), Formula.Text("/")), Formula.Call("length", Formula.Name("names"))), store).AsText());
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public class VariableStoreTests
         var first = new VariableStore(shared);
         var second = new VariableStore(shared);
 
-        first.Set("count", Value.FromNumber(4), VariableTarget.Global);
+        first.Global.Set("count", Value.FromNumber(4));
 
         Assert.True(second.TryGet("count", out var value));
         Assert.Equal(4, value.AsNumber());

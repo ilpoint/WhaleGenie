@@ -1,0 +1,6 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:conv="using:WhaleGenie.Converters">
+        <!-- 运行状态 → 状态的画刷。状态由 VM 的种类给，颜色不再写死在 XAML 里。 -->
+        <conv:RunStatusBrushConverter x:Key="RunStatusBrush" />
+</ResourceDictionary>

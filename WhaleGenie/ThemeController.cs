@@ -3,8 +3,8 @@ using WhaleGenie.Localization;
 namespace WhaleGenie;
 
 /// <summary>
-/// Loads, applies and saves the one theme choice. Startup, the settings window and the palette
-/// editor all come through here, so a custom palette cannot be applied without being stored or
+/// Loads, applies and saves the one theme choice. Startup, the settings window and the accent
+/// picker all come through here, so a custom accent cannot be applied without being stored or
 /// stored without being applied.
 /// </summary>
 public static class ThemeController
@@ -16,16 +16,10 @@ public static class ThemeController
     public static void Save(ThemeSelection selection) => LocalSettings.StoreTheme(selection);
 
     /// <summary>
-    /// A custom palette to start from: the built-in palette of the base variant, unless a custom
-    /// one is already stored.
+    /// The choice to start customising from: the variant in use, with the accent it was already
+    /// painting with. A built-in variant has no accent of its own to carry over, so the picker
+    /// starts on the one both variants are drawn with.
     /// </summary>
     public static ThemeSelection StartCustom(ThemeSelection current)
-    {
-        var light = current.BaseLight;
-        var colors = current.Mode is ThemeMode.Custom && current.CustomColors.Count > 0
-            ? current.CustomColors
-            : ThemePalette.Defaults(light);
-
-        return new ThemeSelection(ThemeMode.Custom, light, colors);
-    }
+        => new(ThemeMode.Custom, current.BaseLight, current.AccentHex ?? ThemePalette.DefaultAccent);
 }

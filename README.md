@@ -13,21 +13,17 @@
 
 Windows 通用宏与自动化工具。将键盘、鼠标、手柄、屏幕与窗口操作编排为宏，由热键、鼠标按键、
 滚轮、像素颜色、窗口或进程出现触发；同一宏还可以拥有窗口悬浮按钮、键盘字串和
-Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离。
-
-> [!WARNING]
-> 0.1.1 把宏包格式从 18 升到 19。0.1.0 及更早版本创建的 `.wgmacro` 不能直接打开，
-> 也不会自动迁移。升级前请保留旧包备份，并在 0.1.1 中重新建立项目。
+按住鼠标键呼出的轮盘菜单入口。界面基于 Avalonia，执行引擎与界面分离。
 
 ## 界面
 
 ### 主界面
 
 宏按用途分布在「按键宏」「界面宏」「字串宏」「菜单宏」和「其他宏」页签。搜索会过滤当前页；
-每张卡片可以直接启停、编辑或删除。顶部提供本机 MCP、运行调试和全局设置入口。
+每张卡片可以直接启停、编辑或删除。顶部提供 MCP（复制客户端配置）、运行调试和全局设置入口。
 
 <p align="center">
-  <img src="doc/images/main-window.png" alt="鲸灵主界面" width="360">
+  <img src="docs/images/main-window.png" alt="鲸灵主界面" width="360">
 </p>
 
 ### 宏编辑器
@@ -37,7 +33,7 @@ Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离
 结构，子步骤直接在主列表里拖动和组织。
 
 <p align="center">
-  <img src="doc/images/macro-editor.png" alt="鲸灵宏编辑器" width="1200">
+  <img src="docs/images/macro-editor.png" alt="鲸灵宏编辑器" width="1200">
 </p>
 
 ### 动作编辑
@@ -46,7 +42,7 @@ Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离
 子步骤回到主列表编辑，窗口只保留这一块自己的参数、条件和策略。
 
 <p align="center">
-  <img src="doc/images/action-editor.png" alt="鲸灵动作编辑窗口" width="760">
+  <img src="docs/images/action-editor.png" alt="鲸灵动作编辑窗口" width="760">
 </p>
 
 ## 能做什么
@@ -58,7 +54,7 @@ Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离
 | 窗口与元素 | 按标题、进程名或窗口类名识别窗口；移动、缩放、置顶、显示或隐藏，读取窗口与客户区矩形；UI Automation 的取值、选择、勾选、展开与表格读取 |
 | 浏览器 | 打开页面、点击元素、填写表单、读取文字与属性、截图、切换与关闭标签页；默认使用系统自带 Edge |
 | 文件与数据 | 读写文本、CSV 与 JSON；剪贴板（含图片）；文件夹与进程；命令行与脚本 |
-| 流程与调试 | 循环、分支、尝试与收尾、子宏调用；断点、单步、识别结果、步骤结局与运行日志 |
+| 流程与调试 | 循环、分支、尝试与收尾、子宏调用；断点、单步、识别结果、步骤状态与运行日志 |
 | 录制与拾取 | 录制键鼠操作并生成步骤；图片、窗口、元素、颜色、区域、按键、手柄、变量八种拾取器 |
 | 编辑与保存 | 四类动作库拖放编排，父宏可携带子宏文档，本机公共宏库按版本复制；容器块可折叠；`.wgmacro` 连同图片打包；未保存内容有崩溃恢复快照 |
 
@@ -66,11 +62,11 @@ Quicker 风格菜单入口。界面基于 Avalonia，执行引擎与界面分离
 
 - Windows 10 2004（内部版本 19041）或 Windows 11，64 位。
 - 界面提供中文与英文；首次启动跟随 Windows 显示语言，可在设置中切换。
-- 框架依赖包需要 .NET 10 桌面运行时与 ASP.NET Core 运行时（后者供本机 MCP 服务使用）；
+- 框架依赖包只需要 .NET 10 桌面运行时：MCP 走标准输入输出，不引用 ASP.NET Core；
   自带运行时包无需预装。
 
 Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回其他画面获取方式
-（见[使用说明](doc/manual.md)中的「画面从哪来、怎么取」），程序仍可运行。
+（见[使用说明](docs/manual/13-capture-and-detection.md#画面从哪来怎么取)中的「画面从哪来、怎么取」），程序仍可运行。
 
 从 [Releases](https://github.com/ilpoint/WhaleGenie/releases) 下载。解压后为 `WhaleGenie` 文件夹，
 `WhaleGenie.exe` 位于最外层，双击运行。
@@ -79,10 +75,11 @@ Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回�
 
 | 文档 | 内容 |
 | --- | --- |
-| [doc/manual.md](doc/manual.md) | 使用程序：宏包格式、拾取器、落点与落手、返回值、运行与调试、画面获取、CSV 与程序文件位置 |
-| [doc/dev.md](doc/dev.md) | 修改仓库：命令、工程结构、依赖、测试分层、性能测量、代码约定、提交与发布 |
-| [doc/roadmap.md](doc/roadmap.md) | 后续计划：未完成阶段、可并行的零散项、明确不做的范围 |
-| [doc/performance.md](doc/performance.md)（[English](doc/performance.en.md)） | 单次画面读取的单位成本与测量方法 |
+| [docs/manual.md](docs/manual.md) | 使用程序：宏包格式、拾取器、落点与落手、返回值、运行与调试、画面获取、CSV 与程序文件位置 |
+| [docs/dev.md](docs/dev.md) | 修改仓库的入口：环境与依赖、动作修改、字段命名、测试、验收、性能与发布 |
+| [DESIGN.md](DESIGN.md) | 界面视觉契约：视觉基调、令牌角色、窗口框架与视觉验收 |
+| [docs/architecture.md](docs/architecture.md) | 整体结构：四个工程与依赖方向、一次操作的路径、各子系统、有意的取舍、已知债务与建议顺序 |
+| [docs/roadmap.md](docs/roadmap.md) | 后续计划：未完成阶段、可并行的零散项、明确不做的范围 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与图标出处 |
 | [项目介绍页](https://ilpoint.github.io/WhaleGenie/) | 功能概览、界面预览与 24 秒介绍短片 |
 

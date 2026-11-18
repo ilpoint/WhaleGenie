@@ -225,6 +225,19 @@ public class FunctionTableTests
                 {
                     missing.Add($"{own} (or {shared})");
                 }
+
+                // What the box says while it is empty is a fact about the argument of its own: the
+                // box standing for a regular expression cannot say "a number or a piece of text".
+                var ownPut = $"Expr.Arg.{function.Name}.{parameter.Name}.put";
+                var sharedPut = $"Expr.Arg.{parameter.Name}.put";
+                if (Strings.Chinese.ContainsKey(ownPut) || Strings.Chinese.ContainsKey(sharedPut))
+                {
+                    wanted.Add(Strings.Chinese.ContainsKey(ownPut) ? ownPut : sharedPut);
+                }
+                else
+                {
+                    missing.Add($"{ownPut} (or {sharedPut})");
+                }
             }
         }
 
@@ -242,7 +255,7 @@ public class FunctionTableTests
         // Line endings are the checkout's business, not the text's, and this is read a line at a
         // time: a checkout that writes CRLF would otherwise find no rows at all and the two checks
         // below would compare the table against nothing.
-        var manual = File.ReadAllText(Path.Combine(Repository(), "doc", "manual.md"))
+        var manual = ManualDocument.AllText()
             .Replace("\r\n", "\n", StringComparison.Ordinal);
         var start = manual.IndexOf("## 表达式函数一览", StringComparison.Ordinal);
         Assert.True(start >= 0, "the manual no longer has a section listing the expression functions");

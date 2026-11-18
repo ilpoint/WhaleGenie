@@ -1,0 +1,88 @@
+<views:AppWindow xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:WhaleGenie.Localization"
+        xmlns:models="using:WhaleGenie.Models"
+        xmlns:vm="using:WhaleGenie.ViewModels"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="560" d:DesignHeight="720"
+        x:Class="WhaleGenie.Views.AboutWindow"
+        Title="WhaleGenie"
+        Width="560" Height="430"
+        MinWidth="540" MinHeight="380"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SurfaceWindow}">
+
+    <Window.Styles>
+    </Window.Styles>
+
+    <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="22,18,22,10" Spacing="16">
+                <TextBlock Name="AboutText" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextTertiary}" FontSize="13" />
+
+                <Border Height="1" Background="{DynamicResource BorderControl}" />
+
+                <StackPanel Name="SupportPanel" Spacing="9">
+                    <TextBlock Text="{Binding [About.SupportTitle], Source={x:Static loc:Strings.Current}}"
+                               Foreground="{DynamicResource TextPrimary}" FontSize="15"
+                               FontWeight="SemiBold" />
+                    <TextBlock Name="SupportText"
+                               Text="{Binding [About.SupportText], Source={x:Static loc:Strings.Current}}"
+                               TextWrapping="Wrap" Foreground="{DynamicResource TextTertiary}" FontSize="13" />
+                    <Button Classes="Secondary" Name="SupportButton"
+                            Height="30" MinWidth="82" HorizontalAlignment="Left"
+                            Content="{Binding [About.SupportButton], Source={x:Static loc:Strings.Current}}"
+                            Click="OnSupportClicked" />
+
+                    <Grid Name="SupportCodes" IsVisible="False"
+                          ColumnDefinitions="*,*" ColumnSpacing="16" Margin="0,6,0,0">
+                        <Border Background="{DynamicResource SurfacePanel}" CornerRadius="6" Padding="12">
+                            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <!-- 扫码需要白底：这个白**不随主题变**，是外部约束不是配色选择。
+                                     所以它留字面值——立令牌会让人以为它可选。 -->
+                                <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
+                                    <Image Name="WeChatQr"
+                                           Width="190" Height="190" Stretch="Uniform" />
+                                </Border>
+                                <TextBlock Text="{Binding [About.WeChat], Source={x:Static loc:Strings.Current}}"
+                                           Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Background="{DynamicResource SurfacePanel}"
+                                CornerRadius="6" Padding="12">
+                            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                <!-- 扫码需要白底：这个白**不随主题变**，是外部约束不是配色选择。
+                                     所以它留字面值——立令牌会让人以为它可选。 -->
+                                <Border Background="#FFFFFF" CornerRadius="4" Padding="6">
+                                    <Image Name="AlipayQr"
+                                           Width="190" Height="190" Stretch="Uniform" />
+                                </Border>
+                                <TextBlock Text="{Binding [About.Alipay], Source={x:Static loc:Strings.Current}}"
+                                           Foreground="{DynamicResource TextPrimary}" FontSize="12.5"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8"
+              Margin="20,4,20,18">
+            <Button Classes="Secondary" Name="ProjectButton" Height="36" MinWidth="112"
+                    Content="{Binding [Main.AboutOpenPage], Source={x:Static loc:Strings.Current}}"
+                    Click="OnOpenProjectClicked" />
+            <Button Grid.Column="1" Classes="Secondary" Name="NoticesButton" Height="36" MinWidth="112"
+                    Content="{Binding [Main.AboutNotices], Source={x:Static loc:Strings.Current}}"
+                    Click="OnNoticesClicked" />
+            <Button Grid.Column="3" Classes="Primary" Name="DoneButton" Height="36" MinWidth="92"
+                    Content="{Binding [Common.Ok], Source={x:Static loc:Strings.Current}}"
+                    Click="OnDoneClicked" />
+        </Grid>
+    </Grid>
+</views:AppWindow>

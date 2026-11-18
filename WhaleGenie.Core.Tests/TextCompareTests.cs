@@ -144,6 +144,50 @@ public class TextCompareTests
     }
 
     /// <summary>
+    /// 选择器里的通配符：`*` 是"任意一串"，`?` 是"正好一个"，整串比较且不分大小写。元素名字是
+    /// 运行时拼出来的（"保存 (2)"、"未命名 - 记事本"），写死一个精确名字第二天就找不到了。
+    /// </summary>
+    [Theory]
+    [InlineData("保存", "保存", true)]
+    [InlineData("保存 (2)", "保存*", true)]
+    [InlineData("另存为", "保存*", false)]
+    [InlineData("保存", "*保存*", true)]
+    [InlineData("ab", "a?", true)]
+    [InlineData("abc", "a?", false)]
+    [InlineData("a*c", "a*c", true)]
+    [InlineData("abc", "a*c", true)]
+    [InlineData("ABC", "a*c", true)]
+    [InlineData("", "*", true)]
+    public void A_pattern_with_wildcards_says_what_it_means(
+        string text, string pattern, bool expected)
+        => Assert.Equal(expected, TextCompare.Wildcard(text, pattern));
+
+    [Fact]
+    public void Only_a_written_star_or_question_marks_a_pattern()
+    {
+        Assert.True(TextCompare.HasWildcard("保存*"));
+        Assert.True(TextCompare.HasWildcard("a?c"));
+        Assert.False(TextCompare.HasWildcard("保存"));
+        Assert.False(TextCompare.HasWildcard(string.Empty));
+        Assert.False(TextCompare.HasWildcard(null));
+    }
+
+    /// <summary>
+    /// 一个选择器属性要么按通配符比，要么照旧精确比（大小写不论）。没写通配符的老选择器
+    /// 意思一点不变，写了的才换成"以…开头"这类。
+    /// </summary>
+    [Fact]
+    public void A_property_without_wildcards_is_still_compared_exactly()
+    {
+        Assert.True(UiQuery.Answers("保存", "保存"));
+        Assert.True(UiQuery.Answers("Save", "save"));
+        Assert.False(UiQuery.Answers("保存 (2)", "保存"));
+        Assert.True(UiQuery.Answers("保存 (2)", "保存*"));
+        Assert.True(new UiQuery(Name: "保存*").HasWildcard);
+        Assert.False(new UiQuery(Name: "保存").HasWildcard);
+    }
+
+    /// <summary>
     /// The five are offered in one order and are all there is: the fields built from this list cannot
     /// offer a way the engine does not know, or leave one out.
     /// </summary>

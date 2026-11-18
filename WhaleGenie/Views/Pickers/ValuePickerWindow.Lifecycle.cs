@@ -1,0 +1,152 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
+using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
+
+
+namespace WhaleGenie.Views;
+
+// Making the window: what it starts on, and the call that asks a person for one value.
+public partial class ValuePickerWindow : AppWindow
+{
+    public ValuePickerWindow()
+        : this(new ValuePickerViewModel(Formula.Nothing, [], ActionValueForm.Value))
+    {
+    }
+
+    public ValuePickerWindow(ValuePickerViewModel viewModel)
+    {
+        _viewModel = viewModel;
+        DataContext = viewModel;
+        InitializeComponent();
+
+        // The bar is where a window is dragged by; without this it is a stripe that does nothing.
+        WindowChrome.Attach(this);
+        Title = viewModel.Title;
+
+
+        // A cell that only holds a name does not need a workbench: the window is the list. A text
+        // field is one body of text, and a run is the band without the formula materials.
+        if (viewModel.IsNameMode)
+        {
+            Width = 560;
+            Height = 620;
+            MinWidth = 480;
+            MinHeight = 520;
+        }
+        else if (viewModel.IsTextMode)
+        {
+            Width = 760;
+            Height = 600;
+            MinWidth = 620;
+            MinHeight = 480;
+        }
+        else if (viewModel.IsRunMode)
+        {
+            Width = 1040;
+            Height = 680;
+            MinWidth = 900;
+            MinHeight = 600;
+        }
+
+        viewModel.CloseRequested += result => Close(result);
+
+        // Undo has to be keyed in front of everything else: a text box keeps its own history and
+        // would swallow the keys before a bubbling handler ever sees them.
+        AddHandler(KeyDownEvent, OnWindowTunnelKey, RoutingStrategies.Tunnel);
+
+        // The band is not a text box, so a letter typed while it has the focus has nowhere to go
+        // unless the window forwards it to the small field.
+        AddHandler(TextInputEvent, OnBandTextInput, RoutingStrategies.Bubble);
+
+        // Every edit hands the band a new tree, so the piece the pointer was over no longer exists,
+        // and the standing line has to be measured against the new tree as well.
+        viewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ValuePickerViewModel.Recipe))
+            {
+                Dispatcher.UIThread.Post(RefreshHover, DispatcherPriority.Loaded);
+                Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
+            }
+            else if (args.PropertyName == nameof(ValuePickerViewModel.Caret))
+            {
+                Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
+            }
+        };
+
+        BandScroll.SizeChanged += (_, _) =>
+        {
+            _viewModel.RefreshStacking(BandScroll.Viewport.Width);
+            Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
+        };
+
+        Opened += (_, _) =>
+        {
+            if (!viewModel.ShowsBand)
+            {
+                // A name is chosen from its list; a text field is typed into as one body.
+                (viewModel.IsTextMode ? (Control)TextBody : NameSearch).Focus();
+                return;
+            }
+
+            _viewModel.RefreshStacking(BandScroll.Viewport.Width);
+            if (StartCaret >= 0 && viewModel.IsValueMode)
+            {
+                _viewModel.SetCaret(StartCaret);
+            }
+
+            Dispatcher.UIThread.Post(ShowCaret, DispatcherPriority.Loaded);
+
+            // The band owns the keyboard: typing there goes to the small field at the caret, so the
+            // first character a person types lands where the standing line is. A caller that named
+            // a caret in an editable condition row still gets the small field ready instead.
+            (StartCaret >= 0 && viewModel.IsValueMode ? (Control)ValueInput : Band).Focus();
+        };
+    }
+
+    /// <summary>Where the caret was in the cell, or -1 when nobody said.</summary>
+    public int StartCaret { get; init; } = -1;
+
+    /// <summary>
+    /// Opens the window on a cell. The cell hands over the shape it holds, never a line written out
+    /// for the window: the shape is what the field keeps and what the window gives back. A cell that
+    /// only holds a name passes <see cref="ActionValueForm.Name"/>: a formula there is written down
+    /// as the name itself, so offering one would be a promise the step cannot keep.
+    /// </summary>
+    public static async Task<ValuePick> ShowFor(Window owner, ExpressionNode? seed,
+        IReadOnlyList<VariableChoice>? variables,
+        ActionValueForm valueForm = ActionValueForm.Value,
+        string? target = null, int startCaret = -1,
+        Action<MacroStep>? lookAtStep = null, bool allowNewName = false)
+    {
+        var viewModel = new ValuePickerViewModel(seed ?? Formula.Nothing, variables, valueForm,
+            target, allowNewName);
+        if (lookAtStep is not null)
+        {
+            viewModel.Jumped += lookAtStep;
+        }
+
+        var window = new ValuePickerWindow(viewModel)
+        {
+            StartCaret = startCaret,
+        };
+
+        return await window.ShowDialog<ValuePick>(owner) ?? ValuePick.Cancelled;
+    }
+
+    /// <summary>
+    /// Writes one piece at the insertion point. The window stays open either way: a formula is built
+    /// a piece at a time, and closing on the first piece would make composing one a series of openings.
+    /// </summary>
+    private void Put(string token) => _viewModel.Place(token);
+}

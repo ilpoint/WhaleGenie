@@ -120,6 +120,69 @@ public static class TextCompare
     }
 
     /// <summary>
+    /// 模式里有没有通配符。`*` 与 `?` 是选择器里那种写法（大漠、UiPath 都用这一套），不是正则：
+    /// 用户写 `Button[name='保存*']` 想说的是"名字以保存开头"，而不是"星号这个字"。
+    /// </summary>
+    public static bool HasWildcard(string? pattern)
+        => !string.IsNullOrEmpty(pattern)
+            && (pattern.Contains('*', StringComparison.Ordinal)
+                || pattern.Contains('?', StringComparison.Ordinal));
+
+    /// <summary>
+    /// 按通配符比较：`*` 吃掉任意一串字符（可以是空串），`?` 正好吃掉一个字符，其余按字面比，
+    /// 大小写不敏感。两头都算整串相等——`保存*` 不会匹配 `未保存`。
+    /// </summary>
+    /// <remarks>
+    /// 两个指针来回走，不建正则：选择器是用户手写的，把它送进正则引擎等于把一段用户输入当程序执行，
+    /// 而且每找一个元素都要编译一次。
+    /// </remarks>
+    public static bool Wildcard(string? text, string pattern)
+    {
+        var found = text ?? string.Empty;
+        var p = 0;
+        var t = 0;
+        var star = -1;
+        var mark = 0;
+
+        while (t < found.Length)
+        {
+            if (p < pattern.Length && (pattern[p] == '?' || Same(pattern[p], found[t])))
+            {
+                p++;
+                t++;
+                continue;
+            }
+
+            if (p < pattern.Length && pattern[p] == '*')
+            {
+                // 记住这里可以"多吃一点"，走不通时退回来让这个星号再吃一个字符。
+                star = p++;
+                mark = t;
+                continue;
+            }
+
+            if (star >= 0)
+            {
+                p = star + 1;
+                t = ++mark;
+                continue;
+            }
+
+            return false;
+        }
+
+        while (p < pattern.Length && pattern[p] == '*')
+        {
+            p++;
+        }
+
+        return p == pattern.Length;
+
+        static bool Same(char left, char right)
+            => char.ToUpperInvariant(left) == char.ToUpperInvariant(right);
+    }
+
+    /// <summary>
     /// Reads a pattern ahead of time, so a pattern the machine cannot read is refused before anything
     /// is looked at rather than half-way through a screen. An empty pattern is not a pattern at all:
     /// it means "anything", the way an empty search text means "the first one".

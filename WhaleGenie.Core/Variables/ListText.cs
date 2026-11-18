@@ -6,69 +6,63 @@ using WhaleGenie.Core.Expressions;
 namespace WhaleGenie.Core.Variables;
 
 /// <summary>
-/// Reads the text a user types for a list variable. Text that looks like an expression
-/// (<c>[1, 2, 3]</c>, <c>split($text, ",")</c>) is evaluated and has to produce a list;
-/// anything else is read as items separated by commas.
+/// Reads the items of a list value. A field holds a shape: a list is a list of pieces, and a line
+/// of prose is split on the separators people use when they write one out. Nothing here reads a
+/// line as a formula — a shape that is worked out is worked out as it stands.
 /// </summary>
 public static class ListText
 {
-    /// <summary>Separators accepted between the items of a plain list, in either alphabet.</summary>
+    /// <summary>Separators accepted between the items of a plain line, in either alphabet.</summary>
     private static readonly char[] Separators = [',', ';', '，', '；'];
 
     /// <summary>
-    /// Reads items out of list text. Returns <c>false</c> with a reason when the text was
-    /// written as an expression but does not produce a list.
+    /// Reads the items a shape holds. Returns <c>false</c> with a reason when the shape is worked
+    /// out and does not come to a list.
     /// </summary>
-    public static bool TryParse(string? text, out IReadOnlyList<Value> items, out ExpressionException? error)
-        => TryParse(text, null, out items, out error);
-
-    /// <summary>
-    /// The same read, with the variables an expression inside the text may use.
-    /// </summary>
-    public static bool TryParse(string? text, IVariableResolver? variables,
+    public static bool TryRead(ExpressionNode written, IVariableResolver? variables,
         out IReadOnlyList<Value> items, out ExpressionException? error)
     {
         error = null;
-        var trimmed = text?.Trim() ?? string.Empty;
-        if (trimmed.Length == 0)
+        if (Formula.IsNothing(written))
         {
             items = [];
             return true;
         }
 
-        if (!LooksLikeExpression(trimmed))
+        if (written is TextNode { Text: var text })
         {
-            items = SplitOnSeparators(trimmed);
+            items = Split(text);
             return true;
         }
 
-        if (!Expression.TryEvaluate(trimmed, variables, out var value, out error))
+        try
         {
+            var value = Expression.Evaluate(written, variables);
+            if (!value.IsList)
+            {
+                error = ExpressionException.TypeMismatch($"\"{value.AsText()}\" is not a list");
+                items = [];
+                return false;
+            }
+
+            items = value.Items;
+            return true;
+        }
+        catch (ExpressionException failure)
+        {
+            error = failure;
             items = [];
             return false;
         }
-
-        if (!value.IsList)
-        {
-            error = ExpressionException.TypeMismatch($"\"{trimmed}\" is not a list");
-            items = [];
-            return false;
-        }
-
-        items = value.Items;
-        return true;
     }
+
+    /// <summary>A line of prose read as the items someone wrote out, one separator at a time.</summary>
+    public static IReadOnlyList<Value> Split(string? text)
+        => [.. (text ?? string.Empty)
+            .Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(item => Value.FromText(item))];
 
     /// <summary>Writes the items the way a summary line shows them.</summary>
     public static string Summarize(IReadOnlyList<Value> items)
         => string.Join(", ", items.Select(item => item.AsText()));
-
-    /// <summary>True when the text is meant as an expression rather than a plain list.</summary>
-    private static bool LooksLikeExpression(string text)
-        => text[0] is '[' or '$' or '(' || text.Contains('(');
-
-    private static IReadOnlyList<Value> SplitOnSeparators(string text)
-        => [.. text
-            .Split(Separators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(item => Value.FromText(item))];
 }

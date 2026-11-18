@@ -1,0 +1,118 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Avalonia.Controls;
+using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Variables;
+using WhaleGenie.Localization;
+using WhaleGenie.Models;
+using WhaleGenie.Runtime;
+using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
+
+
+namespace WhaleGenie.Tests;
+
+// Default values as expressions, and the draft order they are read in.
+public partial class GlobalVariablesTests
+{
+    [Fact]
+    public void The_expression_builder_uses_the_current_draft_order()
+    {
+        Ui.Run(() =>
+        {
+            var window = new GlobalVariablesWindow(
+            [
+                new VariableDefinition
+                {
+                    Name = "base",
+                    Scope = VariableScope.Global,
+                    Type = ValueKind.Number,
+                    Default = Formula.Text("2"),
+                },
+            ], []);
+            var manager = (GlobalVariablesViewModel)window.DataContext!;
+            manager.NewCommand.Execute(null);
+            var later = manager.Selected!;
+            later.Name = "derived";
+
+            var choices = window.ExpressionVariablesBefore(later);
+
+            Assert.Contains(choices, choice =>
+                choice.Name == "base" && choice.Group == VariableGroup.Global);
+            Assert.DoesNotContain(choices, choice => choice.Name == "derived");
+            manager.RemoveCommand.Execute(null);
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+    [Fact]
+    public void Editing_a_draft_leaves_its_existing_name_alone()
+    {
+        var draft = new VariableDefinitionDraft(new VariableDefinition
+        {
+            Name = "total",
+            Scope = VariableScope.Global,
+        });
+
+        Assert.Equal("total", draft.Name);
+        draft.Description = "The running total.";
+        draft.PersistValue = true;
+
+        Assert.Equal("total", draft.Name);
+        Assert.Equal("The running total.", draft.ToDefinition().Description);
+        Assert.True(draft.ToDefinition().PersistValue);
+    }
+
+    [Fact]
+    public void Default_values_are_expressions_evaluated_in_declaration_order()
+    {
+        var session = new VariableSession();
+        var source = new VariableDefinition
+        {
+            Name = "baseCount",
+            Scope = VariableScope.Global,
+            Type = ValueKind.Number,
+            Default = Formula.Text("4"),
+        };
+        var derived = new VariableDefinition
+        {
+            Name = "derivedCount",
+            Scope = VariableScope.Global,
+            Type = ValueKind.Number,
+            Default = Formula.Binary("+", Formula.Name("baseCount"), Formula.Number(1)),
+        };
+        session.Adopt(source);
+        session.Adopt(derived);
+
+        // The declarations are read in the order they were written: an initial value may name the
+        // one above it, and a name nothing has written yet starts at its declared value.
+        var store = MacroVariables.Seed(session: session);
+
+        Assert.Equal(4, store.Global.Values["baseCount"].AsNumber());
+        Assert.Equal(5, store.Global.Values["derivedCount"].AsNumber());
+    }
+
+    [Fact]
+    public void The_manager_can_use_an_earlier_draft_in_a_later_default_expression()
+    {
+        var manager = new GlobalVariablesViewModel(
+        [
+            new VariableDefinition
+            {
+                Name = "baseCount",
+                Scope = VariableScope.Global,
+                Type = ValueKind.Number,
+                Default = Formula.Text("3"),
+            },
+        ]);
+        manager.NewCommand.Execute(null);
+        manager.Selected!.Name = "derivedCount";
+        manager.Selected.Type = ValueKind.Number;
+        manager.Selected.Default = Formula.Binary("+", Formula.Name("baseCount"), Formula.Number(2));
+
+        Assert.False(manager.Selected.DefaultHasError);
+        Assert.Equal("5", manager.Selected.DefaultPreview);
+    }
+}

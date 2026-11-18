@@ -94,14 +94,14 @@ public class SampleCsvTests
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "false"),
                 SampleFiles.Returns("rows=rows")),
             SampleFiles.Step("file.writeCsv", SampleFiles.Param("path", "back.csv"),
-                SampleFiles.Param("rows", "$rows"), SampleFiles.Param("separator", "comma"),
+                Fields.Reference("rows", "rows"), SampleFiles.Param("separator", "comma"),
                 SampleFiles.Param("mode", "replace")),
             SampleFiles.Step("file.readCsv", SampleFiles.Param("path", "back.csv"),
                 SampleFiles.Param("separator", "auto"), SampleFiles.Param("hasHeader", "false"),
                 SampleFiles.Returns("rows=again")));
 
         Assert.True(run.Result.Succeeded, run.Result.Detail);
-        Assert.True(run.Devices.Files.ContainsKey("back.csv"), "the file should have been written");
+        Assert.True(run.Devices.Files.Store.ContainsKey("back.csv"), "the file should have been written");
 
         var rows = run.Rows("rows");
         var again = run.Rows("again");

@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Execution;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -18,12 +19,12 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("control.if")!
             .Parameters.Single(field => field.Name == "condition");
-        var variable = new VariableDragPayload("found", "bool", []);
+        var variable = new VariableDragPayload("found", ValueKind.Bool, []);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
 
         Assert.Equal(VariableDropStatus.Direct, result.Status);
-        Assert.Equal("$found", result.Text);
+        Assert.Equal(Formula.Name("found"), result.Shape);
     }
 
     [Fact]
@@ -31,17 +32,17 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("input.mouseClick")!
             .Parameters.Single(field => field.Name == "place");
-        var variable = new VariableDragPayload("hit", "record",
+        var variable = new VariableDragPayload("hit", ValueKind.Record,
         [
-            new VariableDragField("x", ActionReturnType.Number),
-            new VariableDragField("y", ActionReturnType.Number),
-            new VariableDragField("basis", ActionReturnType.Text),
+            new VariableDragField("x", ValueKind.Number),
+            new VariableDragField("y", ValueKind.Number),
+            new VariableDragField("basis", ValueKind.Text),
         ]);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
 
         Assert.Equal(VariableDropStatus.Direct, result.Status);
-        Assert.Equal("$hit", result.Text);
+        Assert.Equal(Formula.Name("hit"), result.Shape);
     }
 
     [Fact]
@@ -49,10 +50,10 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("control.delay")!
             .Parameters.Single(field => field.Name == "ms");
-        var variable = new VariableDragPayload("hit", "record",
+        var variable = new VariableDragPayload("hit", ValueKind.Record,
         [
-            new VariableDragField("x", ActionReturnType.Number),
-            new VariableDragField("y", ActionReturnType.Number),
+            new VariableDragField("x", ValueKind.Number),
+            new VariableDragField("y", ValueKind.Number),
         ]);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
@@ -66,25 +67,27 @@ public class VariableDropTests
     {
         var parameter = ActionCatalog.Find("control.delay")!
             .Parameters.Single(field => field.Name == "ms");
-        var variable = new VariableDragPayload("program", "record",
+        var variable = new VariableDragPayload("program", ValueKind.Record,
         [
-            new VariableDragField("memoryMb", ActionReturnType.Number),
-            new VariableDragField("name", ActionReturnType.Text),
+            new VariableDragField("memoryMb", ValueKind.Number),
+            new VariableDragField("name", ValueKind.Text),
         ]);
 
         var result = VariableDropResolver.Resolve(parameter, variable);
 
         Assert.Equal(VariableDropStatus.Direct, result.Status);
-        Assert.Equal("field($program, \"memoryMb\")", result.Text);
+        AssertSameShape(
+            Formula.Call("field", Formula.Name("program"), Formula.Text("memoryMb")),
+            result.Shape);
     }
 
     [Fact]
     public void A_variable_drag_keeps_its_shape_and_fields()
     {
-        var original = new VariableDragPayload("hit", "record",
+        var original = new VariableDragPayload("hit", ValueKind.Record,
         [
-            new VariableDragField("x", ActionReturnType.Number),
-            new VariableDragField("found", ActionReturnType.Flag),
+            new VariableDragField("x", ValueKind.Number),
+            new VariableDragField("found", ValueKind.Bool),
         ]);
 
         var transfer = original.Transfer();
@@ -96,29 +99,8 @@ public class VariableDropTests
         Assert.Contains(VariableDragPayload.InProcessFormat,
             transfer.Items.Single().Formats);
         Assert.Equal("hit", read.Name);
-        Assert.Equal("record", read.Type);
+        Assert.Equal(ValueKind.Record, read.Type);
         Assert.Equal(["x", "found"], read.Fields.Select(field => field.Name));
-    }
-
-    [Fact]
-    public void A_field_replaces_a_whole_value_but_inserts_into_text()
-    {
-        Ui.Run(() =>
-        {
-            var conditional = new AddActionViewModel(ActionCatalog.Definitions, [], []);
-            conditional.SelectAction("control.if");
-            var condition = conditional.Parameters.Single(parameter =>
-                parameter.Definition.Name == "condition");
-            condition.ApplyVariableDrop("$ok");
-            Assert.Equal("$ok", condition.Text);
-
-            conditional.SelectAction("control.note");
-            var message = conditional.Parameters.Single(parameter =>
-                parameter.Definition.Name == "note");
-            message.Text = "before after";
-            message.ApplyVariableDrop("$name", 7);
-            Assert.Equal("before $nameafter", message.Text);
-        });
     }
 
     [Fact]
@@ -132,9 +114,9 @@ public class VariableDropTests
                 Type = "control.setVariable",
                 Parameters =
                 [
-                    new StepParameter { Name = "name", Kind = ActionParameterKind.Variable, Value = "answer" },
-                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Value = "local" },
-                    new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Value = "1" },
+                    new StepParameter { Name = "name", Kind = ActionParameterKind.Variable, Written = Fields.Shape("answer") },
+                    new StepParameter { Name = "scope", Kind = ActionParameterKind.Choice, Written = Fields.Shape("local") },
+                    new StepParameter { Name = "value", Kind = ActionParameterKind.Expression, Written = Formula.Number(1) },
                 ],
             });
             var window = new MacroEditorWindow(macro, [macro]);
@@ -168,5 +150,54 @@ public class VariableDropTests
             palette.Sections.Select(section => section.Title));
         Assert.Contains(palette.Sections[0].Cards, card => card.Key == "control.if");
         Assert.Contains(palette.Sections[2].Cards, card => card.Key == "control.waitUntil");
+    }
+
+    [Fact]
+    public void A_name_field_wants_the_word_not_a_reference()
+    {
+        var parameter = ActionCatalog.Find("control.setVariable")!
+            .Parameters.Single(field => field.Name == "name");
+        var variable = new VariableDragPayload("answer", ValueKind.Text, []);
+
+        var result = VariableDropResolver.Resolve(parameter, variable);
+
+        Assert.Equal(VariableDropStatus.Direct, result.Status);
+        Assert.Equal(Formula.Text("answer"), result.Shape);
+    }
+
+    [Fact]
+    public void A_name_chosen_for_a_cell_keeps_the_identity_of_its_declaration()
+    {
+        var form = new ValuePickerViewModel(Formula.Nothing, [], ActionValueForm.Name);
+        ValuePick? answer = null;
+        form.CloseRequested += pick => answer = pick;
+
+        form.Choose(new VariableChoice
+        {
+            Name = "count",
+            Scope = VariableScope.Local,
+        });
+
+        var handed = Assert.IsType<ValuePick>(answer).Value;
+        Assert.Equal("count", Assert.IsType<VariableNode>(handed).Name);
+    }
+
+    /// <summary>A call holds a list, so record equality would compare that list by identity.</summary>
+    private static void AssertSameShape(ExpressionNode expected, ExpressionNode? actual)
+    {
+        if (expected is CallNode call)
+        {
+            var got = Assert.IsType<CallNode>(actual);
+            Assert.Equal(call.Name, got.Name);
+            Assert.Equal(call.Arguments.Count, got.Arguments.Count);
+            for (var index = 0; index < call.Arguments.Count; index++)
+            {
+                AssertSameShape(call.Arguments[index], got.Arguments[index]);
+            }
+
+            return;
+        }
+
+        Assert.Equal(expected, actual);
     }
 }

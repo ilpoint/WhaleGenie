@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
-using WhaleGenie.Execution;
 using WhaleGenie.Localization;
+using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
 
@@ -38,13 +38,26 @@ public class ThirdPartyNoticesTests
         var notices = Notices();
         var missing = new List<string>();
 
-        foreach (var project in new[] { "WhaleGenie", "WhaleGenie.Core" })
+        foreach (var project in new[] { "WhaleGenie", "WhaleGenie.App", "WhaleGenie.Core" })
         {
             var project_file = Path.Combine(Repository(), project, project + ".csproj");
             foreach (Match match in Regex.Matches(File.ReadAllText(project_file),
-                         "PackageReference Include=\"([^\"]+)\""))
+                         "<PackageReference\\b[^>]*?/?>", RegexOptions.Singleline))
             {
-                var package = match.Groups[1].Value;
+                // 只在某种配置下还原的包不进这张单子：这几行带着 $(Configuration) 条件，带来的是
+                // 开发时用的东西（自省、诊断），发布物里既没有它们的程序集，也没有它们引用的框架。
+                if (match.Value.Contains("$(Configuration)", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var included = Regex.Match(match.Value, "Include=\"([^\"]+)\"");
+                if (!included.Success)
+                {
+                    continue;
+                }
+
+                var package = included.Groups[1].Value;
                 if (!notices.Contains(package, StringComparison.OrdinalIgnoreCase))
                 {
                     missing.Add(package);
@@ -79,7 +92,8 @@ public class ThirdPartyNoticesTests
         // what is pinned down here is the licence file that has to travel beside it.
         var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
         var project = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie.Core", "WhaleGenie.Core.csproj"));
+            Path.Combine(Repository(), "WhaleGenie.Platform.Windows",
+                "WhaleGenie.Platform.Windows.csproj"));
 
         Assert.Contains("third_party\\libVIIPER\\libVIIPER.dll", project, StringComparison.Ordinal);
         Assert.Contains("libVIIPER-LICENSES.txt", script, StringComparison.Ordinal);
@@ -121,7 +135,7 @@ public class ThirdPartyNoticesTests
     {
         // The button on About says there is a list; this is what makes sure the list it opens is
         // this document rather than a promise with nothing behind it.
-        var window = Path.Combine(Repository(), "WhaleGenie", "Views", "AboutWindow.axaml.cs");
+        var window = ViewSource.PathOf("AboutWindow.axaml.cs");
         var code = File.ReadAllText(window);
 
         Assert.Contains("ThirdPartyNotices.Read()", code, StringComparison.Ordinal);

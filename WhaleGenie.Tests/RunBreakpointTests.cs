@@ -8,6 +8,7 @@ using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -32,44 +33,45 @@ public class RunBreakpointTests
 
             Click(window, row, "condition");
 
-            // The form is the editor's ordinary if form: its condition field is the one expression
-            // a breakpoint asks before the step it belongs to runs.
-            var dialog = window.OwnedWindows.OfType<ActionEditorWindow>().Single();
-            var form = (AddActionViewModel)dialog.DataContext!;
-            Assert.All(form.AvailableActions,
-                action => Assert.Equal("control.if", action.Key));
+            // The panel is the breakpoint's own: one expression, one count, and the names the run
+            // knows offered beside it. It is not the action editor, which is what it used to be.
+            var panel = window.OwnedWindows.OfType<BreakpointWindow>().Single();
+            var form = (BreakpointViewModel)panel.DataContext!;
+            Assert.Contains("n", form.Variables);
+            Assert.Contains("n", form.ExpressionSuggestions);
 
-            form.SelectAction("control.if");
-            Dispatcher.UIThread.RunJobs();
-            form.Parameters.First(parameter => parameter.Definition.Name == "condition").Text = "$n > 3";
-            Assert.True(form.CanSave, form.ValidationMessage);
+            form.Expression = Formula.Binary(">", Formula.Name("n"), Formula.Number(3));
+            form.HitTimes = 2;
             form.SaveCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
             Dispatcher.UIThread.RunJobs();
 
-            // The dialog is gone and the step's dot is on: setting a condition on a step that had
+            // The panel is gone and the step's dot is on: setting a condition on a step that had
             // no breakpoint means "stop here when this holds".
-            Assert.Empty(window.OwnedWindows.OfType<ActionEditorWindow>());
+            Assert.Empty(window.OwnedWindows.OfType<BreakpointWindow>());
             Assert.True(row.HasBreakpoint);
-            Assert.Equal("control.if", viewModel.BreakpointCondition(row.Id)!.Type);
+            var rule = viewModel.BreakpointRuleOf(row.Id)!;
+            Assert.Equal("n > 3", Expression.Render(rule.Expression));
+            Assert.Equal(2, rule.HitTimes);
 
             // And the row says what it waits for, so a run that goes past it is not a mystery.
-            Assert.Contains("$n > 3", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("「n」 > 3", row.ConditionNote, System.StringComparison.Ordinal);
+            Assert.Contains("2", row.ConditionNote, System.StringComparison.Ordinal);
             Assert.True(row.HasCondition);
 
-            // Opening it again shows what was written rather than a blank form.
+            // Opening it again shows what was written rather than a blank panel.
             Click(window, row, "condition");
-            var again = (AddActionViewModel)window.OwnedWindows.OfType<ActionEditorWindow>().Single().DataContext!;
-            Assert.Equal("control.if", again.SelectedDefinition!.Key);
-            Assert.Equal("$n > 3", again.Parameters
-                .First(parameter => parameter.Definition.Name == "condition").Text);
+            var again = (BreakpointViewModel)window.OwnedWindows.OfType<BreakpointWindow>().Single()
+                .DataContext!;
+            Assert.Equal("n > 3", Expression.Render(again.Expression));
+            Assert.Equal(2, again.HitTimes);
             again.CancelCommand.Execute(null);
             Dispatcher.UIThread.RunJobs();
 
             // Clearing the condition leaves the breakpoint standing: it is back to stopping every
             // time it is reached.
             Click(window, row, "clear");
-            Assert.Null(viewModel.BreakpointCondition(row.Id));
+            Assert.Null(viewModel.BreakpointRuleOf(row.Id));
             Assert.True(row.HasBreakpoint);
             Assert.False(row.HasCondition);
 
@@ -92,7 +94,7 @@ public class RunBreakpointTests
                     {
                         Name = "condition",
                         Kind = ActionParameterKind.Expression,
-                        Value = "$n == 1",
+                        Written = Formula.Binary("==", Formula.Name("n"), Formula.Number("1", 1d)),
                     },
                     new StepParameter
                     {
@@ -143,13 +145,14 @@ public class RunBreakpointTests
             Assert.Contains(items, item => Equals(item.Tag, "toggle"));
             Assert.Contains(items, item => Equals(item.Tag, "condition"));
             Assert.Contains(items, item => Equals(item.Tag, "clear"));
+            Assert.All(items, item => Assert.Same(row, item.DataContext));
 
             // 没有断点时给的是「下断点」，也没有条件可清；「跳过这一步」不在这一份菜单里 —— 那是工具
             // 栏上那枚按钮的位置。
             Assert.Equal(Strings.Get("Run.BreakpointSet"), On(items, "toggle", "Run.BreakpointSet").Header);
             Assert.False(Shown(items, "toggle", "Run.BreakpointOff"));
             Assert.True(Shown(items, "condition", "Run.BreakpointCondition"));
-            Assert.False(Shown(items, "clear", "Run.BreakpointClear"));
+            Assert.False(Shown(items, "clear", "Run.BreakpointClearCondition"));
             Assert.DoesNotContain(items, item => Equals(item.Tag, "skip"));
 
             // 点一下「下断点」：断点真的下上了，标题换成「取消断点」。
@@ -159,7 +162,7 @@ public class RunBreakpointTests
             var after = line.ContextMenu.Items.OfType<MenuItem>().ToList();
             Assert.True(Shown(after, "toggle", "Run.BreakpointOff"));
             Assert.False(Shown(after, "toggle", "Run.BreakpointSet"));
-            Assert.False(Shown(after, "clear", "Run.BreakpointClear"));
+            Assert.False(Shown(after, "clear", "Run.BreakpointClearCondition"));
 
             // 再点一下：断点收回去。
             Click(window, row, "toggle");
@@ -202,15 +205,15 @@ public class RunBreakpointTests
     [Fact]
     public void The_red_of_a_breakpoint_beats_the_hover_colour()
     {
-        var markup = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie", "Views", "RunWindow.axaml"));
+        var markup = ViewSource.Markup("RunWindow.axaml");
 
         foreach (var state in new[] { "", ":pointerover", ":pressed" })
         {
             var selector = $"Button.Breakpoint.on{state} /template/ ContentPresenter";
             var at = markup.IndexOf(selector, StringComparison.Ordinal);
             Assert.True(at >= 0, $"少了这样一条样式：{selector}");
-            Assert.Contains("#E06C75", markup[at..(at + 240)], StringComparison.Ordinal);
+            // 同上：断点那条红已换成 `Danger` 令牌，钉令牌而不是字面值。
+            Assert.Contains("{DynamicResource Danger}", markup[at..(at + 260)], StringComparison.Ordinal);
         }
     }
 
@@ -283,7 +286,23 @@ public class RunBreakpointTests
     {
         var line = Row(window, row);
 
-        line.ContextMenu!.Open(line);
+        // A menu left open by the click before this one is closed first: a second open on top of it
+        // is refused, and the row would then be stamped nowhere.
+        if (line.ContextMenu!.IsOpen)
+        {
+            line.ContextMenu.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
+
+        // A popup loses the row's logical tree when it opens. Clear what the test tree happened to
+        // inherit so the handler has to put the row back for the items to work.
+        line.ContextMenu.DataContext = null;
+        foreach (var entry in line.ContextMenu.Items.OfType<MenuItem>())
+        {
+            entry.DataContext = null;
+        }
+
+        line.RaiseEvent(new ContextRequestedEventArgs());
         Dispatcher.UIThread.RunJobs();
 
         // 同一件事的两个标题（下断点 / 取消断点）各占一项，画出来的那一项才是能点的那一项。
@@ -292,6 +311,13 @@ public class RunBreakpointTests
 
         item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         Dispatcher.UIThread.RunJobs();
+
+        // What taking an item does to a real menu, so the next click starts where a person's would.
+        if (line.ContextMenu.IsOpen)
+        {
+            line.ContextMenu.Close();
+            Dispatcher.UIThread.RunJobs();
+        }
     }
 
     /// <summary>The row a step is written on, which is where the breakpoint menu hangs.</summary>
@@ -306,9 +332,9 @@ public class RunBreakpointTests
         Type = "control.setVariable",
         Parameters =
         [
-            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Value = name },
-            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Value = "local" },
-            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Value = value },
+            new StepParameter { Name = "name", Kind = ActionParameterKind.Text, Written = Fields.Shape(name) },
+            new StepParameter { Name = "scope", Kind = ActionParameterKind.Text, Written = Fields.Shape("local") },
+            new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
         ],
     };
 
