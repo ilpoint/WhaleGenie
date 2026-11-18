@@ -189,8 +189,8 @@ internal static class ActionStrings
     /// <summary>The hint the fields naming the colours left out of a comparison share.</summary>
     private const string TransparentColoursHint =
         "参考图里这些颜色的像素不参与比对：图标自带的纯色底，或者会变化的部分，例如按钮上的数字、"
-        + "会走动的进度条。可以写一个，也可以写几个，用分号或逗号隔开：#FFFFFF; #00FF00。留空表示"
-        + "整张图都参与比对；右边的吸管每取一次就添进去一个，取的是屏幕上的颜色。";
+        + "会走动的进度条。一行一个颜色，写 #RRGGBB、RRGGBB 或 #RGB 都行，也可以写装着颜色的变量；"
+        + "一行都不写就是整张图都参与比对。下面的「取一个颜色」每取一次添一行。";
 
     /// <summary>The hint of the switch that finds the colour of the corners by itself.</summary>
     private const string AutoTransparentHint =

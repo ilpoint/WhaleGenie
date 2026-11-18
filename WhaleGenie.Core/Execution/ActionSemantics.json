@@ -8759,13 +8759,20 @@
       {
         "Name": "transparentColors",
         "Group": "target",
-        "Shape": "Text",
+        "Shape": "Rows",
         "ValueForm": "Text",
-        "Picker": "Colours",
+        "Picker": "None",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "autoTransparent",
@@ -9192,13 +9199,20 @@
       {
         "Name": "transparentColors",
         "Group": "target",
-        "Shape": "Text",
+        "Shape": "Rows",
         "ValueForm": "Text",
-        "Picker": "Colours",
+        "Picker": "None",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "autoTransparent",
@@ -9619,13 +9633,20 @@
       {
         "Name": "transparentColors",
         "Group": "target",
-        "Shape": "Text",
+        "Shape": "Rows",
         "ValueForm": "Text",
-        "Picker": "Colours",
+        "Picker": "None",
         "Required": false,
         "DefaultValue": "",
         "Options": [],
-        "ChildKeys": []
+        "ChildKeys": [],
+        "Columns": [
+          {
+            "Name": "colour",
+            "Role": "Text",
+            "Required": true
+          }
+        ]
       },
       {
         "Name": "autoTransparent",

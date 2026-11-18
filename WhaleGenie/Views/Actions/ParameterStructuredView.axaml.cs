@@ -39,6 +39,12 @@ public partial class ParameterStructuredView : UserControl
 
     private void OnPickColourPoints(object? sender, RoutedEventArgs e) => Host?.OnPickColourPoints(sender, e);
 
+    private void OnAddColourRow(object? sender, RoutedEventArgs e) => Host?.OnAddColourRow(sender, e);
+
+    private void OnPickColourRow(object? sender, RoutedEventArgs e) => Host?.OnPickColourRow(sender, e);
+
+    private void OnPickColourCell(object? sender, RoutedEventArgs e) => Host?.OnPickColourCell(sender, e);
+
     private void OnAddKeyRow(object? sender, RoutedEventArgs e) => Host?.OnAddKeyRow(sender, e);
 
     private void OnPickKeyRow(object? sender, RoutedEventArgs e) => Host?.OnPickKeyRow(sender, e);

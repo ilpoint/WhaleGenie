@@ -23,6 +23,10 @@ public class TransparentColourTests
     private static ExecutableStep Step(params ExecutableParameter[] parameters)
         => new() { Type = "vision.findImage", Parameters = parameters };
 
+    /// <summary>The colours the step leaves out, one row each, as the form writes them.</summary>
+    private static ExecutableParameter Rows(params (string Column, string Text)[] cells)
+        => Fields.Rows("transparentColors", [.. cells.Select(cell => Cells.Of(cell))]);
+
     private static ExecutableParameter Pictures(params string[] names)
         => Fields.Rows("images", [.. names.Select(name => Cells.Of(("image", name)))]);
 
@@ -79,7 +83,7 @@ public class TransparentColourTests
         context.Images["ok.png"] = Frame(White, Inside);
 
         await Run(context, Step(Pictures("ok.png"),
-            Fields.Text("transparentColors", "#FFFFFF; #00FF00"), SampleFiles.Returns("match")));
+            Rows(("colour", "#FFFFFF"), ("colour", "#00FF00")), SampleFiles.Returns("match")));
 
         var asked = Assert.Single(context.Machine.Vision.Queries);
         Assert.Equal([White, Green], asked.Transparent);
@@ -151,6 +155,24 @@ public class TransparentColourTests
         Assert.Equal([Green], context.Machine.Vision.Queries[1].Transparent);
     }
 
+    /// <summary>
+    /// 一行也可以是一个装着颜色的变量：形状是名字，颜色在跑到这一步的时候才取，所以换底色只要改变量。
+    /// </summary>
+    [Fact]
+    public async Task A_colour_a_variable_holds_is_read_when_the_step_runs()
+    {
+        var context = Points();
+        context.Images["ok.png"] = Painted(Frame(White, Inside), 7, 0, Green);
+        ((IRunContext)context).Variables.Set("bg", Value.FromText("#00FF00"));
+
+        await Run(context, Step(Pictures("ok.png"),
+            Fields.Rows("transparentColors",
+                Cells.Of(("colour", Formula.Name("bg")))),
+            SampleFiles.Returns("match")));
+
+        Assert.Equal([Green], Assert.Single(context.Machine.Vision.Queries).Transparent);
+    }
+
     /// <summary>读不出来的颜色报的是那个词，而不是被当成黑色掩掉。</summary>
     [Fact]
     public async Task A_colour_nobody_can_read_stops_the_step()
@@ -158,7 +180,7 @@ public class TransparentColourTests
         var context = Points();
 
         var result = await Record.ExceptionAsync(() => Run(context, Step(Pictures("ok.png"),
-            Fields.Text("transparentColors", "#FFFFFF; zzz"), SampleFiles.Returns("match"))));
+            Rows(("colour", "#FFFFFF"), ("colour", "zzz")), SampleFiles.Returns("match"))));
 
         var failure = Assert.IsType<StepFailure>(result);
         Assert.Equal(RunKeys.BadPoint, failure.Key);

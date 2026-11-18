@@ -47,6 +47,34 @@ public partial class StepParameterViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsDefault));
     }
 
+    /// <summary>Puts another colour at the end of the list, for the user to fill in.</summary>
+    public void AddColourRow(ColourRowViewModel? row = null)
+    {
+        var added = row ?? new ColourRowViewModel();
+        added.Take = RemoveColourRow;
+        added.PropertyChanged += OnColourRowChanged;
+        ColourRows.Add(added);
+        AnnounceColours();
+    }
+
+    /// <summary>Takes one colour out of the list.</summary>
+    public void RemoveColourRow(ColourRowViewModel row)
+    {
+        row.PropertyChanged -= OnColourRowChanged;
+        ColourRows.Remove(row);
+        AnnounceColours();
+    }
+
+    private void OnColourRowChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        => AnnounceColours();
+
+    private void AnnounceColours()
+    {
+        OnPropertyChanged(nameof(HasColours));
+        OnPropertyChanged(nameof(IsMissing));
+        OnPropertyChanged(nameof(IsDefault));
+    }
+
     /// <summary>Puts a place to look at at the end of the list, for the user to fill in.</summary>
     public void AddRegion(RegionRowViewModel? row = null)
     {

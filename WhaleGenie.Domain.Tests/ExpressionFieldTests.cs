@@ -96,14 +96,11 @@ public class ExpressionFieldTests
                     continue;
                 }
 
-                // One colour is one value. Several of them are a short list written as text, which
-                // is what the magnifier adds to and what the value window edits as it stands.
+                // A colour field is one value: the magnifier writes it as a formula. A list of
+                // colours is a list rather than one value, so it is not asked for the builder.
                 if (parameter.Kind is ActionParameterKind.Color)
                 {
-                    Assert.Equal(
-                        parameter.Picker is WhaleGenie.Core.Execution.ActionPickerKind.Colours
-                            ? WhaleGenie.Core.Execution.ActionValueForm.Text
-                            : WhaleGenie.Core.Execution.ActionValueForm.Value,
+                    Assert.Equal(WhaleGenie.Core.Execution.ActionValueForm.Value,
                         parameter.ValueForm);
                     continue;
                 }

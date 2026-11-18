@@ -356,6 +356,49 @@
             </Grid>
         </StackPanel>
 
+        <!-- 透明色：一处一行。每格可以写颜色、写变量，也可以按旁边那颗吸管现取一个；
+            取到的那个加进来而不是顶掉前一个，一个图标带两种底色就写两行。 -->
+        <StackPanel IsVisible="{Binding IsColours}" Spacing="6">
+            <ItemsControl ItemsSource="{Binding ColourRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ColourRowViewModel">
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" Margin="0,0,0,6">
+                            <TextBox Classes="Field HasChip" Text="{Binding Colour, Mode=TwoWay}"
+                                PlaceholderText="#RRGGBB"
+                                ToolTip.Tip="{Binding [Add.ColourRowHint], Source={x:Static loc:Strings.Current}}">
+                                <TextBox.InnerRightContent>
+                                    <Button Classes="ValueChip" Click="OnPickColourCell"
+                                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                </TextBox.InnerRightContent>
+                            </TextBox>
+                            <Border Grid.Column="1" Width="26" Height="33" CornerRadius="5"
+                                Background="{Binding Colour, Converter={StaticResource HexBrush}}"
+                                BorderBrush="{DynamicResource BorderControl}" BorderThickness="1" />
+                            <Button Grid.Column="2" Classes="Ghost" Width="26" Height="26"
+                                Content="×"
+                                ToolTip.Tip="{Binding [Add.ColourRowRemoveHint], Source={x:Static loc:Strings.Current}}"
+                                Command="{Binding RemoveCommand}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+                <Button Classes="Secondary" Height="28" Padding="10,0"
+                    Content="{Binding [Add.ColourRowAdd], Source={x:Static loc:Strings.Current}}"
+                    Click="OnAddColourRow" />
+                <Button Grid.Column="1" Classes="Secondary" Height="28" Padding="10,0"
+                    Content="{Binding [Add.ColourRowPick], Source={x:Static loc:Strings.Current}}"
+                    ToolTip.Tip="{Binding [Add.ColourRowPickHint], Source={x:Static loc:Strings.Current}}"
+                    Click="OnPickColourRow" />
+                <TextBlock Grid.Column="2" Classes="Hint" VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    Text="{Binding [Add.ColourRowEmpty], Source={x:Static loc:Strings.Current}}"
+                    IsVisible="{Binding !HasColours}" />
+            </Grid>
+        </StackPanel>
+
         <!-- A run of key combinations: one row per press, in the order they are sent. A
             combo is a sequence of presses whose beat is part of what it is, so the run is
             a list rather than one long line of keys. -->

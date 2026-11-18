@@ -329,10 +329,18 @@ internal static class ImageActions
     {
         var args = run.Args(step);
         var colours = new List<PixelColor>();
-        foreach (var token in ColourList.Tokens(args.Text("transparentColors")))
+        foreach (var row in step.Rows("transparentColors"))
         {
-            colours.Add(ColourList.Read(token)
-                ?? throw new StepFailure(RunKeys.BadPoint, token));
+            // A cell holds a colour, or a name whose value is one: it is read as the shape it is,
+            // so a colour another step worked out is read at this look rather than typed in.
+            var written = run.Text(row, "colour").Trim();
+            if (written.Length == 0)
+            {
+                continue;
+            }
+
+            colours.Add(ColourList.Read(written)
+                ?? throw new StepFailure(RunKeys.BadPoint, written));
         }
 
         if (run.Flag(step, "autoTransparent", true) && Corner(picture, args.Number("tolerance")) is { } corner

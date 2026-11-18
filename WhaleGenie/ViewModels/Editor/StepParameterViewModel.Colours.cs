@@ -10,32 +10,27 @@ public partial class StepParameterViewModel
 {
     /// <summary>
     /// Takes a colour the magnifier just read. A field that holds one colour keeps the new one in
-    /// its place; one that keeps several adds it to the colours already there. The value goes in as
-    /// a shape rather than as a line on the box: the line is only a picture of the shape, and
-    /// writing that alone leaves the step holding exactly what it held before.
+    /// its place; a list of colours adds it as another row, which is how one picture cropped over
+    /// two backgrounds is described without typing either of them. The single colour goes in as a
+    /// shape rather than as a line on the box: the line is only a picture of the shape, and writing
+    /// that alone leaves the step holding exactly what it held before.
     /// </summary>
     internal void TakeColour(PixelColor colour)
     {
-        if (!AppendsColours)
+        if (!IsColours)
         {
             SetWritten(Formula.Text(colour.ToHex()));
             return;
         }
 
-        var kept = new List<PixelColor>();
-        foreach (var token in ColourList.Tokens(CurrentText))
+        foreach (var row in ColourRows)
         {
-            if (ColourList.Read(token) is { } already && !kept.Contains(already))
+            if (ColourList.Read(row.Colour.Trim()) == colour)
             {
-                kept.Add(already);
+                return;
             }
         }
 
-        if (!kept.Contains(colour))
-        {
-            kept.Add(colour);
-        }
-
-        SetWritten(Formula.Text(ColourList.Write(kept)));
+        AddColourRow(new ColourRowViewModel(colour.ToHex()));
     }
 }
