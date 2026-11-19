@@ -33,6 +33,7 @@ public class SiteTests
             ["donate-alipay.png"] = RepoPaths.Source("WhaleGenie", "Assets", "DonateAlipay.png"),
             ["main-window.png"] = RepoPaths.Docs("images", "main-window.png"),
             ["macro-editor.png"] = RepoPaths.Docs("images", "macro-editor.png"),
+            ["interface-overview.png"] = RepoPaths.Docs("images", "interface-overview.png"),
         };
 
         foreach (var name in wanted)
@@ -78,6 +79,7 @@ public class SiteTests
         // The screenshots and the logo stay in the places the rest of the repository already reads.
         Assert.Contains("docs/images/main-window.png", script, StringComparison.Ordinal);
         Assert.Contains("docs/images/macro-editor.png", script, StringComparison.Ordinal);
+        Assert.Contains("docs/images/interface-overview.png", script, StringComparison.Ordinal);
         Assert.Contains("src/WhaleGenie/Assets/WhaleGenie.png", script, StringComparison.Ordinal);
         Assert.Contains("src/WhaleGenie/Assets/DonateWeChat.png", script, StringComparison.Ordinal);
     }
@@ -87,5 +89,28 @@ public class SiteTests
     {
         var readme = File.ReadAllText(RepoPaths.Path("README.md"));
         Assert.Contains("https://ilpoint.github.io/WhaleGenie/", readme, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_readme_introduces_the_windows_with_the_one_sheet_the_page_shows()
+    {
+        // One picture on purpose: a second screenshot in this section is how the README and the
+        // page drift apart, each aging on its own.
+        var readme = File.ReadAllText(RepoPaths.Path("README.md"));
+        var heading = readme.IndexOf("## 界面", StringComparison.Ordinal);
+        Assert.True(heading >= 0, "the README has no interface section");
+
+        var rest = readme[(heading + "## 界面".Length)..];
+        var next = Regex.Match(rest, "\\r?\\n## ");
+        var section = next.Success ? rest[..next.Index] : rest;
+
+        var pictures = Regex.Matches(section, "<img[^>]+src=\"([^\"]+)\"")
+            .Select(match => match.Groups[1].Value)
+            .ToList();
+        Assert.Equal(new[] { "docs/images/interface-overview.png" }, pictures);
+        Assert.True(File.Exists(RepoPaths.Docs("images", "interface-overview.png")));
+
+        var page = File.ReadAllText(Path.Combine(RepoPaths.Root, "site", "index.html"));
+        Assert.Contains("<img src=\"assets/interface-overview.png\"", page, StringComparison.Ordinal);
     }
 }

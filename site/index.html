@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WhaleGenie 鲸灵 · 把重复操作写成一条宏</title>
-  <meta name="description" content="WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具。把键盘、鼠标、手柄、屏幕与窗口操作编排成宏，用热键或事件触发。开源、免费。">
-  <meta name="theme-color" content="#f5f0e7">
+  <title>WhaleGenie 鲸灵 · Windows 宏与自动化工具</title>
+  <meta name="description" content="WhaleGenie（鲸灵）是 Windows 上的宏与自动化工具：键盘、鼠标、手柄、屏幕与窗口上的操作可以按顺序编成一条宏，由热键或事件触发。开源、免费。">
+  <meta name="theme-color" content="#0a0a0a">
   <link rel="canonical" href="https://ilpoint.github.io/WhaleGenie/">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://ilpoint.github.io/WhaleGenie/">
-  <meta property="og:title" content="WhaleGenie 鲸灵">
-  <meta property="og:description" content="把重复操作，写成一条宏。Windows 通用宏与自动化工具。">
+  <meta property="og:title" content="WhaleGenie 鲸灵 · Windows 宏与自动化工具">
+  <meta property="og:description" content="把键盘、鼠标、手柄、屏幕与窗口上的操作编成一条宏，由热键或事件触发。开源、免费。">
   <meta property="og:image" content="https://ilpoint.github.io/WhaleGenie/assets/whalegenie-og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/logo.png">
   <link rel="stylesheet" href="styles.css">
@@ -19,196 +21,237 @@
 <body>
   <a class="skip" href="#main">跳到正文</a>
 
-  <header class="topbar">
+  <header class="topbar" data-topbar>
     <div class="wrap topbar-inner">
-      <a class="brand" href="./" aria-label="WhaleGenie 首页">
-        <img src="assets/logo.png" width="30" height="30" alt="">
-        <span>WhaleGenie <b>鲸灵</b></span>
+      <a class="brand" href="./" aria-label="WhaleGenie 鲸灵首页">
+        <img src="assets/logo.png" width="26" height="26" alt="">
+        <span class="brand-name">WhaleGenie</span>
+        <span class="brand-tag">鲸灵</span>
       </a>
       <nav class="nav" aria-label="页面导航">
-        <a href="#features">能力</a>
-        <a href="#workflow">工作流</a>
-        <a href="#screens">界面</a>
-        <a href="#open-source">开源</a>
+        <a href="#abilities">能力</a>
+        <a href="#windows">界面</a>
+        <a href="#film">短片</a>
+        <a href="#start">开始</a>
+        <a href="#open">开源</a>
       </nav>
-      <a class="nav-cta" href="https://github.com/ilpoint/WhaleGenie" target="_blank" rel="noreferrer">
-        GitHub <span aria-hidden="true">↗</span>
-      </a>
+      <div class="top-actions">
+        <a class="btn btn-ghost btn-small" href="https://qm.qq.com/q/bqAuMuml4A" target="_blank" rel="noreferrer">QQ 群</a>
+        <a class="btn btn-solid btn-small" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19.5h14"/></svg>
+          下载
+        </a>
+      </div>
     </div>
   </header>
 
   <main id="main">
-    <section class="hero wrap">
-      <div class="hero-copy reveal">
-        <p class="eyebrow"><span class="dot"></span> Windows 10 / 11 · 开源免费</p>
-        <h1>把重复操作，<br><span>写成一条宏。</span></h1>
+    <section class="hero">
+      <div class="hero-fx" aria-hidden="true"></div>
+      <div class="wrap hero-inner">
+        <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true">✦</span>Windows 10 / 11 · 开源免费</p>
+
+        <h1>
+          <span class="h1-name">WhaleGenie 鲸灵</span>
+          <span class="h1-line">把重复操作，写成一条宏。</span>
+        </h1>
+
         <p class="lead">
-          WhaleGenie（鲸灵）把键盘、鼠标、手柄、屏幕和窗口上的动作，
-          编成看得见、改得动、能复用的步骤。
+          WhaleGenie（鲸灵）是 Windows 上的宏与自动化工具。键盘、鼠标、手柄、屏幕与窗口上的操作，
+          可以按顺序编成一条宏，由热键或事件触发。
+          <span class="lead-line">游戏与办公同样适用，不需要写代码。</span>
         </p>
-        <div class="actions">
-          <a class="btn primary" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
-            下载最新版 <span aria-hidden="true">↓</span>
+
+        <div class="hero-actions">
+          <a class="btn btn-solid btn-large" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19.5h14"/></svg>
+            下载 Windows 版
           </a>
-          <a class="btn ghost" href="https://github.com/ilpoint/WhaleGenie" target="_blank" rel="noreferrer">
+          <a class="btn btn-ghost btn-large" href="https://github.com/ilpoint/WhaleGenie" target="_blank" rel="noreferrer">
             查看源码 <span aria-hidden="true">↗</span>
           </a>
         </div>
-        <p class="hero-note">键盘 · 鼠标 · 手柄 · 屏幕 · 窗口 · 浏览器</p>
-      </div>
 
-      <div class="hero-visual reveal">
-        <div class="video-frame">
-          <video src="assets/whalegenie-vibe.mp4" poster="assets/whalegenie-vibe-poster.png"
-                 autoplay muted loop playsinline aria-label="WhaleGenie 24 秒介绍短片"></video>
-          <div class="video-badge">WHALEGENIE / 24 SEC</div>
-        </div>
-        <div class="float-card float-card-a">
-          <span class="pulse"></span>
-          <div><strong>热键触发</strong><small>按键、滚轮、手柄</small></div>
-        </div>
-        <div class="float-card float-card-b">
-          <span class="glyph">◎</span>
-          <div><strong>看见屏幕</strong><small>找图 · 取字 · 检测</small></div>
-        </div>
+        <figure class="shot">
+          <img src="assets/macro-editor.png" width="1306" height="672"
+               alt="宏编辑器：左侧为动作库，中间是按顺序排列的步骤，右侧为变量中心与宏设置。">
+        </figure>
       </div>
     </section>
 
-    <section class="metrics wrap reveal" aria-label="项目规模">
-      <div><strong>177</strong><span>个可执行动作</span></div>
-      <div><strong>23</strong><span>个条件</span></div>
-      <div><strong>8</strong><span>种拾取器</span></div>
-      <div><strong>4</strong><span>条画面获取路径</span></div>
-    </section>
+    <section class="section wrap" id="abilities">
+      <header class="section-head center">
+        <h2>操作被拆成动作，动作排成一条宏。</h2>
+        <p>从动作库中选取要执行的步骤，按顺序排好，再设置触发条件。运行、暂停与调试都在同一个窗口里。</p>
+      </header>
 
-    <section class="section wrap" id="features">
-      <div class="section-head reveal">
-        <p class="eyebrow">ONE ENGINE, MANY HANDS</p>
-        <h2>一套引擎，<span>五种掌控。</span></h2>
-        <p>从一个按键到一个完整流程，动作都在同一张列表里。</p>
-      </div>
-
-      <div class="feature-grid">
-        <article class="feature reveal">
-          <span class="index">01</span>
+      <div class="cards">
+        <article class="card">
           <h3>输入与触发</h3>
-          <p>前台、后台与驱动级输入；热键、鼠标、滚轮、手柄、像素和窗口事件都能开始一条宏。</p>
+          <p>键盘按键，鼠标按键、移动与滚轮，手柄按键与摇杆；前台、后台消息与驱动级虚拟 USB 三种输入方式。一个宏可以绑定多个入口。</p>
         </article>
-        <article class="feature reveal">
-          <span class="index">02</span>
+        <article class="card">
           <h3>画面识别</h3>
-          <p>找图、找色、多点找色、屏幕静止、OCR 与 YOLO 检测。识别之后直接点击图片或文字。</p>
+          <p>找图、找色、多点找色、画面静止、屏幕取字与取色；内置 YOLO 检测，识别到目标后可以直接点击图片或文字。</p>
         </article>
-        <article class="feature reveal">
-          <span class="index">03</span>
-          <h3>窗口与浏览器</h3>
-          <p>按标题、进程或类名认窗口；UI Automation 读写元素；Playwright 操作网页与标签页。</p>
+        <article class="card">
+          <h3>窗口与元素</h3>
+          <p>按标题、进程名或类名定位窗口，移动、缩放、置顶、显示或隐藏；通过 UI Automation 读取和操作控件。</p>
         </article>
-        <article class="feature reveal">
-          <span class="index">04</span>
+        <article class="card">
+          <h3>浏览器</h3>
+          <p>打开页面、点击元素、填写表单、读取文字与属性、截图、切换或关闭标签页；默认使用系统自带的 Edge。</p>
+        </article>
+        <article class="card">
           <h3>文件与数据</h3>
-          <p>文本、CSV、JSON、剪贴板、文件夹、进程与脚本。数据可以在步骤之间变成记录和列表。</p>
+          <p>读写文本、CSV 与 JSON，使用剪贴板（含图片），操作文件夹与进程，执行命令行或脚本。</p>
         </article>
-        <article class="feature reveal">
-          <span class="index">05</span>
+        <article class="card">
           <h3>流程与调试</h3>
-          <p>循环、分支、尝试与收尾、子宏和后台运行。断点、单步、运行日志把每一步说清楚。</p>
+          <p>循环、分支、尝试与收尾、子宏调用；断点、单步、识别结果、步骤状态与运行日志帮助定位问题。</p>
         </article>
-        <article class="feature feature-accent reveal">
-          <span class="index">06</span>
-          <h3>一条宏，慢慢长大</h3>
-          <p>从一个动作开始，录下来、改一改、存成宏包，再交给热键或事件去运行。</p>
-          <a href="https://github.com/ilpoint/WhaleGenie/blob/master/docs/manual.md" target="_blank" rel="noreferrer">
-            阅读使用说明 <span aria-hidden="true">→</span>
+      </div>
+
+      <p class="afterword">
+        录制键鼠操作可以直接生成步骤；图片、窗口、元素、颜色、区域、按键、手柄与变量各有拾取器。
+        宏以 .wgmacro 保存，连同参考图一起打包；未保存的内容留有崩溃恢复快照。
+      </p>
+    </section>
+
+    <section class="section wrap" id="windows">
+      <header class="section-head center">
+        <h2>三层界面，各司其职。</h2>
+        <p>主界面选择并启停宏，宏编辑器按执行顺序编排步骤，动作编辑器只修改选中的那一步。</p>
+      </header>
+
+      <figure class="showcase">
+        <img src="assets/interface-overview.png" width="1488" height="759"
+             alt="鲸灵的两个窗口：左侧为宏编辑器，右侧为按用途分页的主界面。">
+      </figure>
+
+      <div class="notes">
+        <div class="note">
+          <span class="note-index">01</span>
+          <h3>主界面</h3>
+          <p>宏按用途分页，搜索只筛选当前页；每张卡片可以直接启停、编辑或删除。</p>
+        </div>
+        <div class="note">
+          <span class="note-index">02</span>
+          <h3>宏编辑器</h3>
+          <p>左侧取动作，中间排步骤，右侧管理变量与设置；循环与分支显示为可折叠的块。</p>
+        </div>
+        <div class="note">
+          <span class="note-index">03</span>
+          <h3>动作编辑器</h3>
+          <p>只编辑选中的步骤，参数按页分组；子步骤回到宏编辑器里组织和排序。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="film">
+      <div class="film">
+        <div class="film-copy">
+          <h2>24 秒，看一遍界面。</h2>
+          <p>短片依次经过主界面与宏编辑器，没有旁白，也不需要声音。</p>
+          <a class="btn btn-ghost" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
+            下载试用 <span aria-hidden="true">↓</span>
+          </a>
+        </div>
+        <div class="film-frame">
+          <video src="assets/whalegenie-vibe.mp4" poster="assets/whalegenie-vibe-poster.png"
+                 width="1280" height="720" autoplay muted loop playsinline preload="metadata"
+                 aria-label="WhaleGenie 24 秒介绍短片"></video>
+          <span class="film-badge">WHALEGENIE / 24 SEC</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="start">
+      <header class="section-head center">
+        <h2>开始使用。</h2>
+        <p>下载、解压、运行，三步即可；也可以从源码构建，构建与验收命令写在开发文档里。</p>
+      </header>
+
+      <div class="starts">
+        <article class="start">
+          <h3>下载即用</h3>
+          <p>从 Releases 下载压缩包，解压后运行最外层的 WhaleGenie.exe。自带运行时的包不依赖预装环境。</p>
+          <a class="chip" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
+            <span class="chip-mark" aria-hidden="true">$</span>
+            <code>WhaleGenie-&lt;版本&gt;-win-x64-standalone.zip</code>
+            <span class="chip-arrow" aria-hidden="true">↗</span>
+          </a>
+        </article>
+        <article class="start">
+          <h3>从源码构建</h3>
+          <p>仓库使用 .NET 10 与 Avalonia，执行引擎与界面分离；构建、测试与打包命令写在开发文档里。</p>
+          <a class="chip" href="https://github.com/ilpoint/WhaleGenie/blob/master/docs/dev.md" target="_blank" rel="noreferrer">
+            <span class="chip-mark" aria-hidden="true">$</span>
+            <code>git clone https://github.com/ilpoint/WhaleGenie</code>
+            <span class="chip-arrow" aria-hidden="true">↗</span>
           </a>
         </article>
       </div>
+
+      <p class="fineprint">
+        需要 Windows 10 2004（内部版本 19041）或 Windows 11，64 位。界面支持中文与英文，首次启动跟随 Windows 显示语言。
+      </p>
     </section>
 
-    <section class="section wrap" id="workflow">
-      <div class="split">
-        <div class="section-head reveal">
-          <p class="eyebrow">FROM IDEA TO RUN</p>
-          <h2>想一遍，<span>排一遍。</span></h2>
-          <p>不用写代码，也能把条件、等待和失败处理放进同一条流程。</p>
-        </div>
-        <div class="steps reveal">
-          <div class="step">
-            <span>01</span>
-            <div><strong>挑一个动作</strong><p>按键、点击、找图、读窗口，或者调用另一个宏。</p></div>
-          </div>
-          <div class="step">
-            <span>02</span>
-            <div><strong>把步骤排好</strong><p>容器块缩进、折叠；条件、循环与收尾都看得见。</p></div>
-          </div>
-          <div class="step">
-            <span>03</span>
-            <div><strong>交给触发</strong><p>热键、鼠标、手柄、像素、窗口或程序出现，随时开始。</p></div>
-          </div>
-        </div>
-      </div>
-      <figure class="shot shot-wide reveal">
-        <img src="assets/macro-editor.png" alt="WhaleGenie 宏编辑器：左侧四类动作库，中间步骤文档，右侧宏设置">
-        <figcaption><span>宏编辑器</span><small>拖放编排 · 子宏文档页 · 本机公共宏库</small></figcaption>
-      </figure>
-    </section>
-
-    <section class="section wrap" id="screens">
-      <div class="section-head reveal">
-        <p class="eyebrow">THE DESKTOP, YOUR WAY</p>
-        <h2>安静地待在桌面，<span>需要时立刻出现。</span></h2>
-      </div>
-      <div class="gallery">
-        <figure class="shot reveal">
-          <img src="assets/main-window.png" alt="WhaleGenie 主界面：宏列表、搜索框、运行与新建按钮">
-          <figcaption><span>主界面</span><small>宏列表 · 搜索 · 一键运行</small></figcaption>
-        </figure>
-        <div class="quote reveal">
-          <p>“把每天重复的那几下，<br>收进一个热键里。”</p>
-          <span>WhaleGenie 鲸灵</span>
-          <div class="quote-lines" aria-hidden="true"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section wrap" id="open-source">
-      <div class="open-card reveal">
-        <div>
-          <p class="eyebrow">OPEN SOURCE · AGPL-3.0</p>
-          <h2>完全免费，<span>也完全敞开。</span></h2>
-          <p>源码、手册和第三方说明都在同一个仓库里。没有订阅，没有隐藏的功能墙。</p>
-          <div class="actions">
-            <a class="btn primary" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
-              下载 WhaleGenie <span aria-hidden="true">↓</span>
+    <section class="section wrap" id="open">
+      <div class="open">
+        <div class="open-copy">
+          <h2>免费、开源，没有订阅。</h2>
+          <p>程序按 AGPL-3.0 发布。源码、使用说明与第三方组件说明都在同一个仓库里，没有付费版本，也没有功能限制。</p>
+          <div class="hero-actions">
+            <a class="btn btn-solid" href="https://github.com/ilpoint/WhaleGenie/releases/latest" target="_blank" rel="noreferrer">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19.5h14"/></svg>
+              下载 WhaleGenie
             </a>
-            <a class="btn ghost" href="https://github.com/ilpoint/WhaleGenie/blob/master/LICENSE.txt" target="_blank" rel="noreferrer">
+            <a class="btn btn-ghost" href="https://github.com/ilpoint/WhaleGenie/blob/master/LICENSE.txt" target="_blank" rel="noreferrer">
               AGPL-3.0 <span aria-hidden="true">↗</span>
             </a>
           </div>
+          <p class="tech">Avalonia · SharpHook · libVIIPER · OpenCvSharp · PaddleOCR · FlaUI · Playwright</p>
         </div>
-        <div class="donate">
-          <p>如果它帮到了你，欢迎请 🐋 吃白饭 🍚</p>
-          <div class="qr-pair">
-            <figure><img src="assets/donate-wechat.png" alt="微信打赏二维码"><figcaption>微信</figcaption></figure>
-            <figure><img src="assets/donate-alipay.png" alt="支付宝打赏二维码"><figcaption>支付宝</figcaption></figure>
-          </div>
-        </div>
+
+        <aside class="community">
+          <article class="panel">
+            <h3>QQ 群</h3>
+            <p>安装、配置或使用中遇到问题，可以在群里提问；需求和建议同样欢迎。</p>
+            <a class="btn btn-solid btn-small" href="https://qm.qq.com/q/bqAuMuml4A" target="_blank" rel="noreferrer">
+              加入 QQ 群 <span aria-hidden="true">↗</span>
+            </a>
+          </article>
+
+          <article class="panel panel-donate">
+            <h3>请鲸鱼吃白饭</h3>
+            <p>完全免费的开源项目；如果它帮到了你，可以留一顿饭钱。</p>
+            <div class="qr-pair">
+              <figure><img src="assets/donate-wechat.png" width="108" height="108" alt="微信打赏二维码"><figcaption>微信</figcaption></figure>
+              <figure><img src="assets/donate-alipay.png" width="108" height="108" alt="支付宝打赏二维码"><figcaption>支付宝</figcaption></figure>
+            </div>
+          </article>
+        </aside>
       </div>
     </section>
   </main>
 
-  <footer class="footer wrap">
-    <div class="footer-brand">
-      <img src="assets/logo.png" width="28" height="28" alt="">
-      <span>WhaleGenie 鲸灵</span>
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <img src="assets/logo.png" width="24" height="24" alt="">
+        <span>WhaleGenie 鲸灵</span>
+      </div>
+      <nav class="footer-links" aria-label="页脚链接">
+        <a href="https://github.com/ilpoint/WhaleGenie" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/ilpoint/WhaleGenie/releases" target="_blank" rel="noreferrer">Releases</a>
+        <a href="https://github.com/ilpoint/WhaleGenie/blob/master/docs/manual.md" target="_blank" rel="noreferrer">使用说明</a>
+        <a href="https://github.com/ilpoint/WhaleGenie/blob/master/THIRD-PARTY-NOTICES.md" target="_blank" rel="noreferrer">第三方组件</a>
+        <a href="https://qm.qq.com/q/bqAuMuml4A" target="_blank" rel="noreferrer">QQ 群</a>
+      </nav>
+      <p class="footer-note">© <span id="year">2026</span> ilpoint · AGPL-3.0 · Windows 10 2004+ / 11 · x64</p>
     </div>
-    <nav aria-label="页脚链接">
-      <a href="https://github.com/ilpoint/WhaleGenie" target="_blank" rel="noreferrer">GitHub</a>
-      <a href="https://github.com/ilpoint/WhaleGenie/releases" target="_blank" rel="noreferrer">Releases</a>
-      <a href="https://github.com/ilpoint/WhaleGenie/blob/master/docs/manual.md" target="_blank" rel="noreferrer">使用说明</a>
-      <a href="https://github.com/ilpoint/WhaleGenie/blob/master/THIRD-PARTY-NOTICES.md" target="_blank" rel="noreferrer">第三方组件</a>
-    </nav>
-    <p>© <span id="year">2026</span> ilpoint · Windows 10 2004+ / 11 · x64</p>
   </footer>
 
   <script src="site.js"></script>

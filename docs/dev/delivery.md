@@ -17,14 +17,31 @@ GitHub Actions。
 重录 `site/vibe/index.html` 对应的短片时，使用临时 Playwright 安装和本机 Edge：
 
 ```powershell
-npm install --prefix "$env:TEMP\whalegenie-site-tools" playwright-core@1.64.1
-npx --yes playwright@1.64.1 install ffmpeg
+npm install --prefix "$env:TEMP\whalegenie-site-tools" playwright-core@1.63.0
+npx --yes playwright@1.63.0 install ffmpeg
 $env:WHALEGENIE_PLAYWRIGHT = "$env:TEMP\whalegenie-site-tools\node_modules\playwright-core"
 node build/record-vibe.mjs .
 ```
 
 该脚本生成无声 H.264 短片、海报和社交分享图，发布成品写入 `site/assets/`。手工评审图仍按上一节
 保存到 `%temp%\WhaleGenie`。录制工具不是应用运行依赖，机器需另有 `ffmpeg` 和 Edge。
+
+只改动了页面、不需要重录短片时，用 `--og-only` 重拍社交分享图。它截的是组装后的
+`_site/index.html`，所以先跑一次 `build/site.ps1`：
+
+```powershell
+node build/record-vibe.mjs . --og-only
+```
+
+界面截图更新后，用同一套临时 Playwright 安装重新拼合界面总览图：
+
+```powershell
+node build/render-overview.mjs .
+```
+
+成品写入 `docs/images/interface-overview.png`，由 `build/site.ps1` 复制进介绍页；README 与
+`site/index.html` 引用同一份文件，不各自保存一张。图里是当前的两张截图（主界面与宏编辑器），
+底色跟介绍页一致；动作编辑器重新出图后再加进这一张，避免同一张图混用不同版本的外观。
 
 ## 性能测量
 
