@@ -14,7 +14,6 @@
 | [dev/testing.md](dev/testing.md) | 测试分层、契约对账、界面与无头测试注意事项 |
 | [dev/validation.md](dev/validation.md) | Debug 界面自省通道、手动验收清单与截图评审 |
 | [dev/delivery.md](dev/delivery.md) | 界面出图、介绍页、性能测量、提交、CI 与发布 |
-| [dev/layout-refactor.md](dev/layout-refactor.md) | `src` / `tests` 目录重构的计划、路径锚点与验收 |
 
 ## 文档修改与检查
 

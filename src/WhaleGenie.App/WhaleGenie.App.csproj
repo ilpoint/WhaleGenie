@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The program without a window: the triggers, the runs they start, the recorder's translation,
+    the project's own services and the tools the MCP server is handed. Nothing here knows what a
+    control is, so a run can be started by a hotkey, by a client or by the debugger through the
+    same code — and the tests for all three need no application to be started first.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      状态提示音。作为程序集资源随这一层走：谁播放谁携带，换程序集也不会在启动时才丢。
+    -->
+    <EmbeddedResource Include="Sounds\*.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WhaleGenie" />
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Mcp.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Domain.Tests" />
+  </ItemGroup>
+
+</Project>

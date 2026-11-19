@@ -6,9 +6,9 @@ on:
     paths:
       - "site/**"
       - "docs/images/**"
-      - "WhaleGenie/Assets/WhaleGenie.png"
-      - "WhaleGenie/Assets/DonateWeChat.png"
-      - "WhaleGenie/Assets/DonateAlipay.png"
+      - "src/WhaleGenie/Assets/WhaleGenie.png"
+      - "src/WhaleGenie/Assets/DonateWeChat.png"
+      - "src/WhaleGenie/Assets/DonateAlipay.png"
       - "build/site.ps1"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
