@@ -77,7 +77,7 @@ public class PickerSnapshotTests
         // The picture kept of a dragged rectangle is taken the same way: it is the same problem, and
         // it is the one the user keeps.
         Assert.Contains("ScreenReady.Capture(",
-            File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Assets", "BitmapImages.cs")),
+            File.ReadAllText(RepoPaths.Source("WhaleGenie", "Assets", "BitmapImages.cs")),
             StringComparison.Ordinal);
     }
 
@@ -144,17 +144,4 @@ public class PickerSnapshotTests
     /// so a check about what it does has to look at every part rather than only the main file.
     /// </summary>
     private static string Source(string name) => ViewSource.All(name);
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

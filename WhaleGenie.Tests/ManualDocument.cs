@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using WhaleGenie.TestSupport;
 
 namespace WhaleGenie.Tests;
 
@@ -10,7 +10,7 @@ namespace WhaleGenie.Tests;
 internal static class ManualDocument
 {
     public static IReadOnlyList<string> Files()
-        => Directory.GetFiles(Folder(), "*.md", SearchOption.TopDirectoryOnly)
+        => Directory.GetFiles(Folder, "*.md", SearchOption.TopDirectoryOnly)
             .Order(StringComparer.Ordinal)
             .ToArray();
 
@@ -20,6 +20,5 @@ internal static class ManualDocument
     public static string[] AllLines()
         => Files().SelectMany(File.ReadAllLines).ToArray();
 
-    private static string Folder([CallerFilePath] string here = "")
-        => Path.Combine(Path.GetDirectoryName(Path.GetFullPath(here))!, "..", "docs", "manual");
+    private static string Folder => RepoPaths.Docs("manual");
 }

@@ -40,7 +40,7 @@ public class ThirdPartyNoticesTests
 
         foreach (var project in new[] { "WhaleGenie", "WhaleGenie.App", "WhaleGenie.Core" })
         {
-            var project_file = Path.Combine(Repository(), project, project + ".csproj");
+            var project_file = RepoPaths.Source(project, project + ".csproj");
             foreach (Match match in Regex.Matches(File.ReadAllText(project_file),
                          "<PackageReference\\b[^>]*?/?>", RegexOptions.Singleline))
             {
@@ -90,9 +90,9 @@ public class ThirdPartyNoticesTests
         // The notices say the library is distributed with the program; the packaging script is what
         // makes that true. The DLL is moved into lib by the rule that moves every native library, so
         // what is pinned down here is the licence file that has to travel beside it.
-        var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
+        var script = File.ReadAllText(RepoPaths.Path("build", "package.ps1"));
         var project = File.ReadAllText(
-            Path.Combine(Repository(), "WhaleGenie.Platform.Windows",
+            RepoPaths.Source("WhaleGenie.Platform.Windows",
                 "WhaleGenie.Platform.Windows.csproj"));
 
         Assert.Contains("third_party\\libVIIPER\\libVIIPER.dll", project, StringComparison.Ordinal);
@@ -106,7 +106,7 @@ public class ThirdPartyNoticesTests
         // The three documents only do their job when they are unpacked beside the executable, which
         // is what the packaging script decides. The quotes around NOTICE matter: without them the
         // assertion would be satisfied by THIRD-PARTY-NOTICES.md carrying the substring.
-        var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
+        var script = File.ReadAllText(RepoPaths.Path("build", "package.ps1"));
 
         Assert.Contains("LICENSE.txt", script, StringComparison.Ordinal);
         Assert.Contains("'NOTICE'", script, StringComparison.Ordinal);
@@ -119,8 +119,8 @@ public class ThirdPartyNoticesTests
         // What a repository is licensed under is decided from these bytes. Anything in front of the
         // licence's own text — a project name, a copyright line — is enough to make that come back
         // as "Other", so the credits live in NOTICE and this file starts where the licence starts.
-        var licence = Normalize(File.ReadAllText(Path.Combine(Repository(), "LICENSE.txt")));
-        var notice = Normalize(File.ReadAllText(Path.Combine(Repository(), "NOTICE")));
+        var licence = Normalize(File.ReadAllText(RepoPaths.Path("LICENSE.txt")));
+        var notice = Normalize(File.ReadAllText(RepoPaths.Path("NOTICE")));
 
         Assert.StartsWith("GNU AFFERO GENERAL PUBLIC LICENSE", licence.TrimStart(), StringComparison.Ordinal);
         Assert.DoesNotContain("WhaleGenie", licence, StringComparison.Ordinal);
@@ -147,29 +147,15 @@ public class ThirdPartyNoticesTests
         // The list is linked into the assembly rather than copied into it, so this is what would
         // catch the link breaking and the box opening an empty document.
         var embedded = Ui.Run(ThirdPartyNotices.Read);
-        var on_disk = File.ReadAllText(Path.Combine(Repository(), "THIRD-PARTY-NOTICES.md"));
+        var on_disk = File.ReadAllText(RepoPaths.Path("THIRD-PARTY-NOTICES.md"));
 
         Assert.Equal(Normalize(on_disk), Normalize(embedded));
     }
 
     private static string Notices()
-        => File.ReadAllText(Path.Combine(Repository(), "THIRD-PARTY-NOTICES.md"));
+        => File.ReadAllText(RepoPaths.Path("THIRD-PARTY-NOTICES.md"));
 
     /// <summary>Line endings are the checkout's business, not the text's.</summary>
     private static string Normalize(string text)
         => text.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd();
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

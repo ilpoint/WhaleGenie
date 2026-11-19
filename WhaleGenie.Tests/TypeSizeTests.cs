@@ -87,7 +87,7 @@ public class TypeSizeTests
         var sizes = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var project in Projects)
         {
-            foreach (var file in Directory.EnumerateFiles(Path.Combine(Repository(), project),
+            foreach (var file in Directory.EnumerateFiles(RepoPaths.Source(project),
                          "*.cs", SearchOption.AllDirectories))
             {
                 if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
@@ -110,16 +110,5 @@ public class TypeSizeTests
         }
 
         return sizes;
-    }
-
-    private static string Repository()
-    {
-        var folder = new DirectoryInfo(AppContext.BaseDirectory);
-        while (folder is not null && !File.Exists(Path.Combine(folder.FullName, "WhaleGenie.slnx")))
-        {
-            folder = folder.Parent;
-        }
-
-        return folder?.FullName ?? throw new InvalidOperationException("The repository root was not found.");
     }
 }

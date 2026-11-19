@@ -371,20 +371,6 @@ public class PickerAsideTests
     /// </summary>
     private static string Source(string name) => ViewSource.All(name);
 
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
-
     /// <summary>
     /// A screen that answers with one colour and one pointer position, over a desk these checks can
     /// work on. What it is asked to copy comes back black rather than refused, because both pickers

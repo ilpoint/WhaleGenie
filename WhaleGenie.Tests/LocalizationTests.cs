@@ -353,7 +353,7 @@ public class LocalizationTests
 
         foreach (var project in new[] { "WhaleGenie.Core", "WhaleGenie" })
         {
-            var folder = Path.Combine(Repository(), project);
+            var folder = RepoPaths.Source(project);
             foreach (var file in Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories))
             {
                 foreach (Match match in Regex.Matches(File.ReadAllText(file), "\"(Run\\.[A-Za-z]+)\""))
@@ -669,24 +669,6 @@ public class LocalizationTests
         }
 
         Assert.Empty(missing);
-    }
-
-    /// <summary>
-    /// The repository root, found by walking up from the test binaries until the solution file is
-    /// there. The tests run from inside <c>bin</c>, so the source they read is found rather than
-    /// assumed.
-    /// </summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 
     private static void Wanted(List<string> missing, string key)

@@ -337,21 +337,4 @@ public class RunBreakpointTests
             new StepParameter { Name = "value", Kind = ActionParameterKind.Text, Written = Fields.Shape(value) },
         ],
     };
-
-    /// <summary>
-    /// The repository root, found by walking up from the test binaries until the solution file is
-    /// there, so the markup a check reads is the markup that was built.
-    /// </summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

@@ -49,7 +49,7 @@ public partial class ClassAuditTests
     [Fact]
     public void The_audit_reads_the_windows_it_claims_to()
     {
-        var views = Path.Combine(RepositoryRoot(), "WhaleGenie", "Views");
+        var views = RepoPaths.Source("WhaleGenie", "Views");
         var markup = Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories).Count();
         var behind = Directory.EnumerateFiles(views, "*.cs", SearchOption.AllDirectories).Count();
 
@@ -89,9 +89,8 @@ public partial class ClassAuditTests
     /// </summary>
     private static HashSet<string> Unstyled()
     {
-        var root = RepositoryRoot();
-        var app = Declared(File.ReadAllText(Path.Combine(root, "WhaleGenie", "Themes", "Controls.axaml")));
-        foreach (var (type, chains) in Declared(File.ReadAllText(Path.Combine(root, "WhaleGenie", "App.axaml"))))
+        var app = Declared(File.ReadAllText(RepoPaths.Source("WhaleGenie", "Themes", "Controls.axaml")));
+        foreach (var (type, chains) in Declared(File.ReadAllText(RepoPaths.Source("WhaleGenie", "App.axaml"))))
         {
             app[type] = app.TryGetValue(type, out var existing)
                 ? [.. existing, .. chains]
@@ -99,11 +98,11 @@ public partial class ClassAuditTests
         }
 
         var findings = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))
+        foreach (var path in Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(path);
             var local = Declared(text);
-            var hosts = HostStyles(path, root);
+            var hosts = HostStyles(path);
 
             foreach (Match tag in Regex.Matches(text, @"<([A-Za-z][\w:.]*)((?:[^>""']|""[^""]*""|'[^']*')*)>"))
             {
@@ -146,7 +145,7 @@ public partial class ClassAuditTests
     /// the markup **and** in code: `MacroInterfaceView` is created with `new` inside
     /// `MacroEditorWindow.axaml.cs`, so searching only the XAML finds no host at all.
     /// </summary>
-    private static IReadOnlyDictionary<string, IEnumerable<string[]>> HostStyles(string path, string root)
+    private static IReadOnlyDictionary<string, IEnumerable<string[]>> HostStyles(string path)
     {
         var text = File.ReadAllText(path);
         if (!text.Contains("<UserControl", StringComparison.Ordinal))
@@ -156,7 +155,7 @@ public partial class ClassAuditTests
 
         var view = Path.GetFileNameWithoutExtension(path);
         var merged = new Dictionary<string, List<string[]>>(StringComparer.Ordinal);
-        foreach (var candidate in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*", SearchOption.AllDirectories))
+        foreach (var candidate in Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie", "Views"), "*", SearchOption.AllDirectories))
         {
             var candidateText = File.ReadAllText(candidate);
             if (!candidateText.Contains(view, StringComparison.Ordinal)

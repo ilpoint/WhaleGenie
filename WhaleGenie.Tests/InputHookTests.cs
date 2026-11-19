@@ -25,11 +25,11 @@ public class InputHookTests
         // is the engine's business. A name from that library reaching this project is what the two
         // were entangled by before: the interface would have to be changed whenever it changed.
         var offenders = Directory
-            .EnumerateFiles(Path.Combine(Repository(), "WhaleGenie"), "*.*", SearchOption.AllDirectories)
+            .EnumerateFiles(RepoPaths.Source("WhaleGenie"), "*.*", SearchOption.AllDirectories)
             .Where(path => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                            || path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
             .Where(Said)
-            .Select(path => Path.GetRelativePath(Repository(), path))
+            .Select(path => Path.GetRelativePath(RepoPaths.Root, path))
             .ToList();
 
         Assert.Empty(offenders);
@@ -169,19 +169,6 @@ public class InputHookTests
         }
 
         return false;
-    }
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 
     /// <summary>

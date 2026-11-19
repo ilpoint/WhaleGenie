@@ -49,7 +49,7 @@ public class MainTitleTests
         // program is in, and keeps showing it after the program has been given another name. Each
         // window either binds the title to what its view model says or sets it from the table in
         // code, so every markup title here has to be backed by one of the two.
-        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        var views = RepoPaths.Source("WhaleGenie", "Views");
         var unwired = new List<string>();
 
         var markups = Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories).Order().ToList();
@@ -71,19 +71,5 @@ public class MainTitleTests
         }
 
         Assert.Empty(unwired);
-    }
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

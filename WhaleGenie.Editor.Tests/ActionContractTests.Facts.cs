@@ -60,7 +60,7 @@ public partial class ActionContractTests
     [Fact]
     public void The_display_catalogue_holds_no_engine_facts()
     {
-        var display = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie.Domain", "Models",
+        var display = File.ReadAllText(RepoPaths.Source("WhaleGenie.Domain", "Models",
             "ActionDisplay.json"));
         string[] engineFacts =
         [
@@ -81,7 +81,7 @@ public partial class ActionContractTests
         Assert.True(duplicated.Count == 0,
             "the display catalogue declares engine facts again: " + string.Join(", ", duplicated));
 
-        var source = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie.Domain", "Models",
+        var source = File.ReadAllText(RepoPaths.Source("WhaleGenie.Domain", "Models",
             "ActionCatalog.cs"));
         Assert.DoesNotContain("Key = \"", source, StringComparison.Ordinal);
         Assert.DoesNotContain("SendsInput =", source, StringComparison.Ordinal);

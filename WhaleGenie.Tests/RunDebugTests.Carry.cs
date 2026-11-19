@@ -113,20 +113,6 @@ public partial class RunDebugTests
         Assert.Contains("断点", Strings.Chinese["Run.BreakpointDot"], StringComparison.Ordinal);
     }
 
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(System.AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new System.InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
-
     private static T Find<T>(Window window, string name)
         where T : Control
         => window.GetVisualDescendants().OfType<T>().Single(control => control.Name == name);

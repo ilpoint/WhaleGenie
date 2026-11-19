@@ -26,6 +26,7 @@
     <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
     <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
     <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
+    <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

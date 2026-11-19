@@ -110,10 +110,10 @@ public partial class ClassAuditTests
 
     private static Dictionary<string, string> Scan()
     {
-        var root = RepositoryRoot();
-        var views = Path.Combine(root, "WhaleGenie", "Views");
-        var themes = Path.Combine(root, "WhaleGenie", "Themes");
-        var tests = Path.Combine(root, "WhaleGenie.Tests");
+        var root = RepoPaths.Root;
+        var views = RepoPaths.Source("WhaleGenie", "Views");
+        var themes = RepoPaths.Source("WhaleGenie", "Themes");
+        var tests = RepoPaths.Tests("WhaleGenie.Tests");
 
         // 全部 .cs（含 Views 与 Runtime）与全部测试，拼成一份可搜的文本
         var code = string.Join("\n", Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
@@ -124,7 +124,7 @@ public partial class ClassAuditTests
 
         // 库声明能被哪些地方的 `Classes=` 满足：所有视图 + App.axaml（**不含库自身**）
         var useSites = string.Join("\n", Directory.EnumerateFiles(views, "*.axaml", SearchOption.AllDirectories)
-            .Concat(Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie"), "*.axaml",
+            .Concat(Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie"), "*.axaml",
                 SearchOption.TopDirectoryOnly))
             .Select(File.ReadAllText));
 
@@ -254,10 +254,10 @@ public partial class ClassAuditTests
 
     private static Dictionary<string, string> Unmatched()
     {
-        var root = RepositoryRoot();
+        var root = RepoPaths.Root;
         var findings = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))
+        foreach (var path in Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(path);
             var codeFile = path + ".cs";   // axaml 的代码后置是 `X.axaml.cs`，不是 `X.cs`
@@ -420,11 +420,11 @@ public partial class ClassAuditTests
     /// <summary>代码里加的类名，逐个数有没有任何选择器声明了它。</summary>
     private static Dictionary<string, string> CodeOnlyUnstyled()
     {
-        var root = RepositoryRoot();
+        var root = RepoPaths.Root;
         var declared = new HashSet<string>(StringComparer.Ordinal);
 
         // 全局库 + 每个窗口自己的样式，都算"声明过"
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie"), "*.axaml",
+        foreach (var path in Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie"), "*.axaml",
                      SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(path);
@@ -444,10 +444,10 @@ public partial class ClassAuditTests
         // 按 `MenuIconChoice` 找图标钮——它们没有样式，但删了会让测试变成"找不到元素"。
         // "没有样式"不等于"没人用"：这条检查问的是样式，答案必须把"用途"也算进来。
         var tests = string.Join("\n", Directory.EnumerateFiles(
-            Path.Combine(root, "WhaleGenie.Tests"), "*.cs").Select(File.ReadAllText));
+            RepoPaths.Tests("WhaleGenie.Tests"), "*.cs").Select(File.ReadAllText));
 
         var findings = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var path in Directory.EnumerateFiles(Path.Combine(root, "WhaleGenie", "Views"), "*.cs", SearchOption.AllDirectories))
+        foreach (var path in Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie", "Views"), "*.cs", SearchOption.AllDirectories))
         {
             var code = File.ReadAllText(path);
             foreach (var name in ClassesAddedInCode(code))
@@ -486,8 +486,8 @@ public partial class ClassAuditTests
     [Fact]
     public void Bare_colours_in_code_are_reported_with_where_they_sit()
     {
-        var root = RepositoryRoot();
-        var views = Path.Combine(root, "WhaleGenie", "Views");
+        var root = RepoPaths.Root;
+        var views = RepoPaths.Source("WhaleGenie", "Views");
         var direct = new List<string>();
         var fallback = new List<string>();
 
@@ -523,21 +523,5 @@ public partial class ClassAuditTests
         _output.WriteLine(
             $"direct {direct.Count}, fallback {fallback.Count} — fallback 那些平时不生效，"
             + "换主题也不跟着变，却让人以为颜色已经处理过");
-    }
-
-    private static string RepositoryRoot([CallerFilePath] string here = "")
-    {
-        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Themes")))
-        {
-            folder = folder.Parent;
-        }
-
-        if (folder is null)
-        {
-            Assert.Fail($"the repository root was not found above {here}");
-        }
-
-        return folder!.FullName;
     }
 }

@@ -12,7 +12,7 @@ public class PackagingTests
     [Fact]
     public void The_solution_offers_only_x64()
     {
-        var solution = XDocument.Load(Path.Combine(Repository(), "WhaleGenie.slnx"));
+        var solution = XDocument.Load(RepoPaths.Path("WhaleGenie.slnx"));
         var platforms = solution.Root!
             .Element("Configurations")!
             .Elements("Platform")
@@ -20,14 +20,14 @@ public class PackagingTests
             .ToArray();
 
         Assert.Equal(new[] { "x64" }, platforms);
-        Assert.DoesNotContain("Any CPU", File.ReadAllText(Path.Combine(Repository(), "WhaleGenie.slnx")),
+        Assert.DoesNotContain("Any CPU", File.ReadAllText(RepoPaths.Path("WhaleGenie.slnx")),
             StringComparison.Ordinal);
     }
 
     [Fact]
     public void The_application_is_published_as_one_executable()
     {
-        var project = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "WhaleGenie.csproj"));
+        var project = File.ReadAllText(RepoPaths.Source("WhaleGenie", "WhaleGenie.csproj"));
 
         Assert.Contains("<PublishSingleFile", project, StringComparison.Ordinal);
         Assert.Contains("<SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>", project,
@@ -39,24 +39,11 @@ public class PackagingTests
     [Fact]
     public void The_portable_package_keeps_only_native_libraries_in_lib()
     {
-        var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
+        var script = File.ReadAllText(RepoPaths.Path("build", "package.ps1"));
 
         Assert.Contains("PublishSingleFile=true", script, StringComparison.Ordinal);
         Assert.Contains("Get-ChildItem $app -File -Filter *.dll | Move-Item -Destination $lib", script,
             StringComparison.Ordinal);
         Assert.DoesNotContain("WhaleGenie.deps.json", script, StringComparison.Ordinal);
-    }
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("the repository root was not found above the test output");
     }
 }

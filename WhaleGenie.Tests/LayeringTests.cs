@@ -35,7 +35,7 @@ public class LayeringTests
 
             if (File.ReadAllText(file).Contains("WhaleGenie.Platform.Windows", StringComparison.Ordinal))
             {
-                offenders.Add(Path.GetRelativePath(Repository(), file));
+                offenders.Add(Path.GetRelativePath(RepoPaths.Root, file));
             }
         }
 
@@ -98,7 +98,7 @@ public class LayeringTests
                 || text.Contains("Microsoft.AspNetCore", StringComparison.Ordinal)
                 || text.Contains("Microsoft.Extensions.AI", StringComparison.Ordinal))
             {
-                offenders.Add(Path.GetRelativePath(Repository(), file));
+                offenders.Add(Path.GetRelativePath(RepoPaths.Root, file));
             }
         }
 
@@ -107,7 +107,7 @@ public class LayeringTests
     }
 
     private static IEnumerable<string> CoreSources()
-        => Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie.Core"), "*.*",
+        => Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie.Core"), "*.*",
                 SearchOption.AllDirectories)
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                            || file.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
@@ -122,7 +122,7 @@ public class LayeringTests
     /// </summary>
     private static IEnumerable<string> Sources()
         => new[] { "WhaleGenie", "WhaleGenie.App" }
-            .SelectMany(project => Directory.EnumerateFiles(Path.Combine(Repository(), project), "*.*",
+            .SelectMany(project => Directory.EnumerateFiles(RepoPaths.Source(project), "*.*",
                 SearchOption.AllDirectories))
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                            || file.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
@@ -130,18 +130,4 @@ public class LayeringTests
                                StringComparison.Ordinal)
                            && !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
                                StringComparison.Ordinal));
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

@@ -88,16 +88,4 @@ public class ValueChipTests
         Dispatcher.UIThread.RunJobs();
         return window;
     }
-
-    private static string Repository([System.Runtime.CompilerServices.CallerFilePath] string here = "")
-    {
-        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (folder is not null
-               && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Views")))
-        {
-            folder = folder.Parent;
-        }
-
-        return folder?.FullName ?? throw new InvalidOperationException("the repository was not found");
-    }
 }

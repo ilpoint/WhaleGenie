@@ -255,7 +255,7 @@ public class FieldNameTests
     /// </summary>
     private static Dictionary<string, string> Whitelist()
     {
-        var notes = File.ReadAllLines(Path.Combine(Repository(), "docs", "dev", "field-names.md"));
+        var notes = File.ReadAllLines(RepoPaths.Docs("dev", "field-names.md"));
         var start = Array.FindIndex(notes,
             line => line.StartsWith("## 同名字段保留表", StringComparison.Ordinal));
         Assert.True(start >= 0, "the developer notes have no retained-name table");
@@ -305,17 +305,4 @@ public class FieldNameTests
     private static string EnglishLabel(ActionParameter parameter)
         => ActionEnglish.English.GetValueOrDefault($"{parameter.OwnerKey}.{parameter.Name}.label",
             string.Empty);
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

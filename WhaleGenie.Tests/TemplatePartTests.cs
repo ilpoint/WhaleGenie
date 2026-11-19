@@ -262,9 +262,9 @@ public class TemplatePartTests
     private static IEnumerable<string> Selectors()
     {
         var files = Directory
-            .EnumerateFiles(Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes"), "*.axaml")
+            .EnumerateFiles(RepoPaths.Source("WhaleGenie", "Themes"), "*.axaml")
             .Concat(Directory.EnumerateFiles(
-                Path.Combine(RepositoryRoot(), "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories));
+                RepoPaths.Source("WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories));
 
         foreach (var file in files)
         {
@@ -331,20 +331,4 @@ public class TemplatePartTests
         "fa|FANumberBox" => new FANumberBox { Width = 200 },
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "no probe for this host"),
     };
-
-    private static string RepositoryRoot([CallerFilePath] string here = "")
-    {
-        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Themes")))
-        {
-            folder = folder.Parent;
-        }
-
-        if (folder is null)
-        {
-            Assert.Fail($"the repository root was not found above {here}");
-        }
-
-        return folder!.FullName;
-    }
 }

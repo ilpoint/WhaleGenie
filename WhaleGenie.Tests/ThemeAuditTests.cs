@@ -20,15 +20,8 @@ public class ThemeAuditTests
     [Fact]
     public void Views_do_not_carry_their_own_dark_surfaces()
     {
-        var root = new DirectoryInfo(AppContext.BaseDirectory);
-        while (root is not null && !File.Exists(Path.Combine(root.FullName, "WhaleGenie.slnx")))
-        {
-            root = root.Parent;
-        }
-
-        Assert.NotNull(root);
         var offenders = Directory
-            .EnumerateFiles(Path.Combine(root!.FullName, "WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories)
+            .EnumerateFiles(RepoPaths.Source("WhaleGenie", "Views"), "*.axaml", SearchOption.AllDirectories)
             .SelectMany(path => File.ReadAllLines(path)
                 .Select((line, index) => (Path: path, Line: line, Number: index + 1)))
             .Where(item => DarkSurfaceColours.Any(colour =>

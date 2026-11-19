@@ -37,7 +37,7 @@ public class StyleVocabularyTests
     public void The_vocabulary_matches_the_registry()
     {
         var header = File.ReadAllText(Path.Combine(
-            RepositoryRoot(), "WhaleGenie", "Themes", "Controls.axaml"));
+            RepoPaths.Root, "WhaleGenie", "Themes", "Controls.axaml"));
 
         var declared = Regex.Matches(header, @"^\s*(?:STATE|VARIANT)\s+(\S+)\s*$", RegexOptions.Multiline)
             .Select(match => match.Groups[1].Value)
@@ -47,21 +47,5 @@ public class StyleVocabularyTests
         Assert.Equal(
             declared.OrderBy(word => word, StringComparer.Ordinal),
             Vocabulary.OrderBy(word => word, StringComparer.Ordinal));
-    }
-
-    private static string RepositoryRoot([CallerFilePath] string here = "")
-    {
-        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Themes")))
-        {
-            folder = folder.Parent;
-        }
-
-        if (folder is null)
-        {
-            Assert.Fail($"the repository root was not found above {here}");
-        }
-
-        return folder!.FullName;
     }
 }

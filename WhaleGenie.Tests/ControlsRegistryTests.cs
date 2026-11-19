@@ -161,7 +161,7 @@ public class ControlsRegistryTests
     /// <summary>Every window's markup, since a class is only real where an element carries it.</summary>
     private static string ReadFromViews()
     {
-        var folder = Path.Combine(RepositoryRoot(), "WhaleGenie", "Views");
+        var folder = RepoPaths.Source("WhaleGenie", "Views");
         if (!Directory.Exists(folder))
         {
             Assert.Fail($"the windows are not where the repository root says they are: {folder}");
@@ -175,7 +175,7 @@ public class ControlsRegistryTests
 
     private static string Read(string file)
     {
-        var path = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", file);
+        var path = RepoPaths.Source("WhaleGenie", "Themes", file);
         if (!File.Exists(path))
         {
             Assert.Fail($"the styles are not where the repository root says they are: {path}");
@@ -268,21 +268,5 @@ public class ControlsRegistryTests
                 }
             }
         }
-    }
-
-    private static string RepositoryRoot([CallerFilePath] string here = "")
-    {
-        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Themes")))
-        {
-            folder = folder.Parent;
-        }
-
-        if (folder is null)
-        {
-            Assert.Fail($"the repository root was not found above {here}; check where the tests are built");
-        }
-
-        return folder!.FullName;
     }
 }

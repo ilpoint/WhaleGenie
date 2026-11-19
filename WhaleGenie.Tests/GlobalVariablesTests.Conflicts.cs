@@ -99,17 +99,4 @@ public partial class GlobalVariablesTests
             return true;
         });
     }
-
-    private static string Repository()
-    {
-        for (var at = new System.IO.DirectoryInfo(System.AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new System.InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

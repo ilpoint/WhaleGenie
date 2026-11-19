@@ -51,20 +51,6 @@ public class PickTestTests
         Assert.Contains("Click=\"OnTestBrowserElement\"", markup, StringComparison.Ordinal);
     }
 
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
-
     /// <summary>
     /// A desktop that holds one control when it is told to and nothing when it is not, which is the
     /// two answers a check can get.

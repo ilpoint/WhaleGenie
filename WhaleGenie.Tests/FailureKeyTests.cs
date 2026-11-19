@@ -109,7 +109,7 @@ public class FailureKeyTests
     {
         foreach (var project in new[] { "WhaleGenie.Core", "WhaleGenie.Platform.Windows" })
         {
-            var root = Path.Combine(Repository(), project);
+            var root = RepoPaths.Source(project);
             foreach (var file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
                          .Where(file =>
                              !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
@@ -121,18 +121,5 @@ public class FailureKeyTests
                 yield return file;
             }
         }
-    }
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

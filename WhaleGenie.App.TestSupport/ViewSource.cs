@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using WhaleGenie.TestSupport;
 
 namespace WhaleGenie.Tests.Support;
 
@@ -15,7 +16,7 @@ internal static class ViewSource
     /// <summary>The parts of <paramref name="fileName"/>'s code-behind, in a stable order.</summary>
     public static string All(string fileName)
     {
-        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        var views = RepoPaths.Source("WhaleGenie", "Views");
         var stem = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(fileName));
         return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.cs", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
@@ -38,7 +39,7 @@ internal static class ViewSource
     /// </summary>
     public static string Markup(string fileName)
     {
-        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        var views = RepoPaths.Source("WhaleGenie", "Views");
         var stem = Path.GetFileNameWithoutExtension(fileName);
         return string.Join("\n", Directory.EnumerateFiles(views, stem + "*.axaml", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
@@ -60,24 +61,11 @@ internal static class ViewSource
     /// </summary>
     public static string PathOf(string fileName)
     {
-        var views = Path.Combine(Repository(), "WhaleGenie", "Views");
+        var views = RepoPaths.Source("WhaleGenie", "Views");
         var found = Directory.EnumerateFiles(views, fileName, SearchOption.AllDirectories).ToList();
         return found.Count == 1
             ? found[0]
             : throw new InvalidOperationException(
                 $"{found.Count} files named {fileName} under {views}: {string.Join(", ", found)}");
-    }
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

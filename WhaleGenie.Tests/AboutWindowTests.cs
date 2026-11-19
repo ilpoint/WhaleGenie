@@ -112,8 +112,7 @@ public class AboutWindowTests
     [Fact]
     public void The_readme_carries_the_same_donation_message_and_codes()
     {
-        var root = Repository();
-        var readme = File.ReadAllText(Path.Combine(root, "README.md"));
+        var readme = File.ReadAllText(RepoPaths.Path("README.md"));
 
         Assert.Contains("## 打赏支持", readme, StringComparison.Ordinal);
         Assert.Contains("WhaleGenie（鲸灵）是完全免费的开源项目。", readme, StringComparison.Ordinal);
@@ -121,24 +120,10 @@ public class AboutWindowTests
         Assert.Contains("WhaleGenie/Assets/DonateWeChat.png", readme, StringComparison.Ordinal);
         Assert.Contains("WhaleGenie/Assets/DonateAlipay.png", readme, StringComparison.Ordinal);
 
-        Assert.True(File.Exists(Path.Combine(root, "WhaleGenie", "Assets", "DonateWeChat.png")));
-        Assert.True(File.Exists(Path.Combine(root, "WhaleGenie", "Assets", "DonateAlipay.png")));
+        Assert.True(File.Exists(RepoPaths.Source("WhaleGenie", "Assets", "DonateWeChat.png")));
+        Assert.True(File.Exists(RepoPaths.Source("WhaleGenie", "Assets", "DonateAlipay.png")));
     }
 
     private static Uri Asset(string name)
         => new($"avares://{typeof(AboutWindow).Assembly.GetName().Name}/Assets/{name}");
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

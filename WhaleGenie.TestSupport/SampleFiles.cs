@@ -22,7 +22,7 @@ namespace WhaleGenie.TestSupport;
 internal static class SampleFiles
 {
     /// <summary>The folder with the sample files in it.</summary>
-    public static string Folder => Path.Combine(Repository(), "testfile");
+    public static string Folder => RepoPaths.Path("testfile");
 
     /// <summary>
     /// A step of a macro, written the way the editor writes one. Window rules are one record, so a
@@ -257,20 +257,6 @@ internal static class SampleFiles
         var store = new VariableStore();
         var result = await new MacroRunner(store, new SilentRunHost(), devices).RunAsync(steps);
         return new SampleRun(result, store, devices);
-    }
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    public static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }
 

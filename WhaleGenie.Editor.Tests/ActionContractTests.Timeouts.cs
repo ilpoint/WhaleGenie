@@ -86,7 +86,7 @@ public partial class ActionContractTests
     [Fact]
     public void The_runner_dispatches_every_executable_action()
     {
-        var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
+        var folder = RepoPaths.Source("WhaleGenie.Core", "Execution");
         var sources = Directory.EnumerateFiles(folder, "*.cs", SearchOption.AllDirectories)
             .Select(File.ReadAllText)
             .ToList();

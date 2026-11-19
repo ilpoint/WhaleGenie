@@ -24,7 +24,7 @@ public partial class ActionContractTests
         var tests = string.Join(Environment.NewLine,
             new[] { "WhaleGenie.Core.Tests", "WhaleGenie.Platform.Tests" }
                 .SelectMany(suite => Directory.EnumerateFiles(
-                    Path.Combine(Repository(), suite), "*.cs", SearchOption.AllDirectories))
+                    RepoPaths.Tests(suite), "*.cs", SearchOption.AllDirectories))
                 .Select(File.ReadAllText));
 
         var missing = ActionSemanticsCatalog.All
@@ -105,7 +105,7 @@ public partial class ActionContractTests
     [Fact]
     public void The_runner_no_longer_guesses_facts_from_action_prefixes()
     {
-        var source = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie.Core", "Execution",
+        var source = File.ReadAllText(RepoPaths.Source("WhaleGenie.Core", "Execution",
             "MacroRunner.cs"));
 
         string[] guesses =
@@ -120,7 +120,7 @@ public partial class ActionContractTests
     [Fact]
     public void The_engine_catalogue_does_not_use_the_interface_toolkit()
     {
-        foreach (var file in Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie.Core"),
+        foreach (var file in Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie.Core"),
                      "*.cs", SearchOption.AllDirectories))
         {
             Assert.DoesNotContain("Avalonia", File.ReadAllText(file), StringComparison.Ordinal);
@@ -204,18 +204,5 @@ public partial class ActionContractTests
         var start = declaration.Index;
         var end = source.IndexOf("\n    private ", start + 1, StringComparison.Ordinal);
         return end < 0 ? source[start..] : source[start..end];
-    }
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

@@ -107,7 +107,7 @@ public class ThemeTokenTests
     {
         Ui.Run(() =>
         {
-            var tokens = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "Tokens.axaml");
+            var tokens = RepoPaths.Source("WhaleGenie", "Themes", "Tokens.axaml");
             var keys = DeclaredKeys(tokens);
 
             Assert.Contains("UiCodeFont", keys, StringComparer.Ordinal);
@@ -135,7 +135,7 @@ public class ThemeTokenTests
     {
         Ui.Run(() =>
         {
-            var path = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "FluentKeys.axaml");
+            var path = RepoPaths.Source("WhaleGenie", "Themes", "FluentKeys.axaml");
             if (!File.Exists(path))
             {
                 Assert.Fail($"the layer-one dictionary is not where the repository root says it is: {path}");
@@ -195,7 +195,7 @@ public class ThemeTokenTests
         // is what drifts. This reads the dictionary itself: a key added there and forgotten
         // here would otherwise go untested, and a key renamed in one place only would keep passing
         // the checks above, which walk this array rather than the file.
-        var tokens = Path.Combine(RepositoryRoot(), "WhaleGenie", "Themes", "Tokens.axaml");
+        var tokens = RepoPaths.Source("WhaleGenie", "Themes", "Tokens.axaml");
 
         Assert.Equal(
             Tokens.Concat(PickerTokens).ToHashSet(StringComparer.Ordinal),
@@ -220,27 +220,6 @@ public class ThemeTokenTests
         return Regex.Matches(xml, pattern)
             .Select(match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    /// Where this file's own path says the repository is. The checks run out of bin, where the
-    /// dictionaries are copied but the repository layout is not, so the path is taken from the
-    /// source file rather than from the working directory.
-    /// </summary>
-    private static string RepositoryRoot([CallerFilePath] string here = "")
-    {
-        var folder = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (folder is not null && !Directory.Exists(Path.Combine(folder.FullName, "WhaleGenie", "Themes")))
-        {
-            folder = folder.Parent;
-        }
-
-        if (folder is null)
-        {
-            Assert.Fail($"the repository root was not found above {here}; check where the tests are built");
-        }
-
-        return folder!.FullName;
     }
 
     private static IBrush? Brush(string key, ThemeVariant variant)

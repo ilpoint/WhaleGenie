@@ -547,20 +547,6 @@ public class SettingsNavigationTests
             _ => string.Empty,
         };
 
-    private static string Repository()
-    {
-        for (var folder = new DirectoryInfo(AppContext.BaseDirectory); folder is not null;
-             folder = folder.Parent)
-        {
-            if (File.Exists(Path.Combine(folder.FullName, "WhaleGenie.slnx")))
-            {
-                return folder.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("the repository root was not found");
-    }
-
     /// <summary>
     /// 屏幕捕获页的两项：取帧上限的输入框最高只能是显示器刷新率，复用关着时保留时长那格不让人改。
     /// </summary>

@@ -49,7 +49,7 @@ public class DriverAttachAtStartTests
     {
         // The engine does not read the settings file — where it lives is the interface's business —
         // so a choice that was only stored would never put anything on the machine.
-        var app = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "App.axaml.cs"));
+        var app = File.ReadAllText(RepoPaths.Source("WhaleGenie", "App.axaml.cs"));
 
         Assert.Contains(
             "Driver.AttachAtStart = LocalSettings.LoadDriverAttachAtStart()", app, StringComparison.Ordinal);
@@ -62,7 +62,7 @@ public class DriverAttachAtStartTests
         // Whichever way the window is closed, the program comes back out through Main: the pair it
         // put on the machine and the server it runs in itself are let go there rather than left
         // behind.
-        var program = File.ReadAllText(Path.Combine(Repository(), "WhaleGenie", "Program.cs"));
+        var program = File.ReadAllText(RepoPaths.Source("WhaleGenie", "Program.cs"));
 
         Assert.Contains(".Driver.Stop()", program, StringComparison.Ordinal);
     }
@@ -100,19 +100,5 @@ public class DriverAttachAtStartTests
             LocalSettings.FilePath = stored;
             Directory.Delete(folder, true);
         }
-    }
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

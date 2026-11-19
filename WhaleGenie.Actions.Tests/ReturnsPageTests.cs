@@ -331,7 +331,7 @@ private void CloseWindow(ExecutableStep step, int depth)
     /// </summary>
     private static IReadOnlyDictionary<string, RunnerLedger.Path> Ledger()
     {
-        var folder = Path.Combine(Repository(), "WhaleGenie.Core", "Execution");
+        var folder = RepoPaths.Source("WhaleGenie.Core", "Execution");
         var sources = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
             .Order(StringComparer.Ordinal)
             .Select(File.ReadAllText);
@@ -352,17 +352,4 @@ private void CloseWindow(ExecutableStep step, int depth)
             ["name"] = Formula.Text(name),
         },
     };
-
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }

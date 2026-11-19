@@ -38,7 +38,7 @@ public class HelpMenuTests
         // link spells out, so both halves are checked: where the link points, and that the file is
         // there.
         Assert.Equal(ProjectLinks.Home + "/blob/master/docs/manual.md", ProjectLinks.Manual);
-        Assert.True(File.Exists(Path.Combine(Repository(), "docs", "manual.md")),
+        Assert.True(File.Exists(RepoPaths.Docs("manual.md")),
             "the manual the Get started item opens is not in the repository");
     }
 
@@ -67,7 +67,7 @@ public class HelpMenuTests
         }
 
         // 打包脚本抄的是同一个位置，否则程序包里有手册也找不到。
-        var script = File.ReadAllText(Path.Combine(Repository(), "build", "package.ps1"));
+        var script = File.ReadAllText(RepoPaths.Path("build", "package.ps1"));
         Assert.Contains("doc\\manual.md", script, StringComparison.Ordinal);
         Assert.Contains("Join-Path $app 'doc'", script, StringComparison.Ordinal);
         Assert.Contains("..\\docs\\manual\\*.md", script, StringComparison.Ordinal);
@@ -95,19 +95,5 @@ public class HelpMenuTests
         Assert.DoesNotContain("Name=\"HelpButton\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Name=\"ThemeButton\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Name=\"AlwaysOnTopButton\"", xaml, StringComparison.Ordinal);
-    }
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

@@ -17,7 +17,7 @@ public partial class ActionContractTests
     [Fact]
     public void Every_parameter_declares_the_shape_it_accepts()
     {
-        var path = Path.Combine(Repository(), "WhaleGenie.Core", "Execution", "ActionSemantics.json");
+        var path = RepoPaths.Source("WhaleGenie.Core", "Execution", "ActionSemantics.json");
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         string[] forms = ["Text", "Run", "Value", "Name"];
         var missing = new List<string>();

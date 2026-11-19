@@ -13,7 +13,7 @@ public class SiteTests
     [Fact]
     public void The_introduction_page_only_names_assets_the_site_has()
     {
-        var root = Repository();
+        var root = RepoPaths.Root;
         var html = File.ReadAllText(Path.Combine(root, "site", "index.html"));
         var vibe = File.ReadAllText(Path.Combine(root, "site", "vibe", "index.html"));
         var wanted = Regex.Matches(html + vibe, "(?:src|href)=\"(?:\\.\\./)?assets/([^\"]+)\"")
@@ -28,11 +28,11 @@ public class SiteTests
         // committed a second time; only the files the site itself creates live under site/assets.
         var borrowed = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["logo.png"] = Path.Combine("WhaleGenie", "Assets", "WhaleGenie.png"),
-            ["donate-wechat.png"] = Path.Combine("WhaleGenie", "Assets", "DonateWeChat.png"),
-            ["donate-alipay.png"] = Path.Combine("WhaleGenie", "Assets", "DonateAlipay.png"),
-            ["main-window.png"] = Path.Combine("docs", "images", "main-window.png"),
-            ["macro-editor.png"] = Path.Combine("docs", "images", "macro-editor.png"),
+            ["logo.png"] = RepoPaths.Source("WhaleGenie", "Assets", "WhaleGenie.png"),
+            ["donate-wechat.png"] = RepoPaths.Source("WhaleGenie", "Assets", "DonateWeChat.png"),
+            ["donate-alipay.png"] = RepoPaths.Source("WhaleGenie", "Assets", "DonateAlipay.png"),
+            ["main-window.png"] = RepoPaths.Docs("images", "main-window.png"),
+            ["macro-editor.png"] = RepoPaths.Docs("images", "macro-editor.png"),
         };
 
         foreach (var name in wanted)
@@ -43,14 +43,14 @@ public class SiteTests
             }
 
             Assert.True(borrowed.TryGetValue(name, out var source), $"{name} has no source");
-            Assert.True(File.Exists(Path.Combine(root, source!)), $"{source} is missing");
+            Assert.True(File.Exists(source!), $"{source} is missing");
         }
     }
 
     [Fact]
     public void The_short_video_and_its_cover_are_real_files()
     {
-        var root = Repository();
+        var root = RepoPaths.Root;
         var video = Path.Combine(root, "site", "assets", "whalegenie-vibe.mp4");
         var bytes = File.ReadAllBytes(video);
 
@@ -66,9 +66,9 @@ public class SiteTests
     [Fact]
     public void Pages_publishes_the_folder_the_build_script_assembles()
     {
-        var root = Repository();
+        var root = RepoPaths.Root;
         var workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "pages.yml"));
-        var script = File.ReadAllText(Path.Combine(root, "build", "site.ps1"));
+        var script = File.ReadAllText(RepoPaths.Path("build", "site.ps1"));
 
         Assert.Contains("build/site.ps1", workflow, StringComparison.Ordinal);
         Assert.Contains("path: _site", workflow, StringComparison.Ordinal);
@@ -85,21 +85,7 @@ public class SiteTests
     [Fact]
     public void The_readme_points_at_the_published_introduction()
     {
-        var readme = File.ReadAllText(Path.Combine(Repository(), "README.md"));
+        var readme = File.ReadAllText(RepoPaths.Path("README.md"));
         Assert.Contains("https://ilpoint.github.io/WhaleGenie/", readme, StringComparison.Ordinal);
-    }
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
     }
 }

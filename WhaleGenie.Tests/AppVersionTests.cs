@@ -34,7 +34,7 @@ public class AppVersionTests
             {
                 if (WrittenVersion.IsMatch(line))
                 {
-                    offenders.Add($"{Path.GetRelativePath(Repository(), file)}: {line.Trim()}");
+                    offenders.Add($"{Path.GetRelativePath(RepoPaths.Root, file)}: {line.Trim()}");
                 }
             }
         }
@@ -48,7 +48,7 @@ public class AppVersionTests
 
     /// <summary>Every source file of the program the user runs.</summary>
     private static IEnumerable<string> Sources()
-        => Directory.EnumerateFiles(Path.Combine(Repository(), "WhaleGenie"), "*.*",
+        => Directory.EnumerateFiles(RepoPaths.Source("WhaleGenie"), "*.*",
                 SearchOption.AllDirectories)
             .Where(file => file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                            || file.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
@@ -60,18 +60,4 @@ public class AppVersionTests
                            // read as three-part numbers, and the set's own version is in its
                            // comment. Neither is the program's version.
                            && !file.EndsWith("AppIcons.cs", StringComparison.OrdinalIgnoreCase));
-
-    /// <summary>The repository root, found by walking up from the test binaries.</summary>
-    private static string Repository()
-    {
-        for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
-        {
-            if (File.Exists(Path.Combine(at.FullName, "WhaleGenie.slnx")))
-            {
-                return at.FullName;
-            }
-        }
-
-        throw new InvalidOperationException("WhaleGenie.slnx was not found above the test binaries.");
-    }
 }
