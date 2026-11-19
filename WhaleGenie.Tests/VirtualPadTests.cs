@@ -128,6 +128,44 @@ public class VirtualPadTests
         });
     }
 
+    /// <summary>
+    /// The keyboard's one action is not a key: "done" ends the picking, while every cap writes a
+    /// name. It sits where a dialog's actions sit — under the keys, at the right edge — so it is
+    /// not read as another cap and does not scroll away with the keys.
+    /// </summary>
+    [Fact]
+    public void The_done_button_sits_under_the_keys_at_the_right_edge()
+    {
+        Ui.Run(() =>
+        {
+            var window = new VirtualKeyboardWindow();
+            var caps = Controls(window);
+
+            var done = window.GetVisualDescendants().OfType<Button>()
+                .Single(button => button.Name == "DoneButton");
+            Assert.Null(done.Tag);
+
+            var at = done.TranslatePoint(default, window);
+            Assert.NotNull(at);
+            var box = new Rect(at!.Value, done.Bounds.Size);
+
+            // Below every cap and clear of them: an action inside the key area is one more key.
+            var lowest = caps
+                .Select(cap => cap.TranslatePoint(default, window)!.Value.Y + cap.Bounds.Height)
+                .Max();
+            Assert.True(box.Y >= lowest,
+                $"the done button starts at {box.Y:0}, the lowest key ends at {lowest:0}");
+
+            var size = window.ClientSize;
+            Assert.InRange(size.Width - box.Right, 8, 24);
+            Assert.InRange(size.Height - box.Bottom, 4, 24);
+
+            Click(done);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(window.IsVisible);
+        });
+    }
+
     /// <summary>The empty space between the right edge of one cap and the left edge of another.</summary>
     private static double GapAfter(List<Button> caps, string left, string right, Visual window)
     {

@@ -6,26 +6,17 @@
         xmlns:views="using:WhaleGenie.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="556"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="572"
         x:Class="WhaleGenie.Views.VirtualKeyboardWindow"
         Title="WhaleGenie"
-        Width="1024" Height="556"
-        MinWidth="1000" MinHeight="506"
+        Width="1024" Height="572"
+        MinWidth="1000" MinHeight="519"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceWindow}">
 
-    <Grid RowDefinitions="38,*">
+    <Grid RowDefinitions="*,Auto">
 
-        <!-- 标题栏归库（`FAAppWindow`），这行只剩键盘自己的动作钮。 -->
-        <Grid Grid.Row="0" Background="{DynamicResource SurfaceChrome}" ColumnDefinitions="*,Auto">
-            <!-- The keyboard stays up while a combination is built, so it needs a word for
-                 "this is the combination I meant", which is not the same as closing it away. -->
-            <Button Grid.Column="1" Classes="Chrome Labeled" Name="DoneButton" Margin="8,0"
-                    VerticalAlignment="Center"
-                    Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
-        </Grid>
-
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Auto">
             <StackPanel Margin="16,12,16,16" Spacing="12" HorizontalAlignment="Center">
                 <!-- What the keys are being written into, and how the window is used. Both wrap
@@ -259,5 +250,16 @@
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
+
+        <!-- The keyboard stays up while a combination is built, so it needs a word for
+             "this is the combination I meant", which is not the same as closing it away. That
+             action is not a key, so it sits where a dialog's actions sit: under the keys, at the
+             right edge. It stays put while the keys scroll, which is what keeps the way out of the
+             picker findable in a window too small for the whole keyboard. -->
+        <Border Grid.Row="1" Padding="16,8" Background="{DynamicResource SurfaceChrome}"
+                BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderSubtle}">
+            <Button Name="DoneButton" Classes="Primary" MinWidth="92" HorizontalAlignment="Right"
+                    Content="{Binding [KeyPad.Done], Source={x:Static loc:Strings.Current}}" />
+        </Border>
     </Grid>
 </views:AppWindow>
