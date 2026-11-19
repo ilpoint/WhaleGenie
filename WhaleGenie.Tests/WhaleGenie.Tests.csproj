@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie\WhaleGenie.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie\WhaleGenie.csproj" />
     <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
   </ItemGroup>
 

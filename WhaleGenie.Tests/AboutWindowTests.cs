@@ -117,8 +117,8 @@ public class AboutWindowTests
         Assert.Contains("## 打赏支持", readme, StringComparison.Ordinal);
         Assert.Contains("WhaleGenie（鲸灵）是完全免费的开源项目。", readme, StringComparison.Ordinal);
         Assert.Contains("请🐋吃白饭🍚", readme, StringComparison.Ordinal);
-        Assert.Contains("WhaleGenie/Assets/DonateWeChat.png", readme, StringComparison.Ordinal);
-        Assert.Contains("WhaleGenie/Assets/DonateAlipay.png", readme, StringComparison.Ordinal);
+        Assert.Contains("src/WhaleGenie/Assets/DonateWeChat.png", readme, StringComparison.Ordinal);
+        Assert.Contains("src/WhaleGenie/Assets/DonateAlipay.png", readme, StringComparison.Ordinal);
 
         Assert.True(File.Exists(RepoPaths.Source("WhaleGenie", "Assets", "DonateWeChat.png")));
         Assert.True(File.Exists(RepoPaths.Source("WhaleGenie", "Assets", "DonateAlipay.png")));

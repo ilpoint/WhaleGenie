@@ -22,10 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie.App\WhaleGenie.App.csproj" />
-    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
-    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
-    <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.App\WhaleGenie.App.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
     <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
   </ItemGroup>
 

@@ -81,15 +81,15 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 留在界面工程，因为它依赖窗口。
 
 `WhaleGenie.Mcp` 不引用界面工程。直接控制、运行宏和读运行日志这三类工具留在
-`WhaleGenie.App/Mcp/`，由 `AppServices` 作为 tool owner 注入 `McpServerHost`；协议与草稿本身
+`src/WhaleGenie.App/Mcp/`，由 `AppServices` 作为 tool owner 注入 `McpServerHost`；协议与草稿本身
 因此可以脱离窗口编译和测试。
 `--mcp` 在 Avalonia 之前分派：窗口化运行由界面工程注册 Avalonia 的调度器与窗口让位，无窗口运行
 注册直接调度器与“没有窗口可让”的实现，因此无界面服务不启动界面框架。`WhaleGenie.Domain` 同样不
 引用 Avalonia：位图转换在 `Assets/BitmapImages`，崩溃快照写入在 `Storage/RecoveryWriter`，两者都
 留在界面工程。
 
-宏文件模型与工程文档状态位于 `WhaleGenie.Domain/Models/`（`ProjectWorkspace` 持有宏、触发入口、
-共享变量、包路径与修订号），包读写位于 `WhaleGenie.Domain/Storage/`，文案位于
+宏文件模型与工程文档状态位于 `src/WhaleGenie.Domain/Models/`（`ProjectWorkspace` 持有宏、触发入口、
+共享变量、包路径与修订号），包读写位于 `src/WhaleGenie.Domain/Storage/`，文案位于
 `WhaleGenie.Localization/`。这些类型不与界面工程一起编译，模型本身也不读取控件状态；
 `MainViewModel` 只做转发。
 

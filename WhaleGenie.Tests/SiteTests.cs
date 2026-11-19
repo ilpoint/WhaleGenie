@@ -78,8 +78,8 @@ public class SiteTests
         // The screenshots and the logo stay in the places the rest of the repository already reads.
         Assert.Contains("docs/images/main-window.png", script, StringComparison.Ordinal);
         Assert.Contains("docs/images/macro-editor.png", script, StringComparison.Ordinal);
-        Assert.Contains("WhaleGenie/Assets/WhaleGenie.png", script, StringComparison.Ordinal);
-        Assert.Contains("WhaleGenie/Assets/DonateWeChat.png", script, StringComparison.Ordinal);
+        Assert.Contains("src/WhaleGenie/Assets/WhaleGenie.png", script, StringComparison.Ordinal);
+        Assert.Contains("src/WhaleGenie/Assets/DonateWeChat.png", script, StringComparison.Ordinal);
     }
 
     [Fact]

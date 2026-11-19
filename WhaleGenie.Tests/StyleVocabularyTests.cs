@@ -36,8 +36,7 @@ public class StyleVocabularyTests
     [Fact]
     public void The_vocabulary_matches_the_registry()
     {
-        var header = File.ReadAllText(Path.Combine(
-            RepoPaths.Root, "WhaleGenie", "Themes", "Controls.axaml"));
+        var header = File.ReadAllText(RepoPaths.Source("WhaleGenie", "Themes", "Controls.axaml"));
 
         var declared = Regex.Matches(header, @"^\s*(?:STATE|VARIANT)\s+(\S+)\s*$", RegexOptions.Multiline)
             .Select(match => match.Groups[1].Value)

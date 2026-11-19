@@ -2,7 +2,7 @@
 
 本文件是 WhaleGenie（鲸灵）全部界面的视觉契约。它回答“应该长什么样、什么算完成”，不记录实现
 历史，也不复制令牌值。实现结构与资源分层见 [docs/architecture/interface.md](docs/architecture/interface.md)，
-具体颜色、字号、间距与圆角值以 [Tokens.axaml](WhaleGenie/Themes/Tokens.axaml) 为准；自定义强调色由
+具体颜色、字号、间距与圆角值以 [Tokens.axaml](src/WhaleGenie/Themes/Tokens.axaml) 为准；自定义强调色由
 `ThemePalette` 在运行时派生并覆盖这组强调令牌，是唯一的例外。
 
 本文件对照 FluentAvalonia 3.1.0 的 [FluentAvaloniaTheme](https://amwx.github.io/FluentAvaloniaDocs/pages/FATheme)、
@@ -13,7 +13,7 @@
 
 ## 1. 契约与优先级
 
-- **视觉意图与规则以本文件为准**；值以 `WhaleGenie/Themes/` 下的令牌与样式为准；实现结构以架构文档为准。
+- **视觉意图与规则以本文件为准**；值以 `src/WhaleGenie/Themes/` 下的令牌与样式为准；实现结构以架构文档为准。
 - 优先级从高到低：本文件的规则 → 项目令牌与控件样式 → FluentAvalonia/Avalonia 的默认外观。
 - 库的默认值是底座，不是契约。库默认与项目令牌冲突时，修项目实现，不用库默认覆盖契约。
 - `avalonia-docs` MCP 只解释 Avalonia/FluentAvalonia 的 API、控件和属性；它不能替代本文件，也不能

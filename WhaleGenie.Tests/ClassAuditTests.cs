@@ -43,7 +43,7 @@ public partial class ClassAuditTests
 
     /// <summary>
     /// The audit is only worth its runtime if it read the windows. Every scan below walks
-    /// `WhaleGenie/Views`; a scan pointed at a folder that no longer holds them — a move, a rename,
+    /// `src/WhaleGenie/Views`; a scan pointed at a folder that no longer holds them — a move, a rename,
     /// a second folder — finds nothing and reports nothing, which reads exactly like a clean bill.
     /// </summary>
     [Fact]

@@ -89,8 +89,8 @@ WhaleGenie（鲸灵）是完全免费的开源项目。如果你觉得它对你�
 
 <table>
   <tr>
-    <td align="center"><img src="WhaleGenie/Assets/DonateWeChat.png" alt="微信打赏码" width="220"></td>
-    <td align="center"><img src="WhaleGenie/Assets/DonateAlipay.png" alt="支付宝打赏码" width="220"></td>
+    <td align="center"><img src="src/WhaleGenie/Assets/DonateWeChat.png" alt="微信打赏码" width="220"></td>
+    <td align="center"><img src="src/WhaleGenie/Assets/DonateAlipay.png" alt="支付宝打赏码" width="220"></td>
   </tr>
   <tr>
     <td align="center">微信</td>

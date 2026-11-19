@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
-    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
     <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
   </ItemGroup>
 

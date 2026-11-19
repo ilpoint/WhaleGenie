@@ -27,8 +27,8 @@ $env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
 dotnet test WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
 Remove-Item Env:ACTION_MATRIX_REPORT
 
-dotnet run --project WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md
-dotnet run --project WhaleGenie -c Release -- --mcp
+dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md
+dotnet run --project src/WhaleGenie -c Release -- --mcp
 ```
 
 报告属于本机验证产物，不提交到仓库。MCP 服务使用标准输入输出，不监听网络端口；权限来自

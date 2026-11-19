@@ -24,7 +24,7 @@ https://github.com/Alia5/VIIPER/releases/download/v0.9.0/viiper-libVIIPER-window
 
 `libVIIPER.dll` 与上游的 `licenses.txt`（打包时抄成 `libVIIPER-LICENSES.txt`）随程序一起发；
 `libVIIPER.h` 只是给改这个仓库的人看的：它写着 DLL 交出来的每一个函数与结构体的形状，
-`WhaleGenie.Core/Devices/Platform/LibViiper.cs` 里的声明照它抄。许可与它自己的说明见仓库根目录的
+`src/WhaleGenie.Core/Devices/Platform/LibViiper.cs` 里的声明照它抄。许可与它自己的说明见仓库根目录的
 `THIRD-PARTY-NOTICES.md`。
 
 ## 怎么升级

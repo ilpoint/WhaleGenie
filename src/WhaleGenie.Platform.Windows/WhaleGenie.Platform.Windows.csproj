@@ -42,7 +42,7 @@
       驱动级输入的原生库。虚拟 USB 的服务端装在这个进程里，不是另一个程序；它只有 Windows
       这一份，来自上游 v0.9.0 的发行包，见 third_party/libVIIPER/README.md。
     -->
-    <None Include="..\third_party\libVIIPER\libVIIPER.dll" Link="libVIIPER.dll"
+    <None Include="..\..\third_party\libVIIPER\libVIIPER.dll" Link="libVIIPER.dll"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

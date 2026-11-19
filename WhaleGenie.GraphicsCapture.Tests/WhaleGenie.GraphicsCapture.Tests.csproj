@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
+    <ProjectReference Include="..\src\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

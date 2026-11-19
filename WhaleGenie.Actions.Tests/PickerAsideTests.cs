@@ -364,7 +364,7 @@ public class PickerAsideTests
         return window;
     }
 
-    /// <summary>The source of one file under WhaleGenie/Views.</summary>
+    /// <summary>The source of one file under src/WhaleGenie/Views.</summary>
     /// <summary>
     /// A view's code, read across all its partial files, so a check about what it awaits keeps
     /// working when the window is split further.

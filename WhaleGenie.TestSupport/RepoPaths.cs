@@ -11,10 +11,10 @@ namespace WhaleGenie.TestSupport;
 public static class RepoPaths
 {
     /// <summary>
-    /// The folder the product projects are filed under. Empty while they sit at the root; the
-    /// layout change sets it to `src` in the same commit that moves them, and nothing else moves.
+    /// The folder the product projects are filed under. A folder stays empty while its projects sit
+    /// at the root, so filing them elsewhere is a change to this file and not to every check.
     /// </summary>
-    private const string SourceFolder = "";
+    private const string SourceFolder = "src";
 
     /// <summary>The folder the suites are filed under, empty until they leave the root.</summary>
     private const string TestsFolder = "";
