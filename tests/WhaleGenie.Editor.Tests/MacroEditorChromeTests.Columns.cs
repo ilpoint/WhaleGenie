@@ -299,18 +299,20 @@ public partial class MacroEditorChromeTests
 
 
     /// <summary>
-    /// 默认 1024 宽时三列正好放得下，中间那一列不必横向滚动。最窄 720 时列不压窄，整条
-    /// 内容横向滚动；右栏仍在滚动范围里，不会被窗口裁掉——「保存」「运行调试」还是找得到。
+    /// 默认 1024 宽时三列正好放得下：动作库 280、文档 344、右栏 360，加两条 6 像素分隔条是 996，
+    /// 两侧再各留 14。窗口最窄就定在这条线上，所以列不会为了塞进更窄的窗口而互相挤压，也没有
+    /// 可横向滚动的余量；再宽出来的部分由中间那一列吸收，右栏仍是 360，「保存」「运行调试」
+    /// 固定在右下，不会被裁掉。
     /// </summary>
     [Fact]
-    public void The_editor_opens_at_1024_and_scrolls_the_columns_instead_of_squeezing_them_at_720()
+    public void The_editor_opens_at_1024_and_keeps_the_three_columns_whole_at_its_narrowest()
     {
         Ui.Run(() =>
         {
             var macro = new MacroItem { Name = "probe" };
             var window = new MacroEditorWindow(macro, [macro]);
             Assert.Equal(1024, window.Width);
-            Assert.Equal(720, window.MinWidth);
+            Assert.Equal(1024, window.MinWidth);
 
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -321,20 +323,14 @@ public partial class MacroEditorChromeTests
             var document = window.FindControl<MacroDocumentView>("MacroDocument")!;
             var drawer = window.FindControl<Border>("MacroSettingsDrawer")!;
 
+            // 最窄的窗口就是三列本身加两侧留白：列不用压窄，也没有可滚的宽度。
             Assert.InRange(window.ClientSize.Width, 1023.5, 1024.5);
+            Assert.InRange(columns.Bounds.Width, 995.5, 996.5);
             Assert.InRange(palette.Bounds.Width, 279.5, 280.5);
             Assert.InRange(document.Bounds.Width, 343.5, 344.5);
             Assert.InRange(drawer.Bounds.Width, 359.5, 360.5);
             Assert.True(scroll.Extent.Width <= scroll.Viewport.Width + 0.5,
-                $"the editor scrolls at its default size: {scroll.Extent.Width} in {scroll.Viewport.Width}");
-
-            window.Width = 720;
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.InRange(window.ClientSize.Width, 719.5, 720.5);
-            Assert.InRange(columns.Bounds.Width, 995.5, 996.5);
-            Assert.True(scroll.Extent.Width > scroll.Viewport.Width + 0.5,
-                "the columns are wider than the window and have to scroll");
+                $"the editor scrolls at its narrowest: {scroll.Extent.Width} in {scroll.Viewport.Width}");
 
             var right = drawer.TranslatePoint(new Point(drawer.Bounds.Width, 0), columns);
             Assert.NotNull(right);
@@ -346,6 +342,8 @@ public partial class MacroEditorChromeTests
             Dispatcher.UIThread.RunJobs();
 
             Assert.InRange(columns.Bounds.Width, 1457.5, 1458.5);
+            Assert.InRange(document.Bounds.Width, 805.5, 806.5);
+            Assert.InRange(drawer.Bounds.Width, 359.5, 360.5);
             Assert.True(scroll.Extent.Width <= scroll.Viewport.Width + 0.5,
                 "a wide editor has nothing to scroll");
 
