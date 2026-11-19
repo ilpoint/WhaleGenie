@@ -78,7 +78,7 @@ Windows 10 2004 是 Graphics Capture 的最低要求。更早的系统会退回�
 | [docs/manual.md](docs/manual.md) | 使用程序：宏包格式、拾取器、落点与落手、返回值、运行与调试、画面获取、CSV 与程序文件位置 |
 | [docs/dev.md](docs/dev.md) | 修改仓库的入口：环境与依赖、动作修改、字段命名、测试、验收、性能与发布 |
 | [DESIGN.md](DESIGN.md) | 界面视觉契约：视觉基调、令牌角色、窗口框架与视觉验收 |
-| [docs/architecture.md](docs/architecture.md) | 整体结构：四个工程与依赖方向、一次操作的路径、各子系统、有意的取舍、已知债务与建议顺序 |
+| [docs/architecture.md](docs/architecture.md) | 整体结构：产品与测试工程的划分与依赖方向、一次操作的路径、各子系统、有意的取舍、已知债务与建议顺序 |
 | [docs/roadmap.md](docs/roadmap.md) | 后续计划：未完成阶段、可并行的零散项、明确不做的范围 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与图标出处 |
 | [项目介绍页](https://ilpoint.github.io/WhaleGenie/) | 功能概览、界面预览与 24 秒介绍短片 |

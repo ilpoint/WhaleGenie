@@ -39,6 +39,9 @@ WhaleGenie
                                         Windows 画面获取、选路、会话缓存、矩形落位
 ```
 
+工程目录（`src/`、`tests/`）只决定文件位置：工程名、程序集名、根命名空间与 `avares://` 地址都不
+随目录变化，所以搬动工程是一次路径与声明的调整，不是一次改名。
+
 `WhaleGenie.App` 引用 Mcp、Domain、Localization、Core 与 Platform.Windows，不引用 Avalonia；界面
 工程只引用 `WhaleGenie.App`，没有任何产品工程反向引用它。Mcp 与 Domain 都引用 Localization 和
 Core；Localization 只引用 Core；Platform 引用 Core 与 GraphicsCapture。
