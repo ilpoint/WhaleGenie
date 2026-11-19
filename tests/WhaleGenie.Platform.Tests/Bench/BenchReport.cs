@@ -22,7 +22,7 @@ internal static class BenchReport
         text.AppendLine($"生成时间：{at.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}；"
             + $"动作 {cells.Count} 个。");
         text.AppendLine();
-        text.AppendLine("这份文件由 `WhaleGenie.Core.Tests/Bench` 生成，不是手写的。每个动作都按目录声明合成一步，");
+        text.AppendLine("这份文件由 `tests/WhaleGenie.Core.Tests/Bench` 生成，不是手写的。每个动作都按目录声明合成一步，");
         text.AppendLine("在替身设备层上跑一遍，然后核四件事：返回值是否写出来且形状对、副作用声明是否与设备账本一致、");
         text.AppendLine("结局是否符合预期、有没有参数根本给不出值。改前改后各留一份，数字对不上就是代码变了。");
         text.AppendLine();

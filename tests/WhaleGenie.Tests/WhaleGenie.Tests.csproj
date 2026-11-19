@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
@@ -13,11 +14,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie\WhaleGenie.csproj" />
+    <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- The steps and the pretend desktop every application-side check builds its world from. -->
+    <Using Include="WhaleGenie.TestSupport" />
+    <Using Include="WhaleGenie.Tests.Support" />
   </ItemGroup>
 
 </Project>

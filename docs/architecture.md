@@ -90,7 +90,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 
 宏文件模型与工程文档状态位于 `src/WhaleGenie.Domain/Models/`（`ProjectWorkspace` 持有宏、触发入口、
 共享变量、包路径与修订号），包读写位于 `src/WhaleGenie.Domain/Storage/`，文案位于
-`WhaleGenie.Localization/`。这些类型不与界面工程一起编译，模型本身也不读取控件状态；
+`src/WhaleGenie.Localization/`。这些类型不与界面工程一起编译，模型本身也不读取控件状态；
 `MainViewModel` 只做转发。
 
 `WhaleGenie` 通过 Core 的传递引用使用 `CaptureWay` 等画面获取类型，Core 的屏幕契约也公开

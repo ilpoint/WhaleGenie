@@ -8,7 +8,7 @@
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
 dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
-dotnet run --project WhaleGenie
+dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
 
@@ -24,7 +24,7 @@ pwsh build/site.ps1
 
 ```powershell
 $env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
-dotnet test WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+dotnet test tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
 Remove-Item Env:ACTION_MATRIX_REPORT
 
 dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md

@@ -16,8 +16,8 @@ public static class RepoPaths
     /// </summary>
     private const string SourceFolder = "src";
 
-    /// <summary>The folder the suites are filed under, empty until they leave the root.</summary>
-    private const string TestsFolder = "";
+    /// <summary>The folder the suites are filed under.</summary>
+    private const string TestsFolder = "tests";
 
     /// <summary>The checkout root: the folder that holds <c>WhaleGenie.slnx</c>.</summary>
     public static string Root { get; } = Find();

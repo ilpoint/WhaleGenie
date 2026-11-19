@@ -3,8 +3,6 @@
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
-
-
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,14 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
-    <ProjectReference Include="..\src\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
-    <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
-    <Using Include="WhaleGenie.TestSupport" />
   </ItemGroup>
 
 </Project>

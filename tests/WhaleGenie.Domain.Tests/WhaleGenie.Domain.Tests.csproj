@@ -19,10 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\WhaleGenie.App\WhaleGenie.App.csproj" />
-    <ProjectReference Include="..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
-    <ProjectReference Include="..\src\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
-    <ProjectReference Include="..\src\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.App\WhaleGenie.App.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
   </ItemGroup>
 

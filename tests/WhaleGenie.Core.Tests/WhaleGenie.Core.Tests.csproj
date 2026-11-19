@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
     <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
   </ItemGroup>
 
