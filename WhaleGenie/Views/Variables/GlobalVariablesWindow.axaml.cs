@@ -63,6 +63,7 @@ public partial class GlobalVariablesWindow : AppWindow
         _viewModel.FocusRequested += FocusProblemField;
         _viewModel.DefaultExpressionRequested += OnDefaultExpression;
         DataContext = _viewModel;
+        FieldLabelColumn.Follow(this, _viewModel);
         if (initialName is { Length: > 0 })
         {
             _viewModel.SelectNamed(initialName);

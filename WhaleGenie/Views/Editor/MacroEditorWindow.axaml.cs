@@ -152,6 +152,8 @@ public partial class MacroEditorWindow : AppWindow
         _settings = this.FindControl<MacroSettingsView>("MacroSettings")!;
         _document = this.FindControl<MacroDocumentView>("MacroDocument")!;
         _recording = this.FindControl<MacroRecordingView>("MacroRecording")!;
+        _columns = this.FindControl<Grid>("EditorColumns");
+        SizeChanged += (_, _) => FollowColumnsWidth();
 
         _session = new MacroEditorSession(existing,
             [.. project ?? (existing is null ? [] : [existing])],
