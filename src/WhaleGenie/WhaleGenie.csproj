@@ -1,0 +1,117 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!--
+      程序叫什么由项目文件的名字决定（WhaleGenie），所以这里只管图标：资源管理器、任务栏和
+      窗口左上角那枚鲸鱼。
+    -->
+    <ApplicationIcon>Assets\WhaleGenie.ico</ApplicationIcon>
+    <!--
+      便携包只让用户看到一个 exe：托管的程序集收进单文件，原生库留在 exe 旁边、由发布目标
+      收进 lib（Windows 与许多原生库都按文件名找它们，放进单文件再解压到临时目录既慢又难找）。
+      RuntimeIdentifier 由 dotnet publish -r 给出，所以这条只在发布时生效：开发和测试仍然
+      用展开的目录，断点、热重载与测试资源都不受影响。
+    -->
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != ''">true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <!--
+      发布包不带调试符号。托管程序集自己的 pdb 由 DebugType 关掉；Skia 与 HarfBuzz 的原生
+      库还各带一份比程序还大的 pdb，目标在 ComputeFilesToPublish 之后统一从发布清单里摘掉。
+    -->
+    <DebugType Condition="'$(Configuration)' == 'Release'">None</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+    <!--
+      程序的界面只有英文与简体中文两种，代码分析器（脚本编译）却给二十多种语言各带一份卫星
+      资源。只留程序真正会显示的那一份：英文在主程序集里，中文是 zh-Hans。
+    -->
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <Target Name="DropPublishSymbols" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
+    <!-- SkiaSharp 与 HarfBuzzSharp 把原生库的 pdb 当作内容文件抄进发布目录，属性关不掉。 -->
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish-&gt;WithMetadataValue('Extension', '.pdb'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="MoveNativeLibrariesIntoLib" AfterTargets="Publish" Condition="'$(PublishSingleFile)' == 'true'">
+    <!--
+      单文件发布之后发布目录里剩下的 dll 全是原生库。Windows 与这些库自己都按文件名找它们，
+      exe 启动时会把 lib 交给 Windows 的查找路径，所以直接发布也得到和便携包一样的形状。
+    -->
+    <ItemGroup>
+      <_PublishedNativeLibrary Include="$(PublishDir)*.dll" />
+    </ItemGroup>
+    <MakeDir Directories="$(PublishDir)lib" />
+    <Move SourceFiles="@(_PublishedNativeLibrary)" DestinationFolder="$(PublishDir)lib" Condition="'@(_PublishedNativeLibrary)' != ''" />
+  </Target>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+    <!--
+      "关于"窗口要能显示第三方说明，发行包里也要求它跟着 exe 走。同一份文件链接进来，不抄
+      第二遍：程序里显示的、仓库里放的就永远是同一段文字。
+    -->
+    <AvaloniaResource Include="..\..\THIRD-PARTY-NOTICES.md" Link="Assets\THIRD-PARTY-NOTICES.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The interface builds the container the window and its tools come from; the server, its
+      transport and the tools themselves live in WhaleGenie.App, which is why no MCP package is
+      named here.
+    -->
+    <PackageReference Include="Avalonia.Controls.DataGrid" />
+    <PackageReference Include="FluentAvaloniaUI" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Controls.ColorPicker" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+    <!--
+      界面自省，只在 Debug 还原：agent 通过 loopback 的 MCP 看视觉树、布局与截图，用来核对对齐、
+      裁字与遮挡。这一包会带进 ASP.NET Core 那一套，所以 Release 干脆不还原它——发布物里既没有
+      这些程序集，也没有额外的框架引用。
+    -->
+    <PackageReference Include="Declarative.Avalonia.AgentTools"
+                      Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Lucide.Avalonia" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.App\WhaleGenie.App.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The interface tests look at the view models and the trigger matching directly. -->
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
+  </ItemGroup>
+
+  <!--
+    界面都是 XAML，不靠声明式视图工厂创建。AgentTools 带进来的生成器按类声明逐个注册视图，
+    窗口拆成分部类后会重复生成同名 hintName 而报 CS8785；编译前移除它，运行时仍保留自省通道。
+  -->
+  <Target Name="DropDeclarativeViewFactoryGenerator" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)"
+                Condition="'%(Filename)' == 'Avalonia.Markup.Declarative.SourceGenerator'" />
+    </ItemGroup>
+  </Target>
+</Project>

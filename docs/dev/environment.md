@@ -8,7 +8,7 @@
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
 dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
-dotnet run --project WhaleGenie
+dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
 
@@ -24,11 +24,11 @@ pwsh build/site.ps1
 
 ```powershell
 $env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
-dotnet test WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+dotnet test tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
 Remove-Item Env:ACTION_MATRIX_REPORT
 
-dotnet run --project WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md
-dotnet run --project WhaleGenie -c Release -- --mcp
+dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md
+dotnet run --project src/WhaleGenie -c Release -- --mcp
 ```
 
 报告属于本机验证产物，不提交到仓库。MCP 服务使用标准输入输出，不监听网络端口；权限来自
@@ -55,6 +55,13 @@ GitHub Copilot 的 Agent 工具列表里应出现它。`.vscode/` 按 `.gitignor
 0（全部通过）、1（有失败）、2（参数错误）、3（无法通信）、4（子进程无法启动）。
 
 ## 工程结构
+
+仓库根只放仓库级文件：解决方案、`Directory.Build.props`、`Directory.Packages.props`、
+`global.json`、`.editorconfig`、脚本与文档。8 个产品工程在 `src/`，8 个测试工程与两个支持库在
+`tests/`。目录只决定文件放在哪：工程名、程序集名、根命名空间与 `avares://` 地址都不随目录变化。
+所有 NuGet 包版本集中在根上的 `Directory.Packages.props`（中央包管理）；工程文件里的
+`PackageReference` 只写 `Include` 和它真正的条件（仅在 Debug 还原、`IncludeAssets`/`PrivateAssets`），
+不写 `Version`。
 
 | 项目 | 职责 |
 | --- | --- |

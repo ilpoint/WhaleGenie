@@ -7,7 +7,7 @@
 | 层 | 位置 | 验证范围 |
 | --- | --- | --- |
 | 引擎逻辑 | `WhaleGenie.Core.Tests` | 动作行为、变量、表达式、设备请求、返回形状和输入路由 |
-| 动作矩阵 | `WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
+| 动作矩阵 | `tests/WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用、矩形越界与图片落位 |
 | 文档与运行期服务 | `WhaleGenie.Domain.Tests` | 包往返、设计期检查、变量、触发器、运行日志与单实例；不开窗口 |
 | 协议与工具 | `WhaleGenie.Mcp.Tests` | 工具清单、拒绝码、审计、命令行与容器生命周期；不经窗口 |

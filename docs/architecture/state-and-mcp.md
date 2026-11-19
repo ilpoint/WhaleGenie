@@ -26,7 +26,7 @@
 菜单呼出键与系统总开关属于当前机器的 `LocalSettings`，切换项目不改变它们。父宏与内嵌子宏保存在
 同一宏文档中；公共宏拖入项目时复制内容并固定来源版本，不随后续库更新。
 
-工程文档状态由 `WhaleGenie.Domain/Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号与
+工程文档状态由 `src/WhaleGenie.Domain/Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号与
 `Changed` 事件都在这一处更新。`MainViewModel` 只保留窗口自己的搜索、分组、视图与系统开关，并把
 文档属性和方法转发给绑定；编辑器与 `RunFactory` 仍通过它取文档。`McpLiveProject` 实现
 `Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与资源只依赖这个接口，不依赖窗口模型。
