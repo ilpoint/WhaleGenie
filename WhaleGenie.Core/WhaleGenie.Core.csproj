@@ -9,7 +9,7 @@
       The engine reads and writes CSV files itself: a table step is about the data, not about the
       machine, so the parser stays here rather than moving down with the Windows adapters.
     -->
-    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="CsvHelper" />
     <!--
       The key vocabulary is the one exception: a macro names keys, and the engine has to turn those
       names into the codes the hook sends. That table is spelled in SharpHook's own enum today, so

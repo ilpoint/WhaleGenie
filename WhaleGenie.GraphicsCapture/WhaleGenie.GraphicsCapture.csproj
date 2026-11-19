@@ -10,8 +10,8 @@
       native is shipped. Windows Graphics Capture itself needs no package: the type library for it
       comes from the Windows version in the target framework.
     -->
-    <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
-    <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
+    <PackageReference Include="Vortice.Direct3D11" />
+    <PackageReference Include="Vortice.DXGI" />
   </ItemGroup>
 
   <ItemGroup>

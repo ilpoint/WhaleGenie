@@ -11,18 +11,18 @@
     allowed to appear.
   -->
   <ItemGroup>
-    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <PackageReference Include="FlaUI.UIA3" />
     <!--
       C# scripts: compiled with Roslyn, then run in a process of this program's own. The packages
       below supply the compiler, the reference assemblies it needs, and the feed a script's own
       packages are fetched from.
     -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
-    <PackageReference Include="Microsoft.Playwright" Version="1.63.0" />
-    <PackageReference Include="NuGet.Frameworks" Version="7.9.0" />
-    <PackageReference Include="NuGet.Packaging" Version="7.9.0" />
-    <PackageReference Include="NuGet.Protocol" Version="7.9.0" />
-    <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="NuGet.Frameworks" />
+    <PackageReference Include="NuGet.Packaging" />
+    <PackageReference Include="NuGet.Protocol" />
+    <PackageReference Include="NuGet.Versioning" />
     <!--
       NuGet.Packaging 7.9.0 拖进来的是 System.Security.Cryptography.Pkcs 8.0.1，两条已公开的公告
       （CVE-2026-84008 高、CVE-2026-70162 中）都指着它，修在 8.0.2 以后；.NET 10 的 SDK 审计
@@ -30,11 +30,11 @@
       修好的那一个：程序目标框架是 net10.0-windows，这个程序集由 WindowsDesktop 共享框架提供，
       运行时加载的本来就是框架那一份。
     -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-    <PackageReference Include="OpenCvSharp5.Windows" Version="5.0.0.20260702" />
-    <PackageReference Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
-    <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
-    <PackageReference Include="SharpHook" Version="8.0.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="OpenCvSharp5.Windows" />
+    <PackageReference Include="Sdcb.SimdPaddleOCR" />
+    <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" />
+    <PackageReference Include="SharpHook" />
   </ItemGroup>
 
   <ItemGroup>

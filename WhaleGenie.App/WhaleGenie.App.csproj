@@ -7,8 +7,8 @@
     same code — and the tests for all three need no application to be started first.
   -->
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 
   <ItemGroup>
