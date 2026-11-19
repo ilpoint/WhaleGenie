@@ -46,7 +46,6 @@ public class TemplatePartTests
         ("Button", "Chrome Icon Pinned", "ContentPresenter"),
         ("Button", "Chrome Icon Quiet", "ContentPresenter"),
         ("Button", "Chrome Icon pinned", "ContentPresenter"),
-        ("Button", "Chrome Labeled", "ContentPresenter"),
         ("Button", "CopyButton", "ContentPresenter"),
         ("Button", "Field", "ContentPresenter"),
         ("Button", "Ghost", "ContentPresenter"),

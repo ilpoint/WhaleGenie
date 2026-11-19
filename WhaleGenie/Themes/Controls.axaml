@@ -381,8 +381,8 @@
     </Style>
 
     <!--
-      图标块与其余六类。三个是修饰型（`Chrome.Labeled` / `Ghost.Tiny` / `Tile` 的状态），用法是
-      类叠加（`Classes="Ghost Tiny"`），样式里只写与父类不同的那几格。
+      图标块与其余六类。修饰型（`Ghost.Tiny`）同样用类叠加写（`Classes="Ghost Tiny"`），
+      样式里只写与父类不同的那几格。
     -->
     <!--
       The plain button's states. The theme paints its own three from the `ButtonBackground*` keys,
@@ -462,16 +462,6 @@
     </Style>
     <Style Selector="Button.Chrome.Icon:pressed">
         <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-    </Style>
-
-    <!-- 标题栏上带一个词的动作钮：与 `Chrome` 同高，只是左右内边距宽一档。 -->
-    <Style Selector="Button.Chrome.Labeled">
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-    </Style>
-    <Style Selector="Button.Chrome.Labeled:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
 
     <!--
