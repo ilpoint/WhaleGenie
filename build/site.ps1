@@ -32,11 +32,12 @@ $assets = Join-Path $outputFull 'assets'
 New-Item -ItemType Directory -Path $assets -Force | Out-Null
 
 $copies = @(
-    @{ From = 'WhaleGenie/Assets/WhaleGenie.png'; To = 'logo.png' },
-    @{ From = 'WhaleGenie/Assets/DonateWeChat.png'; To = 'donate-wechat.png' },
-    @{ From = 'WhaleGenie/Assets/DonateAlipay.png'; To = 'donate-alipay.png' },
+    @{ From = 'src/WhaleGenie/Assets/WhaleGenie.png'; To = 'logo.png' },
+    @{ From = 'src/WhaleGenie/Assets/DonateWeChat.png'; To = 'donate-wechat.png' },
+    @{ From = 'src/WhaleGenie/Assets/DonateAlipay.png'; To = 'donate-alipay.png' },
     @{ From = 'docs/images/main-window.png'; To = 'main-window.png' },
-    @{ From = 'docs/images/macro-editor.png'; To = 'macro-editor.png' }
+    @{ From = 'docs/images/macro-editor.png'; To = 'macro-editor.png' },
+    @{ From = 'docs/images/interface-overview.png'; To = 'interface-overview.png' }
 )
 
 foreach ($copy in $copies) {
@@ -56,6 +57,7 @@ $required = @(
     'assets/logo.png',
     'assets/main-window.png',
     'assets/macro-editor.png',
+    'assets/interface-overview.png',
     'assets/donate-wechat.png',
     'assets/donate-alipay.png',
     'assets/whalegenie-vibe.mp4',

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The server as a client sees it: the tools it advertises, the words it refuses with, the audit it
+    writes, the command line that starts it, and the container it is built from. What is checked here
+    never opens a window, so it is not in the window suite; the checks that drive the server through
+    a window's project stay there, because that is what they are about.
+  -->
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WhaleGenie.App\WhaleGenie.App.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

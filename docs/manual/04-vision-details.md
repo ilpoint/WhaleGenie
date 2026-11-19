@@ -132,4 +132,4 @@
 搬走或删掉它们都不影响已经保存过的包。没有「图片」文件夹的机器（服务器、被精简过的用户配置）退回
 `%LOCALAPPDATA%\WhaleGenie\images`。
 同一个包再来一次还是同一个目录，两个同名的包各有各的，不会互相覆盖。路径的解析与截图落盘都在
-`WhaleGenie/Storage/ImageAssets.cs`。
+`src/WhaleGenie.Domain/Storage/ImageAssets.cs`。

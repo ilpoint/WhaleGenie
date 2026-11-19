@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    编辑器与步骤树：宏编辑窗、步骤树、变量墙、窗口规则与菜单。窗口套件里这些类建的是同一个编辑窗，搬到独立套件后各自一份无头会话，与其他套件并行跑。
+  -->
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WhaleGenie\WhaleGenie.csproj" />
+    <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="WhaleGenie.TestSupport" />
+    <Using Include="WhaleGenie.Tests.Support" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The harness is compiled into each suite rather than shared as a library: the headless session
+      belongs to the assembly that runs the checks, and a session borrowed from another assembly is
+      a session that tears down under the wrong one. One source file, one copy per suite.
+    -->
+    <Compile Include="..\WhaleGenie.Tests\TestApp.cs" Link="Support\TestApp.cs" />
+    <Compile Include="..\WhaleGenie.Tests\SharedState.cs" Link="Support\SharedState.cs" />
+    <Compile Include="..\WhaleGenie.Tests\Ui.cs" Link="Support\Ui.cs" />
+    <Compile Include="..\WhaleGenie.Tests\SettingsView.cs" Link="Support\SettingsView.cs" />
+    <Compile Include="..\WhaleGenie.Tests\VariableChoicesForChecks.cs" Link="Support\VariableChoicesForChecks.cs" />
+    <Compile Include="..\WhaleGenie.Tests\ManualDocument.cs" Link="Support\ManualDocument.cs" />
+    <Compile Include="..\WhaleGenie.Tests\RunnerLedger.cs" Link="Support\RunnerLedger.cs" />
+    <Compile Include="..\WhaleGenie.Tests\InterfaceLanguage.cs" Link="Support\InterfaceLanguage.cs" />
+  </ItemGroup>
+
+</Project>

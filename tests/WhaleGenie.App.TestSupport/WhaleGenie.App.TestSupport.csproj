@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The furniture the application-side suites share: the steps a check hands the engine, and a
+    desktop with whatever windows it asks for. It is a library rather than a test project so the
+    window suite and the document suite use one copy; nothing here starts a window or references
+    Avalonia, so the document suite can take it without the window toolkit.
+  -->
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <!-- A library of fakes has no [Fact]; without this the test platform would run it as a suite. -->
+    <IsTestProject>false</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The fakes are the suites' own furniture: both see inside them. -->
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Domain.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\WhaleGenie.App\WhaleGenie.App.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
+    <ProjectReference Include="..\WhaleGenie.TestSupport\WhaleGenie.TestSupport.csproj" />
+  </ItemGroup>
+
+</Project>

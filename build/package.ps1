@@ -45,7 +45,7 @@ if ($Version -notmatch '^\d+(\.\d+){0,3}(-[0-9A-Za-z.]+)?$') {
     throw "版本号 '$rawVersion' 不像版本号，写成 0.01 或 1.2.3 这样的数字。"
 }
 
-$project = Join-Path $PSScriptRoot '..\WhaleGenie\WhaleGenie.csproj'
+$project = Join-Path $PSScriptRoot '..\src\WhaleGenie\WhaleGenie.csproj'
 $OutDir = Join-Path $PWD $OutDir
 
 # 单文件发布把托管程序集收进 exe，发布目录里剩下的 dll 全是原生库。Windows 和这些库自己
@@ -114,7 +114,7 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     Copy-Item -Path (Join-Path $PSScriptRoot '..\third_party\libVIIPER\licenses.txt') `
         -Destination (Join-Path $app 'libVIIPER-LICENSES.txt')
 
-    # 手册也要跟着走：帮助菜单的「快速上手」打开的是包里的这一份（WhaleGenie/Execution/Manual.cs），
+    # 手册也要跟着走：帮助菜单的「快速上手」打开的是包里的这一份（src/WhaleGenie/Execution/Manual.cs），
     # 装好程序的人手上没有仓库可翻，也不一定有网。它按 exe 旁边的 doc\manual.md 找，路径别改。
     $packagedManual = Join-Path $app 'doc'
     [System.IO.Directory]::CreateDirectory($packagedManual) | Out-Null
