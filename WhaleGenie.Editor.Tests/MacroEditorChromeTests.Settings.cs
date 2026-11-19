@@ -77,8 +77,8 @@ public partial class MacroEditorChromeTests
                 < group.TranslatePoint(default, drawer)!.Value.Y);
             Assert.True(save.IsEffectivelyVisible);
             Assert.True(run.IsEffectivelyVisible);
-            Assert.DoesNotContain(save.GetVisualAncestors(), visual => visual is ScrollViewer);
-            Assert.DoesNotContain(run.GetVisualAncestors(), visual => visual is ScrollViewer);
+            Assert.False(InsideAPageScroller(save), "保存 is inside a page scroller");
+            Assert.False(InsideAPageScroller(run), "运行调试 is inside a page scroller");
 
             window.Close();
         });
@@ -106,9 +106,9 @@ public partial class MacroEditorChromeTests
             Assert.Equal(2, tabs.Count);
             Assert.Equal(["General", "Specific"],
                 tabs.Select(tab => (string)tab.Tag!).ToArray());
-            Assert.DoesNotContain(title.GetVisualAncestors(), visual => visual is ScrollViewer);
-            Assert.All(tabs, tab =>
-                Assert.DoesNotContain(tab.GetVisualAncestors(), visual => visual is ScrollViewer));
+            Assert.False(InsideAPageScroller(title), "the settings title is inside a page scroller");
+            Assert.All(tabs, tab => Assert.False(InsideAPageScroller(tab),
+                "a settings tab is inside a page scroller"));
 
             var name = window.FindControl<TextBox>("NameInput")!;
             Assert.True(title.TranslatePoint(default, drawer)!.Value.Y

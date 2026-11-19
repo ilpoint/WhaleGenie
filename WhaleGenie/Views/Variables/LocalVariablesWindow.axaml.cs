@@ -59,6 +59,7 @@ public partial class LocalVariablesWindow : AppWindow
         _viewModel.Cancelled += RequestClose;
         _viewModel.FocusRequested += FocusProblemField;
         DataContext = _viewModel;
+        FieldLabelColumn.Follow(this, _viewModel);
         if (initialName is { Length: > 0 })
         {
             _viewModel.Selected = _viewModel.Shown.FirstOrDefault(row =>

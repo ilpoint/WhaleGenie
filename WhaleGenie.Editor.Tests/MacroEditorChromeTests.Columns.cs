@@ -66,7 +66,7 @@ public partial class MacroEditorChromeTests
 
             Assert.Equal(4, items.Count);
             Assert.True(dock.Bounds.Width <= 280);
-            Assert.DoesNotContain(dock.GetVisualAncestors(), visual => visual is ScrollViewer);
+            Assert.False(InsideAPageScroller(dock), "the source dock sits in a page scroller");
 
             var widths = items.Select(item => item.Bounds.Width).ToList();
             Assert.All(widths, width => Assert.True(width > 0));
@@ -296,6 +296,73 @@ public partial class MacroEditorChromeTests
             }
         });
     }
+
+
+    /// <summary>
+    /// 默认 1024 宽时三列正好放得下，中间那一列不必横向滚动。最窄 720 时列不压窄，整条
+    /// 内容横向滚动；右栏仍在滚动范围里，不会被窗口裁掉——「保存」「运行调试」还是找得到。
+    /// </summary>
+    [Fact]
+    public void The_editor_opens_at_1024_and_scrolls_the_columns_instead_of_squeezing_them_at_720()
+    {
+        Ui.Run(() =>
+        {
+            var macro = new MacroItem { Name = "probe" };
+            var window = new MacroEditorWindow(macro, [macro]);
+            Assert.Equal(1024, window.Width);
+            Assert.Equal(720, window.MinWidth);
+
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+
+            var scroll = window.FindControl<ScrollViewer>("EditorScroll")!;
+            var columns = window.FindControl<Grid>("EditorColumns")!;
+            var palette = window.FindControl<ActionPaletteView>("ActionPalette")!;
+            var document = window.FindControl<MacroDocumentView>("MacroDocument")!;
+            var drawer = window.FindControl<Border>("MacroSettingsDrawer")!;
+
+            Assert.InRange(window.ClientSize.Width, 1023.5, 1024.5);
+            Assert.InRange(palette.Bounds.Width, 279.5, 280.5);
+            Assert.InRange(document.Bounds.Width, 343.5, 344.5);
+            Assert.InRange(drawer.Bounds.Width, 359.5, 360.5);
+            Assert.True(scroll.Extent.Width <= scroll.Viewport.Width + 0.5,
+                $"the editor scrolls at its default size: {scroll.Extent.Width} in {scroll.Viewport.Width}");
+
+            window.Width = 720;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.InRange(window.ClientSize.Width, 719.5, 720.5);
+            Assert.InRange(columns.Bounds.Width, 995.5, 996.5);
+            Assert.True(scroll.Extent.Width > scroll.Viewport.Width + 0.5,
+                "the columns are wider than the window and have to scroll");
+
+            var right = drawer.TranslatePoint(new Point(drawer.Bounds.Width, 0), columns);
+            Assert.NotNull(right);
+            Assert.True(right!.Value.X <= columns.Bounds.Width + 0.5,
+                $"the settings rail ends at {right.Value.X:0.#} outside {columns.Bounds.Width:0.#}");
+
+            // And wider than the three columns need, the middle one takes the spare room.
+            window.Width = 1486;
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.InRange(columns.Bounds.Width, 1457.5, 1458.5);
+            Assert.True(scroll.Extent.Width <= scroll.Viewport.Width + 0.5,
+                "a wide editor has nothing to scroll");
+
+            Ui.CloseAndAnswer(window);
+        });
+    }
+
+
+    /// <summary>
+    /// Whether a control sits inside a scrolling area of its own. The editor's three columns share
+    /// one horizontal strip, and every pane is inside it by design; what these checks guard is a
+    /// pane being put inside a second, vertical scroller that would carry its heading away with
+    /// the page.
+    /// </summary>
+    private static bool InsideAPageScroller(Visual visual) =>
+        visual.GetVisualAncestors().OfType<ScrollViewer>()
+            .Any(view => view.Name != "EditorScroll");
 
     private static IBrush? Label(ListBoxItem item)
         => item.GetVisualDescendants().OfType<TextBlock>().First().Foreground;

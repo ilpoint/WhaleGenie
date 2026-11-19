@@ -8,12 +8,12 @@
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="940" d:DesignHeight="760"
+        mc:Ignorable="d" d:DesignWidth="1024" d:DesignHeight="760"
         x:Class="WhaleGenie.Views.MacroEditorWindow"
         x:DataType="vm:MacroEditorViewModel"
         Title="Macro Editor"
-        Width="1486" Height="800"
-        MinWidth="1320" MinHeight="640"
+        Width="1024" Height="800"
+        MinWidth="1024" MinHeight="640"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceWindow}">
 
@@ -246,88 +246,100 @@
             </StackPanel>
         </Grid>
 
-        <Grid Grid.Row="1" Name="EditorColumns" Margin="14">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280" MinWidth="280" />
-                <!-- 列宽 = 分隔条的宽度（6）。**列比条宽的那部分会露出窗口底色**，
-                     看起来就是一条更粗的缝——条本身没问题，是列宽在管观感。 -->
-                <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="*" MinWidth="480" />
-                <ColumnDefinition Width="6" />
-                <ColumnDefinition Width="360" MinWidth="360" />
-            </Grid.ColumnDefinitions>
+        <!--
+          三列是定宽的：动作库 280、右栏 360，中间那一列吃掉剩下的宽度。窗口最窄 720 时
+          三列放不下，列不再压窄——整条内容横向滚动，右栏的「保存」「运行调试」仍在滚动
+          范围里，不会被窗口裁掉。
 
-            <!-- Left: the action library. -->
-            <Grid Grid.Column="0" Name="ActionLibraryColumn" RowDefinitions="*,Auto">
-                <views:ActionPaletteView Grid.Row="0" Name="ActionPalette" />
-                <Button Grid.Row="1" Classes="Secondary" Height="34" Margin="4,2,4,4"
-                        Click="OnShowRecording">
-                    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                        <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
-                        <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
-                                   VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-            </Grid>
+          `Width` 由窗口在尺寸变化时按可用宽度给出。横向滚动会以无限宽去量内容，不给宽度
+          的话星号列就变成按内容要宽，窗口比三列宽时右边会空出来。
+        -->
+        <ScrollViewer Grid.Row="1" Name="EditorScroll"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Disabled">
+            <Grid Name="EditorColumns" Margin="14" Width="996">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280" MinWidth="280" />
+                    <!-- 列宽 = 分隔条的宽度（6）。**列比条宽的那部分会露出窗口底色**，
+                         看起来就是一条更粗的缝——条本身没问题，是列宽在管观感。 -->
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition Width="*" MinWidth="344" />
+                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition Width="360" MinWidth="360" />
+                </Grid.ColumnDefinitions>
 
-            <Grid Grid.Column="4">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="2*" MinHeight="180" />
-                    <RowDefinition Height="8" />
-                    <RowDefinition Height="3*" MinHeight="240" />
-                </Grid.RowDefinitions>
-                <Border Grid.Row="0" Name="VariableCenterPanel"
-                        Background="{DynamicResource SurfacePanel}" CornerRadius="6"
-                        Padding="12,10,12,8">
-                    <Grid RowDefinitions="Auto,*">
-                        <!-- 两个按钮并排：这个宏自己的变量，与整个项目共享的变量。以前只有一个
-                             「管理全局变量」，局部变量只能靠右键一个个改。说明不再常驻一行——在这
-                             个 290 像素高的面板里它值三十像素，现在鼠标停在墙上方才出现。 -->
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,6">
-                            <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
-                                       FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
-                                       VerticalAlignment="Center" Margin="4,0,0,0" />
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
-                                        VerticalAlignment="Center">
-                                <Button Name="ManageLocalsButton" Classes="Secondary"
-                                        Height="28" Padding="10,0"
-                                        ToolTip.Tip="{Binding [Editor.ManageLocalsHint], Source={x:Static loc:Strings.Current}}"
-                                        Content="{Binding [Editor.ManageLocals], Source={x:Static loc:Strings.Current}}"
-                                        Click="OnManageLocals" />
-                                <Button Name="ManageGlobalsButton" Classes="Secondary"
-                                        Height="28" Padding="10,0"
-                                        ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
-                                        Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
-                                        Click="OnManageGlobals" />
-                            </StackPanel>
+                <!-- Left: the action library. -->
+                <Grid Grid.Column="0" Name="ActionLibraryColumn" RowDefinitions="*,Auto">
+                    <views:ActionPaletteView Grid.Row="0" Name="ActionPalette" />
+                    <Button Grid.Row="1" Classes="Secondary" Height="34" Margin="4,2,4,4"
+                            Click="OnShowRecording">
+                        <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+                            <views:IconView Width="14" Height="14" Stroke="{DynamicResource TextPrimary}" StrokeThickness="1.4" FitToBounds="True" Data="{x:Static vm:AppIcons.Record}" />
+                            <TextBlock Text="{Binding [Editor.RecordActions], Source={x:Static loc:Strings.Current}}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <Grid Grid.Column="4">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="2*" MinHeight="180" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="3*" MinHeight="240" />
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Name="VariableCenterPanel"
+                            Background="{DynamicResource SurfacePanel}" CornerRadius="6"
+                            Padding="12,10,12,8">
+                        <Grid RowDefinitions="Auto,*">
+                            <!-- 两个按钮并排：这个宏自己的变量，与整个项目共享的变量。以前只有一个
+                                 「管理全局变量」，局部变量只能靠右键一个个改。说明不再常驻一行——在这
+                                 个 290 像素高的面板里它值三十像素，现在鼠标停在墙上方才出现。 -->
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,6">
+                                <TextBlock Text="{Binding VariableCenter.Header}" FontSize="13"
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"
+                                           VerticalAlignment="Center" Margin="4,0,0,0" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                            VerticalAlignment="Center">
+                                    <Button Name="ManageLocalsButton" Classes="Secondary"
+                                            Height="28" Padding="10,0"
+                                            ToolTip.Tip="{Binding [Editor.ManageLocalsHint], Source={x:Static loc:Strings.Current}}"
+                                            Content="{Binding [Editor.ManageLocals], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnManageLocals" />
+                                    <Button Name="ManageGlobalsButton" Classes="Secondary"
+                                            Height="28" Padding="10,0"
+                                            ToolTip.Tip="{Binding [Editor.ManageGlobalsHint], Source={x:Static loc:Strings.Current}}"
+                                            Content="{Binding [Editor.ManageGlobals], Source={x:Static loc:Strings.Current}}"
+                                            Click="OnManageGlobals" />
+                                </StackPanel>
+                            </Grid>
+                            <views:VariableWall Grid.Row="1" Name="VariableCenterWall"
+                                                ToolTip.Tip="{Binding [Editor.VariableCenterHint], Source={x:Static loc:Strings.Current}}"
+                                                DataContext="{Binding VariableCenter.Wall}" />
                         </Grid>
-                        <views:VariableWall Grid.Row="1" Name="VariableCenterWall"
-                                            ToolTip.Tip="{Binding [Editor.VariableCenterHint], Source={x:Static loc:Strings.Current}}"
-                                            DataContext="{Binding VariableCenter.Wall}" />
-                    </Grid>
-                </Border>
+                    </Border>
 
-                <GridSplitter Grid.Row="1" Height="6" Classes="Split" Background="Transparent"
-                              ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
-                              Cursor="SizeNorthSouth" />
+                    <GridSplitter Grid.Row="1" Height="6" Classes="Split" Background="Transparent"
+                                  ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                  Cursor="SizeNorthSouth" />
 
-                <views:MacroSettingsView Grid.Row="2" Name="MacroSettings" />
+                    <views:MacroSettingsView Grid.Row="2" Name="MacroSettings" />
+                </Grid>
+
+                <!-- Middle: the step documents and their current list. -->
+                <views:MacroDocumentView Grid.Column="2" Name="MacroDocument" />
+
+                <GridSplitter Grid.Column="1" Width="6" Classes="Split" Background="Transparent"
+                              ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                              Cursor="SizeWestEast" />
+
+                <GridSplitter Grid.Column="3" Width="6" Classes="Split" Background="Transparent"
+                              ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                              Cursor="SizeWestEast" />
+
+                <views:MacroRecordingView Grid.Column="2" Name="MacroRecording" />
+
             </Grid>
-
-<!-- Middle: the step documents and their current list. -->
-            <views:MacroDocumentView Grid.Column="2" Name="MacroDocument" />
-
-            <GridSplitter Grid.Column="1" Width="6" Classes="Split" Background="Transparent"
-                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
-                          Cursor="SizeWestEast" />
-
-            <GridSplitter Grid.Column="3" Width="6" Classes="Split" Background="Transparent"
-                          ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
-                          Cursor="SizeWestEast" />
-
-            <views:MacroRecordingView Grid.Column="2" Name="MacroRecording" />
-
-        </Grid>
+        </ScrollViewer>
     </Grid>
 </views:AppWindow>
 

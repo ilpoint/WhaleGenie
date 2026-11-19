@@ -7,7 +7,7 @@
         x:Class="WhaleGenie.Views.GlobalVariablesWindow"
         x:DataType="vm:GlobalVariablesViewModel"
         Title="WhaleGenie"
-        Width="1040" Height="720" MinWidth="860" MinHeight="560"
+        Width="780" Height="540" MinWidth="720" MinHeight="480"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource SurfaceWindow}">
     <Window.KeyBindings>
@@ -119,20 +119,31 @@
                     </Grid>
                 </Grid>
 
-                <Border Grid.Column="2" Padding="16" CornerRadius="6"
+                <Border Grid.Column="2" Padding="16,16,4,16" CornerRadius="6"
                         Background="{DynamicResource SurfaceField}">
                     <Grid>
+                        <!-- 右侧只留滚动条的窄道：条贴在卡片边上，内容再让出 20 像素，
+                             输入框的右端不会被那条半透明的滚动条压住。 -->
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,0,20,0">
                             <StackPanel IsVisible="{Binding HasSelection}" Spacing="10">
                                 <TextBlock Classes="SectionLabel"
                                            Text="{Binding [GlobalVariables.Definition], Source={x:Static loc:Strings.Current}}" />
 
-                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
-                                    <TextBlock Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}"
+                                <!-- 一行一个字段：标签与框占同一行，说明和错误另起一行。标签的中线
+                                     对着框的中线，而不是对着"框 + 说明 + 错误"整块的中线——后者会让
+                                     标签在第一行说明换行时往下滑，看起来像在管下面那行字。
+                                     标签左对齐；96 只是打开前一帧的兜底，打开后由 FieldLabelColumn
+                                     按当前语言最宽的标签收紧。 -->
+                                <Grid ColumnDefinitions="96,*" ColumnSpacing="10"
+                                      RowDefinitions="Auto,Auto" RowSpacing="4">
+                                    <TextBlock Name="NameLabel" Classes="FieldName"
+                                               Text="{Binding [Variable.Name], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1" Spacing="4">
-                                        <TextBox Name="NameBox" Text="{Binding Editor.Name}" />
+                                    <TextBox Grid.Column="1" Name="NameBox"
+                                             Text="{Binding Editor.Name}" />
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
                                         <TextBlock Classes="Hint"
                                                    Text="{Binding [GlobalVariables.NameHint], Source={x:Static loc:Strings.Current}}" />
                                         <TextBlock Classes="FieldProblem"
@@ -141,10 +152,12 @@
                                     </StackPanel>
                                 </Grid>
 
-                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
-                                    <TextBlock Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}"
+                                <Grid ColumnDefinitions="96,*" ColumnSpacing="10">
+                                    <TextBlock Name="TypeLabel" Classes="FieldName"
+                                               Text="{Binding [Variable.Type], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
-                                    <ComboBox Grid.Column="1" ItemsSource="{Binding Editor.TypeOptions}"
+                                    <ComboBox Grid.Column="1" Name="TypeBox"
+                                              ItemsSource="{Binding Editor.TypeOptions}"
                                               SelectedItem="{Binding Editor.SelectedType}">
                                         <ComboBox.ItemTemplate>
                                             <DataTemplate x:DataType="models:ActionParameterOption">
@@ -154,21 +167,23 @@
                                     </ComboBox>
                                 </Grid>
 
-                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
-                                    <TextBlock Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
+                                <Grid ColumnDefinitions="96,*" ColumnSpacing="10"
+                                      RowDefinitions="Auto,Auto" RowSpacing="4">
+                                    <TextBlock Name="DefaultLabel" Classes="FieldName"
+                                               Text="{Binding [Variable.Default], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1" Spacing="4">
-                                        <TextBox Name="DefaultValueBox" Classes="HasChip"
-                                                 IsReadOnly="True"
-                                                 Text="{Binding Editor.DefaultValue}"
-                                                 PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}">
-                                            <TextBox.InnerRightContent>
-                                                <Button Classes="ValueChip"
-                                                        Command="{Binding BuildDefaultExpressionCommand}"
-                                                        Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
-                                                        ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
-                                            </TextBox.InnerRightContent>
-                                        </TextBox>
+                                    <TextBox Grid.Column="1" Name="DefaultValueBox" Classes="HasChip"
+                                             IsReadOnly="True"
+                                             Text="{Binding Editor.DefaultValue}"
+                                             PlaceholderText="{Binding [GlobalVariables.DefaultPlaceholder], Source={x:Static loc:Strings.Current}}">
+                                        <TextBox.InnerRightContent>
+                                            <Button Classes="ValueChip"
+                                                    Command="{Binding BuildDefaultExpressionCommand}"
+                                                    Content="{Binding [Add.Value], Source={x:Static loc:Strings.Current}}"
+                                                    ToolTip.Tip="{Binding [Add.ValueHint], Source={x:Static loc:Strings.Current}}" />
+                                        </TextBox.InnerRightContent>
+                                    </TextBox>
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
                                         <TextBlock Classes="Hint" Text="{Binding Editor.DefaultPreview}"
                                                    IsVisible="{Binding !Editor.HasDefaultProblem}" />
                                         <TextBlock Classes="FieldProblem" Text="{Binding Editor.DefaultProblem}"
@@ -178,23 +193,25 @@
 
                                 <!-- 当前值由运行写入，这里只读：设计期算不出运行期的值，装成能算的
                                      样子只会让人以为改了就生效。 -->
-                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
-                                    <TextBlock Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}"
+                                <Grid ColumnDefinitions="96,*" ColumnSpacing="10"
+                                      RowDefinitions="Auto,Auto" RowSpacing="4">
+                                    <TextBlock Name="ValueLabel" Classes="FieldName"
+                                               Text="{Binding [Variable.Value], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
-                                    <StackPanel Grid.Column="1" Spacing="4">
-                                        <SelectableTextBlock Name="CurrentValueBox"
-                                                             Text="{Binding Editor.CurrentValue}"
-                                                             FontFamily="Consolas" TextWrapping="Wrap"
-                                                             Foreground="{DynamicResource TextSecondary}" />
-                                        <TextBlock Classes="Hint" TextWrapping="Wrap"
-                                                   Text="{Binding [GlobalVariables.CurrentHint], Source={x:Static loc:Strings.Current}}" />
-                                    </StackPanel>
+                                    <SelectableTextBlock Grid.Column="1" Name="CurrentValueBox"
+                                                         Text="{Binding Editor.CurrentValue}"
+                                                         FontFamily="Consolas" TextWrapping="Wrap"
+                                                         Foreground="{DynamicResource TextSecondary}" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="Hint" TextWrapping="Wrap"
+                                               Text="{Binding [GlobalVariables.CurrentHint], Source={x:Static loc:Strings.Current}}" />
                                 </Grid>
 
-                                <Grid ColumnDefinitions="170,*" ColumnSpacing="10">
-                                    <TextBlock Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}"
+                                <Grid ColumnDefinitions="96,*" ColumnSpacing="10">
+                                    <TextBlock Name="DescriptionLabel" Classes="FieldName"
+                                               Text="{Binding [Variable.Description], Source={x:Static loc:Strings.Current}}"
                                                VerticalAlignment="Center" />
-                                    <TextBox Grid.Column="1" Text="{Binding Editor.Description}" />
+                                    <TextBox Grid.Column="1" Name="DescriptionBox"
+                                             Text="{Binding Editor.Description}" />
                                 </Grid>
 
                                 <CheckBox IsChecked="{Binding Editor.PersistValue}"
