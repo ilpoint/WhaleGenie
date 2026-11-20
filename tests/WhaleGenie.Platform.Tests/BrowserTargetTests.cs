@@ -23,6 +23,14 @@ public class BrowserTargetTests : IDisposable
     /// <summary>The name the profile of this check is kept under, which nothing else uses.</summary>
     private readonly string _profile = $"wg-test-{Guid.NewGuid():N}";
 
+    /// <summary>
+    /// How long a lookup may take. A runner with eight suites sharing a few cores can need more
+    /// than five seconds just to bring the browser up; the check is whether the page answers the
+    /// name, not whether the machine was quick about it. The same patience the picker is given
+    /// is enough here too.
+    /// </summary>
+    private const int PatienceMs = 15000;
+
     public BrowserTargetTests() => Directory.CreateDirectory(_site);
 
     public void Dispose()
@@ -54,14 +62,14 @@ public class BrowserTargetTests : IDisposable
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         // The first way of naming the element is the one used when it finds anything at all.
-        device.Click(PageTarget.Of("#a\n#b", 1), ClickWay.Single, false, 5000);
-        Assert.Equal("a", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of("#a\n#b", 1), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("a", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
         // A page that has been redesigned is met by a second line: the first selector is not there
         // any more and the step goes on working.
-        var used = device.Click(PageTarget.Of("#gone\n#b", 1), ClickWay.Single, false, 5000);
+        var used = device.Click(PageTarget.Of("#gone\n#b", 1), ClickWay.Single, false, PatienceMs);
         Assert.Equal("#b", used);
-        Assert.Equal("b", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        Assert.Equal("b", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
     }
 
     [RealBrowserFact]
@@ -75,13 +83,13 @@ public class BrowserTargetTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
-        device.Click(PageTarget.Of(".row", 2), ClickWay.Single, false, 5000);
-        Assert.Equal("2", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of(".row", 2), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("2", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
         // More matches than the page holds is the same answer as finding nothing, and it says which
         // of the two it was: the page holds elements of that name, just not that many of them.
         var missing = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of(".row", 4), ClickWay.Single, false, 5000));
+            () => device.Click(PageTarget.Of(".row", 4), ClickWay.Single, false, PatienceMs));
         Assert.Equal("Run.BrowserTooFew", missing.Key);
         Assert.Contains(".row", missing.Detail, StringComparison.Ordinal);
     }
@@ -106,16 +114,16 @@ public class BrowserTargetTests : IDisposable
 
         // Three buttons on the page say the same thing and two of them are named the same way: the
         // text a step asks for is what tells the second of those two from the first.
-        device.Click(PageTarget.Of(".act", 2, [Text("确定")]), ClickWay.Single, false, 5000);
-        Assert.Equal("3", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of(".act", 2, [Text("确定")]), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("3", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
         // The same question the other way round, and a container the element has to sit in: two
         // buttons of one name, only one of them inside the left half of the page.
-        device.Click(PageTarget.Of(".act", 1, [TextNot("确定")]), ClickWay.Single, false, 5000);
-        Assert.Equal("2", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of(".act", 1, [TextNot("确定")]), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("2", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
-        device.Click(PageTarget.Of(".ok", 1, [Inside("#right")]), ClickWay.Single, false, 5000);
-        Assert.Equal("R", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of(".ok", 1, [Inside("#right")]), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("R", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
         // An element the found one holds, and one it does not: the first two cards say the same
         // words, and the badge is the only thing telling them apart.
@@ -127,21 +135,21 @@ public class BrowserTargetTests : IDisposable
         // what turns two elements of one name into the one a person is looking at.
         Assert.Equal(2, device.Matches(".item", []));
         Assert.Equal(1, device.Matches(".item", [new PageCondition(PageFilter.Visible, string.Empty)]));
-        device.Click(PageTarget.Of(".item", 1, [Seen()]), ClickWay.Single, false, 5000);
-        Assert.Equal("S", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of(".item", 1, [Seen()]), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("S", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
         // A condition that says nothing is not one the engine can put to the page, and it says so
         // rather than quietly acting on whichever element came first.
         var refused = Assert.Throws<DeviceActionException>(
             () => device.Click(PageTarget.Of(".act", 1, [Text(string.Empty)]), ClickWay.Single,
-                false, 5000));
+                false, PatienceMs));
         Assert.Equal("Run.BrowserBadFilter", refused.Key);
 
         // A step narrowed down to nothing says what it was asking for: a failure naming only the
         // selector would send the person reading it after the wrong half of the step.
         var narrowed = Assert.Throws<DeviceActionException>(
             () => device.Click(PageTarget.Of(".act", 1, [Text("取消"), TextNot("取消")]),
-                ClickWay.Single, false, 5000));
+                ClickWay.Single, false, PatienceMs));
         Assert.Equal("Run.BrowserNotFound", narrowed.Key);
         Assert.Contains("HasText=取消", narrowed.Detail, StringComparison.Ordinal);
         Assert.Contains("HasNotText=取消", narrowed.Detail, StringComparison.Ordinal);
@@ -174,7 +182,7 @@ public class BrowserTargetTests : IDisposable
         device.Open("edge", Address(), headless: true, profile: string.Empty);
 
         var missing = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("#first\n#second", 1), ClickWay.Single, false, 5000));
+            () => device.Click(PageTarget.Of("#first\n#second", 1), ClickWay.Single, false, PatienceMs));
 
         Assert.Equal("Run.BrowserNotFound", missing.Key);
         Assert.Contains("#first", missing.Detail, StringComparison.Ordinal);
@@ -182,7 +190,7 @@ public class BrowserTargetTests : IDisposable
 
         // A step with nothing to look for says so rather than waiting its clock out.
         var empty = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("  \n", 1), ClickWay.Single, false, 5000));
+            () => device.Click(PageTarget.Of("  \n", 1), ClickWay.Single, false, PatienceMs));
         Assert.Equal("Run.BrowserNoSelector", empty.Key);
     }
 
@@ -219,17 +227,17 @@ public class BrowserTargetTests : IDisposable
         using var device = new PlaywrightBrowserDevice();
 
         device.Open("edge", Address(), headless: true, profile: _profile);
-        Assert.Equal("empty", device.Text(At("#seen"), PagePart.Text, string.Empty, 5000).Trim());
+        Assert.Equal("empty", device.Text(At("#seen"), PagePart.Text, string.Empty, PatienceMs).Trim());
         device.Close();
 
         // Opened on the same profile, the browser comes back to what the site remembers.
         device.Open("edge", Address(), headless: true, profile: _profile);
-        Assert.Equal("here", device.Text(At("#seen"), PagePart.Text, string.Empty, 5000).Trim());
+        Assert.Equal("here", device.Text(At("#seen"), PagePart.Text, string.Empty, PatienceMs).Trim());
         device.Close();
 
         // Opened on none, it is a browser that remembers nothing, which is the default.
         device.Open("edge", Address(), headless: true, profile: string.Empty);
-        Assert.Equal("empty", device.Text(At("#seen"), PagePart.Text, string.Empty, 5000).Trim());
+        Assert.Equal("empty", device.Text(At("#seen"), PagePart.Text, string.Empty, PatienceMs).Trim());
 
         // A name a folder cannot have is refused before anything is started.
         var bad = Assert.Throws<DeviceActionException>(
@@ -302,8 +310,8 @@ public class BrowserTargetTests : IDisposable
         Assert.Contains("#host", path, StringComparison.Ordinal);
         Assert.Equal(1, device.Matches(path));
 
-        device.Click(PageTarget.Of(path, 1), ClickWay.Single, false, 5000);
-        Assert.Equal("deep", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of(path, 1), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("deep", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
     }
 
     [RealBrowserFact]
@@ -317,23 +325,23 @@ public class BrowserTargetTests : IDisposable
 
         // The words beside the box are how a person names a field, and they are asked of the page
         // rather than read as a selector: nothing about the markup has to line up with them.
-        device.Fill(PageTarget.Of("label=用户名", 1), "报告", FillWay.Fill, 0, 5000);
+        device.Fill(PageTarget.Of("label=用户名", 1), "报告", FillWay.Fill, 0, PatienceMs);
         Assert.Equal("报告", device.InPage("() => document.getElementById('user').value"));
 
         // The words match anywhere in the name with case and spacing set aside, which is what the
         // question Playwright asks means when no exactness is asked for.
         Assert.Equal(1, device.Matches("label=用户"));
-        device.Fill(PageTarget.Of("label=用户", 1), "再填一次", FillWay.Fill, 0, 5000);
+        device.Fill(PageTarget.Of("label=用户", 1), "再填一次", FillWay.Fill, 0, PatienceMs);
         Assert.Equal("再填一次", device.InPage("() => document.getElementById('user').value"));
 
         // The grey hint inside a box names it too, and a name that only one box answers is one hit.
         Assert.Equal(1, device.Matches("placeholder=邮箱"));
-        device.Fill(PageTarget.Of("placeholder=邮箱", 1), "a@b", FillWay.Fill, 0, 5000);
+        device.Fill(PageTarget.Of("placeholder=邮箱", 1), "a@b", FillWay.Fill, 0, PatienceMs);
         Assert.Equal("a@b", device.InPage("() => document.getElementById('mail').value"));
 
         // A line that names a way but not the words is a line that names nothing.
         var empty = Assert.Throws<DeviceActionException>(
-            () => device.Click(PageTarget.Of("label=", 1), ClickWay.Single, false, 5000));
+            () => device.Click(PageTarget.Of("label=", 1), ClickWay.Single, false, PatienceMs));
         Assert.Equal("Run.BrowserNoSelector", empty.Key);
     }
 
@@ -354,8 +362,8 @@ public class BrowserTargetTests : IDisposable
         Assert.Equal(1, device.Matches("title=保存到文件"));
         Assert.Equal(0, device.Matches("alt=别的东西"));
 
-        device.Click(PageTarget.Of("title=保存到文件", 1), ClickWay.Single, false, 5000);
-        Assert.Equal("saved", device.Text(At("#log"), PagePart.Text, string.Empty, 5000).Trim());
+        device.Click(PageTarget.Of("title=保存到文件", 1), ClickWay.Single, false, PatienceMs);
+        Assert.Equal("saved", device.Text(At("#log"), PagePart.Text, string.Empty, PatienceMs).Trim());
     }
 
     [RealBrowserFact]
@@ -373,7 +381,7 @@ public class BrowserTargetTests : IDisposable
         var inside = "frame=#pay >> label=卡号";
         Assert.Equal(1, device.Matches(inside));
 
-        device.Fill(PageTarget.Of(inside, 1), "1234", FillWay.Fill, 0, 5000);
+        device.Fill(PageTarget.Of(inside, 1), "1234", FillWay.Fill, 0, PatienceMs);
         Assert.Equal("1234", device.EvaluateIn("inner", "() => document.getElementById('card').value"));
 
         // The same way in is what a pick leaves behind: what a person pointed at inside a frame is
