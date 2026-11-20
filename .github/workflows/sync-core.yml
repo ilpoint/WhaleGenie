@@ -69,16 +69,14 @@ jobs:
         if: steps.pull.outputs.changed == 'true'
         run: dotnet build WhaleGenie.slnx -c Release --no-restore
 
+      - name: Test
+        # 也是真门禁：GITHUB_TOKEN 推的提交不会再触发 ci.yml，推之前必须自己把八套件跑一遍。
+        # 依赖真实设备的用例缺东西就跳过（AutoHotkey、Python、浏览器、真 NuGet），预算也按
+        # 八套件并行的 runner 放宽过，所以这里的红不是环境噪声。
+        if: steps.pull.outputs.changed == 'true'
+        run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore
+
       - name: Push the merge
-        # 推在测试之前，是因为 GITHUB_TOKEN 推的提交不会再触发 ci.yml，而八套件里有几套在托管
-        # runner 上本来就过不去（单实例要交互桌面、脚本宿主连 nuget.org、动作矩阵吃满 CPU 时
-        # 会超时）——拿它们当门禁，库就永远同步不进来。真正的行为验证留给下面的报告与库仓自己的 CI。
         if: steps.pull.outputs.changed == 'true'
         shell: bash
         run: git push origin "HEAD:${{ github.ref_name }}"
-
-      - name: Test (report only)
-        # 失败只标红这一步，不影响已经推上去的合并。要看结论就看这一步的日志。
-        if: steps.pull.outputs.changed == 'true'
-        continue-on-error: true
-        run: dotnet test WhaleGenie.slnx -c Release --no-build --no-restore
