@@ -18,7 +18,8 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
   共用的组合根都在这里，界面工程只在它上面补窗口与主 ViewModel。
 - 除 `App.axaml.cs`、`Program.cs` 与 `SharedDevices.cs` 承担的组合、入口分派和生命周期职责外，
   界面与应用两层不直接引用第三方设备库或 `WhaleGenie.Platform.Windows`；设备能力通过 Core 契约取得。
-- `WhaleGenie.GraphicsCapture` 只取得屏幕像素，不识别宏、动作或界面概念。
+- `WhaleGenie.GraphicsCapture` 只取得屏幕像素：读哪里、用哪种抓法由 Core 的设备契约说明；它不识别
+  宏、动作或界面概念，Core 也不引用它。
 - 编辑态与运行态分离；MCP 写入先进入草稿，权限、审计和界面桥接留在应用层。
 - 具体依赖方向、组合根和例外由架构文档说明，`LayeringTests` 负责检查。
 

@@ -10,21 +10,6 @@
       machine, so the parser stays here rather than moving down with the Windows adapters.
     -->
     <PackageReference Include="CsvHelper" />
-    <!--
-      The key vocabulary is the one exception: a macro names keys, and the engine has to turn those
-      names into the codes the hook sends. That table is spelled in SharpHook's own enum today, so
-      the enum — not the hook — comes with it. Replacing it with a Core-owned code table is the
-      next step; then this reference goes too.
-    -->
-  </ItemGroup>
-
-  <ItemGroup>
-    <!--
-      Taking a picture of the screen: the ways Windows hands pixels over, and which of them to reach
-      for. The engine says what it is looking at; what the machine can do with that is that project's
-      business, which is what keeps Direct3D and DXGI out of the engine.
-    -->
-    <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
   </ItemGroup>
 
   <ItemGroup>

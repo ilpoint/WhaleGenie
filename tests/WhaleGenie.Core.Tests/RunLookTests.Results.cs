@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 
 
 namespace WhaleGenie.Core.Tests;

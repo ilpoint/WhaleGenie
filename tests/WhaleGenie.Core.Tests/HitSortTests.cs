@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Tests;
 

@@ -15,6 +15,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      What is being read, which ways exist and how the desktop is laid out are the engine's
+      contract, not this project's: those shapes live in WhaleGenie.Core.Devices so that a headless
+      run, the editor and this project all name the same rectangle. What stays here is the part that
+      only Windows can answer.
+    -->
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The checks read the session cache and the ways a picture is taken out of the library. -->
     <InternalsVisibleTo Include="WhaleGenie.GraphicsCapture.Tests" />
   </ItemGroup>

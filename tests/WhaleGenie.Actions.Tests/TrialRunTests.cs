@@ -192,8 +192,8 @@ public class TrialRunTests
     /// <summary>A screen with a picture on it wide enough to search, and a picture of it to hand.</summary>
     private sealed class ScreenForChecks : IScreenDevice
     {
-        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 120, 40),
-            [new ScreenDisplay(new ScreenArea(0, 0, 120, 40), true)]);
+        public ScreenLayout Desktop { get; } = new(new ScreenRect(0, 0, 120, 40),
+            [new ScreenDisplay(new ScreenRect(0, 0, 120, 40), true)]);
 
         public ScreenPoint Cursor => default;
 

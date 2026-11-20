@@ -374,8 +374,8 @@ internal static class ActionBench
         devices.Clipboard.Picture = new ImageFrame(8, 8, new byte[8 * 8 * 4]);
         devices.Processes.Command = new CommandResult(0, "bench", string.Empty);
 
-        devices.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, 1920, 1080),
-            [new ScreenDisplay(new ScreenArea(0, 0, 1920, 1080), true)]);
+        devices.Screen.Desktop = new ScreenLayout(new ScreenRect(0, 0, 1920, 1080),
+            [new ScreenDisplay(new ScreenRect(0, 0, 1920, 1080), true)]);
 
         devices.Files.Store[BenchFixtures.TextFile] = "bench";
         devices.Files.Store[BenchFixtures.OtherTextFile] = "bench";

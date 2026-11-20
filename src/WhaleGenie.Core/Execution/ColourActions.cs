@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 

@@ -132,7 +132,7 @@ internal sealed class DesktopDuplicator : IDisposable
             using (output)
             {
                 var places = output.Description.DesktopCoordinates;
-                var area = new ScreenArea(places.Left, places.Top, places.Right - places.Left,
+                var area = new ScreenRect(places.Left, places.Top, places.Right - places.Left,
                     places.Bottom - places.Top);
                 if (area.IsEmpty)
                 {
@@ -184,7 +184,7 @@ internal sealed class DesktopDuplicator : IDisposable
             CaptureWay.DesktopDuplication);
 
     /// <summary>The display read this way, out of the ones the adapter listed.</summary>
-    private Output OutputFor(ScreenArea area)
+    private Output OutputFor(ScreenRect area)
         => _outputs.Find(output => output.Area == area)
             ?? throw new EmptyRegionException($"{area.Left},{area.Top} is not a display any more");
 
@@ -276,12 +276,12 @@ internal sealed class DesktopDuplicator : IDisposable
     /// is duplicated the first time it is read and kept while it lives, so a macro looking at the
     /// same display over and over is handed the picture the card is already giving.
     /// </summary>
-    private sealed class Output(ScreenArea area, IDXGIOutput1 direct) : IDisposable
+    private sealed class Output(ScreenRect area, IDXGIOutput1 direct) : IDisposable
     {
         private IDXGIOutputDuplication? _duplication;
         private ID3D11Texture2D? _staging;
 
-        public ScreenArea Area { get; } = area;
+        public ScreenRect Area { get; } = area;
 
         /// <summary>The whole of the display as it was last read.</summary>
         public byte[]? Whole { get; private set; }

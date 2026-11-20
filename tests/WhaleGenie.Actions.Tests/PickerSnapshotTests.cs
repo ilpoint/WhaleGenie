@@ -112,8 +112,8 @@ public class PickerSnapshotTests
         public int Shots => _shots;
 
         public ScreenLayout Desktop { get; } = new(
-            new ScreenArea(0, 0, 64, 64),
-            [new ScreenDisplay(new ScreenArea(0, 0, 64, 64), true)]);
+            new ScreenRect(0, 0, 64, 64),
+            [new ScreenDisplay(new ScreenRect(0, 0, 64, 64), true)]);
 
         public ScreenPoint Cursor { get; set; }
 

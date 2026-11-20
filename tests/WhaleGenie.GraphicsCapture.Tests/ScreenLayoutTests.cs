@@ -1,3 +1,5 @@
+using WhaleGenie.Core.Devices;
+
 namespace WhaleGenie.GraphicsCapture.Tests;
 
 /// <summary>
@@ -9,15 +11,15 @@ namespace WhaleGenie.GraphicsCapture.Tests;
 public class ScreenLayoutTests
 {
     /// <summary>The usual two 1920×1080 displays side by side, the second one to the right.</summary>
-    private static readonly ScreenArea Left = new(0, 0, 1920, 1080);
-    private static readonly ScreenArea Right = new(1920, 0, 1920, 1080);
+    private static readonly ScreenRect Left = new(0, 0, 1920, 1080);
+    private static readonly ScreenRect Right = new(1920, 0, 1920, 1080);
 
-    private static readonly ScreenLayout SideBySide = new(new ScreenArea(0, 0, 3840, 1080),
+    private static readonly ScreenLayout SideBySide = new(new ScreenRect(0, 0, 3840, 1080),
         [new ScreenDisplay(Left, true), new ScreenDisplay(Right, false)]);
 
     /// <summary>A second display to the left of the primary one, which is where the negative numbers start.</summary>
-    private static readonly ScreenLayout LeftOfCentre = new(new ScreenArea(-1920, 0, 3840, 1080),
-        [new ScreenDisplay(Left, true), new ScreenDisplay(new ScreenArea(-1920, 0, 1920, 1080), false)]);
+    private static readonly ScreenLayout LeftOfCentre = new(new ScreenRect(-1920, 0, 3840, 1080),
+        [new ScreenDisplay(Left, true), new ScreenDisplay(new ScreenRect(-1920, 0, 1920, 1080), false)]);
 
     [Fact]
     public void A_rectangle_on_one_display_is_one_piece()
@@ -66,7 +68,7 @@ public class ScreenLayoutTests
         var pieces = ScreenPlacement.Pieces(LeftOfCentre, -100, 5, 50, 10);
 
         var piece = Assert.Single(pieces);
-        Assert.Equal(new ScreenArea(-1920, 0, 1920, 1080), piece.Display);
+        Assert.Equal(new ScreenRect(-1920, 0, 1920, 1080), piece.Display);
         Assert.Equal((1820, 5, 0, 0, 50, 10),
             (piece.SourceX, piece.SourceY, piece.ToX, piece.ToY, piece.Width, piece.Height));
     }
@@ -75,8 +77,8 @@ public class ScreenLayoutTests
     [Fact]
     public void One_display_is_still_one_piece()
     {
-        var alone = new ScreenLayout(new ScreenArea(0, 0, 2560, 1440),
-            [new ScreenDisplay(new ScreenArea(0, 0, 2560, 1440), true)]);
+        var alone = new ScreenLayout(new ScreenRect(0, 0, 2560, 1440),
+            [new ScreenDisplay(new ScreenRect(0, 0, 2560, 1440), true)]);
 
         var piece = Assert.Single(ScreenPlacement.Pieces(alone, 0, 0, 2560, 1440));
         Assert.Equal((0, 0, 0, 0, 2560, 1440),

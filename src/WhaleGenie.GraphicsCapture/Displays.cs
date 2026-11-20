@@ -1,52 +1,13 @@
 using System.Runtime.InteropServices;
+using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.GraphicsCapture;
 
 /// <summary>
-/// One rectangle of the desktop, in the coordinates the desktop is laid out in: what is to the left
-/// of the primary display, or above it, is counted in negative numbers, which is the same thing a
-/// mouse position and a macro's own coordinates are written in.
-/// </summary>
-public readonly record struct ScreenArea(int Left, int Top, int Width, int Height)
-{
-    /// <summary>One past the right-hand edge.</summary>
-    public int Right => Left + Width;
-
-    /// <summary>One past the bottom edge.</summary>
-    public int Bottom => Top + Height;
-
-    /// <summary>True for a rectangle with nothing in it.</summary>
-    public bool IsEmpty => Width <= 0 || Height <= 0;
-
-    /// <summary>Whether a point is inside.</summary>
-    public bool Holds(int x, int y) => x >= Left && x < Right && y >= Top && y < Bottom;
-}
-
-/// <summary>One display, as Windows lays the desktop out.</summary>
-public sealed record ScreenDisplay(ScreenArea Bounds, bool Primary);
-
-/// <summary>
-/// The desktop as Windows lays it out: one rectangle covering every display, which is what "the
-/// whole screen" means, and the displays it is made of. More than one display is a desktop wider or
-/// taller than any single one of them, and reading it takes a piece from each.
-/// </summary>
-public sealed record ScreenLayout(ScreenArea Bounds, IReadOnlyList<ScreenDisplay> Displays)
-{
-    /// <summary>
-    /// The display a point is on, or the primary one when the point is on none of them — which is
-    /// what a window dragged off the edge of the desktop lands on, and the answer that keeps a
-    /// step reading something rather than nothing.
-    /// </summary>
-    public ScreenDisplay At(int x, int y)
-        => Displays.FirstOrDefault(display => display.Bounds.Holds(x, y))
-            ?? Displays.FirstOrDefault(display => display.Primary)
-            ?? Displays[0];
-}
-
-/// <summary>
 /// Asking Windows what the desktop is made of. The desktop's own rectangle covers every display,
 /// which is the rectangle GDI and the duplication work in; the displays themselves are what a way
-/// that reads one display at a time needs.
+/// that reads one display at a time needs. The rectangle and the layout it describes belong to the
+/// engine's contracts; only the enumeration is this project's business.
 /// </summary>
 internal static class Displays
 {
@@ -80,11 +41,11 @@ internal static class Displays
     /// the layout are the origin, and they are not the primary display's corner — a display to the
     /// left of it makes both negative.
     /// </summary>
-    private static ScreenArea Whole()
+    private static ScreenRect Whole()
     {
         var left = GetSystemMetrics(VirtualScreenLeft);
         var top = GetSystemMetrics(VirtualScreenTop);
-        return new ScreenArea(left, top, GetSystemMetrics(VirtualScreenWidth),
+        return new ScreenRect(left, top, GetSystemMetrics(VirtualScreenWidth),
             GetSystemMetrics(VirtualScreenHeight));
     }
 
@@ -99,12 +60,12 @@ internal static class Displays
         if (!GetMonitorInfo(monitor, ref info))
         {
             return new ScreenDisplay(
-                new ScreenArea(area.Left, area.Top, area.Right - area.Left, area.Bottom - area.Top),
+                new ScreenRect(area.Left, area.Top, area.Right - area.Left, area.Bottom - area.Top),
                 false);
         }
 
         return new ScreenDisplay(
-            new ScreenArea(info.Monitor.Left, info.Monitor.Top,
+            new ScreenRect(info.Monitor.Left, info.Monitor.Top,
                 info.Monitor.Right - info.Monitor.Left, info.Monitor.Bottom - info.Monitor.Top),
             (info.Flags & PrimaryFlag) != 0);
     }

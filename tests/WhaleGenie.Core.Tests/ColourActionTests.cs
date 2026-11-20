@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.GraphicsCapture;
 using WhaleGenie.TestSupport;
 
 namespace WhaleGenie.Core.Tests;
@@ -53,8 +52,8 @@ public class ColourActionTests
         screen.Bgra[offset + 2] = 255;
         screen.Bgra[offset + 3] = 255;
         context.Machine.Screen.Display = screen;
-        context.Machine.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, 20, 10),
-            [new ScreenDisplay(new ScreenArea(0, 0, 20, 10), true)]);
+        context.Machine.Screen.Desktop = new ScreenLayout(new ScreenRect(0, 0, 20, 10),
+            [new ScreenDisplay(new ScreenRect(0, 0, 20, 10), true)]);
 
         await Run(context, "vision.findColor", Step("vision.findColor",
             Fields.Text("color", "#FF0000"), Fields.Text("tolerance", "0"),
@@ -74,8 +73,8 @@ public class ColourActionTests
             "#000000,#000000,#000000",
             "#000000,#FF0000,#00FF00",
             "#000000,#0000FF,#000000");
-        context.Machine.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, 3, 3),
-            [new ScreenDisplay(new ScreenArea(0, 0, 3, 3), true)]);
+        context.Machine.Screen.Desktop = new ScreenLayout(new ScreenRect(0, 0, 3, 3),
+            [new ScreenDisplay(new ScreenRect(0, 0, 3, 3), true)]);
         var points = Fields.Rows("points",
             Cells.Of(("dx", "1"), ("dy", "0"), ("colour", "#00FF00")),
             Cells.Of(("dx", "0"), ("dy", "1"), ("colour", "#0000FF")));

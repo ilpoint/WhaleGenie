@@ -1,6 +1,5 @@
 using System;
 using System.Globalization;
-using WhaleGenie.GraphicsCapture;
 
 
 namespace WhaleGenie.Core.Devices;

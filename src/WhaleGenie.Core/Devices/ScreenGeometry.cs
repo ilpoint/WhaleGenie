@@ -1,7 +1,5 @@
 using System;
 using System.Globalization;
-using WhaleGenie.GraphicsCapture;
-
 
 namespace WhaleGenie.Core.Devices;
 
@@ -28,6 +26,9 @@ public readonly record struct ScreenRect(int Left, int Top, int Width, int Heigh
     public int Right => Left + Width;
 
     public int Bottom => Top + Height;
+
+    /// <summary>Whether a point is inside the rectangle; the right and bottom edges are outside.</summary>
+    public bool Holds(int x, int y) => x >= Left && x < Right && y >= Top && y < Bottom;
 
     public static ScreenRect Of(ScreenPoint location, ScreenSize size)
         => new(location.X, location.Y, size.Width, size.Height);

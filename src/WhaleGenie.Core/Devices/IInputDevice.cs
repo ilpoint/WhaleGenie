@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using WhaleGenie.Core.Recording;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Devices;
 

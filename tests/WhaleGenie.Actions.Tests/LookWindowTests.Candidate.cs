@@ -134,8 +134,8 @@ public partial class LookWindowTests
     /// <summary>A screen with one plain picture on it, which is all a reading of writing needs.</summary>
     private sealed class ScreenForChecks : IScreenDevice
     {
-        public ScreenLayout Desktop { get; } = new(new ScreenArea(0, 0, 120, 40),
-            [new ScreenDisplay(new ScreenArea(0, 0, 120, 40), true)]);
+        public ScreenLayout Desktop { get; } = new(new ScreenRect(0, 0, 120, 40),
+            [new ScreenDisplay(new ScreenRect(0, 0, 120, 40), true)]);
 
         public ScreenPoint Cursor => default;
 

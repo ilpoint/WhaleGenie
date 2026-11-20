@@ -12,7 +12,7 @@ internal static class ScreenPlacement
     /// counted from the display's own corner — and where that part lands in the picture that comes
     /// back, counted from the corner of the rectangle that was asked for.
     /// </summary>
-    public readonly record struct Piece(ScreenArea Display, int SourceX, int SourceY,
+    public readonly record struct Piece(ScreenRect Display, int SourceX, int SourceY,
         int ToX, int ToY, int Width, int Height);
 
     /// <summary>
@@ -25,7 +25,7 @@ internal static class ScreenPlacement
         => Pieces([.. layout.Displays.Select(display => display.Bounds)], x, y, width, height);
 
     /// <summary>The same, for a way of reading the screen that knows its displays by rectangle only.</summary>
-    public static IReadOnlyList<Piece> Pieces(IReadOnlyList<ScreenArea> displays, int x, int y,
+    public static IReadOnlyList<Piece> Pieces(IReadOnlyList<ScreenRect> displays, int x, int y,
         int width, int height)
     {
         var pieces = new List<Piece>();

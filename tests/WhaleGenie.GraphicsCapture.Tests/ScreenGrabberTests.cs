@@ -1,3 +1,5 @@
+using WhaleGenie.Core.Devices;
+
 namespace WhaleGenie.GraphicsCapture.Tests;
 
 /// <summary>
@@ -215,9 +217,9 @@ public class ScreenGrabberTests
     [Fact]
     public void A_desk_of_two_displays_is_read_one_display_each()
     {
-        var left = new ScreenArea(0, 0, 4, 4);
-        var right = new ScreenArea(4, 0, 4, 4);
-        var desk = new ScreenLayout(new ScreenArea(0, 0, 8, 4),
+        var left = new ScreenRect(0, 0, 4, 4);
+        var right = new ScreenRect(4, 0, 4, 4);
+        var desk = new ScreenLayout(new ScreenRect(0, 0, 8, 4),
             [new ScreenDisplay(left, true), new ScreenDisplay(right, false)]);
 
         var sources = new FakeSources();
@@ -241,9 +243,9 @@ public class ScreenGrabberTests
     [Fact]
     public void A_rectangle_on_one_display_of_several_reads_only_that_one()
     {
-        var left = new ScreenArea(0, 0, 4, 4);
-        var right = new ScreenArea(4, 0, 4, 4);
-        var desk = new ScreenLayout(new ScreenArea(0, 0, 8, 4),
+        var left = new ScreenRect(0, 0, 4, 4);
+        var right = new ScreenRect(4, 0, 4, 4);
+        var desk = new ScreenLayout(new ScreenRect(0, 0, 8, 4),
             [new ScreenDisplay(left, true), new ScreenDisplay(right, false)]);
 
         var sources = new FakeSources();
@@ -262,7 +264,7 @@ public class ScreenGrabberTests
     [Fact]
     public void A_display_read_twice_opens_one_session()
     {
-        var left = new ScreenArea(0, 0, 4, 4);
+        var left = new ScreenRect(0, 0, 4, 4);
         var desk = new ScreenLayout(left, [new ScreenDisplay(left, true)]);
 
         var sources = new FakeSources { Picture = Solid(4, 4) };
@@ -338,7 +340,7 @@ public class ScreenGrabberTests
             => [.. Closed.Where(key => !key.IsDisplay).Select(key => key.Window)];
 
         /// <summary>The displays among the sessions, in the order they were asked for.</summary>
-        public List<ScreenArea> OpenedDisplays
+        public List<ScreenRect> OpenedDisplays
             => [.. Opened.Where(key => key.IsDisplay).Select(key => key.Display)];
 
         /// <summary>The windows this machine will not open a session on at all.</summary>
@@ -358,7 +360,7 @@ public class ScreenGrabberTests
         /// own — that is what makes a desk of two of them two pictures to put together — so a check
         /// about several displays says what each one shows.
         /// </summary>
-        public Dictionary<ScreenArea, ScreenGrab> ByDisplay { get; } = [];
+        public Dictionary<ScreenRect, ScreenGrab> ByDisplay { get; } = [];
 
         public bool Available { get; set; } = true;
 

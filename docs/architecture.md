@@ -30,13 +30,14 @@ WhaleGenie
     │      宏文档、工程、包读写      │
     ├──► WhaleGenie.Localization ───┤
     │      文案表                    │
-    ├──► WhaleGenie.Platform.Windows ──► WhaleGenie.Core
-    │      SharpHook、FlaUI、OpenCV、      执行引擎、表达式、变量、
-    │      Playwright、Roslyn、NuGet、     设备契约、录制翻译
-    │      VIIPER 等 Windows 适配器          │
-    │                                        ▼
-    └────────────────────────────────► WhaleGenie.GraphicsCapture
-                                        Windows 画面获取、选路、会话缓存、矩形落位
+    ├──► WhaleGenie.Platform.Windows ─┐
+    │      SharpHook、FlaUI、OpenCV、    │
+    │      Playwright、Roslyn、NuGet、   ├──► WhaleGenie.Core
+    │      VIIPER 等 Windows 适配器      │      执行引擎、表达式、变量、
+    ├──► WhaleGenie.GraphicsCapture ───┤      设备契约、录制翻译、
+    │      Graphics Capture、桌面复制、  │      画面选路与屏幕矩形
+    │      GDI、PrintWindow、会话缓存    │
+    └───────────────────────────────────┘
 ```
 
 工程目录（`src/`、`tests/`）只决定文件位置：工程名、程序集名、根命名空间与 `avares://` 地址都不
@@ -44,7 +45,7 @@ WhaleGenie
 
 `WhaleGenie.App` 引用 Mcp、Domain、Localization、Core 与 Platform.Windows，不引用 Avalonia；界面
 工程只引用 `WhaleGenie.App`，没有任何产品工程反向引用它。Mcp 与 Domain 都引用 Localization 和
-Core；Localization 只引用 Core；Platform 引用 Core 与 GraphicsCapture。
+Core；Localization 只引用 Core；Platform 与 GraphicsCapture 都引用 Core。
 
 八个测试工程按被测对象划分：`WhaleGenie.Editor.Tests`（宏编辑窗、步骤树、变量墙、窗口规则与菜单）、
 `WhaleGenie.Actions.Tests`（动作对话框、页面归属、返回值与拾取器）、`WhaleGenie.Tests`（运行与调试、
@@ -73,7 +74,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、录制事件翻译 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows` |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器；批处理宿主 | 宏、动作、ViewModel、项目状态或界面类型 |
 | `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表 | Avalonia、窗口、项目状态、设备或文件读写 |
-| `WhaleGenie.GraphicsCapture` | Graphics Capture、桌面复制、GDI、PrintWindow 及 `ScreenGrab` 输出 | 宏、动作、ViewModel 或项目状态 |
+| `WhaleGenie.GraphicsCapture` | Graphics Capture、桌面复制、GDI、PrintWindow 的 Windows 实现与会话缓存 | 宏、动作、ViewModel 或项目状态；定义跨层共用的形状（它们在 Core.Devices） |
 
 `App.axaml.cs`、`Program.cs` 与 `Runtime/SharedDevices.cs` 是引用具体 Windows 实现的限定例外：
 分别负责应用生命周期、脚本宿主分派和设备组合。其他窗口、ViewModel 与应用代码只依赖 Core 契约，
@@ -96,9 +97,10 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 `src/WhaleGenie.Localization/`。这些类型不与界面工程一起编译，模型本身也不读取控件状态；
 `MainViewModel` 只做转发。
 
-`WhaleGenie` 通过 Core 的传递引用使用 `CaptureWay` 等画面获取类型，Core 的屏幕契约也公开
-`ScreenLayout` 等类型。因此 GraphicsCapture 是依赖叶子，但其公开数据形状属于跨层契约，修改时需同时
-检查 Core 与界面。
+画面获取的形状——读哪里、用哪种抓法、桌面由哪些显示器拼成——定义在 `WhaleGenie.Core.Devices`
+（`ScreenCaptureRequest`、`CaptureWay`、`ScreenLayout`、`ScreenRect`），GraphicsCapture 只负责把它们
+变成像素：DXGI、Direct3D 与 GDI 的调用留在那个工程。引擎与界面因此共用一套矩形与选路词汇，读到这些
+形状时也不加载原生依赖。图形工程反过来引用 Core，改动这些形状要同时检查 Core、界面与画面获取三处。
 
 ## 3. 入口、组合根与生命周期
 

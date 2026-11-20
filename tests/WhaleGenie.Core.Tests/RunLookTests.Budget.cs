@@ -9,7 +9,6 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 
 
 namespace WhaleGenie.Core.Tests;
@@ -200,8 +199,8 @@ public partial class RunLookTests
         ImageMatch? match = null)
     {
         var devices = new FakeDeviceLayer();
-        devices.Screen.Desktop = new ScreenLayout(new ScreenArea(0, 0, width, height),
-            [new ScreenDisplay(new ScreenArea(0, 0, width, height), true)]);
+        devices.Screen.Desktop = new ScreenLayout(new ScreenRect(0, 0, width, height),
+            [new ScreenDisplay(new ScreenRect(0, 0, width, height), true)]);
         devices.Vision.Match = match;
         devices.Vision.Loaded = new ImageFrame(2, 2, new byte[16]);
         devices.Screen.Display = new ImageFrame(width, height, new byte[width * height * 4]);

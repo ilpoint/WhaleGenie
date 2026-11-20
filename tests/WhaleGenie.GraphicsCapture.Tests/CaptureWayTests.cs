@@ -1,3 +1,5 @@
+using WhaleGenie.Core.Devices;
+
 namespace WhaleGenie.GraphicsCapture.Tests;
 
 /// <summary>

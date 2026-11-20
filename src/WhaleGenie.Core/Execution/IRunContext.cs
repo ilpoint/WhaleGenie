@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.Core.Execution;
 

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.GraphicsCapture;
 
 namespace WhaleGenie.TestSupport;
 
@@ -22,8 +21,8 @@ internal sealed class FakeScreen(FakeDesk desk) : IScreenDevice
     /// How the pretend desk is laid out. One display to begin with; a check about several sets this
     /// to a layout with more, in the coordinates Windows would report them in.
     /// </summary>
-    public ScreenLayout Desktop { get; set; } = new(new ScreenArea(0, 0, 100, 50),
-        [new ScreenDisplay(new ScreenArea(0, 0, 100, 50), true)]);
+    public ScreenLayout Desktop { get; set; } = new(new ScreenRect(0, 0, 100, 50),
+        [new ScreenDisplay(new ScreenRect(0, 0, 100, 50), true)]);
 
     /// <summary>
     /// How long one refresh of the pretend screen lasts. A check that wants to see how often a

@@ -1,4 +1,4 @@
-namespace WhaleGenie.GraphicsCapture;
+namespace WhaleGenie.Core.Devices;
 
 /// <summary>
 /// How a picture of part of the screen is taken. What is being read says which ways make sense: a

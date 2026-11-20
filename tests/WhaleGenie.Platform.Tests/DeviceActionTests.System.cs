@@ -187,10 +187,10 @@ public partial class DeviceActionTests
         // number, and that is exactly what the step has to hand over.
         var devices = new FakeDeviceLayer();
         devices.Screen.Desktop = new ScreenLayout(
-                new ScreenArea(0, 0, 300, 100),
+                new ScreenRect(0, 0, 300, 100),
                 [
-                    new ScreenDisplay(new ScreenArea(0, 0, 100, 100), true),
-                    new ScreenDisplay(new ScreenArea(100, 0, 200, 100), false),
+                    new ScreenDisplay(new ScreenRect(0, 0, 100, 100), true),
+                    new ScreenDisplay(new ScreenRect(100, 0, 200, 100), false),
                 ]);
         var (_, _, store) = await RunAsync(
             [Step("screen.list", Returns("displays=desk"))], devices);

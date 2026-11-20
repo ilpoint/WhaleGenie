@@ -88,7 +88,7 @@ internal static class Interop
     /// single item that covers both: reading the whole desktop takes one item each and putting the
     /// pieces together.
     /// </summary>
-    public static GraphicsCaptureItem ForDisplay(ScreenArea area) => ItemFor(Monitor(area), forWindow: false);
+    public static GraphicsCaptureItem ForDisplay(ScreenRect area) => ItemFor(Monitor(area), forWindow: false);
 
     /// <summary>
     /// The texture a frame was drawn in, out of the surface the type library hands over. Nothing of
@@ -178,7 +178,7 @@ internal static class Interop
     }
 
     /// <summary>The monitor of the display sitting at this rectangle of the desktop.</summary>
-    private static IntPtr Monitor(ScreenArea area)
+    private static IntPtr Monitor(ScreenRect area)
     {
         var rect = new NativeRect
         {

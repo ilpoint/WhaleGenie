@@ -6,7 +6,6 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
-using WhaleGenie.GraphicsCapture;
 using WhaleGenie.TestSupport;
 
 namespace WhaleGenie.Core.Tests;

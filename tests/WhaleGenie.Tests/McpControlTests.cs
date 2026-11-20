@@ -526,8 +526,8 @@ internal sealed class ChecksScreen : IScreenDevice
     public ScreenPoint Pointer { get; set; } = new(30, 40);
 
     public ScreenLayout Desktop { get; set; } = new(
-        new ScreenArea(0, 0, 800, 600),
-        [new ScreenDisplay(new ScreenArea(0, 0, 800, 600), true)]);
+        new ScreenRect(0, 0, 800, 600),
+        [new ScreenDisplay(new ScreenRect(0, 0, 800, 600), true)]);
 
     public PixelColor PixelAt(int x, int y) => Colour;
 

@@ -6,13 +6,13 @@ namespace WhaleGenie.GraphicsCapture;
 /// picture it hands back starts — the desktop is wider than any one display and can begin at a
 /// negative corner, so "the display" is not the same as "the screen from 0,0".
 /// </summary>
-internal readonly record struct SourceKey(long Window, ScreenArea Display)
+internal readonly record struct SourceKey(long Window, ScreenRect Display)
 {
     /// <summary>One window, read as a whole.</summary>
     public static SourceKey OfWindow(long window) => new(window, default);
 
     /// <summary>One display of the desktop, read as a whole.</summary>
-    public static SourceKey OfDisplay(ScreenArea area) => new(0, area);
+    public static SourceKey OfDisplay(ScreenRect area) => new(0, area);
 
     /// <summary>True when this is a display rather than a window.</summary>
     public bool IsDisplay => Window == 0;
