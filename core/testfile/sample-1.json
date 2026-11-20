@@ -1,0 +1,104 @@
+{
+  "store": {
+    "name": "Sample.Cat Store",
+    "location": "1234 Tech Lane, Silicon Valley, CA",
+    "contact": {
+      "phone": "+1-800-123-4567",
+      "email": "sample@sample.cat"
+    },
+    "products": [
+      {
+        "id": "P001",
+        "name": "Wireless Mouse",
+        "category": "Accessories",
+        "price": 29.99,
+        "currency": "USD",
+        "inStock": true,
+        "ratings": {
+          "average": 4.5,
+          "totalReviews": 120
+        },
+        "details": {
+          "color": "Black",
+          "dimensions": {
+            "length": "10cm",
+            "width": "5cm",
+            "height": "2cm"
+          },
+          "weight": "200g",
+          "features": [
+            "Wireless connection",
+            "Ergonomic design",
+            "Long-lasting battery"
+          ]
+        },
+        "variants": [
+          {
+            "color": "Black",
+            "price": 29.99
+          },
+          {
+            "color": "White",
+            "price": 32.99
+          }
+        ],
+        "shipping": {
+          "standard": {
+            "cost": 5.99,
+            "deliveryTime": "5-7 business days"
+          },
+          "express": {
+            "cost": 12.99,
+            "deliveryTime": "2-3 business days"
+          }
+        }
+      },
+      {
+        "id": "P002",
+        "name": "Laptop Stand",
+        "category": "Accessories",
+        "price": 49.99,
+        "currency": "USD",
+        "inStock": true,
+        "ratings": {
+          "average": 4.7,
+          "totalReviews": 75
+        },
+        "details": {
+          "material": "Aluminum",
+          "dimensions": {
+            "length": "30cm",
+            "width": "20cm",
+            "height": "10cm"
+          },
+          "weight": "500g",
+          "features": [
+            "Adjustable height",
+            "Stable and durable",
+            "Cooling design"
+          ]
+        },
+        "variants": [
+          {
+            "color": "Silver",
+            "price": 49.99
+          },
+          {
+            "color": "Black",
+            "price": 54.99
+          }
+        ],
+        "shipping": {
+          "standard": {
+            "cost": 7.99,
+            "deliveryTime": "5-7 business days"
+          },
+          "express": {
+            "cost": 15.99,
+            "deliveryTime": "2-3 business days"
+          }
+        }
+      }
+    ]
+  }
+}

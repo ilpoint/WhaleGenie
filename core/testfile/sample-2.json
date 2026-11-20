@@ -1,0 +1,18 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john.doe@example.sample.cat",
+      "isActive": true,
+      "roles": ["admin", "editor"]
+    },
+    {
+      "id": 2,
+      "name": "Jane Smith",
+      "email": "jane.smith@example.sample.cat",
+      "isActive": false,
+      "roles": ["viewer"]
+    }
+  ]
+}

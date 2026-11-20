@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      One of the three parts a frontend gets by referencing WhaleGenie.Platform.Windows; packable on
+      its own as well, because a program that only takes pictures of the screen has no use for the
+      input hook or the browser.
+    -->
+    <IsPackable>true</IsPackable>
+    <PackageId>WhaleGenie.GraphicsCapture</PackageId>
+    <Description>鲸灵的画面获取：Graphics Capture、桌面复制、GDI 与 PrintWindow，以及会话缓存。</Description>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ilpoint/WhaleGenie</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ilpoint/WhaleGenie.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\dist\nuget</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Wrappers only — the calls go to the Direct3D and DXGI that Windows already has, so nothing
+      native is shipped. Windows Graphics Capture itself needs no package: the type library for it
+      comes from the Windows version in the target framework.
+    -->
+    <PackageReference Include="Vortice.Direct3D11" />
+    <PackageReference Include="Vortice.DXGI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      What is being read, which ways exist and how the desktop is laid out are the engine's
+      contract, not this project's: those shapes live in WhaleGenie.Core.Devices so that a headless
+      run, the editor and this project all name the same rectangle. What stays here is the part that
+      only Windows can answer.
+    -->
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The checks read the session cache and the ways a picture is taken out of the library. -->
+    <InternalsVisibleTo Include="WhaleGenie.GraphicsCapture.Tests" />
+  </ItemGroup>
+
+</Project>

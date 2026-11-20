@@ -1,0 +1,20 @@
+# 构建产物
+[Bb]in/
+[Oo]bj/
+dist/
+*.nupkg
+*.snupkg
+publish/
+TestResults/
+*.trx
+
+# 编辑器与工具
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# 本机临时文件
+*.log
+binlog/
