@@ -144,6 +144,7 @@
 2507	src/WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
 553	src/WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
 5624	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+302079	src/WhaleGenie.Core/PublicAPI.Shipped.txt	exempt: 生成的公共 API 基线，分析器按整份文件比对，切开就不再是"一份基线"
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 一组同域工具与它们的输入输出
 384	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 一组同域工具与它们的输入输出
 315	src/WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
