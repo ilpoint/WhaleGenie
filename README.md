@@ -40,6 +40,19 @@ Console.WriteLine(KeyNames.Name(key));   // Ctrl
 要真的操作机器，再用 `WhaleGenie.Platform.Windows` 里的 `WindowsDeviceLayer` 实现
 `IDeviceLayer`；不想碰真设备时用 `NullDeviceLayer`，它在被真正用到时才报错。
 
+## 被鲸灵主仓使用
+
+主仓 [ilpoint/WhaleGenie](https://github.com/ilpoint/WhaleGenie) 用 `git subtree` 把整个仓库
+vendor 在 `core/` 下：
+
+```bash
+git subtree add  --prefix=core core main --squash    # 第一次
+git subtree pull --prefix=core core main --squash    # 之后
+```
+
+所以引擎、适配器与它们的用例**在那边是只读的**：改动在这里提交，主仓取回。主仓的
+`sync-core.yml` 每天自动做一次，取到新提交就先构建、跑完它的八套件，全绿才推。
+
 ## 构建与验收
 
 ```pwsh
