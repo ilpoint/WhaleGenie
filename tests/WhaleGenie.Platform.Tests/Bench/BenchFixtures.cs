@@ -314,7 +314,7 @@ internal static class BenchFixtures
     /// pool for a moment can be handed back seconds late with nothing wrong. Fifteen seconds still
     /// catches a step that never ends.
     /// </summary>
-    private const int BenchTimeoutMs = 20000;
+    private const int BenchTimeoutMs = 15000;
 
     /// <summary>
     /// The clock a step gets: the budget above, plus whatever the step is declared to spend waiting.
