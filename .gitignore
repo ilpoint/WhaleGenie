@@ -378,5 +378,9 @@ FodyWeavers.xsd
 # 测试与体检的报告：--report / ACTION_MATRIX_REPORT 的落点，是某一次运行的快照，不进仓库
 TestResults/
 
+# 网页壳：npm 产物只进发布目录（dist 已在上面忽略），Playwright 的报告是运行快照
+webui/playwright-report/
+webui/test-results/
+
 # scratch folders a build or a probe was pointed at
 .build/

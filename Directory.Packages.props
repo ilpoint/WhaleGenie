@@ -26,6 +26,7 @@
   <!-- 界面：Avalonia 与 FluentAvalonia。诊断支持与进程内自省只在 Debug 还原，条件写在工程里。 -->
   <ItemGroup Label="界面">
     <PackageVersion Include="Avalonia" Version="12.1.2" />
+    <PackageVersion Include="Avalonia.Controls.WebView" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Controls.ColorPicker" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.2" />

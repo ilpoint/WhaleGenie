@@ -26,6 +26,12 @@
       资源。只留程序真正会显示的那一份：英文在主程序集里，中文是 zh-Hans。
     -->
     <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+    <!--
+      网页界面的源与构建产物各在一边：源在仓库根的 webui/，构建只产出一个内联全部脚本与
+      样式的 index.html，随程序输出与发布包一起走。Node 不可用又只想跑引擎测试时，用
+      WhaleGenieSkipWebUi=true 跳过构建目标。
+    -->
+    <WebUiRoot>$(MSBuildThisFileDirectory)..\..\webui</WebUiRoot>
   </PropertyGroup>
 
   <Target Name="DropPublishSymbols" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
@@ -57,6 +63,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="$(WebUiRoot)\dist\index.html" Link="webui\index.html" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+
+  <!--
+    网页界面的构建目标：输入/输出时间戳做增量，网页没改就不调 npm。npm ci 由 lock 文件锁住
+    版本，与 CI 上装出来的一致。
+  -->
+  <Target Name="BuildWebUi" BeforeTargets="BeforeBuild" Condition="'$(WhaleGenieSkipWebUi)' != 'true'"
+          Inputs="$(WebUiRoot)\package.json;$(WebUiRoot)\package-lock.json;$(WebUiRoot)\index.html;$(WebUiRoot)\vite.config.ts;$(WebUiRoot)\tsconfig.json;$(WebUiRoot)\src\**"
+          Outputs="$(WebUiRoot)\dist\index.html">
+    <Exec Command="npm ci --no-audit --no-fund" WorkingDirectory="$(WebUiRoot)" />
+    <Exec Command="npm run build" WorkingDirectory="$(WebUiRoot)" />
+  </Target>
+
+  <ItemGroup>
     <!--
       The interface builds the container the window and its tools come from; the server, its
       transport and the tools themselves live in WhaleGenie.App, which is why no MCP package is
@@ -69,6 +90,7 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Controls.WebView" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Avalonia.Controls.ColorPicker" />
