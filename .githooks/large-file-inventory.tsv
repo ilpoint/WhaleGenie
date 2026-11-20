@@ -158,7 +158,7 @@
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 454	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
 1989	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
-20704	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算
+25880	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 572	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 376	src/WhaleGenie/ViewModels/Actions/ActionPaletteViewModel.cs	keep: 一个界面的状态与命令

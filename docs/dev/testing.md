@@ -14,6 +14,9 @@
 | 编辑器 | `WhaleGenie.Editor.Tests` | 宏编辑窗、步骤树、变量墙、窗口规则与菜单的无头交互 |
 | 动作表单 | `WhaleGenie.Actions.Tests` | 动作对话框、页面归属、返回值与拾取器 |
 | 运行与其余界面 | `WhaleGenie.Tests` | 运行与调试、MCP、设置、界面文案与文档对账 |
+| 网页壳协议 | `WhaleGenie.Tests`（`BridgeServerTests`、`StringsBundleTests`） | 桥路由、错误码、ready 前缓冲、词表快照与推送；内存管道直调处理器，不开窗口 |
+| 网页壳边界 | `WhaleGenie.Tests`（`WebUiBoundaryTests`） | 桥处理器不认识 WebView 控件；页面源不带用户文案；页面键都在词表里 |
+| 网页壳前端 | `webui/`（Vitest + Playwright） | 桥客户端、词表 store、壳加载、导航与标题栏冒烟；跑在 mock 宿主上，不经 WebView |
 | 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
 | 公共面与依赖方向 | `WhaleGenie.Tests`（`LayeringTests`）与 PublicAPI 分析器 | 引擎的引用闭包、目标框架、IVT 名单、画面工程的方向；公共成员与基线一致 |
@@ -126,3 +129,17 @@
   `Ui.AnswerUnsavedWork`，避免遗留调度器循环。
 - 等待条件使用事件、`TaskCompletionSource` 或 `Ui.Until`，不使用固定睡眠推断异步操作已完成。
 - 修改全局状态的测试使用 `[RestoreSharedState]` 并在界面线程还原；共享变量值由相关用例自行清理。
+
+### 网页壳测试注意事项
+
+- 桥处理器用内存管道（`IBridgeChannel` 的记录替身）直调，不依赖 WebView：处理器若引用了
+  控件类型，`WebUiBoundaryTests` 会拦住。协议事实只写在 `BridgeServerTests`。
+- 切换语言触发整个界面的词表刷新，无头会话里已建立的绑定都在界面线程上听它——切语言的用例
+  必须包在 `Ui.Run` / `Ui.RunAsync` 里，不要在测试线程直接改 `Strings.Current.Language`。
+- webui 的 Vitest 用 jsdom 环境（词表换包要改 `html@lang`）；组件逻辑测 store 与客户端，
+  不测像素。Playwright 冒烟用 `?bridge=mock` 走 mock 宿主与系统 Edge（`channel: 'msedge'`，
+  免下载浏览器），起 `vite preview` 供真实产物。
+- 页面新增用户可见文案的正确顺序：先在 `Strings.cs` 双语表加键，页面再 `t('键')`；
+  `WebUiBoundaryTests` 会拦住只出现在页面里的键与写进页面的中文句子。
+- mock 宿主（`webui/src/shared/bridge/mock.ts`）里的词表是**夹具**，与真表同步维护：新增键时
+  两边都要加，对账靠 `Every_shell_key_the_pages_name_exists_in_the_word_tables` 与人工。

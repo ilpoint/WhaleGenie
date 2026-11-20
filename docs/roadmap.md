@@ -14,8 +14,28 @@
 
 ## 阶段
 
-阶段按顺序实施。每一阶段只解决一类问题，完成后删除本节对应内容。当前没有已承诺的阶段，下一步从
-待评估里按测量结果挑选。
+阶段按顺序实施。每一阶段只解决一类问题，完成后删除本节对应内容。
+
+### 界面迁移到网页壳
+
+界面整体从原生 AXAML 迁到 WebView + Lit + Fluent UI Web Components（见 [DESIGN.md](../DESIGN.md)
+第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳、
+主窗占位）已完成。其余按顺序：
+
+- **阶段 B 主窗宏列表**：`project.*` 与 `mcp.*` 桥处理器（宏列表、七触发视图过滤、搜索、启停、
+  系统总开关、文件菜单、MCP 授权浮层）；网页壳转默认启动；删除旧 `MainWindow`（13 个分部）、
+  `MainViewModel` 与主窗对应的无头用例。验收：迁移用例全绿 + 第 14 节人工清单 + 原主窗全部
+  功能在网页壳里可走通。
+- **阶段 C 宏编辑器**：编辑器工作区（文档页签、步骤树、动作库、动作表单、条件、宏设置与触发、
+  变量墙、取值构建器网页化）；动作表单由 `catalog.bundle`（语义目录 + 展示目录 + 动作文案投影）
+  驱动；录制与键位捕获经桥事件接入；屏幕拾取器保持原生。删除 `MacroEditorWindow` 体系、
+  `ValuePickerWindow` 与动作编辑 AXAML 及其用例。验收同上。
+- **阶段 D 设置、运行调试与全局变量**：设置各页、运行调试停靠面板（引擎问话经 `dialog.request`）、
+  全局变量管理；删除 `SettingsWindow`、`RunWindow`、`GlobalVariablesWindow` 及其用例。验收同上。
+- **阶段 E 清理**：删除 FluentAvalonia、旧 `Themes/` 三层令牌、`AppWindow` 的 40px 自绘 chrome
+  （拾取器与浮层保留必要部分）与 `ThemeProbe`；DESIGN.md 收敛为只有第 14 节，AGENTS.md 与
+  architecture.md 同步对账。验收：全量构建、测试、格式与文档对账全绿，仓库里不再有第二套界面
+  体系。
 
 ## 待评估
 

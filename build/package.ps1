@@ -135,6 +135,12 @@ function New-PortableFolder([string]$Published, [string]$Package) {
         throw "包里没有 WhaleGenie.exe：单文件发布没有产出程序。"
     }
 
+    # 网页壳是一份内联了全部脚本与样式的 index.html，跟着程序输出走；它没进包的话，
+    # --webshell 会启动一个白窗口，而拿到 zip 的人看不出原因。
+    if (-not (Test-Path (Join-Path $app 'webui\index.html'))) {
+        throw "包里没有 webui\index.html：网页壳的产物没有随发布输出，先看 WhaleGenie.csproj 的 Content 复制。"
+    }
+
     # 驱动级输入按文件名找这个库，它必须在 lib 里，不能哪天被当成托管程序集收进 exe。
     if (-not (Test-Path (Join-Path $lib 'libVIIPER.dll'))) {
         throw "lib 里没有 libVIIPER.dll：驱动级输入会在用户那里报 Run.NoDriverLibrary。"

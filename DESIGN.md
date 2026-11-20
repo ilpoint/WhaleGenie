@@ -5,6 +5,9 @@
 具体颜色、字号、间距与圆角值以 [Tokens.axaml](src/WhaleGenie/Themes/Tokens.axaml) 为准；自定义强调色由
 `ThemePalette` 在运行时派生并覆盖这组强调令牌，是唯一的例外。
 
+界面正在迁移到网页壳（见第 14 节）：迁移期间第 1–13 节管原生窗口，第 14 节管网页壳；一个区域
+迁入网页时，它的原生契约条目随旧实现同版删除，最终本文件只剩第 14 节。
+
 本文件对照 FluentAvalonia 3.1.0 的 [FluentAvaloniaTheme](https://amwx.github.io/FluentAvaloniaDocs/pages/FATheme)、
 [AppWindow](https://amwx.github.io/FluentAvaloniaDocs/pages/Controls/AppWindow)、
 [SettingsExpander](https://amwx.github.io/FluentAvaloniaDocs/pages/Controls/SettingsExpander) 与
@@ -235,6 +238,76 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 - [ ] 长中文/长英文、最小窗口、150% DPI 没有裁字或重叠。
 - [ ] 窗口仍走 `AppWindow` / `WindowChrome`，没有自搭标题栏或第二套主题。
 - [ ] 视觉规则、令牌、控件样式、测试和 `DESIGN.md` 在同一轮完成。
+
+## 14. 网页壳（迁移期）
+
+网页壳由 WebView 承载一张整页（`webui/`，Lit + Fluent UI Web Components v3），标题栏与导航都在
+网页里画。视觉以 **Fluent UI 默认观感为底**，项目只做少量覆盖；`--webshell`（DEBUG）打开，页面
+可用 `npm run dev` 的热重载服务单独迭代。
+
+### 14.1 契约与优先级
+
+- 视觉意图与规则以本节为准；实现以 `webui/src` 为准；组件能力见 Fluent UI Web Components 文档。
+- 优先级：本节规则 → Fluent 默认令牌 → 组件默认外观。不引入第二套样式体系（不引入 Tailwind、
+  不复制 Fluent 令牌为本地常量）；页面颜色只取 Fluent 的 CSS 自定义属性
+  （`--colorNeutralBackground1`、`--colorBrandBackground` 等）。
+- 深色是默认体验（`html[data-theme]`），浅色必须同等可读；切换由宿主推送驱动，页面不自判。
+
+### 14.2 颜色与字体
+
+- 界面颜色全部来自 Fluent 令牌：表面用 `--colorNeutralBackground*`，文字用
+  `--colorNeutralForeground*`，边框用 `--colorNeutralStroke*`，交互反馈用同名 `Hover/Pressed`
+  变体，焦点用 `--colorStrokeFocus2`。不写十六进制色值（品牌色阶派生与测试夹具除外）。
+- 强调色家族由程序侧 `ThemeController` 决定：内置深浅两套用 Fluent 默认品牌色；自定义强调色经
+  `ThemePalette` 的对比度底线把关后，由 `webui/src/shared/theme/brand.ts` 派生十六档品牌色阶交给
+  `createDarkTheme/createLightTheme`。派生失败（不是一个颜色）回退内置主题，页面不自行修色。
+- 字体用系统字体栈（Segoe UI Variable 与回退），等宽内容用系统等宽栈；不引入自带字体文件。
+- 状态只用于表达状态（徽章、运行点），不用于装饰；状态不只靠颜色，加文字或图标。
+
+### 14.3 标题栏与窗口钮
+
+- 标题栏高 40px，由网页绘制：左侧鲸鱼（程序资产）+ 程序名 + 当前项目名（未命名项目显示
+  `Shell.UntitledProject`），右侧依次为置顶、最小化、最大化/还原、关闭。
+- 窗口钮 46×32、直角贴顶，与系统 caption 同形：静息透明，悬停
+  `--colorNeutralBackground1Hover`，按下取 Pressed 变体；关闭钮悬停取红色语义
+  （`--colorPaletteRedBackground3`）并换 `--colorNeutralForegroundOnBrand`；置顶态图标取品牌前景色。
+- 拖动与双击最大化经桥（`window.drag` / `window.maximize`）交给 Win32；按钮的真实状态由宿主的
+  `window.changed` 推送驱动，页面从不假设自己的点击已经生效。
+- 标题栏上的文字与按钮提示一律经 `t()` 取词；页面源不得出现用户可见文案（对账测试）。
+
+### 14.4 导航与页面
+
+- 左栏宽 148px，条目来自词表键 `Shell.<Route>`；选中项铺 `--colorBrandBackground`，字用
+  `--colorNeutralForegroundOnBrand`；悬停取 `--colorNeutralBackground3Hover`。
+- 首页是壳的“能用”证明：程序版本、界面语言、项目、未保存状态、修订号与宏数量从桥上真读；
+  迁移进度区（各区域在壳中/仍在原生/规划中）允许静态枚举。
+- 尚未迁入的区域显示占位页：标题取对应词表键、正文统一 `Shell.Placeholder.Body`，不带按钮。
+
+### 14.5 验收
+
+自动化（对账与冒烟）：
+
+| 检查 | 用例 |
+| --- | --- |
+| 页面源不携带用户文案、桥处理器不认识 WebView 控件、页面键都在词表里 | `WebUiBoundaryTests` |
+| 词表快照与四张表逐键一致、切语言推送新包 | `StringsBundleTests` |
+| 桥路由、错误码、ready 前缓冲 | `BridgeServerTests` |
+| 桥客户端配对与事件分发 | webui `tests/client.test.ts` |
+| 壳加载、导航、标题栏按钮、主题推送 | webui `e2e/shell.spec.ts`（Playwright，mock 模式，系统 Edge） |
+
+人工清单（真机，交互式会话）：
+
+- `--webshell` 启动：壳渲染、标题栏拖动/置顶/最小化/最大化/关闭（关闭=藏进托盘）可用。
+- 语言切换即时生效；深浅色与自定义强调色生效；100% 与 150% DPI 下无裁字、焦点环可见。
+- 托盘唤回、单实例唤回、`--mcp` 无窗口形态与退出链路回归不破坏。
+- 网页控制台无错误；发布形状（`webui/index.html`）随包走。
+
+### 14.6 变更流程
+
+1. 新页面/新交互先查 Fluent 组件库有没有现成组件；有则用组件默认外观，不足处再按本节令牌覆盖。
+2. 新增用户可见文案：先在 `Strings.cs` 双语表加键，页面再用 `t('键')`；对账测试会拦住两边不一致。
+3. 视觉规则变化与本文件、组件实现、测试同轮完成；改键名后检索 webui 与词表的旧引用。
+4. 壳的阶段推进按 [docs/roadmap.md](docs/roadmap.md) 的阶段条目执行，替换完成即删旧实现。
 
 ## 参考
 

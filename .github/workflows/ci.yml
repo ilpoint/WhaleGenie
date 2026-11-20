@@ -15,12 +15,31 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: actions/setup-node@v4
+        # The web shell builds through npm before the interface project compiles; the runner
+        # ships Node but pinning keeps the toolchain the same as the lockfile expects.
+        if: env.ACT != 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webui/package-lock.json
+
       - uses: actions/setup-dotnet@v5
         # act runs on this Windows host rather than a clean runner. The host already has the
         # SDK selected by global.json; the action would otherwise try to write Program Files.
         if: env.ACT != 'true'
         with:
           global-json-file: global.json
+
+      - name: Build the web shell
+        # Lint and unit tests first so a broken page fails fast; the dotnet build below would
+        # run the same npm build again, which is incremental and skips it when nothing changed.
+        run: |
+          cd webui
+          npm ci --no-audit --no-fund
+          npm run lint
+          npm run test
+          npm run build
 
       - name: Restore
         run: dotnet restore WhaleGenie.slnx

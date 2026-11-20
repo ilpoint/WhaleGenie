@@ -22,6 +22,9 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
   Views 或 Runtime，机器控制、运行宏与运行日志工具由 `WhaleGenie.App` 作为 tool owner 注入。
 - `WhaleGenie.App` 不依赖 Avalonia 或任何窗口类型：触发器、运行编排、MCP 宿主与工具、两种启动形态
   共用的组合根都在这里，界面工程只在它上面补窗口与主 ViewModel。
+- 网页壳是界面层的一部分：桥处理器（`src/WhaleGenie/Bridge/`）不引用 WebView 控件类型，传输细节由
+  `src/WhaleGenie/Web/` 的适配器独占；页面用户可见文案只经桥取词表，两条由 `WebUiBoundaryTests`
+  核对。网页源与构建在仓库根的 `webui/`，产物是一个内联的 `index.html`。
 - 除 `App.axaml.cs`、`Program.cs` 与 `SharedDevices.cs` 承担的组合、入口分派和生命周期职责外，
   界面与应用两层不直接引用第三方设备库或 `WhaleGenie.Platform.Windows`；设备能力通过 Core 契约取得。
 - `WhaleGenie.GraphicsCapture` 只取得屏幕像素：读哪里、用哪种抓法由 Core 的设备契约说明，它实现
@@ -31,10 +34,12 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 
 ## 视觉契约
 
-- 界面改动先读 [DESIGN.md](DESIGN.md)，再检索现有令牌与样式；不以 FluentAvalonia 的默认外观
-  作为设计依据。
-- 颜色、字号、间距、圆角、状态与窗口框架只从契约声明的角色和 `Themes/` 令牌取值；不在窗口中
-  新建颜色体系、第二套主题或未登记的样式类。
+- 界面改动先读 [DESIGN.md](DESIGN.md)，再检索现有令牌与样式。原生窗口（迁移期间的第 1–13 节）
+  不以 FluentAvalonia 的默认外观作为设计依据；网页壳（第 14 节）以 Fluent UI 默认令牌为底，
+  项目覆盖见该节。
+- 颜色、字号、间距、圆角、状态与窗口框架：原生窗口只从契约声明的角色和 `Themes/` 令牌取值，
+  网页壳只从 Fluent 的 CSS 自定义属性取值；不在窗口或页面中新建颜色体系、第二套主题或未登记的
+  样式类。
 - 仓库存放的 `.mcp.json` 提供 `avalonia-docs` 文档服务。它用于查 Avalonia/FluentAvalonia 的
   API、控件与属性，不覆盖 `DESIGN.md` 或项目令牌。
 - 视觉规则、令牌、控件样式、视图与对应测试同轮修改；只改 XAML 或只改文档都算未完成。改完按

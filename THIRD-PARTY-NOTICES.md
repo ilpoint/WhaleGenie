@@ -37,6 +37,15 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
   <https://github.com/AvaloniaUI/Avalonia>
 - Avalonia.Controls.DataGrid — MIT
   <https://github.com/AvaloniaUI/Avalonia>
+- Avalonia.Controls.WebView — MIT
+  <https://github.com/AvaloniaUI/Avalonia.Controls.WebView>
+  网页壳用它承载页面。它传递依赖 Microsoft.Web.WebView2（WebView2 SDK，许可见其包内
+  LICENSE.txt，BSD 三条款样式；<https://github.com/microsoft/microsoft-ui-xaml>），
+  随包分发的原生库 WebView2Loader.dll 与它同许可。
+- 网页壳的前端依赖（以脚本形式内嵌在 `webui/index.html` 里随包分发）：
+  Lit — BSD-3-Clause <https://github.com/lit-dev/lit>；
+  @fluentui/web-components、@fluentui/tokens、@microsoft/fast-element — MIT
+  <https://github.com/microsoft/fluentui>
 - FluentAvalonia（FluentAvaloniaUI）— MIT
   <https://github.com/amwx/FluentAvalonia>
   它把 WinUI 的控件与模板带到 Avalonia；WinUI 与 Avalonia 均为 MIT。
@@ -142,8 +151,21 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
 - Microsoft.CodeAnalysis.PublicApiAnalyzers（Roslyn 分析器）— MIT，只在编译引擎时检查公共 API
   基线，不产出任何运行时代码，发行包里没有它
   <https://github.com/dotnet/roslyn-analyzers>
+- 网页壳的构建工具链（webui/ 的 devDependencies，Node.js 之上）— Vite — MIT
+  <https://github.com/vitejs/vite>；TypeScript — Apache-2.0
+  <https://github.com/microsoft/TypeScript>；ESLint — MIT <https://github.com/eslint/eslint>；
+  Vitest 与 jsdom — MIT <https://github.com/vitest-dev/vitest>。它们只把源码编译成
+  `webui/index.html`，产物之外什么都不随程序分发。
+- @playwright/test（网页壳的端到端冒烟）— Apache-2.0
+  <https://github.com/microsoft/playwright-dotnet>
+  只在开发与 CI 里驱动系统 Edge 跑冒烟，发行包里没有它。
 
 ## 用户自己装的组件
+
+网页壳的运行时需要 WebView2 运行时（Evergreen）：Windows 11 随系统自带，Windows 10 多数随 Edge
+安装，没有时由系统提示安装。它是微软的系统组件，不随本程序分发：
+
+- Microsoft Edge WebView2 Runtime — <https://developer.microsoft.com/microsoft-edge/webview2/>
 
 驱动级输入还用到一个东西，它不跟着本程序分发，程序里给的是下载入口：
 

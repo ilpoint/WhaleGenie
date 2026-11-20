@@ -13,6 +13,22 @@ dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
 
+网页壳（`webui/`）用 npm 构建，构建界面工程时会自动执行（增量，网页没改就不调 npm）：
+
+```powershell
+cd webui
+npm install          # 首次或 package.json 变化后
+npm run dev          # 带 mock 宿主的热重载开发，浏览器直接打开
+npm run test         # Vitest 单测
+npm run lint         # ESLint
+npm run build        # 类型检查 + 单文件构建，产物 dist/index.html
+npx playwright test  # 端到端冒烟（系统 Edge，走构建产物的 preview）
+```
+
+程序侧调试开关（DEBUG）：`--webshell` 用网页壳替代原生主窗，`--webui-dev[=http://localhost:5173]`
+让壳加载 Vite 开发服务器而不是打包页面。只想跑引擎测试而本机没有 Node 时，用
+`-p:WhaleGenieSkipWebUi=true` 跳过网页构建目标。
+
 `core/` 是库（引擎、画面获取、Windows 适配器与它们的三套用例）的独立仓库，以 `git subtree`
 引入到这里：**它不在这里改**，改动去 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)，
 再 `git subtree pull --prefix=core core main --squash`。库的构建设置与包版本跟着它自己走
@@ -72,7 +88,8 @@ GitHub Copilot 的 Agent 工具列表里应出现它。`.vscode/` 按 `.gitignor
 
 | 项目 | 职责 |
 | --- | --- |
-| `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、窗口与 ViewModel、窗口化组合根、界面与设备适配 |
+| `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、窗口与 ViewModel、窗口化组合根、界面与设备适配；`Web/` 是网页壳宿主（WebView 装载与传输适配），`Bridge/` 是桥协议与处理器 |
+| `webui/` | 网页壳前端（Lit + Fluent UI Web Components），npm 工作区；产物是内联的单个 `index.html` |
 | `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量、设备契约与键词汇表；`net10.0`，只依赖 BCL 与 `CsvHelper`，是唯一可打包的工程 |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器与脚本宿主 |
 | `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与工具、应用层组合根；不引用 Avalonia |
@@ -143,6 +160,7 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 | `System.Security.Cryptography.Pkcs` | Platform.Windows：固定安全修复版本，避免 NuGet 审计警告阻断还原 |
 | `Vortice.Direct3D11`、`Vortice.DXGI` | GraphicsCapture：Windows Graphics Capture 与桌面复制 |
 | `Avalonia`、`Avalonia.Desktop`、`Avalonia.Fonts.Inter` | 界面：桌面应用、输入、渲染和统一字体 |
+| `Avalonia.Controls.WebView`（传递依赖 `Microsoft.Web.WebView2`） | 界面 `Web/`：网页壳的 WebView 装载、消息与导航管控；运行时需要系统的 WebView2 Evergreen Runtime |
 | `FluentAvaloniaUI` | 界面：`FluentAvaloniaTheme`、控件模板和 `FAAppWindow` 标题栏 |
 | `Avalonia.Controls.DataGrid` | 界面：表格展示与编辑 |
 | `Avalonia.Controls.ColorPicker`、`Avalonia.Themes.Fluent` | 界面：自定义强调色及相关 Fluent 资源；应用主主题由 FluentAvalonia 提供，ColorPicker 样式文件来自 ColorPicker 包 |
@@ -151,6 +169,8 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 | `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | Mcp：stdio 协议服务、草稿与工具；界面：MCP 宿主与工具发现 |
 | `AvaloniaUI.DiagnosticsSupport` | 仅 Debug：界面诊断支持 |
 | `Declarative.Avalonia.AgentTools` | 仅 Debug：进程内的 MCP 检查器，让 agent 自己调试正在运行的界面 |
+| `lit`、`@fluentui/web-components`、`@fluentui/tokens`（npm） | webui：网页壳的组件与设计令牌；以脚本形式内嵌进 `index.html` 随包分发 |
+| `vite`、`typescript`、`eslint`、`vitest`、`jsdom`、`@playwright/test`（npm，dev） | webui：构建、类型检查、静态检查、单测与端到端冒烟；只在开发与 CI 使用，不随包分发 |
 
 ### Debug 构建与分部窗口
 

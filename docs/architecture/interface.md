@@ -158,3 +158,34 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 按 `IsXxxRoot` 显示当前那一排，控件本身不重建，所以页签的选中与顺序都不受切换影响。
 `SelectedPage` 变化时窗口把左栏 `SelectedItem` 指向所属分组。
 设置项一律即时生效并立即落盘，打开窗口本身不写文件。
+
+### 7.6 网页壳与桥接
+
+网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。迁移期间它与
+原生窗口并存，由调试开关 `--webshell` 打开（DEBUG）；主窗宏列表迁入后它转正，原生主窗删除。
+窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
+
+分层是一条硬边界：
+
+| 层 | 位置 | 职责 |
+| --- | --- | --- |
+| 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebBridge`（程序里唯一认识 WebView 控件的类型） |
+| 桥协议与处理器 | `src/WhaleGenie/Bridge/` | `BridgeServer` 路由请求/应答/事件；`app/strings/theme/window` 各处理器注册自己的方法 |
+| 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
+
+桥处理器不引用 WebView 控件类型（`WebUiBoundaryTests` 按源码检查），只与 `IBridgeChannel`
+这根文本管道说话——无头测试用内存管道直调处理器，不需要浏览器。协议是三类信封：请求
+`{id, method, params}`、应答 `{id, ok, result|error}`、事件 `{event, payload}`；方法名
+`域.动作`，错误码是稳定词表（`NoSuchMethod`、`BadArgument`、`Internal`）。页面注册好收信口后发
+`bridge.ready`，宿主在此之前缓存推送，语言或主题的早到变化不会丢。
+
+方向只有一条：**C# 是唯一事实来源**。文档态（`ProjectWorkspace`）、触发状态、语言与主题都在
+程序侧，页面只做呈现与命令；程序侧的变化以事件推给页面（`strings.changed`、`theme.changed`、
+`window.changed`，阶段 B 起 `project.changed`）。词表由 `Strings.Snapshot()` 按当前语言解析成
+整包下发，页面没有回退逻辑；主题经 `ThemeController` 应用并落盘，页面用 Fluent 令牌铺色，不读
+设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
+
+`webui/` 用 npm 构建（Vite + TypeScript + Lit + Fluent UI Web Components），产物是一个内联全部
+脚本与样式的 `index.html`，随程序输出与发布包一起走；开发用 `npm run dev` 起带 mock 宿主的
+热重载服务，程序以 `--webui-dev` 指向它。网页里的拾取器、宏运行浮层不在迁移范围——凡是要与
+桌面交互、透明置顶的窗口永远留在 Avalonia 一侧（见 7.4）。
