@@ -1,0 +1,163 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using WhaleGenie.Bridge;
+using WhaleGenie.Runtime;
+
+namespace WhaleGenie.Tests;
+
+/// <summary>
+/// The bridge routing: what a page's envelope turns into, what comes back, and when events are
+/// allowed through. A channel that records what it was handed is the whole stand-in for the web
+/// control, because the server must not know there is one.
+/// </summary>
+public class BridgeServerTests
+{
+    private sealed class RecordingChannel : IBridgeChannel
+    {
+        public List<string> Sent { get; } = [];
+
+        public event Action<string>? MessageFromWeb;
+
+        public Task SendToWebAsync(string json)
+        {
+            Sent.Add(json);
+            return Task.CompletedTask;
+        }
+
+        public void Receive(string json) => MessageFromWeb?.Invoke(json);
+    }
+
+    [Fact]
+    public async Task A_registered_method_answers_with_its_result()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+        server.Register("app.info", _ => Task.FromResult<object?>(new { version = "1.2.3" }));
+
+        await server.AcceptAsync("""{"id":7,"method":"app.info"}""");
+
+        var answer = JsonDocument.Parse(channel.Sent.Single()).RootElement;
+        Assert.Equal(7, answer.GetProperty("id").GetInt32());
+        Assert.True(answer.GetProperty("ok").GetBoolean());
+        Assert.Equal("1.2.3", answer.GetProperty("result").GetProperty("version").GetString());
+    }
+
+    [Fact]
+    public async Task An_unknown_method_answers_NoSuchMethod()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+
+        await server.AcceptAsync("""{"id":1,"method":"not.a.method"}""");
+
+        var answer = JsonDocument.Parse(channel.Sent.Single()).RootElement;
+        Assert.False(answer.GetProperty("ok").GetBoolean());
+        Assert.Equal(BridgeErrors.NoSuchMethod, answer.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task A_rejection_a_handler_meant_is_answered_with_its_code()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+        server.Register("theme.set", _ => throw new BridgeFailureException(BridgeErrors.BadArgument, "bad mode"));
+
+        await server.AcceptAsync("""{"id":3,"method":"theme.set","params":{"mode":"meh"}}""");
+
+        var answer = JsonDocument.Parse(channel.Sent.Single()).RootElement;
+        Assert.Equal(BridgeErrors.BadArgument, answer.GetProperty("error").GetProperty("code").GetString());
+        Assert.Equal("bad mode", answer.GetProperty("error").GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task An_unexpected_failure_answers_Internal_and_is_recorded()
+    {
+        var log = Path.Combine(Path.GetTempPath(), $"bridge-test-{Guid.NewGuid():N}.log");
+        AppDiagnostics.FilePathOverride = log;
+        try
+        {
+            var channel = new RecordingChannel();
+            var server = new BridgeServer();
+            server.Attach(channel);
+            server.Register("app.quit", _ => throw new InvalidOperationException("boom"));
+
+            await server.AcceptAsync("""{"id":4,"method":"app.quit"}""");
+
+            var answer = JsonDocument.Parse(channel.Sent.Single()).RootElement;
+            Assert.Equal(BridgeErrors.Internal, answer.GetProperty("error").GetProperty("code").GetString());
+            Assert.True(File.Exists(log));
+        }
+        finally
+        {
+            AppDiagnostics.FilePathOverride = null;
+            File.Delete(log);
+        }
+    }
+
+    [Fact]
+    public async Task Events_buffer_until_the_page_is_ready()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+
+        await server.PushAsync("theme.changed", new { mode = "dark" });
+        Assert.Empty(channel.Sent);
+
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+
+        Assert.Equal(2, channel.Sent.Count);
+        var response = JsonDocument.Parse(channel.Sent[0]).RootElement;
+        Assert.Equal(1, response.GetProperty("id").GetInt32());
+        var pushed = JsonDocument.Parse(channel.Sent[1]).RootElement;
+        Assert.Equal("theme.changed", pushed.GetProperty("event").GetString());
+    }
+
+    [Fact]
+    public async Task Attaching_again_buffers_until_the_next_ready()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        channel.Sent.Clear();
+
+        server.Attach(channel);
+        await server.PushAsync("window.changed", new { state = "normal" });
+        Assert.Empty(channel.Sent);
+
+        await server.AcceptAsync("""{"id":2,"method":"bridge.ready"}""");
+        Assert.Equal(2, channel.Sent.Count);
+        Assert.Equal(2, JsonDocument.Parse(channel.Sent[0]).RootElement.GetProperty("id").GetInt32());
+        Assert.Equal("window.changed", JsonDocument.Parse(channel.Sent[1]).RootElement.GetProperty("event").GetString());
+    }
+
+    [Fact]
+    public async Task Text_that_is_not_a_request_is_dropped()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+
+        await server.AcceptAsync("this is not json");
+        await server.AcceptAsync("""{"event":"someone forwarded a push into the request door"}""");
+
+        Assert.Empty(channel.Sent);
+    }
+
+    [Fact]
+    public void A_method_registered_twice_is_a_bug()
+    {
+        var server = new BridgeServer();
+        server.Register("app.info", _ => Task.FromResult<object?>(null));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            server.Register("app.info", _ => Task.FromResult<object?>(null)));
+    }
+}

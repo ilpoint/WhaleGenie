@@ -1,0 +1,14 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="WhaleGenie.Web.WebShellWindow"
+        Title="WhaleGenie"
+        Width="1100" Height="720" MinWidth="720" MinHeight="480"
+        Background="{DynamicResource SurfaceWindow}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="0">
+  <!--
+    铺满窗口的一块网页：标题栏、导航与页面都画在这里，窗口只留外框与系统按钮职责之外的
+    尺寸。原生 chrome 由 NoChrome 收掉，页面里的标题栏经桥接管拖动、置顶与窗口钮。
+  -->
+  <NativeWebView x:Name="WebView" />
+</Window>

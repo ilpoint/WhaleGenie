@@ -25,6 +25,12 @@ public partial class App : Application
     /// probe window exists to be looked at while layer one is being reviewed and then goes away.
     /// </summary>
     internal static bool ThemeProbe { get; set; }
+
+    /// <summary>Whether this launch opens the web shell instead of the Avalonia main window.</summary>
+    internal static bool WebShell { get; set; }
+
+    /// <summary>The Vite dev server the web shell loads instead of the packed page, if asked.</summary>
+    internal static string? WebUiDev { get; set; }
 #endif
 
     public override void Initialize()
@@ -94,8 +100,19 @@ public partial class App : Application
     private static void ShowWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
         var services = WindowedServices.Build();
-        var window = services.GetRequiredService<MainWindow>();
-        var viewModel = (MainViewModel)window.DataContext!;
+#if DEBUG
+        Window window = App.WebShell
+            ? (Window)services.GetRequiredService<WhaleGenie.Web.WebShellWindow>()
+            : services.GetRequiredService<MainWindow>();
+        if (window is WhaleGenie.Web.WebShellWindow shell)
+        {
+            shell.DevUrl = App.WebUiDev;
+        }
+#else
+        Window window = services.GetRequiredService<MainWindow>();
+#endif
+        var main = window as MainWindow;
+        var viewModel = main?.DataContext as MainViewModel;
 
         desktop.MainWindow = window;
 
@@ -103,7 +120,8 @@ public partial class App : Application
         // step nobody asked for. A file that is not there any more leaves the window empty rather
         // than failing to start, and the path is kept for the drive that was not plugged in. The
         // setting is here for someone who keeps several projects apart and would rather start empty.
-        if (LocalSettings.LoadLastProjectAtStart()
+        if (viewModel is not null
+            && LocalSettings.LoadLastProjectAtStart()
             && LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
         {
             try
@@ -121,14 +139,25 @@ public partial class App : Application
         // notification area is how it comes back and how the program is stopped. The window is
         // given the icon as well, because the icon's menu is the one close that really leaves —
         // and that is the one time the window has to ask about work that is not saved.
-        window.Tray = AppTray.Attach(window, desktop, () => new WindowsTray(
+        //
+        // The icon is held here rather than on the window: only the main window has a use for it
+        // of its own (its editor steps the whole window aside), and a plain window that carries a
+        // tray property would make every window look like it had one.
+        var tray = AppTray.Attach(window, desktop, () => new WindowsTray(
             Strings.Get("Tray.Tooltip"), Strings.Get("Tray.Show"), Strings.Get("Tray.Exit")));
+        if (main is not null)
+        {
+            main.Tray = tray;
+        }
 
         // The list starts empty, so if the last run was stopped without saving, the work it was
         // holding is offered back here — once the window is up, because it is a dialog. The window
         // asks about it only once in the whole run: it is announced again every time it comes back
         // from the notification area, and that is not the last run.
-        window.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
+        if (main is not null)
+        {
+            main.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = main.OfferRecoveryAsync());
+        }
 
         // The door a client's own process knocks on. Tools run here, on the project this window is
         // showing, so a draft is a copy of what is on screen and a save writes the file the person
@@ -148,7 +177,7 @@ public partial class App : Application
         // right to take the foreground, so an answer given too early is an answer given too late.
         SingleInstance.Listen(() => Dispatcher.UIThread.Invoke(() =>
         {
-            window.Tray?.ComeBack();
+            tray?.ComeBack();
             WindowFront.Bring(window);
         }));
 
@@ -164,7 +193,7 @@ public partial class App : Application
 
             exited = true;
             services.GetRequiredService<PersistedVariables>().Dispose();
-            window.Tray?.Dispose();
+            tray?.Dispose();
 
             // The trigger service the container owns watches the machine through the device layer,
             // so it has to stop before that layer is let go. It is disposed here, and the device

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq;
 
 namespace WhaleGenie.Localization;
 
@@ -92,8 +93,55 @@ public sealed class Strings : INotifyPropertyChanged
     public static string Format(string key, params object[] arguments)
         => string.Format(CultureInfo.CurrentCulture, Get(key), arguments);
 
+    /// <summary>
+    /// Every key of every table, resolved for the current language into one dictionary. The web
+    /// interface draws only from this bundle, so which table a key belongs to and what the
+    /// fallback is are decided once, here, and the page never guesses.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> Snapshot()
+    {
+        var keys = new List<string>(
+            English.Count + Chinese.Count + ActionStrings.Chinese.Count + ActionEnglish.English.Count);
+        keys.AddRange(English.Keys);
+        keys.AddRange(Chinese.Keys);
+        keys.AddRange(ActionStrings.Chinese.Keys);
+        keys.AddRange(ActionEnglish.English.Keys);
+
+        return keys.Distinct(StringComparer.Ordinal)
+            .ToDictionary(key => key, key => Get(key), StringComparer.Ordinal);
+    }
+
     internal static readonly Dictionary<string, string> English = new()
     {
+        // --------------------------------------------------------------- web shell
+        ["Shell.Home"] = "Home",
+        ["Shell.Macros"] = "Macros",
+        ["Shell.Editor"] = "Editor",
+        ["Shell.Run"] = "Run & Debug",
+        ["Shell.Settings"] = "Settings",
+        ["Shell.UntitledProject"] = "Untitled project",
+        ["Shell.Field.Version"] = "Version",
+        ["Shell.Field.Language"] = "Interface language",
+        ["Shell.Field.Project"] = "Project",
+        ["Shell.Field.Dirty"] = "Unsaved changes",
+        ["Shell.Field.Clean"] = "Saved",
+        ["Shell.Field.Revision"] = "Revision",
+        ["Shell.Field.Macros"] = "Macros",
+        ["Shell.Home.Heading"] = "Welcome to WhaleGenie",
+        ["Shell.Home.Intro"] =
+            "The interface is moving to a web page. Areas that are still native keep working exactly as before until their turn comes.",
+        ["Shell.Status.Web"] = "In the web shell",
+        ["Shell.Status.Native"] = "Still native",
+        ["Shell.Status.Planned"] = "Planned",
+        ["Shell.Placeholder.Body"] =
+            "This area still lives in its native window. It moves into the shell when its turn comes, and this page goes away with it.",
+        ["Shell.Window.Minimize"] = "Minimize",
+        ["Shell.Window.Maximize"] = "Maximize",
+        ["Shell.Window.Restore"] = "Restore",
+        ["Shell.Window.Close"] = "Close",
+        ["Shell.Window.Pin"] = "Keep on top",
+        ["Shell.Window.Unpin"] = "Stop keeping on top",
+
         // ------------------------------------------------------------- main window
         ["Main.Title"] = "WhaleGenie",
         ["Main.AdminBadge"] = " (Admin)",
@@ -2742,6 +2790,35 @@ public sealed class Strings : INotifyPropertyChanged
 
     internal static readonly Dictionary<string, string> Chinese = new()
     {
+        // --------------------------------------------------------------- web shell
+        ["Shell.Home"] = "首页",
+        ["Shell.Macros"] = "宏",
+        ["Shell.Editor"] = "编辑器",
+        ["Shell.Run"] = "运行调试",
+        ["Shell.Settings"] = "设置",
+        ["Shell.UntitledProject"] = "未命名项目",
+        ["Shell.Field.Version"] = "版本",
+        ["Shell.Field.Language"] = "界面语言",
+        ["Shell.Field.Project"] = "项目",
+        ["Shell.Field.Dirty"] = "有未保存修改",
+        ["Shell.Field.Clean"] = "已保存",
+        ["Shell.Field.Revision"] = "修订号",
+        ["Shell.Field.Macros"] = "宏数量",
+        ["Shell.Home.Heading"] = "欢迎使用鲸灵",
+        ["Shell.Home.Intro"] =
+            "界面正在迁移到网页。仍为原生的区域在轮到它们之前照旧工作。",
+        ["Shell.Status.Web"] = "已在网页壳中",
+        ["Shell.Status.Native"] = "仍是原生界面",
+        ["Shell.Status.Planned"] = "规划中",
+        ["Shell.Placeholder.Body"] =
+            "这一区域仍由原生窗口承担。轮到它迁入网页壳时，这一页会随之删除。",
+        ["Shell.Window.Minimize"] = "最小化",
+        ["Shell.Window.Maximize"] = "最大化",
+        ["Shell.Window.Restore"] = "还原",
+        ["Shell.Window.Close"] = "关闭",
+        ["Shell.Window.Pin"] = "窗口置顶",
+        ["Shell.Window.Unpin"] = "取消置顶",
+
         // ------------------------------------------------------------- main window
         ["Main.Title"] = "鲸灵",
         ["Main.AdminBadge"] = "（管理员）",

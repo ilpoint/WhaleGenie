@@ -108,6 +108,23 @@ sealed class Program
             Run(args);
             return 0;
         }
+
+        // The web shell in place of the Avalonia main window: --webshell asks for it, and
+        // --webui-dev points it at a Vite dev server so the page edits hot-reload while the
+        // program runs. Both stay debug-only while the shell grows; the ordinary window remains
+        // the default until the shell has taken over everything it must.
+        if (args.Contains("--webshell", System.StringComparer.Ordinal))
+        {
+            App.WebShell = true;
+        }
+
+        foreach (var argument in args)
+        {
+            if (argument.StartsWith("--webui-dev", System.StringComparison.Ordinal))
+            {
+                App.WebUiDev = WebUiDevUrl(argument);
+            }
+        }
 #endif
 
         // One window, one program. A second launch is somebody double-clicking the icon while the
@@ -194,6 +211,15 @@ sealed class Program
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr AddDllDirectory(string newDirectory);
+
+#if DEBUG
+    /// <summary>The address after <c>--webui-dev</c>, or the dev server's default port.</summary>
+    private static string WebUiDevUrl(string argument)
+    {
+        var separator = argument.IndexOf('=');
+        return separator >= 0 ? argument[(separator + 1)..] : "http://localhost:5173";
+    }
+#endif
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()

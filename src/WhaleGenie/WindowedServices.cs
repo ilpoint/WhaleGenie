@@ -1,16 +1,18 @@
 using Microsoft.Extensions.DependencyInjection;
+using WhaleGenie.Bridge;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
+using WhaleGenie.Web;
 
 namespace WhaleGenie;
 
 /// <summary>
 /// The composition root of the windowed program: the graph every run shares, plus the one thing a
-/// run with a window needs and a run without one must not compile into its path — the window and the
-/// view model behind it. Keeping those two in their own method is what lets the headless entry point
-/// build the same graph without touching Avalonia.
+/// run with a window needs and a run without one must not compile into its path — the window and
+/// the view model behind it. Keeping those two in their own method is what lets the headless entry
+/// point build the same graph without touching Avalonia.
 /// </summary>
 internal static class WindowedServices
 {
@@ -24,27 +26,44 @@ internal static class WindowedServices
         var persisted = new PersistedVariables(PersistedVariables.DefaultPath);
         persisted.Initialize(variables);
 
-        // The document the window shows is the one the runs read: the view model makes it, and the
-        // container hands that same instance to every tool and trigger.
+        // The document is made here too, before any window: the view model, the web shell and the
+        // MCP tools are handed this one instance rather than each making a table of its own.
+        var workspace = new ProjectWorkspace(persisted, variables, AppVersion.Text);
+
+        // The document the window shows is the one the runs read: the container hands that same
+        // instance to every tool and trigger.
         var services = AppServices.Wiring(
-            sp => sp.GetRequiredService<MainViewModel>().Workspace,
+            _ => workspace,
             persisted,
             variables,
             new AvaloniaUiDispatcher(),
             new AvaloniaWindowAside());
 
         services.AddSingleton(_ => new MainViewModel(_ => new McpServerViewModel(), persisted,
-            variables));
+            variables, workspace));
         Add(services);
 
         return services.BuildServiceProvider();
     }
 
-    private static void Add(ServiceCollection services)
+    private static void Add(IServiceCollection services)
         =>
         // The view model the window shows is the same instance the MCP server reads.
         services.AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>())
         {
             DataContext = sp.GetRequiredService<MainViewModel>(),
-        });
+        })
+        .AddSingleton(sp =>
+        {
+            // The web shell's handlers are registered once and serve the one page; the window
+            // bridge finds the shell through the container, which answers null while the shell
+            // is not the window on duty.
+            var server = new BridgeServer();
+            server.Register(new AppBridge(sp.GetRequiredService<ProjectWorkspace>(), () => AppTray.Current));
+            server.Register(new StringsBridge());
+            server.Register(new ThemeBridge());
+            server.Register(new WindowBridge(() => sp.GetService<WebShellWindow>()));
+            return server;
+        })
+        .AddSingleton<WebShellWindow>();
 }
