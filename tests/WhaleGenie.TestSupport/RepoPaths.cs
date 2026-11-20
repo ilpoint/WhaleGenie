@@ -19,7 +19,7 @@ public static class RepoPaths
     /// <summary>The folder the suites are filed under.</summary>
     private const string TestsFolder = "tests";
 
-    /// <summary>The checkout root: the folder that holds <c>WhaleGenie.slnx</c>.</summary>
+    /// <summary>The checkout root: the folder that holds one of the solution files.</summary>
     public static string Root { get; } = Find();
 
     /// <summary>A product project's folder or file, given the parts below it.</summary>
@@ -46,18 +46,26 @@ public static class RepoPaths
         return IOPath.Combine([.. all]);
     }
 
+    /// <summary>
+    /// The files that mark the checkout root. There are two because the library also ships as its
+    /// own checkout: the full solution holds the editor too, the library one holds only the engine
+    /// and the Windows projects. Whichever is present names the root, so the same checks run in
+    /// both without a second copy of this file.
+    /// </summary>
+    private static readonly string[] Solutions = ["WhaleGenie.slnx", "WhaleGenie.Core.slnx"];
+
     private static string Find()
     {
         for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
         {
-            if (File.Exists(IOPath.Combine(at.FullName, "WhaleGenie.slnx")))
+            if (Solutions.Any(name => File.Exists(IOPath.Combine(at.FullName, name))))
             {
                 return at.FullName;
             }
         }
 
         throw new InvalidOperationException(
-            "WhaleGenie.slnx was not found above " + AppContext.BaseDirectory
-            + ": the checkout root is the folder that holds it.");
+            string.Join(" or ", Solutions) + " was not found above " + AppContext.BaseDirectory
+            + ": the checkout root is the folder that holds one of them.");
     }
 }

@@ -1,0 +1,64 @@
+<Project>
+
+  <!--
+    每个 NuGet 包只在这里写一次版本。工程文件里只写 Include 与它真正的条件（只在 Debug 还原、
+    IncludeAssets/PrivateAssets），于是「这个包是哪个版本」只有一个答案，升级时不十八处各改一遍。
+    MSBuild 按向上查找加载本文件，放在根上就覆盖 src/、tests/ 里的所有工程。
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!--
+      不启用 CentralPackageTransitivePinningEnabled：它会把每条传递依赖也钉成直接依赖，解析图
+      随之改变。这里只收拢这三个工程真正引用的包，传递依赖仍由包自己决定。
+    -->
+  </PropertyGroup>
+
+  <!-- 引擎：CSV 表格动作自己读写，所以解析器随引擎走。 -->
+  <ItemGroup Label="引擎">
+    <PackageVersion Include="CsvHelper" Version="33.1.0" />
+  </ItemGroup>
+
+  <!--
+    构建期分析器：不随产品发布（PrivateAssets=all），只在编译时检查。公共 API 基线分析器
+    把引擎的公共面钉成文件，增删成员必须先改基线。
+  -->
+  <ItemGroup Label="分析器">
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
+  </ItemGroup>
+
+  <!-- Windows 适配器：键鼠钩子、界面自动化、找图找色、浏览器、脚本编译器。 -->
+  <ItemGroup Label="Windows 适配器">
+    <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageVersion Include="NuGet.Frameworks" Version="7.9.0" />
+    <PackageVersion Include="NuGet.Packaging" Version="7.9.0" />
+    <PackageVersion Include="NuGet.Protocol" Version="7.9.0" />
+    <PackageVersion Include="NuGet.Versioning" Version="7.9.0" />
+    <PackageVersion Include="OpenCvSharp5.Windows" Version="5.0.0.20260702" />
+    <PackageVersion Include="Sdcb.SimdPaddleOCR" Version="2.0.0" />
+    <PackageVersion Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" Version="1.0.0" />
+    <PackageVersion Include="SharpHook" Version="8.0.0" />
+    <!--
+      NuGet.Packaging 拖进来的是 System.Security.Cryptography.Pkcs 8.0.1，两条已公开的公告指着
+      它，修在 8.0.2 以后；SDK 的审计会把「警告当错误」，于是还原当场失败。这一条只把解析出来的
+      版本抬到修好的那一个：运行时要的是 WindowsDesktop 共享框架里的那份。
+    -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+  </ItemGroup>
+
+  <!-- 画面获取：Direct3D 与 DXGI 的托管包装，原生调用打的是 Windows 自带的那份。 -->
+  <ItemGroup Label="画面获取">
+    <PackageVersion Include="Vortice.Direct3D11" Version="3.8.3" />
+    <PackageVersion Include="Vortice.DXGI" Version="3.8.3" />
+  </ItemGroup>
+
+  <!-- 测试：三套用例跑在同一套宿主上，两个支持库也用同一份 xunit。 -->
+  <ItemGroup Label="测试">
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+</Project>

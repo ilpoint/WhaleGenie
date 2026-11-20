@@ -1,0 +1,140 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '要发布的版本号（如 0.2.0）。留空就用 props 里的版本，并且不发布'
+        required: false
+      publish:
+        description: '发布到 nuget.org'
+        type: boolean
+        default: false
+
+# id-token: write 是 OIDC 换临时 API key 的前提；job 级的 permissions 会覆盖默认值，
+# 所以 contents: read 要写回来给 checkout 用。
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    # 适配器驱动真实的 Windows 桌面：SharpHook 收键鼠、UI Automation 找元素、OpenCV 与 PaddleOCR
+    # 看屏幕、Direct3D 与 DXGI 取画面。引擎本身哪儿都能编，但库整体只在 Windows 上成立。
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore WhaleGenie.Core.slnx
+
+      - name: Check formatting
+        run: dotnet format WhaleGenie.Core.slnx --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build WhaleGenie.Core.slnx -c Release --no-restore
+
+      - name: Test
+        # 三套用例：引擎、画面获取、适配器，最后一套会驱动真实设备。
+        run: dotnet test WhaleGenie.Core.slnx -c Release --no-build --no-restore
+
+      - name: Work out the version
+        id: version
+        shell: pwsh
+        run: |
+          # 三种来源：v* 标签、手动触发时填的版本号、什么都没有（就用 props 里的版本，不发布）。
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $value = $env:GITHUB_REF.Substring('refs/tags/v'.Length)
+          }
+          elseif ('${{ inputs.version }}') {
+            $value = '${{ inputs.version }}'
+          }
+          else {
+            $value = ''
+          }
+          "value=$value" >> $env:GITHUB_OUTPUT
+
+      - name: Pack
+        shell: pwsh
+        run: |
+          # 三个工程各打一次。dotnet pack 只打指定的那个工程，不会替它引用的工程出包——只打
+          # Platform.Windows 的话，包里会写上一个没人发布过的 WhaleGenie.Core 依赖，消费方还原不了。
+          $projects = @(
+            'src/WhaleGenie.Core/WhaleGenie.Core.csproj',
+            'src/WhaleGenie.GraphicsCapture/WhaleGenie.GraphicsCapture.csproj',
+            'src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj'
+          )
+          foreach ($project in $projects) {
+            $arguments = @('pack', $project, '-c', 'Release', '-p:Platform=x64')
+            if ('${{ steps.version.outputs.value }}') {
+              $arguments += "-p:Version=${{ steps.version.outputs.value }}"
+            }
+            dotnet @arguments
+            if ($LASTEXITCODE -ne 0) { throw "打包 $project 失败（退出码 $LASTEXITCODE）。" }
+          }
+
+      - name: Check the packages
+        shell: pwsh
+        run: |
+          # 发布前先看一眼：缺了引擎或画面获取，另外那个包推上去也是个还原不了的包。
+          $packages = Get-ChildItem -Path dist/nuget -Filter *.nupkg
+          $packages | ForEach-Object { Write-Host $_.Name }
+          if ($packages.Count -ne 3) {
+            throw "应当有三个包，实际 $($packages.Count) 个。"
+          }
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: packages
+          path: dist/nuget/*.nupkg
+          if-no-files-found: error
+
+      - name: Check the release trigger
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        shell: pwsh
+        run: |
+          if (-not '${{ steps.version.outputs.value }}') {
+            throw '发布需要一个版本号：手动触发时填 version，或者推一个 v0.2.0 这样的标签。'
+          }
+
+      # 三个包同时发布：引擎、画面获取、适配器。基线之外的新包 ID 要先在 nuget.org 的
+      # Trusted Publisher 策略里加上，否则换成临时 key 也推不上去。
+      - name: NuGet login (OIDC → temporary API key)
+        id: login
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        uses: NuGet/login@v1
+        with:
+          # nuget.org 的账号名（不是邮箱）。密钥只活一小时，所以放在打包之后换。
+          user: ${{ secrets.ILPOINT }}
+
+      - name: Publish to nuget.org
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
+        shell: pwsh
+        env:
+          NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          # 通配符不能交给 dotnet：PowerShell 不像 bash 那样替原生命令展开 *.nupkg，传过去就是
+          # 字面星号，报 "File does not exist"。这里自己列文件、逐个推。
+          $packages = Get-ChildItem -Path dist/nuget -Filter *.nupkg
+          if (-not $packages) { throw 'dist/nuget 下没有可发布的包。' }
+
+          foreach ($package in $packages) {
+            Write-Host "推送 $($package.Name)"
+            $arguments = @(
+              'nuget', 'push', $package.FullName,
+              '--api-key', $env:NUGET_KEY,
+              '--source', 'https://api.nuget.org/v3/index.json',
+              '--skip-duplicate'
+            )
+            dotnet @arguments
+            if ($LASTEXITCODE -ne 0) { throw "推送 $($package.Name) 失败（退出码 $LASTEXITCODE）。" }
+          }
