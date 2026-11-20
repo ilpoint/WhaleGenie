@@ -47,25 +47,27 @@ public static class RepoPaths
     }
 
     /// <summary>
-    /// The files that mark the checkout root. There are two because the library also ships as its
-    /// own checkout: the full solution holds the editor too, the library one holds only the engine
-    /// and the Windows projects. Whichever is present names the root, so the same checks run in
-    /// both without a second copy of this file.
+    /// Finds the checkout root by walking up until one of the two solution files is there. There
+    /// are two because the library also ships as its own checkout: the full solution holds the
+    /// editor too, the library one holds only the engine and the Windows projects. Whichever is
+    /// present names the root, so the same checks run in both without a second copy of this file.
     /// </summary>
-    private static readonly string[] Solutions = ["WhaleGenie.slnx", "WhaleGenie.Core.slnx"];
-
     private static string Find()
     {
+        // 局部变量而不是静态字段：静态字段按声明顺序初始化，而 Root 在它们之前就调用了这里，
+        // 字段那时还是 null。
+        string[] solutions = ["WhaleGenie.slnx", "WhaleGenie.Core.slnx"];
+
         for (var at = new DirectoryInfo(AppContext.BaseDirectory); at is not null; at = at.Parent)
         {
-            if (Solutions.Any(name => File.Exists(IOPath.Combine(at.FullName, name))))
+            if (solutions.Any(name => File.Exists(IOPath.Combine(at.FullName, name))))
             {
                 return at.FullName;
             }
         }
 
         throw new InvalidOperationException(
-            string.Join(" or ", Solutions) + " was not found above " + AppContext.BaseDirectory
+            string.Join(" or ", solutions) + " was not found above " + AppContext.BaseDirectory
             + ": the checkout root is the folder that holds one of them.");
     }
 }
