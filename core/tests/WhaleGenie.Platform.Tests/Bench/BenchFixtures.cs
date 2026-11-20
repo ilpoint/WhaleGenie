@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -308,16 +309,34 @@ internal static class BenchFixtures
     public static string Name(string key) => "bench_" + key;
 
     /// <summary>
-    /// How long one step may take: bounded, because the point is whether it ends at all, but not so
-    /// tight that a machine running every suite at once answers a different question. The waits are
-    /// the ones that need the room: a look or two has to happen before the third one finds anything.
+    /// How long a step's own work may take before the bench calls it a hang. Generous on purpose:
+    /// this runs beside seven other suites on a four-core runner, and a step that asks the thread
+    /// pool for a moment can be handed back seconds late with nothing wrong. Fifteen seconds still
+    /// catches a step that never ends.
     /// </summary>
-    private const int BenchTimeoutMs = 5000;
+    private const int BenchTimeoutMs = 20000;
 
+    /// <summary>
+    /// The clock a step gets: the budget above, plus whatever the step is declared to spend waiting.
+    /// A pause is the one action whose work *is* the wait — charging that wait to the same budget is
+    /// what once turned a one-second `control.delay` into `Run.Timeout` on a busy runner.
+    /// </summary>
     private static int Timeout(ActionSemantics action)
-        => action.TimeoutSource == ActionTimeoutSource.Step
+    {
+        var budget = action.TimeoutSource == ActionTimeoutSource.Step
             ? Math.Min(action.StepTimeoutMs, BenchTimeoutMs)
             : BenchTimeoutMs;
+
+        return action.Key == "control.delay" ? budget + DeclaredDelay(action) : budget;
+    }
+
+    /// <summary>The pause a delay step is declared to take, and none if it says nothing.</summary>
+    private static int DeclaredDelay(ActionSemantics action)
+        => action.Parameters.FirstOrDefault(parameter => parameter.Name == "ms") is { } declared
+           && int.TryParse(declared.DefaultValue, NumberStyles.Integer, CultureInfo.InvariantCulture,
+               out var milliseconds)
+            ? milliseconds
+            : 0;
 
     /// <summary>Where these steps only read inside something else.</summary>
     private static BenchWrapper Wrapper(string key) => key switch
