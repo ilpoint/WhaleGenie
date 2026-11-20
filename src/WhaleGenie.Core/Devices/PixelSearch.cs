@@ -10,7 +10,7 @@ namespace WhaleGenie.Core.Devices;
 /// wherever on the screen it sits. A point that names no tolerance uses the one the whole search
 /// was given, which is the base colour's.
 /// </remarks>
-public readonly record struct ColourStep(int Dx, int Dy, PixelColor Colour,
+internal readonly record struct ColourStep(int Dx, int Dy, PixelColor Colour,
     double? Tolerance = null, IReadOnlyList<PixelColor>? Alternatives = null, bool MustNot = false)
 {
     /// <summary>
@@ -33,7 +33,7 @@ public readonly record struct ColourStep(int Dx, int Dy, PixelColor Colour,
 /// rather than behind a device: the engine hands it a frame it has already captured and gets back
 /// the pixels that showed the colour.
 /// </summary>
-public static class PixelSearch
+internal static class PixelSearch
 {
     /// <summary>
     /// At most <paramref name="limit"/> of the pixels within <paramref name="tolerancePercent"/> of

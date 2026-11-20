@@ -11,7 +11,7 @@ namespace WhaleGenie.Core.Devices;
 /// This is plain pixel work with no screen and no engine behind it, so a frame goes in and a frame
 /// comes out and the whole thing can be tested on pictures a test built itself.
 /// </remarks>
-public static class OcrPreprocess
+internal static class OcrPreprocess
 {
     /// <summary>What a step can ask for, in the order the interface offers it.</summary>
     public static IReadOnlyList<string> Recipes { get; } =

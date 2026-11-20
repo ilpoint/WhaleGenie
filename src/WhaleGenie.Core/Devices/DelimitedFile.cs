@@ -25,7 +25,7 @@ namespace WhaleGenie.Core.Devices;
 /// macro asked for, and a macro author cannot act on "the reader did not like row 40": the row is
 /// handed over as it was written and the step goes on.
 /// </remarks>
-public static class DelimitedFile
+internal static class DelimitedFile
 {
     /// <summary>
     /// The rows of a file, each a list of the cells in it. The separator is either the character
