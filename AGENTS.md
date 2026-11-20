@@ -15,6 +15,9 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 - `WhaleGenie.Core` 只依赖 BCL 与 `CsvHelper`，目标是 `net10.0`：画面数据形状（`CaptureWay`、
   `ScreenLayout`）与键词汇表（`KeyNames`）属于它，适配器与画面工程反过来引用它；
   `InternalsVisibleTo` 只留给引擎自己的用例。
+- `core/` 是库的独立仓库（[ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)）以
+  `git subtree` 引入的一份，**不在这里改**：引擎、画面获取、Windows 适配器和它们的三套用例在那边
+  提交，再用 `git subtree pull --prefix=core core main --squash` 取回来。
 - `WhaleGenie.Domain` 不依赖 Avalonia、窗口、ViewModel 或 MCP；`WhaleGenie.Mcp` 不依赖 Avalonia、
   Views 或 Runtime，机器控制、运行宏与运行日志工具由 `WhaleGenie.App` 作为 tool owner 注入。
 - `WhaleGenie.App` 不依赖 Avalonia 或任何窗口类型：触发器、运行编排、MCP 宿主与工具、两种启动形态

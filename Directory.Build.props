@@ -34,10 +34,9 @@
     <Version>0.1.0</Version>
 
     <!--
-      Three projects are libraries someone else may reference — the engine and the two Windows
-      projects that implement its contracts — and they say so in their own csproj. Everything else
-      here is part of the program, and this line keeps a stray `dotnet pack` from publishing the
-      editor.
+      Everything in this repository is part of the program; the library that does ship as packages
+      is vendored under core/ and carries its own build settings, including which of its projects
+      are packable. This line keeps a stray `dotnet pack` from publishing the editor.
     -->
     <IsPackable>false</IsPackable>
 

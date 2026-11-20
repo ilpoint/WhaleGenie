@@ -7,7 +7,7 @@
 | 层 | 位置 | 验证范围 |
 | --- | --- | --- |
 | 引擎逻辑 | `WhaleGenie.Core.Tests` | 动作行为、变量、表达式、设备请求、返回形状和输入路由 |
-| 动作矩阵 | `tests/WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
+| 动作矩阵 | `core/tests/WhaleGenie.Core.Tests/Bench` | 按目录合成动作并核对结局、返回值、副作用声明和设备记录 |
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用、矩形越界与图片落位 |
 | 文档与运行期服务 | `WhaleGenie.Domain.Tests` | 包往返、设计期检查、变量、触发器、运行日志与单实例；不开窗口 |
 | 协议与工具 | `WhaleGenie.Mcp.Tests` | 工具清单、拒绝码、审计、命令行与容器生命周期；不经窗口 |
@@ -37,7 +37,7 @@
 | 失败键、函数表和中英文文案 | `FailureKeyTests`、`FunctionTableTests`、`LocalizationTests` |
 | 字段命名与步骤落点 | `FieldNameTests`、`StepPlacementTests`、`MacroEditorWorkspaceTests` |
 | 依赖方向与主题资源 | `LayeringTests`、`ControlsRegistryTests`、`StyleVocabularyTests`、`TemplatePartTests` |
-| 引擎的公共面与自足 | `src/WhaleGenie.Core/PublicAPI.Shipped.txt`（RS0016/RS0017）、`LayeringTests` 的五条守卫 |
+| 引擎的公共面与自足 | `core/src/WhaleGenie.Core/PublicAPI.Shipped.txt`（RS0016/RS0017）、`LayeringTests` 的五条守卫 |
 | 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、图标绘制、选项往返、设置页与轮盘预览 | `WheelMenuTests` |
 
 ### 界面与无头测试注意事项

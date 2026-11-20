@@ -3,8 +3,10 @@
 所属：[WhaleGenie 架构](../architecture.md)。
 
 `WhaleGenie.Core` 是仓库里唯一作为库发布的工程：`net10.0`、引用闭包只有 BCL 与 `CsvHelper`，
-界面、适配器、画面获取和 MCP 都引用它，它不引用其中任何一个。这一篇说明公共面分几档、为什么这样
-分、以及公共 API 基线怎么维护。开发与验收命令见 [dev.md](../dev.md)。
+界面、适配器、画面获取和 MCP 都引用它，它不引用其中任何一个。它连同两个 Windows 工程住在
+`core/` 下——那是 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core) 以
+`git subtree` 引入的一份仓库，**改动去那边做**，这里只读。这一篇说明公共面分几档、为什么这样分、
+以及公共 API 基线怎么维护。开发与验收命令见 [dev.md](../dev.md)。
 
 ## 1. 为什么要有分档
 
@@ -37,8 +39,8 @@ internals，而那条通道只留给引擎自己的用例。
 ## 3. 公共 API 基线
 
 `Microsoft.CodeAnalysis.PublicApiAnalyzers` 在编译期比对
-[`PublicAPI.Shipped.txt`](../../src/WhaleGenie.Core/PublicAPI.Shipped.txt) 与
-[`PublicAPI.Unshipped.txt`](../../src/WhaleGenie.Core/PublicAPI.Unshipped.txt)：
+[`PublicAPI.Shipped.txt`](../../core/src/WhaleGenie.Core/PublicAPI.Shipped.txt) 与
+[`PublicAPI.Unshipped.txt`](../../core/src/WhaleGenie.Core/PublicAPI.Unshipped.txt)：
 
 - 新增公共成员而不写进 `Unshipped.txt` → `RS0016`，构建失败。
 - 基线里有、程序集里没有 → `RS0017`，构建失败。
@@ -52,18 +54,21 @@ internals，而那条通道只留给引擎自己的用例。
 3. 文件名与路径不要动：两个 `AdditionalFiles` 在 `WhaleGenie.Core.csproj` 里按名字引用。
 
 第一次生成的办法（也适用于大改之后）：两个文件只留 `#nullable enable`，构建一次拿到全部 `RS0016`，
-再 `dotnet format analyzers src/WhaleGenie.Core/WhaleGenie.Core.csproj --diagnostics RS0016`
+再 `dotnet format analyzers core/src/WhaleGenie.Core/WhaleGenie.Core.csproj --diagnostics RS0016`
 批量写入，最后搬进 `Shipped.txt`。
 
 ## 4. 打包
+
+打包与发布都在库自己的仓库里，构建设置也随之住在 `core/`：
 
 ```pwsh
 dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -c Release -p:Platform=x64
 ```
 
-三个包都落在 `dist/nuget/`。引擎包的 `lib/` 下只有 `net10.0`，XML 文档与包自述随包；两个 Windows
-包各在 `lib/net10.0-windows10.0.19041/` 下放自己的程序集。界面、App、Domain、Mcp、Localization
-在根 `Directory.Build.props` 里统一 `IsPackable=false`：它们是程序的一部分，不是给别人的库。
+三个包都落在库仓的 `dist/nuget/`。引擎包的 `lib/` 下只有 `net10.0`，XML 文档与包自述随包；两个
+Windows 包各在 `lib/net10.0-windows10.0.19041/` 下放自己的程序集。程序自己的工程（界面、App、
+Domain、Mcp、Localization）在根 `Directory.Build.props` 里统一 `IsPackable=false`：它们是程序的
+一部分，不是给别人的库。
 
 ## 5. 分发：一个引用，三个程序集
 

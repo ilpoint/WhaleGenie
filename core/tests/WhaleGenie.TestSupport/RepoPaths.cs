@@ -10,29 +10,37 @@ namespace WhaleGenie.TestSupport;
 /// </summary>
 public static class RepoPaths
 {
-    /// <summary>
-    /// The folder the product projects are filed under. A folder stays empty while its projects sit
-    /// at the root, so filing them elsewhere is a change to this file and not to every check.
-    /// </summary>
-    private const string SourceFolder = "src";
-
-    /// <summary>The folder the suites are filed under.</summary>
-    private const string TestsFolder = "tests";
-
     /// <summary>The checkout root: the folder that holds one of the solution files.</summary>
     public static string Root { get; } = Find();
 
     /// <summary>A product project's folder or file, given the parts below it.</summary>
-    public static string Source(params string[] parts) => Join(Root, SourceFolder, parts);
+    public static string Source(params string[] parts) => Locate("src", parts);
 
     /// <summary>A suite's folder or file, given the parts below it.</summary>
-    public static string Tests(params string[] parts) => Join(Root, TestsFolder, parts);
+    public static string Tests(params string[] parts) => Locate("tests", parts);
 
     /// <summary>A document, given the parts below <c>docs</c>.</summary>
     public static string Docs(params string[] parts) => Join(IOPath.Combine(Root, "docs"), string.Empty, parts);
 
     /// <summary>Anything else in the checkout, given its parts from the root.</summary>
     public static string Path(params string[] parts) => Join(Root, string.Empty, parts);
+
+    /// <summary>
+    /// Where a folder of the library sits. Its own checkout keeps the projects under <c>src</c> and
+    /// the suites under <c>tests</c>; the program's checkout vendors the whole library at
+    /// <c>core/</c>, so the same relative path has one more level in front of it. Which one exists
+    /// is the answer — the two layouts are both real, and a check should read the one it is in.
+    /// </summary>
+    private static string Locate(string folder, string[] parts)
+    {
+        var own = Join(Root, folder, parts);
+        if (Directory.Exists(own) || File.Exists(own))
+        {
+            return own;
+        }
+
+        return IOPath.Combine(Root, "core", IOPath.Combine([folder, .. parts]));
+    }
 
     private static string Join(string folder, string first, string[] parts)
     {

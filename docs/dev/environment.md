@@ -8,15 +8,16 @@
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
 dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
-dotnet build WhaleGenie.Core.slnx -c Release
-dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -c Release -p:Platform=x64
+dotnet build core/WhaleGenie.Core.slnx -c Release
 dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
 
-`WhaleGenie.Core.slnx` 是库自己的解决方案：引擎、画面获取、Windows 适配器和它们的三套用例，
-不含界面工程，可以单独构建、测试与打包。三个包都由它编出来，引用关系见
-[core-api.md 的分发一节](../architecture/core-api.md)。
+`core/` 是库（引擎、画面获取、Windows 适配器与它们的三套用例）的独立仓库，以 `git subtree`
+引入到这里：**它不在这里改**，改动去 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)，
+再 `git subtree pull --prefix=core core main --squash`。库的构建设置与包版本跟着它自己走
+（`core/Directory.Build.props`、`core/Directory.Packages.props`），打包与发布也在那边的 CI。
+分发关系见 [core-api.md 的分发一节](../architecture/core-api.md)。
 
 解决方案只提供 `x64` 平台。根目录 `Directory.Build.props` 统一设置目标平台并将警告视为错误，
 因此构建通过也意味着没有编译警告。分析器只对产品工程启用 Recommended 集，测试工程除外；
@@ -30,7 +31,7 @@ pwsh build/site.ps1
 
 ```powershell
 $env:ACTION_MATRIX_REPORT = "TestResults/action-matrix.md"
-dotnet test tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
+dotnet test core/tests/WhaleGenie.Core.Tests -c Release --filter "FullyQualifiedName~ActionBench"
 Remove-Item Env:ACTION_MATRIX_REPORT
 
 dotnet run --project src/WhaleGenie -c Release -- --mcp-doctor --report TestResults/mcp-after.md

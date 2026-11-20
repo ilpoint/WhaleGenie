@@ -97,7 +97,7 @@ public class ThirdPartyNoticesTests
 
         Assert.Contains("third_party\\libVIIPER\\libVIIPER.dll", project, StringComparison.Ordinal);
         Assert.Contains("libVIIPER-LICENSES.txt", script, StringComparison.Ordinal);
-        Assert.Contains("third_party\\libVIIPER\\licenses.txt", script, StringComparison.Ordinal);
+        Assert.Contains("core\\third_party\\libVIIPER\\licenses.txt", script, StringComparison.Ordinal);
     }
 
     [Fact]

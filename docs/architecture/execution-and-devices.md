@@ -204,7 +204,7 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 `IDeviceLayer` 把它们聚合为引擎取得的唯一契约。消费者可以只依赖所需接口；`MacroRunner` 和
 综合编辑器使用聚合层。
 
-`src/WhaleGenie.Platform.Windows/` 是 Windows 实现所在位置，第三方库的类型和异常不得泄漏到界面；引擎只通过 `src/WhaleGenie.Core/Devices/` 的契约看到它们。
+`core/src/WhaleGenie.Platform.Windows/` 是 Windows 实现所在位置，第三方库的类型和异常不得泄漏到界面；引擎只通过 `core/src/WhaleGenie.Core/Devices/` 的契约看到它们。
 `NullDeviceLayer` 提供无设备默认实现，测试替身按设备分别组装，并共享一份有序调用记录以验证
 跨设备顺序。
 
