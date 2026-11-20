@@ -76,8 +76,8 @@ public sealed partial class MacroRunner
     public string FailureLogFolder { get; init; } = "logs";
 
     /// <summary>
-    /// The name this run goes by on the run list. It is what <see cref="InputGate"/> reports while
-    /// this run is inside, so "which macro is sending input right now" has an answer.
+    /// The name this run goes by on the run list. It is what <see cref="WhaleGenieInputGate"/>
+    /// reports while this run is inside, so "which macro is sending input right now" has an answer.
     /// </summary>
     public string RunName { get; init; } = string.Empty;
 

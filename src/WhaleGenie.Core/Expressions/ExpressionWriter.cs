@@ -30,7 +30,6 @@ internal static class ExpressionWriter
 
     private const int Atom = 7;
 
-    /// <summary>
     /// <summary>The tree as text, with a name said as the name it is.</summary>
     public static string Write(ExpressionNode node, string hole)
         => Piece(node, hole, out _);

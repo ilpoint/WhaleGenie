@@ -238,9 +238,9 @@ internal sealed class ScreenPoints(IDeviceLayer devices, VariableStore variables
     /// hit, a window or an element goes in as it stands — "drag what was just found onto that
     /// window" is one field each end instead of four numbers worked out from other numbers. A
     /// record's numbers are screen pixels, the way every record's are; numbers written out are
-    /// counted from <paramref name="origin"/>, which is the corner the step says its own numbers are
-    /// measured from and is read once so both ends share it. <paramref name="end"/> names which end
-    /// this is, because a drag has two of everything and the fields are read by name.
+    /// counted from the corner <paramref name="anchor"/> names, which the step reads once so both
+    /// ends share it. <paramref name="end"/> names which end this is, because a drag has two of
+    /// everything and the fields are read by name.
     /// </summary>
     public ResolvedPoint DragPlace(ExecutableStep step, string end,
         (ScreenPoint? Corner, WindowInfo? Window) anchor)
@@ -254,7 +254,6 @@ internal sealed class ScreenPoints(IDeviceLayer devices, VariableStore variables
     public ScreenPoint Place(ExecutableStep step, int x, int y)
         => ScreenMath.Placed(Anchor(step), x, y);
 
-    /// <summary>Where a step wants its input to go. Anything unset means the front window.</summary>
     /// <summary>The input device this step's mode routes to.</summary>
     public IInputDevice Input(ExecutableStep step) => devices.Inputs.For(Route(step));
 
