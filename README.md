@@ -65,6 +65,9 @@ dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -
 包落在 `dist/nuget/`。三套用例（引擎、画面获取、Windows 适配器）都在这个仓库里，适配器那套会
 驱动真实的 Windows 设备。
 
+只有 64 位 Windows 能编：适配器依赖的 OpenCV 与 Playwright 驱动都只有 x64 一份。SDK 版本由
+`global.json` 钉住（10.0.400，允许向后取特性带）。引擎本身是 `net10.0`，任何平台都能引用它。
+
 ## 发布
 
 推一个 `v*` 标签就会发布三个包：
