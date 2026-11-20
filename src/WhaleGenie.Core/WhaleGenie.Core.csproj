@@ -53,6 +53,17 @@
 
   <ItemGroup>
     <!--
+      Every public type and member is written down in these two files, so a change to the surface
+      is a change to the baseline rather than something nobody notices until it breaks a caller.
+      Shipped is what has been published; Unshipped is what this version adds.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
       Only the engine's own tests see its internals: they check how a step's input is routed
       between the devices, which is inside the runner rather than on its face. Everything the rest
       of the product needs is public, so a second entry here is a sign that something should be

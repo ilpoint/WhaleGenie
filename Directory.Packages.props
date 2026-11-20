@@ -22,6 +22,14 @@
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
   </ItemGroup>
 
+  <!--
+    构建期分析器：不随产品发布（PrivateAssets=all），只在编译时检查。公共 API 基线分析器
+    把引擎的公共面钉成文件，增删成员必须先改基线。
+  -->
+  <ItemGroup Label="分析器">
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
+  </ItemGroup>
+
   <!-- Windows 适配器与脚本宿主：键鼠钩子、界面自动化、找图找色、浏览器、脚本编译器。 -->
   <ItemGroup Label="Windows 适配器">
     <PackageVersion Include="FlaUI.UIA3" Version="5.0.0" />
