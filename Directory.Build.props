@@ -34,8 +34,10 @@
     <Version>0.1.0</Version>
 
     <!--
-      Only WhaleGenie.Core ships as a package; the rest of the product is an application and the
-      parts it is made of. Stated once here so a stray `dotnet pack` cannot publish the editor.
+      Three projects are libraries someone else may reference — the engine and the two Windows
+      projects that implement its contracts — and they say so in their own csproj. Everything else
+      here is part of the program, and this line keeps a stray `dotnet pack` from publishing the
+      editor.
     -->
     <IsPackable>false</IsPackable>
 

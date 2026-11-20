@@ -31,6 +31,18 @@ jobs:
       - name: Build
         run: dotnet build WhaleGenie.slnx -c Release --no-restore
 
+      - name: Build the library on its own
+        # The engine and the two Windows projects are meant to be buildable without the editor.
+        # This step is what keeps WhaleGenie.Core.slnx honest: a project added to or removed from
+        # the library has to be listed there too, or the file quietly stops meaning anything.
+        run: dotnet build WhaleGenie.Core.slnx -c Release --no-restore
+
+      - name: Pack
+        # Packing every run is what keeps the chain honest: a project reference that stops being
+        # packable, or the driver's native library that stops being included, fails here rather
+        # than in someone's first `dotnet add package`.
+        run: dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -c Release -p:Platform=x64
+
       - name: Test
         # The suites run side by side: six of them mostly wait on a window session or on a real
         # device, and one project at a time spent a minute and a half waiting for another to finish.

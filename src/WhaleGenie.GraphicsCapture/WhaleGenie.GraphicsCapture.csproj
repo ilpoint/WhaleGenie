@@ -4,6 +4,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!--
+      One of the three parts a frontend gets by referencing WhaleGenie.Platform.Windows; packable on
+      its own as well, because a program that only takes pictures of the screen has no use for the
+      input hook or the browser.
+    -->
+    <IsPackable>true</IsPackable>
+    <PackageId>WhaleGenie.GraphicsCapture</PackageId>
+    <Description>鲸灵的画面获取：Graphics Capture、桌面复制、GDI 与 PrintWindow，以及会话缓存。</Description>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ilpoint/WhaleGenie</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ilpoint/WhaleGenie.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\dist\nuget</PackageOutputPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <!--
       Wrappers only — the calls go to the Direct3D and DXGI that Windows already has, so nothing

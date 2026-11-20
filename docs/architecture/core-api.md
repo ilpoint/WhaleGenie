@@ -58,14 +58,46 @@ internals，而那条通道只留给引擎自己的用例。
 ## 4. 打包
 
 ```pwsh
-dotnet pack src/WhaleGenie.Core/WhaleGenie.Core.csproj -c Release -p:Platform=x64
+dotnet pack src/WhaleGenie.Platform.Windows/WhaleGenie.Platform.Windows.csproj -c Release -p:Platform=x64
 ```
 
-产物是 `dist/nuget/WhaleGenie.Core.<版本>.nupkg`，`lib/` 下只有 `net10.0`，XML 文档与包自述
-随包。其余工程在根 `Directory.Build.props` 里统一 `IsPackable=false`：只有引擎是库，界面与它带
-的应用工程都不是。
+三个包都落在 `dist/nuget/`。引擎包的 `lib/` 下只有 `net10.0`，XML 文档与包自述随包；两个 Windows
+包各在 `lib/net10.0-windows10.0.19041/` 下放自己的程序集。界面、App、Domain、Mcp、Localization
+在根 `Directory.Build.props` 里统一 `IsPackable=false`：它们是程序的一部分，不是给别人的库。
 
-## 5. 债务
+## 5. 分发：一个引用，三个程序集
+
+库不只有引擎那一个包。三个工程各自可打包，依赖链把后端两个挂在引擎上：
+
+| 包 | 目标框架 | 内容 | 依赖 |
+| --- | --- | --- | --- |
+| `WhaleGenie.Core` | `net10.0` | 引擎 `WhaleGenie.Core.dll` + XML 文档 + 包自述 | 只有 `CsvHelper` |
+| `WhaleGenie.GraphicsCapture` | `net10.0-windows10.0.19041` | 画面获取 `WhaleGenie.GraphicsCapture.dll` | `WhaleGenie.Core`、`Vortice.*` |
+| `WhaleGenie.Platform.Windows` | `net10.0-windows10.0.19041` | Windows 适配器 `WhaleGenie.Platform.Windows.dll`、`runtimes/win-x64/native/libVIIPER.dll`、`buildTransitive/WhaleGenie.Platform.Windows.props` | 上面两个 + FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、SharpHook |
+
+**前端只加一行**：
+
+```xml
+<PackageReference Include="WhaleGenie.Platform.Windows" Version="x.y.z" />
+```
+
+三个程序集一次到位，Avalonia 界面与将来的 WebView 前端都是同一行。只做无窗口批处理、不碰机器的
+程序，改引 `WhaleGenie.Core`，拿到的就是纯 `net10.0` 的引擎。
+
+两处只有包才知道的事：
+
+- **原生库**：`libVIIPER.dll` 放在 `runtimes/win-x64/native/`，宿主经 `deps.json` 找到它，按 RID
+  构建与不按 RID 构建都一样。
+- **Playwright 的驱动**：它给五个平台各带一份 node，运行时不钉 RID 会按包里的兜底分支全抄
+  （约 474 MB）。包的 `buildTransitive` props 在消费方把 `PlaywrightPlatform` 默认成 `win-x64`，
+  仓库自己则由根 `Directory.Build.props` 设同一个值。
+
+验收办法是拿真包验，而不是只看包里的文件：在仓库外建一个 `net10.0-windows` 控制台，`nuget.config`
+指向 `dist/nuget`，只写上面那一行 `PackageReference`，跑起来读 `ActionSemanticsCatalog.All.Count`
+（证明内嵌语义目录随包）、`KeyNames.Resolve("ctrl")`（证明键词汇表在引擎里）、
+`Assembly.Load` 三个程序集名，再确认 `runtimes/win-x64/native/libVIIPER.dll` 在输出目录下。
+
+## 6. 债务
 
 - **XML 文档缺口**：约 1,314 个公共类型与成员没有 `<summary>`，目前以 `CS1591`/`CS1573` 抑制。
   新增公共成员应当带注释，这条债务只能靠新代码不再扩大。
