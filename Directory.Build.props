@@ -1,0 +1,69 @@
+<Project>
+
+  <!--
+    What the three projects share. Anything only one project needs stays in its own csproj, so this
+    file stays short enough to read.
+
+    The Windows version in the target framework is what makes the type library for
+    Windows.Graphics.Capture available, and the capture actions need it to read a window that
+    another window is covering. It is a ceiling on the API the build may use, not a floor on where
+    the program runs: a machine older than this one has no graphics capture, so those actions fall
+    back to the other ways of reading the screen. The engine sets its own — net10.0, no platform —
+    because nothing it does needs Windows.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+
+    <!--
+      整个仓库只做 64 位。适配器靠的几样原生库——OpenCV（找图找色）与 Playwright 的驱动（浏览器
+      动作）——都只有 64 位一份，32 位 Windows 上装了也跑不起来。写在根目录是让库与三套用例一起
+      按 x64 编译和运行：没有 Any CPU 那条要另测的路。
+    -->
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+
+    <!-- 本地构建显示这次发布的版本；正式版本号由打包时传入的 -p:Version 覆盖。 -->
+    <Version>0.1.0</Version>
+
+    <!-- A warning is a defect that has not been fixed yet, so the build stops on one. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!--
+      The compiler's own warnings are not the whole of it: the .NET analyzers catch the shapes that
+      compile but read wrong — a disposed stream still used, a task nobody awaits, a culture-sensitive
+      comparison. Only the product projects take the recommended set; the test projects keep the
+      compiler's warnings and the repository's own checks, because a case is allowed to be blunt
+      where a shipped path is not.
+    -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- 只有引擎、画面获取与适配器是库；两个支持库和测试工程不是给别人的。 -->
+    <IsPackable>false</IsPackable>
+
+    <!--
+      Playwright 的驱动给五个平台各带一份 node，由包里的目标按这个属性选一份抄进输出目录。
+      不钉 RID 时它会走包自己那句「认不出就全抄」的兜底分支，每个输出目录多出四百多兆用不上的
+      node。写在根目录是因为 MSBuild 属性不跨项目传递。
+    -->
+    <PlaywrightPlatform>win-x64</PlaywrightPlatform>
+  </PropertyGroup>
+
+  <!--
+    The rules the library is held to, and the ones it deliberately does not adopt. CA1001: a
+    session is released by its lifetime handlers rather than by Dispose. CA1068: the engine's
+    internal signatures read better with the token beside the depth. CA1716/CA1720: domain words
+    such as a parameter named params or a type named Handle. CA1822/CA1826/CA1859: micro-
+    optimisations that would blur what a member is for. CA1838: StringBuilder is the documented
+    shape of these Win32 calls. CA1861: array literals in message text, with no measured cost.
+    CA2020: x64-only handle conversions where a checked cast would throw on valid values.
+  -->
+  <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <AnalysisLevel>latest-Recommended</AnalysisLevel>
+    <NoWarn>$(NoWarn);CA1001;CA1068;CA1716;CA1720;CA1822;CA1826;CA1838;CA1859;CA1861;CA2020</NoWarn>
+  </PropertyGroup>
+
+</Project>

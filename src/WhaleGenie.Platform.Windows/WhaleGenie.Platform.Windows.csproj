@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      The package a frontend references: it carries the Windows adapters and pulls the engine and the
+      capture project in behind it, so "use the library" is one line rather than three. Packable on
+      its own for the same reason as the capture project — a program that only needs keyboard input
+      does not have to take the browser with it either.
+    -->
+    <IsPackable>true</IsPackable>
+    <PackageId>WhaleGenie.Platform.Windows</PackageId>
+    <Description>鲸灵的 Windows 适配器：键鼠钩子、UI Automation、找图找色、OCR、浏览器、脚本宿主与手柄驱动。</Description>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ilpoint/WhaleGenie</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ilpoint/WhaleGenie.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\dist\nuget</PackageOutputPath>
+  </PropertyGroup>
+
+  <!--
+    Everything in this project talks to Windows or to a library that does: the input hook, UI
+    Automation, the screen, the browser, the script compilers and the controller driver. The
+    engine above it holds only the contracts, so this is the one place a native dependency is
+    allowed to appear.
+  -->
+  <ItemGroup>
+    <PackageReference Include="FlaUI.UIA3" />
+    <!--
+      C# scripts: compiled with Roslyn, then run in a process of this program's own. The packages
+      below supply the compiler, the reference assemblies it needs, and the feed a script's own
+      packages are fetched from.
+    -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.Playwright" />
+    <PackageReference Include="NuGet.Frameworks" />
+    <PackageReference Include="NuGet.Packaging" />
+    <PackageReference Include="NuGet.Protocol" />
+    <PackageReference Include="NuGet.Versioning" />
+    <!--
+      NuGet.Packaging 7.9.0 拖进来的是 System.Security.Cryptography.Pkcs 8.0.1，两条已公开的公告
+      （CVE-2026-84008 高、CVE-2026-70162 中）都指着它，修在 8.0.2 以后；.NET 10 的 SDK 审计
+      会把"警告当错误"（TreatWarningsAsErrors），于是还原当场失败。这一条只把解析出来的版本抬到
+      修好的那一个：程序目标框架是 net10.0-windows，这个程序集由 WindowsDesktop 共享框架提供，
+      运行时加载的本来就是框架那一份。
+    -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="OpenCvSharp5.Windows" />
+    <PackageReference Include="Sdcb.SimdPaddleOCR" />
+    <PackageReference Include="Sdcb.SimdPaddleOCR.Models.ChineseV6Tiny" />
+    <PackageReference Include="SharpHook" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      驱动级输入的原生库。虚拟 USB 的服务端装在这个进程里，不是另一个程序；它只有 Windows
+      这一份，来自上游 v0.9.0 的发行包，见 third_party/libVIIPER/README.md。
+      打包时放在 runtimes/ 下：消费方无论按 RID 构建还是不按 RID 构建，宿主都能经 deps.json 找到它。
+    -->
+    <None Include="..\..\third_party\libVIIPER\libVIIPER.dll" Link="libVIIPER.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Pack="true" PackagePath="runtimes\win-x64\native\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      消费方的构建也需要这条：Playwright 的驱动给五个平台各带一份 node，不钉 RID 的话包里那句
+      "认不出就全抄"会往每个输出目录抄进四百多兆。仓库自己靠根 Directory.Build.props 设置，
+      引用本包的程序靠这条 props。
+    -->
+    <None Include="buildTransitive\WhaleGenie.Platform.Windows.props" Pack="true"
+          PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+    <ProjectReference Include="..\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.TestSupport" />
+    <InternalsVisibleTo Include="WhaleGenie.Platform.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+  </ItemGroup>
+
+</Project>

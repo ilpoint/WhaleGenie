@@ -1,0 +1,14 @@
+<Project>
+
+  <!--
+    Imported into every project that references WhaleGenie.Platform.Windows. The browser adapter
+    ships Playwright's driver, and that driver carries a node runtime for five platforms: without a
+    RID the package falls back to copying all of them — about 474 MB of runtimes the program will
+    never load. Naming the one this product runs on is what keeps a consumer's output directory at
+    its own size rather than five times it.
+  -->
+  <PropertyGroup>
+    <PlaywrightPlatform Condition="'$(PlaywrightPlatform)' == ''">win-x64</PlaywrightPlatform>
+  </PropertyGroup>
+
+</Project>
