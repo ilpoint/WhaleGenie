@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using WhaleGenie.Core.Devices;
@@ -353,11 +352,20 @@ public class AutoHotkeyDeviceTests
         Assert.Equal(2, AutoHotkeyBridge.Ahead("whalegenie.ahk"));
 
         // The mark at the front is three bytes, and a reader on this side takes a mark off the text
-        // it reads rather than handing it on, so it is read back as the file's own size: the text
-        // that came out of it, written in UTF-8, with nothing else in the file.
-        var size = int.Parse(Printed("cmd.exe /c for %f in (", ") do @echo %~zf"),
-            CultureInfo.InvariantCulture);
-        Assert.Equal(Encoding.UTF8.GetByteCount(written) + 3, size);
+        // it reads rather than handing it on, so the file is the text that came out of it, written
+        // in UTF-8, with nothing else in it. Ask cmd to copy the file out and measure the copy:
+        // asking `for %f ... %~zf` for its size printed nothing on one machine, which said nothing
+        // about the file the run had written.
+        var copy = Path.Combine(Path.GetTempPath(), $"wg-ahk-copy-{Guid.NewGuid():N}.ahk");
+        try
+        {
+            Printed("cmd.exe /c type", $"> \"{copy}\"");
+            Assert.Equal(Encoding.UTF8.GetByteCount(written) + 3, new FileInfo(copy).Length);
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
     }
 
     /// <summary>
