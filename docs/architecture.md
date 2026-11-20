@@ -71,10 +71,10 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与设备控制/运行工具、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸 | Avalonia、窗口、ViewModel、MCP、设备控制 |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、预览、资源与项目编辑工具 | Avalonia、Views、Runtime、设备控制、运行桥 |
-| `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、录制事件翻译 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows` |
+| `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、键词汇表、录制事件翻译；`net10.0`，是仓库里唯一可打包的工程 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows`；除 BCL 与 `CsvHelper` 之外的任何引用 |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器；批处理宿主 | 宏、动作、ViewModel、项目状态或界面类型 |
 | `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表 | Avalonia、窗口、项目状态、设备或文件读写 |
-| `WhaleGenie.GraphicsCapture` | Graphics Capture、桌面复制、GDI、PrintWindow 的 Windows 实现与会话缓存 | 宏、动作、ViewModel 或项目状态；定义跨层共用的形状（它们在 Core.Devices） |
+| `WhaleGenie.GraphicsCapture` | Graphics Capture、桌面复制、GDI、PrintWindow 的 Windows 实现与会话缓存；引用 Core 并实现它的画面契约 | 宏、动作、ViewModel 或项目状态；定义跨层共用的形状（它们在 Core.Devices） |
 
 `App.axaml.cs`、`Program.cs` 与 `Runtime/SharedDevices.cs` 是引用具体 Windows 实现的限定例外：
 分别负责应用生命周期、脚本宿主分派和设备组合。其他窗口、ViewModel 与应用代码只依赖 Core 契约，
@@ -97,10 +97,11 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 `src/WhaleGenie.Localization/`。这些类型不与界面工程一起编译，模型本身也不读取控件状态；
 `MainViewModel` 只做转发。
 
-画面获取的形状——读哪里、用哪种抓法、桌面由哪些显示器拼成——定义在 `WhaleGenie.Core.Devices`
-（`ScreenCaptureRequest`、`CaptureWay`、`ScreenLayout`、`ScreenRect`），GraphicsCapture 只负责把它们
-变成像素：DXGI、Direct3D 与 GDI 的调用留在那个工程。引擎与界面因此共用一套矩形与选路词汇，读到这些
-形状时也不加载原生依赖。图形工程反过来引用 Core，改动这些形状要同时检查 Core、界面与画面获取三处。
+画面获取的形状与键的词汇表都由 Core 定义——`CaptureWay`、`ScreenLayout`、`ScreenRect`、
+`ScreenCaptureRequest` 与 `KeyNames`——GraphicsCapture 与各适配器只负责把它们变成像素和事件：
+DXGI、Direct3D、GDI 与 SharpHook 的调用留在各自工程。引擎与界面因此共用一套矩形、选路与按键说法，
+读到这些形状时也不加载原生依赖。两个工程反过来引用 Core，改动这些形状要同时检查 Core、界面与实现
+三处。公共面分哪几档、基线怎么维护见 [architecture/core-api.md](architecture/core-api.md)。
 
 ## 3. 入口、组合根与生命周期
 
@@ -125,6 +126,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | 文档 | 内容 |
 | --- | --- |
 | [architecture/execution-and-devices.md](architecture/execution-and-devices.md) | 运行、草稿与录制链路；执行引擎、动作目录、变量与并发；设备契约和画面获取 |
+| [architecture/core-api.md](architecture/core-api.md) | 引擎的公共面分档、公共 API 基线的维护、打包与 XML 文档债务 |
 | [architecture/interface.md](architecture/interface.md) | 状态边界、步骤与条件编辑器、主题资源、窗口覆盖层和设置窗口 |
 | [architecture/state-and-mcp.md](architecture/state-and-mcp.md) | 宏包与项目模型、包外状态、MCP 传输、权限、草稿、读写契约和审计 |
 | [architecture/triggers-and-threading.md](architecture/triggers-and-threading.md) | 触发器与录制、轮盘手势、线程模型、退出流程、当前设计取舍与限制 |

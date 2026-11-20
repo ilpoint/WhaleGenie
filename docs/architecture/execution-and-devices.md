@@ -220,6 +220,11 @@ CSV 统一由 `CsvHelper` 解析。文本读取优先采用 BOM；无 BOM 时先
 输出 `ScreenGrab` 使用紧密排列的 BGRA 像素，并记录实际采用的 `CaptureWay`；源矩形裁剪、
 越界处理和多显示器拼接由 `Placement`、`ScreenPlacement` 等类型负责，坐标不保存在 `ScreenGrab` 中。
 
+要读什么、有哪几种抓法、桌面由哪些显示器拼成，这些形状属于引擎：`CaptureWay`、`ScreenLayout`、
+`ScreenDisplay`、`ScreenRect` 与 `ScreenCaptureRequest` 都在 `WhaleGenie.Core.Devices`。本工程只实现
+它们——显示器枚举在 `Displays`，四种抓法各自的像素来源在自己的文件里——因此引擎与界面读同一套矩形
+与选路词汇，而 DXGI、Direct3D 与 GDI 的调用不外泄。
+
 自动选路顺序为：
 
 - 窗口：Graphics Capture → PrintWindow → GDI；无 Graphics Capture 会话时为 PrintWindow → GDI。

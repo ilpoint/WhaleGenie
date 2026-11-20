@@ -8,6 +8,7 @@
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
 dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
+dotnet pack src/WhaleGenie.Core/WhaleGenie.Core.csproj -c Release -p:Platform=x64
 dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
@@ -66,13 +67,13 @@ GitHub Copilot 的 Agent 工具列表里应出现它。`.vscode/` 按 `.gitignor
 | 项目 | 职责 |
 | --- | --- |
 | `WhaleGenie` | Avalonia 与 FluentAvalonia 界面、窗口与 ViewModel、窗口化组合根、界面与设备适配 |
-| `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量与设备契约；不引用任何 Windows 适配器 |
+| `WhaleGenie.Core` | 执行引擎、动作语义目录、表达式、变量、设备契约与键词汇表；`net10.0`，只依赖 BCL 与 `CsvHelper`，是唯一可打包的工程 |
 | `WhaleGenie.Platform.Windows` | SharpHook、FlaUI、OpenCV、PaddleOCR、Playwright、Roslyn/NuGet、VIIPER 等 Windows 适配器与脚本宿主 |
 | `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与工具、应用层组合根；不引用 Avalonia |
 | `WhaleGenie.Localization` | 界面字、动作名、表达式与日志措辞的文案表；Avalonia 刷新仍在界面工程 |
 | `WhaleGenie.Domain` | 宏文件模型、工程文档、设计期检查、包读写与图片文件；不引用 Avalonia |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、资源与项目编辑工具；不引用 Avalonia、Views 或 Runtime |
-| `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出 |
+| `WhaleGenie.GraphicsCapture` | 四种画面获取方式、选路、会话缓存、矩形落位和 BGRA 输出；引用 Core，实现它的画面契约 |
 | `WhaleGenie.Editor.Tests` | 宏编辑窗、步骤树、变量墙、窗口规则与菜单的无头测试 |
 | `WhaleGenie.Actions.Tests` | 动作对话框、页面归属、返回值与拾取器的无头测试 |
 | `WhaleGenie.Tests` | 运行与调试、MCP、设置、界面文案与文档对账，运行于 Avalonia 无头平台 |
