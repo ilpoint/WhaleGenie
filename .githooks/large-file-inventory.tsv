@@ -58,6 +58,7 @@
 420	src/WhaleGenie.Platform.Windows/PlaywrightBrowserDevice.Actions.cs	keep: 浏览器设备的一族，按页面操作拆分后单一职责
 337	src/WhaleGenie.Platform.Windows/PlaywrightBrowserDevice.Pick.cs	keep: 浏览器设备的一族，按页面操作拆分后单一职责
 301	src/WhaleGenie.Platform.Windows/ViiperKeys.cs	keep: 一台设备的适配，接口方法与实现一一对应
+301	src/WhaleGenie.Core/Devices/KeyNames.cs	keep: 键的一套词汇表，名字与编号的对应只该写一遍，切开会分裂成两份真相
 401	src/WhaleGenie.Platform.Windows/WindowsClipboardDevice.cs	keep: 一台设备的适配，接口方法与实现一一对应
 395	src/WhaleGenie.Platform.Windows/WindowsKeyStrokes.cs	keep: 一台设备的适配，接口方法与实现一一对应
 579	src/WhaleGenie.Platform.Windows/WindowsProcessDevice.cs	keep: 单一进程适配器
