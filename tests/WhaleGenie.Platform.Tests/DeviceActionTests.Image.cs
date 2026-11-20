@@ -503,18 +503,20 @@ public partial class DeviceActionTests
 
         var (result, _, _) = await RunAsync(
         [
-            Within(160, Step("vision.waitColor", Param("x", "0"), Param("y", "0"),
+            Within(800, Step("vision.waitColor", Param("x", "0"), Param("y", "0"),
                 Param("color", "#000000"))),
         ], devices);
 
         Assert.Equal("Run.WaitColorTimeout", result.Key);
         var looked = devices.Calls.Count(call => call == "pixel 0 0");
 
-        // The far end is the refresh's own doing: 160 ms of looking on a 4 ms beat is forty looks at
-        // most. How few there were is the machine's business — a round that was held up reads the
-        // same place fewer times in the time it was given — so the near end only asks for more than
-        // one look, which is what tells a beat apart from looking once and giving up.
-        Assert.InRange(looked, 2, 40);
+        // How many looks there were is the machine's business: the whole suite runs eight test
+        // processes at once, and a round that was held up reads the same place fewer times in the
+        // time it was given, so a window tight enough to count exactly would fail on a busy machine
+        // rather than on a broken engine. What is pinned here is the shape of it: the wait keeps
+        // looking (not one look and give up) and it is held to a beat (a busy loop would be in the
+        // thousands). The beat's own length is asked of FrameGap, which is where that rule lives.
+        Assert.InRange(looked, 3, 200);
     }
 
     [Fact]
