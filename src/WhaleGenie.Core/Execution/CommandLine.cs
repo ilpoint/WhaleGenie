@@ -6,7 +6,7 @@ namespace WhaleGenie.Core.Execution;
 /// would be typed on a command line anyway, so a quote at the front takes everything up to the
 /// closing one; otherwise the first word is the program.
 /// </summary>
-internal static class CommandLine
+public static class CommandLine
 {
     /// <summary>The program at the front of what was written, and the rest of it.</summary>
     public static (string Program, string Flags) Split(string text)

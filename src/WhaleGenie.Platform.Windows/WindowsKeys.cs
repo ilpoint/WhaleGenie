@@ -10,7 +10,7 @@ namespace WhaleGenie.Platform.Windows;
 /// the program notices: the window simply receives a key nobody asked for.
 /// </summary>
 /// <remarks>
-/// A macro's key name is resolved to a library code by <see cref="KeyTable"/>, which is the one
+/// A macro's key name is resolved to a library code by <see cref="KeyNames"/>, which is the one
 /// place that knows how a name is spelled; this is the rest of that journey, from the code to what
 /// Windows presses. The pairs are the ones the library publishes for Windows, which come from the
 /// system's own list of virtual key codes. A key the library has and Windows has not is answered

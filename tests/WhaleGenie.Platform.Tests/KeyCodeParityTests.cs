@@ -62,13 +62,13 @@ public sealed class KeyCodeParityTests
                 continue;
             }
 
-            var name = KeyNames.Name(KeyTable.Key(code), sided: true);
+            var name = KeyNames.Name(KeyNames.Key(code), sided: true);
             Assert.True(name.Length > 0, $"{code} has no name a macro can write");
 
             var resolved = KeyNames.Resolve(name);
             Assert.True(resolved is not null, $"the name \"{name}\" of {code} does not resolve");
-            Assert.True(resolved!.Value.Value == (int)code,
-                $"the name \"{name}\" of {code} resolves to {(HookCode)resolved.Value.Value}");
+            Assert.True(KeyNames.Code(resolved!.Value) == code,
+                $"the name \"{name}\" of {code} resolves to {KeyNames.Code(resolved.Value)}");
         }
     }
 

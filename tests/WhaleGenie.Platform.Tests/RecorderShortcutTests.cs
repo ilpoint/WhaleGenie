@@ -14,8 +14,8 @@ public class RecorderShortcutTests
     {
         var (stop, held) = InputHookRecorder.ReadShortcut("Ctrl+F10");
 
-        Assert.Equal(KeyTable.Key(HookCode.F10), stop);
-        Assert.Equal([KeyTable.Key(HookCode.LeftControl)], held);
+        Assert.Equal(KeyNames.Key(HookCode.F10), stop);
+        Assert.Equal([KeyNames.Key(HookCode.LeftControl)], held);
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public class RecorderShortcutTests
     {
         var (stop, held) = InputHookRecorder.ReadShortcut("F9");
 
-        Assert.Equal(KeyTable.Key(HookCode.F9), stop);
+        Assert.Equal(KeyNames.Key(HookCode.F9), stop);
         Assert.Empty(held);
     }
 

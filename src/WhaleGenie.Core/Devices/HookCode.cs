@@ -20,7 +20,7 @@ namespace WhaleGenie.Core.Devices;
 /// <c>KeyCodeParityTests</c> compares the two name by name and value by value and fails when an
 /// upgrade changes either, which is the moment to copy the list again.
 /// </remarks>
-internal enum HookCode
+public enum HookCode
 {
     Undefined = 0x00,
     Escape = 0x01,

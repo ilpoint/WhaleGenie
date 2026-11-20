@@ -17,7 +17,7 @@ public class OwnInputTests
     [Fact]
     public void A_number_pad_key_is_remembered_under_the_name_it_arrives_as()
     {
-        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.NumPad7));
+        WhaleGenieInputGate.Note(KeyNames.Key(HookCode.NumPad7));
 
         Assert.True(WhaleGenieInputGate.RecentlySent("NumPad7"));
         Assert.True(WhaleGenieInputGate.RecentlySent("Home"));
@@ -30,7 +30,7 @@ public class OwnInputTests
     [Fact]
     public void A_key_that_keeps_its_name_is_remembered_under_that_name_only()
     {
-        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.A));
+        WhaleGenieInputGate.Note(KeyNames.Key(HookCode.A));
 
         Assert.True(WhaleGenieInputGate.RecentlySent("A"));
         Assert.False(WhaleGenieInputGate.RecentlySent("F5"));
@@ -44,8 +44,8 @@ public class OwnInputTests
     [Fact]
     public void Every_key_of_a_chord_is_remembered()
     {
-        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.LeftControl));
-        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.NumPad1));
+        WhaleGenieInputGate.Note(KeyNames.Key(HookCode.LeftControl));
+        WhaleGenieInputGate.Note(KeyNames.Key(HookCode.NumPad1));
 
         Assert.True(WhaleGenieInputGate.RecentlySent("左Ctrl"));
         Assert.True(WhaleGenieInputGate.RecentlySent("End"));
@@ -58,7 +58,7 @@ public class OwnInputTests
     [Fact]
     public void Turning_off_ignoring_own_input_makes_the_program_answer_its_own_keys()
     {
-        WhaleGenieInputGate.Note(KeyTable.Key(HookCode.F7));
+        WhaleGenieInputGate.Note(KeyNames.Key(HookCode.F7));
 
         try
         {

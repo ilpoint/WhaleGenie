@@ -19,13 +19,13 @@ public class KeyNameTests
     [InlineData((int)HookCode.LeftMeta, "左Win")]
     [InlineData((int)HookCode.RightMeta, "右Win")]
     public void SidedNameKeepsTheHalf(int code, string expected)
-        => Assert.Equal(expected, KeyNames.Name(KeyTable.Key((HookCode)code), sided: true));
+        => Assert.Equal(expected, KeyNames.Name(KeyNames.Key((HookCode)code), sided: true));
 
     [Theory]
     [InlineData((int)HookCode.LeftShift)]
     [InlineData((int)HookCode.RightShift)]
     public void PlainNameStaysSideAgnostic(int code)
-        => Assert.Equal("Shift", KeyNames.Name(KeyTable.Key((HookCode)code)));
+        => Assert.Equal("Shift", KeyNames.Name(KeyNames.Key((HookCode)code)));
 
     [Fact]
     public void The_list_of_names_holds_every_key_a_picker_offers()
@@ -48,12 +48,12 @@ public class KeyNameTests
     {
         // With NumLock off the number pad is the navigation block, and the hook names what it sees
         // in that state: the macro writes NumPad7 and the key comes back as Home.
-        Assert.Equal(["Home"], KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.NumPad7)));
-        Assert.Equal(["Delete"], KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.NumPadDecimal)));
+        Assert.Equal(["Home"], KeyNames.AlsoSeenAs(KeyNames.Key(HookCode.NumPad7)));
+        Assert.Equal(["Delete"], KeyNames.AlsoSeenAs(KeyNames.Key(HookCode.NumPadDecimal)));
 
         // A key whose name no state decides has only the one name.
-        Assert.Empty(KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.Home)));
-        Assert.Empty(KeyNames.AlsoSeenAs(KeyTable.Key(HookCode.A)));
+        Assert.Empty(KeyNames.AlsoSeenAs(KeyNames.Key(HookCode.Home)));
+        Assert.Empty(KeyNames.AlsoSeenAs(KeyNames.Key(HookCode.A)));
     }
 
     [Fact]
@@ -63,16 +63,16 @@ public class KeyNameTests
         // says; a name nothing ever reports would be a key whose own output is not recognised.
         foreach (var code in Enum.GetValues<HookCode>())
         {
-            Assert.All(KeyNames.AlsoSeenAs(KeyTable.Key(code)), name => Assert.NotNull(KeyNames.Resolve(name)));
+            Assert.All(KeyNames.AlsoSeenAs(KeyNames.Key(code)), name => Assert.NotNull(KeyNames.Resolve(name)));
         }
     }
 
     [Fact]
     public void OtherKeysAreSpelledTheSameEitherWay()
     {
-        Assert.Equal("NumPad7", KeyNames.Name(KeyTable.Key(HookCode.NumPad7), sided: true));
-        Assert.Equal("NumPad7", KeyNames.Name(KeyTable.Key(HookCode.NumPad7)));
-        Assert.Equal("Home", KeyNames.Name(KeyTable.Key(HookCode.Home), sided: true));
+        Assert.Equal("NumPad7", KeyNames.Name(KeyNames.Key(HookCode.NumPad7), sided: true));
+        Assert.Equal("NumPad7", KeyNames.Name(KeyNames.Key(HookCode.NumPad7)));
+        Assert.Equal("Home", KeyNames.Name(KeyNames.Key(HookCode.Home), sided: true));
     }
 
     [Theory]
@@ -84,15 +84,15 @@ public class KeyNameTests
     [InlineData("LAlt", (int)HookCode.LeftAlt)]
     [InlineData("右Win", (int)HookCode.RightMeta)]
     public void EverySpellingResolves(string name, int expected)
-        => Assert.Equal(KeyTable.Key((HookCode)expected), KeyNames.Resolve(name));
+        => Assert.Equal(KeyNames.Key((HookCode)expected), KeyNames.Resolve(name));
 
     [Fact]
     public void BareModifiersKeepMeaningTheLeftOne()
     {
-        Assert.Equal(KeyTable.Key(HookCode.LeftShift), KeyNames.Resolve("Shift"));
-        Assert.Equal(KeyTable.Key(HookCode.LeftControl), KeyNames.Resolve("Ctrl"));
-        Assert.Equal(KeyTable.Key(HookCode.LeftAlt), KeyNames.Resolve("Alt"));
-        Assert.Equal(KeyTable.Key(HookCode.LeftMeta), KeyNames.Resolve("Win"));
+        Assert.Equal(KeyNames.Key(HookCode.LeftShift), KeyNames.Resolve("Shift"));
+        Assert.Equal(KeyNames.Key(HookCode.LeftControl), KeyNames.Resolve("Ctrl"));
+        Assert.Equal(KeyNames.Key(HookCode.LeftAlt), KeyNames.Resolve("Alt"));
+        Assert.Equal(KeyNames.Key(HookCode.LeftMeta), KeyNames.Resolve("Win"));
     }
 
     [Theory]
@@ -113,9 +113,9 @@ public class KeyNameTests
         Assert.Null(unknown);
         Assert.Equal(
             [
-                KeyTable.Key(HookCode.RightControl),
-                KeyTable.Key(HookCode.RightShift),
-                KeyTable.Key(HookCode.S),
+                KeyNames.Key(HookCode.RightControl),
+                KeyNames.Key(HookCode.RightShift),
+                KeyNames.Key(HookCode.S),
             ],
             chords);
     }
@@ -128,7 +128,7 @@ public class KeyNameTests
         // make a trigger answer to the wrong key, and nothing else in the program would notice.
         foreach (var code in Enum.GetValues<HookCode>())
         {
-            Assert.Equal(code, KeyTable.Code(KeyTable.Key(code)));
+            Assert.Equal(code, KeyNames.Code(KeyNames.Key(code)));
         }
     }
 

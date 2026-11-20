@@ -14,7 +14,7 @@ namespace WhaleGenie.Core.Devices;
 /// The rule lives here alone so that a colour compared by a device and a colour compared pixel by
 /// pixel cannot drift apart.
 /// </remarks>
-internal readonly struct ColourReach
+public readonly struct ColourReach
 {
     /// <summary>How far one channel may be from the colour and still be worth checking.</summary>
     private readonly int _box;

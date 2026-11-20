@@ -9,13 +9,13 @@ namespace WhaleGenie.Platform.Windows;
 /// another to Windows, so every crossing is named here rather than cast at the place that needs it.
 /// </summary>
 /// <remarks>
-/// The engine's own naming lives in <see cref="KeyTable"/>, which knows how a macro spells a key;
+/// The engine's own naming lives in <see cref="KeyNames"/>, which knows how a macro spells a key;
 /// this is the other side of that, and the only place that has both numberings in scope at once.
 /// </remarks>
 internal static class HookKeys
 {
     /// <summary>The key of ours for a code the library reported.</summary>
-    internal static HookKey Key(KeyCode code) => new((int)code);
+    internal static HookKey Key(KeyCode code) => KeyNames.Key((HookCode)(int)code);
 
     /// <summary>
     /// Our name for a button the library reported, or nothing for one it has no name for. Naming
@@ -23,7 +23,7 @@ internal static class HookKeys
     /// the left button and firing something the user never asked for.
     /// </summary>
     internal static string MouseName(MouseButton button)
-        => Mouse(button) is { } named ? KeyTable.MouseName(named) : string.Empty;
+        => Mouse(button) is { } named ? KeyNames.MouseName(named) : string.Empty;
 
     /// <summary>The button of ours a library button stands for, or null for one we do not name.</summary>
     internal static HookMouseButton? Mouse(MouseButton button) => button switch
@@ -38,7 +38,7 @@ internal static class HookKeys
 
     /// <summary>Our name for one notch of the wheel the library reported.</summary>
     internal static string WheelName(MouseWheelScrollDirection axis, int rotation)
-        => KeyTable.WheelName(Axis(axis), rotation);
+        => KeyNames.WheelName(Axis(axis), rotation);
 
     /// <summary>Our name for the way round the library sets the wheel.</summary>
     internal static HookWheelAxis Axis(MouseWheelScrollDirection axis) =>

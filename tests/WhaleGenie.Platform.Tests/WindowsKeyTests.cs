@@ -78,7 +78,7 @@ public class WindowsKeyTests
     [InlineData("NumPadSeparator", 0x6C)]
     [InlineData("NumPadEquals", 0x92)]
     public void The_keys_a_macro_writes_reach_windows(string name, int expected)
-        => Assert.Equal((ushort?)expected, WindowsKeys.VirtualKey(KeyTable.ResolveCode(name)!.Value));
+        => Assert.Equal((ushort?)expected, WindowsKeys.VirtualKey(KeyNames.ResolveCode(name)!.Value));
 
     /// <summary>
     /// A key Windows numbers no code for is answered empty rather than with a neighbouring key, so a
@@ -101,7 +101,7 @@ public class WindowsKeyTests
     [InlineData("Function")]
     [InlineData("ChangeInputSource")]
     public void A_key_windows_does_not_number_is_left_empty(string name)
-        => Assert.Null(WindowsKeys.VirtualKey(KeyTable.ResolveCode(name)!.Value));
+        => Assert.Null(WindowsKeys.VirtualKey(KeyNames.ResolveCode(name)!.Value));
 
     /// <summary>
     /// The runs that sit together on both sides are worked out from where a key stands rather than

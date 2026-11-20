@@ -52,12 +52,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The engine tests look at how a step's input is routed between the devices. -->
+    <!--
+      Only the engine's own tests see its internals: they check how a step's input is routed
+      between the devices, which is inside the runner rather than on its face. Everything the rest
+      of the product needs is public, so a second entry here is a sign that something should be
+      public instead.
+    -->
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
-    <InternalsVisibleTo Include="WhaleGenie.TestSupport" />
-    <InternalsVisibleTo Include="WhaleGenie.Platform.Tests" />
-    <!-- The Windows adapters read the engine's key table; nothing else of Core is theirs to use. -->
-    <InternalsVisibleTo Include="WhaleGenie.Platform.Windows" />
   </ItemGroup>
 
   <ItemGroup>

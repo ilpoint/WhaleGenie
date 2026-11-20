@@ -134,24 +134,24 @@ public sealed partial class ViiperInputDevice : IInputDevice, IGamepadDevice, ID
             return;
         }
 
-        throw new DeviceActionException(RunKeys.NoDriverKey, KeyTable.Name(code, sided: true));
+        throw new DeviceActionException(RunKeys.NoDriverKey, KeyNames.Name(code, sided: true));
     }
 
     /// <summary>The code a macro's key name stands for.</summary>
     private static HookCode Code(string key)
-        => KeyTable.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
+        => KeyNames.ResolveCode(key) ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
     /// <summary>Tells the parts of the app that watch the keyboard that this press is WhaleGenie's own.</summary>
-    private static void Note(HookCode code) => WhaleGenieInputGate.Note(KeyTable.Key(code));
+    private static void Note(HookCode code) => WhaleGenieInputGate.Note(KeyNames.Key(code));
 
     /// <summary>The virtual mouse's bit for a button, and the name WhaleGenie calls that button by.</summary>
     private static (byte Bit, string Name) Button(string button) => button.Trim().ToLowerInvariant() switch
     {
-        "right" => (LibViiper.MouseRight, KeyTable.MouseName(HookMouseButton.Right)),
-        "middle" => (LibViiper.MouseMiddle, KeyTable.MouseName(HookMouseButton.Middle)),
-        "middle2" or "back" => (LibViiper.MouseBack, KeyTable.MouseName(HookMouseButton.Back)),
-        "forward" => (LibViiper.MouseForward, KeyTable.MouseName(HookMouseButton.Forward)),
-        _ => (LibViiper.MouseLeft, KeyTable.MouseName(HookMouseButton.Left)),
+        "right" => (LibViiper.MouseRight, KeyNames.MouseName(HookMouseButton.Right)),
+        "middle" => (LibViiper.MouseMiddle, KeyNames.MouseName(HookMouseButton.Middle)),
+        "middle2" or "back" => (LibViiper.MouseBack, KeyNames.MouseName(HookMouseButton.Back)),
+        "forward" => (LibViiper.MouseForward, KeyNames.MouseName(HookMouseButton.Forward)),
+        _ => (LibViiper.MouseLeft, KeyNames.MouseName(HookMouseButton.Left)),
     };
 
     /// <summary>The most one report has room for.</summary>

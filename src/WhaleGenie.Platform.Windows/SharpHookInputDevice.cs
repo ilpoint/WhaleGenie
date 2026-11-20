@@ -38,21 +38,21 @@ public sealed class SharpHookInputDevice : IInputDevice
     public void KeyPress(string key, int holdMs)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(KeyTable.Key(code));
+        WhaleGenieInputGate.Note(KeyNames.Key(code));
         WindowsKeyStrokes.Press(code, key, Hold(holdMs));
     }
 
     public void KeyDown(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(KeyTable.Key(code));
+        WhaleGenieInputGate.Note(KeyNames.Key(code));
         WindowsKeyStrokes.Down(code, key);
     }
 
     public void KeyUp(string key)
     {
         var code = Code(key);
-        WhaleGenieInputGate.Note(KeyTable.Key(code));
+        WhaleGenieInputGate.Note(KeyNames.Key(code));
         WindowsKeyStrokes.Up(code, key);
     }
 
@@ -65,7 +65,7 @@ public sealed class SharpHookInputDevice : IInputDevice
             codes.Add(code);
 
             // Every name the key can come back as, so a chord is not answered by its own keys.
-            WhaleGenieInputGate.Note(KeyTable.Key(code));
+            WhaleGenieInputGate.Note(KeyNames.Key(code));
         }
 
         if (codes.Count == 0)
@@ -78,7 +78,7 @@ public sealed class SharpHookInputDevice : IInputDevice
         // different chord to the receiving window when the arrows arrive as the number pad.
         foreach (var code in codes)
         {
-            WindowsKeyStrokes.Down(code, KeyTable.Name(code, sided: true));
+            WindowsKeyStrokes.Down(code, KeyNames.Name(code, sided: true));
             Thread.Sleep(10);
         }
 
@@ -86,7 +86,7 @@ public sealed class SharpHookInputDevice : IInputDevice
 
         for (var index = codes.Count - 1; index >= 0; index--)
         {
-            WindowsKeyStrokes.Up(codes[index], KeyTable.Name(codes[index], sided: true));
+            WindowsKeyStrokes.Up(codes[index], KeyNames.Name(codes[index], sided: true));
         }
     }
 
@@ -270,7 +270,7 @@ public sealed class SharpHookInputDevice : IInputDevice
     /// </summary>
     private static HookCode Code(string key)
     {
-        var code = KeyTable.ResolveCode(key)
+        var code = KeyNames.ResolveCode(key)
             ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
         return WindowsKeys.CanBePressed(code)

@@ -104,12 +104,12 @@ public sealed partial class PlaywrightBrowserDevice
             // A macro's own name for a key is turned into the canonical one first, so that every
             // spelling the keyboard picker offers ("Ctrl", "control", "左Ctrl") arrives here as
             // the same thing.
-            if (KeyTable.ResolveCode(part) is not { } code)
+            if (KeyNames.ResolveCode(part) is not { } code)
             {
                 return null;
             }
 
-            var written = KeyTable.Name(code);
+            var written = KeyNames.Name(code);
             keys.Add(PageKeyNames.TryGetValue(written, out var page) ? page : Numbered(written));
         }
 

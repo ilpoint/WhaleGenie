@@ -294,7 +294,7 @@ public sealed class MessageInputDevice(IntPtr window, IInputDevice pointer) : II
     {
         // A posted key message carries the code Windows numbers the key with, which is not the code
         // the hook library numbers it with: sending the library's own code would press another key.
-        var code = KeyTable.ResolveCode(key)
+        var code = KeyNames.ResolveCode(key)
             ?? throw new DeviceActionException(RunKeys.UnknownKey, key);
 
         return new Stroke(
