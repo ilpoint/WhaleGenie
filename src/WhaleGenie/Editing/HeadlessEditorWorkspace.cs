@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Editing;
@@ -68,13 +69,32 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace)
         return session;
     }
 
+    public void Close(string key)
+    {
+        if (!_sessions.TryGetValue(key, out var session))
+        {
+            return;
+        }
+
+        if (session.IsDirty)
+        {
+            throw new InvalidOperationException(Strings.Get("Editor.CloseDirty"));
+        }
+
+        var active = string.Equals(_active, key, StringComparison.Ordinal);
+        _sessions.Remove(key);
+        _order.Remove(key);
+        if (active)
+        {
+            _active = _order.LastOrDefault();
+        }
+    }
+
     public void CloseActive()
     {
         if (_active is not null)
         {
-            _sessions.Remove(_active);
-            _order.Remove(_active);
-            _active = _order.LastOrDefault();
+            Close(_active);
         }
     }
 }

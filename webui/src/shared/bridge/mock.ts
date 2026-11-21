@@ -410,6 +410,9 @@ export class MockTransport implements BridgeTransport {
         result = this.editor;
         break;
       case 'editor.sessionClose':
+        if (this.editor?.dirty) {
+          throw new Error('Save this document before closing it.');
+        }
         this.editor = null;
         result = null;
         break;

@@ -200,6 +200,7 @@ internal sealed class HeadlessEditorSession
             _ => { }, () => { }, () => { });
         var draft = _model.Draft();
         commit.Apply(draft, []);
+        _model.IsDirty = false;
         _existing = _workspace.Macros.FirstOrDefault(candidate => candidate.Name == draft.Macro.Name);
         return _existing is not null;
     }

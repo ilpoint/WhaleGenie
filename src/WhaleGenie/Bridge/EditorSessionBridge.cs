@@ -33,7 +33,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionTriggerRemove", RemoveTrigger);
         server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
         server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
-        server.Register("editor.sessionClose", _ => Task.FromResult<object?>(Close()));
+        server.Register("editor.sessionClose", Close);
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
     }
 
@@ -251,10 +251,26 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         return Snapshot();
     }
 
-    private object? Close()
+    private Task<object?> Close(JsonElement parameters)
     {
-        _documents.CloseActive();
-        return null;
+        try
+        {
+            var key = parameters.TryGetProperty("key", out var named) ? named.GetString() : null;
+            if (key is { Length: > 0 })
+            {
+                _documents.Close(key);
+            }
+            else
+            {
+                _documents.CloseActive();
+            }
+
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
     }
 
     private object? Snapshot()

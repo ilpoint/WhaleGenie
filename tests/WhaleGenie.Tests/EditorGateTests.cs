@@ -101,6 +101,23 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_dirty_document_cannot_be_closed_until_saved()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "closable" });
+        var documents = new HeadlessEditorWorkspace(workspace);
+        var session = documents.Open("closable");
+
+        session.Patch(description: "changed");
+        Assert.Throws<InvalidOperationException>(() => documents.CloseActive());
+        Assert.Single(documents.Tabs);
+
+        Assert.True(session.Save());
+        documents.CloseActive();
+        Assert.Empty(documents.Tabs);
+    }
+
+    [Fact]
     public void Saving_an_invalid_macro_is_refused()
     {
         var workspace = new ProjectWorkspace();

@@ -87,6 +87,11 @@ export class WgEditorGate extends LitElement {
       overflow-x: auto;
     }
 
+    .tab-item {
+      display: flex;
+      align-items: center;
+    }
+
     .tabs button {
       border: none;
       border-bottom: 2px solid transparent;
@@ -101,6 +106,16 @@ export class WgEditorGate extends LitElement {
     .tabs button[aria-current='page'] {
       color: var(--colorNeutralForeground1);
       border-bottom-color: var(--colorBrandBackground);
+    }
+
+    .tabs .tab-close {
+      border-bottom: none;
+      padding: 0 var(--spacingHorizontalXS);
+      color: var(--colorNeutralForeground2);
+    }
+
+    .tabs .tab-close:hover {
+      color: var(--colorNeutralForeground1);
     }
 
     .fields {
@@ -282,11 +297,19 @@ export class WgEditorGate extends LitElement {
       ${this.tabs.length > 0
         ? html`<div class="tabs" role="tablist">
             ${this.tabs.map((tab) => html`
-              <button
-                role="tab"
-                aria-current=${tab.key === this.activeKey ? 'page' : 'false'}
-                @click=${() => void this.activateTab(tab.key)}
-              >${tab.name}${tab.dirty ? ' •' : ''}</button>
+              <div class="tab-item">
+                <button
+                  role="tab"
+                  aria-current=${tab.key === this.activeKey ? 'page' : 'false'}
+                  @click=${() => void this.activateTab(tab.key)}
+                >${tab.name}${tab.dirty ? ' •' : ''}</button>
+                <button
+                  class="tab-close"
+                  title=${t('Common.Close')}
+                  aria-label=${t('Common.Close')}
+                  @click=${(event: Event) => { event.stopPropagation(); void this.closeTab(tab.key); }}
+                >×</button>
+              </div>
             `)}
           </div>`
         : nothing}
@@ -406,6 +429,17 @@ export class WgEditorGate extends LitElement {
         'editor.sessionTabs');
       this.tabs = response.tabs;
       this.activeKey = response.activeKey ?? '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async closeTab(key: string): Promise<void> {
+    try {
+      const next = await bridge.value.call<EditorSnapshot | null>('editor.sessionClose', { key });
+      this.snapshot = next;
+      this.selectedId = next?.steps[0]?.id ?? '';
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }
@@ -668,12 +702,13 @@ export class WgEditorGate extends LitElement {
   }
 
   private async close(): Promise<void> {
-    try {
-      await bridge.value.call('editor.sessionClose');
-    } finally {
-      this.snapshot = null;
-      await this.loadTabs();
+    if (this.activeKey.length > 0) {
+      await this.closeTab(this.activeKey);
+      return;
     }
+
+    this.snapshot = null;
+    await this.loadTabs();
   }
 }
 
