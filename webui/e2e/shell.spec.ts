@@ -115,6 +115,17 @@ test('C0 编辑器打开真实宏、改字段并保存', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 文档页签切换保留各自的 C# 会话', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('自动保存');
+
+  await page.getByRole('tab', { name: '游戏连招' }).click();
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('游戏连招');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionActivate')))
+    .toBe(true);
+});
+
 test('C1 步骤树可以加步骤与改参数', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await expect(page.locator('wg-editor-gate h1')).toHaveText('编辑器');

@@ -85,6 +85,27 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void Two_documents_keep_their_own_edits_when_switched()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "one" });
+        workspace.AddMacro(new MacroItem { Name = "two" });
+        var documents = new HeadlessEditorWorkspace(workspace);
+
+        documents.Open("one").Patch(description: "edited one");
+        documents.Open("two").Patch(description: "edited two");
+        Assert.Equal(2, documents.Tabs.Count);
+
+        var one = documents.Activate("one");
+        Assert.Equal("edited one", one.Description);
+        Assert.True(one.IsDirty);
+
+        var two = documents.Activate("two");
+        Assert.Equal("edited two", two.Description);
+        Assert.True(two.IsDirty);
+    }
+
+    [Fact]
     public void A_key_trigger_can_be_added_bound_and_removed()
     {
         var workspace = new ProjectWorkspace();

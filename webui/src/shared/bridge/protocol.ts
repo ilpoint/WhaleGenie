@@ -113,6 +113,12 @@ export interface EditorStep {
   steps: EditorStep[];
 }
 
+export interface EditorTab {
+  key: string;
+  name: string;
+  dirty: boolean;
+}
+
 export interface EditorTrigger {
   id: string;
   kind: string;

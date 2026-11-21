@@ -15,11 +15,13 @@ namespace WhaleGenie.Bridge;
 /// </summary>
 internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeHandler
 {
-    private HeadlessEditorSession? _session;
+    private readonly HeadlessEditorWorkspace _documents = new(workspace);
 
     public void Register(BridgeServer server)
     {
         server.Register("editor.sessionOpen", Open);
+        server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
+        server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
@@ -39,13 +41,39 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
         try
         {
-            _session = HeadlessEditorSession.Open(workspace, name);
+            _documents.Open(name);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException)
         {
             throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
                 Strings.Format("Bridge.NoSuchMacro", name ?? string.Empty));
+        }
+    }
+
+    private object Tabs() => new
+    {
+        activeKey = _documents.ActiveKey,
+        tabs = _documents.Tabs,
+    };
+
+    private Task<object?> Activate(JsonElement parameters)
+    {
+        var key = parameters.TryGetProperty("key", out var named) ? named.GetString() : null;
+        if (key is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsDocument"));
+        }
+
+        try
+        {
+            _documents.Activate(key);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
     }
 
@@ -210,12 +238,12 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
 
     private object? Close()
     {
-        _session = null;
+        _documents.CloseActive();
         return null;
     }
 
     private object? Snapshot()
-        => _session?.Snapshot() is { } snapshot
+        => _documents.Active?.Snapshot() is { } snapshot
             ? new
             {
                 name = snapshot.Name,
@@ -235,6 +263,6 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         };
 
     private HeadlessEditorSession Required()
-        => _session ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+        => _documents.Active ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
             Strings.Get("Bridge.EditorNoSession"));
 }

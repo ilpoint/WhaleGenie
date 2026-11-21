@@ -6,6 +6,7 @@ import type {
   EditorParameter,
   EditorSnapshot,
   EditorStep,
+  EditorTab,
   ProjectState,
 } from '../../shared/bridge/protocol.js';
 import { project } from '../../shared/project/store.js';
@@ -31,6 +32,12 @@ export class WgEditorGate extends LitElement {
   private selectedId = '';
 
   @state()
+  private tabs: EditorTab[] = [];
+
+  @state()
+  private activeKey = '';
+
+  @state()
   private error = '';
 
   private unsubscribeStrings?: () => void;
@@ -48,6 +55,30 @@ export class WgEditorGate extends LitElement {
       font-size: var(--font-size-base-500);
       font-weight: var(--font-weight-semibold);
       margin: 0 0 var(--spacingVerticalM);
+    }
+
+    .tabs {
+      display: flex;
+      gap: var(--spacingHorizontalXS);
+      border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      margin-bottom: var(--spacingVerticalM);
+      overflow-x: auto;
+    }
+
+    .tabs button {
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      font: inherit;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      cursor: default;
+      white-space: nowrap;
+    }
+
+    .tabs button[aria-current='page'] {
+      color: var(--colorNeutralForeground1);
+      border-bottom-color: var(--colorBrandBackground);
     }
 
     .fields {
@@ -226,6 +257,17 @@ export class WgEditorGate extends LitElement {
     return html`
       <h1>${t('Shell.Editor')}</h1>
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
+      ${this.tabs.length > 0
+        ? html`<div class="tabs" role="tablist">
+            ${this.tabs.map((tab) => html`
+              <button
+                role="tab"
+                aria-current=${tab.key === this.activeKey ? 'page' : 'false'}
+                @click=${() => void this.activateTab(tab.key)}
+              >${tab.name}${tab.dirty ? ' •' : ''}</button>
+            `)}
+          </div>`
+        : nothing}
       <div class="fields">
         <input
           .value=${this.snapshot.name}
@@ -294,6 +336,28 @@ export class WgEditorGate extends LitElement {
       this.actionKey = response.actions.find((action) => !action.hidden)?.key ?? '';
     } catch {
       // The gate can still open a session even if the catalogue fails.
+    }
+  }
+
+  private async loadTabs(): Promise<void> {
+    try {
+      const response = await bridge.value.call<{ activeKey: string | null; tabs: EditorTab[] }>(
+        'editor.sessionTabs');
+      this.tabs = response.tabs;
+      this.activeKey = response.activeKey ?? '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async activateTab(key: string): Promise<void> {
+    try {
+      const activated = await bridge.value.call<EditorSnapshot>('editor.sessionActivate', { key });
+      this.snapshot = activated;
+      this.selectedId = activated.steps[0]?.id ?? '';
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
     }
   }
 
@@ -500,6 +564,7 @@ export class WgEditorGate extends LitElement {
         name ? { name } : {});
       this.snapshot = opened;
       this.selectedId = opened?.steps[0]?.id ?? '';
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }
@@ -524,6 +589,7 @@ export class WgEditorGate extends LitElement {
         description: this.snapshot.description,
       });
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionSave');
+      await this.loadTabs();
       this.error = '';
     } catch (error) {
       this.error = String(error);
@@ -535,6 +601,7 @@ export class WgEditorGate extends LitElement {
       await bridge.value.call('editor.sessionClose');
     } finally {
       this.snapshot = null;
+      await this.loadTabs();
     }
   }
 }

@@ -273,6 +273,31 @@ export class MockTransport implements BridgeTransport {
       case 'editor.sessionState':
         result = this.editor;
         break;
+      case 'editor.sessionTabs':
+        result = {
+          activeKey: this.editor?.name ?? null,
+          tabs: this.projectState.macros.map((macro) => ({
+            key: macro.name,
+            name: macro.name,
+            dirty: false,
+          })),
+        };
+        break;
+      case 'editor.sessionActivate': {
+        const macro = this.projectState.macros.find((entry) => entry.name === params['key']);
+        if (macro) {
+          this.editor = {
+            name: macro.name,
+            description: macro.description,
+            dirty: false,
+            stepCount: 0,
+            steps: [],
+            triggers: [],
+          };
+        }
+        result = this.editor;
+        break;
+      }
       case 'editor.sessionPatch':
         if (this.editor) {
           this.editor = {
