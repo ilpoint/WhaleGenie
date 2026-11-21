@@ -41,6 +41,7 @@ const chromeKeys = [
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
+  'Editor.TriggerEnabled',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
@@ -87,6 +88,7 @@ const english: Record<string, string> = {
   'Editor.BindKey': 'Trigger / Bind Key :', 'Add.SetCombination': 'Set combination',
   'Add.PressKey': 'Press a key…', 'Palette.Undo': 'Undo', 'Palette.Redo': 'Redo',
   'Editor.Loop': 'Loop :', 'Editor.TriggerOnce': 'Trigger Once',
+  'Editor.TriggerEnabled': 'Enabled',
   'Loop.Press': 'Once, When Key Pressed (Press)', 'Loop.Hold': 'While Holding Key (Hold)',
   'Loop.Toggle': 'Until Key Pressed Again (Toggle)', 'Loop.Release': 'Once, When Key Released (Release)',
   'LocalVariables.Title': 'Local variables',
@@ -145,7 +147,7 @@ const chinese: Record<string, string> = {
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
   'Editor.BindKey': '触发 / 绑定按键：', 'Add.SetCombination': '设置组合键',
   'Add.PressKey': '请按一个键…', 'Palette.Undo': '撤销', 'Palette.Redo': '重做',
-  'Editor.Loop': '循环：', 'Editor.TriggerOnce': '仅触发一次',
+  'Editor.Loop': '循环：', 'Editor.TriggerOnce': '仅触发一次', 'Editor.TriggerEnabled': '启用',
   'Loop.Press': '按下时执行一次（按下）', 'Loop.Hold': '按住期间循环（长按）',
   'Loop.Toggle': '再次按键时停止（切换）', 'Loop.Release': '松开时执行一次（松开）',
   'LocalVariables.Title': '局部变量',
@@ -484,6 +486,18 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerEnabled':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
+              ? { ...trigger, enabled: params['enabled'] === true }
+              : trigger),
           };
         }
         result = this.editor;

@@ -217,7 +217,7 @@ test('C1 局部变量墙可新建与改名', async ({ page }) => {
 test('C1 编辑宏的触发入口与按键', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
-  const binding = page.locator('wg-editor-gate .triggers input').first();
+  const binding = page.locator('wg-editor-gate .triggers input[data-capture]').first();
   await expect(binding).toBeVisible();
   await page.locator('wg-editor-gate .triggers fluent-button', { hasText: '设置组合键' }).click();
   await page.keyboard.press('F8');
@@ -225,6 +225,11 @@ test('C1 编辑宏的触发入口与按键', async ({ page }) => {
 
   await page.locator('wg-editor-gate .triggers select').selectOption({ label: '按住期间循环（长按）' });
   await page.locator('wg-editor-gate .triggers .once input').check();
+  await page.locator('wg-editor-gate .triggers .enabled input').uncheck();
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerEnabled')))
+    .toBe(true);
 
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerBinding')))

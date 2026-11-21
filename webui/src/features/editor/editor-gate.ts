@@ -188,7 +188,8 @@ export class WgEditorGate extends LitElement {
       gap: var(--spacingHorizontalS);
     }
 
-    .triggers .once {
+    .triggers .once,
+    .triggers .enabled {
       display: flex;
       align-items: center;
       gap: var(--spacingHorizontalXS);
@@ -414,6 +415,14 @@ export class WgEditorGate extends LitElement {
         ${this.snapshot.triggers.map((trigger) => html`
           <li>
             <span class="trigger-kind">${trigger.kindLabel}</span>
+            <label class="enabled">
+              <input
+                type="checkbox"
+                .checked=${trigger.enabled}
+                @change=${(event: Event) => void this.setTriggerEnabled(trigger.id, event)}
+              />
+              ${t('Editor.TriggerEnabled')}
+            </label>
             ${trigger.kind === 'Key'
               ? html`<input
                   data-capture=${'trigger:' + trigger.id}
@@ -625,6 +634,7 @@ export class WgEditorGate extends LitElement {
         type: this.actionKey,
         parentId: inside ? this.selectedId : undefined,
       });
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }
@@ -674,6 +684,18 @@ export class WgEditorGate extends LitElement {
         triggerId,
         binding,
       });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerEnabled(triggerId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerEnabled', {
+        triggerId,
+        enabled: (event.target as HTMLInputElement).checked,
+      });
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }
@@ -818,6 +840,7 @@ export class WgEditorGate extends LitElement {
         name,
         value,
       });
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }
@@ -1012,6 +1035,7 @@ export class WgEditorGate extends LitElement {
   private async undo(): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionUndo');
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }
@@ -1020,6 +1044,7 @@ export class WgEditorGate extends LitElement {
   private async redo(): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionRedo');
+      await this.loadTabs();
     } catch (error) {
       this.error = String(error);
     }

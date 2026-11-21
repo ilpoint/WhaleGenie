@@ -242,6 +242,15 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void SetTriggerEnabled(string triggerId, bool enabled)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        trigger.IsEnabled = enabled;
+        _model.IsDirty = true;
+    }
+
     public void SetTriggerOnce(string triggerId, bool once)
     {
         _ = KeyTrigger(triggerId);

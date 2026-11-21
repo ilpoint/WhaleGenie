@@ -36,6 +36,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
         server.Register("editor.sessionTriggerLoop", SetTriggerLoop);
         server.Register("editor.sessionTriggerOnce", SetTriggerOnce);
+        server.Register("editor.sessionTriggerEnabled", SetTriggerEnabled);
         server.Register("editor.sessionVariableAdd", _ => Task.FromResult<object?>(AddVariable()));
         server.Register("editor.sessionVariablePatch", PatchVariable);
         server.Register("editor.sessionVariableRemove", RemoveVariable);
@@ -211,6 +212,27 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().SetTriggerLoop(triggerId, loop);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerEnabled(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        var enabled = parameters.TryGetProperty("enabled", out var value) && value.GetBoolean();
+        if (triggerId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().SetTriggerEnabled(triggerId, enabled);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)
