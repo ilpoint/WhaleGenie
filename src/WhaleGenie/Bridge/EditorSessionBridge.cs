@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Editing;
-using WhaleGenie.ViewModels;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
 
