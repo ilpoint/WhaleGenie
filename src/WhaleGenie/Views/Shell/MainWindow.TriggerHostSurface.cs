@@ -27,15 +27,20 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerF
 
     void Runtime.ITriggerSurfaceHost.MenuMouseDown(MouseHookEvent e) => _nativeSurface?.MenuMouseDown(e);
 
-    void Runtime.ITriggerSurfaceHost.WheelMouseDown(MouseHookEvent e) => OnWheelMouseDown(e);
+    void Runtime.ITriggerSurfaceHost.WheelMouseDown(MouseHookEvent e)
+        => _nativeSurface?.WheelMouseDown(e);
 
-    void Runtime.ITriggerSurfaceHost.WheelMouseMoved(MouseMovedHookEvent e) => OnWheelMouseMoved(e);
+    void Runtime.ITriggerSurfaceHost.WheelMouseMoved(MouseMovedHookEvent e)
+        => _nativeSurface?.WheelMouseMoved(e);
 
-    void Runtime.ITriggerSurfaceHost.WheelMouseUp(MouseHookEvent e) => OnWheelMouseUp(e);
+    void Runtime.ITriggerSurfaceHost.WheelMouseUp(MouseHookEvent e)
+        => _nativeSurface?.WheelMouseUp(e);
 
-    void Runtime.ITriggerSurfaceHost.WheelKeyDown(KeyHookEvent e) => OnWheelKeyDown(e);
+    void Runtime.ITriggerSurfaceHost.WheelKeyDown(KeyHookEvent e)
+        => _nativeSurface?.WheelKeyDown(e);
 
-    void Runtime.ITriggerSurfaceHost.WheelScroll(WheelHookEvent e) => OnWheelScroll(e);
+    void Runtime.ITriggerSurfaceHost.WheelScroll(WheelHookEvent e)
+        => _nativeSurface?.WheelScroll(e);
 
     void Runtime.ITriggerSurfaceHost.ToggleInterfaceGroup(string groupKey)
         => ToggleInterfaceGroupFromHotkey(groupKey);
@@ -48,7 +53,7 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerF
         }
 
         RefreshSurface(viewModel);
-        RefreshWheelGate(viewModel);
+        _nativeSurface?.RefreshWheelGate();
         RefreshRunning(viewModel);
     }
 

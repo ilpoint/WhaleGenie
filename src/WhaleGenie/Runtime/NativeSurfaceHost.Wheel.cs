@@ -7,73 +7,66 @@ using Avalonia;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
-using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
-namespace WhaleGenie.Views;
+namespace WhaleGenie.Runtime;
 
-public partial class MainWindow : AppWindow
+// The wheel is a gesture of its own beside the menu: the hook reports presses, the state machine
+// answers them, and this partial owns the window that shows the sectors. It reads the project and
+// the system switch directly, so it keeps working beside the web shell.
+internal sealed partial class NativeSurfaceHost
 {
-    // The wheel is a gesture of its own beside the menu: the hook reports presses, the state
-    // machine answers them, and this file owns the window that shows the sectors. Its state lives
-    // here so a task about the wheel does not read the session, menu and surface code as well.
     private WheelGesture? _wheel;
     private WheelMenuWindow? _wheelWindow;
     private WheelMenuState _wheelState = new();
 
-    /// <summary>
-    /// Whether a wheel is on screen, copied for the hook thread. It asks this before it scrolls;
-    /// reading the window itself from a hook callback would touch Avalonia off its own thread.
-    /// </summary>
+    /// <summary>Whether a wheel is on screen, copied for the hook thread.</summary>
     private int _wheelHostOpen;
 
-    /// <summary>
-    /// The project's wheel positions as the hook thread reads them. The live collection belongs to
-    /// the interface thread, so it is copied whenever it changes and replaced whole: a press may
-    /// ask whether a program scene matches, and a half-edited scene list is not an answer.
-    /// </summary>
+    /// <summary>The project's wheel positions as the hook thread reads them, copied whole.</summary>
     private WheelMenuRules? _wheelGateRules;
 
-    /// <summary>The scene matched by the press that armed the gesture, reused when the wheel opens.</summary>
     private WheelScene? _wheelPressScene;
 
-    // Frozen for the whole time a wheel is open: a window coming forward must not change what a
-    // direction means while the pointer is aiming at it.
+    // Frozen for the whole time a wheel is open.
     private WheelScene? _wheelScene;
     private WheelSource _wheelSource = WheelSource.Merged;
     private IReadOnlyList<MacroItem> _wheelMacros = [];
     private WheelMenuRules? _wheelRules;
 
-    /// <summary>
-    /// Where the pointer is while a wheel is open. The hook writes it and the frame timer reads it,
-    /// so a pointer that moves a thousand times a second still costs one drawing a frame.
-    /// </summary>
     private readonly WheelAim _wheelAim = new();
     private int _wheelAimScheduled;
     private long _wheelOpenedAt;
     private long _wheelMovesAtOpen;
     private long _wheelDrawnAtOpen;
 
-    /// <summary>
-    /// Counts wheels rather than events: an answer posted for one wheel that arrives after it has
-    /// closed must not touch the next one, which is open at the same place on the screen.
-    /// </summary>
     private int _wheelGeneration;
 
-    /// <summary>Hands the hook thread a copy of the wheel's positions.</summary>
-    private void RefreshWheelGate(MainViewModel viewModel)
-        => Volatile.Write(ref _wheelGateRules, viewModel.Triggers.Wheel.Copy());
+    private void InitializeWheel()
+    {
+        _wheelState = WheelMenuStore.Load();
+        _wheel = new WheelGesture(
+            () => Volatile.Read(ref _wheelState).Options.Launcher,
+            () => Volatile.Read(ref _wheelState).Options.RepeatKey,
+            WheelCanOpen);
+        WheelMenuStore.Changed += OnWheelStateChanged;
+    }
 
-    /// <summary>
-    /// Whether the trigger button belongs to the wheel at the place the press happened. It belongs
-    /// there unless "only in these programs" is on, in which case a program scene has to match; the
-    /// matched scene is kept so the wheel that opens is the one the press decided on.
-    /// </summary>
+    private void DisposeWheel()
+    {
+        WheelMenuStore.Changed -= OnWheelStateChanged;
+        CloseWheel();
+    }
+
+    /// <summary>Hands the hook thread a copy of the wheel's positions.</summary>
+    internal void RefreshWheelGate()
+        => Volatile.Write(ref _wheelGateRules, _workspace.Triggers.Wheel.Copy());
+
     private bool WheelCanOpen()
     {
         _wheelPressScene = null;
-        if (Volatile.Read(ref _systemRunning) != 1)
+        if (!_system.IsEnabled)
         {
             return false;
         }
@@ -92,8 +85,7 @@ public partial class MainWindow : AppWindow
 
         try
         {
-            _wheelPressScene = rules.SceneFor(
-                _devices.Windows.Foreground(), _devices.Windows);
+            _wheelPressScene = rules.SceneFor(_devices.Windows.Foreground(), _devices.Windows);
         }
         catch
         {
@@ -103,21 +95,13 @@ public partial class MainWindow : AppWindow
         return _wheelPressScene is not null;
     }
 
-    // ── Wheel menu ────────────────────────────────────────────────────────────
-
     private void OnWheelStateChanged()
         => Volatile.Write(ref _wheelState, WheelMenuStore.Load());
 
-    /// <summary>
-    /// A press only starts the gesture. It never suppresses the event: a short right click must
-    /// stay an ordinary right click so the system context menu still opens.
-    /// </summary>
-    private void OnWheelMouseDown(MouseHookEvent e)
+    public void WheelMouseDown(MouseHookEvent e)
     {
         try
         {
-            // A click this program sent itself (the one a short press is answered with) must not
-            // arm the gesture again.
             if (e.Injected || _wheel is not { } gesture)
             {
                 return;
@@ -134,7 +118,7 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    private void OnWheelMouseMoved(MouseMovedHookEvent e)
+    public void WheelMouseMoved(MouseMovedHookEvent e)
     {
         try
         {
@@ -151,14 +135,7 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// The release belongs to the gesture that took the press. An open wheel answers with the
-    /// sector that was aimed at; a press that never moved is the ordinary click it turned out to
-    /// be, so the same button is sent again at that place. Neither reaches the application before
-    /// this point, which is what keeps it from painting its own selection while the wheel is being
-    /// aimed and from putting its context menu over the action that was chosen.
-    /// </summary>
-    private void OnWheelMouseUp(MouseHookEvent e)
+    public void WheelMouseUp(MouseHookEvent e)
     {
         try
         {
@@ -187,11 +164,6 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// Sends the click the gesture took but never used. It goes out on a worker thread because the
-    /// device layer waits between the press and the release, and a hook callback has to answer the
-    /// system at once. The click is marked as this program's input, so it cannot rearm the wheel.
-    /// </summary>
     private void ReplayClick(HookMouseButton button)
     {
         var name = button switch
@@ -207,8 +179,6 @@ public partial class MainWindow : AppWindow
         {
             try
             {
-                // Where the pointer is now, rather than where it was released: sending the click
-                // through a position would pull the cursor back if the hand had already moved on.
                 var at = _devices.Input.Cursor;
                 _devices.Input.Click(name, at.X, at.Y, 1, 0);
             }
@@ -219,7 +189,7 @@ public partial class MainWindow : AppWindow
         });
     }
 
-    private void OnWheelKeyDown(KeyHookEvent e)
+    public void WheelKeyDown(KeyHookEvent e)
     {
         try
         {
@@ -241,12 +211,7 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// Scrolling while the wheel is open changes which scene its positions come from: up goes to
-    /// the global scene, down to the current program's scene, and the same direction again returns
-    /// to the merged view: "show me only this app's actions".
-    /// </summary>
-    private void OnWheelScroll(WheelHookEvent e)
+    public void WheelScroll(WheelHookEvent e)
     {
         try
         {
@@ -294,8 +259,6 @@ public partial class MainWindow : AppWindow
                     (int)Math.Round(answered.X), (int)Math.Round(answered.Y))), "wheel.open");
                 break;
             case WheelGestureAction.Move:
-                // Nothing is posted per move. The hook writes where the pointer is; one read is
-                // scheduled for the next frame, and it draws whatever arrived by then.
                 _wheelAim.Move(answered.X, answered.Y);
                 ScheduleWheelAim();
                 break;
@@ -315,12 +278,6 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// Hands one wheel answer to the interface. The hook thread must not touch a window, and an
-    /// exception on the interface thread ends the process with nothing written down: a stage that
-    /// fails closes the wheel and leaves a record instead. An answer that arrives after the wheel
-    /// it belonged to has gone is dropped.
-    /// </summary>
     private void PostWheel(Action answer, string stage)
     {
         var generation = Volatile.Read(ref _wheelGeneration);
@@ -345,7 +302,7 @@ public partial class MainWindow : AppWindow
 
     private void OpenWheel(PixelPoint origin)
     {
-        if (_wheelWindow is not null || DataContext is not MainViewModel viewModel)
+        if (_wheelWindow is not null)
         {
             return;
         }
@@ -358,21 +315,15 @@ public partial class MainWindow : AppWindow
 
         try
         {
-            // The scene is chosen once, from the window that was in front when the button went
-            // down, exactly as the floating macro menu picks its lower region. The positions come
-            // from the project, the button and the look from this machine's file. The copy taken
-            // for the gate is used here as well: it is the wheel the press was judged against.
-            _wheelMacros = [.. viewModel.Macros];
-            _wheelRules = Volatile.Read(ref _wheelGateRules) ?? viewModel.Triggers.Wheel.Copy();
+            _wheelMacros = [.. _workspace.Macros];
+            _wheelRules = Volatile.Read(ref _wheelGateRules) ?? _workspace.Triggers.Wheel.Copy();
             _wheelSource = WheelSource.Merged;
             _wheelScene = _wheelPressScene;
             if (_wheelScene is null && !Volatile.Read(ref _wheelState).Options.OnlyInPrograms)
             {
                 try
                 {
-                    _wheelScene = _wheelRules.SceneFor(
-                        _devices.Windows.Foreground(),
-                        _devices.Windows);
+                    _wheelScene = _wheelRules.SceneFor(_devices.Windows.Foreground(), _devices.Windows);
                 }
                 catch
                 {
@@ -387,16 +338,21 @@ public partial class MainWindow : AppWindow
                 _wheel?.Timeout();
                 CloseWheel();
             };
-            window.ShowAsPeer(this);
+
+            if (_owner() is { } owner)
+            {
+                window.ShowAsPeer(owner);
+            }
+            else
+            {
+                window.Show();
+            }
+
             window.Position = window.PlaceAt(origin);
             _wheelWindow = window;
             Volatile.Write(ref _wheelHostOpen, 1);
             _wheel?.SetCenter(window.Center.X, window.Center.Y, window.Metrics);
 
-            // Everything that belonged to the wheel before this one is stale, including a move
-            // that was written but never drawn. The generation itself moves when a wheel closes,
-            // not when one opens: an answer posted before the open ran still belongs to the wheel
-            // that is now up, and dropping it would leave a release unanswered.
             _wheelOpenedAt = Stopwatch.GetTimestamp();
             _wheelMovesAtOpen = _wheelAim.Counts.Written;
             _wheelDrawnAtOpen = _wheelAim.Counts.Taken;
@@ -410,13 +366,6 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// Asks for one read of the aim at the next render. Only one read is ever waiting: a move that
-    /// arrives while it is pending is covered by it, because the read takes the newest position.
-    /// It runs with the render pass rather than on a timer, because a timer at input priority waits
-    /// behind the drawing it is meant to keep up with — the guide line then trails the pointer by
-    /// as many frames as the drawing took.
-    /// </summary>
     private void ScheduleWheelAim()
     {
         if (Interlocked.Exchange(ref _wheelAimScheduled, 1) != 0)
@@ -478,10 +427,10 @@ public partial class MainWindow : AppWindow
             return;
         }
 
-        _triggers?.RunOnce(macro);
+        _runtime.Triggers.RunOnce(macro);
     }
 
-    private void CloseWheel()
+    public void CloseWheel()
     {
         var window = _wheelWindow;
         _wheelWindow = null;
@@ -491,18 +440,12 @@ public partial class MainWindow : AppWindow
         _wheelMacros = [];
         _wheelSource = WheelSource.Merged;
 
-        // Bumping the generation is what makes an answer still in the queue belong to a wheel that
-        // no longer exists; a scheduled read stops with it.
         _wheelGeneration++;
         _wheelAim.Clear();
         NoteWheelFrames();
         window?.Close();
     }
 
-    /// <summary>
-    /// One line about what a wheel cost, written when it closes. The pair of numbers is the whole
-    /// diagnosis of a pointer that felt slow: positions written against drawings made.
-    /// </summary>
     private void NoteWheelFrames()
     {
         if (_wheelOpenedAt == 0)

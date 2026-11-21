@@ -47,33 +47,15 @@ public partial class MainWindow : AppWindow
 
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
-        Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
         _triggers = Runtime.Triggers;
 
-        // The menu is already a host of its own; the trigger host forwards its hooks there. The
-        // wheel and panels still use this window as their surface until they move as well.
-        _nativeSurface = new NativeSurfaceHost(viewModel.Workspace, Runtime, _devices,
+        // The menu and wheel are the host's now; the trigger host forwards their hooks there. The
+        // panels still use this window as their surface until they move as well.
+        _nativeSurface = new NativeSurfaceHost(viewModel.Workspace, Runtime, _system, _devices,
             () => this, () => _host?.Plan ?? GlobalHotkeyPlan.Empty, this);
         _host = new TriggerHost(viewModel.Workspace, _system, Runtime, _devices,
             this, _questions, new WindowFocusProbe());
         _host.Attach();
-
-        viewModel.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(MainViewModel.IsRunning))
-            {
-                Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
-            }
-        };
-
-        // The wheel has its own state and its own file. Nothing here asks the trigger service to
-        // yield a key: the middle button keeps the untouched menu path above.
-        _wheelState = WheelMenuStore.Load();
-        _wheel = new WheelGesture(
-            () => Volatile.Read(ref _wheelState).Options.Launcher,
-            () => Volatile.Read(ref _wheelState).Options.RepeatKey,
-            WheelCanOpen);
-        WheelMenuStore.Changed += OnWheelStateChanged;
 
         var windowEvents = _devices.WindowEvents;
         windowEvents.ForegroundChanged += OnSurfaceForegroundChanged;
@@ -82,7 +64,7 @@ public partial class MainWindow : AppWindow
         viewModel.Changed += OnProjectChanged;
         viewModel.Macros.CollectionChanged += OnMacrosChanged;
 
-        RefreshWheelGate(viewModel);
+        _nativeSurface.RefreshWheelGate();
         RefreshRunning(viewModel);
         WatchSession(viewModel);
         Closed += (_, _) =>
@@ -91,8 +73,6 @@ public partial class MainWindow : AppWindow
             _host = null;
             _nativeSurface?.Dispose();
             _nativeSurface = null;
-            WheelMenuStore.Changed -= OnWheelStateChanged;
-            CloseWheel();
             windowEvents.ForegroundChanged -= OnSurfaceForegroundChanged;
             windowEvents.BoundsChanged -= OnSurfaceBoundsChanged;
             viewModel.Triggers.Changed -= OnProjectTriggersChanged;
@@ -121,7 +101,7 @@ public partial class MainWindow : AppWindow
     {
         if (DataContext is MainViewModel viewModel)
         {
-            RefreshWheelGate(viewModel);
+            _nativeSurface?.RefreshWheelGate();
             RefreshSurface(viewModel);
         }
     }
@@ -130,7 +110,7 @@ public partial class MainWindow : AppWindow
     {
         if (DataContext is MainViewModel viewModel)
         {
-            RefreshWheelGate(viewModel);
+            _nativeSurface?.RefreshWheelGate();
         }
     }
 
@@ -141,7 +121,7 @@ public partial class MainWindow : AppWindow
         {
             // Opening a package replaces the macros and the wheel without raising a change of the
             // project itself, so the gate learns about the new wheel here as well.
-            RefreshWheelGate(viewModel);
+            _nativeSurface?.RefreshWheelGate();
         }
     }
 }

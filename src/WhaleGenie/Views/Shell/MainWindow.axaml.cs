@@ -37,7 +37,6 @@ public partial class MainWindow : AppWindow
     /// view model may only be read on the interface thread: reading them from a hook callback
     /// throws InvalidOperationException, which used to leave the wheel gesture permanently idle.
     /// </summary>
-    private int _systemRunning;
 
     /// <summary>
     /// The macro editor on screen, or null while there is none. One at a time, because two of them
