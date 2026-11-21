@@ -191,6 +191,10 @@ MainViewModel 暂留作设置/运行窗口的无窗视图模型。未迁入的�
 整包下发，页面没有回退逻辑；主题经 `ThemeController` 应用并落盘，页面用 Fluent 令牌铺色，不读
 设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
 
+编辑器在 C0 走同一方向：`HeadlessEditorSession` 持有 `MacroEditorViewModel` 与
+`ProjectMacroCommit`，桥的 `editor.sessionOpen/State/Patch/Step/Save/Close/Actions` 只传快照与命令；
+网页门禁页不保存自己的宏副本。C1 才把这套会话扩成完整文档、步骤树与动作表单。
+
 桥推送的时序也是契约：ready 前同一事件只留最新一份；页面显式取 `project.state`、`theme.get` 或
 `strings.bundle` 时清掉同域 pending；所有发送串行。页面问话在无页时立即答否，页内应答超时也
 答否，删除、关闭或退出不会等一个不会到来的对话框。错误 `message` 由 `Strings` 生成，页面只
