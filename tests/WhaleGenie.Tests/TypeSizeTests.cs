@@ -40,7 +40,6 @@ public class TypeSizeTests
     {
         ["WhaleGenie/MacroEditorViewModel"] = 4_200,
         ["WhaleGenie/MacroEditorWindow"] = 3_850,
-        ["WhaleGenie/MainWindow"] = 3_450,
     };
 
     [Fact]
