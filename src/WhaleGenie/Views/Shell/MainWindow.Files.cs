@@ -21,6 +21,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -47,15 +48,14 @@ public partial class MainWindow : AppWindow
             return;
         }
 
-        try
+        var opened = ProjectFiles.Open(viewModel.Workspace, path);
+        if (!opened.Ok)
         {
-            viewModel.OpenPackage(path);
-            LocalSettings.StoreLastProject(path);
+            await ReportAsync(Strings.Get("Package.OpenFailed"), path, opened.Error!);
+            return;
         }
-        catch (Exception error)
-        {
-            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
-        }
+
+        LocalSettings.StoreLastProject(path);
     }
 
     /// <summary>
@@ -294,15 +294,14 @@ public partial class MainWindow : AppWindow
             return;
         }
 
-        try
+        var opened = ProjectFiles.Open(viewModel.Workspace, path);
+        if (!opened.Ok)
         {
-            viewModel.OpenPackage(path);
-            LocalSettings.StoreLastProject(path);
+            await ReportAsync(Strings.Get("Package.OpenFailed"), path, opened.Error!);
+            return;
         }
-        catch (Exception error)
-        {
-            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
-        }
+
+        LocalSettings.StoreLastProject(path);
     }
 
     private void OnOpenLocationClicked(object? sender, RoutedEventArgs e)
@@ -388,17 +387,15 @@ public partial class MainWindow : AppWindow
 
     private bool Save(MainViewModel viewModel, string path)
     {
-        try
+        var saved = ProjectFiles.Save(viewModel.Workspace, path);
+        if (!saved.Ok)
         {
-            viewModel.SavePackage(path);
-            LocalSettings.StoreLastProject(path);
-            return true;
-        }
-        catch (Exception error)
-        {
-            _ = ReportAsync(Strings.Get("Package.SaveFailed"), path, error);
+            _ = ReportAsync(Strings.Get("Package.SaveFailed"), path, saved.Error!);
             return false;
         }
+
+        LocalSettings.StoreLastProject(path);
+        return true;
     }
 
     /// <summary>Reports a package error without leaving the main window.</summary>

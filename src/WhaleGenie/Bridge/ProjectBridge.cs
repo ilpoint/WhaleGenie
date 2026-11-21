@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.Views;
@@ -388,18 +389,17 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return await SaveAs(parameters);
         }
 
-        try
-        {
-            _workspace.SavePackage(path);
-            _rememberProject(path);
-            await PushState();
-            return null;
-        }
-        catch (Exception error)
+        var saved = ProjectFiles.Save(_workspace, path);
+        if (!saved.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path), error.Message));
+                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path),
+                    saved.Error?.Message ?? string.Empty));
         }
+
+        _rememberProject(path);
+        await PushState();
+        return null;
     }
 
     /// <summary>Asks where the project goes, then writes it there.</summary>
@@ -470,17 +470,16 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
     private async Task OpenPackage(string path)
     {
-        try
-        {
-            _workspace.OpenPackage(path);
-            _rememberProject(path);
-            await PushState();
-        }
-        catch (Exception error)
+        var opened = ProjectFiles.Open(_workspace, path);
+        if (!opened.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path),
+                    opened.Error?.Message ?? string.Empty));
         }
+
+        _rememberProject(path);
+        await PushState();
     }
 
     /// <summary>Opens the shell's open dialog for a package; the answer is a path or "called off".</summary>

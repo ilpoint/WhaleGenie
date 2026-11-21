@@ -1,0 +1,48 @@
+using System;
+using System.IO;
+using WhaleGenie.Models;
+using WhaleGenie.Projects;
+
+namespace WhaleGenie.Tests;
+
+/// <summary>
+/// The package operation behind both the native file menu and the page's project commands. A
+/// failure comes back as a value with its exception, so each caller can report it in its own words
+/// without a second copy of the file logic.
+/// </summary>
+public class ProjectFilesTests
+{
+    [Fact]
+    public void A_project_round_trips_through_one_operation()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"whalegenie-project-{Guid.NewGuid():N}.wgmacro");
+        try
+        {
+            var workspace = new ProjectWorkspace();
+            workspace.AddMacro(new MacroItem { Name = "saved" });
+
+            var saved = ProjectFiles.Save(workspace, path);
+            Assert.True(saved.Ok, saved.Error?.Message);
+            Assert.True(File.Exists(path));
+
+            var loaded = new ProjectWorkspace();
+            var opened = ProjectFiles.Open(loaded, path);
+            Assert.True(opened.Ok, opened.Error?.Message);
+            Assert.Equal("saved", Assert.Single(loaded.Macros).Name);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void A_missing_package_is_a_result_not_an_exception()
+    {
+        var result = ProjectFiles.Open(new ProjectWorkspace(),
+            Path.Combine(Path.GetTempPath(), $"whalegenie-missing-{Guid.NewGuid():N}.wgmacro"));
+
+        Assert.False(result.Ok);
+        Assert.NotNull(result.Error);
+    }
+}
