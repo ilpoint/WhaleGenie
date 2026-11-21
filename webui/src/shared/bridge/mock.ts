@@ -1094,6 +1094,7 @@ export class MockTransport implements BridgeTransport {
               key: 'control.delay',
               name: '延迟',
               category: 'Control',
+              categoryLabel: 'Flow',
               description: '',
               hidden: false,
               parameters: [
@@ -1104,6 +1105,7 @@ export class MockTransport implements BridgeTransport {
               key: 'control.repeat',
               name: '重复',
               category: 'Control',
+              categoryLabel: 'Flow',
               description: '',
               hidden: false,
               parameters: [],
@@ -1112,6 +1114,7 @@ export class MockTransport implements BridgeTransport {
               key: 'input.keyPress',
               name: '按键',
               category: 'Input',
+              categoryLabel: 'Input',
               description: '',
               hidden: false,
               parameters: [
@@ -1122,6 +1125,7 @@ export class MockTransport implements BridgeTransport {
               key: 'screen.color',
               name: '颜色',
               category: 'Screen',
+              categoryLabel: 'Vision',
               description: '',
               hidden: false,
               parameters: [
@@ -1132,6 +1136,7 @@ export class MockTransport implements BridgeTransport {
               key: 'image.find',
               name: '找图',
               category: 'Screen',
+              categoryLabel: 'Vision',
               description: '',
               hidden: false,
               parameters: [

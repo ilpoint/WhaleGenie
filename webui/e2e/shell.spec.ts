@@ -190,6 +190,14 @@ test('C1 步骤可改备注、超时与失败处理', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 动作选择器可按名称过滤', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .action-search').fill('延迟');
+  await expect(page.locator('wg-editor-gate .toolbar select option')).toHaveCount(1);
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await expect(page.locator('wg-editor-gate .step-name')).toHaveText('延迟');
+});
+
 test('C1 编辑器快捷键保存与关闭', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.keyboard.press('Control+s');

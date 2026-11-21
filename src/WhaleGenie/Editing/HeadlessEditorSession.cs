@@ -790,6 +790,7 @@ internal sealed class HeadlessEditorSession
             action.Key,
             action.LocalName,
             action.Category.ToString(),
+            Strings.Get($"Add.Category.{action.Category}", action.Category.ToString()),
             action.LocalDescription,
             action.Hidden,
             [.. action.Parameters
@@ -948,8 +949,9 @@ internal sealed record EditorRowSnapshot(IReadOnlyList<string> Cells);
 
 internal sealed record EditorChoiceSnapshot(string Value, string Label);
 
-internal sealed record EditorActionSnapshot(string Key, string Name, string Category, string Description,
-    bool Hidden, IReadOnlyList<EditorActionParameterSnapshot> Parameters);
+internal sealed record EditorActionSnapshot(string Key, string Name, string Category,
+    string CategoryLabel, string Description, bool Hidden,
+    IReadOnlyList<EditorActionParameterSnapshot> Parameters);
 
 internal sealed record EditorActionParameterSnapshot(string Name, string Label, string Kind, bool Required,
     string Placeholder, IReadOnlyList<EditorChoiceSnapshot> Options);

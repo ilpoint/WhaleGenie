@@ -30,6 +30,9 @@ export class WgEditorGate extends LitElement {
   private actionKey = '';
 
   @state()
+  private actionSearch = '';
+
+  @state()
   private selectedId = '';
 
   @state()
@@ -281,6 +284,16 @@ export class WgEditorGate extends LitElement {
       align-items: center;
       gap: var(--spacingHorizontalS);
       margin-bottom: var(--spacingVerticalM);
+    }
+
+    .toolbar .action-search {
+      font: inherit;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      color: var(--colorNeutralForeground1);
+      min-width: 160px;
     }
 
     .toolbar select {
@@ -903,9 +916,16 @@ export class WgEditorGate extends LitElement {
       </fluent-button>
       <h2>${t('Run.Steps')}</h2>
       <div class="toolbar">
+        <input
+          class="action-search"
+          .value=${this.actionSearch}
+          placeholder=${t('Main.SearchPlaceholder')}
+          aria-label=${t('Main.SearchPlaceholder')}
+          @input=${this.searchActions}
+        />
         <select .value=${this.actionKey} @change=${this.selectAction}>
-          ${this.actions.filter((action) => !action.hidden).map((action) => html`
-            <option value=${action.key}>${action.name}</option>
+          ${this.filteredActions().map((action) => html`
+            <option value=${action.key} title=${action.categoryLabel}>${action.name}</option>
           `)}
         </select>
         <fluent-button appearance="subtle" @click=${() => void this.addStep(false)}>
@@ -978,6 +998,27 @@ export class WgEditorGate extends LitElement {
         break;
     }
   };
+
+  private filteredActions(): EditorAction[] {
+    const needle = this.actionSearch.trim().toLocaleLowerCase();
+    const visible = this.actions.filter((action) => !action.hidden);
+    if (needle.length === 0) {
+      return visible;
+    }
+
+    return visible.filter((action) =>
+      action.name.toLocaleLowerCase().includes(needle)
+      || action.key.toLocaleLowerCase().includes(needle)
+      || action.categoryLabel.toLocaleLowerCase().includes(needle));
+  }
+
+  private searchActions(event: Event): void {
+    this.actionSearch = (event.target as HTMLInputElement).value;
+    const visible = this.filteredActions();
+    if (!visible.some((action) => action.key === this.actionKey)) {
+      this.actionKey = visible[0]?.key ?? '';
+    }
+  }
 
   private async loadActions(): Promise<void> {
     try {
