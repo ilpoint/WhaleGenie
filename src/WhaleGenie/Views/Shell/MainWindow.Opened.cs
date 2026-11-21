@@ -45,8 +45,6 @@ public partial class MainWindow : AppWindow
             return;
         }
 
-        viewModel.Variables.GlobalsChanged += OnGlobalsChanged;
-
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
         Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
@@ -84,7 +82,7 @@ public partial class MainWindow : AppWindow
 
         RefreshWheelGate(viewModel);
         RefreshRunning(viewModel);
-        WatchUnsavedProject(viewModel);
+        WatchSession(viewModel);
         Closed += (_, _) =>
         {
             _host?.Dispose();
@@ -99,7 +97,7 @@ public partial class MainWindow : AppWindow
             viewModel.Variables.GlobalsChanged -= OnGlobalsChanged;
             HideSurface();
             StopTriggers();
-            _recovery?.Stop();
+            _session?.Stop();
         };
     }
 
@@ -111,7 +109,7 @@ public partial class MainWindow : AppWindow
 
             // A global is written into the package, and it moves nothing the list itself raises a
             // change for, so the draft is told to follow now rather than on its own clock.
-            _recovery?.Follow();
+            _session?.Follow();
         }
     }
 

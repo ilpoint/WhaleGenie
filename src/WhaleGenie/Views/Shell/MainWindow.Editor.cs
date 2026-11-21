@@ -46,7 +46,7 @@ public partial class MainWindow : AppWindow
         var commit = new ProjectMacroCommit(viewModel, existing, newView ?? MacroView.All,
             macro => _triggers?.Stop(macro.Name),
             () => RefreshRunning(viewModel),
-            () => _recovery?.Follow());
+            () => _session?.Follow());
         _editor = editor;
         editor.Commit = draft => commit.Apply(draft, editor.LiftedMacros);
         editor.Closed += (_, _) => OnEditorClosed(editor, commit);

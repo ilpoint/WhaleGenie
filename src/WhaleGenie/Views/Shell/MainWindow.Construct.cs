@@ -65,19 +65,6 @@ public partial class MainWindow : AppWindow
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.Height = 40;
 
-        AskToSaveProject = () => ConfirmDialog.ShowAsync(this,
-            Strings.Get("Main.UnsavedTitle"),
-            Strings.Get("Main.UnsavedMessage"),
-            Strings.Get("Main.UnsavedSave"),
-            Strings.Get("Main.UnsavedDiscard"));
-
-        AskToRecover = contents => ConfirmDialog.ShowAsync(this,
-            Strings.Get("Recover.Title"),
-            RecoveryMessage(contents),
-            Strings.Get("Recover.Restore"),
-            Strings.Get("Recover.Discard"),
-            height: 280);
-
         var addMacroButton = this.FindControl<Button>("AddMacroButton");
         if (addMacroButton is not null)
         {

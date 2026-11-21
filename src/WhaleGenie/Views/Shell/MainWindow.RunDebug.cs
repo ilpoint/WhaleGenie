@@ -97,41 +97,6 @@ public partial class MainWindow : AppWindow
 
     // -------------------------------------------------------------- recovery
 
-    /// <summary>
-    /// Offers back whatever the last run left unsaved. The list comes up empty, so this is the one
-    /// moment the snapshot can be read: the work it holds is not in any package yet. It is asked
-    /// once for the whole run — when the real application starts, and directly by a check.
-    /// </summary>
-    internal async Task OfferRecoveryAsync()
-    {
-        if (_recoveryOffered || DataContext is not MainViewModel viewModel)
-        {
-            return;
-        }
-
-        _recoveryOffered = true;
-
-        if (RecoveryStore.Load() is not { } contents)
-        {
-            return;
-        }
-
-        switch (await AskToRecover(contents))
-        {
-            case ConfirmChoice.Primary:
-                Recover(viewModel, contents);
-                break;
-            case ConfirmChoice.Secondary:
-                // The work is not wanted, so it goes for good rather than being asked about
-                // again on the next run.
-                RecoveryStore.Clear();
-                break;
-            default:
-                // Put off, not answered: the snapshot stays, so the next run asks again.
-                break;
-        }
-    }
-
     private void Recover(MainViewModel viewModel, RecoveryContents contents)
     {
         viewModel.RestoreFrom(contents);
@@ -150,20 +115,4 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>Says what the snapshot holds, one place at a time, for the question.</summary>
-    private static string RecoveryMessage(RecoveryContents contents)
-    {
-        var found = new List<string>();
-        if (contents.Macros.Count > 0 || contents.PackagePath is not null)
-        {
-            found.Add(Strings.Format("Recover.Project", contents.Macros.Count));
-        }
-
-        if (contents.Editor is not null)
-        {
-            found.Add(Strings.Get("Recover.Editor"));
-        }
-
-        return Strings.Format("Recover.Message", string.Join(Environment.NewLine, found));
-    }
 }
