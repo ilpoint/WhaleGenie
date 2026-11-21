@@ -275,7 +275,7 @@ test('C1 定时触发可设间隔与单位', async ({ page }) => {
 
 test('C1 局部变量墙可新建与改名', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
-  await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).first().click();
 
   const name = page.locator('wg-editor-gate .variable-row input').first();
   await name.fill('count');
@@ -284,6 +284,18 @@ test('C1 局部变量墙可新建与改名', async ({ page }) => {
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionVariablePatch')))
     .toBe(true);
   await expect(page.locator('wg-editor-gate .variable-row')).toHaveCount(1);
+});
+
+test('C1 全局变量墙可新建与改名', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).nth(1).click();
+  const name = page.locator('wg-editor-gate .global-row input').first();
+  await name.fill('score');
+  await name.press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionGlobalPatch')))
+    .toBe(true);
 });
 
 test('C1 编辑宏的触发入口与按键', async ({ page }) => {

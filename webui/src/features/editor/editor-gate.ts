@@ -168,6 +168,20 @@ export class WgEditorGate extends LitElement {
       white-space: nowrap;
     }
 
+    .globals {
+      display: grid;
+      gap: var(--spacingVerticalS);
+      margin-bottom: var(--spacingVerticalM);
+    }
+
+    .global-row {
+      display: grid;
+      grid-template-columns: 1fr 120px 1fr 1fr auto auto;
+      gap: var(--spacingHorizontalS);
+      align-items: center;
+    }
+
+    .global-row button,
     .variable-row button {
       border: none;
       background: transparent;
@@ -790,6 +804,55 @@ export class WgEditorGate extends LitElement {
       <fluent-button appearance="subtle" @click=${this.addVariable}>
         ${t('LocalVariables.New')}
       </fluent-button>
+      <h2>${t('GlobalVariables.Title')}</h2>
+      <div class="globals">
+        ${this.snapshot.globals.map((global) => html`
+          <div class="global-row">
+            <input
+              .value=${global.name}
+              placeholder=${t('GlobalVariables.New')}
+              aria-label=${t('GlobalVariables.Title')}
+              @change=${(event: Event) => void this.patchGlobal(global.name, 'name', event)}
+            />
+            <select
+              .value=${global.type}
+              aria-label=${t('GlobalVariables.Title')}
+              @change=${(event: Event) => void this.patchGlobal(global.name, 'type', event)}
+            >
+              ${this.snapshot!.variableTypes.map((type) => html`
+                <option value=${type.value}>${type.label}</option>
+              `)}
+            </select>
+            <input
+              .value=${global.default}
+              placeholder=${t('GlobalVariables.DefaultPlaceholder')}
+              aria-label=${t('GlobalVariables.Definition')}
+              @change=${(event: Event) => void this.patchGlobal(global.name, 'default', event)}
+            />
+            <input
+              .value=${global.description}
+              aria-label=${t('GlobalVariables.Definition')}
+              @change=${(event: Event) => void this.patchGlobal(global.name, 'description', event)}
+            />
+            <label class="once">
+              <input
+                type="checkbox"
+                .checked=${global.persisted}
+                @change=${(event: Event) => void this.patchGlobal(global.name, 'persist', event)}
+              />
+              ${t('Variable.Persist')}
+            </label>
+            <button
+              title=${t('GlobalVariables.Remove')}
+              aria-label=${t('GlobalVariables.Remove')}
+              @click=${() => void this.removeGlobal(global.name)}
+            >×</button>
+          </div>
+        `)}
+      </div>
+      <fluent-button appearance="subtle" @click=${this.addGlobal}>
+        ${t('GlobalVariables.New')}
+      </fluent-button>
       <h2>${t('Run.Steps')}</h2>
       <div class="toolbar">
         <select .value=${this.actionKey} @change=${this.selectAction}>
@@ -1090,6 +1153,38 @@ export class WgEditorGate extends LitElement {
         triggerId,
         once: (event.target as HTMLInputElement).checked,
       });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async addGlobal(): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionGlobalAdd');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async patchGlobal(originalName: string, field: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox'
+      ? String(target.checked)
+      : target.value;
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionGlobalPatch', {
+        originalName,
+        field,
+        value,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async removeGlobal(name: string): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionGlobalRemove', { name });
     } catch (error) {
       this.error = String(error);
     }

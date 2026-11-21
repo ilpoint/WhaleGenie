@@ -159,6 +159,14 @@ internal sealed class HeadlessEditorSession
             Strings.Get($"Variable.Type.{WhaleGenie.Models.VariableTypes.Name(kind)}",
                 WhaleGenie.Models.VariableTypes.Name(kind))))];
 
+    public IReadOnlyList<EditorGlobalSnapshot> Globals
+        => [.. _workspace.Variables.Globals.Select(variable => new EditorGlobalSnapshot(
+            variable.Name,
+            WhaleGenie.Models.VariableTypes.Name(variable.Type),
+            Formula.Word(variable.Default),
+            variable.Description,
+            variable.PersistValue))];
+
     public void Patch(string? name = null, string? description = null, string? group = null)
     {
         if (name is not null)
@@ -196,6 +204,69 @@ internal sealed class HeadlessEditorSession
             ?? throw new InvalidOperationException("step " + parentId + " holds no sub-steps");
         list.Add(NewStep(type));
         _model.IsDirty = true;
+    }
+
+    public void AddGlobal()
+    {
+        var name = "variable";
+        for (var index = 2; _workspace.Variables.FindGlobal(name) is not null; index++)
+        {
+            name = "variable" + index.ToString(CultureInfo.InvariantCulture);
+        }
+
+        _workspace.Variables.Adopt(new VariableDefinition { Name = name });
+        _workspace.MarkGlobalsChanged();
+    }
+
+    public void PatchGlobal(string originalName, string field, string value)
+    {
+        var global = _workspace.Variables.FindGlobal(originalName)
+            ?? throw new InvalidOperationException("the project has no global " + originalName);
+        var next = value.Trim();
+        switch (field)
+        {
+            case "name":
+                VariableRename.RenameGlobal([.. _workspace.Macros], originalName, next);
+                _model.RenameGlobalReferences(originalName, next);
+                _workspace.Persisted.Rename(originalName, next);
+                _workspace.Variables.Values.Rename(originalName, next);
+                global.Name = next;
+                break;
+            case "type":
+                global.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                break;
+            case "default":
+                global.Default = Formula.Text(value);
+                break;
+            case "description":
+                global.Description = value;
+                break;
+            case "persist":
+                global.PersistValue = bool.TryParse(value, out var persist) && persist;
+                break;
+            default:
+                throw new InvalidOperationException("unknown global field " + field);
+        }
+
+        _workspace.MarkGlobalsChanged();
+    }
+
+    public void RemoveGlobal(string name)
+    {
+        var global = _workspace.Variables.FindGlobal(name)
+            ?? throw new InvalidOperationException("the project has no global " + name);
+        var kept = _workspace.Variables.Globals
+            .Where(candidate => !ReferenceEquals(candidate, global))
+            .ToList();
+        _workspace.Variables.ClearGlobals();
+        foreach (var candidate in kept)
+        {
+            _workspace.Variables.Adopt(candidate);
+        }
+
+        _workspace.Persisted.Forget(name);
+        _workspace.Variables.Values.Remove(name);
+        _workspace.MarkGlobalsChanged();
     }
 
     public void AddVariable()
@@ -620,6 +691,7 @@ internal sealed class HeadlessEditorSession
             [.. macro.Steps.Select(StepSnapshot)],
             Triggers,
             Variables,
+            Globals,
             VariableTypes,
             TriggerKindOptions,
             CanUndo,
@@ -746,8 +818,12 @@ internal sealed class HeadlessEditorSession
 
 internal sealed record EditorSnapshot(string Name, string Description, string Group, bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
-    IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
+    IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
+    IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
     IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo);
+
+internal sealed record EditorGlobalSnapshot(string Name, string Type, string Default, string Description,
+    bool Persisted);
 
 internal sealed record EditorTriggerKindSnapshot(string Value, string Label);
 

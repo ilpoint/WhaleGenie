@@ -174,6 +174,14 @@ export interface EditorVariable {
   isDeclared: boolean;
 }
 
+export interface EditorGlobal {
+  name: string;
+  type: string;
+  default: string;
+  description: string;
+  persisted: boolean;
+}
+
 export interface EditorVariableType {
   value: string;
   label: string;
@@ -193,6 +201,7 @@ export interface EditorSnapshot {
   steps: EditorStep[];
   triggers: EditorTrigger[];
   variables: EditorVariable[];
+  globals: EditorGlobal[];
   variableTypes: EditorVariableType[];
   triggerKinds: EditorTriggerKind[];
   canUndo: boolean;

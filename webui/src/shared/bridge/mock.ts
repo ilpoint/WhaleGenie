@@ -57,7 +57,9 @@ const chromeKeys = [
   'WindowChange.Appeared', 'WindowChange.Disappeared', 'WindowChange.Any',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
-  'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
+  'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete', 'GlobalVariables.Title',
+  'GlobalVariables.New', 'GlobalVariables.Remove', 'GlobalVariables.Definition',
+  'GlobalVariables.DefaultPlaceholder', 'Variable.Persist',
   'Run.Steps', 'Common.Save', 'Common.Close',
   'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
@@ -130,7 +132,11 @@ const english: Record<string, string> = {
   'LocalVariables.Title': 'Local variables',
   'LocalVariables.New': 'New variable', 'LocalVariables.Initial': 'Starts at',
   'LocalVariables.InitialPlaceholder': 'A value, or an expression such as count + 1',
-  'LocalVariables.Delete': 'Delete',
+  'LocalVariables.Delete': 'Delete', 'GlobalVariables.Title': 'Global variables',
+  'GlobalVariables.New': 'New variable', 'GlobalVariables.Remove': 'Remove',
+  'GlobalVariables.Definition': 'Variable definition',
+  'GlobalVariables.DefaultPlaceholder': 'Press + to pick a value',
+  'Variable.Persist': 'Keep on this computer',
   'Run.Steps': 'Steps', 'Common.Save': 'Save', 'Common.Close': 'Close',
   'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
   'Common.Cancel': 'Cancel',
@@ -212,7 +218,11 @@ const chinese: Record<string, string> = {
   'LocalVariables.Title': '局部变量',
   'LocalVariables.New': '新建变量', 'LocalVariables.Initial': '初始值',
   'LocalVariables.InitialPlaceholder': '直接填值，或写表达式，例如 count + 1',
-  'LocalVariables.Delete': '删除',
+  'LocalVariables.Delete': '删除', 'GlobalVariables.Title': '全局变量',
+  'GlobalVariables.New': '新建变量', 'GlobalVariables.Remove': '删除',
+  'GlobalVariables.Definition': '变量定义',
+  'GlobalVariables.DefaultPlaceholder': '按「+」选一个值',
+  'Variable.Persist': '持久化保存',
   'Run.Steps': '步骤', 'Common.Save': '保存', 'Common.Close': '关闭',
   'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
   'Common.Cancel': '取消',
@@ -362,6 +372,7 @@ export class MockTransport implements BridgeTransport {
           steps: [],
           triggers: [],
           variables: [],
+          globals: [],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -394,6 +405,7 @@ export class MockTransport implements BridgeTransport {
           steps: [],
           triggers: [],
           variables: [],
+          globals: [],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -442,6 +454,7 @@ export class MockTransport implements BridgeTransport {
             steps: [],
             triggers: [],
           variables: [],
+          globals: [],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -855,6 +868,55 @@ export class MockTransport implements BridgeTransport {
             triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
               ? { ...trigger, binding: String(params['binding'] ?? '') }
               : trigger),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionGlobalAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            globals: [...this.editor.globals, {
+              name: 'variable',
+              type: 'text',
+              default: '',
+              description: '',
+              persisted: false,
+            }],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionGlobalPatch':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            globals: this.editor.globals.map((global) =>
+              global.name === params['originalName']
+                ? {
+                    ...global,
+                    name: params['field'] === 'name' ? String(params['value'] ?? '') : global.name,
+                    type: params['field'] === 'type' ? String(params['value'] ?? '') : global.type,
+                    default: params['field'] === 'default'
+                      ? String(params['value'] ?? '')
+                      : global.default,
+                    description: params['field'] === 'description'
+                      ? String(params['value'] ?? '')
+                      : global.description,
+                    persisted: params['field'] === 'persist'
+                      ? params['value'] === 'true'
+                      : global.persisted,
+                  }
+                : global),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionGlobalRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            globals: this.editor.globals.filter((global) => global.name !== params['name']),
           };
         }
         result = this.editor;

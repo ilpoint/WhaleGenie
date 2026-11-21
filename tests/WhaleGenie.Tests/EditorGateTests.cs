@@ -101,6 +101,31 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_global_can_be_added_edited_and_removed()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "globals" });
+        var session = HeadlessEditorSession.Open(workspace, "globals");
+
+        session.AddGlobal();
+        var added = Assert.Single(session.Snapshot().Globals);
+        Assert.Equal("variable", added.Name);
+
+        session.PatchGlobal("variable", "name", "count");
+        session.PatchGlobal("count", "type", "number");
+        session.PatchGlobal("count", "default", "5");
+        session.PatchGlobal("count", "persist", "true");
+        var changed = Assert.Single(session.Snapshot().Globals);
+        Assert.Equal("count", changed.Name);
+        Assert.Equal("number", changed.Type);
+        Assert.Equal("5", changed.Default);
+        Assert.True(changed.Persisted);
+
+        session.RemoveGlobal("count");
+        Assert.Empty(session.Snapshot().Globals);
+    }
+
+    [Fact]
     public void A_row_parameter_can_add_and_fill_rows()
     {
         var workspace = new ProjectWorkspace();
