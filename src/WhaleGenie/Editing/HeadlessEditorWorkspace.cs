@@ -28,6 +28,21 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace)
         => [.. _order.Where(_sessions.ContainsKey).Select(key =>
             new EditorTabSnapshot(key, _sessions[key].Name, _sessions[key].IsDirty))];
 
+    public HeadlessEditorSession New()
+    {
+        var key = NewKey;
+        for (var index = 2; _sessions.ContainsKey(key); index++)
+        {
+            key = NewKey + ":" + index;
+        }
+
+        var session = HeadlessEditorSession.Open(workspace, null);
+        _sessions[key] = session;
+        _order.Add(key);
+        _active = key;
+        return session;
+    }
+
     public HeadlessEditorSession Open(string? name)
     {
         var key = name is { Length: > 0 } ? name.Trim() : NewKey;

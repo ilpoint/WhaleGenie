@@ -298,6 +298,9 @@ export class WgEditorGate extends LitElement {
             <fluent-button appearance="subtle" @click=${this.openSelected}>
               ${t('Editor.OpenMacro')}
             </fluent-button>
+            <fluent-button appearance="subtle" @click=${this.newMacro}>
+              ${t('Main.AddMacro')}
+            </fluent-button>
           </div>`
         : nothing}
       <div class="fields">
@@ -378,6 +381,17 @@ export class WgEditorGate extends LitElement {
 
   private selectOpen(event: Event): void {
     this.openName = (event.target as HTMLSelectElement).value;
+  }
+
+  private async newMacro(): Promise<void> {
+    try {
+      const opened = await bridge.value.call<EditorSnapshot>('editor.sessionNew');
+      this.snapshot = opened;
+      this.selectedId = '';
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async openSelected(): Promise<void> {

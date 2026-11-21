@@ -21,6 +21,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
     {
         server.Register("editor.sessionOpen", Open);
         server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
+        server.Register("editor.sessionNew", _ => Task.FromResult<object?>(NewDocument()));
         server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
@@ -49,6 +50,12 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
             throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
                 Strings.Format("Bridge.NoSuchMacro", name ?? string.Empty));
         }
+    }
+
+    private object? NewDocument()
+    {
+        _documents.New();
+        return Snapshot();
     }
 
     private object Tabs() => new

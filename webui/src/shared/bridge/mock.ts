@@ -270,6 +270,17 @@ export class MockTransport implements BridgeTransport {
       case 'editor.open':
         result = { opened: false };
         break;
+      case 'editor.sessionNew':
+        this.editor = {
+          name: '未命名宏',
+          description: '',
+          dirty: false,
+          stepCount: 0,
+          steps: [],
+          triggers: [],
+        };
+        result = this.editor;
+        break;
       case 'editor.sessionOpen': {
         const name = params['name'] ? String(params['name']) : this.projectState.macros[0]?.name;
         const macro = this.projectState.macros.find((entry) => entry.name === name);
@@ -287,16 +298,18 @@ export class MockTransport implements BridgeTransport {
       case 'editor.sessionState':
         result = this.editor;
         break;
-      case 'editor.sessionTabs':
-        result = {
-          activeKey: this.editor?.name ?? null,
-          tabs: this.projectState.macros.map((macro) => ({
-            key: macro.name,
-            name: macro.name,
-            dirty: false,
-          })),
-        };
+      case 'editor.sessionTabs': {
+        const tabs = this.projectState.macros.map((macro) => ({
+          key: macro.name,
+          name: macro.name,
+          dirty: false,
+        }));
+        if (this.editor && !tabs.some((tab) => tab.name === this.editor!.name)) {
+          tabs.push({ key: this.editor.name, name: this.editor.name, dirty: this.editor.dirty });
+        }
+        result = { activeKey: this.editor?.name ?? null, tabs };
         break;
+      }
       case 'editor.sessionActivate': {
         const macro = this.projectState.macros.find((entry) => entry.name === params['key']);
         if (macro) {

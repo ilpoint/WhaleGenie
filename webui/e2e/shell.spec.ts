@@ -127,6 +127,15 @@ test('C1 文档页签切换保留各自的 C# 会话', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 新建空白宏进入文档页签', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '新建宏' }).click();
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('未命名宏');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionNew')))
+    .toBe(true);
+});
+
 test('C1 从项目宏列表打开另一份文档', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .open-macro select').selectOption({ label: '游戏连招' });

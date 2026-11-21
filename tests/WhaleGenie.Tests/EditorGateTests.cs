@@ -101,6 +101,21 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_blank_document_can_be_added_without_a_project_macro()
+    {
+        var workspace = new ProjectWorkspace();
+        var documents = new HeadlessEditorWorkspace(workspace);
+
+        var first = documents.New();
+        Assert.Same(first, documents.Active);
+        Assert.Single(documents.Tabs);
+
+        documents.New();
+        Assert.Equal(2, documents.Tabs.Count);
+        Assert.Empty(workspace.Macros);
+    }
+
+    [Fact]
     public void Two_documents_keep_their_own_edits_when_switched()
     {
         var workspace = new ProjectWorkspace();
