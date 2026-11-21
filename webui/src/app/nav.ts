@@ -14,10 +14,10 @@ export class WgNav extends LitElement {
 
   static styles = css`
     :host {
-      display: block;
+      display: grid;
+      grid-template-columns: 48px 220px;
+      height: 100%;
       background: var(--colorNeutralBackground3);
-      padding: var(--spacingVerticalS) var(--spacingHorizontalS);
-      width: 220px;
     }
 
     button {
@@ -51,6 +51,52 @@ export class WgNav extends LitElement {
 
     button[aria-current='page']:hover {
       background: var(--colorBrandBackgroundHover);
+    }
+
+    .activity {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      padding-top: var(--spacingVerticalS);
+      border-right: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    }
+
+    .activity button {
+      position: relative;
+      display: grid;
+      place-items: center;
+      height: 48px;
+      padding: 0;
+      border-radius: 0;
+      color: var(--colorNeutralForeground3);
+    }
+
+    .activity button:hover {
+      color: var(--colorNeutralForeground1);
+    }
+
+    .activity button[aria-current='page'] {
+      color: var(--colorNeutralForeground1);
+      background: var(--colorNeutralBackground2);
+    }
+
+    .activity button[aria-current='page']::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: var(--colorBrandBackground);
+    }
+
+    .activity svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .side {
+      padding: var(--spacingVerticalS) var(--spacingHorizontalS);
     }
   `;
 
@@ -91,7 +137,22 @@ export class WgNav extends LitElement {
 
   render() {
     return html`
-      <nav>
+      <nav class="activity" aria-label=${t('Shell.Window.Menu')}>
+        ${routes.map(
+          (route) => html`
+            <button
+              type="button"
+              title=${this.labels[route] ?? route}
+              aria-label=${this.labels[route] ?? route}
+              aria-current=${this.active === route ? 'page' : 'false'}
+              @click=${() => this.select(route)}
+            >
+              ${this.icon(route)}
+            </button>
+          `,
+        )}
+      </nav>
+      <nav class="side">
         ${routes.map(
           (route) => html`
             <button
@@ -105,6 +166,35 @@ export class WgNav extends LitElement {
         )}
       </nav>
     `;
+  }
+
+  private icon(route: Route) {
+    switch (route) {
+      case 'home':
+        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4Z" />
+        </svg>`;
+      case 'macros':
+        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M5 6h14M5 12h14M5 18h9" />
+        </svg>`;
+      case 'editor':
+        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M6 3h8l4 4v14H6Z" />
+          <path d="M14 3v4h4M9 12h6M9 16h6" />
+        </svg>`;
+      case 'run':
+        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <path d="M8 5.5 19 12 8 18.5Z" />
+        </svg>`;
+      case 'settings':
+        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
+        </svg>`;
+      default:
+        return html``;
+    }
   }
 
   private select(route: Route): void {

@@ -32,6 +32,13 @@ test('状态条跟随项目推送', async ({ page }) => {
   await expect(status.locator('[data-status="dirty"]')).toHaveText('有未保存修改');
 });
 
+test('activity bar 图标切换页面', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
+  await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
+  await page.locator('wg-nav .activity button[aria-label="首页"]').click();
+  await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
+});
+
 test('导航切换到宏列表与占位页', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
