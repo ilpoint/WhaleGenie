@@ -137,7 +137,7 @@ export class WgNav extends LitElement {
 
   render() {
     return html`
-      <nav class="activity" aria-label=${t('Shell.Window.Menu')}>
+      <nav class="activity" aria-label=${t('Shell.Navigation')}>
         ${routes.map(
           (route) => html`
             <button

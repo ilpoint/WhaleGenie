@@ -135,6 +135,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Shell.Status.Planned"] = "Planned",
         ["Shell.Placeholder.Body"] =
             "This area still lives in its native window. It moves into the shell when its turn comes, and this page goes away with it.",
+        ["Shell.Navigation"] = "Navigation",
         ["Shell.Window.Minimize"] = "Minimize",
         ["Shell.Window.Maximize"] = "Maximize",
         ["Shell.Window.Restore"] = "Restore",
@@ -2824,6 +2825,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Shell.Status.Planned"] = "规划中",
         ["Shell.Placeholder.Body"] =
             "这一区域仍由原生窗口承担。轮到它迁入网页壳时，这一页会随之删除。",
+        ["Shell.Navigation"] = "导航",
         ["Shell.Window.Minimize"] = "最小化",
         ["Shell.Window.Maximize"] = "最大化",
         ["Shell.Window.Restore"] = "还原",
