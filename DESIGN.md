@@ -170,14 +170,13 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 
 - 网页设置页的卡片、行、开关、数字框与颜色选择器只取 Fluent CSS 令牌：`--colorNeutral*`、
   `--spacing*`、`--borderRadius*` 与 `--font-size-base-*`；不新建页面自己的颜色或间距体系。
-- 原生 `AdvancedSettingsWindow` 的分组/行沿用 `SettingsGroup` / `FASettingsExpanderItem`：组负责标题
-  与说明并平铺全部行，没有展开动作，标题不是按钮、也不能聚焦；行把控件放在 `Footer`。分组底色、描边、
-  圆角与标题下那道 1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表的 `Spacing` 透出，
-  不在视图里重写模板。设置行里的说明图标与同行文字的对齐仍由 `HintInfo` 单一实现。
-- 高级设置左侧导航使用 `FANavigationView`：左栏只列「触发器、外观」，每一项是 Lucide 图标加组名，
-  选中行铺 `AccentFill`，文字与图标用 `TextOnAccent`；内容列顶上是当前分组的页签
-  `Button.Tab.Root.Capsule`，选中是同一对颜色。这对颜色由 `ThemePalette` 的派生保证至少
-  4.5:1（含自定义强调色），所以允许铺底。
+- 网页设置页按卡片分组：卡片只承担标题、说明与行，标题不是按钮；行内标签、字段和说明沿同一
+  纵向节奏。设置项使用普通 Fluent 输入、开关与选择器，不另造一套外观。菜单规则和窗口规则共用
+  `wg-window-rule` 对话框；规则按钮只打开它，页面不再跳原生编辑器。
+- 网页轮盘动作管理用一张 340×340 的圆形画布：环半径、扇区标签坐标和命中顺序来自 C#
+  `WheelGeometry` 的快照，页面只按坐标画圆与按钮。全局、程序覆盖与划动圈用同一组中性/品牌令牌
+  区分，不引入轮盘专用色板；空位仍有可点击的淡色命中区。主题自定义只给一个强调色、控件底子和
+  三个预览，颜色可用性由 `ThemeBridge` 回传的派生结果判定。
 - 数字输入使用 `FANumberBox`，项目已有 `HasChip` 样式；不要用普通 `TextBox` 或另造数字框。
 - 内联、可关闭的全局提示用 `InfoBar`，由 `Severity` 决定状态色与图标；需要用户选择时仍走项目
   `ConfirmDialog` / `TextPromptDialog`，不把 `InfoBar` 当对话框。
@@ -205,8 +204,8 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 普通窗口统一走 `WindowChrome` | `WindowChromeTests` |
 | 标题栏置顶钮与系统 caption 按钮同形、贴顶、同色，置顶态用强调色面与强调色图标 | `MainTitleBarTests`、`MacroEditorChromeTests` |
 | 分类 dock 的静息/悬停/按下/选中/禁用读实际部件，选中字色过对比度底线 | `DockStyleTests` |
-| 设置窗导航选中行与分组页签铺强调色、字为白、过对比度底线 | `SettingsChromeTests` |
-| 说明浮层正文取主文字色、成对行高、对比度底线与行内图标中线/命中区 | `SettingsHintVisualTests` |
+| 设置页可改菜单、窗口规则、轮盘动作与主题；窗口规则对话框可取窗口并写回 | `webui/e2e/shell.spec.ts` |
+| 关于页显示支持码、项目链接和第三方组件清单 | `webui/e2e/shell.spec.ts`、`AboutPageTests` |
 | 强调色派生与对比度底线 | `ThemePaletteTests` |
 | 步骤树的折叠钮是控件而不是引导线（取令牌、压在线上、四态可读） | `StepFoldBoxTests` |
 | 拖到折叠的块上只给块外两缝，插入带停在它自己那一列 | `StepDropTests` |

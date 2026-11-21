@@ -143,7 +143,7 @@
 4379	src/WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 2507	src/WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
 553	src/WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
-5624	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+5843	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 302079	core/src/WhaleGenie.Core/PublicAPI.Shipped.txt	exempt: 生成的公共 API 基线，分析器按整份文件比对，切开就不再是"一份基线"
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 一组同域工具与它们的输入输出
 384	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 一组同域工具与它们的输入输出
@@ -157,9 +157,9 @@
 301	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 454	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
-1989	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
+1960	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
 25880	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
-572	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
+626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 376	src/WhaleGenie/ViewModels/Actions/ActionPaletteViewModel.cs	keep: 一个界面的状态与命令
 468	src/WhaleGenie/ViewModels/Actions/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
@@ -245,3 +245,7 @@
 491	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
 357	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
+453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
+43616	webui/e2e/shell.spec.ts	split: 壳、编辑器、设置、运行与宏库的端到端用例已超过一个页面能读完的体量，后续按功能拆文件
+29662	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
+123134	webui/src/shared/bridge/mock.ts	split: mock 宿主把编辑器、运行、项目、设置与宏库的假数据都装在一个类里，后续按域拆

@@ -114,11 +114,10 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.4 窗口与覆盖层
 
-普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。主窗、宏编辑器、动作编辑器和运行窗将内容
-扩展到标题栏，`AppWindow` 负责该区域的拖动；其他普通窗口使用库提供的默认标题栏。
-`WindowChrome.Attach(this)` 把这条约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，
-并留出系统按钮需要的宽度。高级设置窗口、运行中的问话窗口与断点条件窗口在构造函数里调用它；
-标题文字跟随 `Window.Title`，所以运行中会改名的窗口不必自己同步。
+普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。`WindowChrome.Attach(this)` 把标题栏
+约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，并留出系统按钮需要的宽度。剩余的
+图标/宏选择、导入选择、确认/问话与全局变量冲突窗口在构造函数里调用它；标题文字跟随
+`Window.Title`，所以运行中会改名的窗口不必自己同步。
 
 框选、取色、点与元素拾取、屏幕框、菜单浮窗和浮动面板等无标题栏覆盖层继续使用 Avalonia `Window`。
 拾取器打开时先通过 `AppWindows.StepAside` 隐藏鲸灵窗口，再取屏幕；取图一律经过 `ScreenReady`：
@@ -129,18 +128,22 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 无头平台的窗口句柄均为 0，`AppWindow` 清理 FluentAvalonia 在此情形下重复使用的内部句柄表。
 该处理只服务无头会话，真实窗口仍由 FluentAvalonia 管理。
 
-### 7.5 设置页与高级设置窗口
+### 7.5 设置页
 
-设置主页是网页：`webui/src/features/settings/settings-page.ts` 从 `settings.state` 读快照，常规、语言、
-主题、热键、声音、屏幕读取、输入、驱动、存储位置都在页面里编辑，改动逐项经 `settings.update` 写回
-`SettingsViewModel/LocalSettings`。主题颜色走 `theme.get/theme.set`，语言变化由 `strings.changed` 推回
-页面。C# 仍是唯一设置模型，页面不保存第二份设置文件；设置项一律即时生效并立即落盘。
+设置页是网页：`webui/src/features/settings/settings-page.ts` 从 `settings.state` 读一份快照，常规、语言、
+主题、热键、声音、屏幕读取、画面、输入、驱动、存储、菜单呼出、窗口规则、轮盘菜单与轮盘动作都在
+页面里编辑。改动逐项经桥写回同一个 `SettingsViewModel/LocalSettings`；主题走
+`theme.get/theme.set`，语言变化由 `strings.changed` 推回页面。C# 仍是唯一设置模型，页面不保存第二份
+设置文件；设置项一律即时生效并立即落盘。
 
-菜单、窗口规则、轮盘和自定义主题仍由原生 `AdvancedSettingsWindow` 承载：左侧只列「触发器、外观」，
-右侧页签是菜单呼出、窗口规则、轮盘菜单、轮盘动作与主题，页面控制件沿用 `SettingsTriggersView` /
-`SettingsAppearanceView`。这些对话框需要指向桌面窗口或与实时轮盘共用画笔，因而不放进网页；网页
-「高级设置」卡片用 `app.openSettingsPage` 打开并定位到对应页。窗口内的页签、规则列表、轮盘编辑
-宿主与页签滚动位置仍以 `SettingsViewModel.SelectedPage` 为唯一来源。
+菜单规则和轮盘场景的窗口规则表单也在网页：`settings.windows.list` 提供当前打开的窗口，
+`settings.windows.pick` 只打开原生 `WindowPickWindow` 覆盖层取得一个窗口，规则本身由页面编辑后经
+`settings.menu.rule.*` / `settings.wheel.scene.*` 写回项目。轮盘的扇区动作在网页里选宏、备注和图标，
+位置坐标与扇区几何由 C# 的 `WheelGeometry` 算好后随快照返回，保证编辑器和实时轮盘不会各画一套。
+图标选择仍打开 `MenuIconPickerWindow`，因为它要在内置图标、图片文件和项目资源之间做桌面选择。
+
+关于页同样是网页：Help 菜单进入 `about` 路由，`app.about` 交出版本可以格式化的项目地址和随包
+嵌入的第三方组件清单；项目链接经 `app.openExternal` 交给系统浏览器。原生关于窗口与主题调色板已删除。
 
 
 ### 7.6 网页壳与桥接
@@ -148,7 +151,7 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
 开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
 B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow；
-MainViewModel 暂留作设置页与原生窗口的无窗视图模型。设置页、运行面板、关于与帮助都已走网页入口。
+MainViewModel 仍为编辑器、运行面板和原生菜单/轮盘提供无窗项目视图。设置页、运行面板、关于与帮助都已走网页入口。
 窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：

@@ -150,6 +150,17 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
 - AvaloniaUI.DiagnosticsSupport — 只在 Debug 构建里接上（按 F12 打开 Avalonia 开发者工具），
   发行包里没有它，也就不随程序分发
   <https://avaloniaui.net/>
+- Declarative.Avalonia.AgentTools — MIT，只在 Debug 还原；它让自动化代理通过本机回环读取
+  视觉树、布局与截图，Release 包里没有它
+  <https://github.com/AvaloniaCommunity/Avalonia.Markup.Declarative>
+- Avalonia.Headless — MIT，测试用无头 Avalonia 宿主，只在测试工程里引用
+  <https://github.com/AvaloniaUI/Avalonia>
+- xunit、xunit.runner.visualstudio — Apache-2.0，测试框架与运行器，发行包里没有
+  <https://xunit.net/>
+- Microsoft.NET.Test.Sdk — MIT，测试宿主，只在测试工程里引用
+  <https://github.com/microsoft/vstest>
+- coverlet.collector — MIT，测试覆盖率收集器，只在测试工程里引用
+  <https://github.com/coverlet-coverage/coverlet>
 - Microsoft.CodeAnalysis.PublicApiAnalyzers（Roslyn 分析器）— MIT，只在编译引擎时检查公共 API
   基线，不产出任何运行时代码，发行包里没有它
   <https://github.com/dotnet/roslyn-analyzers>

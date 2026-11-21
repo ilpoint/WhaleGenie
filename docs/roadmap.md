@@ -27,7 +27,7 @@
 - **阶段 B1 网页壳转正（已完成）**：壳接管 NativeSurfaceHost、ProjectSession 与 TriggerHost，
   隐藏主窗已移除并成为默认窗口；网页编辑器、设置页、运行面板、宏库、首页关于/帮助与 app/open 桥命令
   已接，桥方法清单已对账；文件/帮助菜单与侧栏折叠按 DESIGN 落位；MainWindow 已删除，旧主窗用例按替代
-  或删除理由退役。MainViewModel 只作设置页与原生菜单/轮盘读取项目与全局变量的无窗视图模型。
+  或删除理由退役。MainViewModel 继续为网页编辑器、运行面板和原生菜单/轮盘提供无窗项目视图。
 - **阶段 C0 编辑器门禁（已完成）**：HeadlessEditorSession 持有 C# 编辑模型，编辑器桥暴露 sessionOpen/
   sessionPatch/sessionStep/sessionSave 等命令，网页门禁页渲染快照并保存；真实宏完成打开→改字段→
   保存→重开，177 项动作目录全部能建立表单，100 次快照/改字段往返在测试阈值内。原生编辑器已在 C2 删除。
@@ -39,17 +39,22 @@
   录制/动作编辑/条件/变量墙/公用变量窗口与窗口生命周期用例均已删除；断点条件改用简单文本提示，
   不保留第二套取值窗口。保留 C# 编辑模型、动作目录/契约与模型测试；manual/10 已同步。
 - **阶段 D1 设置（已完成）**：常规、语言、主题（含自定义强调色）、热键、声音、屏幕读取、输入、驱动、
-  存储位置与高级入口已迁入网页设置页，经 SettingsBridge 复用 SettingsViewModel/LocalSettings；菜单、
-  窗口规则、轮盘与自定义主题保留在独立的 AdvancedSettingsWindow。旧 SettingsWindow 与系统设置视图
-  已删除，manual/02 与架构文档同步。
+  存储位置与高级入口已迁入网页设置页，经 SettingsBridge 复用 SettingsViewModel/LocalSettings；
+  旧 SettingsWindow 与系统设置视图已删除。菜单、窗口规则、轮盘与自定义主题当时暂留原生高级设置窗，
+  已在阶段 F 收口。
 - **阶段 D2 运行调试与全局变量（已完成）**：运行调试变网页运行面板，宏列表、步骤、日志、变量、形参、
   断点、问话与最近取景都在页面；宏卡片、原生菜单和 app.openRun 统一走 RunBridge。RunWindow、断点窗、
   虚拟键鼠/手柄窗与看图窗已删除；触发/后台问话仍走原生窗口，退出未保存走原生确认。manual/11 已同步。
-- **阶段 E1 残留原生面（已完成）**：清点永久保留的拾取器、菜单、轮盘、浮层、问话与高级设置窗口，写入
+- **阶段 E1 残留原生面（已完成）**：清点永久保留的拾取器、菜单、轮盘、浮层与问话窗口，写入
   `docs/architecture/native-surfaces.md`；默认保留 FluentAvalonia 作为其控件库，只有全部可无损换基时才另立
   删除阶段。死掉的浏览/取色/区域拾取、看图窗与运行专用辅助类已随窗口退役删除。
 - **阶段 E2 终稿对账（已完成）**：删除未用主题/窗口/资源/临时命令，AGENTS、architecture、DESIGN、roadmap、
   manual 与 dev 文档同步，仓库不再有第二套应用界面。
+- **阶段 F 设置余量与关于收口（已完成）**：菜单呼出、窗口规则、轮盘菜单、轮盘动作与主题全部进入
+  网页设置；规则表单在网页编辑，只有取窗口保留原生覆盖层。关于搬到网页，第三方组件由 `app.about`
+  读取随包文档；首页去掉“仍在迁移”的假状态。AdvancedSettingsWindow、ThemePaletteWindow、AboutWindow、
+  WindowRuleWindow、WheelMenuEditorView 与 WheelActionWindow 已删除，设置桥新增窗口/菜单/轮盘命令
+  与回归用例。
 
 ## 待评估
 
