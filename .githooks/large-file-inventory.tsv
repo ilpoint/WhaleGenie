@@ -245,3 +245,4 @@
 321	src/WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 
 338	tests/WhaleGenie.Actions.Tests/ValuePickerTests.Tokens.cs	keep: token 树与容器插槽的一组契约用例，共用同一套夹具
+325	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、启停、系统开关与文件操作是同一次任务的读取集

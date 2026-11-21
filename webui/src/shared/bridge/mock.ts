@@ -19,6 +19,7 @@ const chromeKeys = [
   'Main.SearchPlaceholder', 'Main.EmptyTitle', 'Main.EmptyHint', 'Main.NoMatch',
   'Main.AddMacro', 'Main.MacroRunning', 'Main.EnableMacro', 'Main.DisableMacro',
   'Main.SystemEnabled', 'Main.SystemDisabled', 'Main.GroupAll', 'Main.Ungrouped',
+  'Main.OpenProject', 'Main.SaveProject', 'Main.SaveProjectAs', 'Main.ReloadCurrent',
 ] as const;
 
 const english: Record<string, string> = {
@@ -41,6 +42,8 @@ const english: Record<string, string> = {
   'Main.MacroRunning': 'Running', 'Main.EnableMacro': 'Enable', 'Main.DisableMacro': 'Disable',
   'Main.SystemEnabled': 'Enabled', 'Main.SystemDisabled': 'Disabled',
   'Main.GroupAll': 'All groups', 'Main.Ungrouped': 'Ungrouped',
+  'Main.OpenProject': 'Open Macro Project', 'Main.SaveProject': 'Save Macro Project',
+  'Main.SaveProjectAs': 'Save Macro Project As', 'Main.ReloadCurrent': 'Reload Current Macro',
   'Shell.Window.Minimize': 'Minimize',
   'Shell.Window.Maximize': 'Maximize', 'Shell.Window.Restore': 'Restore',
   'Shell.Window.Close': 'Close', 'Shell.Window.Pin': 'Keep on top',
@@ -67,6 +70,8 @@ const chinese: Record<string, string> = {
   'Main.MacroRunning': '运行中', 'Main.EnableMacro': '启用宏', 'Main.DisableMacro': '停用宏',
   'Main.SystemEnabled': '已启用', 'Main.SystemDisabled': '已停用',
   'Main.GroupAll': '全部分组', 'Main.Ungrouped': '未分组',
+  'Main.OpenProject': '打开宏项目', 'Main.SaveProject': '保存宏项目',
+  'Main.SaveProjectAs': '宏项目另存为', 'Main.ReloadCurrent': '重新加载当前宏',
   'Shell.Window.Minimize': '最小化',
   'Shell.Window.Maximize': '最大化', 'Shell.Window.Restore': '还原',
   'Shell.Window.Close': '关闭', 'Shell.Window.Pin': '窗口置顶',
@@ -190,6 +195,8 @@ export class MockTransport implements BridgeTransport {
             entry.enabled = !entry.enabled;
           }
         }
+        // 启停一次宏就是一次修改：真机上 ToggleMacro 会把项目标脏，推送里带着这个标记。
+        this.projectState = { ...this.projectState, dirty: true };
         this.push('project.changed', this.projectState);
         break;
       case 'project.system':
@@ -197,6 +204,49 @@ export class MockTransport implements BridgeTransport {
           ...this.projectState,
           systemEnabled: params['enabled'] === true,
         };
+        this.push('project.changed', this.projectState);
+        break;
+      case 'dialog.pickOpenPackage':
+        result = '/mock/opened-project.wgmacro';
+        break;
+      case 'dialog.pickSavePackage':
+        result = `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`;
+        break;
+      case 'project.open': {
+        const path = String(params['path'] ?? '/mock/opened-project.wgmacro');
+        const name = path.split('/').pop()?.replace(/\.wgmacro$/, '') ?? null;
+        this.projectState = {
+          ...this.projectState,
+          path,
+          name,
+          untitled: false,
+          dirty: false,
+          revision: this.projectState.revision + 1,
+          macros: [
+            {
+              name: '包里的宏', group: '', description: '从包里打开的', enabled: true, running: false,
+              triggerSummary: '键：Ctrl+Alt+O', triggerActions: '', triggerPreview: 'Ctrl+Alt+O',
+              views: ['All', 'Keys'],
+            },
+          ],
+          groups: [],
+        };
+        this.push('project.changed', this.projectState);
+        break;
+      }
+      case 'project.save':
+        this.projectState = { ...this.projectState, dirty: false };
+        this.push('project.changed', this.projectState);
+        break;
+      case 'project.saveAs': {
+        const path = String(params['path'] ?? `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`);
+        const name = path.split('/').pop()?.replace(/\.wgmacro$/, '') ?? null;
+        this.projectState = { ...this.projectState, path, name, untitled: false, dirty: false };
+        this.push('project.changed', this.projectState);
+        break;
+      }
+      case 'project.reload':
+        this.projectState = { ...this.projectState, dirty: false };
         this.push('project.changed', this.projectState);
         break;
       default:

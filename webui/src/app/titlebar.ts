@@ -1,7 +1,7 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../shared/bridge/bridge.js';
-import { appInfo } from '../shared/app/app.js';
+import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { windowMirror } from '../shared/window/window.js';
 import whale from '../assets/whale.png';
@@ -104,8 +104,9 @@ export class WgTitlebar extends LitElement {
     super.connectedCallback();
     this.unsubscribers = [
       strings.subscribe(() => this.requestUpdate()),
-      appInfo.subscribe((info) => {
-        this.project = info ? { name: info.project.name, untitled: info.project.untitled } : null;
+      // 标题上的项目名跟着文档走：打开、另存、MCP 改名都会推 project.changed。
+      project.subscribe((state) => {
+        this.project = state ? { name: state.name, untitled: state.untitled } : null;
       }),
       windowMirror.subscribe((state) => {
         if (state) {

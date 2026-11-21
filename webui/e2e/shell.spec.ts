@@ -60,6 +60,24 @@ test('系统开关推回新状态', async ({ page }) => {
   await expect(page.locator('wg-macros .footer')).toContainText('已启用');
 });
 
+test('打开包后标题与列表跟着换，保存清掉未保存标记', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await expect(page.locator('wg-titlebar .title')).toContainText('未命名项目');
+
+  // 打开：文件按钮先问程序，mock 宿主给出一个固定路径；标题与列表都换成包里的。
+  // 按钮文案是词表的原话（"打开宏项目"），选择器必须按整句匹配。
+  await page.locator('wg-macros .filebar fluent-button', { hasText: '打开宏项目' }).click();
+  await expect(page.locator('wg-titlebar .title')).toContainText('opened-project');
+  await expect(page.locator('wg-macros .card .name')).toContainText('包里的宏');
+  await expect(page.locator('wg-macros .filebar .path')).toContainText('opened-project.wgmacro');
+
+  // 编辑一次（启停翻转）出现未保存标记，保存后由推送清掉。
+  await page.locator('wg-macros .card fluent-switch').click();
+  await expect(page.locator('wg-macros .filebar fluent-badge')).toContainText('有未保存修改');
+  await page.locator('wg-macros .filebar fluent-button', { hasText: '保存宏项目' }).click();
+  await expect(page.locator('wg-macros .filebar fluent-badge')).toHaveCount(0);
+});
+
 test('标题栏按钮推回窗口状态', async ({ page }) => {
   const maximize = page.locator('wg-titlebar button[title="最大化"]');
   await maximize.click();

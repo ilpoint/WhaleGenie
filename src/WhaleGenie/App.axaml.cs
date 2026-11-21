@@ -120,6 +120,7 @@ public partial class App : Application
         // step nobody asked for. A file that is not there any more leaves the window empty rather
         // than failing to start, and the path is kept for the drive that was not plugged in. The
         // setting is here for someone who keeps several projects apart and would rather start empty.
+        // The web shell shows the same project through the same document the bridge holds.
         if (viewModel is not null
             && LocalSettings.LoadLastProjectAtStart()
             && LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
@@ -127,6 +128,20 @@ public partial class App : Application
             try
             {
                 viewModel.OpenPackage(last);
+            }
+            catch (Exception error) when (error is IOException or InvalidDataException
+                or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)
+            {
+                // A package that cannot be read is not a reason to refuse to start.
+            }
+        }
+        else if (window is WhaleGenie.Web.WebShellWindow
+            && LocalSettings.LoadLastProjectAtStart()
+            && LocalSettings.LastProject() is { Length: > 0 } lastForShell && File.Exists(lastForShell))
+        {
+            try
+            {
+                services.GetRequiredService<ProjectWorkspace>().OpenPackage(lastForShell);
             }
             catch (Exception error) when (error is IOException or InvalidDataException
                 or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)

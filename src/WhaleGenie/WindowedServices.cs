@@ -64,7 +64,7 @@ internal static class WindowedServices
             server.Register(new ThemeBridge());
             server.Register(new WindowBridge(() => sp.GetService<WebShellWindow>()));
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>()));
+                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()));
             return server;
         })
         .AddSingleton<WebShellWindow>();

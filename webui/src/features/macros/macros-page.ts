@@ -3,7 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
-import type { MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
+import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
 
 /**
  * 宏列表页：视图 dock、分组与搜索的过滤是页面自己的事（状态整包在手），启停与系统开关经桥
@@ -40,6 +40,24 @@ export class WgMacros extends LitElement {
       gap: var(--spacingVerticalS);
       padding: var(--spacingVerticalM) var(--spacingHorizontalXL);
       border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    }
+
+    .filebar {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalSN);
+      padding: var(--spacingVerticalS) var(--spacingHorizontalXL) 0;
+    }
+
+    .filebar .path {
+      color: var(--colorNeutralForeground4);
+      font-size: var(--font-size-base-200);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex: 1;
+      text-align: right;
     }
 
     .dock {
@@ -214,6 +232,16 @@ export class WgMacros extends LitElement {
     const visible = this.visibleMacros();
 
     return html`
+      <div class="filebar">
+        <fluent-button appearance="subtle" @click=${this.onOpen}>${t('Main.OpenProject')}</fluent-button>
+        <fluent-button appearance="subtle" @click=${this.onSave}>${t('Main.SaveProject')}</fluent-button>
+        <fluent-button appearance="subtle" @click=${this.onSaveAs}>${t('Main.SaveProjectAs')}</fluent-button>
+        ${this.state.path ? html`
+          <fluent-button appearance="subtle" @click=${this.onReload}>${t('Main.ReloadCurrent')}</fluent-button>
+        ` : nothing}
+        ${this.state.dirty ? html`<fluent-badge appearance="warning">${t('Shell.Field.Dirty')}</fluent-badge>` : nothing}
+        <span class="path">${this.state.path ?? ''}</span>
+      </div>
       <div class="filters">
         <div class="dock" role="tablist">
           ${this.state.views.map((view) => html`
@@ -353,7 +381,7 @@ export class WgMacros extends LitElement {
   }
 
   private onToggle(entry: MacroEntry): void {
-    void bridge.value.call('project.toggle', { name: entry.name });
+    void this.call('project.toggle', { name: entry.name });
   }
 
   private onSystemToggle(): void {
@@ -362,7 +390,36 @@ export class WgMacros extends LitElement {
     }
 
     // 页面不翻转自己的状态：真相在程序侧，project.changed 会带着新值回来。
-    void bridge.value.call('project.system', { enabled: !this.state.systemEnabled });
+    void this.call('project.system', { enabled: !this.state.systemEnabled });
+  }
+
+  private onOpen(): void {
+    void this.call('project.open', {});
+  }
+
+  private onSave(): void {
+    void this.call('project.save', {});
+  }
+
+  private onSaveAs(): void {
+    void this.call('project.saveAs', {});
+  }
+
+  private onReload(): void {
+    void this.call('project.reload', {});
+  }
+
+  /** 发命令，把程序的拒绝（坏包、没这个宏）拿到提示条上说，而不是静默失败。 */
+  private async call(method: string, params?: unknown): Promise<void> {
+    try
+    {
+      await bridge.value.call(method, params);
+    }
+    catch (error)
+    {
+      const failure = error as BridgeFailurePayload;
+      this.note = failure?.message ?? String(error);
+    }
   }
 
   private onAddMacro(): void {

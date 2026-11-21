@@ -16,9 +16,11 @@ namespace WhaleGenie.Tests;
 public class WebUiBoundaryTests
 {
     /// <summary>
-    /// The web control's own types (the <c>NativeWebView</c> and its platform adapters) belong to
-    /// the Web/ folder, which is the one adapter between them. A handler that names them cannot
-    /// be tested without a browser, which is the failure this check exists to prevent.
+    /// The web control's own types (every WebView2 adapter type carries one of these two names)
+    /// belong to the Web/ folder, which is the one adapter between them. A handler that names them
+    /// cannot be tested without a browser, which is the failure this check exists to prevent.
+    /// Other Avalonia platform types — the file pickers, for one — are ordinary interface tools
+    /// and may be named.
     /// </summary>
     [Fact]
     public void The_bridge_handlers_do_not_know_the_web_control()
@@ -27,7 +29,7 @@ public class WebUiBoundaryTests
                 Path.Combine(RepoPaths.Source("WhaleGenie"), "Bridge"), "*.cs",
                 SearchOption.AllDirectories)
             .Where(file => File.ReadAllText(file).Contains("NativeWebView", StringComparison.Ordinal)
-                           || File.ReadAllText(file).Contains("Avalonia.Platform", StringComparison.Ordinal))
+                           || File.ReadAllText(file).Contains("WindowsWebView2", StringComparison.Ordinal))
             .Select(Path.GetFileName)
             .ToList();
 

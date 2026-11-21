@@ -1,16 +1,21 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { appInfo } from '../../shared/app/app.js';
+import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
-import type { AppInfo } from '../../shared/bridge/protocol.js';
+import type { AppInfo, ProjectState } from '../../shared/bridge/protocol.js';
 
 /**
- * é¦–é¡µï¼šç¨‹åºä¸Žé¡¹ç›®çš„çŽ°çŠ¶ï¼ŒåŠ ä¸Šè¿ç§»è¿›åº¦ã€‚è¿™ä¸€é¡µå°±æ˜¯å£³çš?èƒ½ç”¨"è¯æ˜Žâ€”â€”ç‰ˆæœ¬ã€è¯­è¨€ã€é¡¹ç›®ä¸Ž
- * å®æ•°é‡éƒ½ä»Žæ¡¥ä¸ŠçœŸè¯»ã€? */
+ * Ê×Ò³£º³ÌÐòÓëÏîÄ¿µÄÏÖ¿ö£¬¼ÓÉÏÇ¨ÒÆ½ø¶È¡£ÕâÒ»Ò³¾ÍÊÇ¿ÇµÄ"ÄÜÓÃ"Ö¤Ã÷¡ª¡ª°æ±¾ÓëÓïÑÔ´Ó app.info
+ * ÉÏ¶Á£¬ÏîÄ¿µÄÃ¿Ò»¸ñ¶¼¸úÎÄµµ×ß£¨´ò¿ª¡¢Áí´æ¡¢MCP ÐÞ¸Ä¶¼»áÍÆ project.changed£¬ÓëÁÐ±íÍ¬Ô´£©¡£
+ */
 @customElement('wg-home')
 export class WgHomePage extends LitElement {
   @state()
   private info: AppInfo | null = null;
+
+  @state()
+  private document: ProjectState | null = null;
 
   static styles = css`
     :host {
@@ -71,6 +76,9 @@ export class WgHomePage extends LitElement {
       appInfo.subscribe((info) => {
         this.info = info;
       }),
+      project.subscribe((state) => {
+        this.document = state;
+      }),
     ];
   }
 
@@ -92,7 +100,7 @@ export class WgHomePage extends LitElement {
   }
 
   private renderInfo() {
-    if (!this.info) {
+    if (this.info === null) {
       return null;
     }
 
@@ -105,11 +113,11 @@ export class WgHomePage extends LitElement {
         <span class="label">${t('Shell.Field.Project')}</span>
         <span>${this.projectName()}</span>
         <span class="label">${t('Shell.Field.Dirty')}</span>
-        <span>${this.info.project.dirty ? t('Shell.Field.Dirty') : t('Shell.Field.Clean')}</span>
+        <span>${this.document?.dirty ? t('Shell.Field.Dirty') : t('Shell.Field.Clean')}</span>
         <span class="label">${t('Shell.Field.Revision')}</span>
-        <span>${this.info.project.revision}</span>
+        <span>${this.document?.revision ?? 0}</span>
         <span class="label">${t('Shell.Field.Macros')}</span>
-        <span>${this.info.project.macros}</span>
+        <span>${this.document?.macros.length ?? 0}</span>
       </div>
     `;
   }
@@ -142,10 +150,10 @@ export class WgHomePage extends LitElement {
   }
 
   private projectName(): string {
-    if (!this.info || this.info.project.untitled) {
+    if (this.document === null || this.document.untitled) {
       return t('Shell.UntitledProject');
     }
-    return this.info.project.name ?? '';
+    return this.document.name ?? '';
   }
 }
 

@@ -2,7 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { strings, t } from '../../shared/strings/strings.js';
 
-/** 路由名到词表键的显式映射，与导航的映射同形：键都是字面量，对账测试扫得到�?*/
+/** ·�������ʱ�������ʽӳ�䣬�뵼����ӳ��ͬ�Σ������������������˲���ɨ�õ��� */
 const areaKeys: Record<string, string> = {
   macros: 'Shell.Macros',
   editor: 'Shell.Editor',
@@ -11,11 +11,12 @@ const areaKeys: Record<string, string> = {
 };
 
 /**
- * 占位页：这一区域还由原生窗口承担。占位页只说明现状，不带任何按钮——等区域真正迁进来，
- * 这个文件连同它的路由一起删除�? */
+ * ռλҳ����һ������ԭ�����ڳе���ռλҳֻ˵����״�������κΰ�ť��������������Ǩ������
+ * ����ļ���ͬ����·��һ��ɾ����
+ */
 @customElement('wg-placeholder')
 export class WgPlaceholder extends LitElement {
-  /** 路由名，标题取对应的 Shell.* 键�?*/
+  /** ·����������ȡ��Ӧ�� Shell.* ���� */
   @property()
   area = '';
 
