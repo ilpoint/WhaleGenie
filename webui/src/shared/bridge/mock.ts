@@ -387,6 +387,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Hotstring', label: '字串' },
             { value: 'Idle', label: '空闲' },
             { value: 'Window', label: '窗口' },
+            { value: 'Interface', label: '窗口内接口' },
           ],
           canUndo: false,
           canRedo: false,
@@ -420,6 +421,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Hotstring', label: '字串' },
             { value: 'Idle', label: '空闲' },
             { value: 'Window', label: '窗口' },
+            { value: 'Interface', label: '窗口内接口' },
           ],
           canUndo: false,
           canRedo: false,
@@ -469,6 +471,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Hotstring', label: '字串' },
             { value: 'Idle', label: '空闲' },
             { value: 'Window', label: '窗口' },
+            { value: 'Interface', label: '窗口内接口' },
           ],
           canUndo: false,
           canRedo: false,
@@ -666,6 +669,9 @@ export class MockTransport implements BridgeTransport {
               windowClass: '',
               windowHow: 'TitleContains',
               windowChange: 'Appeared',
+              interfaceTitle: '',
+              interfaceProcess: '',
+              interfaceHow: 'TitleContains',
             }],
           };
         }
@@ -678,6 +684,28 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerInterface':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => {
+              if (trigger.id !== params['triggerId']) {
+                return trigger;
+              }
+              const field = String(params['field'] ?? '');
+              const value = String(params['value'] ?? '');
+              return {
+                ...trigger,
+                interfaceTitle: field === 'title' ? value : trigger.interfaceTitle,
+                interfaceProcess: field === 'process' ? value : trigger.interfaceProcess,
+                interfaceHow: field === 'how' ? value : trigger.interfaceHow,
+              };
+            }),
           };
         }
         result = this.editor;

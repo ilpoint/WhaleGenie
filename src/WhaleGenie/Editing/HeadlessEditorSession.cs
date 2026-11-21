@@ -126,7 +126,10 @@ internal sealed class HeadlessEditorSession
             entry.Spec is WindowSpec processWindow ? processWindow.Target.Process : string.Empty,
             entry.Spec is WindowSpec classWindow ? classWindow.Target.ClassName : string.Empty,
             entry.Spec is WindowSpec howWindow ? howWindow.Target.How.ToString() : string.Empty,
-            entry.Spec is WindowSpec changeWindow ? changeWindow.Change.ToString() : string.Empty))];
+            entry.Spec is WindowSpec changeWindow ? changeWindow.Change.ToString() : string.Empty,
+            entry.Spec is InterfaceSpec face ? face.Window.Title : string.Empty,
+            entry.Spec is InterfaceSpec faceProcess ? faceProcess.Window.Process : string.Empty,
+            entry.Spec is InterfaceSpec faceHow ? faceHow.Window.How.ToString() : string.Empty))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -355,6 +358,27 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerInterface(string triggerId, string field, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not InterfaceSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not an interface trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        _model.WindowTarget = field switch
+        {
+            "title" => _model.WindowTarget with { Title = value },
+            "process" => _model.WindowTarget with { Process = value },
+            "how" => _model.WindowTarget with { How = value },
+            _ => throw new InvalidOperationException("unknown interface field " + field),
+        };
         _model.IsDirty = true;
     }
 
@@ -838,7 +862,8 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
     bool FileSubfolders, string ProcessName, string ProcessChange, string HotstringText,
     string ColorMatch, string ColorHex, string ColorTolerance, string ColorX, string ColorY,
     bool FollowCursor, string IdleSeconds, string WindowTitle, string WindowProcess,
-    string WindowClass, string WindowHow, string WindowChange);
+    string WindowClass, string WindowHow, string WindowChange, string InterfaceTitle,
+    string InterfaceProcess, string InterfaceHow);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,

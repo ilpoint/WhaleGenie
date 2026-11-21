@@ -163,6 +163,9 @@ export interface EditorTrigger {
   windowClass: string;
   windowHow: string;
   windowChange: string;
+  interfaceTitle: string;
+  interfaceProcess: string;
+  interfaceHow: string;
 }
 
 export interface EditorVariable {

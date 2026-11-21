@@ -35,6 +35,7 @@ public class BridgeMethodInventoryTests
         "editor.sessionTriggerEnabled", "editor.sessionTriggerTimer", "editor.sessionTriggerFile",
         "editor.sessionTriggerProcess", "editor.sessionTriggerHotstring",
         "editor.sessionTriggerColor", "editor.sessionTriggerIdle", "editor.sessionTriggerWindow",
+        "editor.sessionTriggerInterface",
         "editor.sessionGlobalAdd", "editor.sessionGlobalPatch", "editor.sessionGlobalRemove",
         "editor.sessionVariableAdd", "editor.sessionVariablePatch",
         "editor.sessionVariableRemove", "editor.sessionSave", "editor.sessionClose",

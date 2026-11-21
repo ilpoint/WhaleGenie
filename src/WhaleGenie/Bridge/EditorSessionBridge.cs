@@ -46,6 +46,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionTriggerHotstring", SetTriggerHotstring);
         server.Register("editor.sessionTriggerColor", SetTriggerColor);
         server.Register("editor.sessionTriggerWindow", SetTriggerWindow);
+        server.Register("editor.sessionTriggerInterface", SetTriggerInterface);
         server.Register("editor.sessionTriggerIdle", SetTriggerIdle);
         server.Register("editor.sessionVariableAdd", _ => Task.FromResult<object?>(AddVariable()));
         server.Register("editor.sessionVariablePatch", PatchVariable);
@@ -297,6 +298,28 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().SetTriggerLoop(triggerId, loop);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerInterface(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().SetTriggerInterface(triggerId, field, value);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

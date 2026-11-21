@@ -674,6 +674,36 @@ export class WgEditorGate extends LitElement {
                       <option value="Any">${t('WindowChange.Any')}</option>
                     </select>
                   </div>`
+              : trigger.kind === 'Interface'
+                ? html`<div class="window-fields">
+                    <input
+                      .value=${trigger.interfaceTitle}
+                      placeholder=${t('WindowPart.Title')}
+                      aria-label=${t('WindowPart.Title')}
+                      @change=${(event: Event) => void this.setTriggerInterface(trigger.id, 'title', event)}
+                    />
+                    <input
+                      .value=${trigger.interfaceProcess}
+                      placeholder=${t('WindowRule.Process')}
+                      aria-label=${t('WindowRule.Process')}
+                      @change=${(event: Event) => void this.setTriggerInterface(trigger.id, 'process', event)}
+                    />
+                    <select
+                      .value=${trigger.interfaceHow}
+                      aria-label=${t('WindowRule.How')}
+                      @change=${(event: Event) => void this.setTriggerInterface(trigger.id, 'how', event)}
+                    >
+                      <option value="TitleContains">${t('WindowRule.How.titleContains')}</option>
+                      <option value="TitleStartsWith">${t('WindowRule.How.titleStartsWith')}</option>
+                      <option value="TitleEndsWith">${t('WindowRule.How.titleEndsWith')}</option>
+                      <option value="TitleEquals">${t('WindowRule.How.titleEquals')}</option>
+                      <option value="TitleRegex">${t('WindowRule.How.titleRegex')}</option>
+                      <option value="Process">${t('WindowRule.How.process')}</option>
+                      <option value="ProcessEquals">${t('WindowRule.How.processEquals')}</option>
+                      <option value="Class">${t('WindowRule.How.class')}</option>
+                      <option value="ClassEquals">${t('WindowRule.How.classEquals')}</option>
+                    </select>
+                  </div>`
                 : trigger.kind === 'Hotstring'
                   ? html`<input
                       class="hotstring-field"
@@ -1028,6 +1058,18 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
         binding,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerInterface(triggerId: string, field: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerInterface', {
+        triggerId,
+        field,
+        value: (event.target as HTMLInputElement | HTMLSelectElement).value,
       });
     } catch (error) {
       this.error = String(error);

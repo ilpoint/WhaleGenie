@@ -214,6 +214,14 @@ public class EditorGateTests
         Assert.Equal("Notepad", watchedWindow.WindowTitle);
         Assert.Equal("TitleEquals", watchedWindow.WindowHow);
         Assert.Equal("Disappeared", watchedWindow.WindowChange);
+
+        session.AddTrigger("Interface");
+        var face = session.Snapshot().Triggers.Single(item => item.Kind == "Interface");
+        session.SetTriggerInterface(face.Id, "title", "Game");
+        session.SetTriggerInterface(face.Id, "how", "TitleContains");
+        var watchedFace = session.Snapshot().Triggers.Single(item => item.Kind == "Interface");
+        Assert.Equal("Game", watchedFace.InterfaceTitle);
+        Assert.Equal("TitleContains", watchedFace.InterfaceHow);
     }
 
     [Fact]
