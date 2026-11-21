@@ -24,6 +24,7 @@ public class BridgeMethodInventoryTests
         "dialog.respond", "dialog.pickOpenPackage", "dialog.pickSavePackage", "dialog.pickImage",
         "editor.newMacro", "editor.open",
         "editor.sessionOpen", "editor.sessionTabs", "editor.sessionNew",
+        "editor.sessionSubOpen",
         "editor.sessionActivate",
         "editor.sessionState", "editor.sessionPatch",
         "editor.sessionStep", "editor.sessionStepEnabled", "editor.sessionStepMeta",

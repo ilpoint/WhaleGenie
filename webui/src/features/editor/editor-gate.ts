@@ -148,6 +148,12 @@ export class WgEditorGate extends LitElement {
       color: var(--colorNeutralForeground1);
     }
 
+    .submacros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalXS);
+    }
+
     .fields {
       display: grid;
       gap: var(--spacingVerticalS);
@@ -668,6 +674,18 @@ export class WgEditorGate extends LitElement {
           @input=${(event: Event) => this.editDescription(event)}
         ></textarea>
       </div>
+      ${this.snapshot.subMacros.length > 0
+        ? html`
+          <h2>${t('Editor.SubMacros')}</h2>
+          <div class="submacros">
+            ${this.snapshot.subMacros.map((name) => html`
+              <fluent-button appearance="subtle" @click=${() => void this.openSubmacro(name)}>
+                ${name}
+              </fluent-button>
+            `)}
+          </div>
+        `
+        : nothing}
       <h2>${t('Editor.TriggerEntries')}</h2>
       <ul class="triggers">
         ${this.snapshot.triggers.map((trigger) => html`
@@ -1283,6 +1301,17 @@ export class WgEditorGate extends LitElement {
 
   private selectOpen(event: Event): void {
     this.openName = (event.target as HTMLSelectElement).value;
+  }
+
+  private async openSubmacro(name: string): Promise<void> {
+    try {
+      const opened = await bridge.value.call<EditorSnapshot>('editor.sessionSubOpen', { name });
+      this.snapshot = opened;
+      this.selectedId = '';
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async newMacro(): Promise<void> {

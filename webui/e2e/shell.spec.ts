@@ -221,6 +221,16 @@ test('C1 条件参数可按行编辑', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 子宏文档可从父宏打开', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .submacros fluent-button', { hasText: '辅助宏' }).click();
+
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('辅助宏');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionSubOpen')))
+    .toBe(true);
+});
+
 test('C1 条件可以嵌套组', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .action-search').fill('等待条件');

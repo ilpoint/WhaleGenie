@@ -41,7 +41,8 @@ const chromeKeys = [
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
   'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.Record',
   'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty',
-  'Editor.ValueBuilder', 'Editor.Functions', 'Editor.AddGroup', 'Condition.All',
+  'Editor.ValueBuilder', 'Editor.Functions', 'Editor.AddGroup', 'Editor.SubMacros',
+  'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
@@ -107,7 +108,7 @@ const english: Record<string, string> = {
   'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
   'Editor.Record': 'Record', 'Editor.StopRecording': 'Stop Recording',
   'Editor.ValueBuilder': 'Build value', 'Editor.Functions': 'Functions',
-  'Editor.AddGroup': 'Add group',
+  'Editor.AddGroup': 'Add group', 'Editor.SubMacros': 'Sub-macros',
   'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
@@ -205,7 +206,7 @@ const chinese: Record<string, string> = {
   'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
   'Editor.Record': '开始录制', 'Editor.StopRecording': '停止录制',
   'Editor.ValueBuilder': '构建取值', 'Editor.Functions': '函数',
-  'Editor.AddGroup': '添加组',
+  'Editor.AddGroup': '添加组', 'Editor.SubMacros': '子宏',
   'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
@@ -399,6 +400,7 @@ export class MockTransport implements BridgeTransport {
           name: '未命名宏',
           description: '',
           group: '',
+          subMacros: [],
           dirty: false,
           stepCount: 0,
           steps: [],
@@ -447,6 +449,7 @@ export class MockTransport implements BridgeTransport {
           name: macro?.name ?? '未命名宏',
           description: macro?.description ?? '',
           group: macro?.group ?? '',
+          subMacros: ['辅助宏'],
           dirty: false,
           stepCount: 0,
           steps: [],
@@ -504,6 +507,19 @@ export class MockTransport implements BridgeTransport {
         result = { activeKey: this.editor?.name ?? null, tabs };
         break;
       }
+      case 'editor.sessionSubOpen':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            name: String(params['name'] ?? ''),
+            subMacros: [],
+            dirty: false,
+            stepCount: 0,
+            steps: [],
+          };
+        }
+        result = this.editor;
+        break;
       case 'editor.sessionActivate': {
         const macro = this.projectState.macros.find((entry) => entry.name === params['key']);
         if (macro) {
@@ -511,6 +527,7 @@ export class MockTransport implements BridgeTransport {
             name: macro.name,
             description: macro.description,
             group: macro.group,
+            subMacros: [],
             dirty: false,
             stepCount: 0,
             steps: [],

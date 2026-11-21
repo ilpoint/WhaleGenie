@@ -29,6 +29,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionOpen", Open);
         server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
         server.Register("editor.sessionNew", _ => Task.FromResult<object?>(NewDocument()));
+        server.Register("editor.sessionSubOpen", OpenSubmacro);
         server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
@@ -361,6 +362,27 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
             recording = _recording?.IsRecording == true,
             captured = _recording?.Captured ?? 0,
         };
+    }
+
+    private Task<object?> OpenSubmacro(JsonElement parameters)
+    {
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var parentKey = _documents.ActiveKey;
+        if (name is not { Length: > 0 } || parentKey is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsMacro"));
+        }
+
+        try
+        {
+            _documents.OpenSubmacro(parentKey, name);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
     }
 
     private Task<object?> SetStepMeta(JsonElement parameters)
@@ -926,6 +948,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
                 name = snapshot.Name,
                 description = snapshot.Description,
                 group = snapshot.Group,
+                subMacros = snapshot.SubMacros,
                 dirty = snapshot.Dirty,
                 stepCount = snapshot.StepCount,
                 steps = snapshot.Steps,

@@ -144,6 +144,25 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_submacro_can_be_edited_and_saved_into_its_parent()
+    {
+        var workspace = new ProjectWorkspace();
+        var parent = new MacroItem { Name = "parent" };
+        parent.SubMacros.Add(new MacroItem { Name = "helper" });
+        workspace.AddMacro(parent);
+        var session = HeadlessEditorSession.Open(workspace, "parent");
+        Assert.Equal(["helper"], session.SubMacros);
+
+        var sub = HeadlessEditorSession.OpenSubmacro(workspace, session, "helper");
+        sub.AddStep("control.delay");
+        sub.Save();
+        session.Save();
+
+        var saved = Assert.Single(workspace.Macros.Single(macro => macro.Name == "parent").SubMacros);
+        Assert.Equal("control.delay", Assert.Single(saved.Steps).Type);
+    }
+
+    [Fact]
     public void A_step_can_be_duplicated_with_its_settings()
     {
         var workspace = new ProjectWorkspace();

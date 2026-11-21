@@ -22,14 +22,19 @@ internal sealed class HeadlessEditorSession
 {
     private readonly ProjectWorkspace _workspace;
     private readonly MacroEditorViewModel _model;
+    private readonly HeadlessEditorSession? _owner;
+    private readonly string _submacroOriginal = string.Empty;
     private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
     private List<GlobalDraftEntry>? _globalDraft;
     private MacroItem? _existing;
 
-    private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing)
+    private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing,
+        HeadlessEditorSession? owner = null, string submacroOriginal = "")
     {
         _workspace = workspace;
         _existing = existing;
+        _owner = owner;
+        _submacroOriginal = submacroOriginal;
         _model = new MacroEditorViewModel
         {
             Variables = workspace.Variables,
@@ -38,12 +43,23 @@ internal sealed class HeadlessEditorSession
         _model.LoadProjectTriggerSettings(workspace.Triggers, [.. workspace.Macros]);
         if (existing is not null)
         {
-            _model.LoadFrom(existing, workspace.Triggers.ForMacro(existing.Name));
+            _model.LoadFrom(existing, owner is null
+                ? workspace.Triggers.ForMacro(existing.Name)
+                : []);
         }
         else
         {
             _model.UseDefaultName(workspace.Macros.Select(macro => macro.Name));
         }
+    }
+
+    public static HeadlessEditorSession OpenSubmacro(ProjectWorkspace workspace,
+        HeadlessEditorSession owner, string name)
+    {
+        var submacro = owner._model.SubMacros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException("the macro has no sub-macro named " + name);
+        return new HeadlessEditorSession(workspace, submacro, owner, submacro.Name);
     }
 
     public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name)
@@ -76,6 +92,35 @@ internal sealed class HeadlessEditorSession
     public bool CanUndo => _model.CanUndo;
 
     public bool CanRedo => _model.CanRedo;
+
+    public IReadOnlyList<string> SubMacros
+        => [.. _model.SubMacros.Select(macro => macro.Name)];
+
+    private void ReplaceSubmacro(string originalName, MacroItem updated)
+    {
+        var index = _model.SubMacros.FindIndex(macro =>
+            string.Equals(macro.Name, originalName, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+        {
+            _model.SubMacros.Add(updated);
+        }
+        else
+        {
+            _model.SubMacros[index] = updated;
+        }
+
+        if (_existing is not null)
+        {
+            var existingIndex = _existing.SubMacros.FindIndex(macro =>
+                string.Equals(macro.Name, originalName, StringComparison.OrdinalIgnoreCase));
+            if (existingIndex >= 0)
+            {
+                _existing.SubMacros[existingIndex] = updated;
+            }
+        }
+
+        _model.IsDirty = true;
+    }
 
     public string SaveProblem => _model.NameProblem is { Length: > 0 } nameProblem
         ? nameProblem
@@ -1024,9 +1069,17 @@ internal sealed class HeadlessEditorSession
                 : Strings.Get("Editor.Problem.CannotSave"));
         }
 
+        var draft = _model.Draft();
+        if (_owner is not null)
+        {
+            _owner.ReplaceSubmacro(_submacroOriginal, draft.Macro);
+            _model.IsDirty = false;
+            _existing = draft.Macro;
+            return true;
+        }
+
         var commit = new ProjectMacroCommit(_workspace, _existing, MacroView.All,
             _ => { }, () => { }, () => { });
-        var draft = _model.Draft();
         commit.Apply(draft, []);
         CommitGlobals();
         _model.IsDirty = false;
@@ -1043,6 +1096,7 @@ internal sealed class HeadlessEditorSession
             Name,
             Description,
             Group,
+            SubMacros,
             IsDirty,
             Count(macro.Steps),
             [.. macro.Steps.Select(StepSnapshot)],
@@ -1213,7 +1267,8 @@ internal sealed class HeadlessEditorSession
     }
 }
 
-internal sealed record EditorSnapshot(string Name, string Description, string Group, bool Dirty, int StepCount,
+internal sealed record EditorSnapshot(string Name, string Description, string Group,
+    IReadOnlyList<string> SubMacros, bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
     IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices,
