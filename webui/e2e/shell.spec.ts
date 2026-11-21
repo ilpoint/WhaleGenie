@@ -92,8 +92,8 @@ test('导航切换到宏列表与占位页', async ({ page }) => {
   await expect(page.locator('wg-editor-gate h1')).toHaveText('编辑器');
 
   await page.locator('wg-nav button', { hasText: '运行调试' }).click();
-  await expect(page.locator('wg-placeholder h1')).toHaveText('运行调试');
-  await expect(page.locator('wg-placeholder')).toContainText('这一区域仍由原生窗口承担');
+  await expect(page.locator('wg-run h1')).toHaveText('运行与调试');
+  await expect(page.locator('wg-run')).toContainText('原生窗口');
 
   await page.locator('wg-nav button', { hasText: '首页' }).click();
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
@@ -726,6 +726,15 @@ test('设置页可改常规与画面选项', async ({ page }) => {
 
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.update')))
+    .toBe(true);
+});
+
+test('运行页列出宏并请求原生运行窗口', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '运行调试' }).click();
+  await expect(page.locator('wg-run .macro')).toHaveCount(2);
+  await page.locator('wg-run .macro fluent-button').first().click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openRun')))
     .toBe(true);
 });
 
