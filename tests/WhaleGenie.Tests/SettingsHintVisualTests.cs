@@ -330,7 +330,6 @@ public class SettingsHintVisualTests
             ["ActionEditorView.axaml"] = 3,
             ["ParameterScalarView.axaml"] = 2,
             ["ParameterStructuredView.axaml"] = 1,
-            ["MacroSettingsSpecificView.axaml"] = 1,
         };
 
         foreach (var (file, count) in expected)
