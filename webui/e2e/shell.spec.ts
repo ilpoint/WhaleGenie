@@ -190,6 +190,14 @@ test('C1 步骤可改备注、超时与失败处理', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 编辑器快捷键保存与关闭', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.keyboard.press('Control+s');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionSave')))
+    .toBe(true);
+});
+
 test('C1 步骤可复制', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });

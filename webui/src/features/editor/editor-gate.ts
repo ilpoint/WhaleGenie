@@ -453,12 +453,14 @@ export class WgEditorGate extends LitElement {
     super.connectedCallback();
     this.unsubscribeStrings = strings.subscribe(() => this.requestUpdate());
     this.unsubscribeProject = project.subscribe((state) => this.projectChanged(state));
+    window.addEventListener('keydown', this.onKeydown);
     void this.loadActions();
   }
 
   disconnectedCallback(): void {
     this.unsubscribeStrings?.();
     this.unsubscribeProject?.();
+    window.removeEventListener('keydown', this.onKeydown);
     super.disconnectedCallback();
   }
 
@@ -940,6 +942,42 @@ export class WgEditorGate extends LitElement {
       </div>
     `;
   }
+
+  private readonly onKeydown = (event: KeyboardEvent): void => {
+    if (!event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    const typing = event.target instanceof HTMLInputElement
+      || event.target instanceof HTMLTextAreaElement
+      || event.target instanceof HTMLSelectElement;
+    switch (event.key.toLowerCase()) {
+      case 's':
+        event.preventDefault();
+        void this.save();
+        break;
+      case 'w':
+        event.preventDefault();
+        if (this.activeKey.length > 0) {
+          void this.closeTab(this.activeKey);
+        }
+        break;
+      case 'z':
+        if (!typing) {
+          event.preventDefault();
+          void (event.shiftKey ? this.redo() : this.undo());
+        }
+        break;
+      case 'y':
+        if (!typing) {
+          event.preventDefault();
+          void this.redo();
+        }
+        break;
+      default:
+        break;
+    }
+  };
 
   private async loadActions(): Promise<void> {
     try {
