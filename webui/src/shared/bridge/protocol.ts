@@ -90,6 +90,15 @@ export interface MacroEntry {
   views: string[];
 }
 
+/** The C0 editor session's snapshot: the macro fields and the engine's step JSON. */
+export interface EditorSnapshot {
+  name: string;
+  description: string;
+  dirty: boolean;
+  stepCount: number;
+  steps: string[];
+}
+
 export interface ProjectState {
   path: string | null;
   name: string | null;

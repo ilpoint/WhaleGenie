@@ -88,11 +88,31 @@ test('导航切换到宏列表与占位页', async ({ page }) => {
   await expect(page.locator('wg-macros')).toContainText('每 1 分钟');
 
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
-  await expect(page.locator('wg-placeholder h1')).toHaveText('编辑器');
+  await expect(page.locator('wg-editor-gate h1')).toHaveText('编辑器');
+
+  await page.locator('wg-nav button', { hasText: '运行调试' }).click();
+  await expect(page.locator('wg-placeholder h1')).toHaveText('运行调试');
   await expect(page.locator('wg-placeholder')).toContainText('这一区域仍由原生窗口承担');
 
   await page.locator('wg-nav button', { hasText: '首页' }).click();
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
+});
+
+test('C0 编辑器打开真实宏、改字段并保存', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await expect(page.locator('wg-editor-gate h1')).toHaveText('编辑器');
+  const name = page.locator('wg-editor-gate input').first();
+  await expect(name).toHaveValue('自动保存');
+
+  await page.locator('wg-editor-gate textarea').fill('C0 快照命令往返');
+  await page.locator('wg-editor-gate fluent-button', { hasText: '保存' }).click();
+
+  await expect
+    .poll(async () => page.evaluate(() => {
+      const seen = window.__mock!.seen;
+      return seen.includes('editor.sessionPatch') && seen.includes('editor.sessionSave');
+    }))
+    .toBe(true);
 });
 
 test('宏列表的过滤、搜索与启停', async ({ page }) => {

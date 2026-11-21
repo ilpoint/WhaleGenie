@@ -6,6 +6,7 @@ import './nav.js';
 import '../features/dialogs/confirm.js';
 import '../features/home/home-page.js';
 import '../features/macros/macros-page.js';
+import '../features/editor/editor-gate.js';
 import '../features/placeholder/placeholder-page.js';
 import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
@@ -135,7 +136,7 @@ export class WgShell extends LitElement {
       case 'macros':
         return html`<wg-macros></wg-macros>`;
       case 'editor':
-        return html`<wg-placeholder area="editor"></wg-placeholder>`;
+        return html`<wg-editor-gate></wg-editor-gate>`;
       case 'run':
         return html`<wg-placeholder area="run"></wg-placeholder>`;
       case 'settings':

@@ -1,5 +1,5 @@
 import type { BridgeTransport } from './transport.js';
-import type { AppInfo, McpState, ProjectState, StringsBundle, ThemeState, WindowState } from './protocol.js';
+import type { AppInfo, EditorSnapshot, McpState, ProjectState, StringsBundle, ThemeState, WindowState } from './protocol.js';
 
 /**
  * 浏览器里的假宿主：不依赖程序就能开发壳、跑 Playwright。它回答壳用到的每个方法，并留出
@@ -27,6 +27,8 @@ const chromeKeys = [
   'Mcp.SwitchOn', 'Mcp.SwitchOff', 'Mcp.CopyConfig', 'Mcp.GrantsNote', 'Mcp.OpenAudit',
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
+  'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
+  'Editor.GateActions', 'Run.Steps', 'Common.Save', 'Common.Close',
   'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
 
@@ -59,6 +61,10 @@ const english: Record<string, string> = {
   'Main.CloseAll': 'Close All', 'Main.CloseAllTitle': 'Close all macros',
   'Main.EditTip': 'Edit', 'Main.DeleteTip': 'Delete',
   'Editor.DeleteTitle': 'Delete macro', 'Editor.Delete': 'Delete',
+  'Editor.NamePlaceholder': 'Enter a name for your macro..',
+  'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
+  'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
+  'Run.Steps': 'Steps', 'Common.Save': 'Save', 'Common.Close': 'Close',
   'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
   'Common.Cancel': 'Cancel',
   'Main.CloseAllMessage': 'Remove every macro from the list? The saved package is not changed.',
@@ -101,6 +107,10 @@ const chinese: Record<string, string> = {
   'Main.CloseAll': '全部关闭', 'Main.CloseAllTitle': '关闭全部宏',
   'Main.EditTip': '编辑', 'Main.DeleteTip': '删除',
   'Editor.DeleteTitle': '删除宏', 'Editor.Delete': '删除',
+  'Editor.NamePlaceholder': '给这个宏起个名字..',
+  'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
+  'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
+  'Run.Steps': '步骤', 'Common.Save': '保存', 'Common.Close': '关闭',
   'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
   'Common.Cancel': '取消',
   'Main.CloseAllMessage': '从列表中移除所有宏？已保存的宏包不会被修改。',
@@ -134,6 +144,8 @@ export class MockTransport implements BridgeTransport {
 
   /** 等待删除确认的宏名；dialog.respond 带着答案回来时用。 */
   private pendingDelete: string | null = null;
+
+  private editor: EditorSnapshot | null = null;
 
   private mcp: McpState = {
     allowControl: false,
@@ -237,6 +249,60 @@ export class MockTransport implements BridgeTransport {
       case 'editor.open':
         result = { opened: false };
         break;
+      case 'editor.sessionOpen': {
+        const name = params['name'] ? String(params['name']) : this.projectState.macros[0]?.name;
+        const macro = this.projectState.macros.find((entry) => entry.name === name);
+        this.editor = {
+          name: macro?.name ?? '未命名宏',
+          description: macro?.description ?? '',
+          dirty: false,
+          stepCount: 0,
+          steps: [],
+        };
+        result = this.editor;
+        break;
+      }
+      case 'editor.sessionState':
+        result = this.editor;
+        break;
+      case 'editor.sessionPatch':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            name: params['name'] === undefined ? this.editor.name : String(params['name']),
+            description: params['description'] === undefined
+              ? this.editor.description
+              : String(params['description']),
+            dirty: true,
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionStep':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            stepCount: this.editor.stepCount + 1,
+            steps: [...this.editor.steps, JSON.stringify({ type: String(params['type'] ?? '') })],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionSave':
+        if (this.editor) {
+          this.editor = { ...this.editor, dirty: false };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionClose':
+        this.editor = null;
+        result = null;
+        break;
+      case 'editor.sessionActions':
+        result = { count: 177, keys: [] };
+        break;
+
       case 'project.delete':
         this.pendingDelete = String(params['name']);
         this.push('dialog.request', {

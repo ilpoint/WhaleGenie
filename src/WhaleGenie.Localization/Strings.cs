@@ -928,6 +928,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.FlowNoMacro"] = "no submacro chosen yet",
         ["Editor.JsonTree"] = "JSON Tree",
         ["Editor.NoSteps"] = "No steps yet.",
+        ["Editor.GateActions"] = "{0} actions in the catalogue",
         ["Editor.StepDisabled"] = "skipped",
         // Where a step's input goes. It is the first thing to check when a step that works by hand
         // does nothing in a macro, so it is written on the row rather than left inside the step.
@@ -2090,6 +2091,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Common.Ok"] = "OK",
         ["Common.Cancel"] = "Cancel",
         ["Bridge.NoSuchMacro"] = "There is no macro named \"{0}\".",
+        ["Bridge.EditorNeedsStep"] = "A step needs an action type.",
+        ["Bridge.EditorSaveFailed"] = "The editor could not write the macro into the project.",
+        ["Bridge.EditorNoSession"] = "No editor session is open.",
         ["Bridge.NoSuchMethod"] = "The interface asked for an unknown action: {0}.",
         ["Bridge.Internal"] = "The program could not complete the request.",
         ["Bridge.BadArgument"] = "The request is missing a value or has one the program cannot use.",
@@ -3537,6 +3541,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.FlowNoMacro"] = "还没选子宏",
         ["Editor.JsonTree"] = "JSON 树",
         ["Editor.NoSteps"] = "还没有步骤。",
+        ["Editor.GateActions"] = "动作目录共 {0} 项",
         ["Editor.StepDisabled"] = "已停用",
         // 输入往哪儿送。一个手点没问题、写进宏却不动的步骤，先看的就是这一处，所以写在步骤行上。
         ["Editor.InputForeground"] = "前台",
@@ -5014,6 +5019,9 @@ public sealed class Strings : INotifyPropertyChanged
         ["Common.Ok"] = "确定",
         ["Common.Cancel"] = "取消",
         ["Bridge.NoSuchMacro"] = "没有名为“{0}”的宏。",
+        ["Bridge.EditorNeedsStep"] = "步骤需要一个动作类型。",
+        ["Bridge.EditorSaveFailed"] = "编辑器无法把宏写进项目。",
+        ["Bridge.EditorNoSession"] = "没有打开的编辑器会话。",
         ["Bridge.NoSuchMethod"] = "界面请求了未知动作：{0}。",
         ["Bridge.Internal"] = "程序无法完成这次请求。",
         ["Bridge.BadArgument"] = "请求缺少参数，或参数值不可用。",
