@@ -17,7 +17,7 @@ Core 的录制层将原始输入翻译为去抖、合并后的 `RecordedAction`�
 
 ### 轮盘触发
 
-轮盘由 `MainWindow.AttachSystemHotkey` 额外订阅全局鼠标与键盘事件，不进入 `MacroTriggerService`。
+轮盘由 `NativeSurfaceHost` 额外订阅全局鼠标与键盘事件，不进入 `MacroTriggerService`。
 `Runtime/WheelGesture.cs` 是不接触控件的手势状态机；命中呼出键后同时吞掉按下与松开，未形成手势的
 短按通过 `WheelGestureAction.Replay` 补发普通点击，注入标记防止补发事件再次触发手势。呼出键只允许
 右键、中键和 4/5 侧键，并与菜单呼出键、系统热键保持互斥。

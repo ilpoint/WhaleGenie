@@ -162,10 +162,10 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.6 网页壳与桥接
 
-网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。阶段 A 完成后
-先做 B0 会话宿主抽取：系统开关、触发器、原生浮层、恢复与未保存提示从主窗搬出，网页壳才不再
-依赖隐藏主窗。B1 再把壳设为默认并删除主窗；未迁入的设置/运行/关于/帮助在 B1 先给临时原生入口。
-窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
+网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
+开关、触发器、菜单、轮盘、浮层、后台问话与恢复/未保存流程搬出主窗；余下的文件命令编排与隐藏
+主窗移除仍按 B0 收尾。B1 再把壳设为默认并删除主窗；未迁入的设置/运行/关于/帮助在 B1 先给临时
+原生入口。窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
 
@@ -173,7 +173,7 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 | --- | --- | --- |
 | 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebBridge`（程序里唯一认识 WebView 控件的类型） |
 | 桥协议与处理器 | `src/WhaleGenie/Bridge/` | `BridgeServer` 路由请求/应答/事件；`app/strings/theme/window` 各处理器注册自己的方法 |
-| 触发会话 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`SystemState`（App）是页面/热键/窗口共写的开关；菜单/轮盘/浮层在 B0.2 搬到 `NativeSurfaceHost` |
+| 触发会话与原生面 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`NativeSurfaceHost` 持菜单、轮盘、浮层与前台订阅；`RunQuestionHost` 持后台问话；`ProjectSession` 持恢复与未保存流程；`SystemState`（App）是页面/热键/窗口共写的开关 |
 | 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
 
 桥处理器不引用 WebView 控件类型（`WebUiBoundaryTests` 按源码检查），只与 `IBridgeChannel`
