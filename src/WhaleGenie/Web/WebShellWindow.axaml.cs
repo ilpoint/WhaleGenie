@@ -97,6 +97,12 @@ public partial class WebShellWindow : Window
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "WhaleGenie", "webview");
             windows.Language = Strings.Current.Language == Language.Chinese ? "zh-CN" : "en-US";
+#if DEBUG
+            // The CDP port is what makes the real page automatable: Playwright connects over it
+            // the same way it drives a normal browser, which is how the shell checks itself
+            // without a person watching. Debug only — a release build exposes no such door.
+            windows.AdditionalBrowserArguments = "--remote-debugging-port=9223";
+#endif
         }
     }
 

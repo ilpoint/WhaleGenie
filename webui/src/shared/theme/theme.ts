@@ -2,7 +2,6 @@ import { setTheme } from '@fluentui/web-components';
 import {
   createDarkTheme,
   createLightTheme,
-  themeToTokensObject,
   webDarkTheme,
   webLightTheme,
   type Theme,
@@ -34,7 +33,9 @@ class ThemeStore {
   }
 
   private paint(theme: ThemeState): void {
-    setTheme(themeToTokensObject(tokensFor(theme)));
+    // Theme 对象本身就是"键 camelCase、值真实颜色"的形状，setTheme 直接铺它；themeToTokensObject
+    // 产出的是 var() 引用层，铺上去只会得到一整页自引用。
+    setTheme(tokensFor(theme));
     document.documentElement.dataset.theme = theme.baseLight ? 'light' : 'dark';
   }
 }

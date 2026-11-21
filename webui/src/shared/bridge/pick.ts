@@ -1,5 +1,6 @@
 import { HostTransport, type BridgeTransport } from './transport.js';
 import { MockTransport } from './mock.js';
+import type { BridgeClient } from './client.js';
 
 /**
  * 选传输：宿主进程注入了发信函数，就是真壳；`?bridge=mock|host` 强制指定；都没有时落在
@@ -23,7 +24,7 @@ declare global {
   interface Window {
     /** 测试与调试的观察口；mock 模式下才有值。 */
     __mock?: { push(event: string, payload: unknown): void };
-    /** 测试与调试的观察口：应用启动后指向桥的客户端。 */
-    __bridge?: import('./client.js').BridgeClient;
+  /** 测试与调试的观察口：应用启动后指向桥的客户端。 */
+  __bridge?: BridgeClient;
   }
 }

@@ -5,9 +5,8 @@ import { strings, t } from '../../shared/strings/strings.js';
 import type { AppInfo } from '../../shared/bridge/protocol.js';
 
 /**
- * 首页：程序与项目的现状，加上迁移进度。这一页就是壳的"能用"证明——版本、语言、项目与
- * 宏数量都从桥上真读。
- */
+ * 首页：程序与项目的现状，加上迁移进度。这一页就是壳�?能用"证明——版本、语言、项目与
+ * 宏数量都从桥上真读�? */
 @customElement('wg-home')
 export class WgHomePage extends LitElement {
   @state()
@@ -120,23 +119,23 @@ export class WgHomePage extends LitElement {
       <div class="areas">
         <div class="area">
           <span>${t('Shell.Home')}</span>
-          <fl-badge appearance="success">${t('Shell.Status.Web')}</fl-badge>
+          <fluent-badge appearance="success">${t('Shell.Status.Web')}</fluent-badge>
         </div>
         <div class="area">
           <span>${t('Shell.Macros')}</span>
-          <fl-badge appearance="subtle">${t('Shell.Status.Native')}</fl-badge>
+          <fluent-badge appearance="subtle">${t('Shell.Status.Native')}</fluent-badge>
         </div>
         <div class="area">
           <span>${t('Shell.Editor')}</span>
-          <fl-badge appearance="subtle">${t('Shell.Status.Native')}</fl-badge>
+          <fluent-badge appearance="subtle">${t('Shell.Status.Native')}</fluent-badge>
         </div>
         <div class="area">
           <span>${t('Shell.Run')}</span>
-          <fl-badge appearance="subtle">${t('Shell.Status.Native')}</fl-badge>
+          <fluent-badge appearance="subtle">${t('Shell.Status.Native')}</fluent-badge>
         </div>
         <div class="area">
           <span>${t('Shell.Settings')}</span>
-          <fl-badge appearance="subtle">${t('Shell.Status.Planned')}</fl-badge>
+          <fluent-badge appearance="subtle">${t('Shell.Status.Planned')}</fluent-badge>
         </div>
       </div>
     `;

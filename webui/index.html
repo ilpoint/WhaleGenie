@@ -4,6 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>WhaleGenie</title>
+    <style>
+      /*
+        壳是整窗应用：body 的默认 8px 边距会把 100vh 的壳推出视口，多出一截可以滚动的空隙，
+        标题栏跟着滚走、滚动条凭空出现。滚动的职责只属于页面内容区（wg-shell 里的 .content）。
+      */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body>
     <wg-shell></wg-shell>
