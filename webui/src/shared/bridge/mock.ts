@@ -38,7 +38,7 @@ const chromeKeys = [
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
-  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
+  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
@@ -100,7 +100,8 @@ const english: Record<string, string> = {
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
-  'Editor.StepEnabled': 'Enabled', 'Editor.InsertValue': 'Insert value',
+  'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
+  'Editor.InsertValue': 'Insert value',
   'Add.StepComment': 'Comment', 'Add.StepTimeout': 'Timeout',
   'Add.StepRetry': 'Retries', 'Add.StepRetryDelay': 'Retry delay', 'Add.StepOnError': 'When it fails',
   'Add.OnError.Stop': 'Stop the macro', 'Add.OnError.Continue': 'Carry on with the next step',
@@ -192,7 +193,8 @@ const chinese: Record<string, string> = {
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
-  'Editor.StepEnabled': '启用', 'Editor.InsertValue': '插入取值',
+  'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
+  'Editor.InsertValue': '插入取值',
   'Add.StepComment': '备注', 'Add.StepTimeout': '超时',
   'Add.StepRetry': '重试', 'Add.StepRetryDelay': '重试间隔', 'Add.StepOnError': '失败时',
   'Add.OnError.Stop': '停止宏', 'Add.OnError.Continue': '继续下一步',
@@ -530,6 +532,19 @@ export class MockTransport implements BridgeTransport {
               retryDelayMs: field === 'retryDelayMs' ? Number(value) : step.retryDelayMs,
               onError: field === 'onError' ? value : step.onError,
             })),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionStepDuplicate':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            canUndo: true,
+            canRedo: false,
+            stepCount: this.editor.stepCount + 1,
+            steps: this.duplicateStep(this.editor.steps, String(params['stepId'] ?? '')),
           };
         }
         result = this.editor;
@@ -1284,6 +1299,19 @@ export class MockTransport implements BridgeTransport {
     return steps.map((step) => step.id === stepId
       ? change(step)
       : { ...step, steps: this.changeStepMeta(step.steps, stepId, change) });
+  }
+
+  private duplicateStep(steps: EditorStep[], stepId: string): EditorStep[] {
+    const copy: EditorStep[] = [];
+    for (const step of steps) {
+      copy.push(step);
+      if (step.id === stepId) {
+        copy.push(structuredClone(step));
+      } else {
+        copy.push({ ...step, steps: this.duplicateStep(step.steps, stepId) });
+      }
+    }
+    return copy;
   }
 
   private setStepEnabled(steps: EditorStep[], stepId: string, enabled: boolean): EditorStep[] {

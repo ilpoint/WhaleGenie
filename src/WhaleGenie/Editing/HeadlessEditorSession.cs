@@ -725,6 +725,16 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void DuplicateStep(string stepId)
+    {
+        var found = Find(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        var copy = MacroStep.FromJson(found.List[found.Index].ToJson());
+        found.List.Insert(found.Index + 1, copy);
+        _model.SettleStepIds();
+        _model.IsDirty = true;
+    }
+
     public void RemoveStep(string stepId)
     {
         var found = Find(stepId)

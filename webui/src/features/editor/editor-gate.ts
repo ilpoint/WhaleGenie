@@ -1285,6 +1285,15 @@ export class WgEditorGate extends LitElement {
     }
   }
 
+  private async duplicateStep(stepId: string): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStepDuplicate', { stepId });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   private async removeStep(stepId: string): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionRemove', { stepId });
@@ -1485,6 +1494,11 @@ export class WgEditorGate extends LitElement {
                 aria-label=${t('Editor.Context.MoveDown')}
                 @click=${(event: Event) => { event.stopPropagation(); void this.moveStep(step.id, 1); }}
               >↓</button>
+              <button
+                title=${t('Editor.DuplicateStep')}
+                aria-label=${t('Editor.DuplicateStep')}
+                @click=${(event: Event) => { event.stopPropagation(); void this.duplicateStep(step.id); }}
+              >⧉</button>
               <button
                 title=${t('Editor.Delete')}
                 aria-label=${t('Editor.Delete')}

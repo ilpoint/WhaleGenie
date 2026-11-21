@@ -126,6 +126,24 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_step_can_be_duplicated_with_its_settings()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "copies" });
+        var session = HeadlessEditorSession.Open(workspace, "copies");
+        session.AddStep("control.delay");
+        var original = Assert.Single(session.Snapshot().Steps);
+        session.SetStepMeta(original.Id, "comment", "copy me");
+
+        session.DuplicateStep(original.Id);
+        var steps = session.Snapshot().Steps;
+        Assert.Equal(2, steps.Count);
+        Assert.Equal("control.delay", steps[1].Type);
+        Assert.Equal("copy me", steps[1].Comment);
+        Assert.NotEqual(steps[0].Id, steps[1].Id);
+    }
+
+    [Fact]
     public void A_step_can_be_disabled_and_enabled()
     {
         var workspace = new ProjectWorkspace();

@@ -36,6 +36,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionRedo", _ => Task.FromResult<object?>(Redo()));
         server.Register("editor.sessionMove", MoveStep);
         server.Register("editor.sessionRemove", RemoveStep);
+        server.Register("editor.sessionStepDuplicate", DuplicateStep);
         server.Register("editor.sessionTriggerAdd", AddTrigger);
         server.Register("editor.sessionTriggerRemove", RemoveTrigger);
         server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
@@ -175,6 +176,26 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().MoveStep(stepId, delta);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> DuplicateStep(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        if (stepId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsStep"));
+        }
+
+        try
+        {
+            Required().DuplicateStep(stepId);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

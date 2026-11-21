@@ -30,6 +30,7 @@ public class BridgeMethodInventoryTests
         "editor.sessionParameter",
         "editor.sessionParameterRowAdd",
         "editor.sessionParameterRowRemove", "editor.sessionParameterRowCell",
+        "editor.sessionStepDuplicate",
         "editor.sessionUndo", "editor.sessionRedo",
         "editor.sessionMove",
         "editor.sessionRemove", "editor.sessionTriggerAdd", "editor.sessionTriggerRemove",
