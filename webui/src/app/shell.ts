@@ -8,6 +8,7 @@ import '../features/home/home-page.js';
 import '../features/macros/macros-page.js';
 import '../features/editor/editor-gate.js';
 import '../features/library/library-page.js';
+import '../features/settings/settings-page.js';
 import '../features/placeholder/placeholder-page.js';
 import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
@@ -143,7 +144,7 @@ export class WgShell extends LitElement {
       case 'library':
         return html`<wg-library></wg-library>`;
       case 'settings':
-        return html`<wg-placeholder area="settings"></wg-placeholder>`;
+        return html`<wg-settings></wg-settings>`;
       default:
         return nothing;
     }

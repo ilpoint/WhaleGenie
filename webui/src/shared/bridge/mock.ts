@@ -24,6 +24,11 @@ const chromeKeys = [
   'Shell.Home.Heading', 'Shell.Home.Intro', 'Shell.Status.Web', 'Shell.Status.Native',
   'Shell.Status.Planned', 'Shell.Placeholder.Body', 'Shell.Navigation', 'Shell.OpenNative',
   'Shell.File', 'Shell.About', 'Shell.Help', 'Shell.Manual',
+  'Settings.GeneralCard', 'Settings.LoadLastProject', 'Settings.SystemAtStart',
+  'Settings.EnabledFirst', 'Settings.Sounds', 'Settings.SoundSystem', 'Settings.SoundMacro',
+  'Settings.Reading', 'Settings.PreloadOcr', 'Settings.FramesCard', 'Settings.FrameRateFollow',
+  'Settings.FrameRate', 'Settings.FrameCache', 'Settings.FrameCacheAge', 'Settings.InputCard',
+  'Settings.IgnoreOwnInput', 'Settings.InputLimit', 'Settings.LogCount',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
   'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
   'Shell.Window.Minimize',
@@ -178,6 +183,16 @@ const english: Record<string, string> = {
   'Mcp.CopyConfig': 'Copy client config', 'Mcp.GrantsNote': 'Saved as you flip them.',
   'Mcp.OpenAudit': 'Open call log',
   'Shell.Window.Minimize': 'Minimize', 'Shell.Library': 'Library',
+  'Settings.GeneralCard': 'General', 'Settings.LoadLastProject': 'Reopen the last project',
+  'Settings.SystemAtStart': 'Enable triggers at start', 'Settings.EnabledFirst': 'Enabled macros first',
+  'Settings.Sounds': 'Sounds', 'Settings.SoundSystem': 'System sound', 'Settings.SoundMacro': 'Macro sound',
+  'Settings.Reading': 'Screen reading', 'Settings.PreloadOcr': 'Preload OCR',
+  'Settings.FramesCard': 'Pictures', 'Settings.FrameRateFollow': 'Follow the display',
+  'Settings.FrameRate': 'Pictures a second', 'Settings.FrameCache': 'Reuse pictures',
+  'Settings.FrameCacheAge': 'Keep for', 'Settings.InputCard': 'Input behaviour',
+  'Settings.IgnoreOwnInput': 'Ignore own input', 'Settings.InputLimit': 'Input limit',
+  'Settings.LogCount': 'Keep recent logs',
+
   'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
   'Library.Empty': 'The library has no macros yet.', 'Library.Delete': 'Remove from library',
   'Library.Failed': 'The library could not be read.',
@@ -287,6 +302,16 @@ const chinese: Record<string, string> = {
   'Mcp.CopyConfig': '复制客户端配置', 'Mcp.GrantsNote': '改一下就存下来了。',
   'Mcp.OpenAudit': '查看调用记录',
   'Shell.Window.Minimize': '最小化', 'Shell.Library': '宏库',
+  'Settings.GeneralCard': '常规', 'Settings.LoadLastProject': '启动时重开上次工程',
+  'Settings.SystemAtStart': '启动时启用触发', 'Settings.EnabledFirst': '启用的宏排在前面',
+  'Settings.Sounds': '声音', 'Settings.SoundSystem': '系统声音', 'Settings.SoundMacro': '宏声音',
+  'Settings.Reading': '屏幕读取', 'Settings.PreloadOcr': '预加载 OCR',
+  'Settings.FramesCard': '画面', 'Settings.FrameRateFollow': '跟随屏幕刷新率',
+  'Settings.FrameRate': '每秒画面数', 'Settings.FrameCache': '复用画面',
+  'Settings.FrameCacheAge': '保留时长', 'Settings.InputCard': '输入行为',
+  'Settings.IgnoreOwnInput': '忽略本程序发出的输入', 'Settings.InputLimit': '输入限制',
+  'Settings.LogCount': '保留最近日志',
+
   'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
   'Library.Empty': '宏库还没有宏。', 'Library.Delete': '从宏库删除',
   'Library.Failed': '无法读取宏库。',
@@ -319,6 +344,13 @@ export class MockTransport implements BridgeTransport {
   private pendingDelete: string | null = null;
 
   private editor: EditorSnapshot | null = null;
+
+  private settingsState = {
+    loadLastProjectAtStart: true, systemAtStart: false, enabledFirst: true,
+    ignoreOwnInput: true, soundSystem: true, soundMacro: false, preloadOcr: false,
+    inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
+    frameCache: false, frameCacheAge: 100, logCount: 100,
+  };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
     { id: 'library-1', name: '打开记事本', version: 1, description: '公共示例宏' },
@@ -426,6 +458,19 @@ export class MockTransport implements BridgeTransport {
       case 'app.quit':
       case 'app.openExternal':
         break;
+      case 'settings.state':
+        result = this.settingsState;
+        break;
+      case 'settings.update': {
+        const field = String(params['field'] ?? '');
+        const value = String(params['value'] ?? '');
+        this.settingsState = {
+          ...this.settingsState,
+          [field]: value === 'true' ? true : value === 'false' ? false : Number(value),
+        };
+        result = this.settingsState;
+        break;
+      }
       case 'library.state':
         result = { entries: this.libraryEntries, error: null };
         break;

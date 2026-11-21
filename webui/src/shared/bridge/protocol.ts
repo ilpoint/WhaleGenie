@@ -211,6 +211,23 @@ export interface EditorGlobal {
   persisted: boolean;
 }
 
+export interface SettingsState {
+  loadLastProjectAtStart: boolean;
+  systemAtStart: boolean;
+  enabledFirst: boolean;
+  ignoreOwnInput: boolean;
+  soundSystem: boolean;
+  soundMacro: boolean;
+  preloadOcr: boolean;
+  inputRate: number;
+  frameRateFollow: boolean;
+  frameRate: number;
+  frameRateMax: number;
+  frameCache: boolean;
+  frameCacheAge: number;
+  logCount: number;
+}
+
 export interface LibraryEntry {
   id: string;
   name: string;

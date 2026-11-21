@@ -75,11 +75,11 @@ test('标题栏文件与帮助菜单', async ({ page }) => {
   await expect(page.getByRole('menuitem', { name: '使用手册' })).toBeVisible();
 });
 
-test('占位页的临时入口请求原生窗口', async ({ page }) => {
+test('设置页读取并显示常规设置', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
-  await page.locator('wg-placeholder fluent-button', { hasText: '打开原生窗口' }).click();
+  await expect(page.locator('wg-settings h1')).toHaveText('设置');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openSettings')))
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.state')))
     .toBe(true);
 });
 
@@ -649,6 +649,21 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .locator('fluent-button[title="用选中的工程宏覆盖"]').click();
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('library.replace')))
+    .toBe(true);
+});
+
+test('设置页可改常规与画面选项', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  await expect(page.locator('wg-settings h1')).toHaveText('设置');
+  const general = page.locator('wg-settings .card').first();
+  await general.locator('input[type="checkbox"]').first().uncheck();
+  const frames = page.locator('wg-settings .card').nth(3);
+  await frames.locator('input[type="checkbox"]').first().uncheck();
+  await frames.locator('input[type="number"]').first().fill('30');
+  await page.locator('wg-settings .card').nth(3).locator('input[type="number"]').first().press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.update')))
     .toBe(true);
 });
 
