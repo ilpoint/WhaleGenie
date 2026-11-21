@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { appInfo } from '../shared/app/app.js';
 import { bridge } from '../shared/bridge/bridge.js';
 import { project } from '../shared/project/store.js';
+import { icon } from '../shared/icons.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { windowMirror } from '../shared/window/window.js';
 import whale from '../assets/whale.png';
@@ -267,39 +268,20 @@ export class WgTitlebar extends LitElement {
             aria-label=${this.topmost ? t('Shell.Window.Unpin') : t('Shell.Window.Pin')}
             @click=${this.onPin}
           >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path
-                d="M9.5 1.5 14.5 6.5 12.2 7.2 10.6 8.8 10 12 8.2 13.8 5.6 11.2 2 14.7 1.3 14 4.8 10.4 2.2 7.8 4 6 7.2 5.4 8.8 3.8 Z"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.1"
-                stroke-linejoin="round"
-              />
-            </svg>
+            ${icon('pin')}
           </button>
           <button title=${t('Shell.Window.Minimize')} aria-label=${t('Shell.Window.Minimize')} @click=${this.onMinimize}>
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M2.5 8h11" stroke="currentColor" stroke-width="1" />
-            </svg>
+            ${icon('minimize')}
           </button>
           <button
             title=${this.placement === 'maximized' ? t('Shell.Window.Restore') : t('Shell.Window.Maximize')}
             aria-label=${this.placement === 'maximized' ? t('Shell.Window.Restore') : t('Shell.Window.Maximize')}
             @click=${this.onToggleMaximize}
           >
-            ${this.placement === 'maximized'
-              ? html`<svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5.5 3.5h7v7" fill="none" stroke="currentColor" stroke-width="1" />
-                  <path d="M3.5 5.5h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1" />
-                </svg>`
-              : html`<svg viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M3.5 3.5h9v9h-9z" fill="none" stroke="currentColor" stroke-width="1" />
-                </svg>`}
+            ${icon(this.placement === 'maximized' ? 'restore' : 'maximize')}
           </button>
           <button class="close" title=${t('Shell.Window.Close')} aria-label=${t('Shell.Window.Close')} @click=${this.onClose}>
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1" />
-            </svg>
+            ${icon('close')}
           </button>
         </div>
       </header>

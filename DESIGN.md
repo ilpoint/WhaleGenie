@@ -284,6 +284,8 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 壳采用类 VS Code 的工作区布局：40px 网页标题栏横跨顶部，下面是 **48px activity bar**、
 **220px side bar**、主内容区，底部是 24px 状态条。
 
+- 图标统一从官方 `lucide-static` 的 SVG 取，经 `webui/src/shared/icons.ts` 内联；不引入
+  第三方图标封装，也不自绘第二套图标路径。
 - **Activity bar** 只放图标（首页、宏、编辑器、运行），悬停显示词表键 `Shell.<Route>`；
   选中项用左侧品牌色竖线与 `--colorNeutralBackground2`，不铺整块强调色。**设置**图标固定在
   activity bar 底部，与 VS Code 的齿轮同形。

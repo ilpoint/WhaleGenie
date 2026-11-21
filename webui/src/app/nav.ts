@@ -1,5 +1,6 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import { icon } from '../shared/icons.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { routes, type Route } from './router.js';
 
@@ -184,38 +185,9 @@ export class WgNav extends LitElement {
         aria-current=${this.active === route ? 'page' : 'false'}
         @click=${() => this.select(route)}
       >
-        ${this.icon(route)}
+        ${icon(route)}
       </button>
     `;
-  }
-
-  private icon(route: Route) {
-    switch (route) {
-      case 'home':
-        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-          <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4Z" />
-        </svg>`;
-      case 'macros':
-        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <path d="M5 6h14M5 12h14M5 18h9" />
-        </svg>`;
-      case 'editor':
-        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-          <path d="M6 3h8l4 4v14H6Z" />
-          <path d="M14 3v4h4M9 12h6M9 16h6" />
-        </svg>`;
-      case 'run':
-        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-          <path d="M8 5.5 19 12 8 18.5Z" />
-        </svg>`;
-      case 'settings':
-        return html`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
-        </svg>`;
-      default:
-        return html``;
-    }
   }
 
   private select(route: Route): void {

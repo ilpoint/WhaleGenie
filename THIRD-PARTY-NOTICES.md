@@ -45,7 +45,9 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
 - 网页壳的前端依赖（以脚本形式内嵌在 `webui/index.html` 里随包分发）：
   Lit — BSD-3-Clause <https://github.com/lit-dev/lit>；
   @fluentui/web-components、@fluentui/tokens、@microsoft/fast-element — MIT
-  <https://github.com/microsoft/fluentui>
+  <https://github.com/microsoft/fluentui>；
+  lucide-static — ISC <https://github.com/lucide-icons/lucide>
+  （网页壳只内联实际用到的官方 SVG 图标）
 - FluentAvalonia（FluentAvaloniaUI）— MIT
   <https://github.com/amwx/FluentAvalonia>
   它把 WinUI 的控件与模板带到 Avalonia；WinUI 与 Avalonia 均为 MIT。

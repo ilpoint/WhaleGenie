@@ -45,6 +45,7 @@ test('首页关于与帮助请求原生入口', async ({ page }) => {
 });
 
 test('activity bar 图标切换页面并可折叠侧栏', async ({ page }) => {
+  await expect(page.locator('wg-nav .activity svg')).toHaveCount(5);
   const macros = page.locator('wg-nav .activity button[aria-label="宏"]');
   await macros.click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');

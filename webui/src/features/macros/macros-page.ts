@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
+import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
@@ -407,28 +408,21 @@ export class WgMacros extends LitElement {
             aria-label=${t('Main.RunDebug')}
             @click=${() => this.onRun(entry)}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M8 5.5 19 12 8 18.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-            </svg>
+            ${icon('run')}
           </button>
           <button
             title=${t('Main.EditTip')}
             aria-label=${t('Main.EditTip')}
             @click=${() => this.onEdit(entry)}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-            </svg>
+            ${icon('edit')}
           </button>
           <button
             title=${t('Main.ExportMacro')}
             aria-label=${t('Main.ExportMacro')}
             @click=${() => this.onExport(entry)}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" fill="none" stroke="currentColor" stroke-width="1.6" />
-              <path d="M16 6l-4-4-4 4M12 2v13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            ${icon('export')}
           </button>
           <button
             class="danger"
@@ -436,10 +430,7 @@ export class WgMacros extends LitElement {
             aria-label=${t('Main.DeleteTip')}
             @click=${() => this.onDelete(entry)}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
-            </svg>
+            ${icon('delete')}
           </button>
         </div>
         <fluent-switch
