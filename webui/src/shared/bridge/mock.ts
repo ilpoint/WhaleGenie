@@ -31,7 +31,9 @@ const chromeKeys = [
   'Settings.IgnoreOwnInput', 'Settings.InputLimit', 'Settings.LogCount',
   'Settings.Language', 'Settings.Language.English', 'Settings.Language.Chinese', 'Settings.Theme',
   'Settings.Hotkeys', 'Settings.SystemHotkey', 'Settings.RecordStopKey', 'Settings.HotkeySet',
-  'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Settings.Storage', 'Settings.OpenFolder', 'Theme.Mode.Dark', 'Theme.Mode.Light',
+  'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Settings.Storage', 'Settings.OpenFolder',
+  'Settings.Driver', 'Settings.DriverAttachAtStart', 'Settings.RunAsAdmin',
+  'Settings.CaptureCard', 'Settings.CaptureWindow', 'Settings.CaptureScreen', 'Theme.Mode.Dark', 'Theme.Mode.Light',
   'Theme.Mode.Custom',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
   'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
@@ -201,7 +203,12 @@ const english: Record<string, string> = {
   'Settings.SystemHotkey': 'System hotkey', 'Settings.RecordStopKey': 'Record stop key',
   'Settings.HotkeySet': 'Set shortcut', 'Settings.HotkeyPress': 'Press a key…',
   'Settings.HotkeyClear': 'Clear', 'Settings.Storage': 'Storage locations',
-  'Settings.OpenFolder': 'Open', 'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
+  'Settings.OpenFolder': 'Open', 'Settings.Driver': 'Driver-level input',
+  'Settings.DriverAttachAtStart': 'Put virtual devices on at startup',
+  'Settings.RunAsAdmin': 'Ask for administrator rights at startup',
+  'Settings.CaptureCard': 'Picture source', 'Settings.CaptureWindow': 'Window pictures',
+  'Settings.CaptureScreen': 'Desktop pictures',
+  'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
   'Theme.Mode.Custom': 'Custom',
 
   'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
@@ -327,7 +334,12 @@ const chinese: Record<string, string> = {
   'Settings.SystemHotkey': '系统热键', 'Settings.RecordStopKey': '录制停止键',
   'Settings.HotkeySet': '设置快捷键', 'Settings.HotkeyPress': '请按一个键…',
   'Settings.HotkeyClear': '清除', 'Settings.Storage': '存储位置',
-  'Settings.OpenFolder': '打开', 'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
+  'Settings.OpenFolder': '打开', 'Settings.Driver': '驱动级输入',
+  'Settings.DriverAttachAtStart': '启动时预装虚拟键鼠',
+  'Settings.RunAsAdmin': '启动时请求管理员权限',
+  'Settings.CaptureCard': '画面来源', 'Settings.CaptureWindow': '窗口画面',
+  'Settings.CaptureScreen': '桌面画面',
+  'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
   'Theme.Mode.Custom': '自定义',
 
   'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
@@ -374,6 +386,11 @@ export class MockTransport implements BridgeTransport {
     storage: [
       { name: 'State', what: 'Settings and logs', where: 'C:\\mock\\state', folder: 'C:\\mock\\state' },
     ],
+    driverStatus: 'Ready', driverReady: true, attachDriverAtStart: false,
+    runAsAdmin: false, adminStatus: 'Running normally',
+    windowWay: 'Auto', screenWay: 'Auto',
+    windowWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'PrintWindow', label: 'PrintWindow' }],
+    screenWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'Gdi', label: 'GDI' }],
   };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
@@ -492,6 +509,7 @@ export class MockTransport implements BridgeTransport {
           ...this.settingsState,
           [field]: field === 'language' || field === 'theme'
             || field === 'systemHotkey' || field === 'recordStopKey'
+            || field === 'windowWay' || field === 'screenWay'
             ? value
             : value === 'true' ? true : value === 'false' ? false : Number(value),
         };

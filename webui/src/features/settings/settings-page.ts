@@ -76,6 +76,11 @@ export class WgSettings extends LitElement {
       word-break: break-all;
     }
 
+    .status {
+      margin: 0;
+      color: var(--colorNeutralForeground2);
+    }
+
     .hotkey {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto auto;
@@ -168,6 +173,34 @@ export class WgSettings extends LitElement {
           ${this.toggle('ignoreOwnInput', 'Settings.IgnoreOwnInput')}
           ${this.number('inputRate', 'Settings.InputLimit', 0, 999, false)}
           ${this.number('logCount', 'Settings.LogCount', 1, 1000, false)}
+        </section>
+        <section class="card">
+          <h2>${t('Settings.Driver')}</h2>
+          <p class="status">${this.settings.driverStatus}</p>
+          ${this.toggle('attachDriverAtStart', 'Settings.DriverAttachAtStart')}
+          ${this.toggle('runAsAdmin', 'Settings.RunAsAdmin')}
+          <p class="status">${this.settings.adminStatus}</p>
+        </section>
+        <section class="card">
+          <h2>${t('Settings.CaptureCard')}</h2>
+          <div class="row">
+            <label>${t('Settings.CaptureWindow')}</label>
+            <select .value=${this.settings.windowWay}
+              @change=${(event: Event) => void this.changeSetting('windowWay', event)}>
+              ${this.settings.windowWays.map((way) => html`
+                <option value=${way.value}>${way.label}</option>
+              `)}
+            </select>
+          </div>
+          <div class="row">
+            <label>${t('Settings.CaptureScreen')}</label>
+            <select .value=${this.settings.screenWay}
+              @change=${(event: Event) => void this.changeSetting('screenWay', event)}>
+              ${this.settings.screenWays.map((way) => html`
+                <option value=${way.value}>${way.label}</option>
+              `)}
+            </select>
+          </div>
         </section>
         <section class="card">
           <h2>${t('Settings.Storage')}</h2>

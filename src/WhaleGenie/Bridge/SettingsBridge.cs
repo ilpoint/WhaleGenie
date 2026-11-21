@@ -54,6 +54,23 @@ internal sealed class SettingsBridge : IBridgeHandler
                 where = row.Where,
                 folder = row.Folder,
             }),
+            driverStatus = _settings.DriverStatus,
+            driverReady = _settings.DriverReady,
+            attachDriverAtStart = _settings.AttachDriverAtStart,
+            runAsAdmin = _settings.RunAsAdmin,
+            adminStatus = _settings.AdminStatus,
+            windowWay = _settings.SelectedWindowWay.Way.ToString(),
+            screenWay = _settings.SelectedScreenWay.Way.ToString(),
+            windowWays = _settings.WindowWays.Select(way => new
+            {
+                value = way.Way.ToString(),
+                label = way.ToString(),
+            }),
+            screenWays = _settings.ScreenWays.Select(way => new
+            {
+                value = way.Way.ToString(),
+                label = way.ToString(),
+            }),
         };
 
     private Task<object?> OpenFolder(JsonElement parameters)
@@ -130,6 +147,20 @@ internal sealed class SettingsBridge : IBridgeHandler
                 break;
             case "logCount":
                 _settings.LogCount = number;
+                break;
+            case "attachDriverAtStart":
+                _settings.AttachDriverAtStart = flag;
+                break;
+            case "runAsAdmin":
+                _settings.RunAsAdmin = flag;
+                break;
+            case "windowWay":
+                _settings.SelectedWindowWay = _settings.WindowWays.First(way =>
+                    string.Equals(way.Way.ToString(), value, StringComparison.OrdinalIgnoreCase));
+                break;
+            case "screenWay":
+                _settings.SelectedScreenWay = _settings.ScreenWays.First(way =>
+                    string.Equals(way.Way.ToString(), value, StringComparison.OrdinalIgnoreCase));
                 break;
             case "language":
                 Strings.Current.Language = value == "zh-Hans" ? Language.Chinese : Language.English;

@@ -652,6 +652,19 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .toBe(true);
 });
 
+test('设置页可改驱动与画面来源', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  const driver = page.locator('wg-settings .card').filter({ hasText: '驱动级输入' }).first();
+  await driver.locator('input[type="checkbox"]').first().check();
+  const reading = page.locator('wg-settings .card').filter({ hasText: '窗口画面' }).first();
+  await reading.locator('select').nth(0).selectOption('PrintWindow');
+  await reading.locator('select').nth(1).selectOption('Gdi');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.filter((name) => name === 'settings.update').length))
+    .toBeGreaterThanOrEqual(3);
+});
+
 test('设置页可打开存储位置', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   await expect(page.locator('wg-settings .storage-row')).toHaveCount(1);

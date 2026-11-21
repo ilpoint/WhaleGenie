@@ -233,6 +233,20 @@ export interface SettingsState {
   systemHotkeyProblem: string;
   recordStopProblem: string;
   storage: SettingsStorage[];
+  driverStatus: string;
+  driverReady: boolean;
+  attachDriverAtStart: boolean;
+  runAsAdmin: boolean;
+  adminStatus: string;
+  windowWay: string;
+  screenWay: string;
+  windowWays: SettingsChoice[];
+  screenWays: SettingsChoice[];
+}
+
+export interface SettingsChoice {
+  value: string;
+  label: string;
 }
 
 export interface SettingsStorage {
