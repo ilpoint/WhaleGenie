@@ -57,6 +57,7 @@ public class BridgeMethodInventoryTests
         "editor.sessionActions",
         "library.state", "library.delete", "library.add", "library.replace",
         "settings.state", "settings.update", "settings.openFolder",
+        "run.state", "run.load", "run.command", "run.breakpoint",
         "mcp.state", "mcp.setGrants", "mcp.copyConfig", "mcp.openAudit",
         "project.state", "project.toggle", "project.delete", "project.export",
         "project.system", "project.open", "project.import", "project.save",

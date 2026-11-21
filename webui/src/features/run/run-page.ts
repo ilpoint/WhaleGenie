@@ -1,25 +1,32 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
-import type { ProjectState } from '../../shared/bridge/protocol.js';
+import type { ProjectState, RunLine, RunState, RunStep } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
 
-/** Selects the macro the native run-and-debug window should load. */
+/** The web run panel: loads one macro and drives the shared RunViewModel through the bridge. */
 @customElement('wg-run')
 export class WgRun extends LitElement {
   @state()
   private project: ProjectState | null = null;
 
   @state()
+  private run: RunState | null = null;
+
+  @state()
   private error = '';
 
   private unsubscribe?: () => void;
+  private unwatch?: () => void;
 
   static styles = css`
     :host {
-      display: block;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: var(--spacingHorizontalL);
       padding: var(--spacingVerticalL) var(--spacingHorizontalXXL);
-      max-width: 900px;
+      height: 100%;
+      box-sizing: border-box;
     }
 
     h1 {
@@ -28,65 +35,163 @@ export class WgRun extends LitElement {
       font-weight: var(--font-weight-semibold);
     }
 
+    .side {
+      min-width: 0;
+    }
+
     .note {
-      margin: 0 0 var(--spacingVerticalL);
+      margin: 0 0 var(--spacingVerticalM);
       color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
     }
 
-    .macros {
+    .macros, .steps, .log {
       display: grid;
-      gap: var(--spacingVerticalS);
+      gap: var(--spacingVerticalXS);
+      align-content: start;
     }
 
-    .macro {
+    .macros button, .steps button {
+      text-align: left;
+    }
+
+    .panel {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--spacingVerticalM);
+      min-width: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalS);
       align-items: center;
-      gap: var(--spacingHorizontalM);
-      padding: var(--spacingVerticalS) var(--spacingHorizontalM);
-      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
-      border-radius: var(--borderRadiusMedium);
-      background: var(--colorNeutralBackground1);
     }
 
-    .macro small {
+    .status {
+      color: var(--colorNeutralForeground2);
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr);
+      gap: var(--spacingHorizontalS);
+      align-items: start;
+      padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      border-left: var(--strokeWidthThick) solid transparent;
+    }
+
+    .step.current {
+      border-left-color: var(--colorBrandStroke1);
+      background: var(--colorNeutralBackground2);
+    }
+
+    .step .body {
+      min-width: 0;
+    }
+
+    .step .detail {
       color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+      overflow-wrap: anywhere;
+    }
+
+    .log-line {
+      display: grid;
+      grid-template-columns: 72px 64px minmax(0, 1fr);
+      gap: var(--spacingHorizontalS);
+      font-size: var(--font-size-base-200);
+    }
+
+    .log-line .time {
+      color: var(--colorNeutralForeground3);
+    }
+
+    .error {
+      color: var(--colorPaletteRedForeground1);
     }
   `;
 
   connectedCallback(): void {
     super.connectedCallback();
     this.unsubscribe = strings.subscribe(() => this.requestUpdate());
+    this.unwatch = bridge.value.on('run.changed', (payload) => {
+      this.run = payload as RunState;
+    });
     void this.load();
   }
 
   disconnectedCallback(): void {
     this.unsubscribe?.();
+    this.unwatch?.();
     super.disconnectedCallback();
   }
 
   render() {
-    if (!this.project) {
-      return html`<h1>${t('Run.Title')}</h1>
-        ${this.error ? html`<p class="note">${this.error}</p>` : nothing}`;
-    }
-
     return html`
-      <h1>${t('Run.Title')}</h1>
-      <p class="note">${t('Run.NativeNote')}</p>
-      ${this.error ? html`<p class="note">${this.error}</p>` : nothing}
-      <div class="macros">
-        ${this.project.macros.map((macro) => html`
-          <div class="macro">
-            <div>
-              <strong>${macro.name}</strong>
-              <div><small>${macro.group || ''}</small></div>
-            </div>
-            <fluent-button appearance="accent" @click=${() => void this.run(macro.name)}>
-              ${t('Run.Run')}
+      <div class="side">
+        <h1>${t('Run.Title')}</h1>
+        <p class="note">${t('Run.NativeNote')}</p>
+        ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
+        <div class="macros">
+          ${this.project?.macros.map((macro) => html`
+            <fluent-button appearance="subtle" @click=${() => void this.loadMacro(macro.name)}>
+              ${macro.name}
             </fluent-button>
-          </div>
-        `)}
+          `)}
+        </div>
+      </div>
+      <div class="panel">
+        <div class="toolbar">
+          ${this.button('run', 'Run.Run', this.run?.canRun ?? false)}
+          ${this.button('step', 'Run.Step', this.run?.canStep ?? false)}
+          ${this.button('continue', 'Run.Continue', this.run?.paused ?? false)}
+          ${this.button('skip', 'Run.SkipStep', this.run?.paused ?? false)}
+          ${this.button('stop', 'Run.Stop', this.run?.canStop ?? false)}
+        </div>
+        <div class="status">${this.run?.status ?? ''}</div>
+        <div class="steps">
+          ${this.run?.steps.map((step) => this.step(step))}
+        </div>
+        <div class="log">
+          ${this.run?.log.map((line) => this.line(line))}
+        </div>
+      </div>
+    `;
+  }
+
+  private button(command: string, label: string, enabled: boolean) {
+    return html`
+      <fluent-button appearance="subtle" ?disabled=${!enabled}
+        @click=${() => void this.send(command)}>${t(label)}</fluent-button>
+    `;
+  }
+
+  private step(step: RunStep) {
+    return html`
+      <div class="step ${step.current ? 'current' : ''}" style="padding-left: ${step.depth * 12}px">
+        ${step.canBreak
+          ? html`<input type="checkbox" .checked=${step.breakpoint}
+              @change=${() => void this.breakpoint(step.id)} />`
+          : html`<span></span>`}
+        <div class="body">
+          <div>${step.label}</div>
+          ${step.detail ? html`<div class="detail">${step.detail}</div>` : nothing}
+          ${step.time ? html`<div class="detail">${step.time}</div>` : nothing}
+          ${step.failure ? html`<div class="detail error">${step.failure}</div>` : nothing}
+          ${step.condition ? html`<div class="detail">${step.condition}</div>` : nothing}
+        </div>
+      </div>
+    `;
+  }
+
+  private line(line: RunLine) {
+    return html`
+      <div class="log-line">
+        <span class="time">${line.time}</span>
+        <span>${line.level}</span>
+        <span>${line.text}</span>
       </div>
     `;
   }
@@ -94,21 +199,39 @@ export class WgRun extends LitElement {
   private async load(): Promise<void> {
     try {
       this.project = await bridge.value.call<ProjectState>('project.state');
+      this.run = await bridge.value.call<RunState>('run.state');
     } catch (error) {
       this.error = String(error);
     }
   }
 
-  private async run(name: string): Promise<void> {
+  private async loadMacro(name: string): Promise<void> {
     try {
-      await bridge.value.call('app.openRun', { name });
+      this.run = await bridge.value.call<RunState>('run.load', { name });
+      this.error = '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async send(command: string): Promise<void> {
+    try {
+      this.run = await bridge.value.call<RunState>('run.command', { command });
+      this.error = '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async breakpoint(id: string): Promise<void> {
+    try {
+      this.run = await bridge.value.call<RunState>('run.breakpoint', { id });
+      this.error = '';
     } catch (error) {
       this.error = String(error);
     }
   }
 }
-
-
 
 declare global {
   interface HTMLElementTagNameMap {

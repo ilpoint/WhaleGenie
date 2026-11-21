@@ -211,6 +211,40 @@ export interface EditorGlobal {
   persisted: boolean;
 }
 
+export interface RunState {
+  loaded: string;
+  status: string;
+  statusKind: string;
+  busy: boolean;
+  paused: boolean;
+  canRun: boolean;
+  canStep: boolean;
+  canStop: boolean;
+  steps: RunStep[];
+  log: RunLine[];
+}
+
+export interface RunStep {
+  id: string;
+  label: string;
+  detail: string;
+  depth: number;
+  shown: boolean;
+  container: boolean;
+  current: boolean;
+  breakpoint: boolean;
+  canBreak: boolean;
+  time: string;
+  failure: string;
+  condition: string;
+}
+
+export interface RunLine {
+  time: string;
+  level: string;
+  text: string;
+}
+
 export interface SettingsState {
   loadLastProjectAtStart: boolean;
   systemAtStart: boolean;
@@ -397,6 +431,7 @@ export interface BridgeEvents {
   'dialog.request': DialogRequest;
   'mcp.changed': McpState;
   'editor.openRequested': { name: string };
+  'run.changed': RunState;
 }
 
 export type BridgeEventName = keyof BridgeEvents;
