@@ -38,7 +38,8 @@ const chromeKeys = [
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
-  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Condition.All',
+  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.Record',
+  'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty', 'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
@@ -102,6 +103,8 @@ const english: Record<string, string> = {
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
   'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
+  'Editor.Record': 'Record', 'Editor.StopRecording': 'Stop Recording',
+  'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
   'Add.StepComment': 'Comment', 'Add.StepTimeout': 'Timeout',
@@ -196,6 +199,8 @@ const chinese: Record<string, string> = {
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
   'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
+  'Editor.Record': '开始录制', 'Editor.StopRecording': '停止录制',
+  'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
   'Add.StepComment': '备注', 'Add.StepTimeout': '超时',
@@ -276,6 +281,10 @@ export class MockTransport implements BridgeTransport {
   private pendingDelete: string | null = null;
 
   private editor: EditorSnapshot | null = null;
+
+  private recording = false;
+
+  private capturedCount = 0;
 
   private mcp: McpState = {
     allowControl: false,
@@ -815,6 +824,26 @@ export class MockTransport implements BridgeTransport {
           };
         }
         result = this.editor;
+        break;
+      case 'editor.sessionRecordStart':
+        this.recording = true;
+        this.capturedCount = 0;
+        result = { recording: true, captured: 0 };
+        break;
+      case 'editor.sessionRecordState':
+        if (this.recording) {
+          this.capturedCount += 1;
+        }
+        result = { recording: this.recording, captured: this.capturedCount };
+        break;
+      case 'editor.sessionRecordStop':
+        this.recording = false;
+        result = {
+          captured: this.capturedCount,
+          steps: this.capturedCount > 0 ? 1 : 0,
+          snapshot: this.editor,
+        };
+        this.capturedCount = 0;
         break;
       case 'editor.sessionSave':
         if (this.editor) {

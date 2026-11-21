@@ -819,6 +819,13 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void AppendSteps(IReadOnlyList<MacroStep> steps)
+    {
+        _model.AppendSteps(steps);
+        _model.SettleStepIds();
+        _model.IsDirty = true;
+    }
+
     public void DuplicateStep(string stepId)
     {
         var found = Find(stepId)

@@ -170,6 +170,19 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void Recorded_steps_can_be_appended_to_the_active_document()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "recorded" });
+        var session = HeadlessEditorSession.Open(workspace, "recorded");
+        session.AppendSteps([new MacroStep { Type = "control.delay" }]);
+
+        var step = Assert.Single(session.Snapshot().Steps);
+        Assert.Equal("control.delay", step.Type);
+        Assert.NotEmpty(step.Id);
+    }
+
+    [Fact]
     public void A_condition_parameter_can_edit_rows()
     {
         var workspace = new ProjectWorkspace();

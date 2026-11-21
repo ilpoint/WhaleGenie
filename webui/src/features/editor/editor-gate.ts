@@ -33,6 +33,14 @@ export class WgEditorGate extends LitElement {
   private actionSearch = '';
 
   @state()
+  private recording = false;
+
+  @state()
+  private captured = 0;
+
+  private recordTimer = 0;
+
+  @state()
   private selectedId = '';
 
   @state()
@@ -286,6 +294,12 @@ export class WgEditorGate extends LitElement {
       margin-bottom: var(--spacingVerticalM);
     }
 
+    .toolbar .record-status {
+      align-self: center;
+      color: var(--colorPaletteRedForeground1);
+      font-size: var(--font-size-base-200);
+    }
+
     .toolbar .action-search {
       font: inherit;
       padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
@@ -500,6 +514,10 @@ export class WgEditorGate extends LitElement {
     this.unsubscribeStrings?.();
     this.unsubscribeProject?.();
     window.removeEventListener('keydown', this.onKeydown);
+    window.clearInterval(this.recordTimer);
+    if (this.recording) {
+      void this.stopRecording();
+    }
     super.disconnectedCallback();
   }
 
@@ -954,6 +972,12 @@ export class WgEditorGate extends LitElement {
             <option value=${action.key} title=${action.categoryLabel}>${action.name}</option>
           `)}
         </select>
+        <fluent-button appearance=${this.recording ? 'accent' : 'neutral'} @click=${() => void this.toggleRecording()}>
+          ${this.recording ? t('Editor.StopRecording') : t('Editor.Record')}
+        </fluent-button>
+        ${this.recording
+          ? html`<span class="record-status">${t('Editor.RecordActive').replace('{0}', String(this.captured))}</span>`
+          : nothing}
         <fluent-button appearance="subtle" @click=${() => void this.addStep(false)}>
           ${t('Editor.AddStep')}
         </fluent-button>
@@ -1024,6 +1048,77 @@ export class WgEditorGate extends LitElement {
         break;
     }
   };
+
+  private async toggleRecording(): Promise<void> {
+    if (this.recording) {
+      await this.stopRecording();
+    } else {
+      await this.startRecording();
+    }
+  }
+
+  private async startRecording(): Promise<void> {
+    try {
+      const state = await bridge.value.call<{ recording: boolean; captured: number }>(
+        'editor.sessionRecordStart');
+      this.recording = state.recording;
+      this.captured = state.captured;
+      this.error = '';
+      window.clearInterval(this.recordTimer);
+      if (this.recording) {
+        this.recordTimer = window.setInterval(() => void this.pollRecording(), 500);
+      }
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async pollRecording(): Promise<void> {
+    try {
+      const state = await bridge.value.call<{
+        recording?: boolean;
+        captured: number;
+        snapshot?: EditorSnapshot;
+        steps?: number;
+      }>('editor.sessionRecordState');
+      this.captured = state.captured;
+      if (state.snapshot) {
+        this.snapshot = state.snapshot;
+        await this.loadTabs();
+      }
+
+      if (!state.recording) {
+        window.clearInterval(this.recordTimer);
+        this.recording = false;
+      }
+    } catch (error) {
+      this.recording = false;
+      window.clearInterval(this.recordTimer);
+      this.error = String(error);
+    }
+  }
+
+  private async stopRecording(): Promise<void> {
+    window.clearInterval(this.recordTimer);
+    try {
+      const result = await bridge.value.call<{
+        captured: number;
+        steps: number;
+        snapshot: EditorSnapshot;
+      }>('editor.sessionRecordStop');
+      this.recording = false;
+      this.captured = result.captured;
+      this.snapshot = result.snapshot;
+      if (result.steps === 0) {
+        this.error = t('Editor.RecordEmpty');
+      }
+
+      await this.loadTabs();
+    } catch (error) {
+      this.recording = false;
+      this.error = String(error);
+    }
+  }
 
   private filteredActions(): EditorAction[] {
     const needle = this.actionSearch.trim().toLocaleLowerCase();

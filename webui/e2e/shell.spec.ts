@@ -190,6 +190,18 @@ test('C1 步骤可改备注、超时与失败处理', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 可以开始与停止录制', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '开始录制' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionRecordStart')))
+    .toBe(true);
+  await page.locator('wg-editor-gate fluent-button', { hasText: '停止录制' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionRecordStop')))
+    .toBe(true);
+});
+
 test('C1 条件参数可按行编辑', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .action-search').fill('等待条件');

@@ -74,7 +74,9 @@ internal static class WindowedServices
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
                 () => sp.GetService<WebShellWindow>(), dialogs));
-            server.Register(new EditorSessionBridge(sp.GetRequiredService<ProjectWorkspace>()));
+            server.Register(new EditorSessionBridge(
+                sp.GetRequiredService<ProjectWorkspace>(),
+                sp.GetRequiredService<TriggerRuntime>().Devices));
             server.Register(sp.GetRequiredService<EditorBridge>());
             return server;
         })

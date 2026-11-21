@@ -2,7 +2,10 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Recording;
 using WhaleGenie.Editing;
+using WhaleGenie.ViewModels;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -13,9 +16,13 @@ namespace WhaleGenie.Bridge;
 /// step, save, close. The native editor is still the one a person uses; this is the path the page
 /// will take in C1, and the gate that proves it can be built without moving the model out of C#.
 /// </summary>
-internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeHandler
+internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLayer? devices = null)
+    : IBridgeHandler
 {
     private readonly HeadlessEditorWorkspace _documents = new(workspace);
+    private readonly IDeviceLayer? _devices = devices;
+    private RecordingSession? _recording;
+    private volatile bool _stopRecordingRequested;
 
     public void Register(BridgeServer server)
     {
@@ -61,6 +68,9 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionGlobalAdd", _ => Task.FromResult<object?>(AddGlobal()));
         server.Register("editor.sessionGlobalPatch", PatchGlobal);
         server.Register("editor.sessionGlobalRemove", RemoveGlobal);
+        server.Register("editor.sessionRecordStart", _ => Task.FromResult<object?>(StartRecording()));
+        server.Register("editor.sessionRecordStop", _ => Task.FromResult<object?>(StopRecording()));
+        server.Register("editor.sessionRecordState", _ => Task.FromResult<object?>(RecordingState()));
         server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
         server.Register("editor.sessionClose", Close);
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
@@ -288,6 +298,59 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
+    }
+
+    private object StartRecording()
+    {
+        if (_devices is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.Internal,
+                Strings.Get("Editor.RecordFailed"));
+        }
+
+        _recording ??= new RecordingSession();
+        _stopRecordingRequested = false;
+        if (!_recording.Start(_devices, ignoreInjected: true, recordController: false,
+            () => _stopRecordingRequested = true))
+        {
+            _recording = null;
+            throw new BridgeFailureException(BridgeErrors.Internal,
+                Strings.Get("Editor.RecordFailed"));
+        }
+
+        return RecordingState();
+    }
+
+    private object StopRecording()
+    {
+        var outcome = _recording?.Stop(new RecordingOptions()) ?? new RecordingSession.Outcome([], 0);
+        _recording = null;
+        if (outcome.Steps.Count > 0)
+        {
+            Required().AppendSteps(outcome.Steps);
+        }
+
+        return new
+        {
+            captured = outcome.Captured,
+            steps = outcome.Steps.Count,
+            snapshot = Snapshot(),
+        };
+    }
+
+    private object RecordingState()
+    {
+        if (_stopRecordingRequested)
+        {
+            _stopRecordingRequested = false;
+            return StopRecording();
+        }
+
+        return new
+        {
+            recording = _recording?.IsRecording == true,
+            captured = _recording?.Captured ?? 0,
+        };
     }
 
     private Task<object?> SetStepMeta(JsonElement parameters)
