@@ -128,6 +128,7 @@ public class ProjectBridgeTests : IDisposable
         var answer = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":2"))).RootElement;
         Assert.False(answer.GetProperty("ok").GetBoolean());
         Assert.Equal(BridgeErrors.NoSuchMacro, answer.GetProperty("error").GetProperty("code").GetString());
+        Assert.Contains("没有", answer.GetProperty("error").GetProperty("message").GetString());
     }
 
     [Fact]

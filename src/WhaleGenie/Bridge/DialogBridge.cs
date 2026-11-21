@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Bridge;
 
@@ -59,7 +60,8 @@ public sealed class DialogBridge : IBridgeHandler, IDisposable
     {
         if (!parameters.TryGetProperty("requestId", out var named) || !named.TryGetInt32(out var id))
         {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, "dialog.respond needs a requestId");
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.DialogNeedsRequestId"));
         }
 
         var accepted = parameters.TryGetProperty("accepted", out var given) && given.ValueKind == JsonValueKind.True;

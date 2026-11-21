@@ -133,7 +133,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             string.Equals(candidate.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
         if (macro is null)
         {
-            throw new BridgeFailureException(BridgeErrors.NoSuchMacro, $"There is no macro named \"{wanted}\".");
+            throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                Strings.Format("Bridge.NoSuchMacro", wanted ?? string.Empty));
         }
 
         _workspace.ToggleMacro(macro);
@@ -221,7 +222,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                $"{Path.GetFileName(path)}\n{error.Message}");
+                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path), error.Message));
         }
     }
 
@@ -232,7 +233,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             string.Equals(candidate.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
         if (macro is null)
         {
-            throw new BridgeFailureException(BridgeErrors.NoSuchMacro, $"There is no macro named \"{wanted}\".");
+            throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                Strings.Format("Bridge.NoSuchMacro", wanted ?? string.Empty));
         }
 
         return macro;
@@ -274,7 +276,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                $"{Path.GetFileName(path)}\n{error.Message}");
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
         }
 
         var nodes = await MacroChooseWindow.ShowAsync(window, MacroChooseKind.Import,
@@ -318,7 +320,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                $"{Path.GetFileName(path)}\n{error.Message}");
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
         }
     }
 
@@ -327,7 +329,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         if (!parameters.TryGetProperty("enabled", out var given)
             || given.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
         {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, "project.system needs an enabled flag");
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.SystemNeedsFlag"));
         }
 
         // The switch is the same object the window and the hotkey write; the trigger host answers
@@ -384,7 +387,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                $"{Path.GetFileName(path)}\n{error.Message}");
+                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path), error.Message));
         }
     }
 
@@ -418,7 +421,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         if (_workspace.CurrentPath is not { Length: > 0 } path)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
-                "project.reload needs a project that has a file");
+                Strings.Get("Bridge.ReloadNeedsFile"));
         }
 
         await OpenPackage(path);
@@ -465,7 +468,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                $"{Path.GetFileName(path)}\n{error.Message}");
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
         }
     }
 

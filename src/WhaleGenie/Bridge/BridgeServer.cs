@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Bridge;
@@ -126,7 +127,7 @@ public sealed class BridgeServer
             if (!_methods.TryGetValue(method, out var handler))
             {
                 await AnswerFailureAsync(id, BridgeErrors.NoSuchMethod,
-                    $"the bridge has no method named {method}");
+                    Strings.Format("Bridge.NoSuchMethod", method));
                 return;
             }
 
@@ -146,7 +147,7 @@ public sealed class BridgeServer
             catch (Exception error)
             {
                 AppDiagnostics.Record("bridge.method", error);
-                await AnswerFailureAsync(id, BridgeErrors.Internal, error.Message);
+                await AnswerFailureAsync(id, BridgeErrors.Internal, Strings.Get("Bridge.Internal"));
                 return;
             }
 

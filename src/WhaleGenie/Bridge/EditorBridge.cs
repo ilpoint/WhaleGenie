@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -62,7 +63,8 @@ public sealed class EditorBridge : IBridgeHandler
             string.Equals(candidate.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
         if (macro is null)
         {
-            throw new BridgeFailureException(BridgeErrors.NoSuchMacro, $"There is no macro named \"{wanted}\".");
+            throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                Strings.Format("Bridge.NoSuchMacro", wanted ?? string.Empty));
         }
 
         return Answer(OpenEditor(_project(), macro, macro, null));

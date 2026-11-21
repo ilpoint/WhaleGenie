@@ -61,7 +61,7 @@ public sealed class AppBridge(ProjectWorkspace workspace, Func<AppTray?> tray) :
             || uri.Scheme is not ("http" or "https"))
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
-                "app.openExternal needs an absolute http or https address");
+                Strings.Get("Bridge.OpenExternalNeedsHttp"));
         }
 
         Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
