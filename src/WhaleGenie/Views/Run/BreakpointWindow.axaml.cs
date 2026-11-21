@@ -31,18 +31,20 @@ public partial class BreakpointWindow : AppWindow
         viewModel.Finished += () => Close(viewModel);
     }
 
-    /// <summary>The builder the action form opens for a condition, opened on the same expression.</summary>
-    private async void OnOpenValuePicker(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    /// <summary>The condition is a line of text; the dialog keeps the run-window dependency small.</summary>
+    private async void OnEditCondition(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is not BreakpointViewModel form)
         {
             return;
         }
 
-        if (await ValuePickerWindow.ShowFor(this, form.Expression, form.Choices,
-            ActionValueForm.Value) is { Chosen: true } built)
+        var answer = await TextPromptDialog.ShowAsync(this, Strings.Get("Run.BreakpointCondition"),
+            new AskQuestion(AskKind.Text, Strings.Get("Run.BreakpointExpressionHint"),
+                form.ExpressionLine));
+        if (answer.Confirmed)
         {
-            form.Expression = built.Value;
+            form.ExpressionLine = answer.Text;
         }
     }
 

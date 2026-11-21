@@ -193,8 +193,8 @@ MainViewModel 暂留作设置/运行窗口的无窗视图模型。未迁入的�
 
 编辑器在 C0 走同一方向：`HeadlessEditorSession` 持有 `MacroEditorViewModel` 与
 `ProjectMacroCommit`，桥的 `editor.sessionOpen/State/Patch/Step/Save/Close/Actions` 只传快照与命令；
-网页编辑器不保存自己的宏副本。C1 已把会话扩成完整文档、步骤树、动作表单、条件与宏设置；C2 进入
-删除原生编辑器窗口、动作/取值窗口的阶段，C# 编辑模型与桥仍是唯一模型。
+网页编辑器不保存自己的宏副本。C1 已把会话扩成完整文档、步骤树、动作表单、条件与宏设置；C2 已删除
+原生编辑器、动作编辑与取值窗口，C# 编辑模型与桥仍是唯一模型。
 
 桥推送的时序也是契约：ready 前同一事件只留最新一份；页面显式取 `project.state`、`theme.get` 或
 `strings.bundle` 时清掉同域 pending；所有发送串行。页面问话在无页时立即答否，页内应答超时也
