@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -41,6 +42,46 @@ public class EditorGateTests
         Assert.Equal("after", snapshot.Description);
         Assert.Equal(2, snapshot.StepCount);
         Assert.Equal(["control.log", "control.delay"], reopened.StepTypes);
+    }
+
+    [Fact]
+    public void Step_tree_ids_and_parameter_edits_survive_the_session()
+    {
+        var workspace = new ProjectWorkspace();
+        var macro = new MacroItem { Name = "tree" };
+        macro.Steps.Add(new MacroStep
+        {
+            Type = "control.delay",
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "ms",
+                    Kind = ActionParameterKind.Number,
+                    Written = WhaleGenie.Core.Expressions.Formula.Number("500", 500),
+                },
+            ],
+        });
+        workspace.AddMacro(macro);
+
+        var session = HeadlessEditorSession.Open(workspace, "tree");
+        var first = Assert.Single(session.Snapshot().Steps);
+        Assert.False(string.IsNullOrEmpty(first.Id));
+        Assert.Equal("500", Assert.Single(first.Parameters).Value);
+
+        session.PatchParameter(first.Id, "ms", "750");
+        session.AddStep("control.log");
+        var steps = session.Snapshot().Steps;
+        Assert.Equal("750", Assert.Single(steps[0].Parameters).Value);
+
+        session.MoveStep(steps[1].Id, -1);
+        var moved = session.Snapshot().Steps;
+        Assert.Equal("control.log", moved[0].Type);
+        Assert.Equal("control.delay", moved[1].Type);
+
+        session.RemoveStep(moved[0].Id);
+        Assert.Equal("control.delay", Assert.Single(session.Snapshot().Steps).Type);
+        Assert.True(session.IsDirty);
     }
 
     [Fact]

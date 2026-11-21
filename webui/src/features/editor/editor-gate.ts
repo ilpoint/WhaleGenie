@@ -119,7 +119,7 @@ export class WgEditorGate extends LitElement {
       ${this.snapshot.steps.length === 0
         ? html`<p class="steps">${t('Editor.NoSteps')}</p>`
         : html`<ol class="steps">
-            ${this.snapshot.steps.map((step) => html`<li>${stepType(step)}</li>`)}
+            ${this.snapshot.steps.map((step) => html`<li>${step.name}</li>`)}
           </ol>`}
       <p class="steps">${t('Editor.GateActions').replace('{0}', String(this.actions))}</p>
       <div class="actions">
@@ -188,14 +188,6 @@ export class WgEditorGate extends LitElement {
     } finally {
       this.snapshot = null;
     }
-  }
-}
-
-function stepType(step: string): string {
-  try {
-    return (JSON.parse(step) as { type?: string }).type ?? step;
-  } catch {
-    return step;
   }
 }
 

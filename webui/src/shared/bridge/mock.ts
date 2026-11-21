@@ -284,7 +284,14 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             stepCount: this.editor.stepCount + 1,
-            steps: [...this.editor.steps, JSON.stringify({ type: String(params['type'] ?? '') })],
+            steps: [...this.editor.steps, {
+              id: 'mock',
+              type: String(params['type'] ?? ''),
+              name: String(params['type'] ?? ''),
+              enabled: true,
+              parameters: [],
+              steps: [],
+            }],
           };
         }
         result = this.editor;

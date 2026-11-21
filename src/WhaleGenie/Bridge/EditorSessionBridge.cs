@@ -23,6 +23,9 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
+        server.Register("editor.sessionParameter", PatchParameter);
+        server.Register("editor.sessionMove", MoveStep);
+        server.Register("editor.sessionRemove", RemoveStep);
         server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
         server.Register("editor.sessionClose", _ => Task.FromResult<object?>(Close()));
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
@@ -71,6 +74,71 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         }
     }
 
+    private Task<object?> PatchParameter(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var given) ? given.GetString() : null;
+        if (stepId is not { Length: > 0 } || name is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        try
+        {
+            Required().PatchParameter(stepId, name, value);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> MoveStep(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var delta = parameters.TryGetProperty("delta", out var given) && given.TryGetInt32(out var value)
+            ? value
+            : 0;
+        if (stepId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsStep"));
+        }
+
+        try
+        {
+            Required().MoveStep(stepId, delta);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> RemoveStep(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        if (stepId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsStep"));
+        }
+
+        try
+        {
+            Required().RemoveStep(stepId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
     private object? Save()
     {
         var session = Required();
@@ -101,11 +169,12 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
             }
             : null;
 
-    private static object Actions() => new
-    {
-        count = ActionCatalog.Definitions.Count,
-        keys = ActionCatalog.Definitions.Select(action => action.Key).ToArray(),
-    };
+    private static object Actions()
+        => new
+        {
+            count = ActionCatalog.Definitions.Count,
+            actions = HeadlessEditorSession.Actions(),
+        };
 
     private HeadlessEditorSession Required()
         => _session ?? throw new BridgeFailureException(BridgeErrors.BadArgument,

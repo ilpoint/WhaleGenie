@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -66,9 +66,6 @@ internal sealed class HeadlessEditorSession
     public IReadOnlyList<string> StepTypes
         => [.. _model.Draft().Macro.Steps.Select(step => step.Type)];
 
-    public IReadOnlyList<JsonObject> Steps
-        => [.. _model.Draft().Macro.Steps.Select(step => step.ToJson())];
-
     public void Patch(string? name = null, string? description = null)
     {
         if (name is not null)
@@ -84,6 +81,41 @@ internal sealed class HeadlessEditorSession
 
     public void AddStep(string type) => _model.AddStep(new MacroStep { Type = type });
 
+    public void PatchParameter(string stepId, string name, string value)
+    {
+        var step = FindStep(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        var parameter = step.Parameters.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name, name, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("step " + stepId + " has no parameter " + name);
+        parameter.Written = Formula.Text(value);
+        _model.IsDirty = true;
+    }
+
+    public void MoveStep(string stepId, int delta)
+    {
+        var found = Find(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        var target = Math.Clamp(found.Index + delta, 0, found.List.Count - 1);
+        if (target == found.Index)
+        {
+            return;
+        }
+
+        var step = found.List[found.Index];
+        found.List.RemoveAt(found.Index);
+        found.List.Insert(target, step);
+        _model.IsDirty = true;
+    }
+
+    public void RemoveStep(string stepId)
+    {
+        var found = Find(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        found.List.RemoveAt(found.Index);
+        _model.IsDirty = true;
+    }
+
     /// <summary>Writes the draft through the same rule the native editor and the MCP save use.</summary>
     public bool Save()
     {
@@ -98,15 +130,99 @@ internal sealed class HeadlessEditorSession
     /// <summary>What the page will draw: the macro's fields and its step tree as the engine reads it.</summary>
     public EditorSnapshot Snapshot()
     {
+        _model.SettleStepIds();
         var macro = _model.Draft().Macro;
         return new EditorSnapshot(
             Name,
             Description,
             IsDirty,
-            macro.Steps.Count,
-            [.. macro.Steps.Select(step => step.ToJson().ToJsonString())]);
+            Count(macro.Steps),
+            [.. macro.Steps.Select(StepSnapshot)]);
+    }
+
+    /// <summary>The action catalogue, in the order the picker shows it and with its form fields.</summary>
+    public static IReadOnlyList<EditorActionSnapshot> Actions()
+        => [.. ActionCatalog.Definitions.Select(action => new EditorActionSnapshot(
+            action.Key,
+            action.LocalName,
+            action.Category.ToString(),
+            action.LocalDescription,
+            [.. action.Parameters
+                .Where(parameter => parameter.Kind != ActionParameterKind.Steps)
+                .Select(parameter => new EditorActionParameterSnapshot(
+                    parameter.Name,
+                    parameter.LocalLabel,
+                    parameter.Kind.ToString(),
+                    parameter.Required,
+                    parameter.Placeholder))]))];
+
+    private static int Count(IReadOnlyList<MacroStep> steps)
+        => steps.Count + steps.Sum(step => step.Parameters
+            .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
+            .Sum(parameter => Count(parameter.Steps)));
+
+    private static EditorStepSnapshot StepSnapshot(MacroStep step)
+    {
+        var definition = ActionCatalog.Definitions.FirstOrDefault(action => action.Key == step.Type);
+        var parameters = step.Parameters
+            .Where(parameter => parameter.Kind != ActionParameterKind.Steps)
+            .Select(parameter => new EditorParameterSnapshot(
+                parameter.Name,
+                definition?.Parameters.FirstOrDefault(field => field.Name == parameter.Name)?.LocalLabel
+                    ?? parameter.Name,
+                parameter.Kind.ToString(),
+                parameter.Value))
+            .ToList();
+        var children = step.Parameters
+            .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
+            .SelectMany(parameter => parameter.Steps)
+            .Select(StepSnapshot)
+            .ToList();
+        return new EditorStepSnapshot(step.Id, step.Type,
+            definition?.LocalName ?? step.Type, step.Meta.IsEnabled, parameters, children);
+    }
+
+    private MacroStep? FindStep(string stepId)
+        => Find(stepId) is { } found ? found.List[found.Index] : null;
+
+    private (IList<MacroStep> List, int Index)? Find(string stepId)
+    {
+        foreach (var (list, index) in Walk(_model.Steps))
+        {
+            if (string.Equals(list[index].Id, stepId, StringComparison.Ordinal))
+            {
+                return (list, index);
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<(IList<MacroStep> List, int Index)> Walk(IList<MacroStep> steps)
+    {
+        for (var index = 0; index < steps.Count; index++)
+        {
+            yield return (steps, index);
+            foreach (var children in steps[index].Parameters
+                         .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
+                         .SelectMany(parameter => Walk(parameter.Steps)))
+            {
+                yield return children;
+            }
+        }
     }
 }
 
 internal sealed record EditorSnapshot(string Name, string Description, bool Dirty, int StepCount,
-    IReadOnlyList<string> Steps);
+    IReadOnlyList<EditorStepSnapshot> Steps);
+
+internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
+    IReadOnlyList<EditorParameterSnapshot> Parameters, IReadOnlyList<EditorStepSnapshot> Steps);
+
+internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value);
+
+internal sealed record EditorActionSnapshot(string Key, string Name, string Category, string Description,
+    IReadOnlyList<EditorActionParameterSnapshot> Parameters);
+
+internal sealed record EditorActionParameterSnapshot(string Name, string Label, string Kind, bool Required,
+    string Placeholder);
