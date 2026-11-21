@@ -47,10 +47,14 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>Where a macro switch's sound goes; a check hands in a recorder.</summary>
     private readonly Action<UiSound> _playSound;
 
+    /// <summary>Remembers the last package; a check hands in a no-op so it leaves no trace.</summary>
+    private readonly Action<string> _rememberProject;
+
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        Func<Window?> window, DialogBridge dialogs, Action<UiSound>? playSound = null)
+        Func<Window?> window, DialogBridge dialogs, Action<UiSound>? playSound = null,
+        Action<string>? rememberProject = null)
     {
         _workspace = workspace;
         _runtime = runtime;
@@ -58,6 +62,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _window = window;
         _dialogs = dialogs;
         _playSound = playSound ?? AppSound.Play;
+        _rememberProject = rememberProject ?? LocalSettings.StoreLastProject;
     }
 
     public void Register(BridgeServer server)
@@ -386,7 +391,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         try
         {
             _workspace.SavePackage(path);
-            LocalSettings.StoreLastProject(path);
+            _rememberProject(path);
             await PushState();
             return null;
         }
@@ -468,7 +473,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         try
         {
             _workspace.OpenPackage(path);
-            LocalSettings.StoreLastProject(path);
+            _rememberProject(path);
             await PushState();
         }
         catch (Exception error)

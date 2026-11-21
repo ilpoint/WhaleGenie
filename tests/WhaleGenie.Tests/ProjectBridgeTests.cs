@@ -27,39 +27,18 @@ public class ProjectBridgeTests : IDisposable
 
     private readonly DialogBridge _dialogs;
 
-    /// <summary>
-    /// Opening and saving remember the last project in the settings file this machine shares with
-    /// the real program. The file goes back the way it was found, so a check leaves no choice of
-    /// its own behind.
-    /// </summary>
-    private readonly string? _savedSettings;
-
     public ProjectBridgeTests()
     {
-        _savedSettings = File.Exists(Models.AppPaths.Settings)
-            ? File.ReadAllText(Models.AppPaths.Settings)
-            : null;
         _server.Attach(_channel);
         // The window answers null in a check, which is what makes the file dialogs answer
         // "called off" — a package path handed in directly still goes through.
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
         _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null, _dialogs,
-            sound => _sounds.Add(sound)));
+            sound => _sounds.Add(sound), rememberProject: _ => { }));
     }
 
-    public void Dispose()
-    {
-        _runtime.Dispose();
-        if (_savedSettings is { } settings)
-        {
-            File.WriteAllText(Models.AppPaths.Settings, settings);
-        }
-        else if (File.Exists(Models.AppPaths.Settings))
-        {
-            File.Delete(Models.AppPaths.Settings);
-        }
-    }
+    public void Dispose() => _runtime.Dispose();
 
     private static IReadOnlyList<string> Names(JsonElement array)
         => array.EnumerateArray().Select(item => item.GetString() ?? string.Empty).ToList();
