@@ -41,6 +41,10 @@ internal sealed class SettingsBridge : IBridgeHandler
             logCount = _settings.LogCount,
             language = Strings.Current.Language == Language.Chinese ? "zh-Hans" : "en",
             theme = _settings.SelectedTheme.Mode.ToString(),
+            systemHotkey = _settings.SystemHotkey,
+            recordStopKey = _settings.RecordStopKey,
+            systemHotkeyProblem = _settings.SystemHotkeyProblem,
+            recordStopProblem = _settings.RecordStopProblem,
         };
 
     private Task<object?> Update(JsonElement parameters)
@@ -105,6 +109,30 @@ internal sealed class SettingsBridge : IBridgeHandler
             case "theme":
                 _settings.SelectedTheme = _settings.ThemeOptions.First(option =>
                     string.Equals(option.Mode.ToString(), value, StringComparison.OrdinalIgnoreCase));
+                break;
+            case "systemHotkey":
+                if (value.Length == 0)
+                {
+                    _settings.ClearSystemHotkey();
+                }
+                else if (!_settings.CaptureSystemHotkey(value))
+                {
+                    throw new BridgeFailureException(BridgeErrors.BadArgument,
+                        _settings.SystemHotkeyProblem);
+                }
+
+                break;
+            case "recordStopKey":
+                if (value.Length > 0 && !_settings.CaptureRecordStop(value))
+                {
+                    throw new BridgeFailureException(BridgeErrors.BadArgument,
+                        _settings.RecordStopProblem);
+                }
+                else if (value.Length == 0)
+                {
+                    _settings.RecordStopKey = string.Empty;
+                }
+
                 break;
             default:
                 throw new BridgeFailureException(BridgeErrors.BadArgument,

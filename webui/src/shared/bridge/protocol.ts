@@ -228,6 +228,10 @@ export interface SettingsState {
   logCount: number;
   language: string;
   theme: string;
+  systemHotkey: string;
+  recordStopKey: string;
+  systemHotkeyProblem: string;
+  recordStopProblem: string;
 }
 
 export interface LibraryEntry {

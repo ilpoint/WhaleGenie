@@ -29,7 +29,9 @@ const chromeKeys = [
   'Settings.Reading', 'Settings.PreloadOcr', 'Settings.FramesCard', 'Settings.FrameRateFollow',
   'Settings.FrameRate', 'Settings.FrameCache', 'Settings.FrameCacheAge', 'Settings.InputCard',
   'Settings.IgnoreOwnInput', 'Settings.InputLimit', 'Settings.LogCount',
-  'Settings.Language', 'Settings.Language.English', 'Settings.Language.Chinese', 'Settings.Theme', 'Theme.Mode.Dark', 'Theme.Mode.Light',
+  'Settings.Language', 'Settings.Language.English', 'Settings.Language.Chinese', 'Settings.Theme',
+  'Settings.Hotkeys', 'Settings.SystemHotkey', 'Settings.RecordStopKey', 'Settings.HotkeySet',
+  'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Theme.Mode.Dark', 'Theme.Mode.Light',
   'Theme.Mode.Custom',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
   'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
@@ -195,7 +197,10 @@ const english: Record<string, string> = {
   'Settings.IgnoreOwnInput': 'Ignore own input', 'Settings.InputLimit': 'Input limit',
   'Settings.LogCount': 'Keep recent logs', 'Settings.Language': 'Language',
   'Settings.Language.English': 'English', 'Settings.Language.Chinese': 'Chinese',
-  'Settings.Theme': 'Theme', 'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
+  'Settings.Theme': 'Theme', 'Settings.Hotkeys': 'Hotkeys',
+  'Settings.SystemHotkey': 'System hotkey', 'Settings.RecordStopKey': 'Record stop key',
+  'Settings.HotkeySet': 'Set shortcut', 'Settings.HotkeyPress': 'Press a key…',
+  'Settings.HotkeyClear': 'Clear', 'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
   'Theme.Mode.Custom': 'Custom',
 
   'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
@@ -317,7 +322,10 @@ const chinese: Record<string, string> = {
   'Settings.IgnoreOwnInput': '忽略本程序发出的输入', 'Settings.InputLimit': '输入限制',
   'Settings.LogCount': '保留最近日志', 'Settings.Language': '语言',
   'Settings.Language.English': 'English', 'Settings.Language.Chinese': '中文',
-  'Settings.Theme': '主题', 'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
+  'Settings.Theme': '主题', 'Settings.Hotkeys': '热键',
+  'Settings.SystemHotkey': '系统热键', 'Settings.RecordStopKey': '录制停止键',
+  'Settings.HotkeySet': '设置快捷键', 'Settings.HotkeyPress': '请按一个键…',
+  'Settings.HotkeyClear': '清除', 'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
   'Theme.Mode.Custom': '自定义',
 
   'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
@@ -359,6 +367,8 @@ export class MockTransport implements BridgeTransport {
     inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
     frameCache: false, frameCacheAge: 100, logCount: 100,
     language: 'zh-Hans', theme: 'Dark',
+    systemHotkey: 'Ctrl+F12', recordStopKey: 'Ctrl+F10',
+    systemHotkeyProblem: '', recordStopProblem: '',
   };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
@@ -476,6 +486,7 @@ export class MockTransport implements BridgeTransport {
         this.settingsState = {
           ...this.settingsState,
           [field]: field === 'language' || field === 'theme'
+            || field === 'systemHotkey' || field === 'recordStopKey'
             ? value
             : value === 'true' ? true : value === 'false' ? false : Number(value),
         };

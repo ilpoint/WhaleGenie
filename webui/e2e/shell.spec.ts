@@ -652,6 +652,14 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .toBe(true);
 });
 
+test('设置页可捕获系统热键', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  const hotkey = page.locator('wg-settings .hotkey').first();
+  await hotkey.locator('fluent-button', { hasText: '设置快捷键' }).click();
+  await page.keyboard.press('Control+Alt+F9');
+  await expect(hotkey.locator('input')).toHaveValue('Ctrl+Alt+F9');
+});
+
 test('设置页可改语言与主题', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   const general = page.locator('wg-settings .card').first();
@@ -668,10 +676,10 @@ test('设置页可改常规与画面选项', async ({ page }) => {
   await expect(page.locator('wg-settings h1')).toHaveText('设置');
   const general = page.locator('wg-settings .card').first();
   await general.locator('input[type="checkbox"]').first().uncheck();
-  const frames = page.locator('wg-settings .card').nth(3);
+  const frames = page.locator('wg-settings .card').filter({ hasText: '画面' }).first();
   await frames.locator('input[type="checkbox"]').first().uncheck();
   await frames.locator('input[type="number"]').first().fill('30');
-  await page.locator('wg-settings .card').nth(3).locator('input[type="number"]').first().press('Tab');
+  await frames.locator('input[type="number"]').first().press('Tab');
 
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.update')))

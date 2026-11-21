@@ -13,6 +13,9 @@ export class WgSettings extends LitElement {
   @state()
   private error = '';
 
+  @state()
+  private capturing: 'systemHotkey' | 'recordStopKey' | '' = '';
+
   private unsubscribe?: () => void;
 
   static styles = css`
@@ -56,6 +59,13 @@ export class WgSettings extends LitElement {
 
     .row label {
       color: var(--colorNeutralForeground1);
+    }
+
+    .hotkey {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto auto;
+      gap: var(--spacingHorizontalS);
+      align-items: center;
     }
 
     .row input[type="number"],
@@ -112,6 +122,13 @@ export class WgSettings extends LitElement {
           ${this.toggle('loadLastProjectAtStart', 'Settings.LoadLastProject')}
           ${this.toggle('systemAtStart', 'Settings.SystemAtStart')}
           ${this.toggle('enabledFirst', 'Settings.EnabledFirst')}
+        </section>
+        <section class="card">
+          <h2>${t('Settings.Hotkeys')}</h2>
+          ${this.hotkey('systemHotkey', 'Settings.SystemHotkey', this.settings.systemHotkey,
+            this.settings.systemHotkeyProblem)}
+          ${this.hotkey('recordStopKey', 'Settings.RecordStopKey', this.settings.recordStopKey,
+            this.settings.recordStopProblem)}
         </section>
         <section class="card">
           <h2>${t('Settings.Sounds')}</h2>
@@ -171,9 +188,80 @@ export class WgSettings extends LitElement {
     }
   }
 
+  private hotkey(
+    field: 'systemHotkey' | 'recordStopKey',
+    label: string,
+    value: string,
+    problem: string,
+  ) {
+    return html`
+      <div class="hotkey">
+        <label>${t(label)}</label>
+        <input readonly data-hotkey=${field} .value=${value}
+          @keydown=${(event: KeyboardEvent) => void this.captureHotkey(field, event)} />
+        <fluent-button appearance="subtle" @click=${() => void this.startCapture(field)}>
+          ${t(this.capturing === field ? 'Settings.HotkeyPress' : 'Settings.HotkeySet')}
+        </fluent-button>
+        <fluent-button appearance="subtle" @click=${() => void this.setSettingValue(field, '')}>
+          ${t('Settings.HotkeyClear')}
+        </fluent-button>
+      </div>
+      ${problem ? html`<p class="error">${problem}</p>` : nothing}
+    `;
+  }
+
+  private async startCapture(field: 'systemHotkey' | 'recordStopKey'): Promise<void> {
+    this.capturing = field;
+    await this.updateComplete;
+    this.renderRoot
+      .querySelector<HTMLInputElement>(`input[data-hotkey="${field}"]`)
+      ?.focus();
+  }
+
+  private async captureHotkey(
+    field: 'systemHotkey' | 'recordStopKey',
+    event: KeyboardEvent,
+  ): Promise<void> {
+    if (this.capturing !== field) {
+      return;
+    }
+
+    if (['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    let key = event.key === ' ' ? 'Space' : event.key;
+    if (key.length === 1) {
+      key = key.toUpperCase();
+    }
+
+    const parts: string[] = [];
+    if (event.ctrlKey) {
+      parts.push('Ctrl');
+    }
+    if (event.altKey) {
+      parts.push('Alt');
+    }
+    if (event.shiftKey) {
+      parts.push('Shift');
+    }
+    if (event.metaKey) {
+      parts.push('Win');
+    }
+    parts.push(key);
+    this.capturing = '';
+    await this.setSettingValue(field, parts.join('+'));
+  }
+
   private async changeSetting(field: keyof SettingsState, event: Event): Promise<void> {
     const target = event.target as HTMLInputElement;
     const value = target.type === 'checkbox' ? String(target.checked) : target.value;
+    await this.setSettingValue(field, value);
+  }
+
+  private async setSettingValue(field: keyof SettingsState, value: string): Promise<void> {
     try {
       this.settings = await bridge.value.call<SettingsState>('settings.update', { field, value });
       this.error = '';
