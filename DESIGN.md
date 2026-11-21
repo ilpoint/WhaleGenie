@@ -258,6 +258,8 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 - 界面颜色全部来自 Fluent 令牌：表面用 `--colorNeutralBackground*`，文字用
   `--colorNeutralForeground*`，边框用 `--colorNeutralStroke*`，交互反馈用同名 `Hover/Pressed`
   变体，焦点用 `--colorStrokeFocus2`。不写十六进制色值（品牌色阶派生与测试夹具除外）。
+  项目覆盖令牌只有一个：`--shell-scrim`，浮层（确认框、MCP 面板）压在内容上的半透明暗层，
+  深浅两档由 `theme.ts` 随主题铺——Fluent 没有遮罩令牌，这是壳自己的那一格。
 - 强调色家族由程序侧 `ThemeController` 决定：内置深浅两套用 Fluent 默认品牌色；自定义强调色经
   `ThemePalette` 的对比度底线把关后，由 `webui/src/shared/theme/brand.ts` 派生十六档品牌色阶交给
   `createDarkTheme/createLightTheme`。派生失败（不是一个颜色）回退内置主题，页面不自行修色。

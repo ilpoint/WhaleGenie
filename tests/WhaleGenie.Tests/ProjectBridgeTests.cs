@@ -23,15 +23,40 @@ public class ProjectBridgeTests : IDisposable
     private readonly BridgeServer _server = new();
     private readonly RecordingChannel _channel = new();
 
+    private readonly DialogBridge _dialogs;
+
+    /// <summary>
+    /// Opening and saving remember the last project in the settings file this machine shares with
+    /// the real program. The file goes back the way it was found, so a check leaves no choice of
+    /// its own behind.
+    /// </summary>
+    private readonly string? _savedSettings;
+
     public ProjectBridgeTests()
     {
+        _savedSettings = File.Exists(Models.AppPaths.Settings)
+            ? File.ReadAllText(Models.AppPaths.Settings)
+            : null;
         _server.Attach(_channel);
         // The window answers null in a check, which is what makes the file dialogs answer
         // "called off" — a package path handed in directly still goes through.
-        _server.Register(new ProjectBridge(_workspace, _runtime, () => null));
+        _dialogs = new DialogBridge();
+        _server.Register(_dialogs);
+        _server.Register(new ProjectBridge(_workspace, _runtime, () => null, _dialogs));
     }
 
-    public void Dispose() => _runtime.Dispose();
+    public void Dispose()
+    {
+        _runtime.Dispose();
+        if (_savedSettings is { } settings)
+        {
+            File.WriteAllText(Models.AppPaths.Settings, settings);
+        }
+        else if (File.Exists(Models.AppPaths.Settings))
+        {
+            File.Delete(Models.AppPaths.Settings);
+        }
+    }
 
     private static IReadOnlyList<string> Names(JsonElement array)
         => array.EnumerateArray().Select(item => item.GetString() ?? string.Empty).ToList();
@@ -112,6 +137,62 @@ public class ProjectBridgeTests : IDisposable
         _workspace.AddMacro(new MacroItem { Name = "MCP 写进来的" });
 
         Assert.Contains(_channel.Sent, text => text.Contains("\"event\":\"project.changed\""));
+    }
+
+    [Fact]
+    public async Task Closing_everything_asks_the_page_and_waits_for_the_answer()
+    {
+        _workspace.AddMacro(new MacroItem { Name = "要被清掉的" });
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _channel.Sent.Clear();
+
+        // The page answers "confirm": the list empties and the change rides back.
+        var asking = _server.AcceptAsync("""{"id":2,"method":"project.closeAll"}""");
+        var request = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"dialog.request\""))).RootElement;
+        Assert.Equal("关闭全部宏", request.GetProperty("payload").GetProperty("title").GetString());
+
+        var requestId = request.GetProperty("payload").GetProperty("requestId").GetInt32();
+        await _server.AcceptAsync(
+            JsonSerializer.Serialize(new { id = 3, method = "dialog.respond", @params = new { requestId, accepted = true } }));
+        await asking;
+
+        Assert.Empty(_workspace.Macros);
+        Assert.Null(_workspace.CurrentPath);
+    }
+
+    [Fact]
+    public async Task A_dismissed_question_changes_nothing()
+    {
+        _workspace.AddMacro(new MacroItem { Name = "留下来的" });
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _channel.Sent.Clear();
+
+        var asking = _server.AcceptAsync("""{"id":2,"method":"project.closeAll"}""");
+        var request = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"dialog.request\""))).RootElement;
+        var requestId = request.GetProperty("payload").GetProperty("requestId").GetInt32();
+        await _server.AcceptAsync(
+            JsonSerializer.Serialize(new { id = 3, method = "dialog.respond", @params = new { requestId, accepted = false } }));
+        await asking;
+
+        Assert.Single(_workspace.Macros);
+    }
+
+    [Fact]
+    public async Task A_fresh_page_answers_every_open_question_no()
+    {
+        _workspace.AddMacro(new MacroItem { Name = "留下来的" });
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _channel.Sent.Clear();
+
+        // Nobody will answer this one: the page is replaced before it could.
+        var asking = _server.AcceptAsync("""{"id":2,"method":"project.closeAll"}""");
+
+        // A fresh page re-attaches (which resets the server) and says it is ready.
+        _server.Attach(_channel);
+        await _server.AcceptAsync("""{"id":3,"method":"bridge.ready"}""");
+        await asking;
+
+        Assert.Single(_workspace.Macros);
     }
 
     [Fact]

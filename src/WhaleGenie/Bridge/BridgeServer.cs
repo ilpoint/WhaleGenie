@@ -45,6 +45,13 @@ public sealed class BridgeServer
     private bool _ready;
 
     /// <summary>
+    /// Raised when the server goes back to "no page yet" — a fresh attach or an explicit reset.
+    /// A question the old page was answering is dead with it, and whoever asked has to be told
+    /// the answer will never come.
+    /// </summary>
+    public event Action? PageReset;
+
+    /// <summary>
     /// Wires the server to a channel. A page that has just loaded has not registered its receiver
     /// yet, so attaching clears the ready state: pushes buffer again until the new page is ready.
     /// Attaching twice — the shell does it once in its constructor and once per fresh page — must
@@ -62,6 +69,7 @@ public sealed class BridgeServer
         _channel.MessageFromWeb += _pump;
         _ready = false;
         _pending.Clear();
+        PageReset?.Invoke();
     }
 
     /// <summary>Registers every method a handler answers.</summary>

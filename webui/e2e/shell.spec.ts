@@ -97,6 +97,35 @@ test('主题推送改变页面令牌', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
+test('关闭全部先问页面，确认后清空', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros .filebar fluent-button', { hasText: '全部关闭' }).click();
+
+  // 程序推 dialog.request，页面把问题画出来；点卡片里的确认键，列表清空、标题回未命名。
+  await expect(page.locator('wg-confirm h2')).toContainText('关闭全部宏');
+  await page.locator('wg-confirm .actions fluent-button[appearance="accent"]').click();
+  await expect(page.locator('wg-macros .card')).toHaveCount(0);
+  await expect(page.locator('wg-titlebar .title')).toContainText('未命名项目');
+});
+
+test('MCP 浮层切换授权', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros .filebar fluent-button', { hasText: 'MCP' }).click();
+  await expect(page.locator('wg-mcp-panel h2')).toHaveText('MCP');
+
+  // 开关只发命令：mcp.changed 回来后第一颗翻成选中，第二颗不动。
+  await page.locator('wg-mcp-panel .switch fluent-switch').first().click();
+  await expect
+    .poll(async () => page.evaluate(() => {
+      const panel = document.querySelector('wg-shell')!.shadowRoot
+        .querySelector('wg-macros')!.shadowRoot
+        .querySelector('wg-mcp-panel')!.shadowRoot;
+      const switches = panel.querySelectorAll('.switch fluent-switch');
+      return `${switches[0]?.hasAttribute('checked') ?? '?'}|${switches[1]?.hasAttribute('checked') ?? '?'}`;
+    }))
+    .toBe('true|false');
+});
+
 interface MockProbe {
   push(event: string, payload: unknown): void;
 }

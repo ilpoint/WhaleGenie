@@ -35,13 +35,18 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The shell window, whose storage provider opens the file dialogs.</summary>
     private readonly Func<Window?> _window;
 
+    /// <summary>The page's questions: closing everything is the one the list asks before it wipes.</summary>
+    private readonly DialogBridge _dialogs;
+
     private BridgeServer? _server;
 
-    internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, Func<Window?> window)
+    internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, Func<Window?> window,
+        DialogBridge dialogs)
     {
         _workspace = workspace;
         _runtime = runtime;
         _window = window;
+        _dialogs = dialogs;
     }
 
     public void Register(BridgeServer server)
@@ -54,6 +59,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         server.Register("project.save", Save);
         server.Register("project.saveAs", SaveAs);
         server.Register("project.reload", Reload);
+        server.Register("project.closeAll", CloseAll);
         server.Register("dialog.pickOpenPackage", async _ => await PickOpenPackage());
         server.Register("dialog.pickSavePackage", PickSavePackageHandler);
 
@@ -219,6 +225,35 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         }
 
         await OpenPackage(path);
+        return null;
+    }
+
+    /// <summary>
+    /// Wipes the list, the way "close all" does on the main window: the page asks first, because
+    /// an empty list every morning is a step nobody asked for. A project that holds nothing has
+    /// nothing to wipe.
+    /// </summary>
+    private async Task<object?> CloseAll(JsonElement parameters)
+    {
+        if (_workspace.Macros.Count == 0)
+        {
+            return null;
+        }
+
+        var accepted = await _dialogs.ConfirmAsync(
+            Strings.Get("Main.CloseAllTitle"),
+            Strings.Get("Main.CloseAllMessage"),
+            Strings.Get("Main.CloseAll"),
+            null);
+        if (!accepted)
+        {
+            return null;
+        }
+
+        _runtime.Triggers.StopAll();
+        _workspace.ClearMacros();
+        _workspace.CurrentPath = null;
+        await PushState();
         return null;
     }
 

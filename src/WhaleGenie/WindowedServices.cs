@@ -63,8 +63,11 @@ internal static class WindowedServices
             server.Register(new StringsBridge());
             server.Register(new ThemeBridge());
             server.Register(new WindowBridge(() => sp.GetService<WebShellWindow>()));
+            server.Register(new McpBridge(() => SharedDevices.Current.Clipboard));
+            var dialogs = new DialogBridge();
+            server.Register(dialogs);
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()));
+                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>(), dialogs));
             return server;
         })
         .AddSingleton<WebShellWindow>();

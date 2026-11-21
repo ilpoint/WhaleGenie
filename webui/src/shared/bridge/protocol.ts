@@ -102,6 +102,23 @@ export interface ProjectState {
   macros: MacroEntry[];
 }
 
+// ---- 程序向页面提问（确认框）与 MCP 浮层 ------------------------------------
+
+export interface DialogRequest {
+  requestId: number;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  cancelLabel: string | null;
+}
+
+export interface McpState {
+  allowControl: boolean;
+  allowRun: boolean;
+  config: string;
+  auditFile: string;
+}
+
 // ---- 事件词表 --------------------------------------------------------------
 
 export interface BridgeEvents {
@@ -109,6 +126,8 @@ export interface BridgeEvents {
   'theme.changed': ThemeState;
   'window.changed': WindowState;
   'project.changed': ProjectState;
+  'dialog.request': DialogRequest;
+  'mcp.changed': McpState;
 }
 
 export type BridgeEventName = keyof BridgeEvents;

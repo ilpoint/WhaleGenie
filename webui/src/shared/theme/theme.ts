@@ -37,6 +37,13 @@ class ThemeStore {
     // 产出的是 var() 引用层，铺上去只会得到一整页自引用。
     setTheme(tokensFor(theme));
     document.documentElement.dataset.theme = theme.baseLight ? 'light' : 'dark';
+
+    // 壳自己的唯一覆盖令牌：Fluent 没有遮罩令牌，浮层（确认框、MCP 面板）用的半透明暗层
+    // 只有这一个，登记在 DESIGN.md 第 14.2 节的覆盖清单里。
+    document.documentElement.style.setProperty(
+      '--shell-scrim',
+      theme.baseLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(0, 0, 0, 0.55)',
+    );
   }
 }
 

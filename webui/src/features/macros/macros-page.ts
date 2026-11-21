@@ -1,9 +1,11 @@
 import { LitElement, css, html, nothing } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, query, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
+import type { WgMcpPanel } from '../mcp/mcp-panel.js';
+import '../mcp/mcp-panel.js';
 
 /**
  * 宏列表页：视图 dock、分组与搜索的过滤是页面自己的事（状态整包在手），启停与系统开关经桥
@@ -26,6 +28,9 @@ export class WgMacros extends LitElement {
 
   @state()
   private note = '';
+
+  @query('wg-mcp-panel')
+  private mcpPanel!: WgMcpPanel;
 
   static styles = css`
     :host {
@@ -239,8 +244,12 @@ export class WgMacros extends LitElement {
         ${this.state.path ? html`
           <fluent-button appearance="subtle" @click=${this.onReload}>${t('Main.ReloadCurrent')}</fluent-button>
         ` : nothing}
+        ${this.state.macros.length > 0 ? html`
+          <fluent-button appearance="subtle" @click=${this.onCloseAll}>${t('Main.CloseAll')}</fluent-button>
+        ` : nothing}
         ${this.state.dirty ? html`<fluent-badge appearance="warning">${t('Shell.Field.Dirty')}</fluent-badge>` : nothing}
         <span class="path">${this.state.path ?? ''}</span>
+        <fluent-button appearance="subtle" @click=${this.onMcp}>${t('Mcp.Title')}</fluent-button>
       </div>
       <div class="filters">
         <div class="dock" role="tablist">
@@ -286,6 +295,7 @@ export class WgMacros extends LitElement {
         </div>
         <fluent-button appearance="accent" @click=${this.onAddMacro}>${t('Main.AddMacro')}</fluent-button>
       </div>
+      <wg-mcp-panel></wg-mcp-panel>
     `;
   }
 
@@ -407,6 +417,14 @@ export class WgMacros extends LitElement {
 
   private onReload(): void {
     void this.call('project.reload', {});
+  }
+
+  private onCloseAll(): void {
+    void this.call('project.closeAll', {});
+  }
+
+  private onMcp(): void {
+    void this.mcpPanel.show();
   }
 
   /** 发命令，把程序的拒绝（坏包、没这个宏）拿到提示条上说，而不是静默失败。 */

@@ -1,5 +1,5 @@
 import type { BridgeTransport } from './transport.js';
-import type { AppInfo, ProjectState, StringsBundle, ThemeState, WindowState } from './protocol.js';
+import type { AppInfo, McpState, ProjectState, StringsBundle, ThemeState, WindowState } from './protocol.js';
 
 /**
  * 浏览器里的假宿主：不依赖程序就能开发壳、跑 Playwright。它回答壳用到的每个方法，并留出
@@ -20,6 +20,9 @@ const chromeKeys = [
   'Main.AddMacro', 'Main.MacroRunning', 'Main.EnableMacro', 'Main.DisableMacro',
   'Main.SystemEnabled', 'Main.SystemDisabled', 'Main.GroupAll', 'Main.Ungrouped',
   'Main.OpenProject', 'Main.SaveProject', 'Main.SaveProjectAs', 'Main.ReloadCurrent',
+  'Main.CloseAll', 'Mcp.Title', 'Mcp.Intro', 'Mcp.Control', 'Mcp.Run',
+  'Mcp.SwitchOn', 'Mcp.SwitchOff', 'Mcp.CopyConfig', 'Mcp.GrantsNote', 'Mcp.OpenAudit',
+  'Main.CloseAllTitle', 'Main.CloseAllMessage',
 ] as const;
 
 const english: Record<string, string> = {
@@ -44,6 +47,12 @@ const english: Record<string, string> = {
   'Main.GroupAll': 'All groups', 'Main.Ungrouped': 'Ungrouped',
   'Main.OpenProject': 'Open Macro Project', 'Main.SaveProject': 'Save Macro Project',
   'Main.SaveProjectAs': 'Save Macro Project As', 'Main.ReloadCurrent': 'Reload Current Macro',
+  'Main.CloseAll': 'Close All', 'Main.CloseAllTitle': 'Close all macros',
+  'Main.CloseAllMessage': 'Remove every macro from the list? The saved package is not changed.',
+  'Mcp.Title': 'MCP', 'Mcp.Control': 'Allow direct control',
+  'Mcp.Run': 'Allow the AI to run macros', 'Mcp.SwitchOn': 'On', 'Mcp.SwitchOff': 'Off',
+  'Mcp.CopyConfig': 'Copy client config', 'Mcp.GrantsNote': 'Saved as you flip them.',
+  'Mcp.OpenAudit': 'Open call log',
   'Shell.Window.Minimize': 'Minimize',
   'Shell.Window.Maximize': 'Maximize', 'Shell.Window.Restore': 'Restore',
   'Shell.Window.Close': 'Close', 'Shell.Window.Pin': 'Keep on top',
@@ -72,6 +81,12 @@ const chinese: Record<string, string> = {
   'Main.GroupAll': '全部分组', 'Main.Ungrouped': '未分组',
   'Main.OpenProject': '打开宏项目', 'Main.SaveProject': '保存宏项目',
   'Main.SaveProjectAs': '宏项目另存为', 'Main.ReloadCurrent': '重新加载当前宏',
+  'Main.CloseAll': '全部关闭', 'Main.CloseAllTitle': '关闭全部宏',
+  'Main.CloseAllMessage': '从列表中移除所有宏？已保存的宏包不会被修改。',
+  'Mcp.Title': 'MCP', 'Mcp.Control': '允许直接控制',
+  'Mcp.Run': '允许 AI 运行宏', 'Mcp.SwitchOn': '开', 'Mcp.SwitchOff': '关',
+  'Mcp.CopyConfig': '复制客户端配置', 'Mcp.GrantsNote': '改一下就存下来了。',
+  'Mcp.OpenAudit': '查看调用记录',
   'Shell.Window.Minimize': '最小化',
   'Shell.Window.Maximize': '最大化', 'Shell.Window.Restore': '还原',
   'Shell.Window.Close': '关闭', 'Shell.Window.Pin': '窗口置顶',
@@ -95,6 +110,13 @@ export class MockTransport implements BridgeTransport {
   private theme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null };
 
   private windowState: WindowState = { state: 'normal', topmost: false };
+
+  private mcp: McpState = {
+    allowControl: false,
+    allowRun: false,
+    config: '{\n  "mcpServers": {\n    "whalegenie": {\n      "command": "WhaleGenie.exe",\n      "args": ["--mcp"]\n    }\n  }\n}',
+    auditFile: '/mock/logs/mcp-2026-11-21.log',
+  };
 
   private projectState: ProjectState = {
     path: null,
@@ -248,6 +270,46 @@ export class MockTransport implements BridgeTransport {
       case 'project.reload':
         this.projectState = { ...this.projectState, dirty: false };
         this.push('project.changed', this.projectState);
+        break;
+      case 'project.closeAll':
+        // 关全部要页面确认；mock 的文案与真宿主同源（同一组词表键），页面上有人点确定，
+        // dialog.respond 才真的清。
+        this.push('dialog.request', {
+          requestId: 1,
+          title: chinese['Main.CloseAllTitle']!,
+          message: chinese['Main.CloseAllMessage']!,
+          confirmLabel: chinese['Main.CloseAll']!,
+          cancelLabel: null,
+        });
+        break;
+      case 'dialog.respond': {
+        if (params['accepted'] === true) {
+          this.projectState = {
+            ...this.projectState,
+            path: null,
+            name: null,
+            untitled: true,
+            dirty: false,
+            macros: [],
+            groups: [],
+          };
+          this.push('project.changed', this.projectState);
+        }
+        break;
+      }
+      case 'mcp.state':
+        result = this.mcp;
+        break;
+      case 'mcp.setGrants':
+        this.mcp = {
+          ...this.mcp,
+          allowControl: params['control'] === true,
+          allowRun: params['run'] === true,
+        };
+        this.push('mcp.changed', this.mcp);
+        break;
+      case 'mcp.copyConfig':
+      case 'mcp.openAudit':
         break;
       default:
         this.answer({ id: request.id, ok: false, error: { code: 'NoSuchMethod', message: method } });

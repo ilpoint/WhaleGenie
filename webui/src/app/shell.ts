@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { currentRoute, go, type Route } from './router.js';
 import './titlebar.js';
 import './nav.js';
+import '../features/dialogs/confirm.js';
 import '../features/home/home-page.js';
 import '../features/macros/macros-page.js';
 import '../features/placeholder/placeholder-page.js';
@@ -70,6 +71,7 @@ export class WgShell extends LitElement {
       <wg-titlebar></wg-titlebar>
       <wg-nav .active=${this.route} @wg-navigate=${this.onNavigate}></wg-nav>
       <div class="content">${this.renderRoute()}</div>
+      <wg-confirm></wg-confirm>
     `;
   }
 
