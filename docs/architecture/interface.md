@@ -190,6 +190,12 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 整包下发，页面没有回退逻辑；主题经 `ThemeController` 应用并落盘，页面用 Fluent 令牌铺色，不读
 设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
 
+桥推送的时序也是契约：ready 前同一事件只留最新一份；页面显式取 `project.state`、`theme.get` 或
+`strings.bundle` 时清掉同域 pending；所有发送串行。页面问话在无页时立即答否，页内应答超时也
+答否，删除、关闭或退出不会等一个不会到来的对话框。错误 `message` 由 `Strings` 生成，页面只
+显示，不自己拼英文。页面在 pointerdown/focusin/keydown 时经 `window.focus` 报告文本框焦点；
+`WebShellWindow` 结合 `IsActive` 实现 `ITriggerFocusProbe`，系统热键与宏启停键问的是活动窗口。
+
 `webui/` 用 npm 构建（Vite + TypeScript + Lit + Fluent UI Web Components），产物是一个内联全部
 脚本与样式的 `index.html`，随程序输出与发布包一起走；开发用 `npm run dev` 起带 mock 宿主的
 热重载服务，程序以 `--webui-dev` 指向它。网页里的拾取器、宏运行浮层不在迁移范围——凡是要与

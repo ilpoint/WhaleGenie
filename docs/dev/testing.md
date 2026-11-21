@@ -14,8 +14,8 @@
 | 编辑器 | `WhaleGenie.Editor.Tests` | 宏编辑窗、步骤树、变量墙、窗口规则与菜单的无头交互 |
 | 动作表单 | `WhaleGenie.Actions.Tests` | 动作对话框、页面归属、返回值与拾取器 |
 | 运行与其余界面 | `WhaleGenie.Tests` | 运行与调试、MCP、设置、界面文案与文档对账 |
-| 网页壳协议 | `WhaleGenie.Tests`（`BridgeServerTests`、`StringsBundleTests`） | 桥路由、错误码、ready 前缓冲、词表快照与推送；内存管道直调处理器，不开窗口 |
-| 网页壳边界 | `WhaleGenie.Tests`（`WebUiBoundaryTests`） | 桥处理器不认识 WebView 控件；页面源不带用户文案；页面键都在词表里 |
+| 网页壳协议 | `WhaleGenie.Tests`（`BridgeServerTests`、`ProjectBridgeTests`、`DialogBridgeTests`、`StringsBundleTests`） | 桥路由、错误码、ready 前按事件合并、显式 fetch 清 pending、问话无页/超时失败关闭、系统开关推送、词表快照；内存管道直调处理器，不开窗口 |
+| 网页壳边界与窗口 | `WhaleGenie.Tests`（`WebUiBoundaryTests`、`SourceEncodingTests`、`WebShellNavigationTests`、`WebViewRuntimeTests`、`WindowFocusProbeTests`） | 处理器不认识 WebView；页面源严格 UTF-8 且不带用户文案；键都在词表里；导航按精确 origin/路径；运行时缺失有检测；焦点问活动窗口 |
 | 网页壳前端 | `webui/`（Vitest + Playwright） | 桥客户端、词表 store、壳加载、导航与标题栏冒烟；跑在 mock 宿主上，不经 WebView |
 | 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
@@ -140,6 +140,9 @@
   不测像素。Playwright 冒烟用 `?bridge=mock` 走 mock 宿主与系统 Edge（`channel: 'msedge'`，
   免下载浏览器），起 `vite preview` 供真实产物。
 - 页面新增用户可见文案的正确顺序：先在 `Strings.cs` 双语表加键，页面再 `t('键')`；
-  `WebUiBoundaryTests` 会拦住只出现在页面里的键与写进页面的中文句子。
+  `WebUiBoundaryTests` 会拦住只出现在页面里的键与写进页面的中文句子，`SourceEncodingTests`
+  拦住把文件存成系统代码页的情况。
+- 桥错误消息也走 `Strings`；处理器里不再拼英文。问话处理器在无页或超时时答否，
+  `DialogBridgeTests` 守住这一条。
 - mock 宿主（`webui/src/shared/bridge/mock.ts`）里的词表是**夹具**，与真表同步维护：新增键时
   两边都要加，对账靠 `Every_shell_key_the_pages_name_exists_in_the_word_tables` 与人工。
