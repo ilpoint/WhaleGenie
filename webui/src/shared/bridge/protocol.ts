@@ -137,6 +137,9 @@ export interface EditorTrigger {
   fileChange: string;
   fileFilter: string;
   fileSubfolders: boolean;
+  processName: string;
+  processChange: string;
+  hotstringText: string;
 }
 
 export interface EditorVariable {

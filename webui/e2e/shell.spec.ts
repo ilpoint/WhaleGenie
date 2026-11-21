@@ -201,6 +201,29 @@ test('C1 颜色字段可用取色器改值', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .color-row input').last()).toHaveValue('#ff8800');
 });
 
+test('C1 程序与字串触发可编辑', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .trigger-add select').selectOption({ label: '程序' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
+  const process = page.locator('wg-editor-gate .process-fields input');
+  await process.fill('notepad');
+  await process.press('Tab');
+  await page.locator('wg-editor-gate .process-fields select').selectOption({ label: '退出' });
+
+  await page.locator('wg-editor-gate .trigger-add select').selectOption({ label: '字串' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
+  const hotstring = page.locator('wg-editor-gate .hotstring-field');
+  await hotstring.fill('hello');
+  await hotstring.press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerProcess')))
+    .toBe(true);
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerHotstring')))
+    .toBe(true);
+});
+
 test('C1 文件触发可设路径与变化', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .trigger-add select').selectOption({ label: '文件' });

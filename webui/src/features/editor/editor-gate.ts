@@ -214,11 +214,17 @@ export class WgEditorGate extends LitElement {
       width: 80px;
     }
 
-    .file-fields {
+    .file-fields,
+    .process-fields {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: var(--spacingHorizontalS);
+    }
+
+    .hotstring-field {
+      flex: 1;
+      min-width: 200px;
     }
 
     .triggers button {
@@ -556,7 +562,33 @@ export class WgEditorGate extends LitElement {
                       ${t('Editor.WatchSubfolders')}
                     </label>
                   </div>`
-                : html`<span>${trigger.summary}</span>`}
+              : trigger.kind === 'Process'
+                ? html`<div class="process-fields">
+                    <input
+                      .value=${trigger.processName}
+                      placeholder=${t('Editor.ProcessNameHint')}
+                      aria-label=${t('Editor.ProcessName')}
+                      @change=${(event: Event) => void this.setTriggerProcess(trigger.id, 'name', event)}
+                    />
+                    <select
+                      .value=${trigger.processChange}
+                      aria-label=${t('Editor.ProcessWhen')}
+                      @change=${(event: Event) => void this.setTriggerProcess(trigger.id, 'change', event)}
+                    >
+                      <option value="Any">${t('ProcessChange.Any')}</option>
+                      <option value="Started">${t('ProcessChange.Started')}</option>
+                      <option value="Stopped">${t('ProcessChange.Stopped')}</option>
+                    </select>
+                  </div>`
+                : trigger.kind === 'Hotstring'
+                  ? html`<input
+                      class="hotstring-field"
+                      .value=${trigger.hotstringText}
+                      placeholder=${t('Editor.HotstringHint')}
+                      aria-label=${t('Editor.Hotstring')}
+                      @change=${(event: Event) => void this.setTriggerHotstring(trigger.id, event)}
+                    />`
+                  : html`<span>${trigger.summary}</span>`}
             <button
               title=${t('Editor.RemoveTrigger')}
               aria-label=${t('Editor.RemoveTrigger')}
@@ -798,6 +830,29 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
         binding,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerProcess(triggerId: string, field: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerProcess', {
+        triggerId,
+        field,
+        value: (event.target as HTMLInputElement | HTMLSelectElement).value,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerHotstring(triggerId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerHotstring', {
+        triggerId,
+        value: (event.target as HTMLInputElement).value,
       });
     } catch (error) {
       this.error = String(error);

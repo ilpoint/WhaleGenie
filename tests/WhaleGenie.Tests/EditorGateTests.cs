@@ -129,6 +129,20 @@ public class EditorGateTests
         Assert.Equal("Changed", watched.FileChange);
         Assert.Equal("*.txt", watched.FileFilter);
         Assert.True(watched.FileSubfolders);
+
+        session.AddTrigger("Process");
+        var process = session.Snapshot().Triggers.Single(item => item.Kind == "Process");
+        session.SetTriggerProcess(process.Id, "name", "notepad");
+        session.SetTriggerProcess(process.Id, "change", "Stopped");
+        var watchedProcess = session.Snapshot().Triggers.Single(item => item.Kind == "Process");
+        Assert.Equal("notepad", watchedProcess.ProcessName);
+        Assert.Equal("Stopped", watchedProcess.ProcessChange);
+
+        session.AddTrigger("Hotstring");
+        var hotstring = session.Snapshot().Triggers.Single(item => item.Kind == "Hotstring");
+        session.SetTriggerHotstring(hotstring.Id, "hello");
+        Assert.Equal("hello",
+            session.Snapshot().Triggers.Single(item => item.Kind == "Hotstring").HotstringText);
     }
 
     [Fact]

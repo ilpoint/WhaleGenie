@@ -102,7 +102,10 @@ internal sealed class HeadlessEditorSession
             entry.Spec is FileSpec file ? file.Path : string.Empty,
             entry.Spec is FileSpec change ? change.Change.ToString() : string.Empty,
             entry.Spec is FileSpec filter ? filter.Filter : string.Empty,
-            entry.Spec is FileSpec folders && folders.Subfolders))];
+            entry.Spec is FileSpec folders && folders.Subfolders,
+            entry.Spec is ProcessSpec process ? process.Name : string.Empty,
+            entry.Spec is ProcessSpec processChange ? processChange.Change.ToString() : string.Empty,
+            entry.Spec is HotstringSpec hotstring ? hotstring.Abbreviation : string.Empty))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -260,6 +263,47 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerProcess(string triggerId, string field, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not ProcessSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a process trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        switch (field)
+        {
+            case "name":
+                _model.ProcessName = value.Trim();
+                break;
+            case "change":
+                _model.ProcessChange = Enum.Parse<ProcessChangeKind>(value, ignoreCase: true);
+                break;
+            default:
+                throw new InvalidOperationException("unknown process field " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerHotstring(string triggerId, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not HotstringSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a hotstring trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        _model.HotstringText = value;
         _model.IsDirty = true;
     }
 
@@ -542,7 +586,7 @@ internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
     bool Enabled, string Binding, string Loop, bool Once, string TimerMode, string Time,
     string Interval, string Unit, string FilePath, string FileChange, string FileFilter,
-    bool FileSubfolders);
+    bool FileSubfolders, string ProcessName, string ProcessChange, string HotstringText);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,

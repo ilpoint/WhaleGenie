@@ -45,7 +45,9 @@ const chromeKeys = [
   'Schedule.Interval', 'Schedule.Daily', 'Schedule.Unit.Seconds', 'Schedule.Unit.Minutes',
   'Schedule.Unit.Hours', 'Editor.WatchPath', 'Editor.WatchPathHint', 'Editor.WatchChange',
   'Editor.WatchFilter', 'Editor.WatchSubfolders', 'FileChange.Any', 'FileChange.Created',
-  'FileChange.Changed', 'FileChange.Deleted',
+  'FileChange.Changed', 'FileChange.Deleted', 'Editor.ProcessName', 'Editor.ProcessNameHint',
+  'Editor.ProcessWhen', 'ProcessChange.Any', 'ProcessChange.Started', 'ProcessChange.Stopped',
+  'Editor.Hotstring', 'Editor.HotstringHint',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
@@ -101,6 +103,10 @@ const english: Record<string, string> = {
   'Editor.WatchFilter': 'Names in the folder :', 'Editor.WatchSubfolders': 'Include the folders inside it',
   'FileChange.Any': 'Any change', 'FileChange.Created': 'Created',
   'FileChange.Changed': 'Changed', 'FileChange.Deleted': 'Deleted or renamed',
+  'Editor.ProcessName': 'Program :', 'Editor.ProcessNameHint': 'notepad, or chrome',
+  'Editor.ProcessWhen': 'When :', 'ProcessChange.Any': 'Started or stopped',
+  'ProcessChange.Started': 'Started', 'ProcessChange.Stopped': 'Stopped',
+  'Editor.Hotstring': 'Typed string', 'Editor.HotstringHint': 'Type a literal keyboard string',
   'Loop.Press': 'Once, When Key Pressed (Press)', 'Loop.Hold': 'While Holding Key (Hold)',
   'Loop.Toggle': 'Until Key Pressed Again (Toggle)', 'Loop.Release': 'Once, When Key Released (Release)',
   'LocalVariables.Title': 'Local variables',
@@ -168,6 +174,10 @@ const chinese: Record<string, string> = {
   'Editor.WatchChange': '变化：', 'Editor.WatchFilter': '文件夹里匹配的名字：',
   'Editor.WatchSubfolders': '包含里面的子文件夹', 'FileChange.Any': '任何变化',
   'FileChange.Created': '创建', 'FileChange.Changed': '修改', 'FileChange.Deleted': '删除或重命名',
+  'Editor.ProcessName': '程序：', 'Editor.ProcessNameHint': 'notepad、chrome，不用写 .exe',
+  'Editor.ProcessWhen': '时机：', 'ProcessChange.Any': '启动或退出',
+  'ProcessChange.Started': '启动', 'ProcessChange.Stopped': '退出',
+  'Editor.Hotstring': '键盘字串', 'Editor.HotstringHint': '最多 40 个键盘字面字符',
   'Loop.Press': '按下时执行一次（按下）', 'Loop.Hold': '按住期间循环（长按）',
   'Loop.Toggle': '再次按键时停止（切换）', 'Loop.Release': '松开时执行一次（松开）',
   'LocalVariables.Title': '局部变量',
@@ -333,6 +343,8 @@ export class MockTransport implements BridgeTransport {
             { value: 'Timer', label: '定时' },
             { value: 'Color', label: '颜色' },
             { value: 'File', label: '文件' },
+            { value: 'Process', label: '程序' },
+            { value: 'Hotstring', label: '字串' },
           ],
           canUndo: false,
           canRedo: false,
@@ -361,6 +373,8 @@ export class MockTransport implements BridgeTransport {
             { value: 'Timer', label: '定时' },
             { value: 'Color', label: '颜色' },
             { value: 'File', label: '文件' },
+            { value: 'Process', label: '程序' },
+            { value: 'Hotstring', label: '字串' },
           ],
           canUndo: false,
           canRedo: false,
@@ -405,6 +419,8 @@ export class MockTransport implements BridgeTransport {
             { value: 'Timer', label: '定时' },
             { value: 'Color', label: '颜色' },
             { value: 'File', label: '文件' },
+            { value: 'Process', label: '程序' },
+            { value: 'Hotstring', label: '字串' },
           ],
           canUndo: false,
           canRedo: false,
@@ -522,6 +538,9 @@ export class MockTransport implements BridgeTransport {
               fileChange: 'Any',
               fileFilter: '*',
               fileSubfolders: false,
+              processName: '',
+              processChange: 'Started',
+              hotstringText: '',
             }],
           };
         }
@@ -534,6 +553,38 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerProcess':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
+              ? {
+                  ...trigger,
+                  processName: params['field'] === 'name'
+                    ? String(params['value'] ?? '')
+                    : trigger.processName,
+                  processChange: params['field'] === 'change'
+                    ? String(params['value'] ?? '')
+                    : trigger.processChange,
+                }
+              : trigger),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerHotstring':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
+              ? { ...trigger, hotstringText: String(params['value'] ?? '') }
+              : trigger),
           };
         }
         result = this.editor;
