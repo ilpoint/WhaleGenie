@@ -39,6 +39,14 @@ test('activity bar 图标切换页面', async ({ page }) => {
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
 });
 
+test('占位页的临时入口请求原生窗口', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '设置' }).click();
+  await page.locator('wg-placeholder fluent-button', { hasText: '打开原生窗口' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openSettings')))
+    .toBe(true);
+});
+
 test('导航切换到宏列表与占位页', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');

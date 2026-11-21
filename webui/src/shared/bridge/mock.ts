@@ -12,7 +12,8 @@ const chromeKeys = [
   'Shell.UntitledProject', 'Shell.Field.Version', 'Shell.Field.Language', 'Shell.Field.Project',
   'Shell.Field.Dirty', 'Shell.Field.Clean', 'Shell.Field.Revision', 'Shell.Field.Macros',
   'Shell.Home.Heading', 'Shell.Home.Intro', 'Shell.Status.Web', 'Shell.Status.Native',
-  'Shell.Status.Planned', 'Shell.Placeholder.Body', 'Shell.Window.Minimize',
+  'Shell.Status.Planned', 'Shell.Placeholder.Body', 'Shell.Navigation', 'Shell.OpenNative',
+  'Shell.Window.Minimize',
   'Shell.Window.Maximize', 'Shell.Window.Restore', 'Shell.Window.Close', 'Shell.Window.Pin',
   'Shell.Window.Unpin', 'Main.Title', 'Main.Dock.All', 'Main.Dock.Keys', 'Main.Dock.Interface',
   'Main.Dock.Hotstring', 'Main.Dock.Menu', 'Main.Dock.Wheel', 'Main.Dock.Events',
@@ -39,6 +40,7 @@ const english: Record<string, string> = {
   'Shell.Status.Web': 'In the web shell', 'Shell.Status.Native': 'Still native',
   'Shell.Status.Planned': 'Planned',
   'Shell.Placeholder.Body': 'This area still lives in its native window.',
+  'Shell.Navigation': 'Navigation', 'Shell.OpenNative': 'Open native window',
   'Main.Dock.All': 'All', 'Main.Dock.Keys': 'Keys', 'Main.Dock.Interface': 'Window',
   'Main.Dock.Hotstring': 'Strings', 'Main.Dock.Menu': 'Menu', 'Main.Dock.Wheel': 'Wheel',
   'Main.Dock.Events': 'Events', 'Main.SearchPlaceholder': 'Search…',
@@ -78,6 +80,7 @@ const chinese: Record<string, string> = {
   'Shell.Status.Web': '已在网页壳中', 'Shell.Status.Native': '仍是原生界面',
   'Shell.Status.Planned': '规划中',
   'Shell.Placeholder.Body': '这一区域仍由原生窗口承担。',
+  'Shell.Navigation': '导航', 'Shell.OpenNative': '打开原生窗口',
   'Main.Dock.All': '全部', 'Main.Dock.Keys': '按键', 'Main.Dock.Interface': '界面',
   'Main.Dock.Hotstring': '字串', 'Main.Dock.Menu': '菜单', 'Main.Dock.Wheel': '轮盘',
   'Main.Dock.Events': '事件', 'Main.SearchPlaceholder': '输入以搜索..',
@@ -361,6 +364,10 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'mcp.copyConfig':
       case 'mcp.openAudit':
+      case 'app.openSettings':
+      case 'app.openRun':
+      case 'app.openAbout':
+      case 'app.openManual':
         break;
       default:
         this.answer({ id: request.id, ok: false, error: { code: 'NoSuchMethod', message: method } });
