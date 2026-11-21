@@ -179,7 +179,7 @@ internal sealed class HeadlessEditorSession
     {
         if (parentId is not { Length: > 0 })
         {
-            _model.AddStep(new MacroStep { Type = type });
+            _model.AddStep(NewStep(type));
             return;
         }
 
@@ -188,7 +188,7 @@ internal sealed class HeadlessEditorSession
         var list = parent.Parameters.FirstOrDefault(parameter =>
             parameter.Kind == ActionParameterKind.Steps)?.Steps
             ?? throw new InvalidOperationException("step " + parentId + " holds no sub-steps");
-        list.Add(new MacroStep { Type = type });
+        list.Add(NewStep(type));
         _model.IsDirty = true;
     }
 
@@ -608,6 +608,26 @@ internal sealed class HeadlessEditorSession
         => steps.Count + steps.Sum(step => step.Parameters
             .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
             .Sum(parameter => Count(parameter.Steps)));
+
+    private static MacroStep NewStep(string type)
+    {
+        var definition = ActionCatalog.Definitions.FirstOrDefault(action => action.Key == type)
+            ?? throw new InvalidOperationException("unknown action " + type);
+        var step = new MacroStep { Type = type };
+        foreach (var field in definition.Parameters)
+        {
+            step.Parameters.Add(new StepParameter
+            {
+                Name = field.Name,
+                Kind = field.Kind,
+                Written = field.Kind == ActionParameterKind.Steps
+                    ? Formula.Nothing
+                    : WrittenFor(field.Kind, field.DefaultValue),
+            });
+        }
+
+        return step;
+    }
 
     private static ExpressionNode WrittenFor(ActionParameterKind kind, string value)
         => kind switch

@@ -104,17 +104,9 @@ public class EditorGateTests
     public void A_row_parameter_can_add_and_fill_rows()
     {
         var workspace = new ProjectWorkspace();
-        var macro = new MacroItem { Name = "rows" };
-        macro.Steps.Add(new MacroStep
-        {
-            Type = "control.repeat",
-            Parameters =
-            [
-                new StepParameter { Name = "returns", Kind = ActionParameterKind.Returns },
-            ],
-        });
-        workspace.AddMacro(macro);
+        workspace.AddMacro(new MacroItem { Name = "rows" });
         var session = HeadlessEditorSession.Open(workspace, "rows");
+        session.AddStep("control.repeat");
 
         var step = Assert.Single(session.Snapshot().Steps);
         var returns = step.Parameters.Single(parameter => parameter.Name == "returns");
