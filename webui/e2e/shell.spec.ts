@@ -186,6 +186,21 @@ test('C1 键位字段可捕获按键', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 颜色字段可用取色器改值', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '颜色' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '颜色' }).click();
+
+  const picker = page.locator('wg-editor-gate .color-row input[type="color"]');
+  await picker.evaluate((element) => {
+    const input = element as HTMLInputElement;
+    input.value = '#ff8800';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(page.locator('wg-editor-gate .color-row input').last()).toHaveValue('#ff8800');
+});
+
 test('C1 局部变量墙可新建与改名', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).click();
@@ -204,8 +219,9 @@ test('C1 编辑宏的触发入口与按键', async ({ page }) => {
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
   const binding = page.locator('wg-editor-gate .triggers input').first();
   await expect(binding).toBeVisible();
-  await binding.fill('F8');
-  await binding.press('Tab');
+  await page.locator('wg-editor-gate .triggers fluent-button', { hasText: '设置组合键' }).click();
+  await page.keyboard.press('F8');
+  await expect(binding).toHaveValue('F8');
 
   await page.locator('wg-editor-gate .triggers select').selectOption({ label: '按住期间循环（长按）' });
   await page.locator('wg-editor-gate .triggers .once input').check();

@@ -298,10 +298,21 @@ export class WgEditorGate extends LitElement {
       font-size: var(--font-size-base-200);
     }
 
-    .key-row {
+    .key-row,
+    .color-row {
       display: flex;
       gap: var(--spacingHorizontalS);
       align-items: center;
+    }
+
+    .color-row input[type='color'] {
+      width: 48px;
+      padding: var(--spacingVerticalXS);
+    }
+
+    .color-row input:last-child {
+      flex: 1;
+      min-width: 0;
     }
 
     .key-row input {
@@ -405,10 +416,16 @@ export class WgEditorGate extends LitElement {
             <span class="trigger-kind">${trigger.kindLabel}</span>
             ${trigger.kind === 'Key'
               ? html`<input
+                  data-capture=${'trigger:' + trigger.id}
                   .value=${trigger.binding}
                   placeholder=${t('Editor.BindKey')}
+                  @keydown=${(event: KeyboardEvent) => void this.captureTriggerKey(trigger.id, event)}
                   @change=${(event: Event) => void this.setBinding(trigger.id, event)}
                 />
+                <fluent-button
+                  appearance="subtle"
+                  @click=${() => this.startKeyCapture('trigger:' + trigger.id)}
+                >${t('Add.SetCombination')}</fluent-button>
                 <select
                   .value=${trigger.loop}
                   aria-label=${t('Editor.Loop')}
@@ -631,10 +648,31 @@ export class WgEditorGate extends LitElement {
   }
 
   private async setBinding(triggerId: string, event: Event): Promise<void> {
+    await this.setBindingValue(triggerId, (event.target as HTMLInputElement).value);
+  }
+
+  private async captureTriggerKey(triggerId: string, event: KeyboardEvent): Promise<void> {
+    const capture = 'trigger:' + triggerId;
+    if (this.capturingKey !== capture) {
+      return;
+    }
+
+    const binding = this.keyName(event);
+    if (binding === null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.capturingKey = '';
+    await this.setBindingValue(triggerId, binding);
+  }
+
+  private async setBindingValue(triggerId: string, binding: string): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
-        binding: (event.target as HTMLInputElement).value,
+        binding,
       });
     } catch (error) {
       this.error = String(error);
@@ -837,6 +875,19 @@ export class WgEditorGate extends LitElement {
             <fluent-button appearance="subtle" @click=${() => this.startKeyCapture(capture)}>
               ${t('Add.SetCombination')}
             </fluent-button>
+          </div>
+        </div>
+      `;
+    }
+
+    if (parameter.kind === 'Color') {
+      const color = /^#[0-9a-f]{6}$/i.test(parameter.value) ? parameter.value : '#000000';
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <div class="color-row">
+            <input type="color" .value=${color} @input=${change} />
+            <input .value=${parameter.value} @change=${change} />
           </div>
         </div>
       `;

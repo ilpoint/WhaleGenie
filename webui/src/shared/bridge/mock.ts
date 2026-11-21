@@ -400,14 +400,18 @@ export class MockTransport implements BridgeTransport {
                 ? '重复'
                 : type === 'input.keyPress'
                   ? '按键'
-                  : type,
+                  : type === 'screen.color'
+                    ? '颜色'
+                    : type,
             enabled: true,
             acceptsSteps: type === 'control.repeat',
             parameters: type === 'control.delay'
               ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '', options: [] }]
               : type === 'input.keyPress'
                 ? [{ name: 'key', label: '按键', kind: 'Key', value: '', options: [] }]
-                : [],
+                : type === 'screen.color'
+                  ? [{ name: 'hex', label: '颜色', kind: 'Color', value: '', options: [] }]
+                  : [],
             steps: [],
           };
           this.editor = {
@@ -607,6 +611,16 @@ export class MockTransport implements BridgeTransport {
               hidden: false,
               parameters: [
                 { name: 'key', label: '按键', kind: 'Key', required: false, placeholder: '', options: [] },
+              ],
+            },
+            {
+              key: 'screen.color',
+              name: '颜色',
+              category: 'Screen',
+              description: '',
+              hidden: false,
+              parameters: [
+                { name: 'hex', label: '颜色', kind: 'Color', required: false, placeholder: '', options: [] },
               ],
             },
           ],
