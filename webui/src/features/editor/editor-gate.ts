@@ -368,6 +368,35 @@ export class WgEditorGate extends LitElement {
       min-width: 0;
     }
 
+    .row-list {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .row-list th,
+    .row-list td {
+      padding: var(--spacingVerticalXS);
+      text-align: left;
+      font-size: var(--font-size-base-200);
+    }
+
+    .row-list th {
+      color: var(--colorNeutralForeground3);
+      font-weight: var(--font-weight-regular);
+    }
+
+    .row-list input {
+      width: 100%;
+    }
+
+    .row-list button {
+      border: none;
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      font: inherit;
+      cursor: pointer;
+    }
+
     .key-row input {
       flex: 1;
       min-width: 0;
@@ -1123,6 +1152,56 @@ export class WgEditorGate extends LitElement {
     return parts.join('+');
   }
 
+  private async addParameterRow(step: EditorStep, parameter: EditorParameter): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameterRowAdd', {
+        stepId: step.id,
+        name: parameter.name,
+      });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async removeParameterRow(
+    step: EditorStep,
+    parameter: EditorParameter,
+    index: number,
+  ): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameterRowRemove', {
+        stepId: step.id,
+        name: parameter.name,
+        index,
+      });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async patchRowCell(
+    step: EditorStep,
+    parameter: EditorParameter,
+    index: number,
+    column: string,
+    event: Event,
+  ): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameterRowCell', {
+        stepId: step.id,
+        name: parameter.name,
+        index,
+        column,
+        value: (event.target as HTMLInputElement).value,
+      });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   private async patchValue(stepId: string, name: string, value: string): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameter', {
@@ -1171,6 +1250,48 @@ export class WgEditorGate extends LitElement {
 
   private renderParameter(step: EditorStep, parameter: EditorParameter): TemplateResult {
     const change = (event: Event) => void this.patchParameter(step.id, parameter.name, event);
+    if (parameter.columns.length > 0) {
+      return html`
+        <div class="param row-param">
+          <label>${parameter.label}</label>
+          <table class="row-list">
+            <thead>
+              <tr>
+                ${parameter.columns.map((column) => html`<th>${column.name}</th>`)}
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${parameter.rows.map((row, index) => html`
+                <tr>
+                  ${parameter.columns.map((column, cell) => html`
+                    <td>
+                      <input
+                        .value=${row.cells[cell] ?? ''}
+                        aria-label=${column.name}
+                        @change=${(event: Event) => void this.patchRowCell(
+                          step, parameter, index, column.name, event)}
+                      />
+                    </td>
+                  `)}
+                  <td>
+                    <button
+                      title=${t('Editor.RemoveRow')}
+                      aria-label=${t('Editor.RemoveRow')}
+                      @click=${() => void this.removeParameterRow(step, parameter, index)}
+                    >×</button>
+                  </td>
+                </tr>
+              `)}
+            </tbody>
+          </table>
+          <fluent-button appearance="subtle" @click=${() => void this.addParameterRow(step, parameter)}>
+            ${t('Editor.AddRow')}
+          </fluent-button>
+        </div>
+      `;
+    }
+
     if (parameter.kind === 'Key') {
       const capture = step.id + ':' + parameter.name;
       const capturing = this.capturingKey === capture;

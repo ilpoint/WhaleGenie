@@ -27,6 +27,9 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
         server.Register("editor.sessionParameter", PatchParameter);
+        server.Register("editor.sessionParameterRowAdd", AddParameterRow);
+        server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
+        server.Register("editor.sessionParameterRowCell", PatchParameterRow);
         server.Register("editor.sessionUndo", _ => Task.FromResult<object?>(Undo()));
         server.Register("editor.sessionRedo", _ => Task.FromResult<object?>(Redo()));
         server.Register("editor.sessionMove", MoveStep);
@@ -185,6 +188,78 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().RemoveStep(stepId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> AddParameterRow(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        if (stepId is not { Length: > 0 } || name is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        try
+        {
+            Required().AddParameterRow(stepId, name);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> RemoveParameterRow(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
+            ? number
+            : -1;
+        if (stepId is not { Length: > 0 } || name is not { Length: > 0 } || index < 0)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsRow"));
+        }
+
+        try
+        {
+            Required().RemoveParameterRow(stepId, name, index);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> PatchParameterRow(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var column = parameters.TryGetProperty("column", out var cell) ? cell.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+        var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
+            ? number
+            : -1;
+        if (stepId is not { Length: > 0 } || name is not { Length: > 0 }
+            || column is not { Length: > 0 } || value is null || index < 0)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsRow"));
+        }
+
+        try
+        {
+            Required().PatchParameterRow(stepId, name, index, column, value);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

@@ -101,6 +101,35 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_row_parameter_can_add_and_fill_rows()
+    {
+        var workspace = new ProjectWorkspace();
+        var macro = new MacroItem { Name = "rows" };
+        macro.Steps.Add(new MacroStep
+        {
+            Type = "control.repeat",
+            Parameters =
+            [
+                new StepParameter { Name = "returns", Kind = ActionParameterKind.Returns },
+            ],
+        });
+        workspace.AddMacro(macro);
+        var session = HeadlessEditorSession.Open(workspace, "rows");
+
+        var step = Assert.Single(session.Snapshot().Steps);
+        var returns = step.Parameters.Single(parameter => parameter.Name == "returns");
+        Assert.Equal(["key", "name"], returns.Columns.Select(column => column.Name));
+        Assert.Empty(returns.Rows);
+
+        session.AddParameterRow(step.Id, "returns");
+        session.PatchParameterRow(step.Id, "returns", 0, "key", "found");
+        session.PatchParameterRow(step.Id, "returns", 0, "name", "hit");
+        var row = Assert.Single(session.Snapshot().Steps.Single().Parameters
+            .Single(parameter => parameter.Name == "returns").Rows);
+        Assert.Equal(["found", "hit"], row.Cells);
+    }
+
+    [Fact]
     public void A_trigger_can_be_added_by_kind()
     {
         var workspace = new ProjectWorkspace();

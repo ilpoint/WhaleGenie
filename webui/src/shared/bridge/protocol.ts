@@ -96,12 +96,23 @@ export interface EditorChoice {
   label: string;
 }
 
+export interface EditorColumn {
+  name: string;
+  required: boolean;
+}
+
+export interface EditorRow {
+  cells: string[];
+}
+
 export interface EditorParameter {
   name: string;
   label: string;
   kind: string;
   value: string;
   options: EditorChoice[];
+  columns: EditorColumn[];
+  rows: EditorRow[];
 }
 
 export interface EditorStep {

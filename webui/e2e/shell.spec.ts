@@ -186,6 +186,25 @@ test('C1 键位字段可捕获按键', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 行表参数可加行并填单元格', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '重复' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '重复' }).click();
+
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加行' }).click();
+  const cells = page.locator('wg-editor-gate .row-list tbody input');
+  await cells.nth(0).fill('found');
+  await cells.nth(0).press('Tab');
+  await cells.nth(1).fill('hit');
+  await cells.nth(1).press('Tab');
+
+  await expect(page.locator('wg-editor-gate .row-list tbody tr')).toHaveCount(1);
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameterRowCell')))
+    .toBe(true);
+});
+
 test('C1 颜色字段可用取色器改值', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '颜色' });

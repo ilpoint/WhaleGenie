@@ -37,7 +37,8 @@ const chromeKeys = [
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
-  'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.OpenMacro',
+  'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow',
+  'Editor.RemoveRow', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
@@ -89,6 +90,7 @@ const english: Record<string, string> = {
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
+  'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row',
   'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
@@ -164,6 +166,7 @@ const chinese: Record<string, string> = {
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
+  'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行',
   'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
@@ -472,12 +475,28 @@ export class MockTransport implements BridgeTransport {
             enabled: true,
             acceptsSteps: type === 'control.repeat',
             parameters: type === 'control.delay'
-              ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '', options: [] }]
+              ? [{
+                  name: 'ms', label: '等待时长', kind: 'Number', value: '',
+                  options: [], columns: [], rows: [],
+                }]
               : type === 'input.keyPress'
-                ? [{ name: 'key', label: '按键', kind: 'Key', value: '', options: [] }]
+                ? [{
+                    name: 'key', label: '按键', kind: 'Key', value: '',
+                    options: [], columns: [], rows: [],
+                  }]
                 : type === 'screen.color'
-                  ? [{ name: 'hex', label: '颜色', kind: 'Color', value: '', options: [] }]
-                  : [],
+                  ? [{
+                      name: 'hex', label: '颜色', kind: 'Color', value: '',
+                      options: [], columns: [], rows: [],
+                    }]
+                  : type === 'control.repeat'
+                    ? [{
+                        name: 'returns', label: '返回值', kind: 'Rows', value: '',
+                        options: [],
+                        columns: [{ name: 'key', required: true }, { name: 'name', required: true }],
+                        rows: [],
+                      }]
+                    : [],
             steps: [],
           };
           this.editor = {
@@ -502,6 +521,55 @@ export class MockTransport implements BridgeTransport {
       case 'editor.sessionRedo':
         if (this.editor) {
           this.editor = { ...this.editor, canUndo: true, canRedo: false };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterRowAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeRows(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (rows) => [...rows, { cells: ['', ''] }]),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterRowRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeRows(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (rows) => rows.filter((_, index) => index !== Number(params['index']))),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterRowCell':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeRows(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (rows) => rows.map((row, index) => index !== Number(params['index'])
+                ? row
+                : {
+                    cells: row.cells.map((cell, cellIndex) =>
+                      cellIndex === this.columnIndex(String(params['column'] ?? ''))
+                        ? String(params['value'] ?? '')
+                        : cell),
+                  })),
+          };
         }
         result = this.editor;
         break;
@@ -987,6 +1055,25 @@ export class MockTransport implements BridgeTransport {
     }
 
     this.answer({ id: request.id, ok: true, result });
+  }
+
+  private changeRows(
+    steps: EditorStep[],
+    stepId: string,
+    name: string,
+    change: (rows: { cells: string[] }[]) => { cells: string[] }[],
+  ): EditorStep[] {
+    return steps.map((step) => step.id === stepId
+      ? {
+          ...step,
+          parameters: step.parameters.map((parameter) =>
+            parameter.name === name ? { ...parameter, rows: change(parameter.rows) } : parameter),
+        }
+      : { ...step, steps: this.changeRows(step.steps, stepId, name, change) });
+  }
+
+  private columnIndex(column: string): number {
+    return column === 'name' ? 1 : 0;
   }
 
   private setParameter(

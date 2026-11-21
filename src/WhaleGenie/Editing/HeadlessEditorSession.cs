@@ -482,6 +482,46 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void AddParameterRow(string stepId, string name)
+    {
+        var parameter = FindParameter(stepId, name);
+        parameter.Rows.Add(new StepParameterRow());
+        _model.IsDirty = true;
+    }
+
+    public void RemoveParameterRow(string stepId, string name, int index)
+    {
+        var parameter = FindParameter(stepId, name);
+        if (index < 0 || index >= parameter.Rows.Count)
+        {
+            throw new InvalidOperationException("step " + stepId + " has no row " + index);
+        }
+
+        parameter.Rows.RemoveAt(index);
+        _model.IsDirty = true;
+    }
+
+    public void PatchParameterRow(string stepId, string name, int index, string column, string value)
+    {
+        var parameter = FindParameter(stepId, name);
+        if (index < 0 || index >= parameter.Rows.Count)
+        {
+            throw new InvalidOperationException("step " + stepId + " has no row " + index);
+        }
+
+        parameter.Rows[index].SetLine(column, value);
+        _model.IsDirty = true;
+    }
+
+    private StepParameter FindParameter(string stepId, string name)
+    {
+        var step = FindStep(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        return step.Parameters.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name, name, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("step " + stepId + " has no parameter " + name);
+    }
+
     public void MoveStep(string stepId, int delta)
     {
         var found = Find(stepId)
@@ -588,13 +628,17 @@ internal sealed class HeadlessEditorSession
             {
                 var field = definition?.Parameters.FirstOrDefault(candidate =>
                     candidate.Name == parameter.Name);
+                var columns = field?.Semantics.Columns ?? [];
                 return new EditorParameterSnapshot(
                     parameter.Name,
                     field?.LocalLabel ?? parameter.Name,
                     parameter.Kind.ToString(),
                     parameter.Value,
                     [.. field?.OptionChoices.Select(choice => new EditorChoiceSnapshot(
-                        choice.Value, choice.Display)) ?? []]);
+                        choice.Value, choice.Display)) ?? []],
+                    [.. columns.Select(column => new EditorColumnSnapshot(column.Name, column.Required))],
+                    [.. parameter.Rows.Select(row => new EditorRowSnapshot(
+                        [.. columns.Select(column => row.Text(column.Name))]))]);
             })
             .ToList();
         var children = step.Parameters
@@ -663,7 +707,12 @@ internal sealed record EditorStepSnapshot(string Id, string Type, string Name, b
     IReadOnlyList<EditorStepSnapshot> Steps);
 
 internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value,
-    IReadOnlyList<EditorChoiceSnapshot> Options);
+    IReadOnlyList<EditorChoiceSnapshot> Options, IReadOnlyList<EditorColumnSnapshot> Columns,
+    IReadOnlyList<EditorRowSnapshot> Rows);
+
+internal sealed record EditorColumnSnapshot(string Name, bool Required);
+
+internal sealed record EditorRowSnapshot(IReadOnlyList<string> Cells);
 
 internal sealed record EditorChoiceSnapshot(string Value, string Label);
 
