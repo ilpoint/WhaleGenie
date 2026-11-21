@@ -96,6 +96,112 @@ internal sealed class HeadlessEditorSession
     public IReadOnlyList<string> SubMacros
         => [.. _model.SubMacros.Select(macro => macro.Name)];
 
+    public IReadOnlyList<EditorMacroParameterSnapshot> CallableParameters
+        => [.. _model.DeclaredParameters.Select(parameter => new EditorMacroParameterSnapshot(
+            parameter.Name,
+            WhaleGenie.Models.VariableTypes.Name(parameter.Type),
+            parameter.Required,
+            Formula.Word(parameter.Default),
+            parameter.Description))];
+
+    public IReadOnlyList<EditorMacroResultSnapshot> CallableResults
+        => [.. _model.DeclaredResults.Select(result => new EditorMacroResultSnapshot(
+            result.Name,
+            WhaleGenie.Models.VariableTypes.Name(result.Type),
+            result.Description))];
+
+    public void AddCallableParameter()
+    {
+        _model.DeclaredParameters.Add(new MacroParameter());
+        _model.IsDirty = true;
+    }
+
+    public void PatchCallableParameter(int index, string field, string value)
+    {
+        if (index < 0 || index >= _model.DeclaredParameters.Count)
+        {
+            throw new InvalidOperationException("the macro has no parameter " + index);
+        }
+
+        var parameter = _model.DeclaredParameters[index];
+        switch (field)
+        {
+            case "name":
+                parameter.Name = value.Trim();
+                break;
+            case "type":
+                parameter.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                break;
+            case "required":
+                parameter.Required = bool.TryParse(value, out var required) && required;
+                break;
+            case "default":
+                parameter.Default = Formula.Text(value);
+                break;
+            case "description":
+                parameter.Description = value;
+                break;
+            default:
+                throw new InvalidOperationException("unknown parameter field " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void RemoveCallableParameter(int index)
+    {
+        if (index < 0 || index >= _model.DeclaredParameters.Count)
+        {
+            throw new InvalidOperationException("the macro has no parameter " + index);
+        }
+
+        _model.DeclaredParameters.RemoveAt(index);
+        _model.IsDirty = true;
+    }
+
+    public void AddCallableResult()
+    {
+        _model.DeclaredResults.Add(new MacroResult());
+        _model.IsDirty = true;
+    }
+
+    public void PatchCallableResult(int index, string field, string value)
+    {
+        if (index < 0 || index >= _model.DeclaredResults.Count)
+        {
+            throw new InvalidOperationException("the macro has no result " + index);
+        }
+
+        var result = _model.DeclaredResults[index];
+        switch (field)
+        {
+            case "name":
+                result.Name = value.Trim();
+                break;
+            case "type":
+                result.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                break;
+            case "description":
+                result.Description = value;
+                break;
+            default:
+                throw new InvalidOperationException("unknown result field " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void RemoveCallableResult(int index)
+    {
+        if (index < 0 || index >= _model.DeclaredResults.Count)
+        {
+            throw new InvalidOperationException("the macro has no result " + index);
+        }
+
+        _model.DeclaredResults.RemoveAt(index);
+        _model.IsDirty = true;
+    }
+
     public bool FollowInputLimit => _model.FollowProgramInputRate;
 
     public int InputLimit => (int)Math.Round(_model.InputLimitValue);
@@ -1129,6 +1235,8 @@ internal sealed class HeadlessEditorSession
             Description,
             Group,
             SubMacros,
+            CallableParameters,
+            CallableResults,
             FollowInputLimit,
             InputLimit,
             ToggleKey,
@@ -1303,7 +1411,9 @@ internal sealed class HeadlessEditorSession
 }
 
 internal sealed record EditorSnapshot(string Name, string Description, string Group,
-    IReadOnlyList<string> SubMacros, bool FollowInputLimit, int InputLimit, string ToggleKey,
+    IReadOnlyList<string> SubMacros, IReadOnlyList<EditorMacroParameterSnapshot> CallableParameters,
+    IReadOnlyList<EditorMacroResultSnapshot> CallableResults,
+    bool FollowInputLimit, int InputLimit, string ToggleKey,
     bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
@@ -1315,6 +1425,11 @@ internal sealed record EditorSnapshot(string Name, string Description, string Gr
 
 internal sealed record EditorGlobalSnapshot(string Name, string Type, string Default, string Description,
     bool Persisted);
+
+internal sealed record EditorMacroParameterSnapshot(string Name, string Type, bool Required,
+    string Default, string Description);
+
+internal sealed record EditorMacroResultSnapshot(string Name, string Type, string Description);
 
 internal sealed record EditorValueChoiceSnapshot(string Name, string Type, string Origin, string Source,
     string Description);

@@ -144,6 +144,27 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void Callable_parameters_and_results_can_be_declared()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "callable" });
+        var session = HeadlessEditorSession.Open(workspace, "callable");
+
+        session.AddCallableParameter();
+        session.PatchCallableParameter(0, "name", "count");
+        session.PatchCallableParameter(0, "type", "number");
+        session.PatchCallableParameter(0, "required", "true");
+        session.AddCallableResult();
+        session.PatchCallableResult(0, "name", "total");
+
+        var parameter = Assert.Single(session.CallableParameters);
+        Assert.Equal("count", parameter.Name);
+        Assert.Equal("number", parameter.Type);
+        Assert.True(parameter.Required);
+        Assert.Equal("total", Assert.Single(session.CallableResults).Name);
+    }
+
+    [Fact]
     public void Macro_settings_cover_input_limit_and_toggle_key()
     {
         var workspace = new ProjectWorkspace();

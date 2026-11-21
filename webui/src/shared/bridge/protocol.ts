@@ -211,6 +211,20 @@ export interface EditorGlobal {
   persisted: boolean;
 }
 
+export interface EditorMacroParameter {
+  name: string;
+  type: string;
+  required: boolean;
+  default: string;
+  description: string;
+}
+
+export interface EditorMacroResult {
+  name: string;
+  type: string;
+  description: string;
+}
+
 export interface EditorValueChoice {
   name: string;
   type: string;
@@ -241,6 +255,8 @@ export interface EditorSnapshot {
   description: string;
   group: string;
   subMacros: string[];
+  callableParameters: EditorMacroParameter[];
+  callableResults: EditorMacroResult[];
   followInputLimit: boolean;
   inputLimit: number;
   toggleKey: string;

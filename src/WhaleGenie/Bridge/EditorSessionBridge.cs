@@ -31,6 +31,12 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionNew", _ => Task.FromResult<object?>(NewDocument()));
         server.Register("editor.sessionSubOpen", OpenSubmacro);
         server.Register("editor.sessionMacroSetting", SetMacroSetting);
+        server.Register("editor.sessionParameterDeclAdd", AddCallableParameter);
+        server.Register("editor.sessionParameterDeclPatch", PatchCallableParameter);
+        server.Register("editor.sessionParameterDeclRemove", RemoveCallableParameter);
+        server.Register("editor.sessionResultDeclAdd", AddCallableResult);
+        server.Register("editor.sessionResultDeclPatch", PatchCallableResult);
+        server.Register("editor.sessionResultDeclRemove", RemoveCallableResult);
         server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
@@ -363,6 +369,62 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
             recording = _recording?.IsRecording == true,
             captured = _recording?.Captured ?? 0,
         };
+    }
+
+    private Task<object?> AddCallableParameter(JsonElement parameters)
+        => DeclarationCommand(session => session.AddCallableParameter());
+
+    private Task<object?> PatchCallableParameter(JsonElement parameters)
+        => DeclarationCommand(session =>
+        {
+            var (index, field, value) = DeclarationFields(parameters);
+            session.PatchCallableParameter(index, field, value);
+        });
+
+    private Task<object?> RemoveCallableParameter(JsonElement parameters)
+        => DeclarationCommand(session => session.RemoveCallableParameter(DeclarationIndex(parameters)));
+
+    private Task<object?> AddCallableResult(JsonElement parameters)
+        => DeclarationCommand(session => session.AddCallableResult());
+
+    private Task<object?> PatchCallableResult(JsonElement parameters)
+        => DeclarationCommand(session =>
+        {
+            var (index, field, value) = DeclarationFields(parameters);
+            session.PatchCallableResult(index, field, value);
+        });
+
+    private Task<object?> RemoveCallableResult(JsonElement parameters)
+        => DeclarationCommand(session => session.RemoveCallableResult(DeclarationIndex(parameters)));
+
+    private Task<object?> DeclarationCommand(Action<HeadlessEditorSession> apply)
+    {
+        try
+        {
+            apply(Required());
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private static int DeclarationIndex(JsonElement parameters)
+        => parameters.TryGetProperty("index", out var index) && index.TryGetInt32(out var number)
+            ? number
+            : -1;
+
+    private static (int Index, string Field, string Value) DeclarationFields(JsonElement parameters)
+    {
+        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+        if (field is not { Length: > 0 } || value is null)
+        {
+            throw new InvalidOperationException("a declaration field needs a field and a value");
+        }
+
+        return (DeclarationIndex(parameters), field, value);
     }
 
     private Task<object?> SetMacroSetting(JsonElement parameters)
@@ -971,6 +1033,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
                 description = snapshot.Description,
                 group = snapshot.Group,
                 subMacros = snapshot.SubMacros,
+                callableParameters = snapshot.CallableParameters,
+                callableResults = snapshot.CallableResults,
                 followInputLimit = snapshot.FollowInputLimit,
                 inputLimit = snapshot.InputLimit,
                 toggleKey = snapshot.ToggleKey,

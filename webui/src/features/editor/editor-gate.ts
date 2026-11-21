@@ -148,6 +148,31 @@ export class WgEditorGate extends LitElement {
       color: var(--colorNeutralForeground1);
     }
 
+    .declarations {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .declarations th,
+    .declarations td {
+      padding: var(--spacingVerticalXS);
+      text-align: left;
+      font-size: var(--font-size-base-200);
+    }
+
+    .declarations input,
+    .declarations select {
+      width: 100%;
+    }
+
+    .declarations button {
+      border: none;
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      font: inherit;
+      cursor: pointer;
+    }
+
     .macro-settings {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
@@ -700,6 +725,80 @@ export class WgEditorGate extends LitElement {
           </div>
         `
         : nothing}
+      <h2>${t('MacroInterface.Parameters')}</h2>
+      <table class="declarations">
+        <thead>
+          <tr>
+            <th>${t('MacroInterface.Name')}</th>
+            <th>${t('MacroInterface.Type')}</th>
+            <th>${t('MacroInterface.Required')}</th>
+            <th>${t('MacroInterface.Default')}</th>
+            <th>${t('MacroInterface.Description')}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.snapshot.callableParameters.map((parameter, index) => html`
+            <tr>
+              <td><input .value=${parameter.name} @change=${(event: Event) =>
+                void this.patchCallableParameter(index, 'name', event)} /></td>
+              <td>
+                <select .value=${parameter.type} @change=${(event: Event) =>
+                  void this.patchCallableParameter(index, 'type', event)}>
+                  ${this.snapshot!.variableTypes.map((type) => html`
+                    <option value=${type.value}>${type.label}</option>
+                  `)}
+                </select>
+              </td>
+              <td><input type="checkbox" .checked=${parameter.required}
+                @change=${(event: Event) => void this.patchCallableParameter(index, 'required', event)} /></td>
+              <td><input .value=${parameter.default} @change=${(event: Event) =>
+                void this.patchCallableParameter(index, 'default', event)} /></td>
+              <td><input .value=${parameter.description} @change=${(event: Event) =>
+                void this.patchCallableParameter(index, 'description', event)} /></td>
+              <td><button aria-label=${t('MacroInterface.Remove')} @click=${() =>
+                void this.removeCallableParameter(index)}>×</button></td>
+            </tr>
+          `)}
+        </tbody>
+      </table>
+      <fluent-button appearance="subtle" @click=${() => void this.addCallableParameter()}>
+        ${t('MacroInterface.AddParameter')}
+      </fluent-button>
+      <h2>${t('MacroInterface.Results')}</h2>
+      <table class="declarations">
+        <thead>
+          <tr>
+            <th>${t('MacroInterface.Name')}</th>
+            <th>${t('MacroInterface.Type')}</th>
+            <th>${t('MacroInterface.Description')}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.snapshot.callableResults.map((result, index) => html`
+            <tr>
+              <td><input .value=${result.name} @change=${(event: Event) =>
+                void this.patchCallableResult(index, 'name', event)} /></td>
+              <td>
+                <select .value=${result.type} @change=${(event: Event) =>
+                  void this.patchCallableResult(index, 'type', event)}>
+                  ${this.snapshot!.variableTypes.map((type) => html`
+                    <option value=${type.value}>${type.label}</option>
+                  `)}
+                </select>
+              </td>
+              <td><input .value=${result.description} @change=${(event: Event) =>
+                void this.patchCallableResult(index, 'description', event)} /></td>
+              <td><button aria-label=${t('MacroInterface.Remove')} @click=${() =>
+                void this.removeCallableResult(index)}>×</button></td>
+            </tr>
+          `)}
+        </tbody>
+      </table>
+      <fluent-button appearance="subtle" @click=${() => void this.addCallableResult()}>
+        ${t('MacroInterface.AddResult')}
+      </fluent-button>
       <h2>${t('Editor.MacroSettings')}</h2>
       <div class="macro-settings">
         <label class="enabled">
@@ -1344,6 +1443,53 @@ export class WgEditorGate extends LitElement {
 
   private selectOpen(event: Event): void {
     this.openName = (event.target as HTMLSelectElement).value;
+  }
+
+  private async addCallableParameter(): Promise<void> {
+    await this.declarationCommand('editor.sessionParameterDeclAdd', {});
+  }
+
+  private async patchCallableParameter(index: number, field: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    await this.declarationCommand('editor.sessionParameterDeclPatch', {
+      index,
+      field,
+      value: target instanceof HTMLInputElement && target.type === 'checkbox'
+        ? String(target.checked)
+        : target.value,
+    });
+  }
+
+  private async removeCallableParameter(index: number): Promise<void> {
+    await this.declarationCommand('editor.sessionParameterDeclRemove', { index });
+  }
+
+  private async addCallableResult(): Promise<void> {
+    await this.declarationCommand('editor.sessionResultDeclAdd', {});
+  }
+
+  private async patchCallableResult(index: number, field: string, event: Event): Promise<void> {
+    await this.declarationCommand('editor.sessionResultDeclPatch', {
+      index,
+      field,
+      value: (event.target as HTMLInputElement | HTMLSelectElement).value,
+    });
+  }
+
+  private async removeCallableResult(index: number): Promise<void> {
+    await this.declarationCommand('editor.sessionResultDeclRemove', { index });
+  }
+
+  private async declarationCommand(
+    method: string,
+    extra: Record<string, unknown>,
+  ): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>(method, extra);
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async setMacroSetting(field: string, event: Event): Promise<void> {

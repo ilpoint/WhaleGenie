@@ -42,6 +42,10 @@ const chromeKeys = [
   'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.Record',
   'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty',
   'Editor.ValueBuilder', 'Editor.Functions', 'Editor.AddGroup', 'Editor.SubMacros',
+  'MacroInterface.Parameters', 'MacroInterface.Results', 'MacroInterface.Name',
+  'MacroInterface.Type', 'MacroInterface.Required', 'MacroInterface.Default',
+  'MacroInterface.Description', 'MacroInterface.Remove', 'MacroInterface.AddParameter',
+  'MacroInterface.AddResult',
   'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
@@ -109,6 +113,11 @@ const english: Record<string, string> = {
   'Editor.Record': 'Record', 'Editor.StopRecording': 'Stop Recording',
   'Editor.ValueBuilder': 'Build value', 'Editor.Functions': 'Functions',
   'Editor.AddGroup': 'Add group', 'Editor.SubMacros': 'Sub-macros',
+  'MacroInterface.Parameters': 'Parameters', 'MacroInterface.Results': 'Results',
+  'MacroInterface.Name': 'Name', 'MacroInterface.Type': 'Kind',
+  'MacroInterface.Required': 'Required', 'MacroInterface.Default': 'Default',
+  'MacroInterface.Description': 'Description', 'MacroInterface.Remove': 'Remove',
+  'MacroInterface.AddParameter': 'Add parameter', 'MacroInterface.AddResult': 'Add result',
   'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
@@ -207,6 +216,11 @@ const chinese: Record<string, string> = {
   'Editor.Record': '开始录制', 'Editor.StopRecording': '停止录制',
   'Editor.ValueBuilder': '构建取值', 'Editor.Functions': '函数',
   'Editor.AddGroup': '添加组', 'Editor.SubMacros': '子宏',
+  'MacroInterface.Parameters': '形参', 'MacroInterface.Results': '返回值',
+  'MacroInterface.Name': '名字', 'MacroInterface.Type': '类型',
+  'MacroInterface.Required': '必填', 'MacroInterface.Default': '默认值',
+  'MacroInterface.Description': '说明', 'MacroInterface.Remove': '删除',
+  'MacroInterface.AddParameter': '添加形参', 'MacroInterface.AddResult': '添加结果',
   'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
@@ -401,6 +415,8 @@ export class MockTransport implements BridgeTransport {
           description: '',
           group: '',
           subMacros: [],
+          callableParameters: [],
+          callableResults: [],
           followInputLimit: true,
           inputLimit: 20,
           toggleKey: '',
@@ -453,6 +469,8 @@ export class MockTransport implements BridgeTransport {
           description: macro?.description ?? '',
           group: macro?.group ?? '',
           subMacros: ['辅助宏'],
+          callableParameters: [],
+          callableResults: [],
           followInputLimit: true,
           inputLimit: 20,
           toggleKey: '',
@@ -513,6 +531,98 @@ export class MockTransport implements BridgeTransport {
         result = { activeKey: this.editor?.name ?? null, tabs };
         break;
       }
+      case 'editor.sessionParameterDeclAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableParameters: [...this.editor.callableParameters, {
+              name: 'parameter', type: 'text', required: false, default: '', description: '',
+            }],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterDeclPatch':
+        if (this.editor) {
+          const index = Number(params['index']);
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== index
+              ? parameter
+              : {
+                  ...parameter,
+                  name: params['field'] === 'name' ? String(params['value'] ?? '') : parameter.name,
+                  type: params['field'] === 'type' ? String(params['value'] ?? '') : parameter.type,
+                  required: params['field'] === 'required'
+                    ? params['value'] === 'true'
+                    : parameter.required,
+                  default: params['field'] === 'default'
+                    ? String(params['value'] ?? '')
+                    : parameter.default,
+                  description: params['field'] === 'description'
+                    ? String(params['value'] ?? '')
+                    : parameter.description,
+                }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterDeclRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableParameters: this.editor.callableParameters.filter(
+              (_, at) => at !== Number(params['index'])),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionResultDeclAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableResults: [...this.editor.callableResults, {
+              name: 'result', type: 'text', description: '',
+            }],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionResultDeclPatch':
+        if (this.editor) {
+          const index = Number(params['index']);
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableResults: this.editor.callableResults.map((resultItem, at) => at !== index
+              ? resultItem
+              : {
+                  ...resultItem,
+                  name: params['field'] === 'name' ? String(params['value'] ?? '') : resultItem.name,
+                  type: params['field'] === 'type' ? String(params['value'] ?? '') : resultItem.type,
+                  description: params['field'] === 'description'
+                    ? String(params['value'] ?? '')
+                    : resultItem.description,
+                }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionResultDeclRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableResults: this.editor.callableResults.filter(
+              (_, at) => at !== Number(params['index'])),
+          };
+        }
+        result = this.editor;
+        break;
       case 'editor.sessionMacroSetting':
         if (this.editor) {
           this.editor = {
@@ -537,7 +647,9 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             name: String(params['name'] ?? ''),
             subMacros: [],
-            followInputLimit: true,
+            callableParameters: [],
+          callableResults: [],
+          followInputLimit: true,
             inputLimit: 20,
             toggleKey: '',
             dirty: false,
@@ -555,7 +667,9 @@ export class MockTransport implements BridgeTransport {
             description: macro.description,
             group: macro.group,
             subMacros: [],
-            followInputLimit: true,
+            callableParameters: [],
+          callableResults: [],
+          followInputLimit: true,
             inputLimit: 20,
             toggleKey: '',
             dirty: false,

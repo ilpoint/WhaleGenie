@@ -221,6 +221,20 @@ test('C1 条件参数可按行编辑', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 宏可声明参数与返回值', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加形参' }).click();
+  const parameters = page.locator('wg-editor-gate .declarations').first();
+  await parameters.locator('input').first().fill('count');
+  await parameters.locator('input').first().press('Tab');
+  await parameters.locator('input[type="checkbox"]').check();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加结果' }).click();
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameterDeclAdd')))
+    .toBe(true);
+});
+
 test('C1 宏设置可改输入限制与启停键', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   const settings = page.locator('wg-editor-gate .macro-settings');
