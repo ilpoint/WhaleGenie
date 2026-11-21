@@ -23,6 +23,7 @@ internal sealed class HeadlessEditorSession
     private readonly ProjectWorkspace _workspace;
     private readonly MacroEditorViewModel _model;
     private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
+    private List<GlobalDraftEntry>? _globalDraft;
     private MacroItem? _existing;
 
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing)
@@ -176,12 +177,13 @@ internal sealed class HeadlessEditorSession
             choice.Description))];
 
     public IReadOnlyList<EditorGlobalSnapshot> Globals
-        => [.. _workspace.Variables.Globals.Select(variable => new EditorGlobalSnapshot(
-            variable.Name,
-            WhaleGenie.Models.VariableTypes.Name(variable.Type),
-            Formula.Word(variable.Default),
-            variable.Description,
-            variable.PersistValue))];
+        => [.. (_globalDraft?.Select(entry => entry.Variable) ?? _workspace.Variables.Globals)
+            .Select(variable => new EditorGlobalSnapshot(
+                variable.Name,
+                WhaleGenie.Models.VariableTypes.Name(variable.Type),
+                Formula.Word(variable.Default),
+                variable.Description,
+                variable.PersistValue))];
 
     public void Patch(string? name = null, string? description = null, string? group = null)
     {
@@ -224,66 +226,126 @@ internal sealed class HeadlessEditorSession
 
     public void AddGlobal()
     {
+        var draft = EnsureGlobalDraft();
         var name = "variable";
-        for (var index = 2; _workspace.Variables.FindGlobal(name) is not null; index++)
+        for (var index = 2; draft.Any(entry => string.Equals(entry.Variable.Name, name,
+                StringComparison.OrdinalIgnoreCase)); index++)
         {
             name = "variable" + index.ToString(CultureInfo.InvariantCulture);
         }
 
-        _workspace.Variables.Adopt(new VariableDefinition { Name = name });
-        _workspace.MarkGlobalsChanged();
+        draft.Add(new GlobalDraftEntry(new VariableDefinition
+        {
+            Name = name,
+            Scope = VariableScope.Global,
+        }, name, true));
+        _model.IsDirty = true;
     }
 
     public void PatchGlobal(string originalName, string field, string value)
     {
-        var global = _workspace.Variables.FindGlobal(originalName)
+        var draft = EnsureGlobalDraft();
+        var entry = draft.FirstOrDefault(candidate => string.Equals(
+            candidate.Variable.Name, originalName, StringComparison.Ordinal))
             ?? throw new InvalidOperationException("the project has no global " + originalName);
         var next = value.Trim();
         switch (field)
         {
             case "name":
-                VariableRename.RenameGlobal([.. _workspace.Macros], originalName, next);
-                _model.RenameGlobalReferences(originalName, next);
-                _workspace.Persisted.Rename(originalName, next);
-                _workspace.Variables.Values.Rename(originalName, next);
-                global.Name = next;
+                if (draft.Any(candidate => !ReferenceEquals(candidate, entry)
+                    && string.Equals(candidate.Variable.Name, next, StringComparison.OrdinalIgnoreCase)))
+                {
+                    throw new InvalidOperationException("the project already has a global " + next);
+                }
+
+                entry.Variable.Name = next;
                 break;
             case "type":
-                global.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                entry.Variable.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
                 break;
             case "default":
-                global.Default = Formula.Text(value);
+                entry.Variable.Default = Formula.Text(value);
                 break;
             case "description":
-                global.Description = value;
+                entry.Variable.Description = value;
                 break;
             case "persist":
-                global.PersistValue = bool.TryParse(value, out var persist) && persist;
+                entry.Variable.PersistValue = bool.TryParse(value, out var persist) && persist;
                 break;
             default:
                 throw new InvalidOperationException("unknown global field " + field);
         }
 
-        _workspace.MarkGlobalsChanged();
+        _model.IsDirty = true;
     }
 
     public void RemoveGlobal(string name)
     {
-        var global = _workspace.Variables.FindGlobal(name)
+        var draft = EnsureGlobalDraft();
+        var entry = draft.FirstOrDefault(candidate => string.Equals(
+            candidate.Variable.Name, name, StringComparison.Ordinal))
             ?? throw new InvalidOperationException("the project has no global " + name);
-        var kept = _workspace.Variables.Globals
-            .Where(candidate => !ReferenceEquals(candidate, global))
-            .ToList();
-        _workspace.Variables.ClearGlobals();
-        foreach (var candidate in kept)
+        draft.Remove(entry);
+        _model.IsDirty = true;
+    }
+
+    private List<GlobalDraftEntry> EnsureGlobalDraft()
+        => _globalDraft ??= [.. _workspace.Variables.Globals.Select(global =>
+            new GlobalDraftEntry(CloneGlobal(global), global.Name, false))];
+
+    private static VariableDefinition CloneGlobal(VariableDefinition global)
+        => new()
         {
-            _workspace.Variables.Adopt(candidate);
+            Name = global.Name,
+            Scope = VariableScope.Global,
+            Type = global.Type,
+            Description = global.Description,
+            Default = global.Default,
+            PersistValue = global.PersistValue,
+        };
+
+    private void CommitGlobals()
+    {
+        if (_globalDraft is null)
+        {
+            return;
         }
 
-        _workspace.Persisted.Forget(name);
-        _workspace.Variables.Values.Remove(name);
+        var draftNames = _globalDraft.Select(entry => entry.OriginalName)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var global in _workspace.Variables.Globals.ToList())
+        {
+            if (!draftNames.Contains(global.Name))
+            {
+                _workspace.Persisted.Forget(global.Name);
+                _workspace.Variables.Values.Remove(global.Name);
+            }
+        }
+
+        foreach (var entry in _globalDraft)
+        {
+            if (!entry.IsNew
+                && !string.Equals(entry.OriginalName, entry.Variable.Name, StringComparison.Ordinal))
+            {
+                VariableRename.RenameGlobal([.. _workspace.Macros], entry.OriginalName,
+                    entry.Variable.Name);
+                _model.RenameGlobalReferences(entry.OriginalName, entry.Variable.Name);
+                _workspace.Persisted.Rename(entry.OriginalName, entry.Variable.Name);
+                _workspace.Variables.Values.Rename(entry.OriginalName, entry.Variable.Name);
+            }
+        }
+
+        _workspace.Variables.ClearGlobals();
+        foreach (var entry in _globalDraft)
+        {
+            _workspace.Variables.Adopt(entry.Variable);
+        }
+
         _workspace.MarkGlobalsChanged();
+        _globalDraft = null;
     }
+
+    private sealed record GlobalDraftEntry(VariableDefinition Variable, string OriginalName, bool IsNew);
 
     public void AddVariable()
     {
@@ -858,6 +920,7 @@ internal sealed class HeadlessEditorSession
             _ => { }, () => { }, () => { });
         var draft = _model.Draft();
         commit.Apply(draft, []);
+        CommitGlobals();
         _model.IsDirty = false;
         _existing = _workspace.Macros.FirstOrDefault(candidate => candidate.Name == draft.Macro.Name);
         return _existing is not null;

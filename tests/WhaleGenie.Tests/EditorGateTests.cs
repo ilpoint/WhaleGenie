@@ -126,6 +126,24 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void Saving_commits_global_variable_draft()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "globals" });
+        var session = HeadlessEditorSession.Open(workspace, "globals");
+
+        session.AddGlobal();
+        session.PatchGlobal("variable", "name", "count");
+        session.PatchGlobal("count", "default", "5");
+        session.Save();
+
+        var saved = workspace.Variables.FindGlobal("count");
+        Assert.NotNull(saved);
+        Assert.Equal("5", saved.DefaultValue);
+        Assert.False(session.IsDirty);
+    }
+
+    [Fact]
     public void A_step_can_be_duplicated_with_its_settings()
     {
         var workspace = new ProjectWorkspace();
