@@ -125,11 +125,6 @@
                     </MenuFlyout>
                 </Button.Flyout>
             </Button>
-            <Button Grid.Column="1" Classes="Secondary" Height="32"
-                    Grid.ColumnSpan="2"
-                    IsVisible="{Binding IsPublicMacroDock}"
-                    Content="{Binding [Editor.ManagePublicMacros], Source={x:Static loc:Strings.Current}}"
-                    Click="OnManagePublicMacros" />
             <TextBlock Grid.ColumnSpan="2" Classes="Hint" VerticalAlignment="Center"
                        IsVisible="{Binding IsBasicDock}"
                        Text="{Binding [Editor.DragActionHint], Source={x:Static loc:Strings.Current}}"

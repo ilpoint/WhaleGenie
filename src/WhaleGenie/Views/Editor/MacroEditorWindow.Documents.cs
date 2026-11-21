@@ -330,14 +330,6 @@ public partial class MacroEditorWindow : AppWindow
         RefreshDocuments();
     }
 
-    private async void ManagePublicMacros()
-    {
-        _publicMacros = await PublicMacroLibraryWindow.ShowAsync(this, _publicMacros,
-            _publicMacroLoadError);
-        _publicMacroLoadError = null;
-        RefreshPalette();
-    }
-
     internal async void OnDeleteSubMacro(object? sender, RoutedEventArgs e)
     {
         var page = _documentPages.FirstOrDefault(candidate =>

@@ -254,7 +254,6 @@ public partial class MacroEditorWindow : AppWindow
         ActionPalette.SubMacroChosen += reference => SwitchToSubMacro(reference.Macro);
         ActionPalette.AddBlankSubMacroRequested += AddBlankSubMacro;
         ActionPalette.CopyProjectMacroRequested += CopyProjectMacroAsSub;
-        ActionPalette.ManagePublicMacrosRequested += ManagePublicMacros;
         ActionPalette.CardActivated += OnCardActivated;
         RefreshPalette();
         EnsureInterface();
