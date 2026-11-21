@@ -27,9 +27,6 @@ public partial class App : Application
     /// </summary>
     internal static bool ThemeProbe { get; set; }
 
-    /// <summary>Whether this launch opens the web shell instead of the Avalonia main window.</summary>
-    internal static bool WebShell { get; set; }
-
     /// <summary>The Vite dev server the web shell loads instead of the packed page, if asked.</summary>
     internal static string? WebUiDev { get; set; }
 #endif
@@ -101,23 +98,25 @@ public partial class App : Application
     private static void ShowWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
         var services = WindowedServices.Build();
-#if DEBUG
-        var wantsShell = App.WebShell && WebViewRuntime.IsInstalled;
-        if (App.WebShell && !wantsShell)
+
+        // The web shell is the ordinary window now. WebView2 is the one thing it cannot carry
+        // itself, so a machine without the runtime gets the native window rather than a blank
+        // frame; every other start goes through the shell.
+        var wantsShell = WebViewRuntime.IsInstalled;
+        if (!wantsShell)
         {
             AppDiagnostics.Note("webshell.runtime",
                 "WebView2 is missing; the native window is used instead");
         }
 
         Window window = wantsShell
-            ? (Window)services.GetRequiredService<WebShellWindow>()
+            ? services.GetRequiredService<WebShellWindow>()
             : services.GetRequiredService<MainWindow>();
+#if DEBUG
         if (window is WebShellWindow webShell)
         {
             webShell.DevUrl = App.WebUiDev;
         }
-#else
-        Window window = services.GetRequiredService<MainWindow>();
 #endif
         var main = window as MainWindow;
         var shell = window as WebShellWindow;

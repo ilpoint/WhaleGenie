@@ -114,10 +114,15 @@ internal sealed class ShellNativeWindows(
 
     internal async Task OpenAboutAsync()
     {
-        if (owner() is { } window)
+        if (owner() is not { } window)
         {
-            await new AboutWindow().ShowDialogOver(window);
+            return;
         }
+
+        var dialog = new AboutWindow();
+        var closing = dialog.ShowDialogOver(window);
+        dialog.Activate();
+        await closing;
     }
 
     internal static void OpenManual() => WebPage.Open(Manual.Where());

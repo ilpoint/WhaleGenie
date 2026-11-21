@@ -109,15 +109,8 @@ sealed class Program
             return 0;
         }
 
-        // The web shell in place of the Avalonia main window: --webshell asks for it, and
-        // --webui-dev points it at a Vite dev server so the page edits hot-reload while the
-        // program runs. Both stay debug-only while the shell grows; the ordinary window remains
-        // the default until the shell has taken over everything it must.
-        if (args.Contains("--webshell", System.StringComparer.Ordinal))
-        {
-            App.WebShell = true;
-        }
-
+        // The web shell is the ordinary window; --webui-dev points it at a Vite dev server so page
+        // edits hot-reload while the program runs. Debug only: Release loads the packed page.
         foreach (var argument in args)
         {
             if (argument.StartsWith("--webui-dev", System.StringComparison.Ordinal))
