@@ -29,6 +29,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         server.Register("run.load", LoadAsync);
         server.Register("run.command", CommandAsync);
         server.Register("run.breakpoint", Breakpoint);
+        server.Register("run.answer", Answer);
     }
 
     public void Dispose() => _timer?.Stop();
@@ -85,6 +86,33 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
 
         await PushAsync();
         return Snapshot();
+    }
+
+    private Task<object?> Answer(JsonElement parameters)
+    {
+        var kind = parameters.TryGetProperty("kind", out var named) ? named.GetString() : null;
+        var choice = parameters.TryGetProperty("choice", out var picked) ? picked.GetString() : null;
+        if (_run is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Run.NotLoaded"));
+        }
+
+        if (kind == "user")
+        {
+            if (parameters.TryGetProperty("text", out var text) && text.GetString() is { } written)
+            {
+                _run.AnswerText = written;
+            }
+
+            _run.AnswerUserCommand.Execute(choice ?? "cancel");
+        }
+        else
+        {
+            _run.AnswerCommand.Execute(choice ?? "stop");
+        }
+
+        return Task.FromResult<object?>(Snapshot());
     }
 
     private Task<object?> Breakpoint(JsonElement parameters)
@@ -150,6 +178,11 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
                 failure = step.FailureNote,
                 condition = step.ConditionNote,
             }),
+            question = _run?.Question ?? string.Empty,
+            wantsTypedAnswer = _run?.WantsTypedAnswer ?? false,
+            answerText = _run?.AnswerText ?? string.Empty,
+            isAskingUser = _run?.IsAskingUser ?? false,
+            isAsking = _run?.IsAsking ?? false,
             log = _run?.Lines.Select(line => new
             {
                 time = line.Time,

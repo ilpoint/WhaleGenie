@@ -73,6 +73,15 @@ export class WgRun extends LitElement {
       color: var(--colorNeutralForeground2);
     }
 
+    .ask {
+      display: grid;
+      gap: var(--spacingVerticalS);
+      padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+      border: var(--strokeWidthThin) solid var(--colorBrandStroke1);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground2);
+    }
+
     .step {
       display: grid;
       grid-template-columns: 22px minmax(0, 1fr);
@@ -151,6 +160,7 @@ export class WgRun extends LitElement {
           ${this.button('stop', 'Run.Stop', this.run?.canStop ?? false)}
         </div>
         <div class="status">${this.run?.status ?? ''}</div>
+        ${this.ask()}
         <div class="steps">
           ${this.run?.steps.map((step) => this.step(step))}
         </div>
@@ -196,10 +206,61 @@ export class WgRun extends LitElement {
     `;
   }
 
+  private ask() {
+    if (!this.run) {
+      return nothing;
+    }
+
+    if (this.run.isAskingUser) {
+      return html`
+        <div class="ask">
+          <div>${this.run.question}</div>
+          ${this.run.wantsTypedAnswer ? html`
+            <input id="run-answer" .value=${this.run.answerText} />
+          ` : nothing}
+          <div class="toolbar">
+            <fluent-button appearance="accent"
+              @click=${() => void this.answer('user', 'ok')}>${t('Common.Ok')}</fluent-button>
+            <fluent-button appearance="subtle"
+              @click=${() => void this.answer('user', 'cancel')}>${t('Common.Cancel')}</fluent-button>
+          </div>
+        </div>
+      `;
+    }
+
+    if (this.run.isAsking) {
+      return html`
+        <div class="ask">
+          <div>${this.run.question}</div>
+          <div class="toolbar">
+            <fluent-button appearance="accent"
+              @click=${() => void this.answer('failure', 'retry')}>${t('Run.AskRetry')}</fluent-button>
+            <fluent-button appearance="subtle"
+              @click=${() => void this.answer('failure', 'skip')}>${t('Run.AskSkip')}</fluent-button>
+            <fluent-button appearance="subtle"
+              @click=${() => void this.answer('failure', 'stop')}>${t('Run.AskStop')}</fluent-button>
+          </div>
+        </div>
+      `;
+    }
+
+    return nothing;
+  }
+
   private async load(): Promise<void> {
     try {
       this.project = await bridge.value.call<ProjectState>('project.state');
       this.run = await bridge.value.call<RunState>('run.state');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async answer(kind: string, choice: string): Promise<void> {
+    try {
+      const text = this.renderRoot.querySelector<HTMLInputElement>('#run-answer')?.value;
+      this.run = await bridge.value.call<RunState>('run.answer', { kind, choice, text });
+      this.error = '';
     } catch (error) {
       this.error = String(error);
     }

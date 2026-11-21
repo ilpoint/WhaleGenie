@@ -34,7 +34,8 @@ const chromeKeys = [
   'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Settings.Storage', 'Settings.OpenFolder',
   'Settings.Driver', 'Settings.DriverAttachAtStart', 'Settings.RunAsAdmin',
   'Run.Title', 'Run.Run', 'Run.NativeNote', 'Run.Step', 'Run.Continue',
-  'Run.SkipStep', 'Run.Stop', 'Run.NotLoaded', 'Run.UnknownCommand', 'Run.UnknownStep',
+  'Run.SkipStep', 'Run.Stop', 'Run.NotLoaded', 'Run.AskRetry', 'Run.AskSkip',
+  'Run.AskStop', 'Common.Ok', 'Common.Cancel', 'Run.UnknownCommand', 'Run.UnknownStep',
   'Settings.Advanced', 'Settings.WindowRules', 'Settings.CaptureCard',
   'Settings.CaptureWindow', 'Settings.CaptureScreen', 'Theme.Mode.Dark', 'Theme.Mode.Light',
   'Theme.Mode.Custom',
@@ -213,7 +214,9 @@ const english: Record<string, string> = {
   'Run.Title': 'Run and Debug', 'Run.Run': 'Run',
   'Run.NativeNote': 'The run and debug panel is still the native window; this page lists the macros it can load.',
   'Run.Step': 'Step', 'Run.Continue': 'Continue', 'Run.SkipStep': 'Skip this step once',
-  'Run.Stop': 'Stop', 'Run.NotLoaded': 'Load a macro into the run panel first.',
+  'Run.Stop': 'Stop', 'Run.AskRetry': 'Retry', 'Run.AskSkip': 'Skip it',
+  'Run.AskStop': 'Stop',
+  'Run.NotLoaded': 'Load a macro into the run panel first.',
   'Run.UnknownCommand': 'That run command is not known.',
   'Run.UnknownStep': 'That step is not in the loaded macro.',
   'Settings.Advanced': 'Advanced (native)', 'Settings.WindowRules': 'Window rules',
@@ -352,7 +355,9 @@ const chinese: Record<string, string> = {
   'Run.Title': '运行与调试', 'Run.Run': '运行',
   'Run.NativeNote': '运行与调试面板仍是原生窗口；本页列出可以载入的宏。',
   'Run.Step': '单步', 'Run.Continue': '继续', 'Run.SkipStep': '跳过这一步（这一次）',
-  'Run.Stop': '停止', 'Run.NotLoaded': '请先把宏载入运行面板。',
+  'Run.Stop': '停止', 'Run.AskRetry': '重试', 'Run.AskSkip': '跳过这一步',
+  'Run.AskStop': '停止宏',
+  'Run.NotLoaded': '请先把宏载入运行面板。',
   'Run.UnknownCommand': '不认识这条运行命令。',
   'Run.UnknownStep': '载入的宏里没有这一步。',
   'Settings.Advanced': '高级设置（原生）', 'Settings.WindowRules': '窗口规则',
@@ -397,6 +402,7 @@ export class MockTransport implements BridgeTransport {
   private runState = {
     loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
     canRun: false, canStep: false, canStop: false,
+    question: '', wantsTypedAnswer: false, answerText: '', isAskingUser: false, isAsking: false,
     steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;
       container: boolean; current: boolean; breakpoint: boolean; canBreak: boolean;
       time: string; failure: string; condition: string }[],
@@ -555,6 +561,9 @@ export class MockTransport implements BridgeTransport {
           canRun: params['command'] !== 'run',
           canStep: params['command'] !== 'run',
         };
+        result = this.runState;
+        break;
+      case 'run.answer':
         result = this.runState;
         break;
       case 'run.breakpoint':

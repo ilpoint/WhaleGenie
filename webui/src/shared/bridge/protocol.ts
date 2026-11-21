@@ -220,6 +220,11 @@ export interface RunState {
   canRun: boolean;
   canStep: boolean;
   canStop: boolean;
+  question: string;
+  wantsTypedAnswer: boolean;
+  answerText: string;
+  isAskingUser: boolean;
+  isAsking: boolean;
   steps: RunStep[];
   log: RunLine[];
 }
