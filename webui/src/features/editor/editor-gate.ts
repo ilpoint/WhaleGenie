@@ -344,9 +344,14 @@ export class WgEditorGate extends LitElement {
             <option value=${action.key}>${action.name}</option>
           `)}
         </select>
-        <fluent-button appearance="subtle" @click=${this.addStep}>
+        <fluent-button appearance="subtle" @click=${() => void this.addStep(false)}>
           ${t('Editor.AddStep')}
         </fluent-button>
+        ${this.selectedStep()?.acceptsSteps
+          ? html`<fluent-button appearance="subtle" @click=${() => void this.addStep(true)}>
+              ${t('Editor.AddChildStep')}
+            </fluent-button>`
+          : nothing}
       </div>
       ${this.snapshot.steps.length === 0
         ? html`<p class="steps">${t('Editor.NoSteps')}</p>`
@@ -407,14 +412,16 @@ export class WgEditorGate extends LitElement {
     this.actionKey = (event.target as HTMLSelectElement).value;
   }
 
-  private async addStep(): Promise<void> {
+  private async addStep(inside: boolean): Promise<void> {
     if (this.snapshot === null || this.actionKey.length === 0) {
       return;
     }
 
     try {
-      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStep',
-        { type: this.actionKey });
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStep', {
+        type: this.actionKey,
+        parentId: inside ? this.selectedId : undefined,
+      });
     } catch (error) {
       this.error = String(error);
     }

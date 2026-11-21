@@ -90,7 +90,22 @@ internal sealed class HeadlessEditorSession
         }
     }
 
-    public void AddStep(string type) => _model.AddStep(new MacroStep { Type = type });
+    public void AddStep(string type, string? parentId = null)
+    {
+        if (parentId is not { Length: > 0 })
+        {
+            _model.AddStep(new MacroStep { Type = type });
+            return;
+        }
+
+        var parent = FindStep(parentId)
+            ?? throw new InvalidOperationException("the macro has no step " + parentId);
+        var list = parent.Parameters.FirstOrDefault(parameter =>
+            parameter.Kind == ActionParameterKind.Steps)?.Steps
+            ?? throw new InvalidOperationException("step " + parentId + " holds no sub-steps");
+        list.Add(new MacroStep { Type = type });
+        _model.IsDirty = true;
+    }
 
     public void AddKeyTrigger()
     {
@@ -244,8 +259,10 @@ internal sealed class HeadlessEditorSession
             .SelectMany(parameter => parameter.Steps)
             .Select(StepSnapshot)
             .ToList();
+        var acceptsSteps = definition?.Parameters.Any(parameter =>
+            parameter.Kind == ActionParameterKind.Steps) == true;
         return new EditorStepSnapshot(step.Id, step.Type,
-            definition?.LocalName ?? step.Type, step.Meta.IsEnabled, parameters, children);
+            definition?.LocalName ?? step.Type, step.Meta.IsEnabled, acceptsSteps, parameters, children);
     }
 
     private MacroStep? FindStep(string stepId)
@@ -286,7 +303,8 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
     bool Enabled, string Binding);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
-    IReadOnlyList<EditorParameterSnapshot> Parameters, IReadOnlyList<EditorStepSnapshot> Steps);
+    bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,
+    IReadOnlyList<EditorStepSnapshot> Steps);
 
 internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value,
     IReadOnlyList<EditorChoiceSnapshot> Options);

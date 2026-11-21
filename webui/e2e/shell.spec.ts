@@ -151,6 +151,17 @@ test('C1 步骤树可以加步骤与改参数', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 步骤可以放进块内部', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '重复' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '重复' }).click();
+
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加到选中步骤内' }).click();
+  await expect(page.locator('wg-editor-gate .tree ol .step-name')).toHaveText('延迟');
+});
+
 test('C1 编辑宏的触发入口与按键', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();

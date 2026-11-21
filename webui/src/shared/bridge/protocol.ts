@@ -109,6 +109,7 @@ export interface EditorStep {
   type: string;
   name: string;
   enabled: boolean;
+  acceptsSteps: boolean;
   parameters: EditorParameter[];
   steps: EditorStep[];
 }

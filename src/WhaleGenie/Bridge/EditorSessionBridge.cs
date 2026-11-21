@@ -94,9 +94,10 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 Strings.Get("Bridge.EditorNeedsStep"));
         }
 
+        var parentId = parameters.TryGetProperty("parentId", out var parent) ? parent.GetString() : null;
         try
         {
-            Required().AddStep(step);
+            Required().AddStep(step, parentId);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (Exception error) when (error is InvalidOperationException or ArgumentException)

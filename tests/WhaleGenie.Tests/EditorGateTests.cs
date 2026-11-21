@@ -85,6 +85,22 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_step_can_be_added_inside_a_container()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "nested" });
+        var session = HeadlessEditorSession.Open(workspace, "nested");
+
+        session.AddStep("control.repeat");
+        var parent = Assert.Single(session.Snapshot().Steps);
+        Assert.True(parent.AcceptsSteps);
+
+        session.AddStep("control.delay", parent.Id);
+        var withChild = Assert.Single(session.Snapshot().Steps);
+        Assert.Equal("control.delay", Assert.Single(withChild.Steps).Type);
+    }
+
+    [Fact]
     public void Two_documents_keep_their_own_edits_when_switched()
     {
         var workspace = new ProjectWorkspace();

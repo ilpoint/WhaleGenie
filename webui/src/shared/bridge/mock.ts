@@ -1,5 +1,14 @@
 import type { BridgeTransport } from './transport.js';
-import type { AppInfo, EditorSnapshot, McpState, ProjectState, StringsBundle, ThemeState, WindowState } from './protocol.js';
+import type {
+  AppInfo,
+  EditorSnapshot,
+  EditorStep,
+  McpState,
+  ProjectState,
+  StringsBundle,
+  ThemeState,
+  WindowState,
+} from './protocol.js';
 
 /**
  * 浏览器里的假宿主：不依赖程序就能开发壳、跑 Playwright。它回答壳用到的每个方法，并留出
@@ -28,7 +37,8 @@ const chromeKeys = [
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
-  'Editor.GateActions', 'Editor.AddStep', 'Editor.OpenMacro', 'Editor.TriggerEntries', 'Editor.AddTrigger',
+  'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.OpenMacro',
+  'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Run.Steps', 'Common.Save', 'Common.Close',
   'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
@@ -65,7 +75,8 @@ const english: Record<string, string> = {
   'Editor.NamePlaceholder': 'Enter a name for your macro..',
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
-  'Editor.AddStep': 'Add step', 'Editor.OpenMacro': 'Open macro',
+  'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
+  'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
   'Editor.BindKey': 'Trigger / Bind Key :',
@@ -115,7 +126,8 @@ const chinese: Record<string, string> = {
   'Editor.NamePlaceholder': '给这个宏起个名字..',
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
-  'Editor.AddStep': '添加步骤', 'Editor.OpenMacro': '打开宏',
+  'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
+  'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
   'Editor.BindKey': '触发 / 绑定按键：',
@@ -315,20 +327,26 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'editor.sessionStep':
         if (this.editor) {
+          const type = String(params['type'] ?? '');
+          const parentId = String(params['parentId'] ?? '');
+          const step: EditorStep = {
+            id: 'mock-' + String(this.editor.stepCount + 1),
+            type,
+            name: type === 'control.delay' ? '延迟' : type === 'control.repeat' ? '重复' : type,
+            enabled: true,
+            acceptsSteps: type === 'control.repeat',
+            parameters: type === 'control.delay'
+              ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '', options: [] }]
+              : [],
+            steps: [],
+          };
           this.editor = {
             ...this.editor,
             dirty: true,
             stepCount: this.editor.stepCount + 1,
-            steps: [...this.editor.steps, {
-              id: 'mock',
-              type: String(params['type'] ?? ''),
-              name: String(params['type'] ?? '') === 'control.delay' ? '延迟' : String(params['type'] ?? ''),
-              enabled: true,
-              parameters: String(params['type'] ?? '') === 'control.delay'
-                ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '', options: [] }]
-                : [],
-              steps: [],
-            }],
+            steps: parentId
+              ? this.addChild(this.editor.steps, parentId, step)
+              : [...this.editor.steps, step],
           };
         }
         result = this.editor;
@@ -395,6 +413,14 @@ export class MockTransport implements BridgeTransport {
               parameters: [
                 { name: 'ms', label: '等待时长', kind: 'Number', required: false, placeholder: '', options: [] },
               ],
+            },
+            {
+              key: 'control.repeat',
+              name: '重复',
+              category: 'Control',
+              description: '',
+              hidden: false,
+              parameters: [],
             },
           ],
         };
@@ -544,6 +570,12 @@ export class MockTransport implements BridgeTransport {
     }
 
     this.answer({ id: request.id, ok: true, result });
+  }
+
+  private addChild(steps: EditorStep[], parentId: string, child: EditorStep): EditorStep[] {
+    return steps.map((step) => step.id === parentId
+      ? { ...step, steps: [...step.steps, child] }
+      : { ...step, steps: this.addChild(step.steps, parentId, child) });
   }
 
   private bundle(): StringsBundle {
