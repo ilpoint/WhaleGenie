@@ -525,7 +525,7 @@ public partial class RunWindow : AppWindow
         var row = menu.Tag ?? menu.DataContext ?? (menu.PlacementTarget as Control)?.DataContext;
         menu.Tag = row;
         menu.DataContext = row;
-        MainWindow.StampMenu(menu, row);
+        MacroCardMenu.Stamp(menu, row);
     }
 
     /// <summary>

@@ -15,6 +15,9 @@ namespace WhaleGenie.Web;
 /// </remarks>
 public static class WebViewRuntime
 {
+    /// <summary>Where a machine without the runtime is sent, in the window that explains it.</summary>
+    public const string InstallUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";
+
     private const string ClientKey =
         @"SOFTWARE\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
 

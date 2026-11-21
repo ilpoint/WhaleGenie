@@ -48,14 +48,8 @@ internal static class WindowedServices
 
     private static void Add(IServiceCollection services)
         =>
-        // The view model the window shows is the same instance the MCP server reads.
+        // The view model the shell's native windows read is the same instance the MCP server reads.
         services.AddSingleton<RunQuestionHost>()
-        .AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>(),
-            system: sp.GetRequiredService<SystemState>(),
-            questions: sp.GetRequiredService<RunQuestionHost>())
-        {
-            DataContext = sp.GetRequiredService<MainViewModel>(),
-        })
         .AddSingleton(sp => new EditorBridge(() => sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()))
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),

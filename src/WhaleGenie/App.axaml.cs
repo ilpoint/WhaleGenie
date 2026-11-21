@@ -12,7 +12,6 @@ using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Platform.Windows;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 using WhaleGenie.Web;
 
@@ -97,59 +96,31 @@ public partial class App : Application
 
     private static void ShowWindow(IClassicDesktopStyleApplicationLifetime desktop)
     {
+        // The shell is the only window. WebView2 is the one thing it cannot carry itself, so a
+        // machine without the runtime gets a native explanation and no blank frame.
+        if (!WebViewRuntime.IsInstalled)
+        {
+            AppDiagnostics.Note("webshell.runtime", "WebView2 is missing");
+            WebViewMissingWindow.Show(desktop);
+            return;
+        }
+
         var services = WindowedServices.Build();
-
-        // The web shell is the ordinary window now. WebView2 is the one thing it cannot carry
-        // itself, so a machine without the runtime gets the native window rather than a blank
-        // frame; every other start goes through the shell.
-        var wantsShell = WebViewRuntime.IsInstalled;
-        if (!wantsShell)
-        {
-            AppDiagnostics.Note("webshell.runtime",
-                "WebView2 is missing; the native window is used instead");
-        }
-
-        Window window = wantsShell
-            ? services.GetRequiredService<WebShellWindow>()
-            : services.GetRequiredService<MainWindow>();
+        var window = services.GetRequiredService<WebShellWindow>();
 #if DEBUG
-        if (window is WebShellWindow webShell)
-        {
-            webShell.DevUrl = App.WebUiDev;
-        }
+        window.DevUrl = App.WebUiDev;
 #endif
-        var main = window as MainWindow;
-        var shell = window as WebShellWindow;
-        var viewModel = main?.DataContext as MainViewModel;
-
         desktop.MainWindow = window;
 
         // The person's last package comes back with the window: an empty list every morning is a
         // step nobody asked for. A file that is not there any more leaves the window empty rather
-        // than failing to start, and the path is kept for the drive that was not plugged in. The
-        // setting is here for someone who keeps several projects apart and would rather start empty.
-        // The web shell shows the same project through the same document the bridge holds.
-        if (viewModel is not null
-            && LocalSettings.LoadLastProjectAtStart()
+        // than failing to start, and the path is kept for the drive that was not plugged in.
+        if (LocalSettings.LoadLastProjectAtStart()
             && LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
         {
             try
             {
-                viewModel.OpenPackage(last);
-            }
-            catch (Exception error) when (error is IOException or InvalidDataException
-                or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)
-            {
-                // A package that cannot be read is not a reason to refuse to start.
-            }
-        }
-        else if (shell is not null
-            && LocalSettings.LoadLastProjectAtStart()
-            && LocalSettings.LastProject() is { Length: > 0 } lastForShell && File.Exists(lastForShell))
-        {
-            try
-            {
-                services.GetRequiredService<ProjectWorkspace>().OpenPackage(lastForShell);
+                services.GetRequiredService<ProjectWorkspace>().OpenPackage(last);
             }
             catch (Exception error) when (error is IOException or InvalidDataException
                 or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)
@@ -162,33 +133,15 @@ public partial class App : Application
         // notification area is how it comes back and how the program is stopped. The window is
         // given the icon as well, because the icon's menu is the one close that really leaves —
         // and that is the one time the window has to ask about work that is not saved.
-        //
-        // The icon is held here rather than on the window: only the main window has a use for it
-        // of its own (its editor steps the whole window aside), and a plain window that carries a
-        // tray property would make every window look like it had one.
         var tray = AppTray.Attach(window, desktop, () => new WindowsTray(
             Strings.Get("Tray.Tooltip"), Strings.Get("Tray.Show"), Strings.Get("Tray.Exit")));
-        if (main is not null)
-        {
-            main.Tray = tray;
-        }
-        else if (shell is not null)
-        {
-            shell.Tray = tray;
-        }
+        window.Tray = tray;
 
         // The list starts empty, so if the last run was stopped without saving, the work it was
         // holding is offered back here — once the window is up, because it is a dialog. The window
         // asks about it only once in the whole run: it is announced again every time it comes back
         // from the notification area, and that is not the last run.
-        if (main is not null)
-        {
-            main.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = main.OfferRecoveryAsync());
-        }
-        else if (shell is not null)
-        {
-            shell.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = shell.OfferRecoveryAsync());
-        }
+        window.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = window.OfferRecoveryAsync());
 
         // The door a client's own process knocks on. Tools run here, on the project this window is
         // showing, so a draft is a copy of what is on screen and a save writes the file the person
