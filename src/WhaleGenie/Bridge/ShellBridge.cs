@@ -18,8 +18,11 @@ internal sealed class ShellBridge(
     ProjectWorkspace workspace,
     Func<ShellNativeWindows?> windows) : IBridgeHandler
 {
+    private BridgeServer? _server;
+
     public void Register(BridgeServer server)
     {
+        _server = server;
         server.Register("app.openSettings", _ => OpenSettings());
         server.Register("app.openSettingsPage", OpenSettingsPage);
         server.Register("app.openRun", OpenRun);
@@ -67,6 +70,14 @@ internal sealed class ShellBridge(
                 throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
                     Strings.Format("Bridge.NoSuchMacro", wanted));
             }
+        }
+
+        // A named macro goes to the web run panel; the native window stays only for an empty
+        // debugger opened from the native menu until that road moves too.
+        if (macro is not null && _server is not null)
+        {
+            await _server.PushAsync("run.openRequested", new { name = macro.Name });
+            return null;
         }
 
         if (windows() is { } actions)

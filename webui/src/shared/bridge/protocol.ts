@@ -452,6 +452,7 @@ export interface BridgeEvents {
   'mcp.changed': McpState;
   'editor.openRequested': { name: string };
   'run.changed': RunState;
+  'run.openRequested': { name: string };
 }
 
 export type BridgeEventName = keyof BridgeEvents;

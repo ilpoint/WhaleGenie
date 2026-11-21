@@ -779,10 +779,12 @@ test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
     .toBe(true);
 });
 
-test('宏卡片的运行按钮请求原生运行窗口', async ({ page }) => {
+test('宏卡片的运行按钮进入网页运行面板', async ({ page }) => {
   await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros .card', { hasText: '自动保存' })
     .locator('.iconbuttons button[title="运行调试"]').click();
+  await expect(page.locator('wg-run')).toBeVisible();
+  await expect(page.locator('wg-run')).toContainText('Step one');
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openRun')))
     .toBe(true);

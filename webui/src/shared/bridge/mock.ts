@@ -537,6 +537,9 @@ export class MockTransport implements BridgeTransport {
       case 'app.quit':
       case 'app.openExternal':
         break;
+      case 'app.openRun':
+        this.push('run.openRequested', { name: String(params['name'] ?? '') });
+        break;
       case 'run.state':
         result = this.runState;
         break;
@@ -1951,7 +1954,6 @@ export class MockTransport implements BridgeTransport {
       case 'mcp.copyConfig':
       case 'mcp.openAudit':
       case 'app.openSettings':
-      case 'app.openRun':
       case 'app.openAbout':
       case 'app.openManual':
         break;

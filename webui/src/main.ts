@@ -44,6 +44,9 @@ client.on('strings.changed', (next) => strings.load(next));
 client.on('theme.changed', (next) => theme.load(next));
 client.on('window.changed', (next) => windowMirror.load(next));
 client.on('project.changed', (next) => project.load(next));
+client.on('run.openRequested', ({ name }) => {
+  void client.call('run.load', { name }).then(() => go('run'));
+});
 client.on('editor.openRequested', ({ name }) => {
   void client.call('editor.sessionOpen', { name }).then(() => go('editor'));
 });
