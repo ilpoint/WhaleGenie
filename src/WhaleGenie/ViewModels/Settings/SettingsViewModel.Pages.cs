@@ -18,6 +18,7 @@ public partial class SettingsViewModel
         base.RefreshLanguage();
         OnPropertyChanged(nameof(WindowWays));
         OnPropertyChanged(nameof(ScreenWays));
+        OnPropertyChanged(nameof(MenuLauncherDisplay));
         OnPropertyChanged(nameof(MenuLauncherStatus));
         OnPropertyChanged(nameof(MenuRuleProblem));
         OnPropertyChanged(nameof(FrameRateNote));

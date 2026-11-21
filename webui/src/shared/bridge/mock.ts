@@ -37,7 +37,7 @@ function demoWheelSlots(): SettingsWheelSlot[] {
   const rings = [
     { name: 'inner', count: 8, radius: 66 },
     { name: 'outer', count: 8, radius: 128 },
-    { name: 'extended', count: 8, radius: 185 },
+    { name: 'extended', count: 8, radius: 165 },
   ];
   for (const ring of rings) {
     for (let index = 0; index < ring.count; index++) {
@@ -65,7 +65,7 @@ function demoWheelSlots(): SettingsWheelSlot[] {
 }
 
 const demoMenu: SettingsMenuState = {
-  launcher: 'Mouse Middle', display: 'Mouse Middle', status: '就绪',
+  launcher: 'Mouse Middle', display: '鼠标中键', status: '就绪',
   isMiddle: true, isCustom: false, problem: '',
   rules: [
     {
@@ -652,7 +652,7 @@ export class MockTransport implements BridgeTransport {
     ignoreOwnInput: true, soundSystem: true, soundMacro: false, preloadOcr: false,
     inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
     frameCache: false, frameCacheAge: 100, logCount: 100,
-    language: 'zh-Hans', theme: 'Dark',
+    language: 'zh-Hans',
     systemHotkey: 'Ctrl+F12', recordStopKey: 'Ctrl+F10',
     systemHotkeyProblem: '', recordStopProblem: '',
     storage: [
@@ -860,7 +860,7 @@ export class MockTransport implements BridgeTransport {
         const value = String(params['value'] ?? '');
         this.settingsState = {
           ...this.settingsState,
-          [field]: field === 'language' || field === 'theme'
+          [field]: field === 'language'
             || field === 'systemHotkey' || field === 'recordStopKey'
             || field === 'windowWay' || field === 'screenWay'
             ? value

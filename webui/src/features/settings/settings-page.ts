@@ -139,7 +139,12 @@ export class WgSettings extends LitElement {
     .field select,
     .field input {
       width: 100%;
+      max-width: 280px;
       font: inherit;
+    }
+
+    .field .inline-unit {
+      max-width: 220px;
     }
 
     .inline-unit {
@@ -156,6 +161,7 @@ export class WgSettings extends LitElement {
       color: var(--colorNeutralForeground3);
       font-size: var(--font-size-base-200);
       font-style: normal;
+      white-space: nowrap;
     }
 
     .check-row {
@@ -314,7 +320,7 @@ export class WgSettings extends LitElement {
 
     .wheel-rings circle {
       fill: none;
-      stroke: var(--colorNeutralStroke2);
+      stroke: var(--colorNeutralStroke1);
       stroke-width: 1;
     }
 
@@ -346,8 +352,17 @@ export class WgSettings extends LitElement {
     }
 
     .wheel-slot[data-tone='empty'] {
+      border-color: transparent;
+      background: transparent;
       color: var(--colorNeutralForeground4);
-      opacity: 0.55;
+      opacity: 0.16;
+    }
+
+    .wheel-slot[data-tone='empty']:hover,
+    .wheel-slot[data-tone='empty'][data-selected='true'] {
+      border-color: var(--colorNeutralStroke2);
+      background: var(--colorNeutralBackground2);
+      opacity: 1;
     }
 
     .wheel-slot[data-selected='true'] {
@@ -892,7 +907,9 @@ export class WgSettings extends LitElement {
     this.ruleEditor = {
       kind,
       key,
-      title: t('Settings.WindowRuleEditor'),
+      title: kind === 'menu-add' || kind === 'menu-edit'
+        ? t('Settings.MenuWindowRules')
+        : t('Settings.WheelTitle'),
       rule: { ...rule },
     };
   }

@@ -258,7 +258,7 @@ function renderWheel(
           : nothing}
         <circle cx=${center} cy=${center} r=${geometry.edge} />
       </svg>
-      ${slots.map((slot) => html`
+      ${slots.map((slot) => slot.empty && !editable ? nothing : html`
         <button type="button" class="wheel-slot" data-tone=${slot.tone}
           data-selected=${String(selected?.ring === slot.ring && selected.index === slot.index)}
           style="left: calc(50% + ${slot.x}px); top: calc(50% + ${slot.y}px);

@@ -247,6 +247,6 @@
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 43616	webui/e2e/shell.spec.ts	split: 壳、编辑器、设置、运行与宏库的端到端用例已超过一个页面能读完的体量，后续按功能拆文件
-29662	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
+30146	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
 123134	webui/src/shared/bridge/mock.ts	split: mock 宿主把编辑器、运行、项目、设置与宏库的假数据都装在一个类里，后续按域拆
 1128	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发与变量命令集中在一个分部类上；下一步按命令域拆

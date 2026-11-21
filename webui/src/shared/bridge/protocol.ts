@@ -308,7 +308,6 @@ export interface SettingsState {
   frameCacheAge: number;
   logCount: number;
   language: string;
-  theme: string;
   systemHotkey: string;
   recordStopKey: string;
   systemHotkeyProblem: string;

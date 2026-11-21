@@ -27,7 +27,14 @@ public partial class SettingsViewModel
 
     public string MenuLauncherDisplay => MenuLauncher.Length == 0
         ? Strings.Get("Common.None")
-        : MenuLauncher;
+        : MenuLauncher switch
+        {
+            WheelOptions.MiddleButton => Strings.Get("Settings.WheelLauncher.Middle"),
+            WheelOptions.RightButton => Strings.Get("Settings.WheelLauncher.Right"),
+            WheelOptions.BackButton => Strings.Get("Settings.WheelLauncher.Back"),
+            WheelOptions.ForwardButton => Strings.Get("Settings.WheelLauncher.Forward"),
+            _ => MenuLauncher,
+        };
 
     public string MenuLauncherButton => Strings.Get(IsCapturingMenuLauncher
         ? "Settings.HotkeyPress"

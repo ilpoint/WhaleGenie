@@ -37,11 +37,6 @@ export class WgAbout extends LitElement {
       font-weight: var(--font-weight-semibold);
     }
 
-    .version {
-      color: var(--colorNeutralForeground3);
-      margin-bottom: var(--spacingVerticalL);
-    }
-
     .card {
       display: grid;
       gap: var(--spacingVerticalM);
@@ -138,7 +133,6 @@ export class WgAbout extends LitElement {
     const text = t('Main.AboutText').replace('{0}', version);
     return html`
       <h1>${t('Main.About')}</h1>
-      <div class="version">${t('Shell.Field.Version')} ${version}</div>
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
       <section class="card">
         <p class="about-text">${text}</p>

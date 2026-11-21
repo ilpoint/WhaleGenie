@@ -44,7 +44,7 @@ export class WgNav extends LitElement {
       color: var(--colorNeutralForeground1);
       font: inherit;
       text-align: left;
-      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      padding: var(--spacingVerticalS) var(--spacingHorizontalM);
       cursor: pointer;
     }
 
@@ -113,6 +113,9 @@ export class WgNav extends LitElement {
     }
 
     .side {
+      display: grid;
+      align-content: start;
+      gap: var(--spacingVerticalXS);
       padding: var(--spacingVerticalS) var(--spacingHorizontalS);
     }
   `;
