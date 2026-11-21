@@ -67,7 +67,8 @@ internal static class WindowedServices
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>(), dialogs));
+                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>(), dialogs,
+                () => sp.GetRequiredService<MainViewModel>()));
             server.Register(new EditorBridge(() => sp.GetRequiredService<MainViewModel>(),
                 sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()));
             return server;

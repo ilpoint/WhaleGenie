@@ -10,6 +10,7 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
+using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
@@ -36,18 +37,26 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The shell window, whose storage provider opens the file dialogs.</summary>
     private readonly Func<Window?> _window;
 
+    /// <summary>
+    /// The view model the trigger host reads. The system switch goes through it rather than
+    /// straight at the trigger service: the host that owns the hooks is what turns the service on
+    /// and plays the sound, and it listens to this one property.
+    /// </summary>
+    private readonly Func<MainViewModel> _project;
+
     /// <summary>The page's questions: closing everything is the one the list asks before it wipes.</summary>
     private readonly DialogBridge _dialogs;
 
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, Func<Window?> window,
-        DialogBridge dialogs)
+        DialogBridge dialogs, Func<MainViewModel> project)
     {
         _workspace = workspace;
         _runtime = runtime;
         _window = window;
         _dialogs = dialogs;
+        _project = project;
     }
 
     public void Register(BridgeServer server)
@@ -92,7 +101,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         untitled = _workspace.CurrentPath is null,
         dirty = _workspace.IsDirty,
         revision = _workspace.Revision,
-        systemEnabled = _runtime.Triggers.IsEnabled,
+        systemEnabled = _project().IsRunning,
         views = Enum.GetNames<MacroView>(),
         groups = _workspace.Macros
             .Select(macro => macro.Group.Trim())
@@ -316,7 +325,10 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             throw new BridgeFailureException(BridgeErrors.BadArgument, "project.system needs an enabled flag");
         }
 
-        _runtime.Triggers.IsEnabled = given.GetBoolean();
+        // The switch flips the view model property, and the trigger host answers to it: turning
+        // the service on and off, the sound, and the plan republish are all the host's reaction,
+        // wherever it lives (the old window or the hidden one behind the shell).
+        _project().IsRunning = given.GetBoolean();
         await PushState();
         return null;
     }

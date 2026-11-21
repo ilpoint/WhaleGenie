@@ -8,6 +8,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 
@@ -20,6 +21,7 @@ public class ProjectBridgeTests : IDisposable
 {
     private readonly ProjectWorkspace _workspace = new();
     private readonly TriggerRuntime _runtime = new(new NullDeviceLayer(), new VariableSession());
+    private readonly MainViewModel _viewModel = new();
     private readonly BridgeServer _server = new();
     private readonly RecordingChannel _channel = new();
 
@@ -42,7 +44,7 @@ public class ProjectBridgeTests : IDisposable
         // "called off" — a package path handed in directly still goes through.
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
-        _server.Register(new ProjectBridge(_workspace, _runtime, () => null, _dialogs));
+        _server.Register(new ProjectBridge(_workspace, _runtime, () => null, _dialogs, () => _viewModel));
     }
 
     public void Dispose()
@@ -114,14 +116,19 @@ public class ProjectBridgeTests : IDisposable
     }
 
     [Fact]
-    public async Task The_system_switch_arms_the_trigger_service_and_answers()
+    public async Task The_system_switch_flips_the_host_property_and_answers()
     {
         await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
         _channel.Sent.Clear();
 
+        // The switch flips the view model property; turning the trigger service on and playing the
+        // sound is the trigger host's reaction to that property, wherever it lives. In a check
+        // there is no host, so the property is the whole of what this can assert.
         await _server.AcceptAsync("""{"id":3,"method":"project.system","params":{"enabled":true}}""");
 
-        Assert.True(_runtime.Triggers.IsEnabled);
+        // The switch flips the view model property — the trigger host reacts to that (service,
+        // sound, plan republish). systemEnabled reads the same property, so page and host agree.
+        Assert.True(_viewModel.IsRunning);
         var pushed = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"project.changed\""))).RootElement;
         Assert.True(pushed.GetProperty("payload").GetProperty("systemEnabled").GetBoolean());
     }

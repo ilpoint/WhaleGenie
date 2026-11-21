@@ -116,6 +116,18 @@ public partial class App : Application
 
         desktop.MainWindow = window;
 
+        // The web shell draws the list, but the trigger host — the system hotkey, the middle
+        // button menu, the wheel, the sounds, the floating panels — lives in the main window's
+        // wiring. While the shell is in front, a hidden main window carries that wiring: it shows
+        // once (which is when the whole host attaches), then goes out of sight and stays there.
+        // It takes no icon, no tray and no recovery offer; closing it is not how anything leaves.
+        if (window is WhaleGenie.Web.WebShellWindow)
+        {
+            var host = services.GetRequiredService<MainWindow>();
+            host.Show();
+            Dispatcher.UIThread.Post(host.Hide);
+        }
+
         // The person's last package comes back with the window: an empty list every morning is a
         // step nobody asked for. A file that is not there any more leaves the window empty rather
         // than failing to start, and the path is kept for the drive that was not plugged in. The
