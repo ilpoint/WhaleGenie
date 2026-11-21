@@ -248,6 +248,18 @@ test('C1 步骤可复制', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 取值构建器可插入变量与函数', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '延迟' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '构建取值' }).first().click();
+  await page.locator('wg-editor-gate .value-dialog .value-buttons button', { hasText: 'found' }).click();
+  await page.locator('wg-editor-gate .value-dialog fluent-button', { hasText: '确定' }).click();
+
+  await expect(page.locator('wg-editor-gate .inspector .param input').first()).toHaveValue('$found');
+});
+
 test('C1 取值选择器可插入变量', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });

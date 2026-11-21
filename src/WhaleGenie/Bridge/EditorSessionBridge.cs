@@ -923,6 +923,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
                 variables = snapshot.Variables,
                 globals = snapshot.Globals,
                 valueChoices = snapshot.ValueChoices,
+                valueFunctions = snapshot.ValueFunctions,
                 conditionCompares = snapshot.ConditionCompares,
                 variableTypes = snapshot.VariableTypes,
                 triggerKinds = snapshot.TriggerKinds,

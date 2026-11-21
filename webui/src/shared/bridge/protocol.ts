@@ -216,6 +216,13 @@ export interface EditorValueChoice {
   description: string;
 }
 
+export interface EditorValueFunction {
+  name: string;
+  signature: string;
+  description: string;
+  group: string;
+}
+
 export interface EditorVariableType {
   value: string;
   label: string;
@@ -237,6 +244,7 @@ export interface EditorSnapshot {
   variables: EditorVariable[];
   globals: EditorGlobal[];
   valueChoices: EditorValueChoice[];
+  valueFunctions: EditorValueFunction[];
   conditionCompares: EditorConditionCompare[];
   variableTypes: EditorVariableType[];
   triggerKinds: EditorTriggerKind[];

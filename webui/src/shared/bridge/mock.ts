@@ -39,7 +39,8 @@ const chromeKeys = [
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
   'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.Record',
-  'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty', 'Condition.All',
+  'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty',
+  'Editor.ValueBuilder', 'Editor.Functions', 'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
@@ -65,7 +66,7 @@ const chromeKeys = [
   'GlobalVariables.New', 'GlobalVariables.Remove', 'GlobalVariables.Definition',
   'GlobalVariables.DefaultPlaceholder', 'Variable.Persist',
   'Run.Steps', 'Common.Save', 'Common.Close',
-  'Editor.Delete', 'Common.Cancel', 'Main.Import',
+  'Editor.Delete', 'Common.Cancel', 'Common.Ok', 'Main.Import',
 ] as const;
 
 const english: Record<string, string> = {
@@ -104,6 +105,7 @@ const english: Record<string, string> = {
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
   'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
   'Editor.Record': 'Record', 'Editor.StopRecording': 'Stop Recording',
+  'Editor.ValueBuilder': 'Build value', 'Editor.Functions': 'Functions',
   'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
@@ -152,7 +154,7 @@ const english: Record<string, string> = {
   'Variable.Persist': 'Keep on this computer',
   'Run.Steps': 'Steps', 'Common.Save': 'Save', 'Common.Close': 'Close',
   'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
-  'Common.Cancel': 'Cancel',
+  'Common.Cancel': 'Cancel', 'Common.Ok': 'OK',
   'Main.CloseAllMessage': 'Remove every macro from the list? The saved package is not changed.',
   'Mcp.Title': 'MCP', 'Mcp.Control': 'Allow direct control',
   'Mcp.Run': 'Allow the AI to run macros', 'Mcp.SwitchOn': 'On', 'Mcp.SwitchOff': 'Off',
@@ -200,6 +202,7 @@ const chinese: Record<string, string> = {
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
   'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
   'Editor.Record': '开始录制', 'Editor.StopRecording': '停止录制',
+  'Editor.ValueBuilder': '构建取值', 'Editor.Functions': '函数',
   'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
@@ -247,7 +250,7 @@ const chinese: Record<string, string> = {
   'Variable.Persist': '持久化保存',
   'Run.Steps': '步骤', 'Common.Save': '保存', 'Common.Close': '关闭',
   'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
-  'Common.Cancel': '取消',
+  'Common.Cancel': '取消', 'Common.Ok': '确定',
   'Main.CloseAllMessage': '从列表中移除所有宏？已保存的宏包不会被修改。',
   'Mcp.Title': 'MCP', 'Mcp.Control': '允许直接控制',
   'Mcp.Run': '允许 AI 运行宏', 'Mcp.SwitchOn': '开', 'Mcp.SwitchOff': '关',
@@ -402,6 +405,10 @@ export class MockTransport implements BridgeTransport {
           valueChoices: [
             { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
           ],
+          valueFunctions: [
+            { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
+            { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
+          ],
           conditionCompares: [
             { value: 'Equal', label: '=' },
             { value: 'NotEqual', label: '≠' },
@@ -445,6 +452,10 @@ export class MockTransport implements BridgeTransport {
           globals: [],
           valueChoices: [
             { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
+          ],
+          valueFunctions: [
+            { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
+            { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
           ],
           conditionCompares: [
             { value: 'Equal', label: '=' },
@@ -505,6 +516,10 @@ export class MockTransport implements BridgeTransport {
           globals: [],
           valueChoices: [
             { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
+          ],
+          valueFunctions: [
+            { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
+            { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
           ],
           conditionCompares: [
             { value: 'Equal', label: '=' },

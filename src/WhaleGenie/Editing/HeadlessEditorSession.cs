@@ -168,6 +168,13 @@ internal sealed class HeadlessEditorSession
         => [.. Condition.CompareChoices.Select(choice => new EditorConditionCompareSnapshot(
             choice.Compare.ToString(), choice.Label))];
 
+    public static IReadOnlyList<EditorValueFunctionSnapshot> ValueFunctions
+        => [.. Expression.Functions.Select(function => new EditorValueFunctionSnapshot(
+            function.Name,
+            function.Signature,
+            function.Description,
+            Strings.Get("Expr.Group." + function.Group, function.Group)))];
+
     public IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices
         => [.. _model.CollectVariables().Select(choice => new EditorValueChoiceSnapshot(
             choice.Name,
@@ -942,6 +949,7 @@ internal sealed class HeadlessEditorSession
             Variables,
             Globals,
             ValueChoices,
+            ValueFunctions,
             ConditionCompares,
             VariableTypes,
             TriggerKindOptions,
@@ -1111,6 +1119,7 @@ internal sealed record EditorSnapshot(string Name, string Description, string Gr
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
     IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices,
+    IReadOnlyList<EditorValueFunctionSnapshot> ValueFunctions,
     IReadOnlyList<EditorConditionCompareSnapshot> ConditionCompares,
     IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
     IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo);
@@ -1120,6 +1129,9 @@ internal sealed record EditorGlobalSnapshot(string Name, string Type, string Def
 
 internal sealed record EditorValueChoiceSnapshot(string Name, string Type, string Origin, string Source,
     string Description);
+
+internal sealed record EditorValueFunctionSnapshot(string Name, string Signature, string Description,
+    string Group);
 
 internal sealed record EditorTriggerKindSnapshot(string Value, string Label);
 

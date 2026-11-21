@@ -7,6 +7,8 @@ import type {
   EditorSnapshot,
   EditorStep,
   EditorTab,
+  EditorValueChoice,
+  EditorValueFunction,
   ProjectState,
 } from '../../shared/bridge/protocol.js';
 import { icon } from '../../shared/icons.js';
@@ -39,6 +41,15 @@ export class WgEditorGate extends LitElement {
   private captured = 0;
 
   private recordTimer = 0;
+
+  @state()
+  private valueTarget: { step: EditorStep; parameter: EditorParameter } | null = null;
+
+  @state()
+  private valueDraft = '';
+
+  @state()
+  private valueSearch = '';
 
   @state()
   private selectedId = '';
@@ -292,6 +303,67 @@ export class WgEditorGate extends LitElement {
       align-items: center;
       gap: var(--spacingHorizontalS);
       margin-bottom: var(--spacingVerticalM);
+    }
+
+    .value-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--colorNeutralBackgroundInverted) 35%, transparent);
+    }
+
+    .value-dialog {
+      width: min(720px, calc(100vw - 48px));
+      max-height: calc(100vh - 96px);
+      overflow: auto;
+      display: grid;
+      gap: var(--spacingVerticalM);
+      padding: var(--spacingVerticalL);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-radius: var(--borderRadiusXLarge);
+      background: var(--colorNeutralBackground1);
+      box-shadow: var(--shadow64);
+    }
+
+    .value-draft {
+      min-height: 90px;
+      font-family: var(--fontFamilyMonospace);
+    }
+
+    .value-groups {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+      gap: var(--spacingHorizontalL);
+    }
+
+    .value-groups h3 {
+      margin: 0 0 var(--spacingVerticalS);
+      font-size: var(--font-size-base-300);
+    }
+
+    .value-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalXS);
+    }
+
+    .value-buttons button {
+      padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground2);
+      color: var(--colorNeutralForeground1);
+      font: inherit;
+      font-size: var(--font-size-base-200);
+      cursor: pointer;
+    }
+
+    .value-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--spacingHorizontalS);
     }
 
     .toolbar .record-status {
@@ -1010,6 +1082,48 @@ export class WgEditorGate extends LitElement {
         <fluent-button appearance="accent" @click=${this.save}>${t('Common.Save')}</fluent-button>
         <fluent-button appearance="subtle" @click=${this.close}>${t('Common.Close')}</fluent-button>
       </div>
+      ${this.valueTarget ? html`
+        <div class="value-backdrop" @click=${() => this.closeValueBuilder()}>
+          <div class="value-dialog" role="dialog" aria-modal="true" @click=${(event: Event) => event.stopPropagation()}>
+            <h2>${t('Editor.ValueBuilder')}</h2>
+            <textarea
+              class="value-draft"
+              .value=${this.valueDraft}
+              @input=${(event: Event) => { this.valueDraft = (event.target as HTMLTextAreaElement).value; }}
+            ></textarea>
+            <input
+              class="value-search"
+              .value=${this.valueSearch}
+              placeholder=${t('Main.SearchPlaceholder')}
+              @input=${(event: Event) => { this.valueSearch = (event.target as HTMLInputElement).value; }}
+            />
+            <div class="value-groups">
+              <section>
+                <h3>${t('Editor.InsertValue')}</h3>
+                <div class="value-buttons">
+                  ${this.filteredValueChoices().map((choice) => html`
+                    <button @click=${() => this.appendValue('$' + choice.name)}>${choice.name}</button>
+                  `)}
+                </div>
+              </section>
+              <section>
+                <h3>${t('Editor.Functions')}</h3>
+                <div class="value-buttons">
+                  ${this.filteredValueFunctions().map((fn) => html`
+                    <button title=${fn.description} @click=${() => this.appendValue(fn.name + '(')}>
+                      ${fn.signature}
+                    </button>
+                  `)}
+                </div>
+              </section>
+            </div>
+            <div class="value-actions">
+              <fluent-button appearance="subtle" @click=${() => this.closeValueBuilder()}>${t('Common.Cancel')}</fluent-button>
+              <fluent-button appearance="accent" @click=${() => void this.applyValueBuilder()}>${t('Common.Ok')}</fluent-button>
+            </div>
+          </div>
+        </div>
+      ` : nothing}
     `;
   }
 
@@ -1766,6 +1880,52 @@ export class WgEditorGate extends LitElement {
     }
   }
 
+  private openValueBuilder(step: EditorStep, parameter: EditorParameter): void {
+    this.valueTarget = { step, parameter };
+    this.valueDraft = parameter.value;
+    this.valueSearch = '';
+  }
+
+  private closeValueBuilder(): void {
+    this.valueTarget = null;
+    this.valueDraft = '';
+    this.valueSearch = '';
+  }
+
+  private appendValue(token: string): void {
+    this.valueDraft = this.valueDraft.trim().length > 0
+      ? this.valueDraft + ' ' + token
+      : token;
+  }
+
+  private filteredValueChoices(): EditorValueChoice[] {
+    const needle = this.valueSearch.trim().toLocaleLowerCase();
+    return this.snapshot!.valueChoices.filter((choice) =>
+      needle.length === 0
+      || choice.name.toLocaleLowerCase().includes(needle)
+      || choice.source.toLocaleLowerCase().includes(needle));
+  }
+
+  private filteredValueFunctions(): EditorValueFunction[] {
+    const needle = this.valueSearch.trim().toLocaleLowerCase();
+    return this.snapshot!.valueFunctions.filter((fn) =>
+      needle.length === 0
+      || fn.name.toLocaleLowerCase().includes(needle)
+      || fn.signature.toLocaleLowerCase().includes(needle)
+      || fn.group.toLocaleLowerCase().includes(needle));
+  }
+
+  private async applyValueBuilder(): Promise<void> {
+    const target = this.valueTarget;
+    if (!target) {
+      return;
+    }
+
+    const value = this.valueDraft;
+    this.closeValueBuilder();
+    await this.patchValue(target.step.id, target.parameter.name, value);
+  }
+
   private renderValuePicker(step: EditorStep, parameter: EditorParameter): TemplateResult {
     return html`
       <select
@@ -1778,6 +1938,10 @@ export class WgEditorGate extends LitElement {
           <option value=${choice.name} title=${choice.source}>${choice.name}</option>
         `)}
       </select>
+      <fluent-button
+        appearance="subtle"
+        @click=${() => this.openValueBuilder(step, parameter)}
+      >${t('Editor.ValueBuilder')}</fluent-button>
     `;
   }
 
