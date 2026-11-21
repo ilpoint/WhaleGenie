@@ -55,7 +55,7 @@ public partial class MainWindow : AppWindow
         // The hooks, the hotkey plan and the sounds live in the trigger host; this window is the
         // surface it draws the floating work on (menu, wheel, panels, the run's questions).
         _host = new TriggerHost(viewModel.Workspace, _system, Runtime, _devices,
-            this, this, this);
+            this, _questions, this);
         _host.Attach();
 
         viewModel.PropertyChanged += (_, args) =>

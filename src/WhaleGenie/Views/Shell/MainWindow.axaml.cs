@@ -79,6 +79,7 @@ public partial class MainWindow : AppWindow
     /// </summary>
     private readonly IDeviceLayer _devices;
     private readonly SystemState _system;
+    private readonly RunQuestionHost _questions;
 
     private static NativePoint? GetCursorPosition()
     {

@@ -49,8 +49,10 @@ internal static class WindowedServices
     private static void Add(IServiceCollection services)
         =>
         // The view model the window shows is the same instance the MCP server reads.
-        services.AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>(),
-            system: sp.GetRequiredService<SystemState>())
+        services.AddSingleton<RunQuestionHost>()
+        .AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>(),
+            system: sp.GetRequiredService<SystemState>(),
+            questions: sp.GetRequiredService<RunQuestionHost>())
         {
             DataContext = sp.GetRequiredService<MainViewModel>(),
         })

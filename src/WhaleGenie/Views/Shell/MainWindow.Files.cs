@@ -408,58 +408,6 @@ public partial class MainWindow : AppWindow
             $"{Path.GetFileName(path)}\n{error.Message}", Strings.Get("Common.Ok"), null, false);
     }
 
-    /// <summary>
-    /// Puts a failed step of a triggered macro to the user, the same question the debugger asks.
-    /// A trigger runs its macro on a thread of its own, so the question has to be handed to the
-    /// interface thread; an answer of "stop" is what a closed box or a cancelled run gives, which
-    /// is the one choice that cannot make things worse on its own.
-    /// </summary>
-    private async Task<StepErrorChoice> AskAboutFailedStep(string step, string reason, string detail,
-        string comment)
-        => await Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Run.AskTitle"),
-                FailedStepPrompt.Question(step, reason, detail, comment),
-                Strings.Get("Run.AskRetry"), Strings.Get("Run.AskSkip"), true, Strings.Get("Run.AskStop"));
-
-            return choice switch
-            {
-                ConfirmChoice.Primary => StepErrorChoice.Retry,
-                ConfirmChoice.Secondary => StepErrorChoice.Skip,
-                _ => StepErrorChoice.Stop,
-            };
-        });
-
-    /// <summary>
-    /// Puts "this cannot be undone" to the user for a run a trigger started. A closed box or a
-    /// cancelled run answers no, which is the one answer that cannot make things worse on its own.
-    /// </summary>
-    private async Task<bool> ConfirmIrreversibleStep(ExecutableStep step)
-        => await Dispatcher.UIThread.InvokeAsync(async () =>
-            await ConfirmDialog.ShowAsync(this, Strings.Get("Run.CannotBeUndoneTitle"),
-                IrreversiblePrompt.Question(step.Type, step.Meta.Comment),
-                Strings.Get("Common.Ok"), null, true, Strings.Get("Common.Cancel"),
-                tone: ConfirmTone.Danger) is ConfirmChoice.Primary);
-
-    /// <summary>
-    /// Puts a macro's own question on screen for a run a trigger started, where there is no run
-    /// window to show it in. Closing either dialog is the same as answering no: a question left
-    /// unanswered should not read as a yes.
-    /// </summary>
-    private async Task<AskAnswer> AskWhatTheMacroWantsToKnow(AskQuestion question)
-        => await Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            if (question.Kind is AskKind.Text)
-            {
-                return await TextPromptDialog.ShowAsync(this, Strings.Get("Main.Title"), question);
-            }
-
-            var choice = await ConfirmDialog.ShowAsync(this, Strings.Get("Main.Title"),
-                question.Message, Strings.Get("Run.AnswerOk"), null, true,
-                Strings.Get("Run.AnswerCancel"));
-
-            return choice is ConfirmChoice.Primary ? new AskAnswer(true, string.Empty) : AskAnswer.Cancel;
-        });
 
     private static void OpenFolder(string? folder)
     {

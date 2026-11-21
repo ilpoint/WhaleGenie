@@ -1,20 +1,17 @@
-using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Input;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-// The main window as the trigger host's surface: the menu, wheel, panels and the run's questions
-// are this window's own drawing and state, and the host's hooks land here through these members.
-public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.IRunQuestionHost,
-    Runtime.ITriggerFocusProbe
+// The main window as the trigger host's native surface: the menu, wheel and panels are this
+// window's own drawing and state, and the host's hooks land here through these members. The
+// questions of a triggered run live in RunQuestionHost, which does not need this window.
+public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerFocusProbe
 {
     bool Runtime.ITriggerSurfaceHost.MenuOpen => Volatile.Read(ref _menuOpen) == 1;
 
@@ -52,20 +49,9 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.IRunQuest
             return;
         }
 
-        _host?.PublishPlan();
         RefreshSurface(viewModel);
         RefreshWheelGate(viewModel);
         RefreshRunning(viewModel);
     }
-
-    Task<StepErrorChoice> Runtime.IRunQuestionHost.AskAboutFailedStep(
-        string step, string reason, string detail, string comment)
-        => AskAboutFailedStep(step, reason, detail, comment);
-
-    Task<AskAnswer> Runtime.IRunQuestionHost.AskUser(AskQuestion question)
-        => AskWhatTheMacroWantsToKnow(question);
-
-    Task<bool> Runtime.IRunQuestionHost.ConfirmIrreversibleStep(ExecutableStep step)
-        => ConfirmIrreversibleStep(step);
 }
 
