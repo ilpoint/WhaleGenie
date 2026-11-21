@@ -85,6 +85,27 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_key_trigger_can_be_added_bound_and_removed()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "triggered" });
+
+        var session = HeadlessEditorSession.Open(workspace, "triggered");
+        Assert.Empty(session.Triggers);
+
+        session.AddKeyTrigger();
+        var trigger = Assert.Single(session.Triggers);
+        Assert.Equal("Key", trigger.Kind);
+
+        session.SetTriggerBinding(trigger.Id, "F8");
+        Assert.Equal("F8", Assert.Single(session.Snapshot().Triggers).Binding);
+
+        session.RemoveTrigger(trigger.Id);
+        Assert.Empty(session.Snapshot().Triggers);
+        Assert.True(session.IsDirty);
+    }
+
+    [Fact]
     public void Every_catalogue_action_builds_a_form()
     {
         Ui.Run(() =>

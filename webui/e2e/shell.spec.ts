@@ -133,6 +133,19 @@ test('C1 步骤树可以加步骤与改参数', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 编辑宏的触发入口与按键', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
+  const binding = page.locator('wg-editor-gate .triggers input').first();
+  await expect(binding).toBeVisible();
+  await binding.fill('F8');
+  await binding.press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerBinding')))
+    .toBe(true);
+});
+
 test('宏列表的过滤、搜索与启停', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
 

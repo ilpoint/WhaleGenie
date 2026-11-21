@@ -28,7 +28,8 @@ const chromeKeys = [
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
-  'Editor.GateActions', 'Editor.AddStep', 'Run.Steps', 'Common.Save', 'Common.Close',
+  'Editor.GateActions', 'Editor.AddStep', 'Editor.TriggerEntries', 'Editor.AddTrigger',
+  'Editor.RemoveTrigger', 'Editor.BindKey', 'Run.Steps', 'Common.Save', 'Common.Close',
   'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
 
@@ -64,7 +65,9 @@ const english: Record<string, string> = {
   'Editor.NamePlaceholder': 'Enter a name for your macro..',
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
-  'Editor.AddStep': 'Add step',
+  'Editor.AddStep': 'Add step', 'Editor.TriggerEntries': 'Trigger entries',
+  'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
+  'Editor.BindKey': 'Trigger / Bind Key :',
   'Run.Steps': 'Steps', 'Common.Save': 'Save', 'Common.Close': 'Close',
   'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
   'Common.Cancel': 'Cancel',
@@ -111,7 +114,9 @@ const chinese: Record<string, string> = {
   'Editor.NamePlaceholder': '给这个宏起个名字..',
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
-  'Editor.AddStep': '添加步骤',
+  'Editor.AddStep': '添加步骤', 'Editor.TriggerEntries': '触发入口',
+  'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
+  'Editor.BindKey': '触发 / 绑定按键：',
   'Run.Steps': '步骤', 'Common.Save': '保存', 'Common.Close': '关闭',
   'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
   'Common.Cancel': '取消',
@@ -260,6 +265,7 @@ export class MockTransport implements BridgeTransport {
           dirty: false,
           stepCount: 0,
           steps: [],
+          triggers: [],
         };
         result = this.editor;
         break;
@@ -303,6 +309,45 @@ export class MockTransport implements BridgeTransport {
       case 'editor.sessionSave':
         if (this.editor) {
           this.editor = { ...this.editor, dirty: false };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: [...this.editor.triggers, {
+              id: 'trigger',
+              kind: 'Key',
+              kindLabel: '按键',
+              summary: '',
+              enabled: true,
+              binding: '',
+            }],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerBinding':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
+              ? { ...trigger, binding: String(params['binding'] ?? '') }
+              : trigger),
+          };
         }
         result = this.editor;
         break;

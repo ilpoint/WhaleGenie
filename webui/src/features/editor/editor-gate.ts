@@ -72,6 +72,33 @@ export class WgEditorGate extends LitElement {
       resize: vertical;
     }
 
+    .triggers {
+      list-style: none;
+      margin: 0 0 var(--spacingVerticalM);
+      padding: 0;
+      display: grid;
+      gap: var(--spacingVerticalS);
+    }
+
+    .triggers li {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalS);
+    }
+
+    .trigger-kind {
+      min-width: 96px;
+      color: var(--colorNeutralForeground3);
+    }
+
+    .triggers button {
+      border: none;
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      font: inherit;
+      cursor: pointer;
+    }
+
     .toolbar {
       display: flex;
       align-items: center;
@@ -213,6 +240,29 @@ export class WgEditorGate extends LitElement {
           @input=${(event: Event) => this.editDescription(event)}
         ></textarea>
       </div>
+      <h2>${t('Editor.TriggerEntries')}</h2>
+      <ul class="triggers">
+        ${this.snapshot.triggers.map((trigger) => html`
+          <li>
+            <span class="trigger-kind">${trigger.kindLabel}</span>
+            ${trigger.kind === 'Key'
+              ? html`<input
+                  .value=${trigger.binding}
+                  placeholder=${t('Editor.BindKey')}
+                  @change=${(event: Event) => void this.setBinding(trigger.id, event)}
+                />`
+              : html`<span>${trigger.summary}</span>`}
+            <button
+              title=${t('Editor.RemoveTrigger')}
+              aria-label=${t('Editor.RemoveTrigger')}
+              @click=${() => void this.removeTrigger(trigger.id)}
+            >×</button>
+          </li>
+        `)}
+      </ul>
+      <fluent-button appearance="subtle" @click=${this.addTrigger}>
+        ${t('Editor.AddTrigger')}
+      </fluent-button>
       <h2>${t('Run.Steps')}</h2>
       <div class="toolbar">
         <select .value=${this.actionKey} @change=${this.selectAction}>
@@ -259,6 +309,34 @@ export class WgEditorGate extends LitElement {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStep',
         { type: this.actionKey });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async addTrigger(): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerAdd');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async removeTrigger(triggerId: string): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerRemove',
+        { triggerId });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setBinding(triggerId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
+        triggerId,
+        binding: (event.target as HTMLInputElement).value,
+      });
     } catch (error) {
       this.error = String(error);
     }

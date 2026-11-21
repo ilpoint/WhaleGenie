@@ -68,6 +68,15 @@ internal sealed class HeadlessEditorSession
     public IReadOnlyList<string> StepTypes
         => [.. _model.Draft().Macro.Steps.Select(step => step.Type)];
 
+    public IReadOnlyList<EditorTriggerSnapshot> Triggers
+        => [.. _model.TriggerEntries.Select(entry => new EditorTriggerSnapshot(
+            entry.Id,
+            entry.Kind.ToString(),
+            entry.KindLabel,
+            entry.Summary,
+            entry.IsEnabled,
+            entry.Spec is KeySpec key ? key.Binding : string.Empty))];
+
     public void Patch(string? name = null, string? description = null)
     {
         if (name is not null)
@@ -82,6 +91,41 @@ internal sealed class HeadlessEditorSession
     }
 
     public void AddStep(string type) => _model.AddStep(new MacroStep { Type = type });
+
+    public void AddKeyTrigger()
+    {
+        _model.AddTriggerCommand.Execute(TriggerKind.Key);
+        _model.IsDirty = true;
+    }
+
+    public void RemoveTrigger(string triggerId)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal));
+        if (trigger is null)
+        {
+            throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        }
+
+        _model.RemoveTriggerCommand.Execute(trigger);
+    }
+
+    public void SetTriggerBinding(string triggerId, string binding)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not KeySpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a key trigger");
+        }
+
+        // The drawer's fields are what BuildMacro commits; move the selection onto this entry and
+        // write the binding there rather than changing a spec the next commit would overwrite.
+        _model.SelectedTrigger = trigger;
+        _model.BindKey = binding.Trim();
+        _model.IsDirty = true;
+    }
 
     public void PatchParameter(string stepId, string name, string value)
     {
@@ -139,7 +183,8 @@ internal sealed class HeadlessEditorSession
             Description,
             IsDirty,
             Count(macro.Steps),
-            [.. macro.Steps.Select(StepSnapshot)]);
+            [.. macro.Steps.Select(StepSnapshot)],
+            Triggers);
     }
 
     /// <summary>The action catalogue, in the order the picker shows it and with its form fields.</summary>
@@ -235,7 +280,10 @@ internal sealed class HeadlessEditorSession
 }
 
 internal sealed record EditorSnapshot(string Name, string Description, bool Dirty, int StepCount,
-    IReadOnlyList<EditorStepSnapshot> Steps);
+    IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers);
+
+internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
+    bool Enabled, string Binding);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     IReadOnlyList<EditorParameterSnapshot> Parameters, IReadOnlyList<EditorStepSnapshot> Steps);

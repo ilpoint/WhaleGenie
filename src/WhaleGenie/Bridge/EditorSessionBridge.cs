@@ -26,6 +26,9 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionParameter", PatchParameter);
         server.Register("editor.sessionMove", MoveStep);
         server.Register("editor.sessionRemove", RemoveStep);
+        server.Register("editor.sessionTriggerAdd", _ => Task.FromResult<object?>(AddTrigger()));
+        server.Register("editor.sessionTriggerRemove", RemoveTrigger);
+        server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
         server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
         server.Register("editor.sessionClose", _ => Task.FromResult<object?>(Close()));
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
@@ -139,6 +142,60 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         }
     }
 
+    private object? AddTrigger()
+    {
+        try
+        {
+            Required().AddKeyTrigger();
+            return Snapshot();
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> RemoveTrigger(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        if (triggerId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().RemoveTrigger(triggerId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerBinding(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        var binding = parameters.TryGetProperty("binding", out var text) ? text.GetString() : null;
+        if (triggerId is not { Length: > 0 } || binding is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().SetTriggerBinding(triggerId, binding);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
     private object? Save()
     {
         var session = Required();
@@ -166,6 +223,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 dirty = snapshot.Dirty,
                 stepCount = snapshot.StepCount,
                 steps = snapshot.Steps,
+                triggers = snapshot.Triggers,
             }
             : null;
 

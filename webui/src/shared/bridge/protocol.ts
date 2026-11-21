@@ -113,12 +113,22 @@ export interface EditorStep {
   steps: EditorStep[];
 }
 
+export interface EditorTrigger {
+  id: string;
+  kind: string;
+  kindLabel: string;
+  summary: string;
+  enabled: boolean;
+  binding: string;
+}
+
 export interface EditorSnapshot {
   name: string;
   description: string;
   dirty: boolean;
   stepCount: number;
   steps: EditorStep[];
+  triggers: EditorTrigger[];
 }
 
 export interface EditorActionParameter {
