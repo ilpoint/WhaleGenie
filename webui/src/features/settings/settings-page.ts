@@ -16,6 +16,11 @@ export class WgSettings extends LitElement {
   @state()
   private capturing: 'systemHotkey' | 'recordStopKey' | '' = '';
 
+  @state()
+  private accent = '#0f6cbd';
+
+  private baseLight = false;
+
   private unsubscribe?: () => void;
 
   private readonly nativePages = [
@@ -153,6 +158,13 @@ export class WgSettings extends LitElement {
               <option value="Custom">${t('Theme.Mode.Custom')}</option>
             </select>
           </div>
+          ${this.settings.theme === 'Custom' ? html`
+            <div class="row">
+              <label>${t('Settings.ThemeAccent')}</label>
+              <input type="color" .value=${this.accent}
+                @change=${(event: Event) => void this.changeAccent(event)} />
+            </div>
+          ` : nothing}
           ${this.toggle('loadLastProjectAtStart', 'Settings.LoadLastProject')}
           ${this.toggle('systemAtStart', 'Settings.SystemAtStart')}
           ${this.toggle('enabledFirst', 'Settings.EnabledFirst')}
@@ -267,6 +279,21 @@ export class WgSettings extends LitElement {
     `;
   }
 
+  private async changeAccent(event: Event): Promise<void> {
+    const accent = (event.target as HTMLInputElement).value;
+    try {
+      await bridge.value.call('theme.set', {
+        mode: 'custom',
+        baseLight: this.baseLight,
+        accentHex: accent,
+      });
+      this.accent = accent;
+      this.error = '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   private async openNative(page: string): Promise<void> {
     try {
       await bridge.value.call('app.openSettingsPage', { page });
@@ -286,6 +313,9 @@ export class WgSettings extends LitElement {
   private async load(): Promise<void> {
     try {
       this.settings = await bridge.value.call<SettingsState>('settings.state');
+      const theme = await bridge.value.call<{ baseLight: boolean; accentHex: string }>('theme.get');
+      this.baseLight = theme.baseLight;
+      this.accent = theme.accentHex || '#0f6cbd';
     } catch (error) {
       this.error = String(error);
     }

@@ -652,6 +652,18 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .toBe(true);
 });
 
+test('设置页自定义主题可改强调色', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  const general = page.locator('wg-settings .card').first();
+  await general.locator('select').nth(1).selectOption('Custom');
+  const accent = page.locator('wg-settings input[type="color"]');
+  await expect(accent).toBeVisible();
+  await accent.fill('#ff0000');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('theme.set')))
+    .toBe(true);
+});
+
 test('设置页可请求原生高级设置页', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   const advanced = page.locator('wg-settings .card').filter({ hasText: '高级设置' }).first();
