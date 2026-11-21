@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Bridge;
 
@@ -43,9 +44,11 @@ public sealed class ThemeBridge : IBridgeHandler
                 "dark" => ThemeMode.Dark,
                 "light" => ThemeMode.Light,
                 "custom" => ThemeMode.Custom,
-                _ => throw new BridgeFailureException(BridgeErrors.BadArgument, "theme mode must be dark, light or custom"),
+                _ => throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.ThemeMode")),
             }
-            : throw new BridgeFailureException(BridgeErrors.BadArgument, "theme.set needs a mode");
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.ThemeNeedsMode"));
 
         bool? baseGiven = null;
         if (parameters.TryGetProperty("baseLight", out var baseElement)
