@@ -65,149 +65,32 @@ public partial class MainWindow : AppWindow
     /// </summary>
     private async void OnImportClicked(object? sender, RoutedEventArgs e)
     {
-        if (DataContext is not MainViewModel viewModel)
+        if (_interaction is null)
         {
             return;
         }
-
-        var path = await PickPackageAsync(Strings.Get("Main.ImportTitle"));
-        if (path is null)
-        {
-            return;
-        }
-
-        PackageContents contents;
-        try
-        {
-            // Pictures land in this project's folder: the file being imported is not where the
-            // macros will be working from. A name already used there is compared by content, so an
-            // arriving picture never replaces one another macro looks for.
-            contents = MacroPackage.Load(path, ImageAssets.FolderFor(viewModel.CurrentPath));
-        }
-        catch (Exception error)
-        {
-            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
-            return;
-        }
-
-        var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Import, contents.Macros,
-            contents.Triggers, viewModel.Variables.Globals, contents.Globals,
-            fileName: Path.GetFileName(path));
-        if (nodes is null || nodes.Count == 0)
-        {
-            return;
-        }
-
-        var chosen = nodes.Select(node => node.Macro).ToList();
 
         try
         {
-            if (nodes.All(node => node.IsSub))
-            {
-                var added = MacroImport.IntoLibrary(chosen, AppPaths.PublicMacroLibrary);
-                await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"),
-                    Strings.Format("Import.LibraryAdded",
-                        string.Join("、", added.Select(entry => entry.Macro.Name))),
-                    Strings.Get("Common.Ok"), null, false);
-                return;
-            }
-
-            // What to do about a variable both sides declare is a question, not a default: the wrong
-            // answer is a macro that reads somebody else's number without saying so.
-            var decisions = MacroImport.Decisions(chosen, contents.Globals,
-                viewModel.Variables.Globals);
-            if (!await GlobalConflictWindow.ShowAsync(this, decisions, chosen))
-            {
-                return;
-            }
-
-            var report = MacroImport.IntoProject(viewModel.Workspace, contents, chosen, decisions);
-            await ConfirmDialog.ShowAsync(this, Strings.Get("Import.ReportTitle"), ReportText(report),
-                Strings.Get("Common.Ok"), null, false, height: 320);
+            await _interaction.ImportAsync();
         }
-        catch (Exception error)
+        catch (ProjectInteractionException error)
         {
-            await ReportAsync(Strings.Get("Package.OpenFailed"), path, error);
+            await ReportAsync(Strings.Get("Package.OpenFailed"), error.Path,
+                error.InnerException ?? error);
         }
     }
 
-    /// <summary>
-    /// What the import did, in the order a person checks it: what arrived, what had to be renamed,
-    /// what happened to the variables, and what now needs their attention. The web shell's import
-    /// answers with the same text, so the two ways in report the same words.
-    /// </summary>
-    internal static string ReportText(ImportReport report)
-    {
-        var lines = new List<string>();
+    private async Task ReportInteractionAsync(string header, string message)
+        => await ConfirmDialog.ShowAsync(this, header, message, Strings.Get("Common.Ok"), null,
+            false, height: 320);
 
-        if (report.Added.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportMacros",
-                string.Join("、", report.Added.Select(macro => macro.Name))));
-        }
-
-        if (report.RenamedMacros.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportRenamed",
-                string.Join("、", report.RenamedMacros.Select(pair => $"{pair.Was} → {pair.Now}"))));
-        }
-
-        var globals = new List<string>();
-        if (report.GlobalsAdded.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalAdded", string.Join("、", report.GlobalsAdded)));
-        }
-
-        if (report.GlobalsRenamed.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalRenamed", string.Join("、", report.GlobalsRenamed)));
-        }
-
-        if (report.GlobalsOverwritten.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalOverwritten",
-                string.Join("、", report.GlobalsOverwritten)));
-        }
-
-        if (report.GlobalsKept.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalKept", string.Join("、", report.GlobalsKept)));
-        }
-
-        if (globals.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportGlobals", string.Join("；", globals)));
-        }
-
-        if (report.DuplicateTriggers.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportDuplicates",
-                string.Join("；", report.DuplicateTriggers)));
-        }
-
-        if (report.ScriptsToCheck.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportScripts", string.Join("；", report.ScriptsToCheck)));
-        }
-
-        return lines.Count == 0 ? Strings.Get("Import.ReportNothing") : string.Join("\n", lines);
-    }
-
-    /// <summary>
-    /// Writes one macro out as a file of its own. The pictures it looks for travel inside the file,
-    /// so the person it is handed to does not have to be told what to copy as well.
-    /// </summary>
     /// <summary>
     /// Exports from the file menu: the same window as the card's own menu, with nothing ticked, for
     /// a person who wants to pick several macros rather than start from one of them.
     /// </summary>
     private async void OnExportMacrosClicked(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is MainViewModel viewModel)
-        {
-            await ExportMacrosAsync(viewModel, []);
-        }
-    }
+        => await ExportMacrosAsync([]);
 
     /// <summary>
     /// Writes the macro a card was right-clicked on. The window opens with it ticked, because that
@@ -217,49 +100,27 @@ public partial class MainWindow : AppWindow
     {
         e.Handled = true;
 
-        if (sender is Control { DataContext: MacroItem macro }
-            && DataContext is MainViewModel viewModel)
+        if (sender is Control { DataContext: MacroItem macro })
         {
-            await ExportMacrosAsync(viewModel, [macro]);
+            await ExportMacrosAsync([macro]);
         }
     }
 
-    /// <summary>
-    /// Writes the chosen macros into a package: the macros with the submacros inside them, the
-    /// global variables they read, the trigger entries that start them and the pictures they look
-    /// for. A project's own macros are copied first, because writing a package rewrites the trigger
-    /// table of what it is handed.
-    /// </summary>
-    private async Task ExportMacrosAsync(MainViewModel viewModel, IReadOnlyList<MacroItem> preselected)
+    private async Task ExportMacrosAsync(IReadOnlyList<MacroItem> preselected)
     {
-        var nodes = await MacroChooseWindow.ShowAsync(this, MacroChooseKind.Export, viewModel.Macros,
-            viewModel.Triggers, viewModel.Variables.Globals, preselected: preselected);
-        if (nodes is null || nodes.Count == 0)
-        {
-            return;
-        }
-
-        var selection = nodes.Select(node => node.Macro).ToList();
-
-        var path = await PackagePicker.AskWhereAsync(this, Strings.Get("Main.ExportMacroTitle"),
-            selection[0].Name);
-        if (path is null)
+        if (_interaction is null)
         {
             return;
         }
 
         try
         {
-            // An export is written somewhere else, while the pictures stay beside the project: the
-            // folder comes along so the package carries them rather than pointing at this machine.
-            MacroPackage.Save(path, MacroBundle.Copies(selection),
-                MacroBundle.Take(viewModel.Triggers, selection),
-                MacroBundle.UsedGlobals(selection, viewModel.Variables.Globals), AppVersion.Text,
-                ImageAssets.FolderFor(viewModel.CurrentPath));
+            await _interaction.ExportAsync(preselected);
         }
-        catch (Exception error)
+        catch (ProjectInteractionException error)
         {
-            await ReportAsync(Strings.Get("Main.ExportMacroTitle"), path, error);
+            await ReportAsync(Strings.Get("Main.ExportMacroTitle"), error.Path,
+                error.InnerException ?? error);
         }
     }
 

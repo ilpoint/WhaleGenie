@@ -21,6 +21,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -52,6 +53,7 @@ public partial class MainWindow : AppWindow
         // A window built without a container (a check, or a caller that only has a view model)
         // shares the switch the view model draws; the production root hands in the same object.
         _system = viewModel.SystemSwitch;
+        _interaction = new ProjectInteraction(viewModel.Workspace, () => this, ReportInteractionAsync);
 
         // The menu, wheel and panels are the host's; the trigger host forwards their hooks there.
         _nativeSurface = new NativeSurfaceHost(viewModel.Workspace, Runtime, _system, _devices,
@@ -73,6 +75,7 @@ public partial class MainWindow : AppWindow
             _host = null;
             _nativeSurface?.Dispose();
             _nativeSurface = null;
+            _interaction = null;
             viewModel.Triggers.Changed -= OnProjectTriggersChanged;
             viewModel.Changed -= OnProjectChanged;
             viewModel.Macros.CollectionChanged -= OnMacrosChanged;

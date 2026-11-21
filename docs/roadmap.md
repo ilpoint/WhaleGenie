@@ -22,10 +22,9 @@
 第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳）
 已完成。其余按顺序：
 
-- **阶段 B0 会话宿主抽取（阻塞，收尾）**：余下把导入、导出的编排统一到
-  ProjectInteraction；原生面与文件打开/保存/重载已分别收口到 NativeSurfaceHost 与
-  ProjectFiles。验收：原生与网页两种窗口共用同一宿主，现有主窗用例迁移后全绿。
-- **阶段 B1 网页壳转正**：壳接管 NativeSurfaceHost、ProjectSession 与临时原生入口（设置/运行/
+- **阶段 B0 会话宿主抽取（已完成）**：原生面、文件打开/保存/重载与导入/导出编排已分别收口到
+  NativeSurfaceHost、ProjectFiles 与 ProjectInteraction；现有主窗用例全绿。隐藏主窗按 B1 处理。
+- **阶段 B1 网页壳转正（当前）**：壳接管 NativeSurfaceHost、ProjectSession 与临时原生入口（设置/运行/
   关于/帮助），去掉隐藏主窗并成为默认；删除 MainWindow、MainViewModel；补壳上的退出未保存/
   恢复、单一项目信息来源、enabledFirst、视图记忆、分组重置与桥方法清单；旧主窗用例有替代或
   删除理由。验收：主窗全部功能在壳里有入口，真机清单全绿。

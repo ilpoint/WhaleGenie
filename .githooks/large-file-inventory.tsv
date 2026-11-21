@@ -202,7 +202,6 @@
 370	src/WhaleGenie.Domain/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
 603	src/WhaleGenie/Views/Shell/FloatingSurfaceWindow.cs	keep: 浮动面板的窗口构造、排列、拾层与置层，单一窗口职责，暂不拆
 613	src/WhaleGenie/Runtime/NativeSurfaceHost.Menu.cs	keep: 菜单一个域——打开/关闭、布局刷新与选择器是同一次任务的读取集
-418	src/WhaleGenie/Views/Shell/MainWindow.Files.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 465	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
 522	src/WhaleGenie/Views/Shell/MainWindow.axaml	keep: 主窗口一份布局
 311	src/WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
@@ -244,6 +243,6 @@
 321	src/WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 
 338	tests/WhaleGenie.Actions.Tests/ValuePickerTests.Tokens.cs	keep: token 树与容器插槽的一组契约用例，共用同一套夹具
-539	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
+491	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
 357	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管

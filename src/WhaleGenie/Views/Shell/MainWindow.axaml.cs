@@ -21,6 +21,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
@@ -57,6 +58,9 @@ public partial class MainWindow : AppWindow
     /// already open rather than laying a second one over the same list.
     /// </summary>
     private RunWindow? _runDebug;
+
+    /// <summary>The import/export the file menu and the page's commands both go through.</summary>
+    private ProjectInteraction? _interaction;
 
     /// <summary>
     /// The run-and-debug window on screen, or null while there is none. A property so that a check

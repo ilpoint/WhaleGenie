@@ -205,36 +205,19 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return null;
         }
 
-        var nodes = await MacroChooseWindow.ShowAsync(window, MacroChooseKind.Export,
-            _workspace.Macros, _workspace.Triggers, _workspace.Variables.Globals,
-            preselected: [macro]);
-        if (nodes is null || nodes.Count == 0)
-        {
-            return null;
-        }
-
-        var selection = nodes.Select(node => node.Macro).ToList();
-        var path = await PackagePicker.AskWhereAsync(window, Strings.Get("Main.ExportMacroTitle"),
-            selection[0].Name);
-        if (path is null)
-        {
-            return null;
-        }
-
+        var interaction = new ProjectInteraction(_workspace, () => window,
+            async (header, message) =>
+                await _dialogs.ConfirmAsync(header, message, Strings.Get("Common.Ok"), null));
         try
         {
-            // An export is written somewhere else, while the pictures stay beside the project: the
-            // folder comes along so the package carries them rather than pointing at this machine.
-            MacroPackage.Save(path, MacroBundle.Copies(selection),
-                MacroBundle.Take(_workspace.Triggers, selection),
-                MacroBundle.UsedGlobals(selection, _workspace.Variables.Globals), AppVersion.Text,
-                ImageAssets.FolderFor(_workspace.CurrentPath));
+            await interaction.ExportAsync([macro]);
             return null;
         }
-        catch (Exception error)
+        catch (ProjectInteractionException error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path), error.Message));
+                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(error.Path),
+                    error.InnerException?.Message ?? error.Message));
         }
     }
 
@@ -266,73 +249,19 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return null;
         }
 
-        var path = await PickAsync(new FilePickerOpenOptions
-        {
-            Title = Strings.Get("Main.ImportTitle"),
-            AllowMultiple = false,
-            FileTypeFilter = [PackageFileType()],
-        });
-        if (path is null)
-        {
-            return null;
-        }
-
-        PackageContents contents;
+        var interaction = new ProjectInteraction(_workspace, () => window,
+            async (header, message) =>
+                await _dialogs.ConfirmAsync(header, message, Strings.Get("Common.Ok"), null));
         try
         {
-            // Pictures land in this project's folder: the file being imported is not where the
-            // macros will be working from. A name already used there is compared by content, so an
-            // arriving picture never replaces one another macro looks for.
-            contents = MacroPackage.Load(path, ImageAssets.FolderFor(_workspace.CurrentPath));
-        }
-        catch (Exception error)
-        {
-            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
-        }
-
-        var nodes = await MacroChooseWindow.ShowAsync(window, MacroChooseKind.Import,
-            contents.Macros, contents.Triggers, _workspace.Variables.Globals, contents.Globals,
-            fileName: Path.GetFileName(path));
-        if (nodes is null || nodes.Count == 0)
-        {
+            await interaction.ImportAsync();
             return null;
         }
-
-        var chosen = nodes.Select(node => node.Macro).ToList();
-
-        try
-        {
-            if (nodes.All(node => node.IsSub))
-            {
-                // Submacros ticked on their own belong in the public library, because that is
-                // where something a macro calls lives.
-                var added = MacroImport.IntoLibrary(chosen, AppPaths.PublicMacroLibrary);
-                await _dialogs.ConfirmAsync(Strings.Get("Import.ReportTitle"),
-                    Strings.Format("Import.LibraryAdded",
-                        string.Join("、", added.Select(entry => entry.Macro.Name))),
-                    Strings.Get("Common.Ok"), null);
-                return null;
-            }
-
-            // What to do about a variable both sides declare is a question, not a default: the wrong
-            // answer is a macro that reads somebody else's number without saying so.
-            var decisions = MacroImport.Decisions(chosen, contents.Globals,
-                _workspace.Variables.Globals);
-            if (!await GlobalConflictWindow.ShowAsync(window, decisions, chosen))
-            {
-                return null;
-            }
-
-            var report = MacroImport.IntoProject(_workspace, contents, chosen, decisions);
-            await _dialogs.ConfirmAsync(Strings.Get("Import.ReportTitle"),
-                MainWindow.ReportText(report), Strings.Get("Common.Ok"), null);
-            return null;
-        }
-        catch (Exception error)
+        catch (ProjectInteractionException error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(error.Path),
+                    error.InnerException?.Message ?? error.Message));
         }
     }
 
