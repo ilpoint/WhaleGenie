@@ -220,6 +220,7 @@ const english: Record<string, string> = {
   'Run.NotLoaded': 'Load a macro into the run panel first.',
   'Run.UnknownCommand': 'That run command is not known.',
   'Run.UnknownStep': 'That step is not in the loaded macro.',
+  'Run.UnknownArgument': 'That argument is not declared by the loaded macro.',
   'Settings.Advanced': 'Advanced (native)', 'Settings.WindowRules': 'Window rules',
   'Settings.CaptureCard': 'Picture source', 'Settings.CaptureWindow': 'Window pictures',
   'Settings.CaptureScreen': 'Desktop pictures',
@@ -362,6 +363,7 @@ const chinese: Record<string, string> = {
   'Run.NotLoaded': '请先把宏载入运行面板。',
   'Run.UnknownCommand': '不认识这条运行命令。',
   'Run.UnknownStep': '载入的宏里没有这一步。',
+  'Run.UnknownArgument': '载入的宏没有声明这个参数。',
   'Settings.Advanced': '高级设置（原生）', 'Settings.WindowRules': '窗口规则',
   'Settings.CaptureCard': '画面来源', 'Settings.CaptureWindow': '窗口画面',
   'Settings.CaptureScreen': '桌面画面',
@@ -405,6 +407,8 @@ export class MockTransport implements BridgeTransport {
     loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
     canRun: false, canStep: false, canStop: false,
     question: '', wantsTypedAnswer: false, answerText: '', isAskingUser: false, isAsking: false,
+    arguments: [] as { name: string; label: string; hint: string; required: boolean;
+      value: string; given: boolean; missing: boolean }[],
     globals: [] as { name: string; type: string; value: string; defaultValue: string }[],
     locals: [] as { name: string; macro: string; type: string }[],
     steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;
@@ -548,6 +552,8 @@ export class MockTransport implements BridgeTransport {
           ...this.runState,
           loaded: String(params['name'] ?? ''),
           status: 'Loaded', canRun: true, canStep: true, busy: false, paused: false,
+          arguments: [{ name: 'target', label: 'target', hint: 'Text', required: true,
+            value: '', given: false, missing: true }],
           globals: [{ name: 'count', type: 'Number', value: '3', defaultValue: '0' }],
           locals: [{ name: 'found', macro: 'Demo', type: 'Boolean' }],
           steps: [
@@ -573,6 +579,17 @@ export class MockTransport implements BridgeTransport {
         result = this.runState;
         break;
       case 'run.answer':
+        result = this.runState;
+        break;
+      case 'run.argument':
+        this.runState = {
+          ...this.runState,
+          arguments: this.runState.arguments.map((argument) => argument.name === params['name']
+            ? { ...argument, value: String(params['value'] ?? ''),
+                given: String(params['value'] ?? '').length > 0,
+                missing: false }
+            : argument),
+        };
         result = this.runState;
         break;
       case 'run.breakpointRule':

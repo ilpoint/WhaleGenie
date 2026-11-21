@@ -734,6 +734,11 @@ test('运行页载入宏并驱动运行面板', async ({ page }) => {
   await expect(page.locator('wg-run .side .macros fluent-button')).toHaveCount(2);
   await page.locator('wg-run .side .macros fluent-button').first().click();
   await expect(page.locator('wg-run .step')).toHaveCount(2);
+  await page.locator('wg-run .args input').first().fill('abc');
+  await page.locator('wg-run .args input').first().press('Tab');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('run.argument')))
+    .toBe(true);
   await expect(page.locator('wg-run .vars')).toContainText('count');
   await expect(page.locator('wg-run .vars')).toContainText('found');
   await page.locator('wg-run .step input[type="checkbox"]').first().check();

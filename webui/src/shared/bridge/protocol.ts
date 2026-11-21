@@ -225,10 +225,21 @@ export interface RunState {
   answerText: string;
   isAskingUser: boolean;
   isAsking: boolean;
+  arguments: RunArgument[];
   globals: RunGlobal[];
   locals: RunLocal[];
   steps: RunStep[];
   log: RunLine[];
+}
+
+export interface RunArgument {
+  name: string;
+  label: string;
+  hint: string;
+  required: boolean;
+  value: string;
+  given: boolean;
+  missing: boolean;
 }
 
 export interface RunGlobal {

@@ -73,6 +73,25 @@ export class WgRun extends LitElement {
       color: var(--colorNeutralForeground2);
     }
 
+    .args {
+      display: grid;
+      gap: var(--spacingVerticalS);
+      padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+    }
+
+    .arg {
+      display: grid;
+      gap: var(--spacingVerticalXS);
+    }
+
+    .arg .hint {
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+    }
+
     .ask {
       display: grid;
       gap: var(--spacingVerticalS);
@@ -187,6 +206,7 @@ export class WgRun extends LitElement {
           ${this.button('stop', 'Run.Stop', this.run?.canStop ?? false)}
         </div>
         <div class="status">${this.run?.status ?? ''}</div>
+        ${this.arguments()}
         ${this.ask()}
         <div class="steps">
           ${this.run?.steps.map((step) => this.step(step))}
@@ -252,6 +272,25 @@ export class WgRun extends LitElement {
     `;
   }
 
+  private arguments() {
+    if (!this.run?.arguments.length) {
+      return nothing;
+    }
+
+    return html`
+      <div class="args">
+        ${this.run.arguments.map((argument) => html`
+          <label class="arg">
+            <span>${argument.label}${argument.required ? ' *' : ''}</span>
+            <input .value=${argument.value}
+              @change=${(event: Event) => void this.argument(argument.name, event)} />
+            <span class="hint">${argument.hint}</span>
+          </label>
+        `)}
+      </div>
+    `;
+  }
+
   private ask() {
     if (!this.run) {
       return nothing;
@@ -297,6 +336,16 @@ export class WgRun extends LitElement {
     try {
       this.project = await bridge.value.call<ProjectState>('project.state');
       this.run = await bridge.value.call<RunState>('run.state');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async argument(name: string, event: Event): Promise<void> {
+    try {
+      this.run = await bridge.value.call<RunState>('run.argument',
+        { name, value: (event.target as HTMLInputElement).value });
+      this.error = '';
     } catch (error) {
       this.error = String(error);
     }

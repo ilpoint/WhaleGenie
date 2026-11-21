@@ -32,6 +32,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         server.Register("run.breakpoint", Breakpoint);
         server.Register("run.answer", Answer);
         server.Register("run.breakpointRule", BreakpointRule);
+        server.Register("run.argument", Argument);
     }
 
     public void Dispose() => _timer?.Stop();
@@ -88,6 +89,25 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
 
         await PushAsync();
         return Snapshot();
+    }
+
+    private Task<object?> Argument(JsonElement parameters)
+    {
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var row = _run?.Arguments.FirstOrDefault(argument =>
+            string.Equals(argument.Name, name, StringComparison.Ordinal));
+        if (row is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Run.UnknownArgument"));
+        }
+
+        var value = parameters.TryGetProperty("value", out var written)
+            ? written.GetString() ?? string.Empty
+            : string.Empty;
+        row.Value = value;
+        row.Given = value.Length > 0;
+        return Task.FromResult<object?>(Snapshot());
     }
 
     private Task<object?> BreakpointRule(JsonElement parameters)
@@ -214,6 +234,16 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             answerText = _run?.AnswerText ?? string.Empty,
             isAskingUser = _run?.IsAskingUser ?? false,
             isAsking = _run?.IsAsking ?? false,
+            arguments = _run?.Arguments.Select(argument => new
+            {
+                name = argument.Name,
+                label = argument.Label,
+                hint = argument.Hint,
+                required = argument.Required,
+                value = argument.Value,
+                given = argument.Given,
+                missing = argument.IsMissing,
+            }),
             globals = _run?.Globals.Select(global => new
             {
                 name = global.Name,
