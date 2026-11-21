@@ -28,7 +28,7 @@ const chromeKeys = [
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
-  'Editor.GateActions', 'Run.Steps', 'Common.Save', 'Common.Close',
+  'Editor.GateActions', 'Editor.AddStep', 'Run.Steps', 'Common.Save', 'Common.Close',
   'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
 
@@ -64,6 +64,7 @@ const english: Record<string, string> = {
   'Editor.NamePlaceholder': 'Enter a name for your macro..',
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
+  'Editor.AddStep': 'Add step',
   'Run.Steps': 'Steps', 'Common.Save': 'Save', 'Common.Close': 'Close',
   'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
   'Common.Cancel': 'Cancel',
@@ -110,6 +111,7 @@ const chinese: Record<string, string> = {
   'Editor.NamePlaceholder': '给这个宏起个名字..',
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
+  'Editor.AddStep': '添加步骤',
   'Run.Steps': '步骤', 'Common.Save': '保存', 'Common.Close': '关闭',
   'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
   'Common.Cancel': '取消',
@@ -287,9 +289,11 @@ export class MockTransport implements BridgeTransport {
             steps: [...this.editor.steps, {
               id: 'mock',
               type: String(params['type'] ?? ''),
-              name: String(params['type'] ?? ''),
+              name: String(params['type'] ?? '') === 'control.delay' ? '延迟' : String(params['type'] ?? ''),
               enabled: true,
-              parameters: [],
+              parameters: String(params['type'] ?? '') === 'control.delay'
+                ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '' }]
+                : [],
               steps: [],
             }],
           };
@@ -307,7 +311,21 @@ export class MockTransport implements BridgeTransport {
         result = null;
         break;
       case 'editor.sessionActions':
-        result = { count: 177, keys: [] };
+        result = {
+          count: 177,
+          actions: [
+            {
+              key: 'control.delay',
+              name: '延迟',
+              category: 'Control',
+              description: '',
+              hidden: false,
+              parameters: [
+                { name: 'ms', label: '等待时长', kind: 'Number', required: false, placeholder: '' },
+              ],
+            },
+          ],
+        };
         break;
 
       case 'project.delete':

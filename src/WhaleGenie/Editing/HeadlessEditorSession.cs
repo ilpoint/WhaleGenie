@@ -147,6 +147,7 @@ internal sealed class HeadlessEditorSession
             action.LocalName,
             action.Category.ToString(),
             action.LocalDescription,
+            action.Hidden,
             [.. action.Parameters
                 .Where(parameter => parameter.Kind != ActionParameterKind.Steps)
                 .Select(parameter => new EditorActionParameterSnapshot(
@@ -222,7 +223,7 @@ internal sealed record EditorStepSnapshot(string Id, string Type, string Name, b
 internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value);
 
 internal sealed record EditorActionSnapshot(string Key, string Name, string Category, string Description,
-    IReadOnlyList<EditorActionParameterSnapshot> Parameters);
+    bool Hidden, IReadOnlyList<EditorActionParameterSnapshot> Parameters);
 
 internal sealed record EditorActionParameterSnapshot(string Name, string Label, string Kind, bool Required,
     string Placeholder);

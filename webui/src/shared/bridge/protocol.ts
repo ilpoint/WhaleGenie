@@ -128,6 +128,7 @@ export interface EditorAction {
   name: string;
   category: string;
   description: string;
+  hidden: boolean;
   parameters: EditorActionParameter[];
 }
 

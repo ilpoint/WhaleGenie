@@ -115,6 +115,24 @@ test('C0 编辑器打开真实宏、改字段并保存', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 步骤树可以加步骤与改参数', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await expect(page.locator('wg-editor-gate h1')).toHaveText('编辑器');
+
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await expect(page.locator('wg-editor-gate .step-name')).toHaveText('延迟');
+
+  await page.locator('wg-editor-gate .step').click();
+  const parameter = page.locator('wg-editor-gate .inspector input').first();
+  await expect(parameter).toBeVisible();
+  await parameter.fill('750');
+  await parameter.press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameter')))
+    .toBe(true);
+});
+
 test('宏列表的过滤、搜索与启停', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
 
