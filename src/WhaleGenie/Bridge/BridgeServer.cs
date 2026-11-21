@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -36,6 +37,9 @@ public sealed class BridgeServer
     private static readonly JsonDocument EmptyParameters = JsonDocument.Parse("{}");
 
     private readonly Dictionary<string, Func<JsonElement, Task<object?>>> _methods = [];
+
+    /// <summary>The method names the handlers registered, for the inventory check.</summary>
+    internal IReadOnlyCollection<string> Methods => _methods.Keys.Order(StringComparer.Ordinal).ToArray();
 
     /// <summary>
     /// Event envelopes held back until the page asked for them, one per event: a page that has not
