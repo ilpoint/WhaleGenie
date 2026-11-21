@@ -141,6 +141,18 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     private void OnNewWindowRequested(object? sender, WebViewNewWindowRequestedEventArgs args)
         => args.Handled = true;
 
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        WindowPlacement.Restore(this);
+    }
+
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        WindowPlacement.Remember(this);
+        base.OnClosing(e);
+    }
+
     private bool IsAllowedSource(Uri uri)
     {
         Uri? dev = null;

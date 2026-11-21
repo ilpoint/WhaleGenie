@@ -96,30 +96,10 @@ public partial class MainWindow : AppWindow
     /// Applies the size this machine last chose, limited to the desktop that is here now. Position
     /// is deliberately not restored: a monitor may have gone, and a window must not open off-screen.
     /// </summary>
-    private void RestoreWindowSize()
-    {
-        if (LocalSettings.LoadMainWindowSize() is not { } size)
-        {
-            return;
-        }
-
-        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
-        var scale = screen is { Scaling: > 0 } ? screen.Scaling : 1;
-        var widest = screen is null ? size.Width : screen.WorkingArea.Width / scale;
-        var tallest = screen is null ? size.Height : screen.WorkingArea.Height / scale;
-
-        Width = Math.Clamp(size.Width, MinWidth, Math.Max(MinWidth, widest));
-        Height = Math.Clamp(size.Height, MinHeight, Math.Max(MinHeight, tallest));
-    }
+    private void RestoreWindowSize() => WindowPlacement.Restore(this);
 
     /// <summary>Remembers the ordinary size; a maximized or minimized size is not a choice.</summary>
-    private void RememberWindowSize()
-    {
-        if (WindowState == WindowState.Normal)
-        {
-            LocalSettings.StoreMainWindowSize(Width, Height);
-        }
-    }
+    private void RememberWindowSize() => WindowPlacement.Remember(this);
 
     /// <summary>
     /// Asks about the project before the program stops. A plain close is not the moment for this:
