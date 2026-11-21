@@ -1,5 +1,5 @@
 import type { BridgeTransport } from './transport.js';
-import type { AppInfo, StringsBundle, ThemeState, WindowState } from './protocol.js';
+import type { AppInfo, ProjectState, StringsBundle, ThemeState, WindowState } from './protocol.js';
 
 /**
  * 浏览器里的假宿主：不依赖程序就能开发壳、跑 Playwright。它回答壳用到的每个方法，并留出
@@ -14,7 +14,11 @@ const chromeKeys = [
   'Shell.Home.Heading', 'Shell.Home.Intro', 'Shell.Status.Web', 'Shell.Status.Native',
   'Shell.Status.Planned', 'Shell.Placeholder.Body', 'Shell.Window.Minimize',
   'Shell.Window.Maximize', 'Shell.Window.Restore', 'Shell.Window.Close', 'Shell.Window.Pin',
-  'Shell.Window.Unpin', 'Main.Title',
+  'Shell.Window.Unpin', 'Main.Title', 'Main.Dock.All', 'Main.Dock.Keys', 'Main.Dock.Interface',
+  'Main.Dock.Hotstring', 'Main.Dock.Menu', 'Main.Dock.Wheel', 'Main.Dock.Events',
+  'Main.SearchPlaceholder', 'Main.EmptyTitle', 'Main.EmptyHint', 'Main.NoMatch',
+  'Main.AddMacro', 'Main.MacroRunning', 'Main.EnableMacro', 'Main.DisableMacro',
+  'Main.SystemEnabled', 'Main.SystemDisabled', 'Main.GroupAll', 'Main.Ungrouped',
 ] as const;
 
 const english: Record<string, string> = {
@@ -29,6 +33,14 @@ const english: Record<string, string> = {
   'Shell.Status.Web': 'In the web shell', 'Shell.Status.Native': 'Still native',
   'Shell.Status.Planned': 'Planned',
   'Shell.Placeholder.Body': 'This area still lives in its native window.',
+  'Main.Dock.All': 'All', 'Main.Dock.Keys': 'Keys', 'Main.Dock.Interface': 'Window',
+  'Main.Dock.Hotstring': 'Strings', 'Main.Dock.Menu': 'Menu', 'Main.Dock.Wheel': 'Wheel',
+  'Main.Dock.Events': 'Events', 'Main.SearchPlaceholder': 'Search…',
+  'Main.EmptyTitle': 'No macros yet.', 'Main.EmptyHint': 'Create your first macro below.',
+  'Main.NoMatch': 'No macro matches.', 'Main.AddMacro': 'New macro',
+  'Main.MacroRunning': 'Running', 'Main.EnableMacro': 'Enable', 'Main.DisableMacro': 'Disable',
+  'Main.SystemEnabled': 'Enabled', 'Main.SystemDisabled': 'Disabled',
+  'Main.GroupAll': 'All groups', 'Main.Ungrouped': 'Ungrouped',
   'Shell.Window.Minimize': 'Minimize',
   'Shell.Window.Maximize': 'Maximize', 'Shell.Window.Restore': 'Restore',
   'Shell.Window.Close': 'Close', 'Shell.Window.Pin': 'Keep on top',
@@ -47,6 +59,14 @@ const chinese: Record<string, string> = {
   'Shell.Status.Web': '已在网页壳中', 'Shell.Status.Native': '仍是原生界面',
   'Shell.Status.Planned': '规划中',
   'Shell.Placeholder.Body': '这一区域仍由原生窗口承担。',
+  'Main.Dock.All': '全部', 'Main.Dock.Keys': '按键', 'Main.Dock.Interface': '界面',
+  'Main.Dock.Hotstring': '字串', 'Main.Dock.Menu': '菜单', 'Main.Dock.Wheel': '轮盘',
+  'Main.Dock.Events': '事件', 'Main.SearchPlaceholder': '输入以搜索..',
+  'Main.EmptyTitle': '还没有宏。', 'Main.EmptyHint': '点击下方的“新建宏”创建第一个宏。',
+  'Main.NoMatch': '没有宏匹配你输入的内容。', 'Main.AddMacro': '新建宏',
+  'Main.MacroRunning': '运行中', 'Main.EnableMacro': '启用宏', 'Main.DisableMacro': '停用宏',
+  'Main.SystemEnabled': '已启用', 'Main.SystemDisabled': '已停用',
+  'Main.GroupAll': '全部分组', 'Main.Ungrouped': '未分组',
   'Shell.Window.Minimize': '最小化',
   'Shell.Window.Maximize': '最大化', 'Shell.Window.Restore': '还原',
   'Shell.Window.Close': '关闭', 'Shell.Window.Pin': '窗口置顶',
@@ -70,6 +90,29 @@ export class MockTransport implements BridgeTransport {
   private theme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null };
 
   private windowState: WindowState = { state: 'normal', topmost: false };
+
+  private projectState: ProjectState = {
+    path: null,
+    name: null,
+    untitled: true,
+    dirty: false,
+    revision: 0,
+    systemEnabled: false,
+    views: ['All', 'Keys', 'Interface', 'Hotstring', 'Menu', 'Wheel', 'Events'],
+    groups: ['办公'],
+    macros: [
+      {
+        name: '自动保存', group: '办公', description: '每分钟存一次', enabled: true, running: false,
+        triggerSummary: '定时：每 1 分钟', triggerActions: '', triggerPreview: '每 1 分钟',
+        views: ['All', 'Events'],
+      },
+      {
+        name: '游戏连招', group: '', description: '', enabled: false, running: false,
+        triggerSummary: '键：F8', triggerActions: '', triggerPreview: 'F8',
+        views: ['All', 'Keys'],
+      },
+    ],
+  };
 
   constructor() {
     const asked = new URLSearchParams(window.location.search).get('lang');
@@ -98,7 +141,10 @@ export class MockTransport implements BridgeTransport {
       case 'bridge.ready':
         break;
       case 'app.info':
-        result = this.info;
+        result = {
+          ...this.info,
+          project: { ...this.info.project, macros: this.projectState.macros.length },
+        };
         break;
       case 'strings.bundle':
         result = this.bundle();
@@ -135,6 +181,24 @@ export class MockTransport implements BridgeTransport {
       case 'app.quit':
       case 'app.openExternal':
         break;
+      case 'project.state':
+        result = this.projectState;
+        break;
+      case 'project.toggle':
+        for (const entry of this.projectState.macros) {
+          if (entry.name === params['name']) {
+            entry.enabled = !entry.enabled;
+          }
+        }
+        this.push('project.changed', this.projectState);
+        break;
+      case 'project.system':
+        this.projectState = {
+          ...this.projectState,
+          systemEnabled: params['enabled'] === true,
+        };
+        this.push('project.changed', this.projectState);
+        break;
       default:
         this.answer({ id: request.id, ok: false, error: { code: 'NoSuchMethod', message: method } });
         return;
@@ -152,7 +216,9 @@ export class MockTransport implements BridgeTransport {
   }
 
   private answer(message: unknown): void {
-    // 下一轮才送：与真实宿主的异步推送同形，页面不能依赖"发完马上到"。
-    queueMicrotask(() => this.receive?.(message));
+    // 下一轮才送，且做一次 JSON 往返：真实宿主的每个信封都是序列化过来的新对象，页面组件
+    // 对"引用没变"会当作没变化跳过重画——mock 复用内部对象就会把这类 bug 漏到真机上才炸。
+    const copy = JSON.parse(JSON.stringify(message)) as unknown;
+    queueMicrotask(() => this.receive?.(copy));
   }
 }

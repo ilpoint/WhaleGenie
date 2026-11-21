@@ -17,13 +17,47 @@ test('首页显示程序信息', async ({ page }) => {
   await expect(page.locator('wg-home')).toContainText('未命名项目');
 });
 
-test('导航切换到占位页', async ({ page }) => {
+test('导航切换到宏列表与占位页', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
-  await expect(page.locator('wg-placeholder h1')).toHaveText('宏');
+  await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
+  await expect(page.locator('wg-macros')).toContainText('每 1 分钟');
+
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await expect(page.locator('wg-placeholder h1')).toHaveText('编辑器');
   await expect(page.locator('wg-placeholder')).toContainText('这一区域仍由原生窗口承担');
 
   await page.locator('wg-nav button', { hasText: '首页' }).click();
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
+});
+
+test('宏列表的过滤、搜索与启停', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+
+  // 视图 dock：切到"按键"，只剩带键触发的宏。视图 dock 是过滤区的第一排，分组 chips 在它
+  // 下面，也用同一种按钮——按第一排定位，"全部"就不会点到分组里去。
+  const viewDock = page.locator('wg-macros .filters .dock').first();
+  await viewDock.locator('button', { hasText: '按键' }).click();
+  await expect(page.locator('wg-macros .card .name')).toContainText('游戏连招');
+  const cards = page.locator('wg-macros .card');
+  await expect(cards).toHaveCount(1);
+
+  // 搜索：搜"自动"在"按键"视图下没有结果，切回"全部"才有。
+  await page.locator('wg-macros input[type="search"]').fill('自动');
+  await expect(page.locator('wg-macros .empty')).toBeVisible();
+  await viewDock.locator('button', { hasText: '全部' }).click();
+  await expect(page.locator('wg-macros .card .name')).toContainText('自动保存');
+
+  // 启停：关掉"自动保存"，程序侧翻转后由推送回来，开关与状态点跟着变。
+  await page.locator('wg-macros .card', { hasText: '自动保存' }).locator('fluent-switch').click();
+  await expect
+    .poll(async () => page.locator('wg-macros .card .dot').first().getAttribute('data-enabled'))
+    .toBe('false');
+});
+
+test('系统开关推回新状态', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros .footer fluent-switch').click();
+  await expect(page.locator('wg-macros .footer')).toContainText('已启用');
 });
 
 test('标题栏按钮推回窗口状态', async ({ page }) => {

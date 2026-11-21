@@ -75,12 +75,40 @@ export interface WindowState {
   topmost: boolean;
 }
 
+// ---- 项目文档（阶段 B：宏列表） ---------------------------------------------
+
+export interface MacroEntry {
+  name: string;
+  group: string;
+  description: string;
+  enabled: boolean;
+  running: boolean;
+  triggerSummary: string;
+  triggerActions: string;
+  triggerPreview: string;
+  /** 这个宏属于哪些触发视图（"All"、"Keys"…），由程序按触发入口判定。 */
+  views: string[];
+}
+
+export interface ProjectState {
+  path: string | null;
+  name: string | null;
+  untitled: boolean;
+  dirty: boolean;
+  revision: number;
+  systemEnabled: boolean;
+  views: string[];
+  groups: string[];
+  macros: MacroEntry[];
+}
+
 // ---- 事件词表 --------------------------------------------------------------
 
 export interface BridgeEvents {
   'strings.changed': StringsBundle;
   'theme.changed': ThemeState;
   'window.changed': WindowState;
+  'project.changed': ProjectState;
 }
 
 export type BridgeEventName = keyof BridgeEvents;

@@ -219,6 +219,7 @@ public static class BridgeErrors
 {
     public const string BadArgument = "BadArgument";
     public const string NoSuchMethod = "NoSuchMethod";
+    public const string NoSuchMacro = "NoSuchMacro";
     public const string Internal = "Internal";
 }
 

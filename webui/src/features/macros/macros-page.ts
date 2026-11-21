@@ -1,0 +1,382 @@
+import { LitElement, css, html, nothing } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { bridge } from '../../shared/bridge/bridge.js';
+import { project } from '../../shared/project/store.js';
+import { strings, t } from '../../shared/strings/strings.js';
+import type { MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
+
+/**
+ * 宏列表页：视图 dock、分组与搜索的过滤是页面自己的事（状态整包在手），启停与系统开关经桥
+ * 命令程序。空状态有三种——没有宏、有宏但这一格视图没东西、搜不到——与旧主窗一致。
+ */
+@customElement('wg-macros')
+export class WgMacros extends LitElement {
+  @state()
+  private state: ProjectState | null = null;
+
+  @state()
+  private view = 'All';
+
+  /** 分组筛选：'' 是"全部"，null 是"未分组"，其余是组名——与程序侧的过滤同形。 */
+  @state()
+  private group: string | null = '';
+
+  @state()
+  private search = '';
+
+  @state()
+  private note = '';
+
+  static styles = css`
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .filters {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacingVerticalS);
+      padding: var(--spacingVerticalM) var(--spacingHorizontalXL);
+      border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    }
+
+    .dock {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalSN);
+    }
+
+    .dock button {
+      border: none;
+      border-radius: var(--borderRadiusMedium);
+      background: transparent;
+      color: var(--colorNeutralForeground1);
+      font: inherit;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      cursor: pointer;
+    }
+
+    .dock button:hover {
+      background: var(--colorNeutralBackground1Hover);
+    }
+
+    .dock button[aria-current='true'] {
+      background: var(--colorBrandBackground);
+      color: var(--colorNeutralForegroundOnBrand);
+    }
+
+    .dock button:focus-visible,
+    .tools input:focus-visible,
+    .footer fluent-button:focus-visible,
+    .footer fluent-switch:focus-visible {
+      outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
+      outline-offset: -1px;
+    }
+
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalM);
+      flex-wrap: wrap;
+    }
+
+    .tools input {
+      flex: 1;
+      min-width: 160px;
+      max-width: 320px;
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-bottom: var(--strokeWidthThicker) solid var(--colorNeutralStrokeAccessible);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      color: var(--colorNeutralForeground1);
+      font: inherit;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+    }
+
+    .tools input::placeholder {
+      color: var(--colorNeutralForeground4);
+    }
+
+    .list {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacingVerticalSN);
+      padding: var(--spacingVerticalM) var(--spacingHorizontalXL);
+    }
+
+    .card {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: var(--spacingHorizontalM);
+      background: var(--colorNeutralBackground1);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-radius: var(--borderRadiusMedium);
+      padding: var(--spacingVerticalMN) var(--spacingHorizontalL);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--colorNeutralStrokeAccessible);
+    }
+
+    .dot[data-enabled='true'] {
+      background: var(--colorBrandForeground1);
+    }
+
+    .card .body {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacingVerticalXS);
+      min-width: 0;
+    }
+
+    .card .name {
+      font-weight: var(--font-weight-semibold);
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalS);
+    }
+
+    .card .name .group {
+      color: var(--colorNeutralForeground3);
+      font-weight: var(--font-weight-regular);
+    }
+
+    .card .triggers {
+      color: var(--colorNeutralForeground2);
+      font-size: var(--font-size-base-200);
+    }
+
+    .card fluent-switch {
+      justify-self: end;
+    }
+
+    .empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacingVerticalS);
+      color: var(--colorNeutralForeground3);
+      text-align: center;
+      padding: var(--spacingVerticalXXL);
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacingHorizontalL);
+      padding: var(--spacingVerticalM) var(--spacingHorizontalXL);
+      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    }
+
+    .footer .system {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalM);
+    }
+  `;
+
+  private unsubscribers: Array<() => void> = [];
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.unsubscribers = [
+      strings.subscribe(() => this.requestUpdate()),
+      project.subscribe((state) => {
+        this.state = state;
+      }),
+    ];
+  }
+
+  disconnectedCallback(): void {
+    for (const unsubscribe of this.unsubscribers) {
+      unsubscribe();
+    }
+    this.unsubscribers = [];
+    super.disconnectedCallback();
+  }
+
+  render() {
+    if (this.state === null) {
+      return nothing;
+    }
+
+    const visible = this.visibleMacros();
+
+    return html`
+      <div class="filters">
+        <div class="dock" role="tablist">
+          ${this.state.views.map((view) => html`
+            <button
+              role="tab"
+              aria-current=${String(this.view === view)}
+              @click=${() => this.selectView(view)}
+            >
+              ${t(`Main.Dock.${view}`)}
+            </button>
+          `)}
+        </div>
+        <div class="tools">
+          ${this.groupChips()}
+          <input
+            type="search"
+            placeholder=${t('Main.SearchPlaceholder')}
+            aria-label=${t('Main.SearchPlaceholder')}
+            @input=${this.onSearchInput}
+            .value=${this.search}
+          />
+        </div>
+        ${this.note.length > 0
+          ? html`<fluent-message-bar layout="multiline" @dismiss=${this.onNoteDismiss}>${this.note}</fluent-message-bar>`
+          : nothing}
+      </div>
+      <div class="list">
+        ${this.state.macros.length === 0
+          ? this.renderEmpty()
+          : visible.length === 0
+            ? this.renderNoMatch()
+            : visible.map((entry) => this.renderCard(entry))}
+      </div>
+      <div class="footer">
+        <div class="system">
+          <fluent-switch
+            ?checked=${this.state.systemEnabled}
+            aria-label=${t(this.state.systemEnabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled')}
+            @change=${this.onSystemToggle}
+          ></fluent-switch>
+          <span>${t(this.state.systemEnabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled')}</span>
+        </div>
+        <fluent-button appearance="accent" @click=${this.onAddMacro}>${t('Main.AddMacro')}</fluent-button>
+      </div>
+    `;
+  }
+
+  private groupChips() {
+    if (this.state === null || this.state.groups.length === 0) {
+      return nothing;
+    }
+
+    const chip = (value: string | null, label: string) => html`
+      <button
+        aria-current=${String(this.group === value)}
+        @click=${() => this.selectGroup(value)}
+      >
+        ${label}
+      </button>
+    `;
+
+    return html`
+      <div class="dock">
+        ${chip('', t('Main.GroupAll'))}
+        ${this.state.groups.map((name) => chip(name, name))}
+        ${chip(null, t('Main.Ungrouped'))}
+      </div>
+    `;
+  }
+
+  private visibleMacros(): MacroEntry[] {
+    if (this.state === null) {
+      return [];
+    }
+
+    const wanted = this.search.trim().toLowerCase();
+    return this.state.macros
+      .filter((entry) => entry.views.includes(this.view))
+      .filter((entry) => this.group === ''
+        || (this.group === null ? entry.group.trim().length === 0
+          : entry.group.trim().toLowerCase() === this.group.toLowerCase()))
+      .filter((entry) => wanted.length === 0
+        || entry.name.toLowerCase().includes(wanted))
+      .sort((left, right) => Number(right.enabled) - Number(left.enabled));
+  }
+
+  private renderEmpty() {
+    return html`
+      <div class="empty">
+        <fluent-text size="400" weight="semibold">${t('Main.EmptyTitle')}</fluent-text>
+        <span>${t('Main.EmptyHint')}</span>
+      </div>
+    `;
+  }
+
+  private renderNoMatch() {
+    return html`
+      <div class="empty">
+        <span>${t('Main.NoMatch')}</span>
+      </div>
+    `;
+  }
+
+  private renderCard(entry: MacroEntry) {
+    return html`
+      <div class="card">
+        <span class="dot" data-enabled=${String(entry.enabled)}></span>
+        <div class="body">
+          <span class="name">
+            ${entry.name}
+            ${entry.running ? html`<fluent-badge color="success">${t('Main.MacroRunning')}</fluent-badge>` : nothing}
+            ${entry.group.trim().length > 0
+              ? html`<span class="group">· ${entry.group}</span>`
+              : nothing}
+          </span>
+          <span class="triggers">${entry.triggerSummary}</span>
+        </div>
+        <fluent-switch
+          ?checked=${entry.enabled}
+          aria-label=${t(entry.enabled ? 'Main.DisableMacro' : 'Main.EnableMacro')}
+          @change=${() => this.onToggle(entry)}
+        ></fluent-switch>
+      </div>
+    `;
+  }
+
+  private selectView(view: string): void {
+    this.view = view;
+  }
+
+  private selectGroup(value: string | null): void {
+    this.group = value;
+  }
+
+  private onSearchInput(event: Event): void {
+    this.search = (event.target as HTMLInputElement).value;
+  }
+
+  private onToggle(entry: MacroEntry): void {
+    void bridge.value.call('project.toggle', { name: entry.name });
+  }
+
+  private onSystemToggle(): void {
+    if (this.state === null) {
+      return;
+    }
+
+    // 页面不翻转自己的状态：真相在程序侧，project.changed 会带着新值回来。
+    void bridge.value.call('project.system', { enabled: !this.state.systemEnabled });
+  }
+
+  private onAddMacro(): void {
+    // 编辑器还没搬进壳：按钮先说明现状，阶段 B 后半接上后这里改成打开编辑器。
+    this.note = t('Shell.Placeholder.Body');
+  }
+
+  private onNoteDismiss(): void {
+    this.note = '';
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'wg-macros': WgMacros;
+  }
+}

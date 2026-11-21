@@ -4,6 +4,7 @@ import { currentRoute, go, type Route } from './router.js';
 import './titlebar.js';
 import './nav.js';
 import '../features/home/home-page.js';
+import '../features/macros/macros-page.js';
 import '../features/placeholder/placeholder-page.js';
 
 /**
@@ -77,7 +78,7 @@ export class WgShell extends LitElement {
       case 'home':
         return html`<wg-home></wg-home>`;
       case 'macros':
-        return html`<wg-placeholder area="macros"></wg-placeholder>`;
+        return html`<wg-macros></wg-macros>`;
       case 'editor':
         return html`<wg-placeholder area="editor"></wg-placeholder>`;
       case 'run':
