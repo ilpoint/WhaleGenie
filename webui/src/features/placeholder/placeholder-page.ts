@@ -2,7 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { strings, t } from '../../shared/strings/strings.js';
 
-/** Â·ÓÉÃûµ½´Ê±í¼üµÄÏÔÊ½Ó³Éä£¬Óëµ¼º½µÄÓ³ÉäÍ¬ĞÎ£º¼ü¶¼ÊÇ×ÖÃæÁ¿£¬¶ÔÕË²âÊÔÉ¨µÃµ½¡£ */
+/** è·¯ç”±ååˆ°è¯è¡¨é”®çš„æ˜¾å¼æ˜ å°„ï¼Œä¸å¯¼èˆªçš„æ˜ å°„åŒå½¢ï¼šé”®éƒ½æ˜¯å­—é¢é‡ï¼Œå¯¹è´¦æµ‹è¯•æ‰«å¾—åˆ°ã€‚ */
 const areaKeys: Record<string, string> = {
   macros: 'Shell.Macros',
   editor: 'Shell.Editor',
@@ -11,12 +11,12 @@ const areaKeys: Record<string, string> = {
 };
 
 /**
- * Õ¼Î»Ò³£ºÕâÒ»ÇøÓò»¹ÓÉÔ­Éú´°¿Ú³Ğµ£¡£Õ¼Î»Ò³Ö»ËµÃ÷ÏÖ×´£¬²»´øÈÎºÎ°´Å¥¡ª¡ªµÈÇøÓòÕæÕıÇ¨½øÀ´£¬
- * Õâ¸öÎÄ¼şÁ¬Í¬ËüµÄÂ·ÓÉÒ»ÆğÉ¾³ı¡£
+ * å ä½é¡µï¼šè¿™ä¸€åŒºåŸŸè¿˜ç”±åŸç”Ÿçª—å£æ‰¿æ‹…ã€‚å ä½é¡µåªè¯´æ˜ç°çŠ¶ï¼Œä¸å¸¦ä»»ä½•æŒ‰é’®â€”â€”ç­‰åŒºåŸŸçœŸæ­£è¿è¿›æ¥ï¼Œ
+ * è¿™ä¸ªæ–‡ä»¶è¿åŒå®ƒçš„è·¯ç”±ä¸€èµ·åˆ é™¤ã€‚
  */
 @customElement('wg-placeholder')
 export class WgPlaceholder extends LitElement {
-  /** Â·ÓÉÃû£¬±êÌâÈ¡¶ÔÓ¦µÄ Shell.* ¼ü¡£ */
+  /** è·¯ç”±åï¼Œæ ‡é¢˜å–å¯¹åº”çš„ Shell.* é”®ã€‚ */
   @property()
   area = '';
 

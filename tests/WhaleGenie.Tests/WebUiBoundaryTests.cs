@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
 
 namespace WhaleGenie.Tests;
 
@@ -85,16 +86,35 @@ public class WebUiBoundaryTests
     /// sources can be read for them here, against the same tables the C# interface binds to.
     /// </summary>
     [Fact]
-    public void Every_shell_key_the_pages_name_exists_in_the_word_tables()
+    public void Every_key_the_pages_name_exists_in_the_word_tables()
     {
         var matches = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var file in Directory.EnumerateFiles(
             Path.Combine(RepoPaths.Root, "webui", "src"), "*.ts", SearchOption.AllDirectories))
         {
-            foreach (Match match in Regex.Matches(File.ReadAllText(file), @"'((?:Shell|Main)\.[A-Za-z0-9.]+)'"))
+            var text = File.ReadAllText(file);
+
+            // Every direct lookup, whatever domain it belongs to. The old scan only looked at
+            // Shell./Main. and quietly missed the MCP and editor keys the pages already used.
+            foreach (Match match in Regex.Matches(text, @"\bt\('([^']+)'\)"))
             {
                 matches.Add(match.Groups[1].Value);
             }
+
+            // Keys kept in a table and looked up indirectly (the navigation labels, the area map,
+            // the mock fixture) are still literal keys; a quoted dotted word is what they look like.
+            foreach (Match match in Regex.Matches(text,
+                @"'((?:Shell|Main|Mcp|Editor|Common|GlobalVariables|Settings|Run|Recover)\.[A-Za-z0-9.]+)'"))
+            {
+                matches.Add(match.Groups[1].Value);
+            }
+        }
+
+        // The dock labels are built as a template (Main.Dock.<view>) and cannot be scanned as a
+        // literal; the view names are the fixed half of that key.
+        foreach (var view in Enum.GetNames<MacroView>())
+        {
+            matches.Add($"Main.Dock.{view}");
         }
 
         Assert.NotEmpty(matches);

@@ -6,8 +6,8 @@ import { strings, t } from '../../shared/strings/strings.js';
 import type { AppInfo, ProjectState } from '../../shared/bridge/protocol.js';
 
 /**
- * Ê×Ò³£º³ÌĞòÓëÏîÄ¿µÄÏÖ¿ö£¬¼ÓÉÏÇ¨ÒÆ½ø¶È¡£ÕâÒ»Ò³¾ÍÊÇ¿ÇµÄ"ÄÜÓÃ"Ö¤Ã÷¡ª¡ª°æ±¾ÓëÓïÑÔ´Ó app.info
- * ÉÏ¶Á£¬ÏîÄ¿µÄÃ¿Ò»¸ñ¶¼¸úÎÄµµ×ß£¨´ò¿ª¡¢Áí´æ¡¢MCP ĞŞ¸Ä¶¼»áÍÆ project.changed£¬ÓëÁĞ±íÍ¬Ô´£©¡£
+ * é¦–é¡µï¼šç¨‹åºä¸é¡¹ç›®çš„ç°å†µï¼ŒåŠ ä¸Šè¿ç§»è¿›åº¦ã€‚è¿™ä¸€é¡µå°±æ˜¯å£³çš„"èƒ½ç”¨"è¯æ˜â€”â€”ç‰ˆæœ¬ä¸è¯­è¨€ä» app.info
+ * ä¸Šè¯»ï¼Œé¡¹ç›®çš„æ¯ä¸€æ ¼éƒ½è·Ÿæ–‡æ¡£èµ°ï¼ˆæ‰“å¼€ã€å¦å­˜ã€MCP ä¿®æ”¹éƒ½ä¼šæ¨ project.changedï¼Œä¸åˆ—è¡¨åŒæºï¼‰ã€‚
  */
 @customElement('wg-home')
 export class WgHomePage extends LitElement {
