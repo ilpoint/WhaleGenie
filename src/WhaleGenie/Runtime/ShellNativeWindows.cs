@@ -23,7 +23,8 @@ internal sealed class ShellNativeWindows(
     MainViewModel viewModel,
     Func<Window?> owner,
     Func<MacroItem, bool> openEditor,
-    Action<MacroItem> openRun) : INativeSurfaceActions, IDisposable
+    Action<MacroItem> openRun,
+    Action openSettings) : INativeSurfaceActions, IDisposable
 {
     private AdvancedSettingsWindow? _settings;
 
@@ -32,7 +33,7 @@ internal sealed class ShellNativeWindows(
 
     public void OpenEditor(MacroItem macro) => openEditor(macro);
 
-    public void OpenSettings(WindowInfo? foreground) => _ = OpenSettingsAsync();
+    public void OpenSettings(WindowInfo? foreground) => openSettings();
 
     public void OpenRun(MacroItem macro) => openRun(macro);
 

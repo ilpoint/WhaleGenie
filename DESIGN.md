@@ -168,13 +168,14 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 
 ## 10. FluentAvalonia 控件选择
 
-- 设置窗口的分组/行使用 `SettingsGroup` / `FASettingsExpanderItem`：组负责标题与说明并平铺全部行，
-  没有展开动作，标题不是按钮、也不能聚焦；行把控件放在 `Footer`。分组底色、描边、圆角与标题下那道
-  1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表的 `Spacing` 透出，不在视图里重写模板。
-- 设置行里的说明图标与同行文字的对齐由 `HintInfo` 单一实现：挂载时把直接兄弟收成同一中线，只在
-  带图标的那一行局部清零 `GapField` 下边距。不为对齐新增样式类、附加属性或逐行 XAML 值。
-- 设置左侧导航使用 `FANavigationView`：左栏是「系统、触发器、外观」三个分组，每一项是 Lucide
-  图标加组名，选中行铺 `AccentFill`，文字与图标用 `TextOnAccent`；内容列顶上是当前分组的页签
+- 网页设置页的卡片、行、开关、数字框与颜色选择器只取 Fluent CSS 令牌：`--colorNeutral*`、
+  `--spacing*`、`--borderRadius*` 与 `--font-size-base-*`；不新建页面自己的颜色或间距体系。
+- 原生 `AdvancedSettingsWindow` 的分组/行沿用 `SettingsGroup` / `FASettingsExpanderItem`：组负责标题
+  与说明并平铺全部行，没有展开动作，标题不是按钮、也不能聚焦；行把控件放在 `Footer`。分组底色、描边、
+  圆角与标题下那道 1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表的 `Spacing` 透出，
+  不在视图里重写模板。设置行里的说明图标与同行文字的对齐仍由 `HintInfo` 单一实现。
+- 高级设置左侧导航使用 `FANavigationView`：左栏只列「触发器、外观」，每一项是 Lucide 图标加组名，
+  选中行铺 `AccentFill`，文字与图标用 `TextOnAccent`；内容列顶上是当前分组的页签
   `Button.Tab.Root.Capsule`，选中是同一对颜色。这对颜色由 `ThemePalette` 的派生保证至少
   4.5:1（含自定义强调色），所以允许铺底。
 - 数字输入使用 `FANumberBox`，项目已有 `HasChip` 样式；不要用普通 `TextBox` 或另造数字框。

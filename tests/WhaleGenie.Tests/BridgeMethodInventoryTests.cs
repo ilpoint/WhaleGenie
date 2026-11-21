@@ -20,7 +20,7 @@ public class BridgeMethodInventoryTests
     private static readonly HashSet<string> Expected = new(StringComparer.Ordinal)
     {
         "app.info", "app.quit", "app.openExternal",
-        "app.openSettings", "app.openSettingsPage", "app.openRun", "app.openAbout", "app.openManual",
+        "app.openSettingsPage", "app.openRun", "app.openAbout", "app.openManual",
         "dialog.respond", "dialog.pickOpenPackage", "dialog.pickSavePackage", "dialog.pickImage",
         "editor.sessionOpen", "editor.sessionTabs", "editor.sessionNew",
         "editor.sessionSubOpen", "editor.sessionMacroSetting",

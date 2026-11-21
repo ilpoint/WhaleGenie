@@ -90,6 +90,10 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     internal void OpenRun(string name)
         => _ = _bridge?.PushAsync("run.openRequested", new { name });
 
+    /// <summary>Asks the page to show its settings page, from a native menu.</summary>
+    internal void OpenSettings()
+        => _ = _bridge?.PushAsync("settings.openRequested", new { });
+
     /// <summary>The page reports focus changes through window.focus.</summary>
     internal void SetTextInputFocused(bool focused)
         => Volatile.Write(ref _textInputFocused, focused ? 1 : 0);

@@ -25,7 +25,8 @@ internal sealed class ShellHostFactory(
                 owner.OpenEditor(macro.Name);
                 return true;
             },
-            macro => owner.OpenRun(macro.Name));
+            macro => owner.OpenRun(macro.Name),
+            () => owner.OpenSettings());
         return new ShellHost(workspace, system, runtime, questions, actions, owner, owner);
     }
 }

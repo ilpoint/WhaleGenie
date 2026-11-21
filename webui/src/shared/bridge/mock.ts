@@ -1981,7 +1981,6 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'mcp.copyConfig':
       case 'mcp.openAudit':
-      case 'app.openSettings':
       case 'app.openAbout':
       case 'app.openManual':
         break;

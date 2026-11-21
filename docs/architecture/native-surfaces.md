@@ -28,6 +28,7 @@
 | 后台问话/确认 | `Views/Shell/TextPromptDialog`、`ConfirmDialog` | 触发器、后台运行与退出未保存没有网页在场，仍由原生窗口作答 |
 | 高级设置 | `Views/Settings/AdvancedSettingsWindow` | 菜单、窗口规则、轮盘与自定义主题需要桌面预览；设置主页已在网页 |
 | 主题调色板 | `Views/Settings/ThemePaletteWindow` | 自定义强调色需要实时预览与对比度检查，避免网页与原生两套主题状态 |
+| 关于 | `Views/Shell/AboutWindow` | 版本、许可证与项目链接的只读系统对话框；首页也有同一份摘要 |
 | 网页缺失提示 | `Web/WebViewMissingWindow` | WebView2 运行时缺失时给出安装指引，不能依赖网页渲染 |
 
 ## 已退役

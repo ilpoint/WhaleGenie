@@ -474,6 +474,7 @@ export interface BridgeEvents {
   'editor.openRequested': { name: string };
   'run.changed': RunState;
   'run.openRequested': { name: string };
+  'settings.openRequested': Record<string, never>;
 }
 
 export type BridgeEventName = keyof BridgeEvents;

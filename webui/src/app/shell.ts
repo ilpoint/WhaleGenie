@@ -10,7 +10,6 @@ import '../features/editor/editor-gate.js';
 import '../features/library/library-page.js';
 import '../features/settings/settings-page.js';
 import '../features/run/run-page.js';
-import '../features/placeholder/placeholder-page.js';
 import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
 import type { ProjectState } from '../shared/bridge/protocol.js';

@@ -23,7 +23,6 @@ internal sealed class ShellBridge(
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("app.openSettings", _ => OpenSettings());
         server.Register("app.openSettingsPage", OpenSettingsPage);
         server.Register("app.openRun", OpenRun);
         server.Register("app.openAbout", _ => OpenAbout());
@@ -43,16 +42,6 @@ internal sealed class ShellBridge(
         if (windows() is { } actions)
         {
             await actions.OpenSettingsAsync(page);
-        }
-
-        return null;
-    }
-
-    private async Task<object?> OpenSettings()
-    {
-        if (windows() is { } actions)
-        {
-            await actions.OpenSettingsAsync();
         }
 
         return null;
