@@ -57,7 +57,7 @@ export class WgRun extends LitElement {
 
     .panel {
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: auto auto auto minmax(120px, 1fr) minmax(100px, 0.7fr) auto;
       gap: var(--spacingVerticalM);
       min-width: 0;
     }
@@ -117,6 +117,26 @@ export class WgRun extends LitElement {
       color: var(--colorNeutralForeground3);
     }
 
+    .vars h3 {
+      margin: 0 0 var(--spacingVerticalXS);
+      font-size: var(--font-size-base-300);
+    }
+
+    .var-grid {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) 110px minmax(0, 1.4fr);
+      gap: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      font-size: var(--font-size-base-200);
+    }
+
+    .var {
+      display: contents;
+    }
+
+    .var span:last-child {
+      overflow-wrap: anywhere;
+    }
+
     .error {
       color: var(--colorPaletteRedForeground1);
     }
@@ -166,6 +186,17 @@ export class WgRun extends LitElement {
         </div>
         <div class="log">
           ${this.run?.log.map((line) => this.line(line))}
+        </div>
+        <div class="vars">
+          <h3>${t('Run.Variables')}</h3>
+          <div class="var-grid">
+            ${this.run?.globals.map((item) => html`
+              <div class="var"><span>${item.name}</span><span>${item.type}</span><span>${item.value}</span></div>
+            `)}
+            ${this.run?.locals.map((item) => html`
+              <div class="var"><span>${item.name}</span><span>${item.type}</span><span>${item.macro}</span></div>
+            `)}
+          </div>
         </div>
       </div>
     `;

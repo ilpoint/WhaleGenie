@@ -183,6 +183,19 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             answerText = _run?.AnswerText ?? string.Empty,
             isAskingUser = _run?.IsAskingUser ?? false,
             isAsking = _run?.IsAsking ?? false,
+            globals = _run?.Globals.Select(global => new
+            {
+                name = global.Name,
+                type = global.LocalType,
+                value = global.CurrentValue,
+                defaultValue = global.DefaultValue,
+            }),
+            locals = _run?.LocalVariables.SelectMany(group => group.Variables.Select(variable => new
+            {
+                name = variable.Name,
+                macro = group.MacroName,
+                type = variable.Type.ToString(),
+            })),
             log = _run?.Lines.Select(line => new
             {
                 time = line.Time,

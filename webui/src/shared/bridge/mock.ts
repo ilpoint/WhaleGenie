@@ -33,7 +33,7 @@ const chromeKeys = [
   'Settings.ThemeAccent', 'Settings.Hotkeys', 'Settings.SystemHotkey', 'Settings.RecordStopKey', 'Settings.HotkeySet',
   'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Settings.Storage', 'Settings.OpenFolder',
   'Settings.Driver', 'Settings.DriverAttachAtStart', 'Settings.RunAsAdmin',
-  'Run.Title', 'Run.Run', 'Run.NativeNote', 'Run.Step', 'Run.Continue',
+  'Run.Title', 'Run.Run', 'Run.NativeNote', 'Run.Variables', 'Run.Step', 'Run.Continue',
   'Run.SkipStep', 'Run.Stop', 'Run.NotLoaded', 'Run.AskRetry', 'Run.AskSkip',
   'Run.AskStop', 'Common.Ok', 'Common.Cancel', 'Run.UnknownCommand', 'Run.UnknownStep',
   'Settings.Advanced', 'Settings.WindowRules', 'Settings.CaptureCard',
@@ -213,6 +213,7 @@ const english: Record<string, string> = {
   'Settings.RunAsAdmin': 'Ask for administrator rights at startup',
   'Run.Title': 'Run and Debug', 'Run.Run': 'Run',
   'Run.NativeNote': 'The run and debug panel is still the native window; this page lists the macros it can load.',
+  'Run.Variables': 'Variables',
   'Run.Step': 'Step', 'Run.Continue': 'Continue', 'Run.SkipStep': 'Skip this step once',
   'Run.Stop': 'Stop', 'Run.AskRetry': 'Retry', 'Run.AskSkip': 'Skip it',
   'Run.AskStop': 'Stop',
@@ -354,6 +355,7 @@ const chinese: Record<string, string> = {
   'Settings.RunAsAdmin': '启动时请求管理员权限',
   'Run.Title': '运行与调试', 'Run.Run': '运行',
   'Run.NativeNote': '运行与调试面板仍是原生窗口；本页列出可以载入的宏。',
+  'Run.Variables': '变量监视',
   'Run.Step': '单步', 'Run.Continue': '继续', 'Run.SkipStep': '跳过这一步（这一次）',
   'Run.Stop': '停止', 'Run.AskRetry': '重试', 'Run.AskSkip': '跳过这一步',
   'Run.AskStop': '停止宏',
@@ -403,6 +405,8 @@ export class MockTransport implements BridgeTransport {
     loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
     canRun: false, canStep: false, canStop: false,
     question: '', wantsTypedAnswer: false, answerText: '', isAskingUser: false, isAsking: false,
+    globals: [] as { name: string; type: string; value: string; defaultValue: string }[],
+    locals: [] as { name: string; macro: string; type: string }[],
     steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;
       container: boolean; current: boolean; breakpoint: boolean; canBreak: boolean;
       time: string; failure: string; condition: string }[],
@@ -541,6 +545,8 @@ export class MockTransport implements BridgeTransport {
           ...this.runState,
           loaded: String(params['name'] ?? ''),
           status: 'Loaded', canRun: true, canStep: true, busy: false, paused: false,
+          globals: [{ name: 'count', type: 'Number', value: '3', defaultValue: '0' }],
+          locals: [{ name: 'found', macro: 'Demo', type: 'Boolean' }],
           steps: [
             { id: 's1', label: 'Step one', detail: 'action.key', depth: 0, shown: true,
               container: false, current: false, breakpoint: false, canBreak: true,

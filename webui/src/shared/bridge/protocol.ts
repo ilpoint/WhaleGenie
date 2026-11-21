@@ -225,8 +225,23 @@ export interface RunState {
   answerText: string;
   isAskingUser: boolean;
   isAsking: boolean;
+  globals: RunGlobal[];
+  locals: RunLocal[];
   steps: RunStep[];
   log: RunLine[];
+}
+
+export interface RunGlobal {
+  name: string;
+  type: string;
+  value: string;
+  defaultValue: string;
+}
+
+export interface RunLocal {
+  name: string;
+  macro: string;
+  type: string;
 }
 
 export interface RunStep {
