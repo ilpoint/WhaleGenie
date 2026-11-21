@@ -91,11 +91,17 @@ export interface MacroEntry {
 }
 
 /** The editor session's snapshot: the macro fields and the step tree. */
+export interface EditorChoice {
+  value: string;
+  label: string;
+}
+
 export interface EditorParameter {
   name: string;
   label: string;
   kind: string;
   value: string;
+  options: EditorChoice[];
 }
 
 export interface EditorStep {
@@ -121,6 +127,7 @@ export interface EditorActionParameter {
   kind: string;
   required: boolean;
   placeholder: string;
+  options: EditorChoice[];
 }
 
 export interface EditorAction {

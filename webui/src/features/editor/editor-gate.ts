@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type {
   EditorAction,
+  EditorParameter,
   EditorSnapshot,
   EditorStep,
   ProjectState,
@@ -56,7 +57,8 @@ export class WgEditorGate extends LitElement {
     }
 
     input,
-    textarea {
+    textarea,
+    .param select {
       font: inherit;
       padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
@@ -280,11 +282,15 @@ export class WgEditorGate extends LitElement {
   }
 
   private async patchParameter(stepId: string, name: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox'
+      ? String(target.checked)
+      : target.value;
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameter', {
         stepId,
         name,
-        value: (event.target as HTMLInputElement).value,
+        value,
       });
     } catch (error) {
       this.error = String(error);
@@ -324,6 +330,51 @@ export class WgEditorGate extends LitElement {
     `;
   }
 
+  private renderParameter(step: EditorStep, parameter: EditorParameter): TemplateResult {
+    const change = (event: Event) => void this.patchParameter(step.id, parameter.name, event);
+    if (parameter.kind === 'Bool') {
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <input
+            type="checkbox"
+            .checked=${parameter.value === 'true'}
+            @change=${change}
+          />
+        </div>
+      `;
+    }
+
+    if (parameter.kind === 'Choice' && parameter.options.length > 0) {
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <select .value=${parameter.value} @change=${change}>
+            ${parameter.options.map((choice) => html`
+              <option value=${choice.value}>${choice.label}</option>
+            `)}
+          </select>
+        </div>
+      `;
+    }
+
+    if (parameter.kind === 'MultilineText') {
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <textarea .value=${parameter.value} @change=${change}></textarea>
+        </div>
+      `;
+    }
+
+    return html`
+      <div class="param">
+        <label>${parameter.label}</label>
+        <input .value=${parameter.value} @change=${change} />
+      </div>
+    `;
+  }
+
   private selectedStep(): EditorStep | null {
     const find = (steps: EditorStep[]): EditorStep | null => {
       for (const step of steps) {
@@ -350,15 +401,7 @@ export class WgEditorGate extends LitElement {
       <div class="inspector">
         <strong>${step.name}</strong>
         <span>${step.type}</span>
-        ${step.parameters.map((parameter) => html`
-          <div class="param">
-            <label>${parameter.label}</label>
-            <input
-              .value=${parameter.value}
-              @change=${(event: Event) => void this.patchParameter(step.id, parameter.name, event)}
-            />
-          </div>
-        `)}
+        ${step.parameters.map((parameter) => this.renderParameter(step, parameter))}
       </div>
     `;
   }

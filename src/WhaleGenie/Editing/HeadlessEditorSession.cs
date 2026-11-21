@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -88,7 +90,7 @@ internal sealed class HeadlessEditorSession
         var parameter = step.Parameters.FirstOrDefault(candidate =>
             string.Equals(candidate.Name, name, StringComparison.Ordinal))
             ?? throw new InvalidOperationException("step " + stepId + " has no parameter " + name);
-        parameter.Written = Formula.Text(value);
+        parameter.Written = WrittenFor(parameter.Kind, value);
         _model.IsDirty = true;
     }
 
@@ -155,24 +157,42 @@ internal sealed class HeadlessEditorSession
                     parameter.LocalLabel,
                     parameter.Kind.ToString(),
                     parameter.Required,
-                    parameter.Placeholder))]))];
+                    parameter.Placeholder,
+                    [.. parameter.OptionChoices.Select(choice => new EditorChoiceSnapshot(
+                        choice.Value, choice.Display))]))]))];
 
     private static int Count(IReadOnlyList<MacroStep> steps)
         => steps.Count + steps.Sum(step => step.Parameters
             .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
             .Sum(parameter => Count(parameter.Steps)));
 
+    private static ExpressionNode WrittenFor(ActionParameterKind kind, string value)
+        => kind switch
+        {
+            ActionParameterKind.Bool or ActionParameterKind.Choice => Formula.Constant(value),
+            ActionParameterKind.Number
+                when double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out var number) => Formula.Number(value, number),
+            _ => Formula.Text(value),
+        };
+
     private static EditorStepSnapshot StepSnapshot(MacroStep step)
     {
         var definition = ActionCatalog.Definitions.FirstOrDefault(action => action.Key == step.Type);
         var parameters = step.Parameters
             .Where(parameter => parameter.Kind != ActionParameterKind.Steps)
-            .Select(parameter => new EditorParameterSnapshot(
-                parameter.Name,
-                definition?.Parameters.FirstOrDefault(field => field.Name == parameter.Name)?.LocalLabel
-                    ?? parameter.Name,
-                parameter.Kind.ToString(),
-                parameter.Value))
+            .Select(parameter =>
+            {
+                var field = definition?.Parameters.FirstOrDefault(candidate =>
+                    candidate.Name == parameter.Name);
+                return new EditorParameterSnapshot(
+                    parameter.Name,
+                    field?.LocalLabel ?? parameter.Name,
+                    parameter.Kind.ToString(),
+                    parameter.Value,
+                    [.. field?.OptionChoices.Select(choice => new EditorChoiceSnapshot(
+                        choice.Value, choice.Display)) ?? []]);
+            })
             .ToList();
         var children = step.Parameters
             .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
@@ -220,10 +240,13 @@ internal sealed record EditorSnapshot(string Name, string Description, bool Dirt
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     IReadOnlyList<EditorParameterSnapshot> Parameters, IReadOnlyList<EditorStepSnapshot> Steps);
 
-internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value);
+internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value,
+    IReadOnlyList<EditorChoiceSnapshot> Options);
+
+internal sealed record EditorChoiceSnapshot(string Value, string Label);
 
 internal sealed record EditorActionSnapshot(string Key, string Name, string Category, string Description,
     bool Hidden, IReadOnlyList<EditorActionParameterSnapshot> Parameters);
 
 internal sealed record EditorActionParameterSnapshot(string Name, string Label, string Kind, bool Required,
-    string Placeholder);
+    string Placeholder, IReadOnlyList<EditorChoiceSnapshot> Options);

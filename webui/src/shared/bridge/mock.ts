@@ -292,7 +292,7 @@ export class MockTransport implements BridgeTransport {
               name: String(params['type'] ?? '') === 'control.delay' ? '延迟' : String(params['type'] ?? ''),
               enabled: true,
               parameters: String(params['type'] ?? '') === 'control.delay'
-                ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '' }]
+                ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '', options: [] }]
                 : [],
               steps: [],
             }],
@@ -321,7 +321,7 @@ export class MockTransport implements BridgeTransport {
               description: '',
               hidden: false,
               parameters: [
-                { name: 'ms', label: '等待时长', kind: 'Number', required: false, placeholder: '' },
+                { name: 'ms', label: '等待时长', kind: 'Number', required: false, placeholder: '', options: [] },
               ],
             },
           ],
