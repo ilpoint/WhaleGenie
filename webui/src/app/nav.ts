@@ -17,7 +17,7 @@ export class WgNav extends LitElement {
       display: block;
       background: var(--colorNeutralBackground3);
       padding: var(--spacingVerticalS) var(--spacingHorizontalS);
-      width: 148px;
+      width: 220px;
     }
 
     button {

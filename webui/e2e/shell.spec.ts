@@ -17,6 +17,21 @@ test('首页显示程序信息', async ({ page }) => {
   await expect(page.locator('wg-home')).toContainText('未命名项目');
 });
 
+test('状态条跟随项目推送', async ({ page }) => {
+  const status = page.locator('wg-shell .status');
+  await expect(status.locator('[data-status="project"]')).toHaveText('未命名项目');
+  await expect(status.locator('[data-status="revision"]')).toHaveText('R0');
+  await expect(status.locator('[data-status="dirty"]')).toHaveText('已保存');
+  await expect(status.locator('[data-status="system"]')).toHaveText('已停用');
+
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros .footer fluent-switch').click();
+  await expect(status.locator('[data-status="system"]')).toHaveText('已启用');
+
+  await page.locator('wg-macros .card fluent-switch').first().click();
+  await expect(status.locator('[data-status="dirty"]')).toHaveText('有未保存修改');
+});
+
 test('导航切换到宏列表与占位页', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');

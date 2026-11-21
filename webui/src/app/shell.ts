@@ -7,24 +7,36 @@ import '../features/dialogs/confirm.js';
 import '../features/home/home-page.js';
 import '../features/macros/macros-page.js';
 import '../features/placeholder/placeholder-page.js';
+import { project } from '../shared/project/store.js';
+import { strings, t } from '../shared/strings/strings.js';
+import type { ProjectState } from '../shared/bridge/protocol.js';
 
 /**
- * 应用壳：网页标题栏 + 左侧导航 + 内容区。窗口按钮、置顶与拖动都在标题栏里；这里只管
- * 当前路由是哪一页。仍由原生窗口承担的区域显示占位页，按钮经桥把对应窗口请出来。
+ * 应用壳：网页标题栏 + 左侧导航 + 内容区 + 底部状态条。窗口按钮、置顶与拖动都在标题栏里；
+ * 这里管当前路由与项目状态的两行只读摘录。仍由原生窗口承担的区域显示占位页，按钮经桥把对应
+ * 窗口请出来。
  */
 @customElement('wg-shell')
 export class WgShell extends LitElement {
   @state()
   private route: Route = currentRoute();
 
+  @state()
+  private document: ProjectState | null = null;
+
+  private unsubscribeProject?: () => void;
+
+  private unsubscribeStrings?: () => void;
+
   static styles = css`
     :host {
       display: grid;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto 1fr 24px;
       grid-template-columns: auto 1fr;
       grid-template-areas:
         'titlebar titlebar'
-        'nav content';
+        'nav content'
+        'status status';
       height: 100vh;
       background: var(--colorNeutralBackground2);
       color: var(--colorNeutralForeground1);
@@ -45,15 +57,34 @@ export class WgShell extends LitElement {
       overflow: auto;
       min-width: 0;
     }
+
+    .status {
+      grid-area: status;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--spacingHorizontalL);
+      padding: 0 var(--spacingHorizontalM);
+      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      background: var(--colorNeutralBackground3);
+      color: var(--colorNeutralForeground2);
+      font-size: var(--font-size-base-200);
+    }
   `;
 
   connectedCallback(): void {
     super.connectedCallback();
     window.addEventListener('popstate', this.onPopState);
+    this.unsubscribeProject = project.subscribe((value) => {
+      this.document = value;
+    });
+    this.unsubscribeStrings = strings.subscribe(() => this.requestUpdate());
   }
 
   disconnectedCallback(): void {
     window.removeEventListener('popstate', this.onPopState);
+    this.unsubscribeProject?.();
+    this.unsubscribeStrings?.();
     super.disconnectedCallback();
   }
 
@@ -71,8 +102,30 @@ export class WgShell extends LitElement {
       <wg-titlebar></wg-titlebar>
       <wg-nav .active=${this.route} @wg-navigate=${this.onNavigate}></wg-nav>
       <div class="content">${this.renderRoute()}</div>
+      <footer class="status" role="status">
+        <span data-status="project">${this.projectLabel()}</span>
+        <span data-status="revision">${this.revisionLabel()}</span>
+        <span data-status="dirty">${this.dirtyLabel()}</span>
+        <span data-status="system">${this.systemLabel()}</span>
+      </footer>
       <wg-confirm></wg-confirm>
     `;
+  }
+
+  private projectLabel(): string {
+    return this.document?.name || t('Shell.UntitledProject');
+  }
+
+  private revisionLabel(): string {
+    return 'R' + (this.document?.revision ?? 0);
+  }
+
+  private dirtyLabel(): string {
+    return t(this.document?.dirty ? 'Shell.Field.Dirty' : 'Shell.Field.Clean');
+  }
+
+  private systemLabel(): string {
+    return t(this.document?.systemEnabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled');
   }
 
   private renderRoute() {
