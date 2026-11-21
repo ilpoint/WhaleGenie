@@ -10,7 +10,6 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
-using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
@@ -22,11 +21,10 @@ namespace WhaleGenie.Bridge;
 /// remains the only one who knows what a macro is and which view it belongs to.
 /// </summary>
 /// <remarks>
-/// Registering also wires the trigger service the way the main window does on opening: the system
-/// switch starts where the settings say it should, and the trigger plan is published for the
-/// project as it stands. Every change to the document — an edit here, a draft applied by MCP, a
-/// package opened — answers as one <c>project.changed</c> event, so the page never keeps a second
-/// copy of the truth.
+/// The trigger host owns the service and the plan; this handler only writes the same system switch
+/// the window and the hotkey write, and tells the page when the document moved. Every change — an
+/// edit here, a draft applied by MCP, a package opened — answers as one <c>project.changed</c>
+/// event, so the page never keeps a second copy of the truth.
 /// </remarks>
 public sealed class ProjectBridge : IBridgeHandler, IDisposable
 {
@@ -38,25 +36,24 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private readonly Func<Window?> _window;
 
     /// <summary>
-    /// The view model the trigger host reads. The system switch goes through it rather than
-    /// straight at the trigger service: the host that owns the hooks is what turns the service on
-    /// and plays the sound, and it listens to this one property.
+    /// The system switch the page draws. The trigger host is the one that follows it; this handler
+    /// only writes the same object the window and the hotkey write.
     /// </summary>
-    private readonly Func<MainViewModel> _project;
+    private readonly SystemState _system;
 
     /// <summary>The page's questions: closing everything is the one the list asks before it wipes.</summary>
     private readonly DialogBridge _dialogs;
 
     private BridgeServer? _server;
 
-    internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, Func<Window?> window,
-        DialogBridge dialogs, Func<MainViewModel> project)
+    internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
+        Func<Window?> window, DialogBridge dialogs)
     {
         _workspace = workspace;
         _runtime = runtime;
+        _system = system;
         _window = window;
         _dialogs = dialogs;
-        _project = project;
     }
 
     public void Register(BridgeServer server)
@@ -76,10 +73,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         server.Register("dialog.pickOpenPackage", async _ => await PickOpenPackage());
         server.Register("dialog.pickSavePackage", PickSavePackageHandler);
 
-        // The trigger service starts the way the main window starts it: armed or not by the
-        // setting, and given the project as it stands now.
-        _runtime.Triggers.IsEnabled = LocalSettings.LoadSystemAtStart();
-        PublishPlan();
+        // The trigger host owns the plan and the switch; this handler only tells the page when
+        // something it draws has moved.
         _runtime.Triggers.StatusChanged += OnTriggerStatusChanged;
         _workspace.Changed += OnProjectChanged;
         _workspace.Macros.CollectionChanged += OnMacrosChanged;
@@ -101,7 +96,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         untitled = _workspace.CurrentPath is null,
         dirty = _workspace.IsDirty,
         revision = _workspace.Revision,
-        systemEnabled = _project().IsRunning,
+        systemEnabled = _system.IsEnabled,
         views = Enum.GetNames<MacroView>(),
         groups = _workspace.Macros
             .Select(macro => macro.Group.Trim())
@@ -327,10 +322,9 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             throw new BridgeFailureException(BridgeErrors.BadArgument, "project.system needs an enabled flag");
         }
 
-        // The switch flips the view model property, and the trigger host answers to it: turning
-        // the service on and off, the sound, and the plan republish are all the host's reaction,
-        // wherever it lives (the old window or the hidden one behind the shell).
-        _project().IsRunning = given.GetBoolean();
+        // The switch is the same object the window and the hotkey write; the trigger host answers
+        // to it with the service, the sound and the plan republish.
+        _system.Set(given.GetBoolean());
         await PushState();
         return null;
     }
@@ -522,13 +516,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     }
 
     /// <summary>
-    /// Gives the trigger service the project as it stands, the way the main window publishes it on
-    /// every change: a run can only see what was published before it started.
-    /// </summary>
-    private void PublishPlan()
-        => _runtime.Publish(_workspace.Triggers, [.. _workspace.Macros], LocalSettings.LoadMenuLauncher());
-
-    /// <summary>
     /// A trigger started or stopped a macro, so the running dots move. The service says so from
     /// its own thread; the macro states are written here, and the page hears about them with the
     /// same event every other change rides on.
@@ -537,15 +524,11 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         => _ = _server?.PushAsync("project.changed", State());
 
     private void OnProjectChanged(object? sender, EventArgs args)
-    {
-        PublishPlan();
-        _ = _server?.PushAsync("project.changed", State());
-    }
+        => _ = _server?.PushAsync("project.changed", State());
 
     private void OnMacrosChanged(object? sender, NotifyCollectionChangedEventArgs args)
     {
         // Opening a package replaces the collection without raising a project change of its own.
-        PublishPlan();
         _ = _server?.PushAsync("project.changed", State());
     }
 

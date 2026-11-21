@@ -77,6 +77,10 @@ internal static class AppServices
         services.AddSingleton(persisted);
         services.AddSingleton(variables);
 
+        // The system switch is machine state, not window state: the page, a hotkey and the native
+        // window all flip the same object, and the trigger host is the one that follows it.
+        services.AddSingleton<SystemState>();
+
         // One device layer for the whole run: a window, a trigger and an MCP call all work on this
         // machine, and the models it loads are loaded once.
         services.AddSingleton<IDeviceLayer>(_ => SharedDevices.Current);

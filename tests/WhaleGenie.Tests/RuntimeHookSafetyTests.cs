@@ -182,8 +182,8 @@ public class RuntimeHookSafetyTests
 
     /// <summary>The plan the window publishes, with the machine's own keys read the way it reads them.</summary>
     private static GlobalHotkeyPlan Plan(MainViewModel viewModel)
-        => GlobalHotkeyPlan.From(viewModel, LocalSettings.LoadSystemHotkey(),
-            LocalSettings.LoadMenuLauncher());
+        => GlobalHotkeyPlan.From(viewModel.Workspace, viewModel.SystemSwitch,
+            LocalSettings.LoadSystemHotkey(), LocalSettings.LoadMenuLauncher());
 
     private static void InOwnSettings(string launcher, Action check)
     {

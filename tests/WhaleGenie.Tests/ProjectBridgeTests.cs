@@ -8,7 +8,6 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 
@@ -21,7 +20,7 @@ public class ProjectBridgeTests : IDisposable
 {
     private readonly ProjectWorkspace _workspace = new();
     private readonly TriggerRuntime _runtime = new(new NullDeviceLayer(), new VariableSession());
-    private readonly MainViewModel _viewModel = new();
+    private readonly SystemState _system = new(false);
     private readonly BridgeServer _server = new();
     private readonly RecordingChannel _channel = new();
 
@@ -44,7 +43,7 @@ public class ProjectBridgeTests : IDisposable
         // "called off" — a package path handed in directly still goes through.
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
-        _server.Register(new ProjectBridge(_workspace, _runtime, () => null, _dialogs, () => _viewModel));
+        _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null, _dialogs));
     }
 
     public void Dispose()
@@ -128,7 +127,7 @@ public class ProjectBridgeTests : IDisposable
 
         // The switch flips the view model property — the trigger host reacts to that (service,
         // sound, plan republish). systemEnabled reads the same property, so page and host agree.
-        Assert.True(_viewModel.IsRunning);
+        Assert.True(_system.IsEnabled);
         var pushed = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"project.changed\""))).RootElement;
         Assert.True(pushed.GetProperty("payload").GetProperty("systemEnabled").GetBoolean());
     }

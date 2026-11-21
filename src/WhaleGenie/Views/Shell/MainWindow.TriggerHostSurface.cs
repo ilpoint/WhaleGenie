@@ -13,38 +13,39 @@ namespace WhaleGenie.Views;
 
 // The main window as the trigger host's surface: the menu, wheel, panels and the run's questions
 // are this window's own drawing and state, and the host's hooks land here through these members.
-public partial class MainWindow : Runtime.ITriggerHostSurface
+public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.IRunQuestionHost,
+    Runtime.ITriggerFocusProbe
 {
-    bool Runtime.ITriggerHostSurface.MenuOpen => Volatile.Read(ref _menuOpen) == 1;
+    bool Runtime.ITriggerSurfaceHost.MenuOpen => Volatile.Read(ref _menuOpen) == 1;
 
-    bool Runtime.ITriggerHostSurface.MenuSearchFocused => Volatile.Read(ref _menuSearchFocused) == 1;
+    bool Runtime.ITriggerSurfaceHost.MenuSearchFocused => Volatile.Read(ref _menuSearchFocused) == 1;
 
-    bool Runtime.ITriggerHostSurface.MenuPinned => Volatile.Read(ref _menuPinned) == 1;
+    bool Runtime.ITriggerSurfaceHost.MenuPinned => Volatile.Read(ref _menuPinned) == 1;
 
-    bool Runtime.ITriggerHostSurface.WindowTextFieldFocused => WindowTextFieldFocused;
+    bool Runtime.ITriggerFocusProbe.IsTextInputFocused => WindowTextFieldFocused;
 
-    void Runtime.ITriggerHostSurface.CloseMenuFromLauncher() => _menu?.CloseFromLauncher();
+    void Runtime.ITriggerSurfaceHost.CloseMenuFromLauncher() => _menu?.CloseFromLauncher();
 
-    void Runtime.ITriggerHostSurface.OpenMenu() => _ = OpenMacroMenuAsync();
+    void Runtime.ITriggerSurfaceHost.OpenMenu() => _ = OpenMacroMenuAsync();
 
-    void Runtime.ITriggerHostSurface.MenuHandleKey(string name) => _menu?.HandleKey(name);
+    void Runtime.ITriggerSurfaceHost.MenuHandleKey(string name) => _menu?.HandleKey(name);
 
-    void Runtime.ITriggerHostSurface.MenuMouseDown(MouseHookEvent e) => OnMenuMouseDown(e);
+    void Runtime.ITriggerSurfaceHost.MenuMouseDown(MouseHookEvent e) => OnMenuMouseDown(e);
 
-    void Runtime.ITriggerHostSurface.WheelMouseDown(MouseHookEvent e) => OnWheelMouseDown(e);
+    void Runtime.ITriggerSurfaceHost.WheelMouseDown(MouseHookEvent e) => OnWheelMouseDown(e);
 
-    void Runtime.ITriggerHostSurface.WheelMouseMoved(MouseMovedHookEvent e) => OnWheelMouseMoved(e);
+    void Runtime.ITriggerSurfaceHost.WheelMouseMoved(MouseMovedHookEvent e) => OnWheelMouseMoved(e);
 
-    void Runtime.ITriggerHostSurface.WheelMouseUp(MouseHookEvent e) => OnWheelMouseUp(e);
+    void Runtime.ITriggerSurfaceHost.WheelMouseUp(MouseHookEvent e) => OnWheelMouseUp(e);
 
-    void Runtime.ITriggerHostSurface.WheelKeyDown(KeyHookEvent e) => OnWheelKeyDown(e);
+    void Runtime.ITriggerSurfaceHost.WheelKeyDown(KeyHookEvent e) => OnWheelKeyDown(e);
 
-    void Runtime.ITriggerHostSurface.WheelScroll(WheelHookEvent e) => OnWheelScroll(e);
+    void Runtime.ITriggerSurfaceHost.WheelScroll(WheelHookEvent e) => OnWheelScroll(e);
 
-    void Runtime.ITriggerHostSurface.ToggleInterfaceGroup(string groupKey)
+    void Runtime.ITriggerSurfaceHost.ToggleInterfaceGroup(string groupKey)
         => ToggleInterfaceGroupFromHotkey(groupKey);
 
-    void Runtime.ITriggerHostSurface.RefreshForSystemToggle()
+    void Runtime.ITriggerSurfaceHost.RefreshForSystemToggle()
     {
         if (DataContext is not MainViewModel viewModel)
         {
@@ -57,14 +58,14 @@ public partial class MainWindow : Runtime.ITriggerHostSurface
         RefreshRunning(viewModel);
     }
 
-    Task<StepErrorChoice> Runtime.ITriggerHostSurface.AskAboutFailedStep(
+    Task<StepErrorChoice> Runtime.IRunQuestionHost.AskAboutFailedStep(
         string step, string reason, string detail, string comment)
         => AskAboutFailedStep(step, reason, detail, comment);
 
-    Task<AskAnswer> Runtime.ITriggerHostSurface.AskUser(AskQuestion question)
+    Task<AskAnswer> Runtime.IRunQuestionHost.AskUser(AskQuestion question)
         => AskWhatTheMacroWantsToKnow(question);
 
-    Task<bool> Runtime.ITriggerHostSurface.ConfirmIrreversibleStep(ExecutableStep step)
+    Task<bool> Runtime.IRunQuestionHost.ConfirmIrreversibleStep(ExecutableStep step)
         => ConfirmIrreversibleStep(step);
 }
 

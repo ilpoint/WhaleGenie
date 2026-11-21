@@ -7,23 +7,19 @@ using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Models;
-using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Runtime;
 
 /// <summary>
-/// The surface the trigger host draws its floating work on: the menu, the wheel, the interface
-/// panels and the questions a run asks are windows the shell owns, so the host asks rather than
-/// shows them itself. The main window (and anything else that carries a project) implements this;
-/// a check passes a stand-in.
+/// The native floating work the trigger host asks a window to draw: the menu, the wheel and the
+/// interface panels. A window owns those surfaces; the host only forwards the hooks and asks for
+/// the refresh that follows the system switch.
 /// </summary>
-public interface ITriggerHostSurface
+public interface ITriggerSurfaceHost
 {
     bool MenuOpen { get; }
     bool MenuSearchFocused { get; }
     bool MenuPinned { get; }
-    bool WindowTextFieldFocused { get; }
 
     void CloseMenuFromLauncher();
     void OpenMenu();
@@ -36,10 +32,27 @@ public interface ITriggerHostSurface
     void WheelScroll(WheelHookEvent e);
     void ToggleInterfaceGroup(string groupKey);
     void RefreshForSystemToggle();
+}
 
+/// <summary>
+/// The questions a triggered run asks. They are windows the interface owns and may have to show
+/// while the main shell is hidden, so they are a separate surface from the menu and the wheel.
+/// </summary>
+public interface IRunQuestionHost
+{
     Task<StepErrorChoice> AskAboutFailedStep(string step, string reason, string detail, string comment);
     Task<AskAnswer> AskUser(AskQuestion question);
     Task<bool> ConfirmIrreversibleStep(ExecutableStep step);
+}
+
+/// <summary>
+/// Whether the person is typing into a text field of this program. The hook thread asks before it
+/// lets a global switch key through, so the answer must be cheap and must not read a control from
+/// that thread; the window copies its focus state into this probe.
+/// </summary>
+public interface ITriggerFocusProbe
+{
+    bool IsTextInputFocused { get; }
 }
 
 /// <summary>
@@ -56,13 +69,21 @@ public interface ITriggerHostSurface
 /// </remarks>
 public sealed class TriggerHost : IDisposable
 {
-    private readonly MainViewModel _viewModel;
+    private readonly ProjectWorkspace _workspace;
+
+    private readonly SystemState _system;
 
     private readonly TriggerRuntime _runtime;
 
     private readonly IDeviceLayer _devices;
 
-    private readonly ITriggerHostSurface _surface;
+    private readonly ITriggerSurfaceHost _surface;
+
+    private readonly IRunQuestionHost _questions;
+
+    private readonly ITriggerFocusProbe _focus;
+
+    private readonly Action<UiSound> _playSound;
 
     private readonly HashSet<string> _globalHeld = new(StringComparer.OrdinalIgnoreCase);
 
@@ -72,21 +93,30 @@ public sealed class TriggerHost : IDisposable
 
     private bool _attached;
 
-    internal TriggerHost(MainViewModel viewModel, TriggerRuntime runtime, IDeviceLayer devices,
-        ITriggerHostSurface surface)
+    /// <param name="playSound">
+    /// Where the switch sounds go. The program hands in AppSound, which reads the sound settings; a
+    /// check hands in a recorder so it can assert which sound was asked for.
+    /// </param>
+    internal TriggerHost(ProjectWorkspace workspace, SystemState system, TriggerRuntime runtime,
+        IDeviceLayer devices, ITriggerSurfaceHost surface, IRunQuestionHost questions,
+        ITriggerFocusProbe focus, Action<UiSound>? playSound = null)
     {
-        _viewModel = viewModel;
+        _workspace = workspace;
+        _system = system;
         _runtime = runtime;
         _devices = devices;
         _surface = surface;
+        _questions = questions;
+        _focus = focus;
+        _playSound = playSound ?? AppSound.Play;
     }
 
     /// <summary>The plan the hotkeys match against, for callers that read it while it is live.</summary>
     public GlobalHotkeyPlan Plan => Volatile.Read(ref _plan);
 
     /// <summary>
-    /// Puts the hooks on the machine, arms the trigger service the way the setting says, and
-    /// starts following the project and the system switch. Attaching twice is a bug.
+    /// Puts the hooks on the machine, arms the trigger service the way the switch says, and starts
+    /// following the project and the switch. Attaching twice is a bug.
     /// </summary>
     public void Attach()
     {
@@ -96,15 +126,17 @@ public sealed class TriggerHost : IDisposable
         }
 
         _attached = true;
-        PublishPlan();
-        _runtime.Triggers.Ask = _surface.AskAboutFailedStep;
-        _runtime.Triggers.AskUser = _surface.AskUser;
-        _runtime.Triggers.ConfirmIrreversible = _surface.ConfirmIrreversibleStep;
+        _runtime.Triggers.Ask = _questions.AskAboutFailedStep;
+        _runtime.Triggers.AskUser = _questions.AskUser;
+        _runtime.Triggers.ConfirmIrreversible = _questions.ConfirmIrreversibleStep;
         _runtime.Triggers.StatusChanged += OnTriggerStatusChanged;
-        _runtime.Triggers.IsEnabled = _viewModel.IsRunning;
+        _runtime.Triggers.IsEnabled = _system.IsEnabled;
         _runtime.Triggers.MenuRequested += OnMenuRequested;
 
-        _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _system.Changed += OnSystemChanged;
+        _workspace.Changed += OnWorkspaceChanged;
+        _workspace.Macros.CollectionChanged += OnMacrosChanged;
+        _workspace.Triggers.Changed += OnTriggersChanged;
 
         AttachHooks();
         PublishPlan();
@@ -118,10 +150,22 @@ public sealed class TriggerHost : IDisposable
         }
 
         _attached = false;
-        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        _system.Changed -= OnSystemChanged;
+        _workspace.Changed -= OnWorkspaceChanged;
+        _workspace.Macros.CollectionChanged -= OnMacrosChanged;
+        _workspace.Triggers.Changed -= OnTriggersChanged;
         _runtime.Triggers.StatusChanged -= OnTriggerStatusChanged;
         _runtime.Triggers.MenuRequested -= OnMenuRequested;
+
+        // The service outlives the window, so the callbacks that pointed into it must not.
+        _runtime.Triggers.Ask = null;
+        _runtime.Triggers.AskUser = null;
+        _runtime.Triggers.ConfirmIrreversible = null;
+        _runtime.Triggers.IsEnabled = false;
+        _runtime.Triggers.StopAll();
+
         DetachHooks();
+        Volatile.Write(ref _plan, GlobalHotkeyPlan.Empty);
     }
 
     /// <summary>
@@ -131,9 +175,10 @@ public sealed class TriggerHost : IDisposable
     public void PublishPlan()
     {
         var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
-        _runtime.Publish(_viewModel.Triggers, [.. _viewModel.Macros], menuLauncher);
+        _runtime.Publish(_workspace.Triggers, [.. _workspace.Macros], menuLauncher);
         Volatile.Write(ref _plan,
-            GlobalHotkeyPlan.From(_viewModel, Localization.LocalSettings.LoadSystemHotkey(), menuLauncher));
+            GlobalHotkeyPlan.From(_workspace, _system,
+                Localization.LocalSettings.LoadSystemHotkey(), menuLauncher));
     }
 
     /// <summary>
@@ -143,30 +188,33 @@ public sealed class TriggerHost : IDisposable
     private void OnTriggerStatusChanged()
         => Dispatcher.UIThread.Post(() =>
         {
-            foreach (var macro in _viewModel.Macros)
+            foreach (var macro in _workspace.Macros)
             {
                 macro.IsRunning = _runtime.Triggers.IsRunning(macro.Name);
             }
         });
 
+    private void OnWorkspaceChanged(object? sender, EventArgs e) => PublishPlan();
+
+    private void OnMacrosChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        => PublishPlan();
+
+    private void OnTriggersChanged(object? sender, EventArgs e) => PublishPlan();
+
     /// <summary>
     /// The system switch: the person flipped it (the page, the hotkey or the tray all land on the
-    /// same property), so the trigger service follows and the sound says it was heard.
+    /// same object), so the trigger service follows and the sound says it was heard.
     /// </summary>
-    private void OnViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void OnSystemChanged()
     {
-        if (e.PropertyName != nameof(MainViewModel.IsRunning))
-        {
-            return;
-        }
-
-        _runtime.Triggers.IsEnabled = _viewModel.IsRunning;
-        if (!_viewModel.IsRunning)
+        _runtime.Triggers.IsEnabled = _system.IsEnabled;
+        if (!_system.IsEnabled)
         {
             _surface.CloseMenuFromLauncher();
         }
 
-        AppSound.Play(_viewModel.IsRunning ? UiSound.SystemOn : UiSound.SystemOff);
+        PublishPlan();
+        _playSound(_system.IsEnabled ? UiSound.SystemOn : UiSound.SystemOff);
         _surface.RefreshForSystemToggle();
     }
 
@@ -322,12 +370,12 @@ public sealed class TriggerHost : IDisposable
     /// </summary>
     private void ToggleSystemFromHotkey()
     {
-        if (_surface.WindowTextFieldFocused)
+        if (_focus.IsTextInputFocused)
         {
             return;
         }
 
-        _viewModel.IsRunning = !_viewModel.IsRunning;
+        _system.Set(!_system.IsEnabled);
     }
 
     /// <summary>
@@ -338,14 +386,14 @@ public sealed class TriggerHost : IDisposable
     /// </summary>
     private void ToggleMacroFromHotkey(string name)
     {
-        var macro = _viewModel.Macros.FirstOrDefault(candidate =>
+        var macro = _workspace.Macros.FirstOrDefault(candidate =>
             string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
         if (macro is null)
         {
             return;
         }
 
-        _viewModel.ToggleMacro(macro);
+        _workspace.ToggleMacro(macro);
 
         if (macro.IsEnabled)
         {
@@ -356,7 +404,7 @@ public sealed class TriggerHost : IDisposable
             _runtime.Triggers.Stop(macro.Name);
         }
 
-        AppSound.Play(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
+        _playSound(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
     }
 
     private void OnSurfaceMouseDown(MouseHookEvent e)

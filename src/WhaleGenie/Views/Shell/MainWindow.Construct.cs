@@ -48,9 +48,10 @@ public partial class MainWindow : AppWindow
     /// The window over the run's own triggers. The program hands in the one the container built, so
     /// the service that starts a run is the same one the window shows the state of.
     /// </summary>
-    internal MainWindow(TriggerRuntime? runtime, IDeviceLayer? devices = null)
+    internal MainWindow(TriggerRuntime? runtime, IDeviceLayer? devices = null, SystemState? system = null)
     {
         _runtime = runtime;
+        _system = system ?? new SystemState();
 
         // The runtime already names the layer it watches; a caller that has no runtime — a check —
         // hands its own in, and the program-wide layer answers only when neither did.

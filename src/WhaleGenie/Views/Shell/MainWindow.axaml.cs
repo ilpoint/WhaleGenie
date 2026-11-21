@@ -78,6 +78,7 @@ public partial class MainWindow : AppWindow
     /// a check can put a desktop of its own behind every menu, wheel and floating panel.
     /// </summary>
     private readonly IDeviceLayer _devices;
+    private readonly SystemState _system;
 
     private static NativePoint? GetCursorPosition()
     {

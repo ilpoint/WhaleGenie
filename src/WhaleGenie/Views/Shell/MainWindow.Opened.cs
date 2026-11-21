@@ -54,7 +54,8 @@ public partial class MainWindow : AppWindow
 
         // The hooks, the hotkey plan and the sounds live in the trigger host; this window is the
         // surface it draws the floating work on (menu, wheel, panels, the run's questions).
-        _host = new TriggerHost(viewModel, Runtime, _devices, this);
+        _host = new TriggerHost(viewModel.Workspace, _system, Runtime, _devices,
+            this, this, this);
         _host.Attach();
 
         viewModel.PropertyChanged += (_, args) =>
@@ -119,7 +120,6 @@ public partial class MainWindow : AppWindow
         if (DataContext is MainViewModel viewModel)
         {
             RefreshWheelGate(viewModel);
-            _host?.PublishPlan();
             RefreshSurface(viewModel);
         }
     }
@@ -129,7 +129,6 @@ public partial class MainWindow : AppWindow
         if (DataContext is MainViewModel viewModel)
         {
             RefreshWheelGate(viewModel);
-            _host?.PublishPlan();
         }
     }
 
@@ -141,7 +140,6 @@ public partial class MainWindow : AppWindow
             // Opening a package replaces the macros and the wheel without raising a change of the
             // project itself, so the gate learns about the new wheel here as well.
             RefreshWheelGate(viewModel);
-            _host?.PublishPlan();
         }
     }
 }

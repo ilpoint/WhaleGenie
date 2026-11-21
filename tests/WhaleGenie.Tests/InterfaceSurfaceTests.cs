@@ -385,7 +385,8 @@ public class InterfaceSurfaceTests
         });
         project.Triggers.StoreInterfaceHotkey(interfaceRule, "NumPadSubtract");
 
-        var match = GlobalHotkeyPlan.From(project, LocalSettings.LoadSystemHotkey(), "").Match("NumPadSubtract", []);
+        var match = GlobalHotkeyPlan.From(project.Workspace, project.SystemSwitch,
+            LocalSettings.LoadSystemHotkey(), "").Match("NumPadSubtract", []);
         Assert.Equal(GlobalHotkeyAction.ToggleInterfaceGroup, match.Action);
     }
 

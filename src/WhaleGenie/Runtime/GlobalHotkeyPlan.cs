@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Models;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Runtime;
 
@@ -50,14 +49,15 @@ public sealed record GlobalHotkeyPlan(
 
     /// <param name="systemHotkey">The program's own on/off key, read by the caller.</param>
     /// <param name="menuLauncher">The key that opens the project menu, read by the caller.</param>
-    public static GlobalHotkeyPlan From(MainViewModel viewModel, string systemHotkey, string menuLauncher)
+    public static GlobalHotkeyPlan From(ProjectWorkspace workspace, SystemState system,
+        string systemHotkey, string menuLauncher)
     {
         var claimed = new List<string>();
         var groups = new List<InterfaceHotkeyGroup>();
         var toggles = new List<MacroToggleHotkey>();
-        if (viewModel.IsRunning)
+        if (system.IsEnabled)
         {
-            foreach (var entry in viewModel.Triggers.Entries)
+            foreach (var entry in workspace.Triggers.Entries)
             {
                 if (entry.IsEnabled && entry.Spec is KeySpec key && key.Binding.Trim().Length > 0)
                 {
@@ -69,10 +69,10 @@ public sealed record GlobalHotkeyPlan(
             {
                 claimed.Add(menuLauncher);
             }
-            var liveGroups = viewModel.Triggers.InterfaceGroups()
+            var liveGroups = workspace.Triggers.InterfaceGroups()
                 .Select(group => group.Key)
                 .ToHashSet(StringComparer.Ordinal);
-            foreach (var layout in viewModel.Triggers.InterfaceLayouts
+            foreach (var layout in workspace.Triggers.InterfaceLayouts
                          .Where(layout => layout.ToggleHotkey.Trim().Length > 0
                              && liveGroups.Contains(layout.GroupKey)))
             {
@@ -81,7 +81,7 @@ public sealed record GlobalHotkeyPlan(
 
             // A disarmed macro keeps its key in the plan on purpose: the key is how somebody arms it
             // again, so dropping it while it is off would leave the switch one-way.
-            foreach (var macro in viewModel.Macros)
+            foreach (var macro in workspace.Macros)
             {
                 var key = macro.ToggleKey.Trim();
                 var name = macro.Name.Trim();
@@ -94,7 +94,7 @@ public sealed record GlobalHotkeyPlan(
 
         return new GlobalHotkeyPlan(
             systemHotkey,
-            viewModel.IsRunning,
+            system.IsEnabled,
             [.. claimed],
             [.. groups],
             menuLauncher)

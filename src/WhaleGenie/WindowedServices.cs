@@ -39,8 +39,8 @@ internal static class WindowedServices
             new AvaloniaUiDispatcher(),
             new AvaloniaWindowAside());
 
-        services.AddSingleton(_ => new MainViewModel(_ => new McpServerViewModel(), persisted,
-            variables, workspace));
+        services.AddSingleton(sp => new MainViewModel(_ => new McpServerViewModel(), persisted,
+            variables, workspace, sp.GetRequiredService<SystemState>()));
         Add(services);
 
         return services.BuildServiceProvider();
@@ -49,7 +49,8 @@ internal static class WindowedServices
     private static void Add(IServiceCollection services)
         =>
         // The view model the window shows is the same instance the MCP server reads.
-        services.AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>())
+        services.AddSingleton(sp => new MainWindow(sp.GetRequiredService<TriggerRuntime>(),
+            system: sp.GetRequiredService<SystemState>())
         {
             DataContext = sp.GetRequiredService<MainViewModel>(),
         })
@@ -67,8 +68,8 @@ internal static class WindowedServices
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>(), dialogs,
-                () => sp.GetRequiredService<MainViewModel>()));
+                sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
+                () => sp.GetService<WebShellWindow>(), dialogs));
             server.Register(new EditorBridge(() => sp.GetRequiredService<MainViewModel>(),
                 sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()));
             return server;

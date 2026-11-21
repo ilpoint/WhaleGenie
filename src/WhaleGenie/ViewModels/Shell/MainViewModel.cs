@@ -20,12 +20,15 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
     private McpServerViewModel? _mcp;
+    private readonly SystemState _system;
 
     public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null,
         PersistedVariables? persisted = null, VariableSession? variables = null,
-        ProjectWorkspace? workspace = null)
+        ProjectWorkspace? workspace = null, SystemState? system = null)
     {
         _makeMcp = mcp;
+        _system = system ?? new SystemState();
+        _system.Changed += OnSystemChanged;
 
         // The document is made first: every other member here reads it, and a window that opens a
         // package during construction should find the same table the runs will use. A caller that
@@ -36,9 +39,6 @@ public partial class MainViewModel : ViewModelBase
         Workspace.Changed += (_, _) => RefreshVisibleMacros();
 
         SelectedView = LocalSettings.LoadView();
-
-        // 启动时是否已经在听触发，由设置决定；默认关着，和按热键启用之前一样。
-        IsRunning = LocalSettings.LoadSystemAtStart();
         Workspace.Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
@@ -211,10 +211,25 @@ public partial class MainViewModel : ViewModelBase
         RefreshVisibleMacros();
     }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SystemLabel))]
-    [NotifyPropertyChangedFor(nameof(SystemHint))]
-    public partial bool IsRunning { get; set; }
+    /// <summary>
+    /// The system switch the window draws. The value belongs to <see cref="SystemState"/>, so a page,
+    /// a hotkey and this window all move the same switch rather than keeping a copy each.
+    /// </summary>
+    public bool IsRunning
+    {
+        get => _system.IsEnabled;
+        set => _system.Set(value);
+    }
+
+    /// <summary>The one switch, handed to anything that needs to read or move it.</summary>
+    public SystemState SystemSwitch => _system;
+
+    private void OnSystemChanged()
+    {
+        OnPropertyChanged(nameof(IsRunning));
+        OnPropertyChanged(nameof(SystemLabel));
+        OnPropertyChanged(nameof(SystemHint));
+    }
 
     /// <summary>
     /// Label of the system button, which names the state rather than the action: it reads
