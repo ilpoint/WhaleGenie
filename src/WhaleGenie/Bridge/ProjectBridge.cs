@@ -139,6 +139,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
         // Arming a macro again gives a "trigger once" macro a fresh chance to run; disarming one
         // stops the run it may be in. The main window's toggle does both, so this one does too.
+        // The sound is the page's: it hears the change and plays it, like every other bit of
+        // feedback the web interface draws for itself.
         if (macro.IsEnabled)
         {
             _runtime.Triggers.Rearm(macro.Name);
@@ -148,8 +150,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             _runtime.Triggers.Stop(macro.Name);
         }
 
-        // The dot is right there, but the ear is faster than the eye on a long list.
-        AppSound.Play(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
         return Task.FromResult<object?>(null);
     }
 

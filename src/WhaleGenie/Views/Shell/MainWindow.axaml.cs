@@ -68,13 +68,9 @@ public partial class MainWindow : AppWindow
     /// <summary>The layer this window works against, for a check that put its own behind it.</summary>
     internal IDeviceLayer DevicesForCheck => _devices;
 
-    /// <summary>The shared hook the Home key is answered through; null until the window is open.</summary>
-    private IInputHook? _hotkeyHook;
-
-    private readonly HashSet<string> _globalHeld = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
     private TriggerRuntime? _runtime;
-    private GlobalHotkeyPlan _globalHotkeyPlan = GlobalHotkeyPlan.Empty;
+    private TriggerHost? _host;
 
     /// <summary>
     /// The machine this window works against: the one the container handed in with the triggers,

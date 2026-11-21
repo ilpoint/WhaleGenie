@@ -143,7 +143,7 @@ public partial class MainWindow : AppWindow
             // Everything the settings pages change is read back through these three: the runtime
             // snapshot the triggers run from, the words on the hotkey hints, and the order of the
             // list, which the settings can change without touching a single macro.
-            PublishRuntimeState(viewModel);
+            _host?.PublishPlan();
             viewModel.RefreshHotkeyHints();
             viewModel.RefreshVisibleMacros();
             closed.TrySetResult();

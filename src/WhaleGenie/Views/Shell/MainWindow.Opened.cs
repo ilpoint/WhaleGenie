@@ -49,14 +49,13 @@ public partial class MainWindow : AppWindow
 
         // The one device layer the program holds: a trigger run and a window that is open both use
         // it, so the text recognition models are loaded once rather than once per run.
-        PublishRuntimeState(viewModel);
         Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
         _triggers = Runtime.Triggers;
-        _triggers.Ask = AskAboutFailedStep;
-        _triggers.AskUser = AskWhatTheMacroWantsToKnow;
-        _triggers.ConfirmIrreversible = ConfirmIrreversibleStep;
-        _triggers.StatusChanged += OnTriggerStatusChanged;
-        _triggers.IsEnabled = viewModel.IsRunning;
+
+        // The hooks, the hotkey plan and the sounds live in the trigger host; this window is the
+        // surface it draws the floating work on (menu, wheel, panels, the run's questions).
+        _host = new TriggerHost(viewModel, Runtime, _devices, this);
+        _host.Attach();
 
         viewModel.PropertyChanged += (_, args) =>
         {
@@ -64,24 +63,7 @@ public partial class MainWindow : AppWindow
             {
                 Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
             }
-
-            if (args.PropertyName == nameof(MainViewModel.IsRunning) && _triggers is not null)
-            {
-                _triggers.IsEnabled = viewModel.IsRunning;
-                if (!viewModel.IsRunning)
-                {
-                    _menu?.CloseFromLauncher();
-                }
-                PublishRuntimeState(viewModel);
-                RefreshSurface(viewModel);
-
-                // 系统开关常常是盲按热键换的：听得到的确认，比事后去窗口里看那行字有用。
-                AppSound.Play(viewModel.IsRunning ? UiSound.SystemOn : UiSound.SystemOff);
-            }
-
         };
-
-        _triggers.MenuRequested += OnMenuRequested;
 
         // The wheel has its own state and its own file. Nothing here asks the trigger service to
         // yield a key: the middle button keeps the untouched menu path above.
@@ -101,12 +83,11 @@ public partial class MainWindow : AppWindow
 
         RefreshWheelGate(viewModel);
         RefreshRunning(viewModel);
-        AttachSystemHotkey();
         WatchUnsavedProject(viewModel);
         Closed += (_, _) =>
         {
-            DetachSystemHotkey();
-            _triggers.MenuRequested -= OnMenuRequested;
+            _host?.Dispose();
+            _host = null;
             WheelMenuStore.Changed -= OnWheelStateChanged;
             CloseWheel();
             windowEvents.ForegroundChanged -= OnSurfaceForegroundChanged;
@@ -138,7 +119,7 @@ public partial class MainWindow : AppWindow
         if (DataContext is MainViewModel viewModel)
         {
             RefreshWheelGate(viewModel);
-            PublishRuntimeState(viewModel);
+            _host?.PublishPlan();
             RefreshSurface(viewModel);
         }
     }
@@ -148,7 +129,7 @@ public partial class MainWindow : AppWindow
         if (DataContext is MainViewModel viewModel)
         {
             RefreshWheelGate(viewModel);
-            PublishRuntimeState(viewModel);
+            _host?.PublishPlan();
         }
     }
 
@@ -160,17 +141,7 @@ public partial class MainWindow : AppWindow
             // Opening a package replaces the macros and the wheel without raising a change of the
             // project itself, so the gate learns about the new wheel here as well.
             RefreshWheelGate(viewModel);
-            PublishRuntimeState(viewModel);
+            _host?.PublishPlan();
         }
-    }
-
-    private void PublishRuntimeState(MainViewModel viewModel)
-    {
-        // The two settings files are read once here rather than by each plan: publishing runs on
-        // every edit, and each of these calls reads and parses the whole file.
-        var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
-        Runtime.Publish(viewModel.Triggers, [.. viewModel.Macros], menuLauncher);
-        Volatile.Write(ref _globalHotkeyPlan,
-            GlobalHotkeyPlan.From(viewModel, Localization.LocalSettings.LoadSystemHotkey(), menuLauncher));
     }
 }

@@ -460,7 +460,7 @@ public partial class MainWindow : AppWindow
                 or HookMouseButton.Back or HookMouseButton.Forward)
             {
                 var name = KeyNames.MouseName(e.Button);
-                var plan = Volatile.Read(ref _globalHotkeyPlan);
+                var plan = _host!.Plan;
                 if (plan.MenuLauncher.Length > 0
                     && TriggerKeys.Binds(plan.MenuLauncher, name, []))
                 {

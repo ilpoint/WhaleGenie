@@ -146,26 +146,6 @@ public partial class MainWindow : AppWindow
         AppSound.Play(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
     }
 
-    /// <summary>
-    /// The same switch, reached from a macro's own arm/disarm key. The name is looked up again here
-    /// rather than carried as a macro: a plan made before a rename would otherwise switch whatever
-    /// now answers to the old name, and doing nothing is the better answer for a name that is gone.
-    /// </summary>
-    private void ToggleMacroFromHotkey(string name)
-    {
-        if (DataContext is not MainViewModel viewModel)
-        {
-            return;
-        }
-
-        var macro = viewModel.Macros.FirstOrDefault(candidate =>
-            string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
-        if (macro is not null)
-        {
-            ToggleMacro(macro, viewModel);
-        }
-    }
-
     /// <summary>The same switch, chosen from the card's right-click menu.</summary>
     private void OnToggleMacroClicked(object? sender, RoutedEventArgs e)
     {
