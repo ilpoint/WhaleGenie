@@ -22,15 +22,14 @@
 第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳）
 已完成。其余按顺序：
 
-- **阶段 B0 会话宿主抽取（阻塞）**：把触发器（系统热键/启停键/声音）、原生浮层（菜单/轮盘/界面
-  面板/后台运行问话）、会话（恢复草稿/未保存提示/窗口尺寸）与文件命令从 MainWindow 抽成
-  SystemState + TriggerHost + NativeSurfaceHost + ProjectSession/ProjectFiles，由 WindowedServices
-  组装；去掉网页壳的隐藏主窗。验收：原生与网页两种窗口共用同一宿主，现有主窗用例迁移后全绿，
-  没有隐藏 MainWindow。
+- **阶段 B0 会话宿主抽取（阻塞）**：把仍留在 MainWindow 的菜单、轮盘与界面浮层搬到
+  NativeSurfaceHost；把打开、保存、导入、导出的编排统一到 ProjectFiles/ProjectInteraction；
+  由 WindowedServices 组装并去掉网页壳的隐藏主窗。验收：原生与网页两种窗口共用同一宿主，现有
+  主窗用例迁移后全绿，没有隐藏 MainWindow。
 - **阶段 B1 网页壳转正**：未迁入的设置/运行/关于/帮助先给临时原生入口；网页壳成为默认并删除
-  MainWindow、MainViewModel；补系统状态推送、焦点抑制、声音单一来源、桥串行/合并、错误本地化、
-  严格 UTF-8、导航白名单、窗口尺寸与退出未保存。验收：主窗全部功能在壳里有入口，旧主窗用例有
-  替代或删除理由，真机清单全绿。
+  MainWindow、MainViewModel；补壳上的退出未保存/恢复、单一项目信息来源、enabledFirst、视图记忆、
+  分组重置与桥方法清单；旧主窗用例有替代或删除理由。验收：主窗全部功能在壳里有入口，真机清单
+  全绿。
 - **阶段 C0 编辑器门禁**：以 C# 编辑会话为唯一模型，网页只渲染快照并发命令；用一份真实宏完成
   打开→改字段→保存→重开，177 个动作全部能生成表单，测量快照/输入延迟。未过不得删原生编辑器。
 - **阶段 C1 编辑器完整迁入**：文档页签、步骤树、动作库/表单、条件、宏设置与触发、变量墙、取值
@@ -52,7 +51,7 @@
 
 ### 结构与诊断
 
-- **测试与真机共用设置文件**：无头测试与用户运行的程序都会读写 `%LOCALAPPDATA%\WhaleGenie\settings.json`（`AppPaths.State` 是不可重定向的固定路径）。用 MainViewModel 的既有测试、以及网页壳桥测试里记忆上次项目的路径，都会把测试进程的选择写进用户的设置文件（本轮已让涉事用例自存自还，但机制上仍是共用一把钥匙）。升级为阶段前先取得污染面测量：列出所有写 `LocalSettings` 的测试与写进真实文件的字段，再决定是让 `AppPaths` 可重定向、还是测试装配统一接管。
+- **测试与真机共用设置文件**：无头测试与用户运行的程序都会读写 `%LOCALAPPDATA%\WhaleGenie\settings.json`（`AppPaths.State` 是不可重定向的固定路径）。网页桥测试已改为注入 no-op 记忆动作，不再写真实文件；仍用 MainViewModel 的主窗测试会写。升级为阶段前先取得污染面测量：列出所有写 `LocalSettings` 的测试与写进真实文件的字段，再决定是让 `AppPaths` 可重定向、还是测试装配统一接管。
 
 - **无界面命令行**：`Models/`、`Storage/`、`Localization/` 已出界面工程，但只服务 MCP 与包读写；
   仍不新增 CLI 入口，除非出现 CI 批量验包、脚本生成宏等真实调用方。
