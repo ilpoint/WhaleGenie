@@ -226,10 +226,18 @@ export interface RunState {
   isAskingUser: boolean;
   isAsking: boolean;
   arguments: RunArgument[];
+  look: RunLook | null;
   globals: RunGlobal[];
   locals: RunLocal[];
   steps: RunStep[];
   log: RunLine[];
+}
+
+export interface RunLook {
+  stepId: string;
+  type: string;
+  looking: string;
+  image: string;
 }
 
 export interface RunArgument {

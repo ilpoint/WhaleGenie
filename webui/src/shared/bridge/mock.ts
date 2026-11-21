@@ -409,6 +409,7 @@ export class MockTransport implements BridgeTransport {
     question: '', wantsTypedAnswer: false, answerText: '', isAskingUser: false, isAsking: false,
     arguments: [] as { name: string; label: string; hint: string; required: boolean;
       value: string; given: boolean; missing: boolean }[],
+    look: null as { stepId: string; type: string; looking: string; image: string } | null,
     globals: [] as { name: string; type: string; value: string; defaultValue: string }[],
     locals: [] as { name: string; macro: string; type: string }[],
     steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;

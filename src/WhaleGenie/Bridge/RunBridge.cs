@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Core.Devices;
+using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -13,8 +16,8 @@ namespace WhaleGenie.Bridge;
 
 /// <summary>
 /// The web run panel's model: one debugger session at a time, built on the same RunViewModel the
-/// native window uses. Steps, log lines and the four run commands are snapshotted; the page never
-/// owns a second run.
+/// native window uses. Steps, log lines, arguments and the four run commands are snapshotted; the
+/// page never owns a second run.
 /// </summary>
 internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runtime)
     : IBridgeHandler, IDisposable
@@ -22,6 +25,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     private BridgeServer? _server;
     private RunViewModel? _run;
     private DispatcherTimer? _timer;
+    private object? _look;
 
     public void Register(BridgeServer server)
     {
@@ -30,9 +34,9 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         server.Register("run.load", LoadAsync);
         server.Register("run.command", CommandAsync);
         server.Register("run.breakpoint", Breakpoint);
-        server.Register("run.answer", Answer);
         server.Register("run.breakpointRule", BreakpointRule);
         server.Register("run.argument", Argument);
+        server.Register("run.answer", Answer);
     }
 
     public void Dispose() => _timer?.Stop();
@@ -48,12 +52,29 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
                 Strings.Format("Bridge.NoSuchMacro", name ?? string.Empty));
         }
 
-        _run ??= new RunViewModel([], runtime.Devices, listed: [.. workspace.Macros],
-            triggers: runtime.Triggers, variables: workspace.Variables);
+        _run ??= NewRun();
         await _run.DebugAsync(macro);
         StartClock();
         await PushAsync();
         return Snapshot();
+    }
+
+    private RunViewModel NewRun()
+    {
+        var run = new RunViewModel([], runtime.Devices, listed: [.. workspace.Macros],
+            triggers: runtime.Triggers, variables: workspace.Variables);
+        run.LookRequested += look =>
+        {
+            _look = new
+            {
+                stepId = look.StepId,
+                type = look.StepType,
+                looking = look.Looking,
+                image = ToDataUrl(look.Frame),
+            };
+            _ = PushAsync();
+        };
+        return run;
     }
 
     private async Task<object?> CommandAsync(JsonElement parameters)
@@ -91,22 +112,18 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         return Snapshot();
     }
 
-    private Task<object?> Argument(JsonElement parameters)
+    private Task<object?> Breakpoint(JsonElement parameters)
     {
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        var row = _run?.Arguments.FirstOrDefault(argument =>
-            string.Equals(argument.Name, name, StringComparison.Ordinal));
+        var id = parameters.TryGetProperty("id", out var given) ? given.GetString() : null;
+        var row = _run?.Steps.FirstOrDefault(step =>
+            string.Equals(step.Id, id, StringComparison.Ordinal));
         if (row is null)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Run.UnknownArgument"));
+                Strings.Get("Run.UnknownStep"));
         }
 
-        var value = parameters.TryGetProperty("value", out var written)
-            ? written.GetString() ?? string.Empty
-            : string.Empty;
-        row.Value = value;
-        row.Given = value.Length > 0;
+        _run!.ToggleBreakpointCommand.Execute(row);
         return Task.FromResult<object?>(Snapshot());
     }
 
@@ -135,6 +152,25 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         return Task.FromResult<object?>(Snapshot());
     }
 
+    private Task<object?> Argument(JsonElement parameters)
+    {
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var row = _run?.Arguments.FirstOrDefault(argument =>
+            string.Equals(argument.Name, name, StringComparison.Ordinal));
+        if (row is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Run.UnknownArgument"));
+        }
+
+        var value = parameters.TryGetProperty("value", out var written)
+            ? written.GetString() ?? string.Empty
+            : string.Empty;
+        row.Value = value;
+        row.Given = value.Length > 0;
+        return Task.FromResult<object?>(Snapshot());
+    }
+
     private Task<object?> Answer(JsonElement parameters)
     {
         var kind = parameters.TryGetProperty("kind", out var named) ? named.GetString() : null;
@@ -159,21 +195,6 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             _run.AnswerCommand.Execute(choice ?? "stop");
         }
 
-        return Task.FromResult<object?>(Snapshot());
-    }
-
-    private Task<object?> Breakpoint(JsonElement parameters)
-    {
-        var id = parameters.TryGetProperty("id", out var given) ? given.GetString() : null;
-        var row = _run?.Steps.FirstOrDefault(step =>
-            string.Equals(step.Id, id, StringComparison.Ordinal));
-        if (row is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Run.UnknownStep"));
-        }
-
-        _run!.ToggleBreakpointCommand.Execute(row);
         return Task.FromResult<object?>(Snapshot());
     }
 
@@ -210,25 +231,6 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             canRun = _run?.RunCommand.CanExecute(null) ?? false,
             canStep = _run?.StepCommand.CanExecute(null) ?? false,
             canStop = _run?.StopCommand.CanExecute(null) ?? false,
-            steps = _run?.Steps.Select(step => new
-            {
-                id = step.Id,
-                label = step.Label,
-                detail = step.Detail,
-                depth = step.Depth,
-                shown = step.IsShown,
-                container = step.IsContainer,
-                current = step.IsCurrent,
-                breakpoint = step.HasBreakpoint,
-                canBreak = step.CanBreak,
-                time = step.TimeNote,
-                failure = step.FailureNote,
-                condition = step.ConditionNote,
-                hitTimes = _run.BreakpointRuleOf(step).HitTimes,
-                expression = _run.BreakpointRuleOf(step).WaitsForExpression
-                    ? ExpressionPhrase.Display(_run.BreakpointRuleOf(step).Expression)
-                    : string.Empty,
-            }),
             question = _run?.Question ?? string.Empty,
             wantsTypedAnswer = _run?.WantsTypedAnswer ?? false,
             answerText = _run?.AnswerText ?? string.Empty,
@@ -257,6 +259,26 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
                 macro = group.MacroName,
                 type = variable.Type.ToString(),
             })),
+            steps = _run?.Steps.Select(step => new
+            {
+                id = step.Id,
+                label = step.Label,
+                detail = step.Detail,
+                depth = step.Depth,
+                shown = step.IsShown,
+                container = step.IsContainer,
+                current = step.IsCurrent,
+                breakpoint = step.HasBreakpoint,
+                canBreak = step.CanBreak,
+                time = step.TimeNote,
+                failure = step.FailureNote,
+                condition = step.ConditionNote,
+                hitTimes = _run.BreakpointRuleOf(step).HitTimes,
+                expression = _run.BreakpointRuleOf(step).WaitsForExpression
+                    ? ExpressionPhrase.Display(_run.BreakpointRuleOf(step).Expression)
+                    : string.Empty,
+            }),
+            look = _look,
             log = _run?.Lines.Select(line => new
             {
                 time = line.Time,
@@ -264,4 +286,45 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
                 text = line.Text,
             }),
         };
+
+    /// <summary>A BMP data URL: no image library on the bridge thread, and browsers decode it.</summary>
+    private static string ToDataUrl(ImageFrame frame)
+    {
+        var width = frame.Width;
+        var height = frame.Height;
+        var pixels = frame.Bgra;
+        var stride = width * 4;
+        var size = 54 + stride * height;
+        var bytes = new byte[size];
+        bytes[0] = (byte)'B';
+        bytes[1] = (byte)'M';
+        WriteInt32(bytes, 2, size);
+        WriteInt32(bytes, 10, 54);
+        WriteInt32(bytes, 14, 40);
+        WriteInt32(bytes, 18, width);
+        WriteInt32(bytes, 22, height);
+        WriteInt16(bytes, 26, 1);
+        WriteInt16(bytes, 28, 32);
+        WriteInt32(bytes, 34, stride * height);
+        for (var y = 0; y < height; y++)
+        {
+            Buffer.BlockCopy(pixels, y * stride, bytes, 54 + (height - 1 - y) * stride, stride);
+        }
+
+        return "data:image/bmp;base64," + Convert.ToBase64String(bytes);
+    }
+
+    private static void WriteInt32(byte[] bytes, int offset, int value)
+    {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    private static void WriteInt16(byte[] bytes, int offset, int value)
+    {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+    }
 }

@@ -143,6 +143,25 @@ export class WgRun extends LitElement {
       color: var(--colorNeutralForeground3);
     }
 
+    .look {
+      margin: 0;
+      display: grid;
+      gap: var(--spacingVerticalXS);
+    }
+
+    .look img {
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      justify-self: start;
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+    }
+
+    .look figcaption {
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+    }
+
     .vars h3 {
       margin: 0 0 var(--spacingVerticalXS);
       font-size: var(--font-size-base-300);
@@ -214,6 +233,12 @@ export class WgRun extends LitElement {
         <div class="log">
           ${this.run?.log.map((line) => this.line(line))}
         </div>
+        ${this.run?.look ? html`
+          <figure class="look">
+            <img src=${this.run.look.image} alt="" />
+            <figcaption>${this.run.look.stepId}${this.run.look.looking ? ` · ${this.run.look.looking}` : ''}</figcaption>
+          </figure>
+        ` : nothing}
         <div class="vars">
           <h3>${t('Run.Variables')}</h3>
           <div class="var-grid">
