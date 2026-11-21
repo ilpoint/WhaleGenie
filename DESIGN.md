@@ -242,8 +242,8 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 ## 14. 网页壳（迁移期）
 
 网页壳由 WebView 承载一张整页（`webui/`，Lit + Fluent UI Web Components v3），标题栏与导航都在
-网页里画。视觉以 **Fluent UI 默认观感为底**，项目只做少量覆盖；`--webshell`（DEBUG）打开，页面
-可用 `npm run dev` 的热重载服务单独迭代。
+网页里画。视觉以 **Fluent UI 默认观感为底**，项目只做少量覆盖；它是程序的默认窗口，页面可用
+`npm run dev` 的热重载服务单独迭代（DEBUG 下 `--webui-dev` 让程序也指向该服务）。
 
 ### 14.1 契约与优先级
 

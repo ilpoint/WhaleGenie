@@ -25,9 +25,9 @@ npm run build        # 类型检查 + 单文件构建，产物 dist/index.html
 npx playwright test  # 端到端冒烟（系统 Edge，走构建产物的 preview）
 ```
 
-程序侧调试开关（DEBUG）：`--webshell` 用网页壳替代原生主窗，`--webui-dev[=http://localhost:5173]`
-让壳加载 Vite 开发服务器而不是打包页面。只想跑引擎测试而本机没有 Node 时，用
-`-p:WhaleGenieSkipWebUi=true` 跳过网页构建目标。
+网页壳是默认窗口；装不上 WebView2 Runtime 的机器回退原生窗口。DEBUG 下
+`--webui-dev[=http://localhost:5173]` 让壳加载 Vite 开发服务器而不是打包页面。只想跑引擎测试
+而本机没有 Node 时，用 `-p:WhaleGenieSkipWebUi=true` 跳过网页构建目标。
 
 `core/` 是库（引擎、画面获取、Windows 适配器与它们的三套用例）的独立仓库，以 `git subtree`
 引入到这里：**它不在这里改**，改动去 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)，

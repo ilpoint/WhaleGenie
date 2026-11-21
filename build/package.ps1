@@ -136,7 +136,7 @@ function New-PortableFolder([string]$Published, [string]$Package) {
     }
 
     # 网页壳是一份内联了全部脚本与样式的 index.html，跟着程序输出走；它没进包的话，
-    # --webshell 会启动一个白窗口，而拿到 zip 的人看不出原因。
+    # 默认窗口会是一张白页，而拿到 zip 的人看不出原因。
     if (-not (Test-Path (Join-Path $app 'webui\index.html'))) {
         throw "包里没有 webui\index.html：网页壳的产物没有随发布输出，先看 WhaleGenie.csproj 的 Content 复制。"
     }
