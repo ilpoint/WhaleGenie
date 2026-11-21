@@ -44,16 +44,20 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The page's questions: closing everything is the one the list asks before it wipes.</summary>
     private readonly DialogBridge _dialogs;
 
+    /// <summary>Where a macro switch's sound goes; a check hands in a recorder.</summary>
+    private readonly Action<UiSound> _playSound;
+
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        Func<Window?> window, DialogBridge dialogs)
+        Func<Window?> window, DialogBridge dialogs, Action<UiSound>? playSound = null)
     {
         _workspace = workspace;
         _runtime = runtime;
         _system = system;
         _window = window;
         _dialogs = dialogs;
+        _playSound = playSound ?? AppSound.Play;
     }
 
     public void Register(BridgeServer server)
@@ -136,8 +140,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
         // Arming a macro again gives a "trigger once" macro a fresh chance to run; disarming one
         // stops the run it may be in. The main window's toggle does both, so this one does too.
-        // The sound is the page's: it hears the change and plays it, like every other bit of
-        // feedback the web interface draws for itself.
         if (macro.IsEnabled)
         {
             _runtime.Triggers.Rearm(macro.Name);
@@ -146,6 +148,10 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         {
             _runtime.Triggers.Stop(macro.Name);
         }
+
+        // The same feedback the native card gives. The page does not synthesize its own sound:
+        // one owner keeps the setting and the double-tone out of the loop.
+        _playSound(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
 
         return Task.FromResult<object?>(null);
     }

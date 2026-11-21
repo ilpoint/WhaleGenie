@@ -3,7 +3,6 @@ import { customElement, query, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
-import { playOn, playOff } from '../../shared/sound/sound.js';
 import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
 import type { WgMcpPanel } from '../mcp/mcp-panel.js';
 import '../mcp/mcp-panel.js';
@@ -248,9 +247,6 @@ export class WgMacros extends LitElement {
     }
   `;
 
-  /** 上一份推送里每个宏的启停状态：翻转到新值时播声音，不管启停来自网页、热键还是 MCP。 */
-  private enabledBy = new Map<string, boolean>();
-
   private unsubscribers: Array<() => void> = [];
 
   connectedCallback(): void {
@@ -258,27 +254,9 @@ export class WgMacros extends LitElement {
     this.unsubscribers = [
       strings.subscribe(() => this.requestUpdate()),
       project.subscribe((state) => {
-        if (state) {
-          this.detectChanges(state);
-        }
         this.state = state;
       }),
     ];
-  }
-
-  /** 对比前后两份推送，哪个宏的启停翻了就播一声——启停来自哪里都听得到。 */
-  private detectChanges(state: ProjectState): void {
-    for (const macro of state.macros) {
-      const was = this.enabledBy.get(macro.name);
-      if (was !== undefined && was !== macro.enabled) {
-        if (macro.enabled) {
-          playOn();
-        } else {
-          playOff();
-        }
-      }
-      this.enabledBy.set(macro.name, macro.enabled);
-    }
   }
 
   disconnectedCallback(): void {

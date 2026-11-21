@@ -22,6 +22,7 @@ public class ProjectBridgeTests : IDisposable
     private readonly TriggerRuntime _runtime = new(new NullDeviceLayer(), new VariableSession());
     private readonly SystemState _system = new(false);
     private readonly BridgeServer _server = new();
+    private readonly List<UiSound> _sounds = [];
     private readonly RecordingChannel _channel = new();
 
     private readonly DialogBridge _dialogs;
@@ -43,7 +44,8 @@ public class ProjectBridgeTests : IDisposable
         // "called off" — a package path handed in directly still goes through.
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
-        _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null, _dialogs));
+        _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null, _dialogs,
+            sound => _sounds.Add(sound)));
     }
 
     public void Dispose()
@@ -102,6 +104,20 @@ public class ProjectBridgeTests : IDisposable
         var pushed = JsonDocument.Parse(_channel.Sent.Last(text => text.Contains("\"event\":\"project.changed\""))).RootElement;
         Assert.False(pushed.GetProperty("payload").GetProperty("macros").EnumerateArray().Single()
             .GetProperty("enabled").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Toggling_a_macro_plays_the_same_sound_as_the_native_card()
+    {
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _workspace.AddMacro(new MacroItem { Name = "自动保存", IsEnabled = true });
+        _sounds.Clear();
+
+        await _server.AcceptAsync("""{"id":2,"method":"project.toggle","params":{"name":"自动保存"}}""");
+        Assert.Equal([UiSound.MacroOff], _sounds);
+
+        await _server.AcceptAsync("""{"id":3,"method":"project.toggle","params":{"name":"自动保存"}}""");
+        Assert.Equal([UiSound.MacroOff, UiSound.MacroOn], _sounds);
     }
 
     [Fact]
