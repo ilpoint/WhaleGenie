@@ -14,6 +14,15 @@ internal static class SettingsView
     public static T? Find<T>(SettingsWindow window, string name) where T : Control =>
         Pages(window).Select(page => page.FindControl<T>(name)).FirstOrDefault(found => found is not null);
 
+    public static T? Find<T>(AdvancedSettingsWindow window, string name) where T : Control =>
+        Pages(window).Select(page => page.FindControl<T>(name)).FirstOrDefault(found => found is not null);
+
+    private static Control[] Pages(AdvancedSettingsWindow window) =>
+    [
+        window.FindControl<SettingsTriggersView>("TriggerPages")!,
+        window.FindControl<SettingsAppearanceView>("AppearancePages")!,
+    ];
+
     private static Control[] Pages(SettingsWindow window) =>
     [
         window.FindControl<SettingsSystemView>("SystemPages")!,

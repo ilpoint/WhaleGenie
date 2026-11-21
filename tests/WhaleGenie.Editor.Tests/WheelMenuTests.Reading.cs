@@ -29,7 +29,7 @@ public partial class WheelMenuTests
     {
         InOwnFiles(() => Ui.Run(() =>
         {
-            var window = new SettingsWindow(null, null, SettingsSubPage.WheelActions);
+            var window = new AdvancedSettingsWindow(null, null, SettingsSubPage.WheelActions);
             window.Show();
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
@@ -127,3 +127,4 @@ public partial class WheelMenuTests
         Assert.False(rules.OpensFor(null, windows, onlyInPrograms: true));
     }
 }
+

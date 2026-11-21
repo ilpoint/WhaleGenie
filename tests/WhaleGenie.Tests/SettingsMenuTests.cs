@@ -118,7 +118,7 @@ public class SettingsMenuTests
         Ui.Run(() =>
         {
             var project = new MainViewModel();
-            var window = new SettingsWindow(project, null, SettingsSubPage.MenuLauncher);
+            var window = new AdvancedSettingsWindow(project, null, SettingsSubPage.MenuLauncher);
             window.Show();
 
             var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
@@ -150,3 +150,4 @@ public class SettingsMenuTests
         }
     }
 }
+

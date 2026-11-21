@@ -193,7 +193,7 @@ public class ThemePaletteTests
                 System.IO.Directory.CreateDirectory(folder);
                 LocalSettings.FilePath = System.IO.Path.Combine(folder, "settings.json");
 
-                var window = new SettingsWindow();
+                var window = new AdvancedSettingsWindow();
                 window.Show();
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
@@ -235,3 +235,4 @@ public class ThemePaletteTests
 
     private static double Lightness(Color colour) => colour.ToHsl().L;
 }
+

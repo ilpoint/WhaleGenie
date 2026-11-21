@@ -55,7 +55,7 @@ public partial class WheelMenuTests
     {
         InOwnFiles(() => Ui.Run(() =>
         {
-            var window = new SettingsWindow(null, null, SettingsSubPage.WheelMenu);
+            var window = new AdvancedSettingsWindow(null, null, SettingsSubPage.WheelMenu);
             window.Show();
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
@@ -114,7 +114,7 @@ public partial class WheelMenuTests
             project.Triggers.Wheel.Global.At(Top).Icon = new MenuIconReference(
                 MenuIconKind.Builtin, MenuIconCatalog.Options[0].Key);
 
-            var window = new SettingsWindow(project, null, SettingsSubPage.WheelActions);
+            var window = new AdvancedSettingsWindow(project, null, SettingsSubPage.WheelActions);
             window.Show();
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
 
@@ -153,3 +153,4 @@ public partial class WheelMenuTests
         }
     }
 }
+

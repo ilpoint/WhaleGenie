@@ -25,7 +25,7 @@ internal sealed class ShellNativeWindows(
     Func<Window?> owner,
     Func<MacroItem, bool> openEditor) : INativeSurfaceActions, IDisposable
 {
-    private SettingsWindow? _settings;
+    private AdvancedSettingsWindow? _settings;
     private RunWindow? _run;
 
     /// <summary>The trigger host, once the shell has built it; settings republishes the plan.</summary>
@@ -51,7 +51,7 @@ internal sealed class ShellNativeWindows(
             return Task.CompletedTask;
         }
 
-        var dialog = new SettingsWindow(viewModel, workspace.CurrentPath, page);
+        var dialog = new AdvancedSettingsWindow(viewModel, workspace.CurrentPath, page);
         _settings = dialog;
         dialog.Closed += (_, _) =>
         {
