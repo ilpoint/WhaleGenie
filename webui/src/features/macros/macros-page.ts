@@ -357,7 +357,7 @@ export class WgMacros extends LitElement {
 
   private renderCard(entry: MacroEntry) {
     return html`
-      <div class="card">
+      <div class="card" @dblclick=${() => this.onEdit(entry)}>
         <span class="dot" data-enabled=${String(entry.enabled)}></span>
         <div class="body">
           <span class="name">
@@ -441,8 +441,12 @@ export class WgMacros extends LitElement {
   }
 
   private onAddMacro(): void {
-    // 编辑器还没搬进壳：按钮先说明现状，阶段 B 后半接上后这里改成打开编辑器。
-    this.note = t('Shell.Placeholder.Body');
+    // 编辑器还是原生窗口：命令过桥打开它，保存时宏落进项目、列表经 project.changed 刷新。
+    void this.call('editor.newMacro', { view: this.view });
+  }
+
+  private onEdit(entry: MacroEntry): void {
+    void this.call('editor.open', { name: entry.name });
   }
 
   private onNoteDismiss(): void {

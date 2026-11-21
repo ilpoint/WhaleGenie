@@ -208,6 +208,10 @@ export class MockTransport implements BridgeTransport {
       case 'app.quit':
       case 'app.openExternal':
         break;
+      case 'editor.newMacro':
+      case 'editor.open':
+        result = { opened: false };
+        break;
       case 'project.state':
         result = this.projectState;
         break;

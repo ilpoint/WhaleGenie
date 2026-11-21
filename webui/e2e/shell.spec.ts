@@ -126,6 +126,22 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
+test('新建与编辑命令过桥', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+
+  // 新建宏把当前视图带过去；mock 宿主不真的开原生编辑器，只把命令记下。
+  await page.locator('wg-macros .footer fluent-button', { hasText: '新建宏' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.filter(name => name.startsWith('editor'))))
+    .toEqual(['editor.newMacro']);
+
+  // 双击卡片把那个宏带过去。
+  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.filter(name => name.startsWith('editor'))))
+    .toEqual(['editor.newMacro', 'editor.open']);
+});
+
 interface MockProbe {
   push(event: string, payload: unknown): void;
 }
