@@ -241,6 +241,9 @@ export interface EditorSnapshot {
   description: string;
   group: string;
   subMacros: string[];
+  followInputLimit: boolean;
+  inputLimit: number;
+  toggleKey: string;
   dirty: boolean;
   stepCount: number;
   steps: EditorStep[];

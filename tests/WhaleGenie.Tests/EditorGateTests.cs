@@ -144,6 +144,20 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void Macro_settings_cover_input_limit_and_toggle_key()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "settings" });
+        var session = HeadlessEditorSession.Open(workspace, "settings");
+
+        session.SetMacroSetting("inputLimit", "30");
+        session.SetMacroSetting("toggleKey", "F8");
+        Assert.False(session.FollowInputLimit);
+        Assert.Equal(30, session.InputLimit);
+        Assert.Equal("F8", session.ToggleKey);
+    }
+
+    [Fact]
     public void A_submacro_can_be_edited_and_saved_into_its_parent()
     {
         var workspace = new ProjectWorkspace();

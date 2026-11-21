@@ -221,6 +221,20 @@ test('C1 条件参数可按行编辑', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 宏设置可改输入限制与启停键', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  const settings = page.locator('wg-editor-gate .macro-settings');
+  await settings.locator('input[type="checkbox"]').uncheck();
+  await settings.locator('input[type="number"]').fill('30');
+  await settings.locator('input[type="number"]').press('Tab');
+  await settings.locator('input').last().fill('F8');
+  await settings.locator('input').last().press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionMacroSetting')))
+    .toBe(true);
+});
+
 test('C1 子宏文档可从父宏打开', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .submacros fluent-button', { hasText: '辅助宏' }).click();

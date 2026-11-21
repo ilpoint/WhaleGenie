@@ -30,6 +30,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
         server.Register("editor.sessionNew", _ => Task.FromResult<object?>(NewDocument()));
         server.Register("editor.sessionSubOpen", OpenSubmacro);
+        server.Register("editor.sessionMacroSetting", SetMacroSetting);
         server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
@@ -362,6 +363,27 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
             recording = _recording?.IsRecording == true,
             captured = _recording?.Captured ?? 0,
         };
+    }
+
+    private Task<object?> SetMacroSetting(JsonElement parameters)
+    {
+        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+        if (field is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        try
+        {
+            Required().SetMacroSetting(field, value);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
     }
 
     private Task<object?> OpenSubmacro(JsonElement parameters)
@@ -949,6 +971,9 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
                 description = snapshot.Description,
                 group = snapshot.Group,
                 subMacros = snapshot.SubMacros,
+                followInputLimit = snapshot.FollowInputLimit,
+                inputLimit = snapshot.InputLimit,
+                toggleKey = snapshot.ToggleKey,
                 dirty = snapshot.Dirty,
                 stepCount = snapshot.StepCount,
                 steps = snapshot.Steps,

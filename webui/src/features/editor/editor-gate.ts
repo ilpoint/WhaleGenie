@@ -148,6 +148,20 @@ export class WgEditorGate extends LitElement {
       color: var(--colorNeutralForeground1);
     }
 
+    .macro-settings {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--spacingHorizontalM);
+      align-items: end;
+    }
+
+    .macro-settings label {
+      display: grid;
+      gap: var(--spacingVerticalXS);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+    }
+
     .submacros {
       display: flex;
       flex-wrap: wrap;
@@ -686,6 +700,35 @@ export class WgEditorGate extends LitElement {
           </div>
         `
         : nothing}
+      <h2>${t('Editor.MacroSettings')}</h2>
+      <div class="macro-settings">
+        <label class="enabled">
+          <input
+            type="checkbox"
+            .checked=${this.snapshot.followInputLimit}
+            @change=${(event: Event) => void this.setMacroSetting('followInputLimit', event)}
+          />
+          ${t('Editor.InputLimitFollow')}
+        </label>
+        <label>
+          ${t('Editor.InputLimit')}
+          <input
+            type="number"
+            min="0"
+            max="999"
+            ?disabled=${this.snapshot.followInputLimit}
+            .value=${String(this.snapshot.inputLimit)}
+            @change=${(event: Event) => void this.setMacroSetting('inputLimit', event)}
+          />
+        </label>
+        <label>
+          ${t('Editor.ToggleKey')}
+          <input
+            .value=${this.snapshot.toggleKey}
+            @change=${(event: Event) => void this.setMacroSetting('toggleKey', event)}
+          />
+        </label>
+      </div>
       <h2>${t('Editor.TriggerEntries')}</h2>
       <ul class="triggers">
         ${this.snapshot.triggers.map((trigger) => html`
@@ -1301,6 +1344,20 @@ export class WgEditorGate extends LitElement {
 
   private selectOpen(event: Event): void {
     this.openName = (event.target as HTMLSelectElement).value;
+  }
+
+  private async setMacroSetting(field: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement;
+    const value = target.type === 'checkbox' ? String(target.checked) : target.value;
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionMacroSetting', {
+        field,
+        value,
+      });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async openSubmacro(name: string): Promise<void> {

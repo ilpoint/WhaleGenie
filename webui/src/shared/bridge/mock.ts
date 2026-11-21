@@ -401,6 +401,9 @@ export class MockTransport implements BridgeTransport {
           description: '',
           group: '',
           subMacros: [],
+          followInputLimit: true,
+          inputLimit: 20,
+          toggleKey: '',
           dirty: false,
           stepCount: 0,
           steps: [],
@@ -450,6 +453,9 @@ export class MockTransport implements BridgeTransport {
           description: macro?.description ?? '',
           group: macro?.group ?? '',
           subMacros: ['辅助宏'],
+          followInputLimit: true,
+          inputLimit: 20,
+          toggleKey: '',
           dirty: false,
           stepCount: 0,
           steps: [],
@@ -507,12 +513,33 @@ export class MockTransport implements BridgeTransport {
         result = { activeKey: this.editor?.name ?? null, tabs };
         break;
       }
+      case 'editor.sessionMacroSetting':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            followInputLimit: params['field'] === 'followInputLimit'
+              ? params['value'] === 'true'
+              : this.editor.followInputLimit,
+            inputLimit: params['field'] === 'inputLimit'
+              ? Number(params['value'])
+              : this.editor.inputLimit,
+            toggleKey: params['field'] === 'toggleKey'
+              ? String(params['value'] ?? '')
+              : this.editor.toggleKey,
+          };
+        }
+        result = this.editor;
+        break;
       case 'editor.sessionSubOpen':
         if (this.editor) {
           this.editor = {
             ...this.editor,
             name: String(params['name'] ?? ''),
             subMacros: [],
+            followInputLimit: true,
+            inputLimit: 20,
+            toggleKey: '',
             dirty: false,
             stepCount: 0,
             steps: [],
@@ -528,6 +555,9 @@ export class MockTransport implements BridgeTransport {
             description: macro.description,
             group: macro.group,
             subMacros: [],
+            followInputLimit: true,
+            inputLimit: 20,
+            toggleKey: '',
             dirty: false,
             stepCount: 0,
             steps: [],

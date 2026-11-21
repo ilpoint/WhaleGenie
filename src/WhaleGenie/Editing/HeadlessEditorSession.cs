@@ -96,6 +96,38 @@ internal sealed class HeadlessEditorSession
     public IReadOnlyList<string> SubMacros
         => [.. _model.SubMacros.Select(macro => macro.Name)];
 
+    public bool FollowInputLimit => _model.FollowProgramInputRate;
+
+    public int InputLimit => (int)Math.Round(_model.InputLimitValue);
+
+    public string ToggleKey => _model.ToggleKey;
+
+    public void SetMacroSetting(string field, string value)
+    {
+        switch (field)
+        {
+            case "followInputLimit":
+                _model.FollowProgramInputRate = bool.TryParse(value, out var follow) && follow;
+                break;
+            case "inputLimit":
+                _model.FollowProgramInputRate = false;
+                if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture,
+                        out var limit))
+                {
+                    _model.InputLimitValue = Math.Clamp(limit, 0, 999);
+                }
+
+                break;
+            case "toggleKey":
+                _model.ToggleKey = value.Trim();
+                break;
+            default:
+                throw new InvalidOperationException("unknown macro setting " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
     private void ReplaceSubmacro(string originalName, MacroItem updated)
     {
         var index = _model.SubMacros.FindIndex(macro =>
@@ -1097,6 +1129,9 @@ internal sealed class HeadlessEditorSession
             Description,
             Group,
             SubMacros,
+            FollowInputLimit,
+            InputLimit,
+            ToggleKey,
             IsDirty,
             Count(macro.Steps),
             [.. macro.Steps.Select(StepSnapshot)],
@@ -1268,7 +1303,8 @@ internal sealed class HeadlessEditorSession
 }
 
 internal sealed record EditorSnapshot(string Name, string Description, string Group,
-    IReadOnlyList<string> SubMacros, bool Dirty, int StepCount,
+    IReadOnlyList<string> SubMacros, bool FollowInputLimit, int InputLimit, string ToggleKey,
+    bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
     IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices,
