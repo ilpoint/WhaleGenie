@@ -61,6 +61,21 @@ export class WgSettings extends LitElement {
       color: var(--colorNeutralForeground1);
     }
 
+    .storage-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--spacingHorizontalM);
+      align-items: center;
+      padding: var(--spacingVerticalXS) 0;
+      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+    }
+
+    .storage-row .where {
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+      word-break: break-all;
+    }
+
     .hotkey {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto auto;
@@ -154,6 +169,21 @@ export class WgSettings extends LitElement {
           ${this.number('inputRate', 'Settings.InputLimit', 0, 999, false)}
           ${this.number('logCount', 'Settings.LogCount', 1, 1000, false)}
         </section>
+        <section class="card">
+          <h2>${t('Settings.Storage')}</h2>
+          ${this.settings.storage.map((row) => html`
+            <div class="storage-row">
+              <div>
+                <strong>${row.name}</strong>
+                <div>${row.what}</div>
+                <div class="where">${row.where}</div>
+              </div>
+              <fluent-button appearance="subtle" @click=${() => void this.openFolder(row.folder)}>
+                ${t('Settings.OpenFolder')}
+              </fluent-button>
+            </div>
+          `)}
+        </section>
       </div>
     `;
   }
@@ -178,6 +208,14 @@ export class WgSettings extends LitElement {
           @change=${(event: Event) => void this.changeSetting(field, event)} />
       </div>
     `;
+  }
+
+  private async openFolder(folder: string): Promise<void> {
+    try {
+      await bridge.value.call('settings.openFolder', { folder });
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async load(): Promise<void> {

@@ -232,6 +232,14 @@ export interface SettingsState {
   recordStopKey: string;
   systemHotkeyProblem: string;
   recordStopProblem: string;
+  storage: SettingsStorage[];
+}
+
+export interface SettingsStorage {
+  name: string;
+  what: string;
+  where: string;
+  folder: string;
 }
 
 export interface LibraryEntry {

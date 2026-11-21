@@ -31,7 +31,7 @@ const chromeKeys = [
   'Settings.IgnoreOwnInput', 'Settings.InputLimit', 'Settings.LogCount',
   'Settings.Language', 'Settings.Language.English', 'Settings.Language.Chinese', 'Settings.Theme',
   'Settings.Hotkeys', 'Settings.SystemHotkey', 'Settings.RecordStopKey', 'Settings.HotkeySet',
-  'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Theme.Mode.Dark', 'Theme.Mode.Light',
+  'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Settings.Storage', 'Settings.OpenFolder', 'Theme.Mode.Dark', 'Theme.Mode.Light',
   'Theme.Mode.Custom',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
   'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
@@ -200,7 +200,8 @@ const english: Record<string, string> = {
   'Settings.Theme': 'Theme', 'Settings.Hotkeys': 'Hotkeys',
   'Settings.SystemHotkey': 'System hotkey', 'Settings.RecordStopKey': 'Record stop key',
   'Settings.HotkeySet': 'Set shortcut', 'Settings.HotkeyPress': 'Press a key…',
-  'Settings.HotkeyClear': 'Clear', 'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
+  'Settings.HotkeyClear': 'Clear', 'Settings.Storage': 'Storage locations',
+  'Settings.OpenFolder': 'Open', 'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
   'Theme.Mode.Custom': 'Custom',
 
   'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
@@ -325,7 +326,8 @@ const chinese: Record<string, string> = {
   'Settings.Theme': '主题', 'Settings.Hotkeys': '热键',
   'Settings.SystemHotkey': '系统热键', 'Settings.RecordStopKey': '录制停止键',
   'Settings.HotkeySet': '设置快捷键', 'Settings.HotkeyPress': '请按一个键…',
-  'Settings.HotkeyClear': '清除', 'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
+  'Settings.HotkeyClear': '清除', 'Settings.Storage': '存储位置',
+  'Settings.OpenFolder': '打开', 'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
   'Theme.Mode.Custom': '自定义',
 
   'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
@@ -369,6 +371,9 @@ export class MockTransport implements BridgeTransport {
     language: 'zh-Hans', theme: 'Dark',
     systemHotkey: 'Ctrl+F12', recordStopKey: 'Ctrl+F10',
     systemHotkeyProblem: '', recordStopProblem: '',
+    storage: [
+      { name: 'State', what: 'Settings and logs', where: 'C:\\mock\\state', folder: 'C:\\mock\\state' },
+    ],
   };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
@@ -493,6 +498,9 @@ export class MockTransport implements BridgeTransport {
         result = this.settingsState;
         break;
       }
+      case 'settings.openFolder':
+        result = null;
+        break;
       case 'library.state':
         result = { entries: this.libraryEntries, error: null };
         break;

@@ -652,6 +652,15 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .toBe(true);
 });
 
+test('设置页可打开存储位置', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  await expect(page.locator('wg-settings .storage-row')).toHaveCount(1);
+  await page.locator('wg-settings .storage-row fluent-button', { hasText: '打开' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.openFolder')))
+    .toBe(true);
+});
+
 test('设置页可捕获系统热键', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   const hotkey = page.locator('wg-settings .hotkey').first();

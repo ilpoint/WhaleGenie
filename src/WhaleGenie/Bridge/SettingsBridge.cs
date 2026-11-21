@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -20,6 +21,7 @@ internal sealed class SettingsBridge : IBridgeHandler
     {
         server.Register("settings.state", _ => Task.FromResult<object?>(State()));
         server.Register("settings.update", Update);
+        server.Register("settings.openFolder", OpenFolder);
     }
 
     private object State()
@@ -45,7 +47,33 @@ internal sealed class SettingsBridge : IBridgeHandler
             recordStopKey = _settings.RecordStopKey,
             systemHotkeyProblem = _settings.SystemHotkeyProblem,
             recordStopProblem = _settings.RecordStopProblem,
+            storage = _settings.StorageRows.Select(row => new
+            {
+                name = row.Name,
+                what = row.What,
+                where = row.Where,
+                folder = row.Folder,
+            }),
         };
+
+    private Task<object?> OpenFolder(JsonElement parameters)
+    {
+        var folder = parameters.TryGetProperty("folder", out var named) ? named.GetString() : null;
+        if (folder is not { Length: > 0 }
+            || !_settings.StorageRows.Any(row => string.Equals(row.Folder, folder,
+                StringComparison.OrdinalIgnoreCase))
+            || !Directory.Exists(folder))
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Settings.StorageProblem"));
+        }
+
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(folder)
+        {
+            UseShellExecute = true,
+        });
+        return Task.FromResult<object?>(null);
+    }
 
     private Task<object?> Update(JsonElement parameters)
     {
