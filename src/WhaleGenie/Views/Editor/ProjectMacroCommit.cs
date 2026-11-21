@@ -18,7 +18,7 @@ namespace WhaleGenie.Views;
 /// replaced, colour the list, and nudge the crash draft.
 /// </remarks>
 internal sealed class ProjectMacroCommit(
-    MainViewModel project,
+    ProjectWorkspace project,
     MacroItem? target,
     MacroView newView,
     Action<MacroItem> stopRunning,
@@ -94,7 +94,7 @@ internal sealed class ProjectMacroCommit(
     /// It happens after the save because a position names the macro, and a macro is named by the
     /// editor. The key, window and string views already brought their own entry with them.
     /// </summary>
-    internal static void PlaceNewMacro(MacroView view, MacroItem macro, MainViewModel project)
+    internal static void PlaceNewMacro(MacroView view, MacroItem macro, ProjectWorkspace project)
     {
         switch (view)
         {
@@ -118,7 +118,7 @@ internal sealed class ProjectMacroCommit(
     /// the macro again as it hands it over, so this is a question about what the macro says rather
     /// than about which object it is; two macros that read the same are written the same way.
     /// </summary>
-    private static bool Same(MainViewModel project, MacroItem target, MacroDraft draft)
+    private static bool Same(ProjectWorkspace project, MacroItem target, MacroDraft draft)
         => string.Equals(target.ToJson().ToJsonString(), draft.Macro.ToJson().ToJsonString(),
             StringComparison.Ordinal)
            && string.Equals(TriggerJson(project.Triggers.ForMacro(target.Name)),

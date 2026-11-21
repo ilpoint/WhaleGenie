@@ -137,7 +137,7 @@ public class ProjectMacroCommitTests
         }
 
         var stopped = new List<string>();
-        var commit = new ProjectMacroCommit(project, target, view,
+        var commit = new ProjectMacroCommit(project.Workspace, target, view,
             macro => stopped.Add(macro.Name), () => { }, () => { });
         return (project, commit, stopped);
     }

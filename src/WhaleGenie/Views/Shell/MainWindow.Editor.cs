@@ -43,7 +43,7 @@ public partial class MainWindow : AppWindow
             editor.MarkUnsaved();
         }
 
-        var commit = new ProjectMacroCommit(viewModel, existing, newView ?? MacroView.All,
+        var commit = new ProjectMacroCommit(viewModel.Workspace, existing, newView ?? MacroView.All,
             macro => _triggers?.Stop(macro.Name),
             () => RefreshRunning(viewModel),
             () => _session?.Follow());

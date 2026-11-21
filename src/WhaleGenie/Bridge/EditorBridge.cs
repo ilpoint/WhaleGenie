@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 using WhaleGenie.Web;
 
@@ -26,7 +25,7 @@ namespace WhaleGenie.Bridge;
 /// </remarks>
 public sealed class EditorBridge : IBridgeHandler
 {
-    private readonly Func<MainViewModel> _project;
+    private readonly Func<ProjectWorkspace> _project;
 
     private readonly TriggerRuntime _runtime;
 
@@ -34,7 +33,7 @@ public sealed class EditorBridge : IBridgeHandler
 
     private MacroEditorWindow? _editor;
 
-    internal EditorBridge(Func<MainViewModel> project, TriggerRuntime runtime, Func<WebShellWindow?> shell)
+    internal EditorBridge(Func<ProjectWorkspace> project, TriggerRuntime runtime, Func<WebShellWindow?> shell)
     {
         _project = project;
         _runtime = runtime;
@@ -73,7 +72,7 @@ public sealed class EditorBridge : IBridgeHandler
     private Task<object?> Answer(MacroEditorWindow? editor)
         => Task.FromResult<object?>(new { opened = editor is not null });
 
-    private MacroEditorWindow? OpenEditor(MainViewModel project, MacroItem? editing, MacroItem? existing,
+    private MacroEditorWindow? OpenEditor(ProjectWorkspace project, MacroItem? editing, MacroItem? existing,
         MacroView? newView)
     {
         if (_shell() is not { } shell)

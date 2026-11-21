@@ -96,7 +96,7 @@ public class ProjectTriggerTests
 
         var menuMacro = new MacroItem { Name = "from-menu" };
         viewModel.AddMacro(menuMacro);
-        ProjectMacroCommit.PlaceNewMacro(MacroView.Menu, menuMacro, viewModel);
+        ProjectMacroCommit.PlaceNewMacro(MacroView.Menu, menuMacro, viewModel.Workspace);
 
         var cell = Assert.Single(viewModel.Triggers.Entries);
         Assert.Equal(TriggerKind.Menu, cell.Kind);
@@ -109,7 +109,7 @@ public class ProjectTriggerTests
         // The next one takes the cell after it, not the same one again.
         var second = new MacroItem { Name = "second" };
         viewModel.AddMacro(second);
-        ProjectMacroCommit.PlaceNewMacro(MacroView.Menu, second, viewModel);
+        ProjectMacroCommit.PlaceNewMacro(MacroView.Menu, second, viewModel.Workspace);
         var secondCell = Assert.IsType<MenuSpec>(viewModel.Triggers.Entries
             .Single(entry => entry.MacroName == "second").Spec);
         Assert.Equal(0, secondCell.Row);
@@ -117,7 +117,7 @@ public class ProjectTriggerTests
 
         var wheelMacro = new MacroItem { Name = "from-wheel" };
         viewModel.AddMacro(wheelMacro);
-        ProjectMacroCommit.PlaceNewMacro(MacroView.Wheel, wheelMacro, viewModel);
+        ProjectMacroCommit.PlaceNewMacro(MacroView.Wheel, wheelMacro, viewModel.Workspace);
 
         Assert.Equal("from-wheel", viewModel.Triggers.Wheel.Global.Inner[0].Macro);
         Assert.True(viewModel.Triggers.InView("from-wheel", MacroView.Wheel));
