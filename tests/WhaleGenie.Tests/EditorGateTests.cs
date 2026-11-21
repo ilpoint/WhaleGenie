@@ -101,6 +101,17 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_macro_group_can_be_changed()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "grouped" });
+        var session = HeadlessEditorSession.Open(workspace, "grouped");
+
+        session.Patch(group: "Tools");
+        Assert.Equal("Tools", session.Snapshot().Group);
+    }
+
+    [Fact]
     public void A_step_can_be_undone_and_redone()
     {
         var workspace = new ProjectWorkspace();

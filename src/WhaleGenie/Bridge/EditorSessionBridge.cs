@@ -96,7 +96,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         var session = Required();
         session.Patch(
             parameters.TryGetProperty("name", out var name) ? name.GetString() : null,
-            parameters.TryGetProperty("description", out var description) ? description.GetString() : null);
+            parameters.TryGetProperty("description", out var description) ? description.GetString() : null,
+            parameters.TryGetProperty("group", out var group) ? group.GetString() : null);
         return Task.FromResult<object?>(Snapshot());
     }
 
@@ -388,6 +389,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
             {
                 name = snapshot.Name,
                 description = snapshot.Description,
+                group = snapshot.Group,
                 dirty = snapshot.Dirty,
                 stepCount = snapshot.StepCount,
                 steps = snapshot.Steps,

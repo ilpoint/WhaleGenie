@@ -36,7 +36,7 @@ const chromeKeys = [
   'Mcp.SwitchOn', 'Mcp.SwitchOff', 'Mcp.CopyConfig', 'Mcp.GrantsNote', 'Mcp.OpenAudit',
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
-  'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
+  'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
@@ -77,7 +77,7 @@ const english: Record<string, string> = {
   'Main.CloseAll': 'Close All', 'Main.CloseAllTitle': 'Close all macros',
   'Main.EditTip': 'Edit', 'Main.DeleteTip': 'Delete',
   'Editor.DeleteTitle': 'Delete macro', 'Editor.Delete': 'Delete',
-  'Editor.NamePlaceholder': 'Enter a name for your macro..',
+  'Editor.NamePlaceholder': 'Enter a name for your macro..', 'Editor.GroupPlaceholder': 'Group',
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
@@ -136,7 +136,7 @@ const chinese: Record<string, string> = {
   'Main.CloseAll': '全部关闭', 'Main.CloseAllTitle': '关闭全部宏',
   'Main.EditTip': '编辑', 'Main.DeleteTip': '删除',
   'Editor.DeleteTitle': '删除宏', 'Editor.Delete': '删除',
-  'Editor.NamePlaceholder': '给这个宏起个名字..',
+  'Editor.NamePlaceholder': '给这个宏起个名字..', 'Editor.GroupPlaceholder': '分组',
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
@@ -295,6 +295,7 @@ export class MockTransport implements BridgeTransport {
         this.editor = {
           name: '未命名宏',
           description: '',
+          group: '',
           dirty: false,
           stepCount: 0,
           steps: [],
@@ -316,6 +317,7 @@ export class MockTransport implements BridgeTransport {
         this.editor = {
           name: macro?.name ?? '未命名宏',
           description: macro?.description ?? '',
+          group: macro?.group ?? '',
           dirty: false,
           stepCount: 0,
           steps: [],
@@ -353,6 +355,7 @@ export class MockTransport implements BridgeTransport {
           this.editor = {
             name: macro.name,
             description: macro.description,
+            group: macro.group,
             dirty: false,
             stepCount: 0,
             steps: [],
@@ -378,6 +381,7 @@ export class MockTransport implements BridgeTransport {
             description: params['description'] === undefined
               ? this.editor.description
               : String(params['description']),
+            group: params['group'] === undefined ? this.editor.group : String(params['group']),
             dirty: true,
           };
         }

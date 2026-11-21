@@ -64,6 +64,8 @@ internal sealed class HeadlessEditorSession
 
     public string Description => _model.Description;
 
+    public string Group => _model.Group;
+
     public bool IsDirty => _model.IsDirty;
 
     public bool CanSave => _model.CanSave;
@@ -119,7 +121,7 @@ internal sealed class HeadlessEditorSession
             Strings.Get($"Variable.Type.{WhaleGenie.Models.VariableTypes.Name(kind)}",
                 WhaleGenie.Models.VariableTypes.Name(kind))))];
 
-    public void Patch(string? name = null, string? description = null)
+    public void Patch(string? name = null, string? description = null, string? group = null)
     {
         if (name is not null)
         {
@@ -129,6 +131,11 @@ internal sealed class HeadlessEditorSession
         if (description is not null)
         {
             _model.Description = description;
+        }
+
+        if (group is not null)
+        {
+            _model.Group = group;
         }
     }
 
@@ -320,6 +327,7 @@ internal sealed class HeadlessEditorSession
         return new EditorSnapshot(
             Name,
             Description,
+            Group,
             IsDirty,
             Count(macro.Steps),
             [.. macro.Steps.Select(StepSnapshot)],
@@ -424,7 +432,7 @@ internal sealed class HeadlessEditorSession
     }
 }
 
-internal sealed record EditorSnapshot(string Name, string Description, bool Dirty, int StepCount,
+internal sealed record EditorSnapshot(string Name, string Description, string Group, bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
     bool CanUndo, bool CanRedo);

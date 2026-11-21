@@ -148,6 +148,7 @@ export interface EditorVariableType {
 export interface EditorSnapshot {
   name: string;
   description: string;
+  group: string;
   dirty: boolean;
   stepCount: number;
   steps: EditorStep[];

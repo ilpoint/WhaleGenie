@@ -385,6 +385,12 @@ export class WgEditorGate extends LitElement {
           aria-label=${t('Editor.NamePlaceholder')}
           @input=${(event: Event) => this.editName(event)}
         />
+        <input
+          .value=${this.snapshot.group}
+          placeholder=${t('Editor.GroupPlaceholder')}
+          aria-label=${t('Editor.GroupPlaceholder')}
+          @input=${(event: Event) => this.editGroup(event)}
+        />
         <textarea
           .value=${this.snapshot.description}
           placeholder=${t('Editor.DescriptionPlaceholder')}
@@ -948,6 +954,10 @@ export class WgEditorGate extends LitElement {
     this.snapshot = { ...this.snapshot!, description: (event.target as HTMLTextAreaElement).value };
   }
 
+  private editGroup(event: Event): void {
+    this.snapshot = { ...this.snapshot!, group: (event.target as HTMLInputElement).value };
+  }
+
   private async undo(): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionUndo');
@@ -973,6 +983,7 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionPatch', {
         name: this.snapshot.name,
         description: this.snapshot.description,
+        group: this.snapshot.group,
       });
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionSave');
       await this.loadTabs();
