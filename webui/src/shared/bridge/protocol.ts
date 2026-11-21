@@ -140,6 +140,13 @@ export interface EditorTrigger {
   processName: string;
   processChange: string;
   hotstringText: string;
+  colorMatch: string;
+  colorHex: string;
+  colorTolerance: string;
+  colorX: string;
+  colorY: string;
+  followCursor: boolean;
+  idleSeconds: string;
 }
 
 export interface EditorVariable {

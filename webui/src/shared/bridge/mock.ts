@@ -47,7 +47,8 @@ const chromeKeys = [
   'Editor.WatchFilter', 'Editor.WatchSubfolders', 'FileChange.Any', 'FileChange.Created',
   'FileChange.Changed', 'FileChange.Deleted', 'Editor.ProcessName', 'Editor.ProcessNameHint',
   'Editor.ProcessWhen', 'ProcessChange.Any', 'ProcessChange.Started', 'ProcessChange.Stopped',
-  'Editor.Hotstring', 'Editor.HotstringHint',
+  'Editor.Hotstring', 'Editor.HotstringHint', 'Editor.ColorPosition', 'Editor.ColorTolerance',
+  'Editor.IdleSeconds', 'ColorMatch.Matches', 'ColorMatch.NotMatches',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
@@ -107,6 +108,9 @@ const english: Record<string, string> = {
   'Editor.ProcessWhen': 'When :', 'ProcessChange.Any': 'Started or stopped',
   'ProcessChange.Started': 'Started', 'ProcessChange.Stopped': 'Stopped',
   'Editor.Hotstring': 'Typed string', 'Editor.HotstringHint': 'Type a literal keyboard string',
+  'Editor.ColorPosition': 'Colour position :', 'Editor.ColorTolerance': 'Colour tolerance :',
+  'Editor.IdleSeconds': 'Left alone for :', 'ColorMatch.Matches': 'Colour Matches',
+  'ColorMatch.NotMatches': 'Colour Not Matches',
   'Loop.Press': 'Once, When Key Pressed (Press)', 'Loop.Hold': 'While Holding Key (Hold)',
   'Loop.Toggle': 'Until Key Pressed Again (Toggle)', 'Loop.Release': 'Once, When Key Released (Release)',
   'LocalVariables.Title': 'Local variables',
@@ -178,6 +182,9 @@ const chinese: Record<string, string> = {
   'Editor.ProcessWhen': '时机：', 'ProcessChange.Any': '启动或退出',
   'ProcessChange.Started': '启动', 'ProcessChange.Stopped': '退出',
   'Editor.Hotstring': '键盘字串', 'Editor.HotstringHint': '最多 40 个键盘字面字符',
+  'Editor.ColorPosition': '屏幕取色位置：', 'Editor.ColorTolerance': '颜色容差：',
+  'Editor.IdleSeconds': '空闲时间：', 'ColorMatch.Matches': '颜色匹配',
+  'ColorMatch.NotMatches': '颜色不匹配',
   'Loop.Press': '按下时执行一次（按下）', 'Loop.Hold': '按住期间循环（长按）',
   'Loop.Toggle': '再次按键时停止（切换）', 'Loop.Release': '松开时执行一次（松开）',
   'LocalVariables.Title': '局部变量',
@@ -345,6 +352,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'File', label: '文件' },
             { value: 'Process', label: '程序' },
             { value: 'Hotstring', label: '字串' },
+            { value: 'Idle', label: '空闲' },
           ],
           canUndo: false,
           canRedo: false,
@@ -375,6 +383,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'File', label: '文件' },
             { value: 'Process', label: '程序' },
             { value: 'Hotstring', label: '字串' },
+            { value: 'Idle', label: '空闲' },
           ],
           canUndo: false,
           canRedo: false,
@@ -421,6 +430,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'File', label: '文件' },
             { value: 'Process', label: '程序' },
             { value: 'Hotstring', label: '字串' },
+            { value: 'Idle', label: '空闲' },
           ],
           canUndo: false,
           canRedo: false,
@@ -541,6 +551,13 @@ export class MockTransport implements BridgeTransport {
               processName: '',
               processChange: 'Started',
               hotstringText: '',
+              colorMatch: 'ColorMatches',
+              colorHex: '#000000',
+              colorTolerance: '5',
+              colorX: '0',
+              colorY: '0',
+              followCursor: false,
+              idleSeconds: '60',
             }],
           };
         }
@@ -553,6 +570,46 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerColor':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => {
+              if (trigger.id !== params['triggerId']) {
+                return trigger;
+              }
+              const field = String(params['field'] ?? '');
+              return {
+                ...trigger,
+                colorMatch: field === 'match' ? String(params['value'] ?? '') : trigger.colorMatch,
+                colorHex: field === 'hex' ? String(params['value'] ?? '') : trigger.colorHex,
+                colorTolerance: field === 'tolerance'
+                  ? String(params['value'] ?? '')
+                  : trigger.colorTolerance,
+                colorX: field === 'x' ? String(params['value'] ?? '') : trigger.colorX,
+                colorY: field === 'y' ? String(params['value'] ?? '') : trigger.colorY,
+                followCursor: field === 'follow'
+                  ? params['value'] === 'true'
+                  : trigger.followCursor,
+              };
+            }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerIdle':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
+              ? { ...trigger, idleSeconds: String(params['value'] ?? '') }
+              : trigger),
           };
         }
         result = this.editor;

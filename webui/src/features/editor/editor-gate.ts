@@ -215,11 +215,21 @@ export class WgEditorGate extends LitElement {
     }
 
     .file-fields,
-    .process-fields {
+    .process-fields,
+    .color-fields {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: var(--spacingHorizontalS);
+    }
+
+    .color-fields input[type='color'] {
+      width: 48px;
+      padding: var(--spacingVerticalXS);
+    }
+
+    .idle-field {
+      width: 96px;
     }
 
     .hotstring-field {
@@ -588,7 +598,62 @@ export class WgEditorGate extends LitElement {
                       aria-label=${t('Editor.Hotstring')}
                       @change=${(event: Event) => void this.setTriggerHotstring(trigger.id, event)}
                     />`
-                  : html`<span>${trigger.summary}</span>`}
+                : trigger.kind === 'Color'
+                  ? html`<div class="color-fields">
+                      <select
+                        .value=${trigger.colorMatch}
+                        aria-label=${t('Editor.ColorTolerance')}
+                        @change=${(event: Event) => void this.setTriggerColor(trigger.id, 'match', event)}
+                      >
+                        <option value="ColorMatches">${t('ColorMatch.Matches')}</option>
+                        <option value="ColorNotMatches">${t('ColorMatch.NotMatches')}</option>
+                      </select>
+                      <input
+                        type="color"
+                        .value=${trigger.colorHex}
+                        aria-label=${t('Editor.ColorPosition')}
+                        @input=${(event: Event) => void this.setTriggerColor(trigger.id, 'hex', event)}
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        .value=${trigger.colorTolerance}
+                        aria-label=${t('Editor.ColorTolerance')}
+                        @change=${(event: Event) => void this.setTriggerColor(trigger.id, 'tolerance', event)}
+                      />
+                      <label class="once">
+                        <input
+                          type="checkbox"
+                          .checked=${trigger.followCursor}
+                          @change=${(event: Event) => void this.setTriggerColor(trigger.id, 'follow', event)}
+                        />
+                        ${t('Editor.ColorPosition')}
+                      </label>
+                      ${trigger.followCursor
+                        ? nothing
+                        : html`<input
+                            type="number"
+                            .value=${trigger.colorX}
+                            aria-label=${t('Editor.ColorPosition')}
+                            @change=${(event: Event) => void this.setTriggerColor(trigger.id, 'x', event)}
+                          />
+                          <input
+                            type="number"
+                            .value=${trigger.colorY}
+                            aria-label=${t('Editor.ColorPosition')}
+                            @change=${(event: Event) => void this.setTriggerColor(trigger.id, 'y', event)}
+                          />`}
+                    </div>`
+                  : trigger.kind === 'Idle'
+                    ? html`<input
+                        class="idle-field"
+                        type="number"
+                        min="1"
+                        .value=${trigger.idleSeconds}
+                        aria-label=${t('Editor.IdleSeconds')}
+                        @change=${(event: Event) => void this.setTriggerIdle(trigger.id, event)}
+                      />`
+                    : html`<span>${trigger.summary}</span>`}
             <button
               title=${t('Editor.RemoveTrigger')}
               aria-label=${t('Editor.RemoveTrigger')}
@@ -830,6 +895,33 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
         binding,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerColor(triggerId: string, field: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox'
+      ? String(target.checked)
+      : target.value;
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerColor', {
+        triggerId,
+        field,
+        value,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerIdle(triggerId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerIdle', {
+        triggerId,
+        value: (event.target as HTMLInputElement).value,
       });
     } catch (error) {
       this.error = String(error);

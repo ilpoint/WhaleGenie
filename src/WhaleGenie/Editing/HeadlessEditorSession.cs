@@ -105,7 +105,22 @@ internal sealed class HeadlessEditorSession
             entry.Spec is FileSpec folders && folders.Subfolders,
             entry.Spec is ProcessSpec process ? process.Name : string.Empty,
             entry.Spec is ProcessSpec processChange ? processChange.Change.ToString() : string.Empty,
-            entry.Spec is HotstringSpec hotstring ? hotstring.Abbreviation : string.Empty))];
+            entry.Spec is HotstringSpec hotstring ? hotstring.Abbreviation : string.Empty,
+            entry.Spec is ColorSpec colour ? colour.Match.ToString() : string.Empty,
+            entry.Spec is ColorSpec hex ? hex.Hex : string.Empty,
+            entry.Spec is ColorSpec tolerance
+                ? tolerance.Tolerance.ToString(CultureInfo.InvariantCulture)
+                : string.Empty,
+            entry.Spec is ColorSpec point
+                ? point.X.ToString(CultureInfo.InvariantCulture)
+                : string.Empty,
+            entry.Spec is ColorSpec pointY
+                ? pointY.Y.ToString(CultureInfo.InvariantCulture)
+                : string.Empty,
+            entry.Spec is ColorSpec follow && follow.FollowCursor,
+            entry.Spec is IdleSpec idle
+                ? idle.Seconds.ToString(CultureInfo.InvariantCulture)
+                : string.Empty))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -263,6 +278,59 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerColor(string triggerId, string field, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not ColorSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a colour trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        switch (field)
+        {
+            case "match":
+                _model.ColorMatch = Enum.Parse<ColorMatchCondition>(value, ignoreCase: true);
+                break;
+            case "hex":
+                _model.HexColor = value.Trim();
+                break;
+            case "tolerance":
+                _model.ColorTolerance = value.Trim();
+                break;
+            case "x":
+                _model.ColorPositionX = value.Trim();
+                break;
+            case "y":
+                _model.ColorPositionY = value.Trim();
+                break;
+            case "follow":
+                _model.UseCursorPosition = bool.TryParse(value, out var follow) && follow;
+                break;
+            default:
+                throw new InvalidOperationException("unknown colour field " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerIdle(string triggerId, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not IdleSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not an idle trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        _model.IdleSeconds = int.TryParse(value, out var seconds) ? Math.Max(1, seconds) : 60;
         _model.IsDirty = true;
     }
 
@@ -586,7 +654,9 @@ internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
     bool Enabled, string Binding, string Loop, bool Once, string TimerMode, string Time,
     string Interval, string Unit, string FilePath, string FileChange, string FileFilter,
-    bool FileSubfolders, string ProcessName, string ProcessChange, string HotstringText);
+    bool FileSubfolders, string ProcessName, string ProcessChange, string HotstringText,
+    string ColorMatch, string ColorHex, string ColorTolerance, string ColorX, string ColorY,
+    bool FollowCursor, string IdleSeconds);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,

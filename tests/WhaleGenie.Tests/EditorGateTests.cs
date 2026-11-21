@@ -143,6 +143,21 @@ public class EditorGateTests
         session.SetTriggerHotstring(hotstring.Id, "hello");
         Assert.Equal("hello",
             session.Snapshot().Triggers.Single(item => item.Kind == "Hotstring").HotstringText);
+
+        session.AddTrigger("Color");
+        var colour = session.Snapshot().Triggers.Single(item => item.Kind == "Color");
+        session.SetTriggerColor(colour.Id, "hex", "#FF0000");
+        session.SetTriggerColor(colour.Id, "tolerance", "7");
+        session.SetTriggerColor(colour.Id, "follow", "true");
+        var watchedColour = session.Snapshot().Triggers.Single(item => item.Kind == "Color");
+        Assert.Equal("#FF0000", watchedColour.ColorHex);
+        Assert.Equal("7", watchedColour.ColorTolerance);
+        Assert.True(watchedColour.FollowCursor);
+
+        session.AddTrigger("Idle");
+        var idle = session.Snapshot().Triggers.Single(item => item.Kind == "Idle");
+        session.SetTriggerIdle(idle.Id, "90");
+        Assert.Equal("90", session.Snapshot().Triggers.Single(item => item.Kind == "Idle").IdleSeconds);
     }
 
     [Fact]
