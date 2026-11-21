@@ -640,11 +640,23 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
+test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏库' }).click();
+  await page.locator('wg-library .source select').selectOption({ label: '自动保存' });
+  await page.locator('wg-library .source fluent-button', { hasText: '添加选中的工程宏' }).click();
+  await expect(page.locator('wg-library .card')).toHaveCount(2);
+  await page.locator('wg-library .card', { hasText: '自动保存' })
+    .locator('fluent-button[title="用选中的工程宏覆盖"]').click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('library.replace')))
+    .toBe(true);
+});
+
 test('宏库页列出并删除公共宏', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏库' }).click();
   await expect(page.locator('wg-library h1')).toHaveText('共享宏');
   await expect(page.locator('wg-library .card')).toHaveCount(1);
-  await page.locator('wg-library .card fluent-button').click();
+  await page.locator('wg-library .card fluent-button[aria-label="从宏库删除"]').click();
   await expect(page.locator('wg-library .card')).toHaveCount(0);
   await expect(page.locator('wg-library .empty')).toHaveText('宏库还没有宏。');
 });

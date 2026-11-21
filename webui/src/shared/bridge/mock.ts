@@ -25,7 +25,8 @@ const chromeKeys = [
   'Shell.Status.Planned', 'Shell.Placeholder.Body', 'Shell.Navigation', 'Shell.OpenNative',
   'Shell.File', 'Shell.About', 'Shell.Help', 'Shell.Manual',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
-  'Library.Failed', 'Shell.Window.Minimize',
+  'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
+  'Shell.Window.Minimize',
   'Shell.Window.Maximize', 'Shell.Window.Restore', 'Shell.Window.Close', 'Shell.Window.Pin',
   'Shell.Window.Unpin', 'Main.Title', 'Main.Dock.All', 'Main.Dock.Keys', 'Main.Dock.Interface',
   'Main.Dock.Hotstring', 'Main.Dock.Menu', 'Main.Dock.Wheel', 'Main.Dock.Events',
@@ -178,6 +179,8 @@ const english: Record<string, string> = {
   'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
   'Library.Empty': 'The library has no macros yet.', 'Library.Delete': 'Remove from library',
   'Library.Failed': 'The library could not be read.',
+  'Library.AddFromProject': 'Add selected project macro',
+  'Library.ReplaceFromProject': 'Replace with selected project macro',
   'Shell.Window.Maximize': 'Maximize', 'Shell.Window.Restore': 'Restore',
   'Shell.Window.Close': 'Close', 'Shell.Window.Pin': 'Keep on top',
   'Shell.Window.Unpin': 'Stop keeping on top', 'Main.Title': 'WhaleGenie',
@@ -284,6 +287,8 @@ const chinese: Record<string, string> = {
   'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
   'Library.Empty': '宏库还没有宏。', 'Library.Delete': '从宏库删除',
   'Library.Failed': '无法读取宏库。',
+  'Library.AddFromProject': '添加选中的工程宏',
+  'Library.ReplaceFromProject': '用选中的工程宏覆盖',
   'Shell.Window.Maximize': '最大化', 'Shell.Window.Restore': '还原',
   'Shell.Window.Close': '关闭', 'Shell.Window.Pin': '窗口置顶',
   'Shell.Window.Unpin': '取消置顶', 'Main.Title': '鲸灵',
@@ -423,6 +428,23 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'library.delete':
         this.libraryEntries = this.libraryEntries.filter((entry) => entry.id !== String(params['id']));
+        result = { entries: this.libraryEntries, error: null };
+        break;
+      case 'library.add': {
+        const macro = this.projectState.macros.find((entry) => entry.name === params['name']);
+        this.libraryEntries = [...this.libraryEntries, {
+          id: 'library-' + String(this.libraryEntries.length + 1),
+          name: String(params['name'] ?? macro?.name ?? ''),
+          version: 1,
+          description: macro?.description ?? '',
+        }];
+        result = { entries: this.libraryEntries, error: null };
+        break;
+      }
+      case 'library.replace':
+        this.libraryEntries = this.libraryEntries.map((entry) => entry.id === params['id']
+          ? { ...entry, name: String(params['name'] ?? entry.name), version: entry.version + 1 }
+          : entry);
         result = { entries: this.libraryEntries, error: null };
         break;
       case 'editor.sessionNew':
