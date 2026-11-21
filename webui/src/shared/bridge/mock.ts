@@ -49,7 +49,12 @@ const chromeKeys = [
   'FileChange.Changed', 'FileChange.Deleted', 'Editor.ProcessName', 'Editor.ProcessNameHint',
   'Editor.ProcessWhen', 'ProcessChange.Any', 'ProcessChange.Started', 'ProcessChange.Stopped',
   'Editor.Hotstring', 'Editor.HotstringHint', 'Editor.ColorPosition', 'Editor.ColorTolerance',
-  'Editor.IdleSeconds', 'ColorMatch.Matches', 'ColorMatch.NotMatches',
+  'Editor.IdleSeconds', 'ColorMatch.Matches', 'ColorMatch.NotMatches', 'WindowPart.Title',
+  'WindowRule.Process', 'WindowRule.How', 'WindowRule.How.titleContains',
+  'WindowRule.How.titleStartsWith', 'WindowRule.How.titleEndsWith', 'WindowRule.How.titleEquals',
+  'WindowRule.How.titleRegex', 'WindowRule.How.process', 'WindowRule.How.processEquals',
+  'WindowRule.How.class', 'WindowRule.How.classEquals', 'WindowRule.How.handle',
+  'WindowChange.Appeared', 'WindowChange.Disappeared', 'WindowChange.Any',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
@@ -112,7 +117,14 @@ const english: Record<string, string> = {
   'Editor.Hotstring': 'Typed string', 'Editor.HotstringHint': 'Type a literal keyboard string',
   'Editor.ColorPosition': 'Colour position :', 'Editor.ColorTolerance': 'Colour tolerance :',
   'Editor.IdleSeconds': 'Left alone for :', 'ColorMatch.Matches': 'Colour Matches',
-  'ColorMatch.NotMatches': 'Colour Not Matches',
+  'ColorMatch.NotMatches': 'Colour Not Matches', 'WindowPart.Title': 'Title',
+  'WindowRule.Process': 'Process', 'WindowRule.How': 'Match by',
+  'WindowRule.How.titleContains': 'Title contains', 'WindowRule.How.titleStartsWith': 'Title starts with',
+  'WindowRule.How.titleEndsWith': 'Title ends with', 'WindowRule.How.titleEquals': 'Title is exactly',
+  'WindowRule.How.titleRegex': 'Title matches a pattern', 'WindowRule.How.process': 'Process name contains',
+  'WindowRule.How.processEquals': 'Process name is exactly', 'WindowRule.How.class': 'Window class contains',
+  'WindowRule.How.classEquals': 'Window class is exactly', 'WindowRule.How.handle': 'Window handle',
+  'WindowChange.Appeared': 'Appears', 'WindowChange.Disappeared': 'Goes away', 'WindowChange.Any': 'Either',
   'Loop.Press': 'Once, When Key Pressed (Press)', 'Loop.Hold': 'While Holding Key (Hold)',
   'Loop.Toggle': 'Until Key Pressed Again (Toggle)', 'Loop.Release': 'Once, When Key Released (Release)',
   'LocalVariables.Title': 'Local variables',
@@ -187,7 +199,14 @@ const chinese: Record<string, string> = {
   'Editor.Hotstring': '键盘字串', 'Editor.HotstringHint': '最多 40 个键盘字面字符',
   'Editor.ColorPosition': '屏幕取色位置：', 'Editor.ColorTolerance': '颜色容差：',
   'Editor.IdleSeconds': '空闲时间：', 'ColorMatch.Matches': '颜色匹配',
-  'ColorMatch.NotMatches': '颜色不匹配',
+  'ColorMatch.NotMatches': '颜色不匹配', 'WindowPart.Title': '标题',
+  'WindowRule.Process': '进程名', 'WindowRule.How': '匹配方式',
+  'WindowRule.How.titleContains': '标题包含', 'WindowRule.How.titleStartsWith': '标题开头',
+  'WindowRule.How.titleEndsWith': '标题结尾', 'WindowRule.How.titleEquals': '标题等于',
+  'WindowRule.How.titleRegex': '标题正则', 'WindowRule.How.process': '进程名包含',
+  'WindowRule.How.processEquals': '进程名等于', 'WindowRule.How.class': '窗口类包含',
+  'WindowRule.How.classEquals': '窗口类等于', 'WindowRule.How.handle': '窗口句柄',
+  'WindowChange.Appeared': '出现', 'WindowChange.Disappeared': '消失', 'WindowChange.Any': '出现或消失',
   'Loop.Press': '按下时执行一次（按下）', 'Loop.Hold': '按住期间循环（长按）',
   'Loop.Toggle': '再次按键时停止（切换）', 'Loop.Release': '松开时执行一次（松开）',
   'LocalVariables.Title': '局部变量',
@@ -356,6 +375,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Process', label: '程序' },
             { value: 'Hotstring', label: '字串' },
             { value: 'Idle', label: '空闲' },
+            { value: 'Window', label: '窗口' },
           ],
           canUndo: false,
           canRedo: false,
@@ -387,6 +407,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Process', label: '程序' },
             { value: 'Hotstring', label: '字串' },
             { value: 'Idle', label: '空闲' },
+            { value: 'Window', label: '窗口' },
           ],
           canUndo: false,
           canRedo: false,
@@ -434,6 +455,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Process', label: '程序' },
             { value: 'Hotstring', label: '字串' },
             { value: 'Idle', label: '空闲' },
+            { value: 'Window', label: '窗口' },
           ],
           canUndo: false,
           canRedo: false,
@@ -626,6 +648,11 @@ export class MockTransport implements BridgeTransport {
               colorY: '0',
               followCursor: false,
               idleSeconds: '60',
+              windowTitle: '',
+              windowProcess: '',
+              windowClass: '',
+              windowHow: 'TitleContains',
+              windowChange: 'Appeared',
             }],
           };
         }
@@ -638,6 +665,30 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerWindow':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => {
+              if (trigger.id !== params['triggerId']) {
+                return trigger;
+              }
+              const field = String(params['field'] ?? '');
+              const value = String(params['value'] ?? '');
+              return {
+                ...trigger,
+                windowTitle: field === 'title' ? value : trigger.windowTitle,
+                windowProcess: field === 'process' ? value : trigger.windowProcess,
+                windowClass: field === 'class' ? value : trigger.windowClass,
+                windowHow: field === 'how' ? value : trigger.windowHow,
+                windowChange: field === 'change' ? value : trigger.windowChange,
+              };
+            }),
           };
         }
         result = this.editor;

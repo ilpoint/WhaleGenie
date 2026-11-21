@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
@@ -120,7 +121,12 @@ internal sealed class HeadlessEditorSession
             entry.Spec is ColorSpec follow && follow.FollowCursor,
             entry.Spec is IdleSpec idle
                 ? idle.Seconds.ToString(CultureInfo.InvariantCulture)
-                : string.Empty))];
+                : string.Empty,
+            entry.Spec is WindowSpec window ? window.Target.Title : string.Empty,
+            entry.Spec is WindowSpec processWindow ? processWindow.Target.Process : string.Empty,
+            entry.Spec is WindowSpec classWindow ? classWindow.Target.ClassName : string.Empty,
+            entry.Spec is WindowSpec howWindow ? howWindow.Target.How.ToString() : string.Empty,
+            entry.Spec is WindowSpec changeWindow ? changeWindow.Change.ToString() : string.Empty))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -278,6 +284,41 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerWindow(string triggerId, string field, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not WindowSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a window trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        switch (field)
+        {
+            case "title":
+                _model.WindowTarget = _model.WindowTarget with { Title = value };
+                break;
+            case "process":
+                _model.WindowTarget = _model.WindowTarget with { Process = value };
+                break;
+            case "class":
+                _model.WindowTarget = _model.WindowTarget with { ClassName = value };
+                break;
+            case "how":
+                _model.WindowTarget = _model.WindowTarget with { How = value };
+                break;
+            case "change":
+                _model.WindowChange = Enum.Parse<WindowChangeKind>(value, ignoreCase: true);
+                break;
+            default:
+                throw new InvalidOperationException("unknown window field " + field);
+        }
+
         _model.IsDirty = true;
     }
 
@@ -720,7 +761,8 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
     string Interval, string Unit, string FilePath, string FileChange, string FileFilter,
     bool FileSubfolders, string ProcessName, string ProcessChange, string HotstringText,
     string ColorMatch, string ColorHex, string ColorTolerance, string ColorX, string ColorY,
-    bool FollowCursor, string IdleSeconds);
+    bool FollowCursor, string IdleSeconds, string WindowTitle, string WindowProcess,
+    string WindowClass, string WindowHow, string WindowChange);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,

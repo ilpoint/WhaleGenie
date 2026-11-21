@@ -179,6 +179,16 @@ public class EditorGateTests
         var idle = session.Snapshot().Triggers.Single(item => item.Kind == "Idle");
         session.SetTriggerIdle(idle.Id, "90");
         Assert.Equal("90", session.Snapshot().Triggers.Single(item => item.Kind == "Idle").IdleSeconds);
+
+        session.AddTrigger("Window");
+        var window = session.Snapshot().Triggers.Single(item => item.Kind == "Window");
+        session.SetTriggerWindow(window.Id, "title", "Notepad");
+        session.SetTriggerWindow(window.Id, "how", "TitleEquals");
+        session.SetTriggerWindow(window.Id, "change", "Disappeared");
+        var watchedWindow = session.Snapshot().Triggers.Single(item => item.Kind == "Window");
+        Assert.Equal("Notepad", watchedWindow.WindowTitle);
+        Assert.Equal("TitleEquals", watchedWindow.WindowHow);
+        Assert.Equal("Disappeared", watchedWindow.WindowChange);
     }
 
     [Fact]

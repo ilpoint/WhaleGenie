@@ -158,6 +158,11 @@ export interface EditorTrigger {
   colorY: string;
   followCursor: boolean;
   idleSeconds: string;
+  windowTitle: string;
+  windowProcess: string;
+  windowClass: string;
+  windowHow: string;
+  windowChange: string;
 }
 
 export interface EditorVariable {
