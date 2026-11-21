@@ -339,6 +339,7 @@ export interface BridgeEvents {
   'project.changed': ProjectState;
   'dialog.request': DialogRequest;
   'mcp.changed': McpState;
+  'editor.openRequested': { name: string };
 }
 
 export type BridgeEventName = keyof BridgeEvents;

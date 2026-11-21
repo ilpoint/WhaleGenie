@@ -82,6 +82,10 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     /// </summary>
     bool ITriggerFocusProbe.IsTextInputFocused => IsActive && Volatile.Read(ref _textInputFocused) == 1;
 
+    /// <summary>Asks the page to open a macro in the web editor, from a native menu.</summary>
+    internal void OpenEditor(string name)
+        => _ = _bridge?.PushAsync("editor.openRequested", new { name });
+
     /// <summary>The page reports focus changes through window.focus.</summary>
     internal void SetTextInputFocused(bool focused)
         => Volatile.Write(ref _textInputFocused, focused ? 1 : 0);

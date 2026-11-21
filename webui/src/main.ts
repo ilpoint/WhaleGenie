@@ -17,6 +17,7 @@ import { theme } from './shared/theme/theme.js';
 import { appInfo } from './shared/app/app.js';
 import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
+import { go } from './app/router.js';
 import { installFocusReporting } from './shared/focus/focus.js';
 import './app/shell.js';
 
@@ -43,5 +44,8 @@ client.on('strings.changed', (next) => strings.load(next));
 client.on('theme.changed', (next) => theme.load(next));
 client.on('window.changed', (next) => windowMirror.load(next));
 client.on('project.changed', (next) => project.load(next));
+client.on('editor.openRequested', ({ name }) => {
+  void client.call('editor.sessionOpen', { name }).then(() => go('editor'));
+});
 
 await client.call('bridge.ready');

@@ -640,6 +640,16 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
+test('原生菜单请求编辑会进入网页编辑器', async ({ page }) => {
+  await expect(page.locator('wg-nav')).toBeVisible();
+  await page.evaluate(() => window.__mock!.push('editor.openRequested', { name: '游戏连招' }));
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionOpen')))
+    .toBe(true);
+  await expect(page).toHaveURL(/#editor$/);
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('游戏连招');
+});
+
 test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
 

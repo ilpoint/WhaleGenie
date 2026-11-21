@@ -15,13 +15,16 @@ internal sealed class ShellHostFactory(
     SystemState system,
     TriggerRuntime runtime,
     RunQuestionHost questions,
-    MainViewModel viewModel,
-    EditorBridge editor)
+    MainViewModel viewModel)
 {
     public ShellHost Create(WebShellWindow owner)
     {
         var actions = new ShellNativeWindows(workspace, viewModel, runtime, () => owner,
-            macro => editor.OpenMacro(macro));
+            macro =>
+            {
+                owner.OpenEditor(macro.Name);
+                return true;
+            });
         return new ShellHost(workspace, system, runtime, questions, actions, owner, owner);
     }
 }

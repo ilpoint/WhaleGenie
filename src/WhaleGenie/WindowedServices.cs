@@ -50,12 +50,9 @@ internal static class WindowedServices
         =>
         // The view model the shell's native windows read is the same instance the MCP server reads.
         services.AddSingleton<RunQuestionHost>()
-        .AddSingleton(sp => new EditorBridge(() => sp.GetRequiredService<ProjectWorkspace>(),
-            sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()))
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
-            sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
-            sp.GetRequiredService<EditorBridge>()))
+            sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>()))
         .AddSingleton(sp =>
         {
             // The web shell's handlers are registered once and serve the one page; the window
