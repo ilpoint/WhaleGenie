@@ -143,23 +143,13 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     private bool IsAllowedSource(Uri uri)
     {
-        if (uri.Scheme == "about")
+        Uri? dev = null;
+        if (DevUrl is { Length: > 0 } text && Uri.TryCreate(text, UriKind.Absolute, out var parsed))
         {
-            return true;
+            dev = parsed;
         }
 
-        if (DevUrl is { } dev && uri.AbsoluteUri.StartsWith(dev, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (uri.IsFile)
-        {
-            var root = Path.Combine(AppContext.BaseDirectory, "webui");
-            return uri.LocalPath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return false;
+        return WebShellNavigation.IsAllowed(uri, dev, Path.Combine(AppContext.BaseDirectory, "webui"));
     }
 
     private void OnAdapterCreated(object? sender, EventArgs args)
