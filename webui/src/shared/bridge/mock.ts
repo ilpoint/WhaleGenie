@@ -38,7 +38,8 @@ const chromeKeys = [
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
-  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
+  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Condition.All',
+  'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
@@ -101,6 +102,7 @@ const english: Record<string, string> = {
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
   'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
+  'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
   'Add.StepComment': 'Comment', 'Add.StepTimeout': 'Timeout',
   'Add.StepRetry': 'Retries', 'Add.StepRetryDelay': 'Retry delay', 'Add.StepOnError': 'When it fails',
@@ -194,6 +196,7 @@ const chinese: Record<string, string> = {
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
   'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
+  'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
   'Add.StepComment': '备注', 'Add.StepTimeout': '超时',
   'Add.StepRetry': '重试', 'Add.StepRetryDelay': '重试间隔', 'Add.StepOnError': '失败时',
@@ -390,6 +393,13 @@ export class MockTransport implements BridgeTransport {
           valueChoices: [
             { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
           ],
+          conditionCompares: [
+            { value: 'Equal', label: '=' },
+            { value: 'NotEqual', label: '≠' },
+            { value: 'Greater', label: '>' },
+            { value: 'Less', label: '<' },
+            { value: 'Holds', label: 'holds' },
+          ],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -426,6 +436,13 @@ export class MockTransport implements BridgeTransport {
           globals: [],
           valueChoices: [
             { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
+          ],
+          conditionCompares: [
+            { value: 'Equal', label: '=' },
+            { value: 'NotEqual', label: '≠' },
+            { value: 'Greater', label: '>' },
+            { value: 'Less', label: '<' },
+            { value: 'Holds', label: 'holds' },
           ],
           variableTypes: [
             { value: 'text', label: '文本' },
@@ -480,6 +497,13 @@ export class MockTransport implements BridgeTransport {
           valueChoices: [
             { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
           ],
+          conditionCompares: [
+            { value: 'Equal', label: '=' },
+            { value: 'NotEqual', label: '≠' },
+            { value: 'Greater', label: '>' },
+            { value: 'Less', label: '<' },
+            { value: 'Holds', label: 'holds' },
+          ],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -513,6 +537,80 @@ export class MockTransport implements BridgeTransport {
               : String(params['description']),
             group: params['group'] === undefined ? this.editor.group : String(params['group']),
             dirty: true,
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionConditionRowAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeCondition(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (condition) => ({
+                ...condition,
+                rows: [...condition.rows, { left: '', compare: 'Equal', right: '' }],
+              })),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionConditionRowRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeCondition(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (condition) => ({
+                ...condition,
+                rows: condition.rows.filter((_, index) => index !== Number(params['index'])),
+              })),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionConditionRow':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeCondition(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (condition) => ({
+                ...condition,
+                rows: condition.rows.map((row, index) => index !== Number(params['index'])
+                  ? row
+                  : {
+                      ...row,
+                      left: params['field'] === 'left' ? String(params['value'] ?? '') : row.left,
+                      compare: params['field'] === 'compare'
+                        ? String(params['value'] ?? '')
+                        : row.compare,
+                      right: params['field'] === 'right' ? String(params['value'] ?? '') : row.right,
+                    }),
+              })),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionConditionJoin':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeCondition(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (condition) => ({ ...condition, join: String(params['join'] ?? 'All') })),
           };
         }
         result = this.editor;
@@ -579,7 +677,9 @@ export class MockTransport implements BridgeTransport {
                     ? '颜色'
                     : type === 'image.find'
                       ? '找图'
-                      : type,
+                      : type === 'control.waitUntil'
+                        ? '等待条件'
+                        : type,
             enabled: true,
             comment: '',
             timeoutMs: 0,
@@ -590,17 +690,17 @@ export class MockTransport implements BridgeTransport {
             parameters: type === 'control.delay'
               ? [{
                   name: 'ms', label: '等待时长', kind: 'Number', value: '',
-                  options: [], columns: [], rows: [],
+                  options: [], columns: [], rows: [], condition: null,
                 }]
               : type === 'input.keyPress'
                 ? [{
                     name: 'key', label: '按键', kind: 'Key', value: '',
-                    options: [], columns: [], rows: [],
+                    options: [], columns: [], rows: [], condition: null,
                   }]
                 : type === 'screen.color'
                   ? [{
                       name: 'hex', label: '颜色', kind: 'Color', value: '',
-                      options: [], columns: [], rows: [],
+                      options: [], columns: [], rows: [], condition: null,
                     }]
                   : type === 'control.repeat'
                     ? [{
@@ -608,13 +708,24 @@ export class MockTransport implements BridgeTransport {
                         options: [],
                         columns: [{ name: 'key', required: true }, { name: 'name', required: true }],
                         rows: [],
+                        condition: null,
                       }]
                     : type === 'image.find'
                       ? [{
                           name: 'path', label: '图片', kind: 'Image', value: '',
-                          options: [], columns: [], rows: [],
+                          options: [], columns: [], rows: [], condition: null,
                         }]
-                      : [],
+                      : type === 'control.waitUntil'
+                        ? [{
+                            name: 'condition', label: '条件', kind: 'Condition', value: '',
+                            options: [], columns: [], rows: [],
+                            condition: {
+                              join: 'All',
+                              editable: true,
+                              rows: [{ left: '', compare: 'Equal', right: '' }],
+                            },
+                          }]
+                        : [],
             steps: [],
           };
           this.editor = {
@@ -1133,6 +1244,17 @@ export class MockTransport implements BridgeTransport {
               ],
             },
             {
+              key: 'control.waitUntil',
+              name: '等待条件',
+              category: 'Control',
+              categoryLabel: 'Flow',
+              description: '',
+              hidden: false,
+              parameters: [
+                { name: 'condition', label: '条件', kind: 'Condition', required: false, placeholder: '', options: [] },
+              ],
+            },
+            {
               key: 'image.find',
               name: '找图',
               category: 'Screen',
@@ -1294,6 +1416,28 @@ export class MockTransport implements BridgeTransport {
     }
 
     this.answer({ id: request.id, ok: true, result });
+  }
+
+  private changeCondition(
+    steps: EditorStep[],
+    stepId: string,
+    name: string,
+    change: (condition: NonNullable<EditorStep['parameters'][number]['condition']>) =>
+      NonNullable<EditorStep['parameters'][number]['condition']>,
+  ): EditorStep[] {
+    return steps.map((step) => {
+      if (step.id === stepId) {
+        return {
+          ...step,
+          parameters: step.parameters.map((parameter) =>
+            parameter.name === name && parameter.condition
+              ? { ...parameter, condition: change(parameter.condition) }
+              : parameter),
+        };
+      }
+
+      return { ...step, steps: this.changeCondition(step.steps, stepId, name, change) };
+    });
   }
 
   private changeStepMeta(

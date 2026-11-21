@@ -170,6 +170,29 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_condition_parameter_can_edit_rows()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "conditions" });
+        var session = HeadlessEditorSession.Open(workspace, "conditions");
+        session.AddStep("control.waitUntil");
+
+        var step = Assert.Single(session.Snapshot().Steps);
+        var parameter = step.Parameters.Single(item => item.Name == "condition");
+        Assert.NotNull(parameter.Condition);
+        Assert.True(parameter.Condition!.Editable);
+
+        session.AddConditionRow(step.Id, "condition");
+        session.SetConditionRow(step.Id, "condition", 0, "left", "$found");
+        session.SetConditionRow(step.Id, "condition", 0, "compare", "Equal");
+        session.SetConditionRow(step.Id, "condition", 0, "right", "1");
+        var row = session.Snapshot().Steps.Single().Parameters
+            .Single(item => item.Name == "condition").Condition!.Rows[0];
+        Assert.Equal("found", row.Left);
+        Assert.Equal("1", row.Right);
+    }
+
+    [Fact]
     public void A_row_parameter_can_add_and_fill_rows()
     {
         var workspace = new ProjectWorkspace();

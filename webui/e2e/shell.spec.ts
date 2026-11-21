@@ -190,6 +190,25 @@ test('C1 步骤可改备注、超时与失败处理', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 条件参数可按行编辑', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .action-search').fill('等待条件');
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '等待条件' }).click();
+
+  const rows = page.locator('wg-editor-gate .condition-table tr');
+  await expect(rows).toHaveCount(1);
+  await page.locator('wg-editor-gate .condition-table input').nth(0).fill('$found');
+  await page.locator('wg-editor-gate .condition-table input').nth(0).press('Tab');
+  await page.locator('wg-editor-gate .condition-table select').first().selectOption('Equal');
+  await page.locator('wg-editor-gate .condition-table input').nth(1).fill('1');
+  await page.locator('wg-editor-gate .condition-table input').nth(1).press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionConditionRow')))
+    .toBe(true);
+});
+
 test('C1 动作选择器可按名称过滤', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .action-search').fill('延迟');

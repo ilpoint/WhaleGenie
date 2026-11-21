@@ -22,6 +22,7 @@ internal sealed class HeadlessEditorSession
 {
     private readonly ProjectWorkspace _workspace;
     private readonly MacroEditorViewModel _model;
+    private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
     private MacroItem? _existing;
 
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing)
@@ -161,6 +162,10 @@ internal sealed class HeadlessEditorSession
             WhaleGenie.Models.VariableTypes.Name(kind),
             Strings.Get($"Variable.Type.{WhaleGenie.Models.VariableTypes.Name(kind)}",
                 WhaleGenie.Models.VariableTypes.Name(kind))))];
+
+    public static IReadOnlyList<EditorConditionCompareSnapshot> ConditionCompares
+        => [.. Condition.CompareChoices.Select(choice => new EditorConditionCompareSnapshot(
+            choice.Compare.ToString(), choice.Label))];
 
     public IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices
         => [.. _model.CollectVariables().Select(choice => new EditorValueChoiceSnapshot(
@@ -669,6 +674,95 @@ internal sealed class HeadlessEditorSession
             OnError = onError ?? meta.OnError,
         };
 
+    public void AddConditionRow(string stepId, string name)
+        => ChangeCondition(stepId, name, rows => rows.Add(new ConditionShape.Row(
+            Formula.Nothing, ConditionCompare.Equal, Formula.Nothing)));
+
+    public void RemoveConditionRow(string stepId, string name, int index)
+        => ChangeCondition(stepId, name, rows =>
+        {
+            if (index < 0 || index >= rows.Count)
+            {
+                throw new InvalidOperationException("the condition has no row " + index);
+            }
+
+            rows.RemoveAt(index);
+        });
+
+    public void SetConditionRow(string stepId, string name, int index, string field, string value)
+        => ChangeCondition(stepId, name, rows =>
+        {
+            if (index < 0 || index >= rows.Count)
+            {
+                throw new InvalidOperationException("the condition has no row " + index);
+            }
+
+            var row = rows[index];
+            rows[index] = field switch
+            {
+                "left" => row with { Left = ConditionValue(value) },
+                "right" => row with { Right = ConditionValue(value) },
+                "compare" => row with { Compare = Enum.Parse<ConditionCompare>(value, ignoreCase: true) },
+                _ => throw new InvalidOperationException("unknown condition field " + field),
+            };
+        });
+
+    public void SetConditionJoin(string stepId, string name, string value)
+        => ChangeCondition(stepId, name, _ => { }, Enum.Parse<Join>(value, ignoreCase: true));
+
+    private static ExpressionNode ConditionValue(string value)
+    {
+        var text = value.Trim();
+        if (text.Length == 0)
+        {
+            return Formula.Nothing;
+        }
+
+        if (text[0] == '$')
+        {
+            return Formula.Name(text[1..]);
+        }
+
+        if (bool.TryParse(text, out var flag))
+        {
+            return Formula.Constant(flag ? "true" : "false");
+        }
+
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
+            ? Formula.Number(text, number)
+            : Formula.Text(value);
+    }
+
+    private void ChangeCondition(string stepId, string name, Action<List<ConditionShape.Row>> change,
+        Join? join = null)
+    {
+        var parameter = FindParameter(stepId, name);
+        if (!_conditionDrafts.TryGetValue(parameter, out var draft))
+        {
+            if (!Condition.TryRead(parameter.Written, out var shape))
+            {
+                throw new InvalidOperationException("the condition cannot be edited as rows");
+            }
+
+            var group = shape as ConditionShape.Group;
+            draft = new ConditionDraft(
+                group?.Join ?? Join.All,
+                (group?.Children ?? [shape])
+                .Select(child => child as ConditionShape.Row
+                    ?? throw new InvalidOperationException("the condition has nested groups"))
+                .ToList());
+        }
+
+        change(draft.Rows);
+        draft = draft with { Join = join ?? draft.Join };
+        _conditionDrafts[parameter] = draft;
+        parameter.Written = Condition.ToNode(new ConditionShape.Group(draft.Join, draft.Rows))
+            ?? Formula.Nothing;
+        _model.IsDirty = true;
+    }
+
+    private sealed record ConditionDraft(Join Join, List<ConditionShape.Row> Rows);
+
     public void AddParameterRow(string stepId, string name)
     {
         var parameter = FindParameter(stepId, name);
@@ -778,6 +872,7 @@ internal sealed class HeadlessEditorSession
             Variables,
             Globals,
             ValueChoices,
+            ConditionCompares,
             VariableTypes,
             TriggerKindOptions,
             CanUndo,
@@ -809,6 +904,40 @@ internal sealed class HeadlessEditorSession
             .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
             .Sum(parameter => Count(parameter.Steps)));
 
+    private EditorConditionSnapshot ConditionSnapshot(StepParameter parameter)
+    {
+        if (_conditionDrafts.TryGetValue(parameter, out var draft))
+        {
+            return new EditorConditionSnapshot(
+                draft.Join.ToString(),
+                [.. draft.Rows.Select(row => new EditorConditionRowSnapshot(
+                    Expression.Render(row.Left),
+                    row.Compare.ToString(),
+                    Expression.Render(row.Right)))],
+                true);
+        }
+
+        if (!Condition.TryRead(parameter.Written, out var shape))
+        {
+            return new EditorConditionSnapshot("All", [], false);
+        }
+
+        var group = shape as ConditionShape.Group;
+        var children = group?.Children ?? [shape];
+        if (children.Any(child => child is not ConditionShape.Row))
+        {
+            return new EditorConditionSnapshot("All", [], false);
+        }
+
+        return new EditorConditionSnapshot(
+            (group?.Join ?? Join.All).ToString(),
+            [.. children.Cast<ConditionShape.Row>().Select(row => new EditorConditionRowSnapshot(
+                Expression.Render(row.Left),
+                row.Compare.ToString(),
+                Expression.Render(row.Right)))],
+            true);
+    }
+
     private static MacroStep NewStep(string type)
     {
         var definition = ActionCatalog.Definitions.FirstOrDefault(action => action.Key == type)
@@ -839,7 +968,7 @@ internal sealed class HeadlessEditorSession
             _ => Formula.Text(value),
         };
 
-    private static EditorStepSnapshot StepSnapshot(MacroStep step)
+    private EditorStepSnapshot StepSnapshot(MacroStep step)
     {
         var definition = ActionCatalog.Definitions.FirstOrDefault(action => action.Key == step.Type);
         var parameters = step.Parameters
@@ -858,7 +987,10 @@ internal sealed class HeadlessEditorSession
                         choice.Value, choice.Display)) ?? []],
                     [.. columns.Select(column => new EditorColumnSnapshot(column.Name, column.Required))],
                     [.. parameter.Rows.Select(row => new EditorRowSnapshot(
-                        [.. columns.Select(column => row.Text(column.Name))]))]);
+                        [.. columns.Select(column => row.Text(column.Name))]))],
+                    parameter.Kind == ActionParameterKind.Condition
+                        ? ConditionSnapshot(parameter)
+                        : null);
             })
             .ToList();
         var children = step.Parameters
@@ -909,6 +1041,7 @@ internal sealed record EditorSnapshot(string Name, string Description, string Gr
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
     IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices,
+    IReadOnlyList<EditorConditionCompareSnapshot> ConditionCompares,
     IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
     IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo);
 
@@ -941,7 +1074,14 @@ internal sealed record EditorStepSnapshot(string Id, string Type, string Name, b
 
 internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value,
     IReadOnlyList<EditorChoiceSnapshot> Options, IReadOnlyList<EditorColumnSnapshot> Columns,
-    IReadOnlyList<EditorRowSnapshot> Rows);
+    IReadOnlyList<EditorRowSnapshot> Rows, EditorConditionSnapshot? Condition);
+
+internal sealed record EditorConditionSnapshot(string Join, IReadOnlyList<EditorConditionRowSnapshot> Rows,
+    bool Editable);
+
+internal sealed record EditorConditionRowSnapshot(string Left, string Compare, string Right);
+
+internal sealed record EditorConditionCompareSnapshot(string Value, string Label);
 
 internal sealed record EditorColumnSnapshot(string Name, bool Required);
 

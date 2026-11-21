@@ -28,6 +28,10 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionStep", AddStep);
         server.Register("editor.sessionStepEnabled", SetStepEnabled);
         server.Register("editor.sessionStepMeta", SetStepMeta);
+        server.Register("editor.sessionConditionRowAdd", AddConditionRow);
+        server.Register("editor.sessionConditionRowRemove", RemoveConditionRow);
+        server.Register("editor.sessionConditionRow", SetConditionRow);
+        server.Register("editor.sessionConditionJoin", SetConditionJoin);
         server.Register("editor.sessionParameter", PatchParameter);
         server.Register("editor.sessionParameterRowAdd", AddParameterRow);
         server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
@@ -216,6 +220,68 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().RemoveStep(stepId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> AddConditionRow(JsonElement parameters)
+        => ConditionCommand(parameters, (session, step, name) => session.AddConditionRow(step, name));
+
+    private Task<object?> RemoveConditionRow(JsonElement parameters)
+        => ConditionCommand(parameters, (session, step, name) =>
+        {
+            var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
+                ? number
+                : -1;
+            session.RemoveConditionRow(step, name, index);
+        });
+
+    private Task<object?> SetConditionRow(JsonElement parameters)
+        => ConditionCommand(parameters, (session, step, name) =>
+        {
+            var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
+                ? number
+                : -1;
+            var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
+            var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+            if (field is not { Length: > 0 } || value is null)
+            {
+                throw new InvalidOperationException("a condition cell needs a field and a value");
+            }
+
+            session.SetConditionRow(step, name, index, field, value);
+        });
+
+    private Task<object?> SetConditionJoin(JsonElement parameters)
+        => ConditionCommand(parameters, (session, step, name) =>
+        {
+            var join = parameters.TryGetProperty("join", out var value) ? value.GetString() : null;
+            if (join is not { Length: > 0 })
+            {
+                throw new InvalidOperationException("a condition join needs a value");
+            }
+
+            session.SetConditionJoin(step, name, join);
+        });
+
+    private Task<object?> ConditionCommand(JsonElement parameters,
+        Action<HeadlessEditorSession, string, string> apply)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        if (stepId is not { Length: > 0 } || name is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        try
+        {
+            apply(Required(), stepId, name);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)
@@ -794,6 +860,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 variables = snapshot.Variables,
                 globals = snapshot.Globals,
                 valueChoices = snapshot.ValueChoices,
+                conditionCompares = snapshot.ConditionCompares,
                 variableTypes = snapshot.VariableTypes,
                 triggerKinds = snapshot.TriggerKinds,
                 canUndo = snapshot.CanUndo,

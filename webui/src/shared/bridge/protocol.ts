@@ -105,6 +105,23 @@ export interface EditorRow {
   cells: string[];
 }
 
+export interface EditorConditionRow {
+  left: string;
+  compare: string;
+  right: string;
+}
+
+export interface EditorCondition {
+  join: string;
+  rows: EditorConditionRow[];
+  editable: boolean;
+}
+
+export interface EditorConditionCompare {
+  value: string;
+  label: string;
+}
+
 export interface EditorParameter {
   name: string;
   label: string;
@@ -113,6 +130,7 @@ export interface EditorParameter {
   options: EditorChoice[];
   columns: EditorColumn[];
   rows: EditorRow[];
+  condition: EditorCondition | null;
 }
 
 export interface EditorStep {
@@ -219,6 +237,7 @@ export interface EditorSnapshot {
   variables: EditorVariable[];
   globals: EditorGlobal[];
   valueChoices: EditorValueChoice[];
+  conditionCompares: EditorConditionCompare[];
   variableTypes: EditorVariableType[];
   triggerKinds: EditorTriggerKind[];
   canUndo: boolean;
