@@ -13,7 +13,6 @@ const areaKeys: Record<string, string> = {
 
 /** Route to the temporary bridge command that opens its native window. */
 const nativeMethods: Record<string, string> = {
-  editor: 'editor.newMacro',
   run: 'app.openRun',
   settings: 'app.openSettings',
 };
