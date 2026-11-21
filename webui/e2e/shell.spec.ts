@@ -201,6 +201,21 @@ test('C1 颜色字段可用取色器改值', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .color-row input').last()).toHaveValue('#ff8800');
 });
 
+test('C1 文件触发可设路径与变化', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .trigger-add select').selectOption({ label: '文件' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
+
+  const path = page.locator('wg-editor-gate .file-fields input').first();
+  await path.fill('notes.txt');
+  await path.press('Tab');
+  await page.locator('wg-editor-gate .file-fields select').selectOption({ label: '修改' });
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerFile')))
+    .toBe(true);
+});
+
 test('C1 定时触发可设间隔与单位', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .trigger-add select').selectOption({ label: '定时' });

@@ -214,6 +214,13 @@ export class WgEditorGate extends LitElement {
       width: 80px;
     }
 
+    .file-fields {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalS);
+    }
+
     .triggers button {
       border: none;
       background: transparent;
@@ -516,6 +523,39 @@ export class WgEditorGate extends LitElement {
                           <option value="Hours">${t('Schedule.Unit.Hours')}</option>
                         </select>`}
                   </div>`
+              : trigger.kind === 'File'
+                ? html`<div class="file-fields">
+                    <input
+                      .value=${trigger.filePath}
+                      placeholder=${t('Editor.WatchPathHint')}
+                      aria-label=${t('Editor.WatchPath')}
+                      @change=${(event: Event) => void this.setTriggerFile(trigger.id, 'path', event)}
+                    />
+                    <select
+                      .value=${trigger.fileChange}
+                      aria-label=${t('Editor.WatchChange')}
+                      @change=${(event: Event) => void this.setTriggerFile(trigger.id, 'change', event)}
+                    >
+                      <option value="Any">${t('FileChange.Any')}</option>
+                      <option value="Created">${t('FileChange.Created')}</option>
+                      <option value="Changed">${t('FileChange.Changed')}</option>
+                      <option value="Deleted">${t('FileChange.Deleted')}</option>
+                    </select>
+                    <input
+                      .value=${trigger.fileFilter}
+                      placeholder=${t('Editor.WatchFilter')}
+                      aria-label=${t('Editor.WatchFilter')}
+                      @change=${(event: Event) => void this.setTriggerFile(trigger.id, 'filter', event)}
+                    />
+                    <label class="once">
+                      <input
+                        type="checkbox"
+                        .checked=${trigger.fileSubfolders}
+                        @change=${(event: Event) => void this.setTriggerFile(trigger.id, 'subfolders', event)}
+                      />
+                      ${t('Editor.WatchSubfolders')}
+                    </label>
+                  </div>`
                 : html`<span>${trigger.summary}</span>`}
             <button
               title=${t('Editor.RemoveTrigger')}
@@ -758,6 +798,22 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
         binding,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerFile(triggerId: string, field: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement | HTMLSelectElement;
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox'
+      ? String(target.checked)
+      : target.value;
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerFile', {
+        triggerId,
+        field,
+        value,
       });
     } catch (error) {
       this.error = String(error);

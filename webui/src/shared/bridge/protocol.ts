@@ -133,6 +133,10 @@ export interface EditorTrigger {
   time: string;
   interval: string;
   unit: string;
+  filePath: string;
+  fileChange: string;
+  fileFilter: string;
+  fileSubfolders: boolean;
 }
 
 export interface EditorVariable {

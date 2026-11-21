@@ -117,6 +117,18 @@ public class EditorGateTests
         var timer = Assert.Single(session.Snapshot().Triggers);
         Assert.Equal("7", timer.Interval);
         Assert.Equal("Minutes", timer.Unit);
+
+        session.AddTrigger("File");
+        var file = session.Snapshot().Triggers.Single(item => item.Kind == "File");
+        session.SetTriggerFile(file.Id, "path", @"C:\notes");
+        session.SetTriggerFile(file.Id, "change", "Changed");
+        session.SetTriggerFile(file.Id, "filter", "*.txt");
+        session.SetTriggerFile(file.Id, "subfolders", "true");
+        var watched = session.Snapshot().Triggers.Single(item => item.Kind == "File");
+        Assert.Equal(@"C:\notes", watched.FilePath);
+        Assert.Equal("Changed", watched.FileChange);
+        Assert.Equal("*.txt", watched.FileFilter);
+        Assert.True(watched.FileSubfolders);
     }
 
     [Fact]

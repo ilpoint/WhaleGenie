@@ -43,7 +43,9 @@ const chromeKeys = [
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
   'Editor.TriggerEnabled', 'Editor.Schedule', 'Editor.ScheduleTime', 'Editor.ScheduleTimeHint',
   'Schedule.Interval', 'Schedule.Daily', 'Schedule.Unit.Seconds', 'Schedule.Unit.Minutes',
-  'Schedule.Unit.Hours',
+  'Schedule.Unit.Hours', 'Editor.WatchPath', 'Editor.WatchPathHint', 'Editor.WatchChange',
+  'Editor.WatchFilter', 'Editor.WatchSubfolders', 'FileChange.Any', 'FileChange.Created',
+  'FileChange.Changed', 'FileChange.Deleted',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
@@ -94,7 +96,11 @@ const english: Record<string, string> = {
   'Editor.ScheduleTime': 'Time :', 'Editor.ScheduleTimeHint': 'HH:mm, or HH:mm:ss',
   'Schedule.Interval': 'At an Interval', 'Schedule.Daily': 'Every Day at a Time',
   'Schedule.Unit.Seconds': 'seconds', 'Schedule.Unit.Minutes': 'minutes',
-  'Schedule.Unit.Hours': 'hours',
+  'Schedule.Unit.Hours': 'hours', 'Editor.WatchPath': 'File or Folder :',
+  'Editor.WatchPathHint': 'notes.txt, or a folder', 'Editor.WatchChange': 'Change :',
+  'Editor.WatchFilter': 'Names in the folder :', 'Editor.WatchSubfolders': 'Include the folders inside it',
+  'FileChange.Any': 'Any change', 'FileChange.Created': 'Created',
+  'FileChange.Changed': 'Changed', 'FileChange.Deleted': 'Deleted or renamed',
   'Loop.Press': 'Once, When Key Pressed (Press)', 'Loop.Hold': 'While Holding Key (Hold)',
   'Loop.Toggle': 'Until Key Pressed Again (Toggle)', 'Loop.Release': 'Once, When Key Released (Release)',
   'LocalVariables.Title': 'Local variables',
@@ -158,6 +164,10 @@ const chinese: Record<string, string> = {
   'Editor.ScheduleTimeHint': 'HH:mm 或 HH:mm:ss', 'Schedule.Interval': '按间隔重复',
   'Schedule.Daily': '每天固定时间', 'Schedule.Unit.Seconds': '秒',
   'Schedule.Unit.Minutes': '分钟', 'Schedule.Unit.Hours': '小时',
+  'Editor.WatchPath': '文件或文件夹：', 'Editor.WatchPathHint': 'notes.txt，或一个文件夹',
+  'Editor.WatchChange': '变化：', 'Editor.WatchFilter': '文件夹里匹配的名字：',
+  'Editor.WatchSubfolders': '包含里面的子文件夹', 'FileChange.Any': '任何变化',
+  'FileChange.Created': '创建', 'FileChange.Changed': '修改', 'FileChange.Deleted': '删除或重命名',
   'Loop.Press': '按下时执行一次（按下）', 'Loop.Hold': '按住期间循环（长按）',
   'Loop.Toggle': '再次按键时停止（切换）', 'Loop.Release': '松开时执行一次（松开）',
   'LocalVariables.Title': '局部变量',
@@ -322,6 +332,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Key', label: '按键' },
             { value: 'Timer', label: '定时' },
             { value: 'Color', label: '颜色' },
+            { value: 'File', label: '文件' },
           ],
           canUndo: false,
           canRedo: false,
@@ -349,6 +360,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Key', label: '按键' },
             { value: 'Timer', label: '定时' },
             { value: 'Color', label: '颜色' },
+            { value: 'File', label: '文件' },
           ],
           canUndo: false,
           canRedo: false,
@@ -392,6 +404,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'Key', label: '按键' },
             { value: 'Timer', label: '定时' },
             { value: 'Color', label: '颜色' },
+            { value: 'File', label: '文件' },
           ],
           canUndo: false,
           canRedo: false,
@@ -505,6 +518,10 @@ export class MockTransport implements BridgeTransport {
               time: '08:00',
               interval: '5',
               unit: 'Seconds',
+              filePath: '',
+              fileChange: 'Any',
+              fileFilter: '*',
+              fileSubfolders: false,
             }],
           };
         }
@@ -517,6 +534,29 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerFile':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => {
+              if (trigger.id !== params['triggerId']) {
+                return trigger;
+              }
+              const field = String(params['field'] ?? '');
+              const value = String(params['value'] ?? '');
+              return {
+                ...trigger,
+                filePath: field === 'path' ? value : trigger.filePath,
+                fileChange: field === 'change' ? value : trigger.fileChange,
+                fileFilter: field === 'filter' ? value : trigger.fileFilter,
+                fileSubfolders: field === 'subfolders' ? value === 'true' : trigger.fileSubfolders,
+              };
+            }),
           };
         }
         result = this.editor;

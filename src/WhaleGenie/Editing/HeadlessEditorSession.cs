@@ -98,7 +98,11 @@ internal sealed class HeadlessEditorSession
             entry.Spec is TimerSpec interval
                 ? interval.Interval.ToString(CultureInfo.InvariantCulture)
                 : string.Empty,
-            entry.Spec is TimerSpec unit ? unit.Unit.ToString() : string.Empty))];
+            entry.Spec is TimerSpec unit ? unit.Unit.ToString() : string.Empty,
+            entry.Spec is FileSpec file ? file.Path : string.Empty,
+            entry.Spec is FileSpec change ? change.Change.ToString() : string.Empty,
+            entry.Spec is FileSpec filter ? filter.Filter : string.Empty,
+            entry.Spec is FileSpec folders && folders.Subfolders))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -256,6 +260,38 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerFile(string triggerId, string field, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not FileSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a file trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        switch (field)
+        {
+            case "path":
+                _model.WatchPath = value;
+                break;
+            case "change":
+                _model.WatchChange = Enum.Parse<FileChangeKind>(value, ignoreCase: true);
+                break;
+            case "filter":
+                _model.WatchFilter = value;
+                break;
+            case "subfolders":
+                _model.WatchSubfolders = bool.TryParse(value, out var subfolders) && subfolders;
+                break;
+            default:
+                throw new InvalidOperationException("unknown file field " + field);
+        }
+
         _model.IsDirty = true;
     }
 
@@ -505,7 +541,8 @@ internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 
 internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
     bool Enabled, string Binding, string Loop, bool Once, string TimerMode, string Time,
-    string Interval, string Unit);
+    string Interval, string Unit, string FilePath, string FileChange, string FileFilter,
+    bool FileSubfolders);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,

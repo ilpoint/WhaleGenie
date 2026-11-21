@@ -30,7 +30,7 @@ public class BridgeMethodInventoryTests
         "editor.sessionMove",
         "editor.sessionRemove", "editor.sessionTriggerAdd", "editor.sessionTriggerRemove",
         "editor.sessionTriggerBinding", "editor.sessionTriggerLoop", "editor.sessionTriggerOnce",
-        "editor.sessionTriggerEnabled", "editor.sessionTriggerTimer",
+        "editor.sessionTriggerEnabled", "editor.sessionTriggerTimer", "editor.sessionTriggerFile",
         "editor.sessionVariableAdd", "editor.sessionVariablePatch",
         "editor.sessionVariableRemove", "editor.sessionSave", "editor.sessionClose",
         "editor.sessionActions",
