@@ -154,6 +154,34 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void MoveCallableParameter(int index, int offset)
+    {
+        var target = index + offset;
+        if (index < 0 || index >= _model.DeclaredParameters.Count
+            || target < 0 || target >= _model.DeclaredParameters.Count)
+        {
+            return;
+        }
+
+        (_model.DeclaredParameters[index], _model.DeclaredParameters[target]) =
+            (_model.DeclaredParameters[target], _model.DeclaredParameters[index]);
+        _model.IsDirty = true;
+    }
+
+    public void MoveCallableResult(int index, int offset)
+    {
+        var target = index + offset;
+        if (index < 0 || index >= _model.DeclaredResults.Count
+            || target < 0 || target >= _model.DeclaredResults.Count)
+        {
+            return;
+        }
+
+        (_model.DeclaredResults[index], _model.DeclaredResults[target]) =
+            (_model.DeclaredResults[target], _model.DeclaredResults[index]);
+        _model.IsDirty = true;
+    }
+
     public void RemoveCallableParameter(int index)
     {
         if (index < 0 || index >= _model.DeclaredParameters.Count)

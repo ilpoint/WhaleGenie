@@ -170,6 +170,11 @@ public class EditorGateTests
         var field = Assert.Single(Assert.Single(session.CallableParameters).Fields);
         Assert.Equal("left", field.Name);
         Assert.Equal("number", field.Type);
+
+        session.AddCallableParameter();
+        session.PatchCallableParameter(1, "name", "second");
+        session.MoveCallableParameter(1, -1);
+        Assert.Equal("second", session.CallableParameters[0].Name);
     }
 
     [Fact]

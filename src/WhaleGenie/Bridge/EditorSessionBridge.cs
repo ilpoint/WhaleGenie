@@ -34,9 +34,11 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionParameterDeclAdd", AddCallableParameter);
         server.Register("editor.sessionParameterDeclPatch", PatchCallableParameter);
         server.Register("editor.sessionParameterDeclRemove", RemoveCallableParameter);
+        server.Register("editor.sessionParameterDeclMove", MoveCallableParameter);
         server.Register("editor.sessionResultDeclAdd", AddCallableResult);
         server.Register("editor.sessionResultDeclPatch", PatchCallableResult);
         server.Register("editor.sessionResultDeclRemove", RemoveCallableResult);
+        server.Register("editor.sessionResultDeclMove", MoveCallableResult);
         server.Register("editor.sessionParameterFieldAdd", AddCallableParameterField);
         server.Register("editor.sessionParameterFieldPatch", PatchCallableParameterField);
         server.Register("editor.sessionParameterFieldRemove", RemoveCallableParameterField);
@@ -426,6 +428,19 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
             var (index, field, value) = DeclarationFields(parameters);
             session.PatchCallableParameter(index, field, value);
         });
+
+    private Task<object?> MoveCallableParameter(JsonElement parameters)
+        => DeclarationCommand(session => session.MoveCallableParameter(
+            DeclarationIndex(parameters), DeclarationOffset(parameters)));
+
+    private Task<object?> MoveCallableResult(JsonElement parameters)
+        => DeclarationCommand(session => session.MoveCallableResult(
+            DeclarationIndex(parameters), DeclarationOffset(parameters)));
+
+    private static int DeclarationOffset(JsonElement parameters)
+        => parameters.TryGetProperty("offset", out var offset) && offset.TryGetInt32(out var number)
+            ? number
+            : 0;
 
     private Task<object?> RemoveCallableParameter(JsonElement parameters)
         => DeclarationCommand(session => session.RemoveCallableParameter(DeclarationIndex(parameters)));

@@ -48,6 +48,7 @@ const chromeKeys = [
   'MacroInterface.Type', 'MacroInterface.Required', 'MacroInterface.Default',
   'MacroInterface.Description', 'MacroInterface.Remove', 'MacroInterface.AddParameter',
   'MacroInterface.AddResult', 'MacroInterface.FieldName', 'MacroInterface.AddField',
+  'MacroInterface.MoveUp', 'MacroInterface.MoveDown',
   'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
@@ -121,6 +122,7 @@ const english: Record<string, string> = {
   'MacroInterface.Description': 'Description', 'MacroInterface.Remove': 'Remove',
   'MacroInterface.AddParameter': 'Add parameter', 'MacroInterface.AddResult': 'Add result',
   'MacroInterface.FieldName': 'Field name', 'MacroInterface.AddField': 'Add field',
+  'MacroInterface.MoveUp': 'Move up', 'MacroInterface.MoveDown': 'Move down',
   'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
@@ -230,6 +232,7 @@ const chinese: Record<string, string> = {
   'MacroInterface.Description': '说明', 'MacroInterface.Remove': '删除',
   'MacroInterface.AddParameter': '添加形参', 'MacroInterface.AddResult': '添加结果',
   'MacroInterface.FieldName': '字段名', 'MacroInterface.AddField': '添加字段',
+  'MacroInterface.MoveUp': '上移', 'MacroInterface.MoveDown': '下移',
   'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
@@ -706,6 +709,28 @@ export class MockTransport implements BridgeTransport {
         }
         result = this.editor;
         break;
+      case 'editor.sessionParameterDeclMove': {
+        const index = Number(params['index']);
+        const target = index + Number(params['offset']);
+        if (this.editor && target >= 0 && target < this.editor.callableParameters.length) {
+          const parameters = [...this.editor.callableParameters];
+          [parameters[index]!, parameters[target]!] = [parameters[target]!, parameters[index]!];
+          this.editor = { ...this.editor, dirty: true, callableParameters: parameters };
+        }
+        result = this.editor;
+        break;
+      }
+      case 'editor.sessionResultDeclMove': {
+        const index = Number(params['index']);
+        const target = index + Number(params['offset']);
+        if (this.editor && target >= 0 && target < this.editor.callableResults.length) {
+          const results = [...this.editor.callableResults];
+          [results[index]!, results[target]!] = [results[target]!, results[index]!];
+          this.editor = { ...this.editor, dirty: true, callableResults: results };
+        }
+        result = this.editor;
+        break;
+      }
       case 'editor.sessionParameterDeclRemove':
         if (this.editor) {
           this.editor = {

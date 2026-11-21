@@ -780,8 +780,14 @@ export class WgEditorGate extends LitElement {
                 void this.patchCallableParameter(index, 'default', event)} /></td>
               <td><input .value=${parameter.description} @change=${(event: Event) =>
                 void this.patchCallableParameter(index, 'description', event)} /></td>
-              <td><button aria-label=${t('MacroInterface.Remove')} @click=${() =>
-                void this.removeCallableParameter(index)}>×</button></td>
+              <td>
+                <button title=${t('MacroInterface.MoveUp')} aria-label=${t('MacroInterface.MoveUp')}
+                  @click=${() => void this.moveCallableParameter(index, -1)}>↑</button>
+                <button title=${t('MacroInterface.MoveDown')} aria-label=${t('MacroInterface.MoveDown')}
+                  @click=${() => void this.moveCallableParameter(index, 1)}>↓</button>
+                <button aria-label=${t('MacroInterface.Remove')} @click=${() =>
+                  void this.removeCallableParameter(index)}>×</button>
+              </td>
             </tr>
             ${parameter.type === 'record'
               ? html`<tr class="record-fields"><td colspan="6">
@@ -819,8 +825,14 @@ export class WgEditorGate extends LitElement {
               </td>
               <td><input .value=${result.description} @change=${(event: Event) =>
                 void this.patchCallableResult(index, 'description', event)} /></td>
-              <td><button aria-label=${t('MacroInterface.Remove')} @click=${() =>
-                void this.removeCallableResult(index)}>×</button></td>
+              <td>
+                <button title=${t('MacroInterface.MoveUp')} aria-label=${t('MacroInterface.MoveUp')}
+                  @click=${() => void this.moveCallableResult(index, -1)}>↑</button>
+                <button title=${t('MacroInterface.MoveDown')} aria-label=${t('MacroInterface.MoveDown')}
+                  @click=${() => void this.moveCallableResult(index, 1)}>↓</button>
+                <button aria-label=${t('MacroInterface.Remove')} @click=${() =>
+                  void this.removeCallableResult(index)}>×</button>
+              </td>
             </tr>
             ${result.type === 'record'
               ? html`<tr class="record-fields"><td colspan="4">
@@ -1562,6 +1574,14 @@ export class WgEditorGate extends LitElement {
 
   private async removeCallableResultField(index: number, fieldIndex: number): Promise<void> {
     await this.declarationCommand('editor.sessionResultFieldRemove', { index, fieldIndex });
+  }
+
+  private async moveCallableParameter(index: number, offset: number): Promise<void> {
+    await this.declarationCommand('editor.sessionParameterDeclMove', { index, offset });
+  }
+
+  private async moveCallableResult(index: number, offset: number): Promise<void> {
+    await this.declarationCommand('editor.sessionResultDeclMove', { index, offset });
   }
 
   private async addCallableParameter(): Promise<void> {
