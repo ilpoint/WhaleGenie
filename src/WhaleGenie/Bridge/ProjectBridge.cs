@@ -75,6 +75,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
         // The trigger host owns the plan and the switch; this handler only tells the page when
         // something it draws has moved.
+        _system.Changed += OnSystemChanged;
         _runtime.Triggers.StatusChanged += OnTriggerStatusChanged;
         _workspace.Changed += OnProjectChanged;
         _workspace.Macros.CollectionChanged += OnMacrosChanged;
@@ -83,6 +84,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
     public void Dispose()
     {
+        _system.Changed -= OnSystemChanged;
         _runtime.Triggers.StatusChanged -= OnTriggerStatusChanged;
         _workspace.Changed -= OnProjectChanged;
         _workspace.Macros.CollectionChanged -= OnMacrosChanged;
@@ -325,7 +327,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         // The switch is the same object the window and the hotkey write; the trigger host answers
         // to it with the service, the sound and the plan republish.
         _system.Set(given.GetBoolean());
-        await PushState();
         return null;
     }
 
@@ -521,6 +522,9 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// same event every other change rides on.
     /// </summary>
     private void OnTriggerStatusChanged()
+        => _ = _server?.PushAsync("project.changed", State());
+
+    private void OnSystemChanged()
         => _ = _server?.PushAsync("project.changed", State());
 
     private void OnProjectChanged(object? sender, EventArgs args)

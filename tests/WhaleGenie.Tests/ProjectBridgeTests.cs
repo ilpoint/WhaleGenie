@@ -115,20 +115,31 @@ public class ProjectBridgeTests : IDisposable
     }
 
     [Fact]
-    public async Task The_system_switch_flips_the_host_property_and_answers()
+    public async Task The_system_switch_flips_the_state_and_answers()
     {
         await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
         _channel.Sent.Clear();
 
-        // The switch flips the view model property; turning the trigger service on and playing the
-        // sound is the trigger host's reaction to that property, wherever it lives. In a check
-        // there is no host, so the property is the whole of what this can assert.
+        // The switch writes the same object the hotkey and the window write; the trigger host is
+        // the one that arms the service and plays the sound.
         await _server.AcceptAsync("""{"id":3,"method":"project.system","params":{"enabled":true}}""");
 
-        // The switch flips the view model property — the trigger host reacts to that (service,
-        // sound, plan republish). systemEnabled reads the same property, so page and host agree.
         Assert.True(_system.IsEnabled);
         var pushed = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"project.changed\""))).RootElement;
+        Assert.True(pushed.GetProperty("payload").GetProperty("systemEnabled").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_switch_flip_from_outside_the_page_is_pushed()
+    {
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _channel.Sent.Clear();
+
+        // A hotkey or the native window flipped the switch; the page never sent a command, so the
+        // only way it learns is the same push every other project change rides on.
+        _system.Set(true);
+
+        var pushed = JsonDocument.Parse(_channel.Sent.Last(text => text.Contains("\"event\":\"project.changed\""))).RootElement;
         Assert.True(pushed.GetProperty("payload").GetProperty("systemEnabled").GetBoolean());
     }
 
