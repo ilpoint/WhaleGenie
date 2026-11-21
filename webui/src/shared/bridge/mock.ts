@@ -38,7 +38,9 @@ const chromeKeys = [
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
-  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.OpenMacro',
+  'Editor.RemoveRow', 'Editor.StepEnabled', 'Add.StepComment', 'Add.StepTimeout',
+  'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
+  'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
@@ -98,7 +100,10 @@ const english: Record<string, string> = {
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
-  'Editor.StepEnabled': 'Enabled',
+  'Editor.StepEnabled': 'Enabled', 'Add.StepComment': 'Comment', 'Add.StepTimeout': 'Timeout',
+  'Add.StepRetry': 'Retries', 'Add.StepRetryDelay': 'Retry delay', 'Add.StepOnError': 'When it fails',
+  'Add.OnError.Stop': 'Stop the macro', 'Add.OnError.Continue': 'Carry on with the next step',
+  'Add.OnError.NextIteration': 'Skip to the next loop round', 'Add.OnError.AskUser': 'Ask me: retry, skip or stop',
   'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
@@ -186,7 +191,10 @@ const chinese: Record<string, string> = {
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
-  'Editor.StepEnabled': '启用',
+  'Editor.StepEnabled': '启用', 'Add.StepComment': '备注', 'Add.StepTimeout': '超时',
+  'Add.StepRetry': '重试', 'Add.StepRetryDelay': '重试间隔', 'Add.StepOnError': '失败时',
+  'Add.OnError.Stop': '停止宏', 'Add.OnError.Continue': '继续下一步',
+  'Add.OnError.NextIteration': '跳到下一轮循环', 'Add.OnError.AskUser': '询问：重试、跳过或停止',
   'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
@@ -496,6 +504,25 @@ export class MockTransport implements BridgeTransport {
         }
         result = this.editor;
         break;
+      case 'editor.sessionStepMeta':
+        if (this.editor) {
+          const field = String(params['field'] ?? '');
+          const value = String(params['value'] ?? '');
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeStepMeta(this.editor.steps, String(params['stepId'] ?? ''), (step) => ({
+              ...step,
+              comment: field === 'comment' ? value : step.comment,
+              timeoutMs: field === 'timeoutMs' ? Number(value) : step.timeoutMs,
+              retryCount: field === 'retryCount' ? Number(value) : step.retryCount,
+              retryDelayMs: field === 'retryDelayMs' ? Number(value) : step.retryDelayMs,
+              onError: field === 'onError' ? value : step.onError,
+            })),
+          };
+        }
+        result = this.editor;
+        break;
       case 'editor.sessionStepEnabled':
         if (this.editor) {
           this.editor = {
@@ -528,6 +555,11 @@ export class MockTransport implements BridgeTransport {
                       ? '找图'
                       : type,
             enabled: true,
+            comment: '',
+            timeoutMs: 0,
+            retryCount: 0,
+            retryDelayMs: 0,
+            onError: 'Stop',
             acceptsSteps: type === 'control.repeat',
             parameters: type === 'control.delay'
               ? [{
@@ -1231,6 +1263,16 @@ export class MockTransport implements BridgeTransport {
     }
 
     this.answer({ id: request.id, ok: true, result });
+  }
+
+  private changeStepMeta(
+    steps: EditorStep[],
+    stepId: string,
+    change: (step: EditorStep) => EditorStep,
+  ): EditorStep[] {
+    return steps.map((step) => step.id === stepId
+      ? change(step)
+      : { ...step, steps: this.changeStepMeta(step.steps, stepId, change) });
   }
 
   private setStepEnabled(steps: EditorStep[], stepId: string, enabled: boolean): EditorStep[] {

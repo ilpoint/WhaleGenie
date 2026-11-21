@@ -27,6 +27,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
         server.Register("editor.sessionStepEnabled", SetStepEnabled);
+        server.Register("editor.sessionStepMeta", SetStepMeta);
         server.Register("editor.sessionParameter", PatchParameter);
         server.Register("editor.sessionParameterRowAdd", AddParameterRow);
         server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
@@ -194,6 +195,28 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().RemoveStep(stepId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetStepMeta(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+        if (stepId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsStep"));
+        }
+
+        try
+        {
+            Required().SetStepMeta(stepId, field, value);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

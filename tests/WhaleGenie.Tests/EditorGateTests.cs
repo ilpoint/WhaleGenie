@@ -139,6 +139,16 @@ public class EditorGateTests
         Assert.False(Assert.Single(session.Snapshot().Steps).Enabled);
         session.SetStepEnabled(step.Id, true);
         Assert.True(Assert.Single(session.Snapshot().Steps).Enabled);
+
+        session.SetStepMeta(step.Id, "comment", "retry it");
+        session.SetStepMeta(step.Id, "timeoutMs", "500");
+        session.SetStepMeta(step.Id, "retryCount", "2");
+        session.SetStepMeta(step.Id, "onError", "Continue");
+        var changed = Assert.Single(session.Snapshot().Steps);
+        Assert.Equal("retry it", changed.Comment);
+        Assert.Equal(500, changed.TimeoutMs);
+        Assert.Equal(2, changed.RetryCount);
+        Assert.Equal("Continue", changed.OnError);
     }
 
     [Fact]

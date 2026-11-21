@@ -151,7 +151,7 @@ test('C1 步骤树可以加步骤与改参数', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .step-name')).toHaveText('延迟');
 
   await page.locator('wg-editor-gate .step').click();
-  const parameter = page.locator('wg-editor-gate .inspector input').first();
+  const parameter = page.locator('wg-editor-gate .inspector .param input').first();
   await expect(parameter).toBeVisible();
   await parameter.fill('750');
   await parameter.press('Tab');
@@ -170,6 +170,24 @@ test('C1 步骤可以放进块内部', async ({ page }) => {
   await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加到选中步骤内' }).click();
   await expect(page.locator('wg-editor-gate .tree ol .step-name')).toHaveText('延迟');
+});
+
+test('C1 步骤可改备注、超时与失败处理', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '延迟' }).click();
+
+  const meta = page.locator('wg-editor-gate .step-meta');
+  await meta.locator('input').nth(0).fill('retry it');
+  await meta.locator('input').nth(0).press('Tab');
+  await meta.locator('input').nth(1).fill('500');
+  await meta.locator('input').nth(1).press('Tab');
+  await meta.locator('select').selectOption({ label: '继续下一步' });
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionStepMeta')))
+    .toBe(true);
 });
 
 test('C1 步骤可启用停用', async ({ page }) => {

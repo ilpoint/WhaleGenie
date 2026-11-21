@@ -356,6 +356,21 @@ export class WgEditorGate extends LitElement {
       border-radius: var(--borderRadiusMedium);
     }
 
+    .step-meta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacingVerticalS);
+      padding-top: var(--spacingVerticalS);
+      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+    }
+
+    .step-meta label {
+      display: grid;
+      gap: var(--spacingVerticalXS);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+    }
+
     .param {
       display: grid;
       gap: var(--spacingVerticalXS);
@@ -1354,6 +1369,19 @@ export class WgEditorGate extends LitElement {
     }
   }
 
+  private async patchStepMeta(step: EditorStep, field: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStepMeta', {
+        stepId: step.id,
+        field,
+        value: (event.target as HTMLInputElement | HTMLSelectElement).value,
+      });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   private async setStepEnabled(stepId: string, event: Event): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStepEnabled', {
@@ -1641,6 +1669,54 @@ export class WgEditorGate extends LitElement {
       <div class="inspector">
         <strong>${step.name}</strong>
         <span>${step.type}</span>
+        <div class="step-meta">
+          <label>
+            ${t('Add.StepComment')}
+            <input
+              .value=${step.comment}
+              @change=${(event: Event) => void this.patchStepMeta(step, 'comment', event)}
+            />
+          </label>
+          <label>
+            ${t('Add.StepTimeout')}
+            <input
+              type="number"
+              min="0"
+              .value=${step.timeoutMs}
+              @change=${(event: Event) => void this.patchStepMeta(step, 'timeoutMs', event)}
+            />
+          </label>
+          <label>
+            ${t('Add.StepRetry')}
+            <input
+              type="number"
+              min="0"
+              .value=${step.retryCount}
+              @change=${(event: Event) => void this.patchStepMeta(step, 'retryCount', event)}
+            />
+          </label>
+          <label>
+            ${t('Add.StepRetryDelay')}
+            <input
+              type="number"
+              min="0"
+              .value=${step.retryDelayMs}
+              @change=${(event: Event) => void this.patchStepMeta(step, 'retryDelayMs', event)}
+            />
+          </label>
+          <label>
+            ${t('Add.StepOnError')}
+            <select
+              .value=${step.onError}
+              @change=${(event: Event) => void this.patchStepMeta(step, 'onError', event)}
+            >
+              <option value="Stop">${t('Add.OnError.Stop')}</option>
+              <option value="Continue">${t('Add.OnError.Continue')}</option>
+              <option value="NextIteration">${t('Add.OnError.NextIteration')}</option>
+              <option value="AskUser">${t('Add.OnError.AskUser')}</option>
+            </select>
+          </label>
+        </div>
         ${step.parameters.map((parameter) => this.renderParameter(step, parameter))}
       </div>
     `;

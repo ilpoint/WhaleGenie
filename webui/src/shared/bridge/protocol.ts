@@ -120,6 +120,11 @@ export interface EditorStep {
   type: string;
   name: string;
   enabled: boolean;
+  comment: string;
+  timeoutMs: number;
+  retryCount: number;
+  retryDelayMs: number;
+  onError: string;
   acceptsSteps: boolean;
   parameters: EditorParameter[];
   steps: EditorStep[];

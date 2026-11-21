@@ -626,6 +626,41 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void SetStepMeta(string stepId, string field, string value)
+    {
+        var step = FindStep(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        var meta = step.Meta;
+        step.Meta = field switch
+        {
+            "comment" => CopyMeta(meta, comment: value),
+            "timeoutMs" => CopyMeta(meta, timeoutMs: Number(value, meta.TimeoutMs)),
+            "retryCount" => CopyMeta(meta, retryCount: Number(value, meta.RetryCount)),
+            "retryDelayMs" => CopyMeta(meta, retryDelayMs: Number(value, meta.RetryDelayMs)),
+            "onError" => CopyMeta(meta, onError: Enum.Parse<StepErrorAction>(value, ignoreCase: true)),
+            _ => throw new InvalidOperationException("unknown step meta field " + field),
+        };
+        _model.IsDirty = true;
+    }
+
+    private static int Number(string value, int fallback)
+        => int.TryParse(value, out var parsed) ? Math.Max(0, parsed) : fallback;
+
+    private static StepMeta CopyMeta(StepMeta meta, string? comment = null, int? timeoutMs = null,
+        int? retryCount = null, int? retryDelayMs = null, StepErrorAction? onError = null)
+        => new()
+        {
+            Comment = comment ?? meta.Comment,
+            IsEnabled = meta.IsEnabled,
+            TimeoutMs = timeoutMs ?? meta.TimeoutMs,
+            RetryCount = retryCount ?? meta.RetryCount,
+            RetryDelayMs = retryDelayMs ?? meta.RetryDelayMs,
+            RetryBackoff = meta.RetryBackoff,
+            DelayBeforeMs = meta.DelayBeforeMs,
+            DelayAfterMs = meta.DelayAfterMs,
+            OnError = onError ?? meta.OnError,
+        };
+
     public void AddParameterRow(string stepId, string name)
     {
         var parameter = FindParameter(stepId, name);
@@ -814,7 +849,9 @@ internal sealed class HeadlessEditorSession
         var acceptsSteps = definition?.Parameters.Any(parameter =>
             parameter.Kind == ActionParameterKind.Steps) == true;
         return new EditorStepSnapshot(step.Id, step.Type,
-            definition?.LocalName ?? step.Type, step.Meta.IsEnabled, acceptsSteps, parameters, children);
+            definition?.LocalName ?? step.Type, step.Meta.IsEnabled, step.Meta.Comment,
+            step.Meta.TimeoutMs, step.Meta.RetryCount, step.Meta.RetryDelayMs,
+            step.Meta.OnError.ToString(), acceptsSteps, parameters, children);
     }
 
     private MacroStep? FindStep(string stepId)
@@ -874,6 +911,7 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
     string InterfaceProcess, string InterfaceHow);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
+    string Comment, int TimeoutMs, int RetryCount, int RetryDelayMs, string OnError,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,
     IReadOnlyList<EditorStepSnapshot> Steps);
 
