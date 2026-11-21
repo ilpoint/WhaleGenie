@@ -211,18 +211,25 @@ export interface EditorGlobal {
   persisted: boolean;
 }
 
+export interface EditorMacroField {
+  name: string;
+  type: string;
+}
+
 export interface EditorMacroParameter {
   name: string;
   type: string;
   required: boolean;
   default: string;
   description: string;
+  fields: EditorMacroField[];
 }
 
 export interface EditorMacroResult {
   name: string;
   type: string;
   description: string;
+  fields: EditorMacroField[];
 }
 
 export interface EditorValueChoice {

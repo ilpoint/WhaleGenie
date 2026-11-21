@@ -162,6 +162,14 @@ public class EditorGateTests
         Assert.Equal("number", parameter.Type);
         Assert.True(parameter.Required);
         Assert.Equal("total", Assert.Single(session.CallableResults).Name);
+
+        session.PatchCallableParameter(0, "type", "record");
+        session.AddCallableParameterField(0);
+        session.PatchCallableParameterField(0, 0, "name", "left");
+        session.PatchCallableParameterField(0, 0, "type", "number");
+        var field = Assert.Single(Assert.Single(session.CallableParameters).Fields);
+        Assert.Equal("left", field.Name);
+        Assert.Equal("number", field.Type);
     }
 
     [Fact]

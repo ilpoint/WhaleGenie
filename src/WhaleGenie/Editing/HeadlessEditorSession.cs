@@ -102,13 +102,19 @@ internal sealed class HeadlessEditorSession
             WhaleGenie.Models.VariableTypes.Name(parameter.Type),
             parameter.Required,
             Formula.Word(parameter.Default),
-            parameter.Description))];
+            parameter.Description,
+            FieldSnapshots(parameter.Fields)))];
 
     public IReadOnlyList<EditorMacroResultSnapshot> CallableResults
         => [.. _model.DeclaredResults.Select(result => new EditorMacroResultSnapshot(
             result.Name,
             WhaleGenie.Models.VariableTypes.Name(result.Type),
-            result.Description))];
+            result.Description,
+            FieldSnapshots(result.Fields)))];
+
+    private static IReadOnlyList<EditorMacroFieldSnapshot> FieldSnapshots(List<MacroField> fields)
+        => [.. fields.Select(field => new EditorMacroFieldSnapshot(
+            field.Name, WhaleGenie.Models.VariableTypes.Name(field.Type)))];
 
     public void AddCallableParameter()
     {
@@ -158,6 +164,102 @@ internal sealed class HeadlessEditorSession
         _model.DeclaredParameters.RemoveAt(index);
         _model.IsDirty = true;
     }
+
+    public void AddCallableParameterField(int index)
+    {
+        var parameter = CallableParameterAt(index);
+        parameter.Fields.Add(new MacroField());
+        _model.IsDirty = true;
+    }
+
+    public void PatchCallableParameterField(int index, int fieldIndex, string field, string value)
+    {
+        var parameter = CallableParameterAt(index);
+        if (fieldIndex < 0 || fieldIndex >= parameter.Fields.Count)
+        {
+            throw new InvalidOperationException("the parameter has no field " + fieldIndex);
+        }
+
+        var entry = parameter.Fields[fieldIndex];
+        switch (field)
+        {
+            case "name":
+                entry.Name = value.Trim();
+                break;
+            case "type":
+                entry.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                break;
+            default:
+                throw new InvalidOperationException("unknown field setting " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void RemoveCallableParameterField(int index, int fieldIndex)
+    {
+        var parameter = CallableParameterAt(index);
+        if (fieldIndex < 0 || fieldIndex >= parameter.Fields.Count)
+        {
+            throw new InvalidOperationException("the parameter has no field " + fieldIndex);
+        }
+
+        parameter.Fields.RemoveAt(fieldIndex);
+        _model.IsDirty = true;
+    }
+
+    public void AddCallableResultField(int index)
+    {
+        var result = CallableResultAt(index);
+        result.Fields.Add(new MacroField());
+        _model.IsDirty = true;
+    }
+
+    public void PatchCallableResultField(int index, int fieldIndex, string field, string value)
+    {
+        var result = CallableResultAt(index);
+        if (fieldIndex < 0 || fieldIndex >= result.Fields.Count)
+        {
+            throw new InvalidOperationException("the result has no field " + fieldIndex);
+        }
+
+        var entry = result.Fields[fieldIndex];
+        switch (field)
+        {
+            case "name":
+                entry.Name = value.Trim();
+                break;
+            case "type":
+                entry.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                break;
+            default:
+                throw new InvalidOperationException("unknown field setting " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void RemoveCallableResultField(int index, int fieldIndex)
+    {
+        var result = CallableResultAt(index);
+        if (fieldIndex < 0 || fieldIndex >= result.Fields.Count)
+        {
+            throw new InvalidOperationException("the result has no field " + fieldIndex);
+        }
+
+        result.Fields.RemoveAt(fieldIndex);
+        _model.IsDirty = true;
+    }
+
+    private MacroParameter CallableParameterAt(int index)
+        => index >= 0 && index < _model.DeclaredParameters.Count
+            ? _model.DeclaredParameters[index]
+            : throw new InvalidOperationException("the macro has no parameter " + index);
+
+    private MacroResult CallableResultAt(int index)
+        => index >= 0 && index < _model.DeclaredResults.Count
+            ? _model.DeclaredResults[index]
+            : throw new InvalidOperationException("the macro has no result " + index);
 
     public void AddCallableResult()
     {
@@ -1427,9 +1529,12 @@ internal sealed record EditorGlobalSnapshot(string Name, string Type, string Def
     bool Persisted);
 
 internal sealed record EditorMacroParameterSnapshot(string Name, string Type, bool Required,
-    string Default, string Description);
+    string Default, string Description, IReadOnlyList<EditorMacroFieldSnapshot> Fields);
 
-internal sealed record EditorMacroResultSnapshot(string Name, string Type, string Description);
+internal sealed record EditorMacroResultSnapshot(string Name, string Type, string Description,
+    IReadOnlyList<EditorMacroFieldSnapshot> Fields);
+
+internal sealed record EditorMacroFieldSnapshot(string Name, string Type);
 
 internal sealed record EditorValueChoiceSnapshot(string Name, string Type, string Origin, string Source,
     string Description);

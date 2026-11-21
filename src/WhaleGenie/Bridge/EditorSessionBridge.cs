@@ -37,6 +37,12 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionResultDeclAdd", AddCallableResult);
         server.Register("editor.sessionResultDeclPatch", PatchCallableResult);
         server.Register("editor.sessionResultDeclRemove", RemoveCallableResult);
+        server.Register("editor.sessionParameterFieldAdd", AddCallableParameterField);
+        server.Register("editor.sessionParameterFieldPatch", PatchCallableParameterField);
+        server.Register("editor.sessionParameterFieldRemove", RemoveCallableParameterField);
+        server.Register("editor.sessionResultFieldAdd", AddCallableResultField);
+        server.Register("editor.sessionResultFieldPatch", PatchCallableResultField);
+        server.Register("editor.sessionResultFieldRemove", RemoveCallableResultField);
         server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
@@ -369,6 +375,46 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
             recording = _recording?.IsRecording == true,
             captured = _recording?.Captured ?? 0,
         };
+    }
+
+    private Task<object?> AddCallableParameterField(JsonElement parameters)
+        => DeclarationCommand(session => session.AddCallableParameterField(DeclarationIndex(parameters)));
+
+    private Task<object?> PatchCallableParameterField(JsonElement parameters)
+        => DeclarationCommand(session =>
+        {
+            var (index, fieldIndex, field, value) = FieldFields(parameters);
+            session.PatchCallableParameterField(index, fieldIndex, field, value);
+        });
+
+    private Task<object?> RemoveCallableParameterField(JsonElement parameters)
+        => DeclarationCommand(session => session.RemoveCallableParameterField(
+            DeclarationIndex(parameters), FieldIndex(parameters)));
+
+    private Task<object?> AddCallableResultField(JsonElement parameters)
+        => DeclarationCommand(session => session.AddCallableResultField(DeclarationIndex(parameters)));
+
+    private Task<object?> PatchCallableResultField(JsonElement parameters)
+        => DeclarationCommand(session =>
+        {
+            var (index, fieldIndex, field, value) = FieldFields(parameters);
+            session.PatchCallableResultField(index, fieldIndex, field, value);
+        });
+
+    private Task<object?> RemoveCallableResultField(JsonElement parameters)
+        => DeclarationCommand(session => session.RemoveCallableResultField(
+            DeclarationIndex(parameters), FieldIndex(parameters)));
+
+    private static int FieldIndex(JsonElement parameters)
+        => parameters.TryGetProperty("fieldIndex", out var index) && index.TryGetInt32(out var number)
+            ? number
+            : -1;
+
+    private static (int Index, int FieldIndex, string Field, string Value) FieldFields(
+        JsonElement parameters)
+    {
+        var (index, field, value) = DeclarationFields(parameters);
+        return (index, FieldIndex(parameters), field, value);
     }
 
     private Task<object?> AddCallableParameter(JsonElement parameters)

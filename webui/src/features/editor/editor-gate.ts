@@ -173,6 +173,23 @@ export class WgEditorGate extends LitElement {
       cursor: pointer;
     }
 
+    .record-fields td {
+      padding-left: var(--spacingHorizontalL);
+      background: var(--colorNeutralBackground2);
+    }
+
+    .record-field-list {
+      display: grid;
+      gap: var(--spacingVerticalXS);
+    }
+
+    .record-field-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px auto;
+      gap: var(--spacingHorizontalXS);
+      align-items: center;
+    }
+
     .macro-settings {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
@@ -759,6 +776,11 @@ export class WgEditorGate extends LitElement {
               <td><button aria-label=${t('MacroInterface.Remove')} @click=${() =>
                 void this.removeCallableParameter(index)}>×</button></td>
             </tr>
+            ${parameter.type === 'record'
+              ? html`<tr class="record-fields"><td colspan="6">
+                  ${this.renderRecordFields('parameter', index, parameter.fields)}
+                </td></tr>`
+              : nothing}
           `)}
         </tbody>
       </table>
@@ -793,6 +815,11 @@ export class WgEditorGate extends LitElement {
               <td><button aria-label=${t('MacroInterface.Remove')} @click=${() =>
                 void this.removeCallableResult(index)}>×</button></td>
             </tr>
+            ${result.type === 'record'
+              ? html`<tr class="record-fields"><td colspan="4">
+                  ${this.renderRecordFields('result', index, result.fields)}
+                </td></tr>`
+              : nothing}
           `)}
         </tbody>
       </table>
@@ -1443,6 +1470,91 @@ export class WgEditorGate extends LitElement {
 
   private selectOpen(event: Event): void {
     this.openName = (event.target as HTMLSelectElement).value;
+  }
+
+  private renderRecordFields(
+    kind: 'parameter' | 'result',
+    index: number,
+    fields: { name: string; type: string }[],
+  ): TemplateResult {
+    return html`
+      <div class="record-field-list">
+        ${fields.map((field, fieldIndex) => html`
+          <div class="record-field-row">
+            <input
+              .value=${field.name}
+              placeholder=${t('MacroInterface.FieldName')}
+              @change=${(event: Event) => kind === 'parameter'
+                ? void this.patchCallableParameterField(index, fieldIndex, 'name', event)
+                : void this.patchCallableResultField(index, fieldIndex, 'name', event)}
+            />
+            <select
+              .value=${field.type}
+              @change=${(event: Event) => kind === 'parameter'
+                ? void this.patchCallableParameterField(index, fieldIndex, 'type', event)
+                : void this.patchCallableResultField(index, fieldIndex, 'type', event)}
+            >
+              ${this.snapshot!.variableTypes.map((type) => html`
+                <option value=${type.value}>${type.label}</option>
+              `)}
+            </select>
+            <button @click=${() => kind === 'parameter'
+              ? void this.removeCallableParameterField(index, fieldIndex)
+              : void this.removeCallableResultField(index, fieldIndex)}>×</button>
+          </div>
+        `)}
+        <fluent-button
+          appearance="subtle"
+          @click=${() => kind === 'parameter'
+            ? void this.addCallableParameterField(index)
+            : void this.addCallableResultField(index)}
+        >${t('MacroInterface.AddField')}</fluent-button>
+      </div>
+    `;
+  }
+
+  private async addCallableParameterField(index: number): Promise<void> {
+    await this.declarationCommand('editor.sessionParameterFieldAdd', { index });
+  }
+
+  private async patchCallableParameterField(
+    index: number,
+    fieldIndex: number,
+    field: string,
+    event: Event,
+  ): Promise<void> {
+    await this.declarationCommand('editor.sessionParameterFieldPatch', {
+      index,
+      fieldIndex,
+      field,
+      value: (event.target as HTMLInputElement | HTMLSelectElement).value,
+    });
+  }
+
+  private async removeCallableParameterField(index: number, fieldIndex: number): Promise<void> {
+    await this.declarationCommand('editor.sessionParameterFieldRemove', { index, fieldIndex });
+  }
+
+  private async addCallableResultField(index: number): Promise<void> {
+    await this.declarationCommand('editor.sessionResultFieldAdd', { index });
+  }
+
+  private async patchCallableResultField(
+    index: number,
+    fieldIndex: number,
+    field: string,
+    event: Event,
+  ): Promise<void> {
+    await this.declarationCommand('editor.sessionResultFieldPatch', {
+      index,
+      fieldIndex,
+      field,
+      value: (event.target as HTMLInputElement | HTMLSelectElement).value,
+    });
+  }
+
+  private async removeCallableResultField(index: number, fieldIndex: number): Promise<void> {
+    await this.declarationCommand('editor.sessionResultFieldRemove', { index, fieldIndex });
   }
 
   private async addCallableParameter(): Promise<void> {

@@ -45,7 +45,7 @@ const chromeKeys = [
   'MacroInterface.Parameters', 'MacroInterface.Results', 'MacroInterface.Name',
   'MacroInterface.Type', 'MacroInterface.Required', 'MacroInterface.Default',
   'MacroInterface.Description', 'MacroInterface.Remove', 'MacroInterface.AddParameter',
-  'MacroInterface.AddResult',
+  'MacroInterface.AddResult', 'MacroInterface.FieldName', 'MacroInterface.AddField',
   'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
@@ -118,6 +118,7 @@ const english: Record<string, string> = {
   'MacroInterface.Required': 'Required', 'MacroInterface.Default': 'Default',
   'MacroInterface.Description': 'Description', 'MacroInterface.Remove': 'Remove',
   'MacroInterface.AddParameter': 'Add parameter', 'MacroInterface.AddResult': 'Add result',
+  'MacroInterface.FieldName': 'Field name', 'MacroInterface.AddField': 'Add field',
   'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
@@ -221,6 +222,7 @@ const chinese: Record<string, string> = {
   'MacroInterface.Required': '必填', 'MacroInterface.Default': '默认值',
   'MacroInterface.Description': '说明', 'MacroInterface.Remove': '删除',
   'MacroInterface.AddParameter': '添加形参', 'MacroInterface.AddResult': '添加结果',
+  'MacroInterface.FieldName': '字段名', 'MacroInterface.AddField': '添加字段',
   'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
@@ -444,6 +446,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
+            { value: 'record', label: '记录' },
           ],
           triggerKinds: [
             { value: 'Key', label: '按键' },
@@ -498,6 +501,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
+            { value: 'record', label: '记录' },
           ],
           triggerKinds: [
             { value: 'Key', label: '按键' },
@@ -531,6 +535,102 @@ export class MockTransport implements BridgeTransport {
         result = { activeKey: this.editor?.name ?? null, tabs };
         break;
       }
+      case 'editor.sessionParameterFieldAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== Number(params['index'])
+              ? parameter
+              : { ...parameter, fields: [...parameter.fields, { name: '', type: 'text' }] }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterFieldPatch':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== Number(params['index'])
+              ? parameter
+              : {
+                  ...parameter,
+                  fields: parameter.fields.map((field, fieldAt) => fieldAt !== Number(params['fieldIndex'])
+                    ? field
+                    : {
+                        ...field,
+                        name: params['field'] === 'name' ? String(params['value'] ?? '') : field.name,
+                        type: params['field'] === 'type' ? String(params['value'] ?? '') : field.type,
+                      }),
+                }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameterFieldRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== Number(params['index'])
+              ? parameter
+              : {
+                  ...parameter,
+                  fields: parameter.fields.filter((_, fieldAt) => fieldAt !== Number(params['fieldIndex'])),
+                }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionResultFieldAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableResults: this.editor.callableResults.map((resultItem, at) => at !== Number(params['index'])
+              ? resultItem
+              : { ...resultItem, fields: [...resultItem.fields, { name: '', type: 'text' }] }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionResultFieldPatch':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableResults: this.editor.callableResults.map((resultItem, at) => at !== Number(params['index'])
+              ? resultItem
+              : {
+                  ...resultItem,
+                  fields: resultItem.fields.map((field, fieldAt) => fieldAt !== Number(params['fieldIndex'])
+                    ? field
+                    : {
+                        ...field,
+                        name: params['field'] === 'name' ? String(params['value'] ?? '') : field.name,
+                        type: params['field'] === 'type' ? String(params['value'] ?? '') : field.type,
+                      }),
+                }),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionResultFieldRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            callableResults: this.editor.callableResults.map((resultItem, at) => at !== Number(params['index'])
+              ? resultItem
+              : {
+                  ...resultItem,
+                  fields: resultItem.fields.filter((_, fieldAt) => fieldAt !== Number(params['fieldIndex'])),
+                }),
+          };
+        }
+        result = this.editor;
+        break;
       case 'editor.sessionParameterDeclAdd':
         if (this.editor) {
           this.editor = {
@@ -538,6 +638,7 @@ export class MockTransport implements BridgeTransport {
             dirty: true,
             callableParameters: [...this.editor.callableParameters, {
               name: 'parameter', type: 'text', required: false, default: '', description: '',
+              fields: [],
             }],
           };
         }
@@ -586,7 +687,7 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             callableResults: [...this.editor.callableResults, {
-              name: 'result', type: 'text', description: '',
+              name: 'result', type: 'text', description: '', fields: [],
             }],
           };
         }
@@ -696,6 +797,7 @@ export class MockTransport implements BridgeTransport {
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
+            { value: 'record', label: '记录' },
           ],
           triggerKinds: [
             { value: 'Key', label: '按键' },

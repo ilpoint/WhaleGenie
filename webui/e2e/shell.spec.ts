@@ -235,6 +235,20 @@ test('C1 宏可声明参数与返回值', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 记录形参可声明字段', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加形参' }).click();
+  const row = page.locator('wg-editor-gate .declarations').first().locator('tbody tr').first();
+  await row.locator('select').selectOption('record');
+  await page.locator('wg-editor-gate .record-field-list fluent-button', { hasText: '添加字段' }).click();
+  await page.locator('wg-editor-gate .record-field-row input').fill('left');
+  await page.locator('wg-editor-gate .record-field-row input').press('Tab');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameterFieldPatch')))
+    .toBe(true);
+});
+
 test('C1 宏设置可改输入限制与启停键', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   const settings = page.locator('wg-editor-gate .macro-settings');
