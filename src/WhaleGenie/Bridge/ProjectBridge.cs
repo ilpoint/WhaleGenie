@@ -148,6 +148,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             _runtime.Triggers.Stop(macro.Name);
         }
 
+        // The dot is right there, but the ear is faster than the eye on a long list.
+        AppSound.Play(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
         return Task.FromResult<object?>(null);
     }
 

@@ -44,6 +44,7 @@
 ### 结构与诊断
 
 - **测试与真机共用设置文件**：无头测试与用户运行的程序都会读写 `%LOCALAPPDATA%\WhaleGenie\settings.json`（`AppPaths.State` 是不可重定向的固定路径）。用 MainViewModel 的既有测试、以及网页壳桥测试里记忆上次项目的路径，都会把测试进程的选择写进用户的设置文件（本轮已让涉事用例自存自还，但机制上仍是共用一把钥匙）。升级为阶段前先取得污染面测量：列出所有写 `LocalSettings` 的测试与写进真实文件的字段，再决定是让 `AppPaths` 可重定向、还是测试装配统一接管。
+- **触发宿主抽出 MainWindow**：网页壳阶段已用「隐藏主窗」让触发宿主接线（系统热键、中键菜单、轮盘手势、浮层、声音）在壳在前面时继续工作（见 interface.md §7.6），但接线本体仍在 `MainWindow` 的分部里，删除主窗前必须先抽出。测量结果：宿主状态网跨 Opened/Hotkey/Wheel/Surface/Menu 五个分部——轮盘 14 字段（`_wheel`/`_wheelGateRules`/`_wheelScene`/`_wheelGeneration`…）、菜单浮层与热键计划（`_menu`/`_globalHotkeyPlan`/`_globalHeld`/`_menuOpen`…）、界面浮层视图状态（`_surfaceViews`）与界面分组（`_hiddenInterfaceGroups`）。抽取按 roadmap 的分块规则走：第一块搬系统热键与全局热键计划（`GlobalHotkeyPlan` 已是独立类，接线直测现成）；第二块菜单浮层；第三块轮盘；界面浮层最后（依赖窗口规则与前台事件）。每块验收：搬一块后窗口方法数下降、对应行为有直测、网页壳与旧主窗共用同一宿主类。
 - **主窗口宿主状态**：`MainWindow` 3,187 行 / 13 个分部，菜单、轮盘、浮层、热键与恢复的宿主
   状态仍在窗口里。宏编辑器那一侧已经搬完，搬的是状态与规则而不是事件处理：恢复草稿
   （`RecoveryDraft`，两个窗口共用）、触发拾取（`EditorPickers`）、窗口框
