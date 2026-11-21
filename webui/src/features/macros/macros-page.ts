@@ -410,6 +410,15 @@ export class WgMacros extends LitElement {
         </div>
         <div class="iconbuttons">
           <button
+            title=${t('Main.RunDebug')}
+            aria-label=${t('Main.RunDebug')}
+            @click=${() => this.onRun(entry)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5.5 19 12 8 18.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button
             title=${t('Main.EditTip')}
             aria-label=${t('Main.EditTip')}
             @click=${() => this.onEdit(entry)}
@@ -531,6 +540,11 @@ export class WgMacros extends LitElement {
 
   private onEdit(entry: MacroEntry): void {
     void this.call('editor.open', { name: entry.name });
+  }
+
+  private onRun(entry: MacroEntry): void {
+    // Run-and-debug is still a native window; the card hands the macro name across the bridge.
+    void this.call('app.openRun', { name: entry.name });
   }
 
   private onNoteDismiss(): void {

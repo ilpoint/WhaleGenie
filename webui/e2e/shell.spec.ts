@@ -32,6 +32,18 @@ test('状态条跟随项目推送', async ({ page }) => {
   await expect(status.locator('[data-status="dirty"]')).toHaveText('有未保存修改');
 });
 
+test('首页关于与帮助请求原生入口', async ({ page }) => {
+  await page.locator('wg-home fluent-button', { hasText: '关于' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openAbout')))
+    .toBe(true);
+
+  await page.locator('wg-home fluent-button', { hasText: '帮助' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openManual')))
+    .toBe(true);
+});
+
 test('activity bar 图标切换页面', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
@@ -202,6 +214,15 @@ test('新建与编辑命令过桥', async ({ page }) => {
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.filter(name => name.startsWith('editor'))))
     .toEqual(['editor.newMacro', 'editor.open']);
+});
+
+test('宏卡片的运行按钮请求原生运行窗口', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros .card', { hasText: '自动保存' })
+    .locator('.iconbuttons button[title="运行调试"]').click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openRun')))
+    .toBe(true);
 });
 
 test('导入命令过桥', async ({ page }) => {

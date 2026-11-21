@@ -1,6 +1,7 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { appInfo } from '../../shared/app/app.js';
+import { bridge } from '../../shared/bridge/bridge.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import type { AppInfo, ProjectState } from '../../shared/bridge/protocol.js';
@@ -65,6 +66,12 @@ export class WgHomePage extends LitElement {
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium);
     }
+
+    .actions {
+      display: flex;
+      gap: var(--spacingHorizontalS);
+      margin-top: var(--spacingVerticalL);
+    }
   `;
 
   private unsubscribers: Array<() => void> = [];
@@ -96,6 +103,14 @@ export class WgHomePage extends LitElement {
       <p class="intro">${t('Shell.Home.Intro')}</p>
       ${this.renderInfo()}
       ${this.renderAreas()}
+      <div class="actions">
+        <fluent-button appearance="subtle" @click=${() => this.open('app.openAbout')}>
+          ${t('Shell.About')}
+        </fluent-button>
+        <fluent-button appearance="subtle" @click=${() => this.open('app.openManual')}>
+          ${t('Shell.Help')}
+        </fluent-button>
+      </div>
     `;
   }
 
@@ -147,6 +162,14 @@ export class WgHomePage extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  private async open(method: string): Promise<void> {
+    try {
+      await bridge.value.call(method);
+    } catch (error) {
+      console.error('native window request failed', error);
+    }
   }
 
   private projectName(): string {
