@@ -14,6 +14,7 @@ using WhaleGenie.Platform.Windows;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
+using WhaleGenie.Web;
 
 namespace WhaleGenie;
 
@@ -101,10 +102,17 @@ public partial class App : Application
     {
         var services = WindowedServices.Build();
 #if DEBUG
-        Window window = App.WebShell
-            ? (Window)services.GetRequiredService<WhaleGenie.Web.WebShellWindow>()
+        var wantsShell = App.WebShell && WebViewRuntime.IsInstalled;
+        if (App.WebShell && !wantsShell)
+        {
+            AppDiagnostics.Note("webshell.runtime",
+                "WebView2 is missing; the native window is used instead");
+        }
+
+        Window window = wantsShell
+            ? (Window)services.GetRequiredService<WebShellWindow>()
             : services.GetRequiredService<MainWindow>();
-        if (window is WhaleGenie.Web.WebShellWindow shell)
+        if (window is WebShellWindow shell)
         {
             shell.DevUrl = App.WebUiDev;
         }
