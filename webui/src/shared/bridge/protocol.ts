@@ -134,6 +134,8 @@ export interface EditorVariable {
   type: string;
   initial: string;
   description: string;
+  source: string;
+  isDeclared: boolean;
 }
 
 export interface EditorVariableType {

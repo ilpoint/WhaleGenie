@@ -117,6 +117,7 @@ public class EditorGateTests
         Assert.Equal("count", variable.Name);
         Assert.Equal("number", variable.Type);
         Assert.Equal("5", variable.Initial);
+        Assert.True(variable.IsDeclared);
 
         session.RemoveVariable("count");
         Assert.Empty(session.Snapshot().Variables);

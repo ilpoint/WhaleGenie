@@ -153,6 +153,14 @@ export class WgEditorGate extends LitElement {
       align-items: center;
     }
 
+    .variable-source {
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .variable-row button {
       border: none;
       background: transparent;
@@ -390,12 +398,14 @@ export class WgEditorGate extends LitElement {
           <div class="variable-row">
             <input
               .value=${variable.name}
+              ?readonly=${!variable.isDeclared}
               placeholder=${t('LocalVariables.New')}
               aria-label=${t('LocalVariables.Title')}
               @change=${(event: Event) => void this.patchVariable(variable.name, 'name', event)}
             />
             <select
               .value=${variable.type}
+              ?disabled=${!variable.isDeclared}
               aria-label=${t('LocalVariables.Title')}
               @change=${(event: Event) => void this.patchVariable(variable.name, 'type', event)}
             >
@@ -403,22 +413,27 @@ export class WgEditorGate extends LitElement {
                 <option value=${type.value}>${type.label}</option>
               `)}
             </select>
-            <input
-              .value=${variable.initial}
-              placeholder=${t('LocalVariables.InitialPlaceholder')}
-              aria-label=${t('LocalVariables.Initial')}
-              @change=${(event: Event) => void this.patchVariable(variable.name, 'initial', event)}
-            />
+            ${variable.isDeclared
+              ? html`<input
+                  .value=${variable.initial}
+                  placeholder=${t('LocalVariables.InitialPlaceholder')}
+                  aria-label=${t('LocalVariables.Initial')}
+                  @change=${(event: Event) => void this.patchVariable(variable.name, 'initial', event)}
+                />`
+              : html`<span class="variable-source">${variable.source}</span>`}
             <input
               .value=${variable.description}
+              ?readonly=${!variable.isDeclared}
               aria-label=${t('LocalVariables.Title')}
               @change=${(event: Event) => void this.patchVariable(variable.name, 'description', event)}
             />
-            <button
-              title=${t('LocalVariables.Delete')}
-              aria-label=${t('LocalVariables.Delete')}
-              @click=${() => void this.removeVariable(variable.name)}
-            >×</button>
+            ${variable.isDeclared
+              ? html`<button
+                  title=${t('LocalVariables.Delete')}
+                  aria-label=${t('LocalVariables.Delete')}
+                  @click=${() => void this.removeVariable(variable.name)}
+                >×</button>`
+              : nothing}
           </div>
         `)}
       </div>

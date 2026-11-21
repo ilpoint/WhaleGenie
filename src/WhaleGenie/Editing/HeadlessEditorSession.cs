@@ -87,11 +87,25 @@ internal sealed class HeadlessEditorSession
             entry.Spec is KeySpec key ? key.Binding : string.Empty))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
-        => [.. _model.DeclaredLocals.Select(local => new EditorVariableSnapshot(
-            local.Name,
-            WhaleGenie.Models.VariableTypes.Name(local.Type),
-            Formula.Word(local.Initial),
-            local.Description))];
+        => [
+            .. _model.DeclaredLocals.Select(local => new EditorVariableSnapshot(
+                local.Name,
+                WhaleGenie.Models.VariableTypes.Name(local.Type),
+                Formula.Word(local.Initial),
+                local.Description,
+                Strings.Get("LocalVariables.Declared"),
+                true)),
+            .. _model.CollectVariables()
+                .Where(choice => choice.Origin == VariableOrigin.Local)
+                .OrderBy(choice => choice.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(choice => new EditorVariableSnapshot(
+                    choice.Name,
+                    WhaleGenie.Models.VariableTypes.Name(choice.Type ?? ValueKind.Text),
+                    string.Empty,
+                    choice.Description,
+                    choice.Source,
+                    false)),
+        ];
 
     public static IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes
         => [.. WhaleGenie.Models.VariableTypes.Declarable.Select(kind => new EditorVariableTypeSnapshot(
@@ -377,7 +391,8 @@ internal sealed record EditorSnapshot(string Name, string Description, bool Dirt
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes);
 
-internal sealed record EditorVariableSnapshot(string Name, string Type, string Initial, string Description);
+internal sealed record EditorVariableSnapshot(string Name, string Type, string Initial, string Description,
+    string Source, bool IsDeclared);
 
 internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 

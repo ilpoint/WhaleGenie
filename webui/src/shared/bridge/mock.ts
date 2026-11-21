@@ -446,6 +446,8 @@ export class MockTransport implements BridgeTransport {
               type: 'text',
               initial: '',
               description: '',
+              source: '声明',
+              isDeclared: true,
             }],
           };
         }
