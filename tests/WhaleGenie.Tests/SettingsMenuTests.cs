@@ -1,11 +1,9 @@
 using System;
 using System.IO;
-using Avalonia.Controls;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -112,24 +110,6 @@ public class SettingsMenuTests
                 .Select(row => row.Rule.MatchValue));
     }
 
-    [Fact]
-    public void Settings_opens_on_the_requested_trigger_page()
-    {
-        Ui.Run(() =>
-        {
-            var project = new MainViewModel();
-            var window = new AdvancedSettingsWindow(project, null, SettingsSubPage.MenuLauncher);
-            window.Show();
-
-            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            Assert.Equal(SettingsSubPage.MenuLauncher, viewModel.SelectedPage);
-            Assert.True(viewModel.IsMenuLauncherPage);
-            Assert.NotNull(SettingsView.Find<Button>(window, "CaptureMenuLauncherButton"));
-            Assert.NotNull(SettingsView.Find<ListBox>(window, "MenuRuleList"));
-            window.Close();
-        });
-    }
-
     private static void InOwnSettings(Action check)
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-settings-" + Guid.NewGuid().ToString("N"));
@@ -150,4 +130,3 @@ public class SettingsMenuTests
         }
     }
 }
-

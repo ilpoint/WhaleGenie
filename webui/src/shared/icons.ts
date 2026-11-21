@@ -3,6 +3,7 @@ import bookOpen from 'lucide-static/icons/book-open.svg?raw';
 import copy from 'lucide-static/icons/copy.svg?raw';
 import filePen from 'lucide-static/icons/file-pen.svg?raw';
 import house from 'lucide-static/icons/house.svg?raw';
+import info from 'lucide-static/icons/info.svg?raw';
 import list from 'lucide-static/icons/list.svg?raw';
 import minus from 'lucide-static/icons/minus.svg?raw';
 import pencil from 'lucide-static/icons/pencil.svg?raw';
@@ -28,6 +29,7 @@ const icons = {
   run: play,
   library: bookOpen,
   settings,
+  about: info,
   pin,
   minimize: minus,
   maximize: square,

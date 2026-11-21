@@ -26,8 +26,6 @@ internal sealed class ShellNativeWindows(
     Action<MacroItem> openRun,
     Action openSettings) : INativeSurfaceActions, IDisposable
 {
-    private AdvancedSettingsWindow? _settings;
-
     /// <summary>The trigger host, once the shell has built it; settings republishes the plan.</summary>
     internal TriggerHost? Host { get; set; }
 
@@ -37,51 +35,15 @@ internal sealed class ShellNativeWindows(
 
     public void OpenRun(MacroItem macro) => openRun(macro);
 
-    internal Task OpenSettingsAsync(SettingsSubPage page = SettingsSubPage.General)
+    /// <summary>
+    /// Settings live in the page now; after one changes, the trigger plan and the hints that read
+    /// the same values have to be rebuilt without waiting for a native window to close.
+    /// </summary>
+    internal void RefreshAfterSettings()
     {
-        if (owner() is not { } window)
-        {
-            return Task.CompletedTask;
-        }
-
-        if (_settings is { } open)
-        {
-            open.SelectPage(page);
-            open.Activate();
-            return Task.CompletedTask;
-        }
-
-        var dialog = new AdvancedSettingsWindow(viewModel, workspace.CurrentPath, page);
-        _settings = dialog;
-        dialog.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_settings, dialog))
-            {
-                _settings = null;
-            }
-
-            // Everything the setting pages change is read back through these three: the runtime
-            // plan the triggers run from, the words on the hotkey hints, and the list order.
-            Host?.PublishPlan();
-            viewModel.RefreshHotkeyHints();
-            viewModel.RefreshVisibleMacros();
-        };
-        dialog.ShowAsPeer(window);
-        dialog.Activate();
-        return Task.CompletedTask;
-    }
-
-    internal async Task OpenAboutAsync()
-    {
-        if (owner() is not { } window)
-        {
-            return;
-        }
-
-        var dialog = new AboutWindow();
-        var closing = dialog.ShowDialogOver(window);
-        dialog.Activate();
-        await closing;
+        Host?.PublishPlan();
+        viewModel.RefreshHotkeyHints();
+        viewModel.RefreshVisibleMacros();
     }
 
     internal static void OpenManual() => WebPage.Open(Manual.Where());
@@ -125,7 +87,5 @@ internal sealed class ShellNativeWindows(
 
     public void Dispose()
     {
-        _settings?.Close();
-        _settings = null;
     }
 }

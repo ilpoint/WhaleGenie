@@ -25,21 +25,17 @@ public partial class WheelMenuTests
     /// whole program down, which is what made "add" look like "crash".
     /// </summary>
     [Fact]
-    public void Adding_a_scene_while_the_editor_is_open_keeps_the_window_alive()
+    public void Adding_a_scene_selects_it_without_losing_the_list()
     {
-        InOwnFiles(() => Ui.Run(() =>
+        InOwnFiles(() =>
         {
-            var window = new AdvancedSettingsWindow(null, null, SettingsSubPage.WheelActions);
-            window.Show();
-
-            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
             viewModel.AddWheelScene(new WindowRule(Title: "Notepad"));
             viewModel.AddWheelScene(new WindowRule(Title: "Browser"));
 
             Assert.Equal(3, viewModel.WheelScenes.Count);
             Assert.NotNull(viewModel.SelectedWheelScene);
-            window.Close();
-        }));
+        });
     }
 
     [Fact]

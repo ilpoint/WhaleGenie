@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
 
@@ -14,37 +13,15 @@ namespace WhaleGenie.Bridge;
 /// deliberately few: settings, run-and-debug and about/manual. Each one disappears when its page
 /// arrives; until then the page says which window it is asking for instead of pretending to own it.
 /// </summary>
-internal sealed class ShellBridge(
-    ProjectWorkspace workspace,
-    Func<ShellNativeWindows?> windows) : IBridgeHandler
+internal sealed class ShellBridge(ProjectWorkspace workspace) : IBridgeHandler
 {
     private BridgeServer? _server;
 
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("app.openSettingsPage", OpenSettingsPage);
         server.Register("app.openRun", OpenRun);
-        server.Register("app.openAbout", _ => OpenAbout());
         server.Register("app.openManual", _ => OpenManual());
-    }
-
-    private async Task<object?> OpenSettingsPage(JsonElement parameters)
-    {
-        var name = parameters.TryGetProperty("page", out var given) ? given.GetString() : null;
-        if (!Enum.TryParse<SettingsSubPage>(name, ignoreCase: true, out var page)
-            || !Enum.IsDefined(page))
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsField"));
-        }
-
-        if (windows() is { } actions)
-        {
-            await actions.OpenSettingsAsync(page);
-        }
-
-        return null;
     }
 
     private async Task<object?> OpenRun(JsonElement parameters)
@@ -69,16 +46,6 @@ internal sealed class ShellBridge(
         }
 
         await _server.PushAsync("run.openRequested", new { name = macro.Name });
-        return null;
-    }
-
-    private async Task<object?> OpenAbout()
-    {
-        if (windows() is { } actions)
-        {
-            await actions.OpenAboutAsync();
-        }
-
         return null;
     }
 

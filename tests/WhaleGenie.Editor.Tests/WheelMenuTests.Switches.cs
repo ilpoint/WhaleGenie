@@ -51,29 +51,6 @@ public partial class WheelMenuTests
 
 
     [Fact]
-    public void The_wheel_page_carries_the_only_in_programs_check_box()
-    {
-        InOwnFiles(() => Ui.Run(() =>
-        {
-            var window = new AdvancedSettingsWindow(null, null, SettingsSubPage.WheelMenu);
-            window.Show();
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            var check = SettingsView.Find<CheckBox>(window, "OnlyInProgramsCheck");
-            Assert.NotNull(check);
-            Assert.False(check.IsChecked);
-
-            check.IsChecked = true;
-            Assert.True(viewModel.OnlyInPrograms);
-            Assert.True(WheelMenuStore.Load().Options.OnlyInPrograms);
-
-            window.Close();
-        }));
-    }
-
-
-    [Fact]
     public void A_chosen_icon_is_drawn_even_when_the_label_is_shown()
     {
         Ui.Run(() =>
@@ -102,27 +79,6 @@ public partial class WheelMenuTests
         });
     }
 
-
-    [Fact]
-    public void The_editor_paints_the_icon_a_position_carries()
-    {
-        InOwnFiles(() => Ui.Run(() =>
-        {
-            var project = new MainViewModel();
-            project.AddMacro(new MacroItem { Name = "copy" });
-            project.Triggers.Wheel.Global.At(Top).Macro = "copy";
-            project.Triggers.Wheel.Global.At(Top).Icon = new MenuIconReference(
-                MenuIconKind.Builtin, MenuIconCatalog.Options[0].Key);
-
-            var window = new AdvancedSettingsWindow(project, null, SettingsSubPage.WheelActions);
-            window.Show();
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-            var editor = window.GetVisualDescendants().OfType<WheelMenuEditorView>().Single();
-            Assert.NotEmpty(editor.GetVisualDescendants().OfType<IconView>());
-            window.Close();
-        }));
-    }
 
     private static WheelGesture Gesture() => new(
         () => WheelOptions.RightButton,
@@ -153,4 +109,3 @@ public partial class WheelMenuTests
         }
     }
 }
-

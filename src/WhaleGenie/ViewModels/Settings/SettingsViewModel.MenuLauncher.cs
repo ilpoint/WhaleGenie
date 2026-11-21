@@ -107,8 +107,6 @@ public partial class SettingsViewModel
         }
     }
 
-    public void SetPage(SettingsSubPage page) => SelectedPage = page;
-
     public void BeginMenuLauncherCapture()
     {
         MenuLauncherMessage = string.Empty;

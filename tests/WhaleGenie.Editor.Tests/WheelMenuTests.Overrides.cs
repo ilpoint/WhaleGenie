@@ -71,43 +71,4 @@ public partial class WheelMenuTests
     }
 
 
-    [Fact]
-    public void The_action_dialog_opens_on_the_action_it_was_given()
-    {
-        Ui.Run(() =>
-        {
-            var slot = new WheelSlot { Macro = "copy", Note = "Copy the text" };
-            var macros = new List<MacroItem>
-            {
-                new() { Name = "copy" },
-                new() { Name = "paste" },
-            };
-
-            var window = new WheelActionWindow(slot, macros,
-                "Inner circle, position 1", inherited: false);
-            window.Show();
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-            var controls = window.GetVisualDescendants().OfType<Control>().ToList();
-            Assert.Equal("copy", controls.OfType<TextBlock>()
-                .Single(control => control.Name == "ActionMacroName").Text);
-            Assert.Equal("Copy the text", controls.OfType<TextBox>()
-                .Single(control => control.Name == "ActionNote").Text);
-            // An empty program position inherits the global action again, so "clear this position"
-            // is not offered where clearing would leave the wheel showing the same action.
-            var clear = controls.OfType<Button>().Single(button =>
-                Equals(button.Content, Strings.Get("Wheel.ActionClearSlot")));
-            Assert.True(clear.IsVisible);
-            window.Close();
-
-            var inherited = new WheelActionWindow(slot, macros,
-                "Inner circle, position 1", inherited: true);
-            inherited.Show();
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            var inheritedClear = inherited.GetVisualDescendants().OfType<Button>().Single(button =>
-                Equals(button.Content, Strings.Get("Wheel.ActionClearSlot")));
-            Assert.False(inheritedClear.IsVisible);
-            inherited.Close();
-        });
-    }
 }

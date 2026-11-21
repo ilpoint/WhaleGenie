@@ -60,24 +60,4 @@ public partial class WheelMenuTests
         });
     }
 
-    [Fact]
-    public void The_wheel_actions_page_hosts_the_editor()
-    {
-        InOwnFiles(() => Ui.Run(() =>
-        {
-            var window = new AdvancedSettingsWindow(null, null, SettingsSubPage.WheelActions);
-            window.Show();
-
-            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            Assert.True(viewModel.IsWheelActionsPage);
-            Assert.Equal(SettingsRoot.Triggers, viewModel.SelectedRoot);
-            Assert.NotEmpty(viewModel.WheelScenes);
-            Assert.IsType<WheelMenuEditorView>(
-                Assert.IsType<ContentControl>(SettingsView.Find<ContentControl>(window, "WheelEditorHost"))
-                    .Content);
-
-            window.Close();
-        }));
-    }
 }
-

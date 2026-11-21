@@ -44,8 +44,6 @@ public partial class SettingsViewModel : ViewModelBase
         Project = project;
         PackagePath = packagePath;
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
-        SelectedTheme = ThemeOptions.First(option => option.Mode == LocalSettings.LoadTheme().Mode);
-        _themeReady = true;
         LoadLastProjectAtStart = LocalSettings.LoadLastProjectAtStart();
         SystemAtStart = LocalSettings.LoadSystemAtStart();
         EnabledFirst = LocalSettings.LoadEnabledFirst();

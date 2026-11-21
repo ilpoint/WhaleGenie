@@ -19,8 +19,8 @@ public class BridgeMethodInventoryTests
 {
     private static readonly HashSet<string> Expected = new(StringComparer.Ordinal)
     {
-        "app.info", "app.quit", "app.openExternal",
-        "app.openSettingsPage", "app.openRun", "app.openAbout", "app.openManual",
+        "app.info", "app.about", "app.quit", "app.openExternal",
+        "app.openRun", "app.openManual",
         "dialog.respond", "dialog.pickOpenPackage", "dialog.pickSavePackage", "dialog.pickImage",
         "editor.sessionOpen", "editor.sessionTabs", "editor.sessionNew",
         "editor.sessionSubOpen", "editor.sessionMacroSetting",
@@ -57,6 +57,15 @@ public class BridgeMethodInventoryTests
         "editor.sessionActions",
         "library.state", "library.delete", "library.add", "library.replace",
         "settings.state", "settings.update", "settings.openFolder",
+        "settings.windows.list", "settings.windows.pick",
+        "settings.menu.capture", "settings.menu.clear",
+        "settings.menu.rule.add", "settings.menu.rule.edit", "settings.menu.rule.remove",
+        "settings.menu.rule.addPage", "settings.menu.rule.move", "settings.menu.rule.moveTo",
+        "settings.wheel.update", "settings.wheel.launcher", "settings.wheel.enabled",
+        "settings.wheel.enableSystem", "settings.wheel.repeat",
+        "settings.wheel.scene.select", "settings.wheel.scene.add", "settings.wheel.scene.edit",
+        "settings.wheel.scene.remove", "settings.wheel.scene.move",
+        "settings.wheel.slot.set", "settings.wheel.pickIcon",
         "run.state", "run.load", "run.command", "run.breakpoint", "run.breakpointRule", "run.argument", "run.answer",
         "mcp.state", "mcp.setGrants", "mcp.copyConfig", "mcp.openAudit",
         "project.state", "project.toggle", "project.delete", "project.export",

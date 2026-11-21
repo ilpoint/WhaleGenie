@@ -6,8 +6,13 @@ import type {
   EditorStep,
   McpState,
   ProjectState,
+  SettingsMenuState,
+  SettingsWheelSlot,
+  SettingsWheelState,
   StringsBundle,
   ThemeState,
+  WindowEntryState,
+  WindowRuleState,
   WindowState,
 } from './protocol.js';
 
@@ -16,6 +21,230 @@ import type {
  * `push()` 让测试往页面里灌事件。真实词表以程序下发的为准——这里只放壳需要的键，与真表
  * 同步更新（有测试对账）。
  */
+
+const demoRule: WindowRuleState = {
+  title: 'Untitled - Notepad', process: 'notepad', className: 'Notepad',
+  handle: 0, how: 'titleContains', caseSensitive: false, trim: true, multiline: false,
+};
+
+const demoWheelGeometry = {
+  diameter: 340, center: 37.4, inner: 95.2, outer: 159.8, third: 0, edge: 159.8,
+  outerCount: 8, thirdCount: 0, hasOuter: true, hasThird: false,
+};
+
+function demoWheelSlots(): SettingsWheelSlot[] {
+  const slots: SettingsWheelSlot[] = [];
+  const rings = [
+    { name: 'inner', count: 8, radius: 66 },
+    { name: 'outer', count: 8, radius: 128 },
+    { name: 'extended', count: 8, radius: 185 },
+  ];
+  for (const ring of rings) {
+    for (let index = 0; index < ring.count; index++) {
+      const angle = (index * Math.PI * 2) / ring.count;
+      const macro = ring.name === 'inner' && index === 0 ? '演示宏' : '';
+      const angleLabel = ring.name === 'inner' ? '内圈' : ring.name === 'outer' ? '外圈' : '划动圈';
+      slots.push({
+        ring: ring.name,
+        index,
+        x: ring.radius * Math.sin(angle),
+        y: -ring.radius * Math.cos(angle),
+        position: `${angleLabel}第 ${index + 1} 格`,
+        macro,
+        note: '',
+        label: macro,
+        icon: null,
+        inherited: false,
+        overridden: macro.length > 0,
+        empty: macro.length === 0,
+        tone: ring.name === 'extended' ? 'extended' : macro ? 'global' : 'empty',
+      });
+    }
+  }
+  return slots;
+}
+
+const demoMenu: SettingsMenuState = {
+  launcher: 'Mouse Middle', display: 'Mouse Middle', status: '就绪',
+  isMiddle: true, isCustom: false, problem: '',
+  rules: [
+    {
+      key: 'default', summary: 'Default', pageCountLabel: '1 页', isDefault: true,
+      isBlocked: false, canAddPage: true, rule: { ...demoRule, title: '', process: '', className: '' },
+    },
+    {
+      key: 'notepad', summary: 'Notepad · 标题包含', pageCountLabel: '1 页', isDefault: false,
+      isBlocked: false, canAddPage: true, rule: { ...demoRule },
+    },
+  ],
+};
+
+const demoWheel: SettingsWheelState = {
+  enabled: true, launcher: 'Mouse Right', launcherStatus: '就绪', launcherMessage: '',
+  onlyInPrograms: false, diameter: 420, fontSize: 11, thirdCapacity: 0, timeoutMs: 20000,
+  repeatKey: 'F1', repeatDisplay: 'F1', wideOuter: false, hideEmptyOuter: true,
+  hideLabelWithIcon: false, centerName: false, clampToScreen: true,
+  movePointerToCenter: false, showGuide: true, extendedHint: true, followTheme: true,
+  gloss: true, hoverBorder: true, popAnimation: true, isSystemOff: false, problem: '',
+  launcherChoices: [
+    { value: 'Mouse Right', label: '鼠标右键' },
+    { value: 'Mouse Middle', label: '鼠标中键' },
+    { value: 'Mouse 5', label: '鼠标前进键' },
+    { value: 'Mouse 4', label: '鼠标后退键' },
+  ],
+  thirdChoices: [
+    { value: 0, label: '关闭（两圈）' },
+    { value: 8, label: '8 格' },
+    { value: 16, label: '16 格' },
+    { value: 24, label: '24 格' },
+  ],
+  scenes: [
+    { key: 'global', summary: '全局', isGlobal: true, rule: { ...demoRule, title: '', process: '', className: '' } },
+    { key: 'notepad', summary: 'Notepad · 标题包含', isGlobal: false, rule: { ...demoRule } },
+  ],
+  selectedScene: 'global',
+  geometry: demoWheelGeometry,
+  slots: demoWheelSlots(),
+  preview: demoWheelSlots(),
+  macros: [
+    { name: '演示宏', enabled: true },
+    { name: '备份', enabled: true },
+  ],
+};
+
+const demoWindows: WindowEntryState[] = [
+  {
+    handle: 1, title: 'Untitled - Notepad', process: 'notepad', className: 'Notepad',
+    detail: '800×600', summary: 'notepad · Notepad · 800×600',
+  },
+];
+
+const mockExtra: Record<string, { en: string; zh: string }> = {
+  'Settings.GeneralCardNote': { en: 'What happens at start', zh: '启动时做什么' },
+  'Settings.SoundsNote': { en: 'A cue when it switches', zh: '开关时的提示音' },
+  'Settings.ReadingNote': { en: 'Where the picture comes from', zh: '画面从哪里读' },
+  'Settings.FramesCardNote': { en: 'How often, and whether it is reused', zh: '多久读一次，是否复用' },
+  'Settings.InputCardNote': { en: 'How your input is counted', zh: '你的输入怎么计算' },
+  'Settings.DriverNote': { en: 'Input that looks real', zh: '看起来像真实设备的输入' },
+  'Settings.StorageNote': { en: 'Kept across updates', zh: '更新后仍保留' },
+  'Settings.MenuLauncher': { en: 'Menu shortcut', zh: '菜单呼出键' },
+  'Settings.MenuLauncherNote': { en: 'One key opens the menu', zh: '一个按键唤出菜单' },
+  'Settings.MenuLauncherHint': { en: 'One keyboard shortcut, the middle or a side button.', zh: '一个键盘快捷键，或鼠标中键、4/5 侧键。' },
+  'Settings.MiddleButton': { en: 'Middle mouse button (default)', zh: '鼠标中键（默认）' },
+  'Settings.MenuWindowRules': { en: 'Lower-region window rules', zh: '下方区域窗口规则' },
+  'Settings.MenuWindowRulesNote': { en: 'The foreground window decides', zh: '由前台窗口决定' },
+  'Settings.MenuRuleHint': { en: 'First match from the top wins; otherwise the default pages.', zh: '从上往下第一条命中的规则生效；都不命中时用默认页。' },
+  'Settings.MenuRuleDefault': { en: 'Default', zh: '默认' },
+  'Settings.MenuRuleBlocked': { en: 'Launcher disabled', zh: '呼出已停用' },
+  'Settings.MenuRuleAdd': { en: 'Add rule', zh: '添加规则' },
+  'Settings.MenuRuleAddPage': { en: 'Add page', zh: '添加页' },
+  'Settings.MenuRuleEdit': { en: 'Edit', zh: '编辑' },
+  'Settings.MenuRuleRemove': { en: 'Remove', zh: '删除' },
+  'Settings.MenuRuleUp': { en: 'Move up', zh: '上移' },
+  'Settings.MenuRuleDown': { en: 'Move down', zh: '下移' },
+  'Settings.WheelTitle': { en: 'Wheel menu', zh: '轮盘菜单' },
+  'Settings.WheelTitleNote': { en: 'Hold, move, aim, release', zh: '按住、移动、指向、松开' },
+  'Settings.WheelGestureHint': { en: 'Hold the trigger and move to open the wheel; release over a sector to run it.', zh: '按住触发键并移动即可弹出轮盘；在扇区上松开执行。' },
+  'Settings.WheelLauncher': { en: 'Trigger button', zh: '触发按键' },
+  'Settings.WheelEnabled': { en: 'Enable the wheel', zh: '启用轮盘菜单' },
+  'Settings.WheelOnlyInPrograms': { en: 'Only in listed programs', zh: '只在指定软件下唤出' },
+  'Settings.WheelEnableSystem': { en: 'Enable the system switch', zh: '启用系统总开关' },
+  'Settings.WheelSize': { en: 'Wheel size', zh: '轮盘尺寸' },
+  'Settings.WheelSizeUnit': { en: 'px', zh: '像素' },
+  'Settings.WheelTextSize': { en: 'Label size', zh: '文字大小' },
+  'Settings.WheelThird': { en: 'Third circle', zh: '第三圈' },
+  'Settings.WheelThird0': { en: 'Off (two circles)', zh: '关闭（两圈）' },
+  'Settings.WheelThird8': { en: '8 positions', zh: '8 格' },
+  'Settings.WheelThird16': { en: '16 positions', zh: '16 格' },
+  'Settings.WheelThird24': { en: '24 positions', zh: '24 格' },
+  'Settings.WheelTimeout': { en: 'Cancel after', zh: '超时取消' },
+  'Settings.WheelTimeoutUnit': { en: 'ms', zh: '毫秒' },
+  'Settings.WheelRepeat': { en: 'Repeat key', zh: '重复触发键' },
+  'Settings.WheelWideOuter': { en: '16 positions on the outer circle', zh: '外圈用 16 格' },
+  'Settings.WheelHideEmptyOuter': { en: 'Hide empty outer circles', zh: '自动隐藏全空的外圈' },
+  'Settings.WheelIconOnly': { en: 'Show icons instead of labels', zh: '有图标时只显示图标' },
+  'Settings.WheelCenterName': { en: 'Name the aimed action in the centre', zh: '在中心显示指向的动作名' },
+  'Settings.WheelClamp': { en: 'Keep the wheel on screen', zh: '轮盘限制在屏幕内' },
+  'Settings.WheelMovePointer': { en: 'Move the pointer to the centre at the screen edge', zh: '贴边时把指针移到轮盘中心' },
+  'Settings.WheelGuide': { en: 'Show the line from the centre to the pointer', zh: '显示从中心到指针的提示线' },
+  'Settings.WheelExtendedHint': { en: 'Name the action on the swipe circle in the centre', zh: '在中心显示划圈动作的名字' },
+  'Settings.WheelFollowTheme': { en: 'Follow the application theme', zh: '跟随应用主题' },
+  'Settings.WheelGloss': { en: 'Sector sheen', zh: '扇区光泽' },
+  'Settings.WheelHoverBorder': { en: 'Hover rim', zh: '悬浮边框' },
+  'Settings.WheelPopAnimation': { en: 'Pop animation', zh: '弹出动效' },
+  'Settings.WheelPreview': { en: 'Preview the wheel', zh: '预览轮盘' },
+  'Settings.WheelPreviewHint': { en: 'Shows the current global actions in the wheel layout.', zh: '按当前全局动作显示轮盘版面。' },
+  'Settings.WheelActions': { en: 'Wheel actions', zh: '轮盘动作管理' },
+  'Settings.WheelActionsNote': { en: 'One action per position', zh: '每个位置放一个动作' },
+  'Settings.WheelActionsHint': { en: 'The global scene holds the defaults. The first matching program scene overrides only its filled positions.', zh: '全局场景放默认动作。命中第一条程序场景后，只覆盖它填了动作的位置。' },
+  'Settings.ThemeHint': { en: 'Dark and light are built in; Custom picks one accent.', zh: '深色与浅色内置；自定义只挑强调色。' },
+  'Settings.ColorsNote': { en: 'Dark, light and the accent', zh: '深色、浅色与强调色' },
+  'Settings.CustomizeTheme': { en: 'Accent colour', zh: '自定义强调色' },
+  'Settings.HotkeysNote': { en: 'Works in any window', zh: '在任何窗口里都能按' },
+  'Common.None': { en: 'None', zh: '无' },
+  'Common.Save': { en: 'Save', zh: '保存' },
+  'Common.Cancel': { en: 'Cancel', zh: '取消' },
+  'Common.Ok': { en: 'OK', zh: '确定' },
+  'Wheel.Scenes': { en: 'Scenes', zh: '场景' },
+  'Wheel.SceneAdd': { en: 'Add', zh: '新增' },
+  'Wheel.SceneEdit': { en: 'Edit rule', zh: '编辑规则' },
+  'Wheel.SceneRemove': { en: 'Remove', zh: '删除' },
+  'Wheel.SceneUp': { en: 'Up', zh: '上移' },
+  'Wheel.SceneDown': { en: 'Down', zh: '下移' },
+  'Wheel.EditorHint': { en: 'Pick a position to edit its macro, note and icon.', zh: '选一个位置，编辑宏、备注与图标。' },
+  'Wheel.SlotHint': { en: 'Click a position to edit it.', zh: '点一个位置开始编辑。' },
+  'Wheel.LegendGlobal': { en: 'Global', zh: '全局' },
+  'Wheel.LegendOverride': { en: 'Program override', zh: '程序覆盖' },
+  'Wheel.LegendExtended': { en: 'Swipe circle', zh: '划动圈' },
+  'Wheel.Inherited': { en: '{0} (global)', zh: '{0}（全局）' },
+  'Wheel.ActionMacro': { en: 'Macro', zh: '宏' },
+  'Wheel.ActionNote': { en: 'Note', zh: '备注' },
+  'Wheel.ActionNotePlaceholder': { en: 'Shown in place of the macro name', zh: '显示在扇区上，代替宏名' },
+  'Wheel.ActionIcon': { en: 'Icon', zh: '图标' },
+  'Wheel.ActionPickIcon': { en: 'Choose icon…', zh: '选择图标…' },
+  'Wheel.ActionClearIcon': { en: 'Clear icon', zh: '清除图标' },
+  'Wheel.ActionClearSlot': { en: 'Clear this position', zh: '清除该位置' },
+  'Wheel.ActionInherited': { en: 'This position follows the global scene; saving writes a program override.', zh: '这个位置当前沿用全局场景；保存后会写成本程序自己的动作。' },
+  'Settings.WindowRuleEditor': { en: 'Window rule', zh: '窗口规则' },
+  'Settings.WindowRuleRequired': { en: 'Pick a window and the part of it to match.', zh: '请先选择窗口以及要匹配的部分。' },
+  'WindowRule.CaptureHint': { en: 'Pick an open window, or point at one on the desktop.', zh: '在左边挑一个窗口，或者到桌面上取一个。' },
+  'WindowRule.Pick': { en: 'Which window', zh: '哪个窗口' },
+  'WindowRule.Search': { en: 'Filter by title or program', zh: '按标题或程序名筛选' },
+  'WindowRule.NoWindows': { en: 'No windows to choose from right now.', zh: '现在没有可选的窗口。' },
+  'WindowRule.PickWindow': { en: 'Pick a window', zh: '取窗口' },
+  'WindowRule.Refresh': { en: 'Refresh', zh: '刷新' },
+  'WindowRule.How': { en: 'Match by', zh: '匹配方式' },
+  'WindowRule.MatchText': { en: 'Match text', zh: '匹配内容' },
+  'WindowRule.CaseSensitive': { en: 'Case sensitive', zh: '区分大小写' },
+  'WindowRule.Trim': { en: 'Ignore spaces at the ends', zh: '去掉两端空格' },
+  'WindowRule.Multiline': { en: 'Regex by line', zh: '正则按行' },
+  'WindowRule.FieldHint': { en: 'The rule is checked again every time the macro runs.', zh: '每次运行都按这条规则重新找窗口。' },
+  'WindowRule.HandleHint': { en: 'A handle identifies only this window instance.', zh: '句柄只认当前这个窗口实例。' },
+  'WindowRule.Cancel': { en: 'Cancel', zh: '取消' },
+  'WindowRule.Use': { en: 'Use this window', zh: '使用这个窗口' },
+  'WindowRule.BadHandle': { en: 'A window handle must be a non-zero whole number.', zh: '窗口句柄必须是不为 0 的整数。' },
+  'WindowPick.Untitled': { en: 'A window with no title', zh: '没有标题的窗口' },
+  'Theme.Base.Hint': { en: 'Controls follow this base; the accent is yours.', zh: '控件底子跟随这里；强调色由你决定。' },
+  'Theme.Base.Light': { en: 'Light controls', zh: '浅色控件' },
+  'Theme.Accent': { en: 'Accent colour', zh: '强调色' },
+  'Theme.Accent.Hint': { en: 'The button, selected row and accent text are derived from this colour.', zh: '按钮、选中行与强调文字都由这个颜色推出来。' },
+  'Theme.Palette.Hint': { en: 'A colour that cannot be made readable is not used.', zh: '推不到可读对比度的颜色不会被采用。' },
+  'Theme.Accent.Rejected': { en: 'This colour cannot be made readable; the built-in accent is used.', zh: '这个颜色读不清，已改用内置强调色。' },
+  'Theme.Preview.Primary': { en: 'Primary button', zh: '主按钮' },
+  'Theme.Preview.Selected': { en: 'Selected row', zh: '选中行' },
+  'Theme.Preview.AccentText': { en: 'Accent text', zh: '强调文字' },
+  'Theme.ResetAccent': { en: 'Back to the built-in accent', zh: '改回内置强调色' },
+  'Main.About': { en: 'About', zh: '关于' },
+  'Main.AboutText': { en: 'A little assistant DeepSeek helped write, called WhaleGenie.\n\nVersion {0}', zh: '由 DeepSeek 协助开发的小助手，叫鲸灵。\n\n版本 {0}' },
+  'Main.AboutOpenPage': { en: 'Open the project page', zh: '打开项目主页' },
+  'Main.AboutNotices': { en: 'Third-party components', zh: '第三方组件' },
+  'Main.AboutUnknownVersion': { en: 'unknown', zh: '未知' },
+  'About.SupportTitle': { en: 'Support the developer', zh: '支持开发者' },
+  'About.SupportText': { en: 'WhaleGenie is a free open-source project.', zh: '鲸灵是完全免费的开源项目。' },
+  'About.WeChat': { en: 'WeChat', zh: '微信' },
+  'About.Alipay': { en: 'Alipay', zh: '支付宝' },
+  'Shell.Field.Version': { en: 'Version', zh: '版本' },
+};
 
 const chromeKeys = [
   'Shell.Home', 'Shell.Macros', 'Shell.Editor', 'Shell.Run', 'Shell.Settings',
@@ -434,6 +663,8 @@ export class MockTransport implements BridgeTransport {
     windowWay: 'Auto', screenWay: 'Auto',
     windowWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'PrintWindow', label: 'PrintWindow' }],
     screenWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'Gdi', label: 'GDI' }],
+    menu: demoMenu,
+    wheel: demoWheel,
   };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
@@ -512,14 +743,23 @@ export class MockTransport implements BridgeTransport {
       case 'theme.get':
         result = this.theme;
         break;
-      case 'theme.set':
+      case 'theme.set': {
+        const mode = String(params['mode'] ?? 'dark') as ThemeState['mode'];
+        const accentHex = (params['accentHex'] as string | null) ?? null;
         this.theme = {
-          mode: String(params['mode'] ?? 'dark') as ThemeState['mode'],
+          mode,
           baseLight: params['baseLight'] === true,
-          accentHex: (params['accentHex'] as string | null) ?? null,
+          accentHex,
+          accentUsable: true,
+          fill: accentHex ?? '#c8401c',
+          surface: accentHex ?? '#f5e6e2',
+          text: accentHex ?? '#c8401c',
+          defaultAccent: '#c8401c',
         };
         this.push('theme.changed', this.theme);
+        result = this.theme;
         break;
+      }
       case 'window.minimize':
         this.windowState = { ...this.windowState, state: 'minimized' };
         this.push('window.changed', this.windowState);
@@ -627,10 +867,289 @@ export class MockTransport implements BridgeTransport {
             : value === 'true' ? true : value === 'false' ? false : Number(value),
         };
         result = this.settingsState;
+        if (field === 'language') {
+          this.info = {
+            ...this.info,
+            language: value,
+          };
+          this.push('strings.changed', this.bundle());
+        }
         break;
       }
-      case 'app.openSettingsPage':
-        result = null;
+      case 'settings.windows.list':
+        result = {
+          windows: demoWindows,
+          hows: [
+            { value: 'titleContains', label: '标题包含' },
+            { value: 'titleEquals', label: '标题等于' },
+            { value: 'process', label: '进程名包含' },
+            { value: 'class', label: '窗口类包含' },
+            { value: 'handle', label: '窗口句柄（当前实例）' },
+          ],
+        };
+        break;
+      case 'settings.windows.pick':
+        result = demoWindows[0];
+        break;
+      case 'settings.menu.capture': {
+        const binding = String(params['binding'] ?? '');
+        this.settingsState = {
+          ...this.settingsState,
+          menu: {
+            ...this.settingsState.menu,
+            launcher: binding,
+            display: binding,
+            isMiddle: binding === 'Mouse Middle',
+            isCustom: binding !== 'Mouse Middle',
+            status: binding ? '已设置' : '未设置',
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.menu.clear':
+        this.settingsState = {
+          ...this.settingsState,
+          menu: {
+            ...this.settingsState.menu,
+            launcher: '', display: '无', isMiddle: false, isCustom: false, status: '未设置',
+          },
+        };
+        result = this.settingsState;
+        break;
+      case 'settings.menu.rule.add': {
+        const rule = params['rule'] as WindowRuleState;
+        this.settingsState = {
+          ...this.settingsState,
+          menu: {
+            ...this.settingsState.menu,
+            rules: [...this.settingsState.menu.rules, {
+              key: 'rule-' + Date.now(), summary: rule.title || rule.process || '窗口规则',
+              pageCountLabel: '1 页', isDefault: false, isBlocked: false, canAddPage: true, rule,
+            }],
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.menu.rule.edit': {
+        const rule = params['rule'] as WindowRuleState;
+        this.settingsState = {
+          ...this.settingsState,
+          menu: {
+            ...this.settingsState.menu,
+            rules: this.settingsState.menu.rules.map((row) => row.key === params['key']
+              ? { ...row, rule, summary: rule.title || rule.process || '窗口规则' }
+              : row),
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.menu.rule.remove':
+        this.settingsState = {
+          ...this.settingsState,
+          menu: {
+            ...this.settingsState.menu,
+            rules: this.settingsState.menu.rules.filter((row) => row.key !== params['key']),
+          },
+        };
+        result = this.settingsState;
+        break;
+      case 'settings.menu.rule.addPage':
+        result = this.settingsState;
+        break;
+      case 'settings.menu.rule.move': {
+        const step = Number(params['step'] ?? 0);
+        const rules = [...this.settingsState.menu.rules];
+        const at = rules.findIndex((row) => row.key === params['key']);
+        const to = Math.max(0, Math.min(rules.length - 1, at + step));
+        if (at >= 0 && to !== at) {
+          const [row] = rules.splice(at, 1);
+          if (row) {
+            rules.splice(to, 0, row);
+          }
+        }
+        this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.menu.rule.moveTo': {
+        const rules = [...this.settingsState.menu.rules];
+        const from = rules.findIndex((row) => row.key === params['key']);
+        const to = rules.findIndex((row) => row.key === params['target']);
+        if (from >= 0 && to >= 0) {
+          const [row] = rules.splice(from, 1);
+          if (row) {
+            rules.splice(to, 0, row);
+          }
+        }
+        this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.update': {
+        const field = String(params['field'] ?? '');
+        const value = String(params['value'] ?? '');
+        const next: Record<string, unknown> = { ...this.settingsState.wheel };
+        if (['diameter', 'fontSize', 'thirdCapacity', 'timeoutMs'].includes(field)) {
+          next[field] = Number(value);
+        } else if (field === 'enabled') {
+          next[field] = value === 'true';
+        } else {
+          next[field] = value === 'true' ? true : value === 'false' ? false : value;
+        }
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: next as unknown as SettingsWheelState,
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.launcher': {
+        const launcher = String(params['value'] ?? '');
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: {
+            ...this.settingsState.wheel,
+            launcher,
+            enabled: launcher.length > 0,
+            launcherStatus: launcher ? '就绪' : '未设置',
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.enabled': {
+        const enabled = params['value'] === true;
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: {
+            ...this.settingsState.wheel,
+            enabled,
+            launcher: enabled ? (this.settingsState.wheel.launcher || 'Mouse Right') : '',
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.enableSystem':
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: { ...this.settingsState.wheel, isSystemOff: false },
+        };
+        result = this.settingsState;
+        break;
+      case 'settings.wheel.repeat': {
+        const key = String(params['binding'] ?? '');
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: { ...this.settingsState.wheel, repeatKey: key, repeatDisplay: key },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.scene.select':
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: { ...this.settingsState.wheel, selectedScene: String(params['key'] ?? 'global') },
+        };
+        result = this.settingsState;
+        break;
+      case 'settings.wheel.scene.add': {
+        const rule = params['rule'] as WindowRuleState;
+        const key = 'scene-' + Date.now();
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: {
+            ...this.settingsState.wheel,
+            selectedScene: key,
+            scenes: [...this.settingsState.wheel.scenes, {
+              key, summary: rule.title || rule.process || '窗口规则', isGlobal: false, rule,
+            }],
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.scene.edit': {
+        const rule = params['rule'] as WindowRuleState;
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: {
+            ...this.settingsState.wheel,
+            scenes: this.settingsState.wheel.scenes.map((scene) => scene.key === params['key']
+              ? { ...scene, rule, summary: rule.title || rule.process || '窗口规则' }
+              : scene),
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.scene.remove':
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: {
+            ...this.settingsState.wheel,
+            selectedScene: 'global',
+            scenes: this.settingsState.wheel.scenes.filter((scene) => scene.key !== params['key']),
+          },
+        };
+        result = this.settingsState;
+        break;
+      case 'settings.wheel.scene.move': {
+        const scenes = [...this.settingsState.wheel.scenes];
+        const at = scenes.findIndex((scene) => scene.key === this.settingsState.wheel.selectedScene);
+        const to = Math.max(1, Math.min(scenes.length - 1, at + Number(params['step'] ?? 0)));
+        if (at > 0 && to !== at) {
+          const [scene] = scenes.splice(at, 1);
+          if (scene) {
+            scenes.splice(to, 0, scene);
+          }
+        }
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: { ...this.settingsState.wheel, scenes },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.slot.set': {
+        const ring = String(params['ring'] ?? '');
+        const index = Number(params['index'] ?? 0);
+        const macro = String(params['macro'] ?? '');
+        const note = String(params['note'] ?? '');
+        const icon = params['icon'] as { kind: string; value: string } | null;
+        const update = (slot: SettingsWheelSlot): SettingsWheelSlot => ({
+          ...slot,
+          macro,
+          note,
+          label: note || macro,
+          icon,
+          inherited: false,
+          overridden: macro.length > 0,
+          empty: macro.length === 0,
+          tone: macro.length === 0 ? 'empty' : 'override',
+        });
+        this.settingsState = {
+          ...this.settingsState,
+          wheel: {
+            ...this.settingsState.wheel,
+            slots: this.settingsState.wheel.slots.map((slot) =>
+              slot.ring === ring && slot.index === index ? update(slot) : slot),
+          },
+        };
+        result = this.settingsState;
+        break;
+      }
+      case 'settings.wheel.pickIcon':
+        result = { kind: 'builtin', value: 'circle' };
+        break;
+      case 'app.about':
+        result = {
+          projectUrl: 'https://github.com/ilpoint/WhaleGenie',
+          notices: '第三方组件\n\n- Avalonia — MIT\n- Lit — BSD-3-Clause',
+        };
         break;
       case 'settings.openFolder':
         result = null;
@@ -1981,7 +2500,6 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'mcp.copyConfig':
       case 'mcp.openAudit':
-      case 'app.openAbout':
       case 'app.openManual':
         break;
       default:
@@ -2218,8 +2736,10 @@ export class MockTransport implements BridgeTransport {
 
   private bundle(): StringsBundle {
     const entries: Record<string, string> = {};
-    for (const key of chromeKeys) {
-      entries[key] = this.info.language === 'en' ? english[key]! : chinese[key]!;
+    for (const key of [...chromeKeys, ...Object.keys(mockExtra)]) {
+      entries[key] = this.info.language === 'en'
+        ? (english[key] ?? mockExtra[key]?.en ?? key)
+        : (chinese[key] ?? mockExtra[key]?.zh ?? key);
     }
     return { language: this.info.language, entries };
   }

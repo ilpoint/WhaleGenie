@@ -4,6 +4,7 @@ import { appInfo } from '../shared/app/app.js';
 import { bridge } from '../shared/bridge/bridge.js';
 import { project } from '../shared/project/store.js';
 import { icon } from '../shared/icons.js';
+import { go } from './router.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { windowMirror } from '../shared/window/window.js';
 import whale from '../assets/whale.png';
@@ -251,7 +252,7 @@ export class WgTitlebar extends LitElement {
               ? html`<div class="dropdown" role="menu">
                   <div class="version">${t('Shell.Field.Version')} ${this.version}</div>
                   <button role="menuitem" @click=${() => this.run('app.openManual')}>${t('Shell.Manual')}</button>
-                  <button role="menuitem" @click=${() => this.run('app.openAbout')}>${t('Shell.About')}</button>
+                  <button role="menuitem" @click=${this.openAbout}>${t('Shell.About')}</button>
                 </div>`
               : nothing}
           </div>
@@ -309,6 +310,11 @@ export class WgTitlebar extends LitElement {
 
   private toggleMenu(menu: 'file' | 'help'): void {
     this.menu = this.menu === menu ? null : menu;
+  }
+
+  private openAbout(): void {
+    this.menu = null;
+    go('about');
   }
 
   private run(command: string): void {

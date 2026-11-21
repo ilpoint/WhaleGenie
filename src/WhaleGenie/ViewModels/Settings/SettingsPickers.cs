@@ -15,17 +15,11 @@ using WhaleGenie.Storage;
 
 namespace WhaleGenie.ViewModels;
 
-// Entries the settings pickers show: a language, a theme and a way of capturing.
+// Entries the settings pickers show: a language and a way of capturing.
 /// <summary>One entry of the language picker, named in its own language.</summary>
 public sealed record LanguageOption(Language Language, string Display)
 {
     public override string ToString() => Display;
-}
-
-/// <summary>One entry of the theme picker; the name is read when the entry is shown.</summary>
-public sealed record ThemeOption(ThemeMode Mode, string Key)
-{
-    public override string ToString() => Strings.Get(Key);
 }
 
 /// <summary>

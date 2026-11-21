@@ -60,8 +60,7 @@ internal static class WindowedServices
             // is not the window on duty.
             var server = new BridgeServer();
             server.Register(new AppBridge(sp.GetRequiredService<ProjectWorkspace>(), () => AppTray.Current));
-            server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>(),
-                () => sp.GetService<WebShellWindow>()?.Actions));
+            server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>()));
             server.Register(new StringsBridge());
             server.Register(new ThemeBridge());
             server.Register(new WindowBridge(() => sp.GetService<WebShellWindow>()));
@@ -75,7 +74,16 @@ internal static class WindowedServices
                 sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>().Devices));
             server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>()));
-            server.Register(new SettingsBridge());
+            server.Register(new SettingsBridge(
+                sp.GetRequiredService<MainViewModel>(),
+                () => sp.GetService<WebShellWindow>(),
+                () =>
+                {
+                    if (sp.GetService<WebShellWindow>()?.Actions is { } settings)
+                    {
+                        settings.RefreshAfterSettings();
+                    }
+                }));
             server.Register(new RunBridge(sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>()));
             return server;

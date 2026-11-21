@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia.Media;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Bridge;
@@ -28,11 +29,28 @@ public sealed class ThemeBridge : IBridgeHandler
     private static object Current()
     {
         var selection = ThemeController.Load();
+        var requested = ThemePalette.TryParse(selection.AccentHex, out var accent)
+            ? accent
+            : Color.Parse(ThemePalette.DefaultAccent);
+        var usable = selection.Mode is not ThemeMode.Custom
+                     || ThemePalette.TryDerive(requested, selection.BaseLight, out _);
+        if (!ThemePalette.TryDerive(requested, selection.BaseLight, out var tokens)
+            && !ThemePalette.TryDerive(Color.Parse(ThemePalette.DefaultAccent), selection.BaseLight,
+                out tokens))
+        {
+            tokens = default;
+        }
+
         return new
         {
             mode = selection.Mode.ToString().ToLowerInvariant(),
             baseLight = selection.BaseLight,
             accentHex = selection.AccentHex,
+            accentUsable = usable,
+            fill = ThemePalette.ToHex(tokens.Fill),
+            surface = ThemePalette.ToHex(tokens.Surface),
+            text = ThemePalette.ToHex(tokens.Text),
+            defaultAccent = ThemePalette.DefaultAccent,
         };
     }
 
@@ -69,6 +87,6 @@ public sealed class ThemeBridge : IBridgeHandler
         ThemeController.Save(selection);
 
         await _server!.PushAsync("theme.changed", Current());
-        return null;
+        return Current();
     }
 }

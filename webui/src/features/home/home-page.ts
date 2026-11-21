@@ -1,15 +1,12 @@
 import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { appInfo } from '../../shared/app/app.js';
-import { bridge } from '../../shared/bridge/bridge.js';
 import { project } from '../../shared/project/store.js';
+import { go, type Route } from '../../app/router.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import type { AppInfo, ProjectState } from '../../shared/bridge/protocol.js';
 
-/**
- * 首页：程序与项目的现况，加上迁移进度。这一页就是壳的"能用"证明——版本与语言从 app.info
- * 上读，项目的每一格都跟文档走（打开、另存、MCP 修改都会推 project.changed，与列表同源）。
- */
+/** The first page: what build and project are open, and where each part of the work lives. */
 @customElement('wg-home')
 export class WgHomePage extends LitElement {
   @state()
@@ -22,7 +19,7 @@ export class WgHomePage extends LitElement {
     :host {
       display: block;
       padding: var(--spacingVerticalL) var(--spacingHorizontalXXL);
-      max-width: 760px;
+      max-width: 900px;
     }
 
     h1 {
@@ -51,27 +48,34 @@ export class WgHomePage extends LitElement {
       color: var(--colorNeutralForeground3);
     }
 
-    .areas {
+    .links {
       display: grid;
-      gap: var(--spacingVerticalS);
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: var(--spacingHorizontalS);
     }
 
-    .area {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--spacingHorizontalL);
-      padding: var(--spacingVerticalMN) var(--spacingHorizontalL);
-      background: var(--colorNeutralBackground1);
+    .link {
+      display: grid;
+      gap: var(--spacingVerticalXS);
+      padding: var(--spacingVerticalM);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: default;
     }
 
-    .actions {
-      display: flex;
-      gap: var(--spacingHorizontalS);
-      margin-top: var(--spacingVerticalL);
+    .link:hover {
+      background: var(--colorNeutralBackground1Hover);
     }
+
+    .link strong {
+      font-size: var(--font-size-base-300);
+      font-weight: var(--font-weight-semibold);
+    }
+
   `;
 
   private unsubscribers: Array<() => void> = [];
@@ -102,14 +106,13 @@ export class WgHomePage extends LitElement {
       <h1>${t('Shell.Home.Heading')}</h1>
       <p class="intro">${t('Shell.Home.Intro')}</p>
       ${this.renderInfo()}
-      ${this.renderAreas()}
-      <div class="actions">
-        <fluent-button appearance="subtle" @click=${() => this.open('app.openAbout')}>
-          ${t('Shell.About')}
-        </fluent-button>
-        <fluent-button appearance="subtle" @click=${() => this.open('app.openManual')}>
-          ${t('Shell.Help')}
-        </fluent-button>
+      <div class="links">
+        ${this.link('macros', 'Shell.Macros')}
+        ${this.link('editor', 'Shell.Editor')}
+        ${this.link('run', 'Shell.Run')}
+        ${this.link('library', 'Shell.Library')}
+        ${this.link('settings', 'Shell.Settings')}
+        ${this.link('about', 'Shell.About')}
       </div>
     `;
   }
@@ -137,39 +140,12 @@ export class WgHomePage extends LitElement {
     `;
   }
 
-  private renderAreas() {
+  private link(route: Route, title: string) {
     return html`
-      <div class="areas">
-        <div class="area">
-          <span>${t('Shell.Home')}</span>
-          <fluent-badge appearance="success">${t('Shell.Status.Web')}</fluent-badge>
-        </div>
-        <div class="area">
-          <span>${t('Shell.Macros')}</span>
-          <fluent-badge appearance="subtle">${t('Shell.Status.Native')}</fluent-badge>
-        </div>
-        <div class="area">
-          <span>${t('Shell.Editor')}</span>
-          <fluent-badge appearance="subtle">${t('Shell.Status.Native')}</fluent-badge>
-        </div>
-        <div class="area">
-          <span>${t('Shell.Run')}</span>
-          <fluent-badge appearance="subtle">${t('Shell.Status.Native')}</fluent-badge>
-        </div>
-        <div class="area">
-          <span>${t('Shell.Settings')}</span>
-          <fluent-badge appearance="subtle">${t('Shell.Status.Planned')}</fluent-badge>
-        </div>
-      </div>
+      <button type="button" class="link" @click=${() => go(route)}>
+        <strong>${t(title)}</strong>
+      </button>
     `;
-  }
-
-  private async open(method: string): Promise<void> {
-    try {
-      await bridge.value.call(method);
-    } catch (error) {
-      console.error('native window request failed', error);
-    }
   }
 
   private projectName(): string {

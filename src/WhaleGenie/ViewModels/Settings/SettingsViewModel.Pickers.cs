@@ -24,28 +24,12 @@ public partial class SettingsViewModel
         new(Language.Chinese, "中文"),
     ];
 
-    /// <summary>The three theme choices: two built-in palettes and the custom one.</summary>
-    public IReadOnlyList<ThemeOption> ThemeOptions { get; } =
-    [
-        new(ThemeMode.Dark, "Theme.Mode.Dark"),
-        new(ThemeMode.Light, "Theme.Mode.Light"),
-        new(ThemeMode.Custom, "Theme.Mode.Custom"),
-    ];
-
-    private bool _themeReady;
-
     /// <summary>
     /// Whether the frame settings have been read in. They are written back the moment they change,
     /// and opening a window is not a change: without this, opening the settings would rewrite the
     /// file that was just read.
     /// </summary>
     private bool _frameReady;
-
-    [ObservableProperty]
-    public partial ThemeOption SelectedTheme { get; set; } = null!;
-
-    /// <summary>Whether the custom palette button belongs in the settings window.</summary>
-    public bool IsCustomTheme => SelectedTheme?.Mode is ThemeMode.Custom;
 
     /// <summary>
     /// The ways a window's picture can be taken, in the order they are offered: automatic first, then

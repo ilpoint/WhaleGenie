@@ -10,6 +10,7 @@ import '../features/editor/editor-gate.js';
 import '../features/library/library-page.js';
 import '../features/settings/settings-page.js';
 import '../features/run/run-page.js';
+import '../features/about/about-page.js';
 import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
 import type { ProjectState } from '../shared/bridge/protocol.js';
@@ -145,6 +146,8 @@ export class WgShell extends LitElement {
         return html`<wg-library></wg-library>`;
       case 'settings':
         return html`<wg-settings></wg-settings>`;
+      case 'about':
+        return html`<wg-about></wg-about>`;
       default:
         return nothing;
     }

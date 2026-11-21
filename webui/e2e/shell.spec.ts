@@ -32,16 +32,12 @@ test('状态条跟随项目推送', async ({ page }) => {
   await expect(status.locator('[data-status="dirty"]')).toHaveText('有未保存修改');
 });
 
-test('首页关于与帮助请求原生入口', async ({ page }) => {
-  await page.locator('wg-home fluent-button', { hasText: '关于' }).click();
-  await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openAbout')))
-    .toBe(true);
-
-  await page.locator('wg-home fluent-button', { hasText: '帮助' }).click();
-  await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openManual')))
-    .toBe(true);
+test('首页关于进入网页关于页并显示第三方组件', async ({ page }) => {
+  await page.locator('wg-home .link', { hasText: '关于' }).click();
+  await expect(page.locator('wg-about h1')).toHaveText('关于');
+  await expect(page.locator('wg-about')).toContainText('鲸灵');
+  await page.locator('wg-about fluent-button', { hasText: '第三方组件' }).click();
+  await expect(page.locator('wg-about #notices')).toContainText('Avalonia');
 });
 
 test('activity bar 图标切换页面并可折叠侧栏', async ({ page }) => {
@@ -73,6 +69,9 @@ test('标题栏文件与帮助菜单', async ({ page }) => {
   await expect(page.locator('wg-titlebar .version')).toContainText('0.0.0-mock');
   await expect(page.getByRole('menuitem', { name: '关于' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: '使用手册' })).toBeVisible();
+
+  await page.getByRole('menuitem', { name: '关于' }).click();
+  await expect(page.locator('wg-about h1')).toHaveText('关于');
 });
 
 test('设置页读取并显示常规设置', async ({ page }) => {
@@ -654,9 +653,9 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
 
 test('设置页自定义主题可改强调色', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
-  const general = page.locator('wg-settings .card').first();
-  await general.locator('select').nth(1).selectOption('Custom');
-  const accent = page.locator('wg-settings input[type="color"]');
+  const theme = page.locator('wg-settings .card').filter({ hasText: '主题' }).first();
+  await theme.locator('select').selectOption('custom');
+  const accent = theme.locator('input[type="color"]');
   await expect(accent).toBeVisible();
   await accent.fill('#ff0000');
   await expect
@@ -664,12 +663,37 @@ test('设置页自定义主题可改强调色', async ({ page }) => {
     .toBe(true);
 });
 
-test('设置页可请求原生高级设置页', async ({ page }) => {
+test('设置页内编辑轮盘动作', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
-  const advanced = page.locator('wg-settings .card').filter({ hasText: '高级设置' }).first();
-  await advanced.locator('fluent-button').first().click();
+  const wheel = page.locator('wg-settings .card').filter({ hasText: '轮盘动作管理' }).first();
+  await wheel.locator('.wheel-slot').nth(1).click();
+  const editor = wheel.locator('.slot-editor');
+  await expect(editor).toBeVisible();
+  await editor.locator('select').selectOption({ label: '备份' });
+  await editor.locator('input').fill('备用动作');
+  await editor.locator('fluent-button', { hasText: '保存' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openSettingsPage')))
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.wheel.slot.set')))
+    .toBe(true);
+});
+
+test('设置页内编辑菜单呼出键与窗口规则', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  const menu = page.locator('wg-settings .card').filter({ hasText: '菜单呼出键' }).first();
+  await menu.locator('fluent-button', { hasText: '鼠标中键（默认）' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.menu.capture')))
+    .toBe(true);
+
+  const rules = page.locator('wg-settings .card').filter({ hasText: '下方区域窗口规则' }).first();
+  await rules.locator('fluent-button', { hasText: '添加规则' }).click();
+  const dialog = page.locator('wg-window-rule');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.locator('.window').first()).toContainText('Notepad');
+  await dialog.locator('.window').first().click();
+  await dialog.locator('fluent-button', { hasText: '使用这个窗口' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.menu.rule.add')))
     .toBe(true);
 });
 
@@ -706,12 +730,17 @@ test('设置页可捕获系统热键', async ({ page }) => {
 test('设置页可改语言与主题', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   const general = page.locator('wg-settings .card').first();
-  await general.locator('select').nth(0).selectOption('en');
-  await general.locator('select').nth(1).selectOption('Light');
+  await general.locator('select').selectOption('en');
+  const theme = page.locator('wg-settings .card')
+    .filter({ has: page.getByRole('heading', { name: 'Theme', exact: true }) }).first();
+  await theme.locator('select').selectOption('light');
 
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.filter((name) => name === 'settings.update').length))
-    .toBeGreaterThanOrEqual(2);
+    .toBeGreaterThanOrEqual(1);
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('theme.set')))
+    .toBe(true);
 });
 
 test('设置页可改常规与画面选项', async ({ page }) => {
@@ -719,7 +748,8 @@ test('设置页可改常规与画面选项', async ({ page }) => {
   await expect(page.locator('wg-settings h1')).toHaveText('设置');
   const general = page.locator('wg-settings .card').first();
   await general.locator('input[type="checkbox"]').first().uncheck();
-  const frames = page.locator('wg-settings .card').filter({ hasText: '画面' }).first();
+  const frames = page.locator('wg-settings .card')
+    .filter({ has: page.getByRole('heading', { name: '画面', exact: true }) }).first();
   await frames.locator('input[type="checkbox"]').first().uncheck();
   await frames.locator('input[type="number"]').first().fill('30');
   await frames.locator('input[type="number"]').first().press('Tab');

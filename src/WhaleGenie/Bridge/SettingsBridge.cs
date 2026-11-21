@@ -1,27 +1,51 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia.Controls;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// The settings the page owns for now: the switches and numbers on the general page. The native
-/// settings window still owns hotkey capture, menu/wheel editors and the driver page, but these
-/// values are read and written through one C# view model instead of a second settings store.
+/// The one settings surface: the general page, the menu launcher, window rules, the wheel and its
+/// action manager all read and write the same C# view model. The page is a view; every choice is
+/// clamped, validated and stored here before a snapshot goes back over the bridge.
 /// </summary>
-internal sealed class SettingsBridge : IBridgeHandler
+internal sealed partial class SettingsBridge : IBridgeHandler
 {
-    private readonly SettingsViewModel _settings = new();
+    private readonly SettingsViewModel _settings;
+    private readonly MainViewModel _project;
+    private readonly Func<Window?> _owner;
+    private readonly Action _changed;
+
+    public SettingsBridge(MainViewModel project, Func<Window?> owner, Action? changed = null)
+        : this(new SettingsViewModel(SharedDevices.Current.Driver, null, project,
+            project.Workspace.CurrentPath), project, owner, changed)
+    {
+    }
+
+    internal SettingsBridge(SettingsViewModel settings, MainViewModel project,
+        Func<Window?> owner, Action? changed = null)
+    {
+        _settings = settings;
+        _project = project;
+        _owner = owner;
+        _changed = changed ?? (() => { });
+    }
 
     public void Register(BridgeServer server)
     {
         server.Register("settings.state", _ => Task.FromResult<object?>(State()));
         server.Register("settings.update", Update);
         server.Register("settings.openFolder", OpenFolder);
+        RegisterMenu(server);
+        RegisterWheel(server);
     }
 
     private object State()
@@ -42,7 +66,6 @@ internal sealed class SettingsBridge : IBridgeHandler
             frameCacheAge = _settings.FrameCacheAge,
             logCount = _settings.LogCount,
             language = Strings.Current.Language == Language.Chinese ? "zh-Hans" : "en",
-            theme = _settings.SelectedTheme.Mode.ToString(),
             systemHotkey = _settings.SystemHotkey,
             recordStopKey = _settings.RecordStopKey,
             systemHotkeyProblem = _settings.SystemHotkeyProblem,
@@ -71,6 +94,8 @@ internal sealed class SettingsBridge : IBridgeHandler
                 value = way.Way.ToString(),
                 label = way.ToString(),
             }),
+            menu = MenuState(),
+            wheel = WheelState(),
         };
 
     private Task<object?> OpenFolder(JsonElement parameters)
@@ -165,10 +190,6 @@ internal sealed class SettingsBridge : IBridgeHandler
             case "language":
                 Strings.Current.Language = value == "zh-Hans" ? Language.Chinese : Language.English;
                 break;
-            case "theme":
-                _settings.SelectedTheme = _settings.ThemeOptions.First(option =>
-                    string.Equals(option.Mode.ToString(), value, StringComparison.OrdinalIgnoreCase));
-                break;
             case "systemHotkey":
                 if (value.Length == 0)
                 {
@@ -198,6 +219,30 @@ internal sealed class SettingsBridge : IBridgeHandler
                     Strings.Get("Bridge.EditorNeedsField"));
         }
 
+        Changed();
         return Task.FromResult<object?>(State());
     }
+
+    private void Changed() => _changed();
+
+    private static string? Text(JsonElement element, string name)
+        => element.ValueKind == JsonValueKind.Object
+           && element.TryGetProperty(name, out var value)
+           && value.ValueKind == JsonValueKind.String
+            ? value.GetString()
+            : null;
+
+    private static bool Flag(JsonElement element, string name, bool fallback = false)
+        => element.ValueKind == JsonValueKind.Object
+           && element.TryGetProperty(name, out var value)
+           && value.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? value.GetBoolean()
+            : fallback;
+
+    private static int Count(JsonElement element, string name, int fallback = 0)
+        => element.ValueKind == JsonValueKind.Object
+           && element.TryGetProperty(name, out var value)
+           && value.TryGetInt32(out var number)
+            ? number
+            : fallback;
 }

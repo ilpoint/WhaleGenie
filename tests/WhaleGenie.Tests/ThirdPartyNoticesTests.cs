@@ -131,18 +131,21 @@ public class ThirdPartyNoticesTests
     }
 
     [Fact]
-    public void The_about_box_opens_the_notices_it_promises()
+    public void The_about_page_opens_the_notices_it_promises()
     {
-        // The button on About says there is a list; this is what makes sure the list it opens is
-        // this document rather than a promise with nothing behind it.
-        var window = ViewSource.PathOf("AboutWindow.axaml.cs");
-        var code = File.ReadAllText(window);
+        // The button on About says there is a list; this is what makes sure the page asks the
+        // bridge for the document the release carries rather than a promise with nothing behind it.
+        var bridge = File.ReadAllText(RepoPaths.Source("WhaleGenie", "Bridge", "AppBridge.cs"));
+        var page = File.ReadAllText(
+            RepoPaths.Path("webui", "src", "features", "about", "about-page.ts"));
 
-        Assert.Contains("ThirdPartyNotices.Read()", code, StringComparison.Ordinal);
+        Assert.Contains("ThirdPartyNotices.Read()", bridge, StringComparison.Ordinal);
+        Assert.Contains("app.about", page, StringComparison.Ordinal);
+        Assert.Contains("notices", page, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_about_box_shows_the_document_the_repository_keeps()
+    public void The_about_page_shows_the_document_the_repository_keeps()
     {
         // The list is linked into the assembly rather than copied into it, so this is what would
         // catch the link breaking and the box opening an empty document.

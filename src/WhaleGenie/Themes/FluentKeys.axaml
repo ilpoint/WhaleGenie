@@ -307,12 +307,6 @@
             <StaticResource x:Key="NavigationViewItemContentPresenterMargin" ResourceKey="PadControl" />
             <StaticResource x:Key="NavigationViewSelectionIndicatorForeground" ResourceKey="AccentFill" />
 
-            <!--
-              设置分组平铺，不再有展开动作：底、描边与标题下的缝由 SettingsGroup 模板直接取
-              SurfaceCard / BorderSubtle，行间缝由行列表的 Spacing 透出；展开相关的键没有消费者，
-              不在这里留空映射。
-            -->
-
             <!-- 表格：行底卡片色，靠 hover 与选中区分（表头底色没有键，只有分隔线） -->
             <StaticResource x:Key="TableViewRowBackground" ResourceKey="SurfaceCard" />
             <StaticResource x:Key="TableViewRowBackgroundPointerOver" ResourceKey="SurfaceHover" />
@@ -604,12 +598,6 @@
             <StaticResource x:Key="NavigationViewItemMargin" ResourceKey="PadChip" />
             <StaticResource x:Key="NavigationViewItemContentPresenterMargin" ResourceKey="PadControl" />
             <StaticResource x:Key="NavigationViewSelectionIndicatorForeground" ResourceKey="AccentFill" />
-
-            <!--
-              设置分组平铺，不再有展开动作：底、描边与标题下的缝由 SettingsGroup 模板直接取
-              SurfaceCard / BorderSubtle，行间缝由行列表的 Spacing 透出；展开相关的键没有消费者，
-              不在这里留空映射。
-            -->
 
             <!-- 表格：行底卡片色，靠 hover 与选中区分（表头底色没有键，只有分隔线） -->
             <StaticResource x:Key="TableViewRowBackground" ResourceKey="SurfaceCard" />

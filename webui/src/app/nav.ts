@@ -129,6 +129,7 @@ export class WgNav extends LitElement {
     run: 'Shell.Run',
     library: 'Shell.Library',
     settings: 'Shell.Settings',
+    about: 'Shell.About',
   };
 
   connectedCallback(): void {
@@ -154,7 +155,7 @@ export class WgNav extends LitElement {
   }
 
   render() {
-    const mainRoutes = routes.filter((route) => route !== 'settings');
+    const mainRoutes = routes.filter((route) => route !== 'settings' && route !== 'about');
     return html`
       <nav class="activity" aria-label=${t('Shell.Navigation')}>
         ${mainRoutes.map((route) => this.activityButton(route))}

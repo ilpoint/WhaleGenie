@@ -25,27 +25,6 @@ public partial class SettingsViewModel
     partial void OnSelectedLanguageChanged(LanguageOption value)
         => Strings.Current.Language = value.Language;
 
-    /// <summary>
-    /// Applies a theme as soon as the picker changes. Choosing Custom starts from the accent in use,
-    /// unless one was already saved; the dark and light choices leave a saved accent untouched for
-    /// next time.
-    /// </summary>
-    partial void OnSelectedThemeChanged(ThemeOption value)
-    {
-        OnPropertyChanged(nameof(IsCustomTheme));
-        if (!_themeReady)
-        {
-            return;
-        }
-
-        var current = ThemeController.Load();
-        var next = value.Mode is ThemeMode.Custom
-            ? ThemeController.StartCustom(current)
-            : current.WithMode(value.Mode);
-        ThemeController.Apply(next);
-        ThemeController.Save(next);
-    }
-
     /// <summary>Stores whether a start opens the project that was open last time.</summary>
     partial void OnLoadLastProjectAtStartChanged(bool value)
     {

@@ -23,6 +23,10 @@ class ThemeStore {
     return this.state.subscribe(listener);
   }
 
+  get(): ThemeState {
+    return this.state.get();
+  }
+
   /**
    * 仅供启动装配与事件处理：灌入一份主题状态并立刻铺开。铺开不能等订阅者——启动时
    * `theme.get` 的结果到达时页面上还没有人订阅，而令牌是全局的，迟一拍页面就按默认色画了。

@@ -108,35 +108,6 @@
                 <Setter Property="RenderTransform" Value="rotate(90deg)" />
             </Style>
         </ControlTheme>
-<!--
-      设置分组：标题、说明与行平铺，没有展开动作。行仍由 FASettingsExpanderItem 呈现，组只给
-      卡片描边、标题底与标题下那条 1px 缝；行与行之间靠内容里的 StackPanel Spacing="1" 透出窗口底。
-    -->
-    <ControlTheme x:Key="{x:Type views:SettingsGroup}" TargetType="views:SettingsGroup">
-        <Setter Property="Focusable" Value="False" />
-        <Setter Property="Template">
-            <ControlTemplate>
-                <Border BorderBrush="{DynamicResource BorderSubtle}"
-                        BorderThickness="1"
-                        CornerRadius="{DynamicResource RadiusControl}"
-                        ClipToBounds="True">
-                    <StackPanel>
-                        <Border Background="{DynamicResource SurfaceCard}"
-                                BorderBrush="{DynamicResource BorderSubtle}"
-                                BorderThickness="0,0,0,1"
-                                Padding="{DynamicResource PadRow}">
-                            <ContentPresenter Content="{TemplateBinding Header}"
-                                              HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Center" />
-                        </Border>
-                        <ContentPresenter Content="{TemplateBinding Content}"
-                                          HorizontalAlignment="Stretch" />
-                    </StackPanel>
-                </Border>
-            </ControlTemplate>
-        </Setter>
-    </ControlTheme>
-
     <!--
       右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
           ControlThemes 里有 Menu、MenuItem、MenuFlyoutPresenter 与 Separator，唯独没有 ContextMenu

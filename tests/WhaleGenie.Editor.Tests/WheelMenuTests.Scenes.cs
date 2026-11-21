@@ -87,24 +87,6 @@ public partial class WheelMenuTests
         Assert.Single(opened.Wheel.Scenes);
     }
 
-    [Fact]
-    public void The_wheel_page_opens_with_its_preview_button()
-    {
-        InOwnFiles(() => Ui.Run(() =>
-        {
-            var window = new AdvancedSettingsWindow(null, null, SettingsSubPage.WheelMenu);
-            window.Show();
-
-            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            Assert.True(viewModel.IsWheelMenuPage);
-            Assert.Equal(SettingsRoot.Triggers, viewModel.SelectedRoot);
-            Assert.Equal(WheelOptions.RightButton, viewModel.SelectedWheelLauncher?.Binding);
-            Assert.NotNull(SettingsView.Find<Button>(window, "PreviewWheelButton"));
-
-            window.Close();
-        }));
-    }
-
     /// <summary>
     /// The four buttons a wheel can be opened with are the ones a hand can hold while it moves.
     /// A keyboard binding is refused, and a stored one is read back as the default.
@@ -162,4 +144,3 @@ public partial class WheelMenuTests
         }));
     }
 }
-

@@ -5,8 +5,6 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using WhaleGenie;
 using WhaleGenie.Localization;
-using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
@@ -127,7 +125,7 @@ public class ThemePaletteTests
                 Assert.Equal(tokens.Text, ColorAt("AccentText", ThemeVariant.Dark));
                 Assert.Equal(tokens.Surface, ColorAt("AccentSurface", ThemeVariant.Dark));
 
-                // 设置窗左栏的选中行也铺强调色，它的三个键同样是静态别名：自定义强调色不写这三个，
+                // FluentAvalonia 的选中行资源键同样是静态别名：自定义强调色不写这三个，
                 // 选中行会停在字典解析时的那个橙。
                 Assert.Equal(tokens.Fill, ColorAt("NavigationViewItemBackgroundSelected", ThemeVariant.Dark));
                 Assert.Equal(tokens.Hover, ColorAt("NavigationViewItemBackgroundSelectedPointerOver", ThemeVariant.Dark));
@@ -136,88 +134,6 @@ public class ThemePaletteTests
             finally
             {
                 ThemeController.Apply(original);
-            }
-        });
-    }
-
-    [Fact]
-    public void The_editor_shows_one_accent_and_the_base_it_sits_on()
-    {
-        Ui.Run(() =>
-        {
-            var editor = new ThemePaletteViewModel(new ThemeSelection(ThemeMode.Custom, false, "#112233"));
-
-            Assert.Equal("#112233", editor.AccentHex);
-            Assert.False(editor.BaseLight);
-            Assert.True(editor.AccentUsable);
-        });
-    }
-
-    [Fact]
-    public void The_editor_says_so_when_the_picked_color_is_refused()
-    {
-        Ui.Run(() =>
-        {
-            var original = ThemeController.Load();
-            try
-            {
-                var editor = new ThemePaletteViewModel(new ThemeSelection(ThemeMode.Custom, false, "#112233"));
-
-                editor.Accent = Colors.White;
-
-                Assert.False(editor.AccentUsable);
-
-                // The previews keep showing what the program is actually painting with.
-                Assert.Equal(
-                    Color.Parse(ThemePalette.DefaultAccent),
-                    ColorAt("AccentFill", ThemeVariant.Dark));
-            }
-            finally
-            {
-                ThemeController.Apply(original);
-            }
-        });
-    }
-
-    [Fact]
-    public void The_settings_offer_custom_theme_and_its_palette_button()
-    {
-        Ui.Run(() =>
-        {
-            var folder = System.IO.Path.Combine(
-                System.IO.Path.GetTempPath(), "whalegenie-theme-settings-" + Guid.NewGuid().ToString("N"));
-            var stored = LocalSettings.FilePath;
-            var original = ThemeController.Load();
-            try
-            {
-                System.IO.Directory.CreateDirectory(folder);
-                LocalSettings.FilePath = System.IO.Path.Combine(folder, "settings.json");
-
-                var window = new AdvancedSettingsWindow();
-                window.Show();
-                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-                var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-                Assert.Equal(3, viewModel.ThemeOptions.Count);
-                viewModel.SetPage(SettingsSubPage.Theme);
-                viewModel.SelectedTheme = viewModel.ThemeOptions.Single(option => option.Mode == ThemeMode.Custom);
-                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-                var button = SettingsView.Find<Avalonia.Controls.Button>(window, "CustomizeThemeButton");
-                Assert.NotNull(button);
-                Assert.True(button!.IsVisible);
-                Assert.Equal(ThemeMode.Custom, LocalSettings.LoadTheme().Mode);
-
-                window.Close();
-            }
-            finally
-            {
-                LocalSettings.FilePath = stored;
-                ThemeController.Apply(original);
-                if (System.IO.Directory.Exists(folder))
-                {
-                    System.IO.Directory.Delete(folder, true);
-                }
             }
         });
     }
@@ -235,4 +151,3 @@ public class ThemePaletteTests
 
     private static double Lightness(Color colour) => colour.ToHsl().L;
 }
-

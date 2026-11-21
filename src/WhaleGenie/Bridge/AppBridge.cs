@@ -18,6 +18,7 @@ public sealed class AppBridge(ProjectWorkspace workspace, Func<AppTray?> tray) :
     public void Register(BridgeServer server)
     {
         server.Register("app.info", _ => Task.FromResult<object?>(Info()));
+        server.Register("app.about", _ => Task.FromResult<object?>(About()));
         server.Register("app.quit", _ => QuitAsync());
         server.Register("app.openExternal", OpenExternal);
     }
@@ -42,6 +43,17 @@ public sealed class AppBridge(ProjectWorkspace workspace, Func<AppTray?> tray) :
             revision = workspace.Revision,
             macros = workspace.Macros.Count,
         },
+    };
+
+    /// <summary>
+    /// The two things the About page cannot know by itself: where the project lives and the
+    /// third-party notice packed into this build. The page formats the version line from app.info,
+    /// so both pages always show the same build.
+    /// </summary>
+    private static object About() => new
+    {
+        projectUrl = ProjectLinks.Home,
+        notices = ThirdPartyNotices.Read(),
     };
 
     private Task<object?> QuitAsync()
