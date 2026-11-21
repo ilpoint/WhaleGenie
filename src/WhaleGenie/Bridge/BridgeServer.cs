@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
@@ -36,8 +37,14 @@ public sealed class BridgeServer
 
     private readonly Dictionary<string, Func<JsonElement, Task<object?>>> _methods = [];
 
-    /// <summary>Event envelopes held back until the page asked for them.</summary>
-    private readonly List<string> _pending = [];
+    /// <summary>
+    /// Event envelopes held back until the page asked for them, one per event: a page that has not
+    /// drawn yet wants the latest theme or project, not every state it passed through while loading.
+    /// </summary>
+    private readonly List<(string Event, string Json)> _pending = [];
+
+    /// <summary>Serializes sends so two events cannot reach the page in the opposite order.</summary>
+    private readonly SemaphoreSlim _sendGate = new(1, 1);
 
     private IBridgeChannel? _channel;
 
@@ -164,12 +171,23 @@ public sealed class BridgeServer
         var json = JsonSerializer.Serialize(new { @event, payload }, Options);
         if (!_ready || _channel is null)
         {
-            _pending.Add(json);
+            _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
+            _pending.Add((@event, json));
             return;
         }
 
         await SendAsync(json);
     }
+
+    /// <summary>Whether the page has registered its receiver and may be sent events.</summary>
+    public bool IsReady => _ready;
+
+    /// <summary>
+    /// Drops an event waiting for the page. A handler that has just answered the same state in a
+    /// request clears the buffered copy, so an older push cannot overwrite the newer answer.
+    /// </summary>
+    public void DropPending(string @event)
+        => _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
 
     private async Task AnswerReadyAsync(int? id)
     {
@@ -181,7 +199,7 @@ public sealed class BridgeServer
 
         var buffered = _pending.ToArray();
         _pending.Clear();
-        foreach (var json in buffered)
+        foreach (var (_, json) in buffered)
         {
             await SendAsync(json);
         }
@@ -199,19 +217,24 @@ public sealed class BridgeServer
 
     private async Task SendAsync(string json)
     {
-        if (_channel is null)
-        {
-            return;
-        }
-
+        await _sendGate.WaitAsync();
         try
         {
+            if (_channel is null)
+            {
+                return;
+            }
+
             await _channel.SendToWebAsync(json);
         }
         catch (Exception)
         {
             // A send that fails because the page is navigating or the control is going away
             // loses that one message; the next one after the page is ready is what matters.
+        }
+        finally
+        {
+            _sendGate.Release();
         }
     }
 }

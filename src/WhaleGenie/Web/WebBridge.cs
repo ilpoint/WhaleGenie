@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using WhaleGenie.Bridge;
 using WhaleGenie.Runtime;
 
@@ -38,7 +39,18 @@ public sealed class WebBridge(NativeWebView webView) : IBridgeChannel
             // JSON is a valid JavaScript expression and the server's serializer escapes every
             // character a script literal cannot carry, so the envelope is handed over as an
             // expression rather than concatenated into a string.
-            await webView.InvokeScript($"window.__whale.onMessage({json})");
+            // A push can start on the trigger thread or in an MCP handler; the control and the
+            // page belong to the interface thread.
+            if (Dispatcher.UIThread.CheckAccess())
+            {
+                await webView.InvokeScript($"window.__whale.onMessage({json})");
+            }
+            else
+            {
+                await Dispatcher.UIThread.InvokeAsync(
+                    () => webView.InvokeScript($"window.__whale.onMessage({json})"));
+            }
+
             AppDiagnostics.Note("webshell.push", json.Length > 60 ? $"{json[..60]}…" : json);
         }
         catch (Exception error)

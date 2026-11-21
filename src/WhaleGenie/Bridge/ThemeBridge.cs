@@ -16,7 +16,11 @@ public sealed class ThemeBridge : IBridgeHandler
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("theme.get", _ => Task.FromResult<object?>(Current()));
+        server.Register("theme.get", _ =>
+        {
+            server.DropPending("theme.changed");
+            return Task.FromResult<object?>(Current());
+        });
         server.Register("theme.set", SetAsync);
     }
 

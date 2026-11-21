@@ -21,6 +21,12 @@ public sealed class DialogBridge : IBridgeHandler, IDisposable
 
     private int _nextRequestId;
 
+    /// <summary>
+    /// How long the page has to answer. A page that is alive but stuck must not hold a delete or
+    /// an exit for ever; the answer on timeout is the same "no" a closed page gives.
+    /// </summary>
+    internal TimeSpan AnswerTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
     public void Register(BridgeServer server)
     {
         _server = server;
@@ -36,8 +42,10 @@ public sealed class DialogBridge : IBridgeHandler, IDisposable
     /// </summary>
     public async Task<bool> ConfirmAsync(string title, string message, string confirmLabel, string? cancelLabel)
     {
-        if (_server is null)
+        if (_server is null || !_server.IsReady)
         {
+            // There is no page to draw the question. Buffering it would leave the caller waiting
+            // for an answer nobody can give.
             return false;
         }
 
@@ -52,6 +60,13 @@ public sealed class DialogBridge : IBridgeHandler, IDisposable
             confirmLabel,
             cancelLabel,
         });
+
+        var completed = await Task.WhenAny(answer.Task, Task.Delay(AnswerTimeout));
+        if (completed != answer.Task)
+        {
+            _waiting.Remove(id);
+            return false;
+        }
 
         return await answer.Task;
     }

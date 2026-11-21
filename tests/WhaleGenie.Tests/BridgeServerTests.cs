@@ -120,6 +120,36 @@ public class BridgeServerTests
     }
 
     [Fact]
+    public async Task Events_are_coalesced_to_the_latest_of_each_name()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+
+        await server.PushAsync("theme.changed", new { mode = "dark" });
+        await server.PushAsync("theme.changed", new { mode = "light" });
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+
+        Assert.Equal(2, channel.Sent.Count);
+        var pushed = JsonDocument.Parse(channel.Sent[1]).RootElement;
+        Assert.Equal("light", pushed.GetProperty("payload").GetProperty("mode").GetString());
+    }
+
+    [Fact]
+    public async Task A_pending_event_can_be_dropped_by_the_fetch_that_replaces_it()
+    {
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+
+        await server.PushAsync("project.changed", new { revision = 1 });
+        server.DropPending("project.changed");
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+
+        Assert.Single(channel.Sent);
+    }
+
+    [Fact]
     public async Task Attaching_again_buffers_until_the_next_ready()
     {
         var channel = new RecordingChannel();

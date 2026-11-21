@@ -31,7 +31,11 @@ public sealed class McpBridge(Func<IClipboardDevice> clipboard) : IBridgeHandler
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("mcp.state", _ => Task.FromResult<object?>(State()));
+        server.Register("mcp.state", _ =>
+        {
+            server.DropPending("mcp.changed");
+            return Task.FromResult<object?>(State());
+        });
         server.Register("mcp.setGrants", SetGrants);
         server.Register("mcp.copyConfig", CopyConfig);
         server.Register("mcp.openAudit", OpenAudit);

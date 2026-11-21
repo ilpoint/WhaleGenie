@@ -63,7 +63,13 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("project.state", _ => Task.FromResult<object?>(State()));
+        server.Register("project.state", _ =>
+        {
+            // The page asked for the current state; a buffered change from before the page was
+            // ready is older than this answer.
+            server.DropPending("project.changed");
+            return Task.FromResult<object?>(State());
+        });
         server.Register("project.toggle", Toggle);
         server.Register("project.delete", Delete);
         server.Register("project.export", Export);

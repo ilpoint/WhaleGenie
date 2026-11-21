@@ -16,7 +16,13 @@ public sealed class StringsBridge : IBridgeHandler, IDisposable
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("strings.bundle", _ => Task.FromResult<object?>(Bundle()));
+        server.Register("strings.bundle", _ =>
+        {
+            // The answer is current; a buffered language change from before the page was ready is
+            // older and must not land after it.
+            server.DropPending("strings.changed");
+            return Task.FromResult<object?>(Bundle());
+        });
         Strings.Current.LanguageChanged += OnLanguageChanged;
     }
 
