@@ -227,7 +227,12 @@ public class EditorGateTests
         Assert.Equal("Key", trigger.Kind);
 
         session.SetTriggerBinding(trigger.Id, "F8");
-        Assert.Equal("F8", Assert.Single(session.Snapshot().Triggers).Binding);
+        session.SetTriggerLoop(trigger.Id, "Hold");
+        session.SetTriggerOnce(trigger.Id, true);
+        var changed = Assert.Single(session.Snapshot().Triggers);
+        Assert.Equal("F8", changed.Binding);
+        Assert.Equal("Hold", changed.Loop);
+        Assert.True(changed.Once);
 
         session.RemoveTrigger(trigger.Id);
         Assert.Empty(session.Snapshot().Triggers);

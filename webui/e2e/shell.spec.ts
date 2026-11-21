@@ -207,8 +207,17 @@ test('C1 编辑宏的触发入口与按键', async ({ page }) => {
   await binding.fill('F8');
   await binding.press('Tab');
 
+  await page.locator('wg-editor-gate .triggers select').selectOption({ label: '按住期间循环（长按）' });
+  await page.locator('wg-editor-gate .triggers .once input').check();
+
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerBinding')))
+    .toBe(true);
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerLoop')))
+    .toBe(true);
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerOnce')))
     .toBe(true);
 });
 

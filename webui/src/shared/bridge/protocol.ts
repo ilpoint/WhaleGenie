@@ -127,6 +127,8 @@ export interface EditorTrigger {
   summary: string;
   enabled: boolean;
   binding: string;
+  loop: string;
+  once: boolean;
 }
 
 export interface EditorVariable {

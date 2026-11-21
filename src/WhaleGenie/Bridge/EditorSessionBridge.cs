@@ -34,6 +34,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionTriggerAdd", _ => Task.FromResult<object?>(AddTrigger()));
         server.Register("editor.sessionTriggerRemove", RemoveTrigger);
         server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
+        server.Register("editor.sessionTriggerLoop", SetTriggerLoop);
+        server.Register("editor.sessionTriggerOnce", SetTriggerOnce);
         server.Register("editor.sessionVariableAdd", _ => Task.FromResult<object?>(AddVariable()));
         server.Register("editor.sessionVariablePatch", PatchVariable);
         server.Register("editor.sessionVariableRemove", RemoveVariable);
@@ -193,6 +195,48 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
     {
         Required().Redo();
         return Snapshot();
+    }
+
+    private Task<object?> SetTriggerLoop(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        var loop = parameters.TryGetProperty("loop", out var named) ? named.GetString() : null;
+        if (triggerId is not { Length: > 0 } || loop is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().SetTriggerLoop(triggerId, loop);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerOnce(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        var once = parameters.TryGetProperty("once", out var value) && value.GetBoolean();
+        if (triggerId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().SetTriggerOnce(triggerId, once);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
     }
 
     private object? AddVariable()

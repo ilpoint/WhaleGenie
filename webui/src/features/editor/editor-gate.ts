@@ -184,7 +184,15 @@ export class WgEditorGate extends LitElement {
     .triggers li {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: var(--spacingHorizontalS);
+    }
+
+    .triggers .once {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalXS);
+      color: var(--colorNeutralForeground2);
     }
 
     .trigger-kind {
@@ -394,7 +402,25 @@ export class WgEditorGate extends LitElement {
                   .value=${trigger.binding}
                   placeholder=${t('Editor.BindKey')}
                   @change=${(event: Event) => void this.setBinding(trigger.id, event)}
-                />`
+                />
+                <select
+                  .value=${trigger.loop}
+                  aria-label=${t('Editor.Loop')}
+                  @change=${(event: Event) => void this.setTriggerLoop(trigger.id, event)}
+                >
+                  <option value="Press">${t('Loop.Press')}</option>
+                  <option value="Hold">${t('Loop.Hold')}</option>
+                  <option value="Toggle">${t('Loop.Toggle')}</option>
+                  <option value="Release">${t('Loop.Release')}</option>
+                </select>
+                <label class="once">
+                  <input
+                    type="checkbox"
+                    .checked=${trigger.once}
+                    @change=${(event: Event) => void this.setTriggerOnce(trigger.id, event)}
+                  />
+                  ${t('Editor.TriggerOnce')}
+                </label>`
               : html`<span>${trigger.summary}</span>`}
             <button
               title=${t('Editor.RemoveTrigger')}
@@ -603,6 +629,28 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
         binding: (event.target as HTMLInputElement).value,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerLoop(triggerId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerLoop', {
+        triggerId,
+        loop: (event.target as HTMLSelectElement).value,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerOnce(triggerId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerOnce', {
+        triggerId,
+        once: (event.target as HTMLInputElement).checked,
       });
     } catch (error) {
       this.error = String(error);

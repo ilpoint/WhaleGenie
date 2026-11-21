@@ -88,7 +88,9 @@ internal sealed class HeadlessEditorSession
             entry.KindLabel,
             entry.Summary,
             entry.IsEnabled,
-            entry.Spec is KeySpec key ? key.Binding : string.Empty))];
+            entry.Spec is KeySpec key ? key.Binding : string.Empty,
+            entry.Spec is KeySpec pressed ? pressed.Loop.ToString() : string.Empty,
+            entry.Spec is KeySpec once && once.Once))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -216,6 +218,32 @@ internal sealed class HeadlessEditorSession
 
     public void SetTriggerBinding(string triggerId, string binding)
     {
+        var trigger = KeyTrigger(triggerId);
+        _model.BindKey = binding.Trim();
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerLoop(string triggerId, string loop)
+    {
+        var trigger = KeyTrigger(triggerId);
+        if (!Enum.TryParse<MacroLoop>(loop, ignoreCase: true, out var parsed))
+        {
+            throw new InvalidOperationException("unknown trigger loop " + loop);
+        }
+
+        _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerOnce(string triggerId, bool once)
+    {
+        _ = KeyTrigger(triggerId);
+        _model.TriggerOnce = once;
+        _model.IsDirty = true;
+    }
+
+    private TriggerEntry KeyTrigger(string triggerId)
+    {
         var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
             string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
             ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
@@ -225,10 +253,9 @@ internal sealed class HeadlessEditorSession
         }
 
         // The drawer's fields are what BuildMacro commits; move the selection onto this entry and
-        // write the binding there rather than changing a spec the next commit would overwrite.
+        // write the value there rather than changing a spec the next commit would overwrite.
         _model.SelectedTrigger = trigger;
-        _model.BindKey = binding.Trim();
-        _model.IsDirty = true;
+        return trigger;
     }
 
     public void PatchParameter(string stepId, string name, string value)
@@ -408,7 +435,7 @@ internal sealed record EditorVariableSnapshot(string Name, string Type, string I
 internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 
 internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
-    bool Enabled, string Binding);
+    bool Enabled, string Binding, string Loop, bool Once);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,
