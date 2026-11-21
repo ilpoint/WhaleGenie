@@ -26,7 +26,8 @@
   NativeSurfaceHost、ProjectFiles 与 ProjectInteraction；现有主窗用例全绿。隐藏主窗按 B1 处理。
 - **阶段 B1 网页壳转正（当前）**：壳已接管 NativeSurfaceHost、ProjectSession 与 TriggerHost，
   隐藏主窗已移除并成为默认窗口；占位页设置/运行/编辑器、首页关于/帮助、宏卡片运行入口与
-  app.open* 桥命令已接。余下删除 MainWindow、旧主窗用例迁移与桥方法清单。MainViewModel 暂留作
+  app.open* 桥命令已接，桥方法清单已对账；文件/帮助菜单与侧栏折叠按 DESIGN 落位。余下删除
+  MainWindow（生产组合根已不注册它，仍被旧用例直接构造）并迁移这些用例。MainViewModel 暂留作
   设置/运行窗口读取项目与全局变量的无窗视图模型，D1/D2 随这两个原生窗口一起删除。验收：主窗
   全部功能在壳里有入口，真机清单全绿。
 - **阶段 C0 编辑器门禁**：以 C# 编辑会话为唯一模型，网页只渲染快照并发命令；用一份真实宏完成

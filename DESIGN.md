@@ -268,8 +268,10 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 
 ### 14.3 标题栏与窗口钮
 
-- 标题栏高 40px，由网页绘制：左侧鲸鱼（程序资产）+ 程序名 + 当前项目名（未命名项目显示
-  `Shell.UntitledProject`），右侧依次为置顶、最小化、最大化/还原、关闭。
+- 标题栏高 40px，由网页绘制：左侧鲸鱼（程序资产）+ **文件**与**帮助**菜单 + 程序名 + 当前
+  项目名（未命名项目显示 `Shell.UntitledProject`），右侧依次为置顶、最小化、最大化/还原、关闭。
+- **文件**菜单承载打开、保存、另存为、导入与全部关闭；**帮助**菜单显示版本、使用手册与关于。
+  页内文件栏不再重复这五条命令，只保留项目路径、未保存标记、重载与 MCP。
 - 窗口钮 46×32、直角贴顶，与系统 caption 同形：静息透明，悬停
   `--colorNeutralBackground1Hover`，按下取 Pressed 变体；关闭钮悬停取红色语义
   （`--colorPaletteRedBackground3`）并换 `--colorNeutralForegroundOnBrand`；置顶态图标取品牌前景色。
@@ -282,13 +284,16 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 壳采用类 VS Code 的工作区布局：40px 网页标题栏横跨顶部，下面是 **48px activity bar**、
 **220px side bar**、主内容区，底部是 24px 状态条。
 
-- **Activity bar** 只放图标（首页、宏、编辑器、运行、设置），悬停显示词表键 `Shell.<Route>`；
-  选中项用左侧品牌色竖线与 `--colorNeutralBackground2`，不铺整块强调色。
-- **Side bar** 宽度 220px，条目来自词表键 `Shell.<Route>`；选中项铺
+- **Activity bar** 只放图标（首页、宏、编辑器、运行），悬停显示词表键 `Shell.<Route>`；
+  选中项用左侧品牌色竖线与 `--colorNeutralBackground2`，不铺整块强调色。**设置**图标固定在
+  activity bar 底部，与 VS Code 的齿轮同形。
+- 再次点击当前 activity 图标把 side bar 折起（48px 只剩图标栏），再点一次展开；点击别的图标
+  总是展开。折叠状态不写设置，也不影响当前页面。
+- **Side bar** 宽度 220px，条目来自词表键 `Shell.<Route>`（设置不重复列出）；选中项铺
   `--colorBrandBackground`，字用 `--colorNeutralForegroundOnBrand`；悬停取
   `--colorNeutralBackground3Hover`。宏列表迁入后，筛选与宏条目进 side bar，主内容区留给
   选中的宏；在那之前 side bar 继续承担页面导航。
-- **主内容区**是当前页面或编辑器文档，独立滚动，最小宽度 0；侧栏折叠时不挤压内容。
+- **主内容区**是当前页面或编辑器文档，独立滚动，最小宽度 0；侧栏折叠时占满剩余宽度。
 - **状态条** 24px，显示项目名/未命名、修订号、未保存状态与系统开关；数值全部来自
   `project.state`，不另存副本。
 - 首页是壳的“能用”证明：程序版本、界面语言、项目、未保存状态、修订号与宏数量从桥上真读；
