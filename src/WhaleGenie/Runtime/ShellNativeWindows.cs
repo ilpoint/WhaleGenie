@@ -66,6 +66,7 @@ internal sealed class ShellNativeWindows(
             viewModel.RefreshVisibleMacros();
         };
         dialog.ShowAsPeer(window);
+        dialog.Activate();
         return Task.CompletedTask;
     }
 
@@ -104,6 +105,7 @@ internal sealed class ShellNativeWindows(
             }
         };
         run.ShowAsPeer(window);
+        run.Activate();
         if (macro is not null)
         {
             await run.DebugAsync(macro);

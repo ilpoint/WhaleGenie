@@ -111,6 +111,7 @@ public sealed class EditorBridge : IBridgeHandler
         // The editor stands beside the shell rather than replacing it, so both stay on screen and
         // either can be minimized without taking the other down.
         editor.ShowAsPeer(shell);
+        editor.Activate();
         return editor;
     }
 }
