@@ -208,17 +208,30 @@ test('C1 条件参数可按行编辑', async ({ page }) => {
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
   await page.locator('wg-editor-gate .step', { hasText: '等待条件' }).click();
 
-  const rows = page.locator('wg-editor-gate .condition-table tr');
+  const rows = page.locator('wg-editor-gate .condition-row');
   await expect(rows).toHaveCount(1);
-  await page.locator('wg-editor-gate .condition-table input').nth(0).fill('$found');
-  await page.locator('wg-editor-gate .condition-table input').nth(0).press('Tab');
-  await page.locator('wg-editor-gate .condition-table select').first().selectOption('Equal');
-  await page.locator('wg-editor-gate .condition-table input').nth(1).fill('1');
-  await page.locator('wg-editor-gate .condition-table input').nth(1).press('Tab');
+  await page.locator('wg-editor-gate .condition-row input').nth(0).fill('$found');
+  await page.locator('wg-editor-gate .condition-row input').nth(0).press('Tab');
+  await page.locator('wg-editor-gate .condition-row select').first().selectOption('Equal');
+  await page.locator('wg-editor-gate .condition-row input').nth(1).fill('1');
+  await page.locator('wg-editor-gate .condition-row input').nth(1).press('Tab');
 
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionConditionRow')))
     .toBe(true);
+});
+
+test('C1 条件可以嵌套组', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .action-search').fill('等待条件');
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '等待条件' }).click();
+
+  await page.locator('wg-editor-gate .condition-add fluent-button', { hasText: '添加组' }).click();
+  const nested = page.locator('wg-editor-gate .condition-nested');
+  await expect(nested).toHaveCount(1);
+  await nested.locator('.condition-add fluent-button', { hasText: '添加行' }).click();
+  await expect(nested.locator('.condition-row')).toHaveCount(1);
 });
 
 test('C1 动作选择器可按名称过滤', async ({ page }) => {

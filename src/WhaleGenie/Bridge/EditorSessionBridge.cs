@@ -36,6 +36,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionStepEnabled", SetStepEnabled);
         server.Register("editor.sessionStepMeta", SetStepMeta);
         server.Register("editor.sessionConditionRowAdd", AddConditionRow);
+        server.Register("editor.sessionConditionGroupAdd", AddConditionGroup);
         server.Register("editor.sessionConditionRowRemove", RemoveConditionRow);
         server.Register("editor.sessionConditionRow", SetConditionRow);
         server.Register("editor.sessionConditionJoin", SetConditionJoin);
@@ -239,23 +240,20 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
     }
 
     private Task<object?> AddConditionRow(JsonElement parameters)
-        => ConditionCommand(parameters, (session, step, name) => session.AddConditionRow(step, name));
+        => ConditionCommand(parameters, (session, step, name) =>
+            session.AddConditionRow(step, name, ConditionPath(parameters)));
+
+    private Task<object?> AddConditionGroup(JsonElement parameters)
+        => ConditionCommand(parameters, (session, step, name) =>
+            session.AddConditionGroup(step, name, ConditionPath(parameters)));
 
     private Task<object?> RemoveConditionRow(JsonElement parameters)
         => ConditionCommand(parameters, (session, step, name) =>
-        {
-            var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
-                ? number
-                : -1;
-            session.RemoveConditionRow(step, name, index);
-        });
+            session.RemoveConditionNode(step, name, ConditionPath(parameters)));
 
     private Task<object?> SetConditionRow(JsonElement parameters)
         => ConditionCommand(parameters, (session, step, name) =>
         {
-            var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
-                ? number
-                : -1;
             var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
             var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
             if (field is not { Length: > 0 } || value is null)
@@ -263,8 +261,20 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
                 throw new InvalidOperationException("a condition cell needs a field and a value");
             }
 
-            session.SetConditionRow(step, name, index, field, value);
+            session.SetConditionRow(step, name, ConditionPath(parameters), field, value);
         });
+
+    private static int[] ConditionPath(JsonElement parameters)
+    {
+        if (parameters.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.Array)
+        {
+            return [.. path.EnumerateArray().Select(item => item.GetInt32())];
+        }
+
+        return parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var index)
+            ? [index]
+            : [];
+    }
 
     private Task<object?> SetConditionJoin(JsonElement parameters)
         => ConditionCommand(parameters, (session, step, name) =>
@@ -275,7 +285,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
                 throw new InvalidOperationException("a condition join needs a value");
             }
 
-            session.SetConditionJoin(step, name, join);
+            session.SetConditionJoin(step, name, join, ConditionPath(parameters));
         });
 
     private Task<object?> ConditionCommand(JsonElement parameters,

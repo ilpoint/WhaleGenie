@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type {
   EditorAction,
+  EditorConditionNode,
   EditorParameter,
   EditorSnapshot,
   EditorStep,
@@ -502,21 +503,35 @@ export class WgEditorGate extends LitElement {
       margin-bottom: var(--spacingVerticalS);
     }
 
-    .condition-table {
-      width: 100%;
-      border-collapse: collapse;
+    .condition-group {
+      display: grid;
+      gap: var(--spacingVerticalXS);
     }
 
-    .condition-table td {
-      padding: var(--spacingVerticalXS);
-      vertical-align: top;
+    .condition-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr) auto;
+      gap: var(--spacingHorizontalXS);
+      align-items: center;
     }
 
-    .condition-table td:nth-child(2) {
-      width: 150px;
+    .condition-nested {
+      padding-left: var(--spacingHorizontalM);
+      border-left: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
     }
 
-    .condition-table button {
+    .condition-nested-head {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .condition-add {
+      display: flex;
+      gap: var(--spacingHorizontalS);
+    }
+
+    .condition-row button,
+    .condition-nested-head button {
       border: none;
       background: transparent;
       color: var(--colorNeutralForeground2);
@@ -1826,27 +1841,39 @@ export class WgEditorGate extends LitElement {
     `;
   }
 
-  private async addConditionRow(step: EditorStep, parameter: EditorParameter): Promise<void> {
-    await this.conditionCommand('editor.sessionConditionRowAdd', step, parameter, {});
-  }
-
-  private async removeConditionRow(
+  private async addConditionRow(
     step: EditorStep,
     parameter: EditorParameter,
-    index: number,
+    path: number[] = [],
   ): Promise<void> {
-    await this.conditionCommand('editor.sessionConditionRowRemove', step, parameter, { index });
+    await this.conditionCommand('editor.sessionConditionRowAdd', step, parameter, { path });
+  }
+
+  private async addConditionGroup(
+    step: EditorStep,
+    parameter: EditorParameter,
+    path: number[] = [],
+  ): Promise<void> {
+    await this.conditionCommand('editor.sessionConditionGroupAdd', step, parameter, { path });
+  }
+
+  private async removeConditionNode(
+    step: EditorStep,
+    parameter: EditorParameter,
+    path: number[],
+  ): Promise<void> {
+    await this.conditionCommand('editor.sessionConditionRowRemove', step, parameter, { path });
   }
 
   private async setConditionRow(
     step: EditorStep,
     parameter: EditorParameter,
-    index: number,
+    path: number[],
     field: string,
     event: Event,
   ): Promise<void> {
     await this.conditionCommand('editor.sessionConditionRow', step, parameter, {
-      index,
+      path,
       field,
       value: (event.target as HTMLInputElement | HTMLSelectElement).value,
     });
@@ -1856,8 +1883,10 @@ export class WgEditorGate extends LitElement {
     step: EditorStep,
     parameter: EditorParameter,
     event: Event,
+    path: number[],
   ): Promise<void> {
     await this.conditionCommand('editor.sessionConditionJoin', step, parameter, {
+      path,
       join: (event.target as HTMLSelectElement).value,
     });
   }
@@ -1956,6 +1985,72 @@ export class WgEditorGate extends LitElement {
       : '$' + name;
     (event.target as HTMLSelectElement).value = '';
     await this.patchValue(step.id, parameter.name, value);
+  }
+
+  private renderConditionGroup(
+    step: EditorStep,
+    parameter: EditorParameter,
+    join: string,
+    nodes: EditorConditionNode[],
+    path: number[],
+  ): TemplateResult {
+    return html`
+      <div class="condition-group">
+        <div class="condition-join">
+          <select
+            .value=${join}
+            aria-label=${t('Editor.InsertValue')}
+            @change=${(event: Event) => void this.setConditionJoin(step, parameter, event, path)}
+          >
+            <option value="All">${t('Condition.All')}</option>
+            <option value="Any">${t('Condition.Any')}</option>
+            <option value="None">${t('Condition.None')}</option>
+          </select>
+        </div>
+        ${nodes.map((node, index) => node.kind === 'row'
+          ? this.renderConditionRow(step, parameter, node, [...path, index])
+          : html`
+            <div class="condition-nested">
+              <div class="condition-nested-head">
+                <button aria-label=${t('Editor.RemoveRow')} @click=${() =>
+                  void this.removeConditionNode(step, parameter, [...path, index])}>×</button>
+              </div>
+              ${this.renderConditionGroup(step, parameter, node.join, node.children,
+                [...path, index])}
+            </div>
+          `)}
+        <div class="condition-add">
+          <fluent-button appearance="subtle" @click=${() =>
+            void this.addConditionRow(step, parameter, path)}>${t('Editor.AddRow')}</fluent-button>
+          <fluent-button appearance="subtle" @click=${() =>
+            void this.addConditionGroup(step, parameter, path)}>${t('Editor.AddGroup')}</fluent-button>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderConditionRow(
+    step: EditorStep,
+    parameter: EditorParameter,
+    row: EditorConditionNode,
+    path: number[],
+  ): TemplateResult {
+    return html`
+      <div class="condition-row">
+        <input .value=${row.left} @change=${(event: Event) =>
+          void this.setConditionRow(step, parameter, path, 'left', event)} />
+        <select .value=${row.compare} @change=${(event: Event) =>
+          void this.setConditionRow(step, parameter, path, 'compare', event)}>
+          ${this.snapshot!.conditionCompares.map((compare) => html`
+            <option value=${compare.value}>${compare.label}</option>
+          `)}
+        </select>
+        <input .value=${row.right} @change=${(event: Event) =>
+          void this.setConditionRow(step, parameter, path, 'right', event)} />
+        <button aria-label=${t('Editor.RemoveRow')} @click=${() =>
+          void this.removeConditionNode(step, parameter, path)}>×</button>
+      </div>
+    `;
   }
 
   private renderParameter(step: EditorStep, parameter: EditorParameter): TemplateResult {
@@ -2081,42 +2176,8 @@ export class WgEditorGate extends LitElement {
       return html`
         <div class="param condition-param">
           <label>${parameter.label}</label>
-          <div class="condition-join">
-            <select
-              .value=${parameter.condition.join}
-              aria-label=${t('Editor.InsertValue')}
-              @change=${(event: Event) => void this.setConditionJoin(step, parameter, event)}
-            >
-              <option value="All">${t('Condition.All')}</option>
-              <option value="Any">${t('Condition.Any')}</option>
-              <option value="None">${t('Condition.None')}</option>
-            </select>
-          </div>
-          <table class="condition-table">
-            <tbody>
-              ${parameter.condition.rows.map((row, index) => html`
-                <tr>
-                  <td><input .value=${row.left} @change=${(event: Event) =>
-                    void this.setConditionRow(step, parameter, index, 'left', event)} /></td>
-                  <td>
-                    <select .value=${row.compare} @change=${(event: Event) =>
-                      void this.setConditionRow(step, parameter, index, 'compare', event)}>
-                      ${this.snapshot!.conditionCompares.map((compare) => html`
-                        <option value=${compare.value}>${compare.label}</option>
-                      `)}
-                    </select>
-                  </td>
-                  <td><input .value=${row.right} @change=${(event: Event) =>
-                    void this.setConditionRow(step, parameter, index, 'right', event)} /></td>
-                  <td><button aria-label=${t('Editor.RemoveRow')} @click=${() =>
-                    void this.removeConditionRow(step, parameter, index)}>×</button></td>
-                </tr>
-              `)}
-            </tbody>
-          </table>
-          <fluent-button appearance="subtle" @click=${() => void this.addConditionRow(step, parameter)}>
-            ${t('Editor.AddRow')}
-          </fluent-button>
+          ${this.renderConditionGroup(step, parameter, parameter.condition.join,
+            parameter.condition.nodes, [])}
         </div>
       `;
     }

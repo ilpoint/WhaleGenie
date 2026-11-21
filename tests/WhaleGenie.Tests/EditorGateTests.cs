@@ -213,14 +213,21 @@ public class EditorGateTests
         Assert.NotNull(parameter.Condition);
         Assert.True(parameter.Condition!.Editable);
 
+        session.AddConditionGroup(step.Id, "condition");
+        session.AddConditionRow(step.Id, "condition", [1]);
+        session.SetConditionRow(step.Id, "condition", [1, 0], "left", "$ready");
         session.AddConditionRow(step.Id, "condition");
         session.SetConditionRow(step.Id, "condition", 0, "left", "$found");
         session.SetConditionRow(step.Id, "condition", 0, "compare", "Equal");
         session.SetConditionRow(step.Id, "condition", 0, "right", "1");
         var row = session.Snapshot().Steps.Single().Parameters
-            .Single(item => item.Name == "condition").Condition!.Rows[0];
+            .Single(item => item.Name == "condition").Condition!.Nodes[0];
         Assert.Equal("found", row.Left);
         Assert.Equal("1", row.Right);
+        var nested = session.Snapshot().Steps.Single().Parameters
+            .Single(item => item.Name == "condition").Condition!.Nodes[1];
+        Assert.Equal("group", nested.Kind);
+        Assert.Equal("ready", Assert.Single(nested.Children).Left);
     }
 
     [Fact]

@@ -105,15 +105,18 @@ export interface EditorRow {
   cells: string[];
 }
 
-export interface EditorConditionRow {
+export interface EditorConditionNode {
+  kind: 'group' | 'row';
+  join: string;
   left: string;
   compare: string;
   right: string;
+  children: EditorConditionNode[];
 }
 
 export interface EditorCondition {
   join: string;
-  rows: EditorConditionRow[];
+  nodes: EditorConditionNode[];
   editable: boolean;
 }
 

@@ -1,6 +1,7 @@
 import type { BridgeTransport } from './transport.js';
 import type {
   AppInfo,
+  EditorConditionNode,
   EditorSnapshot,
   EditorStep,
   McpState,
@@ -40,7 +41,7 @@ const chromeKeys = [
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
   'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.Record',
   'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty',
-  'Editor.ValueBuilder', 'Editor.Functions', 'Condition.All',
+  'Editor.ValueBuilder', 'Editor.Functions', 'Editor.AddGroup', 'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
@@ -106,6 +107,7 @@ const english: Record<string, string> = {
   'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
   'Editor.Record': 'Record', 'Editor.StopRecording': 'Stop Recording',
   'Editor.ValueBuilder': 'Build value', 'Editor.Functions': 'Functions',
+  'Editor.AddGroup': 'Add group',
   'Editor.RecordActive': 'Recording: {0} captured', 'Editor.RecordEmpty': 'Nothing captured.',
   'Condition.All': 'All of these', 'Condition.Any': 'Any of these', 'Condition.None': 'None of these',
   'Editor.InsertValue': 'Insert value',
@@ -203,6 +205,7 @@ const chinese: Record<string, string> = {
   'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
   'Editor.Record': '开始录制', 'Editor.StopRecording': '停止录制',
   'Editor.ValueBuilder': '构建取值', 'Editor.Functions': '函数',
+  'Editor.AddGroup': '添加组',
   'Editor.RecordActive': '录制中：已捕获 {0} 个事件', 'Editor.RecordEmpty': '这次录制没有捕获到任何操作。',
   'Condition.All': '全部成立', 'Condition.Any': '任一成立', 'Condition.None': '全部不成立',
   'Editor.InsertValue': '插入取值',
@@ -567,74 +570,67 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'editor.sessionConditionRowAdd':
         if (this.editor) {
+          const path = this.conditionPath(params);
           this.editor = {
             ...this.editor,
             dirty: true,
-            steps: this.changeCondition(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
+            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
               String(params['name'] ?? ''),
-              (condition) => ({
-                ...condition,
-                rows: [...condition.rows, { left: '', compare: 'Equal', right: '' }],
-              })),
+              (condition) => this.addConditionNode(condition, path, 'row')),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionConditionGroupAdd':
+        if (this.editor) {
+          const path = this.conditionPath(params);
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              (condition) => this.addConditionNode(condition, path, 'group')),
           };
         }
         result = this.editor;
         break;
       case 'editor.sessionConditionRowRemove':
         if (this.editor) {
+          const path = this.conditionPath(params);
           this.editor = {
             ...this.editor,
             dirty: true,
-            steps: this.changeCondition(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
+            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
               String(params['name'] ?? ''),
-              (condition) => ({
-                ...condition,
-                rows: condition.rows.filter((_, index) => index !== Number(params['index'])),
-              })),
+              (condition) => this.removeConditionNode(condition, path)),
           };
         }
         result = this.editor;
         break;
       case 'editor.sessionConditionRow':
         if (this.editor) {
+          const path = this.conditionPath(params);
           this.editor = {
             ...this.editor,
             dirty: true,
-            steps: this.changeCondition(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
+            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
               String(params['name'] ?? ''),
-              (condition) => ({
-                ...condition,
-                rows: condition.rows.map((row, index) => index !== Number(params['index'])
-                  ? row
-                  : {
-                      ...row,
-                      left: params['field'] === 'left' ? String(params['value'] ?? '') : row.left,
-                      compare: params['field'] === 'compare'
-                        ? String(params['value'] ?? '')
-                        : row.compare,
-                      right: params['field'] === 'right' ? String(params['value'] ?? '') : row.right,
-                    }),
-              })),
+              (condition) => this.setConditionCell(condition, path,
+                String(params['field'] ?? ''), String(params['value'] ?? ''))),
           };
         }
         result = this.editor;
         break;
       case 'editor.sessionConditionJoin':
         if (this.editor) {
+          const path = this.conditionPath(params);
           this.editor = {
             ...this.editor,
             dirty: true,
-            steps: this.changeCondition(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
+            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
               String(params['name'] ?? ''),
-              (condition) => ({ ...condition, join: String(params['join'] ?? 'All') })),
+              (condition) => this.setConditionJoinAt(condition, path,
+                String(params['join'] ?? 'All'))),
           };
         }
         result = this.editor;
@@ -746,7 +742,10 @@ export class MockTransport implements BridgeTransport {
                             condition: {
                               join: 'All',
                               editable: true,
-                              rows: [{ left: '', compare: 'Equal', right: '' }],
+                              nodes: [{
+                                kind: 'row', join: '', left: '', compare: 'Equal', right: '',
+                                children: [],
+                              }],
                             },
                           }]
                         : [],
@@ -1482,6 +1481,139 @@ export class MockTransport implements BridgeTransport {
 
       return { ...step, steps: this.changeCondition(step.steps, stepId, name, change) };
     });
+  }
+
+  private conditionPath(params: Record<string, unknown>): number[] {
+    const path = params['path'];
+    if (Array.isArray(path)) {
+      return path.map((item) => Number(item));
+    }
+
+    return params['index'] === undefined ? [] : [Number(params['index'])];
+  }
+
+  private addConditionNode(
+    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
+    path: number[],
+    kind: 'row' | 'group',
+  ): NonNullable<EditorStep['parameters'][number]['condition']> {
+    const root = this.conditionRoot(condition);
+    const next = this.changeConditionGroup(root, path, (group) => ({
+      ...group,
+      children: [...group.children, this.conditionNode(kind)],
+    }));
+    return this.conditionFromRoot(next);
+  }
+
+  private removeConditionNode(
+    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
+    path: number[],
+  ): NonNullable<EditorStep['parameters'][number]['condition']> {
+    if (path.length === 0) {
+      return condition;
+    }
+
+    const parentPath = path.slice(0, -1);
+    const index = path[path.length - 1];
+    const root = this.conditionRoot(condition);
+    const next = this.changeConditionGroup(root, parentPath, (group) => ({
+      ...group,
+      children: group.children.filter((_, at) => at !== index),
+    }));
+    return this.conditionFromRoot(next);
+  }
+
+  private setConditionCell(
+    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
+    path: number[],
+    field: string,
+    value: string,
+  ): NonNullable<EditorStep['parameters'][number]['condition']> {
+    if (path.length === 0) {
+      return condition;
+    }
+
+    const root = this.conditionRoot(condition);
+    const next = this.changeConditionNode(root, path, (node) => ({
+      ...node,
+      left: field === 'left' ? value : node.left,
+      compare: field === 'compare' ? value : node.compare,
+      right: field === 'right' ? value : node.right,
+    }));
+    return this.conditionFromRoot(next);
+  }
+
+  private setConditionJoinAt(
+    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
+    path: number[],
+    join: string,
+  ): NonNullable<EditorStep['parameters'][number]['condition']> {
+    const root = this.conditionRoot(condition);
+    const next = this.changeConditionGroup(root, path, (group) => ({ ...group, join }));
+    return this.conditionFromRoot(next);
+  }
+
+  private conditionRoot(
+    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
+  ): EditorConditionNode {
+    return {
+      kind: 'group',
+      join: condition.join,
+      left: '',
+      compare: '',
+      right: '',
+      children: condition.nodes,
+    };
+  }
+
+  private conditionFromRoot(
+    root: EditorConditionNode,
+  ): NonNullable<EditorStep['parameters'][number]['condition']> {
+    return { join: root.join, nodes: root.children, editable: true };
+  }
+
+  private conditionNode(kind: 'row' | 'group'): EditorConditionNode {
+    return kind === 'row'
+      ? { kind: 'row', join: '', left: '', compare: 'Equal', right: '', children: [] }
+      : { kind: 'group', join: 'All', left: '', compare: '', right: '', children: [] };
+  }
+
+  private changeConditionGroup(
+    group: EditorConditionNode,
+    path: number[],
+    change: (group: EditorConditionNode) => EditorConditionNode,
+  ): EditorConditionNode {
+    if (path.length === 0) {
+      return change(group);
+    }
+
+    const [index, ...rest] = path;
+    return {
+      ...group,
+      children: group.children.map((node, at) => at === index
+        ? this.changeConditionGroup(node, rest, change)
+        : node),
+    };
+  }
+
+  private changeConditionNode(
+    group: EditorConditionNode,
+    path: number[],
+    change: (node: EditorConditionNode) => EditorConditionNode,
+  ): EditorConditionNode {
+    const [index, ...rest] = path;
+    return {
+      ...group,
+      children: group.children.map((node, at) => {
+        if (at !== index) {
+          return node;
+        }
+
+        return rest.length === 0
+          ? change(node)
+          : this.changeConditionNode(node, rest, change);
+      }),
+    };
   }
 
   private changeStepMeta(

@@ -743,41 +743,74 @@ internal sealed class HeadlessEditorSession
             OnError = onError ?? meta.OnError,
         };
 
-    public void AddConditionRow(string stepId, string name)
-        => ChangeCondition(stepId, name, rows => rows.Add(new ConditionShape.Row(
-            Formula.Nothing, ConditionCompare.Equal, Formula.Nothing)));
+    public void AddConditionRow(string stepId, string name, int[]? path = null)
+        => ChangeCondition(stepId, name, root =>
+            GroupAt(root, path ?? []).Children.Add(ConditionDraftNode.Row()));
 
-    public void RemoveConditionRow(string stepId, string name, int index)
-        => ChangeCondition(stepId, name, rows =>
+    public void AddConditionGroup(string stepId, string name, int[]? path = null)
+        => ChangeCondition(stepId, name, root =>
+            GroupAt(root, path ?? []).Children.Add(ConditionDraftNode.Group(Join.All)));
+
+    public void RemoveConditionNode(string stepId, string name, int[] path)
+        => ChangeCondition(stepId, name, root =>
         {
-            if (index < 0 || index >= rows.Count)
+            if (path.Length == 0)
             {
-                throw new InvalidOperationException("the condition has no row " + index);
+                throw new InvalidOperationException("the root condition cannot be removed");
             }
 
-            rows.RemoveAt(index);
+            var parent = GroupAt(root, path[..^1]);
+            if (path[^1] < 0 || path[^1] >= parent.Children.Count)
+            {
+                throw new InvalidOperationException("the condition has no node " + path[^1]);
+            }
+
+            parent.Children.RemoveAt(path[^1]);
+        });
+
+    public void RemoveConditionRow(string stepId, string name, int index)
+        => RemoveConditionNode(stepId, name, [index]);
+
+    public void SetConditionRow(string stepId, string name, int[] path, string field, string value)
+        => ChangeCondition(stepId, name, root =>
+        {
+            if (path.Length == 0)
+            {
+                throw new InvalidOperationException("the root condition is a group");
+            }
+
+            var parent = GroupAt(root, path[..^1]);
+            if (path[^1] < 0 || path[^1] >= parent.Children.Count
+                || parent.Children[path[^1]] is not { IsRow: true } row)
+            {
+                throw new InvalidOperationException("the condition has no row at " + string.Join('.', path));
+            }
+
+            switch (field)
+            {
+                case "left":
+                    row.Left = ConditionValue(value);
+                    break;
+                case "right":
+                    row.Right = ConditionValue(value);
+                    break;
+                case "compare":
+                    row.Compare = Enum.Parse<ConditionCompare>(value, ignoreCase: true);
+                    break;
+                default:
+                    throw new InvalidOperationException("unknown condition field " + field);
+            }
         });
 
     public void SetConditionRow(string stepId, string name, int index, string field, string value)
-        => ChangeCondition(stepId, name, rows =>
+        => SetConditionRow(stepId, name, [index], field, value);
+
+    public void SetConditionJoin(string stepId, string name, string value, int[]? path = null)
+        => ChangeCondition(stepId, name, root =>
         {
-            if (index < 0 || index >= rows.Count)
-            {
-                throw new InvalidOperationException("the condition has no row " + index);
-            }
-
-            var row = rows[index];
-            rows[index] = field switch
-            {
-                "left" => row with { Left = ConditionValue(value) },
-                "right" => row with { Right = ConditionValue(value) },
-                "compare" => row with { Compare = Enum.Parse<ConditionCompare>(value, ignoreCase: true) },
-                _ => throw new InvalidOperationException("unknown condition field " + field),
-            };
+            var group = GroupAt(root, path ?? []);
+            group.Join = Enum.Parse<Join>(value, ignoreCase: true);
         });
-
-    public void SetConditionJoin(string stepId, string name, string value)
-        => ChangeCondition(stepId, name, _ => { }, Enum.Parse<Join>(value, ignoreCase: true));
 
     private static ExpressionNode ConditionValue(string value)
     {
@@ -802,8 +835,24 @@ internal sealed class HeadlessEditorSession
             : Formula.Text(value);
     }
 
-    private void ChangeCondition(string stepId, string name, Action<List<ConditionShape.Row>> change,
-        Join? join = null)
+    private static ConditionDraftNode GroupAt(ConditionDraftNode root, int[] path)
+    {
+        var group = root;
+        foreach (var index in path)
+        {
+            if (index < 0 || index >= group.Children.Count
+                || !group.Children[index].IsGroup)
+            {
+                throw new InvalidOperationException("the condition has no group at " + string.Join('.', path));
+            }
+
+            group = group.Children[index];
+        }
+
+        return group;
+    }
+
+    private void ChangeCondition(string stepId, string name, Action<ConditionDraftNode> change)
     {
         var parameter = FindParameter(stepId, name);
         if (!_conditionDrafts.TryGetValue(parameter, out var draft))
@@ -813,24 +862,76 @@ internal sealed class HeadlessEditorSession
                 throw new InvalidOperationException("the condition cannot be edited as rows");
             }
 
-            var group = shape as ConditionShape.Group;
-            draft = new ConditionDraft(
-                group?.Join ?? Join.All,
-                (group?.Children ?? [shape])
-                .Select(child => child as ConditionShape.Row
-                    ?? throw new InvalidOperationException("the condition has nested groups"))
-                .ToList());
+            draft = new ConditionDraft(ConditionDraftNode.Root(shape));
         }
 
-        change(draft.Rows);
-        draft = draft with { Join = join ?? draft.Join };
+        change(draft.Root);
         _conditionDrafts[parameter] = draft;
-        parameter.Written = Condition.ToNode(new ConditionShape.Group(draft.Join, draft.Rows))
-            ?? Formula.Nothing;
+        parameter.Written = Condition.ToNode(draft.Root.ToShape()) ?? Formula.Nothing;
         _model.IsDirty = true;
     }
 
-    private sealed record ConditionDraft(Join Join, List<ConditionShape.Row> Rows);
+    private sealed class ConditionDraft(ConditionDraftNode root)
+    {
+        public ConditionDraftNode Root { get; } = root;
+    }
+
+    private sealed class ConditionDraftNode
+    {
+        public bool IsGroup { get; private init; }
+
+        public bool IsRow => !IsGroup;
+
+        public Join Join { get; set; }
+
+        public List<ConditionDraftNode> Children { get; init; } = [];
+
+        public ExpressionNode Left { get; set; } = Formula.Nothing;
+
+        public ConditionCompare Compare { get; set; } = ConditionCompare.Equal;
+
+        public ExpressionNode Right { get; set; } = Formula.Nothing;
+
+        public static ConditionDraftNode Row() => new() { IsGroup = false };
+
+        public static ConditionDraftNode Group(Join join) => new() { IsGroup = true, Join = join };
+
+        public static ConditionDraftNode Root(ConditionShape shape)
+        {
+            if (shape is ConditionShape.Group group)
+            {
+                return FromShape(group);
+            }
+
+            var root = Group(Join.All);
+            root.Children.Add(FromShape(shape));
+            return root;
+        }
+
+        public static ConditionDraftNode FromShape(ConditionShape shape)
+            => shape switch
+            {
+                ConditionShape.Row row => new ConditionDraftNode
+                {
+                    IsGroup = false,
+                    Left = row.Left,
+                    Compare = row.Compare,
+                    Right = row.Right,
+                },
+                ConditionShape.Group group => new ConditionDraftNode
+                {
+                    IsGroup = true,
+                    Join = group.Join,
+                    Children = [.. group.Children.Select(FromShape)],
+                },
+                _ => Row(),
+            };
+
+        public ConditionShape ToShape()
+            => IsGroup
+                ? new ConditionShape.Group(Join, [.. Children.Select(child => child.ToShape())])
+                : new ConditionShape.Row(Left, Compare, Right);
+    }
 
     public void AddParameterRow(string stepId, string name)
     {
@@ -984,37 +1085,34 @@ internal sealed class HeadlessEditorSession
 
     private EditorConditionSnapshot ConditionSnapshot(StepParameter parameter)
     {
+        ConditionDraftNode root;
         if (_conditionDrafts.TryGetValue(parameter, out var draft))
         {
-            return new EditorConditionSnapshot(
-                draft.Join.ToString(),
-                [.. draft.Rows.Select(row => new EditorConditionRowSnapshot(
-                    Expression.Render(row.Left),
-                    row.Compare.ToString(),
-                    Expression.Render(row.Right)))],
-                true);
+            root = draft.Root;
         }
-
-        if (!Condition.TryRead(parameter.Written, out var shape))
+        else
         {
-            return new EditorConditionSnapshot("All", [], false);
-        }
+            if (!Condition.TryRead(parameter.Written, out var shape))
+            {
+                return new EditorConditionSnapshot("All", [], false);
+            }
 
-        var group = shape as ConditionShape.Group;
-        var children = group?.Children ?? [shape];
-        if (children.Any(child => child is not ConditionShape.Row))
-        {
-            return new EditorConditionSnapshot("All", [], false);
+            root = ConditionDraftNode.Root(shape);
         }
 
         return new EditorConditionSnapshot(
-            (group?.Join ?? Join.All).ToString(),
-            [.. children.Cast<ConditionShape.Row>().Select(row => new EditorConditionRowSnapshot(
-                Expression.Render(row.Left),
-                row.Compare.ToString(),
-                Expression.Render(row.Right)))],
+            root.Join.ToString(),
+            [.. root.Children.Select(NodeSnapshot)],
             true);
     }
+
+    private static EditorConditionNodeSnapshot NodeSnapshot(ConditionDraftNode node)
+        => node.IsGroup
+            ? new EditorConditionNodeSnapshot("group", node.Join.ToString(), string.Empty,
+                string.Empty, string.Empty, [.. node.Children.Select(NodeSnapshot)])
+            : new EditorConditionNodeSnapshot("row", string.Empty,
+                Expression.Render(node.Left), node.Compare.ToString(),
+                Expression.Render(node.Right), []);
 
     private static MacroStep NewStep(string type)
     {
@@ -1158,10 +1256,11 @@ internal sealed record EditorParameterSnapshot(string Name, string Label, string
     IReadOnlyList<EditorChoiceSnapshot> Options, IReadOnlyList<EditorColumnSnapshot> Columns,
     IReadOnlyList<EditorRowSnapshot> Rows, EditorConditionSnapshot? Condition);
 
-internal sealed record EditorConditionSnapshot(string Join, IReadOnlyList<EditorConditionRowSnapshot> Rows,
+internal sealed record EditorConditionSnapshot(string Join, IReadOnlyList<EditorConditionNodeSnapshot> Nodes,
     bool Editable);
 
-internal sealed record EditorConditionRowSnapshot(string Left, string Compare, string Right);
+internal sealed record EditorConditionNodeSnapshot(string Kind, string Join, string Left, string Compare,
+    string Right, IReadOnlyList<EditorConditionNodeSnapshot> Children);
 
 internal sealed record EditorConditionCompareSnapshot(string Value, string Label);
 
