@@ -19,23 +19,32 @@
 ### 界面迁移到网页壳
 
 界面整体从原生 AXAML 迁到 WebView + Lit + Fluent UI Web Components（见 [DESIGN.md](../DESIGN.md)
-第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳、
-主窗占位）已完成。其余按顺序：
+第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳）
+已完成。其余按顺序：
 
-- **阶段 B 主窗宏列表**：`project.*` 与 `mcp.*` 桥处理器（宏列表、七触发视图过滤、搜索、启停、
-  系统总开关、文件菜单、MCP 授权浮层）；网页壳转默认启动；删除旧 `MainWindow`（13 个分部）、
-  `MainViewModel` 与主窗对应的无头用例。验收：迁移用例全绿 + 第 14 节人工清单 + 原主窗全部
-  功能在网页壳里可走通。
-- **阶段 C 宏编辑器**：编辑器工作区（文档页签、步骤树、动作库、动作表单、条件、宏设置与触发、
-  变量墙、取值构建器网页化）；动作表单由 `catalog.bundle`（语义目录 + 展示目录 + 动作文案投影）
-  驱动；录制与键位捕获经桥事件接入；屏幕拾取器保持原生。删除 `MacroEditorWindow` 体系、
-  `ValuePickerWindow` 与动作编辑 AXAML 及其用例。验收同上。
-- **阶段 D 设置、运行调试与全局变量**：设置各页、运行调试停靠面板（引擎问话经 `dialog.request`）、
-  全局变量管理；删除 `SettingsWindow`、`RunWindow`、`GlobalVariablesWindow` 及其用例。验收同上。
-- **阶段 E 清理**：删除 FluentAvalonia、旧 `Themes/` 三层令牌、`AppWindow` 的 40px 自绘 chrome
-  （拾取器与浮层保留必要部分）与 `ThemeProbe`；DESIGN.md 收敛为只有第 14 节，AGENTS.md 与
-  architecture.md 同步对账。验收：全量构建、测试、格式与文档对账全绿，仓库里不再有第二套界面
-  体系。
+- **阶段 B0 会话宿主抽取（阻塞）**：把触发器（系统热键/启停键/声音）、原生浮层（菜单/轮盘/界面
+  面板/后台运行问话）、会话（恢复草稿/未保存提示/窗口尺寸）与文件命令从 MainWindow 抽成
+  SystemState + TriggerHost + NativeSurfaceHost + ProjectSession/ProjectFiles，由 WindowedServices
+  组装；去掉网页壳的隐藏主窗。验收：原生与网页两种窗口共用同一宿主，现有主窗用例迁移后全绿，
+  没有隐藏 MainWindow。
+- **阶段 B1 网页壳转正**：未迁入的设置/运行/关于/帮助先给临时原生入口；网页壳成为默认并删除
+  MainWindow、MainViewModel；补系统状态推送、焦点抑制、声音单一来源、桥串行/合并、错误本地化、
+  严格 UTF-8、导航白名单、窗口尺寸与退出未保存。验收：主窗全部功能在壳里有入口，旧主窗用例有
+  替代或删除理由，真机清单全绿。
+- **阶段 C0 编辑器门禁**：以 C# 编辑会话为唯一模型，网页只渲染快照并发命令；用一份真实宏完成
+  打开→改字段→保存→重开，177 个动作全部能生成表单，测量快照/输入延迟。未过不得删原生编辑器。
+- **阶段 C1 编辑器完整迁入**：文档页签、步骤树、动作库/表单、条件、宏设置与触发、变量墙、取值
+  构建器、录制/键位捕获；屏幕拾取器等桌面交互保留原生。
+- **阶段 C2 编辑器转正**：删除 MacroEditorWindow、动作编辑 AXAML、ValuePickerWindow 及其窗口
+  用例，保留 C# 编辑模型与模型测试；同步 manual/10。
+- **阶段 D1 设置**：设置各页迁入网页，复用 C# 视图模型；菜单/轮盘/窗口规则编辑器默认保留原生
+  对话框；删除 SettingsWindow 与临时设置入口。
+- **阶段 D2 运行调试与全局变量**：运行调试变网页停靠面板，调试问话留在面板内；触发/后台运行
+  问话走原生窗口，退出未保存走原生确认；删除 RunWindow、GlobalVariablesWindow 与临时入口。
+- **阶段 E1 残留原生面**：清点永久保留的拾取器、菜单、轮盘、浮层、问话与编辑器对话框；默认保留
+  FluentAvalonia 作为其控件库，只有全部可无损换基时才另立删除阶段；DESIGN 增加剩余原生面契约。
+- **阶段 E2 终稿对账**：删除未用主题/窗口/资源/临时命令，AGENTS、architecture、DESIGN、roadmap、
+  manual 与 dev 文档同步，仓库不再有第二套应用界面。
 
 ## 待评估
 
@@ -44,16 +53,7 @@
 ### 结构与诊断
 
 - **测试与真机共用设置文件**：无头测试与用户运行的程序都会读写 `%LOCALAPPDATA%\WhaleGenie\settings.json`（`AppPaths.State` 是不可重定向的固定路径）。用 MainViewModel 的既有测试、以及网页壳桥测试里记忆上次项目的路径，都会把测试进程的选择写进用户的设置文件（本轮已让涉事用例自存自还，但机制上仍是共用一把钥匙）。升级为阶段前先取得污染面测量：列出所有写 `LocalSettings` 的测试与写进真实文件的字段，再决定是让 `AppPaths` 可重定向、还是测试装配统一接管。
-- **触发宿主抽出 MainWindow**：网页壳阶段已用「隐藏主窗」让触发宿主接线（系统热键、中键菜单、轮盘手势、浮层、声音）在壳在前面时继续工作（见 interface.md §7.6），但接线本体仍在 `MainWindow` 的分部里，删除主窗前必须先抽出。测量结果：宿主状态网跨 Opened/Hotkey/Wheel/Surface/Menu 五个分部——轮盘 14 字段（`_wheel`/`_wheelGateRules`/`_wheelScene`/`_wheelGeneration`…）、菜单浮层与热键计划（`_menu`/`_globalHotkeyPlan`/`_globalHeld`/`_menuOpen`…）、界面浮层视图状态（`_surfaceViews`）与界面分组（`_hiddenInterfaceGroups`）。抽取按 roadmap 的分块规则走：第一块搬系统热键与全局热键计划（`GlobalHotkeyPlan` 已是独立类，接线直测现成）；第二块菜单浮层；第三块轮盘；界面浮层最后（依赖窗口规则与前台事件）。每块验收：搬一块后窗口方法数下降、对应行为有直测、网页壳与旧主窗共用同一宿主类。
-- **主窗口宿主状态**：`MainWindow` 3,187 行 / 13 个分部，菜单、轮盘、浮层、热键与恢复的宿主
-  状态仍在窗口里。宏编辑器那一侧已经搬完，搬的是状态与规则而不是事件处理：恢复草稿
-  （`RecoveryDraft`，两个窗口共用）、触发拾取（`EditorPickers`）、窗口框
-  （`TriggerFramePreview`）、文档页集合（`EditorDocumentPages`）、键位捕获
-  （`EditorBindingCapture`）、录制（`EditorRecording`）、一次保存的三种结局（`EditorCommit`）、
-  页签归属与关页签后谁在前（`EditorTabs`）。`MacroEditorWindow` 现在 3,091 行 / 13 个分部，每个
-  分部 28–553 行、各自只做一件事：合并只会得到一个小号杂物间，所以剩下的部分不再拆。主窗口要动时
-  按同样办法——先找没有页面承载的状态、需要直测的规则，再决定搬哪一块；不为数字切。验收：搬一块后
-  窗口方法数下降、对应行为有直测、不新增超过 700 行的类。
+
 - **无界面命令行**：`Models/`、`Storage/`、`Localization/` 已出界面工程，但只服务 MCP 与包读写；
   仍不新增 CLI 入口，除非出现 CI 批量验包、脚本生成宏等真实调用方。
 - **MCP 工具发现与审计登记**：工具类型和审计调用仍有手工登记点。先通过故障注入确认漏登记能否被

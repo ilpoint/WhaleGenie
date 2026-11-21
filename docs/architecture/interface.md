@@ -11,6 +11,7 @@
 | 项目文档态 | `MainViewModel`：宏、触发器、路径、修订号和「磁盘上的包已过期」这一标记 |
 | 编辑态 | `MacroEditorSession` 与编辑器 ViewModel：文档页、子宏、录制、编辑操作，以及「这次编辑有未保存内容」 |
 | 运行期态 | `TriggerRuntime`、运行宿主和窗口字段：触发快照、浮动界面、恢复和运行显示 |
+| 系统开关 | `SystemState`（App）：页面、热键与窗口读写同一个对象，触发宿主跟随它启停 |
 | 纯界面态 | 窗口与控件：拖动、落点、滚动、焦点和弹出层 |
 
 编辑器里的改动由会话记一次：页面自己知道内容变没变，会话把它们与「新增了文档、抬出了子宏」这类
@@ -161,8 +162,9 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.6 网页壳与桥接
 
-网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。迁移期间它与
-原生窗口并存，由调试开关 `--webshell` 打开（DEBUG）；主窗宏列表迁入后它转正，原生主窗删除。
+网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。阶段 A 完成后
+先做 B0 会话宿主抽取：系统开关、触发器、原生浮层、恢复与未保存提示从主窗搬出，网页壳才不再
+依赖隐藏主窗。B1 再把壳设为默认并删除主窗；未迁入的设置/运行/关于/帮助在 B1 先给临时原生入口。
 窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
@@ -171,6 +173,7 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 | --- | --- | --- |
 | 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebBridge`（程序里唯一认识 WebView 控件的类型） |
 | 桥协议与处理器 | `src/WhaleGenie/Bridge/` | `BridgeServer` 路由请求/应答/事件；`app/strings/theme/window` 各处理器注册自己的方法 |
+| 触发会话 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`SystemState`（App）是页面/热键/窗口共写的开关；菜单/轮盘/浮层在 B0.2 搬到 `NativeSurfaceHost` |
 | 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
 
 桥处理器不引用 WebView 控件类型（`WebUiBoundaryTests` 按源码检查），只与 `IBridgeChannel`
@@ -179,9 +182,11 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 `域.动作`，错误码是稳定词表（`NoSuchMethod`、`BadArgument`、`Internal`）。页面注册好收信口后发
 `bridge.ready`，宿主在此之前缓存推送，语言或主题的早到变化不会丢。
 
-方向只有一条：**C# 是唯一事实来源**。文档态（`ProjectWorkspace`）、触发状态、语言与主题都在
-程序侧，页面只做呈现与命令；程序侧的变化以事件推给页面（`strings.changed`、`theme.changed`、
-`window.changed`，阶段 B 起 `project.changed`）。词表由 `Strings.Snapshot()` 按当前语言解析成
+方向只有一条：**C# 是唯一事实来源**。文档态（`ProjectWorkspace`）、系统开关、触发状态、语言与
+主题都在程序侧，页面只做呈现与命令；程序侧的变化以事件推给页面（`strings.changed`、
+`theme.changed`、`window.changed`、`project.changed`）。系统开关不在页面或窗口里：
+`SystemState` 在 `WhaleGenie.App`，页面、热键与窗口写同一个对象，触发宿主跟随它启停触发器；
+声音由宿主播，页面不自行发声。词表由 `Strings.Snapshot()` 按当前语言解析成
 整包下发，页面没有回退逻辑；主题经 `ThemeController` 应用并落盘，页面用 Fluent 令牌铺色，不读
 设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
 

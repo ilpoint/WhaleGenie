@@ -68,7 +68,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | 工程 | 主要职责 | 不得承担 |
 | --- | --- | --- |
 | `WhaleGenie` | 窗口、ViewModel、应用生命周期、窗口化组合根与界面适配 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp/App |
-| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、MCP 宿主与设备控制/运行工具、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
+| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、系统开关（`SystemState`）、MCP 宿主与设备控制/运行工具、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸 | Avalonia、窗口、ViewModel、MCP、设备控制 |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、预览、资源与项目编辑工具 | Avalonia、Views、Runtime、设备控制、运行桥 |
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、键词汇表、录制事件翻译；`net10.0`，是仓库里唯一可打包的工程 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows`；除 BCL 与 `CsvHelper` 之外的任何引用 |
@@ -113,6 +113,7 @@ DXGI、Direct3D、GDI 与 SharpHook 的调用留在各自工程。引擎与界�
 | `WindowedServices` | 窗口化组合根；在应用层图上补窗口与主 ViewModel |
 | `Runtime/SharedDevices.cs` | 持有进程共享的 `WindowsDeviceLayer`，负责预热与最终释放 |
 | `Runtime/RunFactory.cs` | 调试、触发器和 MCP 共用的 `MacroRunner` 装配入口 |
+| `Runtime/SystemState.cs` | 全程序唯一的系统开关；页面、热键与窗口写同一个对象，触发宿主跟随它启停触发器 |
 | `Runtime/TriggerRuntime.cs` | 持有触发器服务、共享设备层及不可变运行快照 |
 
 窗口、ViewModel 和工具通过构造函数取得有状态依赖。子窗口可以直接创建，因为它们通常携带一次性

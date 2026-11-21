@@ -20,11 +20,15 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
   提交，再用 `git subtree pull --prefix=core core main --squash` 取回来。
 - `WhaleGenie.Domain` 不依赖 Avalonia、窗口、ViewModel 或 MCP；`WhaleGenie.Mcp` 不依赖 Avalonia、
   Views 或 Runtime，机器控制、运行宏与运行日志工具由 `WhaleGenie.App` 作为 tool owner 注入。
-- `WhaleGenie.App` 不依赖 Avalonia 或任何窗口类型：触发器、运行编排、MCP 宿主与工具、两种启动形态
-  共用的组合根都在这里，界面工程只在它上面补窗口与主 ViewModel。
+- `WhaleGenie.App` 不依赖 Avalonia 或任何窗口类型：触发器、运行编排、系统开关（`SystemState`）、
+  MCP 宿主与工具、两种启动形态共用的组合根都在这里，界面工程只在它上面补窗口与主 ViewModel。
+- 系统开关只有一个写者：`SystemState` 在 `WhaleGenie.App`，页面、热键与窗口写同一个对象；触发宿主
+  跟随它启停触发器，声音由宿主播，页面不保存副本也不自行发声。
 - 网页壳是界面层的一部分：桥处理器（`src/WhaleGenie/Bridge/`）不引用 WebView 控件类型，传输细节由
   `src/WhaleGenie/Web/` 的适配器独占；页面用户可见文案只经桥取词表，两条由 `WebUiBoundaryTests`
-  核对。网页源与构建在仓库根的 `webui/`，产物是一个内联的 `index.html`。
+  核对。网页源与构建在仓库根的 `webui/`，产物是一个内联的 `index.html`。页面只做视图：编辑、
+  设置、运行与全局变量的草稿、校验和历史留在 C#，桥只传快照与命令。
+- 网页源必须是严格 UTF-8；页面不写用户可见的中英文字面量，桥错误消息也走 `Strings` 双语表。
 - 除 `App.axaml.cs`、`Program.cs` 与 `SharedDevices.cs` 承担的组合、入口分派和生命周期职责外，
   界面与应用两层不直接引用第三方设备库或 `WhaleGenie.Platform.Windows`；设备能力通过 Core 契约取得。
 - `WhaleGenie.GraphicsCapture` 只取得屏幕像素：读哪里、用哪种抓法由 Core 的设备契约说明，它实现
@@ -55,7 +59,8 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
 4. **每个动作必须有引擎用例。** 新增动作至少有一条用例执行到它；目录、引擎、检查、文案、页面、
    返回值、失败键、测试和手册在同一轮对齐，新增目录事实须有可失败的对账用例。
 5. **用户可见文字统一进入文案表。** 英文与中文分别写入 `Strings`，动作中文写入 `ActionStrings`，
-   不在代码或 XAML 中写死；新增键补齐各语言并通过 `LocalizationTests`。
+   不在代码、XAML 或网页中写死；桥错误消息同样走文案表；新增键补齐各语言并通过
+   `LocalizationTests` 与网页键对账。
 6. **字段名属于文件格式。** 一个概念使用一个名字，同一字段不得表示不同含义；记录字段统一使用
    `FieldNames`。同名字段的保留例外登记在开发文档，由 `FieldNameTests` 核对。
 7. **当前阶段不保留旧宏格式兼容。** 不增加字段别名、双读或迁移分支；被取代的参数、返回值、开关、
