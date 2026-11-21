@@ -38,7 +38,7 @@ const chromeKeys = [
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
-  'Editor.RemoveRow', 'Editor.StepEnabled', 'Add.StepComment', 'Add.StepTimeout',
+  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
   'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
@@ -100,7 +100,8 @@ const english: Record<string, string> = {
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
-  'Editor.StepEnabled': 'Enabled', 'Add.StepComment': 'Comment', 'Add.StepTimeout': 'Timeout',
+  'Editor.StepEnabled': 'Enabled', 'Editor.InsertValue': 'Insert value',
+  'Add.StepComment': 'Comment', 'Add.StepTimeout': 'Timeout',
   'Add.StepRetry': 'Retries', 'Add.StepRetryDelay': 'Retry delay', 'Add.StepOnError': 'When it fails',
   'Add.OnError.Stop': 'Stop the macro', 'Add.OnError.Continue': 'Carry on with the next step',
   'Add.OnError.NextIteration': 'Skip to the next loop round', 'Add.OnError.AskUser': 'Ask me: retry, skip or stop',
@@ -191,7 +192,8 @@ const chinese: Record<string, string> = {
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
-  'Editor.StepEnabled': '启用', 'Add.StepComment': '备注', 'Add.StepTimeout': '超时',
+  'Editor.StepEnabled': '启用', 'Editor.InsertValue': '插入取值',
+  'Add.StepComment': '备注', 'Add.StepTimeout': '超时',
   'Add.StepRetry': '重试', 'Add.StepRetryDelay': '重试间隔', 'Add.StepOnError': '失败时',
   'Add.OnError.Stop': '停止宏', 'Add.OnError.Continue': '继续下一步',
   'Add.OnError.NextIteration': '跳到下一轮循环', 'Add.OnError.AskUser': '询问：重试、跳过或停止',
@@ -383,6 +385,9 @@ export class MockTransport implements BridgeTransport {
           triggers: [],
           variables: [],
           globals: [],
+          valueChoices: [
+            { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
+          ],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -417,6 +422,9 @@ export class MockTransport implements BridgeTransport {
           triggers: [],
           variables: [],
           globals: [],
+          valueChoices: [
+            { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
+          ],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
@@ -467,6 +475,9 @@ export class MockTransport implements BridgeTransport {
             triggers: [],
           variables: [],
           globals: [],
+          valueChoices: [
+            { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
+          ],
           variableTypes: [
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },

@@ -1498,6 +1498,34 @@ export class WgEditorGate extends LitElement {
     `;
   }
 
+  private renderValuePicker(step: EditorStep, parameter: EditorParameter): TemplateResult {
+    return html`
+      <select
+        class="value-picker"
+        aria-label=${t('Editor.InsertValue')}
+        @change=${(event: Event) => void this.insertValue(step, parameter, event)}
+      >
+        <option value="">${t('Editor.InsertValue')}</option>
+        ${this.snapshot!.valueChoices.map((choice) => html`
+          <option value=${choice.name} title=${choice.source}>${choice.name}</option>
+        `)}
+      </select>
+    `;
+  }
+
+  private async insertValue(step: EditorStep, parameter: EditorParameter, event: Event): Promise<void> {
+    const name = (event.target as HTMLSelectElement).value;
+    if (name.length === 0) {
+      return;
+    }
+
+    const value = parameter.value.trim().length > 0
+      ? parameter.value + ' $' + name
+      : '$' + name;
+    (event.target as HTMLSelectElement).value = '';
+    await this.patchValue(step.id, parameter.name, value);
+  }
+
   private renderParameter(step: EditorStep, parameter: EditorParameter): TemplateResult {
     const change = (event: Event) => void this.patchParameter(step.id, parameter.name, event);
     if (parameter.columns.length > 0) {
@@ -1622,6 +1650,7 @@ export class WgEditorGate extends LitElement {
         <div class="param">
           <label>${parameter.label}</label>
           <textarea class="condition-field" .value=${parameter.value} @change=${change}></textarea>
+          ${this.renderValuePicker(step, parameter)}
         </div>
       `;
     }
@@ -1631,6 +1660,7 @@ export class WgEditorGate extends LitElement {
         <div class="param">
           <label>${parameter.label}</label>
           <textarea .value=${parameter.value} @change=${change}></textarea>
+          ${this.renderValuePicker(step, parameter)}
         </div>
       `;
     }
@@ -1639,6 +1669,7 @@ export class WgEditorGate extends LitElement {
       <div class="param">
         <label>${parameter.label}</label>
         <input .value=${parameter.value} @change=${change} />
+        ${this.renderValuePicker(step, parameter)}
       </div>
     `;
   }

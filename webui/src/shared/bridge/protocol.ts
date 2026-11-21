@@ -190,6 +190,14 @@ export interface EditorGlobal {
   persisted: boolean;
 }
 
+export interface EditorValueChoice {
+  name: string;
+  type: string;
+  origin: string;
+  source: string;
+  description: string;
+}
+
 export interface EditorVariableType {
   value: string;
   label: string;
@@ -210,6 +218,7 @@ export interface EditorSnapshot {
   triggers: EditorTrigger[];
   variables: EditorVariable[];
   globals: EditorGlobal[];
+  valueChoices: EditorValueChoice[];
   variableTypes: EditorVariableType[];
   triggerKinds: EditorTriggerKind[];
   canUndo: boolean;

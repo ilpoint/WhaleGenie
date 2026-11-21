@@ -772,6 +772,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 triggers = snapshot.Triggers,
                 variables = snapshot.Variables,
                 globals = snapshot.Globals,
+                valueChoices = snapshot.ValueChoices,
                 variableTypes = snapshot.VariableTypes,
                 triggerKinds = snapshot.TriggerKinds,
                 canUndo = snapshot.CanUndo,

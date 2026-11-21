@@ -190,6 +190,16 @@ test('C1 步骤可改备注、超时与失败处理', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 取值选择器可插入变量', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '延迟' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '延迟' }).click();
+  await page.locator('wg-editor-gate .value-picker').first().selectOption({ label: 'found' });
+
+  await expect(page.locator('wg-editor-gate .inspector .param input').first()).toHaveValue('$found');
+});
+
 test('C1 步骤可启用停用', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();

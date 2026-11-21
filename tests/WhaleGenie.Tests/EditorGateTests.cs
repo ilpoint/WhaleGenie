@@ -295,6 +295,7 @@ public class EditorGateTests
         session.PatchVariable("count", "type", "number");
         var variable = Assert.Single(session.Snapshot().Variables);
         Assert.Equal("count", variable.Name);
+        Assert.Contains(session.ValueChoices, choice => choice.Name == "count");
         Assert.Equal("number", variable.Type);
         Assert.Equal("5", variable.Initial);
         Assert.True(variable.IsDeclared);

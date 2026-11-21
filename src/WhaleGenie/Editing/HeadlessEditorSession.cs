@@ -162,6 +162,14 @@ internal sealed class HeadlessEditorSession
             Strings.Get($"Variable.Type.{WhaleGenie.Models.VariableTypes.Name(kind)}",
                 WhaleGenie.Models.VariableTypes.Name(kind))))];
 
+    public IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices
+        => [.. _model.CollectVariables().Select(choice => new EditorValueChoiceSnapshot(
+            choice.Name,
+            choice.Type is { } type ? WhaleGenie.Models.VariableTypes.Name(type) : "text",
+            choice.Origin.ToString(),
+            choice.Source,
+            choice.Description))];
+
     public IReadOnlyList<EditorGlobalSnapshot> Globals
         => [.. _workspace.Variables.Globals.Select(variable => new EditorGlobalSnapshot(
             variable.Name,
@@ -759,6 +767,7 @@ internal sealed class HeadlessEditorSession
             Triggers,
             Variables,
             Globals,
+            ValueChoices,
             VariableTypes,
             TriggerKindOptions,
             CanUndo,
@@ -888,11 +897,15 @@ internal sealed class HeadlessEditorSession
 internal sealed record EditorSnapshot(string Name, string Description, string Group, bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
+    IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices,
     IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
     IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo);
 
 internal sealed record EditorGlobalSnapshot(string Name, string Type, string Default, string Description,
     bool Persisted);
+
+internal sealed record EditorValueChoiceSnapshot(string Name, string Type, string Origin, string Source,
+    string Description);
 
 internal sealed record EditorTriggerKindSnapshot(string Value, string Label);
 
