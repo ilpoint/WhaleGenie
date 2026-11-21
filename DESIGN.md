@@ -279,11 +279,22 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 
 ### 14.4 导航与页面
 
-- 左栏宽 148px，条目来自词表键 `Shell.<Route>`；选中项铺 `--colorBrandBackground`，字用
-  `--colorNeutralForegroundOnBrand`；悬停取 `--colorNeutralBackground3Hover`。
+壳采用类 VS Code 的工作区布局：40px 网页标题栏横跨顶部，下面是 **48px activity bar**、
+**220px side bar**、主内容区，底部是 24px 状态条。
+
+- **Activity bar** 只放图标（首页、宏、编辑器、运行、设置），悬停显示词表键 `Shell.<Route>`；
+  选中项用左侧品牌色竖线与 `--colorNeutralBackground2`，不铺整块强调色。
+- **Side bar** 宽度 220px，条目来自词表键 `Shell.<Route>`；选中项铺
+  `--colorBrandBackground`，字用 `--colorNeutralForegroundOnBrand`；悬停取
+  `--colorNeutralBackground3Hover`。宏列表迁入后，筛选与宏条目进 side bar，主内容区留给
+  选中的宏；在那之前 side bar 继续承担页面导航。
+- **主内容区**是当前页面或编辑器文档，独立滚动，最小宽度 0；侧栏折叠时不挤压内容。
+- **状态条** 24px，显示项目名/未命名、修订号、未保存状态与系统开关；数值全部来自
+  `project.state`，不另存副本。
 - 首页是壳的“能用”证明：程序版本、界面语言、项目、未保存状态、修订号与宏数量从桥上真读；
   迁移进度区（各区域在壳中/仍在原生/规划中）允许静态枚举。
-- 尚未迁入的区域显示占位页：标题取对应词表键、正文统一 `Shell.Placeholder.Body`，不带按钮。
+- 尚未迁入的区域显示占位页：标题取对应词表键、正文统一 `Shell.Placeholder.Body`；B1 之前
+  占位页可带一个打开原生窗口的临时按钮，D1/D2 删除。
 
 ### 14.5 验收
 
