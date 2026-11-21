@@ -71,75 +71,6 @@ public partial class RecoveryTests
     }
 
     [Fact]
-    public void The_snapshot_follows_a_change_that_arrives_after_the_list_was_already_unsaved()
-    {
-        InOwnFile(_ =>
-        {
-            Ui.RunAsync(async () =>
-            {
-                await Briefly(20, async () =>
-                {
-                    var window = new MainWindow { DataContext = new MainViewModel() };
-                    window.Show();
-                    Dispatcher.UIThread.RunJobs();
-                    var viewModel = (MainViewModel)window.DataContext!;
-
-                    // The first macro is what makes the list unsaved, and it is written at once.
-                    viewModel.AddMacro(Named("login"));
-                    Dispatcher.UIThread.RunJobs();
-                    Assert.True(RecoveryStore.Load()!.Macros[0].IsEnabled);
-
-                    // Arming and disarming a macro is written into the package, so it counts, and
-                    // it arrives while the list is already unsaved: nothing about the dirty flag or
-                    // the list itself moves for it, so only a signal that stands for the change
-                    // can carry it into the snapshot.
-                    viewModel.ToggleMacro(viewModel.Macros[0]);
-                    await Task.Delay(300);
-
-                    Assert.False(RecoveryStore.Load()!.Macros[0].IsEnabled);
-
-                    CloseWithUnsavedWork(window);
-                });
-
-                return true;
-            });
-        });
-    }
-
-    [Fact]
-    public void A_list_sitting_still_is_not_written_over_and_over()
-    {
-        InOwnFile(path =>
-        {
-            Ui.RunAsync(async () =>
-            {
-                await Briefly(20, async () =>
-                {
-                    var window = new MainWindow { DataContext = new MainViewModel() };
-                    window.Show();
-                    Dispatcher.UIThread.RunJobs();
-                    var viewModel = (MainViewModel)window.DataContext!;
-
-                    viewModel.AddMacro(Named("login"));
-                    Dispatcher.UIThread.RunJobs();
-                    var takenAt = TakenAt(path);
-                    Assert.NotNull(takenAt);
-
-                    // Long enough for many rounds of a timer that wrote whether the work moved or
-                    // not. Nothing moved here, so the snapshot that is already there stands.
-                    await Task.Delay(300);
-
-                    Assert.Equal(takenAt, TakenAt(path));
-
-                    CloseWithUnsavedWork(window);
-                });
-
-                return true;
-            });
-        });
-    }
-
-    [Fact]
     public void The_draft_follows_an_edit_made_after_it_was_first_written()
     {
         InOwnFile(_ =>
@@ -180,26 +111,6 @@ public partial class RecoveryTests
         });
     }
 
-    /// <summary>
-    /// Closes a window that is holding unsaved work. The question it asks on the way out is
-    /// answered with "discard", so the close finishes instead of leaving a dialog behind.
-    /// </summary>
-    private static void CloseWithUnsavedWork(MainWindow window)
-    {
-        window.AskToSaveProject = () => Task.FromResult(ConfirmChoice.Secondary);
-        window.Close();
-        Dispatcher.UIThread.RunJobs();
-    }
-
-    /// <summary>
-    /// Runs a body with the snapshot's writer put on a short interval, so a check can wait the
-    /// pause out instead of the seconds a real one keeps. The wait hands the thread back, which is
-    /// what lets the writer's timer fire at all.
-    /// </summary>
-    /// <summary>
-    /// Waits for something to become true, rather than for a length of time: the draft is written on
-    /// a timer, and how long that takes is the machine's business, not the check's.
-    /// </summary>
     private static async Task<bool> Until(Func<bool> holds, int milliseconds = 5000)
     {
         var started = Environment.TickCount64;

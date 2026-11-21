@@ -18,8 +18,8 @@
 没有页面承载的改动合成一个答案，窗口再把它发布到项目文档态。关闭、恢复草稿与关闭确认问的是同一个
 答案，不会各自拼一遍。草稿本身由 `RecoveryDraft` 保管：第一次变脏立刻写、之后的改动等停顿再写、
 退出时只收回自己写过的——「谁写的谁收回」这条规则因此只有一处实现，打开又关掉一个编辑器不会顺手
-丢掉上一次运行留下的草稿。两个窗口都用它，差别只在一次写往磁盘上放什么：编辑器放正在写的那个宏，
-主窗放整个项目。
+丢掉上一次运行留下的草稿。网页壳与编辑器都用它，差别只在一次写往磁盘上放什么：编辑器放正在写
+的那个宏，壳放整个项目。
 
 一次保存由 `EditorCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、收下之后
 才清脏并收草稿。它给出三种结局——页面挡住了、项目没收、已经进包——窗口只负责把它们说出来：把挡住
@@ -30,8 +30,8 @@
 
 窗口与视图按功能分目录：`Views/Editor`（宏编辑窗、步骤树、变量墙、菜单与窗口规则）、
 `Views/Actions`（动作对话框与参数行）、`Views/Pickers`（取值与各类拾取窗口）、`Views/Run`
-（运行窗与屏幕叠层）、`Views/Variables`、`Views/Settings`、`Views/Shell`（主窗、窗口外壳与通用
-对话框）与 `Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应，只有 MCP 与取值窗口两处各占一边。命名空间仍是
+（运行窗与屏幕叠层）、`Views/Variables`、`Views/Settings`、`Views/Shell`（窗口外壳、文件选择与
+通用对话框）与 `Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应，只有 MCP 与取值窗口两处各占一边。命名空间仍是
 `WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条
 `avares` 路径。
 
@@ -164,9 +164,9 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
 开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
-B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，并去掉隐藏主窗；MainWindow 仍服务
-原生模式，删除它和旧视图模型是 B1 的余项。未迁入的设置/运行/关于/帮助先走临时原生入口。窗口
-本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
+B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow；
+MainViewModel 暂留作设置/运行窗口的无窗视图模型。未迁入的设置/运行/关于/帮助走临时原生入口。
+窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
 

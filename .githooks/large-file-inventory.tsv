@@ -203,7 +203,6 @@
 603	src/WhaleGenie/Views/Shell/FloatingSurfaceWindow.cs	keep: 浮动面板的窗口构造、排列、拾层与置层，单一窗口职责，暂不拆
 613	src/WhaleGenie/Runtime/NativeSurfaceHost.Menu.cs	keep: 菜单一个域——打开/关闭、布局刷新与选择器是同一次任务的读取集
 465	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
-522	src/WhaleGenie/Views/Shell/MainWindow.axaml	keep: 主窗口一份布局
 311	src/WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 499	src/WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 660	src/WhaleGenie/Views/Pickers/PointPickerWindow.cs	keep: 取点窗口的单一交互

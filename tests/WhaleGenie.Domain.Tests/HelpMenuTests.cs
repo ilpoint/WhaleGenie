@@ -74,26 +74,4 @@ public class HelpMenuTests
         Assert.Contains("Join-Path $packagedManual 'manual'", script, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("OnWhatsNewClicked")]
-    [InlineData("OnUpdatesClicked")]
-    [InlineData("OnFeedbackClicked")]
-    [InlineData("OnGetStartedClicked")]
-    [InlineData("OnAboutClicked")]
-    public void The_window_answers_a_click_on_each_help_item(string handler)
-    {
-        var xaml = File.ReadAllText(ViewSource.PathOf("MainWindow.axaml"));
-        Assert.Contains($"Click=\"{handler}\"", xaml, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Help_lives_in_the_menu_rather_than_on_the_title_bar()
-    {
-        var xaml = File.ReadAllText(ViewSource.PathOf("MainWindow.axaml"));
-
-        // 标题栏只留置顶：一个问号与一个换主题的钮都不在这里了，帮助走菜单里的「关于」。
-        Assert.DoesNotContain("Name=\"HelpButton\"", xaml, StringComparison.Ordinal);
-        Assert.DoesNotContain("Name=\"ThemeButton\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Name=\"AlwaysOnTopButton\"", xaml, StringComparison.Ordinal);
-    }
 }

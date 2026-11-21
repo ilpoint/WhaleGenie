@@ -137,33 +137,6 @@ public partial class McpServerTests
         });
     }
 
-    /// <summary>
-    /// The window hands over a recipe with two switches on it: flipping one rewrites the block rather
-    /// than starting anything, because the pipe is the client's and this window cannot hand it out.
-    /// </summary>
-    [Fact]
-    public void The_window_offers_the_client_config_and_two_switches()
-    {
-        Ui.Run(() =>
-        {
-            var viewModel = new MainViewModel();
-            var window = new MainWindow { DataContext = viewModel };
-            window.Show();
-            Dispatcher.UIThread.RunJobs();
-
-            var button = window.FindControl<Button>("McpButton");
-            Assert.NotNull(button);
-            Assert.Null(button!.Command);
-            Assert.NotNull(Assert.IsType<Flyout>(button.Flyout).Content);
-
-            Assert.NotNull(window.FindControl<ToggleSwitch>("McpControlToggle"));
-            Assert.NotNull(window.FindControl<ToggleSwitch>("McpRunToggle"));
-            Assert.Contains("\"mcpServers\"", viewModel.Mcp.Config, StringComparison.Ordinal);
-            Assert.EndsWith("WhaleGenie.exe", viewModel.Mcp.Executable,
-                StringComparison.OrdinalIgnoreCase);
-            window.Close();
-        });
-    }
 
     /// <summary>
     /// The two switches belong to the settings, not to the block. A served run reads them while it

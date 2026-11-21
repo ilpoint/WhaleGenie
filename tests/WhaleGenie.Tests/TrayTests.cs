@@ -419,55 +419,6 @@ public class TrayTests
         });
     }
 
-    [Fact]
-    public void The_icons_menu_asks_the_main_window_about_its_project()
-    {
-        Ui.Run(() =>
-        {
-            // The real thing, as far as it can be built here: the icon's menu, the walk it runs,
-            // and the main window that answers by putting up its own question.
-            var asked = 0;
-            var answer = ConfirmChoice.Cancel;
-            var window = new MainWindow
-            {
-                DataContext = new MainViewModel(),
-                AskToSaveProject = () =>
-                {
-                    asked++;
-                    return Task.FromResult(answer);
-                },
-            };
-            window.Show();
-
-            ((MainViewModel)window.DataContext!).AddMacro(new MacroItem { Name = "login" });
-
-            var area = new FakeArea();
-            var left = 0;
-            AppTray? tray = null;
-            tray = new AppTray(window, area, () => tray!.Walk([window], () => left++));
-
-            area.RaiseExitRequested();
-            Dispatcher.UIThread.RunJobs();
-
-            // It asked, and the program is still here with the window and the macro: nothing was
-            // thrown away on the way out.
-            Assert.Equal(1, asked);
-            Assert.True(window.IsVisible);
-            Assert.Equal(0, left);
-
-            // Answering "do not save" lets the window go, and the way out with it.
-            answer = ConfirmChoice.Secondary;
-            window.Close();
-            Dispatcher.UIThread.RunJobs();
-
-            Assert.Equal(2, asked);
-            Assert.False(window.IsVisible);
-            Assert.Equal(1, left);
-
-            tray.Dispose();
-        });
-    }
-
     /// <summary>
     /// Stands in for a window that turns a close down to ask the person something, which is what
     /// the main window and the macro editor do — and what has to be written down before the base

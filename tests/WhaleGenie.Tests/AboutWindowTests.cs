@@ -103,10 +103,11 @@ public class AboutWindowTests
         Assert.Contains("WebPage.Open(ProjectLinks.Home)", code, StringComparison.Ordinal);
         Assert.Contains("ThirdPartyNotices.Read()", code, StringComparison.Ordinal);
 
-        // The About window itself has to follow the rule that keeps dialogs above a pinned main
-        // window, which means it is opened through the helper rather than by calling ShowDialog.
-        var main = ViewSource.All("MainWindow.axaml.cs");
-        Assert.Contains("new AboutWindow().ShowDialogOver(this)", main, StringComparison.Ordinal);
+        // The About window itself has to follow the rule that keeps dialogs above a pinned window,
+        // which means it is opened through the helper rather than by calling ShowDialog.
+        var shell = File.ReadAllText(
+            RepoPaths.Source("WhaleGenie", "Runtime", "ShellNativeWindows.cs"));
+        Assert.Contains("dialog.ShowDialogOver(window)", shell, StringComparison.Ordinal);
     }
 
     [Fact]

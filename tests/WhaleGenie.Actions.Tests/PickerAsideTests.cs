@@ -340,15 +340,17 @@ public class PickerAsideTests
     /// comes back unusable and its buttons do nothing.
     /// </summary>
     [Fact]
-    public void The_settings_window_stands_beside_the_main_window()
+    public void The_settings_window_stands_beside_the_shell()
     {
-        var main = Source("MainWindow.axaml.cs");
-        var start = main.IndexOf("private Task OpenSettingsAsync", StringComparison.Ordinal);
-        var end = main.IndexOf("private Task OpenMenuSettingsAsync", start, StringComparison.Ordinal);
+        var shell = File.ReadAllText(
+            WhaleGenie.TestSupport.RepoPaths.Source("WhaleGenie", "Runtime", "ShellNativeWindows.cs"));
+        var start = shell.IndexOf("internal Task OpenSettingsAsync", StringComparison.Ordinal);
+        var end = shell.IndexOf("internal async Task OpenRunAsync", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start, "OpenSettingsAsync is not where the checks look for it");
 
-        var opening = main[start..end];
-        Assert.Contains("dialog.ShowAsPeer(this);", opening, StringComparison.Ordinal);
+        var opening = shell[start..end];
+        Assert.Contains("dialog.ShowAsPeer(window);", opening, StringComparison.Ordinal);
+        Assert.Contains("dialog.Activate();", opening, StringComparison.Ordinal);
         Assert.DoesNotContain("ShowDialogOver", opening, StringComparison.Ordinal);
         Assert.Contains("if (_settings is { } open)", opening, StringComparison.Ordinal);
     }
