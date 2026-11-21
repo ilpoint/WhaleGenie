@@ -172,6 +172,20 @@ test('C1 步骤可以放进块内部', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .tree ol .step-name')).toHaveText('延迟');
 });
 
+test('C1 键位字段可捕获按键', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '按键' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '按键' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '设置组合键' }).click();
+  await page.keyboard.press('F8');
+
+  await expect(page.locator('wg-editor-gate .key-row input')).toHaveValue('F8');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameter')))
+    .toBe(true);
+});
+
 test('C1 局部变量墙可新建与改名', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).click();

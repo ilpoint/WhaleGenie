@@ -39,7 +39,7 @@ const chromeKeys = [
   'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
-  'Editor.RemoveTrigger', 'Editor.BindKey',
+  'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
   'Run.Steps', 'Common.Save', 'Common.Close',
@@ -82,7 +82,8 @@ const english: Record<string, string> = {
   'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
-  'Editor.BindKey': 'Trigger / Bind Key :', 'LocalVariables.Title': 'Local variables',
+  'Editor.BindKey': 'Trigger / Bind Key :', 'Add.SetCombination': 'Set combination',
+  'Add.PressKey': 'Press a key…', 'LocalVariables.Title': 'Local variables',
   'LocalVariables.New': 'New variable', 'LocalVariables.Initial': 'Starts at',
   'LocalVariables.InitialPlaceholder': 'A value, or an expression such as count + 1',
   'LocalVariables.Delete': 'Delete',
@@ -136,7 +137,8 @@ const chinese: Record<string, string> = {
   'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
-  'Editor.BindKey': '触发 / 绑定按键：', 'LocalVariables.Title': '局部变量',
+  'Editor.BindKey': '触发 / 绑定按键：', 'Add.SetCombination': '设置组合键',
+  'Add.PressKey': '请按一个键…', 'LocalVariables.Title': '局部变量',
   'LocalVariables.New': '新建变量', 'LocalVariables.Initial': '初始值',
   'LocalVariables.InitialPlaceholder': '直接填值，或写表达式，例如 count + 1',
   'LocalVariables.Delete': '删除',
@@ -372,12 +374,20 @@ export class MockTransport implements BridgeTransport {
           const step: EditorStep = {
             id: 'mock-' + String(this.editor.stepCount + 1),
             type,
-            name: type === 'control.delay' ? '延迟' : type === 'control.repeat' ? '重复' : type,
+            name: type === 'control.delay'
+              ? '延迟'
+              : type === 'control.repeat'
+                ? '重复'
+                : type === 'input.keyPress'
+                  ? '按键'
+                  : type,
             enabled: true,
             acceptsSteps: type === 'control.repeat',
             parameters: type === 'control.delay'
               ? [{ name: 'ms', label: '等待时长', kind: 'Number', value: '', options: [] }]
-              : [],
+              : type === 'input.keyPress'
+                ? [{ name: 'key', label: '按键', kind: 'Key', value: '', options: [] }]
+                : [],
             steps: [],
           };
           this.editor = {
@@ -387,6 +397,20 @@ export class MockTransport implements BridgeTransport {
             steps: parentId
               ? this.addChild(this.editor.steps, parentId, step)
               : [...this.editor.steps, step],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionParameter':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.setParameter(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              String(params['name'] ?? ''),
+              String(params['value'] ?? '')),
           };
         }
         result = this.editor;
@@ -514,6 +538,16 @@ export class MockTransport implements BridgeTransport {
               description: '',
               hidden: false,
               parameters: [],
+            },
+            {
+              key: 'input.keyPress',
+              name: '按键',
+              category: 'Input',
+              description: '',
+              hidden: false,
+              parameters: [
+                { name: 'key', label: '按键', kind: 'Key', required: false, placeholder: '', options: [] },
+              ],
             },
           ],
         };
@@ -663,6 +697,21 @@ export class MockTransport implements BridgeTransport {
     }
 
     this.answer({ id: request.id, ok: true, result });
+  }
+
+  private setParameter(
+    steps: EditorStep[],
+    stepId: string,
+    name: string,
+    value: string,
+  ): EditorStep[] {
+    return steps.map((step) => step.id === stepId
+      ? {
+          ...step,
+          parameters: step.parameters.map((parameter) =>
+            parameter.name === name ? { ...parameter, value } : parameter),
+        }
+      : { ...step, steps: this.setParameter(step.steps, stepId, name, value) });
   }
 
   private addChild(steps: EditorStep[], parentId: string, child: EditorStep): EditorStep[] {

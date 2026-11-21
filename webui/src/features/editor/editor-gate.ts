@@ -44,6 +44,9 @@ export class WgEditorGate extends LitElement {
   private openName = '';
 
   @state()
+  private capturingKey = '';
+
+  @state()
   private error = '';
 
   private unsubscribeStrings?: () => void;
@@ -284,6 +287,17 @@ export class WgEditorGate extends LitElement {
     .param label {
       color: var(--colorNeutralForeground3);
       font-size: var(--font-size-base-200);
+    }
+
+    .key-row {
+      display: flex;
+      gap: var(--spacingHorizontalS);
+      align-items: center;
+    }
+
+    .key-row input {
+      flex: 1;
+      min-width: 0;
     }
 
     .steps {
@@ -630,6 +644,67 @@ export class WgEditorGate extends LitElement {
     const value = target instanceof HTMLInputElement && target.type === 'checkbox'
       ? String(target.checked)
       : target.value;
+    await this.patchValue(stepId, name, value);
+  }
+
+  private startKeyCapture(capture: string): void {
+    this.capturingKey = capture;
+    void this.updateComplete.then(() => {
+      this.renderRoot
+        .querySelector<HTMLInputElement>(`input[data-capture="${CSS.escape(capture)}"]`)
+        ?.focus();
+    });
+  }
+
+  private async captureKey(
+    step: EditorStep,
+    parameter: EditorParameter,
+    event: KeyboardEvent,
+  ): Promise<void> {
+    const capture = step.id + ':' + parameter.name;
+    if (this.capturingKey !== capture) {
+      return;
+    }
+
+    const value = this.keyName(event);
+    if (value === null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.capturingKey = '';
+    await this.patchValue(step.id, parameter.name, value);
+  }
+
+  private keyName(event: KeyboardEvent): string | null {
+    if (['Control', 'Shift', 'Alt', 'Meta'].includes(event.key)) {
+      return null;
+    }
+
+    let key = event.key === ' ' ? 'Space' : event.key;
+    if (key.length === 1) {
+      key = key.toUpperCase();
+    }
+
+    const parts: string[] = [];
+    if (event.ctrlKey) {
+      parts.push('Ctrl');
+    }
+    if (event.altKey) {
+      parts.push('Alt');
+    }
+    if (event.shiftKey) {
+      parts.push('Shift');
+    }
+    if (event.metaKey) {
+      parts.push('Win');
+    }
+    parts.push(key);
+    return parts.join('+');
+  }
+
+  private async patchValue(stepId: string, name: string, value: string): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameter', {
         stepId,
@@ -676,6 +751,28 @@ export class WgEditorGate extends LitElement {
 
   private renderParameter(step: EditorStep, parameter: EditorParameter): TemplateResult {
     const change = (event: Event) => void this.patchParameter(step.id, parameter.name, event);
+    if (parameter.kind === 'Key') {
+      const capture = step.id + ':' + parameter.name;
+      const capturing = this.capturingKey === capture;
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <div class="key-row">
+            <input
+              data-capture=${capture}
+              .value=${parameter.value}
+              placeholder=${capturing ? t('Add.PressKey') : ''}
+              @keydown=${(event: KeyboardEvent) => void this.captureKey(step, parameter, event)}
+              @change=${change}
+            />
+            <fluent-button appearance="subtle" @click=${() => this.startKeyCapture(capture)}>
+              ${t('Add.SetCombination')}
+            </fluent-button>
+          </div>
+        </div>
+      `;
+    }
+
     if (parameter.kind === 'Bool') {
       return html`
         <div class="param">
