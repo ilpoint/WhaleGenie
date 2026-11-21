@@ -100,7 +100,7 @@
 468	tests/WhaleGenie.Actions.Tests/ActionDialogTests.Records.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 483	tests/WhaleGenie.Actions.Tests/ActionDialogTests.Windows.cs	keep: 动作对话框测试的一族，按表单关注点拆分后单一职责
 410	tests/WhaleGenie.Actions.Tests/ActionPaletteCategoryTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
-549	tests/WhaleGenie.Tests/InterfaceSurfaceTests.cs	keep: 界面面板与窗口规则分组的单一测试
+550	tests/WhaleGenie.Tests/InterfaceSurfaceTests.cs	keep: 界面面板与窗口规则分组的单一测试
 207	tests/WhaleGenie.Tests/ClassAuditTests.cs	keep: 样式审计的一半：挂了类但没样式
 377	tests/WhaleGenie.Editor.Tests/MacroEditorChromeTests.Columns.cs	keep: 宏编辑器左中右三栏的版面用例，同属一个窗口
 543	tests/WhaleGenie.Tests/ClassAuditTests.Styles.cs	keep: 样式审计的其余四条，同白名单与同一份扫描
@@ -175,7 +175,7 @@
 685	src/WhaleGenie/ViewModels/Editor/MacroEditorViewModel.Settings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 439	src/WhaleGenie/ViewModels/Editor/MacroEditorViewModel.TriggerSettings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 672	src/WhaleGenie/ViewModels/Shell/MacroInterfaceViewModel.cs	keep: 宏接口声明：参数与结果同构的增删排序，一套规则两处复用
-401	src/WhaleGenie/ViewModels/Shell/MainViewModel.cs	keep: 主界面状态模型
+414	src/WhaleGenie/ViewModels/Shell/MainViewModel.cs	keep: 主界面状态模型
 335	src/WhaleGenie/ViewModels/Run/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 602	src/WhaleGenie/ViewModels/Editor/StepRow.cs	keep: 步骤行模型，行为/条件/结果/分支值同属一行的编辑状态，内聚
 206	src/WhaleGenie/ViewModels/Value/ValuePickerViewModel.Confirm.cs	keep: 取值窗口的形状检查与结构带重绘，同属一次编辑后的刷新
@@ -245,6 +245,6 @@
 321	src/WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 
 338	tests/WhaleGenie.Actions.Tests/ValuePickerTests.Tokens.cs	keep: token 树与容器插槽的一组契约用例，共用同一套夹具
-542	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、启停、系统开关与文件操作是同一次任务的读取集
-351	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
-437	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应，菜单轮盘的绘制在表面回调里
+539	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
+357	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
+485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
