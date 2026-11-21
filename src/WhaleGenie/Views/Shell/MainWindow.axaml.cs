@@ -71,6 +71,7 @@ public partial class MainWindow : AppWindow
     private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
     private TriggerRuntime? _runtime;
     private TriggerHost? _host;
+    private NativeSurfaceHost? _nativeSurface;
 
     /// <summary>
     /// The machine this window works against: the one the container handed in with the triggers,
@@ -81,23 +82,4 @@ public partial class MainWindow : AppWindow
     private readonly SystemState _system;
     private readonly RunQuestionHost _questions;
 
-    private static NativePoint? GetCursorPosition()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return null;
-        }
-
-        return GetCursorPos(out var point) ? point : null;
-    }
-
-    [DllImport("user32.dll")]
-    private static extern bool GetCursorPos(out NativePoint point);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint
-    {
-        public int X;
-        public int Y;
-    }
 }

@@ -47,34 +47,9 @@ public partial class MainWindow : AppWindow
     private void OnSurfaceForegroundChanged()
         => Dispatcher.UIThread.Post(() =>
         {
-            if (_menu is { IsPinned: false } menu
-                && _menuForeground is { } expected
-                && CanCloseMenuFromOutside(
-                    Volatile.Read(ref _menuChildOpen),
-                    Volatile.Read(ref _menuPopupOpen)))
-            {
-                try
-                {
-                    if (_devices.Windows.Foreground() is { } current
-                        && current.Handle != expected.Handle
-                        && current.Handle != menu.NativeHandle.ToInt64())
-                    {
-                        if (menu.IsSearchFocused)
-                        {
-                            menu.CloseFromOutside();
-                        }
-                        else
-                        {
-                            menu.CloseFromLauncher();
-                        }
-                    }
-                }
-                catch
-                {
-                    // The next foreground event can close it when the answer is readable.
-                }
-            }
-
+            // The menu is the host's now; it knows whether a pinned menu or a child dialog keeps it
+            // open. The panels still live here and are refreshed after the question is settled.
+            _nativeSurface?.CloseMenuForForegroundChange();
             RefreshSurface(DataContext as MainViewModel);
         });
 
@@ -99,7 +74,7 @@ public partial class MainWindow : AppWindow
         if (viewModel is null
             || !viewModel.IsRunning
             || MacroTriggerGate.IsOpen
-            || _menu is not null)
+            || _nativeSurface?.MenuOpen == true)
         {
             HideSurface();
             return;

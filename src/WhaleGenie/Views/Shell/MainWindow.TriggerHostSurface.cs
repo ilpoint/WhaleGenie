@@ -1,6 +1,3 @@
-using System.Threading;
-using Avalonia.Input;
-using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -8,26 +5,27 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Views;
 
-// The main window as the trigger host's native surface: the menu, wheel and panels are this
-// window's own drawing and state, and the host's hooks land here through these members. The
-// questions of a triggered run live in RunQuestionHost, which does not need this window.
-public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerFocusProbe
+// The main window as the trigger host's native surface: the menu now lives in NativeSurfaceHost,
+// the wheel and panels are still this window's own drawing and state. The questions of a triggered
+// run live in RunQuestionHost, which does not need this window.
+public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerFocusProbe,
+    Runtime.INativeSurfaceActions
 {
-    bool Runtime.ITriggerSurfaceHost.MenuOpen => Volatile.Read(ref _menuOpen) == 1;
+    bool Runtime.ITriggerSurfaceHost.MenuOpen => _nativeSurface?.MenuOpen == true;
 
-    bool Runtime.ITriggerSurfaceHost.MenuSearchFocused => Volatile.Read(ref _menuSearchFocused) == 1;
+    bool Runtime.ITriggerSurfaceHost.MenuSearchFocused => _nativeSurface?.MenuSearchFocused == true;
 
-    bool Runtime.ITriggerSurfaceHost.MenuPinned => Volatile.Read(ref _menuPinned) == 1;
+    bool Runtime.ITriggerSurfaceHost.MenuPinned => _nativeSurface?.MenuPinned == true;
 
     bool Runtime.ITriggerFocusProbe.IsTextInputFocused => WindowTextFieldFocused;
 
-    void Runtime.ITriggerSurfaceHost.CloseMenuFromLauncher() => _menu?.CloseFromLauncher();
+    void Runtime.ITriggerSurfaceHost.CloseMenuFromLauncher() => _nativeSurface?.CloseMenuFromLauncher();
 
-    void Runtime.ITriggerSurfaceHost.OpenMenu() => _ = OpenMacroMenuAsync();
+    void Runtime.ITriggerSurfaceHost.OpenMenu() => _nativeSurface?.OpenMenu();
 
-    void Runtime.ITriggerSurfaceHost.MenuHandleKey(string name) => _menu?.HandleKey(name);
+    void Runtime.ITriggerSurfaceHost.MenuHandleKey(string name) => _nativeSurface?.MenuHandleKey(name);
 
-    void Runtime.ITriggerSurfaceHost.MenuMouseDown(MouseHookEvent e) => OnMenuMouseDown(e);
+    void Runtime.ITriggerSurfaceHost.MenuMouseDown(MouseHookEvent e) => _nativeSurface?.MenuMouseDown(e);
 
     void Runtime.ITriggerSurfaceHost.WheelMouseDown(MouseHookEvent e) => OnWheelMouseDown(e);
 
@@ -53,5 +51,19 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerF
         RefreshWheelGate(viewModel);
         RefreshRunning(viewModel);
     }
+
+    void Runtime.INativeSurfaceActions.OpenEditor(MacroItem macro)
+        => OpenEditor(macro, macro, draft: false);
+
+    void Runtime.INativeSurfaceActions.OpenRun(MacroItem macro)
+        => _ = ShowRunDebugAsync(macro);
+
+    void Runtime.INativeSurfaceActions.OpenSettings(WindowInfo? foreground)
+        => _ = OpenMenuSettingsAsync(foreground);
+
+    void Runtime.INativeSurfaceActions.HidePanels() => HideSurface();
+
+    void Runtime.INativeSurfaceActions.RefreshPanels()
+        => RefreshSurface(DataContext as MainViewModel);
 }
 

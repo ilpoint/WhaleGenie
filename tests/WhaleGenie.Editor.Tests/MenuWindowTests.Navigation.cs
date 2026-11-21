@@ -50,7 +50,7 @@ public partial class MenuWindowTests
     [InlineData(0, 1, false)]
     public void A_child_dialog_or_popup_protects_the_menu_from_outside_clicks(
         int childOpen, int popupOpen, bool expected)
-        => Assert.Equal(expected, MainWindow.CanCloseMenuFromOutside(childOpen, popupOpen));
+        => Assert.Equal(expected, NativeSurfaceHost.CanCloseMenuFromOutside(childOpen, popupOpen));
 
     [Fact]
     public void Arrow_navigation_skips_empty_cells()

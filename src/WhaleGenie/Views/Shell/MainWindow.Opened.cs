@@ -50,8 +50,10 @@ public partial class MainWindow : AppWindow
         Volatile.Write(ref _systemRunning, viewModel.IsRunning ? 1 : 0);
         _triggers = Runtime.Triggers;
 
-        // The hooks, the hotkey plan and the sounds live in the trigger host; this window is the
-        // surface it draws the floating work on (menu, wheel, panels, the run's questions).
+        // The menu is already a host of its own; the trigger host forwards its hooks there. The
+        // wheel and panels still use this window as their surface until they move as well.
+        _nativeSurface = new NativeSurfaceHost(viewModel.Workspace, Runtime, _devices,
+            () => this, () => _host?.Plan ?? GlobalHotkeyPlan.Empty, this);
         _host = new TriggerHost(viewModel.Workspace, _system, Runtime, _devices,
             this, _questions, new WindowFocusProbe());
         _host.Attach();
@@ -87,6 +89,8 @@ public partial class MainWindow : AppWindow
         {
             _host?.Dispose();
             _host = null;
+            _nativeSurface?.Dispose();
+            _nativeSurface = null;
             WheelMenuStore.Changed -= OnWheelStateChanged;
             CloseWheel();
             windowEvents.ForegroundChanged -= OnSurfaceForegroundChanged;

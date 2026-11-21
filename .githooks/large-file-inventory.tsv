@@ -201,9 +201,9 @@
 455	src/WhaleGenie.Domain/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 370	src/WhaleGenie.Domain/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
 603	src/WhaleGenie/Views/Shell/FloatingSurfaceWindow.cs	keep: 浮动面板的窗口构造、排列、拾层与置层，单一窗口职责，暂不拆
-336	src/WhaleGenie/Views/Shell/MainWindow.Surface.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
+311	src/WhaleGenie/Views/Shell/MainWindow.Surface.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
+607	src/WhaleGenie/Runtime/NativeSurfaceHost.Menu.cs	keep: 菜单一个域——打开/关闭、布局刷新与选择器是同一次任务的读取集
 421	src/WhaleGenie/Views/Shell/MainWindow.Files.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
-491	src/WhaleGenie/Views/Shell/MainWindow.Menu.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 522	src/WhaleGenie/Views/Shell/MainWindow.Wheel.cs	keep: 主窗口的一族，按窗口职责拆分后单一职责
 522	src/WhaleGenie/Views/Shell/MainWindow.axaml	keep: 主窗口一份布局
 311	src/WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
