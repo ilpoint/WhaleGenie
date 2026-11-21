@@ -101,6 +101,25 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_step_can_be_undone_and_redone()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "history" });
+        var session = HeadlessEditorSession.Open(workspace, "history");
+
+        session.AddStep("control.delay");
+        Assert.Single(session.Snapshot().Steps);
+        Assert.True(session.CanUndo);
+
+        session.Undo();
+        Assert.Empty(session.Snapshot().Steps);
+        Assert.True(session.CanRedo);
+
+        session.Redo();
+        Assert.Single(session.Snapshot().Steps);
+    }
+
+    [Fact]
     public void A_local_variable_can_be_added_renamed_typed_and_removed()
     {
         var workspace = new ProjectWorkspace();

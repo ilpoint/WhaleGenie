@@ -68,6 +68,10 @@ internal sealed class HeadlessEditorSession
 
     public bool CanSave => _model.CanSave;
 
+    public bool CanUndo => _model.CanUndo;
+
+    public bool CanRedo => _model.CanRedo;
+
     public string SaveProblem => _model.NameProblem is { Length: > 0 } nameProblem
         ? nameProblem
         : _model.DeclarationProblemSummary is { Length: > 0 } declarationProblem
@@ -125,6 +129,10 @@ internal sealed class HeadlessEditorSession
             _model.Description = description;
         }
     }
+
+    public void Undo() => _model.UndoCommand.Execute(null);
+
+    public void Redo() => _model.RedoCommand.Execute(null);
 
     public void AddStep(string type, string? parentId = null)
     {
@@ -290,7 +298,9 @@ internal sealed class HeadlessEditorSession
             [.. macro.Steps.Select(StepSnapshot)],
             Triggers,
             Variables,
-            VariableTypes);
+            VariableTypes,
+            CanUndo,
+            CanRedo);
     }
 
     /// <summary>The action catalogue, in the order the picker shows it and with its form fields.</summary>
@@ -389,7 +399,8 @@ internal sealed class HeadlessEditorSession
 
 internal sealed record EditorSnapshot(string Name, string Description, bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
-    IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes);
+    IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
+    bool CanUndo, bool CanRedo);
 
 internal sealed record EditorVariableSnapshot(string Name, string Type, string Initial, string Description,
     string Source, bool IsDeclared);

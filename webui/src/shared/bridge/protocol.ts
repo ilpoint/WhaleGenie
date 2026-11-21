@@ -152,6 +152,8 @@ export interface EditorSnapshot {
   triggers: EditorTrigger[];
   variables: EditorVariable[];
   variableTypes: EditorVariableType[];
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 export interface EditorActionParameter {

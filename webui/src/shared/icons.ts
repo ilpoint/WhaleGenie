@@ -7,9 +7,11 @@ import minus from 'lucide-static/icons/minus.svg?raw';
 import pencil from 'lucide-static/icons/pencil.svg?raw';
 import pin from 'lucide-static/icons/pin.svg?raw';
 import play from 'lucide-static/icons/play.svg?raw';
+import redo from 'lucide-static/icons/redo-2.svg?raw';
 import settings from 'lucide-static/icons/settings.svg?raw';
 import square from 'lucide-static/icons/square.svg?raw';
 import trash from 'lucide-static/icons/trash-2.svg?raw';
+import undo from 'lucide-static/icons/undo-2.svg?raw';
 import upload from 'lucide-static/icons/upload.svg?raw';
 import x from 'lucide-static/icons/x.svg?raw';
 
@@ -32,6 +34,8 @@ const icons = {
   edit: pencil,
   export: upload,
   delete: trash,
+  undo,
+  redo,
 } as const;
 
 export const icon = (name: keyof typeof icons) => unsafeSVG(icons[name]);

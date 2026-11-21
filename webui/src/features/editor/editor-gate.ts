@@ -9,6 +9,7 @@ import type {
   EditorTab,
   ProjectState,
 } from '../../shared/bridge/protocol.js';
+import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 
@@ -476,6 +477,20 @@ export class WgEditorGate extends LitElement {
       ${this.renderInspector()}
       <p class="steps">${t('Editor.GateActions').replace('{0}', String(this.actions.length))}</p>
       <div class="actions">
+        <fluent-button
+          appearance="subtle"
+          title=${t('Palette.Undo')}
+          aria-label=${t('Palette.Undo')}
+          ?disabled=${!this.snapshot.canUndo}
+          @click=${this.undo}
+        >${icon('undo')}</fluent-button>
+        <fluent-button
+          appearance="subtle"
+          title=${t('Palette.Redo')}
+          aria-label=${t('Palette.Redo')}
+          ?disabled=${!this.snapshot.canRedo}
+          @click=${this.redo}
+        >${icon('redo')}</fluent-button>
         <fluent-button appearance="accent" @click=${this.save}>${t('Common.Save')}</fluent-button>
         <fluent-button appearance="subtle" @click=${this.close}>${t('Common.Close')}</fluent-button>
       </div>
@@ -883,6 +898,22 @@ export class WgEditorGate extends LitElement {
 
   private editDescription(event: Event): void {
     this.snapshot = { ...this.snapshot!, description: (event.target as HTMLTextAreaElement).value };
+  }
+
+  private async undo(): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionUndo');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async redo(): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionRedo');
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async save(): Promise<void> {

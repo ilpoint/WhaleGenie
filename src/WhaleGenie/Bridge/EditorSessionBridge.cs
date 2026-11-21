@@ -27,6 +27,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
         server.Register("editor.sessionParameter", PatchParameter);
+        server.Register("editor.sessionUndo", _ => Task.FromResult<object?>(Undo()));
+        server.Register("editor.sessionRedo", _ => Task.FromResult<object?>(Redo()));
         server.Register("editor.sessionMove", MoveStep);
         server.Register("editor.sessionRemove", RemoveStep);
         server.Register("editor.sessionTriggerAdd", _ => Task.FromResult<object?>(AddTrigger()));
@@ -179,6 +181,18 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
+    }
+
+    private object? Undo()
+    {
+        Required().Undo();
+        return Snapshot();
+    }
+
+    private object? Redo()
+    {
+        Required().Redo();
+        return Snapshot();
     }
 
     private object? AddVariable()
@@ -336,6 +350,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 triggers = snapshot.Triggers,
                 variables = snapshot.Variables,
                 variableTypes = snapshot.VariableTypes,
+                canUndo = snapshot.CanUndo,
+                canRedo = snapshot.CanRedo,
             }
             : null;
 

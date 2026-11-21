@@ -40,6 +40,7 @@ const chromeKeys = [
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
+  'Palette.Undo', 'Palette.Redo',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
   'Run.Steps', 'Common.Save', 'Common.Close',
@@ -83,7 +84,8 @@ const english: Record<string, string> = {
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
   'Editor.BindKey': 'Trigger / Bind Key :', 'Add.SetCombination': 'Set combination',
-  'Add.PressKey': 'Press a key…', 'LocalVariables.Title': 'Local variables',
+  'Add.PressKey': 'Press a key…', 'Palette.Undo': 'Undo', 'Palette.Redo': 'Redo',
+  'LocalVariables.Title': 'Local variables',
   'LocalVariables.New': 'New variable', 'LocalVariables.Initial': 'Starts at',
   'LocalVariables.InitialPlaceholder': 'A value, or an expression such as count + 1',
   'LocalVariables.Delete': 'Delete',
@@ -138,7 +140,8 @@ const chinese: Record<string, string> = {
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
   'Editor.BindKey': '触发 / 绑定按键：', 'Add.SetCombination': '设置组合键',
-  'Add.PressKey': '请按一个键…', 'LocalVariables.Title': '局部变量',
+  'Add.PressKey': '请按一个键…', 'Palette.Undo': '撤销', 'Palette.Redo': '重做',
+  'LocalVariables.Title': '局部变量',
   'LocalVariables.New': '新建变量', 'LocalVariables.Initial': '初始值',
   'LocalVariables.InitialPlaceholder': '直接填值，或写表达式，例如 count + 1',
   'LocalVariables.Delete': '删除',
@@ -295,6 +298,8 @@ export class MockTransport implements BridgeTransport {
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
           ],
+          canUndo: false,
+          canRedo: false,
         };
         result = this.editor;
         break;
@@ -314,6 +319,8 @@ export class MockTransport implements BridgeTransport {
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
           ],
+          canUndo: false,
+          canRedo: false,
         };
         result = this.editor;
         break;
@@ -349,6 +356,8 @@ export class MockTransport implements BridgeTransport {
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
           ],
+          canUndo: false,
+          canRedo: false,
           };
         }
         result = this.editor;
@@ -393,11 +402,25 @@ export class MockTransport implements BridgeTransport {
           this.editor = {
             ...this.editor,
             dirty: true,
+            canUndo: true,
+            canRedo: false,
             stepCount: this.editor.stepCount + 1,
             steps: parentId
               ? this.addChild(this.editor.steps, parentId, step)
               : [...this.editor.steps, step],
           };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionUndo':
+        if (this.editor) {
+          this.editor = { ...this.editor, canUndo: false, canRedo: true };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionRedo':
+        if (this.editor) {
+          this.editor = { ...this.editor, canUndo: true, canRedo: false };
         }
         result = this.editor;
         break;
