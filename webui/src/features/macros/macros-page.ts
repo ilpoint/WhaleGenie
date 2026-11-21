@@ -276,18 +276,11 @@ export class WgMacros extends LitElement {
 
     return html`
       <div class="filebar">
-        <fluent-button appearance="subtle" @click=${this.onOpen}>${t('Main.OpenProject')}</fluent-button>
-        <fluent-button appearance="subtle" @click=${this.onSave}>${t('Main.SaveProject')}</fluent-button>
-        <fluent-button appearance="subtle" @click=${this.onSaveAs}>${t('Main.SaveProjectAs')}</fluent-button>
+        ${this.state.dirty ? html`<fluent-badge appearance="warning">${t('Shell.Field.Dirty')}</fluent-badge>` : nothing}
+        <span class="path">${this.state.path ?? ''}</span>
         ${this.state.path ? html`
           <fluent-button appearance="subtle" @click=${this.onReload}>${t('Main.ReloadCurrent')}</fluent-button>
         ` : nothing}
-        <fluent-button appearance="subtle" @click=${this.onImport}>${t('Main.Import')}</fluent-button>
-        ${this.state.macros.length > 0 ? html`
-          <fluent-button appearance="subtle" @click=${this.onCloseAll}>${t('Main.CloseAll')}</fluent-button>
-        ` : nothing}
-        ${this.state.dirty ? html`<fluent-badge appearance="warning">${t('Shell.Field.Dirty')}</fluent-badge>` : nothing}
-        <span class="path">${this.state.path ?? ''}</span>
         <fluent-button appearance="subtle" @click=${this.onMcp}>${t('Mcp.Title')}</fluent-button>
       </div>
       <div class="filters">
@@ -483,10 +476,6 @@ export class WgMacros extends LitElement {
     void this.call('project.system', { enabled: !this.state.systemEnabled });
   }
 
-  private onOpen(): void {
-    void this.call('project.open', {});
-  }
-
   private onExport(entry: MacroEntry): void {
     void this.call('project.export', { name: entry.name });
   }
@@ -495,25 +484,8 @@ export class WgMacros extends LitElement {
     void this.call('project.delete', { name: entry.name });
   }
 
-  private onSave(): void {
-    void this.call('project.save', {});
-  }
-
-  private onSaveAs(): void {
-    void this.call('project.saveAs', {});
-  }
-
   private onReload(): void {
     void this.call('project.reload', {});
-  }
-
-  private onImport(): void {
-    // 导入的选择与冲突两问在原生窗口里走（需要一屏的列表），报告经确认框回来。
-    void this.call('project.import', {});
-  }
-
-  private onCloseAll(): void {
-    void this.call('project.closeAll', {});
   }
 
   private onMcp(): void {

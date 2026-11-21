@@ -12,12 +12,24 @@ export class WgNav extends LitElement {
   @property()
   active: Route = 'home';
 
+  /** The side bar folds away when the active icon is pressed again, like VS Code. */
+  @property({ type: Boolean, reflect: true })
+  collapsed = false;
+
   static styles = css`
     :host {
       display: grid;
       grid-template-columns: 48px 220px;
       height: 100%;
       background: var(--colorNeutralBackground3);
+    }
+
+    :host([collapsed]) {
+      grid-template-columns: 48px;
+    }
+
+    :host([collapsed]) .side {
+      display: none;
     }
 
     button {
@@ -59,6 +71,10 @@ export class WgNav extends LitElement {
       align-items: stretch;
       padding-top: var(--spacingVerticalS);
       border-right: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    }
+
+    .grow {
+      flex: 1;
     }
 
     .activity button {
@@ -136,24 +152,15 @@ export class WgNav extends LitElement {
   }
 
   render() {
+    const mainRoutes = routes.filter((route) => route !== 'settings');
     return html`
       <nav class="activity" aria-label=${t('Shell.Navigation')}>
-        ${routes.map(
-          (route) => html`
-            <button
-              type="button"
-              title=${this.labels[route] ?? route}
-              aria-label=${this.labels[route] ?? route}
-              aria-current=${this.active === route ? 'page' : 'false'}
-              @click=${() => this.select(route)}
-            >
-              ${this.icon(route)}
-            </button>
-          `,
-        )}
+        ${mainRoutes.map((route) => this.activityButton(route))}
+        <span class="grow"></span>
+        ${this.activityButton('settings')}
       </nav>
       <nav class="side">
-        ${routes.map(
+        ${mainRoutes.map(
           (route) => html`
             <button
               type="button"
@@ -165,6 +172,20 @@ export class WgNav extends LitElement {
           `,
         )}
       </nav>
+    `;
+  }
+
+  private activityButton(route: Route) {
+    return html`
+      <button
+        type="button"
+        title=${this.labels[route] ?? route}
+        aria-label=${this.labels[route] ?? route}
+        aria-current=${this.active === route ? 'page' : 'false'}
+        @click=${() => this.select(route)}
+      >
+        ${this.icon(route)}
+      </button>
     `;
   }
 
@@ -198,6 +219,12 @@ export class WgNav extends LitElement {
   }
 
   private select(route: Route): void {
+    if (route === this.active) {
+      this.collapsed = !this.collapsed;
+      return;
+    }
+
+    this.collapsed = false;
     this.dispatchEvent(new CustomEvent('wg-navigate', { detail: { route }, bubbles: true, composed: true }));
   }
 }

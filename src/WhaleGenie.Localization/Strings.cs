@@ -136,8 +136,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Shell.Placeholder.Body"] =
             "This area still lives in its native window. It moves into the shell when its turn comes, and this page goes away with it.",
         ["Shell.Navigation"] = "Navigation",
+        ["Shell.File"] = "File",
         ["Shell.About"] = "About",
         ["Shell.Help"] = "Help",
+        ["Shell.Manual"] = "User manual",
         ["Shell.OpenNative"] = "Open native window",
         ["Shell.Window.Minimize"] = "Minimize",
         ["Shell.Window.Maximize"] = "Maximize",
@@ -145,6 +147,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Shell.Window.Close"] = "Close",
         ["Shell.Window.Pin"] = "Keep on top",
         ["Shell.Window.Unpin"] = "Stop keeping on top",
+        ["WebView.MissingTitle"] = "WebView2 runtime is missing",
+        ["WebView.MissingBody"] =
+            "WhaleGenie's interface is a web page and needs the Microsoft Edge WebView2 runtime. Install it, then start WhaleGenie again.",
+        ["WebView.Install"] = "Install WebView2",
 
         // ------------------------------------------------------------- main window
         ["Main.Title"] = "WhaleGenie",
@@ -2829,8 +2835,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Shell.Placeholder.Body"] =
             "这一区域仍由原生窗口承担。轮到它迁入网页壳时，这一页会随之删除。",
         ["Shell.Navigation"] = "导航",
+        ["Shell.File"] = "文件",
         ["Shell.About"] = "关于",
         ["Shell.Help"] = "帮助",
+        ["Shell.Manual"] = "使用手册",
         ["Shell.OpenNative"] = "打开原生窗口",
         ["Shell.Window.Minimize"] = "最小化",
         ["Shell.Window.Maximize"] = "最大化",
@@ -2838,6 +2846,10 @@ public sealed class Strings : INotifyPropertyChanged
         ["Shell.Window.Close"] = "关闭",
         ["Shell.Window.Pin"] = "窗口置顶",
         ["Shell.Window.Unpin"] = "取消置顶",
+        ["WebView.MissingTitle"] = "缺少 WebView2 运行时",
+        ["WebView.MissingBody"] =
+            "鲸灵的界面是一张网页，需要 Microsoft Edge WebView2 运行时。安装后重新启动鲸灵。",
+        ["WebView.Install"] = "安装 WebView2",
 
         // ------------------------------------------------------------- main window
         ["Main.Title"] = "鲸灵",

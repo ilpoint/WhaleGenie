@@ -44,15 +44,38 @@ test('首页关于与帮助请求原生入口', async ({ page }) => {
     .toBe(true);
 });
 
-test('activity bar 图标切换页面', async ({ page }) => {
-  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
+test('activity bar 图标切换页面并可折叠侧栏', async ({ page }) => {
+  const macros = page.locator('wg-nav .activity button[aria-label="宏"]');
+  await macros.click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
+  await expect(page.locator('wg-nav .side')).toBeVisible();
+
+  // Pressing the active icon again folds the side bar away; pressing it once more brings it back.
+  await macros.click();
+  await expect(page.locator('wg-nav .side')).toBeHidden();
+  await macros.click();
+  await expect(page.locator('wg-nav .side')).toBeVisible();
+
   await page.locator('wg-nav .activity button[aria-label="首页"]').click();
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
 });
 
+test('标题栏文件与帮助菜单', async ({ page }) => {
+  const file = page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' });
+  await file.click();
+  await expect(page.getByRole('menuitem', { name: '打开宏项目' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '保存宏项目' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '导入…' })).toBeVisible();
+
+  const help = page.locator('wg-titlebar .menu', { hasText: '帮助' }).getByRole('button', { name: '帮助' });
+  await help.click();
+  await expect(page.locator('wg-titlebar .version')).toContainText('0.0.0-mock');
+  await expect(page.getByRole('menuitem', { name: '关于' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '使用手册' })).toBeVisible();
+});
+
 test('占位页的临时入口请求原生窗口', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '设置' }).click();
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   await page.locator('wg-placeholder fluent-button', { hasText: '打开原生窗口' }).click();
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openSettings')))
@@ -108,7 +131,8 @@ test('打开包后标题与列表跟着换，保存清掉未保存标记', async
 
   // 打开：文件按钮先问程序，mock 宿主给出一个固定路径；标题与列表都换成包里的。
   // 按钮文案是词表的原话（"打开宏项目"），选择器必须按整句匹配。
-  await page.locator('wg-macros .filebar fluent-button', { hasText: '打开宏项目' }).click();
+  await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
+  await page.getByRole('menuitem', { name: '打开宏项目' }).click();
   await expect(page.locator('wg-titlebar .title')).toContainText('opened-project');
   await expect(page.locator('wg-macros .card .name')).toContainText('包里的宏');
   await expect(page.locator('wg-macros .filebar .path')).toContainText('opened-project.wgmacro');
@@ -116,7 +140,8 @@ test('打开包后标题与列表跟着换，保存清掉未保存标记', async
   // 编辑一次（启停翻转）出现未保存标记，保存后由推送清掉。
   await page.locator('wg-macros .card fluent-switch').click();
   await expect(page.locator('wg-macros .filebar fluent-badge')).toContainText('有未保存修改');
-  await page.locator('wg-macros .filebar fluent-button', { hasText: '保存宏项目' }).click();
+  await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
+  await page.getByRole('menuitem', { name: '保存宏项目' }).click();
   await expect(page.locator('wg-macros .filebar fluent-badge')).toHaveCount(0);
 });
 
@@ -151,7 +176,8 @@ test('文本框焦点上报给宿主', async ({ page }) => {
 
 test('关闭全部先问页面，确认后清空', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
-  await page.locator('wg-macros .filebar fluent-button', { hasText: '全部关闭' }).click();
+  await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
+  await page.getByRole('menuitem', { name: '全部关闭' }).click();
 
   // 程序推 dialog.request，页面把问题画出来；点卡片里的确认键，列表清空、标题回未命名。
   await expect(page.locator('wg-confirm h2')).toContainText('关闭全部宏');
@@ -227,7 +253,8 @@ test('宏卡片的运行按钮请求原生运行窗口', async ({ page }) => {
 
 test('导入命令过桥', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
-  await page.locator('wg-macros .filebar fluent-button', { hasText: '导入' }).click();
+  await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
+  await page.getByRole('menuitem', { name: '导入…' }).click();
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('project.import')))
     .toBe(true);

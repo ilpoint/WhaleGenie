@@ -1,5 +1,6 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { appInfo } from '../shared/app/app.js';
 import { bridge } from '../shared/bridge/bridge.js';
 import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
@@ -21,6 +22,12 @@ export class WgTitlebar extends LitElement {
   @state()
   private topmost = false;
 
+  @state()
+  private menu: 'file' | 'help' | null = null;
+
+  @state()
+  private version = '';
+
   static styles = css`
     :host {
       display: block;
@@ -29,13 +36,83 @@ export class WgTitlebar extends LitElement {
 
     .bar {
       display: grid;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: auto auto 1fr auto;
       align-items: center;
       gap: var(--spacingHorizontalS);
       height: 40px;
       padding-left: var(--spacingHorizontalM);
       background: var(--colorNeutralBackground1);
       -webkit-app-region: no-drag;
+      position: relative;
+      z-index: 10;
+    }
+
+    .menus {
+      display: flex;
+      gap: var(--spacingHorizontalXS);
+    }
+
+    .menu {
+      position: relative;
+    }
+
+    .menu > button {
+      border: none;
+      border-radius: var(--borderRadiusMedium);
+      background: transparent;
+      color: var(--colorNeutralForeground1);
+      font: inherit;
+      font-size: var(--font-size-base-200);
+      padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      cursor: default;
+    }
+
+    .menu > button:hover,
+    .menu > button[aria-expanded='true'] {
+      background: var(--colorNeutralBackground1Hover);
+    }
+
+    .menu > button:focus-visible {
+      outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
+      outline-offset: -2px;
+    }
+
+    .dropdown {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      min-width: 220px;
+      padding: var(--spacingVerticalXS);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      box-shadow: var(--shadow16);
+      z-index: 20;
+    }
+
+    .dropdown button {
+      display: block;
+      width: 100%;
+      border: none;
+      border-radius: var(--borderRadiusSmall);
+      background: transparent;
+      color: var(--colorNeutralForeground1);
+      font: inherit;
+      text-align: left;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      cursor: default;
+    }
+
+    .dropdown button:hover {
+      background: var(--colorNeutralBackground1Hover);
+    }
+
+    .dropdown .version {
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--font-size-base-200);
+      border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      margin-bottom: var(--spacingVerticalXS);
     }
 
     .whale {
@@ -114,7 +191,11 @@ export class WgTitlebar extends LitElement {
           this.topmost = state.topmost;
         }
       }),
+      appInfo.subscribe((info) => {
+        this.version = info?.version ?? '';
+      }),
     ];
+    window.addEventListener('pointerdown', this.onDocumentPointerDown, true);
   }
 
   private unsubscribers: Array<() => void> = [];
@@ -124,6 +205,7 @@ export class WgTitlebar extends LitElement {
       unsubscribe();
     }
     this.unsubscribers = [];
+    window.removeEventListener('pointerdown', this.onDocumentPointerDown, true);
     super.disconnectedCallback();
   }
 
@@ -135,6 +217,44 @@ export class WgTitlebar extends LitElement {
         @dblclick=${this.onToggleMaximize}
       >
         <img class="whale" src=${whale} alt="" />
+        <div class="menus">
+          <div class="menu">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded=${this.menu === 'file'}
+              @click=${() => this.toggleMenu('file')}
+            >
+              ${t('Shell.File')}
+            </button>
+            ${this.menu === 'file'
+              ? html`<div class="dropdown" role="menu">
+                  <button role="menuitem" @click=${() => this.run('project.open')}>${t('Main.OpenProject')}</button>
+                  <button role="menuitem" @click=${() => this.run('project.save')}>${t('Main.SaveProject')}</button>
+                  <button role="menuitem" @click=${() => this.run('project.saveAs')}>${t('Main.SaveProjectAs')}</button>
+                  <button role="menuitem" @click=${() => this.run('project.import')}>${t('Main.Import')}</button>
+                  <button role="menuitem" @click=${() => this.run('project.closeAll')}>${t('Main.CloseAll')}</button>
+                </div>`
+              : nothing}
+          </div>
+          <div class="menu">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded=${this.menu === 'help'}
+              @click=${() => this.toggleMenu('help')}
+            >
+              ${t('Shell.Help')}
+            </button>
+            ${this.menu === 'help'
+              ? html`<div class="dropdown" role="menu">
+                  <div class="version">${t('Shell.Field.Version')} ${this.version}</div>
+                  <button role="menuitem" @click=${() => this.run('app.openManual')}>${t('Shell.Manual')}</button>
+                  <button role="menuitem" @click=${() => this.run('app.openAbout')}>${t('Shell.About')}</button>
+                </div>`
+              : nothing}
+          </div>
+        </div>
         <span class="title">
           ${t('Main.Title')}
           <span class="project">· ${this.projectName()}</span>
@@ -191,6 +311,27 @@ export class WgTitlebar extends LitElement {
       return t('Shell.UntitledProject');
     }
     return this.project.name ?? '';
+  }
+
+  private readonly onDocumentPointerDown = (event: PointerEvent): void => {
+    if (this.menu === null) {
+      return;
+    }
+
+    const inside = event.composedPath().some((node) =>
+      node instanceof HTMLElement && node.classList.contains('menu'));
+    if (!inside) {
+      this.menu = null;
+    }
+  };
+
+  private toggleMenu(menu: 'file' | 'help'): void {
+    this.menu = this.menu === menu ? null : menu;
+  }
+
+  private run(command: string): void {
+    this.menu = null;
+    void bridge.value.call(command);
   }
 
   private onDragPointerDown(event: PointerEvent): void {
