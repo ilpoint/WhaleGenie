@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -30,6 +31,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         server.Register("run.command", CommandAsync);
         server.Register("run.breakpoint", Breakpoint);
         server.Register("run.answer", Answer);
+        server.Register("run.breakpointRule", BreakpointRule);
     }
 
     public void Dispose() => _timer?.Stop();
@@ -86,6 +88,31 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
 
         await PushAsync();
         return Snapshot();
+    }
+
+    private Task<object?> BreakpointRule(JsonElement parameters)
+    {
+        var id = parameters.TryGetProperty("id", out var named) ? named.GetString() : null;
+        var row = _run?.Steps.FirstOrDefault(step =>
+            string.Equals(step.Id, id, StringComparison.Ordinal));
+        if (row is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Run.UnknownStep"));
+        }
+
+        var hits = parameters.TryGetProperty("hitTimes", out var times) && times.TryGetInt32(out var parsed)
+            ? parsed
+            : 1;
+        var expression = parameters.TryGetProperty("expression", out var written)
+            ? written.GetString() ?? string.Empty
+            : string.Empty;
+        _run!.SetBreakpointRule(row, new BreakpointRule
+        {
+            Expression = expression.Trim().Length == 0 ? Formula.Nothing : Formula.Text(expression),
+            HitTimes = Math.Max(1, hits),
+        });
+        return Task.FromResult<object?>(Snapshot());
     }
 
     private Task<object?> Answer(JsonElement parameters)
@@ -177,6 +204,10 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
                 time = step.TimeNote,
                 failure = step.FailureNote,
                 condition = step.ConditionNote,
+                hitTimes = _run.BreakpointRuleOf(step).HitTimes,
+                expression = _run.BreakpointRuleOf(step).WaitsForExpression
+                    ? ExpressionPhrase.Display(_run.BreakpointRuleOf(step).Expression)
+                    : string.Empty,
             }),
             question = _run?.Question ?? string.Empty,
             wantsTypedAnswer = _run?.WantsTypedAnswer ?? false,

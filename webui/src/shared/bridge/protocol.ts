@@ -257,6 +257,8 @@ export interface RunStep {
   time: string;
   failure: string;
   condition: string;
+  hitTimes: number;
+  expression: string;
 }
 
 export interface RunLine {

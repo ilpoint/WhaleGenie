@@ -112,6 +112,10 @@ public partial class RunViewModel
         }
     }
 
+    /// <summary>The rule behind a row's breakpoint, or the default rule that stops every time.</summary>
+    public BreakpointRule BreakpointRuleOf(RunStepViewModel row)
+        => _breakpointRules.GetValueOrDefault(row.Id) ?? new BreakpointRule();
+
     /// <summary>
     /// Gives a step's breakpoint what to wait for, turning the breakpoint on with it: how many
     /// arrivals count and an expression that has to hold are both about the breakpoint, and setting

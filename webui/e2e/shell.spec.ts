@@ -736,6 +736,13 @@ test('运行页载入宏并驱动运行面板', async ({ page }) => {
   await expect(page.locator('wg-run .step')).toHaveCount(2);
   await expect(page.locator('wg-run .vars')).toContainText('count');
   await expect(page.locator('wg-run .vars')).toContainText('found');
+  await page.locator('wg-run .step input[type="checkbox"]').first().check();
+  await page.locator('wg-run .rule input[type="number"]').first().fill('2');
+  await page.locator('wg-run .rule input').nth(1).fill('i == 1');
+  await page.locator('wg-run .rule input').nth(1).press('Tab');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('run.breakpointRule')))
+    .toBe(true);
   await page.locator('wg-run .toolbar fluent-button', { hasText: '运行' }).click();
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('run.command')))

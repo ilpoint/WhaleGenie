@@ -100,6 +100,13 @@ export class WgRun extends LitElement {
       min-width: 0;
     }
 
+    .rule {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: var(--spacingHorizontalS);
+      margin-top: var(--spacingVerticalXS);
+    }
+
     .step .detail {
       color: var(--colorNeutralForeground3);
       font-size: var(--font-size-base-200);
@@ -222,6 +229,14 @@ export class WgRun extends LitElement {
           ${step.time ? html`<div class="detail">${step.time}</div>` : nothing}
           ${step.failure ? html`<div class="detail error">${step.failure}</div>` : nothing}
           ${step.condition ? html`<div class="detail">${step.condition}</div>` : nothing}
+          ${step.breakpoint ? html`
+            <div class="rule">
+              <input type="number" min="1" .value=${String(step.hitTimes)}
+                @change=${(event: Event) => void this.rule(step.id, event)} />
+              <input .value=${step.expression} placeholder=${t('Run.BreakpointExpressionWatermark')}
+                @change=${(event: Event) => void this.rule(step.id, event)} />
+            </div>
+          ` : nothing}
         </div>
       </div>
     `;
@@ -282,6 +297,24 @@ export class WgRun extends LitElement {
     try {
       this.project = await bridge.value.call<ProjectState>('project.state');
       this.run = await bridge.value.call<RunState>('run.state');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async rule(id: string, event: Event): Promise<void> {
+    const target = event.target as HTMLInputElement;
+    const row = target.closest('.step');
+    if (!row) {
+      return;
+    }
+
+    const hitTimes = Number(row.querySelector<HTMLInputElement>('input[type="number"]')?.value ?? 1);
+    const expression = row.querySelectorAll<HTMLInputElement>('input:not([type])')[0]?.value ?? '';
+    try {
+      this.run = await bridge.value.call<RunState>('run.breakpointRule',
+        { id, hitTimes, expression });
+      this.error = '';
     } catch (error) {
       this.error = String(error);
     }

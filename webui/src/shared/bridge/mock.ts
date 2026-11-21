@@ -409,7 +409,7 @@ export class MockTransport implements BridgeTransport {
     locals: [] as { name: string; macro: string; type: string }[],
     steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;
       container: boolean; current: boolean; breakpoint: boolean; canBreak: boolean;
-      time: string; failure: string; condition: string }[],
+      time: string; failure: string; condition: string; hitTimes: number; expression: string }[],
     log: [] as { time: string; level: string; text: string }[],
   };
 
@@ -553,10 +553,10 @@ export class MockTransport implements BridgeTransport {
           steps: [
             { id: 's1', label: 'Step one', detail: 'action.key', depth: 0, shown: true,
               container: false, current: false, breakpoint: false, canBreak: true,
-              time: '', failure: '', condition: '' },
+              time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
             { id: 's2', label: 'Step two', detail: 'action.key', depth: 0, shown: true,
               container: false, current: false, breakpoint: false, canBreak: true,
-              time: '', failure: '', condition: '' },
+              time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
           ],
         };
         result = this.runState;
@@ -573,6 +573,16 @@ export class MockTransport implements BridgeTransport {
         result = this.runState;
         break;
       case 'run.answer':
+        result = this.runState;
+        break;
+      case 'run.breakpointRule':
+        this.runState = {
+          ...this.runState,
+          steps: this.runState.steps.map((step) => step.id === params['id']
+            ? { ...step, hitTimes: Number(params['hitTimes'] ?? 1),
+                expression: String(params['expression'] ?? '') }
+            : step),
+        };
         result = this.runState;
         break;
       case 'run.breakpoint':
@@ -2204,4 +2214,5 @@ export class MockTransport implements BridgeTransport {
     queueMicrotask(() => this.receive?.(copy));
   }
 }
+
 
