@@ -72,19 +72,14 @@ internal sealed class ShellBridge(
             }
         }
 
-        // A named macro goes to the web run panel; the native window stays only for an empty
-        // debugger opened from the native menu until that road moves too.
-        if (macro is not null && _server is not null)
+        // Every run entry now lands in the web panel; an unnamed request has no macro to load.
+        if (macro is null || _server is null)
         {
-            await _server.PushAsync("run.openRequested", new { name = macro.Name });
-            return null;
+            throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                Strings.Get("Bridge.NoSuchMacro"));
         }
 
-        if (windows() is { } actions)
-        {
-            await actions.OpenRunAsync(macro);
-        }
-
+        await _server.PushAsync("run.openRequested", new { name = macro.Name });
         return null;
     }
 

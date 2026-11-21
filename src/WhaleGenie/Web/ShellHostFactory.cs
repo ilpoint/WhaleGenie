@@ -19,7 +19,7 @@ internal sealed class ShellHostFactory(
 {
     public ShellHost Create(WebShellWindow owner)
     {
-        var actions = new ShellNativeWindows(workspace, viewModel, runtime, () => owner,
+        var actions = new ShellNativeWindows(workspace, viewModel, () => owner,
             macro =>
             {
                 owner.OpenEditor(macro.Name);

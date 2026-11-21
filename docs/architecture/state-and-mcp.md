@@ -40,7 +40,7 @@
 | 状态 | 位置 | 说明 |
 | --- | --- | --- |
 | 本机设置 | 程序目录 `settings.json` | 主题、捕获、MCP 权限和启动行为等 |
-| 全局变量（声明与当前值） | 内存 | `VariableSession`：组合根建一个，`ProjectWorkspace` 持有，经 `MainViewModel` 转发给编辑器、运行窗口、触发器和 MCP；项目包保存声明，值只在本进程内共享，不随包走 |
+| 全局变量（声明与当前值） | 内存 | `VariableSession`：组合根建一个，`ProjectWorkspace` 持有，经 `MainViewModel` 转发给编辑器、运行面板、触发器和 MCP；项目包保存声明，值只在本进程内共享，不随包走 |
 | 持久化全局变量值 | `%LOCALAPPDATA%\WhaleGenie\persistent-variables.json` | 只保存声明为持久化的值；声明仍在包内。文件版本 2 按名字保存、值写成 JSON；更旧的形状不迁移，更高版本只读不覆盖。由 `PersistedVariables` 实例持有路径、定时器与索引，经容器注入；勾选只在保存时显式写入，运行期写入由表的变更事件补写 |
 | 崩溃恢复 | 程序目录 `recovery.json` | `RecoveryStore` 与 `RecoveryWriter` 保存未提交编辑状态 |
 | 脚本包 | 程序目录 `packages/`，必要时回退到 `%LOCALAPPDATA%\WhaleGenie\packages` | Python 与 NuGet 包的独立缓存 |

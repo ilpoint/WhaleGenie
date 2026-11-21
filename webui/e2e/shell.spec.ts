@@ -93,7 +93,7 @@ test('导航切换到宏列表与占位页', async ({ page }) => {
 
   await page.locator('wg-nav button', { hasText: '运行调试' }).click();
   await expect(page.locator('wg-run h1')).toHaveText('运行与调试');
-  await expect(page.locator('wg-run')).toContainText('原生窗口');
+  await expect(page.locator('wg-run')).toContainText('运行面板');
 
   await page.locator('wg-nav button', { hasText: '首页' }).click();
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');

@@ -21,13 +21,11 @@ namespace WhaleGenie.Runtime;
 internal sealed class ShellNativeWindows(
     ProjectWorkspace workspace,
     MainViewModel viewModel,
-    TriggerRuntime runtime,
     Func<Window?> owner,
     Func<MacroItem, bool> openEditor,
     Action<MacroItem> openRun) : INativeSurfaceActions, IDisposable
 {
     private AdvancedSettingsWindow? _settings;
-    private RunWindow? _run;
 
     /// <summary>The trigger host, once the shell has built it; settings republishes the plan.</summary>
     internal TriggerHost? Host { get; set; }
@@ -70,48 +68,6 @@ internal sealed class ShellNativeWindows(
         dialog.ShowAsPeer(window);
         dialog.Activate();
         return Task.CompletedTask;
-    }
-
-    internal async Task OpenRunAsync(MacroItem? macro)
-    {
-        if (owner() is not { } window)
-        {
-            return;
-        }
-
-        if (_run is { } open)
-        {
-            open.BringBack();
-            if (macro is not null)
-            {
-                await open.DebugAsync(macro);
-            }
-
-            return;
-        }
-
-        var before = viewModel.Globals();
-        var run = new RunWindow([], runtime.Devices, listed: [.. workspace.Macros],
-            triggers: runtime.Triggers, variables: workspace.Variables);
-        _run = run;
-        run.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_run, run))
-            {
-                _run = null;
-            }
-
-            if (viewModel.GlobalsChangedSince(before))
-            {
-                viewModel.MarkGlobalsChanged();
-            }
-        };
-        run.ShowAsPeer(window);
-        run.Activate();
-        if (macro is not null)
-        {
-            await run.DebugAsync(macro);
-        }
     }
 
     internal async Task OpenAboutAsync()
@@ -170,7 +126,5 @@ internal sealed class ShellNativeWindows(
     {
         _settings?.Close();
         _settings = null;
-        _run?.Close();
-        _run = null;
     }
 }

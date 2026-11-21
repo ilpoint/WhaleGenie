@@ -148,7 +148,7 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
 开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
 B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow；
-MainViewModel 暂留作设置/运行窗口的无窗视图模型。未迁入的设置/运行/关于/帮助走临时原生入口。
+MainViewModel 暂留作设置页与原生窗口的无窗视图模型。设置页、运行面板、关于与帮助都已走网页入口。
 窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
