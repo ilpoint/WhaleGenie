@@ -618,6 +618,14 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
+    public void SetStepEnabled(string stepId, bool enabled)
+    {
+        var step = FindStep(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        step.Meta = step.Meta.WithEnabled(enabled);
+        _model.IsDirty = true;
+    }
+
     public void AddParameterRow(string stepId, string name)
     {
         var parameter = FindParameter(stepId, name);

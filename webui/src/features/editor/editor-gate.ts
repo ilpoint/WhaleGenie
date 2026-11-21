@@ -1354,6 +1354,18 @@ export class WgEditorGate extends LitElement {
     }
   }
 
+  private async setStepEnabled(stepId: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionStepEnabled', {
+        stepId,
+        enabled: (event.target as HTMLInputElement).checked,
+      });
+      await this.loadTabs();
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   private async addParameterRow(step: EditorStep, parameter: EditorParameter): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameterRowAdd', {
@@ -1425,6 +1437,14 @@ export class WgEditorGate extends LitElement {
             class="step ${this.selectedId === step.id ? 'selected' : ''}"
             @click=${() => { this.selectedId = step.id; }}
           >
+            <input
+              type="checkbox"
+              .checked=${step.enabled}
+              title=${t('Editor.StepEnabled')}
+              aria-label=${t('Editor.StepEnabled')}
+              @click=${(event: Event) => event.stopPropagation()}
+              @change=${(event: Event) => void this.setStepEnabled(step.id, event)}
+            />
             <span class="step-name">${step.name}</span>
             <span class="step-actions">
               <button
@@ -1565,6 +1585,15 @@ export class WgEditorGate extends LitElement {
               <option value=${choice.value}>${choice.label}</option>
             `)}
           </select>
+        </div>
+      `;
+    }
+
+    if (parameter.kind === 'Condition') {
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <textarea class="condition-field" .value=${parameter.value} @change=${change}></textarea>
         </div>
       `;
     }

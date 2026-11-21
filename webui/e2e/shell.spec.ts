@@ -172,6 +172,16 @@ test('C1 步骤可以放进块内部', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .tree ol .step-name')).toHaveText('延迟');
 });
 
+test('C1 步骤可启用停用', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step input[type="checkbox"]').first().uncheck();
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionStepEnabled')))
+    .toBe(true);
+});
+
 test('C1 键位字段可捕获按键', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '按键' });

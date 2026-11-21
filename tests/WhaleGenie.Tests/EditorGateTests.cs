@@ -126,6 +126,22 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_step_can_be_disabled_and_enabled()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "steps" });
+        var session = HeadlessEditorSession.Open(workspace, "steps");
+        session.AddStep("control.delay");
+
+        var step = Assert.Single(session.Snapshot().Steps);
+        Assert.True(step.Enabled);
+        session.SetStepEnabled(step.Id, false);
+        Assert.False(Assert.Single(session.Snapshot().Steps).Enabled);
+        session.SetStepEnabled(step.Id, true);
+        Assert.True(Assert.Single(session.Snapshot().Steps).Enabled);
+    }
+
+    [Fact]
     public void A_row_parameter_can_add_and_fill_rows()
     {
         var workspace = new ProjectWorkspace();

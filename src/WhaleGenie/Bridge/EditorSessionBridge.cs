@@ -26,6 +26,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
+        server.Register("editor.sessionStepEnabled", SetStepEnabled);
         server.Register("editor.sessionParameter", PatchParameter);
         server.Register("editor.sessionParameterRowAdd", AddParameterRow);
         server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
@@ -193,6 +194,27 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         try
         {
             Required().RemoveStep(stepId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetStepEnabled(JsonElement parameters)
+    {
+        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
+        var enabled = parameters.TryGetProperty("enabled", out var value) && value.GetBoolean();
+        if (stepId is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsStep"));
+        }
+
+        try
+        {
+            Required().SetStepEnabled(stepId, enabled);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

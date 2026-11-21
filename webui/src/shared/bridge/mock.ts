@@ -38,7 +38,7 @@ const chromeKeys = [
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
-  'Editor.RemoveRow', 'Editor.OpenMacro',
+  'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
@@ -98,6 +98,7 @@ const english: Record<string, string> = {
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
+  'Editor.StepEnabled': 'Enabled',
   'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
@@ -185,6 +186,7 @@ const chinese: Record<string, string> = {
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
+  'Editor.StepEnabled': '启用',
   'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
@@ -490,6 +492,19 @@ export class MockTransport implements BridgeTransport {
               : String(params['description']),
             group: params['group'] === undefined ? this.editor.group : String(params['group']),
             dirty: true,
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionStepEnabled':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            steps: this.setStepEnabled(
+              this.editor.steps,
+              String(params['stepId'] ?? ''),
+              params['enabled'] === true),
           };
         }
         result = this.editor;
@@ -1216,6 +1231,12 @@ export class MockTransport implements BridgeTransport {
     }
 
     this.answer({ id: request.id, ok: true, result });
+  }
+
+  private setStepEnabled(steps: EditorStep[], stepId: string, enabled: boolean): EditorStep[] {
+    return steps.map((step) => step.id === stepId
+      ? { ...step, enabled }
+      : { ...step, steps: this.setStepEnabled(step.steps, stepId, enabled) });
   }
 
   private changeRows(
