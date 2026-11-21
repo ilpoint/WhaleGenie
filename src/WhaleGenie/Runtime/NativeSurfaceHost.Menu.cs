@@ -35,7 +35,7 @@ public interface INativeSurfaceActions
 /// and the interface panels. It reads the project and the device layer directly, so it keeps working
 /// when the web shell is the visible window and the old main window is not.
 /// </summary>
-internal sealed partial class NativeSurfaceHost : IDisposable
+internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposable
 {
     private readonly ProjectWorkspace _workspace;
 
@@ -77,6 +77,16 @@ internal sealed partial class NativeSurfaceHost : IDisposable
     }
 
     public bool MenuOpen => Volatile.Read(ref _menuOpen) == 1;
+
+    /// <summary>
+    /// The system switch was flipped: the wheel gate and the panels both read it, and neither has a
+    /// reason to wait for the next project change to notice.
+    /// </summary>
+    public void RefreshForSystemToggle()
+    {
+        RefreshWheelGate();
+        RefreshPanels();
+    }
 
     public bool MenuSearchFocused => Volatile.Read(ref _menuSearchFocused) == 1;
 

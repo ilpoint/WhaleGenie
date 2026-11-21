@@ -112,29 +112,18 @@ public partial class App : Application
         Window window = wantsShell
             ? (Window)services.GetRequiredService<WebShellWindow>()
             : services.GetRequiredService<MainWindow>();
-        if (window is WebShellWindow shell)
+        if (window is WebShellWindow webShell)
         {
-            shell.DevUrl = App.WebUiDev;
+            webShell.DevUrl = App.WebUiDev;
         }
 #else
         Window window = services.GetRequiredService<MainWindow>();
 #endif
         var main = window as MainWindow;
+        var shell = window as WebShellWindow;
         var viewModel = main?.DataContext as MainViewModel;
 
         desktop.MainWindow = window;
-
-        // The web shell draws the list, but the trigger host — the system hotkey, the middle
-        // button menu, the wheel, the sounds, the floating panels — lives in the main window's
-        // wiring. While the shell is in front, a hidden main window carries that wiring: it shows
-        // once (which is when the whole host attaches), then goes out of sight and stays there.
-        // It takes no icon, no tray and no recovery offer; closing it is not how anything leaves.
-        if (window is WhaleGenie.Web.WebShellWindow)
-        {
-            var host = services.GetRequiredService<MainWindow>();
-            host.Show();
-            Dispatcher.UIThread.Post(host.Hide);
-        }
 
         // The person's last package comes back with the window: an empty list every morning is a
         // step nobody asked for. A file that is not there any more leaves the window empty rather
@@ -155,7 +144,7 @@ public partial class App : Application
                 // A package that cannot be read is not a reason to refuse to start.
             }
         }
-        else if (window is WhaleGenie.Web.WebShellWindow
+        else if (shell is not null
             && LocalSettings.LoadLastProjectAtStart()
             && LocalSettings.LastProject() is { Length: > 0 } lastForShell && File.Exists(lastForShell))
         {
@@ -184,6 +173,10 @@ public partial class App : Application
         {
             main.Tray = tray;
         }
+        else if (shell is not null)
+        {
+            shell.Tray = tray;
+        }
 
         // The list starts empty, so if the last run was stopped without saving, the work it was
         // holding is offered back here — once the window is up, because it is a dialog. The window
@@ -192,6 +185,10 @@ public partial class App : Application
         if (main is not null)
         {
             main.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = main.OfferRecoveryAsync());
+        }
+        else if (shell is not null)
+        {
+            shell.Opened += (_, _) => Dispatcher.UIThread.Post(() => _ = shell.OfferRecoveryAsync());
         }
 
         // The door a client's own process knocks on. Tools run here, on the project this window is

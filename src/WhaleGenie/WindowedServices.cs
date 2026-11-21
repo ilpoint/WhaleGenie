@@ -56,6 +56,12 @@ internal static class WindowedServices
         {
             DataContext = sp.GetRequiredService<MainViewModel>(),
         })
+        .AddSingleton(sp => new EditorBridge(() => sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()))
+        .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
+            sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
+            sp.GetRequiredService<EditorBridge>()))
         .AddSingleton(sp =>
         {
             // The web shell's handlers are registered once and serve the one page; the window
@@ -63,6 +69,8 @@ internal static class WindowedServices
             // is not the window on duty.
             var server = new BridgeServer();
             server.Register(new AppBridge(sp.GetRequiredService<ProjectWorkspace>(), () => AppTray.Current));
+            server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>(),
+                () => sp.GetService<WebShellWindow>()?.Actions));
             server.Register(new StringsBridge());
             server.Register(new ThemeBridge());
             server.Register(new WindowBridge(() => sp.GetService<WebShellWindow>()));
@@ -72,9 +80,9 @@ internal static class WindowedServices
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
                 () => sp.GetService<WebShellWindow>(), dialogs));
-            server.Register(new EditorBridge(() => sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>(), () => sp.GetService<WebShellWindow>()));
+            server.Register(sp.GetRequiredService<EditorBridge>());
             return server;
         })
-        .AddSingleton<WebShellWindow>();
+        .AddSingleton(sp => new WebShellWindow(sp.GetRequiredService<BridgeServer>(),
+            sp.GetRequiredService<ShellHostFactory>()));
 }

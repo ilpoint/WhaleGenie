@@ -69,6 +69,9 @@ public sealed class EditorBridge : IBridgeHandler
         return Answer(OpenEditor(_project(), macro, macro, null));
     }
 
+    /// <summary>Opens the native editor on a macro for the menu or a temporary bridge command.</summary>
+    internal bool OpenMacro(MacroItem macro) => OpenEditor(_project(), macro, macro, null) is not null;
+
     private Task<object?> Answer(MacroEditorWindow? editor)
         => Task.FromResult<object?>(new { opened = editor is not null });
 

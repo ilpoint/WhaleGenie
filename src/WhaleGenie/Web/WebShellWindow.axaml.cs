@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
@@ -26,6 +27,10 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     private const int HTCAPTION = 2;
 
     private readonly BridgeServer? _bridge;
+    private readonly ShellHostFactory? _hosts;
+
+    private ShellHost? _host;
+    private AppTray? _pendingTray;
 
     /// <summary>Whether a text field in the page last held the keyboard.</summary>
     private int _textInputFocused;
@@ -46,10 +51,11 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
         InitializeComponent();
     }
 
-    public WebShellWindow(BridgeServer bridge)
+    internal WebShellWindow(BridgeServer bridge, ShellHostFactory? hosts = null)
         : this()
     {
         _bridge = bridge;
+        _hosts = hosts;
 
         WebView.EnvironmentRequested += OnEnvironmentRequested;
         WebView.NavigationStarted += OnNavigationStarted;
@@ -141,16 +147,50 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     private void OnNewWindowRequested(object? sender, WebViewNewWindowRequestedEventArgs args)
         => args.Handled = true;
 
+    /// <summary>The notification icon; a plain close only puts the shell away while this is set.</summary>
+    internal AppTray? Tray
+    {
+        get => _host?.Tray ?? _pendingTray;
+        set
+        {
+            _pendingTray = value;
+            if (_host is not null)
+            {
+                _host.Tray = value;
+            }
+        }
+    }
+
+    /// <summary>Offers work a stopped run left behind; once per run, after the host is up.</summary>
+    internal Task OfferRecoveryAsync() => _host?.OfferRecoveryAsync() ?? Task.CompletedTask;
+
+    /// <summary>The native windows the page can still ask for; null until the host is up.</summary>
+    internal ShellNativeWindows? Actions => _host?.Actions;
+
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         WindowPlacement.Restore(this);
+
+        _host ??= _hosts?.Create(this);
+        if (_host is not null)
+        {
+            _host.Tray = _pendingTray;
+        }
     }
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         WindowPlacement.Remember(this);
+        _host?.OnClosing(e);
         base.OnClosing(e);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _host?.Dispose();
+        _host = null;
+        base.OnClosed(e);
     }
 
     private bool IsAllowedSource(Uri uri)
