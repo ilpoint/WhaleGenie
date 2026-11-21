@@ -24,7 +24,8 @@ const chromeKeys = [
   'Shell.Home.Heading', 'Shell.Home.Intro', 'Shell.Status.Web', 'Shell.Status.Native',
   'Shell.Status.Planned', 'Shell.Placeholder.Body', 'Shell.Navigation', 'Shell.OpenNative',
   'Shell.File', 'Shell.About', 'Shell.Help', 'Shell.Manual',
-  'Shell.Window.Minimize',
+  'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
+  'Library.Failed', 'Shell.Window.Minimize',
   'Shell.Window.Maximize', 'Shell.Window.Restore', 'Shell.Window.Close', 'Shell.Window.Pin',
   'Shell.Window.Unpin', 'Main.Title', 'Main.Dock.All', 'Main.Dock.Keys', 'Main.Dock.Interface',
   'Main.Dock.Hotstring', 'Main.Dock.Menu', 'Main.Dock.Wheel', 'Main.Dock.Events',
@@ -173,7 +174,10 @@ const english: Record<string, string> = {
   'Mcp.Run': 'Allow the AI to run macros', 'Mcp.SwitchOn': 'On', 'Mcp.SwitchOff': 'Off',
   'Mcp.CopyConfig': 'Copy client config', 'Mcp.GrantsNote': 'Saved as you flip them.',
   'Mcp.OpenAudit': 'Open call log',
-  'Shell.Window.Minimize': 'Minimize',
+  'Shell.Window.Minimize': 'Minimize', 'Shell.Library': 'Library',
+  'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
+  'Library.Empty': 'The library has no macros yet.', 'Library.Delete': 'Remove from library',
+  'Library.Failed': 'The library could not be read.',
   'Shell.Window.Maximize': 'Maximize', 'Shell.Window.Restore': 'Restore',
   'Shell.Window.Close': 'Close', 'Shell.Window.Pin': 'Keep on top',
   'Shell.Window.Unpin': 'Stop keeping on top', 'Main.Title': 'WhaleGenie',
@@ -276,7 +280,10 @@ const chinese: Record<string, string> = {
   'Mcp.Run': '允许 AI 运行宏', 'Mcp.SwitchOn': '开', 'Mcp.SwitchOff': '关',
   'Mcp.CopyConfig': '复制客户端配置', 'Mcp.GrantsNote': '改一下就存下来了。',
   'Mcp.OpenAudit': '查看调用记录',
-  'Shell.Window.Minimize': '最小化',
+  'Shell.Window.Minimize': '最小化', 'Shell.Library': '宏库',
+  'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
+  'Library.Empty': '宏库还没有宏。', 'Library.Delete': '从宏库删除',
+  'Library.Failed': '无法读取宏库。',
   'Shell.Window.Maximize': '最大化', 'Shell.Window.Restore': '还原',
   'Shell.Window.Close': '关闭', 'Shell.Window.Pin': '窗口置顶',
   'Shell.Window.Unpin': '取消置顶', 'Main.Title': '鲸灵',
@@ -304,6 +311,10 @@ export class MockTransport implements BridgeTransport {
   private pendingDelete: string | null = null;
 
   private editor: EditorSnapshot | null = null;
+
+  private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
+    { id: 'library-1', name: '打开记事本', version: 1, description: '公共示例宏' },
+  ];
 
   private recording = false;
 
@@ -406,6 +417,13 @@ export class MockTransport implements BridgeTransport {
       case 'window.focus':
       case 'app.quit':
       case 'app.openExternal':
+        break;
+      case 'library.state':
+        result = { entries: this.libraryEntries, error: null };
+        break;
+      case 'library.delete':
+        this.libraryEntries = this.libraryEntries.filter((entry) => entry.id !== String(params['id']));
+        result = { entries: this.libraryEntries, error: null };
         break;
       case 'editor.sessionNew':
         this.editor = {

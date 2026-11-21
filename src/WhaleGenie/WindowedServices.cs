@@ -74,6 +74,7 @@ internal static class WindowedServices
             server.Register(new EditorSessionBridge(
                 sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>().Devices));
+            server.Register(new LibraryBridge());
             return server;
         })
         .AddSingleton(sp => new WebShellWindow(sp.GetRequiredService<BridgeServer>(),

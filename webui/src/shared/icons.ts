@@ -1,4 +1,5 @@
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
+import bookOpen from 'lucide-static/icons/book-open.svg?raw';
 import copy from 'lucide-static/icons/copy.svg?raw';
 import filePen from 'lucide-static/icons/file-pen.svg?raw';
 import house from 'lucide-static/icons/house.svg?raw';
@@ -25,6 +26,7 @@ const icons = {
   macros: list,
   editor: filePen,
   run: play,
+  library: bookOpen,
   settings,
   pin,
   minimize: minus,

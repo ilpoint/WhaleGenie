@@ -127,6 +127,7 @@ export class WgNav extends LitElement {
     macros: 'Shell.Macros',
     editor: 'Shell.Editor',
     run: 'Shell.Run',
+    library: 'Shell.Library',
     settings: 'Shell.Settings',
   };
 

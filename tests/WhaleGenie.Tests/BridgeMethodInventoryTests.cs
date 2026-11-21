@@ -53,6 +53,7 @@ public class BridgeMethodInventoryTests
         "editor.sessionVariableAdd", "editor.sessionVariablePatch",
         "editor.sessionVariableRemove", "editor.sessionSave", "editor.sessionClose",
         "editor.sessionActions",
+        "library.state", "library.delete",
         "mcp.state", "mcp.setGrants", "mcp.copyConfig", "mcp.openAudit",
         "project.state", "project.toggle", "project.delete", "project.export",
         "project.system", "project.open", "project.import", "project.save",

@@ -24,7 +24,7 @@ test('状态条跟随项目推送', async ({ page }) => {
   await expect(status.locator('[data-status="dirty"]')).toHaveText('已保存');
   await expect(status.locator('[data-status="system"]')).toHaveText('已停用');
 
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros .footer fluent-switch').click();
   await expect(status.locator('[data-status="system"]')).toHaveText('已启用');
 
@@ -45,7 +45,7 @@ test('首页关于与帮助请求原生入口', async ({ page }) => {
 });
 
 test('activity bar 图标切换页面并可折叠侧栏', async ({ page }) => {
-  await expect(page.locator('wg-nav .activity svg')).toHaveCount(5);
+  await expect(page.locator('wg-nav .activity svg')).toHaveCount(6);
   const macros = page.locator('wg-nav .activity button[aria-label="宏"]');
   await macros.click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
@@ -84,7 +84,7 @@ test('占位页的临时入口请求原生窗口', async ({ page }) => {
 });
 
 test('导航切换到宏列表与占位页', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
   await expect(page.locator('wg-macros')).toContainText('每 1 分钟');
 
@@ -510,7 +510,7 @@ test('C1 编辑宏的触发入口与按键', async ({ page }) => {
 });
 
 test('宏列表的过滤、搜索与启停', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
 
   // 视图 dock：切到"按键"，只剩带键触发的宏。视图 dock 是过滤区的第一排，分组 chips 在它
   // 下面，也用同一种按钮——按第一排定位，"全部"就不会点到分组里去。
@@ -534,13 +534,13 @@ test('宏列表的过滤、搜索与启停', async ({ page }) => {
 });
 
 test('系统开关推回新状态', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros .footer fluent-switch').click();
   await expect(page.locator('wg-macros .footer')).toContainText('已启用');
 });
 
 test('打开包后标题与列表跟着换，保存清掉未保存标记', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await expect(page.locator('wg-titlebar .title')).toContainText('未命名项目');
 
   // 打开：文件按钮先问程序，mock 宿主给出一个固定路径；标题与列表都换成包里的。
@@ -579,7 +579,7 @@ test('主题推送改变页面令牌', async ({ page }) => {
 });
 
 test('文本框焦点上报给宿主', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros input[type="search"]').click();
 
   // 宿主靠这条报告决定系统热键是否该让路；mock 只记录方法名，真实标志在 C# 侧与真机验收。
@@ -589,7 +589,7 @@ test('文本框焦点上报给宿主', async ({ page }) => {
 });
 
 test('关闭全部先问页面，确认后清空', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
   await page.getByRole('menuitem', { name: '全部关闭' }).click();
 
@@ -601,7 +601,7 @@ test('关闭全部先问页面，确认后清空', async ({ page }) => {
 });
 
 test('删除宏先问页面，确认后离开列表', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page
     .locator('wg-macros .card', { hasText: '自动保存' })
     .locator('.iconbuttons button.danger')
@@ -623,7 +623,7 @@ test('删除宏先问页面，确认后离开列表', async ({ page }) => {
 });
 
 test('MCP 浮层切换授权', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros .filebar fluent-button', { hasText: 'MCP' }).click();
   await expect(page.locator('wg-mcp-panel h2')).toHaveText('MCP');
 
@@ -640,6 +640,15 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
+test('宏库页列出并删除公共宏', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏库' }).click();
+  await expect(page.locator('wg-library h1')).toHaveText('共享宏');
+  await expect(page.locator('wg-library .card')).toHaveCount(1);
+  await page.locator('wg-library .card fluent-button').click();
+  await expect(page.locator('wg-library .card')).toHaveCount(0);
+  await expect(page.locator('wg-library .empty')).toHaveText('宏库还没有宏。');
+});
+
 test('原生菜单请求编辑会进入网页编辑器', async ({ page }) => {
   await expect(page.locator('wg-nav')).toBeVisible();
   await page.evaluate(() => window.__mock!.push('editor.openRequested', { name: '游戏连招' }));
@@ -651,7 +660,7 @@ test('原生菜单请求编辑会进入网页编辑器', async ({ page }) => {
 });
 
 test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
 
   await page.locator('wg-macros .footer fluent-button', { hasText: '新建宏' }).click();
   await expect(page).toHaveURL(/#editor$/);
@@ -660,7 +669,7 @@ test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
     .toContain('editor.sessionNew');
   await expect(page.locator('wg-editor-gate input').first()).toHaveValue('未命名宏');
 
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
   await expect(page.locator('wg-editor-gate input').first()).toHaveValue('自动保存');
   await expect
@@ -669,7 +678,7 @@ test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
 });
 
 test('宏卡片的运行按钮请求原生运行窗口', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-macros .card', { hasText: '自动保存' })
     .locator('.iconbuttons button[title="运行调试"]').click();
   await expect
@@ -678,7 +687,7 @@ test('宏卡片的运行按钮请求原生运行窗口', async ({ page }) => {
 });
 
 test('导入命令过桥', async ({ page }) => {
-  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-nav .side').getByText('宏', { exact: true }).click();
   await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
   await page.getByRole('menuitem', { name: '导入…' }).click();
   await expect

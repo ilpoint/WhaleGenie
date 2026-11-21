@@ -211,6 +211,18 @@ export interface EditorGlobal {
   persisted: boolean;
 }
 
+export interface LibraryEntry {
+  id: string;
+  name: string;
+  version: number;
+  description: string;
+}
+
+export interface LibraryState {
+  entries: LibraryEntry[];
+  error: string | null;
+}
+
 export interface EditorMacroField {
   name: string;
   type: string;

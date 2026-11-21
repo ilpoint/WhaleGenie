@@ -3,9 +3,9 @@
  * 文档页签，hash 的形状不变。
  */
 
-export type Route = 'home' | 'macros' | 'editor' | 'run' | 'settings';
+export type Route = 'home' | 'macros' | 'editor' | 'run' | 'library' | 'settings';
 
-export const routes: readonly Route[] = ['home', 'macros', 'editor', 'run', 'settings'];
+export const routes: readonly Route[] = ['home', 'macros', 'editor', 'run', 'library', 'settings'];
 
 export function currentRoute(): Route {
   const name = window.location.hash.replace(/^#/, '');
