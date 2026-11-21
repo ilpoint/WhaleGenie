@@ -172,6 +172,19 @@ test('C1 步骤可以放进块内部', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .tree ol .step-name')).toHaveText('延迟');
 });
 
+test('C1 局部变量墙可新建与改名', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).click();
+
+  const name = page.locator('wg-editor-gate .variable-row input').first();
+  await name.fill('count');
+  await name.press('Tab');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionVariablePatch')))
+    .toBe(true);
+  await expect(page.locator('wg-editor-gate .variable-row')).toHaveCount(1);
+});
+
 test('C1 编辑宏的触发入口与按键', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();

@@ -39,7 +39,10 @@ const chromeKeys = [
   'Editor.NamePlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
   'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
-  'Editor.RemoveTrigger', 'Editor.BindKey', 'Run.Steps', 'Common.Save', 'Common.Close',
+  'Editor.RemoveTrigger', 'Editor.BindKey',
+  'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
+  'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
+  'Run.Steps', 'Common.Save', 'Common.Close',
   'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
 
@@ -79,7 +82,10 @@ const english: Record<string, string> = {
   'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
-  'Editor.BindKey': 'Trigger / Bind Key :',
+  'Editor.BindKey': 'Trigger / Bind Key :', 'LocalVariables.Title': 'Local variables',
+  'LocalVariables.New': 'New variable', 'LocalVariables.Initial': 'Starts at',
+  'LocalVariables.InitialPlaceholder': 'A value, or an expression such as count + 1',
+  'LocalVariables.Delete': 'Delete',
   'Run.Steps': 'Steps', 'Common.Save': 'Save', 'Common.Close': 'Close',
   'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
   'Common.Cancel': 'Cancel',
@@ -130,7 +136,10 @@ const chinese: Record<string, string> = {
   'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
-  'Editor.BindKey': '触发 / 绑定按键：',
+  'Editor.BindKey': '触发 / 绑定按键：', 'LocalVariables.Title': '局部变量',
+  'LocalVariables.New': '新建变量', 'LocalVariables.Initial': '初始值',
+  'LocalVariables.InitialPlaceholder': '直接填值，或写表达式，例如 count + 1',
+  'LocalVariables.Delete': '删除',
   'Run.Steps': '步骤', 'Common.Save': '保存', 'Common.Close': '关闭',
   'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
   'Common.Cancel': '取消',
@@ -278,6 +287,12 @@ export class MockTransport implements BridgeTransport {
           stepCount: 0,
           steps: [],
           triggers: [],
+          variables: [],
+          variableTypes: [
+            { value: 'text', label: '文本' },
+            { value: 'number', label: '数字' },
+            { value: 'bool', label: '布尔' },
+          ],
         };
         result = this.editor;
         break;
@@ -291,6 +306,12 @@ export class MockTransport implements BridgeTransport {
           stepCount: 0,
           steps: [],
           triggers: [],
+          variables: [],
+          variableTypes: [
+            { value: 'text', label: '文本' },
+            { value: 'number', label: '数字' },
+            { value: 'bool', label: '布尔' },
+          ],
         };
         result = this.editor;
         break;
@@ -320,6 +341,12 @@ export class MockTransport implements BridgeTransport {
             stepCount: 0,
             steps: [],
             triggers: [],
+          variables: [],
+          variableTypes: [
+            { value: 'text', label: '文本' },
+            { value: 'number', label: '数字' },
+            { value: 'bool', label: '布尔' },
+          ],
           };
         }
         result = this.editor;
@@ -405,6 +432,54 @@ export class MockTransport implements BridgeTransport {
             triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
               ? { ...trigger, binding: String(params['binding'] ?? '') }
               : trigger),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionVariableAdd':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            variables: [...this.editor.variables, {
+              name: '',
+              type: 'text',
+              initial: '',
+              description: '',
+            }],
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionVariablePatch':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            variables: this.editor.variables.map((variable) =>
+              variable.name === params['originalName']
+                ? {
+                    ...variable,
+                    name: params['field'] === 'name' ? String(params['value'] ?? '') : variable.name,
+                    type: params['field'] === 'type' ? String(params['value'] ?? '') : variable.type,
+                    initial: params['field'] === 'initial'
+                      ? String(params['value'] ?? '')
+                      : variable.initial,
+                    description: params['field'] === 'description'
+                      ? String(params['value'] ?? '')
+                      : variable.description,
+                  }
+                : variable),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionVariableRemove':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            variables: this.editor.variables.filter((variable) => variable.name !== params['name']),
           };
         }
         result = this.editor;

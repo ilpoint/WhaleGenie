@@ -129,6 +129,18 @@ export interface EditorTrigger {
   binding: string;
 }
 
+export interface EditorVariable {
+  name: string;
+  type: string;
+  initial: string;
+  description: string;
+}
+
+export interface EditorVariableType {
+  value: string;
+  label: string;
+}
+
 export interface EditorSnapshot {
   name: string;
   description: string;
@@ -136,6 +148,8 @@ export interface EditorSnapshot {
   stepCount: number;
   steps: EditorStep[];
   triggers: EditorTrigger[];
+  variables: EditorVariable[];
+  variableTypes: EditorVariableType[];
 }
 
 export interface EditorActionParameter {

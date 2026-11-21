@@ -32,6 +32,9 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionTriggerAdd", _ => Task.FromResult<object?>(AddTrigger()));
         server.Register("editor.sessionTriggerRemove", RemoveTrigger);
         server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
+        server.Register("editor.sessionVariableAdd", _ => Task.FromResult<object?>(AddVariable()));
+        server.Register("editor.sessionVariablePatch", PatchVariable);
+        server.Register("editor.sessionVariableRemove", RemoveVariable);
         server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
         server.Register("editor.sessionClose", Close);
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
@@ -178,6 +181,54 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         }
     }
 
+    private object? AddVariable()
+    {
+        Required().AddVariable();
+        return Snapshot();
+    }
+
+    private Task<object?> PatchVariable(JsonElement parameters)
+    {
+        var original = parameters.TryGetProperty("originalName", out var name) ? name.GetString() : null;
+        var field = parameters.TryGetProperty("field", out var property) ? property.GetString() : null;
+        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
+        if (original is null || field is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsVariable"));
+        }
+
+        try
+        {
+            Required().PatchVariable(original, field, value);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> RemoveVariable(JsonElement parameters)
+    {
+        var name = parameters.TryGetProperty("name", out var written) ? written.GetString() : null;
+        if (name is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsVariable"));
+        }
+
+        try
+        {
+            Required().RemoveVariable(name);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
     private object? AddTrigger()
     {
         try
@@ -283,6 +334,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 stepCount = snapshot.StepCount,
                 steps = snapshot.Steps,
                 triggers = snapshot.Triggers,
+                variables = snapshot.Variables,
+                variableTypes = snapshot.VariableTypes,
             }
             : null;
 

@@ -140,6 +140,27 @@ export class WgEditorGate extends LitElement {
       resize: vertical;
     }
 
+    .variables {
+      display: grid;
+      gap: var(--spacingVerticalS);
+      margin-bottom: var(--spacingVerticalM);
+    }
+
+    .variable-row {
+      display: grid;
+      grid-template-columns: 1fr 120px 1fr 1fr auto;
+      gap: var(--spacingHorizontalS);
+      align-items: center;
+    }
+
+    .variable-row button {
+      border: none;
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      font: inherit;
+      cursor: pointer;
+    }
+
     .triggers {
       list-style: none;
       margin: 0 0 var(--spacingVerticalM);
@@ -363,6 +384,47 @@ export class WgEditorGate extends LitElement {
       <fluent-button appearance="subtle" @click=${this.addTrigger}>
         ${t('Editor.AddTrigger')}
       </fluent-button>
+      <h2>${t('LocalVariables.Title')}</h2>
+      <div class="variables">
+        ${this.snapshot.variables.map((variable) => html`
+          <div class="variable-row">
+            <input
+              .value=${variable.name}
+              placeholder=${t('LocalVariables.New')}
+              aria-label=${t('LocalVariables.Title')}
+              @change=${(event: Event) => void this.patchVariable(variable.name, 'name', event)}
+            />
+            <select
+              .value=${variable.type}
+              aria-label=${t('LocalVariables.Title')}
+              @change=${(event: Event) => void this.patchVariable(variable.name, 'type', event)}
+            >
+              ${this.snapshot!.variableTypes.map((type) => html`
+                <option value=${type.value}>${type.label}</option>
+              `)}
+            </select>
+            <input
+              .value=${variable.initial}
+              placeholder=${t('LocalVariables.InitialPlaceholder')}
+              aria-label=${t('LocalVariables.Initial')}
+              @change=${(event: Event) => void this.patchVariable(variable.name, 'initial', event)}
+            />
+            <input
+              .value=${variable.description}
+              aria-label=${t('LocalVariables.Title')}
+              @change=${(event: Event) => void this.patchVariable(variable.name, 'description', event)}
+            />
+            <button
+              title=${t('LocalVariables.Delete')}
+              aria-label=${t('LocalVariables.Delete')}
+              @click=${() => void this.removeVariable(variable.name)}
+            >×</button>
+          </div>
+        `)}
+      </div>
+      <fluent-button appearance="subtle" @click=${this.addVariable}>
+        ${t('LocalVariables.New')}
+      </fluent-button>
       <h2>${t('Run.Steps')}</h2>
       <div class="toolbar">
         <select .value=${this.actionKey} @change=${this.selectAction}>
@@ -498,6 +560,34 @@ export class WgEditorGate extends LitElement {
         triggerId,
         binding: (event.target as HTMLInputElement).value,
       });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async addVariable(): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionVariableAdd');
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async patchVariable(originalName: string, field: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionVariablePatch', {
+        originalName,
+        field,
+        value: (event.target as HTMLInputElement | HTMLSelectElement).value,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async removeVariable(name: string): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionVariableRemove', { name });
     } catch (error) {
       this.error = String(error);
     }

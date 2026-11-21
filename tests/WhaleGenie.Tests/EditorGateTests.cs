@@ -101,6 +101,29 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_local_variable_can_be_added_renamed_typed_and_removed()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "variables" });
+        var session = HeadlessEditorSession.Open(workspace, "variables");
+
+        session.AddVariable();
+        Assert.Single(session.Snapshot().Variables);
+
+        session.PatchVariable(string.Empty, "name", "count");
+        session.PatchVariable("count", "initial", "5");
+        session.PatchVariable("count", "type", "number");
+        var variable = Assert.Single(session.Snapshot().Variables);
+        Assert.Equal("count", variable.Name);
+        Assert.Equal("number", variable.Type);
+        Assert.Equal("5", variable.Initial);
+
+        session.RemoveVariable("count");
+        Assert.Empty(session.Snapshot().Variables);
+        Assert.True(session.IsDirty);
+    }
+
+    [Fact]
     public void A_dirty_document_cannot_be_closed_until_saved()
     {
         var workspace = new ProjectWorkspace();

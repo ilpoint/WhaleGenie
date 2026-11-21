@@ -86,6 +86,19 @@ internal sealed class HeadlessEditorSession
             entry.IsEnabled,
             entry.Spec is KeySpec key ? key.Binding : string.Empty))];
 
+    public IReadOnlyList<EditorVariableSnapshot> Variables
+        => [.. _model.DeclaredLocals.Select(local => new EditorVariableSnapshot(
+            local.Name,
+            WhaleGenie.Models.VariableTypes.Name(local.Type),
+            Formula.Word(local.Initial),
+            local.Description))];
+
+    public static IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes
+        => [.. WhaleGenie.Models.VariableTypes.Declarable.Select(kind => new EditorVariableTypeSnapshot(
+            WhaleGenie.Models.VariableTypes.Name(kind),
+            Strings.Get($"Variable.Type.{WhaleGenie.Models.VariableTypes.Name(kind)}",
+                WhaleGenie.Models.VariableTypes.Name(kind))))];
+
     public void Patch(string? name = null, string? description = null)
     {
         if (name is not null)
@@ -113,6 +126,51 @@ internal sealed class HeadlessEditorSession
             parameter.Kind == ActionParameterKind.Steps)?.Steps
             ?? throw new InvalidOperationException("step " + parentId + " holds no sub-steps");
         list.Add(new MacroStep { Type = type });
+        _model.IsDirty = true;
+    }
+
+    public void AddVariable()
+    {
+        _model.DeclaredLocals.Add(new MacroLocalVariable { Name = string.Empty, Type = ValueKind.Text });
+        _model.IsDirty = true;
+    }
+
+    public void PatchVariable(string originalName, string field, string value)
+    {
+        var local = _model.DeclaredLocals.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), originalName.Trim(), StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no local variable " + originalName);
+        switch (field)
+        {
+            case "name":
+                if (!_model.RenameLocalVariable(originalName, value, out var problem))
+                {
+                    throw new InvalidOperationException(problem);
+                }
+
+                break;
+            case "type":
+                local.Type = WhaleGenie.Models.VariableTypes.KindOf(value);
+                break;
+            case "initial":
+                local.Initial = Formula.Text(value);
+                break;
+            case "description":
+                local.Description = value;
+                break;
+            default:
+                throw new InvalidOperationException("unknown variable field " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void RemoveVariable(string name)
+    {
+        var local = _model.DeclaredLocals.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no local variable " + name);
+        _model.DeclaredLocals.Remove(local);
         _model.IsDirty = true;
     }
 
@@ -216,7 +274,9 @@ internal sealed class HeadlessEditorSession
             IsDirty,
             Count(macro.Steps),
             [.. macro.Steps.Select(StepSnapshot)],
-            Triggers);
+            Triggers,
+            Variables,
+            VariableTypes);
     }
 
     /// <summary>The action catalogue, in the order the picker shows it and with its form fields.</summary>
@@ -314,7 +374,12 @@ internal sealed class HeadlessEditorSession
 }
 
 internal sealed record EditorSnapshot(string Name, string Description, bool Dirty, int StepCount,
-    IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers);
+    IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
+    IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes);
+
+internal sealed record EditorVariableSnapshot(string Name, string Type, string Initial, string Description);
+
+internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 
 internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
     bool Enabled, string Binding);
