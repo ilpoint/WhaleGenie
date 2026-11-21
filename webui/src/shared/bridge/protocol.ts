@@ -145,6 +145,11 @@ export interface EditorVariableType {
   label: string;
 }
 
+export interface EditorTriggerKind {
+  value: string;
+  label: string;
+}
+
 export interface EditorSnapshot {
   name: string;
   description: string;
@@ -155,6 +160,7 @@ export interface EditorSnapshot {
   triggers: EditorTrigger[];
   variables: EditorVariable[];
   variableTypes: EditorVariableType[];
+  triggerKinds: EditorTriggerKind[];
   canUndo: boolean;
   canRedo: boolean;
 }

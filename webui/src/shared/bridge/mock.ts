@@ -308,6 +308,11 @@ export class MockTransport implements BridgeTransport {
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
           ],
+          triggerKinds: [
+            { value: 'Key', label: '按键' },
+            { value: 'Timer', label: '定时' },
+            { value: 'Color', label: '颜色' },
+          ],
           canUndo: false,
           canRedo: false,
         };
@@ -329,6 +334,11 @@ export class MockTransport implements BridgeTransport {
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
+          ],
+          triggerKinds: [
+            { value: 'Key', label: '按键' },
+            { value: 'Timer', label: '定时' },
+            { value: 'Color', label: '颜色' },
           ],
           canUndo: false,
           canRedo: false,
@@ -367,6 +377,11 @@ export class MockTransport implements BridgeTransport {
             { value: 'text', label: '文本' },
             { value: 'number', label: '数字' },
             { value: 'bool', label: '布尔' },
+          ],
+          triggerKinds: [
+            { value: 'Key', label: '按键' },
+            { value: 'Timer', label: '定时' },
+            { value: 'Color', label: '颜色' },
           ],
           canUndo: false,
           canRedo: false,
@@ -461,15 +476,16 @@ export class MockTransport implements BridgeTransport {
         }
         result = this.editor;
         break;
-      case 'editor.sessionTriggerAdd':
+      case 'editor.sessionTriggerAdd': {
+        const kind = String(params['kind'] ?? 'Key');
         if (this.editor) {
           this.editor = {
             ...this.editor,
             dirty: true,
             triggers: [...this.editor.triggers, {
               id: 'trigger',
-              kind: 'Key',
-              kindLabel: '按键',
+              kind,
+              kindLabel: kind === 'Key' ? '按键' : kind,
               summary: '',
               enabled: true,
               binding: '',
@@ -480,6 +496,7 @@ export class MockTransport implements BridgeTransport {
         }
         result = this.editor;
         break;
+      }
       case 'editor.sessionTriggerRemove':
         if (this.editor) {
           this.editor = {

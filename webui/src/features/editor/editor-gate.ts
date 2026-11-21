@@ -48,6 +48,9 @@ export class WgEditorGate extends LitElement {
   private capturingKey = '';
 
   @state()
+  private triggerKind = 'Key';
+
+  @state()
   private error = '';
 
   private unsubscribeStrings?: () => void;
@@ -207,6 +210,22 @@ export class WgEditorGate extends LitElement {
       color: var(--colorNeutralForeground2);
       font: inherit;
       cursor: pointer;
+    }
+
+    .trigger-add {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalS);
+      margin-bottom: var(--spacingVerticalM);
+    }
+
+    .trigger-add select {
+      font: inherit;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      color: var(--colorNeutralForeground1);
     }
 
     .toolbar {
@@ -462,9 +481,16 @@ export class WgEditorGate extends LitElement {
           </li>
         `)}
       </ul>
-      <fluent-button appearance="subtle" @click=${this.addTrigger}>
-        ${t('Editor.AddTrigger')}
-      </fluent-button>
+      <div class="trigger-add">
+        <select .value=${this.triggerKind} @change=${this.selectTriggerKind}>
+          ${this.snapshot.triggerKinds.map((kind) => html`
+            <option value=${kind.value}>${kind.label}</option>
+          `)}
+        </select>
+        <fluent-button appearance="subtle" @click=${this.addTrigger}>
+          ${t('Editor.AddTrigger')}
+        </fluent-button>
+      </div>
       <h2>${t('LocalVariables.Title')}</h2>
       <div class="variables">
         ${this.snapshot.variables.map((variable) => html`
@@ -640,9 +666,14 @@ export class WgEditorGate extends LitElement {
     }
   }
 
+  private selectTriggerKind(event: Event): void {
+    this.triggerKind = (event.target as HTMLSelectElement).value;
+  }
+
   private async addTrigger(): Promise<void> {
     try {
-      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerAdd');
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerAdd',
+        { kind: this.triggerKind });
     } catch (error) {
       this.error = String(error);
     }

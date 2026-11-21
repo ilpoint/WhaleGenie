@@ -31,7 +31,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         server.Register("editor.sessionRedo", _ => Task.FromResult<object?>(Redo()));
         server.Register("editor.sessionMove", MoveStep);
         server.Register("editor.sessionRemove", RemoveStep);
-        server.Register("editor.sessionTriggerAdd", _ => Task.FromResult<object?>(AddTrigger()));
+        server.Register("editor.sessionTriggerAdd", AddTrigger);
         server.Register("editor.sessionTriggerRemove", RemoveTrigger);
         server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
         server.Register("editor.sessionTriggerLoop", SetTriggerLoop);
@@ -310,12 +310,13 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
         }
     }
 
-    private object? AddTrigger()
+    private Task<object?> AddTrigger(JsonElement parameters)
     {
+        var kind = parameters.TryGetProperty("kind", out var named) ? named.GetString() : null;
         try
         {
-            Required().AddKeyTrigger();
-            return Snapshot();
+            Required().AddTrigger(kind is { Length: > 0 } ? kind : nameof(TriggerKind.Key));
+            return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)
         {
@@ -418,6 +419,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
                 triggers = snapshot.Triggers,
                 variables = snapshot.Variables,
                 variableTypes = snapshot.VariableTypes,
+                triggerKinds = snapshot.TriggerKinds,
                 canUndo = snapshot.CanUndo,
                 canRedo = snapshot.CanRedo,
             }

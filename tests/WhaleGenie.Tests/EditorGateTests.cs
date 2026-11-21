@@ -101,6 +101,19 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void A_trigger_can_be_added_by_kind()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "kinds" });
+        var session = HeadlessEditorSession.Open(workspace, "kinds");
+
+        Assert.Contains(HeadlessEditorSession.TriggerKindOptions, kind => kind.Value == "Timer");
+        session.AddTrigger("Timer");
+        var trigger = Assert.Single(session.Snapshot().Triggers);
+        Assert.Equal("Timer", trigger.Kind);
+    }
+
+    [Fact]
     public void A_macro_group_can_be_changed()
     {
         var workspace = new ProjectWorkspace();

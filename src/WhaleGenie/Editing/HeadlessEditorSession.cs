@@ -115,6 +115,10 @@ internal sealed class HeadlessEditorSession
                     false)),
         ];
 
+    public static IReadOnlyList<EditorTriggerKindSnapshot> TriggerKindOptions
+        => [.. TriggerKinds.Editable.Select(kind => new EditorTriggerKindSnapshot(
+            kind.ToString(), TriggerKinds.Text(kind)))];
+
     public static IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes
         => [.. WhaleGenie.Models.VariableTypes.Declarable.Select(kind => new EditorVariableTypeSnapshot(
             WhaleGenie.Models.VariableTypes.Name(kind),
@@ -205,11 +209,18 @@ internal sealed class HeadlessEditorSession
         _model.IsDirty = true;
     }
 
-    public void AddKeyTrigger()
+    public void AddTrigger(string kind)
     {
-        _model.AddTriggerCommand.Execute(TriggerKind.Key);
+        if (!Enum.TryParse<TriggerKind>(kind, ignoreCase: true, out var parsed))
+        {
+            throw new InvalidOperationException("unknown trigger kind " + kind);
+        }
+
+        _model.AddTriggerCommand.Execute(parsed);
         _model.IsDirty = true;
     }
+
+    public void AddKeyTrigger() => AddTrigger(nameof(TriggerKind.Key));
 
     public void RemoveTrigger(string triggerId)
     {
@@ -343,6 +354,7 @@ internal sealed class HeadlessEditorSession
             Triggers,
             Variables,
             VariableTypes,
+            TriggerKindOptions,
             CanUndo,
             CanRedo);
     }
@@ -444,7 +456,9 @@ internal sealed class HeadlessEditorSession
 internal sealed record EditorSnapshot(string Name, string Description, string Group, bool Dirty, int StepCount,
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
-    bool CanUndo, bool CanRedo);
+    IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo);
+
+internal sealed record EditorTriggerKindSnapshot(string Value, string Label);
 
 internal sealed record EditorVariableSnapshot(string Name, string Type, string Initial, string Description,
     string Source, bool IsDeclared);
