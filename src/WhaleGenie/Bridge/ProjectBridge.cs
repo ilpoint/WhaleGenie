@@ -10,6 +10,7 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
+using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -54,6 +55,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _server = server;
         server.Register("project.state", _ => Task.FromResult<object?>(State()));
         server.Register("project.toggle", Toggle);
+        server.Register("project.delete", Delete);
+        server.Register("project.export", Export);
         server.Register("project.system", SystemSwitch);
         server.Register("project.open", Open);
         server.Register("project.save", Save);
@@ -123,7 +126,101 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         }
 
         _workspace.ToggleMacro(macro);
+
+        // Arming a macro again gives a "trigger once" macro a fresh chance to run; disarming one
+        // stops the run it may be in. The main window's toggle does both, so this one does too.
+        if (macro.IsEnabled)
+        {
+            _runtime.Triggers.Rearm(macro.Name);
+        }
+        else
+        {
+            _runtime.Triggers.Stop(macro.Name);
+        }
+
         return Task.FromResult<object?>(null);
+    }
+
+    /// <summary>
+    /// Removes a macro from the list. The page asks first — the answer comes back through the
+    /// confirm bridge — and the run the trigger may be in stops with it.
+    /// </summary>
+    private async Task<object?> Delete(JsonElement parameters)
+    {
+        var macro = Find(parameters);
+        var accepted = await _dialogs.ConfirmAsync(
+            Strings.Get("Editor.DeleteTitle"),
+            Strings.Format("Editor.DeleteMessage", macro.Name),
+            Strings.Get("Editor.Delete"),
+            Strings.Get("Common.Cancel"));
+        if (!accepted)
+        {
+            return null;
+        }
+
+        _runtime.Triggers.Stop(macro.Name);
+        _workspace.RemoveMacro(macro);
+        await PushState();
+        return null;
+    }
+
+    /// <summary>
+    /// Writes one macro and what it needs into a package of its own. The choosing and the asking
+    /// happen in the two native windows the main window uses — the picker wants a screen's worth of
+    /// list, which is not the shell's job to imitate.
+    /// </summary>
+    private async Task<object?> Export(JsonElement parameters)
+    {
+        var macro = Find(parameters);
+        if (_window() is not { } window)
+        {
+            return null;
+        }
+
+        var nodes = await MacroChooseWindow.ShowAsync(window, MacroChooseKind.Export,
+            _workspace.Macros, _workspace.Triggers, _workspace.Variables.Globals,
+            preselected: [macro]);
+        if (nodes is null || nodes.Count == 0)
+        {
+            return null;
+        }
+
+        var selection = nodes.Select(node => node.Macro).ToList();
+        var path = await PackagePicker.AskWhereAsync(window, Strings.Get("Main.ExportMacroTitle"),
+            selection[0].Name);
+        if (path is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            // An export is written somewhere else, while the pictures stay beside the project: the
+            // folder comes along so the package carries them rather than pointing at this machine.
+            MacroPackage.Save(path, MacroBundle.Copies(selection),
+                MacroBundle.Take(_workspace.Triggers, selection),
+                MacroBundle.UsedGlobals(selection, _workspace.Variables.Globals), AppVersion.Text,
+                ImageAssets.FolderFor(_workspace.CurrentPath));
+            return null;
+        }
+        catch (Exception error)
+        {
+            throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
+                $"{Path.GetFileName(path)}\n{error.Message}");
+        }
+    }
+
+    private MacroItem Find(JsonElement parameters)
+    {
+        var wanted = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        var macro = _workspace.Macros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
+        if (macro is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.NoSuchMacro, $"There is no macro named \"{wanted}\".");
+        }
+
+        return macro;
     }
 
     private async Task<object?> SystemSwitch(JsonElement parameters)

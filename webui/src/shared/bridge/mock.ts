@@ -23,6 +23,8 @@ const chromeKeys = [
   'Main.CloseAll', 'Mcp.Title', 'Mcp.Intro', 'Mcp.Control', 'Mcp.Run',
   'Mcp.SwitchOn', 'Mcp.SwitchOff', 'Mcp.CopyConfig', 'Mcp.GrantsNote', 'Mcp.OpenAudit',
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
+  'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
+  'Editor.Delete', 'Common.Cancel',
 ] as const;
 
 const english: Record<string, string> = {
@@ -48,6 +50,10 @@ const english: Record<string, string> = {
   'Main.OpenProject': 'Open Macro Project', 'Main.SaveProject': 'Save Macro Project',
   'Main.SaveProjectAs': 'Save Macro Project As', 'Main.ReloadCurrent': 'Reload Current Macro',
   'Main.CloseAll': 'Close All', 'Main.CloseAllTitle': 'Close all macros',
+  'Main.EditTip': 'Edit', 'Main.DeleteTip': 'Delete',
+  'Editor.DeleteTitle': 'Delete macro', 'Editor.Delete': 'Delete',
+  'Editor.DeleteMessage': "Delete '{0}'? This cannot be undone.",
+  'Common.Cancel': 'Cancel',
   'Main.CloseAllMessage': 'Remove every macro from the list? The saved package is not changed.',
   'Mcp.Title': 'MCP', 'Mcp.Control': 'Allow direct control',
   'Mcp.Run': 'Allow the AI to run macros', 'Mcp.SwitchOn': 'On', 'Mcp.SwitchOff': 'Off',
@@ -82,6 +88,10 @@ const chinese: Record<string, string> = {
   'Main.OpenProject': '打开宏项目', 'Main.SaveProject': '保存宏项目',
   'Main.SaveProjectAs': '宏项目另存为', 'Main.ReloadCurrent': '重新加载当前宏',
   'Main.CloseAll': '全部关闭', 'Main.CloseAllTitle': '关闭全部宏',
+  'Main.EditTip': '编辑', 'Main.DeleteTip': '删除',
+  'Editor.DeleteTitle': '删除宏', 'Editor.Delete': '删除',
+  'Editor.DeleteMessage': '确定删除“{0}”？此操作无法撤销。',
+  'Common.Cancel': '取消',
   'Main.CloseAllMessage': '从列表中移除所有宏？已保存的宏包不会被修改。',
   'Mcp.Title': 'MCP', 'Mcp.Control': '允许直接控制',
   'Mcp.Run': '允许 AI 运行宏', 'Mcp.SwitchOn': '开', 'Mcp.SwitchOff': '关',
@@ -110,6 +120,9 @@ export class MockTransport implements BridgeTransport {
   private theme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null };
 
   private windowState: WindowState = { state: 'normal', topmost: false };
+
+  /** 等待删除确认的宏名；dialog.respond 带着答案回来时用。 */
+  private pendingDelete: string | null = null;
 
   private mcp: McpState = {
     allowControl: false,
@@ -212,6 +225,19 @@ export class MockTransport implements BridgeTransport {
       case 'editor.open':
         result = { opened: false };
         break;
+      case 'project.delete':
+        this.pendingDelete = String(params['name']);
+        this.push('dialog.request', {
+          requestId: 2,
+          title: chinese['Editor.DeleteTitle']!,
+          message: `确定删除“${String(params['name'])}”？此操作无法撤销。`,
+          confirmLabel: chinese['Editor.Delete']!,
+          cancelLabel: chinese['Common.Cancel']!,
+        });
+        break;
+      case 'project.export':
+        result = { exported: String(params['name']) };
+        break;
       case 'project.state':
         result = this.projectState;
         break;
@@ -287,18 +313,33 @@ export class MockTransport implements BridgeTransport {
         });
         break;
       case 'dialog.respond': {
-        if (params['accepted'] === true) {
+        if (params['accepted'] !== true) {
+          this.pendingDelete = null;
+          break;
+        }
+
+        if (this.pendingDelete !== null) {
+          // 删除确认被接受：那一个宏离开列表。
           this.projectState = {
             ...this.projectState,
-            path: null,
-            name: null,
-            untitled: true,
-            dirty: false,
-            macros: [],
-            groups: [],
+            dirty: true,
+            macros: this.projectState.macros.filter(entry => entry.name !== this.pendingDelete),
           };
+          this.pendingDelete = null;
           this.push('project.changed', this.projectState);
+          break;
         }
+
+        this.projectState = {
+          ...this.projectState,
+          path: null,
+          name: null,
+          untitled: true,
+          dirty: false,
+          macros: [],
+          groups: [],
+        };
+        this.push('project.changed', this.projectState);
         break;
       }
       case 'mcp.state':

@@ -108,6 +108,28 @@ test('关闭全部先问页面，确认后清空', async ({ page }) => {
   await expect(page.locator('wg-titlebar .title')).toContainText('未命名项目');
 });
 
+test('删除宏先问页面，确认后离开列表', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page
+    .locator('wg-macros .card', { hasText: '自动保存' })
+    .locator('.iconbuttons button.danger')
+    .click();
+
+  // 程序推删除确认，页面画出来；取消不动，确认后那一张卡离开列表。
+  await expect(page.locator('wg-confirm h2')).toContainText('删除宏');
+  await page.locator('wg-confirm .actions fluent-button[appearance="subtle"]').click();
+  await expect(page.locator('wg-macros .card .name').first()).toContainText('自动保存');
+  await expect(page.locator('wg-macros .card')).toHaveCount(2);
+
+  await page
+    .locator('wg-macros .card', { hasText: '自动保存' })
+    .locator('.iconbuttons button.danger')
+    .click();
+  await page.locator('wg-confirm .actions fluent-button[appearance="accent"]').click();
+  await expect(page.locator('wg-macros .card .name')).not.toContainText('自动保存');
+  await expect(page.locator('wg-macros .card .name')).toContainText('游戏连招');
+});
+
 test('MCP 浮层切换授权', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
   await page.locator('wg-macros .filebar fluent-button', { hasText: 'MCP' }).click();

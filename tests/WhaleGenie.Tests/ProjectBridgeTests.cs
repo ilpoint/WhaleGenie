@@ -146,8 +146,10 @@ public class ProjectBridgeTests : IDisposable
         await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
         _channel.Sent.Clear();
 
-        // The page answers "confirm": the list empties and the change rides back.
+        // The close waits for the page's answer: take the request without awaiting it, answer,
+        // and only then check what it did.
         var asking = _server.AcceptAsync("""{"id":2,"method":"project.closeAll"}""");
+
         var request = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"dialog.request\""))).RootElement;
         Assert.Equal("关闭全部宏", request.GetProperty("payload").GetProperty("title").GetString());
 
@@ -175,6 +177,43 @@ public class ProjectBridgeTests : IDisposable
         await asking;
 
         Assert.Single(_workspace.Macros);
+    }
+
+    [Fact]
+    public async Task Deleting_a_macro_stops_its_run_and_removes_it_after_the_confirm()
+    {
+        _workspace.AddMacro(new MacroItem { Name = "自动保存" });
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _channel.Sent.Clear();
+
+        // The delete waits for the page's answer, so the request is taken without awaiting it:
+        // the respond is what lets it finish, and only then does the removal land.
+        var asking = _server.AcceptAsync("""{"id":2,"method":"project.delete","params":{"name":"自动保存"}}""");
+
+        var request = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"event\":\"dialog.request\""))).RootElement;
+        var payload = request.GetProperty("payload");
+        Assert.Equal("删除宏", payload.GetProperty("title").GetString());
+        Assert.Contains("自动保存", payload.GetProperty("message").GetString(), StringComparison.Ordinal);
+
+        var requestId = payload.GetProperty("requestId").GetInt32();
+        await _server.AcceptAsync(
+            JsonSerializer.Serialize(new { id = 3, method = "dialog.respond", @params = new { requestId, accepted = true } }));
+        await asking;
+
+        Assert.Empty(_workspace.Macros);
+    }
+
+    [Fact]
+    public async Task An_export_without_a_window_is_quietly_called_off()
+    {
+        _workspace.AddMacro(new MacroItem { Name = "自动保存" });
+        await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        _channel.Sent.Clear();
+
+        await _server.AcceptAsync("""{"id":2,"method":"project.export","params":{"name":"自动保存"}}""");
+
+        var answer = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":2"))).RootElement;
+        Assert.True(answer.GetProperty("ok").GetBoolean());
     }
 
     [Fact]

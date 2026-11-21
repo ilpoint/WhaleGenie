@@ -181,6 +181,44 @@ export class WgMacros extends LitElement {
       justify-self: end;
     }
 
+    .iconbuttons {
+      display: flex;
+      gap: var(--spacingHorizontalXS);
+    }
+
+    .iconbuttons button {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border: none;
+      border-radius: var(--borderRadiusMedium);
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .iconbuttons button:hover {
+      background: var(--colorNeutralBackground1Hover);
+      color: var(--colorNeutralForeground1);
+    }
+
+    .iconbuttons button:focus-visible {
+      outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
+      outline-offset: -1px;
+    }
+
+    .iconbuttons button.danger:hover {
+      background: var(--colorPaletteRedBackground1);
+      color: var(--colorPaletteRedForeground1);
+    }
+
+    .iconbuttons svg {
+      width: 16px;
+      height: 16px;
+    }
+
     .empty {
       flex: 1;
       display: flex;
@@ -369,6 +407,38 @@ export class WgMacros extends LitElement {
           </span>
           <span class="triggers">${entry.triggerSummary}</span>
         </div>
+        <div class="iconbuttons">
+          <button
+            title=${t('Main.EditTip')}
+            aria-label=${t('Main.EditTip')}
+            @click=${() => this.onEdit(entry)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button
+            title=${t('Main.ExportMacro')}
+            aria-label=${t('Main.ExportMacro')}
+            @click=${() => this.onExport(entry)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" fill="none" stroke="currentColor" stroke-width="1.6" />
+              <path d="M16 6l-4-4-4 4M12 2v13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button
+            class="danger"
+            title=${t('Main.DeleteTip')}
+            aria-label=${t('Main.DeleteTip')}
+            @click=${() => this.onDelete(entry)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
         <fluent-switch
           ?checked=${entry.enabled}
           aria-label=${t(entry.enabled ? 'Main.DisableMacro' : 'Main.EnableMacro')}
@@ -405,6 +475,14 @@ export class WgMacros extends LitElement {
 
   private onOpen(): void {
     void this.call('project.open', {});
+  }
+
+  private onExport(entry: MacroEntry): void {
+    void this.call('project.export', { name: entry.name });
+  }
+
+  private onDelete(entry: MacroEntry): void {
+    void this.call('project.delete', { name: entry.name });
   }
 
   private onSave(): void {
