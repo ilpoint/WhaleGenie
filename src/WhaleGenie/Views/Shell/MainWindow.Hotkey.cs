@@ -74,17 +74,6 @@ public partial class MainWindow : AppWindow
         ToggleMacro(macro, viewModel);
     }
 
-    /// <summary>The same interface-group toggle, chosen from a hotkey.</summary>
-    private void ToggleInterfaceGroupFromHotkey(string groupKey)
-    {
-        if (!_hiddenInterfaceGroups.Add(groupKey))
-        {
-            _hiddenInterfaceGroups.Remove(groupKey);
-        }
-
-        RefreshSurface(DataContext as MainViewModel);
-    }
-
     /// <summary>
     /// Marks the macros the trigger is running, which colours the dots on their cards. The trigger
     /// host updates these too; this local copy answers to a toggle made on the window itself.

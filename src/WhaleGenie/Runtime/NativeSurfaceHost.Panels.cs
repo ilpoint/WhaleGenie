@@ -1,82 +1,81 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text.Json.Nodes;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Input.Platform;
-using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
-using Avalonia.Styling;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Execution;
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
-using WhaleGenie.Storage;
-using WhaleGenie.ViewModels;
+using WhaleGenie.Views;
 
-namespace WhaleGenie.Views;
+namespace WhaleGenie.Runtime;
 
-public partial class MainWindow : AppWindow
+// The floating panel beside the window in front: which interface group it shows, where it sits,
+// and when it goes away. It reads the project and the trigger service directly and owns the
+// foreground/bounds subscriptions, so it keeps working when the web shell is the visible window.
+internal sealed partial class NativeSurfaceHost
 {
-    // The floating panel beside the window in front: which interface group it shows, where it sits,
-    // and when it goes away. It keeps its own windows so a change to the panel does not read the
-    // session, menu or wheel code.
     private readonly Dictionary<string, FloatingSurfaceWindow> _surfaces = new(StringComparer.Ordinal);
     private readonly Dictionary<string, WindowInfo> _surfaceTargets = new(StringComparer.Ordinal);
     private readonly Dictionary<string, WindowRule> _surfaceRules = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
 
-    /// <summary>
-    /// How each group was left folded or turned. It outlives the window: a group hidden with its
-    /// hotkey and shown again comes back in the shape it was put away in.
-    /// </summary>
+    /// <summary>How each group was left folded or turned; outlives one panel window.</summary>
     private readonly Dictionary<string, FloatingSurfaceWindow.SurfaceViewState> _surfaceViews =
         new(StringComparer.Ordinal);
 
-    private void OnSurfaceForegroundChanged()
+    internal IReadOnlyCollection<FloatingSurfaceWindow> SurfaceWindowsForCheck => [.. _surfaces.Values];
+
+    private void InitializePanels()
+    {
+        _devices.WindowEvents.ForegroundChanged += OnForegroundChanged;
+        _devices.WindowEvents.BoundsChanged += OnBoundsChanged;
+    }
+
+    private void DisposePanels()
+    {
+        _devices.WindowEvents.ForegroundChanged -= OnForegroundChanged;
+        _devices.WindowEvents.BoundsChanged -= OnBoundsChanged;
+        HidePanels();
+    }
+
+    private void OnForegroundChanged()
         => Dispatcher.UIThread.Post(() =>
         {
-            // The menu is the host's now; it knows whether a pinned menu or a child dialog keeps it
-            // open. The panels still live here and are refreshed after the question is settled.
-            _nativeSurface?.CloseMenuForForegroundChange();
-            RefreshSurface(DataContext as MainViewModel);
+            CloseMenuForForegroundChange();
+            RefreshPanels();
         });
 
-    private void OnSurfaceBoundsChanged(long handle)
-    {
-        Dispatcher.UIThread.Post(() =>
+    private void OnBoundsChanged(long handle)
+        => Dispatcher.UIThread.Post(() =>
         {
             if (_surfaceTargets.Values.Any(target => target.Handle == handle))
             {
-                RefreshSurface(DataContext as MainViewModel);
+                RefreshPanels();
             }
         });
+
+    /// <summary>Folds or turns one interface group, and refreshes the panels that carry it.</summary>
+    public void ToggleInterfaceGroup(string groupKey)
+    {
+        if (!_hiddenInterfaceGroups.Add(groupKey))
+        {
+            _hiddenInterfaceGroups.Remove(groupKey);
+        }
+
+        RefreshPanels();
     }
 
-    private void RefreshSurface(MainViewModel? viewModel)
+    internal void RefreshPanels()
     {
         if (_surfaces.Values.Any(surface => surface.IsMoving))
         {
             return;
         }
 
-        if (viewModel is null
-            || !viewModel.IsRunning
-            || MacroTriggerGate.IsOpen
-            || _nativeSurface?.MenuOpen == true)
+        if (!_system.IsEnabled || MacroTriggerGate.IsOpen || MenuOpen)
         {
-            HideSurface();
+            HidePanels();
             return;
         }
 
@@ -90,20 +89,19 @@ public partial class MainWindow : AppWindow
             foreground = null;
         }
 
-        var allGroups = viewModel.Triggers.InterfaceGroups();
+        var allGroups = _workspace.Triggers.InterfaceGroups();
         var active = new HashSet<string>(StringComparer.Ordinal);
         foreach (var group in allGroups)
         {
             if (_hiddenInterfaceGroups.Contains(group.Key))
             {
-                // Hiding a group takes its buttons off the screen but not the window they
-                // belong to: showing it again puts them back where they were, even if the
-                // window has lost the focus in between.
+                // Hiding a group takes its buttons off the screen but not the window they belong
+                // to; showing it again puts them back where they were.
                 CloseSurfaceWindow(group.Key);
                 continue;
             }
 
-            var macros = InterfaceMemberResolver.Resolve(group, [.. viewModel.Macros])
+            var macros = InterfaceMemberResolver.Resolve(group, [.. _workspace.Macros])
                 .Where(member => member.IsVisibleOnSurface)
                 .Select(member => member.Macro!)
                 .ToList();
@@ -129,9 +127,9 @@ public partial class MainWindow : AppWindow
                     : default;
                 surface = new FloatingSurfaceWindow(macros, macro =>
                 {
-                    if (_triggers is not null && macro.IsEnabled)
+                    if (macro.IsEnabled)
                     {
-                        _triggers.RunOnce(macro);
+                        _runtime.Triggers.RunOnce(macro);
                     }
                 }, view);
                 surface.MoveCompleted += position => OnSurfaceMoved(group.Key, position);
@@ -148,11 +146,17 @@ public partial class MainWindow : AppWindow
             _surfaceRules[group.Key] = group.Rule;
             if (!surface.IsMoving)
             {
-                surface.PlaceAt(target, _devices.Windows,
-                    viewModel.Triggers.LayoutFor(group.Rule));
+                surface.PlaceAt(target, _devices.Windows, _workspace.Triggers.LayoutFor(group.Rule));
                 if (created)
                 {
-                    surface.ShowAsPeer(this);
+                    if (_owner() is { } owner)
+                    {
+                        surface.ShowAsPeer(owner);
+                    }
+                    else
+                    {
+                        surface.Show();
+                    }
                 }
 
                 surface.SitAbove(target.Handle);
@@ -164,8 +168,6 @@ public partial class MainWindow : AppWindow
             RemoveSurface(key);
         }
 
-        // A panel that was closed by a gate or a hide keeps the window it belonged to. Once the
-        // group itself is gone there is nothing left to keep it for.
         foreach (var key in _surfaceTargets.Keys
                      .Where(key => allGroups.All(group => group.Key != key)).ToList())
         {
@@ -181,24 +183,19 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    /// <summary>
-    /// The handle folded or turned the group: remember it for this session and put the window back
-    /// inside the target, because a row of buttons is wider than the column it replaced.
-    /// </summary>
     private void OnSurfaceViewChanged(string groupKey, FloatingSurfaceWindow surface,
         FloatingSurfaceWindow.SurfaceViewState state)
     {
         _surfaceViews[groupKey] = state;
         if (!_surfaceTargets.TryGetValue(groupKey, out var target)
-            || !_surfaceRules.TryGetValue(groupKey, out var rule)
-            || DataContext is not MainViewModel viewModel)
+            || !_surfaceRules.TryGetValue(groupKey, out var rule))
         {
             return;
         }
 
         try
         {
-            surface.PlaceAt(target, _devices.Windows, viewModel.Triggers.LayoutFor(rule));
+            surface.PlaceAt(target, _devices.Windows, _workspace.Triggers.LayoutFor(rule));
             surface.SitAbove(target.Handle);
         }
         catch
@@ -210,8 +207,7 @@ public partial class MainWindow : AppWindow
     private void OnSurfaceMoved(string groupKey, PixelPoint position)
     {
         if (!_surfaceTargets.TryGetValue(groupKey, out var target)
-            || !_surfaceRules.TryGetValue(groupKey, out var rule)
-            || DataContext is not MainViewModel viewModel)
+            || !_surfaceRules.TryGetValue(groupKey, out var rule))
         {
             return;
         }
@@ -219,7 +215,7 @@ public partial class MainWindow : AppWindow
         try
         {
             var origin = _devices.Windows.ClientOrigin(target.Handle);
-            viewModel.Triggers.StoreLayout(rule, position.X - origin.X, position.Y - origin.Y);
+            _workspace.Triggers.StoreLayout(rule, position.X - origin.X, position.Y - origin.Y);
         }
         catch
         {
@@ -227,7 +223,7 @@ public partial class MainWindow : AppWindow
         }
     }
 
-    private void HideSurface()
+    private void HidePanels()
     {
         foreach (var key in _surfaces.Keys.ToList())
         {
@@ -250,12 +246,6 @@ public partial class MainWindow : AppWindow
         _surfaceRules.Remove(key);
     }
 
-    /// <summary>
-    /// Which window a group's panel belongs to. A group whose rule names a window keeps the one it
-    /// was put in, so the panel stays inside that window while another program is in front; it
-    /// looks for a new window only once the old one is gone or shrunk. A group with no rule names
-    /// nothing, so it belongs to whatever window is in front and moves with it.
-    /// </summary>
     private WindowInfo? SurfaceTargetFor(InterfaceGroupView group, WindowInfo? foreground)
     {
         if (!group.Rule.HasTarget)
@@ -275,12 +265,6 @@ public partial class MainWindow : AppWindow
             : null;
     }
 
-    /// <summary>
-    /// The window behind a handle as it stands now, or null once it has gone. The rule is compared
-    /// against the window in front itself, not against whatever window happens to be listed first:
-    /// the panel is itself a window on top, and asking "the frontmost" would sometimes answer with
-    /// that panel rather than with the window it belongs to.
-    /// </summary>
     private WindowInfo? LivingWindow(long handle)
     {
         try
@@ -305,7 +289,4 @@ public partial class MainWindow : AppWindow
             return false;
         }
     }
-
-    /// <summary>The panels on screen, for a check that drives a desktop of its own.</summary>
-    internal IReadOnlyCollection<FloatingSurfaceWindow> SurfaceWindowsForCheck => [.. _surfaces.Values];
 }

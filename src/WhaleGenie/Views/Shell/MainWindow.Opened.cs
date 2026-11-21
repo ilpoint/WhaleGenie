@@ -49,17 +49,17 @@ public partial class MainWindow : AppWindow
         // it, so the text recognition models are loaded once rather than once per run.
         _triggers = Runtime.Triggers;
 
-        // The menu and wheel are the host's now; the trigger host forwards their hooks there. The
-        // panels still use this window as their surface until they move as well.
+        // A window built without a container (a check, or a caller that only has a view model)
+        // shares the switch the view model draws; the production root hands in the same object.
+        _system = viewModel.SystemSwitch;
+
+        // The menu, wheel and panels are the host's; the trigger host forwards their hooks there.
         _nativeSurface = new NativeSurfaceHost(viewModel.Workspace, Runtime, _system, _devices,
             () => this, () => _host?.Plan ?? GlobalHotkeyPlan.Empty, this);
         _host = new TriggerHost(viewModel.Workspace, _system, Runtime, _devices,
             this, _questions, new WindowFocusProbe());
         _host.Attach();
 
-        var windowEvents = _devices.WindowEvents;
-        windowEvents.ForegroundChanged += OnSurfaceForegroundChanged;
-        windowEvents.BoundsChanged += OnSurfaceBoundsChanged;
         viewModel.Triggers.Changed += OnProjectTriggersChanged;
         viewModel.Changed += OnProjectChanged;
         viewModel.Macros.CollectionChanged += OnMacrosChanged;
@@ -73,13 +73,10 @@ public partial class MainWindow : AppWindow
             _host = null;
             _nativeSurface?.Dispose();
             _nativeSurface = null;
-            windowEvents.ForegroundChanged -= OnSurfaceForegroundChanged;
-            windowEvents.BoundsChanged -= OnSurfaceBoundsChanged;
             viewModel.Triggers.Changed -= OnProjectTriggersChanged;
             viewModel.Changed -= OnProjectChanged;
             viewModel.Macros.CollectionChanged -= OnMacrosChanged;
             viewModel.Variables.GlobalsChanged -= OnGlobalsChanged;
-            HideSurface();
             StopTriggers();
             _session?.Stop();
         };
@@ -99,29 +96,18 @@ public partial class MainWindow : AppWindow
 
     private void OnProjectTriggersChanged(object? sender, EventArgs e)
     {
-        if (DataContext is MainViewModel viewModel)
-        {
-            _nativeSurface?.RefreshWheelGate();
-            RefreshSurface(viewModel);
-        }
+        _nativeSurface?.RefreshWheelGate();
+        _nativeSurface?.RefreshPanels();
     }
 
     private void OnProjectChanged(object? sender, EventArgs e)
-    {
-        if (DataContext is MainViewModel viewModel)
-        {
-            _nativeSurface?.RefreshWheelGate();
-        }
-    }
+        => _nativeSurface?.RefreshWheelGate();
 
     private void OnMacrosChanged(object? sender,
         System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
-        if (DataContext is MainViewModel viewModel)
-        {
-            // Opening a package replaces the macros and the wheel without raising a change of the
-            // project itself, so the gate learns about the new wheel here as well.
-            _nativeSurface?.RefreshWheelGate();
-        }
+        // Opening a package replaces the macros and the wheel without raising a change of the
+        // project itself, so the gate learns about the new wheel here as well.
+        _nativeSurface?.RefreshWheelGate();
     }
 }

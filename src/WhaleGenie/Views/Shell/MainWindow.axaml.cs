@@ -67,7 +67,10 @@ public partial class MainWindow : AppWindow
     /// <summary>The layer this window works against, for a check that put its own behind it.</summary>
     internal IDeviceLayer DevicesForCheck => _devices;
 
-    private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
+    /// <summary>The panels on screen, for a check that drives a desktop of its own.</summary>
+    internal IReadOnlyCollection<FloatingSurfaceWindow> SurfaceWindowsForCheck =>
+        _nativeSurface?.SurfaceWindowsForCheck ?? [];
+
     private TriggerRuntime? _runtime;
     private TriggerHost? _host;
     private NativeSurfaceHost? _nativeSurface;
@@ -78,7 +81,7 @@ public partial class MainWindow : AppWindow
     /// a check can put a desktop of its own behind every menu, wheel and floating panel.
     /// </summary>
     private readonly IDeviceLayer _devices;
-    private readonly SystemState _system;
     private readonly RunQuestionHost _questions;
+    private SystemState _system;
 
 }

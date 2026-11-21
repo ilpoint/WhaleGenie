@@ -28,10 +28,6 @@ public interface INativeSurfaceActions
     void OpenRun(MacroItem macro);
 
     void OpenSettings(WindowInfo? foreground);
-
-    void HidePanels();
-
-    void RefreshPanels();
 }
 
 /// <summary>
@@ -44,6 +40,8 @@ internal sealed partial class NativeSurfaceHost : IDisposable
     private readonly ProjectWorkspace _workspace;
 
     private readonly TriggerRuntime _runtime;
+
+    private readonly SystemState _system;
 
     private readonly IDeviceLayer _devices;
 
@@ -63,15 +61,19 @@ internal sealed partial class NativeSurfaceHost : IDisposable
     private int _menuPinned;
     private MenuScreenBounds? _menuBounds;
 
-    public NativeSurfaceHost(ProjectWorkspace workspace, TriggerRuntime runtime, IDeviceLayer devices,
-        Func<Window?> owner, Func<GlobalHotkeyPlan> plan, INativeSurfaceActions actions)
+    internal NativeSurfaceHost(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
+        IDeviceLayer devices, Func<Window?> owner, Func<GlobalHotkeyPlan> plan,
+        INativeSurfaceActions actions)
     {
         _workspace = workspace;
         _runtime = runtime;
+        _system = system;
         _devices = devices;
         _owner = owner;
         _plan = plan;
         _actions = actions;
+        InitializeWheel();
+        InitializePanels();
     }
 
     public bool MenuOpen => Volatile.Read(ref _menuOpen) == 1;
@@ -187,7 +189,7 @@ internal sealed partial class NativeSurfaceHost : IDisposable
         }
 
         var layout = _workspace.Triggers.BuildMenuLayout(previous, _devices.Windows, [.. _workspace.Macros]);
-        _actions.HidePanels();
+        HidePanels();
         MacroTriggerGate.Enter();
         MacroMenuWindow menu;
         try
@@ -250,7 +252,7 @@ internal sealed partial class NativeSurfaceHost : IDisposable
                 _menuForeground = null;
             }
 
-            Dispatcher.UIThread.Post(_actions.RefreshPanels);
+            Dispatcher.UIThread.Post(RefreshPanels);
         };
 
         try
@@ -580,6 +582,8 @@ internal sealed partial class NativeSurfaceHost : IDisposable
 
     public void Dispose()
     {
+        DisposePanels();
+        DisposeWheel();
         if (_menu is { } menu)
         {
             _menu = null;

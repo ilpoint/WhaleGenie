@@ -43,7 +43,7 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerF
         => _nativeSurface?.WheelScroll(e);
 
     void Runtime.ITriggerSurfaceHost.ToggleInterfaceGroup(string groupKey)
-        => ToggleInterfaceGroupFromHotkey(groupKey);
+        => _nativeSurface?.ToggleInterfaceGroup(groupKey);
 
     void Runtime.ITriggerSurfaceHost.RefreshForSystemToggle()
     {
@@ -52,7 +52,7 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerF
             return;
         }
 
-        RefreshSurface(viewModel);
+        _nativeSurface?.RefreshPanels();
         _nativeSurface?.RefreshWheelGate();
         RefreshRunning(viewModel);
     }
@@ -66,9 +66,5 @@ public partial class MainWindow : Runtime.ITriggerSurfaceHost, Runtime.ITriggerF
     void Runtime.INativeSurfaceActions.OpenSettings(WindowInfo? foreground)
         => _ = OpenMenuSettingsAsync(foreground);
 
-    void Runtime.INativeSurfaceActions.HidePanels() => HideSurface();
-
-    void Runtime.INativeSurfaceActions.RefreshPanels()
-        => RefreshSurface(DataContext as MainViewModel);
 }
 
