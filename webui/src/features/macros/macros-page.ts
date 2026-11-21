@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
+import { go } from '../../app/router.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
@@ -484,25 +485,31 @@ export class WgMacros extends LitElement {
   }
 
   /** 发命令，把程序的拒绝（坏包、没这个宏）拿到提示条上说，而不是静默失败。 */
-  private async call(method: string, params?: unknown): Promise<void> {
+  private async call(method: string, params?: unknown): Promise<boolean> {
     try
     {
       await bridge.value.call(method, params);
+      return true;
     }
     catch (error)
     {
       const failure = error as BridgeFailurePayload;
       this.note = failure?.message ?? String(error);
+      return false;
     }
   }
 
-  private onAddMacro(): void {
-    // 编辑器还是原生窗口：命令过桥打开它，保存时宏落进项目、列表经 project.changed 刷新。
-    void this.call('editor.newMacro', { view: this.view });
+  private async onAddMacro(): Promise<void> {
+    // 网页编辑器是默认编辑器：先开一份 C# 会话，再切到编辑器路由。
+    if (await this.call('editor.sessionNew')) {
+      go('editor');
+    }
   }
 
-  private onEdit(entry: MacroEntry): void {
-    void this.call('editor.open', { name: entry.name });
+  private async onEdit(entry: MacroEntry): Promise<void> {
+    if (await this.call('editor.sessionOpen', { name: entry.name })) {
+      go('editor');
+    }
   }
 
   private onRun(entry: MacroEntry): void {

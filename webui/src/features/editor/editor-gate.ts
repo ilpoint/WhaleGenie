@@ -43,6 +43,12 @@ export class WgEditorGate extends LitElement {
 
   private recordTimer = 0;
 
+  private restoring = false;
+
+  private restoreFinished = false;
+
+  private projectState: ProjectState | null = null;
+
   @state()
   private valueTarget: { step: EditorStep; parameter: EditorParameter } | null = null;
 
@@ -656,6 +662,7 @@ export class WgEditorGate extends LitElement {
     this.unsubscribeStrings = strings.subscribe(() => this.requestUpdate());
     this.unsubscribeProject = project.subscribe((state) => this.projectChanged(state));
     window.addEventListener('keydown', this.onKeydown);
+    void this.restoreActive();
     void this.loadActions();
   }
 
@@ -2635,21 +2642,57 @@ export class WgEditorGate extends LitElement {
   }
 
   private projectChanged(state: ProjectState | null): void {
+    this.projectState = state;
     this.macros = state?.macros.map((macro) => macro.name) ?? [];
     if (this.openName.length === 0) {
       this.openName = this.macros[0] ?? '';
     }
-    this.openFirst(state);
+
+    if (this.restoreFinished) {
+      this.openFirst(state);
+    }
   }
 
   private openFirst(state: ProjectState | null): void {
-    if (this.opened || state === null) {
+    if (this.restoring || this.opened || this.snapshot !== null || state === null) {
       return;
     }
 
     this.opened = true;
     const first = state.macros[0];
     void this.open(first?.name ?? null);
+  }
+
+  private async restoreActive(): Promise<void> {
+    this.restoring = true;
+    let state: EditorSnapshot | null = null;
+    try {
+      state = await bridge.value.call<EditorSnapshot | null>('editor.sessionState');
+      const tabs = await bridge.value.call<{ activeKey: string | null; tabs: EditorTab[] }>(
+        'editor.sessionTabs');
+      if (state) {
+        this.snapshot = state;
+        this.selectedId = state.steps[0]?.id ?? '';
+        await this.loadTabs();
+      } else if (tabs.activeKey) {
+        state = await bridge.value.call<EditorSnapshot | null>('editor.sessionActivate',
+          { key: tabs.activeKey });
+        this.snapshot = state;
+        this.selectedId = state?.steps[0]?.id ?? '';
+        await this.loadTabs();
+      }
+
+      this.opened = state !== null || tabs.activeKey !== null;
+    } catch {
+      // No active document yet; the project push opens the first macro.
+    } finally {
+      this.restoring = false;
+      this.restoreFinished = true;
+    }
+
+    if (!this.opened) {
+      this.openFirst(this.projectState);
+    }
   }
 
   private async open(name: string | null): Promise<void> {

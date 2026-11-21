@@ -640,20 +640,22 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
-test('新建与编辑命令过桥', async ({ page }) => {
+test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
 
-  // 新建宏把当前视图带过去；mock 宿主不真的开原生编辑器，只把命令记下。
   await page.locator('wg-macros .footer fluent-button', { hasText: '新建宏' }).click();
+  await expect(page).toHaveURL(/#editor$/);
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.filter(name => name.startsWith('editor'))))
-    .toEqual(['editor.newMacro']);
+    .poll(async () => page.evaluate(() => window.__mock!.seen.filter((name) => name.startsWith('editor'))))
+    .toContain('editor.sessionNew');
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('未命名宏');
 
-  // 双击卡片把那个宏带过去。
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
   await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('自动保存');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.filter(name => name.startsWith('editor'))))
-    .toEqual(['editor.newMacro', 'editor.open']);
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionOpen')))
+    .toBe(true);
 });
 
 test('宏卡片的运行按钮请求原生运行窗口', async ({ page }) => {
