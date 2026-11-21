@@ -282,6 +282,7 @@ export class WgMacros extends LitElement {
         ${this.state.path ? html`
           <fluent-button appearance="subtle" @click=${this.onReload}>${t('Main.ReloadCurrent')}</fluent-button>
         ` : nothing}
+        <fluent-button appearance="subtle" @click=${this.onImport}>${t('Main.Import')}</fluent-button>
         ${this.state.macros.length > 0 ? html`
           <fluent-button appearance="subtle" @click=${this.onCloseAll}>${t('Main.CloseAll')}</fluent-button>
         ` : nothing}
@@ -495,6 +496,11 @@ export class WgMacros extends LitElement {
 
   private onReload(): void {
     void this.call('project.reload', {});
+  }
+
+  private onImport(): void {
+    // 导入的选择与冲突两问在原生窗口里走（需要一屏的列表），报告经确认框回来。
+    void this.call('project.import', {});
   }
 
   private onCloseAll(): void {

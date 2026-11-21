@@ -59,6 +59,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         server.Register("project.export", Export);
         server.Register("project.system", SystemSwitch);
         server.Register("project.open", Open);
+        server.Register("project.import", Import);
         server.Register("project.save", Save);
         server.Register("project.saveAs", SaveAs);
         server.Register("project.reload", Reload);
@@ -221,6 +222,90 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         }
 
         return macro;
+    }
+
+    /// <summary>
+    /// Imports from a package, through the same two native windows the main window uses: the
+    /// chooser that says what is inside, and the conflicts window that asks what a variable both
+    /// sides declare should become. Everything that arrives lands in the project, and the page
+    /// hears about it with the usual change event; the report comes back as a question with one
+    /// button, because "what did it do" is a report and not a choice.
+    /// </summary>
+    private async Task<object?> Import(JsonElement parameters)
+    {
+        if (_window() is not { } window)
+        {
+            return null;
+        }
+
+        var path = await PickAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("Main.ImportTitle"),
+            AllowMultiple = false,
+            FileTypeFilter = [PackageFileType()],
+        });
+        if (path is null)
+        {
+            return null;
+        }
+
+        PackageContents contents;
+        try
+        {
+            // Pictures land in this project's folder: the file being imported is not where the
+            // macros will be working from. A name already used there is compared by content, so an
+            // arriving picture never replaces one another macro looks for.
+            contents = MacroPackage.Load(path, ImageAssets.FolderFor(_workspace.CurrentPath));
+        }
+        catch (Exception error)
+        {
+            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
+                $"{Path.GetFileName(path)}\n{error.Message}");
+        }
+
+        var nodes = await MacroChooseWindow.ShowAsync(window, MacroChooseKind.Import,
+            contents.Macros, contents.Triggers, _workspace.Variables.Globals, contents.Globals,
+            fileName: Path.GetFileName(path));
+        if (nodes is null || nodes.Count == 0)
+        {
+            return null;
+        }
+
+        var chosen = nodes.Select(node => node.Macro).ToList();
+
+        try
+        {
+            if (nodes.All(node => node.IsSub))
+            {
+                // Submacros ticked on their own belong in the public library, because that is
+                // where something a macro calls lives.
+                var added = MacroImport.IntoLibrary(chosen, AppPaths.PublicMacroLibrary);
+                await _dialogs.ConfirmAsync(Strings.Get("Import.ReportTitle"),
+                    Strings.Format("Import.LibraryAdded",
+                        string.Join("、", added.Select(entry => entry.Macro.Name))),
+                    Strings.Get("Common.Ok"), null);
+                return null;
+            }
+
+            // What to do about a variable both sides declare is a question, not a default: the wrong
+            // answer is a macro that reads somebody else's number without saying so.
+            var decisions = MacroImport.Decisions(chosen, contents.Globals,
+                _workspace.Variables.Globals);
+            if (!await GlobalConflictWindow.ShowAsync(window, decisions, chosen))
+            {
+                return null;
+            }
+
+            var report = MacroImport.IntoProject(_workspace, contents, chosen, decisions);
+            await _dialogs.ConfirmAsync(Strings.Get("Import.ReportTitle"),
+                MainWindow.ReportText(report), Strings.Get("Common.Ok"), null);
+            return null;
+        }
+        catch (Exception error)
+        {
+            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
+                $"{Path.GetFileName(path)}\n{error.Message}");
+        }
     }
 
     private async Task<object?> SystemSwitch(JsonElement parameters)

@@ -164,6 +164,14 @@ test('新建与编辑命令过桥', async ({ page }) => {
     .toEqual(['editor.newMacro', 'editor.open']);
 });
 
+test('导入命令过桥', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros .filebar fluent-button', { hasText: '导入' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('project.import')))
+    .toBe(true);
+});
+
 interface MockProbe {
   push(event: string, payload: unknown): void;
 }

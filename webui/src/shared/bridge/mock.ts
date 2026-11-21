@@ -24,7 +24,7 @@ const chromeKeys = [
   'Mcp.SwitchOn', 'Mcp.SwitchOff', 'Mcp.CopyConfig', 'Mcp.GrantsNote', 'Mcp.OpenAudit',
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
-  'Editor.Delete', 'Common.Cancel',
+  'Editor.Delete', 'Common.Cancel', 'Main.Import',
 ] as const;
 
 const english: Record<string, string> = {
@@ -48,6 +48,7 @@ const english: Record<string, string> = {
   'Main.SystemEnabled': 'Enabled', 'Main.SystemDisabled': 'Disabled',
   'Main.GroupAll': 'All groups', 'Main.Ungrouped': 'Ungrouped',
   'Main.OpenProject': 'Open Macro Project', 'Main.SaveProject': 'Save Macro Project',
+  'Main.Import': 'Import…',
   'Main.SaveProjectAs': 'Save Macro Project As', 'Main.ReloadCurrent': 'Reload Current Macro',
   'Main.CloseAll': 'Close All', 'Main.CloseAllTitle': 'Close all macros',
   'Main.EditTip': 'Edit', 'Main.DeleteTip': 'Delete',
@@ -86,6 +87,7 @@ const chinese: Record<string, string> = {
   'Main.SystemEnabled': '已启用', 'Main.SystemDisabled': '已停用',
   'Main.GroupAll': '全部分组', 'Main.Ungrouped': '未分组',
   'Main.OpenProject': '打开宏项目', 'Main.SaveProject': '保存宏项目',
+  'Main.Import': '导入…',
   'Main.SaveProjectAs': '宏项目另存为', 'Main.ReloadCurrent': '重新加载当前宏',
   'Main.CloseAll': '全部关闭', 'Main.CloseAllTitle': '关闭全部宏',
   'Main.EditTip': '编辑', 'Main.DeleteTip': '删除',
@@ -237,6 +239,9 @@ export class MockTransport implements BridgeTransport {
         break;
       case 'project.export':
         result = { exported: String(params['name']) };
+        break;
+      case 'project.import':
+        result = { imported: '/mock/SomeProject.wgmacro' };
         break;
       case 'project.state':
         result = this.projectState;

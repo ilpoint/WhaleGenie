@@ -133,9 +133,10 @@ public partial class MainWindow : AppWindow
 
     /// <summary>
     /// What the import did, in the order a person checks it: what arrived, what had to be renamed,
-    /// what happened to the variables, and what now needs their attention.
+    /// what happened to the variables, and what now needs their attention. The web shell's import
+    /// answers with the same text, so the two ways in report the same words.
     /// </summary>
-    private static string ReportText(ImportReport report)
+    internal static string ReportText(ImportReport report)
     {
         var lines = new List<string>();
 
