@@ -367,7 +367,8 @@ export class WgEditorGate extends LitElement {
     }
 
     .key-row,
-    .color-row {
+    .color-row,
+    .file-row {
       display: flex;
       gap: var(--spacingHorizontalS);
       align-items: center;
@@ -1342,6 +1343,17 @@ export class WgEditorGate extends LitElement {
     return parts.join('+');
   }
 
+  private async pickImage(step: EditorStep, parameter: EditorParameter): Promise<void> {
+    try {
+      const picked = await bridge.value.call<{ path: string | null }>('dialog.pickImage');
+      if (picked.path) {
+        await this.patchValue(step.id, parameter.name, picked.path);
+      }
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   private async addParameterRow(step: EditorStep, parameter: EditorParameter): Promise<void> {
     try {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionParameterRowAdd', {
@@ -1498,6 +1510,20 @@ export class WgEditorGate extends LitElement {
             />
             <fluent-button appearance="subtle" @click=${() => this.startKeyCapture(capture)}>
               ${t('Add.SetCombination')}
+            </fluent-button>
+          </div>
+        </div>
+      `;
+    }
+
+    if (parameter.kind === 'Image') {
+      return html`
+        <div class="param">
+          <label>${parameter.label}</label>
+          <div class="file-row">
+            <input .value=${parameter.value} @change=${change} />
+            <fluent-button appearance="subtle" @click=${() => void this.pickImage(step, parameter)}>
+              ${t('Editor.Browse')}
             </fluent-button>
           </div>
         </div>

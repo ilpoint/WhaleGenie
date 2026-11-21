@@ -37,7 +37,7 @@ const chromeKeys = [
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
-  'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow',
+  'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
   'Editor.RemoveRow', 'Editor.OpenMacro',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
@@ -97,7 +97,7 @@ const english: Record<string, string> = {
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
   'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
-  'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row',
+  'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
   'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
@@ -184,7 +184,7 @@ const chinese: Record<string, string> = {
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
   'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
-  'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行',
+  'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
   'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
@@ -509,7 +509,9 @@ export class MockTransport implements BridgeTransport {
                   ? '按键'
                   : type === 'screen.color'
                     ? '颜色'
-                    : type,
+                    : type === 'image.find'
+                      ? '找图'
+                      : type,
             enabled: true,
             acceptsSteps: type === 'control.repeat',
             parameters: type === 'control.delay'
@@ -534,7 +536,12 @@ export class MockTransport implements BridgeTransport {
                         columns: [{ name: 'key', required: true }, { name: 'name', required: true }],
                         rows: [],
                       }]
-                    : [],
+                    : type === 'image.find'
+                      ? [{
+                          name: 'path', label: '图片', kind: 'Image', value: '',
+                          options: [], columns: [], rows: [],
+                        }]
+                      : [],
             steps: [],
           };
           this.editor = {
@@ -1048,6 +1055,16 @@ export class MockTransport implements BridgeTransport {
                 { name: 'hex', label: '颜色', kind: 'Color', required: false, placeholder: '', options: [] },
               ],
             },
+            {
+              key: 'image.find',
+              name: '找图',
+              category: 'Screen',
+              description: '',
+              hidden: false,
+              parameters: [
+                { name: 'path', label: '图片', kind: 'Image', required: false, placeholder: '', options: [] },
+              ],
+            },
           ],
         };
         break;
@@ -1087,6 +1104,9 @@ export class MockTransport implements BridgeTransport {
           systemEnabled: params['enabled'] === true,
         };
         this.push('project.changed', this.projectState);
+        break;
+      case 'dialog.pickImage':
+        result = { path: 'C:\\shot.png' };
         break;
       case 'dialog.pickOpenPackage':
         result = '/mock/opened-project.wgmacro';

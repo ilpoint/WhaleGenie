@@ -186,6 +186,16 @@ test('C1 键位字段可捕获按键', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 图片字段可调用原生选择器', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '找图' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加步骤' }).click();
+  await page.locator('wg-editor-gate .step', { hasText: '找图' }).click();
+  await page.locator('wg-editor-gate .file-row fluent-button', { hasText: '浏览' }).click();
+
+  await expect(page.locator('wg-editor-gate .file-row input')).toHaveValue('C:\\shot.png');
+});
+
 test('C1 行表参数可加行并填单元格', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate .toolbar select').selectOption({ label: '重复' });

@@ -21,7 +21,7 @@ public class BridgeMethodInventoryTests
     {
         "app.info", "app.quit", "app.openExternal",
         "app.openSettings", "app.openRun", "app.openAbout", "app.openManual",
-        "dialog.respond", "dialog.pickOpenPackage", "dialog.pickSavePackage",
+        "dialog.respond", "dialog.pickOpenPackage", "dialog.pickSavePackage", "dialog.pickImage",
         "editor.newMacro", "editor.open",
         "editor.sessionOpen", "editor.sessionTabs", "editor.sessionNew",
         "editor.sessionActivate",

@@ -88,6 +88,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         server.Register("project.closeAll", CloseAll);
         server.Register("dialog.pickOpenPackage", async _ => await PickOpenPackage());
         server.Register("dialog.pickSavePackage", PickSavePackageHandler);
+        server.Register("dialog.pickImage", PickImage);
 
         // The trigger host owns the plan and the switch; this handler only tells the page when
         // something it draws has moved.
@@ -419,6 +420,23 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             ? given
             : $"macros{MacroPackage.Extension}";
         return await PickSavePackage(suggested);
+    }
+
+    private async Task<object?> PickImage(JsonElement parameters)
+    {
+        var path = await PickAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Get("Menu.ImageFiles"),
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType(Strings.Get("Add.ImageFilter"))
+                {
+                    Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp"],
+                },
+            ],
+        });
+        return new { path };
     }
 
     private Task<string?> PickOpenPackage()
