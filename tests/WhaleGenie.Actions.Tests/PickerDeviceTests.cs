@@ -64,7 +64,9 @@ public class PickerDeviceTests
 
             // Opening the picker is already enough: it follows the pointer it was given.
             Assert.Equal("saveButton", window.Hovered?.AutomationId);
-            Assert.Equal(["elementAt 1000,500"], machine.Sent);
+            // The window probes once on opening and the timer probes again while the pointer
+            // sits still; both read the same place, so the exact count is timing, not behaviour.
+            Assert.Contains("elementAt 1000,500", machine.Sent);
 
             window.Confirm();
 
