@@ -86,6 +86,10 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     internal void OpenEditor(string name)
         => _ = _bridge?.PushAsync("editor.openRequested", new { name });
 
+    /// <summary>Asks the page to load a macro into the web run panel, from a native menu.</summary>
+    internal void OpenRun(string name)
+        => _ = _bridge?.PushAsync("run.openRequested", new { name });
+
     /// <summary>The page reports focus changes through window.focus.</summary>
     internal void SetTextInputFocused(bool focused)
         => Volatile.Write(ref _textInputFocused, focused ? 1 : 0);
