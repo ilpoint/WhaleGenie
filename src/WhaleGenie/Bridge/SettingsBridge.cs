@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Localization;
@@ -38,6 +39,8 @@ internal sealed class SettingsBridge : IBridgeHandler
             frameCache = _settings.FrameCache,
             frameCacheAge = _settings.FrameCacheAge,
             logCount = _settings.LogCount,
+            language = Strings.Current.Language == Language.Chinese ? "zh-Hans" : "en",
+            theme = _settings.SelectedTheme.Mode.ToString(),
         };
 
     private Task<object?> Update(JsonElement parameters)
@@ -95,6 +98,13 @@ internal sealed class SettingsBridge : IBridgeHandler
                 break;
             case "logCount":
                 _settings.LogCount = number;
+                break;
+            case "language":
+                Strings.Current.Language = value == "zh-Hans" ? Language.Chinese : Language.English;
+                break;
+            case "theme":
+                _settings.SelectedTheme = _settings.ThemeOptions.First(option =>
+                    string.Equals(option.Mode.ToString(), value, StringComparison.OrdinalIgnoreCase));
                 break;
             default:
                 throw new BridgeFailureException(BridgeErrors.BadArgument,

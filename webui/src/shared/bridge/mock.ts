@@ -29,6 +29,8 @@ const chromeKeys = [
   'Settings.Reading', 'Settings.PreloadOcr', 'Settings.FramesCard', 'Settings.FrameRateFollow',
   'Settings.FrameRate', 'Settings.FrameCache', 'Settings.FrameCacheAge', 'Settings.InputCard',
   'Settings.IgnoreOwnInput', 'Settings.InputLimit', 'Settings.LogCount',
+  'Settings.Language', 'Settings.Language.English', 'Settings.Language.Chinese', 'Settings.Theme', 'Theme.Mode.Dark', 'Theme.Mode.Light',
+  'Theme.Mode.Custom',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
   'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
   'Shell.Window.Minimize',
@@ -191,7 +193,10 @@ const english: Record<string, string> = {
   'Settings.FrameRate': 'Pictures a second', 'Settings.FrameCache': 'Reuse pictures',
   'Settings.FrameCacheAge': 'Keep for', 'Settings.InputCard': 'Input behaviour',
   'Settings.IgnoreOwnInput': 'Ignore own input', 'Settings.InputLimit': 'Input limit',
-  'Settings.LogCount': 'Keep recent logs',
+  'Settings.LogCount': 'Keep recent logs', 'Settings.Language': 'Language',
+  'Settings.Language.English': 'English', 'Settings.Language.Chinese': 'Chinese',
+  'Settings.Theme': 'Theme', 'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
+  'Theme.Mode.Custom': 'Custom',
 
   'Library.Heading': 'Shared macros', 'Library.Intro': 'Macros every project can copy.',
   'Library.Empty': 'The library has no macros yet.', 'Library.Delete': 'Remove from library',
@@ -310,7 +315,10 @@ const chinese: Record<string, string> = {
   'Settings.FrameRate': '每秒画面数', 'Settings.FrameCache': '复用画面',
   'Settings.FrameCacheAge': '保留时长', 'Settings.InputCard': '输入行为',
   'Settings.IgnoreOwnInput': '忽略本程序发出的输入', 'Settings.InputLimit': '输入限制',
-  'Settings.LogCount': '保留最近日志',
+  'Settings.LogCount': '保留最近日志', 'Settings.Language': '语言',
+  'Settings.Language.English': 'English', 'Settings.Language.Chinese': '中文',
+  'Settings.Theme': '主题', 'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
+  'Theme.Mode.Custom': '自定义',
 
   'Library.Heading': '共享宏', 'Library.Intro': '所有工程都能复制的可调用宏。',
   'Library.Empty': '宏库还没有宏。', 'Library.Delete': '从宏库删除',
@@ -350,6 +358,7 @@ export class MockTransport implements BridgeTransport {
     ignoreOwnInput: true, soundSystem: true, soundMacro: false, preloadOcr: false,
     inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
     frameCache: false, frameCacheAge: 100, logCount: 100,
+    language: 'zh-Hans', theme: 'Dark',
   };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
@@ -466,7 +475,9 @@ export class MockTransport implements BridgeTransport {
         const value = String(params['value'] ?? '');
         this.settingsState = {
           ...this.settingsState,
-          [field]: value === 'true' ? true : value === 'false' ? false : Number(value),
+          [field]: field === 'language' || field === 'theme'
+            ? value
+            : value === 'true' ? true : value === 'false' ? false : Number(value),
         };
         result = this.settingsState;
         break;

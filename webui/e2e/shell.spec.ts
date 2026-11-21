@@ -652,6 +652,17 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .toBe(true);
 });
 
+test('设置页可改语言与主题', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  const general = page.locator('wg-settings .card').first();
+  await general.locator('select').nth(0).selectOption('en');
+  await general.locator('select').nth(1).selectOption('Light');
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.filter((name) => name === 'settings.update').length))
+    .toBeGreaterThanOrEqual(2);
+});
+
 test('设置页可改常规与画面选项', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   await expect(page.locator('wg-settings h1')).toHaveText('设置');

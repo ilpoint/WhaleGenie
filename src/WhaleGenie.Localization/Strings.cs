@@ -1952,6 +1952,7 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------------------ settings
         ["Settings.Title"] = "Settings",
         ["Settings.Language"] = "Language",
+        ["Settings.Theme"] = "Theme",
         ["Settings.ThemeHint"] = "Dark and light are built in; Custom picks one accent.",
         ["Settings.CustomizeTheme"] = "Custom accent…",
         ["Settings.CustomizeThemeHint"] = "Applies to every window and is kept for the next start.",
@@ -2057,6 +2058,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.ResetAccent"] = "Back to the built-in accent",
         ["Theme.Done"] = "Done",
         ["Settings.LanguageHint"] = "Applies at once; follows Windows until chosen.",
+        ["Settings.Language.English"] = "English",
+        ["Settings.Language.Chinese"] = "Chinese",
         ["Settings.LoadLastProject"] = "Open the last project at start",
         ["Settings.LoadLastProjectHint"] = "Off starts with an empty list.",
         ["Settings.SystemAtStart"] = "Enable the system at start",
@@ -4912,6 +4915,7 @@ public sealed class Strings : INotifyPropertyChanged
         // ------------------------------------------------------------ settings
         ["Settings.Title"] = "设置",
         ["Settings.Language"] = "语言",
+        ["Settings.Theme"] = "主题",
         ["Settings.ThemeHint"] = "深色与浅色内置；自定义只挑强调色。",
         ["Settings.CustomizeTheme"] = "自定义强调色…",
         ["Settings.CustomizeThemeHint"] = "立即作用到所有窗口，并留到下次启动。",
@@ -5015,6 +5019,8 @@ public sealed class Strings : INotifyPropertyChanged
         ["Theme.ResetAccent"] = "改回内置强调色",
         ["Theme.Done"] = "完成",
         ["Settings.LanguageHint"] = "立即生效；未选过时跟随系统。",
+        ["Settings.Language.English"] = "English",
+        ["Settings.Language.Chinese"] = "中文",
         ["Settings.LoadLastProject"] = "启动时打开上次的项目",
         ["Settings.LoadLastProjectHint"] = "关闭时每次从空列表开始。",
         ["Settings.SystemAtStart"] = "启动时启用系统",

@@ -58,8 +58,10 @@ export class WgSettings extends LitElement {
       color: var(--colorNeutralForeground1);
     }
 
-    .row input[type="number"] {
+    .row input[type="number"],
+    .row select {
       width: 100%;
+      font: inherit;
     }
 
     .error {
@@ -90,6 +92,23 @@ export class WgSettings extends LitElement {
       <div class="cards">
         <section class="card">
           <h2>${t('Settings.GeneralCard')}</h2>
+          <div class="row">
+            <label>${t('Settings.Language')}</label>
+            <select .value=${this.settings.language}
+              @change=${(event: Event) => void this.changeSetting('language', event)}>
+              <option value="zh-Hans">${t('Settings.Language.Chinese')}</option>
+              <option value="en">${t('Settings.Language.English')}</option>
+            </select>
+          </div>
+          <div class="row">
+            <label>${t('Settings.Theme')}</label>
+            <select .value=${this.settings.theme}
+              @change=${(event: Event) => void this.changeSetting('theme', event)}>
+              <option value="Dark">${t('Theme.Mode.Dark')}</option>
+              <option value="Light">${t('Theme.Mode.Light')}</option>
+              <option value="Custom">${t('Theme.Mode.Custom')}</option>
+            </select>
+          </div>
           ${this.toggle('loadLastProjectAtStart', 'Settings.LoadLastProject')}
           ${this.toggle('systemAtStart', 'Settings.SystemAtStart')}
           ${this.toggle('enabledFirst', 'Settings.EnabledFirst')}

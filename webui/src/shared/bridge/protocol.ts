@@ -226,6 +226,8 @@ export interface SettingsState {
   frameCache: boolean;
   frameCacheAge: number;
   logCount: number;
+  language: string;
+  theme: string;
 }
 
 export interface LibraryEntry {
