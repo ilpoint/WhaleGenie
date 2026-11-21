@@ -28,19 +28,6 @@ public class DriverInputTests
         Assert.EndsWith("/releases/latest", ProjectLinks.DriverDownload, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_settings_window_has_a_button_that_installs_the_driver()
-    {
-        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
-            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
-
-        // A button that looks like it installs something and does nothing when clicked is exactly
-        // the kind of thing the help menu used to be full of.
-        var start = xaml.IndexOf("Name=\"DriverInstallButton\"", StringComparison.Ordinal);
-        Assert.True(start >= 0, "the settings window stopped offering to install the driver");
-        Assert.Contains("Click=\"OnInstallDriverClicked\"", xaml[start..], StringComparison.Ordinal);
-    }
-
     [Theory]
     [InlineData(DriverInputState.Ready, "Settings.DriverReady", true)]
     [InlineData(DriverInputState.DriverMissing, "Settings.DriverMissing", false)]
@@ -89,55 +76,4 @@ public class DriverInputTests
         Assert.True(Enum.IsDefined(DriverInput.Check()));
     }
 
-    [Fact]
-    public void The_window_comes_up_showing_the_panel()
-    {
-        Ui.Run(() =>
-        {
-            var window = new SettingsWindow();
-            window.Show();
-
-            var viewModel = Assert.IsType<SettingsViewModel>(window.DataContext);
-            Assert.False(string.IsNullOrWhiteSpace(viewModel.DriverStatus));
-            viewModel.SetPage(SettingsSubPage.Devices);
-            Dispatcher.UIThread.RunJobs();
-
-            var install = SettingsView.Find<Button>(window, "DriverInstallButton");
-            Assert.True(install is not null && install.IsVisible);
-
-            var attach = SettingsView.Find<Control>(window, "DriverAttachCheck");
-            Assert.True(attach is not null && attach.IsVisible);
-
-            window.Close();
-        });
-    }
-
-    [Fact]
-    public void The_settings_window_is_tall_enough_for_what_it_says()
-    {
-        // The panel is a block at a time in a window that was sized by hand, and the wording is
-        // longer in one language than the other. What matters is that everything it says can be
-        // reached: either it fits, or the window scrolls the column to it.
-        Ui.Run(() =>
-        {
-            var window = new SettingsWindow();
-            window.Show();
-
-            var panel = window.FindControl<Panel>("SettingsPanel")!;
-            // DesiredSize already carries the child's margins, so adding them again would count the
-            // gaps twice and ask for room the panel never needed.
-            var wanted = panel.Children.OfType<Control>().Sum(child => child.DesiredSize.Height);
-
-            var breakdown = string.Join(" | ", panel.Children.OfType<Control>()
-                .Select(child => $"{child.GetType().Name}={child.DesiredSize.Height:0}"));
-
-            var viewer = panel.Parent as ScrollViewer;
-            var reachable = viewer?.Extent.Height ?? panel.Bounds.Height;
-            Assert.True(wanted <= reachable,
-                $"the settings panel wants {wanted:0} pixels but only {reachable:0} can be reached: "
-                + breakdown);
-
-            window.Close();
-        });
-    }
 }

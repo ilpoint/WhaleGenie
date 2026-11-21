@@ -67,20 +67,6 @@ public class DriverAttachAtStartTests
         Assert.Contains(".Driver.Stop()", program, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void The_settings_window_offers_the_switch_and_says_what_it_does()
-    {
-        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
-            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
-
-        // A switch that looks like it does something and does nothing is exactly the kind of thing a
-        // settings window collects.
-        var start = xaml.IndexOf("Name=\"DriverAttachCheck\"", StringComparison.Ordinal);
-        Assert.True(start >= 0, "the settings window stopped offering the switch");
-        Assert.Contains("IsChecked=\"{Binding AttachDriverAtStart}\"", xaml[start..], StringComparison.Ordinal);
-        Assert.Contains("Settings.DriverAttachAtStartHint", xaml[start..], StringComparison.Ordinal);
-    }
-
     /// <summary>
     /// Runs the check against a settings file of its own. WhaleGenie's own settings belong to whoever
     /// is using it, and a check has no business writing there.

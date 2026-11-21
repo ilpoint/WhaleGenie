@@ -12,19 +12,8 @@ public partial class SettingsAppearanceView : UserControl
 {
     public SettingsAppearanceView() => InitializeComponent();
 
-    private SettingsWindow? Host => this.FindAncestorOfType<SettingsWindow>();
-
-    private AdvancedSettingsWindow? AdvancedHost => this.FindAncestorOfType<AdvancedSettingsWindow>();
+    private AdvancedSettingsWindow? Host => this.FindAncestorOfType<AdvancedSettingsWindow>();
 
     private void OnCustomizeThemeClicked(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnCustomizeThemeClicked(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnCustomizeThemeClicked(sender, e);
-        }
-    }
+        => Host?.OnCustomizeThemeClicked(sender, e);
 }

@@ -117,8 +117,8 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。主窗、宏编辑器、动作编辑器和运行窗将内容
 扩展到标题栏，`AppWindow` 负责该区域的拖动；其他普通窗口使用库提供的默认标题栏。
 `WindowChrome.Attach(this)` 把这条约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，
-并留出系统按钮需要的宽度。全局变量、这一步看到了什么、表达式、断点条件与设置窗口在构造函数里
-调用它；标题文字跟随 `Window.Title`，所以运行中会改名的窗口（表达式构建器）不必自己同步。
+并留出系统按钮需要的宽度。高级设置窗口、运行中的问话窗口与断点条件窗口在构造函数里调用它；
+标题文字跟随 `Window.Title`，所以运行中会改名的窗口不必自己同步。
 
 框选、取色、点与元素拾取、屏幕框、菜单浮窗和浮动面板等无标题栏覆盖层继续使用 Avalonia `Window`。
 拾取器打开时先通过 `AppWindows.StepAside` 隐藏鲸灵窗口，再取屏幕；取图一律经过 `ScreenReady`：
@@ -129,36 +129,19 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 无头平台的窗口句柄均为 0，`AppWindow` 清理 FluentAvalonia 在此情形下重复使用的内部句柄表。
 该处理只服务无头会话，真实窗口仍由 FluentAvalonia 管理。
 
-### 7.5 设置窗口
+### 7.5 设置页与高级设置窗口
 
-`Views/Settings/SettingsWindow.axaml` 是一个 `FANavigationView`：左侧列「系统、触发器、外观」三个
-分组，每一项是 Lucide 图标加组名，选中行铺 `AccentFill`；右侧内容列顶上列当前分组的那几页
-（`Classes="Tab Root Capsule"`），`Classes.selected` 跟着 `SettingsViewModel.IsXxxPage`，下面是与页签
-共享一个 `ScrollViewer` 的页面面板。
-每个设置项是一个 `FASettingsExpanderItem`：左边是标题与说明（`Classes` 仍是 `FieldLabel` 与 `Hint`，
-与其它窗口一致），右边 `Footer` 放控件；说得清的部分只用一句 `Hint`，一句说不清的标题旁挂
-`HintInfo`，悬停看长说明。分组用 `SettingsGroup` 平铺标题、说明与全部行，不提供展开动作，标题不可
-聚焦；卡片底色、描边、圆角与标题下那道 1px 缝由 `SettingsGroup` 模板取既有令牌，行间 1px 缝由行列表
-的 `Spacing` 透出。页签共用一个滚动区，换页时窗口记住离开那页的位置并在新页布局后放回，所以返回原页
-签是离开时的那一屏，新开的页签从顶部开始。
+设置主页是网页：`webui/src/features/settings/settings-page.ts` 从 `settings.state` 读快照，常规、语言、
+主题、热键、声音、屏幕读取、输入、驱动、存储位置都在页面里编辑，改动逐项经 `settings.update` 写回
+`SettingsViewModel/LocalSettings`。主题颜色走 `theme.get/theme.set`，语言变化由 `strings.changed` 推回
+页面。C# 仍是唯一设置模型，页面不保存第二份设置文件；设置项一律即时生效并立即落盘。
 
-说明气泡由每个顶层一个 `HintBubbleHost` 负责：指针在图标上停 350 毫秒打开，离开图标或气泡 200 毫秒
-后收起；判定只看指针是否落在图标与气泡矩形内，不再依赖成对的进出事件。同一顶层只有一个气泡，打开
-另一个先关旧的；Esc 与点击气泡外收起固定态，切页签、隐藏行、最小化或关窗立即收起。气泡正文是
-`SelectableTextBlock`，前景显式取 `TextPrimary`、字号与行高成对取 `UiBodySmallSize`/`UiBodySmallLine`，
-底色 `SurfaceCard`、边框 `BorderControl`，全部从所属顶层的资源观察取得，打开中切主题即时刷新。限宽
-360、限高 320，超长时内部滚动。
+菜单、窗口规则、轮盘和自定义主题仍由原生 `AdvancedSettingsWindow` 承载：左侧只列「触发器、外观」，
+右侧页签是菜单呼出、窗口规则、轮盘菜单、轮盘动作与主题，页面控制件沿用 `SettingsTriggersView` /
+`SettingsAppearanceView`。这些对话框需要指向桌面窗口或与实时轮盘共用画笔，因而不放进网页；网页
+「高级设置」卡片用 `app.openSettingsPage` 打开并定位到对应页。窗口内的页签、规则列表、轮盘编辑
+宿主与页签滚动位置仍以 `SettingsViewModel.SelectedPage` 为唯一来源。
 
-行内说明图标的对齐只在 `HintInfo` 一处实现：挂载时把同一行里的文字、勾选框与纯文字 `Panel` 收成
-`VerticalAlignment=Center`，并只在带图标的那一行清零 `FieldLabel` 的下边距；图标视觉 14×14、命中区
-24×24、行高 24。三份设置视图与其它窗口的使用点都只写 `Text`，不为对齐加裸 `Margin` 或样式类。
-
-页面只有一处来源：`SettingsViewModel.SelectedPage`。组由它推导（`SelectedRoot` 与 `RootOf`），不是
-另存一份状态，所以点左栏的分组就是"落到该组第一页"，两者不会各说各的。左栏项的 `Tag` 是分组枚举名，
-`SelectionChanged` 据此换组；页签的 `Tag` 是页面枚举名，点击后写 `SelectedPage`。组切换时三排页签只
-按 `IsXxxRoot` 显示当前那一排，控件本身不重建，所以页签的选中与顺序都不受切换影响。
-`SelectedPage` 变化时窗口把左栏 `SelectedItem` 指向所属分组。
-设置项一律即时生效并立即落盘，打开窗口本身不写文件。
 
 ### 7.6 网页壳与桥接
 

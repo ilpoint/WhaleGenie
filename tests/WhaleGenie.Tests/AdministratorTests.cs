@@ -34,20 +34,6 @@ public class AdministratorTests
     }
 
     [Fact]
-    public void The_settings_window_offers_a_restart_that_answers_the_click()
-    {
-        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
-            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
-
-        var start = xaml.IndexOf("Name=\"AdminRestartButton\"", StringComparison.Ordinal);
-        Assert.True(start >= 0, "the settings window stopped offering to restart as administrator");
-        Assert.Contains("Click=\"OnRestartElevatedClicked\"", xaml[start..], StringComparison.Ordinal);
-
-        // Nothing to restart when the program already has the rights, so the button is not there.
-        Assert.Contains("IsVisible=\"{Binding !IsElevated}\"", xaml[start..], StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void The_manifest_leaves_the_choice_to_whoever_starts_the_program()
     {
         // requireAdministrator would put a UAC prompt in front of everybody, including the macros
@@ -70,20 +56,6 @@ public class AdministratorTests
         Assert.False(ProcessRights.WantsElevation(elevated: false, asked: false, []));
         Assert.False(ProcessRights.WantsElevation(elevated: false, asked: true,
             [ProcessRights.ElevatedFlag]));
-    }
-
-    /// <summary>设置页上那一格与重启按钮并排：一个管下一次启动，一个管这一次。</summary>
-    [Fact]
-    public void The_panel_offers_the_choice_as_well_as_the_restart()
-    {
-        var xaml = ViewSource.MarkupAnd("SettingsWindow.axaml", "SettingsSystemView.axaml",
-            "SettingsTriggersView.axaml", "SettingsAppearanceView.axaml");
-
-        var start = xaml.IndexOf("Name=\"RunAsAdminCheck\"", StringComparison.Ordinal);
-        Assert.True(start >= 0, "the settings window stopped offering to start elevated");
-        Assert.Contains("IsChecked=\"{Binding RunAsAdmin}\"", xaml[start..], StringComparison.Ordinal);
-        Assert.Contains("[Settings.RunAsAdmin]", xaml[start..], StringComparison.Ordinal);
-        Assert.Contains("[Settings.RunAsAdminHint]", xaml[start..], StringComparison.Ordinal);
     }
 
     [Fact]

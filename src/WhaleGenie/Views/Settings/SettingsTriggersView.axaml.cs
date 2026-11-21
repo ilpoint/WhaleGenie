@@ -14,117 +14,23 @@ public partial class SettingsTriggersView : UserControl
 {
     public SettingsTriggersView() => InitializeComponent();
 
-    // Two windows can own this page during the settings migration: the old all-in-one window and
-    // the advanced window that replaced it. Each handler asks whichever one is above it.
-    private SettingsWindow? Host => this.FindAncestorOfType<SettingsWindow>();
+    private AdvancedSettingsWindow? Host => this.FindAncestorOfType<AdvancedSettingsWindow>();
 
-    private AdvancedSettingsWindow? AdvancedHost => this.FindAncestorOfType<AdvancedSettingsWindow>();
+    private void OnAddMenuRule(object? sender, RoutedEventArgs e) => Host?.OnAddMenuRule(sender, e);
 
-    private void OnAddMenuRule(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnAddMenuRule(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnAddMenuRule(sender, e);
-        }
-    }
+    private void OnEditMenuRule(object? sender, RoutedEventArgs e) => Host?.OnEditMenuRule(sender, e);
 
-    private void OnEditMenuRule(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnEditMenuRule(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnEditMenuRule(sender, e);
-        }
-    }
+    private void OnRemoveMenuRule(object? sender, RoutedEventArgs e) => Host?.OnRemoveMenuRule(sender, e);
 
-    private void OnRemoveMenuRule(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnRemoveMenuRule(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnRemoveMenuRule(sender, e);
-        }
-    }
+    private void OnAddMenuRulePage(object? sender, RoutedEventArgs e) => Host?.OnAddMenuRulePage(sender, e);
 
-    private void OnAddMenuRulePage(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnAddMenuRulePage(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnAddMenuRulePage(sender, e);
-        }
-    }
+    private void OnMoveMenuRuleUp(object? sender, RoutedEventArgs e) => Host?.OnMoveMenuRuleUp(sender, e);
 
-    private void OnMoveMenuRuleUp(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnMoveMenuRuleUp(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnMoveMenuRuleUp(sender, e);
-        }
-    }
+    private void OnMoveMenuRuleDown(object? sender, RoutedEventArgs e) => Host?.OnMoveMenuRuleDown(sender, e);
 
-    private void OnMoveMenuRuleDown(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnMoveMenuRuleDown(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnMoveMenuRuleDown(sender, e);
-        }
-    }
+    private void OnCaptureWheelRepeat(object? sender, RoutedEventArgs e) => Host?.OnCaptureWheelRepeat(sender, e);
 
-    private void OnCaptureWheelRepeat(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnCaptureWheelRepeat(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnCaptureWheelRepeat(sender, e);
-        }
-    }
+    private void OnEnableSystem(object? sender, RoutedEventArgs e) => Host?.OnEnableSystem(sender, e);
 
-    private void OnEnableSystem(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnEnableSystem(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnEnableSystem(sender, e);
-        }
-    }
-
-    private void OnPreviewWheel(object? sender, RoutedEventArgs e)
-    {
-        if (Host is { } host)
-        {
-            host.OnPreviewWheel(sender, e);
-        }
-        else
-        {
-            AdvancedHost?.OnPreviewWheel(sender, e);
-        }
-    }
+    private void OnPreviewWheel(object? sender, RoutedEventArgs e) => Host?.OnPreviewWheel(sender, e);
 }

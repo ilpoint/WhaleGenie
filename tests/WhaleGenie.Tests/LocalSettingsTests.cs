@@ -396,34 +396,6 @@ public class LocalSettingsTests
         });
     }
 
-    /// <summary>
-    /// The switch itself, as the window draws it: a choice nothing on the window is wired to would
-    /// store whatever the window happened to hold rather than what the person clicked.
-    /// </summary>
-    [Fact]
-    public void The_settings_window_carries_the_switch_that_loads_the_models()
-    {
-        InOwnFile(_ => Ui.Run(() =>
-        {
-            var window = new SettingsWindow();
-            window.Show();
-
-            var viewModel = window.DataContext as SettingsViewModel;
-            Assert.True(viewModel is not null);
-            viewModel.SetPage(SettingsSubPage.Screen);
-            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-
-            var box = SettingsView.Find<ToggleSwitch>(window, "PreloadOcrCheck");
-            Assert.True(box is not null, "the settings window stopped offering to load the models");
-            Assert.False(box.IsChecked);
-
-            box.IsChecked = true;
-            Assert.True(LocalSettings.LoadPreloadOcr());
-
-            window.Close();
-        }));
-    }
-
     [Fact]
     public void Trigger_shortcuts_and_the_selected_dock_page_are_remembered()
     {

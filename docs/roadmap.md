@@ -39,10 +39,12 @@
   editor.newMacro/editor.open。MacroEditorWindow、ActionEditorWindow、ValuePickerWindow 及文档/设置/
   录制/动作编辑/条件/变量墙/公用变量窗口与窗口生命周期用例均已删除；断点条件改用简单文本提示，
   不保留第二套取值窗口。保留 C# 编辑模型、动作目录/契约与模型测试；manual/10 已同步。
-- **阶段 D1 设置（当前）**：设置各页迁入网页，复用 C# 视图模型；菜单/轮盘/窗口规则编辑器默认保留
-  原生对话框；删除 SettingsWindow 与临时设置入口。
-- **阶段 D2 运行调试与全局变量**：运行调试变网页停靠面板，调试问话留在面板内；触发/后台运行
-  问话走原生窗口，退出未保存走原生确认；删除 RunWindow、GlobalVariablesWindow 与临时入口。
+- **阶段 D1 设置（已完成）**：常规、语言、主题（含自定义强调色）、热键、声音、屏幕读取、输入、驱动、
+  存储位置与高级入口已迁入网页设置页，经 SettingsBridge 复用 SettingsViewModel/LocalSettings；菜单、
+  窗口规则、轮盘与自定义主题保留在独立的 AdvancedSettingsWindow。旧 SettingsWindow 与系统设置视图
+  已删除，manual/02 与架构文档同步。
+- **阶段 D2 运行调试与全局变量（当前）**：运行调试变网页停靠面板，调试问话留在面板内；触发/后台运行
+  问话走原生窗口，退出未保存走原生确认；删除 RunWindow 与临时入口。
 - **阶段 E1 残留原生面**：清点永久保留的拾取器、菜单、轮盘、浮层、问话与编辑器对话框；默认保留
   FluentAvalonia 作为其控件库，只有全部可无损换基时才另立删除阶段；DESIGN 增加剩余原生面契约。
 - **阶段 E2 终稿对账**：删除未用主题/窗口/资源/临时命令，AGENTS、architecture、DESIGN、roadmap、

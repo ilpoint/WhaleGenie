@@ -123,7 +123,7 @@
 | `Run.MissingWindow` | 没有填写窗口标题：{0} |
 | `Run.NoAutoHotkey` | 这台机器上没有 AutoHotkey，无法运行这段脚本。请先安装 AutoHotkey（版本 2），或换一种脚本类型。 |
 | `Run.NoDevice` | 这台机器暂不支持该操作：{0} 尚未接入。 |
-| `Run.NoDriver` | 驱动级输入需要先装好 usbip-win2 驱动，设置窗口里有下载入口。 |
+| `Run.NoDriver` | 驱动级输入需要先装好 usbip-win2 驱动，设置页的驱动区显示状态。 |
 | `Run.NoDriverAttached` | 驱动级输入没有送达这台机器：送它的是虚拟键鼠，机器没有认领它们。确认 usbip-win2 驱动装好了，并关掉其它正在使用虚拟设备的程序。 |
 | `Run.NoDriverKey` | 虚拟键盘没有这个键：{0} |
 | `Run.NoDriverLibrary` | 驱动级输入找不到自带虚拟 USB 设备的库（libVIIPER.dll）：重新完整解压一次发布包。 |
