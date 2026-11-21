@@ -38,6 +38,12 @@ export class WgEditorGate extends LitElement {
   private activeKey = '';
 
   @state()
+  private macros: string[] = [];
+
+  @state()
+  private openName = '';
+
+  @state()
   private error = '';
 
   private unsubscribeStrings?: () => void;
@@ -55,6 +61,22 @@ export class WgEditorGate extends LitElement {
       font-size: var(--font-size-base-500);
       font-weight: var(--font-weight-semibold);
       margin: 0 0 var(--spacingVerticalM);
+    }
+
+    .open-macro {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalS);
+      margin-bottom: var(--spacingVerticalM);
+    }
+
+    .open-macro select {
+      font: inherit;
+      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      color: var(--colorNeutralForeground1);
     }
 
     .tabs {
@@ -239,7 +261,7 @@ export class WgEditorGate extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     this.unsubscribeStrings = strings.subscribe(() => this.requestUpdate());
-    this.unsubscribeProject = project.subscribe((state) => this.openFirst(state));
+    this.unsubscribeProject = project.subscribe((state) => this.projectChanged(state));
     void this.loadActions();
   }
 
@@ -266,6 +288,16 @@ export class WgEditorGate extends LitElement {
                 @click=${() => void this.activateTab(tab.key)}
               >${tab.name}${tab.dirty ? ' •' : ''}</button>
             `)}
+          </div>`
+        : nothing}
+      ${this.macros.length > 0
+        ? html`<div class="open-macro">
+            <select .value=${this.openName} @change=${this.selectOpen}>
+              ${this.macros.map((name) => html`<option value=${name}>${name}</option>`)}
+            </select>
+            <fluent-button appearance="subtle" @click=${this.openSelected}>
+              ${t('Editor.OpenMacro')}
+            </fluent-button>
           </div>`
         : nothing}
       <div class="fields">
@@ -336,6 +368,16 @@ export class WgEditorGate extends LitElement {
       this.actionKey = response.actions.find((action) => !action.hidden)?.key ?? '';
     } catch {
       // The gate can still open a session even if the catalogue fails.
+    }
+  }
+
+  private selectOpen(event: Event): void {
+    this.openName = (event.target as HTMLSelectElement).value;
+  }
+
+  private async openSelected(): Promise<void> {
+    if (this.openName.length > 0) {
+      await this.open(this.openName);
     }
   }
 
@@ -546,6 +588,14 @@ export class WgEditorGate extends LitElement {
         ${step.parameters.map((parameter) => this.renderParameter(step, parameter))}
       </div>
     `;
+  }
+
+  private projectChanged(state: ProjectState | null): void {
+    this.macros = state?.macros.map((macro) => macro.name) ?? [];
+    if (this.openName.length === 0) {
+      this.openName = this.macros[0] ?? '';
+    }
+    this.openFirst(state);
   }
 
   private openFirst(state: ProjectState | null): void {

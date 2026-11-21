@@ -126,6 +126,13 @@ test('C1 文档页签切换保留各自的 C# 会话', async ({ page }) => {
     .toBe(true);
 });
 
+test('C1 从项目宏列表打开另一份文档', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .open-macro select').selectOption({ label: '游戏连招' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '打开宏' }).click();
+  await expect(page.locator('wg-editor-gate input').first()).toHaveValue('游戏连招');
+});
+
 test('C1 步骤树可以加步骤与改参数', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await expect(page.locator('wg-editor-gate h1')).toHaveText('编辑器');

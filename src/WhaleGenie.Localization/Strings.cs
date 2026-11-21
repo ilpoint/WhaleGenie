@@ -930,6 +930,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.NoSteps"] = "No steps yet.",
         ["Editor.GateActions"] = "{0} actions in the catalogue",
         ["Editor.AddStep"] = "Add step",
+        ["Editor.OpenMacro"] = "Open macro",
         ["Editor.StepDisabled"] = "skipped",
         // Where a step's input goes. It is the first thing to check when a step that works by hand
         // does nothing in a macro, so it is written on the row rather than left inside the step.
@@ -3547,6 +3548,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Editor.NoSteps"] = "还没有步骤。",
         ["Editor.GateActions"] = "动作目录共 {0} 项",
         ["Editor.AddStep"] = "添加步骤",
+        ["Editor.OpenMacro"] = "打开宏",
         ["Editor.StepDisabled"] = "已停用",
         // 输入往哪儿送。一个手点没问题、写进宏却不动的步骤，先看的就是这一处，所以写在步骤行上。
         ["Editor.InputForeground"] = "前台",
