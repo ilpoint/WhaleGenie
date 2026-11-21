@@ -201,6 +201,21 @@ test('C1 颜色字段可用取色器改值', async ({ page }) => {
   await expect(page.locator('wg-editor-gate .color-row input').last()).toHaveValue('#ff8800');
 });
 
+test('C1 定时触发可设间隔与单位', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '编辑器' }).click();
+  await page.locator('wg-editor-gate .trigger-add select').selectOption({ label: '定时' });
+  await page.locator('wg-editor-gate fluent-button', { hasText: '添加入口' }).click();
+
+  const interval = page.locator('wg-editor-gate .timer-fields input[type="number"]');
+  await interval.fill('7');
+  await interval.press('Tab');
+  await page.locator('wg-editor-gate .timer-fields select').last().selectOption({ label: '分钟' });
+
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerTimer')))
+    .toBe(true);
+});
+
 test('C1 局部变量墙可新建与改名', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '编辑器' }).click();
   await page.locator('wg-editor-gate fluent-button', { hasText: '新建变量' }).click();

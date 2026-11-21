@@ -92,7 +92,13 @@ internal sealed class HeadlessEditorSession
             entry.IsEnabled,
             entry.Spec is KeySpec key ? key.Binding : string.Empty,
             entry.Spec is KeySpec pressed ? pressed.Loop.ToString() : string.Empty,
-            entry.Spec is KeySpec once && once.Once))];
+            entry.Spec is KeySpec once && once.Once,
+            entry.Spec is TimerSpec timer ? timer.Mode.ToString() : string.Empty,
+            entry.Spec is TimerSpec timed ? timed.Time : string.Empty,
+            entry.Spec is TimerSpec interval
+                ? interval.Interval.ToString(CultureInfo.InvariantCulture)
+                : string.Empty,
+            entry.Spec is TimerSpec unit ? unit.Unit.ToString() : string.Empty))];
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -250,6 +256,38 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.LoopMode = parsed;
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerTimer(string triggerId, string field, string value)
+    {
+        var trigger = _model.TriggerEntries.FirstOrDefault(entry =>
+            string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
+        if (trigger.Spec is not TimerSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a timer trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        switch (field)
+        {
+            case "mode":
+                _model.ScheduleMode = Enum.Parse<ScheduleMode>(value, ignoreCase: true);
+                break;
+            case "time":
+                _model.ScheduleTime = value.Trim();
+                break;
+            case "interval":
+                _model.ScheduleInterval = int.TryParse(value, out var interval) ? interval : 1;
+                break;
+            case "unit":
+                _model.ScheduleUnit = Enum.Parse<ScheduleUnit>(value, ignoreCase: true);
+                break;
+            default:
+                throw new InvalidOperationException("unknown timer field " + field);
+        }
+
         _model.IsDirty = true;
     }
 
@@ -466,7 +504,8 @@ internal sealed record EditorVariableSnapshot(string Name, string Type, string I
 internal sealed record EditorVariableTypeSnapshot(string Value, string Label);
 
 internal sealed record EditorTriggerSnapshot(string Id, string Kind, string KindLabel, string Summary,
-    bool Enabled, string Binding, string Loop, bool Once);
+    bool Enabled, string Binding, string Loop, bool Once, string TimerMode, string Time,
+    string Interval, string Unit);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,

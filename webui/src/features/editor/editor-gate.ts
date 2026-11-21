@@ -204,6 +204,16 @@ export class WgEditorGate extends LitElement {
       color: var(--colorNeutralForeground3);
     }
 
+    .timer-fields {
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalS);
+    }
+
+    .timer-fields input[type='number'] {
+      width: 80px;
+    }
+
     .triggers button {
       border: none;
       background: transparent;
@@ -472,7 +482,41 @@ export class WgEditorGate extends LitElement {
                   />
                   ${t('Editor.TriggerOnce')}
                 </label>`
-              : html`<span>${trigger.summary}</span>`}
+              : trigger.kind === 'Timer'
+                ? html`<div class="timer-fields">
+                    <select
+                      .value=${trigger.timerMode}
+                      aria-label=${t('Editor.Schedule')}
+                      @change=${(event: Event) => void this.setTriggerTimer(trigger.id, 'mode', event)}
+                    >
+                      <option value="Interval">${t('Schedule.Interval')}</option>
+                      <option value="Daily">${t('Schedule.Daily')}</option>
+                    </select>
+                    ${trigger.timerMode === 'Daily'
+                      ? html`<input
+                          .value=${trigger.time}
+                          placeholder=${t('Editor.ScheduleTimeHint')}
+                          aria-label=${t('Editor.ScheduleTime')}
+                          @change=${(event: Event) => void this.setTriggerTimer(trigger.id, 'time', event)}
+                        />`
+                      : html`<input
+                          type="number"
+                          min="1"
+                          .value=${trigger.interval}
+                          aria-label=${t('Editor.Schedule')}
+                          @change=${(event: Event) => void this.setTriggerTimer(trigger.id, 'interval', event)}
+                        />
+                        <select
+                          .value=${trigger.unit}
+                          aria-label=${t('Editor.Schedule')}
+                          @change=${(event: Event) => void this.setTriggerTimer(trigger.id, 'unit', event)}
+                        >
+                          <option value="Seconds">${t('Schedule.Unit.Seconds')}</option>
+                          <option value="Minutes">${t('Schedule.Unit.Minutes')}</option>
+                          <option value="Hours">${t('Schedule.Unit.Hours')}</option>
+                        </select>`}
+                  </div>`
+                : html`<span>${trigger.summary}</span>`}
             <button
               title=${t('Editor.RemoveTrigger')}
               aria-label=${t('Editor.RemoveTrigger')}
@@ -714,6 +758,18 @@ export class WgEditorGate extends LitElement {
       this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerBinding', {
         triggerId,
         binding,
+      });
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  private async setTriggerTimer(triggerId: string, field: string, event: Event): Promise<void> {
+    try {
+      this.snapshot = await bridge.value.call<EditorSnapshot>('editor.sessionTriggerTimer', {
+        triggerId,
+        field,
+        value: (event.target as HTMLInputElement | HTMLSelectElement).value,
       });
     } catch (error) {
       this.error = String(error);

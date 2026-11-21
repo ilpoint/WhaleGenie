@@ -129,6 +129,10 @@ export interface EditorTrigger {
   binding: string;
   loop: string;
   once: boolean;
+  timerMode: string;
+  time: string;
+  interval: string;
+  unit: string;
 }
 
 export interface EditorVariable {

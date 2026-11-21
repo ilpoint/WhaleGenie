@@ -41,7 +41,9 @@ const chromeKeys = [
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
-  'Editor.TriggerEnabled',
+  'Editor.TriggerEnabled', 'Editor.Schedule', 'Editor.ScheduleTime', 'Editor.ScheduleTimeHint',
+  'Schedule.Interval', 'Schedule.Daily', 'Schedule.Unit.Seconds', 'Schedule.Unit.Minutes',
+  'Schedule.Unit.Hours',
   'Loop.Press', 'Loop.Hold', 'Loop.Toggle', 'Loop.Release',
   'LocalVariables.Title', 'LocalVariables.New', 'LocalVariables.Initial',
   'LocalVariables.InitialPlaceholder', 'LocalVariables.Delete',
@@ -88,7 +90,11 @@ const english: Record<string, string> = {
   'Editor.BindKey': 'Trigger / Bind Key :', 'Add.SetCombination': 'Set combination',
   'Add.PressKey': 'Press a key…', 'Palette.Undo': 'Undo', 'Palette.Redo': 'Redo',
   'Editor.Loop': 'Loop :', 'Editor.TriggerOnce': 'Trigger Once',
-  'Editor.TriggerEnabled': 'Enabled',
+  'Editor.TriggerEnabled': 'Enabled', 'Editor.Schedule': 'Schedule :',
+  'Editor.ScheduleTime': 'Time :', 'Editor.ScheduleTimeHint': 'HH:mm, or HH:mm:ss',
+  'Schedule.Interval': 'At an Interval', 'Schedule.Daily': 'Every Day at a Time',
+  'Schedule.Unit.Seconds': 'seconds', 'Schedule.Unit.Minutes': 'minutes',
+  'Schedule.Unit.Hours': 'hours',
   'Loop.Press': 'Once, When Key Pressed (Press)', 'Loop.Hold': 'While Holding Key (Hold)',
   'Loop.Toggle': 'Until Key Pressed Again (Toggle)', 'Loop.Release': 'Once, When Key Released (Release)',
   'LocalVariables.Title': 'Local variables',
@@ -148,6 +154,10 @@ const chinese: Record<string, string> = {
   'Editor.BindKey': '触发 / 绑定按键：', 'Add.SetCombination': '设置组合键',
   'Add.PressKey': '请按一个键…', 'Palette.Undo': '撤销', 'Palette.Redo': '重做',
   'Editor.Loop': '循环：', 'Editor.TriggerOnce': '仅触发一次', 'Editor.TriggerEnabled': '启用',
+  'Editor.Schedule': '计划：', 'Editor.ScheduleTime': '时间：',
+  'Editor.ScheduleTimeHint': 'HH:mm 或 HH:mm:ss', 'Schedule.Interval': '按间隔重复',
+  'Schedule.Daily': '每天固定时间', 'Schedule.Unit.Seconds': '秒',
+  'Schedule.Unit.Minutes': '分钟', 'Schedule.Unit.Hours': '小时',
   'Loop.Press': '按下时执行一次（按下）', 'Loop.Hold': '按住期间循环（长按）',
   'Loop.Toggle': '再次按键时停止（切换）', 'Loop.Release': '松开时执行一次（松开）',
   'LocalVariables.Title': '局部变量',
@@ -491,6 +501,10 @@ export class MockTransport implements BridgeTransport {
               binding: '',
               loop: 'Press',
               once: false,
+              timerMode: 'Interval',
+              time: '08:00',
+              interval: '5',
+              unit: 'Seconds',
             }],
           };
         }
@@ -503,6 +517,29 @@ export class MockTransport implements BridgeTransport {
             ...this.editor,
             dirty: true,
             triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
+          };
+        }
+        result = this.editor;
+        break;
+      case 'editor.sessionTriggerTimer':
+        if (this.editor) {
+          this.editor = {
+            ...this.editor,
+            dirty: true,
+            triggers: this.editor.triggers.map((trigger) => {
+              if (trigger.id !== params['triggerId']) {
+                return trigger;
+              }
+              const field = String(params['field'] ?? '');
+              const value = String(params['value'] ?? '');
+              return {
+                ...trigger,
+                timerMode: field === 'mode' ? value : trigger.timerMode,
+                time: field === 'time' ? value : trigger.time,
+                interval: field === 'interval' ? value : trigger.interval,
+                unit: field === 'unit' ? value : trigger.unit,
+              };
+            }),
           };
         }
         result = this.editor;

@@ -111,6 +111,12 @@ public class EditorGateTests
         session.AddTrigger("Timer");
         var trigger = Assert.Single(session.Snapshot().Triggers);
         Assert.Equal("Timer", trigger.Kind);
+
+        session.SetTriggerTimer(trigger.Id, "interval", "7");
+        session.SetTriggerTimer(trigger.Id, "unit", "Minutes");
+        var timer = Assert.Single(session.Snapshot().Triggers);
+        Assert.Equal("7", timer.Interval);
+        Assert.Equal("Minutes", timer.Unit);
     }
 
     [Fact]
