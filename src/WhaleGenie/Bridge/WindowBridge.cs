@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using WhaleGenie.Web;
@@ -24,6 +25,22 @@ public sealed class WindowBridge(Func<WebShellWindow?> window) : IBridgeHandler
         server.Register("window.close", _ => Act(static target => target.Close()));
         server.Register("window.pin", _ => Act(target => target.Topmost = !target.Topmost));
         server.Register("window.drag", _ => Act(static target => target.BeginNativeDrag()));
+        server.Register("window.focus", Focus);
+    }
+
+    /// <summary>
+    /// The page tells the window whether a text field has the keyboard. The trigger host asks the
+    /// active window before it turns a hotkey into a switch.
+    /// </summary>
+    private Task<object?> Focus(JsonElement parameters)
+    {
+        if (parameters.TryGetProperty("textField", out var given)
+            && given.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            window()?.SetTextInputFocused(given.GetBoolean());
+        }
+
+        return Task.FromResult<object?>(null);
     }
 
     private Task<object?> Act(Action<WebShellWindow> action)

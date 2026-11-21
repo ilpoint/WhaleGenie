@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
@@ -19,12 +20,15 @@ namespace WhaleGenie.Web;
 /// The tray, the single-instance call-back and the exit walk all treat this like any other
 /// window: closing it hides it, because the notification icon is how the program really stops.
 /// </remarks>
-public partial class WebShellWindow : Window
+public partial class WebShellWindow : Window, ITriggerFocusProbe
 {
     private const int WM_NCLBUTTONDOWN = 0x00A1;
     private const int HTCAPTION = 2;
 
     private readonly BridgeServer? _bridge;
+
+    /// <summary>Whether a text field in the page last held the keyboard.</summary>
+    private int _textInputFocused;
 
     private WebBridge? _channel;
 
@@ -65,6 +69,16 @@ public partial class WebShellWindow : Window
         Strings.Current.LanguageChanged += SetTitle;
         SetTitle();
     }
+
+    /// <summary>
+    /// Whether the page currently has a text field focused. The window adds its own active state:
+    /// a field that kept the flag while the window lost the keyboard is not what the hotkeys mean.
+    /// </summary>
+    bool ITriggerFocusProbe.IsTextInputFocused => IsActive && Volatile.Read(ref _textInputFocused) == 1;
+
+    /// <summary>The page reports focus changes through window.focus.</summary>
+    internal void SetTextInputFocused(bool focused)
+        => Volatile.Write(ref _textInputFocused, focused ? 1 : 0);
 
     /// <summary>
     /// Starts the native title-bar drag. The page sees only that a drag began: the capture and
@@ -151,6 +165,7 @@ public partial class WebShellWindow : Window
     private void OnAdapterCreated(object? sender, EventArgs args)
     {
         AppDiagnostics.Note("webshell.adapter", "created");
+        Volatile.Write(ref _textInputFocused, 0);
         if (_bridge is not { } bridge || _channel is not { } channel)
         {
             return;
@@ -187,6 +202,11 @@ public partial class WebShellWindow : Window
         if (args.Property == Window.WindowStateProperty || args.Property == Window.TopmostProperty)
         {
             _ = bridge.PushAsync("window.changed", WindowStatePayload());
+        }
+
+        if (args.Property == Window.IsActiveProperty && !IsActive)
+        {
+            Volatile.Write(ref _textInputFocused, 0);
         }
     }
 

@@ -97,6 +97,16 @@ test('主题推送改变页面令牌', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
+test('文本框焦点上报给宿主', async ({ page }) => {
+  await page.locator('wg-nav button', { hasText: '宏' }).click();
+  await page.locator('wg-macros input[type="search"]').click();
+
+  // 宿主靠这条报告决定系统热键是否该让路；mock 只记录方法名，真实标志在 C# 侧与真机验收。
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('window.focus')))
+    .toBe(true);
+});
+
 test('关闭全部先问页面，确认后清空', async ({ page }) => {
   await page.locator('wg-nav button', { hasText: '宏' }).click();
   await page.locator('wg-macros .filebar fluent-button', { hasText: '全部关闭' }).click();

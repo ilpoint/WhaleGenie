@@ -220,6 +220,7 @@ export class MockTransport implements BridgeTransport {
         this.push('window.changed', this.windowState);
         break;
       case 'window.drag':
+      case 'window.focus':
       case 'app.quit':
       case 'app.openExternal':
         break;

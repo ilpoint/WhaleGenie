@@ -17,6 +17,7 @@ import { theme } from './shared/theme/theme.js';
 import { appInfo } from './shared/app/app.js';
 import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
+import { installFocusReporting } from './shared/focus/focus.js';
 import './app/shell.js';
 
 /**
@@ -26,6 +27,7 @@ import './app/shell.js';
  */
 const client = new BridgeClient(pickTransport());
 bridge.connect(client);
+installFocusReporting();
 
 // 测试与调试的观察口：e2e 与控制台可以手动注册监听、手动调请求。
 window.__bridge = client;
