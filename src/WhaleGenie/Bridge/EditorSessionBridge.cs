@@ -235,10 +235,17 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace) : IBridgeH
     private object? Save()
     {
         var session = Required();
-        if (!session.Save())
+        try
         {
-            throw new BridgeFailureException(BridgeErrors.Internal,
-                Strings.Get("Bridge.EditorSaveFailed"));
+            if (!session.Save())
+            {
+                throw new BridgeFailureException(BridgeErrors.Internal,
+                    Strings.Get("Bridge.EditorSaveFailed"));
+            }
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
 
         return Snapshot();

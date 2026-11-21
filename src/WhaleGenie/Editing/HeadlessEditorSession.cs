@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -64,6 +65,14 @@ internal sealed class HeadlessEditorSession
     public string Description => _model.Description;
 
     public bool IsDirty => _model.IsDirty;
+
+    public bool CanSave => _model.CanSave;
+
+    public string SaveProblem => _model.NameProblem is { Length: > 0 } nameProblem
+        ? nameProblem
+        : _model.DeclarationProblemSummary is { Length: > 0 } declarationProblem
+            ? declarationProblem
+            : string.Empty;
 
     public IReadOnlyList<string> StepTypes
         => [.. _model.Draft().Macro.Steps.Select(step => step.Type)];
@@ -180,6 +189,13 @@ internal sealed class HeadlessEditorSession
     /// <summary>Writes the draft through the same rule the native editor and the MCP save use.</summary>
     public bool Save()
     {
+        if (!CanSave)
+        {
+            throw new InvalidOperationException(SaveProblem is { Length: > 0 } problem
+                ? problem
+                : Strings.Get("Editor.Problem.CannotSave"));
+        }
+
         var commit = new ProjectMacroCommit(_workspace, _existing, MacroView.All,
             _ => { }, () => { }, () => { });
         var draft = _model.Draft();

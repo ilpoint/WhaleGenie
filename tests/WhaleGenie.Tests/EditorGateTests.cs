@@ -101,6 +101,23 @@ public class EditorGateTests
     }
 
     [Fact]
+    public void Saving_an_invalid_macro_is_refused()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "valid" });
+        var session = HeadlessEditorSession.Open(workspace, "valid");
+
+        session.Patch(name: string.Empty);
+        Assert.False(session.CanSave);
+        Assert.NotEmpty(session.SaveProblem);
+        Assert.Throws<InvalidOperationException>(() => session.Save());
+
+        session.Patch(name: "still-valid");
+        Assert.True(session.CanSave);
+        Assert.True(session.Save());
+    }
+
+    [Fact]
     public void A_blank_document_can_be_added_without_a_project_macro()
     {
         var workspace = new ProjectWorkspace();
