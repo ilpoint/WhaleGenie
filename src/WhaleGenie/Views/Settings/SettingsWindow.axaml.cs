@@ -51,6 +51,8 @@ public partial class SettingsWindow : AppWindow
         }
     }
 
+    internal void SelectPage(SettingsSubPage page) => _viewModel.SelectedPage = page;
+
     private void LeaveTriggerGate()
     {
         if (_gateEntered)

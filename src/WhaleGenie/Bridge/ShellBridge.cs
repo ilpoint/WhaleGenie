@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
 
@@ -20,9 +21,28 @@ internal sealed class ShellBridge(
     public void Register(BridgeServer server)
     {
         server.Register("app.openSettings", _ => OpenSettings());
+        server.Register("app.openSettingsPage", OpenSettingsPage);
         server.Register("app.openRun", OpenRun);
         server.Register("app.openAbout", _ => OpenAbout());
         server.Register("app.openManual", _ => OpenManual());
+    }
+
+    private async Task<object?> OpenSettingsPage(JsonElement parameters)
+    {
+        var name = parameters.TryGetProperty("page", out var given) ? given.GetString() : null;
+        if (!Enum.TryParse<SettingsSubPage>(name, ignoreCase: true, out var page)
+            || !Enum.IsDefined(page))
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        if (windows() is { } actions)
+        {
+            await actions.OpenSettingsAsync(page);
+        }
+
+        return null;
     }
 
     private async Task<object?> OpenSettings()

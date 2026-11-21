@@ -18,6 +18,14 @@ export class WgSettings extends LitElement {
 
   private unsubscribe?: () => void;
 
+  private readonly nativePages = [
+    { page: 'MenuLauncher', label: 'Settings.MenuLauncher' },
+    { page: 'WindowRules', label: 'Settings.WindowRules' },
+    { page: 'WheelMenu', label: 'Settings.WheelTitle' },
+    { page: 'WheelActions', label: 'Settings.WheelActions' },
+    { page: 'Theme', label: 'Settings.Theme' },
+  ];
+
   static styles = css`
     :host {
       display: block;
@@ -59,6 +67,12 @@ export class WgSettings extends LitElement {
 
     .row label {
       color: var(--colorNeutralForeground1);
+    }
+
+    .native-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalS);
     }
 
     .storage-row {
@@ -203,6 +217,16 @@ export class WgSettings extends LitElement {
           </div>
         </section>
         <section class="card">
+          <h2>${t('Settings.Advanced')}</h2>
+          <div class="native-actions">
+            ${this.nativePages.map((item) => html`
+              <fluent-button appearance="subtle" @click=${() => void this.openNative(item.page)}>
+                ${t(item.label)}
+              </fluent-button>
+            `)}
+          </div>
+        </section>
+        <section class="card">
           <h2>${t('Settings.Storage')}</h2>
           ${this.settings.storage.map((row) => html`
             <div class="storage-row">
@@ -241,6 +265,14 @@ export class WgSettings extends LitElement {
           @change=${(event: Event) => void this.changeSetting(field, event)} />
       </div>
     `;
+  }
+
+  private async openNative(page: string): Promise<void> {
+    try {
+      await bridge.value.call('app.openSettingsPage', { page });
+    } catch (error) {
+      this.error = String(error);
+    }
   }
 
   private async openFolder(folder: string): Promise<void> {

@@ -652,6 +652,15 @@ test('工程宏可加入宏库并覆盖条目', async ({ page }) => {
     .toBe(true);
 });
 
+test('设置页可请求原生高级设置页', async ({ page }) => {
+  await page.locator('wg-nav .activity button[aria-label="设置"]').click();
+  const advanced = page.locator('wg-settings .card').filter({ hasText: '高级设置' }).first();
+  await advanced.locator('fluent-button').first().click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('app.openSettingsPage')))
+    .toBe(true);
+});
+
 test('设置页可改驱动与画面来源', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   const driver = page.locator('wg-settings .card').filter({ hasText: '驱动级输入' }).first();

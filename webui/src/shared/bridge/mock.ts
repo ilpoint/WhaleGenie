@@ -33,7 +33,8 @@ const chromeKeys = [
   'Settings.Hotkeys', 'Settings.SystemHotkey', 'Settings.RecordStopKey', 'Settings.HotkeySet',
   'Settings.HotkeyPress', 'Settings.HotkeyClear', 'Settings.Storage', 'Settings.OpenFolder',
   'Settings.Driver', 'Settings.DriverAttachAtStart', 'Settings.RunAsAdmin',
-  'Settings.CaptureCard', 'Settings.CaptureWindow', 'Settings.CaptureScreen', 'Theme.Mode.Dark', 'Theme.Mode.Light',
+  'Settings.Advanced', 'Settings.WindowRules', 'Settings.CaptureCard',
+  'Settings.CaptureWindow', 'Settings.CaptureScreen', 'Theme.Mode.Dark', 'Theme.Mode.Light',
   'Theme.Mode.Custom',
   'Shell.Library', 'Library.Heading', 'Library.Intro', 'Library.Empty', 'Library.Delete',
   'Library.Failed', 'Library.AddFromProject', 'Library.ReplaceFromProject',
@@ -206,6 +207,7 @@ const english: Record<string, string> = {
   'Settings.OpenFolder': 'Open', 'Settings.Driver': 'Driver-level input',
   'Settings.DriverAttachAtStart': 'Put virtual devices on at startup',
   'Settings.RunAsAdmin': 'Ask for administrator rights at startup',
+  'Settings.Advanced': 'Advanced (native)', 'Settings.WindowRules': 'Window rules',
   'Settings.CaptureCard': 'Picture source', 'Settings.CaptureWindow': 'Window pictures',
   'Settings.CaptureScreen': 'Desktop pictures',
   'Theme.Mode.Dark': 'Dark', 'Theme.Mode.Light': 'Light',
@@ -337,6 +339,7 @@ const chinese: Record<string, string> = {
   'Settings.OpenFolder': '打开', 'Settings.Driver': '驱动级输入',
   'Settings.DriverAttachAtStart': '启动时预装虚拟键鼠',
   'Settings.RunAsAdmin': '启动时请求管理员权限',
+  'Settings.Advanced': '高级设置（原生）', 'Settings.WindowRules': '窗口规则',
   'Settings.CaptureCard': '画面来源', 'Settings.CaptureWindow': '窗口画面',
   'Settings.CaptureScreen': '桌面画面',
   'Theme.Mode.Dark': '深色', 'Theme.Mode.Light': '浅色',
@@ -516,6 +519,9 @@ export class MockTransport implements BridgeTransport {
         result = this.settingsState;
         break;
       }
+      case 'app.openSettingsPage':
+        result = null;
+        break;
       case 'settings.openFolder':
         result = null;
         break;

@@ -37,7 +37,7 @@ internal sealed class ShellNativeWindows(
 
     public void OpenRun(MacroItem macro) => _ = OpenRunAsync(macro);
 
-    internal Task OpenSettingsAsync()
+    internal Task OpenSettingsAsync(SettingsSubPage page = SettingsSubPage.General)
     {
         if (owner() is not { } window)
         {
@@ -46,11 +46,12 @@ internal sealed class ShellNativeWindows(
 
         if (_settings is { } open)
         {
+            open.SelectPage(page);
             open.Activate();
             return Task.CompletedTask;
         }
 
-        var dialog = new SettingsWindow(viewModel, workspace.CurrentPath, SettingsSubPage.General);
+        var dialog = new SettingsWindow(viewModel, workspace.CurrentPath, page);
         _settings = dialog;
         dialog.Closed += (_, _) =>
         {
