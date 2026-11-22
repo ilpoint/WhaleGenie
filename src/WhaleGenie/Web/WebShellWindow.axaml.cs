@@ -38,8 +38,8 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     private WebBridge? _channel;
 
-    /// <summary>The Lit menu overlay, built once and hidden until the menu asks for it.</summary>
-    private WebOverlayWindow? _menuOverlay;
+    /// <summary>The one bridge server this window's page and its overlays speak through.</summary>
+    internal BridgeServer? Bridge => _bridge;
 
     /// <summary>The Vite dev server to load instead of the packed page. Debug only.</summary>
     internal string? DevUrl { get; set; }
@@ -85,23 +85,6 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     /// a field that kept the flag while the window lost the keyboard is not what the hotkeys mean.
     /// </summary>
     bool ITriggerFocusProbe.IsTextInputFocused => IsActive && Volatile.Read(ref _textInputFocused) == 1;
-
-    /// <summary>
-    /// Builds the menu overlay once and shows it. The window is kept after closing so the second
-    /// open is the 19–25 ms <c>Show()</c> the plan was written against, not another first frame.
-    /// </summary>
-    internal void ShowMenuOverlay()
-    {
-        if (_bridge is null)
-        {
-            return;
-        }
-
-        _menuOverlay ??= new WebOverlayWindow(_bridge, BridgeSurface.Menu, "overlay/menu", 356, 312);
-        _menuOverlay.CenterOnScreen();
-        _menuOverlay.Show();
-        _menuOverlay.Activate();
-    }
 
     /// <summary>Asks the page to open a macro in the web editor, from a native menu.</summary>
     internal void OpenEditor(string name)
@@ -206,12 +189,7 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
         WindowPlacement.Restore(this, AppSettings.Shared);
 
         _host ??= _hosts?.Create(this);
-#if DEBUG
-        if (App.MenuOverlay)
-        {
-            ShowMenuOverlay();
-        }
-#endif
+
         if (_host is not null)
         {
             _host.Tray = _pendingTray;

@@ -57,7 +57,12 @@ internal static class WindowedServices
         services.AddSingleton<RunQuestionHost>()
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
-            sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>()))
+            sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
+            sp.GetRequiredService<MenuSurfaceBridge>()))
+        .AddSingleton(sp => new MenuSurfaceBridge(new MenuSurface(
+            sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<IDeviceLayer>().Windows,
+            sp.GetRequiredService<TriggerRuntime>())))
         .AddSingleton(sp =>
         {
             // The web shell's handlers are registered once and serve the one page; the window
@@ -73,10 +78,7 @@ internal static class WindowedServices
             sp.GetService<WebShellWindow>() is { } window ? new ShellWindowCommands(window) : null));
             server.Register(new McpBridge(() => SharedDevices.Current.Clipboard,
                 sp.GetRequiredService<AppSettings>()));
-            server.Register(new MenuSurfaceBridge(new MenuSurface(
-                sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<IDeviceLayer>().Windows,
-                sp.GetRequiredService<TriggerRuntime>())));
+            server.Register(sp.GetRequiredService<MenuSurfaceBridge>());
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();

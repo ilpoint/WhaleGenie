@@ -15,7 +15,8 @@ internal sealed class ShellHostFactory(
     SystemState system,
     TriggerRuntime runtime,
     RunQuestionHost questions,
-    MainViewModel viewModel)
+    MainViewModel viewModel,
+    MenuSurfaceBridge menu)
 {
     public ShellHost Create(WebShellWindow owner)
     {
@@ -27,6 +28,19 @@ internal sealed class ShellHostFactory(
             },
             macro => owner.OpenRun(macro.Name),
             () => owner.OpenSettings());
+
+#if DEBUG
+        if (App.MenuOverlay)
+        {
+            if (owner.Bridge is { } bridge)
+            {
+                menu.Overlay ??= new MenuOverlayHost(bridge);
+            }
+
+            menu.Overlay?.Show();
+        }
+#endif
+
         return new ShellHost(workspace, system, runtime, questions, actions, owner, owner);
     }
 }

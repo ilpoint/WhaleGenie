@@ -94,6 +94,7 @@ export type BridgeMethod =
   | 'settings.windows.pick'
   | 'strings.bundle'
   | 'surface.menu.activate'
+  | 'surface.menu.close'
   | 'surface.menu.state'
   | 'theme.get'
   | 'theme.set'

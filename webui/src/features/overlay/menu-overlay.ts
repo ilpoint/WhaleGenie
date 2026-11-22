@@ -176,6 +176,12 @@ export class WgOverlayMenu extends LitElement {
   protected override async firstUpdated(): Promise<void> {
     await this.reload();
     window.addEventListener('focus', () => void this.reload());
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        void bridgeApi.call('surface.menu.close');
+      }
+    });
   }
 
   private async reload(): Promise<void> {

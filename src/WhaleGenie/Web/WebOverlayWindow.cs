@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -84,18 +85,53 @@ internal sealed class WebOverlayWindow : Window
         return page.Uri;
     }
 
-    /// <summary>Puts the window in the middle of the display it will open on.</summary>
-    internal void CenterOnScreen()
+    /// <summary>
+    /// Puts the window next to the pointer, like the native menu: a menu that opens in the middle
+    /// of the screen makes the person look for it. A position that would leave the display is
+    /// pulled back inside the work area.
+    /// </summary>
+    internal void PlaceNearCursor()
     {
-        var area = Screens.Primary?.WorkingArea;
-        if (area is not { } screen)
+        var screen = Screens.ScreenFromPoint(Position) ?? Screens.Primary;
+        if (screen is not { } area)
         {
             return;
         }
 
-        Position = new PixelPoint(
-            screen.X + Math.Max(0, (screen.Width - (int)Width) / 2),
-            screen.Y + Math.Max(0, (screen.Height - (int)Height) / 2));
+        var work = area.WorkingArea;
+        var cursor = TryCursor() ?? new PixelPoint(work.X + work.Width / 2, work.Y + work.Height / 2);
+        var width = (int)Width;
+        var height = (int)Height;
+        var x = Math.Min(cursor.X, work.X + work.Width - width);
+        var y = Math.Min(cursor.Y, work.Y + work.Height - height);
+        Position = new PixelPoint(Math.Max(work.X, x), Math.Max(work.Y, y));
+    }
+
+    private static PixelPoint? TryCursor()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        try
+        {
+            return GetCursorPos(out var point) ? new PixelPoint(point.X, point.Y) : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
     }
 
     protected override void OnClosed(EventArgs e)
