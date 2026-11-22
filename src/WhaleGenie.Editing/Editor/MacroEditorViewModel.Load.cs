@@ -87,7 +87,7 @@ public partial class MacroEditorViewModel
             // The box shows the program's value while this macro is following it, so turning the
             // follow switch off does not start from a number nobody picked.
             FollowProgramInputRate = macro.InputRate is null;
-            InputLimitValue = macro.InputRate ?? LocalSettings.LoadInputRate();
+            InputLimitValue = macro.InputRate ?? Settings.InputRate;
             ToggleKey = macro.ToggleKey;
             ToggleKeyProblem = string.Empty;
 

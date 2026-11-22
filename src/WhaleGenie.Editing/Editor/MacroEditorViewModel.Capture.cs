@@ -97,12 +97,12 @@ public partial class MacroEditorViewModel
     /// named a fixed key would send people to the wrong one.
     /// </summary>
     public string RecordStatusText => IsRecording
-        ? Strings.Format("Editor.RecordActive", RecordedEvents, LocalSettings.LoadRecordStopKey())
-        : Strings.Format("Editor.RecordIdle", LocalSettings.LoadRecordStopKey());
+        ? Strings.Format("Editor.RecordActive", RecordedEvents, Settings.RecordStopKey)
+        : Strings.Format("Editor.RecordIdle", Settings.RecordStopKey);
 
     /// <summary>The record button's tooltip, naming the same shortcut the line under it names.</summary>
     public string RecordStartTip
-        => Strings.Format("Editor.Tip.Record", LocalSettings.LoadRecordStopKey());
+        => Strings.Format("Editor.Tip.Record", Settings.RecordStopKey);
 
     /// <summary>True while the current capture only takes keys, not a mouse button or a pad button.</summary>
     internal bool CaptureKeyboardOnly => _captureKeyboardOnly;

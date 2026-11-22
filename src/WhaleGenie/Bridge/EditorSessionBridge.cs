@@ -487,7 +487,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 Strings.Get("Editor.RecordFailed"));
         }
 
-        _recording ??= new RecordingSession();
+        _recording ??= new RecordingSession(new WhaleGenie.Editing.LocalEditorSettings());
         _stopRecordingRequested = false;
         var model = Required();
         if (!_recording.Start(_devices, model.RecordIgnoreInjected, model.RecordGamepadButtons,

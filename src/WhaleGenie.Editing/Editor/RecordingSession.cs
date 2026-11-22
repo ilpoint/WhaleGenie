@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Editing;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -21,9 +22,12 @@ namespace WhaleGenie.ViewModels;
 /// </remarks>
 internal sealed class RecordingSession : IDisposable
 {
+    public RecordingSession(IEditorSettings settings) => _settings = settings;
+
     /// <summary>What one recording came to: the steps, and how many events they were made from.</summary>
     internal sealed record Outcome(IReadOnlyList<MacroStep> Steps, int Captured);
 
+    private readonly IEditorSettings _settings;
     private readonly List<RecordedInput> _captured = [];
     private readonly object _gate = new();
     private IInputRecorder? _recorder;
@@ -78,7 +82,7 @@ internal sealed class RecordingSession : IDisposable
             recorder.RecordController = recordController;
 
             // 停止键由这一次录制开始时从设置里取：引擎不读设置文件，而用户换成别的键应当立刻生效。
-            recorder.StopShortcut = LocalSettings.LoadRecordStopKey();
+            recorder.StopShortcut = _settings.RecordStopKey;
             recorder.Start();
         }
         catch (Exception)

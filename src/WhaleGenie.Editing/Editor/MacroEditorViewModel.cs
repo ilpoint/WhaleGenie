@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Editing;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
@@ -38,6 +39,9 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>The values kept on this machine, shared with the project that opened this editor.</summary>
     public PersistedVariables Persisted { get; init; } = new();
 
+    /// <summary>Machine settings the editor reads, kept behind a port so the model stays UI-free.</summary>
+    public IEditorSettings Settings { get; init; } = DefaultEditorSettings.Instance;
+
     /// <summary>
     /// The project's shared values, shared with every run and every other editor window. An editor
     /// built on its own — a check, a page that only reads the palette — gets a session of its own.
@@ -50,59 +54,44 @@ public partial class MacroEditorViewModel : ViewModelBase
     /// <summary>Action types offered by the Action Editor palette.</summary>
     public IReadOnlyList<MacroAction> ActionPalette { get; } =
     [
-        new() { Icon = AppIcons.Undo,
-                LabelKey = "Palette.Undo", Key = "undo", NeedsUndo = true },
+        new() { LabelKey = "Palette.Undo", Key = "undo", NeedsUndo = true },
 
-        new() { Icon = AppIcons.Redo,
-                LabelKey = "Palette.Redo", Key = "redo", NeedsRedo = true },
+        new() { LabelKey = "Palette.Redo", Key = "redo", NeedsRedo = true },
 
-        new() { Icon = AppIcons.Pencil,
-                LabelKey = "Palette.Edit", Key = "edit", NeedsSingleSelection = true },
+        new() { LabelKey = "Palette.Edit", Key = "edit", NeedsSingleSelection = true },
 
-        new() { Icon = AppIcons.Toggle,
-                LabelKey = "Palette.ToggleEnabled", Key = "toggleEnabled", NeedsSelection = true },
+        new() { LabelKey = "Palette.ToggleEnabled", Key = "toggleEnabled", NeedsSelection = true },
 
         // Copy borrows the two-sheets glyph: with the duplicate entry gone there is one copy
         // button, and this reads as "a copy of the steps" more plainly than a single sheet.
-        new() { Icon = AppIcons.Copy,
-                LabelKey = "Palette.Copy", Key = "copy", NeedsSelection = true },
+        new() { LabelKey = "Palette.Copy", Key = "copy", NeedsSelection = true },
 
-        new() { Icon = AppIcons.Scissors,
-                LabelKey = "Palette.Cut", Key = "cut", NeedsSelection = true },
+        new() { LabelKey = "Palette.Cut", Key = "cut", NeedsSelection = true },
 
         // A plain clipboard, the usual "paste" glyph. The old one was a clipboard with a
         // downward arrow, which reads as "download" and had nothing to do with the step list.
-        new() { Icon = AppIcons.Paste,
-                LabelKey = "Palette.Paste", Key = "paste" },
+        new() { LabelKey = "Palette.Paste", Key = "paste" },
 
-        new() { Icon = AppIcons.Trash,
-                LabelKey = "Palette.Delete", Key = "delete", NeedsSelection = true },
+        new() { LabelKey = "Palette.Delete", Key = "delete", NeedsSelection = true },
 
-        new() { Icon = AppIcons.Group,
-                LabelKey = "Palette.Group",
+        new() { LabelKey = "Palette.Group",
                 Key = "group", NeedsSelection = true },
 
         // An arrow leaving a box: the selected steps are taken out of this macro and put
         // into one of their own, with a call left where they were.
-        new() { Icon = AppIcons.ExternalLink,
-                LabelKey = "Palette.LiftToMacro",
+        new() { LabelKey = "Palette.LiftToMacro",
                 Key = "liftToMacro", NeedsSelection = true },
 
-        new() { Icon = AppIcons.ArrowUp,
-                LabelKey = "Palette.MoveUp", Key = "moveUp", NeedsSelection = true },
+        new() { LabelKey = "Palette.MoveUp", Key = "moveUp", NeedsSelection = true },
 
-        new() { Icon = AppIcons.ArrowDown,
-                LabelKey = "Palette.MoveDown", Key = "moveDown", NeedsSelection = true },
+        new() { LabelKey = "Palette.MoveDown", Key = "moveDown", NeedsSelection = true },
 
-        new() { Icon = AppIcons.X,
-                LabelKey = "Palette.Clear", Key = "clear", NeedsSteps = true },
+        new() { LabelKey = "Palette.Clear", Key = "clear", NeedsSteps = true },
 
-        new() { Icon = AppIcons.Clock,
-                LabelKey = "Palette.AdjustDelays", Key = "adjustDelays",
+        new() { LabelKey = "Palette.AdjustDelays", Key = "adjustDelays",
                 NeedsSteps = true },
 
-        new() { Icon = AppIcons.Play,
-                LabelKey = "Palette.RunMacro", Key = "runMacro" },
+        new() { LabelKey = "Palette.RunMacro", Key = "runMacro" },
     ];
 
     private readonly List<MacroStep> _selection = [];

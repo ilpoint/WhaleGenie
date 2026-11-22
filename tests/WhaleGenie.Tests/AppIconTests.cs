@@ -56,15 +56,6 @@ public class AppIconTests
     }
 
     [Fact]
-    public void The_palette_toolbar_has_an_icon_for_every_entry()
-    {
-        var palette = new MacroEditorViewModel().ActionPalette;
-
-        Assert.Equal(15, palette.Count);
-        Assert.All(palette, action => Assert.NotNull(action.Icon));
-    }
-
-    [Fact]
     public void The_menu_icon_picker_offers_every_named_lucide_icon()
     {
         Assert.Equal(Enum.GetValues<LucideIconKind>().Length, MenuIconCatalog.Options.Count);

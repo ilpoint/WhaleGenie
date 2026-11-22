@@ -324,7 +324,10 @@ public class InterfaceSurfaceTests
                 });
                 triggers.StoreInterfaceHotkey(rule, "Ctrl+Alt+U");
 
-                var editor = new MacroEditorViewModel();
+                var editor = new MacroEditorViewModel
+                {
+                    Settings = new WhaleGenie.Editing.LocalEditorSettings(),
+                };
                 editor.LoadFrom(macro, triggers.ForMacro(macro.Name));
                 editor.LoadProjectTriggerSettings(triggers, [macro]);
                 editor.SelectedTrigger = editor.TriggerEntries
