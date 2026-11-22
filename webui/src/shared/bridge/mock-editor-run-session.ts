@@ -77,21 +77,28 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
       case 'editor.sessionStepsMove':
         return host.stepsMoveTo(params);
 
-      case 'editor.sessionConditionRowAdd':
-        return host.conditionCommand(params, (condition, path) =>
-          addConditionNode(condition, path, 'row'));
-      case 'editor.sessionConditionGroupAdd':
-        return host.conditionCommand(params, (condition, path) =>
-          addConditionNode(condition, path, 'group'));
-      case 'editor.sessionConditionRowRemove':
-        return host.conditionCommand(params, (condition, path) =>
-          removeConditionNode(condition, path));
-      case 'editor.sessionConditionRow':
-        return host.conditionCommand(params, (condition, path) =>
-          setConditionCell(condition, path, host.text(params, 'field'), host.text(params, 'value')));
-      case 'editor.sessionConditionJoin':
-        return host.conditionCommand(params, (condition, path) =>
-          setConditionJoinAt(condition, path, host.text(params, 'join')));
+      case 'editor.condition': {
+        switch (String(params['kind'] ?? '')) {
+          case 'rowAdd':
+            return host.conditionCommand(params, (condition, path) =>
+              addConditionNode(condition, path, 'row'));
+          case 'groupAdd':
+            return host.conditionCommand(params, (condition, path) =>
+              addConditionNode(condition, path, 'group'));
+          case 'rowRemove':
+            return host.conditionCommand(params, (condition, path) =>
+              removeConditionNode(condition, path));
+          case 'row':
+            return host.conditionCommand(params, (condition, path) =>
+              setConditionCell(condition, path, host.text(params, 'field'),
+                host.text(params, 'value')));
+          case 'join':
+            return host.conditionCommand(params, (condition, path) =>
+              setConditionJoinAt(condition, path, host.text(params, 'join')));
+          default:
+            throw new Error('不认识条件命令 ' + String(params['kind']) + '。');
+        }
+      }
       case 'editor.sessionParameter':
         return host.setParameterCommand(params);
       case 'editor.sessionParameterRowAdd':
@@ -130,18 +137,8 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
               { normal: 'Backspace', shifted: 'Backspace', width: 2, kind: 'backspace' }],
           ],
         };
-      case 'editor.sessionGlobalAdd':
-        return host.change(addGlobal);
-      case 'editor.sessionGlobalPatch':
-        return host.change((document) => patchGlobal(document, params));
-      case 'editor.sessionGlobalRemove':
-        return host.change((document) => removeGlobal(document, params));
-      case 'editor.sessionVariableAdd':
-        return host.change(addVariable);
-      case 'editor.sessionVariablePatch':
-        return host.change((document) => patchVariable(document, params));
-      case 'editor.sessionVariableRemove':
-        return host.change((document) => removeVariable(document, params));
+      case 'editor.variable':
+        return handleVariableCommand(host, params);
       case 'editor.sessionExport':
         return true;
       case 'editor.sessionRecordStart':
@@ -188,6 +185,24 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return host.addStep({ type: 'control.runMacro' });
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
+  }
+}
+
+function handleVariableCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  const global = String(params['family'] ?? '') === 'global';
+  switch (String(params['kind'] ?? '')) {
+    case 'add':
+      return host.change(global ? addGlobal : addVariable);
+    case 'patch':
+      return host.change((document) => global
+        ? patchGlobal(document, params)
+        : patchVariable(document, params));
+    case 'remove':
+      return host.change((document) => global
+        ? removeGlobal(document, params)
+        : removeVariable(document, params));
+    default:
+      throw new Error('不认识变量命令 ' + String(params['kind']) + '。');
   }
 }
 

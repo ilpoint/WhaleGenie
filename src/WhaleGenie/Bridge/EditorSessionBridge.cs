@@ -43,11 +43,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionStep", AddStep);
         server.Register("editor.sessionStepEnabled", SetStepEnabled);
         server.Register("editor.sessionStepMeta", SetStepMeta);
-        server.Register("editor.sessionConditionRowAdd", AddConditionRow);
-        server.Register("editor.sessionConditionGroupAdd", AddConditionGroup);
-        server.Register("editor.sessionConditionRowRemove", RemoveConditionRow);
-        server.Register("editor.sessionConditionRow", SetConditionRow);
-        server.Register("editor.sessionConditionJoin", SetConditionJoin);
+        server.Register("editor.condition", ConditionAction);
         server.Register("editor.sessionParameter", PatchParameter);
         server.Register("editor.sessionParameterRowAdd", AddParameterRow);
         server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
@@ -69,12 +65,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionStepsPaste", PasteSteps);
 
         server.Register("editor.trigger", TriggerAction);
-        server.Register("editor.sessionVariableAdd", _ => Task.FromResult<object?>(AddVariable()));
-        server.Register("editor.sessionVariablePatch", PatchVariable);
-        server.Register("editor.sessionVariableRemove", RemoveVariable);
-        server.Register("editor.sessionGlobalAdd", _ => Task.FromResult<object?>(AddGlobal()));
-        server.Register("editor.sessionGlobalPatch", PatchGlobal);
-        server.Register("editor.sessionGlobalRemove", RemoveGlobal);
+        server.Register("editor.variable", VariableAction);
         server.Register("editor.sessionRecordStart", _ => Task.FromResult<object?>(StartRecording()));
         server.Register("editor.sessionRecordStop", _ => Task.FromResult<object?>(StopRecording()));
         server.Register("editor.sessionRecordState", _ => Task.FromResult<object?>(RecordingState()));
@@ -423,30 +414,69 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> AddConditionRow(JsonElement parameters)
-        => ConditionCommand(parameters, (session, step, name) =>
-            session.AddConditionRow(step, name, ConditionPath(parameters)));
-
-    private Task<object?> AddConditionGroup(JsonElement parameters)
-        => ConditionCommand(parameters, (session, step, name) =>
-            session.AddConditionGroup(step, name, ConditionPath(parameters)));
-
-    private Task<object?> RemoveConditionRow(JsonElement parameters)
-        => ConditionCommand(parameters, (session, step, name) =>
-            session.RemoveConditionNode(step, name, ConditionPath(parameters)));
-
-    private Task<object?> SetConditionRow(JsonElement parameters)
-        => ConditionCommand(parameters, (session, step, name) =>
+    private Task<object?> ConditionAction(JsonElement parameters)
+    {
+        EditorConditionCommand command;
+        try
         {
-            var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-            var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-            if (field is not { Length: > 0 } || value is null)
+            command = parameters.Deserialize<EditorConditionCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsField"));
+        }
+        catch (JsonException)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        try
+        {
+            var session = Required();
+            var step = command.StepId;
+            var name = command.Name;
+            if (step.Length == 0 || name.Length == 0)
             {
-                throw new InvalidOperationException("a condition cell needs a field and a value");
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsField"));
             }
 
-            session.SetConditionRow(step, name, ConditionPath(parameters), field, value);
-        });
+            var path = command.Path ?? (command.Index is { } index ? [index] : []);
+            switch (command.Kind)
+            {
+                case "rowAdd":
+                    session.AddConditionRow(step, name, path);
+                    break;
+                case "groupAdd":
+                    session.AddConditionGroup(step, name, path);
+                    break;
+                case "rowRemove":
+                    session.RemoveConditionNode(step, name, path);
+                    break;
+                case "row":
+                    session.SetConditionRow(step, name, path, ConditionText(command.Field),
+                        command.Value ?? string.Empty);
+                    break;
+                case "join":
+                    session.SetConditionJoin(step, name, ConditionText(command.Join), path);
+                    break;
+                default:
+                    throw new BridgeFailureException(BridgeErrors.BadArgument,
+                        Strings.Get("Bridge.EditorNeedsField"));
+            }
+
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private static string ConditionText(string? value)
+        => value is { Length: > 0 }
+            ? value
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
 
     private static IReadOnlyList<string> StepIds(JsonElement parameters)
     {
@@ -468,51 +498,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
             Strings.Get("Bridge.EditorNeedsStep"));
     }
 
-    private static int[] ConditionPath(JsonElement parameters)
-    {
-        if (parameters.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.Array)
-        {
-            return [.. path.EnumerateArray().Select(item => item.GetInt32())];
-        }
-
-        return parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var index)
-            ? [index]
-            : [];
-    }
-
-    private Task<object?> SetConditionJoin(JsonElement parameters)
-        => ConditionCommand(parameters, (session, step, name) =>
-        {
-            var join = parameters.TryGetProperty("join", out var value) ? value.GetString() : null;
-            if (join is not { Length: > 0 })
-            {
-                throw new InvalidOperationException("a condition join needs a value");
-            }
-
-            session.SetConditionJoin(step, name, join, ConditionPath(parameters));
-        });
-
-    private Task<object?> ConditionCommand(JsonElement parameters,
-        Action<HeadlessEditorSession, string, string> apply)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        if (stepId is not { Length: > 0 } || name is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsField"));
-        }
-
-        try
-        {
-            apply(Required(), stepId, name);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
     private object StartRecording()
     {
@@ -993,101 +978,75 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
             : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsTrigger"));
 
-    private object? AddGlobal()
+    private Task<object?> VariableAction(JsonElement parameters)
     {
-        Required().AddGlobal();
+        EditorVariableCommand command;
+        try
+        {
+            command = parameters.Deserialize<EditorVariableCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsVariable"));
+        }
+        catch (JsonException)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsVariable"));
+        }
+
+        try
+        {
+            return Task.FromResult<object?>(ApplyVariable(command));
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private object? ApplyVariable(EditorVariableCommand command)
+    {
+        var session = Required();
+        switch (command.Family, command.Kind)
+        {
+            case ("local", "add"):
+                session.AddVariable();
+                break;
+            case ("local", "patch"):
+                session.PatchVariable(VariableName(command.OriginalName),
+                    VariableField(command.Field), command.Value ?? string.Empty);
+                break;
+            case ("local", "remove"):
+                session.RemoveVariable(VariableName(command.Name));
+                break;
+            case ("global", "add"):
+                session.AddGlobal();
+                break;
+            case ("global", "patch"):
+                session.PatchGlobal(VariableName(command.OriginalName),
+                    VariableField(command.Field), command.Value ?? string.Empty);
+                break;
+            case ("global", "remove"):
+                session.RemoveGlobal(VariableName(command.Name));
+                break;
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsVariable"));
+        }
+
         return Snapshot();
     }
 
-    private Task<object?> PatchGlobal(JsonElement parameters)
-    {
-        var original = parameters.TryGetProperty("originalName", out var name) ? name.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var property) ? property.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (original is null || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
+    private static string VariableName(string? name)
+        => name is { Length: > 0 }
+            ? name
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsVariable"));
-        }
 
-        try
-        {
-            Required().PatchGlobal(original, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> RemoveGlobal(JsonElement parameters)
-    {
-        var name = parameters.TryGetProperty("name", out var written) ? written.GetString() : null;
-        if (name is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
+    private static string VariableField(string? field)
+        => field is { Length: > 0 }
+            ? field
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsVariable"));
-        }
-
-        try
-        {
-            Required().RemoveGlobal(name);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private object? AddVariable()
-    {
-        Required().AddVariable();
-        return Snapshot();
-    }
-
-    private Task<object?> PatchVariable(JsonElement parameters)
-    {
-        var original = parameters.TryGetProperty("originalName", out var name) ? name.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var property) ? property.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (original is null || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsVariable"));
-        }
-
-        try
-        {
-            Required().PatchVariable(original, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> RemoveVariable(JsonElement parameters)
-    {
-        var name = parameters.TryGetProperty("name", out var written) ? written.GetString() : null;
-        if (name is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsVariable"));
-        }
-
-        try
-        {
-            Required().RemoveVariable(name);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
 
     private object? Save()

@@ -1,5 +1,8 @@
 import type { EditorCore } from './editor-core.js';
-import type { EditorSnapshot } from '../../../shared/bridge/protocol.js';
+import type {
+  EditorConditionCommand,
+  EditorSnapshot,
+} from '../../../shared/bridge/protocol.js';
 import { flattenSteps } from '../editor-model.js';
 import { t } from '../../../shared/strings/strings.js';
 
@@ -241,27 +244,29 @@ export class EditorStepService {
     });
   }
 
+  private condition(command: EditorConditionCommand): Promise<boolean> {
+    return this.core.snapshotCommand('editor.condition', command);
+  }
+
   async addConditionRow(stepId: string, name: string, path: number[] = []): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionConditionRowAdd', { stepId, name, path });
+    return this.condition({ kind: 'rowAdd', stepId, name, path });
   }
 
   async addConditionGroup(stepId: string, name: string, path: number[] = []): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionConditionGroupAdd', { stepId, name, path });
+    return this.condition({ kind: 'groupAdd', stepId, name, path });
   }
 
   async removeConditionNode(stepId: string, name: string, path: number[]): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionConditionRowRemove', { stepId, name, path });
+    return this.condition({ kind: 'rowRemove', stepId, name, path });
   }
 
   async setConditionRow(stepId: string, name: string, path: number[], field: string,
     value: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionConditionRow', {
-      stepId, name, path, field, value,
-    });
+    return this.condition({ kind: 'row', stepId, name, path, field, value });
   }
 
   async setConditionJoin(stepId: string, name: string, path: number[], join: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionConditionJoin', { stepId, name, path, join });
+    return this.condition({ kind: 'join', stepId, name, path, join });
   }
 
   async pickImage(stepId: string, name: string): Promise<void> {

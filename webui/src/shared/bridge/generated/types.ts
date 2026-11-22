@@ -351,6 +351,17 @@ export interface EditorColumnSnapshot {
   required: boolean;
 }
 
+export interface EditorConditionCommand {
+  kind: string;
+  stepId: string;
+  name: string;
+  path?: number[] | null;
+  index?: number | null;
+  field?: string | null;
+  value?: string | null;
+  join?: string | null;
+}
+
 export interface EditorConditionCompareSnapshot {
   value: string;
   label: string;
@@ -1059,6 +1070,15 @@ export interface EditorValueWall {
   details: string;
   isEmpty: boolean;
   shown: EditorValueVariable[];
+}
+
+export interface EditorVariableCommand {
+  family: string;
+  kind: string;
+  name?: string | null;
+  originalName?: string | null;
+  field?: string | null;
+  value?: string | null;
 }
 
 export interface EditorVariableSnapshot {
