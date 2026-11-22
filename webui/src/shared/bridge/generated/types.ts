@@ -20,6 +20,159 @@ export interface DialogRequest {
   cancelLabel: string | null;
 }
 
+export interface EditorValueFunction {
+  name: string;
+  tag: string;
+  heading: string;
+  writtenAs: string;
+  arityNote: string;
+  hint: string;
+  group: string;
+  insert: string;
+  arguments: EditorValueFunctionArgument[];
+}
+
+export interface EditorValueFunctionArgument {
+  label: string;
+  hint: string;
+}
+
+export interface EditorValueFunctionGroup {
+  group: string;
+  label: string;
+  selected: boolean;
+}
+
+export interface EditorValueNode {
+  kind: string;
+  path: number[] | null;
+  start: number;
+  length: number;
+  text: string;
+  operator: string;
+  tone: string;
+  name: string;
+  before: string;
+  isName: boolean;
+  isGhost: boolean;
+  isRequired: boolean;
+  isEmpty: boolean;
+  isSelected: boolean;
+  hasProblem: boolean;
+  problemHint: string;
+  hoverHint: string | null;
+  canRemove: boolean;
+  hasNoArguments: boolean;
+  hasNoItems: boolean;
+  stacked: boolean;
+  compact: boolean;
+  argumentLabel: string;
+  argumentFlag: string;
+  argumentIndex: number;
+  argumentOptional: boolean;
+  argumentRequired: boolean;
+  children: EditorValueNode[];
+  ghost: EditorValueNode | null;
+}
+
+export interface EditorValueOperator {
+  token: string;
+  insert: string;
+  hint: string;
+  tone: string;
+  enabled: boolean;
+}
+
+export interface EditorValueSnapshot {
+  mode: string;
+  title: string;
+  hint: string;
+  target: string;
+  targetLine: string;
+  showsBand: boolean;
+  showsFormulaMaterials: boolean;
+  panelSpan: number;
+  isTextMode: boolean;
+  isRunMode: boolean;
+  isValueMode: boolean;
+  isNameMode: boolean;
+  recipe: EditorValueNode | null;
+  caret: number;
+  spanEnd: number;
+  caretPath: number[];
+  caretAfter: boolean;
+  selectedPath: number[] | null;
+  isValueEmpty: boolean;
+  emptyBandHint: string;
+  structureHint: string;
+  text: string;
+  note: string;
+  noteIsProblem: boolean;
+  saying: string;
+  reads: boolean;
+  hasSaying: boolean;
+  canConfirm: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  canClear: boolean;
+  textBody: string;
+  isTypingNumber: boolean;
+  typingText: string;
+  typingPlaceholder: string;
+  canInsertTyped: boolean;
+  typingNote: string;
+  hasTypingNote: boolean;
+  functionQuery: string;
+  selectedFunctionGroup: string | null;
+  isAllFunctions: boolean;
+  hasChosenFunction: boolean;
+  hasChosenVariable: boolean;
+  allowNewName: boolean;
+  newName: string;
+  canCreateName: boolean;
+  newNameLine: string;
+  operators: EditorValueOperator[];
+  values: EditorValueToken[];
+  functionGroups: EditorValueFunctionGroup[];
+  functions: EditorValueFunction[];
+  wall: EditorValueWall;
+}
+
+export interface EditorValueToken {
+  text: string;
+  insert: string;
+}
+
+export interface EditorValueVariable {
+  name: string;
+  display: string;
+  type: string | null;
+  group: string;
+  origin: string;
+  source: string;
+  description: string;
+  persistent: boolean;
+  tone: string;
+  details: string;
+}
+
+export interface EditorValueVariableFilter {
+  group: string;
+  label: string;
+  hint: string;
+  selected: boolean;
+}
+
+export interface EditorValueWall {
+  filters: EditorValueVariableFilter[];
+  selectedFilter: string;
+  search: string;
+  looking: string;
+  details: string;
+  isEmpty: boolean;
+  shown: EditorValueVariable[];
+}
+
 export interface LibraryEntry {
   id: string;
   name: string;

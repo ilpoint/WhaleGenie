@@ -1,5 +1,9 @@
 /** editor bridge shapes. The barrel protocol.ts re-exports this file. */
-import type { EditorValueChoice, EditorValueFunction, EditorValuePart } from './editor-value.js';
+import type {
+  EditorValueChoice,
+  EditorValueFunctionSnapshot,
+  EditorValuePart,
+} from './editor-value.js';
 
 /** The editor session's snapshot: the macro fields and the step tree. */
 export interface EditorChoice {
@@ -223,7 +227,7 @@ export interface EditorSnapshot {
   variables: EditorVariable[];
   globals: EditorGlobal[];
   valueChoices: EditorValueChoice[];
-  valueFunctions: EditorValueFunction[];
+  valueFunctions: EditorValueFunctionSnapshot[];
   conditionCompares: EditorConditionCompare[];
   variableTypes: EditorVariableType[];
   triggerKinds: EditorTriggerKind[];

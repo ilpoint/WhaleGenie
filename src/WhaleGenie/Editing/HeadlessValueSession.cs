@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.ViewModels;
 

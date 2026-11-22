@@ -47,6 +47,15 @@ export default tseslint.config(
     },
   },
   {
+    // Generated from WhaleGenie.Contracts. Its size follows the bridge contract, not a
+    // component's job, so the scale signals do not apply; the generator test keeps it current.
+    files: ['src/shared/bridge/generated/**/*.ts'],
+    rules: {
+      'max-lines': 'off',
+      'max-lines-per-function': 'off',
+    },
+  },
+  {
     // Test files are scenario scripts: a long Playwright test is a sequence, not a function
     // that needs a new abstraction.
     files: ['tests/**/*.ts', 'e2e/**/*.ts'],
