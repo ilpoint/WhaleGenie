@@ -62,7 +62,7 @@ internal static class WindowedServices
             server.Register(new AppBridge(() => AppTray.Current));
             server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>()));
             server.Register(new StringsBridge());
-            server.Register(new ThemeBridge());
+            server.Register(new ThemeBridge(new ThemeCommands()));
             server.Register(new WindowBridge(() =>
             sp.GetService<WebShellWindow>() is { } window ? new ShellWindowCommands(window) : null));
             server.Register(new McpBridge(() => SharedDevices.Current.Clipboard));

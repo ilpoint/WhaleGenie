@@ -156,7 +156,7 @@ public class SettingsBridgeTests
         {
             ThemeController.Save(new ThemeSelection(ThemeMode.Custom, false, "#FFFFFF"));
             var server = new BridgeServer();
-            server.Register(new ThemeBridge());
+            server.Register(new ThemeBridge(new WhaleGenie.Web.ThemeCommands()));
             var channel = Channel(server);
 
             var state = await Call(server, channel, "theme.get");
