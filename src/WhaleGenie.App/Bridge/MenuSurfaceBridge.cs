@@ -12,6 +12,9 @@ namespace WhaleGenie.Bridge;
 /// </summary>
 internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
 {
+    /// <summary>The projection itself, so the shell can hand it the interface behind the page.</summary>
+    internal MenuSurface Menu => menu;
+
     /// <summary>The window the page speaks through, once the shell has built it.</summary>
     internal IMenuOverlay? Overlay { get; set; }
 
@@ -35,6 +38,12 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
 
             return Task.FromResult<object?>(new { pinned });
         });
+        server.Register("surface.menu.edit", parameters =>
+            Task.FromResult<object?>(new { opened = menu.Edit(RequiredString(parameters, "entryId")) }));
+        server.Register("surface.menu.debug", parameters =>
+            Task.FromResult<object?>(new { opened = menu.Debug(RequiredString(parameters, "entryId")) }));
+        server.Register("surface.menu.icon", async parameters =>
+            await menu.ChooseIconAsync(RequiredString(parameters, "entryId")));
         server.Register("surface.menu.page.add", parameters =>
             Task.FromResult<object?>(menu.AddPage(OptionalString(parameters, "pageId"))));
         server.Register("surface.menu.page.remove", parameters =>

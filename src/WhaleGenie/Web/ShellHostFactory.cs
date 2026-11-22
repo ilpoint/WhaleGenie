@@ -20,6 +20,8 @@ internal sealed class ShellHostFactory(
 {
     public ShellHost Create(WebShellWindow owner)
     {
+        menu.Menu.Actions ??= new MenuSurfaceActions(() => owner);
+
         var actions = new ShellNativeWindows(workspace, viewModel, () => owner,
             macro =>
             {

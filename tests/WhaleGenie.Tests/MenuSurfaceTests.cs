@@ -99,4 +99,53 @@ public class MenuSurfaceTests
         Assert.Equal(2, cell.Row);
         Assert.Equal(3, cell.Column);
     }
+
+    [Fact]
+    public void Edit_and_debug_ask_the_shell_for_the_macro()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        var page = project.Triggers.CommonMenuPages()[0];
+        var entry = new TriggerEntry { MacroName = "one", Spec = new MenuSpec(page.Id, 0, 0) };
+        project.Triggers.Entries.Add(entry);
+        var actions = new RecordingActions();
+        var surface = Surface(project);
+        surface.Actions = actions;
+
+        Assert.True(surface.Edit(entry.Id));
+        Assert.True(surface.Debug(entry.Id));
+        Assert.Equal(["one", "one"], actions.Opened);
+    }
+
+    [Fact]
+    public async Task Choosing_an_icon_writes_it_to_the_entry()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        var page = project.Triggers.CommonMenuPages()[0];
+        var entry = new TriggerEntry { MacroName = "one", Spec = new MenuSpec(page.Id, 0, 0) };
+        project.Triggers.Entries.Add(entry);
+        var surface = Surface(project);
+        surface.Actions = new RecordingActions { Icon = ("builtin", "Play") };
+
+        var snapshot = await surface.ChooseIconAsync(entry.Id);
+
+        var cell = Assert.Single(snapshot.Common.SelectMany(candidate => candidate.Cells));
+        Assert.Equal("Play", cell.IconValue);
+        Assert.Equal("builtin", cell.IconKind);
+    }
+
+    private sealed class RecordingActions : IMenuSurfaceActions
+    {
+        public List<string> Opened { get; } = [];
+
+        public (string Kind, string Value)? Icon { get; init; }
+
+        public void OpenEditor(string macroName) => Opened.Add(macroName);
+
+        public void OpenRun(string macroName) => Opened.Add(macroName);
+
+        public Task<(string Kind, string Value)?> PickIconAsync()
+            => Task.FromResult(Icon);
+    }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
@@ -15,6 +16,9 @@ namespace WhaleGenie.Runtime;
 internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice windows,
     TriggerRuntime runtime)
 {
+    /// <summary>The interface behind the page's edit/debug/icon commands, set by the shell.</summary>
+    internal IMenuSurfaceActions? Actions { get; set; }
+
     /// <summary>The pages that fit the window in front, or the default ones when none does.</summary>
     public SurfaceMenuSnapshot Snapshot()
     {
@@ -33,6 +37,63 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
         var layout = workspace.Triggers.BuildMenuLayout(foreground, windows, workspace.Macros);
         return new SurfaceMenuSnapshot(Pages(layout.CommonPages), Pages(layout.ContextPages));
     }
+
+    /// <summary>Opens one cell's macro in the editor.</summary>
+    public bool Edit(string entryId)
+    {
+        if (MacroOf(entryId) is not { } macro)
+        {
+            return false;
+        }
+
+        Actions?.OpenEditor(macro.Name);
+        return true;
+    }
+
+    /// <summary>Starts a debug run of one cell's macro.</summary>
+    public bool Debug(string entryId)
+    {
+        if (MacroOf(entryId) is not { } macro)
+        {
+            return false;
+        }
+
+        Actions?.OpenRun(macro.Name);
+        return true;
+    }
+
+    /// <summary>Replaces one cell's icon with the one the native picker returns.</summary>
+    public async Task<SurfaceMenuSnapshot> ChooseIconAsync(string entryId)
+    {
+        var entry = EntryOf(entryId);
+        if (entry is null || Actions is null)
+        {
+            return Snapshot();
+        }
+
+        if (await Actions.PickIconAsync() is { } icon)
+        {
+            entry.SetMenuIcon(new MenuIconReference(
+                string.Equals(icon.Kind, "image", StringComparison.OrdinalIgnoreCase)
+                    ? MenuIconKind.Image
+                    : MenuIconKind.Builtin,
+                icon.Value));
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
+    private MacroItem? MacroOf(string entryId)
+        => EntryOf(entryId) is { } entry
+            ? workspace.Macros.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name.Trim(), entry.MacroName.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+            : null;
+
+    private TriggerEntry? EntryOf(string entryId)
+        => workspace.Triggers.Entries.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, entryId, StringComparison.Ordinal));
 
     /// <summary>Adds one common page, or one more page under an existing page's rule.</summary>
     public SurfaceMenuSnapshot AddPage(string? pageId)

@@ -1,9 +1,10 @@
-import { LitElement, css, html, nothing } from 'lit';
+import { LitElement, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridgeApi } from '../../shared/bridge/bridge.js';
 import type { SurfaceMenuCell, SurfaceMenuPage, SurfaceMenuSnapshot } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
+import { menuOverlayStyles } from './menu-overlay.styles.js';
 
 const Columns = 4;
 const Rows = 3;
@@ -16,6 +17,7 @@ const Rows = 3;
  */
 @customElement('wg-overlay-menu')
 export class WgOverlayMenu extends LitElement {
+  static styles = menuOverlayStyles;
   @state()
   private snapshot: SurfaceMenuSnapshot | null = null;
 
@@ -34,193 +36,18 @@ export class WgOverlayMenu extends LitElement {
   @state()
   private pinned = false;
 
+  @state()
+  private menuFor: SurfaceMenuCell | null = null;
+
+  @state()
+  private menuX = 0;
+
+  @state()
+  private menuY = 0;
+
   protected readonly stringsController = new StoreController(this, strings);
 
-  static styles = css`
-    :host {
-      display: block;
-      width: max-content;
-      background: transparent;
-      font-family: var(--fontFamilyBase);
-      color: var(--colorNeutralForeground1);
-      user-select: none;
-    }
 
-    .panel {
-      margin: 10px;
-      padding: 10px;
-      border-radius: 12px;
-      background: var(--colorNeutralBackground1);
-      box-shadow: var(--shadow16);
-      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
-    }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .header .title {
-      font-size: 12px;
-      font-weight: var(--fontWeightSemibold);
-      color: var(--colorNeutralForeground2);
-    }
-
-    .header .pin {
-      width: 24px;
-      height: 22px;
-      padding: 0;
-      border: none;
-      border-radius: 5px;
-      background: transparent;
-      font-size: 12px;
-      cursor: pointer;
-      opacity: 0.65;
-    }
-
-    .header .pin.on {
-      background: var(--colorBrandBackground2);
-      opacity: 1;
-    }
-
-    .search {
-      margin-bottom: 8px;
-    }
-
-    .search input {
-      width: 100%;
-      box-sizing: border-box;
-      height: 28px;
-      padding: 0 8px;
-      border-radius: 6px;
-      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
-      background: var(--colorNeutralBackground3);
-      color: inherit;
-      font: inherit;
-      outline: none;
-    }
-
-    .search input:focus {
-      border-color: var(--colorBrandStroke1);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(4, 78px);
-      grid-auto-rows: 70px;
-      gap: 4px;
-    }
-
-    button.cell {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 4px;
-      border-radius: 8px;
-      border: var(--strokeWidthThin) solid transparent;
-      background: var(--colorNeutralBackground3);
-      color: inherit;
-      font: inherit;
-      cursor: pointer;
-      overflow: hidden;
-    }
-
-    button.cell:hover {
-      background: var(--colorNeutralBackground3Hover);
-      border-color: var(--colorNeutralStroke2);
-    }
-
-    button.cell:active {
-      background: var(--colorNeutralBackground3Pressed);
-    }
-
-    button.cell.empty {
-      background: transparent;
-      border: var(--strokeWidthThin) dashed var(--colorNeutralStroke3);
-      color: var(--colorNeutralForeground4);
-      cursor: default;
-    }
-
-    button.cell img {
-      width: 26px;
-      height: 26px;
-      object-fit: contain;
-    }
-
-    .glyph {
-      width: 26px;
-      height: 26px;
-      border-radius: 6px;
-      display: grid;
-      place-items: center;
-      background: var(--colorNeutralBackground1);
-      font-size: 12px;
-      font-weight: var(--fontWeightSemibold);
-    }
-
-    .name {
-      max-width: 70px;
-      font-size: 11px;
-      line-height: 1.2;
-      text-align: center;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .pages {
-      display: flex;
-      gap: 6px;
-      justify-content: center;
-      margin: 8px 0;
-    }
-
-    .pages button {
-      width: 8px;
-      height: 8px;
-      padding: 0;
-      border: none;
-      border-radius: 50%;
-      background: var(--colorNeutralStroke3);
-      cursor: pointer;
-    }
-
-    .pages button[aria-current='true'] {
-      background: var(--colorBrandBackground);
-    }
-
-    .pages button.add,
-    .pages button.remove {
-      width: 16px;
-      height: 16px;
-      border-radius: 4px;
-      background: var(--colorNeutralBackground3);
-      color: var(--colorNeutralForeground2);
-      font-size: 11px;
-      line-height: 1;
-    }
-
-    .pages button.add:hover,
-    .pages button.remove:hover {
-      background: var(--colorNeutralBackground3Hover);
-    }
-
-    .section-title {
-      margin: 6px 0 4px;
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
-    }
-
-    .note {
-      padding: 10px;
-      font-size: 12px;
-      color: var(--colorNeutralForeground3);
-    }
-  `;
 
   protected override async firstUpdated(): Promise<void> {
     await this.reload();
@@ -228,8 +55,16 @@ export class WgOverlayMenu extends LitElement {
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
         event.preventDefault();
+        if (this.menuFor) {
+          this.menuFor = null;
+          return;
+        }
+
         void bridgeApi.call('surface.menu.close');
       }
+    });
+    window.addEventListener('click', () => {
+      this.menuFor = null;
     });
   }
 
@@ -259,6 +94,45 @@ export class WgOverlayMenu extends LitElement {
     return wanted.length === 0 || cell.macroName.toLowerCase().includes(wanted);
   }
 
+  private openMenu(event: MouseEvent, cell: SurfaceMenuCell): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.menuFor = cell;
+    this.menuX = event.clientX;
+    this.menuY = event.clientY;
+  }
+
+  private async edit(cell: SurfaceMenuCell): Promise<void> {
+    this.menuFor = null;
+    await bridgeApi.call('surface.menu.edit', { entryId: cell.entryId });
+  }
+
+  private async debug(cell: SurfaceMenuCell): Promise<void> {
+    this.menuFor = null;
+    await bridgeApi.call('surface.menu.debug', { entryId: cell.entryId });
+  }
+
+  private async chooseIcon(cell: SurfaceMenuCell): Promise<void> {
+    this.menuFor = null;
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.icon',
+      { entryId: cell.entryId });
+  }
+
+  private renderMenu() {
+    if (!this.menuFor) {
+      return nothing;
+    }
+
+    const cell = this.menuFor;
+    return html`
+      <div class="context" style=${'left:' + this.menuX + 'px;top:' + this.menuY + 'px'}>
+        <button @click=${() => void this.edit(cell)}>${t('Menu.EditMacro')}</button>
+        <button @click=${() => void this.debug(cell)}>${t('Menu.Debug')}</button>
+        <button @click=${() => void this.chooseIcon(cell)}>${t('Menu.ChooseIcon')}</button>
+      </div>
+    `;
+  }
+
   private async activate(cell: SurfaceMenuCell): Promise<void> {
     try {
       await bridgeApi.call('surface.menu.activate', { entryId: cell.entryId });
@@ -274,7 +148,9 @@ export class WgOverlayMenu extends LitElement {
     }
 
     return html`
-      <button class="cell" title=${cell.macroName} @click=${() => void this.activate(cell)}>
+      <button class="cell" title=${cell.macroName}
+        @click=${() => void this.activate(cell)}
+        @contextmenu=${(event: MouseEvent) => this.openMenu(event, cell)}>
         ${cell.iconKind === 'image' && cell.iconValue
           ? html`<img src=${cell.iconValue} alt="" />`
           : html`<span class="glyph">${cell.macroName.slice(0, 1)}</span>`}
@@ -405,6 +281,7 @@ export class WgOverlayMenu extends LitElement {
       <div class="panel">
         ${this.renderHeader()}
         ${this.renderSearch()}
+        ${this.renderMenu()}
         ${this.filtering
           ? this.renderMatches()
           : html`
