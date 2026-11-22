@@ -111,6 +111,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Contracts\WhaleGenie.Contracts.csproj" />
     <ProjectReference Include="..\WhaleGenie.App\WhaleGenie.App.csproj" />
     <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
     <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />

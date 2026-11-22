@@ -10,6 +10,12 @@
   <Project Path="src/WhaleGenie.App/WhaleGenie.App.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="src/WhaleGenie.Contracts/WhaleGenie.Contracts.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="tools/WhaleGenie.ContractsGen/WhaleGenie.ContractsGen.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="tests/WhaleGenie.App.TestSupport/WhaleGenie.App.TestSupport.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>

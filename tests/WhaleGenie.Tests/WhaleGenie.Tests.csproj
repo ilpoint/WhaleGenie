@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WhaleGenie\WhaleGenie.csproj" />
+    <ProjectReference Include="..\..\tools\WhaleGenie.ContractsGen\WhaleGenie.ContractsGen.csproj" />
     <ProjectReference Include="..\WhaleGenie.App.TestSupport\WhaleGenie.App.TestSupport.csproj" />
   </ItemGroup>
 

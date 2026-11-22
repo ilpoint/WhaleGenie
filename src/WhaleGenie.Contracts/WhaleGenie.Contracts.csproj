@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The shapes the web page and the program exchange. Only the base library belongs here: no
+    Avalonia, no document model, no device layer. The generator reads this assembly, so every type
+    marked [BridgeContract] is also a TypeScript interface the page compiles against.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>WhaleGenie.Contracts</RootNamespace>
+  </PropertyGroup>
+
+</Project>
