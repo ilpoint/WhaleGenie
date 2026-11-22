@@ -371,6 +371,16 @@ export interface EditorConditionSnapshot {
   editable: boolean;
 }
 
+export interface EditorDeclarationCommand {
+  family: string;
+  kind: string;
+  index?: number | null;
+  field?: string | null;
+  value?: string | null;
+  fieldIndex?: number | null;
+  offset?: number | null;
+}
+
 export interface EditorDurationSnapshot {
   milliseconds: number;
   written: string;

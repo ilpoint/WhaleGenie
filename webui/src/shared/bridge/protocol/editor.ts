@@ -39,6 +39,7 @@ export type {
   EditorActionRowRemoveCommand,
   EditorActionWindowCommand,
   EditorActionWindowRuleCommand,
+  EditorDeclarationCommand,
   EditorTriggerAddCommand,
   EditorTriggerBindingCommand,
   EditorTriggerCommand,

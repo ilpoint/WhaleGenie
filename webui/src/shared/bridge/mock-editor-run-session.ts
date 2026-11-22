@@ -1,19 +1,11 @@
 import type { MockEditor } from './mock-editor.js';
 import { actionCatalogue } from './mock-editor-actions.js';
+import { handleDeclarationCommand } from './mock-editor-declarations.js';
 import {
-  addDeclaredField,
-  addDeclaredParameter,
-  addDeclaredResult,
   addGlobal,
   addVariable,
-  moveDeclared,
-  patchDeclaredField,
-  patchDeclaredParameter,
-  patchDeclaredResult,
   patchGlobal,
   patchVariable,
-  removeDeclared,
-  removeDeclaredField,
   removeGlobal,
   removeVariable,
 } from './mock-editor-data.js';
@@ -54,34 +46,8 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return host.patch(params);
       case 'editor.sessionMacroSetting':
         return host.macroSetting(params);
-      case 'editor.sessionParameterDeclAdd':
-        return host.change(addDeclaredParameter);
-      case 'editor.sessionParameterDeclPatch':
-        return host.change((document) => patchDeclaredParameter(document, params));
-      case 'editor.sessionParameterDeclRemove':
-        return host.change((document) => removeDeclared(document, 'parameters', params));
-      case 'editor.sessionParameterDeclMove':
-        return host.change((document) => moveDeclared(document, 'parameters', params));
-      case 'editor.sessionResultDeclAdd':
-        return host.change(addDeclaredResult);
-      case 'editor.sessionResultDeclPatch':
-        return host.change((document) => patchDeclaredResult(document, params));
-      case 'editor.sessionResultDeclRemove':
-        return host.change((document) => removeDeclared(document, 'results', params));
-      case 'editor.sessionResultDeclMove':
-        return host.change((document) => moveDeclared(document, 'results', params));
-      case 'editor.sessionParameterFieldAdd':
-        return host.change((document) => addDeclaredField(document, 'parameters', params));
-      case 'editor.sessionParameterFieldPatch':
-        return host.change((document) => patchDeclaredField(document, 'parameters', params));
-      case 'editor.sessionParameterFieldRemove':
-        return host.change((document) => removeDeclaredField(document, 'parameters', params));
-      case 'editor.sessionResultFieldAdd':
-        return host.change((document) => addDeclaredField(document, 'results', params));
-      case 'editor.sessionResultFieldPatch':
-        return host.change((document) => patchDeclaredField(document, 'results', params));
-      case 'editor.sessionResultFieldRemove':
-        return host.change((document) => removeDeclaredField(document, 'results', params));
+      case 'editor.declaration':
+        return handleDeclarationCommand(host, params);
       case 'editor.sessionStep':
         return host.addStep(params);
       case 'editor.sessionStepEnabled':

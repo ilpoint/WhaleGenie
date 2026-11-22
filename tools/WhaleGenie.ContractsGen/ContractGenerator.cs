@@ -91,7 +91,8 @@ public static class ContractGenerator
             // records are whole snapshots, so a nullable property is present and explicitly null.
             WriteInterface(text, contract, nullability,
                 contract.GetCustomAttribute<BridgePatchAttribute>() is not null,
-                discriminator: null, discriminatorValue: null, optionalNullables: false);
+                discriminator: null, discriminatorValue: null,
+                optionalNullables: contract.GetCustomAttribute<BridgeRequestAttribute>() is not null);
         }
 
         // Line endings are part of the generated artifact: the same contract must produce the

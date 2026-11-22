@@ -36,20 +36,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionNew", _ => Task.FromResult<object?>(NewDocument()));
         server.Register("editor.sessionSubOpen", OpenSubmacro);
         server.Register("editor.sessionMacroSetting", SetMacroSetting);
-        server.Register("editor.sessionParameterDeclAdd", AddCallableParameter);
-        server.Register("editor.sessionParameterDeclPatch", PatchCallableParameter);
-        server.Register("editor.sessionParameterDeclRemove", RemoveCallableParameter);
-        server.Register("editor.sessionParameterDeclMove", MoveCallableParameter);
-        server.Register("editor.sessionResultDeclAdd", AddCallableResult);
-        server.Register("editor.sessionResultDeclPatch", PatchCallableResult);
-        server.Register("editor.sessionResultDeclRemove", RemoveCallableResult);
-        server.Register("editor.sessionResultDeclMove", MoveCallableResult);
-        server.Register("editor.sessionParameterFieldAdd", AddCallableParameterField);
-        server.Register("editor.sessionParameterFieldPatch", PatchCallableParameterField);
-        server.Register("editor.sessionParameterFieldRemove", RemoveCallableParameterField);
-        server.Register("editor.sessionResultFieldAdd", AddCallableResultField);
-        server.Register("editor.sessionResultFieldPatch", PatchCallableResultField);
-        server.Register("editor.sessionResultFieldRemove", RemoveCallableResultField);
+        server.Register("editor.declaration", DeclarationAction);
         server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.sessionPatch", Patch);
@@ -614,91 +601,24 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         };
     }
 
-    private Task<object?> AddCallableParameterField(JsonElement parameters)
-        => DeclarationCommand(session => session.AddCallableParameterField(DeclarationIndex(parameters)));
-
-    private Task<object?> PatchCallableParameterField(JsonElement parameters)
-        => DeclarationCommand(session =>
-        {
-            var (index, fieldIndex, field, value) = FieldFields(parameters);
-            session.PatchCallableParameterField(index, fieldIndex, field, value);
-        });
-
-    private Task<object?> RemoveCallableParameterField(JsonElement parameters)
-        => DeclarationCommand(session => session.RemoveCallableParameterField(
-            DeclarationIndex(parameters), FieldIndex(parameters)));
-
-    private Task<object?> AddCallableResultField(JsonElement parameters)
-        => DeclarationCommand(session => session.AddCallableResultField(DeclarationIndex(parameters)));
-
-    private Task<object?> PatchCallableResultField(JsonElement parameters)
-        => DeclarationCommand(session =>
-        {
-            var (index, fieldIndex, field, value) = FieldFields(parameters);
-            session.PatchCallableResultField(index, fieldIndex, field, value);
-        });
-
-    private Task<object?> RemoveCallableResultField(JsonElement parameters)
-        => DeclarationCommand(session => session.RemoveCallableResultField(
-            DeclarationIndex(parameters), FieldIndex(parameters)));
-
-    private static int FieldIndex(JsonElement parameters)
-        => parameters.TryGetProperty("fieldIndex", out var index) && index.TryGetInt32(out var number)
-            ? number
-            : -1;
-
-    private static (int Index, int FieldIndex, string Field, string Value) FieldFields(
-        JsonElement parameters)
+    private Task<object?> DeclarationAction(JsonElement parameters)
     {
-        var (index, field, value) = DeclarationFields(parameters);
-        return (index, FieldIndex(parameters), field, value);
-    }
-
-    private Task<object?> AddCallableParameter(JsonElement parameters)
-        => DeclarationCommand(session => session.AddCallableParameter());
-
-    private Task<object?> PatchCallableParameter(JsonElement parameters)
-        => DeclarationCommand(session =>
-        {
-            var (index, field, value) = DeclarationFields(parameters);
-            session.PatchCallableParameter(index, field, value);
-        });
-
-    private Task<object?> MoveCallableParameter(JsonElement parameters)
-        => DeclarationCommand(session => session.MoveCallableParameter(
-            DeclarationIndex(parameters), DeclarationOffset(parameters)));
-
-    private Task<object?> MoveCallableResult(JsonElement parameters)
-        => DeclarationCommand(session => session.MoveCallableResult(
-            DeclarationIndex(parameters), DeclarationOffset(parameters)));
-
-    private static int DeclarationOffset(JsonElement parameters)
-        => parameters.TryGetProperty("offset", out var offset) && offset.TryGetInt32(out var number)
-            ? number
-            : 0;
-
-    private Task<object?> RemoveCallableParameter(JsonElement parameters)
-        => DeclarationCommand(session => session.RemoveCallableParameter(DeclarationIndex(parameters)));
-
-    private Task<object?> AddCallableResult(JsonElement parameters)
-        => DeclarationCommand(session => session.AddCallableResult());
-
-    private Task<object?> PatchCallableResult(JsonElement parameters)
-        => DeclarationCommand(session =>
-        {
-            var (index, field, value) = DeclarationFields(parameters);
-            session.PatchCallableResult(index, field, value);
-        });
-
-    private Task<object?> RemoveCallableResult(JsonElement parameters)
-        => DeclarationCommand(session => session.RemoveCallableResult(DeclarationIndex(parameters)));
-
-    private Task<object?> DeclarationCommand(Action<HeadlessEditorSession> apply)
-    {
+        EditorDeclarationCommand command;
         try
         {
-            apply(Required());
-            return Task.FromResult<object?>(Snapshot());
+            command = parameters.Deserialize<EditorDeclarationCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsField"));
+        }
+        catch (JsonException)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        try
+        {
+            return Task.FromResult<object?>(ApplyDeclaration(command));
         }
         catch (InvalidOperationException error)
         {
@@ -706,22 +626,72 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private static int DeclarationIndex(JsonElement parameters)
-        => parameters.TryGetProperty("index", out var index) && index.TryGetInt32(out var number)
-            ? number
-            : -1;
-
-    private static (int Index, string Field, string Value) DeclarationFields(JsonElement parameters)
+    private object? ApplyDeclaration(EditorDeclarationCommand command)
     {
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (field is not { Length: > 0 } || value is null)
+        var session = Required();
+        var index = command.Index ?? -1;
+        var fieldIndex = command.FieldIndex ?? -1;
+        var offset = command.Offset ?? 0;
+        var value = command.Value ?? string.Empty;
+        switch (command.Family, command.Kind)
         {
-            throw new InvalidOperationException("a declaration field needs a field and a value");
+            case ("parameter", "add"):
+                session.AddCallableParameter();
+                break;
+            case ("parameter", "patch"):
+                session.PatchCallableParameter(index, DeclarationField(command), value);
+                break;
+            case ("parameter", "remove"):
+                session.RemoveCallableParameter(index);
+                break;
+            case ("parameter", "move"):
+                session.MoveCallableParameter(index, offset);
+                break;
+            case ("parameter", "fieldAdd"):
+                session.AddCallableParameterField(index);
+                break;
+            case ("parameter", "fieldPatch"):
+                session.PatchCallableParameterField(index, fieldIndex, DeclarationField(command),
+                    value);
+                break;
+            case ("parameter", "fieldRemove"):
+                session.RemoveCallableParameterField(index, fieldIndex);
+                break;
+            case ("result", "add"):
+                session.AddCallableResult();
+                break;
+            case ("result", "patch"):
+                session.PatchCallableResult(index, DeclarationField(command), value);
+                break;
+            case ("result", "remove"):
+                session.RemoveCallableResult(index);
+                break;
+            case ("result", "move"):
+                session.MoveCallableResult(index, offset);
+                break;
+            case ("result", "fieldAdd"):
+                session.AddCallableResultField(index);
+                break;
+            case ("result", "fieldPatch"):
+                session.PatchCallableResultField(index, fieldIndex, DeclarationField(command),
+                    value);
+                break;
+            case ("result", "fieldRemove"):
+                session.RemoveCallableResultField(index, fieldIndex);
+                break;
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsField"));
         }
 
-        return (DeclarationIndex(parameters), field, value);
+        return Snapshot();
     }
+
+    private static string DeclarationField(EditorDeclarationCommand command)
+        => command.Field is { Length: > 0 } field
+            ? field
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
 
     private Task<object?> SetMacroSetting(JsonElement parameters)
     {
