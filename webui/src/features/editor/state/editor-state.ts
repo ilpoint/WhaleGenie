@@ -51,9 +51,13 @@ export function applySnapshotToState(state: EditorUiState, snapshot: EditorSnaps
     state.draftName = '';
     state.draftDescription = '';
     state.draftGroup = '';
+    state.tabs = [];
+    state.activeKey = '';
     return;
   }
 
+  state.tabs = snapshot.tabs ?? [];
+  state.activeKey = snapshot.activeKey ?? '';
   state.draftName = snapshot.name;
   state.draftDescription = snapshot.description;
   state.draftGroup = snapshot.group;

@@ -72,12 +72,9 @@ export class EditorCore {
   async snapshotCommand(method: BridgeMethod, params?: unknown): Promise<boolean> {
     const ok = await this.mutate<EditorSnapshot | null>(method, params,
       (value) => this.applySnapshot(value));
-    if (ok) {
-      await this.refreshTabs();
-      if (this.state.actionForm) {
-        await this.refreshActionForm();
-        this.notify();
-      }
+    if (ok && this.state.actionForm) {
+      await this.refreshActionForm();
+      this.notify();
     }
 
     return ok;
@@ -116,17 +113,6 @@ export class EditorCore {
     }
   }
 
-  async refreshTabs(): Promise<void> {
-    try {
-      const tabs = await this.client.call<{ activeKey: string | null; tabs: EditorTab[] }>(
-        'editor.sessionTabs');
-      this.state.tabs = tabs.tabs;
-      this.state.activeKey = tabs.activeKey ?? '';
-    } catch {
-      // The next snapshot carries the tabs; a failed refresh should not clear the current view.
-    }
-  }
-
   applySnapshot(snapshot: EditorSnapshot | null): void {
     applySnapshotToState(this.state, snapshot);
   }
@@ -134,19 +120,19 @@ export class EditorCore {
   async reload(): Promise<void> {
     try {
       const snapshot = await this.client.call<EditorSnapshot | null>('editor.sessionState');
-      const tabs = await this.client.call<{ activeKey: string | null; tabs: EditorTab[] }>(
-        'editor.sessionTabs');
-      this.state.tabs = tabs.tabs;
-      this.state.activeKey = tabs.activeKey ?? '';
       if (snapshot) {
         this.applySnapshot(snapshot);
-      } else if (tabs.activeKey) {
-        const activated = await this.client.call<EditorSnapshot>('editor.session', {
-          kind: 'activate', key: tabs.activeKey,
-        });
-        this.applySnapshot(activated);
       } else {
-        this.applySnapshot(null);
+        const tabs = await this.client.call<{ activeKey: string | null; tabs: EditorTab[] }>(
+          'editor.sessionTabs');
+        if (tabs.activeKey) {
+          const activated = await this.client.call<EditorSnapshot>('editor.session', {
+            kind: 'activate', key: tabs.activeKey,
+          });
+          this.applySnapshot(activated);
+        } else {
+          this.applySnapshot(null);
+        }
       }
     } catch (error) {
       this.state.error = describeError(error);

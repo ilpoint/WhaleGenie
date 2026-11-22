@@ -27,7 +27,8 @@ public sealed record EditorSnapshot(
     IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo,
     bool CanSave, string? NameProblem, string ProblemSummary, string DeclarationProblemSummary,
     string CallImpactSummary, string Notice, string TriggerProblemSummary,
-    string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro);
+    string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro,
+    IReadOnlyList<EditorTabSnapshot>? Tabs = null, string? ActiveKey = null);
 
 /// <summary>One global declaration in the editor.</summary>
 [BridgeContract]

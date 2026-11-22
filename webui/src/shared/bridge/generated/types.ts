@@ -689,6 +689,8 @@ export interface EditorSnapshot {
   toggleKeyProblem: string;
   recording: EditorRecordingSnapshot;
   isSubMacro: boolean;
+  tabs: EditorTabSnapshot[] | null;
+  activeKey: string | null;
 }
 
 export interface EditorStepCommand {

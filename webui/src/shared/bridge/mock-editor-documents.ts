@@ -78,6 +78,10 @@ export function close(host: MockEditor, key?: string | null): EditorSnapshot | n
     return host.activeSnapshot();
   }
 
+function withTabs(host: MockEditor, document: EditorSnapshot): EditorSnapshot {
+  return { ...document, tabs: tabs(host).tabs, activeKey: host.activeKey };
+}
+
 export function tabs(host: MockEditor): { activeKey: string | null; tabs: EditorTab[] } {
   return {
     activeKey: host.activeKey,
@@ -119,7 +123,7 @@ export function subOpen(host: MockEditor, name?: string | null): EditorSnapshot 
     }
 
     host.activeKey = key;
-    return document;
+    return withTabs(host, document);
   }
 
 export function change(host: MockEditor, change: (document: EditorSnapshot) => EditorSnapshot): EditorSnapshot | null  {
@@ -135,7 +139,7 @@ export function change(host: MockEditor, change: (document: EditorSnapshot) => E
 
     const next = presentDocument(change(document));
     host.documents.set(key, next);
-    return next;
+    return withTabs(host, next);
   }
 
 export function patch(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null  {
@@ -175,7 +179,8 @@ export function macroSetting(host: MockEditor, params: Record<string, unknown>):
   }
 
 export function activeSnapshot(host: MockEditor): EditorSnapshot | null  {
-    return host.activeKey === null ? null : host.documents.get(host.activeKey) ?? null;
+    const document = host.activeKey === null ? null : host.documents.get(host.activeKey) ?? null;
+    return document ? withTabs(host, document) : null;
   }
 
 export function nextNewKey(host: MockEditor): string  {

@@ -80,7 +80,6 @@ export class EditorActionService {
         : flattenSteps(next.steps).find((step) => !before.has(step.id))?.id ?? '';
       this.core.state.selectedStepId = selected;
       this.core.state.selectedStepIds = selected.length > 0 ? [selected] : [];
-      await this.core.refreshTabs();
       this.core.notify();
       return true;
     } catch (error) {

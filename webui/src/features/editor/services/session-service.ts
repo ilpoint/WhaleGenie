@@ -216,7 +216,6 @@ export class EditorSessionService {
       { kind: 'close', key },
       (value) => this.core.applySnapshot(value));
     if (ok) {
-      await this.core.refreshTabs();
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
       this.core.notify();

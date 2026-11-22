@@ -27,10 +27,6 @@ export class EditorStepService {
       }
     });
 
-    if (ok) {
-      await this.core.refreshTabs();
-    }
-
     return ok;
   }
 
@@ -61,10 +57,6 @@ export class EditorStepService {
         this.core.state.inspectorTab = 'step';
       }
     });
-
-    if (ok) {
-      await this.core.refreshTabs();
-    }
 
     return ok;
   }

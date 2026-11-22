@@ -280,6 +280,8 @@ export function createDocumentSnapshot(
       ignoreInjected: true, delayScale: 1, delayScaleDisplay: '×1', hasDelayScale: false,
     },
     isSubMacro: false,
+    tabs: [],
+    activeKey: null,
     ...overrides,
   });
 }

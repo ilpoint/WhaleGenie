@@ -867,7 +867,10 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 notice = snapshot.Notice,
                 triggerProblemSummary = snapshot.TriggerProblemSummary,
                 toggleKeyProblem = snapshot.ToggleKeyProblem,
+                recording = snapshot.Recording,
                 isSubMacro = snapshot.IsSubMacro,
+                tabs = _documents.Tabs,
+                activeKey = _documents.ActiveKey,
             }
             : null;
 

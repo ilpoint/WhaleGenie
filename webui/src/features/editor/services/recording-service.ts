@@ -35,7 +35,6 @@ export class EditorRecordingService {
       this.core.state.captured = state.captured;
       if (state.snapshot) {
         this.core.applySnapshot(state.snapshot);
-        await this.core.refreshTabs();
       }
 
       if (!state.recording) {
@@ -69,7 +68,6 @@ export class EditorRecordingService {
         this.core.state.error = t('Editor.RecordEmpty');
       }
 
-      await this.core.refreshTabs();
       this.core.notify();
     } catch (error) {
       this.core.state.recording = false;
