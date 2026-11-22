@@ -1,6 +1,7 @@
 # Code files are measured in lines; documents and data files in bytes.
 # Review: "keep: <why cohesive>", "split: <why it mixes concerns>", or
 # "exempt: <why a lookup table>" for a key-to-text table above 700 lines.
+# Only files tracked by git are listed: a tool scratch folder can never be reviewed or split.
 # metric	path	review
 420	core/tests/WhaleGenie.Platform.Tests/Bench/ActionBench.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 572	core/tests/WhaleGenie.Platform.Tests/Bench/BenchFixtures.cs	keep: 基准夹具与包装类型只服务 Bench，一处改完即完
@@ -169,31 +170,9 @@
 308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 2605	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
-371	.build/uiprobe/Program.cs	pending review
-71905	.codeartsdoer/specs/settings_flat_hint/design.md	pending review
-35704	.codeartsdoer/specs/settings_flat_hint/spec.md	pending review
-35127	.codeartsdoer/specs/settings_flat_hint/tasks.md	pending review
-414	.workbuddy/keyprobe/Program.cs	pending review
-45607	.workbuddy/memory/2026-10-26.md	pending review
-37825	.workbuddy/memory/2026-10-27.md	pending review
-64503	.workbuddy/memory/2026-10-28.md	pending review
-59658	.workbuddy/memory/2026-11-03.md	pending review
-24644	.workbuddy/memory/2026-11-04.md	pending review
-21555	.workbuddy/memory/2026-11-05.md	pending review
-24405	.workbuddy/memory/2026-11-07.md	pending review
-25147	.workbuddy/memory/2026-11-08.md	pending review
-32481	.workbuddy/memory/2026-11-10.md	pending review
-27324	.workbuddy/memory/2026-11-12.md	pending review
-58350	.workbuddy/memory/2026-11-13.md	pending review
-52949	.workbuddy/memory/2026-11-14.md	pending review
-32876	.workbuddy/memory/2026-11-15.md	pending review
-21144	.workbuddy/memory/2026-11-16.md	pending review
-2564	.workbuddy/tmp/AddActionViewModel.fixed.cs	pending review
-987	.workbuddy/tmp/orig_tests.cs	pending review
-545	.workbuddy/tmp/sshvenv/Scripts/Activate.ps1	pending review
-20011	docs/manual/05-values-and-placement.md	pending review
+20011	docs/manual/05-values-and-placement.md	keep: 取值窗口、文字比较与落点是'值怎么读、怎么落'的一整篇，一次任务读完这一篇
 438	src/WhaleGenie.App/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
-27445	webui/src/shared/bridge/mock-strings-extra.ts	pending review
+27445	webui/src/shared/bridge/mock-strings-extra.ts	exempt: mock 词表（键到中英），与 Strings 同构，切碎会让取词入口分散
 32470	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 401	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 314	src/WhaleGenie.Editing/Editor/ConditionEditorViewModel.cs	keep: 条件树的增删与拾取是同一个编辑任务

@@ -107,6 +107,9 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.6 网页壳与桥接
 
+> 三块原生运行期浮层（宏菜单、轮盘、界面面板）仍在 Avalonia 窗口；迁往 Lit 的透明浮层宿主、
+> 桥多通道与契约计划见 [surfaces-migration.md](surfaces-migration.md)。
+
 网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
 开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
 B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow。

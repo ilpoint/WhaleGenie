@@ -140,6 +140,7 @@ DXGI、Direct3D、GDI 与 SharpHook 的调用留在各自工程。引擎与界�
 | [architecture/execution-and-devices.md](architecture/execution-and-devices.md) | 运行、草稿与录制链路；执行引擎、动作目录、变量与并发；设备契约和画面获取 |
 | [architecture/core-api.md](architecture/core-api.md) | 引擎的公共面分档、公共 API 基线的维护、打包与 XML 文档债务 |
 | [architecture/interface.md](architecture/interface.md) | 状态边界、步骤与条件编辑器、主题资源、窗口覆盖层、网页设置页与关于页 |
+| [architecture/surfaces-migration.md](architecture/surfaces-migration.md) | 轮盘、宏菜单与界面宏浮层迁往 Lit 的计划：透明宿主、桥多通道、契约、阶段与验收 |
 | [architecture/editor-parity.md](architecture/editor-parity.md) | 旧动作表单/步骤树功能与网页消费点的对账表 |
 | [architecture/native-surfaces.md](architecture/native-surfaces.md) | 永久保留的原生窗口、契约与退役清单 |
 | [architecture/state-and-mcp.md](architecture/state-and-mcp.md) | 宏包与项目模型、包外状态、MCP 传输、权限、草稿、读写契约和审计 |

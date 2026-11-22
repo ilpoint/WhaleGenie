@@ -1,0 +1,163 @@
+# 原生浮层迁移到 Lit：轮盘、宏菜单与界面宏
+
+所属：[架构](../architecture.md)、[界面与桥接](interface.md)。
+状态：计划（2026-11）。本文只写"怎么迁、按什么顺序、怎么验收"；已完成的结构见
+[ADR 0002](../adr/0002-csharp-webui-split.md)。
+
+## 1. 范围
+
+网页壳已接管主窗、编辑器、设置与运行面板。仍是 Avalonia 窗口的三块**运行期浮层**：
+
+| 浮层 | 当前实现 | 规模 | 用户入口 |
+| --- | --- | --- | --- |
+| 宏菜单（菜单宏） | `Views/Editor/MacroMenuWindow*`（10 个文件） + `Runtime/NativeSurfaceHost.Menu.cs` | 约 1,900 + 621 行 | 菜单键、系统热键、置顶菜单 |
+| 轮盘菜单 | `Views/Editor/WheelMenuWindow.cs`、`WheelCanvas.cs` + `Runtime/NativeSurfaceHost.Wheel.cs` | 526 + 332 + 465 行 | 轮盘手势、重复键、按程序/宏切换 |
+| 界面宏面板 | `Views/Shell/FloatingSurfaceWindow.cs` + `Runtime/NativeSurfaceHost.Panels.cs` | 603 + 292 行 | 界面热键、分组显示、跟随前台窗口 |
+
+桌面拾取器（`Views/Pickers`，约 6,900 行）不在本轮范围：它们必须抓屏、取色或叠加在别的窗口上，
+迁移顺序排在浮层之后（见 §7）。
+
+## 2. 目标结构
+
+### 2.1 一个可复用的透明浮层宿主
+
+新增 `Web/WebOverlayWindow`：无边框、置顶、不抢任务栏、尺寸由页面报告；内容是一块
+`NativeWebView`，按 `path` 加载同一份网页产物的路由（`#/overlay/menu`、`#/overlay/wheel`、
+`#/overlay/panel`）。
+
+包已提供两个必要开关，S0 先用它们做真机验证：
+
+- `AllowTransparentBackground`（页面背景透明）；
+- `MakeHwndTransparent`（宿主 HWND 透明，配合 Avalonia 的 `AllowsTransparency`）。
+
+原生侧只保留三件事：**窗口定位**（光标/前台窗口/多显示器与 DPI）、**命中与焦点策略**
+（菜单需要键盘焦点做搜索；轮盘需要不抢焦点、只读原始鼠标增量）、**显示/隐藏时机**
+（程序切前台、全屏、UAC 提权、屏幕锁定）。其余像素、命中、动画、滚动与文本都在页面。
+
+### 2.2 桥的多通道
+
+现在 `BridgeServer` 只有一个 `_channel`（`BridgeServer.cs:59`，`Attach` 在 90 行）。
+主壳与浮层是两个 WebView，需要按"面"路由：
+
+- `Attach(channel, surface)`，`surface` 是 `main`/`menu`/`wheel`/`panel`；
+- 推送按面过滤：菜单快照只发给菜单面，主壳只收 `project.changed` 等全局事件；
+- `bridge.ready` 按面确认，未 ready 的面各自缓冲；
+- 处理器的 `IBridgeHandler` 接口不变，新增 `BridgeSurface` 参数或注册时声明所属面。
+
+这一步可以先用现有主壳单面落地（面参数默认 `main`），不改变行为，再由浮层面接入。
+
+### 2.3 契约：快照 + 命令，不传控件
+
+每个浮层一组 `surface.*` 方法与 `WhaleGenie.Contracts` 记录，规则与其他命令一致：
+快照是可渲染的只读形状；命令带 `kind` 与参数；结果回变化的切片并带 `revision`。
+
+**菜单**（`surface.menu.*`）：
+
+- `open` / `close` / `pin` / `move` / `search` / `activate`（页面点击/回车）；
+- 快照：`SurfaceMenuSnapshot(Sections, Cells, Bounds, Pinned, SearchText, Revision)`，
+  cell 带 `kind`（宏/分组/空位/更多）、`macroName`、`icon`、`enabled`、`problem`；
+- 拖拽落位走 `surface.menu.drop(from, to)`，复用 `ProjectTriggers.MenuPages` 的既有规则。
+
+**轮盘**（`surface.wheel.*`）：
+
+- `open` / `close` / `aim(x, y)` / `commit` / `cancel`；
+- 快照：`SurfaceWheelSnapshot(Sectors, Centre, Radius, SceneName, Revision)`，
+  sector 带 `index`、`macroName`、`label`、`icon`、`enabled`；
+- 手势状态机仍在 C#（`WheelGesture`/`WheelAim`），页面只发坐标与选择；
+  命中判定由 C# 的 `WheelCanvas` 几何迁为纯函数（`SurfaceWheelGeometry`），页面用同一份扇区。
+
+**界面面板**（`surface.panel.*`）：
+
+- `show` / `hide` / `toggleGroup` / `state`；
+- 快照：`SurfacePanelSnapshot(GroupKey, Target, Width, Height, Controls, Revision)`，
+  control 带 `kind`（按钮/标签/滑块/开关）、`label`、`action`、`enabled`；
+- 位置由 C# 计算（`WindowPlacement`），页面只按给定尺寸排版。
+
+## 3. 阶段
+
+### S0 能力验证（1–2 天，先做）
+
+真机验证透明浮层的可行性，用临时样例窗口 + 静态页，不接桥：
+
+1. 透明 WebView2 在 Win10/Win11 上背景是否真透明（不是白底/黑底）；
+2. 置顶浮层能否盖住全屏游戏（独占全屏可能失败，需记录"仅无边框窗口"）；
+3. 100%/125%/150%/200% DPI 与双屏负坐标下窗口定位；
+4. 打开延迟：原生窗口 vs 网页首帧，目标 <50ms 可感知延迟；
+5. 键盘焦点：菜单搜索可输入；轮盘不夺焦点时仍能收到鼠标增量（原始输入或钩子转发）。
+
+**放弃条件**：若 1、2、4 任一不达标，菜单/轮盘保留原生，只迁界面面板（它不要求像素级即时）。
+这个结论写回本文，再进入 S1。
+
+### S1 桥多通道 + 契约
+
+- `BridgeServer` 按面路由（§2.2），主壳单面先行，行为不变；
+- 新增 `WhaleGenie.Bridge.Tests`（ADR 0002 已承诺）：内存管道直调处理器，覆盖多面路由、
+  缓冲、错误码；
+- 落 `surface.menu/wheel/panel` 契记录与方法名，生成 TypeScript；
+- 验收：`ContractGenerationTests` 无漂移；新测试覆盖"只发给所属面"。
+
+### S2 宏菜单（先做，使用频率最高）
+
+1. C#：把 `MacroMenuWindow` 的排版数据（分节、格子、图标、问题、搜索过滤、置顶与本屏坐标）
+   抽到 App 的 `MenuSurfaceModel`，原生窗口改为只读它的快照（先保行为，再删窗口）；
+2. 桥：`surface.menu.*` 接入 `NativeSurfaceHost.Menu.cs` 的打开/关闭/前台订阅；
+3. 页面：`features/overlay/menu` 用 Lit + 现有 `wg-*` 组件画格子、搜索、右键菜单、拖拽；
+4. 原生删除：`MacroMenuWindow*`、`MenuWindowTypes.cs` 与菜单专用样式、测试；
+5. 验收：菜单键打开 <100ms；搜索、置顶、拖拽、右键、按程序规则、多屏定位与原生逐项一致；
+   菜单热键在游戏前台可用由真机清单覆盖。
+
+### S3 轮盘
+
+1. 几何与命中先迁为纯函数并加测试（扇区、半径、角度、紧邻边界）；
+2. `WheelGesture`/`WheelAim` 保留在 C#，页面发 `surface.wheel.aim/commit`；
+3. 页面画扇区与中心标签，动画用 CSS/Canvas；
+4. 删除 `WheelMenuWindow`/`WheelCanvas` 与相关样式、测试；
+5. 验收：重复键、按住不动、快速划过、切换程序场景、与旧版命中一致（几何用例对账）。
+
+### S4 界面面板
+
+1. 面板控制模型（`InterfaceLayouts` 已有数据）抽成 `SurfacePanelModel`；
+2. 复用 S2/S3 的浮层宿主，按前台窗口与边界跟随；
+3. 折叠/旋转状态留在 C#（`SurfaceViewState`），页面只显示；
+4. 删除 `FloatingSurfaceWindow`；
+5. 验收：跟随、折叠、界面热键、多程序多分组与原生一致。
+
+### S5 收尾（清理债务一并结清）
+
+- P8：随三块原生窗口删除，`Themes/Controls.axaml` 再降一档（目标 <600 行），删对应样式测试；
+- P9：mock 改为由 C# 夹具生成的快照 + 仅保留交互桩，目标 <2,500 行；
+- P5：`AppSettings` 实例注入（见 §6）在本阶段前完成，浮层处理器直接接收实例；
+- P3/P4：把保存/打开与浮层 IO 移出界面线程，busy 走 `surface.*.busy` 事件。
+
+## 4. 风险与对策
+
+| 风险 | 影响 | 对策 |
+| --- | --- | --- |
+| 透明 WebView2 在部分驱动/远程桌面上失效 | 浮层白底 | S0 门禁；失败则菜单/轮盘不迁 |
+| 独占全屏游戏盖不住置顶窗口 | 游戏场景不可用 | S0 实测；必要时对全屏程序回退原生 |
+| 浮层首帧慢 | 手感差 | 预创建隐藏窗口 + 预热网页路由；目标 <50ms |
+| 焦点竞争（菜单搜索 vs 游戏按键） | 按键丢失 | 菜单显式请求焦点；关闭即还原前台 |
+| 多通道推送交错 | 快照串面 | 按面队列 + 每面 revision；Bridge.Tests 覆盖 |
+| 拖拽与右键在 WebView 内不跟手 | 操作困难 | 用页面指针事件 + 拖动时低延迟推送；必要时 JS 内本地预览 |
+
+## 5. 验收
+
+- 契约：`ContractGenerationTests`、`WhaleGenie.Bridge.Tests`、新 `surface.*` 对账用例；
+- 行为：每个浮层的真机清单（打开延迟、搜索、拖拽、右键、置顶、多屏、DPI、游戏前台）；
+- 结构：界面工程不再存在三块原生窗口；`LayeringTests` 通过；
+- 清理：`Controls.axaml` <600 行、mock <2,500 行、`LocalSettings` 静态调用点归零；
+- 全量：`dotnet test`、`npm run check`、`git diff --check` 全绿。
+
+## 6. 与清理债务的关系
+
+| 债务 | 现状 | 归属阶段 |
+| --- | --- | --- |
+| P5 设置注入 | 88 处静态 `LocalSettings` 调用、23 个文件 | S5 前（独立可做） |
+| P8 主题 | `Controls.axaml` 1,133 行，剩余样式对应存活浮层/拾取器 | S2–S4 随窗口删除 |
+| P9 mock | 约 5,800 行，无未使用导出，需夹具化 | S5 |
+| P3/P4 IO/busy | 保存/打开与浮层 IO 仍在界面线程 | S5 |
+
+## 7. 不在本轮
+
+桌面拾取器（点/区域/窗口/元素/浏览器/取景，约 6,900 行）依赖抓屏、置顶覆盖与跨程序指针，
+排在浮层之后单独评估；在那之前它们继续用原生窗口，不并入浮层宿主。
