@@ -4,10 +4,7 @@ import type {
   EditorActionCategory,
   EditorActionForm,
   EditorCatalogue,
-  EditorConditionNode,
-  EditorParameter,
   EditorSnapshot,
-  EditorStep,
   EditorTab,
   EditorValueOutcome,
   EditorValueSnapshot,
@@ -20,8 +17,9 @@ import type {
   ProjectState,
 } from '../../shared/bridge/protocol.js';
 import { project } from '../../shared/project/store.js';
+import { describeError } from '../../shared/errors.js';
 import { strings, t } from '../../shared/strings/strings.js';
-import { findStep, flattenSteps, type PaletteSource } from './editor-model.js';
+import { flattenSteps, normalizeSelection, type PaletteSource } from './editor-model.js';
 
 export type InspectorTab = 'step' | 'variables' | 'macro';
 
@@ -59,19 +57,6 @@ export interface EditorUiState {
   actionPage: string;
   actionError: string;
   trial: EditorTrialResult | null;
-}
-
-export function describeError(error: unknown): string {
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error && typeof error === 'object' && 'message' in error) {
-    const message = (error as { message: unknown }).message;
-    return typeof message === 'string' ? message : String(message);
-  }
-
-  return String(error);
 }
 
 const initial: EditorUiState = {
@@ -297,17 +282,10 @@ class EditorStore {
     this.state.draftName = snapshot.name;
     this.state.draftDescription = snapshot.description;
     this.state.draftGroup = snapshot.group;
-    this.state.selectedStepIds = this.state.selectedStepIds
-      .filter((id) => findStep(snapshot.steps, id) !== null);
-    if (this.state.selectedStepId.length > 0
-        && findStep(snapshot.steps, this.state.selectedStepId) === null) {
-      this.state.selectedStepId = this.state.selectedStepIds.at(-1) ?? '';
-    }
-
-    if (this.state.selectedStepId.length > 0
-        && !this.state.selectedStepIds.includes(this.state.selectedStepId)) {
-      this.state.selectedStepIds = [this.state.selectedStepId];
-    }
+    const selection = normalizeSelection(
+      snapshot, this.state.selectedStepId, this.state.selectedStepIds);
+    this.state.selectedStepId = selection.selectedStepId;
+    this.state.selectedStepIds = selection.selectedStepIds;
   }
 
   private fail(error: unknown): void {
@@ -1572,10 +1550,3 @@ class EditorStore {
 
 export const editor = new EditorStore();
 
-export function stepParameter(step: EditorStep, name: string): EditorParameter | null {
-  return step.parameters.find((parameter) => parameter.name === name) ?? null;
-}
-
-export function conditionNodes(step: EditorStep, name: string): EditorConditionNode[] {
-  return stepParameter(step, name)?.condition?.nodes ?? [];
-}

@@ -1,5 +1,6 @@
 import type {
   EditorAction,
+  EditorSnapshot,
   EditorStep,
   EditorValueChoice,
 } from '../../shared/bridge/protocol.js';
@@ -140,4 +141,65 @@ export function wallVariables(
       || choice.description.toLocaleLowerCase().includes(needle)
       || choice.type.toLocaleLowerCase().includes(needle))
     .sort((left, right) => left.display.localeCompare(right.display));
+}
+/**
+ * Keeps the selected step ids valid after a snapshot replaces the tree. The primary id follows
+ * the last surviving selection, and a primary id that is no longer selected collapses the
+ * selection to itself; this mirrors what the old store did inline.
+ */
+export function normalizeSelection(
+  snapshot: EditorSnapshot | null,
+  selectedStepId: string,
+  selectedStepIds: readonly string[],
+): { selectedStepId: string; selectedStepIds: string[] } {
+  if (snapshot === null) {
+    return { selectedStepId: '', selectedStepIds: [] };
+  }
+
+  const surviving = selectedStepIds.filter((id) => findStep(snapshot.steps, id) !== null);
+  let primary = selectedStepId;
+  if (primary.length > 0 && findStep(snapshot.steps, primary) === null) {
+    primary = surviving.at(-1) ?? '';
+  }
+
+  if (primary.length > 0 && !surviving.includes(primary)) {
+    return { selectedStepId: primary, selectedStepIds: [primary] };
+  }
+
+  return { selectedStepId: primary, selectedStepIds: surviving };
+}
+
+/** The step ids a reader can see, in display order, honoring folded blocks. */
+export function visibleStepIds(
+  snapshot: EditorSnapshot | null,
+  collapsed: ReadonlySet<string>,
+): string[] {
+  const result: string[] = [];
+  if (!snapshot) {
+    return result;
+  }
+
+  const walk = (steps: readonly EditorStep[]): void => {
+    for (const step of steps) {
+      result.push(step.id);
+      if (!collapsed.has(step.id)) {
+        for (const section of step.sections) {
+          walk(section.steps);
+        }
+      }
+    }
+  };
+
+  walk(snapshot.steps);
+  return result;
+}
+
+/** The action catalogue's category for a step type, with the old Control fallback. */
+export function categoryOfAction(actions: readonly EditorAction[], type: string): string {
+  return actions.find((action) => action.key === type)?.category ?? 'Control';
+}
+
+/** The catalogue action matching a key, or null when the catalogue has moved on. */
+export function selectedAction(actions: readonly EditorAction[], key: string): EditorAction | null {
+  return actions.find((action) => action.key === key) ?? null;
 }

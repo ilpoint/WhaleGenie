@@ -6,7 +6,7 @@ import { icon, iconForCategory, type IconName } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import type { EditorStep } from '../../shared/bridge/protocol.js';
 import { editor } from './editor-store.js';
-import { findStep } from './editor-model.js';
+import { categoryOfAction, findStep, visibleStepIds } from './editor-model.js';
 import { editorBase } from './editor-css.js';
 
 /**
@@ -202,24 +202,8 @@ export class WgStepTree extends LitElement {
   }
 
   private visibleIds(): string[] {
-    const snapshot = editor.get().snapshot;
-    const result: string[] = [];
-    if (!snapshot) {
-      return result;
-    }
-
-    const walk = (steps: EditorStep[]) => {
-      for (const step of steps) {
-        result.push(step.id);
-        if (!editor.get().collapsedSteps.has(step.id)) {
-          for (const section of step.sections) {
-            walk(section.steps);
-          }
-        }
-      }
-    };
-    walk(snapshot.steps);
-    return result;
+    const state = editor.get();
+    return visibleStepIds(state.snapshot, state.collapsedSteps);
   }
 
   private onKeydown(event: KeyboardEvent): void {
@@ -492,12 +476,7 @@ export class WgStepTree extends LitElement {
   }
 
   private categoryOf(type: string): string {
-    const action = editor.get().actions.find((candidate) => candidate.key === type);
-    if (action) {
-      return action.category;
-    }
-
-    return type.startsWith('control.') ? 'Control' : 'Control';
+    return categoryOfAction(editor.get().actions, type);
   }
 }
 
