@@ -162,7 +162,7 @@ export class WgOverlayMenu extends LitElement {
         <button @click=${() => void this.edit(cell)}>${t('Menu.EditMacro')}</button>
         <button @click=${() => void this.debug(cell)}>${t('Menu.Debug')}</button>
         <button @click=${() => void this.chooseIcon(cell)}>${t('Menu.ChooseIcon')}</button>
-        <button @click=${() => void this.replace(cell)}>${t('Menu.ReplaceMacro')}</button>
+        <button @click=${() => void this.replace(cell)}>${t('Menu.Replace')}</button>
         <button @click=${() => void this.addRule()}>${t('Menu.AddRule')}</button>
         <button @click=${() => void this.blockForeground()}>${t('Menu.Block')}</button>
       </div>

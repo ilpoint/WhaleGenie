@@ -7,7 +7,6 @@ export const mockExtra: Record<string, { en: string; zh: string }> = {
   'Menu.EditMacro': { en: 'Edit macro', zh: '编辑宏' },
   'Menu.Debug': { en: 'Debug run', zh: '调试运行' },
   'Menu.ChooseIcon': { en: 'Choose icon', zh: '更换图标' },
-  'Menu.ReplaceMacro': { en: 'Replace macro', zh: '替换宏' },
   'Menu.AddRule': { en: 'Add rule for this app', zh: '为当前程序加规则' },
   'Menu.Block': { en: 'Hide menu for this app', zh: '屏蔽此程序' },
   'Settings.SoundsNote': { en: 'A cue when it switches', zh: '开关时的提示音' },
