@@ -75,7 +75,8 @@ internal static class WindowedServices
                 sp.GetRequiredService<AppSettings>()));
             server.Register(new MenuSurfaceBridge(new MenuSurface(
                 sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<IDeviceLayer>().Windows)));
+                sp.GetRequiredService<IDeviceLayer>().Windows,
+                sp.GetRequiredService<TriggerRuntime>())));
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();

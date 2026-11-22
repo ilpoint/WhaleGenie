@@ -37,20 +37,30 @@ window.__bridge = client;
 const bundle = await client.call<StringsBundle>('strings.bundle');
 strings.load(bundle);
 
-theme.load(await client.call<ThemeState>('theme.get'));
-appInfo.load(await client.call<AppInfo>('app.info'));
-project.load(await client.call<ProjectState>('project.state'));
+// 同一份产物也承载浮层：#overlay/menu 只画菜单，不画壳。浮层与壳是两个 WebView，各自附着在
+// 自己的桥面上（Main / Menu），所以这里必须先决定画哪一张，再去拉那一张要的数据。
+const overlay = window.location.hash.startsWith('#overlay/');
 
+theme.load(await client.call<ThemeState>('theme.get'));
 client.on('strings.changed', (next) => strings.load(next));
 client.on('theme.changed', (next) => theme.load(next));
-client.on('window.changed', (next) => windowMirror.load(next));
-client.on('project.changed', (next) => project.load(next));
-client.on('settings.openRequested', () => go('settings'));
-client.on('run.openRequested', ({ name }) => {
-  void client.call('run.load', { name }).then(() => go('run'));
-});
-client.on('editor.openRequested', ({ name }) => {
-  void editor.session.open(name).then(() => go('editor'));
-});
+
+if (overlay) {
+  await import('./features/overlay/menu-overlay.js');
+  document.body.replaceChildren(document.createElement('wg-overlay-menu'));
+} else {
+  appInfo.load(await client.call<AppInfo>('app.info'));
+  project.load(await client.call<ProjectState>('project.state'));
+
+  client.on('window.changed', (next) => windowMirror.load(next));
+  client.on('project.changed', (next) => project.load(next));
+  client.on('settings.openRequested', () => go('settings'));
+  client.on('run.openRequested', ({ name }) => {
+    void client.call('run.load', { name }).then(() => go('run'));
+  });
+  client.on('editor.openRequested', ({ name }) => {
+    void editor.session.open(name).then(() => go('editor'));
+  });
+}
 
 await client.call('bridge.ready');

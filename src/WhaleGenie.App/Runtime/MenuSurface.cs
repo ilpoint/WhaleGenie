@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Contracts;
@@ -11,7 +12,8 @@ namespace WhaleGenie.Runtime;
 /// the overlay page next. The layout itself is built by the project; this only names the window in
 /// front and turns icons into plain names the wire can carry.
 /// </summary>
-public sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice windows)
+internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice windows,
+    TriggerRuntime runtime)
 {
     /// <summary>The pages that fit the window in front, or the default ones when none does.</summary>
     public SurfaceMenuSnapshot Snapshot()
@@ -30,6 +32,30 @@ public sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice window
 
         var layout = workspace.Triggers.BuildMenuLayout(foreground, windows, workspace.Macros);
         return new SurfaceMenuSnapshot(Pages(layout.CommonPages), Pages(layout.ContextPages));
+    }
+
+    /// <summary>
+    /// Runs the macro one cell points at. The entry is looked up by its stable id rather than by the
+    /// name the page saw, so a rename between opening the menu and clicking does not run a stranger.
+    /// </summary>
+    public bool Activate(string entryId)
+    {
+        var entry = workspace.Triggers.Entries.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, entryId, StringComparison.Ordinal));
+        if (entry is null)
+        {
+            return false;
+        }
+
+        var macro = workspace.Macros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), entry.MacroName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (macro is not { IsEnabled: true })
+        {
+            return false;
+        }
+
+        runtime.Triggers.RunOnce(macro);
+        return true;
     }
 
     private static IReadOnlyList<SurfaceMenuPage> Pages(IReadOnlyList<MenuRuntimePage> pages)

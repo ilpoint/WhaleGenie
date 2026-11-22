@@ -9,6 +9,7 @@ export * from './protocol/project.js';
 export * from './protocol/settings.js';
 export * from './protocol/run.js';
 export * from './protocol/library.js';
+export * from './protocol/surface.js';
 export * from './protocol/mcp.js';
 export * from './protocol/editor.js';
 export * from './protocol/editor-value.js';

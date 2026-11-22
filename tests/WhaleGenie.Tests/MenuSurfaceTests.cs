@@ -12,6 +12,10 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class MenuSurfaceTests
 {
+    private static MenuSurface Surface(ProjectWorkspace project)
+        => new(project, NullDeviceLayer.Instance.Windows,
+            new TriggerRuntime(NullDeviceLayer.Instance, project.Variables));
+
     [Fact]
     public void A_common_page_carries_its_cells_and_the_icon_as_a_name()
     {
@@ -24,7 +28,7 @@ public class MenuSurfaceTests
             Spec = new MenuSpec(page.Id, 1, 2, new MenuIconReference(MenuIconKind.Builtin, "Play")),
         });
 
-        var snapshot = new MenuSurface(project, NullDeviceLayer.Instance.Windows).Snapshot();
+        var snapshot = Surface(project).Snapshot();
 
         var pageSnapshot = Assert.Single(snapshot.Common, candidate => candidate.PageId == page.Id);
         var cell = Assert.Single(pageSnapshot.Cells);
@@ -48,7 +52,7 @@ public class MenuSurfaceTests
             Spec = new MenuSpec(page.Id, 0, 0),
         });
 
-        var snapshot = new MenuSurface(project, NullDeviceLayer.Instance.Windows).Snapshot();
+        var snapshot = Surface(project).Snapshot();
 
         Assert.All(snapshot.Common, candidate => Assert.DoesNotContain(candidate.Cells,
             cell => cell.MacroName == "one"));
@@ -58,7 +62,7 @@ public class MenuSurfaceTests
     public void Without_a_foreground_window_the_context_pages_are_the_default_ones()
     {
         var project = new ProjectWorkspace();
-        var snapshot = new MenuSurface(project, NullDeviceLayer.Instance.Windows).Snapshot();
+        var snapshot = Surface(project).Snapshot();
 
         Assert.NotEmpty(snapshot.Common);
         Assert.NotEmpty(snapshot.Context);
