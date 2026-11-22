@@ -17,7 +17,15 @@ import type { ThemeState } from '../bridge/protocol.js';
  */
 
 class ThemeStore {
-  private readonly state = new Store<ThemeState>({ mode: 'dark', baseLight: false, accentHex: null });
+  private readonly state = new Store<ThemeState>({
+    mode: 'dark',
+    baseLight: false,
+    accentUsable: true,
+    fill: PROJECT_ACCENT,
+    surface: '#f5e6e2',
+    text: PROJECT_ACCENT,
+    defaultAccent: PROJECT_ACCENT,
+  });
 
   subscribe(listener: (theme: ThemeState) => void): () => void {
     return this.state.subscribe(listener);
@@ -59,7 +67,7 @@ function tokensFor(theme: ThemeState): Theme {
   const accent = theme.mode === 'custom'
     ? theme.accentHex
     : theme.defaultAccent ?? PROJECT_ACCENT;
-  const brand = brandFromHex(accent);
+  const brand = brandFromHex(accent ?? null);
   if (brand === null) {
     // 没给颜色（或给的不是一个颜色）时回到 Fluent 内置主题：派生失败不是页面自己能修的事。
     return theme.baseLight ? webLightTheme : webDarkTheme;

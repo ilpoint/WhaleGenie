@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -28,24 +29,16 @@ public sealed class AppBridge(Func<AppTray?> tray) : IBridgeHandler
     /// home page read; they change with the document, and the change arrives through
     /// <c>project.changed</c> once the project handlers exist.
     /// </summary>
-    private object Info() => new
-    {
-        name = "WhaleGenie",
-        version = AppVersion.Text,
-        language = LanguageName(),
-        debug = IsDebug,
-    };
+    private static AppInfo Info()
+        => new("WhaleGenie", AppVersion.Text, LanguageName(), IsDebug);
 
     /// <summary>
     /// The two things the About page cannot know by itself: where the project lives and the
     /// third-party notice packed into this build. The page formats the version line from app.info,
     /// so both pages always show the same build.
     /// </summary>
-    private static object About() => new
-    {
-        projectUrl = ProjectLinks.Home,
-        notices = ThirdPartyNotices.Read(),
-    };
+    private static AboutState About()
+        => new(ProjectLinks.Home, ThirdPartyNotices.Read());
 
     private Task<object?> QuitAsync()
     {

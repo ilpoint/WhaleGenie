@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Bridge;
@@ -31,11 +32,8 @@ public sealed class StringsBridge : IBridgeHandler, IDisposable
     private void OnLanguageChanged()
         => _ = _server?.PushAsync("strings.changed", Bundle());
 
-    private static object Bundle() => new
-    {
-        language = LanguageName(),
-        entries = Strings.Snapshot(),
-    };
+    private static StringsBundle Bundle()
+        => new(LanguageName(), Strings.Snapshot());
 
     private static string LanguageName() => Strings.Current.Language switch
     {

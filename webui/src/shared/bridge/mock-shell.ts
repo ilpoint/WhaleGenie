@@ -20,7 +20,7 @@ export function handleShell(host: MockShellContext, method: string, params: Reco
           host.theme = {
             mode,
             baseLight: params['baseLight'] === true,
-            accentHex,
+            ...(accentHex === null ? {} : { accentHex }),
             accentUsable: true,
             fill: accentHex ?? '#c8401c',
             surface: accentHex ?? '#f5e6e2',

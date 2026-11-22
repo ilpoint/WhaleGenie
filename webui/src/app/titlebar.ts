@@ -21,7 +21,7 @@ export class WgTitlebar extends LitElement {
   private project: { name: string | null; untitled: boolean } | null = null;
 
   @state()
-  private placement: 'normal' | 'maximized' | 'minimized' = 'normal';
+  private placement = 'normal';
 
   @state()
   private topmost = false;

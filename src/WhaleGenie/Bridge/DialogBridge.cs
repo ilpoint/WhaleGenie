@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Bridge;
@@ -52,14 +53,8 @@ public sealed class DialogBridge : IBridgeHandler, IDisposable
         var id = _nextRequestId++;
         var answer = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _waiting[id] = answer;
-        await _server.PushAsync("dialog.request", new
-        {
-            requestId = id,
-            title,
-            message,
-            confirmLabel,
-            cancelLabel,
-        });
+        await _server.PushAsync("dialog.request",
+            new DialogRequest(id, title, message, confirmLabel, cancelLabel));
 
         var completed = await Task.WhenAny(answer.Task, Task.Delay(AnswerTimeout));
         if (completed != answer.Task)

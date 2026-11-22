@@ -38,7 +38,13 @@ export class MockTransport implements BridgeTransport {
   };
 
   theme: ThemeState = {
-    mode: 'dark', baseLight: false, accentHex: null, defaultAccent: '#c8401c',
+    mode: 'dark',
+    baseLight: false,
+    accentUsable: true,
+    fill: '#c8401c',
+    surface: '#f5e6e2',
+    text: '#c8401c',
+    defaultAccent: '#c8401c',
   };
 
   windowState: WindowState = { state: 'normal', topmost: false };

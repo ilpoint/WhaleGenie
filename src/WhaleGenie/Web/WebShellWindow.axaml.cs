@@ -9,6 +9,7 @@ using Avalonia.Platform;
 using WhaleGenie.Bridge;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
+using WindowStateSnapshot = WhaleGenie.Contracts.WindowState;
 
 namespace WhaleGenie.Web;
 
@@ -264,16 +265,14 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
         }
     }
 
-    private object WindowStatePayload() => new
-    {
-        state = WindowState switch
+    private WindowStateSnapshot WindowStatePayload() => new(
+        WindowState switch
         {
             WindowState.Maximized => "maximized",
             WindowState.Minimized => "minimized",
             _ => "normal",
         },
-        topmost = Topmost,
-    };
+        Topmost);
 
     private void SetTitle()
         => Title = Strings.Get("Main.Title") + (ProcessRights.IsElevated ? Strings.Get("Main.AdminBadge") : string.Empty);

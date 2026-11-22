@@ -18,7 +18,15 @@ import { draftOf, type CaptureKind, type RuleEditor } from './settings-model.js'
 import { SettingsCaptureController } from './settings-capture-controller.js';
 import { renderSettingsCards } from './settings-sections.js';
 
-const emptyTheme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null };
+const emptyTheme: ThemeState = {
+  mode: 'dark',
+  baseLight: false,
+  accentUsable: true,
+  fill: '#c8401c',
+  surface: '#f5e6e2',
+  text: '#c8401c',
+  defaultAccent: '#c8401c',
+};
 
 /** The settings page: general choices, theme, hotkeys, menu rules, wheel and storage. */
 @customElement('wg-settings')

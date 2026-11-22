@@ -2,6 +2,7 @@ using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Media;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 
 namespace WhaleGenie.Bridge;
@@ -26,7 +27,7 @@ public sealed class ThemeBridge : IBridgeHandler
         server.Register("theme.set", SetAsync);
     }
 
-    private static object Current()
+    private static ThemeState Current()
     {
         var selection = ThemeController.Load();
         var requested = ThemePalette.TryParse(selection.AccentHex, out var accent)
@@ -41,17 +42,15 @@ public sealed class ThemeBridge : IBridgeHandler
             tokens = default;
         }
 
-        return new
-        {
-            mode = selection.Mode.ToString().ToLowerInvariant(),
-            baseLight = selection.BaseLight,
-            accentHex = selection.AccentHex,
-            accentUsable = usable,
-            fill = ThemePalette.ToHex(tokens.Fill),
-            surface = ThemePalette.ToHex(tokens.Surface),
-            text = ThemePalette.ToHex(tokens.Text),
-            defaultAccent = ThemePalette.DefaultAccent,
-        };
+        return new ThemeState(
+            selection.Mode.ToString().ToLowerInvariant(),
+            selection.BaseLight,
+            selection.AccentHex,
+            usable,
+            ThemePalette.ToHex(tokens.Fill),
+            ThemePalette.ToHex(tokens.Surface),
+            ThemePalette.ToHex(tokens.Text),
+            ThemePalette.DefaultAccent);
     }
 
     private async Task<object?> SetAsync(JsonElement parameters)
