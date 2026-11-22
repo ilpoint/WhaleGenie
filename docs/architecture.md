@@ -41,11 +41,18 @@ WhaleGenie
 ```
 
 工程目录（`src/`、`tests/`）只决定文件位置：工程名、程序集名、根命名空间与 `avares://` 地址都不
-随目录变化，所以搬动工程是一次路径与声明的调整，不是一次改名。
+随目录变化，所以搬动工程是一次路径与声明的调整，不是一次改名。`tools/` 放构建期工具，不随程序发布。
 
-`WhaleGenie.App` 引用 Mcp、Domain、Localization、Core 与 Platform.Windows，不引用 Avalonia；界面
-工程只引用 `WhaleGenie.App`，没有任何产品工程反向引用它。Mcp 与 Domain 都引用 Localization 和
-Core；Localization 只引用 Core；Platform 与 GraphicsCapture 都引用 Core。
+`WhaleGenie.Contracts` 是桥的载荷形状（请求、应答、事件与端口），只依赖 BCL。它的
+`[BridgeContract]` 记录由 `tools/WhaleGenie.ContractsGen` 写成
+`webui/src/shared/bridge/generated/types.ts`，页面不手写线缆类型；`ContractGenerationTests` 在没有
+重新生成时失败。编辑模型仍住在界面工程，迁移目标是新增 `WhaleGenie.Editing`（见
+[ADR 0002](adr/0002-csharp-webui-split.md)），它同样不得依赖 Avalonia。
+
+`WhaleGenie.App` 引用 Mcp、Domain、Localization、Contracts、Core 与 Platform.Windows，不引用
+Avalonia；界面工程引用 `WhaleGenie.App` 与 `WhaleGenie.Contracts`，没有任何产品工程反向引用它。
+Mcp 与 Domain 都引用 Localization 和 Core；Contracts 不引用任何产品工程；Localization 只引用 Core；
+Platform 与 GraphicsCapture 都引用 Core。
 
 八个测试工程按被测对象划分：`WhaleGenie.Editor.Tests`（宏编辑窗、步骤树、变量墙、窗口规则与菜单）、
 `WhaleGenie.Actions.Tests`（动作对话框、页面归属、返回值与拾取器）、`WhaleGenie.Tests`（运行与调试、
@@ -69,6 +76,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | --- | --- | --- |
 | `WhaleGenie` | 窗口、ViewModel、应用生命周期、窗口化组合根与界面适配 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp/App |
 | `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、系统开关（`SystemState`）、MCP 宿主与设备控制/运行工具、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
+| `WhaleGenie.Contracts` | 桥的请求/应答/事件记录、方法与端口；只依赖 BCL，页面类型由它生成 | Avalonia、Domain/Core 类型、设备或文件读写 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸 | Avalonia、窗口、ViewModel、MCP、设备控制 |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、预览、资源与项目编辑工具 | Avalonia、Views、Runtime、设备控制、运行桥 |
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、键词汇表、录制事件翻译；`net10.0`，是仓库里唯一可打包的工程 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows`；除 BCL 与 `CsvHelper` 之外的任何引用 |

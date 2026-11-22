@@ -125,8 +125,10 @@ MainViewModel 仍为编辑器、运行面板和原生菜单/轮盘提供无窗�
 桥处理器不引用 WebView 控件类型（`WebUiBoundaryTests` 按源码检查），只与 `IBridgeChannel`
 这根文本管道说话——无头测试用内存管道直调处理器，不需要浏览器。协议是三类信封：请求
 `{id, method, params}`、应答 `{id, ok, result|error}`、事件 `{event, payload}`；方法名
-`域.动作`，错误码是稳定词表（`NoSuchMethod`、`BadArgument`、`Internal`）。页面注册好收信口后发
-`bridge.ready`，宿主在此之前缓存推送，语言或主题的早到变化不会丢。
+`域.动作`，错误码是稳定词表（`NoSuchMethod`、`BadArgument`、`Internal`）。载荷的形状写在
+`WhaleGenie.Contracts`，由 `tools/WhaleGenie.ContractsGen` 生成页面的
+`generated/types.ts`；页面不手写线缆类型。页面注册好收信口后发 `bridge.ready`，宿主在此之前缓存
+推送，语言或主题的早到变化不会丢。
 
 方向只有一条：**C# 是唯一事实来源**。文档态（`ProjectWorkspace`）、系统开关、触发状态、语言与
 主题都在程序侧，页面只做呈现与命令；程序侧的变化以事件推给页面（`strings.changed`、
