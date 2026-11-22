@@ -109,7 +109,7 @@ internal sealed partial class HeadlessActionSession
         => _valueSession?.Execute(command)
            ?? throw new InvalidOperationException("no value field is open");
 
-    public ValueEditorOutcome ConfirmValue()
+    public EditorValueOutcome ConfirmValue()
     {
         var session = _valueSession ?? throw new InvalidOperationException("no value field is open");
         var outcome = session.Confirm();
@@ -121,7 +121,7 @@ internal sealed partial class HeadlessActionSession
         return outcome;
     }
 
-    public ValueEditorOutcome CancelValue()
+    public EditorValueOutcome CancelValue()
     {
         var session = _valueSession ?? throw new InvalidOperationException("no value field is open");
         var outcome = session.Cancel();

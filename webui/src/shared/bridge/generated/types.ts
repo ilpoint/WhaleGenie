@@ -26,6 +26,118 @@ export interface EditorActionCategorySnapshot {
   short: string;
 }
 
+export interface EditorActionFieldSnapshot {
+  name: string;
+  label: string;
+  hint: string;
+  kind: string;
+  valueForm: string;
+  value: string;
+  display: string;
+  parts: EditorValuePartSnapshot[];
+  options: EditorChoiceSnapshot[];
+  columns: EditorColumnSnapshot[];
+  condition: EditorConditionSnapshot | null;
+  isApplicable: boolean;
+  isDefault: boolean;
+  isMissing: boolean;
+  required: boolean;
+  advanced: boolean;
+  group: string;
+  groupLabel: string;
+  offersValue: boolean;
+  takesFormula: boolean;
+  showsNameMark: boolean;
+  allowsNewName: boolean;
+  isNumber: boolean;
+  isNumberFormula: boolean;
+  isDuration: boolean;
+  unit: string;
+  unitLabel: string;
+  durationUnits: EditorChoiceSnapshot[];
+  isPercent: boolean;
+  percentValue: number;
+  channelNote: string;
+  jitterRange: string;
+  isMultiline: boolean;
+  isCode: boolean;
+  isColor: boolean;
+  colour: string;
+  isPath: boolean;
+  pathIntent: string;
+  pathFilter: string;
+  isKey: boolean;
+  isKeys: boolean;
+  isSelector: boolean;
+  isBrowserTarget: boolean;
+  isImage: boolean;
+  isImageList: boolean;
+  isRegion: boolean;
+  isRegionList: boolean;
+  isColourPoints: boolean;
+  isColourRows: boolean;
+  isKeySequence: boolean;
+  isNarrow: boolean;
+  isWindow: boolean;
+  isWindowRule: boolean;
+  isMacro: boolean;
+  isStepChoice: boolean;
+  isRecord: boolean;
+  isPoint: boolean;
+  isRect: boolean;
+  placeholder: string;
+  hasToBeAnswered: boolean;
+  isFollowingWindow: boolean;
+  windowRuleSummary: string;
+  regions: EditorRegionRowSnapshot[];
+  images: EditorImageRowSnapshot[];
+  colours: EditorColourRowSnapshot[];
+  colourPoints: EditorColourPointRowSnapshot[];
+  keys: EditorKeyRowSnapshot[];
+  narrowRows: EditorNarrowRowSnapshot[];
+  rows: EditorGenericRowSnapshot[];
+  macros: EditorChoiceSnapshot[];
+  steps: EditorChoiceSnapshot[];
+  candidates: EditorBrowserCandidateSnapshot[];
+  windowPreview: EditorWindowPreviewSnapshot | null;
+  imagePreview: EditorImagePreviewSnapshot | null;
+}
+
+export interface EditorActionFormSnapshot {
+  open: boolean;
+  isEditing: boolean;
+  canConfirm: boolean;
+  canRun: boolean;
+  running: boolean;
+  runLabel: string;
+  validationMessage: string;
+  validationIsProblem: boolean;
+  actionKey: string;
+  name: string;
+  description: string;
+  stepId: string;
+  commitLabel: string;
+  page: string;
+  pages: EditorActionPageSnapshot[];
+  rows: EditorActionRowSnapshot[];
+  advancedRows: EditorActionRowSnapshot[];
+  returns: EditorReturnsRowSnapshot[];
+  callArguments: EditorCallArgumentSnapshot[];
+  meta: EditorSteppingMetaSnapshot;
+  globalDraft: EditorGlobalDraftSnapshot | null;
+  windowRules: EditorWindowRuleChoiceSnapshot[];
+  windowAbove: string;
+  branchSummary: string;
+  attemptSummary: string;
+  isBlock: boolean;
+  showsBranches: boolean;
+  showsAttempt: boolean;
+  json: string;
+  notice: string;
+  noticeIsWarning: boolean;
+  clipboardPreview: EditorClipboardPreviewSnapshot;
+}
+
 export interface EditorActionPageSnapshot {
   key: string;
   label: string;
@@ -42,6 +154,17 @@ export interface EditorActionParameterSnapshot {
   options: EditorChoiceSnapshot[];
 }
 
+export interface EditorActionRowSnapshot {
+  groupKey: string;
+  groupTitle: string;
+  groupHint: string;
+  groupIndex: number;
+  isGroupStart: boolean;
+  isQuad: boolean;
+  cells: EditorActionFieldSnapshot[];
+  picker: EditorPickerSnapshot | null;
+}
+
 export interface EditorActionSnapshot {
   key: string;
   name: string;
@@ -53,6 +176,27 @@ export interface EditorActionSnapshot {
   groupRank: number;
   description: string;
   parameters: EditorActionParameterSnapshot[];
+}
+
+export interface EditorBrowserCandidateSnapshot {
+  selector: string;
+  text: string;
+}
+
+export interface EditorCallArgumentSnapshot {
+  name: string;
+  hint: string;
+  required: boolean;
+  declared: boolean;
+  given: boolean;
+  value: string;
+}
+
+export interface EditorCatalogue {
+  count: number;
+  actions: EditorActionSnapshot[];
+  categories: EditorActionCategorySnapshot[];
+  publicMacros: EditorPublicMacroSnapshot[];
 }
 
 export interface EditorCharacterCapSnapshot {
@@ -70,6 +214,24 @@ export interface EditorCharacterPadSnapshot {
 export interface EditorChoiceSnapshot {
   value: string;
   label: string;
+}
+
+export interface EditorClipboardPreviewSnapshot {
+  shown: boolean;
+  note: string;
+}
+
+export interface EditorColourPointRowSnapshot {
+  dx: string;
+  dy: string;
+  colour: string;
+  mustNot: boolean;
+  tolerance: string;
+}
+
+export interface EditorColourRowSnapshot {
+  colour: string;
+  tolerance: string;
 }
 
 export interface EditorColumnSnapshot {
@@ -97,6 +259,29 @@ export interface EditorConditionSnapshot {
   editable: boolean;
 }
 
+export interface EditorDurationSnapshot {
+  milliseconds: number;
+  written: string;
+  unit: string;
+  units: EditorChoiceSnapshot[];
+}
+
+export interface EditorGenericRowSnapshot {
+  cells: string[];
+}
+
+export interface EditorGlobalDraftSnapshot {
+  name: string;
+  type: string;
+  default: string;
+  defaultPreview: string;
+  description: string;
+  persistValue: boolean;
+  problem: string;
+  hasError: boolean;
+  types: EditorChoiceSnapshot[];
+}
+
 export interface EditorGlobalSnapshot {
   name: string;
   type: string;
@@ -112,6 +297,19 @@ export interface EditorHotstringEndKeySnapshot {
   isCustom: boolean;
 }
 
+export interface EditorImagePreviewSnapshot {
+  dataUrl: string;
+  fileName: string;
+  problem: string;
+}
+
+export interface EditorImageRowSnapshot {
+  text: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  preview: EditorImagePreviewSnapshot | null;
+}
+
 export interface EditorKeyCapSnapshot {
   label: string;
   value: string;
@@ -122,6 +320,13 @@ export interface EditorKeyPadSnapshot {
   mode: string;
   maxLength: number;
   rows: EditorKeyCapSnapshot[][];
+}
+
+export interface EditorKeyRowSnapshot {
+  number: number;
+  keys: string;
+  hold: string;
+  gap: string;
 }
 
 export interface EditorMacroFieldSnapshot {
@@ -143,6 +348,16 @@ export interface EditorMacroResultSnapshot {
   type: string;
   description: string;
   fields: EditorMacroFieldSnapshot[];
+}
+
+export interface EditorNarrowRowSnapshot {
+  how: string;
+  value: string;
+  count: string;
+  needsValue: boolean;
+  wantsWords: boolean;
+  onPage: boolean;
+  ways: EditorChoiceSnapshot[];
 }
 
 export interface EditorParameterSnapshot {
@@ -174,6 +389,13 @@ export interface EditorParameterSnapshot {
   isReturns: boolean;
 }
 
+export interface EditorPickerSnapshot {
+  kind: string;
+  label: string;
+  hint: string;
+  mode: string;
+}
+
 export interface EditorPublicMacroSnapshot {
   id: string;
   version: number;
@@ -194,6 +416,27 @@ export interface EditorRecordingSnapshot {
   delayScale: number;
   delayScaleDisplay: string;
   hasDelayScale: boolean;
+}
+
+export interface EditorRegionRowSnapshot {
+  x: string;
+  y: string;
+  width: string;
+  height: string;
+  variable: string;
+}
+
+export interface EditorReturnsRowSnapshot {
+  key: string;
+  label: string;
+  hint: string;
+  structure: string;
+  structureTip: string;
+  ticked: boolean;
+  name: string;
+  isNameTaken: boolean;
+  nameWarning: string;
+  isPrimary: boolean;
 }
 
 export interface EditorRowSnapshot {
@@ -260,12 +503,59 @@ export interface EditorStepSnapshot {
   sections: EditorStepSectionSnapshot[];
 }
 
+export interface EditorSteppingMetaSnapshot {
+  enabled: boolean;
+  comment: string;
+  timeout: EditorDurationSnapshot;
+  retryCount: number | null;
+  retryDelay: EditorDurationSnapshot;
+  delayBefore: EditorDurationSnapshot;
+  delayAfter: EditorDurationSnapshot;
+  retryBackoff: string;
+  onError: string;
+  retryPlan: string;
+  tuned: boolean;
+}
+
 export interface EditorTabSnapshot {
   key: string;
   name: string;
   dirty: boolean;
   problem: boolean;
   isSubMacro: boolean;
+}
+
+export interface EditorTrialBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  score: number;
+  role: string;
+  label: string | null;
+}
+
+export interface EditorTrialReply {
+  needsConfirm: boolean;
+  title: string | null;
+  question: string | null;
+  refused: string | null;
+  result: EditorTrialResult | null;
+}
+
+export interface EditorTrialResult {
+  success: boolean;
+  status: string;
+  key: string;
+  detail: string;
+  image: string | null;
+  boxes: EditorTrialBox[];
+  chosenIndex: number;
+  looking: string;
+  originX: number;
+  originY: number;
+  frameWidth: number;
+  frameHeight: number;
 }
 
 export interface EditorTriggerKindSnapshot {
@@ -406,6 +696,12 @@ export interface EditorValueOperator {
   enabled: boolean;
 }
 
+export interface EditorValueOutcome {
+  closed: boolean;
+  applied: boolean;
+  snapshot: EditorValueSnapshot;
+}
+
 export interface EditorValuePartSnapshot {
   kind: string;
   text: string;
@@ -514,6 +810,25 @@ export interface EditorVariableSnapshot {
 export interface EditorVariableTypeSnapshot {
   value: string;
   label: string;
+}
+
+export interface EditorWindowPreviewRowSnapshot {
+  title: string;
+  partLabel: string;
+  part: string;
+}
+
+export interface EditorWindowPreviewSnapshot {
+  summary: string;
+  note: string;
+  more: string;
+  rows: EditorWindowPreviewRowSnapshot[];
+}
+
+export interface EditorWindowRuleChoiceSnapshot {
+  summary: string;
+  rule: string;
+  count: number;
 }
 
 export interface LibraryEntry {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Editing;
@@ -1642,14 +1643,12 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private static object Actions()
-        => new
-        {
-            count = ActionCatalog.RunnableActions.Count,
-            actions = HeadlessEditorSession.Actions(),
-            categories = HeadlessEditorSession.ActionCategories(),
-            publicMacros = HeadlessEditorSession.PublicMacros(),
-        };
+    private static EditorCatalogue Actions()
+        => new(
+            ActionCatalog.RunnableActions.Count,
+            HeadlessEditorSession.Actions(),
+            HeadlessEditorSession.ActionCategories(),
+            HeadlessEditorSession.PublicMacros());
 
     private HeadlessEditorSession Required()
         => _documents.Active ?? throw new BridgeFailureException(BridgeErrors.BadArgument,

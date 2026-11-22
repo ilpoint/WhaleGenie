@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -18,17 +19,13 @@ internal sealed partial class EditorSessionBridge
         var form = session.ActionForm;
         if (!form.Form.CanSave)
         {
-            return new { needsConfirm = false, refused = form.Form.ValidationMessage };
+            return new EditorTrialReply(false, null, null, form.Form.ValidationMessage, null);
         }
 
         if (form.CannotBeUndone && OptionalBool(parameters, "confirmed") != true)
         {
-            return new
-            {
-                needsConfirm = true,
-                title = Strings.Get("Run.CannotBeUndoneTitle"),
-                question = form.IrreversibleQuestion,
-            };
+            return new EditorTrialReply(true, Strings.Get("Run.CannotBeUndoneTitle"),
+                form.IrreversibleQuestion, null, null);
         }
 
         if (_devices is null)
@@ -53,6 +50,6 @@ internal sealed partial class EditorSessionBridge
             result = await Task.Run(Run);
         }
 
-        return new { needsConfirm = false, result };
+        return new EditorTrialReply(false, null, null, null, result);
     }
 }

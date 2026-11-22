@@ -2101,7 +2101,7 @@ internal sealed class HeadlessEditorSession
            ?? _valueSession?.Execute(command)
            ?? throw new InvalidOperationException("no value field is open");
 
-    public ValueEditorOutcome ConfirmValue()
+    public EditorValueOutcome ConfirmValue()
     {
         if (_actionSession is { } action)
         {
@@ -2119,7 +2119,7 @@ internal sealed class HeadlessEditorSession
         return outcome;
     }
 
-    public ValueEditorOutcome CancelValue()
+    public EditorValueOutcome CancelValue()
     {
         if (_actionSession is { } action)
         {

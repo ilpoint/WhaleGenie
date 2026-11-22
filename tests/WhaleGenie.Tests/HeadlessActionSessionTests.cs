@@ -1,4 +1,5 @@
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using Xunit;

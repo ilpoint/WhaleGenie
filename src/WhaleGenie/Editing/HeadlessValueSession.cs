@@ -23,9 +23,6 @@ internal sealed record ValueEditorCommand(
     double? Width = null,
     bool? Append = null);
 
-/// <summary>The answer of the modal: whether it closed, and whether the field was written.</summary>
-internal sealed record ValueEditorOutcome(bool Closed, bool Applied, EditorValueSnapshot Snapshot);
-
 /// <summary>
 /// The headless form of the restored value picker. The C# <see cref="ValuePickerViewModel"/> still
 /// owns the token tree, caret, wall and functions; this class translates the page's small command
@@ -202,23 +199,23 @@ internal sealed class HeadlessValueSession
         return Snapshot();
     }
 
-    public ValueEditorOutcome Confirm()
+    public EditorValueOutcome Confirm()
     {
         _picker.Confirm();
         if (_result is { Chosen: true } pick)
         {
             _write(pick.Value);
             _changed();
-            return new ValueEditorOutcome(true, true, Snapshot());
+            return new EditorValueOutcome(true, true, Snapshot());
         }
 
-        return new ValueEditorOutcome(false, false, Snapshot());
+        return new EditorValueOutcome(false, false, Snapshot());
     }
 
-    public ValueEditorOutcome Cancel()
+    public EditorValueOutcome Cancel()
     {
         _picker.Cancel();
-        return new ValueEditorOutcome(true, false, Snapshot());
+        return new EditorValueOutcome(true, false, Snapshot());
     }
 
     private SlotNode? Find(int[]? path)

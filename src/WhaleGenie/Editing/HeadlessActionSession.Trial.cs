@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -88,10 +89,3 @@ internal sealed partial class HeadlessActionSession
         }
     }
 }
-
-internal sealed record EditorTrialResult(bool Success, string Status, string Key, string Detail,
-    string? Image, IReadOnlyList<EditorTrialBox> Boxes, int ChosenIndex, string Looking,
-    int OriginX, int OriginY, int FrameWidth, int FrameHeight);
-
-internal sealed record EditorTrialBox(int X, int Y, int Width, int Height, double Score,
-    string Role, string? Label);
