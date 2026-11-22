@@ -58,7 +58,7 @@ export class EditorActionService {
   }
 
   async setActionPage(page: string): Promise<void> {
-    await this.core.actionCommand('editor.actionPage', { page });
+    await this.core.actionEdit({ kind: 'page', page });
   }
 
   async confirmAction(): Promise<boolean> {
@@ -109,56 +109,56 @@ export class EditorActionService {
   }
 
   async patchActionField(name: string, field: string, value: string): Promise<boolean> {
-    return this.core.actionCommand('editor.actionField', { name, field, value });
+    return this.core.actionEdit({ kind: 'field', name, field, value });
   }
 
   async addActionRow(name: string): Promise<boolean> {
-    return this.core.actionCommand('editor.actionRowAdd', { name });
+    return this.core.actionEdit({ kind: 'rowAdd', name });
   }
 
   async removeActionRow(name: string, index: number): Promise<boolean> {
-    return this.core.actionCommand('editor.actionRowRemove', { name, index });
+    return this.core.actionEdit({ kind: 'rowRemove', name, index });
   }
 
   async moveActionRow(name: string, index: number, by: number): Promise<boolean> {
-    return this.core.actionCommand('editor.actionRowMove', { name, index, by });
+    return this.core.actionEdit({ kind: 'rowMove', name, index, by });
   }
 
   async patchActionRow(name: string, index: number, column: string, value: string): Promise<boolean> {
-    return this.core.actionCommand('editor.actionRowCell', { name, index, column, value });
+    return this.core.actionEdit({ kind: 'rowCell', name, index, column, value });
   }
 
   async patchActionReturn(key: string, change: { ticked?: boolean; name?: string }): Promise<boolean> {
-    return this.core.actionCommand('editor.actionReturns', { key, ...change });
+    return this.core.actionEdit({ kind: 'returns', key, ...change });
   }
 
   async fixActionReturnName(key: string): Promise<boolean> {
-    return this.core.actionCommand('editor.actionReturnsFixName', { key });
+    return this.core.actionEdit({ kind: 'returnsFixName', key });
   }
 
   async patchActionCallArgument(name: string,
     change: { given?: boolean; value?: string }): Promise<boolean> {
-    return this.core.actionCommand('editor.actionCallArgument', { name, ...change });
+    return this.core.actionEdit({ kind: 'callArgument', name, ...change });
   }
 
   async patchActionMeta(field: string, value: string, unit = ''): Promise<boolean> {
-    return this.core.actionCommand('editor.actionMeta', { field, value, unit });
+    return this.core.actionEdit({ kind: 'meta', field, value, unit });
   }
 
   async patchActionGlobal(field: string, value: string): Promise<boolean> {
-    return this.core.actionCommand('editor.actionGlobal', { field, value });
+    return this.core.actionEdit({ kind: 'global', field, value });
   }
 
   async addActionBranch(): Promise<boolean> {
-    return this.core.actionCommand('editor.actionBranch', {});
+    return this.core.actionEdit({ kind: 'branch' });
   }
 
   async applyActionWindow(name: string, choice: string, value = ''): Promise<boolean> {
-    return this.core.actionCommand('editor.actionWindow', { name, choice, value });
+    return this.core.actionEdit({ kind: 'window', name, choice, value });
   }
 
   async applyActionWindowRule(name: string, rule: string): Promise<boolean> {
-    return this.core.actionCommand('editor.actionWindowRule', { name, rule });
+    return this.core.actionEdit({ kind: 'windowRule', name, rule });
   }
 
   async testActionBrowser(name: string): Promise<boolean> {
@@ -213,7 +213,7 @@ export class EditorActionService {
   }
 
   async padKey(name: string, key: string, index = -1, mode = 'key'): Promise<boolean> {
-    return this.core.actionCommand('editor.actionPadKey', { name, key, index, mode });
+    return this.core.actionEdit({ kind: 'padKey', name, key, index, mode });
   }
 
   async pickAction(name: string, mode: string, index = -1): Promise<boolean> {

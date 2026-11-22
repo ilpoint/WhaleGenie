@@ -26,6 +26,118 @@ export interface EditorActionCategorySnapshot {
   short: string;
 }
 
+export type EditorActionCommand =
+  | EditorActionPageCommand
+  | EditorActionFieldCommand
+  | EditorActionRowAddCommand
+  | EditorActionRowRemoveCommand
+  | EditorActionRowMoveCommand
+  | EditorActionRowCellCommand
+  | EditorActionReturnsCommand
+  | EditorActionReturnsFixNameCommand
+  | EditorActionCallArgumentCommand
+  | EditorActionMetaCommand
+  | EditorActionGlobalCommand
+  | EditorActionBranchCommand
+  | EditorActionWindowCommand
+  | EditorActionWindowRuleCommand
+  | EditorActionPadKeyCommand;
+
+export interface EditorActionPageCommand {
+  kind: 'page';
+  page: string;
+}
+
+export interface EditorActionFieldCommand {
+  kind: 'field';
+  name: string;
+  field: string;
+  value: string;
+}
+
+export interface EditorActionRowAddCommand {
+  kind: 'rowAdd';
+  name: string;
+}
+
+export interface EditorActionRowRemoveCommand {
+  kind: 'rowRemove';
+  name: string;
+  index: number;
+}
+
+export interface EditorActionRowMoveCommand {
+  kind: 'rowMove';
+  name: string;
+  index: number;
+  by: number;
+}
+
+export interface EditorActionRowCellCommand {
+  kind: 'rowCell';
+  name: string;
+  index: number;
+  column: string;
+  value: string;
+}
+
+export interface EditorActionReturnsCommand {
+  kind: 'returns';
+  key: string;
+  ticked?: boolean | null;
+  name?: string | null;
+}
+
+export interface EditorActionReturnsFixNameCommand {
+  kind: 'returnsFixName';
+  key: string;
+}
+
+export interface EditorActionCallArgumentCommand {
+  kind: 'callArgument';
+  name: string;
+  given?: boolean | null;
+  value?: string | null;
+}
+
+export interface EditorActionMetaCommand {
+  kind: 'meta';
+  field: string;
+  value: string;
+  unit: string;
+}
+
+export interface EditorActionGlobalCommand {
+  kind: 'global';
+  field: string;
+  value: string;
+}
+
+export interface EditorActionBranchCommand {
+  kind: 'branch';
+}
+
+export interface EditorActionWindowCommand {
+  kind: 'window';
+  name: string;
+  choice: string;
+  value: string;
+}
+
+export interface EditorActionWindowRuleCommand {
+  kind: 'windowRule';
+  name: string;
+  rule: string;
+}
+
+export interface EditorActionPadKeyCommand {
+  kind: 'padKey';
+  name: string;
+  key: string;
+  index: number;
+  mode: string;
+}
+
 export interface EditorActionFieldSnapshot {
   name: string;
   label: string;

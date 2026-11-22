@@ -85,7 +85,7 @@ features/<feature>/
 - **同一聚合的命令用判别联合**：C# 的 `[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]` +
   `[JsonDerivedType]` 会生成 TypeScript 判别联合；派生记录的可空字段是 `field?: T | null`
   （命令请求可省略）。首批是 `editor.value`（open/command/confirm/cancel）与
-  `editor.trigger`（add/remove/field 等）。新增编辑器命令时优先扩展
+  `editor.trigger`（add/remove/field 等）、`editor.action`（page/field/row 等）。新增编辑器命令时优先扩展
   现有联合，不再加一条按字段拆的 `editor.*` 方法。
 - 状态类推送在服务端按事件名合并；日志等流式事件必须传 `BridgePushMode.All`，否则中间值会被
   最新值覆盖。

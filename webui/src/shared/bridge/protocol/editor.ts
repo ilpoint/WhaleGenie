@@ -23,6 +23,22 @@ import type {
 } from '../generated/types.js';
 
 export type {
+  EditorActionBranchCommand,
+  EditorActionCallArgumentCommand,
+  EditorActionCommand,
+  EditorActionFieldCommand,
+  EditorActionGlobalCommand,
+  EditorActionMetaCommand,
+  EditorActionPageCommand,
+  EditorActionPadKeyCommand,
+  EditorActionReturnsCommand,
+  EditorActionReturnsFixNameCommand,
+  EditorActionRowAddCommand,
+  EditorActionRowCellCommand,
+  EditorActionRowMoveCommand,
+  EditorActionRowRemoveCommand,
+  EditorActionWindowCommand,
+  EditorActionWindowRuleCommand,
   EditorTriggerAddCommand,
   EditorTriggerBindingCommand,
   EditorTriggerCommand,

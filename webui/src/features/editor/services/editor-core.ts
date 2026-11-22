@@ -1,6 +1,7 @@
 import type { BridgeApi } from '../../../shared/bridge/client.js';
 import type {
   BridgeMethod,
+  EditorActionCommand,
   EditorActionForm,
   EditorSnapshot,
   EditorTab,
@@ -83,6 +84,15 @@ export class EditorCore {
   }
 
   async actionCommand(method: BridgeMethod, params: Record<string, unknown>): Promise<boolean> {
+    return this.formCall(method, params);
+  }
+
+  /** One draft edit through the action command union, answered with the whole form. */
+  async actionEdit(command: EditorActionCommand): Promise<boolean> {
+    return this.formCall('editor.action', command);
+  }
+
+  private async formCall(method: BridgeMethod, params: unknown): Promise<boolean> {
     try {
       const form = await this.client.call<EditorActionForm>(method, params);
       this.state.actionForm = form.open ? form : null;
