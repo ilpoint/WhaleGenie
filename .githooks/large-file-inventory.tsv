@@ -246,7 +246,15 @@
 357	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
-43616	webui/e2e/shell.spec.ts	split: 壳、编辑器、设置、运行与宏库的端到端用例已超过一个页面能读完的体量，后续按功能拆文件
+22943	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
 30146	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
-123134	webui/src/shared/bridge/mock.ts	split: mock 宿主把编辑器、运行、项目、设置与宏库的假数据都装在一个类里，后续按域拆
-1128	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发与变量命令集中在一个分部类上；下一步按命令域拆
+81899	webui/src/shared/bridge/mock.ts	split: 编辑器域已拆到 mock-editor*.ts，运行、项目、设置与宏库的假数据仍在一个类里
+38665	webui/src/features/editor/macro-settings.ts	split: 常规/专属两块、触发字段与形参返回卡片在一个组件；下一步按设置页、触发与声明拆
+39408	webui/src/features/editor/editor-store.ts	split: 状态、生命周期与全部编辑命令集中在一个 store；下一步按快照/步骤/声明/触发/变量/取值/录制拆
+23638	webui/src/features/editor/step-inspector.ts	split: 参数表单、条件、行表与键位捕获在一处；下一步按字段类型拆
+44901	webui/src/shared/bridge/mock-editor.ts	keep: 命令分派与会话生命周期同属一个假宿主，步骤/数据/动作/夹具/取值已拆到 mock-editor-*.ts
+27933	webui/src/features/editor/value-editor.ts	split: 结构带、材料盘、变量/函数面板与样式在一个组件；下一步按 token band 与 panels 拆
+25993	webui/src/features/editor/step-tree.ts	split: 步骤树、多选、右键菜单、拖放与键盘命令在一个组件；下一步按 tree 渲染与 interactions 拆
+1491	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
+2394	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
+719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件

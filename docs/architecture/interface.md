@@ -28,61 +28,20 @@
 轮盘。页签也有同一处回答：哪个页面代表某个宏、关掉一页之后谁在前。后者要记住按下关闭按钮时的
 前台，因为按钮长在页签上，按下的那一刻前台已经换成要走的那一页。
 
-窗口与视图按功能分目录：`Views/Editor`（宏编辑窗、步骤树、变量墙、菜单与窗口规则）、
-`Views/Actions`（动作对话框与参数行）、`Views/Pickers`（取值与各类拾取窗口）、`Views/Run`
-（运行窗与屏幕叠层）、`Views/Variables`、`Views/Settings`、`Views/Shell`（窗口外壳、文件选择与
-通用对话框）与 `Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应，只有 MCP 与取值窗口两处各占一边。命名空间仍是
+窗口与视图按功能分目录：`Views/Editor`（菜单与轮盘的窗口、菜单图标/宏选择器和
+`ProjectMacroCommit`）、`Views/Pickers`（浏览器与窗口拾取覆盖层）、`Views/Variables`（字段标签列与
+全局变量冲突提示）、`Views/Settings`（主题探针）、`Views/Shell`（窗口外壳、文件选择与通用对话框）与
+`Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应。宏编辑器、动作表单、步骤树、
+条件与取值构建器已迁入网页壳（§7.6），原生侧只保留要抓桌面或透明置顶的窗口。命名空间仍是
 `WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条
 `avares` 路径。
 
 XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口后置代码继续处理拖放、窗口生命周期
 和控件交互，不以“窗口零逻辑”为目标；项目与设备等有状态服务仍由组合根提供。
 
-### 7.2 步骤、条件与取值编辑器
+### 7.2 宏编辑模型与取值
 
-步骤列表使用 `TreeView` 表达已有层级：一行一步，选中行原处展开，双击只作用于步骤行本身。展开的单列表块行
-与体行都是子列表末端的拖放落点；折叠的块体内一行都不画，整行只给「块前 / 块后」两缝。折叠只改变子节点可见性，
-不重建步骤。横向滚动保持关闭，避免摘要宽度把缩进与树线推出视口；`StepRow.IndentWidth` 统一给出 26 像素缩进，
-`GuideLinesView` 按绝对纵坐标绘制连续树线，插入带的缩进取同一份 `TreeIndent`，`StepGuideTests` 检查树线的
-起止位置，`StepDropTests` 检查插入带落在哪一列。
-
-循环自己用的名字由 `Domain/Models/LoopNames.cs` 回答：检查用它判嵌套遮蔽，动作对话框在新建计数循环时用它
-取一个外层没在用的计数器（`i` 被占就是 `i2`）。两处读的是同一份读法，界面不另写一套规则；落点由编辑器提供
-（`MacroEditorViewModel.LoopNamesInScope`），与保存时用的是同一个落点。
-
-每个步骤使用四字符 `StepIds` 标识，供断点、运行高亮和状态读取使用。新建、复制、粘贴、录制和 MCP
-写入时发号；载入或合并发现重复时，为后到步骤重新发号，只改写其子树内按引用读取的
-`step.<旧标识>`，并向用户报告变更。
-
-条件行表与条件树读取同一份分组比较模型，写回原有表达式字符串，不增加第二种文件格式。读回只拆
-同层 `&&` / `||` 和可识别的简单比较；函数、括号或否定语义无法安全还原时保留原文并切到表达式模式。
-`control.if`、`control.while` 与 `control.waitUntil` 共用条件编辑器；多分支的值与分支步骤仍属于步骤模型。
-
-所有值字段共用框内取值片，字段只读，唯一入口是取值窗口。窗口按字段声明的 `ValueForm` 分四模式，
-不再有第二个变量窗口：`Text` 是一整段文字，`Run` 是文字与名字组成的序列，`Value` 是 token 树，
-`Name` 是名字列表加一行新建。窗口判断一格能不能用时不再渲染成一行再读回：字段自己的读法决定结果。
-
-`Value` 的根只有一个表达式，空位只属于容器：函数的参数槽、二元/一元的操作数槽、括号组和列表项槽。
-二元和一元是一个容器 token，运算符是容器里的一枚可点按钮，不是兄弟块，缺的操作数在容器内部；
-函数参数的空位保持现状。列表是 `[` 项 `]` 一个 token；括号组是一个 `GroupNode`，引擎对它透明求值，
-文件写成 `{"group": …}`，界面画成一对括号包住里面那一块。根上不会并排出现两个表达式：没有槽位时，
-值、名字和函数都拒绝写入并说明原因，运算符则包住选中或光标前的完整表达式。
-
-选中一块（`SlotNode.IsSelected`）后，运算符、括号和列表都作用在它上面；没有选中时作用在光标前的
-完整表达式或整个根上。拖拽只拖 token，根和 run 不是 token，空白处按下只移动光标；移动先合拢源位置，
-再把块插到落点，整次移动是一条历史。删除走 `ShapeTree.Cut`：文字片和名字片移除后合拢相邻文字，
-列表项直接移除，二元运算保留另一侧。光标是 `CaretPlace(Path, After)`，`CaretOffset` 从形状投影出
-窗口画的接缝；可写接缝由形状收集，二元/一元内部只保留整个结构的外侧和其中的空位。历史同时保存值
-和光标，撤销把两者一起放回；删除后 ViewModel 显式把光标放回删除接缝。
-
-小输入框一次只写一个材料：数字按语言认的写法，文字加引号转义；`Run` 里打进去的就是文字本身。
-结构带有焦点时，退格删除竖线前一块，Delete 删除后一块，两者都走 `Cut`；没有变量声明的名字描红边。
-
-值是"文字里夹着名字"时，字段显示 `ValuePart` 的序列：每段文字是一只只读的 `SelectableTextBlock`，
-每个名字是一块 `NamePart`（`Border.Token`），带一枚摘掉它的叉。序列只是显示，值由窗口写回（`Compose`）；
-`RebuildParts` 用 `_composing` 标志挡住"碎片写回时又去重建碎片"的循环。字段本身没有文字编辑：
-摘掉名字片走它自己的叉，键盘删除在取值窗口的结构带上完成，叉、退格和 Delete 都走 `Cut`。
-名字本身就是它的名字，前面不带记号；变量墙也照此显示（`剪贴板 (sys.clipboard)`）。
+宏编辑器的界面在网页壳（§7.6）；C# 侧由 `MacroEditorViewModel`、`HeadlessEditorSession` 与`HeadlessEditorWorkspace` 提供文档、步骤树、动作表单、条件与取值模型，桥只传快照与命令。`MacroStep.Detail`/`InputMark`/`MetaSummary`、`StepLists` 与 `ActionSemantics` 是步骤行、分节和字段的读法来源；页面不另写第二套。步骤 id 仍由 `StepIds` 发号，重复时在载入或合并处重发并报告。取值构建器在网页里只是文本框加变量/函数片，最终值仍由 C# 的 `Formula` 读回。
 
 ### 7.3 主题资源
 
@@ -177,10 +136,24 @@ MainViewModel 仍为编辑器、运行面板和原生菜单/轮盘提供无窗�
 整包下发，页面没有回退逻辑；主题经 `ThemeController` 应用并落盘，页面用 Fluent 令牌铺色，不读
 设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
 
-编辑器在 C0 走同一方向：`HeadlessEditorSession` 持有 `MacroEditorViewModel` 与
-`ProjectMacroCommit`，桥的 `editor.sessionOpen/State/Patch/Step/Save/Close/Actions` 只传快照与命令；
-网页编辑器不保存自己的宏副本。C1 已把会话扩成完整文档、步骤树、动作表单、条件与宏设置；C2 已删除
-原生编辑器、动作编辑与取值窗口，C# 编辑模型与桥仍是唯一模型。
+编辑器在同一方向：`HeadlessEditorWorkspace` 持有多个 `HeadlessEditorSession`，每个会话持有
+`MacroEditorViewModel` 与 `ProjectMacroCommit`；桥的 `editor.sessionOpen/State/Patch/Step/Save/Close/
+Actions` 只传快照与命令。快照现在同时给出步骤的分节（`sections`，每个子列表带本地化标题）、摘要、
+问题、输入去向与步骤设置摘要，动作目录的类别/小分组/顺序，变量组的显示名与持久化，以及每份文档的
+页签脏/问题/子宏标记；页面不再按动作名或参数自己拼这些事实。`editor.sessionStep` 接受
+`list`（子列表名）与 `parameters`（预置字段），用来把动作放进指定分节或在加入时就写好字段。
+
+取值走的是同一条方向：`ValueDraft`/`SlotNodes` 和恢复的 `ValuePickerViewModel` 在 C# 里持有
+Token 结构、光标、撤销与检查；`editor.valueOpen/State/Command/Confirm/Cancel` 只传
+`EditorValueSnapshot` 和一组插入/摘除/换运算符/包裹/移动/常量输入命令。网页的
+`wg-value-editor` 只画结构带、符号/变量/函数三盘；确认时 C# 通过 `StepParameterViewModel.WriteValue`
+把形状写回字段，页面从不解析或重写公式文本。值字段本身是只读显示加框内「取值」按钮（数字可直接
+输入），这部分也是 C# 快照驱动的。
+
+网页侧的页面状态集中在 `editor-store.ts`：快照、页签、动作目录、选中步骤、折叠、动作库筛选、
+右侧栏宽度、步骤编辑窗/取值窗口状态、录制状态和一次命令的错误；`wg-editor` 及其子组件只渲染并把
+编辑命令交回。右侧是变量中心与宏设置上下双面板；步骤参数在独立编辑窗里；C# 编辑模型与桥仍是唯一
+模型。mock 宿主的编辑器域拆在 `mock-editor*.ts`，与真桥同形，供 `e2e/editor.spec.ts` 驱动。
 
 桥推送的时序也是契约：ready 前同一事件只留最新一份；页面显式取 `project.state`、`theme.get` 或
 `strings.bundle` 时清掉同域 pending；所有发送串行。页面问话在无页时立即答否，页内应答超时也
