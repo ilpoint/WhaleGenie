@@ -24,6 +24,17 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             Overlay?.Hide();
             return Task.FromResult<object?>(null);
         });
+        server.Register("surface.menu.pin", parameters =>
+        {
+            var pinned = parameters.TryGetProperty("pinned", out var given)
+                && given.ValueKind == System.Text.Json.JsonValueKind.True;
+            if (Overlay is { } overlay)
+            {
+                overlay.Pinned = pinned;
+            }
+
+            return Task.FromResult<object?>(new { pinned });
+        });
         server.Register("surface.menu.page.add", parameters =>
             Task.FromResult<object?>(menu.AddPage(OptionalString(parameters, "pageId"))));
         server.Register("surface.menu.page.remove", parameters =>

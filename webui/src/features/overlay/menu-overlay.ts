@@ -31,6 +31,9 @@ export class WgOverlayMenu extends LitElement {
   @state()
   private error = '';
 
+  @state()
+  private pinned = false;
+
   protected readonly stringsController = new StoreController(this, strings);
 
   static styles = css`
@@ -50,6 +53,36 @@ export class WgOverlayMenu extends LitElement {
       background: var(--colorNeutralBackground1);
       box-shadow: var(--shadow16);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .header .title {
+      font-size: 12px;
+      font-weight: var(--fontWeightSemibold);
+      color: var(--colorNeutralForeground2);
+    }
+
+    .header .pin {
+      width: 24px;
+      height: 22px;
+      padding: 0;
+      border: none;
+      border-radius: 5px;
+      background: transparent;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0.65;
+    }
+
+    .header .pin.on {
+      background: var(--colorBrandBackground2);
+      opacity: 1;
     }
 
     .search {
@@ -299,6 +332,29 @@ export class WgOverlayMenu extends LitElement {
     this.context = Math.min(this.context, Math.max(0, this.contextPages.length - 1));
   }
 
+  private async togglePin(): Promise<void> {
+    this.pinned = !this.pinned;
+    try {
+      await bridgeApi.call('surface.menu.pin', { pinned: this.pinned });
+    } catch {
+      this.pinned = !this.pinned;
+    }
+  }
+
+  private renderHeader() {
+    return html`
+      <div class="header">
+        <span class="title">${t('Menu.Search')}</span>
+        <button
+          class="pin ${this.pinned ? 'on' : ''}"
+          aria-pressed=${this.pinned ? 'true' : 'false'}
+          title=${this.pinned ? t('Menu.Unpin') : t('Menu.Pin')}
+          @click=${() => void this.togglePin()}
+        >${this.pinned ? '📌' : '📍'}</button>
+      </div>
+    `;
+  }
+
   private renderSearch() {
     return html`
       <div class="search">
@@ -347,6 +403,7 @@ export class WgOverlayMenu extends LitElement {
 
     return html`
       <div class="panel">
+        ${this.renderHeader()}
         ${this.renderSearch()}
         ${this.filtering
           ? this.renderMatches()

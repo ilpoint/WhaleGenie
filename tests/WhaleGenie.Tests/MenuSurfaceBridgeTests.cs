@@ -72,6 +72,22 @@ public class MenuSurfaceBridgeTests
         Assert.False(overlay.IsVisible);
     }
 
+    [Fact]
+    public async Task Pinning_the_menu_is_kept_on_the_overlay()
+    {
+        var server = new BridgeServer();
+        var bridge = new MenuSurfaceBridge(Surface());
+        var overlay = new RecordingOverlay();
+        bridge.Overlay = overlay;
+        bridge.Register(server);
+
+        await server.AcceptAsync("""{"id":4,"method":"surface.menu.pin","params":{"pinned":true}}""");
+        Assert.True(overlay.Pinned);
+
+        await server.AcceptAsync("""{"id":5,"method":"surface.menu.pin","params":{"pinned":false}}""");
+        Assert.False(overlay.Pinned);
+    }
+
     private static MenuSurface Surface(ProjectWorkspace? project = null)
         => new(project ?? new ProjectWorkspace(), NullDeviceLayer.Instance.Windows,
             new TriggerRuntime(NullDeviceLayer.Instance, (project ?? new ProjectWorkspace()).Variables));
@@ -79,6 +95,8 @@ public class MenuSurfaceBridgeTests
     private sealed class RecordingOverlay : IMenuOverlay
     {
         public bool IsVisible { get; private set; } = true;
+
+        public bool Pinned { get; set; }
 
         public int Hidden { get; private set; }
 

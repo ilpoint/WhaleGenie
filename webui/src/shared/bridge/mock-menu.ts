@@ -16,6 +16,9 @@ export function handleSurfaceMenu(
     case 'surface.menu.close':
       return undefined;
 
+    case 'surface.menu.pin':
+      return { pinned: params['pinned'] === true };
+
     case 'surface.menu.page.add':
       return addPage(host, params);
 

@@ -15,6 +15,18 @@ internal sealed class MenuOverlayHost(BridgeServer bridge) : IMenuOverlay
 
     public bool IsVisible => _window?.IsVisible == true;
 
+    public bool Pinned
+    {
+        get => _window?.Pinned == true;
+        set
+        {
+            if (_window is { } window)
+            {
+                window.Pinned = value;
+            }
+        }
+    }
+
     public void Show()
     {
         _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", 356, 312);

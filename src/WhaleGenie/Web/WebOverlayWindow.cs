@@ -24,6 +24,10 @@ internal sealed class WebOverlayWindow : Window
     private readonly string _route;
     private WebBridge? _channel;
 
+    /// <summary>Pinned overlays stay up when the user clicks another program.</summary>
+    internal bool Pinned { get; set; }
+
+
     internal WebOverlayWindow(BridgeServer bridge, BridgeSurface surface, string route,
         double width, double height)
     {
@@ -45,6 +49,7 @@ internal sealed class WebOverlayWindow : Window
         // reaches the WebView2 controller as its default background.
         _web.Background = Brushes.Transparent;
         _web.AdapterCreated += OnAdapterCreated;
+
         Content = _web;
         _channel = new WebBridge(_web);
         _channel.Listen();
@@ -133,6 +138,7 @@ internal sealed class WebOverlayWindow : Window
         public int X;
         public int Y;
     }
+
 
     protected override void OnClosed(EventArgs e)
     {

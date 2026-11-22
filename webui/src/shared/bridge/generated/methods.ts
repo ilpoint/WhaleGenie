@@ -99,6 +99,7 @@ export type BridgeMethod =
   | 'surface.menu.move'
   | 'surface.menu.page.add'
   | 'surface.menu.page.remove'
+  | 'surface.menu.pin'
   | 'surface.menu.rule.add'
   | 'surface.menu.state'
   | 'theme.get'

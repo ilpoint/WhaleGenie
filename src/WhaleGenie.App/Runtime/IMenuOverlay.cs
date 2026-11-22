@@ -8,6 +8,9 @@ public interface IMenuOverlay
 {
     bool IsVisible { get; }
 
+    /// <summary>Pinned menus stay open when another window takes the focus.</summary>
+    bool Pinned { get; set; }
+
     void Show();
 
     void Hide();
