@@ -23,6 +23,21 @@ import type {
 } from '../generated/types.js';
 
 export type {
+  EditorTriggerAddCommand,
+  EditorTriggerBindingCommand,
+  EditorTriggerCommand,
+  EditorTriggerEnabledCommand,
+  EditorTriggerFieldCommand,
+  EditorTriggerHotstringCommand,
+  EditorTriggerHotstringEndCaptureCommand,
+  EditorTriggerHotstringEndKeyCommand,
+  EditorTriggerHotstringEndResetCommand,
+  EditorTriggerIdleCommand,
+  EditorTriggerInterfaceHotkeyClearCommand,
+  EditorTriggerInterfaceHotkeyCommand,
+  EditorTriggerLoopCommand,
+  EditorTriggerOnceCommand,
+  EditorTriggerRemoveCommand,
   EditorActionCategorySnapshot,
   EditorActionPageSnapshot,
   EditorActionParameterSnapshot,

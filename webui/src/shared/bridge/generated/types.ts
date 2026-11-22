@@ -558,6 +558,105 @@ export interface EditorTrialResult {
   frameHeight: number;
 }
 
+export type EditorTriggerCommand =
+  | EditorTriggerAddCommand
+  | EditorTriggerRemoveCommand
+  | EditorTriggerBindingCommand
+  | EditorTriggerLoopCommand
+  | EditorTriggerOnceCommand
+  | EditorTriggerEnabledCommand
+  | EditorTriggerFieldCommand
+  | EditorTriggerHotstringCommand
+  | EditorTriggerHotstringEndKeyCommand
+  | EditorTriggerHotstringEndResetCommand
+  | EditorTriggerHotstringEndCaptureCommand
+  | EditorTriggerInterfaceHotkeyCommand
+  | EditorTriggerInterfaceHotkeyClearCommand
+  | EditorTriggerIdleCommand;
+
+export interface EditorTriggerAddCommand {
+  kind: 'add';
+  triggerKind: string;
+}
+
+export interface EditorTriggerRemoveCommand {
+  kind: 'remove';
+  triggerId: string;
+}
+
+export interface EditorTriggerBindingCommand {
+  kind: 'binding';
+  triggerId: string;
+  binding: string;
+}
+
+export interface EditorTriggerLoopCommand {
+  kind: 'loop';
+  triggerId: string;
+  loop: string;
+}
+
+export interface EditorTriggerOnceCommand {
+  kind: 'once';
+  triggerId: string;
+  once: boolean;
+}
+
+export interface EditorTriggerEnabledCommand {
+  kind: 'enabled';
+  triggerId: string;
+  enabled: boolean;
+}
+
+export interface EditorTriggerFieldCommand {
+  kind: 'field';
+  triggerId: string;
+  family: string;
+  field: string;
+  value: string;
+}
+
+export interface EditorTriggerHotstringCommand {
+  kind: 'hotstring';
+  triggerId: string;
+  value: string;
+}
+
+export interface EditorTriggerHotstringEndKeyCommand {
+  kind: 'hotstringEndKey';
+  triggerId: string;
+  value: string;
+  checked: boolean;
+}
+
+export interface EditorTriggerHotstringEndResetCommand {
+  kind: 'hotstringEndReset';
+  triggerId: string;
+}
+
+export interface EditorTriggerHotstringEndCaptureCommand {
+  kind: 'hotstringEndCapture';
+  triggerId: string;
+  character: string;
+}
+
+export interface EditorTriggerInterfaceHotkeyCommand {
+  kind: 'interfaceHotkey';
+  triggerId: string;
+  binding: string;
+}
+
+export interface EditorTriggerInterfaceHotkeyClearCommand {
+  kind: 'interfaceHotkeyClear';
+  triggerId: string;
+}
+
+export interface EditorTriggerIdleCommand {
+  kind: 'idle';
+  triggerId: string;
+  value: string;
+}
+
 export interface EditorTriggerKindSnapshot {
   value: string;
   label: string;

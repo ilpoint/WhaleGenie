@@ -1,76 +1,85 @@
 import type { EditorCore } from './editor-core.js';
-import type { BridgeMethod, EditorCharacterPad } from '../../../shared/bridge/protocol.js';
+import type {
+  EditorCharacterPad,
+  EditorTriggerCommand,
+} from '../../../shared/bridge/protocol.js';
 
 /** The triggers command family. All state lives in EditorCore; C# remains the source of truth. */
 export class EditorTriggersService {
   constructor(private readonly core: EditorCore) {}
 
-  private trigger(method: BridgeMethod, params: Record<string, unknown>): Promise<boolean> {
-    return this.core.snapshotCommand(method, params);
+  private trigger(command: EditorTriggerCommand): Promise<boolean> {
+    return this.core.snapshotCommand('editor.trigger', command);
+  }
+
+  private field(triggerId: string,
+    family: 'timer' | 'file' | 'process' | 'hotstringOption' | 'color' | 'window' | 'interface',
+    field: string, value: string): Promise<boolean> {
+    return this.trigger({ kind: 'field', triggerId, family, field, value });
   }
 
   addTrigger(kind: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerAdd', { kind });
+    return this.trigger({ kind: 'add', triggerKind: kind });
   }
 
   removeTrigger(triggerId: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerRemove', { triggerId });
+    return this.trigger({ kind: 'remove', triggerId });
   }
 
   setTriggerEnabled(triggerId: string, enabled: boolean): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerEnabled', { triggerId, enabled });
+    return this.trigger({ kind: 'enabled', triggerId, enabled });
   }
 
   setTriggerBinding(triggerId: string, binding: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerBinding', { triggerId, binding });
+    return this.trigger({ kind: 'binding', triggerId, binding });
   }
 
   setTriggerLoop(triggerId: string, loop: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerLoop', { triggerId, loop });
+    return this.trigger({ kind: 'loop', triggerId, loop });
   }
 
   setTriggerOnce(triggerId: string, once: boolean): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerOnce', { triggerId, once });
+    return this.trigger({ kind: 'once', triggerId, once });
   }
 
   setTriggerTimer(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerTimer', { triggerId, field, value });
+    return this.field(triggerId, 'timer', field, value);
   }
 
   setTriggerFile(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerFile', { triggerId, field, value });
+    return this.field(triggerId, 'file', field, value);
   }
 
   setTriggerProcess(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerProcess', { triggerId, field, value });
+    return this.field(triggerId, 'process', field, value);
   }
 
   setTriggerHotstring(triggerId: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerHotstring', { triggerId, value });
+    return this.trigger({ kind: 'hotstring', triggerId, value });
   }
 
   setTriggerHotstringOption(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerHotstringOption', { triggerId, field, value });
+    return this.field(triggerId, 'hotstringOption', field, value);
   }
 
   setTriggerHotstringEndKey(triggerId: string, value: string, checked: boolean): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerHotstringEndKey', { triggerId, value, checked });
+    return this.trigger({ kind: 'hotstringEndKey', triggerId, value, checked });
   }
 
   resetTriggerHotstringEndKeys(triggerId: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerHotstringEndReset', { triggerId });
+    return this.trigger({ kind: 'hotstringEndReset', triggerId });
   }
 
   captureTriggerHotstringEnd(triggerId: string, character: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerHotstringEndCapture', { triggerId, character });
+    return this.trigger({ kind: 'hotstringEndCapture', triggerId, character });
   }
 
   setTriggerInterfaceHotkey(triggerId: string, binding: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerInterfaceHotkey', { triggerId, binding });
+    return this.trigger({ kind: 'interfaceHotkey', triggerId, binding });
   }
 
   clearTriggerInterfaceHotkey(triggerId: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerInterfaceHotkeyClear', { triggerId });
+    return this.trigger({ kind: 'interfaceHotkeyClear', triggerId });
   }
 
   async hotstringKeyPad(): Promise<EditorCharacterPad | null> {
@@ -83,18 +92,18 @@ export class EditorTriggersService {
   }
 
   setTriggerColor(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerColor', { triggerId, field, value });
+    return this.field(triggerId, 'color', field, value);
   }
 
   setTriggerWindow(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerWindow', { triggerId, field, value });
+    return this.field(triggerId, 'window', field, value);
   }
 
   setTriggerInterface(triggerId: string, field: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerInterface', { triggerId, field, value });
+    return this.field(triggerId, 'interface', field, value);
   }
 
   setTriggerIdle(triggerId: string, value: string): Promise<boolean> {
-    return this.trigger('editor.sessionTriggerIdle', { triggerId, value });
+    return this.trigger({ kind: 'idle', triggerId, value });
   }
 }

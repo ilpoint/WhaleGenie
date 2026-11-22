@@ -81,26 +81,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionStepsCut", CutSteps);
         server.Register("editor.sessionStepsPaste", PasteSteps);
 
-        server.Register("editor.sessionTriggerAdd", AddTrigger);
-        server.Register("editor.sessionTriggerRemove", RemoveTrigger);
-        server.Register("editor.sessionTriggerBinding", SetTriggerBinding);
-        server.Register("editor.sessionTriggerLoop", SetTriggerLoop);
-        server.Register("editor.sessionTriggerOnce", SetTriggerOnce);
-        server.Register("editor.sessionTriggerEnabled", SetTriggerEnabled);
-        server.Register("editor.sessionTriggerTimer", SetTriggerTimer);
-        server.Register("editor.sessionTriggerFile", SetTriggerFile);
-        server.Register("editor.sessionTriggerProcess", SetTriggerProcess);
-        server.Register("editor.sessionTriggerHotstring", SetTriggerHotstring);
-        server.Register("editor.sessionTriggerHotstringOption", SetTriggerHotstringOption);
-        server.Register("editor.sessionTriggerHotstringEndKey", SetTriggerHotstringEndKey);
-        server.Register("editor.sessionTriggerHotstringEndReset", ResetTriggerHotstringEndKeys);
-        server.Register("editor.sessionTriggerHotstringEndCapture", CaptureTriggerHotstringEnd);
-        server.Register("editor.sessionTriggerInterfaceHotkey", SetTriggerInterfaceHotkey);
-        server.Register("editor.sessionTriggerInterfaceHotkeyClear", ClearTriggerInterfaceHotkey);
-        server.Register("editor.sessionTriggerColor", SetTriggerColor);
-        server.Register("editor.sessionTriggerWindow", SetTriggerWindow);
-        server.Register("editor.sessionTriggerInterface", SetTriggerInterface);
-        server.Register("editor.sessionTriggerIdle", SetTriggerIdle);
+        server.Register("editor.trigger", TriggerAction);
         server.Register("editor.sessionVariableAdd", _ => Task.FromResult<object?>(AddVariable()));
         server.Register("editor.sessionVariablePatch", PatchVariable);
         server.Register("editor.sessionVariableRemove", RemoveVariable);
@@ -927,11 +908,16 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         return Snapshot();
     }
 
-    private Task<object?> SetTriggerLoop(JsonElement parameters)
+    private Task<object?> TriggerAction(JsonElement parameters)
     {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var loop = parameters.TryGetProperty("loop", out var named) ? named.GetString() : null;
-        if (triggerId is not { Length: > 0 } || loop is not { Length: > 0 })
+        EditorTriggerCommand command;
+        try
+        {
+            command = parameters.Deserialize<EditorTriggerCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+        catch (JsonException)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsTrigger"));
@@ -939,8 +925,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
         try
         {
-            Required().SetTriggerLoop(triggerId, loop);
-            return Task.FromResult<object?>(Snapshot());
+            return Task.FromResult<object?>(TriggerCommand(command));
         }
         catch (InvalidOperationException error)
         {
@@ -948,317 +933,109 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> SetTriggerInterface(JsonElement parameters)
+    private object? TriggerCommand(EditorTriggerCommand command)
     {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
+        var session = Required();
+        switch (command)
+        {
+            case EditorTriggerAddCommand add:
+                session.AddTrigger(add.TriggerKind.Length > 0
+                    ? add.TriggerKind
+                    : nameof(TriggerKind.Key));
+                break;
+            case EditorTriggerRemoveCommand remove:
+                session.RemoveTrigger(Trigger(remove.TriggerId));
+                break;
+            case EditorTriggerBindingCommand binding:
+                session.SetTriggerBinding(Trigger(binding.TriggerId), binding.Binding);
+                break;
+            case EditorTriggerLoopCommand loop:
+                session.SetTriggerLoop(Trigger(loop.TriggerId), loop.Loop);
+                break;
+            case EditorTriggerOnceCommand once:
+                session.SetTriggerOnce(Trigger(once.TriggerId), once.Once);
+                break;
+            case EditorTriggerEnabledCommand enabled:
+                session.SetTriggerEnabled(Trigger(enabled.TriggerId), enabled.Enabled);
+                break;
+            case EditorTriggerFieldCommand field:
+                SetTriggerField(session, field);
+                break;
+            case EditorTriggerHotstringCommand hotstring:
+                session.SetTriggerHotstring(Trigger(hotstring.TriggerId), hotstring.Value);
+                break;
+            case EditorTriggerHotstringEndKeyCommand endKey:
+                session.SetTriggerHotstringEndKey(Trigger(endKey.TriggerId), endKey.Value,
+                    endKey.Checked);
+                break;
+            case EditorTriggerHotstringEndResetCommand endReset:
+                session.ResetTriggerHotstringEndKeys(Trigger(endReset.TriggerId));
+                break;
+            case EditorTriggerHotstringEndCaptureCommand endCapture:
+                session.CaptureTriggerHotstringEnd(Trigger(endCapture.TriggerId),
+                    endCapture.Character);
+                break;
+            case EditorTriggerInterfaceHotkeyCommand hotkey:
+                session.SetTriggerInterfaceHotkey(Trigger(hotkey.TriggerId), hotkey.Binding);
+                break;
+            case EditorTriggerInterfaceHotkeyClearCommand clearHotkey:
+                session.ClearTriggerInterfaceHotkey(Trigger(clearHotkey.TriggerId));
+                break;
+            case EditorTriggerIdleCommand idle:
+                session.SetTriggerIdle(Trigger(idle.TriggerId), idle.Value);
+                break;
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        return Snapshot();
+    }
+
+    private static void SetTriggerField(HeadlessEditorSession session,
+        EditorTriggerFieldCommand field)
+    {
+        var id = Trigger(field.TriggerId);
+        if (field.Field.Length == 0)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsTrigger"));
         }
 
-        try
+        switch (field.Family)
         {
-            Required().SetTriggerInterface(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+            case "timer":
+                session.SetTriggerTimer(id, field.Field, field.Value);
+                break;
+            case "file":
+                session.SetTriggerFile(id, field.Field, field.Value);
+                break;
+            case "process":
+                session.SetTriggerProcess(id, field.Field, field.Value);
+                break;
+            case "hotstringOption":
+                session.SetTriggerHotstringOption(id, field.Field, field.Value);
+                break;
+            case "color":
+                session.SetTriggerColor(id, field.Field, field.Value);
+                break;
+            case "window":
+                session.SetTriggerWindow(id, field.Field, field.Value);
+                break;
+            case "interface":
+                session.SetTriggerInterface(id, field.Field, field.Value);
+                break;
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsTrigger"));
         }
     }
 
-    private Task<object?> SetTriggerWindow(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
+    private static string Trigger(string triggerId)
+        => triggerId is { Length: > 0 }
+            ? triggerId
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerWindow(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerColor(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerColor(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerIdle(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerIdle(triggerId, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerProcess(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerProcess(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerHotstringOption(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = OptionalString(parameters, "field");
-        var value = OptionalString(parameters, "value");
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerHotstringOption(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerHotstringEndKey(JsonElement parameters)
-    {
-        var triggerId = RequiredString(parameters, "triggerId");
-        var value = RequiredString(parameters, "value");
-        var checkedState = OptionalBool(parameters, "checked") ?? false;
-        try
-        {
-            Required().SetTriggerHotstringEndKey(triggerId, value, checkedState);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> ResetTriggerHotstringEndKeys(JsonElement parameters)
-    {
-        var triggerId = RequiredString(parameters, "triggerId");
-        try
-        {
-            Required().ResetTriggerHotstringEndKeys(triggerId);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> CaptureTriggerHotstringEnd(JsonElement parameters)
-    {
-        var triggerId = RequiredString(parameters, "triggerId");
-        var character = RequiredString(parameters, "character");
-        try
-        {
-            Required().CaptureTriggerHotstringEnd(triggerId, character);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerInterfaceHotkey(JsonElement parameters)
-    {
-        var triggerId = RequiredString(parameters, "triggerId");
-        var binding = OptionalString(parameters, "binding") ?? string.Empty;
-        try
-        {
-            Required().SetTriggerInterfaceHotkey(triggerId, binding);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> ClearTriggerInterfaceHotkey(JsonElement parameters)
-    {
-        var triggerId = RequiredString(parameters, "triggerId");
-        try
-        {
-            Required().ClearTriggerInterfaceHotkey(triggerId);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerHotstring(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerHotstring(triggerId, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerFile(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerFile(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerTimer(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerTimer(triggerId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerEnabled(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var enabled = parameters.TryGetProperty("enabled", out var value) && value.GetBoolean();
-        if (triggerId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerEnabled(triggerId, enabled);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerOnce(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var once = parameters.TryGetProperty("once", out var value) && value.GetBoolean();
-        if (triggerId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerOnce(triggerId, once);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
     private object? AddGlobal()
     {
@@ -1356,60 +1133,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> AddTrigger(JsonElement parameters)
-    {
-        var kind = parameters.TryGetProperty("kind", out var named) ? named.GetString() : null;
-        try
-        {
-            Required().AddTrigger(kind is { Length: > 0 } ? kind : nameof(TriggerKind.Key));
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> RemoveTrigger(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        if (triggerId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().RemoveTrigger(triggerId);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetTriggerBinding(JsonElement parameters)
-    {
-        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
-        var binding = parameters.TryGetProperty("binding", out var text) ? text.GetString() : null;
-        if (triggerId is not { Length: > 0 } || binding is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsTrigger"));
-        }
-
-        try
-        {
-            Required().SetTriggerBinding(triggerId, binding);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
     private object? Save()
     {

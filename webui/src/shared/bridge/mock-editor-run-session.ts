@@ -151,87 +151,8 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return host.moveStep(params);
       case 'editor.sessionRemove':
         return host.removeStep(params);
-      case 'editor.sessionTriggerAdd':
-        return host.addTrigger(params);
-      case 'editor.sessionTriggerRemove':
-        return host.removeTrigger(params);
-      case 'editor.sessionTriggerBinding':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          binding: host.text(params, 'binding'),
-        }));
-      case 'editor.sessionTriggerLoop':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          loop: host.text(params, 'loop'),
-        }));
-      case 'editor.sessionTriggerOnce':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          once: params['once'] === true,
-        }));
-      case 'editor.sessionTriggerEnabled':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          enabled: params['enabled'] === true,
-        }));
-      case 'editor.sessionTriggerTimer':
-        return host.patchTrigger(params, (trigger) => timerTrigger(trigger, params));
-      case 'editor.sessionTriggerFile':
-        return host.patchTrigger(params, (trigger) => fileTrigger(trigger, params));
-      case 'editor.sessionTriggerProcess':
-        return host.patchTrigger(params, (trigger) => processTrigger(trigger, params));
-      case 'editor.sessionTriggerHotstring':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          hotstringText: host.text(params, 'value'),
-        }));
-      case 'editor.sessionTriggerHotstringOption': {
-        const field = host.text(params, 'field');
-        const value = host.text(params, 'value');
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          [field]: field === 'endChars' ? value : value === 'true',
-        }));
-      }
-      case 'editor.sessionTriggerHotstringEndKey':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          hotstringEndKeys: trigger.hotstringEndKeys.map((key) => key.value === host.text(params, 'value')
-            ? { ...key, checked: params['checked'] === true }
-            : key),
-        }));
-      case 'editor.sessionTriggerHotstringEndReset':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          hotstringEndKeys: trigger.hotstringEndKeys.map((key) => ({ ...key, checked: true })),
-        }));
-      case 'editor.sessionTriggerHotstringEndCapture': {
-        const character = host.text(params, 'character');
-        return host.patchTrigger(params, (trigger) => {
-          const known = trigger.hotstringEndKeys.some((key) => key.value === character);
-          return {
-            ...trigger,
-            hotstringEndKeys: known
-              ? trigger.hotstringEndKeys.map((key) => key.value === character
-                ? { ...key, checked: true } : key)
-              : [...trigger.hotstringEndKeys, { value: character, label: character,
-                checked: true, isCustom: true }],
-          };
-        });
-      }
-      case 'editor.sessionTriggerInterfaceHotkey':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          interfaceHotkey: host.text(params, 'binding'),
-          interfaceHotkeyProblem: '',
-        }));
-      case 'editor.sessionTriggerInterfaceHotkeyClear':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          interfaceHotkey: '',
-          interfaceHotkeyProblem: '',
-        }));
+      case 'editor.trigger':
+        return handleTriggerCommand(host, params);
       case 'editor.hotstringKeyPad':
         return {
           maximumLength: 40,
@@ -243,17 +164,6 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
               { normal: 'Backspace', shifted: 'Backspace', width: 2, kind: 'backspace' }],
           ],
         };
-      case 'editor.sessionTriggerColor':
-        return host.patchTrigger(params, (trigger) => colorTrigger(trigger, params));
-      case 'editor.sessionTriggerWindow':
-        return host.patchTrigger(params, (trigger) => windowTrigger(trigger, params));
-      case 'editor.sessionTriggerInterface':
-        return host.patchTrigger(params, (trigger) => interfaceTrigger(trigger, params));
-      case 'editor.sessionTriggerIdle':
-        return host.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          idleSeconds: host.text(params, 'value'),
-        }));
       case 'editor.sessionGlobalAdd':
         return host.change(addGlobal);
       case 'editor.sessionGlobalPatch':
@@ -312,5 +222,131 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return host.addStep({ type: 'control.runMacro' });
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
+  }
+}
+
+type TriggerHandler = (host: MockEditor, params: Record<string, unknown>) => unknown;
+
+/** One trigger command from the page; the kind picks a handler. */
+function handleTriggerCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  const handler = triggerCommands[String(params['kind'] ?? '')];
+  if (!handler) {
+    throw new Error('不认识触发器命令 ' + String(params['kind']) + '。');
+  }
+
+  return handler(host, params);
+}
+
+const triggerCommands: Record<string, TriggerHandler> = {
+  add: (host, params) => host.addTrigger({ ...params, kind: params['triggerKind'] }),
+  remove: (host, params) => host.removeTrigger(params),
+  binding: (host, params) => handleTriggerSwitchCommand(host, params),
+  loop: (host, params) => handleTriggerSwitchCommand(host, params),
+  once: (host, params) => handleTriggerSwitchCommand(host, params),
+  enabled: (host, params) => handleTriggerSwitchCommand(host, params),
+  field: (host, params) => handleTriggerField(host, params),
+  hotstring: (host, params) => host.patchTrigger(params, (trigger) => ({
+    ...trigger,
+    hotstringText: host.text(params, 'value'),
+  })),
+  hotstringEndKey: (host, params) => handleHotstringEndCommand(host, params),
+  hotstringEndReset: (host, params) => handleHotstringEndCommand(host, params),
+  hotstringEndCapture: (host, params) => handleHotstringEndCommand(host, params),
+  interfaceHotkey: (host, params) => host.patchTrigger(params, (trigger) => ({
+    ...trigger,
+    interfaceHotkey: host.text(params, 'binding'),
+    interfaceHotkeyProblem: '',
+  })),
+  interfaceHotkeyClear: (host, params) => host.patchTrigger(params, (trigger) => ({
+    ...trigger,
+    interfaceHotkey: '',
+    interfaceHotkeyProblem: '',
+  })),
+  idle: (host, params) => host.patchTrigger(params, (trigger) => ({
+    ...trigger,
+    idleSeconds: host.text(params, 'value'),
+  })),
+};
+
+function handleTriggerSwitchCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'binding':
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        binding: host.text(params, 'binding'),
+      }));
+    case 'loop':
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        loop: host.text(params, 'loop'),
+      }));
+    case 'once':
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        once: params['once'] === true,
+      }));
+    default:
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        enabled: params['enabled'] === true,
+      }));
+  }
+}
+
+function handleHotstringEndCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'hotstringEndKey':
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        hotstringEndKeys: trigger.hotstringEndKeys.map((key) => key.value === host.text(params, 'value')
+          ? { ...key, checked: params['checked'] === true }
+          : key),
+      }));
+    case 'hotstringEndReset':
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        hotstringEndKeys: trigger.hotstringEndKeys.map((key) => ({ ...key, checked: true })),
+      }));
+    default: {
+      const character = host.text(params, 'character');
+      return host.patchTrigger(params, (trigger) => {
+        const known = trigger.hotstringEndKeys.some((key) => key.value === character);
+        return {
+          ...trigger,
+          hotstringEndKeys: known
+            ? trigger.hotstringEndKeys.map((key) => key.value === character
+              ? { ...key, checked: true } : key)
+            : [...trigger.hotstringEndKeys, { value: character, label: character,
+              checked: true, isCustom: true }],
+        };
+      });
+    }
+  }
+}
+
+function handleTriggerField(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['family'] ?? '')) {
+    case 'timer':
+      return host.patchTrigger(params, (trigger) => timerTrigger(trigger, params));
+    case 'file':
+      return host.patchTrigger(params, (trigger) => fileTrigger(trigger, params));
+    case 'process':
+      return host.patchTrigger(params, (trigger) => processTrigger(trigger, params));
+    case 'hotstringOption': {
+      const field = host.text(params, 'field');
+      const value = host.text(params, 'value');
+      return host.patchTrigger(params, (trigger) => ({
+        ...trigger,
+        [field]: field === 'endChars' ? value : value === 'true',
+      }));
+    }
+    case 'color':
+      return host.patchTrigger(params, (trigger) => colorTrigger(trigger, params));
+    case 'window':
+      return host.patchTrigger(params, (trigger) => windowTrigger(trigger, params));
+    case 'interface':
+      return host.patchTrigger(params, (trigger) => interfaceTrigger(trigger, params));
+    default:
+      throw new Error('不认识触发器字段族 ' + String(params['family']) + '。');
   }
 }
