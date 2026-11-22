@@ -35,11 +35,13 @@
       "count": 1
     }
   },
+  "src/features/editor/step-tree-keyboard.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "src/features/editor/step-tree.ts": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {

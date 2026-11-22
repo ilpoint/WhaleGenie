@@ -8,6 +8,8 @@ import type { EditorStep } from '../../shared/bridge/protocol.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { categoryOfAction, findStep, visibleStepIds } from './editor-model.js';
+import { handleStepTreeKeydown } from './step-tree-keyboard.js';
+import { renderStepSections } from './step-tree-sections.js';
 import { editorBase } from './editor-css.js';
 
 /**
@@ -78,7 +80,7 @@ export class WgStepTree extends LitElement {
     `;
   }
 
-  private renderStep(step: EditorStep, depth: number): TemplateResult {
+  renderStep(step: EditorStep, depth: number): TemplateResult {
     const state = editor.get();
     const selected = state.selectedStepIds.includes(step.id);
     const primary = state.selectedStepId === step.id;
@@ -175,7 +177,7 @@ export class WgStepTree extends LitElement {
             </div>
           `
           : nothing}
-        ${block && !folded ? this.renderSections(step, depth) : nothing}
+        ${block && !folded ? renderStepSections(this, step, depth) : nothing}
       </div>
     `;
   }
@@ -200,88 +202,13 @@ export class WgStepTree extends LitElement {
     editor.ui.selectStep(id, event.ctrlKey || event.metaKey);
   }
 
-  private visibleIds(): string[] {
+  visibleIds(): string[] {
     const state = editor.get();
     return visibleStepIds(state.snapshot, state.collapsedSteps);
   }
 
   private onKeydown(event: KeyboardEvent): void {
-    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement
-        || event.target instanceof HTMLSelectElement) {
-      return;
-    }
-
-    event.stopPropagation();
-    const state = editor.get();
-    const selected = state.selectedStepIds;
-    const ctrl = event.ctrlKey || event.metaKey;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      editor.ui.selectStep('');
-      this.menu = null;
-      return;
-    }
-
-    if (ctrl && event.key.toLowerCase() === 'a') {
-      event.preventDefault();
-      const ids = this.visibleIds();
-      if (ids.length > 0) {
-        editor.ui.selectStep(ids.at(-1) ?? '', false, ids);
-      }
-      return;
-    }
-
-    if (ctrl && event.key.toLowerCase() === 'c') {
-      event.preventDefault();
-      void editor.steps.copySteps();
-      return;
-    }
-
-    if (ctrl && event.key.toLowerCase() === 'x') {
-      event.preventDefault();
-      void editor.steps.cutSteps();
-      return;
-    }
-
-    if (ctrl && event.key.toLowerCase() === 'v') {
-      event.preventDefault();
-      void editor.steps.pasteSteps(state.selectedStepId);
-      return;
-    }
-
-    if (ctrl && event.key.toLowerCase() === 'g') {
-      event.preventDefault();
-      void editor.steps.groupSteps();
-      return;
-    }
-
-    if (ctrl && event.key.toLowerCase() === 'e') {
-      event.preventDefault();
-      const first = selected.length > 0 && state.snapshot
-        ? findStep(state.snapshot.steps, selected[0] ?? '')
-        : null;
-      if (first) {
-        void editor.steps.setStepEnabled(undefined, !first.enabled);
-      }
-      return;
-    }
-
-    if (ctrl && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
-      event.preventDefault();
-      void editor.steps.moveStep(undefined, event.key === 'ArrowUp' ? -1 : 1);
-      return;
-    }
-
-    if (event.key === 'Delete' || event.key === 'Backspace') {
-      event.preventDefault();
-      void editor.steps.removeStep();
-      return;
-    }
-
-    if (event.key === 'F2') {
-      event.preventDefault();
-      editor.action.openStepEditor();
-    }
+    handleStepTreeKeydown(this, event);
   }
 
   private onContextMenu(event: MouseEvent, id: string): void {
@@ -352,6 +279,10 @@ export class WgStepTree extends LitElement {
     void editor.steps.moveStepsTo(id, target.before, ids);
   }
 
+  clearMenu(): void {
+    this.menu = null;
+  }
+
   private renderMenu(): TemplateResult | typeof nothing {
     if (!this.menu) {
       return nothing;
@@ -415,46 +346,6 @@ export class WgStepTree extends LitElement {
         }}>
         ${icon(iconName)}<span>${label}</span>
       </button>
-    `;
-  }
-
-  private renderSections(step: EditorStep, depth: number): TemplateResult {
-    const state = editor.get();
-    return html`
-      <div class="sections" data-depth=${String(depth + 1)}>
-        ${step.sections.map((section) => {
-          const cases = section.name === 'cases';
-          const disabled = !cases && state.selectedActionKey.length === 0;
-          return html`
-            <div class="section-head" data-depth=${String(depth + 1)}>
-              <span class="label">${section.label}</span>
-              <span class="count">${t('Editor.StepCount').replace('{0}', String(section.steps.length))}</span>
-              <button
-                class="ghost section-add"
-                ?disabled=${disabled}
-                title=${cases ? t('Editor.AddBranchHint') : t('Editor.AddStep')}
-                aria-label=${cases ? t('Editor.AddBranch') : t('Editor.AddStep')}
-                @click=${(event: Event) => {
-                  event.stopPropagation();
-                  void (cases
-                    ? editor.steps.addBranch(step.id)
-                    : editor.action.addSelectedStep(step.id, section.name));
-                }}
-              >${icon('plus')}${cases ? t('Editor.AddBranch') : t('Editor.AddStep')}</button>
-            </div>
-            ${section.steps.length === 0
-              ? html`<div class="section-empty" data-depth=${String(depth + 1)}>${cases
-                ? t('Editor.EmptyBranchList')
-                : t('Editor.NoStepsHint')}</div>`
-              : html`
-                <div class="list" role="list">
-                  ${repeat(section.steps, (child) => child.id,
-                    (child) => this.renderStep(child, depth + 1))}
-                </div>
-              `}
-          `;
-        })}
-      </div>
     `;
   }
 
