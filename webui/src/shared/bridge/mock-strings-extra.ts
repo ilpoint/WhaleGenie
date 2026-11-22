@@ -2,6 +2,8 @@
 export const mockExtra: Record<string, { en: string; zh: string }> = {
   'Settings.GeneralCardNote': { en: 'What happens at start', zh: '启动时做什么' },
   'Settings.Search': { en: 'Search settings', zh: '搜索设置' },
+  'Menu.Search': { en: 'Search macros', zh: '搜索宏' },
+  'Menu.PickMacroSearch': { en: 'No macro matches', zh: '没有匹配的宏' },
   'Settings.SoundsNote': { en: 'A cue when it switches', zh: '开关时的提示音' },
   'Settings.ReadingNote': { en: 'Where the picture comes from', zh: '画面从哪里读' },
   'Settings.FramesCardNote': { en: 'How often, and whether it is reused', zh: '多久读一次，是否复用' },

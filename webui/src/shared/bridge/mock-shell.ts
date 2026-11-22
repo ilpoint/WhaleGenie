@@ -31,6 +31,12 @@ export function handleShell(host: MockShellContext, method: string, params: Reco
           result = host.theme;
           break;
         }
+        case 'surface.menu.state':
+          result = host.surfaceMenu;
+          break;
+        case 'surface.menu.activate':
+          result = { started: true };
+          break;
         case 'window.minimize':
           host.windowState = { ...host.windowState, state: 'minimized' };
           host.push('window.changed', host.windowState);

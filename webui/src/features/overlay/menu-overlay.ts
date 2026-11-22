@@ -36,6 +36,7 @@ export class WgOverlayMenu extends LitElement {
   static styles = css`
     :host {
       display: block;
+      width: max-content;
       background: transparent;
       font-family: var(--fontFamilyBase);
       color: var(--colorNeutralForeground1);

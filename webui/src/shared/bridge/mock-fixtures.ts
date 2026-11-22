@@ -1,5 +1,6 @@
 import type {
   SettingsMenuState,
+  SurfaceMenuSnapshot,
   SettingsWheelSlot,
   SettingsWheelState,
   WindowEntryState,
@@ -104,3 +105,29 @@ export const demoWindows: WindowEntryState[] = [
   },
 ];
 
+/** 菜单浮层：两页常见宏与一页默认上下文，够开发与 e2e 看见分页和空格子。 */
+export const demoSurfaceMenu: SurfaceMenuSnapshot = {
+  common: [
+    {
+      pageId: 'common',
+      isDefault: false,
+      ruleSummary: '',
+      cells: [
+        { row: 0, column: 0, entryId: 'e1', macroName: '演示宏', iconKind: null, iconValue: null },
+        { row: 0, column: 1, entryId: 'e2', macroName: '备份', iconKind: null, iconValue: null },
+        { row: 1, column: 2, entryId: 'e3', macroName: '每日签到', iconKind: null, iconValue: null },
+      ],
+    },
+    {
+      pageId: 'common2',
+      isDefault: false,
+      ruleSummary: '',
+      cells: [
+        { row: 2, column: 0, entryId: 'e4', macroName: '清理日志', iconKind: null, iconValue: null },
+      ],
+    },
+  ],
+  context: [
+    { pageId: 'ctx', isDefault: true, ruleSummary: 'Default', cells: [] },
+  ],
+};

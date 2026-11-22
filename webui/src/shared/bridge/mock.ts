@@ -1,4 +1,4 @@
-import { demoMenu, demoWheel } from './mock-fixtures.js';
+import { demoMenu, demoSurfaceMenu, demoWheel } from './mock-fixtures.js';
 import { mockExtra } from './mock-strings-extra.js';
 import { chromeKeys, english } from './mock-strings-en.js';
 import { chinese } from './mock-strings-zh.js';
@@ -14,6 +14,7 @@ import type {
   SettingsState,
   RunState,
   StringsBundle,
+  SurfaceMenuSnapshot,
   ThemeState,
   WindowState,
 } from './protocol.js';
@@ -100,6 +101,8 @@ export class MockTransport implements BridgeTransport {
     auditFile: '/mock/logs/mcp-2026-11-21.log',
   };
 
+  surfaceMenu: SurfaceMenuSnapshot = demoSurfaceMenu;
+
   projectState: ProjectState = {
     path: null,
     name: null,
@@ -159,7 +162,8 @@ export class MockTransport implements BridgeTransport {
       } else if (method.startsWith('run.')) {
         result = handleRun(this, method, params);
       } else if (method.startsWith('app.') || method.startsWith('strings.')
-          || method.startsWith('theme.') || method.startsWith('window.')) {
+          || method.startsWith('theme.') || method.startsWith('window.')
+          || method.startsWith('surface.')) {
         result = handleShell(this, method, params);
       } else {
       switch (method) {
