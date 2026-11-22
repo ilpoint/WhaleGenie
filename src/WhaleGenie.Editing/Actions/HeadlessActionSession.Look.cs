@@ -6,7 +6,6 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Editing;
 
@@ -31,7 +30,7 @@ internal sealed partial class HeadlessActionSession
             throw new InvalidOperationException(Strings.Get("Add.PickOffsetNeedsImage"));
         }
 
-        var frame = ScreenReady.Capture(devices.Screen, area.X, area.Y, area.Width, area.Height);
+        var frame = _host.CaptureScreen(devices.Screen, area.X, area.Y, area.Width, area.Height);
         if (frame.IsEmpty)
         {
             throw new InvalidOperationException(Strings.Get("Add.PickOffsetNeedsImage"));

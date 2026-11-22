@@ -8,7 +8,6 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Core.Variables;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Editing;
@@ -29,7 +28,7 @@ internal sealed partial class HeadlessActionSession
         var run = await StepTrial.TryAsync(new[] { step }.ToExecutable()[0], devices,
             looks: looks,
             macros: macros,
-            variables: MacroVariables.Seed(new SystemVariableReader(devices), variables));
+            variables: _host.SeedVariables(devices, variables));
         var seen = looks.Seen;
         return new EditorTrialResult(
             run.Status is RunStatus.Completed,

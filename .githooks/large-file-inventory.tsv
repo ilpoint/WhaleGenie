@@ -165,7 +165,7 @@
 22960	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
 35133	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
 1021	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
-547	src/WhaleGenie/Editing/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
+549	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 2602	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件

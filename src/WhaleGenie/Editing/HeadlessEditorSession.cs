@@ -1937,7 +1937,7 @@ internal sealed class HeadlessEditorSession
             form.LoadFrom(original);
         }
 
-        return new HeadlessActionSession(form, original);
+        return new HeadlessActionSession(form, original, new TrialHost());
     }
 
     private void PrepareTarget()

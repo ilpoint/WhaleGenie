@@ -22,13 +22,15 @@ internal sealed partial class HeadlessActionSession
 {
     private readonly AddActionViewModel _form;
     private readonly MacroStep? _original;
+    private readonly ITrialHost _host;
     private readonly Func<StepParameterViewModel, EditorWindowPreviewSnapshot?> _preview;
     private readonly ActionImagePreviews _images = new();
 
-    public HeadlessActionSession(AddActionViewModel form, MacroStep? original)
+    public HeadlessActionSession(AddActionViewModel form, MacroStep? original, ITrialHost host)
     {
         _form = form;
         _original = original;
+        _host = host;
         _preview = Preview;
     }
 
