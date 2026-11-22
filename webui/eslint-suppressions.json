@@ -84,6 +84,22 @@
       "count": 1
     }
   },
+  "src/shared/bridge/mock-editor-run-action.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/shared/bridge/mock-editor-run-session.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/shared/bridge/mock-editor-steps.ts": {
     "complexity": {
       "count": 1
@@ -91,13 +107,13 @@
   },
   "src/shared/bridge/mock-editor.ts": {
     "complexity": {
-      "count": 4
+      "count": 3
     },
     "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 4
+      "count": 3
     }
   },
   "src/shared/bridge/mock-settings.ts": {

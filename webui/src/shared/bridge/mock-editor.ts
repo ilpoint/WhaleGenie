@@ -13,44 +13,23 @@ import type {
   EditorTrigger,
   EditorValueSnapshot,
 } from './protocol.js';
-import { actionCatalogue, findAction } from './mock-editor-actions.js';
+import { findAction } from './mock-editor-actions.js';
 
 const MOCK_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL5WQAAAABJRU5ErkJggg==';
 import { MockValueEditor } from './mock-value-editor.js';
-import {
-  addDeclaredField,
-  addDeclaredParameter,
-  addDeclaredResult,
-  addGlobal,
-  addVariable,
-  moveDeclared,
-  patchDeclaredField,
-  patchDeclaredParameter,
-  patchDeclaredResult,
-  patchGlobal,
-  patchVariable,
-  removeDeclared,
-  removeDeclaredField,
-  removeGlobal,
-  removeVariable,
-} from './mock-editor-data.js';
+import { handleSessionRun } from './mock-editor-run-session.js';
+import { handleValueRun } from './mock-editor-run-value.js';
+import { handleActionRun } from './mock-editor-run-action.js';
 import {
   changeTrigger,
-  colorTrigger,
   createDocumentSnapshot,
-  fileTrigger,
-  interfaceTrigger,
   newTrigger,
-  processTrigger,
-  timerTrigger,
-  windowTrigger,
 } from './mock-editor-fixtures.js';
 import {
   presentDocument,
   stepFromAction,
 } from './mock-editor-steps.js';
 import {
-  addConditionNode,
   addStepToTree,
   changeCondition,
   changeRows,
@@ -60,10 +39,8 @@ import {
   duplicateStepInTree,
   locateStep,
   moveStepInTree,
-  removeConditionNode,
   removeStepFromTree,
   setConditionCell,
-  setConditionJoinAt,
   setParameter,
   setStepEnabled,
 } from './mock-editor-step-ops.js';
@@ -91,29 +68,29 @@ export class MockEditor {
 
   activeKey: string | null = null;
 
-  private recording = false;
+  recording = false;
 
-  private captured = 0;
+  captured = 0;
 
   private stepSequence = 0;
 
   private triggerSequence = 0;
 
-  private valueEditor: MockValueEditor | null = null;
+  valueEditor: MockValueEditor | null = null;
 
   private stepClipboard = '';
 
-  private actionForm: EditorActionForm | null = null;
+  actionForm: EditorActionForm | null = null;
 
-  private actionStep: EditorStep | null = null;
+  actionStep: EditorStep | null = null;
 
   private actionIsEditing = false;
 
-  private actionPage = 'base';
+  actionPage = 'base';
 
   private readonly macros: () => readonly MockMacroEntry[];
 
-  private readonly language: () => string;
+  readonly language: () => string;
 
   constructor(
     macros: readonly MockMacroEntry[] | (() => readonly MockMacroEntry[]) = () => [],
@@ -243,491 +220,22 @@ export class MockEditor {
 
   /** Every editor command the host serves; the main mock only forwards the method and params. */
   run(method: string, params: Record<string, unknown>): unknown {
-    switch (method) {
-      case 'editor.sessionOpen':
-        return this.open(this.text(params, 'name'));
-      case 'editor.sessionTabs':
-        return this.tabs();
-      case 'editor.sessionNew':
-        return this.newDocument();
-      case 'editor.sessionSubOpen':
-        return this.subOpen(this.text(params, 'name'));
-      case 'editor.sessionActivate':
-        return this.activate(this.text(params, 'key'));
-      case 'editor.sessionState':
-        return this.activeSnapshot();
-      case 'editor.sessionClose':
-        return this.close(this.optionalText(params, 'key'));
-      case 'editor.sessionPatch':
-        return this.patch(params);
-      case 'editor.sessionMacroSetting':
-        return this.macroSetting(params);
-      case 'editor.sessionParameterDeclAdd':
-        return this.change(addDeclaredParameter);
-      case 'editor.sessionParameterDeclPatch':
-        return this.change((document) => patchDeclaredParameter(document, params));
-      case 'editor.sessionParameterDeclRemove':
-        return this.change((document) => removeDeclared(document, 'parameters', params));
-      case 'editor.sessionParameterDeclMove':
-        return this.change((document) => moveDeclared(document, 'parameters', params));
-      case 'editor.sessionResultDeclAdd':
-        return this.change(addDeclaredResult);
-      case 'editor.sessionResultDeclPatch':
-        return this.change((document) => patchDeclaredResult(document, params));
-      case 'editor.sessionResultDeclRemove':
-        return this.change((document) => removeDeclared(document, 'results', params));
-      case 'editor.sessionResultDeclMove':
-        return this.change((document) => moveDeclared(document, 'results', params));
-      case 'editor.sessionParameterFieldAdd':
-        return this.change((document) => addDeclaredField(document, 'parameters', params));
-      case 'editor.sessionParameterFieldPatch':
-        return this.change((document) => patchDeclaredField(document, 'parameters', params));
-      case 'editor.sessionParameterFieldRemove':
-        return this.change((document) => removeDeclaredField(document, 'parameters', params));
-      case 'editor.sessionResultFieldAdd':
-        return this.change((document) => addDeclaredField(document, 'results', params));
-      case 'editor.sessionResultFieldPatch':
-        return this.change((document) => patchDeclaredField(document, 'results', params));
-      case 'editor.sessionResultFieldRemove':
-        return this.change((document) => removeDeclaredField(document, 'results', params));
-      case 'editor.sessionStep':
-        return this.addStep(params);
-      case 'editor.sessionStepEnabled':
-        return this.setStepEnabledCommand(params);
-      case 'editor.sessionStepMeta':
-        return this.setStepMeta(params);
-      case 'editor.sessionStepDuplicate':
-        return this.duplicateStep(params);
-      case 'editor.sessionStepsEnabled':
-        return this.stepsEnabled(params);
-      case 'editor.sessionStepsRemove':
-        return this.stepsRemove(params);
-      case 'editor.sessionStepsDuplicate':
-        return this.stepsDuplicate(params);
-      case 'editor.sessionStepsMoveBy':
-        return this.stepsMoveBy(params);
-      case 'editor.sessionStepsCopy':
-        return this.stepsCopy(params);
-      case 'editor.sessionStepsCut':
-        return this.stepsCut(params);
-      case 'editor.sessionStepsPaste':
-        return this.stepsPaste(params);
-      case 'editor.sessionStepsGroup':
-        return this.stepsGroup(params);
-      case 'editor.sessionStepsLift':
-        return this.stepsLift();
-      case 'editor.sessionStepsMove':
-        return this.stepsMoveTo(params);
-
-      case 'editor.sessionConditionRowAdd':
-        return this.conditionCommand(params, (condition, path) =>
-          addConditionNode(condition, path, 'row'));
-      case 'editor.sessionConditionGroupAdd':
-        return this.conditionCommand(params, (condition, path) =>
-          addConditionNode(condition, path, 'group'));
-      case 'editor.sessionConditionRowRemove':
-        return this.conditionCommand(params, (condition, path) =>
-          removeConditionNode(condition, path));
-      case 'editor.sessionConditionRow':
-        return this.conditionCommand(params, (condition, path) =>
-          setConditionCell(condition, path, this.text(params, 'field'), this.text(params, 'value')));
-      case 'editor.sessionConditionJoin':
-        return this.conditionCommand(params, (condition, path) =>
-          setConditionJoinAt(condition, path, this.text(params, 'join')));
-      case 'editor.sessionParameter':
-        return this.setParameterCommand(params);
-      case 'editor.sessionParameterRowAdd':
-        return this.rowCommand(params, (rows) => [...rows, { cells: ['', ''] }]);
-      case 'editor.sessionParameterRowRemove':
-        return this.rowCommand(params, (rows) => rows.filter((_, index) =>
-          index !== Number(params['index'])));
-      case 'editor.sessionParameterRowCell':
-        return this.rowCommand(params, (rows) => rows.map((row, index) =>
-          index !== Number(params['index'])
-            ? row
-            : {
-                cells: row.cells.map((cell, cellIndex) =>
-                  cellIndex === columnIndex(this.text(params, 'column'))
-                    ? this.text(params, 'value')
-                    : cell),
-              }));
-      case 'editor.sessionUndo':
-        return this.change((document) => ({ ...document, canUndo: false, canRedo: true }));
-      case 'editor.sessionRedo':
-        return this.change((document) => ({ ...document, canUndo: true, canRedo: false }));
-      case 'editor.sessionMove':
-        return this.moveStep(params);
-      case 'editor.sessionRemove':
-        return this.removeStep(params);
-      case 'editor.sessionTriggerAdd':
-        return this.addTrigger(params);
-      case 'editor.sessionTriggerRemove':
-        return this.removeTrigger(params);
-      case 'editor.sessionTriggerBinding':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          binding: this.text(params, 'binding'),
-        }));
-      case 'editor.sessionTriggerLoop':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          loop: this.text(params, 'loop'),
-        }));
-      case 'editor.sessionTriggerOnce':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          once: params['once'] === true,
-        }));
-      case 'editor.sessionTriggerEnabled':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          enabled: params['enabled'] === true,
-        }));
-      case 'editor.sessionTriggerTimer':
-        return this.patchTrigger(params, (trigger) => timerTrigger(trigger, params));
-      case 'editor.sessionTriggerFile':
-        return this.patchTrigger(params, (trigger) => fileTrigger(trigger, params));
-      case 'editor.sessionTriggerProcess':
-        return this.patchTrigger(params, (trigger) => processTrigger(trigger, params));
-      case 'editor.sessionTriggerHotstring':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          hotstringText: this.text(params, 'value'),
-        }));
-      case 'editor.sessionTriggerHotstringOption': {
-        const field = this.text(params, 'field');
-        const value = this.text(params, 'value');
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          [field]: field === 'endChars' ? value : value === 'true',
-        }));
-      }
-      case 'editor.sessionTriggerHotstringEndKey':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          hotstringEndKeys: trigger.hotstringEndKeys.map((key) => key.value === this.text(params, 'value')
-            ? { ...key, checked: params['checked'] === true }
-            : key),
-        }));
-      case 'editor.sessionTriggerHotstringEndReset':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          hotstringEndKeys: trigger.hotstringEndKeys.map((key) => ({ ...key, checked: true })),
-        }));
-      case 'editor.sessionTriggerHotstringEndCapture': {
-        const character = this.text(params, 'character');
-        return this.patchTrigger(params, (trigger) => {
-          const known = trigger.hotstringEndKeys.some((key) => key.value === character);
-          return {
-            ...trigger,
-            hotstringEndKeys: known
-              ? trigger.hotstringEndKeys.map((key) => key.value === character
-                ? { ...key, checked: true } : key)
-              : [...trigger.hotstringEndKeys, { value: character, label: character,
-                checked: true, isCustom: true }],
-          };
-        });
-      }
-      case 'editor.sessionTriggerInterfaceHotkey':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          interfaceHotkey: this.text(params, 'binding'),
-          interfaceHotkeyProblem: '',
-        }));
-      case 'editor.sessionTriggerInterfaceHotkeyClear':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          interfaceHotkey: '',
-          interfaceHotkeyProblem: '',
-        }));
-      case 'editor.hotstringKeyPad':
-        return {
-          maximumLength: 40,
-          rows: [
-            [{ normal: 'a', shifted: 'A', width: 1, kind: 'char' },
-              { normal: '1', shifted: '!', width: 1, kind: 'char' },
-              { normal: 'Space', shifted: 'Space', width: 4, kind: 'space' }],
-            [{ normal: 'Shift', shifted: 'Shift', width: 2, kind: 'shift' },
-              { normal: 'Backspace', shifted: 'Backspace', width: 2, kind: 'backspace' }],
-          ],
-        };
-      case 'editor.sessionTriggerColor':
-        return this.patchTrigger(params, (trigger) => colorTrigger(trigger, params));
-      case 'editor.sessionTriggerWindow':
-        return this.patchTrigger(params, (trigger) => windowTrigger(trigger, params));
-      case 'editor.sessionTriggerInterface':
-        return this.patchTrigger(params, (trigger) => interfaceTrigger(trigger, params));
-      case 'editor.sessionTriggerIdle':
-        return this.patchTrigger(params, (trigger) => ({
-          ...trigger,
-          idleSeconds: this.text(params, 'value'),
-        }));
-      case 'editor.sessionGlobalAdd':
-        return this.change(addGlobal);
-      case 'editor.sessionGlobalPatch':
-        return this.change((document) => patchGlobal(document, params));
-      case 'editor.sessionGlobalRemove':
-        return this.change((document) => removeGlobal(document, params));
-      case 'editor.sessionVariableAdd':
-        return this.change(addVariable);
-      case 'editor.sessionVariablePatch':
-        return this.change((document) => patchVariable(document, params));
-      case 'editor.sessionVariableRemove':
-        return this.change((document) => removeVariable(document, params));
-      case 'editor.valueOpen':
-        return this.openValue(params);
-      case 'editor.valueState':
-        return this.valueEditor?.snapshot() ?? (() => { throw new Error('没有打开的取值窗口。'); })();
-      case 'editor.valueCommand':
-        return this.valueCommand(params);
-      case 'editor.valueConfirm': {
-        if (!this.valueEditor) {
-          throw new Error('没有打开的取值窗口。');
-        }
-        const outcome = this.valueEditor.confirm();
-        if (outcome.closed) {
-          this.valueEditor = null;
-        }
-        return outcome;
-      }
-      case 'editor.valueCancel': {
-        if (!this.valueEditor) {
-          throw new Error('没有打开的取值窗口。');
-        }
-        const outcome = this.valueEditor.cancel();
-        this.valueEditor = null;
-        return outcome;
-      }
-      case 'editor.sessionExport':
-        return true;
-      case 'editor.sessionRecordStart':
-        this.recording = true;
-        this.captured = 0;
-        return { recording: true, captured: 0 };
-      case 'editor.sessionRecordState':
-        if (this.recording) {
-          this.captured += 1;
-        }
-
-        return { recording: this.recording, captured: this.captured };
-      case 'editor.sessionRecordOption':
-        return this.change((document) => {
-          const field = this.text(params, 'field');
-          const value = this.text(params, 'value');
-          const recording = { ...document.recording } as Record<string, unknown>;
-          if (field === 'ignoreDelaysBelowMs') {
-            recording[field] = Number(value);
-          } else if (field === 'positionCapture') {
-            recording['positionIndex'] = Number(value);
-          } else {
-            recording[field] = value === 'true';
-          }
-          return { ...document, recording: recording as unknown as typeof document.recording };
-        });
-      case 'editor.sessionDelayScale':
-        return this.change((document) => ({
-          ...document,
-          recording: {
-            ...document.recording,
-            delayScale: Number(params['factor'] ?? 1),
-            delayScaleDisplay: '×' + String(params['factor'] ?? 1),
-            hasDelayScale: Number(params['factor'] ?? 1) !== 1,
-          },
-        }));
-      case 'editor.sessionRecordStop':
-        return this.stopRecording();
-      case 'editor.sessionSave':
-        return this.save();
-      case 'editor.actionOpen':
-        return this.actionOpen(params);
-      case 'editor.actionState':
-        return this.actionForm ?? this.emptyActionForm();
-      case 'editor.actionConfirm':
-        return this.actionConfirm();
-      case 'editor.actionCancel':
-        this.actionForm = null;
-        this.actionStep = null;
-        return this.activeSnapshot();
-      case 'editor.actionPage':
-        this.actionPage = this.text(params, 'page');
-        this.refreshActionForm();
-        return this.actionForm;
-      case 'editor.actionField': {
-        const name = this.text(params, 'name');
-        const value = this.text(params, 'value');
-        if (this.actionStep) {
-          this.actionStep = setParameter([this.actionStep!], this.actionStep.id, name, value)[0]!;
-          this.refreshActionForm();
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionRowAdd': {
-        const name = this.text(params, 'name');
-        if (this.actionStep) {
-          this.actionStep = changeRows([this.actionStep!], this.actionStep.id, name,
-            (rows) => [...rows, { cells: [] }])[0]!;
-          this.refreshActionForm();
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionRowRemove': {
-        const name = this.text(params, 'name');
-        const index = Number(params['index'] ?? 0);
-        if (this.actionStep) {
-          this.actionStep = changeRows([this.actionStep!], this.actionStep.id, name,
-            (rows) => rows.filter((_row, at) => at !== index))[0]!;
-          this.refreshActionForm();
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionRowMove': {
-        const name = this.text(params, 'name');
-        const index = Number(params['index'] ?? 0);
-        const by = Number(params['by'] ?? 0);
-        if (this.actionStep) {
-          this.actionStep = changeRows([this.actionStep!], this.actionStep.id, name, (rows) => {
-            const to = index + by;
-            if (to < 0 || to >= rows.length) {
-              return rows;
-            }
-            const copy = [...rows];
-            [copy[index], copy[to]] = [copy[to]!, copy[index]!];
-            return copy;
-          })[0]!;
-          this.refreshActionForm();
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionRowCell': {
-        const name = this.text(params, 'name');
-        const index = Number(params['index'] ?? 0);
-        const column = this.text(params, 'column');
-        const value = this.text(params, 'value');
-        const cell = { x: 0, y: 1, width: 2, height: 3, image: 0, keys: 0, hold: 1, gap: 2,
-          dx: 0, dy: 1, colour: 2, mustNot: 3, tolerance: 4, how: 0, variable: 4 }[column] ?? 0;
-        if (this.actionStep) {
-          this.actionStep = changeRows([this.actionStep!], this.actionStep.id, name,
-            (rows) => rows.map((row, at) => at === index
-              ? { ...row, cells: row.cells.map((old, cellIndex) => cellIndex === cell ? value : old) }
-              : row))[0]!;
-          this.refreshActionForm();
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionReturns': {
-        const key = this.text(params, 'key');
-        const name = this.optionalText(params, 'name');
-        const ticked = typeof params['ticked'] === 'boolean' ? params['ticked'] as boolean : null;
-        if (this.actionStep) {
-          const returns = this.actionStep.parameters.find((parameter) => parameter.kind === 'Returns');
-          if (returns) {
-            const rows = returns.rows.flatMap((row) => {
-              if ((row.cells[0] ?? '') !== key) {
-                return [row];
-              }
-              if (ticked === false) {
-                return [];
-              }
-              return [{ ...row, cells: [row.cells[0] ?? key, name ?? row.cells[1] ?? ''] }];
-            });
-            this.actionStep = changeStep([this.actionStep!], this.actionStep.id, (step) => ({
-              ...step,
-              parameters: step.parameters.map((parameter) => parameter.kind === 'Returns'
-                ? { ...parameter, rows } : parameter),
-            }))[0]!;
-            this.refreshActionForm();
-          }
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionReturnsFixName': {
-        const key = this.text(params, 'key');
-        if (this.actionStep) {
-          const returns = this.actionStep.parameters.find((parameter) => parameter.kind === 'Returns');
-          if (returns) {
-            const rows = returns.rows.map((row) => (row.cells[0] ?? '') === key
-              ? { ...row, cells: [row.cells[0] ?? key, (row.cells[1] ?? key) + '2'] }
-              : row);
-            this.actionStep = changeStep([this.actionStep!], this.actionStep.id, (step) => ({
-              ...step,
-              parameters: step.parameters.map((parameter) => parameter.kind === 'Returns'
-                ? { ...parameter, rows } : parameter),
-            }))[0]!;
-            this.refreshActionForm();
-          }
-        }
-        return this.actionForm;
-      }
-      case 'editor.actionCallArgument':
-      case 'editor.actionGlobal':
-      case 'editor.actionBranch':
-      case 'editor.actionWindow':
-      case 'editor.actionWindowRule':
-        return this.actionForm;
-      case 'editor.actionPick':
-        return this.actionForm;
-      case 'editor.actionLook':
-        return this.actionForm;
-      case 'editor.actionWindowPreview':
-        return null;
-      case 'editor.actionTestBrowser':
-      case 'editor.actionTestElement':
-      case 'editor.actionTestNarrow':
-        return this.actionForm;
-      case 'editor.actionKeyPad':
-        return {
-          mode: 'key', maxLength: 0,
-          rows: [
-            [{ label: 'Esc', value: 'Esc', width: 1 }, { label: 'F1', value: 'F1', width: 1 },
-              { label: 'F13', value: 'F13', width: 1 }],
-            [{ label: 'Num 7', value: 'NumPad7', width: 1 },
-              { label: 'MediaPlay', value: 'MediaPlay', width: 1 },
-              { label: 'BrowserHome', value: 'BrowserHome', width: 1 }],
-          ],
-        };
-      case 'editor.actionPadKey':
-        return this.actionForm;
-      case 'editor.actionWindowPick':
-        return { chosen: false, rule: '', title: '' };
-      case 'editor.actionRun':
-        return params['confirmed'] === true
-          ? {
-            needsConfirm: false,
-            result: {
-              success: true, status: 'Completed', key: '', detail: '', image: null,
-              boxes: [], chosenIndex: 0, looking: '', originX: 0, originY: 0,
-              frameWidth: 0, frameHeight: 0,
-            },
-          }
-          : { needsConfirm: false, refused: '' };
-      case 'editor.actionMeta': {
-        const field = this.text(params, 'field');
-        const value = this.text(params, 'value');
-        if (this.actionStep) {
-          this.actionStep = changeStep([this.actionStep!], this.actionStep.id, (step) => ({
-            ...step,
-            comment: field === 'comment' ? value : step.comment,
-            enabled: field === 'enabled' ? value === 'true' : step.enabled,
-            timeoutMs: field === 'timeoutMs' ? Number(value) : step.timeoutMs,
-            retryCount: field === 'retryCount' ? Number(value) : step.retryCount,
-            retryDelayMs: field === 'retryDelayMs' ? Number(value) : step.retryDelayMs,
-            onError: field === 'onError' ? value : step.onError,
-          }))[0]!;
-          this.refreshActionForm();
-        }
-        return this.actionForm;
-      }
-
-      case 'editor.sessionActions':
-        return actionCatalogue(this.language());
-      case 'editor.sessionPublicMacroAdd':
-        return this.addStep({ type: 'control.runMacro' });
-      default:
-        throw new Error('不认识编辑器命令 ' + method + '。');
+    if (method.startsWith('editor.action')) {
+      return handleActionRun(this, method, params);
     }
+
+    if (method.startsWith('editor.value')) {
+      return handleValueRun(this, method, params);
+    }
+
+    if (method.startsWith('editor.session') || method === 'editor.hotstringKeyPad') {
+      return handleSessionRun(this, method, params);
+    }
+
+    throw new Error('不认识编辑器命令 ' + method + '。');
   }
 
-  private emptyActionForm(): EditorActionForm {
+  emptyActionForm(): EditorActionForm {
     return {
       open: false, isEditing: false, canConfirm: false, canRun: false, running: false,
       runLabel: '', validationMessage: '', validationIsProblem: false,
@@ -745,7 +253,7 @@ export class MockEditor {
     };
   }
 
-  private actionOpen(params: Record<string, unknown>): EditorActionForm {
+  actionOpen(params: Record<string, unknown>): EditorActionForm {
     const document = this.activeSnapshot();
     if (!document) {
       throw new Error('没有打开的编辑器会话。');
@@ -785,7 +293,7 @@ export class MockEditor {
     return this.actionForm!;
   }
 
-  private refreshActionForm(): void {
+  refreshActionForm(): void {
     const step = this.actionStep;
     if (!step) {
       this.actionForm = null;
@@ -1005,7 +513,7 @@ export class MockEditor {
     targetStepId: '', before: false, parentId: '', list: '',
   };
 
-  private actionConfirm(): EditorSnapshot | null {
+  actionConfirm(): EditorSnapshot | null {
     const form = this.actionForm;
     if (!form?.canConfirm || !this.actionStep) {
       return this.activeSnapshot();
@@ -1057,7 +565,7 @@ export class MockEditor {
     return [...steps, step];
   }
 
-  private openValue(params: Record<string, unknown>): EditorValueSnapshot {
+  openValue(params: Record<string, unknown>): EditorValueSnapshot {
     const document = this.activeSnapshot();
     if (!document) {
       throw new Error('没有打开的编辑器会话。');
@@ -1156,7 +664,7 @@ export class MockEditor {
     return this.valueEditor.snapshot();
   }
 
-  private valueCommand(params: Record<string, unknown>): EditorValueSnapshot {
+  valueCommand(params: Record<string, unknown>): EditorValueSnapshot {
     if (!this.valueEditor) {
       throw new Error('没有打开的取值窗口。');
     }
@@ -1164,7 +672,7 @@ export class MockEditor {
     return this.valueEditor.command(this.text(params, 'action'), params);
   }
 
-  private activeSnapshot(): EditorSnapshot | null {
+  activeSnapshot(): EditorSnapshot | null {
     return this.activeKey === null ? null : this.documents.get(this.activeKey) ?? null;
   }
 
@@ -1178,7 +686,7 @@ export class MockEditor {
   }
 
   /** Applies one edit to the active document and stores the refreshed snapshot in its place. */
-  private change(change: (document: EditorSnapshot) => EditorSnapshot): EditorSnapshot | null {
+  change(change: (document: EditorSnapshot) => EditorSnapshot): EditorSnapshot | null {
     const key = this.activeKey;
     if (key === null) {
       return null;
@@ -1194,7 +702,7 @@ export class MockEditor {
     return next;
   }
 
-  private patch(params: Record<string, unknown>): EditorSnapshot | null {
+  patch(params: Record<string, unknown>): EditorSnapshot | null {
     const name = this.optionalText(params, 'name');
     const description = this.optionalText(params, 'description');
     const group = this.optionalText(params, 'group');
@@ -1207,7 +715,7 @@ export class MockEditor {
     }));
   }
 
-  private macroSetting(params: Record<string, unknown>): EditorSnapshot | null {
+  macroSetting(params: Record<string, unknown>): EditorSnapshot | null {
     const field = this.text(params, 'field');
     const value = this.text(params, 'value');
     return this.change((document) => {
@@ -1230,7 +738,7 @@ export class MockEditor {
     });
   }
 
-  private addStep(params: Record<string, unknown>): EditorSnapshot | null {
+  addStep(params: Record<string, unknown>): EditorSnapshot | null {
     const type = this.text(params, 'type');
     if (type.length === 0) {
       throw new Error('没有指定要添加的动作。');
@@ -1267,7 +775,7 @@ export class MockEditor {
       : [];
   }
 
-  private stepsEnabled(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsEnabled(params: Record<string, unknown>): EditorSnapshot | null {
     const ids = this.requestedSteps(params);
     const enabled = params['enabled'] === true;
     return this.change((document) => {
@@ -1279,7 +787,7 @@ export class MockEditor {
     });
   }
 
-  private stepsRemove(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsRemove(params: Record<string, unknown>): EditorSnapshot | null {
     const ids = this.requestedSteps(params);
     return this.change((document) => {
       let steps = document.steps;
@@ -1290,7 +798,7 @@ export class MockEditor {
     });
   }
 
-  private stepsDuplicate(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsDuplicate(params: Record<string, unknown>): EditorSnapshot | null {
     const ids = this.requestedSteps(params);
     return this.change((document) => {
       let steps = document.steps;
@@ -1301,7 +809,7 @@ export class MockEditor {
     });
   }
 
-  private stepsMoveBy(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsMoveBy(params: Record<string, unknown>): EditorSnapshot | null {
     const ids = this.requestedSteps(params);
     const delta = Number(params['delta'] ?? 0);
     return this.change((document) => {
@@ -1313,7 +821,7 @@ export class MockEditor {
     });
   }
 
-  private stepsCopy(params: Record<string, unknown>): string {
+  stepsCopy(params: Record<string, unknown>): string {
     const ids = this.requestedSteps(params);
     const document = this.activeSnapshot();
     const steps = document
@@ -1326,13 +834,13 @@ export class MockEditor {
     return this.stepClipboard;
   }
 
-  private stepsCut(params: Record<string, unknown>): string {
+  stepsCut(params: Record<string, unknown>): string {
     const text = this.stepsCopy(params);
     this.stepsRemove(params);
     return text;
   }
 
-  private stepsPaste(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsPaste(params: Record<string, unknown>): EditorSnapshot | null {
     const payload = typeof params['text'] === 'string' && params['text'].length > 0
       ? params['text'] as string
       : this.stepClipboard;
@@ -1362,7 +870,7 @@ export class MockEditor {
     });
   }
 
-  private stepsGroup(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsGroup(params: Record<string, unknown>): EditorSnapshot | null {
     const ids = this.requestedSteps(params);
     const document = this.activeSnapshot();
     if (!document) {
@@ -1396,7 +904,7 @@ export class MockEditor {
     return this.change((documentNow) => ({ ...documentNow, dirty: true, steps: documentNow.steps }));
   }
 
-  private stepsLift(): EditorSnapshot | null {
+  stepsLift(): EditorSnapshot | null {
     const document = this.activeSnapshot();
     if (!document) {
       return null;
@@ -1405,7 +913,7 @@ export class MockEditor {
     return document;
   }
 
-  private stepsMoveTo(params: Record<string, unknown>): EditorSnapshot | null {
+  stepsMoveTo(params: Record<string, unknown>): EditorSnapshot | null {
     const ids = this.requestedSteps(params);
     const target = typeof params['target'] === 'string' ? params['target'] as string : '';
     const before = params['before'] === true;
@@ -1452,7 +960,7 @@ export class MockEditor {
     return copy;
   }
 
-  private setStepEnabledCommand(params: Record<string, unknown>): EditorSnapshot | null {
+  setStepEnabledCommand(params: Record<string, unknown>): EditorSnapshot | null {
     const stepId = this.text(params, 'stepId');
     const enabled = params['enabled'] === true;
     return this.change((document) => ({
@@ -1462,7 +970,7 @@ export class MockEditor {
     }));
   }
 
-  private setStepMeta(params: Record<string, unknown>): EditorSnapshot | null {
+  setStepMeta(params: Record<string, unknown>): EditorSnapshot | null {
     const stepId = this.text(params, 'stepId');
     const field = this.text(params, 'field');
     const value = this.text(params, 'value');
@@ -1495,7 +1003,7 @@ export class MockEditor {
     }));
   }
 
-  private duplicateStep(params: Record<string, unknown>): EditorSnapshot | null {
+  duplicateStep(params: Record<string, unknown>): EditorSnapshot | null {
     const stepId = this.text(params, 'stepId');
     return this.change((document) => {
       const steps = structuredClone(document.steps);
@@ -1506,7 +1014,7 @@ export class MockEditor {
     });
   }
 
-  private moveStep(params: Record<string, unknown>): EditorSnapshot | null {
+  moveStep(params: Record<string, unknown>): EditorSnapshot | null {
     const stepId = this.text(params, 'stepId');
     const delta = this.number(this.text(params, 'delta'), 0);
     return this.change((document) => {
@@ -1516,7 +1024,7 @@ export class MockEditor {
     });
   }
 
-  private removeStep(params: Record<string, unknown>): EditorSnapshot | null {
+  removeStep(params: Record<string, unknown>): EditorSnapshot | null {
     const stepId = this.text(params, 'stepId');
     return this.change((document) => {
       const steps = structuredClone(document.steps);
@@ -1525,7 +1033,7 @@ export class MockEditor {
     });
   }
 
-  private conditionCommand(
+  conditionCommand(
     params: Record<string, unknown>,
     change: (condition: EditorCondition, path: number[]) => EditorCondition,
   ): EditorSnapshot | null {
@@ -1546,7 +1054,7 @@ export class MockEditor {
     }));
   }
 
-  private setParameterCommand(params: Record<string, unknown>): EditorSnapshot | null {
+  setParameterCommand(params: Record<string, unknown>): EditorSnapshot | null {
     const stepId = this.text(params, 'stepId');
     const name = this.text(params, 'name');
     const value = this.text(params, 'value');
@@ -1563,7 +1071,7 @@ export class MockEditor {
     }));
   }
 
-  private rowCommand(
+  rowCommand(
     params: Record<string, unknown>,
     change: (rows: EditorRow[]) => EditorRow[],
   ): EditorSnapshot | null {
@@ -1582,7 +1090,7 @@ export class MockEditor {
     }));
   }
 
-  private addTrigger(params: Record<string, unknown>): EditorSnapshot | null {
+  addTrigger(params: Record<string, unknown>): EditorSnapshot | null {
     const kind = this.text(params, 'kind').length > 0 ? this.text(params, 'kind') : 'Key';
     return this.change((document) => ({
       ...document,
@@ -1591,7 +1099,7 @@ export class MockEditor {
     }));
   }
 
-  private removeTrigger(params: Record<string, unknown>): EditorSnapshot | null {
+  removeTrigger(params: Record<string, unknown>): EditorSnapshot | null {
     const triggerId = this.text(params, 'triggerId');
     return this.change((document) => ({
       ...document,
@@ -1600,7 +1108,7 @@ export class MockEditor {
     }));
   }
 
-  private patchTrigger(
+  patchTrigger(
     params: Record<string, unknown>,
     update: (trigger: EditorTrigger) => EditorTrigger,
   ): EditorSnapshot | null {
@@ -1608,7 +1116,7 @@ export class MockEditor {
     return this.change((document) => changeTrigger(document, triggerId, update));
   }
 
-  private stopRecording(): {
+  stopRecording(): {
     captured: number;
     steps: number;
     snapshot: EditorSnapshot | null;
@@ -1631,7 +1139,7 @@ export class MockEditor {
     return { captured, steps, snapshot };
   }
 
-  private save(): EditorSnapshot | null {
+  save(): EditorSnapshot | null {
     return this.change((document) => {
       if (document.name.trim().length === 0) {
         throw new Error('宏需要一个名字。');
@@ -1655,12 +1163,12 @@ export class MockEditor {
     return 'trigger-' + String(this.triggerSequence);
   }
 
-  private text(params: Record<string, unknown>, name: string): string {
+  text(params: Record<string, unknown>, name: string): string {
     const value = params[name];
     return value === undefined || value === null ? '' : String(value);
   }
 
-  private optionalText(params: Record<string, unknown>, name: string): string | undefined {
+  optionalText(params: Record<string, unknown>, name: string): string | undefined {
     const value = params[name];
     if (value === undefined) {
       return undefined;
