@@ -5,14 +5,12 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Platform.Storage;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -34,8 +32,11 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
     private readonly TriggerRuntime _runtime;
 
-    /// <summary>The shell window, whose storage provider opens the file dialogs.</summary>
+    /// <summary>The shell window, used by the native import/export interaction.</summary>
     private readonly Func<Window?> _window;
+
+    /// <summary>The file pickers; the UI project owns the windows and their filters.</summary>
+    private readonly IFileDialogs _files;
 
     /// <summary>
     /// The system switch the page draws. The trigger host is the one that follows it; this handler
@@ -55,13 +56,14 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        Func<Window?> window, DialogBridge dialogs, Action<UiSound>? playSound = null,
-        Action<string>? rememberProject = null)
+        Func<Window?> window, IFileDialogs files, DialogBridge dialogs,
+        Action<UiSound>? playSound = null, Action<string>? rememberProject = null)
     {
         _workspace = workspace;
         _runtime = runtime;
         _system = system;
         _window = window;
+        _files = files;
         _dialogs = dialogs;
         _playSound = playSound ?? AppSound.Play;
         _rememberProject = rememberProject ?? LocalSettings.StoreLastProject;
@@ -419,64 +421,12 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     }
 
     private async Task<object?> PickImage(JsonElement parameters)
-    {
-        var path = await PickAsync(new FilePickerOpenOptions
-        {
-            Title = Strings.Get("Menu.ImageFiles"),
-            AllowMultiple = false,
-            FileTypeFilter =
-            [
-                new FilePickerFileType(Strings.Get("Add.ImageFilter"))
-                {
-                    Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp"],
-                },
-            ],
-        });
-        return new { path };
-    }
+        => new { path = await _files.OpenImageAsync() };
 
-    private Task<string?> PickOpenPackage()
-        => PickAsync(new FilePickerOpenOptions
-        {
-            Title = Strings.Get("Main.OpenProjectTitle"),
-            AllowMultiple = false,
-            FileTypeFilter = [PackageFileType()],
-        });
+    private Task<string?> PickOpenPackage() => _files.OpenPackageAsync();
 
     private Task<string?> PickSavePackage(string suggestedName)
-        => PickSaveAsync(new FilePickerSaveOptions
-        {
-            Title = Strings.Get("Main.SaveProjectTitle"),
-            SuggestedFileName = suggestedName,
-            DefaultExtension = MacroPackage.Extension.TrimStart('.'),
-            FileTypeChoices = [PackageFileType()],
-            ShowOverwritePrompt = true,
-        });
-
-    private static FilePickerFileType PackageFileType()
-        => new(Strings.Get("Package.Filter")) { Patterns = [$"*{MacroPackage.Extension}"] };
-
-    private async Task<string?> PickAsync(FilePickerOpenOptions options)
-    {
-        if (_window() is not { } window)
-        {
-            return null;
-        }
-
-        var files = await window.StorageProvider.OpenFilePickerAsync(options);
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
-    }
-
-    private async Task<string?> PickSaveAsync(FilePickerSaveOptions options)
-    {
-        if (_window() is not { } window)
-        {
-            return null;
-        }
-
-        var file = await window.StorageProvider.SaveFilePickerAsync(options);
-        return file?.TryGetLocalPath();
-    }
+        => _files.SavePackageAsync(suggestedName);
 
     /// <summary>
     /// A trigger started or stopped a macro, so the running dots move. The service says so from

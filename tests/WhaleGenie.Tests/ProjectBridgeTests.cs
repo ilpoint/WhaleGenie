@@ -31,15 +31,25 @@ public class ProjectBridgeTests : IDisposable
     public ProjectBridgeTests()
     {
         _server.Attach(_channel);
-        // The window answers null in a check, which is what makes the file dialogs answer
-        // "called off" — a package path handed in directly still goes through.
+        // The file dialogs answer "called off" in a check; a package path handed in directly
+        // still goes through.
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
-        _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null, _dialogs,
-            sound => _sounds.Add(sound), rememberProject: _ => { }));
+        _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null,
+            new NoFileDialogs(), _dialogs, sound => _sounds.Add(sound),
+            rememberProject: _ => { }));
     }
 
     public void Dispose() => _runtime.Dispose();
+
+    private sealed class NoFileDialogs : WhaleGenie.Contracts.IFileDialogs
+    {
+        public Task<string?> OpenPackageAsync() => Task.FromResult<string?>(null);
+
+        public Task<string?> SavePackageAsync(string suggestedName) => Task.FromResult<string?>(null);
+
+        public Task<string?> OpenImageAsync() => Task.FromResult<string?>(null);
+    }
 
     private static IReadOnlyList<string> Names(JsonElement array)
         => array.EnumerateArray().Select(item => item.GetString() ?? string.Empty).ToList();
