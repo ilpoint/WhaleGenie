@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -25,7 +26,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     private BridgeServer? _server;
     private RunViewModel? _run;
     private DispatcherTimer? _timer;
-    private object? _look;
+    private RunLook? _look;
 
     public void Register(BridgeServer server)
     {
@@ -65,13 +66,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             triggers: runtime.Triggers, variables: workspace.Variables);
         run.LookRequested += look =>
         {
-            _look = new
-            {
-                stepId = look.StepId,
-                type = look.StepType,
-                looking = look.Looking,
-                image = ToDataUrl(look.Frame),
-            };
+            _look = new RunLook(look.StepId, look.StepType, look.Looking, ToDataUrl(look.Frame));
             _ = PushAsync();
         };
         return run;
@@ -220,72 +215,59 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         await _server.PushAsync("run.changed", Snapshot());
     }
 
-    private object Snapshot()
-        => new
-        {
-            loaded = _run?.Debugged ?? string.Empty,
-            status = _run?.Status ?? string.Empty,
-            statusKind = _run?.StatusKindValue.ToString() ?? string.Empty,
-            busy = _run?.IsBusy ?? false,
-            paused = _run?.IsPaused ?? false,
-            canRun = _run?.RunCommand.CanExecute(null) ?? false,
-            canStep = _run?.StepCommand.CanExecute(null) ?? false,
-            canStop = _run?.StopCommand.CanExecute(null) ?? false,
-            question = _run?.Question ?? string.Empty,
-            wantsTypedAnswer = _run?.WantsTypedAnswer ?? false,
-            answerText = _run?.AnswerText ?? string.Empty,
-            isAskingUser = _run?.IsAskingUser ?? false,
-            isAsking = _run?.IsAsking ?? false,
-            arguments = _run?.Arguments.Select(argument => new
-            {
-                name = argument.Name,
-                label = argument.Label,
-                hint = argument.Hint,
-                required = argument.Required,
-                value = argument.Value,
-                given = argument.Given,
-                missing = argument.IsMissing,
-            }),
-            globals = _run?.Globals.Select(global => new
-            {
-                name = global.Name,
-                type = global.LocalType,
-                value = global.CurrentValue,
-                defaultValue = global.DefaultValue,
-            }),
-            locals = _run?.LocalVariables.SelectMany(group => group.Variables.Select(variable => new
-            {
-                name = variable.Name,
-                macro = group.MacroName,
-                type = variable.Type.ToString(),
-            })),
-            steps = _run?.Steps.Select(step => new
-            {
-                id = step.Id,
-                label = step.Label,
-                detail = step.Detail,
-                depth = step.Depth,
-                shown = step.IsShown,
-                container = step.IsContainer,
-                current = step.IsCurrent,
-                breakpoint = step.HasBreakpoint,
-                canBreak = step.CanBreak,
-                time = step.TimeNote,
-                failure = step.FailureNote,
-                condition = step.ConditionNote,
-                hitTimes = _run.BreakpointRuleOf(step).HitTimes,
-                expression = _run.BreakpointRuleOf(step).WaitsForExpression
-                    ? ExpressionPhrase.Display(_run.BreakpointRuleOf(step).Expression)
-                    : string.Empty,
-            }),
-            look = _look,
-            log = _run?.Lines.Select(line => new
-            {
-                time = line.Time,
-                level = line.Level.ToString(),
-                text = line.Text,
-            }),
-        };
+    private RunState Snapshot() => new(
+        _run?.Debugged ?? string.Empty,
+        _run?.Status ?? string.Empty,
+        _run?.StatusKindValue.ToString() ?? string.Empty,
+        _run?.IsBusy ?? false,
+        _run?.IsPaused ?? false,
+        _run?.RunCommand.CanExecute(null) ?? false,
+        _run?.StepCommand.CanExecute(null) ?? false,
+        _run?.StopCommand.CanExecute(null) ?? false,
+        _run?.Question ?? string.Empty,
+        _run?.WantsTypedAnswer ?? false,
+        _run?.AnswerText ?? string.Empty,
+        _run?.IsAskingUser ?? false,
+        _run?.IsAsking ?? false,
+        _run?.Arguments.Select(argument => new RunArgument(
+            argument.Name,
+            argument.Label,
+            argument.Hint,
+            argument.Required,
+            argument.Value,
+            argument.Given,
+            argument.IsMissing)).ToArray() ?? Array.Empty<RunArgument>(),
+        _look,
+        _run?.Globals.Select(global => new RunGlobal(
+            global.Name,
+            global.LocalType,
+            global.CurrentValue,
+            global.DefaultValue)).ToArray() ?? Array.Empty<RunGlobal>(),
+        _run?.LocalVariables.SelectMany(group => group.Variables.Select(variable => new RunLocal(
+            variable.Name,
+            group.MacroName,
+            variable.Type.ToString()))).ToArray() ?? Array.Empty<RunLocal>(),
+        _run?.Steps.Select(step => new RunStep(
+            step.Id,
+            step.Label,
+            step.Detail,
+            step.Depth,
+            step.IsShown,
+            step.IsContainer,
+            step.IsCurrent,
+            step.HasBreakpoint,
+            step.CanBreak,
+            step.TimeNote,
+            step.FailureNote,
+            step.ConditionNote,
+            _run.BreakpointRuleOf(step).HitTimes,
+            _run.BreakpointRuleOf(step).WaitsForExpression
+                ? ExpressionPhrase.Display(_run.BreakpointRuleOf(step).Expression)
+                : string.Empty)).ToArray() ?? Array.Empty<RunStep>(),
+        _run?.Lines.Select(line => new RunLine(
+            line.Time,
+            line.Level.ToString(),
+            line.Text)).ToArray() ?? Array.Empty<RunLine>());
 
     /// <summary>A BMP data URL: no image library on the bridge thread, and browsers decode it.</summary>
     private static string ToDataUrl(ImageFrame frame)

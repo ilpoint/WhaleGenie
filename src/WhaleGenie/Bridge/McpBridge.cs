@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
@@ -41,13 +42,11 @@ public sealed class McpBridge(Func<IClipboardDevice> clipboard) : IBridgeHandler
         server.Register("mcp.openAudit", OpenAudit);
     }
 
-    private object State() => new
+    private static McpState State()
     {
-        allowControl = LocalSettings.LoadMcpGrants().Control,
-        allowRun = LocalSettings.LoadMcpGrants().Run,
-        config = ConfigText(),
-        auditFile = McpAudit.File,
-    };
+        var grants = LocalSettings.LoadMcpGrants();
+        return new McpState(grants.Control, grants.Run, ConfigText(), McpAudit.File);
+    }
 
     private async Task<object?> SetGrants(JsonElement parameters)
     {

@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
@@ -108,37 +109,31 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _workspace.Triggers.Changed -= OnTriggersChanged;
     }
 
-    private object State() => new
-    {
-        path = _workspace.CurrentPath,
-        name = _workspace.CurrentPath is { } path ? System.IO.Path.GetFileNameWithoutExtension(path) : null,
-        untitled = _workspace.CurrentPath is null,
-        dirty = _workspace.IsDirty,
-        revision = _workspace.Revision,
-        systemEnabled = _system.IsEnabled,
-        enabledFirst = LocalSettings.LoadEnabledFirst(),
-        views = Enum.GetNames<MacroView>(),
-        groups = _workspace.Macros
+    private ProjectState State() => new(
+        _workspace.CurrentPath,
+        _workspace.CurrentPath is { } path ? Path.GetFileNameWithoutExtension(path) : null,
+        _workspace.CurrentPath is null,
+        _workspace.IsDirty,
+        _workspace.Revision,
+        _system.IsEnabled,
+        LocalSettings.LoadEnabledFirst(),
+        Enum.GetNames<MacroView>(),
+        [.. _workspace.Macros
             .Select(macro => macro.Group.Trim())
             .Where(name => name.Length > 0)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name, StringComparer.CurrentCulture)
-            .ToArray(),
-        macros = _workspace.Macros.Select(macro => new
-        {
-            name = macro.Name,
-            group = macro.Group,
-            description = macro.Description,
-            enabled = macro.IsEnabled,
-            running = macro.IsRunning,
-            triggerSummary = macro.CardTriggerSummary,
-            triggerActions = macro.CardTriggerActions,
-            triggerPreview = macro.CardTriggerPreview,
-            views = Enum.GetNames<MacroView>()
-                .Where(view => _workspace.Triggers.InView(macro.Name, Enum.Parse<MacroView>(view)))
-                .ToArray(),
-        }).ToArray(),
-    };
+            .OrderBy(name => name, StringComparer.CurrentCulture)],
+        [.. _workspace.Macros.Select(macro => new MacroEntry(
+            macro.Name,
+            macro.Group,
+            macro.Description,
+            macro.IsEnabled,
+            macro.IsRunning,
+            macro.CardTriggerSummary,
+            macro.CardTriggerActions,
+            macro.CardTriggerPreview,
+            [.. Enum.GetNames<MacroView>()
+                .Where(view => _workspace.Triggers.InView(macro.Name, Enum.Parse<MacroView>(view)))]))]);
 
     private Task<object?> Toggle(JsonElement parameters)
     {

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -25,25 +26,18 @@ internal sealed class LibraryBridge(ProjectWorkspace project) : IBridgeHandler
         server.Register("library.replace", Replace);
     }
 
-    private object State()
+    private LibraryState State()
     {
         try
         {
-            return new
-            {
-                entries = Entries().Select(entry => new
-                {
-                    id = entry.Id,
-                    name = entry.Macro.Name,
-                    version = entry.Version,
-                    description = entry.Macro.Description,
-                }),
-                error = (string?)null,
-            };
+            return new LibraryState(
+                [.. Entries().Select(entry => new LibraryEntry(
+                    entry.Id, entry.Macro.Name, entry.Version, entry.Macro.Description))],
+                null);
         }
         catch (Exception error) when (error is IOException or InvalidDataException)
         {
-            return new { entries = Array.Empty<object>(), error = error.Message };
+            return new LibraryState([], error.Message);
         }
     }
 

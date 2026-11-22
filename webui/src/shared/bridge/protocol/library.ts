@@ -1,13 +1,2 @@
-/** library bridge shapes. The barrel protocol.ts re-exports this file. */
-
-export interface LibraryEntry {
-  id: string;
-  name: string;
-  version: number;
-  description: string;
-}
-
-export interface LibraryState {
-  entries: LibraryEntry[];
-  error: string | null;
-}
+/** library bridge shapes. The generated module is the only place these are written. */
+export type { LibraryEntry, LibraryState } from '../generated/types.js';
