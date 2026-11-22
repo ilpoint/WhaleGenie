@@ -11,7 +11,6 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Editing;
 
@@ -30,6 +29,7 @@ internal sealed class HeadlessEditorSession
     private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
     private List<GlobalDraftEntry>? _globalDraft;
     private readonly IDeviceLayer? _devices;
+    private readonly IEditorSettings _settings;
     private HeadlessValueSession? _valueSession;
     private MacroItem? _existing;
     private HeadlessActionSession? _actionSession;
@@ -41,17 +41,19 @@ internal sealed class HeadlessEditorSession
 
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing,
         HeadlessEditorSession? owner = null, string submacroOriginal = "",
-        IDeviceLayer? devices = null)
+        IDeviceLayer? devices = null, IEditorSettings? settings = null)
     {
         _workspace = workspace;
         _existing = existing;
         _owner = owner;
         _devices = devices;
+        _settings = settings ?? DefaultEditorSettings.Instance;
         _submacroOriginal = submacroOriginal;
         _model = new MacroEditorViewModel
         {
             Variables = workspace.Variables,
             Persisted = workspace.Persisted,
+            Settings = _settings,
         };
         _model.LoadProjectTriggerSettings(workspace.Triggers, [.. workspace.Macros]);
         if (existing is not null)
@@ -72,21 +74,22 @@ internal sealed class HeadlessEditorSession
     }
 
     public static HeadlessEditorSession OpenSubmacro(ProjectWorkspace workspace,
-        HeadlessEditorSession owner, string name, IDeviceLayer? devices = null)
+        HeadlessEditorSession owner, string name, IDeviceLayer? devices = null,
+        IEditorSettings? settings = null)
     {
         var submacro = owner._model.SubMacros.FirstOrDefault(candidate =>
             string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("the macro has no sub-macro named " + name);
         return new HeadlessEditorSession(workspace, submacro, owner, submacro.Name,
-            devices ?? owner._devices);
+            devices ?? owner._devices, settings ?? owner._settings);
     }
 
     public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name,
-        IDeviceLayer? devices = null)
+        IDeviceLayer? devices = null, IEditorSettings? settings = null)
     {
         if (name is not { Length: > 0 })
         {
-            return new HeadlessEditorSession(workspace, null, devices: devices);
+            return new HeadlessEditorSession(workspace, null, devices: devices, settings: settings);
         }
 
         var existing = workspace.Macros.FirstOrDefault(candidate =>
@@ -96,7 +99,7 @@ internal sealed class HeadlessEditorSession
             throw new InvalidOperationException("the project has no macro named " + name);
         }
 
-        return new HeadlessEditorSession(workspace, existing, devices: devices);
+        return new HeadlessEditorSession(workspace, existing, devices: devices, settings: settings);
     }
 
     public string Name => _model.Name;

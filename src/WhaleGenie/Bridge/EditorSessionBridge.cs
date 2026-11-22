@@ -22,7 +22,8 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
     IEditorPickerHost? pickers = null, Func<Avalonia.Controls.Window?>? owner = null)
     : IBridgeHandler
 {
-    private readonly HeadlessEditorWorkspace _documents = new(workspace, devices);
+    private readonly HeadlessEditorWorkspace _documents =
+        new(workspace, devices, new WhaleGenie.Editing.LocalEditorSettings());
     private readonly IDeviceLayer? _devices = devices;
     private readonly IEditorPickerHost? _pickers = pickers;
     private readonly Func<Avalonia.Controls.Window?>? _owner = owner;

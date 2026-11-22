@@ -4,7 +4,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
+using WhaleGenie.Editing;
 
 namespace WhaleGenie.Tests;
 

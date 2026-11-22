@@ -47,8 +47,8 @@ WhaleGenie
 `[BridgeContract]` 记录与 `BridgeMethods.All` 由 `tools/WhaleGenie.ContractsGen` 写成
 `webui/src/shared/bridge/generated/types.ts` 与 `generated/methods.ts`，页面不手写线缆类型，
 `client.call` 的方法名由编译器检查；`ContractGenerationTests` 在没有重新生成时失败。编辑模型正迁往
-`WhaleGenie.Editing`（见 [ADR 0002](adr/0002-csharp-webui-split.md)）；取值选择器、形状树、变量墙、参数/条件/动作行、窗口预览、动作表单/快照、无头动作会话、变量中心、延迟刻度与宏编辑器模型已迁入，
-主编辑会话仍待迁。它只引用 Contracts、Domain、Localization 与 Core，不得依赖 Avalonia。
+`WhaleGenie.Editing`（见 [ADR 0002](adr/0002-csharp-webui-split.md)）；取值选择器、形状树、变量墙、参数/条件/动作行、窗口预览、动作表单/快照、无头动作会话、变量中心、延迟刻度、宏编辑器模型与主编辑会话已迁入，
+编辑模型整体不再依赖 Avalonia。它只引用 Contracts、Domain、Localization 与 Core，不得依赖 Avalonia。
 
 `WhaleGenie.App` 引用 Mcp、Domain、Localization、Contracts、Core 与 Platform.Windows，不引用
 Avalonia；界面工程引用 `WhaleGenie.App`、`WhaleGenie.Contracts` 与 `WhaleGenie.Editing`，没有任何产品
@@ -79,7 +79,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | `WhaleGenie` | 窗口、ViewModel、应用生命周期、窗口化组合根、依赖窗口/对话框的桥处理器与 WebView 适配 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp/App |
 | `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、系统开关（`SystemState`）、MCP 宿主与设备控制/运行工具、桥路由/推送队列与无 UI 依赖的处理器（应用信息、字符串、MCP、库、窗口按钮、主题、壳门、页面对话框、项目）、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
 | `WhaleGenie.Contracts` | 桥的请求/应答/事件记录、方法与端口；只依赖 BCL，页面类型由它生成 | Avalonia、Domain/Core 类型、设备或文件读写 |
-| `WhaleGenie.Editing` | 编辑模型与无头会话（迁移中；键位表、字符面板、`ViewModelBase`、取值选择器、形状树、变量墙、参数/条件/动作行模型、窗口预览、动作表单/快照、动作页/返回/时长/热字串选项、变量中心/局部变量草稿、延迟刻度、宏编辑器模型、`HeadlessActionSession` 与 `HeadlessValueSession` 已迁入）；`net10.0-windows10.0.19041`，引用 Contracts、Domain、Localization 与 Core | Avalonia、窗口、WebView、项目文档读写 |
+| `WhaleGenie.Editing` | 编辑模型与无头会话（迁移中；键位表、字符面板、`ViewModelBase`、取值选择器、形状树、变量墙、参数/条件/动作行模型、窗口预览、动作表单/快照、动作页/返回/时长/热字串选项、变量中心/局部变量草稿、延迟刻度、宏编辑器模型、`HeadlessActionSession`、`HeadlessValueSession`、`HeadlessEditorSession` 与工作区已迁入）；`net10.0-windows10.0.19041`，引用 Contracts、Domain、Localization 与 Core | Avalonia、窗口、WebView、项目文档读写 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸、热字串识别与录制步骤构建 | Avalonia、窗口、ViewModel、MCP、设备控制 |
 | `WhaleGenie.Mcp` | 协议宿主、草稿、补丁、预览、资源与项目编辑工具 | Avalonia、Views、Runtime、设备控制、运行桥 |
 | `WhaleGenie.Core` | 宏运行、动作语义、变量与表达式、设备契约、键词汇表、录制事件翻译；`net10.0`，是仓库里唯一可打包的工程 | Avalonia、FluentAvalonia、MCP、项目文件读写、`WhaleGenie.Platform.Windows`；除 BCL 与 `CsvHelper` 之外的任何引用 |

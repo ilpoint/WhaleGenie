@@ -18,7 +18,7 @@ namespace WhaleGenie.Runtime;
 /// been handed the new frame. So the picture is taken repeatedly and kept only once two shots in a
 /// row agree, which is the first moment the screen has stopped changing under the picker.
 /// </remarks>
-internal static class ScreenReady
+public static class ScreenReady
 {
     /// <summary>How many shots to take before settling for the last one, and how far apart.</summary>
     private const int Tries = 6;

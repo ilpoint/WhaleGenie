@@ -13,9 +13,12 @@ namespace WhaleGenie.Editing;
 /// state, so switching tabs never throws away an edit; this is the document-strip half of the
 /// editor the native window used to keep in <c>MacroEditorSession</c>.
 /// </summary>
-internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace, IDeviceLayer? devices = null)
+internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace,
+    IDeviceLayer? devices = null, IEditorSettings? settings = null)
 {
     private const string NewKey = "\u0000new";
+
+    private readonly IEditorSettings _settings = settings ?? DefaultEditorSettings.Instance;
 
     private readonly List<string> _order = [];
     private readonly Dictionary<string, HeadlessEditorSession> _sessions = new(StringComparer.Ordinal);
@@ -40,7 +43,7 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace, IDevic
             key = NewKey + ":" + index;
         }
 
-        var session = HeadlessEditorSession.Open(workspace, null, devices);
+        var session = HeadlessEditorSession.Open(workspace, null, devices, _settings);
         _sessions[key] = session;
         _order.Add(key);
         _active = key;
@@ -53,7 +56,7 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace, IDevic
         if (!_sessions.TryGetValue(key, out var session))
         {
             session = HeadlessEditorSession.Open(workspace, name is { Length: > 0 } ? key : null,
-                devices);
+                devices, _settings);
             _sessions[key] = session;
             _order.Add(key);
         }
@@ -72,7 +75,7 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace, IDevic
         var key = "\0sub:" + parentKey + ":" + name.Trim();
         if (!_sessions.TryGetValue(key, out var session))
         {
-            session = HeadlessEditorSession.OpenSubmacro(workspace, parent, name, devices);
+            session = HeadlessEditorSession.OpenSubmacro(workspace, parent, name, devices, _settings);
             _sessions[key] = session;
             _order.Add(key);
         }

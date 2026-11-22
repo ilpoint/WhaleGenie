@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
-namespace WhaleGenie.Views;
+namespace WhaleGenie.Editing;
 
 /// <summary>
 /// What the project does with the macro an editor hands back: it joins the list, replaces the one
