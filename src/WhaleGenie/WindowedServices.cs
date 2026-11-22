@@ -60,7 +60,8 @@ internal static class WindowedServices
             // is not the window on duty.
             var server = new BridgeServer();
             server.Register(new AppBridge(() => AppTray.Current));
-            server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>()));
+            server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>(),
+            new ShellCommands()));
             server.Register(new StringsBridge());
             server.Register(new ThemeBridge(new ThemeCommands()));
             server.Register(new WindowBridge(() =>

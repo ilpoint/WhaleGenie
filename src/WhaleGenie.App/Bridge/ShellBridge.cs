@@ -2,18 +2,18 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// The temporary doors from the page to the native windows that have not moved yet. They are
-/// deliberately few: settings, run-and-debug and about/manual. Each one disappears when its page
-/// arrives; until then the page says which window it is asking for instead of pretending to own it.
+/// The temporary doors from the page to the native windows that have not moved yet. Each one
+/// disappears when its page arrives; the manual opens through a port because it is a native window.
 /// </summary>
-internal sealed class ShellBridge(ProjectWorkspace workspace) : IBridgeHandler
+internal sealed class ShellBridge(ProjectWorkspace workspace, IShellCommands shell)
+    : IBridgeHandler
 {
     private BridgeServer? _server;
 
@@ -51,7 +51,7 @@ internal sealed class ShellBridge(ProjectWorkspace workspace) : IBridgeHandler
 
     private Task<object?> OpenManual()
     {
-        ShellNativeWindows.OpenManual();
+        shell.OpenManual();
         return Task.FromResult<object?>(null);
     }
 }
