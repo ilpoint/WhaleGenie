@@ -13,113 +13,6 @@
           行本身不画底、不画边：选中与悬停由行里的卡片（`Border.StepLine`）表达，树再画一层就是
           两套高亮叠在一起。`SelectionIndicator` 那条小竖条因此不存在了。
         -->
-        <ControlTheme x:Key="{x:Type TreeViewItem}" TargetType="TreeViewItem">
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="MinHeight" Value="30" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <StackPanel Background="Transparent">
-                        <Border Name="PART_LayoutRoot" Background="Transparent" Focusable="True"
-                                MinHeight="{TemplateBinding MinHeight}"
-                                TemplatedControl.IsTemplateFocusTarget="True">
-                            <Grid Name="PART_Header" ColumnDefinitions="Auto,*">
-                                <Grid.Margin>
-                                    <Binding Path="Level"
-                                             RelativeSource="{RelativeSource TemplatedParent}"
-                                             Converter="{x:Static conv:StepIndentConverter.Instance}" />
-                                </Grid.Margin>
-                                <!-- 展开钮的格子宽度固定：叶子行没有箭头，但那一格还在，所以
-                                     同一层的标题永远对在同一条竖线上。
-
-                                     这一格压在内容列之上（ZIndex）：树线是内容列里画出来的，
-                                     绘制顺序排在方块之后，那条穿过方块中线的虚线会正盖在钮上
-                                     ——"折叠钮和折叠虚线分不清"就是这么来的。抬高之后方块成了
-                                     压在线上的一枚实心钮，线从它下面穿过去。 -->
-                                <Panel Name="PART_ExpandCollapseChevronContainer" ZIndex="1"
-                                       Width="14" Margin="12,0,12,0">
-                                    <!-- 折叠方块只长在"自己跑步骤"的那一行上：块的体（循环体步骤）是块的一部分，
-                                         在它上面再放一枚方块，等于说体自己会折叠，而它不会。 -->
-                                    <ToggleButton Name="PART_ExpandCollapseChevron"
-                                                  Theme="{StaticResource StepChevron}"
-                                                  Focusable="False"
-                                                  IsVisible="{Binding Header,
-                                                      RelativeSource={RelativeSource TemplatedParent},
-                                                      Converter={x:Static views:FoldBoxConverter.Instance}}"
-                                                  IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
-                                </Panel>
-                                <!-- 内容必须撑满这一行的高度：行有 30 的下限，而一行里的文字可能只有
-                                     20 高，居中放就上下各留 5 像素，树线走到那里正好断一截。撑满
-                                     之后内容与行同高，线才能从上一行接进下一行。 -->
-                                <ContentPresenter Name="PART_HeaderPresenter" Grid.Column="1"
-                                                  Content="{TemplateBinding Header}"
-                                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                                  HorizontalAlignment="Stretch"
-                                                  VerticalAlignment="Stretch"
-                                                  Margin="{TemplateBinding Padding}" />
-                            </Grid>
-                        </Border>
-                        <ItemsPresenter Name="PART_ItemsPresenter"
-                                        IsVisible="{TemplateBinding IsExpanded}" />
-                    </StackPanel>
-                </ControlTemplate>
-            </Setter>
-        </ControlTheme>
-
-        <!--
-          展开钮：主题里是一个裸箭头，这里给成一枚小方块，和参考软件一致，也好点。
-
-          **它得先被读成一枚钮，然后才是一枚箭头。** 树线是虚线，而方块原来只有一层几乎与
-          背景同深的淡底，穿过中线的虚线又画在它上面，于是"这里可以折叠"和"这里是一条线"在
-          屏幕上没有分别。所以：实心底（SurfaceControl，比背后的行和线都亮一档）、一圈描边
-          压住穿过它的线、字形用主文字色而不是次要色。悬停与按下各自换底和边，四态可读；焦点
-          仍归容器行模板的 FocusAdorner（这一格 Focusable="False"），不另写一层焦点环。
-        -->
-        <ControlTheme x:Key="StepChevron" TargetType="ToggleButton">
-            <Setter Property="Width" Value="14" />
-            <Setter Property="Height" Value="14" />
-            <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{TemplateBinding CornerRadius}">
-                        <Path Name="Glyph" Data="M 5,4 L 8,7 L 5,10"
-                              Stroke="{DynamicResource TextPrimary}"
-                              StrokeThickness="1.6"
-                              StrokeLineCap="Round" StrokeJoin="Round" />
-                    </Border>
-                </ControlTemplate>
-            </Setter>
-            <Style Selector="^:pointerover">
-                <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
-            </Style>
-            <Style Selector="^:pressed">
-                <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
-            </Style>
-            <!-- 展开时整枚钮转 90 度：箭头从"朝右"变成"朝下"，一套图形两种状态。 -->
-            <Style Selector="^:checked">
-                <Setter Property="RenderTransform" Value="rotate(90deg)" />
-            </Style>
-        </ControlTheme>
-    <!--
-      右键菜单的模板本来归 Avalonia 自己的 Fluent 主题管，FluentAvalonia 没有接手它：库的
-          ControlThemes 里有 Menu、MenuItem、MenuFlyoutPresenter 与 Separator，唯独没有 ContextMenu
-          （逐个核过 amwx/FluentAvalonia 的 ControlThemes/BasicControls 目录）。
-
-          迁移到 FluentAvaloniaTheme 时把 `<FluentTheme/>` 拿掉了，于是每个 `ContextMenu` 都成了一份
-          没有模板的空控件——弹层照常打开、`IsOpen` 为真、绑定全部正确，屏幕上却什么都不画。所有窗口的
-          右键菜单同时失效，原因只有这一条；无头测试看不出来，因为那里不画。
-
-          模板照 Avalonia 的原样写，颜色与圆角换成项目自己的令牌。补回来之后不必也不应该再加
-          `<FluentTheme/>`：那会把整套 Fluent 外观一起带回来，盖掉层 1 已经映射好的颜色。
-        -->
         <ControlTheme x:Key="{x:Type ContextMenu}" TargetType="ContextMenu">
             <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
@@ -1444,20 +1337,10 @@
          容器行是一张卡片，整圈变黄会把一块宏都染成警报色，所以它只留右边那枚图标。 -->
     
     
-    <Style Selector="TreeView.Steps">
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-    </Style>
-    <Style Selector="TreeView.Steps TreeViewItem">
-        <Setter Property="MinHeight" Value="30" />
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="TreeView.Steps TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="TreeView.Steps TreeViewItem:selected /template/ Border#PART_LayoutRoot">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
+    
+    
+    
+    
     <!--
       区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
       组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。

@@ -42,7 +42,7 @@ public enum StepRowKind
 /// row: what ends it is the indent, drawn as a guide line down its children and gone on the row
 /// after them.
 /// </summary>
-public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
+public sealed class StepRow : ILanguageAware, INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -401,7 +401,6 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
     /// names a block's body is part of that block, and a second box on it would say the body folds
     /// on its own, which it does not.
     /// </summary>
-    public bool CanFold => IsBlock;
 
     /// <summary>
     /// How a block reads against the steps it holds: heavier and a size up, so the two levels are
