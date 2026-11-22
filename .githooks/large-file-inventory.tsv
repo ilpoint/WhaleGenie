@@ -192,5 +192,5 @@
 987	.workbuddy/tmp/orig_tests.cs	pending review
 545	.workbuddy/tmp/sshvenv/Scripts/Activate.ps1	pending review
 20011	docs/manual/05-values-and-placement.md	pending review
-330	src/WhaleGenie/Bridge/RunBridge.cs	pending review
+312	src/WhaleGenie/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
 27445	webui/src/shared/bridge/mock-strings-extra.ts	pending review
