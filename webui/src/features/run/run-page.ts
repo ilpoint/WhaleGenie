@@ -23,7 +23,11 @@ export class WgRun extends LitElement {
 
   protected readonly runController = new SubscriptionController(this, () =>
     bridge.value.on('run.changed', (payload) => {
-      this.run = payload as RunState;
+      const next = payload as RunState;
+      const seen = this.run?.log.length ?? 0;
+      this.run = next.logFrom === 0 || next.logFrom > seen
+        ? next
+        : { ...next, log: [...(this.run?.log ?? []), ...next.log] };
     }));
 
   static styles = runPageCss;

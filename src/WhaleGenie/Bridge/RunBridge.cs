@@ -27,6 +27,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     private RunViewModel? _run;
     private DispatcherTimer? _timer;
     private RunLook? _look;
+    private int _sentLog;
 
     public void Register(BridgeServer server)
     {
@@ -121,6 +122,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
 
         _run = null;
         _look = null;
+        _sentLog = 0;
         return Task.FromResult<object?>(Snapshot());
     }
 
@@ -229,7 +231,9 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             return;
         }
 
-        await _server.PushAsync("run.changed", Snapshot());
+        var state = Incremental();
+        await _server.PushAsync("run.changed", state);
+        _sentLog = state.LogFrom + state.Log.Count;
         if (!_run.IsBusy && !_run.IsPaused && !_run.IsAsking && !_run.IsAskingUser)
         {
             _timer?.Stop();
@@ -237,7 +241,27 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         }
     }
 
-    private RunState Snapshot() => new(
+    /// <summary>The full state for a query or command reply; it resets the log cursor.</summary>
+    private RunState Snapshot()
+    {
+        var state = SnapshotCore();
+        _sentLog = state.Log.Count;
+        return state;
+    }
+
+    /// <summary>Only the log lines the page has not seen, addressed by the cursor.</summary>
+    private RunState Incremental()
+    {
+        var full = SnapshotCore();
+        var from = _sentLog > full.Log.Count ? 0 : _sentLog;
+        return full with
+        {
+            Log = [.. full.Log.Skip(from)],
+            LogFrom = from,
+        };
+    }
+
+    private RunState SnapshotCore() => new(
         _run?.Debugged ?? string.Empty,
         _run?.Status ?? string.Empty,
         _run?.StatusKindValue.ToString() ?? string.Empty,

@@ -23,7 +23,8 @@ public sealed record RunState(
     IReadOnlyList<RunGlobal> Globals,
     IReadOnlyList<RunLocal> Locals,
     IReadOnlyList<RunStep> Steps,
-    IReadOnlyList<RunLine> Log);
+    IReadOnlyList<RunLine> Log,
+    int LogFrom = 0);
 
 /// <summary>The last frame a step looked at, already as a data URL for the page.</summary>
 [BridgeContract]

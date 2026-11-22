@@ -66,6 +66,7 @@ export class MockTransport implements BridgeTransport {
       container: boolean; current: boolean; breakpoint: boolean; canBreak: boolean;
       time: string; failure: string; condition: string; hitTimes: number; expression: string }[],
     log: [] as { time: string; level: string; text: string }[],
+    logFrom: 0,
   };
 
   settingsState: SettingsState = {

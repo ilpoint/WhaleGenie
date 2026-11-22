@@ -1323,6 +1323,7 @@ export interface RunState {
   locals: RunLocal[];
   steps: RunStep[];
   log: RunLine[];
+  logFrom: number;
 }
 
 export interface RunStep {
