@@ -2,6 +2,8 @@ import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { strings } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
+import { SubscriptionController } from '../../shared/lit/subscription-controller.js';
 import type { DialogRequest } from '../../shared/bridge/protocol.js';
 
 /**
@@ -56,25 +58,12 @@ export class WgConfirm extends LitElement {
     }
   `;
 
-  private unsubscribers: Array<() => void> = [];
+  protected readonly stringsController = new StoreController(this, strings);
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribers = [
-      strings.subscribe(() => this.requestUpdate()),
-      bridge.value.on('dialog.request', (request) => {
-        this.request = request;
-      }),
-    ];
-  }
-
-  disconnectedCallback(): void {
-    for (const unsubscribe of this.unsubscribers) {
-      unsubscribe();
-    }
-    this.unsubscribers = [];
-    super.disconnectedCallback();
-  }
+  protected readonly dialogController = new SubscriptionController(this, () =>
+    bridge.value.on('dialog.request', (request) => {
+      this.request = request;
+    }));
 
   render() {
     if (this.request === null) {

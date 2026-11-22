@@ -5,6 +5,7 @@ import { icon, iconForCategory } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { actionSections, paletteActions } from './editor-model.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 
 /**
@@ -17,16 +18,14 @@ import { editorBase } from './editor-css.js';
 export class WgEditorPalette extends LitElement {
   static styles = [editorBase, editorPaletteCss];
 
-  private unsubscribe?: () => void;
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   connectedCallback(): void {
     super.connectedCallback();
     editor.session.ensureLoaded();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
   }
 
   disconnectedCallback(): void {
-    this.unsubscribe?.();
     super.disconnectedCallback();
   }
 

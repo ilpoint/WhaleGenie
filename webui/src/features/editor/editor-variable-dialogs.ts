@@ -3,6 +3,7 @@ import { customElement, property } from 'lit/decorators.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 
 const dialogStyles = css`
@@ -116,17 +117,7 @@ export class WgLocalVariables extends LitElement {
 
   static styles = [editorBase, dialogStyles];
 
-  private unsubscribe?: () => void;
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    super.disconnectedCallback();
-  }
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   render() {
     if (!this.open) {
@@ -217,17 +208,7 @@ export class WgGlobalVariables extends LitElement {
 
   static styles = [editorBase, dialogStyles];
 
-  private unsubscribe?: () => void;
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    super.disconnectedCallback();
-  }
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   render() {
     if (!this.open) {

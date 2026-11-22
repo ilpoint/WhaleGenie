@@ -2,6 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 import './variable-wall.js';
 import './macro-settings.js';
@@ -84,21 +85,11 @@ export class WgEditorInspector extends LitElement {
     }
   `];
 
-  private unsubscribe?: () => void;
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   private dragStartY = 0;
 
   private dragStartRatio = 0.66;
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    super.disconnectedCallback();
-  }
 
   render() {
     const state = editor.get();

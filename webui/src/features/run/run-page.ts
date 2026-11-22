@@ -4,6 +4,8 @@ import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type { ProjectState, RunLine, RunState, RunStep } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
+import { SubscriptionController } from '../../shared/lit/subscription-controller.js';
 
 /** The web run panel: loads one macro and drives the shared RunViewModel through the bridge. */
 @customElement('wg-run')
@@ -17,24 +19,18 @@ export class WgRun extends LitElement {
   @state()
   private error = '';
 
-  private unsubscribe?: () => void;
-  private unwatch?: () => void;
+  protected readonly stringsController = new StoreController(this, strings);
+
+  protected readonly runController = new SubscriptionController(this, () =>
+    bridge.value.on('run.changed', (payload) => {
+      this.run = payload as RunState;
+    }));
 
   static styles = runPageCss;
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.unsubscribe = strings.subscribe(() => this.requestUpdate());
-    this.unwatch = bridge.value.on('run.changed', (payload) => {
-      this.run = payload as RunState;
-    });
     void this.load();
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    this.unwatch?.();
-    super.disconnectedCallback();
   }
 
   render() {

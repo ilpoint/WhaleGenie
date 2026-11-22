@@ -6,6 +6,8 @@ import { project } from '../shared/project/store.js';
 import { icon } from '../shared/icons.js';
 import { go } from '../shared/navigation/router.js';
 import { strings, t } from '../shared/strings/strings.js';
+import { StoreController } from '../shared/lit/store-controller.js';
+import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import { windowMirror } from '../shared/window/window.js';
 import whale from '../assets/whale.png';
 
@@ -179,37 +181,26 @@ export class WgTitlebar extends LitElement {
     }
   `;
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribers = [
-      strings.subscribe(() => this.requestUpdate()),
-      // 标题上的项目名跟着文档走：打开、另存、MCP 改名都会推 project.changed。
-      project.subscribe((state) => {
-        this.project = state ? { name: state.name, untitled: state.untitled } : null;
-      }),
-      windowMirror.subscribe((state) => {
-        if (state) {
-          this.placement = state.state;
-          this.topmost = state.topmost;
-        }
-      }),
-      appInfo.subscribe((info) => {
-        this.version = info?.version ?? '';
-      }),
-    ];
-    window.addEventListener('pointerdown', this.onDocumentPointerDown, true);
-  }
+  protected readonly stringsController = new StoreController(this, strings);
 
-  private unsubscribers: Array<() => void> = [];
+  protected readonly projectController = new StoreController(this, project, (state) => {
+    this.project = state ? { name: state.name, untitled: state.untitled } : null;
+  });
 
-  disconnectedCallback(): void {
-    for (const unsubscribe of this.unsubscribers) {
-      unsubscribe();
+  protected readonly windowController = new StoreController(this, windowMirror, (state) => {
+    if (state) {
+      this.placement = state.state;
+      this.topmost = state.topmost;
     }
-    this.unsubscribers = [];
-    window.removeEventListener('pointerdown', this.onDocumentPointerDown, true);
-    super.disconnectedCallback();
-  }
+  });
+
+  protected readonly appInfoController = new StoreController(this, appInfo, (info) => {
+    this.version = info?.version ?? '';
+  });
+
+  protected readonly pointerController = new WindowEventController(this, 'pointerdown', (event) => {
+    this.onDocumentPointerDown(event);
+  }, { capture: true });
 
   render() {
     return html`

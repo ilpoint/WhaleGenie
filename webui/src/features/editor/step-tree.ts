@@ -6,6 +6,7 @@ import { icon, iconForCategory, type IconName } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import type { EditorStep } from '../../shared/bridge/protocol.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { categoryOfAction, findStep, visibleStepIds } from './editor-model.js';
 import { editorBase } from './editor-css.js';
 
@@ -17,7 +18,7 @@ import { editorBase } from './editor-css.js';
 export class WgStepTree extends LitElement {
   static styles = [editorBase, stepTreeCss];
 
-  private unsubscribe?: () => void;
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   private dropTarget: { id: string; before: boolean } | null = null;
 
@@ -29,11 +30,9 @@ export class WgStepTree extends LitElement {
   connectedCallback(): void {
     super.connectedCallback();
     editor.session.ensureLoaded();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
   }
 
   disconnectedCallback(): void {
-    this.unsubscribe?.();
     super.disconnectedCallback();
   }
 

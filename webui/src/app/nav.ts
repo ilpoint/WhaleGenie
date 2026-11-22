@@ -2,6 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { icon } from '../shared/icons.js';
 import { strings, t } from '../shared/strings/strings.js';
+import { StoreController } from '../shared/lit/store-controller.js';
 import { routes, type Route } from '../shared/navigation/router.js';
 
 /**
@@ -108,7 +109,7 @@ export class WgNav extends LitElement {
 
   private labels: Record<string, string> = {};
 
-  private unsubscribe?: () => void;
+  protected readonly stringsController = new StoreController(this, strings, () => this.refreshLabels());
 
   /** 路由到词表键的显式映射：对账测试按字面量扫键，动态拼出来的键扫不到。 */
   private static readonly keys: Record<Route, string> = {
@@ -121,18 +122,6 @@ export class WgNav extends LitElement {
     about: 'Shell.About',
   };
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    // 页面元素在词表到达之前就挂载了（wg-shell 写在 index.html 里），先按键名显示，词表
-    // 到了再重画。
-    this.unsubscribe = strings.subscribe(() => this.refreshLabels());
-    this.refreshLabels();
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    super.disconnectedCallback();
-  }
 
   /** 只在词表换包时重建标签；active 变化走 property。 */
   private refreshLabels(): void {

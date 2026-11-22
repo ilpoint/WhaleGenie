@@ -4,6 +4,7 @@ import { appInfo } from '../../shared/app/app.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type { AboutState, AppInfo } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import wechat from '../../assets/donate-wechat.png';
 import alipay from '../../assets/donate-alipay.png';
 
@@ -22,7 +23,11 @@ export class WgAbout extends LitElement {
   @state()
   private error = '';
 
-  private readonly unsubscribers: Array<() => void> = [];
+  protected readonly stringsController = new StoreController(this, strings);
+
+  protected readonly appInfoController = new StoreController(this, appInfo, (info) => {
+    this.info = info;
+  });
 
   static styles = css`
     :host {
@@ -112,20 +117,7 @@ export class WgAbout extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.unsubscribers.push(
-      strings.subscribe(() => this.requestUpdate()),
-      appInfo.subscribe((info) => {
-        this.info = info;
-      }),
-    );
     void this.load();
-  }
-
-  disconnectedCallback(): void {
-    for (const unsubscribe of this.unsubscribers.splice(0)) {
-      unsubscribe();
-    }
-    super.disconnectedCallback();
   }
 
   render() {

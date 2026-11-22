@@ -5,6 +5,7 @@ import type { LibraryEntry } from '../../shared/bridge/protocol.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 
 /** The public macro library: what every project may copy, and the way to remove an entry. */
 @customElement('wg-library')
@@ -21,9 +22,14 @@ export class WgLibrary extends LitElement {
   @state()
   private selectedMacro = '';
 
-  private unsubscribe?: () => void;
+  protected readonly stringsController = new StoreController(this, strings);
 
-  private unsubscribeProject?: () => void;
+  protected readonly projectController = new StoreController(this, project, (state) => {
+    this.macros = state?.macros.map((macro) => macro.name) ?? [];
+    if (this.selectedMacro.length === 0) {
+      this.selectedMacro = this.macros[0] ?? '';
+    }
+  });
 
   static styles = css`
     :host {
@@ -103,20 +109,7 @@ export class WgLibrary extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.unsubscribe = strings.subscribe(() => this.requestUpdate());
-    this.unsubscribeProject = project.subscribe((state) => {
-      this.macros = state?.macros.map((macro) => macro.name) ?? [];
-      if (this.selectedMacro.length === 0) {
-        this.selectedMacro = this.macros[0] ?? '';
-      }
-    });
     void this.load();
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    this.unsubscribeProject?.();
-    super.disconnectedCallback();
   }
 
   render() {

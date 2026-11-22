@@ -2,6 +2,8 @@ import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
+import { SubscriptionController } from '../../shared/lit/subscription-controller.js';
 import type { McpState } from '../../shared/bridge/protocol.js';
 
 /**
@@ -96,25 +98,12 @@ export class WgMcpPanel extends LitElement {
     }
   `;
 
-  private unsubscribers: Array<() => void> = [];
+  protected readonly stringsController = new StoreController(this, strings);
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribers = [
-      strings.subscribe(() => this.requestUpdate()),
-      bridge.value.on('mcp.changed', (state) => {
-        this.state = state;
-      }),
-    ];
-  }
-
-  disconnectedCallback(): void {
-    for (const unsubscribe of this.unsubscribers) {
-      unsubscribe();
-    }
-    this.unsubscribers = [];
-    super.disconnectedCallback();
-  }
+  protected readonly mcpController = new SubscriptionController(this, () =>
+    bridge.value.on('mcp.changed', (state) => {
+      this.state = state;
+    }));
 
   /** filebar 的入口按钮调这个：打开浮层并把当前授权拿回来。 */
   async show(): Promise<void> {

@@ -5,6 +5,8 @@ import type { EditorValueNode, EditorValueSnapshot } from '../../shared/bridge/p
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
+import { WindowEventController } from '../../shared/lit/window-event-controller.js';
 import { editorBase } from './editor-css.js';
 
 /** The restored value window: token band, signs, variables and functions on one screen. */
@@ -22,17 +24,13 @@ export class WgValueEditor extends LitElement {
 
   static styles = [editorBase, valueEditorCss];
 
-  private unsubscribe?: () => void;
+  protected readonly editorController = new StoreController<void>(this, editor);
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-    window.addEventListener('keydown', this.onWindowKeydown);
-  }
+  protected readonly keydownController = new WindowEventController(this, 'keydown', (event) => {
+    this.onWindowKeydown(event);
+  });
 
   disconnectedCallback(): void {
-    this.unsubscribe?.();
-    window.removeEventListener('keydown', this.onWindowKeydown);
     window.clearTimeout(this.textTimer);
     super.disconnectedCallback();
   }

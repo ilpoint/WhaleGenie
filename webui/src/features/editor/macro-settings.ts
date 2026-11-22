@@ -6,6 +6,7 @@ import { t } from '../../shared/strings/strings.js';
 import type { EditorCharacterPad, EditorTrigger } from '../../shared/bridge/protocol.js';
 import { keyboardChord } from '../../shared/input/capture.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 import './character-pad.js';
 
@@ -37,15 +38,9 @@ export class WgMacroSettings extends LitElement {
 
   static styles = [editorBase, macroSettingsCss];
 
-  private unsubscribe?: () => void;
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-  }
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   disconnectedCallback(): void {
-    this.unsubscribe?.();
     window.removeEventListener('keydown', this.onEndCapture, true);
     window.removeEventListener('keydown', this.onInterfaceCapture, true);
     super.disconnectedCallback();

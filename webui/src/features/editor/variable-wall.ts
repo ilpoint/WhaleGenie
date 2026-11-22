@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { t } from '../../shared/strings/strings.js';
 import type { EditorValueChoice } from '../../shared/bridge/protocol.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 import { wallVariables, type VariableGroupFilter } from './editor-model.js';
 
@@ -124,17 +125,7 @@ export class WgVariableWall extends LitElement {
     }
   `];
 
-  private unsubscribe?: () => void;
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribe?.();
-    super.disconnectedCallback();
-  }
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   render() {
     const snapshot = editor.get().snapshot;
