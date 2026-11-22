@@ -248,8 +248,8 @@ public class LocalSettingsTests
             var screen = CaptureChoice.Current.Screen;
             try
             {
-                CaptureSetup.StoreWindow(CaptureWay.PrintWindow);
-                CaptureSetup.StoreScreen(CaptureWay.DesktopDuplication);
+                CaptureSetup.StoreWindow(AppSettings.Shared, CaptureWay.PrintWindow);
+                CaptureSetup.StoreScreen(AppSettings.Shared, CaptureWay.DesktopDuplication);
 
                 Assert.Equal(CaptureWay.PrintWindow, LocalSettings.LoadCaptureWindow());
                 Assert.Equal(CaptureWay.DesktopDuplication, LocalSettings.LoadCaptureScreen());

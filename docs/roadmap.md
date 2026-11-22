@@ -20,7 +20,7 @@
 
 **实现状态（2026-11）**：C#/页面职责分界已完成——P6 编辑模型/无头会话与 P7 全部桥处理器已迁入
 `WhaleGenie.Editing`/`WhaleGenie.App`，界面工程只保留窗口、原生选择器/遮罩适配。
-P3/P4 的 IO/busy、P5 可注入设置、P8 原生主题进一步收缩、P9 mock 收缩归入后续技术债。
+P3/P4 的 IO/busy、P8 原生主题进一步收缩、P9 mock 收缩归入后续技术债（P5 可注入设置已完成）。
 剩余三块原生浮层（宏菜单、轮盘、界面面板）迁往 Lit 的分阶段计划见
 [surfaces-migration.md](architecture/surfaces-migration.md)：先做透明浮层能力验证（S0），再按
 菜单 → 轮盘 → 界面面板推进，清理债务随阶段结清。

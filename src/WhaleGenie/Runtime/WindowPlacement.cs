@@ -13,9 +13,9 @@ namespace WhaleGenie.Runtime;
 public static class WindowPlacement
 {
     /// <summary>Applies the remembered size, limited to the desktop that is here now.</summary>
-    public static void Restore(Window window)
+    public static void Restore(Window window, AppSettings settings)
     {
-        if (LocalSettings.LoadMainWindowSize() is { } size)
+        if (settings.LoadMainWindowSize() is { } size)
         {
             var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
             var scale = screen is { Scaling: > 0 } ? screen.Scaling : 1;
@@ -28,20 +28,20 @@ public static class WindowPlacement
 
         // A maximized window is a choice too. Without this the shell reopened at the last normal
         // size after every launch, which read as the window shrinking by itself.
-        if (LocalSettings.LoadMainWindowMaximized())
+        if (settings.LoadMainWindowMaximized())
         {
             window.WindowState = WindowState.Maximized;
         }
     }
 
     /// <summary>Remembers the ordinary size; a maximized or minimized size is not a choice.</summary>
-    public static void Remember(Window window)
+    public static void Remember(Window window, AppSettings settings)
     {
         if (window.WindowState == WindowState.Normal)
         {
-            LocalSettings.StoreMainWindowSize(window.Width, window.Height);
+            settings.StoreMainWindowSize(window.Width, window.Height);
         }
 
-        LocalSettings.StoreMainWindowMaximized(window.WindowState == WindowState.Maximized);
+        settings.StoreMainWindowMaximized(window.WindowState == WindowState.Maximized);
     }
 }

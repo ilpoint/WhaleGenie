@@ -42,6 +42,8 @@
 
 ## 后续技术债（不阻塞职责分界）
 
+- 可注入设置的收尾已完成：`AppSettings` 实例贯穿设置页、编辑模型、触发宿主、主题、窗口位置与 MCP；
+  `LocalSettings` 只剩测试使用的静态门面。
 - 长耗时处理器的 IO 下放与 busy 事件仍待收尾：保存/打开目前由应用层持有的
   `ProjectWorkspace` 完成；下一步把纯文件 IO 放到工作线程，busy 复用同一条推送通道。
 - 运行模型与 `RunBridge` 已迁入 App；缩略图改为纯 BMP 编码、界面线程经 `IUiPost`，

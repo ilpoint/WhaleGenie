@@ -21,6 +21,7 @@ namespace WhaleGenie.ViewModels;
 public partial class McpServerViewModel : ViewModelBase
 {
     private readonly bool _loaded;
+    private readonly WhaleGenie.Localization.AppSettings _settings;
     private bool _allowControl;
     private bool _allowRun;
     private string _status = string.Empty;
@@ -28,9 +29,10 @@ public partial class McpServerViewModel : ViewModelBase
     /// <summary>The block's shape, made once rather than every time the text is read.</summary>
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
 
-    public McpServerViewModel()
+    public McpServerViewModel(WhaleGenie.Localization.AppSettings? settings = null)
     {
-        var grants = LocalSettings.LoadMcpGrants();
+        _settings = settings ?? WhaleGenie.Localization.AppSettings.Shared;
+        var grants = _settings.LoadMcpGrants();
         _allowControl = grants.Control;
         _allowRun = grants.Run;
         _loaded = true;
@@ -144,7 +146,7 @@ public partial class McpServerViewModel : ViewModelBase
         OnPropertyChanged(name);
         if (_loaded)
         {
-            LocalSettings.StoreMcpGrants(_allowControl, _allowRun);
+            _settings.StoreMcpGrants(_allowControl, _allowRun);
         }
     }
 }

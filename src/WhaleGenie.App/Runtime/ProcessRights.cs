@@ -37,8 +37,8 @@ public static class ProcessRights
     /// rights. True means that copy is on its way and this one should end: two of them would be
     /// listening for the same hotkeys.
     /// </summary>
-    public static bool AutoRestart(IReadOnlyList<string> args)
-        => WantsElevation(IsElevated, LocalSettings.LoadRunAsAdmin(), args)
+    public static bool AutoRestart(IReadOnlyList<string> args, AppSettings? settings = null)
+        => WantsElevation(IsElevated, (settings ?? AppSettings.Shared).LoadRunAsAdmin(), args)
             && RestartElevated(ElevatedFlag);
 
     /// <summary>

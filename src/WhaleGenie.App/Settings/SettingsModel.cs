@@ -100,7 +100,7 @@ internal sealed class SettingsModel
         /// The shortcut that ends a recording, written as a hotkey is written. Ctrl+F10 by default,
         /// which is what the recording panel has always said out loud.
         /// </summary>
-        public string RecordStopKey { get; set; } = LocalSettings.UsualRecordStopKey;
+        public string RecordStopKey { get; set; } = AppSettings.UsualRecordStopKey;
 
         /// <summary>
         /// Whether every start asks Windows for the administrator token. Off by default: a macro

@@ -22,14 +22,14 @@ internal static class McpHeadless
     /// </summary>
     internal static int Run(McpHostOptions options)
     {
-        RuntimeSetup.Prepare();
+        RuntimeSetup.Prepare(AppSettings.Shared);
 
         var services = AppServices.Windowless(out var project);
 
         // A windowless run has no page to flip, but the page is in the program the person has open
         // beside it: the two permissions are read back from the settings file before each call, so
         // switching one over there takes effect here on the next call rather than at the next start.
-        McpControl.Stored = McpGrants.Current;
+        McpControl.Stored = () => McpGrants.Current(AppSettings.Shared);
 
         if (Setup(project, options) is { } failure)
         {
@@ -129,7 +129,7 @@ internal static class McpHeadless
             // Neither told which package to serve: the one the window had open last is what the
             // client means by "my project". A path that is gone leaves this run with nothing, which
             // is still better than failing to start.
-            if (LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
+            if (AppSettings.Shared.LastProject() is { Length: > 0 } last && File.Exists(last))
             {
                 project.OpenPackage(last);
             }

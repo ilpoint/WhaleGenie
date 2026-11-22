@@ -68,7 +68,7 @@ public partial class SettingsViewModel
     {
         if (_frameReady)
         {
-            FrameSetup.StoreRate(value, (int)Math.Round(FrameRate));
+            FrameSetup.StoreRate(_settings, value, (int)Math.Round(FrameRate));
         }
     }
 
@@ -77,7 +77,7 @@ public partial class SettingsViewModel
         var rate = Math.Clamp((int)Math.Round(value), 1, FrameSetup.FastestRate);
         if (_frameReady && !FrameRateFollow)
         {
-            FrameSetup.StoreRate(followDisplay: false, rate);
+            FrameSetup.StoreRate(_settings, followDisplay: false, rate);
         }
     }
 
@@ -99,7 +99,7 @@ public partial class SettingsViewModel
     {
         if (_frameReady)
         {
-            FrameSetup.StoreCache(value, (int)Math.Round(FrameCacheAge));
+            FrameSetup.StoreCache(_settings, value, (int)Math.Round(FrameCacheAge));
         }
     }
 
@@ -108,7 +108,7 @@ public partial class SettingsViewModel
         var age = Math.Clamp((int)Math.Round(value), 0, AppSettings.FrameCacheOldest);
         if (_frameReady && FrameCache)
         {
-            FrameSetup.StoreCache(reuse: true, age);
+            FrameSetup.StoreCache(_settings, reuse: true, age);
         }
     }
 

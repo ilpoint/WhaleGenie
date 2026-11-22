@@ -19,8 +19,11 @@ namespace WhaleGenie.Bridge;
 /// file before every call, so flipping a switch takes effect for the client that is already
 /// running.
 /// </summary>
-public sealed class McpBridge(Func<IClipboardDevice> clipboard) : IBridgeHandler
+public sealed class McpBridge(Func<IClipboardDevice> clipboard, AppSettings? settings = null)
+    : IBridgeHandler
 {
+    private readonly AppSettings _settings = settings ?? AppSettings.Shared;
+
     /// <summary>The one clipboard the program holds; configuration text goes on it.</summary>
     private readonly Func<IClipboardDevice> _clipboard = clipboard;
 
@@ -42,9 +45,9 @@ public sealed class McpBridge(Func<IClipboardDevice> clipboard) : IBridgeHandler
         server.Register("mcp.openAudit", OpenAudit);
     }
 
-    private static McpState State()
+    private McpState State()
     {
-        var grants = LocalSettings.LoadMcpGrants();
+        var grants = _settings.LoadMcpGrants();
         return new McpState(grants.Control, grants.Run, ConfigText(), McpAudit.File);
     }
 
@@ -54,7 +57,7 @@ public sealed class McpBridge(Func<IClipboardDevice> clipboard) : IBridgeHandler
             && controlGiven.ValueKind == JsonValueKind.True;
         var run = parameters.TryGetProperty("run", out var runGiven) && runGiven.ValueKind == JsonValueKind.True;
 
-        LocalSettings.StoreMcpGrants(control, run);
+        _settings.StoreMcpGrants(control, run);
         await _server!.PushAsync("mcp.changed", State());
         return null;
     }

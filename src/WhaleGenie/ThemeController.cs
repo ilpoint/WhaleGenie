@@ -9,11 +9,12 @@ namespace WhaleGenie;
 /// </summary>
 public static class ThemeController
 {
-    public static ThemeSelection Load() => LocalSettings.LoadTheme();
+    public static ThemeSelection Load(AppSettings settings) => settings.LoadTheme();
 
     public static void Apply(ThemeSelection selection) => ThemePalette.Apply(selection);
 
-    public static void Save(ThemeSelection selection) => LocalSettings.StoreTheme(selection);
+    public static void Save(AppSettings settings, ThemeSelection selection)
+        => settings.StoreTheme(selection);
 
     /// <summary>
     /// The choice to start customising from: the variant in use, with the accent it was already

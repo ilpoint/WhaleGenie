@@ -40,7 +40,8 @@ internal static class WindowedServices
             persisted,
             variables,
             new AvaloniaUiDispatcher(),
-            new AvaloniaWindowAside());
+            new AvaloniaWindowAside(),
+            AppSettings.Shared);
 
         services.AddSingleton(sp => new MainViewModel(_ => new McpServerViewModel(), persisted,
             variables, workspace, sp.GetRequiredService<SystemState>()));
@@ -66,10 +67,11 @@ internal static class WindowedServices
             server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>(),
             new ShellCommands()));
             server.Register(new StringsBridge());
-            server.Register(new ThemeBridge(new ThemeCommands()));
+            server.Register(new ThemeBridge(new ThemeCommands(sp.GetRequiredService<AppSettings>())));
             server.Register(new WindowBridge(() =>
             sp.GetService<WebShellWindow>() is { } window ? new ShellWindowCommands(window) : null));
-            server.Register(new McpBridge(() => SharedDevices.Current.Clipboard));
+            server.Register(new McpBridge(() => SharedDevices.Current.Clipboard,
+                sp.GetRequiredService<AppSettings>()));
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();

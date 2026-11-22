@@ -52,7 +52,8 @@ public class DriverAttachAtStartTests
         var app = File.ReadAllText(RepoPaths.Source("WhaleGenie", "App.axaml.cs"));
 
         Assert.Contains(
-            "Driver.AttachAtStart = LocalSettings.LoadDriverAttachAtStart()", app, StringComparison.Ordinal);
+            "Driver.AttachAtStart = AppSettings.Shared.LoadDriverAttachAtStart()", app,
+            StringComparison.Ordinal);
         Assert.Contains("Driver.WarmUp()", app, StringComparison.Ordinal);
     }
 

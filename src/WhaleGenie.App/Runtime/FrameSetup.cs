@@ -14,14 +14,14 @@ namespace WhaleGenie.Runtime;
 public static class FrameSetup
 {
     /// <summary>Reads the stored choices and gives them to the engine.</summary>
-    public static void Load()
+    public static void Load(AppSettings settings)
     {
         var hertz = SharedDevices.Current.Screen.RefreshHertz;
-        FrameShelf.Current.MaxFramesPerSecond = LocalSettings.LoadFrameRateFollow()
+        FrameShelf.Current.MaxFramesPerSecond = settings.LoadFrameRateFollow()
             ? 0
-            : Math.Clamp(LocalSettings.LoadFrameRate(), 1, hertz);
-        FrameShelf.Current.CacheMilliseconds = LocalSettings.LoadFrameCache()
-            ? Math.Clamp(LocalSettings.LoadFrameCacheAge(), 0, LocalSettings.FrameCacheOldest)
+            : Math.Clamp(settings.LoadFrameRate(), 1, hertz);
+        FrameShelf.Current.CacheMilliseconds = settings.LoadFrameCache()
+            ? Math.Clamp(settings.LoadFrameCacheAge(), 0, AppSettings.FrameCacheOldest)
             : 0;
     }
 
@@ -33,24 +33,24 @@ public static class FrameSetup
     public static int FastestRate => Math.Max(1, SharedDevices.Current.Screen.RefreshHertz);
 
     /// <summary>Stores how often a picture may be taken, and gives it to the engine.</summary>
-    public static void StoreRate(bool followDisplay, int hertz)
+    public static void StoreRate(AppSettings settings, bool followDisplay, int hertz)
     {
         var rate = Math.Clamp(hertz, 1, FastestRate);
-        LocalSettings.StoreFrameRateFollow(followDisplay);
+        settings.StoreFrameRateFollow(followDisplay);
         if (!followDisplay)
         {
-            LocalSettings.StoreFrameRate(rate);
+            settings.StoreFrameRate(rate);
         }
 
         FrameShelf.Current.MaxFramesPerSecond = followDisplay ? 0 : rate;
     }
 
     /// <summary>Stores whether a picture may be read again, and how old it may be.</summary>
-    public static void StoreCache(bool reuse, int milliseconds)
+    public static void StoreCache(AppSettings settings, bool reuse, int milliseconds)
     {
-        var age = Math.Clamp(milliseconds, 0, LocalSettings.FrameCacheOldest);
-        LocalSettings.StoreFrameCache(reuse);
-        LocalSettings.StoreFrameCacheAge(age);
+        var age = Math.Clamp(milliseconds, 0, AppSettings.FrameCacheOldest);
+        settings.StoreFrameCache(reuse);
+        settings.StoreFrameCacheAge(age);
         FrameShelf.Current.CacheMilliseconds = reuse ? age : 0;
     }
 }

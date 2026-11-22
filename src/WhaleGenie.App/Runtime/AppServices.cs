@@ -37,7 +37,7 @@ internal static class AppServices
         var document = new ProjectWorkspace(persisted, variables, AppVersion.Text);
         workspace = document;
         return Wiring(_ => document, persisted, variables, DirectUiDispatcher.Instance,
-            NoWindowAside.Instance).BuildServiceProvider();
+            NoWindowAside.Instance, AppSettings.Shared).BuildServiceProvider();
     }
 
     /// <summary>
@@ -47,7 +47,7 @@ internal static class AppServices
     /// </summary>
     internal static ServiceProvider Minimal(ProjectWorkspace project)
         => Wiring(_ => project, project.Persisted, project.Variables, DirectUiDispatcher.Instance,
-            NoWindowAside.Instance).BuildServiceProvider();
+            NoWindowAside.Instance, AppSettings.Shared).BuildServiceProvider();
 
     /// <summary>
     /// The server over this run's container. The tool owners are named here rather than inside the
@@ -70,7 +70,8 @@ internal static class AppServices
     /// its window shows.
     /// </summary>
     internal static ServiceCollection Wiring(Func<IServiceProvider, ProjectWorkspace> project,
-        PersistedVariables persisted, VariableSession variables, IUiDispatcher ui, IWindowAside aside)
+        PersistedVariables persisted, VariableSession variables, IUiDispatcher ui, IWindowAside aside,
+        AppSettings settings)
     {
         var services = new ServiceCollection();
 
@@ -80,7 +81,7 @@ internal static class AppServices
 
         // The system switch is machine state, not window state: the page, a hotkey and the native
         // window all flip the same object, and the trigger host is the one that follows it.
-        services.AddSingleton<SystemState>();
+        services.AddSingleton(_ => new SystemState(settings));
 
         // One device layer for the whole run: a window, a trigger and an MCP call all work on this
         // machine, and the models it loads are loaded once.
@@ -91,7 +92,7 @@ internal static class AppServices
 
         // One settings object for the whole run: a window, the page and a check all read and write
         // the same file through this instance rather than through a static of its own.
-        services.AddSingleton(_ => AppSettings.Shared);
+        services.AddSingleton(settings);
 
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<McpLiveProject>();

@@ -19,8 +19,9 @@ public sealed class SystemState
 {
     private int _enabled;
 
-    public SystemState()
-        : this(LocalSettings.LoadSystemAtStart())
+    /// <summary>Starts with the switch the settings file asked for.</summary>
+    public SystemState(AppSettings settings)
+        : this(settings.LoadSystemAtStart())
     {
     }
 

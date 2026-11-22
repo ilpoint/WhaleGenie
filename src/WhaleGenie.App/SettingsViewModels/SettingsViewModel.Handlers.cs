@@ -113,7 +113,7 @@ public partial class SettingsViewModel
     {
         if (value.Way != CaptureChoice.Current.Window)
         {
-            CaptureSetup.StoreWindow(value.Way);
+            CaptureSetup.StoreWindow(_settings, value.Way);
         }
     }
 
@@ -122,7 +122,7 @@ public partial class SettingsViewModel
     {
         if (value.Way != CaptureChoice.Current.Screen)
         {
-            CaptureSetup.StoreScreen(value.Way);
+            CaptureSetup.StoreScreen(_settings, value.Way);
         }
     }
 }

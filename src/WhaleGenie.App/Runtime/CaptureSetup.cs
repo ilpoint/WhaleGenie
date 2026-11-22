@@ -13,23 +13,23 @@ namespace WhaleGenie.Runtime;
 public static class CaptureSetup
 {
     /// <summary>Reads the stored choices and gives them to the engine.</summary>
-    public static void Load()
+    public static void Load(AppSettings settings)
     {
-        CaptureChoice.Current.Window = LocalSettings.LoadCaptureWindow();
-        CaptureChoice.Current.Screen = LocalSettings.LoadCaptureScreen();
+        CaptureChoice.Current.Window = settings.LoadCaptureWindow();
+        CaptureChoice.Current.Screen = settings.LoadCaptureScreen();
     }
 
     /// <summary>Stores how a window's picture is taken, and gives it to the engine.</summary>
-    public static void StoreWindow(CaptureWay way)
+    public static void StoreWindow(AppSettings settings, CaptureWay way)
     {
-        LocalSettings.StoreCaptureWindow(way);
+        settings.StoreCaptureWindow(way);
         CaptureChoice.Current.Window = way;
     }
 
     /// <summary>Stores how the desktop's picture is taken, and gives it to the engine.</summary>
-    public static void StoreScreen(CaptureWay way)
+    public static void StoreScreen(AppSettings settings, CaptureWay way)
     {
-        LocalSettings.StoreCaptureScreen(way);
+        settings.StoreCaptureScreen(way);
         CaptureChoice.Current.Screen = way;
     }
 }

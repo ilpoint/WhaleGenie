@@ -85,6 +85,8 @@ public sealed class TriggerHost : IDisposable
 
     private readonly Action<UiSound> _playSound;
 
+    private readonly WhaleGenie.Localization.AppSettings _settings;
+
     private readonly HashSet<string> _globalHeld = new(StringComparer.OrdinalIgnoreCase);
 
     private GlobalHotkeyPlan _plan = GlobalHotkeyPlan.Empty;
@@ -99,8 +101,10 @@ public sealed class TriggerHost : IDisposable
     /// </param>
     internal TriggerHost(ProjectWorkspace workspace, SystemState system, TriggerRuntime runtime,
         IDeviceLayer devices, ITriggerSurfaceHost surface, IRunQuestionHost questions,
-        ITriggerFocusProbe focus, Action<UiSound>? playSound = null)
+        ITriggerFocusProbe focus, Action<UiSound>? playSound = null,
+        WhaleGenie.Localization.AppSettings? settings = null)
     {
+        _settings = settings ?? WhaleGenie.Localization.AppSettings.Shared;
         _workspace = workspace;
         _system = system;
         _runtime = runtime;
@@ -108,7 +112,7 @@ public sealed class TriggerHost : IDisposable
         _surface = surface;
         _questions = questions;
         _focus = focus;
-        _playSound = playSound ?? AppSound.Play;
+        _playSound = playSound ?? (sound => AppSound.Play(_settings, sound));
     }
 
     /// <summary>The plan the hotkeys match against, for callers that read it while it is live.</summary>
@@ -174,11 +178,11 @@ public sealed class TriggerHost : IDisposable
     /// </summary>
     public void PublishPlan()
     {
-        var menuLauncher = Localization.LocalSettings.LoadMenuLauncher();
+        var menuLauncher = _settings.LoadMenuLauncher();
         _runtime.Publish(_workspace.Triggers, [.. _workspace.Macros], menuLauncher);
         Volatile.Write(ref _plan,
             GlobalHotkeyPlan.From(_workspace, _system,
-                Localization.LocalSettings.LoadSystemHotkey(), menuLauncher));
+                _settings.LoadSystemHotkey(), menuLauncher));
     }
 
     /// <summary>

@@ -52,20 +52,25 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>Remembers the last package; a check hands in a no-op so it leaves no trace.</summary>
     private readonly Action<string> _rememberProject;
 
+    /// <summary>The settings file behind the last-package memory and the list order.</summary>
+    private readonly AppSettings _settings;
+
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
         IFileDialogs files, IProjectInteraction interaction, DialogBridge dialogs,
-        Action<UiSound>? playSound = null, Action<string>? rememberProject = null)
+        Action<UiSound>? playSound = null, Action<string>? rememberProject = null,
+        AppSettings? settings = null)
     {
+        _settings = settings ?? AppSettings.Shared;
         _workspace = workspace;
         _runtime = runtime;
         _system = system;
         _files = files;
         _interaction = interaction;
         _dialogs = dialogs;
-        _playSound = playSound ?? AppSound.Play;
-        _rememberProject = rememberProject ?? LocalSettings.StoreLastProject;
+        _playSound = playSound ?? (sound => AppSound.Play(_settings, sound));
+        _rememberProject = rememberProject ?? _settings.StoreLastProject;
     }
 
     public void Register(BridgeServer server)
@@ -117,7 +122,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _workspace.IsDirty,
         _workspace.Revision,
         _system.IsEnabled,
-        LocalSettings.LoadEnabledFirst(),
+        _settings.LoadEnabledFirst(),
         Enum.GetNames<MacroView>(),
         [.. _workspace.Macros
             .Select(macro => macro.Group.Trim())

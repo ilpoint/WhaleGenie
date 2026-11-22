@@ -18,5 +18,6 @@ namespace WhaleGenie.Mcp;
 internal static class McpGrants
 {
     /// <summary>The permissions in force, as the file has them right now.</summary>
-    internal static (bool Control, bool Run) Current() => LocalSettings.LoadMcpGrants();
+    internal static (bool Control, bool Run) Current(AppSettings settings)
+        => settings.LoadMcpGrants();
 }

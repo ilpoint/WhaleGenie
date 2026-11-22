@@ -91,7 +91,7 @@ public class ThemePaletteTests
     {
         Ui.Run(() =>
         {
-            var original = ThemeController.Load();
+            var original = ThemeController.Load(AppSettings.Shared);
             try
             {
                 foreach (var text in new[] { "not a color", null, "#FFFFFF" })
@@ -114,7 +114,7 @@ public class ThemePaletteTests
     {
         Ui.Run(() =>
         {
-            var original = ThemeController.Load();
+            var original = ThemeController.Load(AppSettings.Shared);
             try
             {
                 Assert.True(ThemePalette.TryDerive(Color.Parse("#112233"), light: false, out var tokens));

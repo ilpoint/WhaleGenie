@@ -22,7 +22,7 @@ public class McpGrantsTests : IDisposable
     {
         _was = LocalSettings.FilePath;
         LocalSettings.FilePath = _path;
-        McpControl.Stored = McpGrants.Current;
+        McpControl.Stored = () => McpGrants.Current(AppSettings.Shared);
     }
 
     /// <summary>Whatever a check did, the rest of the run reads the real file and answers as before.</summary>
@@ -73,7 +73,7 @@ public class McpGrantsTests : IDisposable
 
         // A run that has a file but no grants in it is the same: the page writes a no as readily as
         // a yes, and a missing answer is a no either way.
-        McpControl.Stored = McpGrants.Current;
+        McpControl.Stored = () => McpGrants.Current(AppSettings.Shared);
         Assert.False(McpControl.Allowed);
         Assert.False(McpControl.AllowsRun);
     }

@@ -1,14 +1,15 @@
 using Avalonia.Media;
 using WhaleGenie.Contracts;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Web;
 
 /// <summary>The theme palette and resource application the bridge's port needs.</summary>
-public sealed class ThemeCommands : IThemeCommands
+public sealed class ThemeCommands(AppSettings settings) : IThemeCommands
 {
     public ThemeState Current()
     {
-        var selection = ThemeController.Load();
+        var selection = ThemeController.Load(settings);
         var requested = ThemePalette.TryParse(selection.AccentHex, out var accent)
             ? accent
             : Color.Parse(ThemePalette.DefaultAccent);
@@ -52,7 +53,7 @@ public sealed class ThemeCommands : IThemeCommands
         var selection = new ThemeSelection(themeMode,
             baseLight ?? themeMode == ThemeMode.Light, accentHex).WithMode(themeMode);
         ThemeController.Apply(selection);
-        ThemeController.Save(selection);
+        ThemeController.Save(settings, selection);
         return Current();
     }
 }

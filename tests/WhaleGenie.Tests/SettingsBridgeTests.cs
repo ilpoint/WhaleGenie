@@ -151,12 +151,12 @@ public class SettingsBridgeTests
     public async Task The_theme_bridge_reports_a_refused_accent_and_the_fallback_it_paints()
     {
         using var files = new TempSettings();
-        var original = ThemeController.Load();
+        var original = ThemeController.Load(AppSettings.Shared);
         try
         {
-            ThemeController.Save(new ThemeSelection(ThemeMode.Custom, false, "#FFFFFF"));
+            ThemeController.Save(AppSettings.Shared, new ThemeSelection(ThemeMode.Custom, false, "#FFFFFF"));
             var server = new BridgeServer();
-            server.Register(new ThemeBridge(new WhaleGenie.Web.ThemeCommands()));
+            server.Register(new ThemeBridge(new WhaleGenie.Web.ThemeCommands(AppSettings.Shared)));
             var channel = Channel(server);
 
             var state = await Call(server, channel, "theme.get");
@@ -166,7 +166,7 @@ public class SettingsBridgeTests
         }
         finally
         {
-            ThemeController.Save(original);
+            ThemeController.Save(AppSettings.Shared, original);
         }
     }
 

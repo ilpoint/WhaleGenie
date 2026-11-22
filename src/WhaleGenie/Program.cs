@@ -34,8 +34,8 @@ sealed class Program
     {
         // The model layer remembers what language the person chose through these two, so it can stay
         // free of the interface's settings file. Set before anything is drawn or said.
-        Strings.LoadLanguage = LocalSettings.Load;
-        Strings.SaveLanguage = LocalSettings.Store;
+        Strings.LoadLanguage = AppSettings.Shared.Load;
+        Strings.SaveLanguage = AppSettings.Shared.Store;
 
         AppDomain.CurrentDomain.UnhandledException += (_, error) =>
             AppDiagnostics.Record("process.unhandled",

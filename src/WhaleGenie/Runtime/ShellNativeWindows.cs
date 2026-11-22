@@ -24,8 +24,12 @@ internal sealed class ShellNativeWindows(
     Func<Window?> owner,
     Func<MacroItem, bool> openEditor,
     Action<MacroItem> openRun,
-    Action openSettings) : INativeSurfaceActions, IDisposable
+    Action openSettings, WhaleGenie.Localization.AppSettings? settings = null)
+    : INativeSurfaceActions, IDisposable
 {
+    private readonly WhaleGenie.Localization.AppSettings _settings =
+        settings ?? WhaleGenie.Localization.AppSettings.Shared;
+
     /// <summary>The trigger host, once the shell has built it; settings republishes the plan.</summary>
     internal TriggerHost? Host { get; set; }
 
@@ -78,7 +82,7 @@ internal sealed class ShellNativeWindows(
             return false;
         }
 
-        LocalSettings.StoreLastProject(path);
+        _settings.StoreLastProject(path);
         return true;
     }
 

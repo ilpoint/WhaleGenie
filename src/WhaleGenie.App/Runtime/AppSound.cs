@@ -42,11 +42,11 @@ internal static class AppSound
     /// Plays the sound for this moment, unless that pair of moments was switched off. A machine that
     /// cannot make a sound stays quiet rather than failing the click that asked for it.
     /// </summary>
-    public static void Play(UiSound which)
+    public static void Play(AppSettings settings, UiSound which)
     {
         var on = which is UiSound.SystemOn or UiSound.SystemOff
-            ? LocalSettings.LoadSoundSystem()
-            : LocalSettings.LoadSoundMacro();
+            ? settings.LoadSoundSystem()
+            : settings.LoadSoundMacro();
 
         if (!on)
         {

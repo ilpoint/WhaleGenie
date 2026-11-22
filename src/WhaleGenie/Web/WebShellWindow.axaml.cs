@@ -183,7 +183,7 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        WindowPlacement.Restore(this);
+        WindowPlacement.Restore(this, AppSettings.Shared);
 
         _host ??= _hosts?.Create(this);
         if (_host is not null)
@@ -194,7 +194,7 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        WindowPlacement.Remember(this);
+        WindowPlacement.Remember(this, AppSettings.Shared);
         _host?.OnClosing(e);
         base.OnClosing(e);
     }

@@ -80,19 +80,19 @@ public class SoundSettingsTests
                 Assert.True(LocalSettings.LoadSoundSystem());
                 Assert.True(LocalSettings.LoadSoundMacro());
 
-                AppSound.Play(UiSound.SystemOn);
+                AppSound.Play(AppSettings.Shared, UiSound.SystemOn);
                 Assert.Equal([UiSound.SystemOn], played);
 
                 LocalSettings.StoreSoundMacro(false);
-                AppSound.Play(UiSound.MacroOff);
+                AppSound.Play(AppSettings.Shared, UiSound.MacroOff);
                 Assert.Single(played);
 
                 LocalSettings.StoreSoundSystem(false);
-                AppSound.Play(UiSound.SystemOff);
+                AppSound.Play(AppSettings.Shared, UiSound.SystemOff);
                 Assert.Single(played);
 
                 LocalSettings.StoreSoundMacro(true);
-                AppSound.Play(UiSound.MacroOn);
+                AppSound.Play(AppSettings.Shared, UiSound.MacroOn);
                 Assert.Equal(UiSound.MacroOn, played[^1]);
 
                 // 设置窗口里那两个勾也是同一条路。
@@ -123,7 +123,7 @@ public class SoundSettingsTests
             {
                 AppSound.PlayTone = _ => throw new InvalidOperationException("no output device");
 
-                AppSound.Play(UiSound.SystemOff);
+                AppSound.Play(AppSettings.Shared, UiSound.SystemOff);
             }
             finally
             {

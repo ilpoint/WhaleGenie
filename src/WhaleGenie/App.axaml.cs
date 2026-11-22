@@ -61,7 +61,7 @@ public partial class App : Application
     }
 
     /// <summary>What a project needs whatever kind of run this is.</summary>
-    private static void PrepareProject() => RuntimeSetup.Prepare();
+    private static void PrepareProject() => RuntimeSetup.Prepare(AppSettings.Shared);
 
     /// <summary>
     /// What only a run with a window needs: something to refresh, something to pack, and the
@@ -73,12 +73,12 @@ public partial class App : Application
         // refresh themselves when the table raises its change.
         Strings.Current.LanguageChanged += LanguageRefresh.Refresh;
 
-        ThemeController.Apply(ThemeController.Load());
+        ThemeController.Apply(ThemeController.Load(AppSettings.Shared));
 
         // Whether the virtual keyboard and mouse are to be put on the machine at startup was chosen
         // in the settings window and written beside the program; the engine does not read that file,
         // so it is told here, before anything can ask for driver-level input.
-        SharedDevices.Current.Driver.AttachAtStart = LocalSettings.LoadDriverAttachAtStart();
+        SharedDevices.Current.Driver.AttachAtStart = AppSettings.Shared.LoadDriverAttachAtStart();
 
         // And then it is given a head start: putting the virtual keyboard and mouse on the machine
         // is what the first driver-level move of a macro would otherwise wait for. Nothing is done
@@ -88,7 +88,7 @@ public partial class App : Application
         // Reading text loads a model, which costs a moment the first step that reads would
         // otherwise pay. Only when the setting says so: the models stay in memory for the rest of
         // the run, and a machine that never reads text should not pay for one that does.
-        if (LocalSettings.LoadPreloadOcr())
+        if (AppSettings.Shared.LoadPreloadOcr())
         {
             _ = Task.Run(SharedDevices.WarmUpOcr);
         }
@@ -115,8 +115,8 @@ public partial class App : Application
         // The person's last package comes back with the window: an empty list every morning is a
         // step nobody asked for. A file that is not there any more leaves the window empty rather
         // than failing to start, and the path is kept for the drive that was not plugged in.
-        if (LocalSettings.LoadLastProjectAtStart()
-            && LocalSettings.LastProject() is { Length: > 0 } last && File.Exists(last))
+        if (AppSettings.Shared.LoadLastProjectAtStart()
+            && AppSettings.Shared.LastProject() is { Length: > 0 } last && File.Exists(last))
         {
             try
             {
@@ -146,7 +146,7 @@ public partial class App : Application
         // The door a client's own process knocks on. Tools run here, on the project this window is
         // showing, so a draft is a copy of what is on screen and a save writes the file the person
         // has open. Permissions are read from the same settings file the flyout writes.
-        McpControl.Stored = McpGrants.Current;
+        McpControl.Stored = () => McpGrants.Current(AppSettings.Shared);
         McpPipe.Serve(async pipe =>
         {
             var host = AppServices.Host(services);

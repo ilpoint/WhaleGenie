@@ -19,13 +19,16 @@ public partial class MainViewModel : ViewModelBase
     private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
     private McpServerViewModel? _mcp;
     private readonly SystemState _system;
+    private readonly WhaleGenie.Localization.AppSettings _settings;
 
     public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null,
         PersistedVariables? persisted = null, VariableSession? variables = null,
-        ProjectWorkspace? workspace = null, SystemState? system = null)
+        ProjectWorkspace? workspace = null, SystemState? system = null,
+        WhaleGenie.Localization.AppSettings? settings = null)
     {
         _makeMcp = mcp;
-        _system = system ?? new SystemState();
+        _settings = settings ?? WhaleGenie.Localization.AppSettings.Shared;
+        _system = system ?? new SystemState(_settings);
         _system.Changed += OnSystemChanged;
 
         // The document is made first: every other member here reads it, and a window that opens a
@@ -152,7 +155,7 @@ public partial class MainViewModel : ViewModelBase
     {
         get
         {
-            var hotkey = LocalSettings.LoadSystemHotkey();
+            var hotkey = _settings.LoadSystemHotkey();
             return hotkey.Length == 0
                 ? Localization.Strings.Get(IsRunning
                     ? "Main.SystemDisableNoHotkey"
