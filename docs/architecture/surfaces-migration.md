@@ -150,8 +150,9 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
   实测真实桥与真实项目数据可画出菜单面板，位置跟随鼠标。
 - `surface.menu.close`：页面按 Esc 收起浮层；`surface.menu.activate` 先收起再运行宏。
   `MenuSurfaceBridgeTests` 覆盖这两条。
-- 置顶钉住：页面右上角有钉住开关，状态经 `surface.menu.pin` 写到宿主；**收起时机尚未接线**
-  （浮层目前不会因为切窗口自行关闭），等菜单热键接入时与前台变化一起做。
+- 置顶钉住：页面右上角有钉住开关，状态经 `surface.menu.pin` 写到宿主。
+- 收起时机：`MenuOverlayPolicy` 规定“可见 + 未钉住 + 前台是别的窗口”才收起，`MenuOverlayHost`
+  订阅设备层的前台变化并执行。策略有单测（5 组）；前台事件的真实手感仍需真机确认。
 - 结构操作已可用：`surface.menu.page.add/remove`、`surface.menu.rule.add`、`surface.menu.block`、
   `surface.menu.move`；页面在分页点旁提供「＋／×」，实测点「＋」后项目里多出一页（两个分页点）。
   `MenuSurfaceTests` 覆盖加页/删页与格子移动。

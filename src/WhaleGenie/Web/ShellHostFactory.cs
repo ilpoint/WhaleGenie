@@ -34,7 +34,13 @@ internal sealed class ShellHostFactory(
         {
             if (owner.Bridge is { } bridge)
             {
-                menu.Overlay ??= new MenuOverlayHost(bridge);
+                if (menu.Overlay is null)
+                {
+                    var host = new MenuOverlayHost(bridge, runtime.Devices);
+                    host.Attach();
+                    menu.Overlay = host;
+                }
+
             }
 
             menu.Overlay?.Show();
