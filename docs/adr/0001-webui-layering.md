@@ -54,5 +54,6 @@
 - 架构边界由 `tests/architecture.test.ts` 守护；规模由 ESLint 抑制基线守护。
 - 宏设置、设置页、步骤树、动作字段已按同一 playbook 拆到 400 行以内；其中较长的模板函数仍留在
   `eslint-suppressions.json`，下一批可按字段/区块继续拆。
-- mock 宿主（`mock.ts`、`mock-editor.ts`、`mock-editor-steps.ts`）仍超过 400 行，且静态打进单文件
-  产物；下一步按域拆 handler，发布形状不变。要剔除 mock 需另立 ADR。
+- mock 宿主仍静态打进单文件产物。步骤工具已拆成展示（327 行）与结构编辑（380 行）两个文件，
+  设置/词表夹具也已移出 `mock.ts`；`mock.ts`（send）与 `mock-editor.ts`（run/actionField）仍是下一批
+  按域拆的 handler。要剔除 mock 需另立 ADR。
