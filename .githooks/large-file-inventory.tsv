@@ -164,7 +164,7 @@
 453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 22960	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
 35133	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
-1235	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
+1146	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
 547	src/WhaleGenie/Editing/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 308	src/WhaleGenie/Editing/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 2600	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
@@ -194,5 +194,5 @@
 20011	docs/manual/05-values-and-placement.md	pending review
 312	src/WhaleGenie/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
 27445	webui/src/shared/bridge/mock-strings-extra.ts	pending review
-31535	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
+31774	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 401	src/WhaleGenie/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责

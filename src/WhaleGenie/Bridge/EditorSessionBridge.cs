@@ -46,16 +46,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionMove", MoveStep);
         server.Register("editor.sessionRemove", RemoveStep);
         server.Register("editor.sessionStepDuplicate", DuplicateStep);
-        server.Register("editor.sessionStepsEnabled", SetStepsEnabled);
-        server.Register("editor.sessionStepsRemove", RemoveSteps);
-        server.Register("editor.sessionStepsDuplicate", DuplicateSteps);
-        server.Register("editor.sessionStepsGroup", GroupSteps);
-        server.Register("editor.sessionStepsMove", MoveSteps);
-        server.Register("editor.sessionStepsMoveBy", MoveStepsBy);
-        server.Register("editor.sessionStepsLift", LiftSteps);
-        server.Register("editor.sessionStepsCopy", CopySteps);
-        server.Register("editor.sessionStepsCut", CutSteps);
-        server.Register("editor.sessionStepsPaste", PasteSteps);
+        server.Register("editor.steps", StepsAction);
 
         server.Register("editor.trigger", TriggerAction);
         server.Register("editor.variable", VariableAction);
@@ -336,69 +327,16 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> SetStepsEnabled(JsonElement parameters)
+    private Task<object?> StepsAction(JsonElement parameters)
     {
-        var steps = StepIds(parameters);
-        var enabled = parameters.TryGetProperty("enabled", out var value) && value.GetBoolean();
+        EditorStepsCommand command;
         try
         {
-            Required().SetStepsEnabled(steps, enabled);
-            return Task.FromResult<object?>(Snapshot());
+            command = parameters.Deserialize<EditorStepsCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsStep"));
         }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> RemoveSteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        try
-        {
-            Required().RemoveSteps(steps);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> DuplicateSteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        try
-        {
-            Required().DuplicateSteps(steps);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> GroupSteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        try
-        {
-            Required().GroupSteps(steps);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> MoveSteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        var target = parameters.TryGetProperty("target", out var named) ? named.GetString() : null;
-        var before = parameters.TryGetProperty("before", out var value) && value.GetBoolean();
-        if (target is not { Length: > 0 })
+        catch (JsonException)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsStep"));
@@ -406,8 +344,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
         try
         {
-            Required().MoveStepsTo(steps, target, before);
-            return Task.FromResult<object?>(Snapshot());
+            return Task.FromResult<object?>(ApplySteps(command));
         }
         catch (InvalidOperationException error)
         {
@@ -415,63 +352,57 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> MoveStepsBy(JsonElement parameters)
+    private object? ApplySteps(EditorStepsCommand command)
     {
-        var steps = StepIds(parameters);
-        var delta = parameters.TryGetProperty("delta", out var value) && value.TryGetInt32(out var number)
-            ? number
-            : 0;
-        try
+        var session = Required();
+        var steps = command.Steps ?? [];
+        if (command.Kind != "paste" && steps.Length == 0)
         {
-            Required().MoveStepsBy(steps, delta);
-            return Task.FromResult<object?>(Snapshot());
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsStep"));
         }
-        catch (InvalidOperationException error)
+
+        switch (command.Kind)
         {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+            case "enabled":
+                session.SetStepsEnabled(steps, command.Enabled ?? false);
+                return Snapshot();
+            case "remove":
+                session.RemoveSteps(steps);
+                return Snapshot();
+            case "duplicate":
+                session.DuplicateSteps(steps);
+                return Snapshot();
+            case "group":
+                session.GroupSteps(steps);
+                return Snapshot();
+            case "move":
+                session.MoveStepsTo(steps,
+                    StepsText(command.Target, "Bridge.EditorNeedsStep"), command.Before ?? false);
+                return Snapshot();
+            case "moveBy":
+                session.MoveStepsBy(steps, command.Delta ?? 0);
+                return Snapshot();
+            case "lift":
+                session.LiftSteps(steps);
+                return Snapshot();
+            case "copy":
+                return session.CopySteps(steps);
+            case "cut":
+                return session.CutSteps(steps);
+            case "paste":
+                session.PasteSteps(command.Text, command.After);
+                return Snapshot();
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsStep"));
         }
     }
 
-    private Task<object?> LiftSteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        try
-        {
-            Required().LiftSteps(steps);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> CopySteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        return Task.FromResult<object?>(Required().CopySteps(steps));
-    }
-
-    private Task<object?> CutSteps(JsonElement parameters)
-    {
-        var steps = StepIds(parameters);
-        return Task.FromResult<object?>(Required().CutSteps(steps));
-    }
-
-    private Task<object?> PasteSteps(JsonElement parameters)
-    {
-        var text = OptionalString(parameters, "text");
-        var after = OptionalString(parameters, "after");
-        try
-        {
-            Required().PasteSteps(text, after);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
+    private static string StepsText(string? value, string key)
+        => value is { Length: > 0 }
+            ? value
+            : throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get(key));
 
     private Task<object?> ConditionAction(JsonElement parameters)
     {
@@ -536,26 +467,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
             ? value
             : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsField"));
-
-    private static IReadOnlyList<string> StepIds(JsonElement parameters)
-    {
-        if (parameters.TryGetProperty("steps", out var value) && value.ValueKind == JsonValueKind.Array)
-        {
-            var ids = value.EnumerateArray()
-                .Where(item => item.ValueKind == JsonValueKind.String)
-                .Select(item => item.GetString())
-                .Where(item => item is { Length: > 0 })
-                .Select(item => item!)
-                .ToArray();
-            if (ids.Length > 0)
-            {
-                return ids;
-            }
-        }
-
-        throw new BridgeFailureException(BridgeErrors.BadArgument,
-            Strings.Get("Bridge.EditorNeedsStep"));
-    }
 
 
     private object StartRecording()

@@ -78,7 +78,7 @@ export class EditorStepService {
       return false;
     }
 
-    return this.core.snapshotCommand('editor.sessionStepsDuplicate', { steps });
+    return this.core.snapshotCommand('editor.steps', { kind: 'duplicate', steps });
   }
 
   async removeStep(stepId?: string): Promise<boolean> {
@@ -87,7 +87,7 @@ export class EditorStepService {
       return false;
     }
 
-    const ok = await this.core.snapshotCommand('editor.sessionStepsRemove', { steps });
+    const ok = await this.core.snapshotCommand('editor.steps', { kind: 'remove', steps });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -103,7 +103,7 @@ export class EditorStepService {
       return false;
     }
 
-    return this.core.snapshotCommand('editor.sessionStepsMoveBy', { steps, delta });
+    return this.core.snapshotCommand('editor.steps', { kind: 'moveBy', steps, delta });
   }
 
   async moveStepsTo(target: string, before: boolean, ids?: string[]): Promise<boolean> {
@@ -112,7 +112,7 @@ export class EditorStepService {
       return false;
     }
 
-    return this.core.snapshotCommand('editor.sessionStepsMove', { steps, target, before });
+    return this.core.snapshotCommand('editor.steps', { kind: 'move', steps, target, before });
   }
 
   async groupSteps(stepId?: string): Promise<boolean> {
@@ -121,7 +121,7 @@ export class EditorStepService {
       return false;
     }
 
-    const ok = await this.core.snapshotCommand('editor.sessionStepsGroup', { steps });
+    const ok = await this.core.snapshotCommand('editor.steps', { kind: 'group', steps });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -137,7 +137,7 @@ export class EditorStepService {
       return false;
     }
 
-    const ok = await this.core.snapshotCommand('editor.sessionStepsLift', { steps });
+    const ok = await this.core.snapshotCommand('editor.steps', { kind: 'lift', steps });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -153,7 +153,7 @@ export class EditorStepService {
       return false;
     }
 
-    return this.core.snapshotCommand('editor.sessionStepsEnabled', { steps, enabled });
+    return this.core.snapshotCommand('editor.steps', { kind: 'enabled', steps, enabled });
   }
 
   async copySteps(stepId?: string): Promise<boolean> {
@@ -163,7 +163,7 @@ export class EditorStepService {
     }
 
     try {
-      const text = await this.core.client.call<string>('editor.sessionStepsCopy', { steps });
+      const text = await this.core.client.call<string>('editor.steps', { kind: 'copy', steps });
       if (text.length > 0 && navigator.clipboard) {
         void navigator.clipboard.writeText(text).catch(() => undefined);
       }
@@ -183,7 +183,7 @@ export class EditorStepService {
     }
 
     try {
-      const text = await this.core.client.call<string>('editor.sessionStepsCut', { steps });
+      const text = await this.core.client.call<string>('editor.steps', { kind: 'cut', steps });
       if (text.length > 0 && navigator.clipboard) {
         void navigator.clipboard.writeText(text).catch(() => undefined);
       }
@@ -199,7 +199,8 @@ export class EditorStepService {
 
   async pasteSteps(after?: string): Promise<boolean> {
     try {
-      await this.core.client.call<EditorSnapshot>('editor.sessionStepsPaste', {
+      await this.core.client.call<EditorSnapshot>('editor.steps', {
+        kind: 'paste',
         after: after ?? this.core.state.selectedStepId,
       });
       this.core.state.selectedStepId = '';

@@ -44,26 +44,8 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return host.setStepMeta(params);
       case 'editor.sessionStepDuplicate':
         return host.duplicateStep(params);
-      case 'editor.sessionStepsEnabled':
-        return host.stepsEnabled(params);
-      case 'editor.sessionStepsRemove':
-        return host.stepsRemove(params);
-      case 'editor.sessionStepsDuplicate':
-        return host.stepsDuplicate(params);
-      case 'editor.sessionStepsMoveBy':
-        return host.stepsMoveBy(params);
-      case 'editor.sessionStepsCopy':
-        return host.stepsCopy(params);
-      case 'editor.sessionStepsCut':
-        return host.stepsCut(params);
-      case 'editor.sessionStepsPaste':
-        return host.stepsPaste(params);
-      case 'editor.sessionStepsGroup':
-        return host.stepsGroup(params);
-      case 'editor.sessionStepsLift':
-        return host.stepsLift();
-      case 'editor.sessionStepsMove':
-        return host.stepsMoveTo(params);
+      case 'editor.steps':
+        return handleStepsCommand(host, params);
 
       case 'editor.condition': {
         switch (String(params['kind'] ?? '')) {
@@ -163,6 +145,33 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return actionCatalogue(host.language());
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
+  }
+}
+
+function handleStepsCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'enabled':
+      return host.stepsEnabled(params);
+    case 'remove':
+      return host.stepsRemove(params);
+    case 'duplicate':
+      return host.stepsDuplicate(params);
+    case 'moveBy':
+      return host.stepsMoveBy(params);
+    case 'copy':
+      return host.stepsCopy(params);
+    case 'cut':
+      return host.stepsCut(params);
+    case 'paste':
+      return host.stepsPaste(params);
+    case 'group':
+      return host.stepsGroup(params);
+    case 'lift':
+      return host.stepsLift();
+    case 'move':
+      return host.stepsMoveTo(params);
+    default:
+      throw new Error('不认识多选命令 ' + String(params['kind']) + '。');
   }
 }
 

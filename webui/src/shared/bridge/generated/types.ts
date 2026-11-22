@@ -723,6 +723,17 @@ export interface EditorSteppingMetaSnapshot {
   tuned: boolean;
 }
 
+export interface EditorStepsCommand {
+  kind: string;
+  steps?: string[] | null;
+  enabled?: boolean | null;
+  target?: string | null;
+  before?: boolean | null;
+  delta?: number | null;
+  text?: string | null;
+  after?: string | null;
+}
+
 export interface EditorTabSnapshot {
   key: string;
   name: string;
