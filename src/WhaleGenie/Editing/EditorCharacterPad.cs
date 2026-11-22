@@ -1,14 +1,8 @@
 using System.Collections.Generic;
+using WhaleGenie.Contracts;
 using WhaleGenie.Models;
 
 namespace WhaleGenie.Editing;
-
-/// <summary>The literal keyboard for a typed-string trigger: caps write characters, not key names.</summary>
-internal sealed record EditorCharacterPadSnapshot(int MaximumLength,
-    IReadOnlyList<IReadOnlyList<EditorCharacterCapSnapshot>> Rows);
-
-internal sealed record EditorCharacterCapSnapshot(string Normal, string Shifted, double Width,
-    string Kind);
 
 internal static class EditorCharacterPad
 {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -120,5 +121,3 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace, IDevic
         }
     }
 }
-
-internal sealed record EditorTabSnapshot(string Key, string Name, bool Dirty, bool Problem, bool IsSubMacro);

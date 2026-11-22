@@ -1,12 +1,17 @@
 /** editor-value bridge shapes. The generated module is the only place these are written. */
 import type {
+  EditorValueChoiceSnapshot,
   EditorValueFunction,
   EditorValueFunctionArgument,
+  EditorValuePartSnapshot,
   EditorValueSnapshot,
 } from '../generated/types.js';
 
 export type {
+  EditorValueChoiceSnapshot,
   EditorValueFunction,
+  EditorValueFunctionSnapshot,
+  EditorValuePartSnapshot,
   EditorValueFunctionArgument,
   EditorValueFunctionGroup,
   EditorValueNode,
@@ -18,32 +23,9 @@ export type {
   EditorValueWall,
 } from '../generated/types.js';
 
-/** One value the session's variable wall offers; part of the session snapshot, not the picker. */
-export interface EditorValueChoice {
-  name: string;
-  type: string;
-  origin: string;
-  source: string;
-  description: string;
-  group: string;
-  display: string;
-  persistent: boolean;
-}
-
-/** One row of the session's value-function table. */
-export interface EditorValueFunctionSnapshot {
-  name: string;
-  signature: string;
-  description: string;
-  group: string;
-}
-
-/** One piece of a value field: literal text or a variable name. */
-export interface EditorValuePart {
-  kind: string;
-  text: string;
-  name: string;
-}
+/** The session's names for the generated records the page still uses. */
+export type EditorValueChoice = EditorValueChoiceSnapshot;
+export type EditorValuePart = EditorValuePartSnapshot;
 
 /** What confirming or cancelling the value editor came to. */
 export interface EditorValueOutcome {

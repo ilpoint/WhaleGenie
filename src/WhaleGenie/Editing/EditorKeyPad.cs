@@ -2,15 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.Editing;
-
-/// <summary>The keys drawn for a key field or a key sequence, in rows, with the value each writes.</summary>
-internal sealed record EditorKeyPadSnapshot(string Mode, int MaxLength,
-    IReadOnlyList<IReadOnlyList<EditorKeyCapSnapshot>> Rows);
-
-internal sealed record EditorKeyCapSnapshot(string Label, string Value, double Width);
 
 internal static class EditorKeyPad
 {

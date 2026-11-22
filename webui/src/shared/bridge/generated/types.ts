@@ -20,6 +20,322 @@ export interface DialogRequest {
   cancelLabel: string | null;
 }
 
+export interface EditorActionCategorySnapshot {
+  value: string | null;
+  label: string;
+  short: string;
+}
+
+export interface EditorActionPageSnapshot {
+  key: string;
+  label: string;
+  present: boolean;
+  hasDot: boolean;
+}
+
+export interface EditorActionParameterSnapshot {
+  name: string;
+  label: string;
+  kind: string;
+  required: boolean;
+  placeholder: string;
+  options: EditorChoiceSnapshot[];
+}
+
+export interface EditorActionSnapshot {
+  key: string;
+  name: string;
+  category: string;
+  categoryLabel: string;
+  categoryShort: string;
+  group: string;
+  groupLabel: string;
+  groupRank: number;
+  description: string;
+  parameters: EditorActionParameterSnapshot[];
+}
+
+export interface EditorCharacterCapSnapshot {
+  normal: string;
+  shifted: string;
+  width: number;
+  kind: string;
+}
+
+export interface EditorCharacterPadSnapshot {
+  maximumLength: number;
+  rows: EditorCharacterCapSnapshot[][];
+}
+
+export interface EditorChoiceSnapshot {
+  value: string;
+  label: string;
+}
+
+export interface EditorColumnSnapshot {
+  name: string;
+  required: boolean;
+}
+
+export interface EditorConditionCompareSnapshot {
+  value: string;
+  label: string;
+}
+
+export interface EditorConditionNodeSnapshot {
+  kind: string;
+  join: string;
+  left: string;
+  compare: string;
+  right: string;
+  children: EditorConditionNodeSnapshot[];
+}
+
+export interface EditorConditionSnapshot {
+  join: string;
+  nodes: EditorConditionNodeSnapshot[];
+  editable: boolean;
+}
+
+export interface EditorGlobalSnapshot {
+  name: string;
+  type: string;
+  default: string;
+  description: string;
+  persisted: boolean;
+}
+
+export interface EditorHotstringEndKeySnapshot {
+  value: string;
+  label: string;
+  checked: boolean;
+  isCustom: boolean;
+}
+
+export interface EditorKeyCapSnapshot {
+  label: string;
+  value: string;
+  width: number;
+}
+
+export interface EditorKeyPadSnapshot {
+  mode: string;
+  maxLength: number;
+  rows: EditorKeyCapSnapshot[][];
+}
+
+export interface EditorMacroFieldSnapshot {
+  name: string;
+  type: string;
+}
+
+export interface EditorMacroParameterSnapshot {
+  name: string;
+  type: string;
+  required: boolean;
+  default: string;
+  description: string;
+  fields: EditorMacroFieldSnapshot[];
+}
+
+export interface EditorMacroResultSnapshot {
+  name: string;
+  type: string;
+  description: string;
+  fields: EditorMacroFieldSnapshot[];
+}
+
+export interface EditorParameterSnapshot {
+  name: string;
+  label: string;
+  kind: string;
+  value: string;
+  options: EditorChoiceSnapshot[];
+  columns: EditorColumnSnapshot[];
+  rows: EditorRowSnapshot[];
+  condition: EditorConditionSnapshot | null;
+  display: string;
+  valueForm: string;
+  offersValue: boolean;
+  takesFormula: boolean;
+  showsNameMark: boolean;
+  isNumber: boolean;
+  isNumberFormula: boolean;
+  isMultiline: boolean;
+  isColor: boolean;
+  isPath: boolean;
+  isKey: boolean;
+  placeholder: string;
+  required: boolean;
+  parts: EditorValuePartSnapshot[];
+  advanced: boolean;
+  group: string;
+  groupLabel: string;
+  isReturns: boolean;
+}
+
+export interface EditorPublicMacroSnapshot {
+  id: string;
+  version: number;
+  name: string;
+  description: string;
+}
+
+export interface EditorRecordingSnapshot {
+  positionIndex: number;
+  positionOptions: string[];
+  mouseMovement: boolean;
+  mouseButtons: boolean;
+  keyboardKeys: boolean;
+  gamepadButtons: boolean;
+  delays: boolean;
+  ignoreDelaysBelowMs: number;
+  ignoreInjected: boolean;
+  delayScale: number;
+  delayScaleDisplay: string;
+  hasDelayScale: boolean;
+}
+
+export interface EditorRowSnapshot {
+  cells: string[];
+}
+
+export interface EditorSnapshot {
+  name: string;
+  description: string;
+  group: string;
+  subMacros: string[];
+  callableParameters: EditorMacroParameterSnapshot[];
+  callableResults: EditorMacroResultSnapshot[];
+  followInputLimit: boolean;
+  inputLimit: number;
+  toggleKey: string;
+  dirty: boolean;
+  stepCount: number;
+  steps: EditorStepSnapshot[];
+  triggers: EditorTriggerSnapshot[];
+  variables: EditorVariableSnapshot[];
+  globals: EditorGlobalSnapshot[];
+  valueChoices: EditorValueChoiceSnapshot[];
+  valueFunctions: EditorValueFunctionSnapshot[];
+  conditionCompares: EditorConditionCompareSnapshot[];
+  variableTypes: EditorVariableTypeSnapshot[];
+  triggerKinds: EditorTriggerKindSnapshot[];
+  canUndo: boolean;
+  canRedo: boolean;
+  canSave: boolean;
+  nameProblem: string | null;
+  problemSummary: string;
+  declarationProblemSummary: string;
+  callImpactSummary: string;
+  notice: string;
+  triggerProblemSummary: string;
+  toggleKeyProblem: string;
+  recording: EditorRecordingSnapshot;
+  isSubMacro: boolean;
+}
+
+export interface EditorStepSectionSnapshot {
+  name: string;
+  label: string;
+  steps: EditorStepSnapshot[];
+}
+
+export interface EditorStepSnapshot {
+  id: string;
+  type: string;
+  name: string;
+  enabled: boolean;
+  comment: string;
+  timeoutMs: number;
+  retryCount: number;
+  retryDelayMs: number;
+  onError: string;
+  acceptsSteps: boolean;
+  detail: string;
+  problem: string;
+  inputMark: string;
+  metaSummary: string;
+  parameters: EditorParameterSnapshot[];
+  sections: EditorStepSectionSnapshot[];
+}
+
+export interface EditorTabSnapshot {
+  key: string;
+  name: string;
+  dirty: boolean;
+  problem: boolean;
+  isSubMacro: boolean;
+}
+
+export interface EditorTriggerKindSnapshot {
+  value: string;
+  label: string;
+}
+
+export interface EditorTriggerSnapshot {
+  id: string;
+  kind: string;
+  kindLabel: string;
+  summary: string;
+  enabled: boolean;
+  binding: string;
+  loop: string;
+  once: boolean;
+  timerMode: string;
+  time: string;
+  interval: string;
+  unit: string;
+  filePath: string;
+  fileChange: string;
+  fileFilter: string;
+  fileSubfolders: boolean;
+  processName: string;
+  processChange: string;
+  hotstringText: string;
+  colorMatch: string;
+  colorHex: string;
+  colorTolerance: string;
+  colorX: string;
+  colorY: string;
+  followCursor: boolean;
+  idleSeconds: string;
+  windowTitle: string;
+  windowProcess: string;
+  windowClass: string;
+  windowHow: string;
+  windowChange: string;
+  interfaceTitle: string;
+  interfaceProcess: string;
+  interfaceHow: string;
+  windowCaseSensitive: boolean;
+  windowTrim: boolean;
+  windowMultiline: boolean;
+  hotstringEndChars: string;
+  hotstringCaseSensitive: boolean;
+  hotstringInsideWord: boolean;
+  hotstringRequireEnd: boolean;
+  hotstringEraseTyped: boolean;
+  hotstringKeepEnd: boolean;
+  hotstringMaximumLength: number;
+  hotstringEndKeys: EditorHotstringEndKeySnapshot[];
+  hotstringEndCaptureProblem: string;
+  interfaceHotkey: string;
+  interfaceHotkeyProblem: string;
+  interfaceGroupMembers: string[];
+}
+
+export interface EditorValueChoiceSnapshot {
+  name: string;
+  type: string;
+  origin: string;
+  source: string;
+  description: string;
+  group: string;
+  display: string;
+  persistent: boolean;
+}
+
 export interface EditorValueFunction {
   name: string;
   tag: string;
@@ -41,6 +357,13 @@ export interface EditorValueFunctionGroup {
   group: string;
   label: string;
   selected: boolean;
+}
+
+export interface EditorValueFunctionSnapshot {
+  name: string;
+  signature: string;
+  description: string;
+  group: string;
 }
 
 export interface EditorValueNode {
@@ -81,6 +404,12 @@ export interface EditorValueOperator {
   hint: string;
   tone: string;
   enabled: boolean;
+}
+
+export interface EditorValuePartSnapshot {
+  kind: string;
+  text: string;
+  name: string;
 }
 
 export interface EditorValueSnapshot {
@@ -171,6 +500,20 @@ export interface EditorValueWall {
   details: string;
   isEmpty: boolean;
   shown: EditorValueVariable[];
+}
+
+export interface EditorVariableSnapshot {
+  name: string;
+  type: string;
+  initial: string;
+  description: string;
+  source: string;
+  isDeclared: boolean;
+}
+
+export interface EditorVariableTypeSnapshot {
+  value: string;
+  label: string;
 }
 
 export interface LibraryEntry {

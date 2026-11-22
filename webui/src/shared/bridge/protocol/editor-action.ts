@@ -1,49 +1,28 @@
 /** editor-action bridge shapes. The barrel protocol.ts re-exports this file. */
 import type { EditorChoice, EditorColumn, EditorCondition, EditorParameter } from './editor.js';
 import type { EditorValuePart } from './editor-value.js';
+import type {
+  EditorActionCategorySnapshot,
+  EditorActionPageSnapshot,
+  EditorActionParameterSnapshot,
+  EditorActionSnapshot,
+  EditorPublicMacroSnapshot,
+} from '../generated/types.js';
 
-export interface EditorActionParameter {
-  name: string;
-  label: string;
-  kind: string;
-  required: boolean;
-  placeholder: string;
-  options: EditorChoice[];
-}
+export type {
+  EditorActionCategorySnapshot,
+  EditorActionPageSnapshot,
+  EditorActionParameterSnapshot,
+  EditorActionSnapshot,
+  EditorPublicMacroSnapshot,
+} from '../generated/types.js';
 
-export interface EditorAction {
-  key: string;
-  name: string;
-  category: string;
-  categoryLabel: string;
-  categoryShort: string;
-  group: string;
-  groupLabel: string;
-  groupRank: number;
-  description: string;
-  parameters: EditorActionParameter[];
-}
-
-/** The rail's order and labels; "All" is the null-valued first entry. */
-export interface EditorActionCategory {
-  value: string | null;
-  label: string;
-  short: string;
-}
-
-export interface EditorPublicMacro {
-  id: string;
-  version: number;
-  name: string;
-  description: string;
-}
-
-export interface EditorActionPage {
-  key: string;
-  label: string;
-  present: boolean;
-  hasDot: boolean;
-}
+/** The page keeps its shorter names for the generated catalogue records. */
+export type EditorActionParameter = EditorActionParameterSnapshot;
+export type EditorAction = EditorActionSnapshot;
+export type EditorActionCategory = EditorActionCategorySnapshot;
+export type EditorPublicMacro = EditorPublicMacroSnapshot;
+export type EditorActionPage = EditorActionPageSnapshot;
 
 export interface EditorPicker {
   kind: string;
