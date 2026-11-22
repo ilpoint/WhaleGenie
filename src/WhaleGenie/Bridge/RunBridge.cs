@@ -32,6 +32,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     {
         _server = server;
         server.Register("run.state", _ => Task.FromResult<object?>(Snapshot()));
+        server.Register("run.unload", Unload);
         server.Register("run.load", LoadAsync);
         server.Register("run.command", CommandAsync);
         server.Register("run.breakpoint", Breakpoint);
@@ -103,8 +104,24 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
                     Strings.Get("Run.UnknownCommand"));
         }
 
+        StartClock();
         await PushAsync();
         return Snapshot();
+    }
+
+    /// <summary>Leaving the panel ends the debugger session: stop the clock and release the run.</summary>
+    private Task<object?> Unload(JsonElement parameters)
+    {
+        _timer?.Stop();
+        _timer = null;
+        if (_run?.IsBusy == true)
+        {
+            _run.StopCommand.Execute(null);
+        }
+
+        _run = null;
+        _look = null;
+        return Task.FromResult<object?>(Snapshot());
     }
 
     private Task<object?> Breakpoint(JsonElement parameters)
@@ -213,6 +230,11 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         }
 
         await _server.PushAsync("run.changed", Snapshot());
+        if (!_run.IsBusy && !_run.IsPaused && !_run.IsAsking && !_run.IsAskingUser)
+        {
+            _timer?.Stop();
+            _timer = null;
+        }
     }
 
     private RunState Snapshot() => new(

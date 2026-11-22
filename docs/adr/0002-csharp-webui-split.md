@@ -37,6 +37,12 @@
    文件对话框、拾取器、窗口按钮、主题、声音、图像编码都经 Contracts 的端口；UI 工程实现端口。
    分层由 `LayeringTests` 与新增的 `WhaleGenie.Bridge.Tests` 保证。
 
+## 暂缓
+
+- 长耗时处理器的 IO 下放与 busy 事件延后到 P6/P7：保存/打开目前仍由界面线程持有的
+  `ProjectWorkspace` 完成；先拆出 App/Editing 与 `IUiDispatcher`，再把纯文件 IO 放到工作线程，
+  busy 复用同一条推送通道。
+
 ## 后果
 
 - 桥方法从 189 降到 ≤70，编辑命令从 119 降到 ≤12；处理器按域拆分，每个 <400 行。

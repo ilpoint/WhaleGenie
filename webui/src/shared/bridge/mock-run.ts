@@ -7,6 +7,9 @@ export function handleRun(host: MockRunContext, method: string, params: Record<s
         case 'run.state':
           result = host.runState;
           break;
+        case 'run.unload':
+          result = unload(host);
+          break;
         case 'run.load':
           host.runState = {
             ...host.runState,
@@ -74,4 +77,13 @@ export function handleRun(host: MockRunContext, method: string, params: Record<s
   }
 
   return result;
+}
+
+function unload(host: MockRunContext): unknown {
+  host.runState = {
+    ...host.runState,
+    loaded: '', status: '', busy: false, paused: false,
+    canRun: false, canStep: false, canStop: false, steps: [],
+  };
+  return host.runState;
 }

@@ -66,6 +66,7 @@ export type BridgeMethod =
   | 'run.command'
   | 'run.load'
   | 'run.state'
+  | 'run.unload'
   | 'settings.menu.capture'
   | 'settings.menu.clear'
   | 'settings.menu.rule.add'

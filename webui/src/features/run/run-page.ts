@@ -33,6 +33,11 @@ export class WgRun extends LitElement {
     void this.load();
   }
 
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    void bridge.value.call<RunState>('run.unload');
+  }
+
   render() {
     return html`
       <div class="side">
