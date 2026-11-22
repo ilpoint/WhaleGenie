@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text.Json;
+using WhaleGenie.Contracts;
 using WhaleGenie.ContractsGen;
 
 namespace WhaleGenie.Tests;
@@ -19,6 +21,23 @@ public class ContractGenerationTests
     {
         AssertCurrent("types.ts", ContractGenerator.Generate());
         AssertCurrent("methods.ts", ContractGenerator.GenerateMethods());
+    }
+
+    [Fact]
+    public void A_polymorphic_command_round_trips_with_the_discriminator()
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        };
+        var json = JsonSerializer.Serialize<EditorValueCommand>(
+            new EditorValueOpenCommand("s1", "name"), options);
+        Assert.Contains("\"kind\":\"open\"", json, StringComparison.Ordinal);
+
+        var back = JsonSerializer.Deserialize<EditorValueCommand>(json, options);
+        var open = Assert.IsType<EditorValueOpenCommand>(back);
+        Assert.Equal("s1", open.Step);
+        Assert.Equal("name", open.Parameter);
     }
 
     private static void AssertCurrent(string name, string expected)

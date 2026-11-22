@@ -82,6 +82,10 @@ features/<feature>/
   `dotnet run --project tools/WhaleGenie.ContractsGen -- webui/src/shared/bridge/generated` 重新生成；
   `ContractGenerationTests` 在没有重新生成时失败。生成文件不手改，页面只从它 import 类型与
   `BridgeMethod`；`client.call` 的方法名因此由编译器检查。
+- **同一聚合的命令用判别联合**：C# 的 `[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]` +
+  `[JsonDerivedType]` 会生成 TypeScript 判别联合；派生记录的可空字段是 `field?: T | null`
+  （命令请求可省略）。首批是 `editor.value` 的 open/command/confirm/cancel。新增编辑器命令时优先扩展
+  现有联合，不再加一条按字段拆的 `editor.*` 方法。
 - C# 仍是唯一事实来源；页面不解析公式、不按动作名推断字段。
 - 方法名清单由 `BridgeMethodInventoryTests` 对账；新增/改名桥方法要同步 C# 与页面。
 

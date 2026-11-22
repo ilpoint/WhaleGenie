@@ -626,6 +626,48 @@ export interface EditorValueChoiceSnapshot {
   persistent: boolean;
 }
 
+export type EditorValueCommand =
+  | EditorValueOpenCommand
+  | EditorValueKeyCommand
+  | EditorValueConfirmCommand
+  | EditorValueCancelCommand;
+
+export interface EditorValueOpenCommand {
+  kind: 'open';
+  step: string;
+  parameter: string;
+  conditionField?: string | null;
+  conditionPath?: number[] | null;
+  rowIndex?: number | null;
+  column?: string | null;
+}
+
+export interface EditorValueKeyCommand {
+  kind: 'command';
+  action: string;
+  token?: string | null;
+  name?: string | null;
+  sign?: string | null;
+  group?: string | null;
+  text?: string | null;
+  path?: number[] | null;
+  target?: number[] | null;
+  after?: boolean | null;
+  number?: boolean | null;
+  direction?: number | null;
+  at?: number | null;
+  width?: number | null;
+  append?: boolean | null;
+}
+
+export interface EditorValueConfirmCommand {
+  kind: 'confirm';
+}
+
+export interface EditorValueCancelCommand {
+  kind: 'cancel';
+}
+
 export interface EditorValueFunction {
   name: string;
   tag: string;

@@ -1,5 +1,11 @@
 import type { EditorCore } from './editor-core.js';
-import type { EditorValueOutcome, EditorValueSnapshot } from '../../../shared/bridge/protocol.js';
+import type {
+  EditorValueCommand,
+  EditorValueKeyCommand,
+  EditorValueOpenCommand,
+  EditorValueOutcome,
+  EditorValueSnapshot,
+} from '../../../shared/bridge/protocol.js';
 import { describeError } from '../../../shared/errors.js';
 
 /** The value command family. All state lives in EditorCore; C# remains the source of truth. */
@@ -8,10 +14,8 @@ export class EditorValueService {
 
   async openValue(stepId: string, parameter: string): Promise<void> {
     try {
-      const snapshot = await this.core.client.call<EditorValueSnapshot>('editor.valueOpen', {
-        step: stepId,
-        parameter,
-      });
+      const command: EditorValueCommand = { kind: 'open', step: stepId, parameter };
+      const snapshot = await this.core.client.call<EditorValueSnapshot>('editor.value', command);
       this.core.state.valueEditor = snapshot;
       this.core.state.valueError = '';
     } catch (error) {
@@ -42,9 +46,10 @@ export class EditorValueService {
     });
   }
 
-  private async openValueAt(params: Record<string, unknown>): Promise<void> {
+  private async openValueAt(params: Omit<EditorValueOpenCommand, 'kind'>): Promise<void> {
     try {
-      const snapshot = await this.core.client.call<EditorValueSnapshot>('editor.valueOpen', params);
+      const command: EditorValueCommand = { kind: 'open', ...params };
+      const snapshot = await this.core.client.call<EditorValueSnapshot>('editor.value', command);
       this.core.state.valueEditor = snapshot;
       this.core.state.valueError = '';
     } catch (error) {
@@ -57,10 +62,8 @@ export class EditorValueService {
 
   async valueCommand(action: string, params: Record<string, unknown> = {}): Promise<void> {
     try {
-      const snapshot = await this.core.client.call<EditorValueSnapshot>('editor.valueCommand', {
-        action,
-        ...params,
-      });
+      const command = { kind: 'command', action, ...params } as EditorValueKeyCommand;
+      const snapshot = await this.core.client.call<EditorValueSnapshot>('editor.value', command);
       this.core.state.valueEditor = snapshot;
       this.core.state.valueError = '';
     } catch (error) {
@@ -73,7 +76,8 @@ export class EditorValueService {
 
   async confirmValue(): Promise<void> {
     try {
-      const outcome = await this.core.client.call<EditorValueOutcome>('editor.valueConfirm');
+      const command: EditorValueCommand = { kind: 'confirm' };
+      const outcome = await this.core.client.call<EditorValueOutcome>('editor.value', command);
       if (outcome.closed) {
         this.core.state.valueEditor = null;
         this.core.state.valueError = '';
@@ -96,7 +100,8 @@ export class EditorValueService {
 
   async cancelValue(): Promise<void> {
     try {
-      await this.core.client.call<EditorValueOutcome>('editor.valueCancel');
+      const command: EditorValueCommand = { kind: 'cancel' };
+      await this.core.client.call<EditorValueOutcome>('editor.value', command);
     } catch (error) {
       this.core.state.error = describeError(error);
     }

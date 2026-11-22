@@ -103,10 +103,14 @@ describe('editor services', () => {
 
   it('openValue applies the value snapshot', async () => {
     const bridge = new FakeBridge();
-    bridge.reply('editor.valueOpen', { title: 'Name', parts: [] } as unknown as EditorValueSnapshot);
+    bridge.reply('editor.value', { title: 'Name', parts: [] } as unknown as EditorValueSnapshot);
     const store = storeWith(bridge);
 
     await store.value.openValue('s1', 'name');
+    expect(bridge.calls[0]).toEqual({
+      method: 'editor.value',
+      params: { kind: 'open', step: 's1', parameter: 'name' },
+    });
     expect(store.get().valueEditor).not.toBeNull();
     expect(store.get().valueError).toBe('');
   });

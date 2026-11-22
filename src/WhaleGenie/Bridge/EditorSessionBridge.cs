@@ -145,11 +145,8 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.actionKeyPad", ActionKeyPad);
         server.Register("editor.actionPadKey", ActionPadKey);
         server.Register("editor.hotstringKeyPad", HotstringKeyPad);
-        server.Register("editor.valueOpen", ValueOpen);
+        server.Register("editor.value", ValueAction);
         server.Register("editor.valueState", _ => Task.FromResult<object?>(Required().ValueState()));
-        server.Register("editor.valueCommand", ValueCommand);
-        server.Register("editor.valueConfirm", _ => Task.FromResult<object?>(Required().ConfirmValue()));
-        server.Register("editor.valueCancel", _ => Task.FromResult<object?>(Required().CancelValue()));
         server.Register("editor.sessionExport", Export);
     }
 
@@ -1495,11 +1492,21 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
             }
             : null;
 
-    private Task<object?> ValueOpen(JsonElement parameters)
+    private static readonly JsonSerializerOptions CommandOptions = new()
     {
-        var step = parameters.TryGetProperty("step", out var stepName) ? stepName.GetString() : null;
-        var parameter = parameters.TryGetProperty("parameter", out var field) ? field.GetString() : null;
-        if (step is not { Length: > 0 } || parameter is not { Length: > 0 })
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private Task<object?> ValueAction(JsonElement parameters)
+    {
+        EditorValueCommand command;
+        try
+        {
+            command = parameters.Deserialize<EditorValueCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsField"));
+        }
+        catch (JsonException)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsField"));
@@ -1507,26 +1514,57 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
         try
         {
-            var conditionField = OptionalString(parameters, "conditionField");
-            var path = OptionalPath(parameters, "conditionPath");
-            var row = OptionalInt(parameters, "rowIndex");
-            var column = OptionalString(parameters, "column");
-            if (row is >= 0 && column is { Length: > 0 })
+            return Task.FromResult<object?>(command switch
             {
-                return Task.FromResult<object?>(Required().OpenRowValue(step, parameter, row.Value, column));
-            }
-
-            if (path is not null && conditionField is { Length: > 0 })
-            {
-                return Task.FromResult<object?>(Required().OpenConditionValue(step, parameter, path, conditionField));
-            }
-
-            return Task.FromResult<object?>(Required().OpenValue(step, parameter));
+                EditorValueOpenCommand open => OpenValue(open),
+                EditorValueKeyCommand key => Required().ValueCommand(new ValueEditorCommand(
+                    key.Action,
+                    Token: key.Token,
+                    Name: key.Name,
+                    Sign: key.Sign,
+                    Group: key.Group,
+                    Text: key.Text,
+                    Path: key.Path,
+                    Target: key.Target,
+                    After: key.After,
+                    Number: key.Number,
+                    Direction: key.Direction,
+                    At: key.At,
+                    Width: key.Width,
+                    Append: key.Append)),
+                EditorValueConfirmCommand => Required().ConfirmValue(),
+                EditorValueCancelCommand => Required().CancelValue(),
+                _ => throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsField")),
+            });
         }
         catch (InvalidOperationException error)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
+    }
+
+    private EditorValueSnapshot OpenValue(EditorValueOpenCommand open)
+    {
+        if (open.Step.Length == 0 || open.Parameter.Length == 0)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+        }
+
+        if (open.RowIndex is >= 0 && open.Column is { Length: > 0 })
+        {
+            return Required().OpenRowValue(open.Step, open.Parameter, open.RowIndex.Value,
+                open.Column);
+        }
+
+        if (open.ConditionPath is not null && open.ConditionField is { Length: > 0 })
+        {
+            return Required().OpenConditionValue(open.Step, open.Parameter,
+                open.ConditionPath, open.ConditionField);
+        }
+
+        return Required().OpenValue(open.Step, open.Parameter);
     }
 
     private Task<object?> ActionOpen(JsonElement parameters)
@@ -1545,33 +1583,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                     ? Required().OpenActionDraft(type, parentId, list, target, before)
                     : throw new BridgeFailureException(BridgeErrors.BadArgument,
                         Strings.Get("Bridge.EditorNeedsStep")));
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> ValueCommand(JsonElement parameters)
-    {
-        try
-        {
-            var command = new ValueEditorCommand(
-                parameters.TryGetProperty("action", out var action) ? action.GetString() ?? "" : "",
-                Token: OptionalString(parameters, "token"),
-                Name: OptionalString(parameters, "name"),
-                Sign: OptionalString(parameters, "sign"),
-                Group: OptionalString(parameters, "group"),
-                Text: OptionalString(parameters, "text"),
-                Path: OptionalPath(parameters, "path"),
-                Target: OptionalPath(parameters, "target"),
-                After: OptionalBool(parameters, "after"),
-                Number: OptionalBool(parameters, "number"),
-                Direction: OptionalInt(parameters, "direction"),
-                At: OptionalInt(parameters, "at"),
-                Width: OptionalDouble(parameters, "width"),
-                Append: OptionalBool(parameters, "append"));
-            return Task.FromResult<object?>(Required().ValueCommand(command));
         }
         catch (InvalidOperationException error)
         {

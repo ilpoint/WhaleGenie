@@ -7,8 +7,13 @@ import type {
 } from '../generated/types.js';
 
 export type {
+  EditorValueCancelCommand,
   EditorValueChoiceSnapshot,
+  EditorValueCommand,
+  EditorValueConfirmCommand,
   EditorValueFunction,
+  EditorValueKeyCommand,
+  EditorValueOpenCommand,
   EditorValueFunctionSnapshot,
   EditorValuePartSnapshot,
   EditorValueFunctionArgument,
