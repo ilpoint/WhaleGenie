@@ -248,11 +248,13 @@
 453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 22943	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
 30146	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
-81899	webui/src/shared/bridge/mock.ts	split: 编辑器域已拆到 mock-editor*.ts，运行、项目、设置与宏库的假数据仍在一个类里
-38665	webui/src/features/editor/macro-settings.ts	split: 常规/专属两块、触发字段与形参返回卡片在一个组件；下一步按设置页、触发与声明拆
-39408	webui/src/features/editor/editor-store.ts	split: 状态、生命周期与全部编辑命令集中在一个 store；下一步按快照/步骤/声明/触发/变量/取值/录制拆
+85630	webui/src/shared/bridge/mock.ts	split: 编辑器域已拆到 mock-editor*.ts，运行、项目、设置与宏库的假数据仍在一个类里
+24500	webui/src/shared/bridge/protocol.ts	keep: 桥命令与快照类型集中在一处，拆开会让消息形状分散
+30611	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
+44533	webui/src/features/editor/macro-settings.ts	split: 常规/专属两块、触发字段与形参返回卡片在一个组件；下一步按设置页、触发与声明拆
+44248	webui/src/features/editor/editor-store.ts	split: 状态、生命周期与全部编辑命令集中在一个 store；下一步按快照/步骤/声明/触发/变量/取值/录制拆
 23638	webui/src/features/editor/step-inspector.ts	split: 参数表单、条件、行表与键位捕获在一处；下一步按字段类型拆
-44901	webui/src/shared/bridge/mock-editor.ts	keep: 命令分派与会话生命周期同属一个假宿主，步骤/数据/动作/夹具/取值已拆到 mock-editor-*.ts
+59403	webui/src/shared/bridge/mock-editor.ts	keep: 命令分派与会话生命周期同属一个假宿主，步骤/数据/动作/夹具/取值已拆到 mock-editor-*.ts
 27933	webui/src/features/editor/value-editor.ts	split: 结构带、材料盘、变量/函数面板与样式在一个组件；下一步按 token band 与 panels 拆
 25993	webui/src/features/editor/step-tree.ts	split: 步骤树、多选、右键菜单、拖放与键盘命令在一个组件；下一步按 tree 渲染与 interactions 拆
 1573	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
