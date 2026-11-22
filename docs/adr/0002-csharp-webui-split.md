@@ -1,6 +1,6 @@
 # ADR 0002：C# 应用层与 Lit 视图的分工
 
-- 状态：已采纳
+- 状态：已采纳（P6、P7 已落地；P3/P4 的 IO/busy、P5、P8、P9 收尾中）
 - 日期：2026-11-22
 - 相关：[架构](../architecture.md)、[网页壳结构](../dev/webui.md)、[界面与桥接](../architecture/interface.md)
 
@@ -34,21 +34,23 @@
 7. **设置是内存模型 + 类型化补丁。**
    设置文件由内存模型持有、原子写、路径可注入；`AppSettings` 作为注入入口逐步取代静态读取。
    `settings.update` 接收可空字段的补丁，不再解析 `{field, value}` 字符串。
-8. **处理器不引用 Avalonia/WebView。**
-   文件对话框、拾取器、窗口按钮、主题、声音、图像编码都经 Contracts 的端口；UI 工程实现端口。
-   分层由 `LayeringTests` 与新增的 `WhaleGenie.Bridge.Tests` 保证。
+8. **全部桥处理器在 `WhaleGenie.App`，且不引用 Avalonia/WebView。**
+   文件对话框、拾取器、窗口按钮/遮罩、主题、设置、编辑器测试、运行调度都经端口
+   （`IFileDialogs`、`IProjectInteraction`、`IEditorSettings`、`IEditorPickerHost`、
+   `IEditorWindowAside`、`ISettingsPickerHost`、`IUiPost` 等）；UI 工程实现端口并保留窗口。
+   分层由 `LayeringTests` 与 `WebUiBoundaryTests` 保证。
 
 ## 暂缓
 
-- 长耗时处理器的 IO 下放与 busy 事件延后到 P6/P7：保存/打开目前仍由界面线程持有的
-  `ProjectWorkspace` 完成；先拆出 App/Editing 与 `IUiDispatcher`，再把纯文件 IO 放到工作线程，
-  busy 复用同一条推送通道。
-- 运行会话从 `RunViewModel` 迁到 App 的 `RunSession` 同样等 `IUiDispatcher` 与帧图像编码端口；
-  当前 `RunBridge` 先完成增量事件、缩略图与卸载清理。
+- 长耗时处理器的 IO 下放与 busy 事件仍待收尾：保存/打开目前由应用层持有的
+  `ProjectWorkspace` 完成；下一步把纯文件 IO 放到工作线程，busy 复用同一条推送通道。
+- 运行模型与 `RunBridge` 已迁入 App；缩略图改为纯 BMP 编码、界面线程经 `IUiPost`，
+  不再需要运行专用的 Avalonia 类型。剩余的是运行 IO/busy 的同类收尾。
 
 ## 后果
 
-- 桥方法从 189 降到 ≤70，编辑命令从 119 降到 ≤12；处理器按域拆分，每个 <400 行。
+- 桥方法从 189 降到 100，编辑命令从 119 降到 12；处理器按域拆分，`EditorSessionBridge`
+  仍以 1027 行登记为待拆技术债。
 - 编辑器、动作表单、取值与变量模型可在不加载 Avalonia 的测试工程里运行；桥测试不再需要无头会话。
 - 原生主题按“仍在使用”收缩，死样式与只为主持它们的测试删除。
 - 页面仍是唯一视图，但不再手写 wire 类型；mock 由生成的契约与 C# 夹具约束。

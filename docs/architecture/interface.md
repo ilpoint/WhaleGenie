@@ -8,7 +8,7 @@
 
 | 状态 | 主要持有者 |
 | --- | --- |
-| 项目文档态 | `MainViewModel`：宏、触发器、路径、修订号和「磁盘上的包已过期」这一标记 |
+| 项目文档态 | `ProjectWorkspace`（App）：宏、触发器、路径、修订号和「磁盘上的包已过期」这一标记；`MainViewModel` 只做窗口侧转发 |
 | 编辑态 | `HeadlessEditorWorkspace` 与 `HeadlessEditorSession`：打开的文档、子宏、录制、编辑操作，以及「这次编辑有未保存内容」 |
 | 运行期态 | `TriggerRuntime`、运行宿主和窗口字段：触发快照、浮动界面、恢复和运行显示 |
 | 系统开关 | `SystemState`（App）：页面、热键与窗口读写同一个对象，触发宿主跟随它启停 |
@@ -109,8 +109,8 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
 开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
-B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow；
-MainViewModel 仍为编辑器、运行面板和原生菜单/轮盘提供无窗项目视图。设置页、运行面板、关于与帮助都已走网页入口。
+B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow。
+设置页、运行面板、编辑器、关于与帮助都已走网页入口；`MainViewModel` 只为原生菜单/轮盘转发项目视图。
 窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
@@ -118,7 +118,7 @@ MainViewModel 仍为编辑器、运行面板和原生菜单/轮盘提供无窗�
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
 | 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebBridge`（程序里唯一认识 WebView 控件的类型） |
-| 桥协议与处理器 | `src/WhaleGenie/Bridge/` | `BridgeServer` 路由请求/应答/事件；`app/strings/theme/window` 各处理器注册自己的方法 |
+| 桥协议与处理器 | `src/WhaleGenie.App/Bridge/` | `BridgeServer` 路由请求/应答/事件；全部处理器（应用、字符串、主题、窗口、项目、编辑器、设置、运行）与端口在此；UI 只实现端口 |
 | 触发会话与原生面 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`NativeSurfaceHost` 持菜单、轮盘、浮层与前台订阅；`RunQuestionHost` 持后台问话；`ProjectSession` 持恢复与未保存流程；`SystemState`（App）是页面/热键/窗口共写的开关 |
 | 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
 
