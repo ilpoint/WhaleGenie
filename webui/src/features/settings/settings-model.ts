@@ -3,6 +3,29 @@ import type { WheelSlotDraft } from './settings-wheel.js';
 
 export type CaptureKind = 'systemHotkey' | 'recordStopKey' | 'menu' | 'wheelRepeat' | '';
 
+/** The settings fields the general page may write; everything else is read-only there. */
+export type EditableSetting =
+  | 'loadLastProjectAtStart'
+  | 'systemAtStart'
+  | 'enabledFirst'
+  | 'ignoreOwnInput'
+  | 'soundSystem'
+  | 'soundMacro'
+  | 'preloadOcr'
+  | 'frameRateFollow'
+  | 'frameCache'
+  | 'attachDriverAtStart'
+  | 'runAsAdmin'
+  | 'inputRate'
+  | 'frameRate'
+  | 'frameCacheAge'
+  | 'logCount'
+  | 'windowWay'
+  | 'screenWay'
+  | 'language'
+  | 'systemHotkey'
+  | 'recordStopKey';
+
 export interface RuleEditor {
   kind: 'menu-add' | 'menu-edit' | 'wheel-add' | 'wheel-edit';
   key: string;

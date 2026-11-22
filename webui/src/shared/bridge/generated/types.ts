@@ -980,6 +980,29 @@ export interface SettingsMenuState {
   rules: SettingsMenuRule[];
 }
 
+export interface SettingsPatch {
+  loadLastProjectAtStart?: boolean | null;
+  systemAtStart?: boolean | null;
+  enabledFirst?: boolean | null;
+  ignoreOwnInput?: boolean | null;
+  soundSystem?: boolean | null;
+  soundMacro?: boolean | null;
+  preloadOcr?: boolean | null;
+  frameRateFollow?: boolean | null;
+  inputRate?: number | null;
+  frameRate?: number | null;
+  frameCacheAge?: number | null;
+  logCount?: number | null;
+  frameCache?: boolean | null;
+  attachDriverAtStart?: boolean | null;
+  runAsAdmin?: boolean | null;
+  windowWay?: string | null;
+  screenWay?: string | null;
+  language?: string | null;
+  systemHotkey?: string | null;
+  recordStopKey?: string | null;
+}
+
 export interface SettingsState {
   loadLastProjectAtStart: boolean;
   systemAtStart: boolean;

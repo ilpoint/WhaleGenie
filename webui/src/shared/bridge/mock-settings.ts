@@ -1,4 +1,9 @@
-import type { SettingsWheelSlot, SettingsWheelState, WindowRuleState } from './protocol.js';
+import type {
+  SettingsState,
+  SettingsWheelSlot,
+  SettingsWheelState,
+  WindowRuleState,
+} from './protocol.js';
 import { demoWindows } from './mock-fixtures.js';
 import type { MockContext } from './mock-context.js';
 
@@ -10,21 +15,13 @@ export function handleSettings(host: MockContext, method: string, params: Record
           result = host.settingsState;
           break;
         case 'settings.update': {
-          const field = String(params['field'] ?? '');
-          const value = String(params['value'] ?? '');
-          host.settingsState = {
-            ...host.settingsState,
-            [field]: field === 'language'
-              || field === 'systemHotkey' || field === 'recordStopKey'
-              || field === 'windowWay' || field === 'screenWay'
-              ? value
-              : value === 'true' ? true : value === 'false' ? false : Number(value),
-          };
+          const patch = (params['patch'] ?? {}) as Partial<SettingsState>;
+          host.settingsState = { ...host.settingsState, ...patch };
           result = host.settingsState;
-          if (field === 'language') {
+          if (patch.language !== undefined) {
             host.info = {
               ...host.info,
-              language: value,
+              language: patch.language,
             };
             host.push('strings.changed', host.bundle());
           }

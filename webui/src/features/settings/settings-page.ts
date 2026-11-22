@@ -15,7 +15,13 @@ import { emptyRule, type WgWindowRule } from '../../shared/window-rule/window-ru
 import type { MenuActions } from './settings-menu.js';
 import type { WheelActions, WheelSlotDraft } from './settings-wheel.js';
 import type { ThemeActions } from './settings-theme.js';
-import { draftOf, type CaptureKind, type RuleEditor } from './settings-model.js';
+import {
+  draftOf,
+  type CaptureKind,
+  type EditableSetting,
+  type RuleEditor,
+} from './settings-model.js';
+import { patchFor } from './settings-patch.js';
 import { SettingsCaptureController } from './settings-capture-controller.js';
 import { renderSettingsCards } from './settings-sections.js';
 
@@ -238,15 +244,16 @@ ${renderSettingsCards(this)}
     }
   }
 
-  async changeSetting(field: keyof SettingsState, event: Event): Promise<void> {
+  async changeSetting(field: EditableSetting, event: Event): Promise<void> {
     const target = event.target as HTMLInputElement;
     const value = target.type === 'checkbox' ? String(target.checked) : target.value;
     await this.setSettingValue(field, value);
   }
 
-  async setSettingValue(field: keyof SettingsState, value: string): Promise<void> {
+  async setSettingValue(field: EditableSetting, value: string): Promise<void> {
     try {
-      this.settings = await bridge.value.call<SettingsState>('settings.update', { field, value });
+      this.settings = await bridge.value.call<SettingsState>('settings.update',
+        { patch: patchFor(field, value) });
       this.error = '';
     } catch (error) {
       this.error = String(error);

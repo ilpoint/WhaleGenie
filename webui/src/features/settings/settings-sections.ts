@@ -1,5 +1,5 @@
 import { html, nothing, type TemplateResult } from 'lit';
-import type { CaptureKind } from './settings-model.js';
+import type { CaptureKind, EditableSetting } from './settings-model.js';
 import type { SettingsState, ThemeState } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import type { SettingsCaptureController } from './settings-capture-controller.js';
@@ -18,10 +18,10 @@ export interface SettingsSectionsHost {
   capture: SettingsCaptureController;
   selectedSlot: { ring: string; index: number } | null;
   slotDraft: WheelSlotDraft | null;
-  changeSetting(field: keyof SettingsState, event: Event): Promise<void>;
+  changeSetting(field: EditableSetting, event: Event): Promise<void>;
   openFolder(folder: string): Promise<void>;
   beginCapture(kind: CaptureKind): Promise<void>;
-  setSettingValue(field: keyof SettingsState, value: string): Promise<void>;
+  setSettingValue(field: EditableSetting, value: string): Promise<void>;
   themeActions(): ThemeActions;
   menuActions(): MenuActions;
   wheelActions(): WheelActions;
@@ -174,7 +174,7 @@ export function renderSettingsCards(host: SettingsSectionsHost): TemplateResult 
   `;
 }
 
-function toggle(host: SettingsSectionsHost, field: keyof SettingsState, label: string): TemplateResult {
+function toggle(host: SettingsSectionsHost, field: EditableSetting, label: string): TemplateResult {
     return html`
       <div class="row">
         <label>${t(label)}</label>
@@ -184,7 +184,7 @@ function toggle(host: SettingsSectionsHost, field: keyof SettingsState, label: s
     `;
   }
 
-function number(host: SettingsSectionsHost, field: keyof SettingsState, label: string, min: number, max: number,
+function number(host: SettingsSectionsHost, field: EditableSetting, label: string, min: number, max: number,
   disabled: boolean): TemplateResult {
     return html`
       <div class="row">

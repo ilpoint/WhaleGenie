@@ -104,111 +104,105 @@ internal sealed partial class SettingsBridge : IBridgeHandler
         return Task.FromResult<object?>(null);
     }
 
+    /// <summary>
+    /// The one settings writer. A patch carries only the fields the page changed; each one is
+    /// validated, clamped and stored here before the new state goes back over the bridge.
+    /// </summary>
     private Task<object?> Update(JsonElement parameters)
     {
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (field is not { Length: > 0 } || value is null)
+        if (!parameters.TryGetProperty("patch", out var node)
+            || node.ValueKind != JsonValueKind.Object)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsField"));
         }
 
-        var flag = bool.TryParse(value, out var parsed) && parsed;
-        var number = double.TryParse(value, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out var parsedNumber)
-            ? parsedNumber
-            : 0;
-        switch (field)
+        var patch = node.Deserialize<SettingsPatch>(PatchOptions)
+            ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
+
+        var touched = false;
+        if (patch.LoadLastProjectAtStart is { } loadLast) { _settings.LoadLastProjectAtStart = loadLast; touched = true; }
+        if (patch.SystemAtStart is { } systemAtStart) { _settings.SystemAtStart = systemAtStart; touched = true; }
+        if (patch.EnabledFirst is { } enabledFirst) { _settings.EnabledFirst = enabledFirst; touched = true; }
+        if (patch.IgnoreOwnInput is { } ignoreOwnInput) { _settings.IgnoreOwnInput = ignoreOwnInput; touched = true; }
+        if (patch.SoundSystem is { } soundSystem) { _settings.SoundSystem = soundSystem; touched = true; }
+        if (patch.SoundMacro is { } soundMacro) { _settings.SoundMacro = soundMacro; touched = true; }
+        if (patch.PreloadOcr is { } preloadOcr) { _settings.PreloadOcr = preloadOcr; touched = true; }
+        if (patch.FrameRateFollow is { } frameRateFollow) { _settings.FrameRateFollow = frameRateFollow; touched = true; }
+        if (patch.FrameCache is { } frameCache) { _settings.FrameCache = frameCache; touched = true; }
+        if (patch.AttachDriverAtStart is { } attachDriver) { _settings.AttachDriverAtStart = attachDriver; touched = true; }
+        if (patch.RunAsAdmin is { } runAsAdmin) { _settings.RunAsAdmin = runAsAdmin; touched = true; }
+        if (patch.InputRate is { } inputRate) { _settings.InputRate = inputRate; touched = true; }
+        if (patch.FrameRate is { } frameRate) { _settings.FrameRate = frameRate; touched = true; }
+        if (patch.FrameCacheAge is { } frameCacheAge) { _settings.FrameCacheAge = frameCacheAge; touched = true; }
+        if (patch.LogCount is { } logCount) { _settings.LogCount = logCount; touched = true; }
+        if (patch.WindowWay is { } windowWay)
         {
-            case "loadLastProjectAtStart":
-                _settings.LoadLastProjectAtStart = flag;
-                break;
-            case "systemAtStart":
-                _settings.SystemAtStart = flag;
-                break;
-            case "enabledFirst":
-                _settings.EnabledFirst = flag;
-                break;
-            case "ignoreOwnInput":
-                _settings.IgnoreOwnInput = flag;
-                break;
-            case "soundSystem":
-                _settings.SoundSystem = flag;
-                break;
-            case "soundMacro":
-                _settings.SoundMacro = flag;
-                break;
-            case "preloadOcr":
-                _settings.PreloadOcr = flag;
-                break;
-            case "frameRateFollow":
-                _settings.FrameRateFollow = flag;
-                break;
-            case "frameCache":
-                _settings.FrameCache = flag;
-                break;
-            case "inputRate":
-                _settings.InputRate = number;
-                break;
-            case "frameRate":
-                _settings.FrameRate = number;
-                break;
-            case "frameCacheAge":
-                _settings.FrameCacheAge = number;
-                break;
-            case "logCount":
-                _settings.LogCount = number;
-                break;
-            case "attachDriverAtStart":
-                _settings.AttachDriverAtStart = flag;
-                break;
-            case "runAsAdmin":
-                _settings.RunAsAdmin = flag;
-                break;
-            case "windowWay":
-                _settings.SelectedWindowWay = _settings.WindowWays.First(way =>
-                    string.Equals(way.Way.ToString(), value, StringComparison.OrdinalIgnoreCase));
-                break;
-            case "screenWay":
-                _settings.SelectedScreenWay = _settings.ScreenWays.First(way =>
-                    string.Equals(way.Way.ToString(), value, StringComparison.OrdinalIgnoreCase));
-                break;
-            case "language":
-                Strings.Current.Language = value == "zh-Hans" ? Language.Chinese : Language.English;
-                break;
-            case "systemHotkey":
-                if (value.Length == 0)
-                {
-                    _settings.ClearSystemHotkey();
-                }
-                else if (!_settings.CaptureSystemHotkey(value))
-                {
-                    throw new BridgeFailureException(BridgeErrors.BadArgument,
-                        _settings.SystemHotkeyProblem);
-                }
+            _settings.SelectedWindowWay = _settings.WindowWays.First(way =>
+                string.Equals(way.Way.ToString(), windowWay, StringComparison.OrdinalIgnoreCase));
+            touched = true;
+        }
 
-                break;
-            case "recordStopKey":
-                if (value.Length > 0 && !_settings.CaptureRecordStop(value))
-                {
-                    throw new BridgeFailureException(BridgeErrors.BadArgument,
-                        _settings.RecordStopProblem);
-                }
-                else if (value.Length == 0)
-                {
-                    _settings.RecordStopKey = string.Empty;
-                }
+        if (patch.ScreenWay is { } screenWay)
+        {
+            _settings.SelectedScreenWay = _settings.ScreenWays.First(way =>
+                string.Equals(way.Way.ToString(), screenWay, StringComparison.OrdinalIgnoreCase));
+            touched = true;
+        }
 
-                break;
-            default:
+        if (patch.Language is { } language)
+        {
+            Strings.Current.Language = language == "zh-Hans" ? Language.Chinese : Language.English;
+            touched = true;
+        }
+
+        if (patch.SystemHotkey is { } systemHotkey)
+        {
+            if (systemHotkey.Length == 0)
+            {
+                _settings.ClearSystemHotkey();
+            }
+            else if (!_settings.CaptureSystemHotkey(systemHotkey))
+            {
                 throw new BridgeFailureException(BridgeErrors.BadArgument,
-                    Strings.Get("Bridge.EditorNeedsField"));
+                    _settings.SystemHotkeyProblem);
+            }
+
+            touched = true;
+        }
+
+        if (patch.RecordStopKey is { } recordStopKey)
+        {
+            if (recordStopKey.Length > 0 && !_settings.CaptureRecordStop(recordStopKey))
+            {
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    _settings.RecordStopProblem);
+            }
+
+            if (recordStopKey.Length == 0)
+            {
+                _settings.RecordStopKey = string.Empty;
+            }
+
+            touched = true;
+        }
+
+        if (!touched)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsField"));
         }
 
         Changed();
         return Task.FromResult<object?>(State());
     }
+
+    /// <summary>The patch's own serialization: camelCase input, no tolerance for extra shapes.</summary>
+    private static readonly JsonSerializerOptions PatchOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     private void Changed() => _changed();
 

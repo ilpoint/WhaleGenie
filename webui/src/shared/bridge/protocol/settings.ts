@@ -4,6 +4,7 @@ export type {
   SettingsMacroChoice,
   SettingsMenuRule,
   SettingsMenuState,
+  SettingsPatch,
   SettingsState,
   SettingsStorage,
   SettingsWheelChoice,

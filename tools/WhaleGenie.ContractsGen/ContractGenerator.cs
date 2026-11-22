@@ -43,6 +43,9 @@ public static class ContractGenerator
                     $"{contract} is marked as a bridge contract but is not a record");
             }
 
+            // A patch's absent field means "leave it alone"; every property is optional. Other
+            // records are whole snapshots, so a nullable property is present and explicitly null.
+            var patch = contract.GetCustomAttribute<BridgePatchAttribute>() is not null;
             text.Append("export interface ").Append(contract.Name).AppendLine(" {");
             var properties = contract.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .OrderBy(property => property.MetadataToken);
@@ -53,7 +56,7 @@ public static class ContractGenerator
                                || info.ReadState == NullabilityState.Nullable;
                 text.Append("  ")
                     .Append(JsonNamingPolicy.CamelCase.ConvertName(property.Name))
-                    .Append(": ")
+                    .Append(patch ? "?: " : ": ")
                     .Append(TypeScript(property.PropertyType))
                     .Append(nullable ? " | null" : string.Empty)
                     .AppendLine(";");

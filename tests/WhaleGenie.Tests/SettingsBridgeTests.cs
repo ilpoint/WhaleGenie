@@ -37,6 +37,41 @@ public class SettingsBridgeTests
     }
 
     [Fact]
+    public async Task A_settings_patch_writes_only_the_field_it_carries()
+    {
+        using var files = new TempSettings();
+        LocalSettings.StoreEnabledFirst(false);
+        LocalSettings.StoreLogCount(100);
+        var project = new MainViewModel();
+        var changed = 0;
+        var server = Server(project, () => changed++);
+        var channel = Channel(server);
+
+        var answer = await Call(server, channel, "settings.update",
+            new { patch = new { enabledFirst = true } });
+
+        Assert.True(answer.GetProperty("enabledFirst").GetBoolean());
+        Assert.Equal(100, answer.GetProperty("logCount").GetInt32());
+        Assert.True(LocalSettings.LoadEnabledFirst());
+        Assert.Equal(100, LocalSettings.LoadLogCount());
+        Assert.Equal(1, changed);
+    }
+
+    [Fact]
+    public async Task An_empty_settings_patch_is_refused_and_changes_nothing()
+    {
+        using var files = new TempSettings();
+        LocalSettings.StoreEnabledFirst(false);
+        var server = Server(new MainViewModel());
+        var channel = Channel(server);
+
+        var error = await CallError(server, channel, "settings.update", new { patch = new { } });
+
+        Assert.False(string.IsNullOrWhiteSpace(error.GetProperty("code").GetString()));
+        Assert.False(LocalSettings.LoadEnabledFirst());
+    }
+
+    [Fact]
     public async Task A_window_rule_added_by_the_page_builds_the_same_menu_pages_the_editor_did()
     {
         using var files = new TempSettings();
@@ -162,6 +197,16 @@ public class SettingsBridgeTests
         var answer = JsonDocument.Parse(Assert.Single(channel.Sent)).RootElement.Clone();
         Assert.True(answer.GetProperty("ok").GetBoolean());
         return answer.GetProperty("result");
+    }
+
+    private static async Task<JsonElement> CallError(BridgeServer server, RecordingChannel channel,
+        string method, object? parameters = null)
+    {
+        channel.Sent.Clear();
+        await server.AcceptAsync(JsonSerializer.Serialize(new { id = 1, method, @params = parameters }));
+        var answer = JsonDocument.Parse(Assert.Single(channel.Sent)).RootElement.Clone();
+        Assert.False(answer.GetProperty("ok").GetBoolean());
+        return answer.GetProperty("error");
     }
 
     private sealed class RecordingChannel : IBridgeChannel
