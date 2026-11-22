@@ -23,8 +23,8 @@ export class WgHomePage extends LitElement {
     }
 
     h1 {
-      font-size: var(--font-size-base-500);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase500);
+      font-weight: var(--fontWeightSemibold);
       margin: 0 0 var(--spacingVerticalS);
     }
 
@@ -72,8 +72,8 @@ export class WgHomePage extends LitElement {
     }
 
     .link strong {
-      font-size: var(--font-size-base-300);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase300);
+      font-weight: var(--fontWeightSemibold);
     }
 
   `;

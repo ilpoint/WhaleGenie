@@ -51,7 +51,12 @@ public class WebUiBoundaryTests
         foreach (var file in Directory.EnumerateFiles(
             Path.Combine(RepoPaths.Root, "webui", "src"), "*.ts", SearchOption.AllDirectories))
         {
-            if (Path.GetFileName(file) == "mock.ts")
+            // The mock host holds fixture copies of user-visible words; the editor mock is split
+            // across mock-editor*.ts and stays the same kind of fixture.
+            var name = Path.GetFileName(file);
+            if (name == "mock.ts"
+                || name.StartsWith("mock-editor", StringComparison.Ordinal)
+                || name.StartsWith("mock-value-editor", StringComparison.Ordinal))
             {
                 continue;
             }

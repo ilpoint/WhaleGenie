@@ -34,8 +34,8 @@ export class WgLibrary extends LitElement {
 
     h1 {
       margin: 0 0 var(--spacingVerticalS);
-      font-size: var(--font-size-base-500);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase500);
+      font-weight: var(--fontWeightSemibold);
     }
 
     .intro {
@@ -53,7 +53,7 @@ export class WgLibrary extends LitElement {
     .source select {
       min-width: 220px;
       font: inherit;
-      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium);
       background: var(--colorNeutralBackground1);
@@ -82,13 +82,13 @@ export class WgLibrary extends LitElement {
     }
 
     .name {
-      font-weight: var(--font-weight-semibold);
+      font-weight: var(--fontWeightSemibold);
     }
 
     .description,
     .version {
       color: var(--colorNeutralForeground2);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .empty,

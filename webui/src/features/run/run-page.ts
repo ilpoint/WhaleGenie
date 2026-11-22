@@ -31,8 +31,8 @@ export class WgRun extends LitElement {
 
     h1 {
       margin: 0 0 var(--spacingVerticalS);
-      font-size: var(--font-size-base-500);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase500);
+      font-weight: var(--fontWeightSemibold);
     }
 
     .side {
@@ -42,7 +42,7 @@ export class WgRun extends LitElement {
     .note {
       margin: 0 0 var(--spacingVerticalM);
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .macros, .steps, .log {
@@ -89,7 +89,7 @@ export class WgRun extends LitElement {
 
     .arg .hint {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .ask {
@@ -128,7 +128,7 @@ export class WgRun extends LitElement {
 
     .step .detail {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       overflow-wrap: anywhere;
     }
 
@@ -136,7 +136,7 @@ export class WgRun extends LitElement {
       display: grid;
       grid-template-columns: 72px 64px minmax(0, 1fr);
       gap: var(--spacingHorizontalS);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .log-line .time {
@@ -159,19 +159,19 @@ export class WgRun extends LitElement {
 
     .look figcaption {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .vars h3 {
       margin: 0 0 var(--spacingVerticalXS);
-      font-size: var(--font-size-base-300);
+      font-size: var(--fontSizeBase300);
     }
 
     .var-grid {
       display: grid;
       grid-template-columns: minmax(120px, 1fr) 110px minmax(0, 1.4fr);
       gap: var(--spacingVerticalXS) var(--spacingHorizontalS);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .var {

@@ -1,5 +1,6 @@
 import { html, nothing } from 'lit';
 import type { ThemeState } from '../../shared/bridge/protocol.js';
+import { PROJECT_ACCENT } from '../../shared/theme/brand.js';
 import { t } from '../../shared/strings/strings.js';
 
 export interface ThemeActions {
@@ -11,7 +12,7 @@ export interface ThemeActions {
 
 export function renderTheme(theme: ThemeState, actions: ThemeActions) {
   const custom = theme.mode === 'custom';
-  const fill = theme.fill ?? theme.accentHex ?? theme.defaultAccent ?? '#c8401c';
+  const fill = theme.fill ?? theme.accentHex ?? theme.defaultAccent ?? PROJECT_ACCENT;
   const surface = theme.surface ?? 'transparent';
   const text = theme.text ?? fill;
   return html`
@@ -43,7 +44,7 @@ export function renderTheme(theme: ThemeState, actions: ThemeActions) {
             <label class="field">
               <span>${t('Theme.Accent')}</span>
               <span class="accent-row">
-                <input type="color" .value=${theme.accentHex ?? '#c8401c'}
+                <input type="color" .value=${theme.accentHex ?? PROJECT_ACCENT}
                   @change=${(event: Event) => actions.setAccent(
                     (event.target as HTMLInputElement).value)} />
                 <code class="binding">${theme.accentHex ?? ''}</code>

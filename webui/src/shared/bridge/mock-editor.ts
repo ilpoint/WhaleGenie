@@ -1,0 +1,1290 @@
+import type {
+  EditorActionForm,
+  EditorCondition,
+  EditorConditionNode,
+  EditorParameter,
+  EditorRow,
+  EditorSnapshot,
+  EditorStep,
+  EditorTab,
+  EditorTrigger,
+  EditorValueSnapshot,
+} from './protocol.js';
+import { actionCatalogue, findAction } from './mock-editor-actions.js';
+import { MockValueEditor } from './mock-value-editor.js';
+import {
+  addDeclaredField,
+  addDeclaredParameter,
+  addDeclaredResult,
+  addGlobal,
+  addVariable,
+  moveDeclared,
+  patchDeclaredField,
+  patchDeclaredParameter,
+  patchDeclaredResult,
+  patchGlobal,
+  patchVariable,
+  removeDeclared,
+  removeDeclaredField,
+  removeGlobal,
+  removeVariable,
+} from './mock-editor-data.js';
+import {
+  changeTrigger,
+  colorTrigger,
+  createDocumentSnapshot,
+  fileTrigger,
+  interfaceTrigger,
+  newTrigger,
+  processTrigger,
+  timerTrigger,
+  windowTrigger,
+} from './mock-editor-fixtures.js';
+import {
+  addConditionNode,
+  addStepToTree,
+  changeCondition,
+  changeRows,
+  changeStep,
+  columnIndex,
+  conditionPath,
+  duplicateStepInTree,
+  locateStep,
+  moveStepInTree,
+  presentDocument,
+  removeConditionNode,
+  removeStepFromTree,
+  setConditionCell,
+  setConditionJoinAt,
+  setParameter,
+  setStepEnabled,
+  stepFromAction,
+} from './mock-editor-steps.js';
+
+/** One project macro the mock editor may open; the mock passes the project list through. */
+export interface MockMacroEntry {
+  name: string;
+  description: string;
+  group: string;
+}
+
+const NEW_KEY = '\u0000new';
+
+/**
+ * The editor half of the mock host. Each open macro is a document of its own with its own dirty
+ * state, exactly like the host's editor workspace; the main mock only carries commands in and
+ * snapshots out, so the non-editor domains stay untouched.
+ */
+export class MockEditor {
+  readonly documents = new Map<string, EditorSnapshot>();
+
+  activeKey: string | null = null;
+
+  private recording = false;
+
+  private captured = 0;
+
+  private stepSequence = 0;
+
+  private triggerSequence = 0;
+
+  private valueEditor: MockValueEditor | null = null;
+
+  private stepClipboard = '';
+
+  private actionForm: EditorActionForm | null = null;
+
+  private readonly macros: () => readonly MockMacroEntry[];
+
+  private readonly language: () => string;
+
+  constructor(
+    macros: readonly MockMacroEntry[] | (() => readonly MockMacroEntry[]) = () => [],
+    language: string | (() => string) = 'zh-Hans',
+  ) {
+    this.macros = typeof macros === 'function' ? macros : () => macros;
+    this.language = typeof language === 'function' ? language : () => language;
+  }
+
+  /** Opens a named macro, or the single unnamed scratch document when no name is given. */
+  open(name?: string | null): EditorSnapshot {
+    const trimmed = name?.trim() ?? '';
+    const key = trimmed.length > 0 ? trimmed : NEW_KEY;
+    let document = this.documents.get(key);
+    if (!document) {
+      const macro = trimmed.length > 0
+        ? this.macros().find((entry) => entry.name.trim().toLocaleLowerCase()
+          === trimmed.toLocaleLowerCase())
+        : undefined;
+      document = createDocumentSnapshot(trimmed.length > 0 ? trimmed : '未命名宏', {
+        description: macro?.description ?? '',
+        group: macro?.group ?? '',
+        subMacros: trimmed.length > 0 ? ['辅助宏'] : [],
+      });
+      this.documents.set(key, document);
+    }
+
+    this.activeKey = key;
+    return document;
+  }
+
+  /** Adds another unnamed document; the key never collides with one already open. */
+  newDocument(): EditorSnapshot {
+    const key = this.nextNewKey();
+    const document = createDocumentSnapshot('未命名宏', {});
+    this.documents.set(key, document);
+    this.activeKey = key;
+    return document;
+  }
+
+  /** Alias for newDocument, matching the host's New command. */
+  new(): EditorSnapshot {
+    return this.newDocument();
+  }
+
+  activate(key: string): EditorSnapshot {
+    const document = this.documents.get(key);
+    if (!document) {
+      throw new Error('编辑器里没有这个文档：' + key + '。');
+    }
+
+    this.activeKey = key;
+    return document;
+  }
+
+  /** Closes the named document (or the active one) and answers with what is active afterwards. */
+  close(key?: string | null): EditorSnapshot | null {
+    const target = key !== undefined && key !== null && key.length > 0 ? key : this.activeKey;
+    if (target === null) {
+      return null;
+    }
+
+    const document = this.documents.get(target);
+    if (!document) {
+      return this.activeSnapshot();
+    }
+
+    if (document.dirty) {
+      throw new Error('这份文档还有未保存修改，请先保存再关闭。');
+    }
+
+    const wasActive = this.activeKey === target;
+    this.documents.delete(target);
+    if (wasActive) {
+      const keys = [...this.documents.keys()];
+      this.activeKey = keys.length > 0 ? keys[keys.length - 1]! : null;
+    }
+
+    return this.activeSnapshot();
+  }
+
+  /** The tab strip lists only documents that are still open, in the order they were opened. */
+  tabs(): { activeKey: string | null; tabs: EditorTab[] } {
+    return {
+      activeKey: this.activeKey,
+      tabs: [...this.documents.entries()].map(([key, document]) => ({
+        key,
+        name: document.name,
+        dirty: document.dirty,
+        problem: !document.canSave,
+        isSubMacro: document.isSubMacro,
+      })),
+    };
+  }
+
+  /** Opens a submacro of the active document as a document of its own. */
+  subOpen(name?: string | null): EditorSnapshot {
+    const parentKey = this.activeKey;
+    if (parentKey === null) {
+      throw new Error('先打开一个宏，才能打开它的子宏。');
+    }
+
+    const trimmed = name?.trim() ?? '';
+    if (trimmed.length === 0) {
+      throw new Error('子宏需要一个名字。');
+    }
+
+    const parent = this.documents.get(parentKey);
+    if (!parent) {
+      throw new Error('编辑器里还没有打开的文档。');
+    }
+
+    if (!parent.subMacros.some((macro) => macro.trim() === trimmed)) {
+      throw new Error('这个宏没有名为 ' + trimmed + ' 的子宏。');
+    }
+
+    const key = 'sub:' + parentKey + ':' + trimmed;
+    let document = this.documents.get(key);
+    if (!document) {
+      document = createDocumentSnapshot(trimmed, { isSubMacro: true });
+      this.documents.set(key, document);
+    }
+
+    this.activeKey = key;
+    return document;
+  }
+
+  /** Every editor command the host serves; the main mock only forwards the method and params. */
+  run(method: string, params: Record<string, unknown>): unknown {
+    switch (method) {
+      case 'editor.sessionOpen':
+        return this.open(this.text(params, 'name'));
+      case 'editor.sessionTabs':
+        return this.tabs();
+      case 'editor.sessionNew':
+        return this.newDocument();
+      case 'editor.sessionSubOpen':
+        return this.subOpen(this.text(params, 'name'));
+      case 'editor.sessionActivate':
+        return this.activate(this.text(params, 'key'));
+      case 'editor.sessionState':
+        return this.activeSnapshot();
+      case 'editor.sessionClose':
+        return this.close(this.optionalText(params, 'key'));
+      case 'editor.sessionPatch':
+        return this.patch(params);
+      case 'editor.sessionMacroSetting':
+        return this.macroSetting(params);
+      case 'editor.sessionParameterDeclAdd':
+        return this.change(addDeclaredParameter);
+      case 'editor.sessionParameterDeclPatch':
+        return this.change((document) => patchDeclaredParameter(document, params));
+      case 'editor.sessionParameterDeclRemove':
+        return this.change((document) => removeDeclared(document, 'parameters', params));
+      case 'editor.sessionParameterDeclMove':
+        return this.change((document) => moveDeclared(document, 'parameters', params));
+      case 'editor.sessionResultDeclAdd':
+        return this.change(addDeclaredResult);
+      case 'editor.sessionResultDeclPatch':
+        return this.change((document) => patchDeclaredResult(document, params));
+      case 'editor.sessionResultDeclRemove':
+        return this.change((document) => removeDeclared(document, 'results', params));
+      case 'editor.sessionResultDeclMove':
+        return this.change((document) => moveDeclared(document, 'results', params));
+      case 'editor.sessionParameterFieldAdd':
+        return this.change((document) => addDeclaredField(document, 'parameters', params));
+      case 'editor.sessionParameterFieldPatch':
+        return this.change((document) => patchDeclaredField(document, 'parameters', params));
+      case 'editor.sessionParameterFieldRemove':
+        return this.change((document) => removeDeclaredField(document, 'parameters', params));
+      case 'editor.sessionResultFieldAdd':
+        return this.change((document) => addDeclaredField(document, 'results', params));
+      case 'editor.sessionResultFieldPatch':
+        return this.change((document) => patchDeclaredField(document, 'results', params));
+      case 'editor.sessionResultFieldRemove':
+        return this.change((document) => removeDeclaredField(document, 'results', params));
+      case 'editor.sessionStep':
+        return this.addStep(params);
+      case 'editor.sessionStepEnabled':
+        return this.setStepEnabledCommand(params);
+      case 'editor.sessionStepMeta':
+        return this.setStepMeta(params);
+      case 'editor.sessionStepDuplicate':
+        return this.duplicateStep(params);
+      case 'editor.sessionStepsEnabled':
+        return this.stepsEnabled(params);
+      case 'editor.sessionStepsRemove':
+        return this.stepsRemove(params);
+      case 'editor.sessionStepsDuplicate':
+        return this.stepsDuplicate(params);
+      case 'editor.sessionStepsMoveBy':
+        return this.stepsMoveBy(params);
+      case 'editor.sessionStepsCopy':
+        return this.stepsCopy(params);
+      case 'editor.sessionStepsCut':
+        return this.stepsCut(params);
+      case 'editor.sessionStepsPaste':
+        return this.stepsPaste(params);
+      case 'editor.sessionStepsGroup':
+        return this.stepsGroup(params);
+      case 'editor.sessionStepsLift':
+        return this.stepsLift();
+      case 'editor.sessionStepsMove':
+        return this.stepsMoveTo(params);
+
+      case 'editor.sessionConditionRowAdd':
+        return this.conditionCommand(params, (condition, path) =>
+          addConditionNode(condition, path, 'row'));
+      case 'editor.sessionConditionGroupAdd':
+        return this.conditionCommand(params, (condition, path) =>
+          addConditionNode(condition, path, 'group'));
+      case 'editor.sessionConditionRowRemove':
+        return this.conditionCommand(params, (condition, path) =>
+          removeConditionNode(condition, path));
+      case 'editor.sessionConditionRow':
+        return this.conditionCommand(params, (condition, path) =>
+          setConditionCell(condition, path, this.text(params, 'field'), this.text(params, 'value')));
+      case 'editor.sessionConditionJoin':
+        return this.conditionCommand(params, (condition, path) =>
+          setConditionJoinAt(condition, path, this.text(params, 'join')));
+      case 'editor.sessionParameter':
+        return this.setParameterCommand(params);
+      case 'editor.sessionParameterRowAdd':
+        return this.rowCommand(params, (rows) => [...rows, { cells: ['', ''] }]);
+      case 'editor.sessionParameterRowRemove':
+        return this.rowCommand(params, (rows) => rows.filter((_, index) =>
+          index !== Number(params['index'])));
+      case 'editor.sessionParameterRowCell':
+        return this.rowCommand(params, (rows) => rows.map((row, index) =>
+          index !== Number(params['index'])
+            ? row
+            : {
+                cells: row.cells.map((cell, cellIndex) =>
+                  cellIndex === columnIndex(this.text(params, 'column'))
+                    ? this.text(params, 'value')
+                    : cell),
+              }));
+      case 'editor.sessionUndo':
+        return this.change((document) => ({ ...document, canUndo: false, canRedo: true }));
+      case 'editor.sessionRedo':
+        return this.change((document) => ({ ...document, canUndo: true, canRedo: false }));
+      case 'editor.sessionMove':
+        return this.moveStep(params);
+      case 'editor.sessionRemove':
+        return this.removeStep(params);
+      case 'editor.sessionTriggerAdd':
+        return this.addTrigger(params);
+      case 'editor.sessionTriggerRemove':
+        return this.removeTrigger(params);
+      case 'editor.sessionTriggerBinding':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          binding: this.text(params, 'binding'),
+        }));
+      case 'editor.sessionTriggerLoop':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          loop: this.text(params, 'loop'),
+        }));
+      case 'editor.sessionTriggerOnce':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          once: params['once'] === true,
+        }));
+      case 'editor.sessionTriggerEnabled':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          enabled: params['enabled'] === true,
+        }));
+      case 'editor.sessionTriggerTimer':
+        return this.patchTrigger(params, (trigger) => timerTrigger(trigger, params));
+      case 'editor.sessionTriggerFile':
+        return this.patchTrigger(params, (trigger) => fileTrigger(trigger, params));
+      case 'editor.sessionTriggerProcess':
+        return this.patchTrigger(params, (trigger) => processTrigger(trigger, params));
+      case 'editor.sessionTriggerHotstring':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          hotstringText: this.text(params, 'value'),
+        }));
+      case 'editor.sessionTriggerColor':
+        return this.patchTrigger(params, (trigger) => colorTrigger(trigger, params));
+      case 'editor.sessionTriggerWindow':
+        return this.patchTrigger(params, (trigger) => windowTrigger(trigger, params));
+      case 'editor.sessionTriggerInterface':
+        return this.patchTrigger(params, (trigger) => interfaceTrigger(trigger, params));
+      case 'editor.sessionTriggerIdle':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          idleSeconds: this.text(params, 'value'),
+        }));
+      case 'editor.sessionGlobalAdd':
+        return this.change(addGlobal);
+      case 'editor.sessionGlobalPatch':
+        return this.change((document) => patchGlobal(document, params));
+      case 'editor.sessionGlobalRemove':
+        return this.change((document) => removeGlobal(document, params));
+      case 'editor.sessionVariableAdd':
+        return this.change(addVariable);
+      case 'editor.sessionVariablePatch':
+        return this.change((document) => patchVariable(document, params));
+      case 'editor.sessionVariableRemove':
+        return this.change((document) => removeVariable(document, params));
+      case 'editor.valueOpen':
+        return this.openValue(params);
+      case 'editor.valueState':
+        return this.valueEditor?.snapshot() ?? (() => { throw new Error('没有打开的取值窗口。'); })();
+      case 'editor.valueCommand':
+        return this.valueCommand(params);
+      case 'editor.valueConfirm': {
+        if (!this.valueEditor) {
+          throw new Error('没有打开的取值窗口。');
+        }
+        const outcome = this.valueEditor.confirm();
+        if (outcome.closed) {
+          this.valueEditor = null;
+        }
+        return outcome;
+      }
+      case 'editor.valueCancel': {
+        if (!this.valueEditor) {
+          throw new Error('没有打开的取值窗口。');
+        }
+        const outcome = this.valueEditor.cancel();
+        this.valueEditor = null;
+        return outcome;
+      }
+      case 'editor.sessionExport':
+        return true;
+      case 'editor.sessionRecordStart':
+        this.recording = true;
+        this.captured = 0;
+        return { recording: true, captured: 0 };
+      case 'editor.sessionRecordState':
+        if (this.recording) {
+          this.captured += 1;
+        }
+
+        return { recording: this.recording, captured: this.captured };
+      case 'editor.sessionRecordStop':
+        return this.stopRecording();
+      case 'editor.sessionSave':
+        return this.save();
+      case 'editor.actionOpen':
+        return this.actionOpen(params);
+      case 'editor.actionState':
+        return this.actionForm ?? this.emptyActionForm();
+      case 'editor.actionConfirm':
+        return this.actionConfirm();
+      case 'editor.actionCancel':
+        this.actionForm = null;
+        return this.activeSnapshot();
+      case 'editor.sessionActions':
+        return actionCatalogue(this.language());
+      case 'editor.sessionPublicMacroAdd':
+        return this.addStep({ type: 'control.runMacro' });
+      default:
+        throw new Error('不认识编辑器命令 ' + method + '。');
+    }
+  }
+
+  private emptyActionForm(): EditorActionForm {
+    return {
+      open: false, isEditing: false, canConfirm: false, canRun: false,
+      validationMessage: '', actionKey: '', name: '', description: '',
+      step: null, pages: [], json: '', stepId: '', commitLabel: '', runNote: '',
+    };
+  }
+
+  private actionOpen(params: Record<string, unknown>): EditorActionForm {
+    const document = this.activeSnapshot();
+    if (!document) {
+      throw new Error('没有打开的编辑器会话。');
+    }
+
+    const stepId = this.optionalText(params, 'stepId') ?? '';
+    const type = this.optionalText(params, 'type') ?? '';
+    let step: EditorStep;
+    let isEditing = false;
+    if (stepId.length > 0) {
+      const found = locateStep(document.steps, stepId);
+      if (!found) {
+        throw new Error('没有找到步骤 ' + stepId + '。');
+      }
+
+      step = structuredClone(found.list[found.index]!);
+      isEditing = true;
+    } else {
+      const action = findAction(type);
+      if (!action) {
+        throw new Error('没有找到动作 ' + type + '。');
+      }
+
+      step = stepFromAction(action, this.nextStepId());
+    }
+
+    this.actionTarget = {
+      targetStepId: this.optionalText(params, 'targetStepId') ?? '',
+      before: params['before'] === true,
+      parentId: this.optionalText(params, 'parentId') ?? '',
+      list: this.optionalText(params, 'list') ?? '',
+    };
+    const english = this.language() === 'en';
+    const pages = [
+      { key: 'base', label: english ? 'Basics' : '基础设置', present: true, hasDot: false },
+      { key: 'exec', label: english ? 'Execution' : '执行与容错', present: true, hasDot: false },
+      { key: 'advanced', label: english ? 'Advanced' : '高级设置', present: false, hasDot: false },
+      { key: 'other', label: english ? 'More' : '其它设置', present: true, hasDot: false },
+    ];
+    const missing = step.parameters.filter((parameter) =>
+      parameter.required && parameter.value.trim().length === 0
+      && parameter.kind !== 'Steps' && parameter.kind !== 'Returns');
+    const canConfirm = missing.length === 0;
+    this.actionForm = {
+      open: true,
+      isEditing,
+      canConfirm,
+      canRun: false,
+      validationMessage: canConfirm ? '' : (english ? 'Still needed: ' : '还缺：')
+        + missing.map((parameter) => parameter.label).join(english ? ', ' : '、'),
+      actionKey: step.type,
+      name: step.name,
+      description: '',
+      step,
+      pages,
+      json: JSON.stringify(step, null, 2),
+      stepId: step.id,
+      commitLabel: isEditing ? (english ? 'Save step' : '保存步骤') : (english ? 'Add step' : '添加步骤'),
+      runNote: english ? 'A trial run is not wired into this editor yet.' : '这个编辑器还没有接入单步试运行。',
+    };
+    return this.actionForm;
+  }
+
+  private refreshActionForm(): void {
+    const form = this.actionForm;
+    if (!form?.step) {
+      return;
+    }
+
+    const english = this.language() === 'en';
+    const missing = form.step.parameters.filter((parameter) =>
+      parameter.required && parameter.value.trim().length === 0
+      && parameter.kind !== 'Steps' && parameter.kind !== 'Returns');
+    this.actionForm = {
+      ...form,
+      canConfirm: missing.length === 0,
+      validationMessage: missing.length === 0
+        ? ''
+        : (english ? 'Still needed: ' : '还缺：')
+          + missing.map((parameter) => parameter.label).join(english ? ', ' : '、'),
+      json: JSON.stringify(form.step, null, 2),
+    };
+  }
+
+  private actionTarget: { targetStepId: string; before: boolean; parentId: string; list: string } = {
+    targetStepId: '', before: false, parentId: '', list: '',
+  };
+
+  private actionConfirm(): EditorSnapshot | null {
+    const form = this.actionForm;
+    if (!form?.canConfirm || !form.step) {
+      return this.activeSnapshot();
+    }
+
+    const step = structuredClone(form.step);
+    const ok = this.change((document) => {
+      if (form.isEditing) {
+        return {
+          ...document,
+          dirty: true,
+          canUndo: true,
+          canRedo: false,
+          steps: changeStep(document.steps, form.stepId, () => step),
+        };
+      }
+
+      const steps = this.insertMockStep(document.steps, step);
+      return { ...document, dirty: true, canUndo: true, canRedo: false, steps };
+    });
+    this.actionForm = null;
+    return ok;
+  }
+
+  private insertMockStep(steps: EditorStep[], step: EditorStep): EditorStep[] {
+    const target = this.actionTarget;
+    if (target.targetStepId.length > 0) {
+      const found = locateStep(steps, target.targetStepId);
+      if (found) {
+        found.list.splice(found.index + (target.before ? 0 : 1), 0, step);
+        return steps;
+      }
+    }
+
+    if (target.parentId.length > 0) {
+      const parent = locateStep(steps, target.parentId);
+      if (parent) {
+        const parentStep = parent.list[parent.index]!;
+        const section = parentStep.sections.find((candidate) =>
+          target.list.length === 0 || candidate.name === target.list);
+        if (section) {
+          section.steps.push(step);
+          return steps;
+        }
+      }
+    }
+
+    return [...steps, step];
+  }
+
+  private openValue(params: Record<string, unknown>): EditorValueSnapshot {
+    const document = this.activeSnapshot();
+    if (!document) {
+      throw new Error('没有打开的编辑器会话。');
+    }
+
+    const stepId = this.text(params, 'step');
+    const parameterName = this.text(params, 'parameter');
+    const draftStep = this.actionForm && stepId === this.actionForm.stepId
+      ? this.actionForm.step
+      : null;
+    const step = draftStep ?? findStep(document.steps, stepId);
+    const parameter = step?.parameters.find((candidate) => candidate.name === parameterName);
+    if (!step || !parameter) {
+      throw new Error('这一步没有字段 ' + parameterName + '。');
+    }
+
+    const conditionField = this.optionalText(params, 'conditionField');
+    const conditionPath = Array.isArray(params['conditionPath'])
+      ? (params['conditionPath'] as unknown[]).map((item) => Number(item))
+      : null;
+    const rowIndex = Number(params['rowIndex'] ?? -1);
+    const column = this.optionalText(params, 'column') ?? '';
+    if (conditionField && conditionPath) {
+      const node = conditionAt(parameter.condition?.nodes ?? [], conditionPath);
+      const seed = node ? (conditionField === 'left' ? node.left : node.right) : '';
+      const synthetic: EditorParameter = {
+        ...parameter,
+        value: seed,
+        display: seed,
+        parts: seed.length > 0 ? [{ kind: 'text', text: seed, name: '' }] : [],
+        valueForm: 'Value',
+        isNumber: false,
+      };
+      this.valueEditor = new MockValueEditor(document, synthetic, (value) => {
+        if (draftStep && this.actionForm) {
+          this.actionForm = {
+            ...this.actionForm,
+            step: changeCondition([this.actionForm.step!], step.id, parameter.name,
+              (condition) => setConditionCell(condition, conditionPath, conditionField, value))[0]!,
+          };
+          this.refreshActionForm();
+          return;
+        }
+
+        this.change((current) => ({
+          ...current,
+          dirty: true,
+          steps: changeCondition(current.steps, step.id, parameter.name, (condition) =>
+            setConditionCell(condition, conditionPath, conditionField, value)),
+        }));
+      });
+      return this.valueEditor.snapshot();
+    }
+
+    if (rowIndex >= 0 && column.length > 0) {
+      const cell = columnIndex(column);
+      const seed = parameter.rows[rowIndex]?.cells[cell] ?? '';
+      const synthetic: EditorParameter = {
+        ...parameter,
+        value: seed,
+        display: seed,
+        parts: seed.length > 0 ? [{ kind: 'text', text: seed, name: '' }] : [],
+        valueForm: 'Value',
+        isNumber: false,
+      };
+      this.valueEditor = new MockValueEditor(document, synthetic, (value) => {
+        const update = (rows: EditorRow[]): EditorRow[] => rows.map((row, index) => index === rowIndex
+          ? { ...row, cells: row.cells.map((content, cellIndex) =>
+            cellIndex === cell ? value : content) }
+          : row);
+        if (draftStep && this.actionForm) {
+          this.actionForm = {
+            ...this.actionForm,
+            step: changeRows([this.actionForm.step!], step.id, parameter.name, update)[0]!,
+          };
+          this.refreshActionForm();
+          return;
+        }
+
+        this.change((current) => ({
+          ...current,
+          dirty: true,
+          steps: changeRows(current.steps, step.id, parameter.name, update),
+        }));
+      });
+      return this.valueEditor.snapshot();
+    }
+
+    this.valueEditor = new MockValueEditor(document, parameter, (value) => {
+      if (draftStep && this.actionForm) {
+        this.actionForm = {
+          ...this.actionForm,
+          step: setParameter([this.actionForm.step!], step.id, parameter.name, value)[0]!,
+        };
+        this.refreshActionForm();
+        return;
+      }
+
+      this.change((current) => ({
+        ...current,
+        dirty: true,
+        steps: setParameter(current.steps, step.id, parameter.name, value),
+      }));
+    });
+    return this.valueEditor.snapshot();
+  }
+
+  private valueCommand(params: Record<string, unknown>): EditorValueSnapshot {
+    if (!this.valueEditor) {
+      throw new Error('没有打开的取值窗口。');
+    }
+
+    return this.valueEditor.command(this.text(params, 'action'), params);
+  }
+
+  private activeSnapshot(): EditorSnapshot | null {
+    return this.activeKey === null ? null : this.documents.get(this.activeKey) ?? null;
+  }
+
+  private nextNewKey(): string {
+    let key = NEW_KEY;
+    for (let index = 2; this.documents.has(key); index++) {
+      key = NEW_KEY + ':' + String(index);
+    }
+
+    return key;
+  }
+
+  /** Applies one edit to the active document and stores the refreshed snapshot in its place. */
+  private change(change: (document: EditorSnapshot) => EditorSnapshot): EditorSnapshot | null {
+    const key = this.activeKey;
+    if (key === null) {
+      return null;
+    }
+
+    const document = this.documents.get(key);
+    if (!document) {
+      return null;
+    }
+
+    const next = presentDocument(change(document));
+    this.documents.set(key, next);
+    return next;
+  }
+
+  private patch(params: Record<string, unknown>): EditorSnapshot | null {
+    const name = this.optionalText(params, 'name');
+    const description = this.optionalText(params, 'description');
+    const group = this.optionalText(params, 'group');
+    return this.change((document) => ({
+      ...document,
+      name: name ?? document.name,
+      description: description ?? document.description,
+      group: group ?? document.group,
+      dirty: true,
+    }));
+  }
+
+  private macroSetting(params: Record<string, unknown>): EditorSnapshot | null {
+    const field = this.text(params, 'field');
+    const value = this.text(params, 'value');
+    return this.change((document) => {
+      switch (field) {
+        case 'followInputLimit':
+          return { ...document, dirty: true, followInputLimit: value === 'true' };
+        case 'inputLimit': {
+          const limit = Number(value);
+          return {
+            ...document,
+            dirty: true,
+            inputLimit: Number.isFinite(limit) ? limit : document.inputLimit,
+          };
+        }
+        case 'toggleKey':
+          return { ...document, dirty: true, toggleKey: value };
+        default:
+          return { ...document, dirty: true };
+      }
+    });
+  }
+
+  private addStep(params: Record<string, unknown>): EditorSnapshot | null {
+    const type = this.text(params, 'type');
+    if (type.length === 0) {
+      throw new Error('没有指定要添加的动作。');
+    }
+
+    const action = findAction(type);
+    if (!action) {
+      throw new Error('动作目录里没有 ' + type + '。');
+    }
+
+    const parentId = this.text(params, 'parentId');
+    const list = this.text(params, 'list');
+    const presets = this.presets(params['parameters']);
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      canUndo: true,
+      canRedo: false,
+      steps: addStepToTree(
+        document.steps,
+        parentId.length > 0 ? parentId : undefined,
+        list.length > 0 ? list : undefined,
+        action,
+        this.nextStepId(),
+        presets,
+      ),
+    }));
+  }
+
+  private requestedSteps(params: Record<string, unknown>): string[] {
+    const value = params['steps'];
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === 'string' && item.length > 0)
+      : [];
+  }
+
+  private stepsEnabled(params: Record<string, unknown>): EditorSnapshot | null {
+    const ids = this.requestedSteps(params);
+    const enabled = params['enabled'] === true;
+    return this.change((document) => {
+      let steps = document.steps;
+      for (const id of ids) {
+        steps = setStepEnabled(steps, id, enabled);
+      }
+      return { ...document, dirty: true, steps };
+    });
+  }
+
+  private stepsRemove(params: Record<string, unknown>): EditorSnapshot | null {
+    const ids = this.requestedSteps(params);
+    return this.change((document) => {
+      let steps = document.steps;
+      for (const id of ids) {
+        steps = removeStepFromTree(steps, id).steps;
+      }
+      return { ...document, dirty: true, steps };
+    });
+  }
+
+  private stepsDuplicate(params: Record<string, unknown>): EditorSnapshot | null {
+    const ids = this.requestedSteps(params);
+    return this.change((document) => {
+      let steps = document.steps;
+      for (const id of ids) {
+        steps = duplicateStepInTree(steps, id, () => this.nextStepId()).steps;
+      }
+      return { ...document, dirty: true, canUndo: true, canRedo: false, steps };
+    });
+  }
+
+  private stepsMoveBy(params: Record<string, unknown>): EditorSnapshot | null {
+    const ids = this.requestedSteps(params);
+    const delta = Number(params['delta'] ?? 0);
+    return this.change((document) => {
+      let steps = document.steps;
+      for (const id of ids) {
+        steps = moveStepInTree(steps, id, delta).steps;
+      }
+      return { ...document, dirty: true, steps };
+    });
+  }
+
+  private stepsCopy(params: Record<string, unknown>): string {
+    const ids = this.requestedSteps(params);
+    const document = this.activeSnapshot();
+    const steps = document
+      ? ids
+        .map((id) => locateStep(document.steps, id))
+        .filter((found): found is NonNullable<typeof found> => found !== null)
+        .map((found) => found.list[found.index]!)
+      : [];
+    this.stepClipboard = JSON.stringify(steps);
+    return this.stepClipboard;
+  }
+
+  private stepsCut(params: Record<string, unknown>): string {
+    const text = this.stepsCopy(params);
+    this.stepsRemove(params);
+    return text;
+  }
+
+  private stepsPaste(params: Record<string, unknown>): EditorSnapshot | null {
+    const payload = typeof params['text'] === 'string' && params['text'].length > 0
+      ? params['text'] as string
+      : this.stepClipboard;
+    let pasted: EditorStep[] = [];
+    try {
+      const parsed: unknown = JSON.parse(payload);
+      if (Array.isArray(parsed)) {
+        pasted = parsed.filter((item): item is EditorStep =>
+          typeof item === 'object' && item !== null && typeof (item as EditorStep).id === 'string');
+      }
+    } catch {
+      pasted = [];
+    }
+
+    if (pasted.length === 0) {
+      return this.activeSnapshot();
+    }
+
+    const copies = pasted.map((step) => this.cloneStep(step));
+    const after = typeof params['after'] === 'string' ? params['after'] as string : '';
+    return this.change((document) => {
+      const found = after.length > 0 ? locateStep(document.steps, after) : null;
+      const list = found?.list ?? document.steps;
+      const index = found ? found.index + 1 : list.length;
+      list.splice(index, 0, ...copies);
+      return { ...document, dirty: true, steps: document.steps };
+    });
+  }
+
+  private stepsGroup(params: Record<string, unknown>): EditorSnapshot | null {
+    const ids = this.requestedSteps(params);
+    const document = this.activeSnapshot();
+    if (!document) {
+      return null;
+    }
+
+    const locations = ids
+      .map((id) => locateStep(document.steps, id))
+      .filter((found): found is NonNullable<typeof found> => found !== null)
+      .sort((left, right) => left.index - right.index);
+    if (locations.length === 0) {
+      return document;
+    }
+
+    const first = locations[0]!;
+    const selected = locations.map((found) => found.list[found.index]!);
+    for (const found of [...locations].reverse()) {
+      found.list.splice(found.index, 1);
+    }
+
+    const group = structuredClone(first.list[first.index] ?? selected[0]!);
+    group.id = this.nextStepId();
+    group.type = 'control.sequence';
+    group.name = '分组';
+    group.detail = '按顺序执行';
+    group.enabled = true;
+    group.acceptsSteps = true;
+    group.parameters = [];
+    group.sections = [{ name: 'steps', label: '步骤', steps: selected }];
+    first.list.splice(first.index, 0, group);
+    return this.change((documentNow) => ({ ...documentNow, dirty: true, steps: documentNow.steps }));
+  }
+
+  private stepsLift(): EditorSnapshot | null {
+    const document = this.activeSnapshot();
+    if (!document) {
+      return null;
+    }
+
+    return document;
+  }
+
+  private stepsMoveTo(params: Record<string, unknown>): EditorSnapshot | null {
+    const ids = this.requestedSteps(params);
+    const target = typeof params['target'] === 'string' ? params['target'] as string : '';
+    const before = params['before'] === true;
+    const document = this.activeSnapshot();
+    if (!document || target.length === 0) {
+      return document;
+    }
+
+    const targetLocation = locateStep(document.steps, target);
+    if (!targetLocation) {
+      return document;
+    }
+
+    const selected = ids
+      .map((id) => locateStep(document.steps, id))
+      .filter((found): found is NonNullable<typeof found> => found !== null)
+      .sort((left, right) => left.index - right.index);
+    if (selected.length === 0) {
+      return document;
+    }
+
+    const moved = selected.map((found) => found.list[found.index]!);
+    for (const found of [...selected].reverse()) {
+      found.list.splice(found.index, 1);
+    }
+
+    const targetIndex = targetLocation.list.findIndex((step) => step.id === target);
+    const at = targetIndex + (before ? 0 : 1);
+    targetLocation.list.splice(Math.max(0, at), 0, ...moved);
+    return this.change((documentNow) => ({ ...documentNow, dirty: true, steps: documentNow.steps }));
+  }
+
+  private cloneStep(step: EditorStep): EditorStep {
+    const copy = structuredClone(step);
+    const renumber = (current: EditorStep): void => {
+      current.id = this.nextStepId();
+      for (const section of current.sections) {
+        for (const child of section.steps) {
+          renumber(child);
+        }
+      }
+    };
+    renumber(copy);
+    return copy;
+  }
+
+  private setStepEnabledCommand(params: Record<string, unknown>): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    const enabled = params['enabled'] === true;
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      steps: setStepEnabled(document.steps, stepId, enabled),
+    }));
+  }
+
+  private setStepMeta(params: Record<string, unknown>): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    const field = this.text(params, 'field');
+    const value = this.text(params, 'value');
+    if (this.actionForm && stepId === this.actionForm.stepId) {
+      this.actionForm = {
+        ...this.actionForm,
+        step: changeStep([this.actionForm.step!], stepId, (step) => ({
+          ...step,
+          comment: field === 'comment' ? value : step.comment,
+          timeoutMs: field === 'timeoutMs' ? Number(value) : step.timeoutMs,
+          retryCount: field === 'retryCount' ? Number(value) : step.retryCount,
+          retryDelayMs: field === 'retryDelayMs' ? Number(value) : step.retryDelayMs,
+          onError: field === 'onError' ? value : step.onError,
+        }))[0]!,
+      };
+      this.refreshActionForm();
+      return this.activeSnapshot();
+    }
+
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      steps: changeStep(document.steps, stepId, (step) => ({
+        ...step,
+        comment: field === 'comment' ? value : step.comment,
+        timeoutMs: field === 'timeoutMs' ? this.number(value, step.timeoutMs) : step.timeoutMs,
+        retryCount: field === 'retryCount' ? this.number(value, step.retryCount) : step.retryCount,
+        retryDelayMs: field === 'retryDelayMs'
+          ? this.number(value, step.retryDelayMs)
+          : step.retryDelayMs,
+        onError: field === 'onError' ? value : step.onError,
+      })),
+    }));
+  }
+
+  private duplicateStep(params: Record<string, unknown>): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    return this.change((document) => {
+      const steps = structuredClone(document.steps);
+      const result = duplicateStepInTree(steps, stepId, () => this.nextStepId());
+      return result.changed
+        ? { ...document, dirty: true, canUndo: true, canRedo: false, steps: result.steps }
+        : document;
+    });
+  }
+
+  private moveStep(params: Record<string, unknown>): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    const delta = this.number(this.text(params, 'delta'), 0);
+    return this.change((document) => {
+      const steps = structuredClone(document.steps);
+      const result = moveStepInTree(steps, stepId, delta);
+      return result.changed ? { ...document, dirty: true, steps: result.steps } : document;
+    });
+  }
+
+  private removeStep(params: Record<string, unknown>): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    return this.change((document) => {
+      const steps = structuredClone(document.steps);
+      const result = removeStepFromTree(steps, stepId);
+      return result.changed ? { ...document, dirty: true, steps: result.steps } : document;
+    });
+  }
+
+  private conditionCommand(
+    params: Record<string, unknown>,
+    change: (condition: EditorCondition, path: number[]) => EditorCondition,
+  ): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    const name = this.text(params, 'name');
+    const path = conditionPath(params);
+    if (this.actionForm && stepId === this.actionForm.stepId) {
+      this.actionForm = {
+        ...this.actionForm,
+        step: changeCondition([this.actionForm.step!], stepId, name,
+          (condition) => change(condition, path))[0]!,
+      };
+      this.refreshActionForm();
+      return this.activeSnapshot();
+    }
+
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      steps: changeCondition(document.steps, stepId, name, (condition) => change(condition, path)),
+    }));
+  }
+
+  private setParameterCommand(params: Record<string, unknown>): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    const name = this.text(params, 'name');
+    const value = this.text(params, 'value');
+    if (this.actionForm && stepId === this.actionForm.stepId) {
+      this.actionForm = {
+        ...this.actionForm,
+        step: setParameter([this.actionForm.step!], stepId, name, value)[0]!,
+      };
+      this.refreshActionForm();
+      return this.activeSnapshot();
+    }
+
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      steps: setParameter(document.steps, stepId, name, value),
+    }));
+  }
+
+  private rowCommand(
+    params: Record<string, unknown>,
+    change: (rows: EditorRow[]) => EditorRow[],
+  ): EditorSnapshot | null {
+    const stepId = this.text(params, 'stepId');
+    const name = this.text(params, 'name');
+    if (this.actionForm && stepId === this.actionForm.stepId) {
+      this.actionForm = {
+        ...this.actionForm,
+        step: changeRows([this.actionForm.step!], stepId, name, change)[0]!,
+      };
+      this.refreshActionForm();
+      return this.activeSnapshot();
+    }
+
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      steps: changeRows(document.steps, stepId, name, change),
+    }));
+  }
+
+  private addTrigger(params: Record<string, unknown>): EditorSnapshot | null {
+    const kind = this.text(params, 'kind').length > 0 ? this.text(params, 'kind') : 'Key';
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      triggers: [...document.triggers, newTrigger(this.nextTriggerId(), kind)],
+    }));
+  }
+
+  private removeTrigger(params: Record<string, unknown>): EditorSnapshot | null {
+    const triggerId = this.text(params, 'triggerId');
+    return this.change((document) => ({
+      ...document,
+      dirty: true,
+      triggers: document.triggers.filter((trigger) => trigger.id !== triggerId),
+    }));
+  }
+
+  private patchTrigger(
+    params: Record<string, unknown>,
+    update: (trigger: EditorTrigger) => EditorTrigger,
+  ): EditorSnapshot | null {
+    const triggerId = this.text(params, 'triggerId');
+    return this.change((document) => changeTrigger(document, triggerId, update));
+  }
+
+  private stopRecording(): {
+    captured: number;
+    steps: number;
+    snapshot: EditorSnapshot | null;
+  } {
+    const wasRecording = this.recording;
+    const captured = this.captured;
+    this.recording = false;
+    this.captured = 0;
+    let steps = 0;
+    const snapshot = wasRecording
+      ? this.change((document) => {
+          const action = findAction('control.delay');
+          const delays: EditorStep[] = action
+            ? [stepFromAction(action, this.nextStepId()), stepFromAction(action, this.nextStepId())]
+            : [];
+          steps = delays.length;
+          return { ...document, dirty: true, steps: [...document.steps, ...delays] };
+        })
+      : this.activeSnapshot();
+    return { captured, steps, snapshot };
+  }
+
+  private save(): EditorSnapshot | null {
+    return this.change((document) => {
+      if (document.name.trim().length === 0) {
+        throw new Error('宏需要一个名字。');
+      }
+
+      return {
+        ...document,
+        name: document.name.trim(),
+        dirty: false,
+      };
+    });
+  }
+
+  private nextStepId(): string {
+    this.stepSequence += 1;
+    return 'mock-' + String(this.stepSequence);
+  }
+
+  private nextTriggerId(): string {
+    this.triggerSequence += 1;
+    return 'trigger-' + String(this.triggerSequence);
+  }
+
+  private text(params: Record<string, unknown>, name: string): string {
+    const value = params[name];
+    return value === undefined || value === null ? '' : String(value);
+  }
+
+  private optionalText(params: Record<string, unknown>, name: string): string | undefined {
+    const value = params[name];
+    if (value === undefined) {
+      return undefined;
+    }
+
+    return value === null ? '' : String(value);
+  }
+
+  private number(value: string, fallback: number): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private presets(value: unknown): Record<string, string> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+
+    const presets: Record<string, string> = {};
+    for (const [name, entry] of Object.entries(value as Record<string, unknown>)) {
+      presets[name] = typeof entry === 'string' ? entry : JSON.stringify(entry) ?? '';
+    }
+
+    return presets;
+  }
+}
+
+function conditionAt(nodes: EditorConditionNode[], path: number[]): EditorConditionNode | null {
+  if (path.length === 0) {
+    return null;
+  }
+
+  const node = nodes[path[0] ?? -1];
+  if (!node) {
+    return null;
+  }
+
+  return path.length === 1 ? node : conditionAt(node.children, path.slice(1));
+}
+
+function findStep(steps: EditorStep[], id: string): EditorStep | null {
+  for (const step of steps) {
+    if (step.id === id) {
+      return step;
+    }
+
+    for (const section of step.sections) {
+      const found = findStep(section.steps, id);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+}
+

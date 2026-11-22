@@ -52,13 +52,13 @@ export class WgMacros extends LitElement {
     .filebar {
       display: flex;
       align-items: center;
-      gap: var(--spacingHorizontalSN);
+      gap: var(--spacingHorizontalSNudge);
       padding: var(--spacingVerticalS) var(--spacingHorizontalXL) 0;
     }
 
     .filebar .path {
       color: var(--colorNeutralForeground4);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -70,7 +70,7 @@ export class WgMacros extends LitElement {
     .dock {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--spacingHorizontalSN);
+      gap: var(--spacingHorizontalSNudge);
     }
 
     .dock button {
@@ -79,7 +79,7 @@ export class WgMacros extends LitElement {
       background: transparent;
       color: var(--colorNeutralForeground1);
       font: inherit;
-      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
       cursor: pointer;
     }
 
@@ -117,7 +117,7 @@ export class WgMacros extends LitElement {
       background: var(--colorNeutralBackground1);
       color: var(--colorNeutralForeground1);
       font: inherit;
-      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
     }
 
     .tools input::placeholder {
@@ -129,7 +129,7 @@ export class WgMacros extends LitElement {
       overflow: auto;
       display: flex;
       flex-direction: column;
-      gap: var(--spacingVerticalSN);
+      gap: var(--spacingVerticalSNudge);
       padding: var(--spacingVerticalM) var(--spacingHorizontalXL);
     }
 
@@ -141,7 +141,7 @@ export class WgMacros extends LitElement {
       background: var(--colorNeutralBackground1);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium);
-      padding: var(--spacingVerticalMN) var(--spacingHorizontalL);
+      padding: var(--spacingVerticalM) var(--spacingHorizontalL);
     }
 
     .dot {
@@ -163,7 +163,7 @@ export class WgMacros extends LitElement {
     }
 
     .card .name {
-      font-weight: var(--font-weight-semibold);
+      font-weight: var(--fontWeightSemibold);
       display: flex;
       align-items: center;
       gap: var(--spacingHorizontalS);
@@ -171,12 +171,12 @@ export class WgMacros extends LitElement {
 
     .card .name .group {
       color: var(--colorNeutralForeground3);
-      font-weight: var(--font-weight-regular);
+      font-weight: var(--fontWeightRegular);
     }
 
     .card .triggers {
       color: var(--colorNeutralForeground2);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .card fluent-switch {
@@ -278,7 +278,9 @@ export class WgMacros extends LitElement {
 
     return html`
       <div class="filebar">
-        ${this.state.dirty ? html`<fluent-badge appearance="warning">${t('Shell.Field.Dirty')}</fluent-badge>` : nothing}
+        ${this.state.dirty
+          ? html`<fluent-badge appearance="tint" color="warning">${t('Shell.Field.Dirty')}</fluent-badge>`
+          : nothing}
         <span class="path">${this.state.path ?? ''}</span>
         ${this.state.path ? html`
           <fluent-button appearance="subtle" @click=${this.onReload}>${t('Main.ReloadCurrent')}</fluent-button>

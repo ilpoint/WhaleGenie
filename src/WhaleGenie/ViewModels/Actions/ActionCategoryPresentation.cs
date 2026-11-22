@@ -103,6 +103,35 @@ public static class ActionCategoryPresentation
     public static IReadOnlyList<string> BasicGroups(ActionCategory category)
         => BasicGroupOrder.TryGetValue(category, out var groups) ? groups : [];
 
+    /// <summary>
+    /// The small group a control-flow action is listed under, the way the palette's flow dock
+    /// groups it. A key the table never learned still gets "Other" rather than disappearing.
+    /// </summary>
+    public static string FlowGroup(string key) => key switch
+    {
+        "control.repeat" or "control.while" or "control.for"
+            or "control.forEach" or "control.if" or "control.switch" or "control.try" => "Branch",
+        "control.break" or "control.continue" or "control.return" or "control.rethrow"
+            or "control.stop" or "control.fail" => "Jump",
+        "control.delay" or "control.waitUntil"
+            or "control.holdInput" or "control.holdBrowser"
+            or "control.runMacro" => "Waiting",
+        "control.ask" or "control.input" => "Data",
+        "control.note" or "control.log" => "Notes",
+        _ => "Other",
+    };
+
+    /// <summary>Where a flow group sits in the flow dock; unknown groups come last.</summary>
+    public static int FlowGroupRank(string group) => group switch
+    {
+        "Branch" => 0,
+        "Jump" => 1,
+        "Waiting" => 2,
+        "Data" => 3,
+        "Notes" => 4,
+        _ => 5,
+    };
+
     public static IReadOnlyList<ActionCategoryChoice> BasicCategories() =>
     [
         new(null, Strings.Get("Add.AllActions"), Strings.Get("Add.AllActionsShort"),

@@ -19,6 +19,7 @@ import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
 import { go } from './app/router.js';
 import { installFocusReporting } from './shared/focus/focus.js';
+import { editor } from './features/editor/editor-store.js';
 import './app/shell.js';
 
 /**
@@ -49,7 +50,7 @@ client.on('run.openRequested', ({ name }) => {
   void client.call('run.load', { name }).then(() => go('run'));
 });
 client.on('editor.openRequested', ({ name }) => {
-  void client.call('editor.sessionOpen', { name }).then(() => go('editor'));
+  void editor.open(name).then(() => go('editor'));
 });
 
 await client.call('bridge.ready');

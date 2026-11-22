@@ -64,7 +64,7 @@ export class WgTitlebar extends LitElement {
       background: transparent;
       color: var(--colorNeutralForeground1);
       font: inherit;
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
       cursor: default;
     }
@@ -101,7 +101,7 @@ export class WgTitlebar extends LitElement {
       color: var(--colorNeutralForeground1);
       font: inherit;
       text-align: left;
-      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
       cursor: default;
     }
 
@@ -110,9 +110,9 @@ export class WgTitlebar extends LitElement {
     }
 
     .dropdown .version {
-      padding: var(--spacingVerticalSN) var(--spacingHorizontalM);
+      padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
       margin-bottom: var(--spacingVerticalXS);
     }
@@ -123,7 +123,7 @@ export class WgTitlebar extends LitElement {
     }
 
     .title {
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       color: var(--colorNeutralForeground1);
       white-space: nowrap;
       overflow: hidden;

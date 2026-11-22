@@ -38,8 +38,8 @@ export class WgConfirm extends LitElement {
     }
 
     h2 {
-      font-size: var(--font-size-base-400);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase400);
+      font-weight: var(--fontWeightSemibold);
       margin: 0 0 var(--spacingVerticalM);
     }
 

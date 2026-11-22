@@ -1,9 +1,7 @@
 import type { BridgeTransport } from './transport.js';
+import { MockEditor } from './mock-editor.js';
 import type {
   AppInfo,
-  EditorConditionNode,
-  EditorSnapshot,
-  EditorStep,
   McpState,
   ProjectState,
   SettingsMenuState,
@@ -244,6 +242,141 @@ const mockExtra: Record<string, { en: string; zh: string }> = {
   'About.WeChat': { en: 'WeChat', zh: '微信' },
   'About.Alipay': { en: 'Alipay', zh: '支付宝' },
   'Shell.Field.Version': { en: 'Version', zh: '版本' },
+  'Editor.MacroSettings': { en: 'Macro settings', zh: '宏设置' },
+  'Editor.InputLimit': { en: 'Input limit:', zh: '输入限制：' },
+  'Editor.InputLimitFollow': { en: 'Follow the program setting', zh: '跟随程序设置' },
+  'Editor.InputLimitHint': { en: 'Events per second (KPS) this macro may send; 0 is no limit, range 0–999.', zh: '这个宏每秒最多发出多少键鼠事件（KPS）；0 为不限，范围 0–999。' },
+  'Editor.ToggleKey': { en: 'Enable/disable key:', zh: '启用/停用键：' },
+  'Editor.ToggleKeyHint': { en: 'Press it once to disarm this macro, again to arm it. The key itself sends nothing, and it keeps working while the macro is disarmed.', zh: '按一下停用这个宏，再按一下恢复；这个键本身不发送任何输入，宏停用时它仍然有效。' },
+  'Editor.MacroName': { en: 'Macro name:', zh: '宏名称：' },
+  'Editor.MacroDescription': { en: 'Description:', zh: '描述：' },
+  'Editor.MacroGroup': { en: 'Group:', zh: '分组：' },
+  'Editor.MacroInterface': { en: 'Macro interface', zh: '宏接口' },
+  'Editor.SpecificHint': { en: 'These belong to this macro alone: its own input limit, the key that arms it, and the interface its callers read.', zh: '这些只属于这个宏：它自己的输入限制、启用/停用键，以及调用方读到的宏接口。' },
+  'Editor.NoTriggerSelected': { en: 'Select an entry to edit its condition.', zh: '选择一个入口后可编辑其条件。' },
+  'Editor.ManageLocals': { en: 'Local variables', zh: '局部变量' },
+  'Editor.ManageGlobals': { en: 'Global variables', zh: '全局变量' },
+  'Editor.Save': { en: 'Save', zh: '保存' },
+  'Editor.Unsaved': { en: 'Unsaved', zh: '未保存' },
+  'Editor.ProblemSummary': { en: '{0} step(s) the editor is not happy with.', zh: '有 {0} 个步骤被编辑器标了出来。' },
+  'Editor.AddBranchHint': { en: 'Adds the next branch to this switch and opens its values for typing. A switch tries its branches from the top down and runs the first one that matches.', zh: '给这个多分支再加一支，并把这一支的值打开来写。多分支从上往下比对，命中第一支就执行它。' },
+  'Editor.Fold': { en: 'Fold the steps inside', zh: '收起里面的步骤' },
+  'Editor.Unfold': { en: 'Show the steps inside', zh: '展开里面的步骤' },
+  'Editor.StepDisabled': { en: 'skipped', zh: '已停用' },
+  'Editor.StepIdHint': { en: 'Step name {0}: a result variable and a condition point at this step by it.', zh: '步骤名称 {0}：结果变量和条件用它指这一步。' },
+  'Editor.AddBranch': { en: '＋ Add branch', zh: '＋ 添加分支' },
+  'Editor.EmptyBranchList': { en: 'No branch yet. Use Add branch below.', zh: '还没有分支。用下面的「添加分支」加一支。' },
+  'Editor.NoStepsHint': { en: 'Pick an action in the library and press Add step.', zh: '在左侧动作库选一个动作，再按「添加步骤」。' },
+  'Editor.DragActionHint': { en: 'Click an action to select it, then press Add step; double-click it to add it to the end of the list. A section\'s Add button places it inside that block.', zh: '单击动作选中，再按「添加步骤」；双击动作会加到步骤列表末尾。要放进块里，点分节标题上的「添加」。' },
+  'VarWall.All': { en: 'All', zh: '全部' },
+  'VarWall.System': { en: 'System', zh: '系统变量' },
+  'VarWall.StepResult': { en: 'Steps', zh: '步骤状态' },
+  'VarWall.Search': { en: 'Find a variable', zh: '查找变量' },
+  'VarWall.Pick': { en: 'Hover over a button to see what that variable is.', zh: '鼠标停在按钮上就能看见那个变量是什么。' },
+  'VarWall.Empty': { en: 'There is nothing in this group yet; try another button above.', zh: '这一类现在还没有变量，点上面别的按钮看看。' },
+  'VarWall.Persistent': { en: 'saved', zh: '持久化' },
+  'VarWall.AllHint': { en: 'Every variable this macro can read.', zh: '这个宏能读到的一切变量。' },
+  'VarWall.LocalHint': { en: 'The ones this macro makes for itself: what its steps leave behind, and the ones it declares.', zh: '这个宏自己留着的变量：它的步骤留下来的那些，以及它声明的那些。' },
+  'VarWall.GlobalHint': { en: 'Created in the Variable Center, and the same for every macro.', zh: '在变量中心创建的全局变量，每个宏看到的都一样。' },
+  'VarWall.SystemHint': { en: 'Provided by WhaleGenie: the date, the mouse, the clipboard.', zh: '由鲸灵提供、随时取用的值：日期、鼠标位置、剪贴板这些。' },
+  'VarWall.StepResultHint': { en: 'How each step ended: ok, failed or skipped; no value before a run. The reason is caught.key inside a try.', zh: '每一步跑完的状态（ok / failed / skipped）；运行之前没有值。失败原因在 try 的 caught.key 里。' },
+  'Variable.Tab.Local': { en: 'Local', zh: '局部变量' },
+  'Variable.Tab.Global': { en: 'Global', zh: '全局变量' },
+  'Palette.NoSubMacros': { en: 'This macro has no submacros yet. Make one from the steps you want to use twice.', zh: '这个宏还没有子宏。把要复用的一段步骤提为子宏，就会出现在这里。' },
+  'Add.SearchAction': { en: 'Search: keys, names, or what an action does', zh: '搜索：按键、名称或作用' },
+  'Add.NoActionFound': { en: 'Nothing in the catalogue matches that.', zh: '目录里没有匹配的动作。' },
+  'Add.AllActions': { en: 'All actions', zh: '全部动作' },
+  'Add.AllActionsShort': { en: 'All', zh: '全部' },
+  'Palette.Copy': { en: 'Copy the selected steps (Ctrl + C)', zh: '复制选中的步骤 (Ctrl + C)' },
+  'Palette.Delete': { en: 'Delete the selected steps (Del)', zh: '删除选中的步骤 (Del)' },
+  'Palette.MoveUp': { en: 'Move the selected steps up (Ctrl + Up)', zh: '上移选中的步骤 (Ctrl + ↑)' },
+  'Palette.MoveDown': { en: 'Move the selected steps down (Ctrl + Down)', zh: '下移选中的步骤 (Ctrl + ↓)' },
+  'Editor.ConditionCompare': { en: 'Compare', zh: '比较方式' },
+  'Editor.ConditionJoin': { en: 'Combine', zh: '连接方式' },
+  'Editor.ConditionLeft': { en: 'Left value', zh: '左侧值' },
+  'Editor.ConditionRight': { en: 'Right value', zh: '右侧值' },
+  'Editor.Dock.BasicActions': { en: 'Basic actions', zh: '基础动作' },
+  'Editor.Dock.Flow': { en: 'Control flow', zh: '流程控制' },
+  'Editor.Dock.SubMacros': { en: 'Sub macros', zh: '子宏' },
+  'Editor.Dock.PublicMacros': { en: 'Public macros', zh: '公共宏' },
+  'Palette.NoPublicMacros': { en: 'The public macro library is empty.', zh: '公共宏库还是空的。' },
+  'Palette.MacroVersion': { en: 'v{0}', zh: 'v{0}' },
+
+  'Editor.DocumentTabs': { en: 'Open documents', zh: '打开的文档' },
+  'Editor.HexColor': { en: 'Input Hex Color :', zh: '输入十六进制颜色：' },
+  'Editor.HideInspector': { en: 'Hide the inspector', zh: '收起检视器' },
+  'Editor.Inspector': { en: 'Inspector', zh: '检视器' },
+  'Editor.Interval': { en: 'Every :', zh: '每隔：' },
+  'Editor.MacroSettings.General': { en: 'General', zh: '常规' },
+  'Editor.MacroSettings.Specific': { en: 'Macro specific settings', zh: '专属设置' },
+  'Editor.ManageGlobalsHint': { en: 'Create, edit or remove the global variables this project shares.', zh: '新建、编辑或删除这个项目共享的全局变量。' },
+  'Editor.ManageLocalsHint': { en: 'Create, edit or remove the variables this macro keeps for itself, and rename the ones its steps write.', zh: '新建、编辑或删除这个宏自己留着的变量；步骤写出来的名字也在这里改名。' },
+  'Editor.NoDocument': { en: 'No document open', zh: '没有打开的文档' },
+  'Editor.NoDocumentHint': { en: 'Open a macro from the Macros page, or create a new one here.', zh: '从「宏」页打开一个宏，或在这里新建一个。' },
+  'Editor.NoSelection': { en: 'Select a step to see how it runs.', zh: '选中一步，看它怎么运行。' },
+  'Editor.OpenSubMacro': { en: 'Open this submacro', zh: '打开这个子宏' },
+  'Editor.Palette': { en: 'Action library', zh: '动作库' },
+  'Editor.ParameterValues': { en: 'Parameters', zh: '参数' },
+  'Editor.PickActionHint': { en: 'Pick an action in the library first', zh: '先在动作库里选一个动作' },
+  'Editor.RunDebug': { en: 'Run and debug', zh: '运行调试' },
+  'Editor.SavedNotice': { en: 'Saved', zh: '已保存' },
+  'Editor.ShowInspector': { en: 'Show the inspector', zh: '显示检视器' },
+  'Editor.StepCount': { en: '{0} steps', zh: '{0} 步' },
+  'Editor.StepMeta': { en: 'Step settings', zh: '步骤设置' },
+  'Editor.StepParameters': { en: 'Step parameters', zh: '步骤参数' },
+  'Editor.Steps': { en: 'Steps', zh: '步骤' },
+  'Editor.UnsavedMessage': { en: 'This macro has changes that are not saved yet.', zh: '这个宏有尚未保存的修改。' },
+  'Editor.UnsavedTitle': { en: 'Unsaved changes', zh: '有未保存的修改' },
+  'Editor.UseCursorPosition': { en: 'Use cursor position', zh: '使用光标当前所在位置' },
+  'Editor.ValueChip': { en: 'Value', zh: '取值' },
+  'Editor.Exported': { en: 'Exported', zh: '已导出' },
+  'Editor.VariableCenter': { en: 'Variable center', zh: '变量中心' },
+  'Editor.X': { en: 'X :', zh: 'X：' },
+  'Editor.Y': { en: 'Y :', zh: 'Y：' },
+  'GlobalVariables.Help': { en: 'These declarations are shared by every macro in the project. Changes are written into this document\'s draft and reach the project when the document is saved.', zh: '这些声明由项目里的所有宏共享。修改写进当前文档的草稿，保存文档后才提交进工程。' },
+  'GlobalVariables.NoVariables': { en: 'This project has no global variables yet.', zh: '这个项目还没有全局变量。' },
+  'LocalVariables.Empty': { en: 'This macro has no variables of its own yet. Use New variable to declare one.', zh: '这个宏还没有自己的变量。用「新建变量」声明一个。' },
+  'LocalVariables.Hint': { en: 'What this macro keeps for itself, in two kinds. A declared value is created here and given the value every run starts at; a name a step wrote exists because that step wrote it, so only its name changes here. Nothing is applied until Save.', zh: '这个宏自己留着用的值，分两种：这里声明的值，新建时给出每次运行开始时用的值；步骤写出来的名字，因为那一步写了它才存在，这里只能改名。改动要点「保存」才生效。' },
+  'LocalVariables.StepHint': { en: 'This name is written by a step, so what it holds is that step\'s to decide. Only the name is edited here.', zh: '这个名字是某一步写出来的，装着什么由那一步决定，这里只改名字。' },
+  'Add.Value': { en: 'Value', zh: '取值' },
+  'Add.Title': { en: 'Add action', zh: '添加动作' },
+  'Add.EditTitle': { en: 'Edit action', zh: '编辑动作' },
+  'Add.Cancel': { en: 'Cancel', zh: '取消' },
+  'Add.RunStep': { en: 'Run', zh: '运行' },
+  'Add.Commit': { en: 'Add step', zh: '添加步骤' },
+  'Add.CommitEdit': { en: 'Save step', zh: '保存步骤' },
+  'Add.Page.Base': { en: 'Basics', zh: '基础设置' },
+  'Add.Page.Exec': { en: 'Execution', zh: '执行与容错' },
+  'Add.Page.Advanced': { en: 'Advanced', zh: '高级设置' },
+  'Add.Page.Other': { en: 'More', zh: '其它设置' },
+  'Add.NoParameters': { en: 'This action has no parameters.', zh: '这个动作没有参数。' },
+  'Add.StepComment': { en: 'Note', zh: '备注' },
+  'Add.StepId': { en: 'Step name', zh: '步骤名称' },
+
+  'Palette.Edit': { en: 'Edit the selected step (F2 or double-click)', zh: '编辑选中的步骤（F2 或双击）' },
+  'Palette.ToggleEnabled': { en: 'Turn the selected steps on or off (Ctrl + E)', zh: '启用/停用选中的步骤（Ctrl + E）' },
+  'Palette.Cut': { en: 'Cut the selected steps (Ctrl + X)', zh: '剪切选中的步骤（Ctrl + X）' },
+  'Palette.Paste': { en: 'Paste below the selected step (Ctrl + V)', zh: '粘贴到选中步骤下面（Ctrl + V）' },
+  'Palette.Group': { en: 'Group the selected steps into one step that runs them in order (Ctrl + G)', zh: '把选中的步骤合成一步，按顺序执行（Ctrl + G）' },
+
+  'Add.ValueHint': { en: 'Open the value window and build this field from tokens.', zh: '打开取值窗口，按块搭出这一格。' },
+  'Add.FieldTakesFormula': { en: 'This field can hold a formula.', zh: '这一格可以写公式。' },
+  'ValuePicker.Structure': { en: 'Structure', zh: '结构' },
+  'ValuePicker.Panel.Variables': { en: 'Variables', zh: '变量' },
+  'ValuePicker.Panel.Functions': { en: 'Functions', zh: '函数' },
+  'ValuePicker.Panel.Operators': { en: 'Signs', zh: '运算符' },
+  'ValuePicker.Panel.Values': { en: 'Values', zh: '值' },
+  'ValuePicker.Undo': { en: 'Undo the last token change', zh: '撤销上一步' },
+  'ValuePicker.Redo': { en: 'Redo the last token change', zh: '重做上一步' },
+  'ValuePicker.Clear': { en: 'Clear the whole value', zh: '清空整条值' },
+  'ValuePicker.Operator.Change': { en: 'Change this sign', zh: '更换这个运算符' },
+  'ValuePicker.Slot.Remove': { en: 'Remove this piece', zh: '移除这一块' },
+  'ValuePicker.Group': { en: 'Brackets', zh: '括号' },
+  'ValuePicker.List': { en: 'List', zh: '列表' },
+  'ValuePicker.Value.Number': { en: 'Number', zh: '数字' },
+  'ValuePicker.Value.Text': { en: 'Text', zh: '文字' },
+  'ValuePicker.Value.Insert': { en: 'Insert', zh: '插入' },
+  'ExprBuilder.FunctionsFilter': { en: 'Filter functions', zh: '筛选函数' },
 };
 
 const chromeKeys = [
@@ -284,7 +417,7 @@ const chromeKeys = [
   'Main.CloseAllTitle', 'Main.CloseAllMessage',
   'Main.EditTip', 'Main.DeleteTip', 'Editor.DeleteTitle', 'Editor.DeleteMessage',
   'Editor.NamePlaceholder', 'Editor.GroupPlaceholder', 'Editor.DescriptionPlaceholder', 'Editor.NoSteps',
-  'Editor.GateActions', 'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
+  'Editor.AddStep', 'Editor.AddChildStep', 'Editor.AddRow', 'Editor.Browse',
   'Editor.RemoveRow', 'Editor.StepEnabled', 'Editor.DuplicateStep', 'Editor.Record',
   'Editor.StopRecording', 'Editor.RecordActive', 'Editor.RecordEmpty',
   'Editor.ValueBuilder', 'Editor.Functions', 'Editor.AddGroup', 'Editor.SubMacros',
@@ -296,7 +429,7 @@ const chromeKeys = [
   'Condition.All',
   'Condition.Any', 'Condition.None', 'Editor.InsertValue', 'Add.StepComment', 'Add.StepTimeout',
   'Add.StepRetry', 'Add.StepRetryDelay', 'Add.StepOnError', 'Add.OnError.Stop',
-  'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser', 'Editor.OpenMacro',
+  'Add.OnError.Continue', 'Add.OnError.NextIteration', 'Add.OnError.AskUser',
   'Editor.TriggerEntries', 'Editor.AddTrigger',
   'Editor.RemoveTrigger', 'Editor.BindKey', 'Add.SetCombination', 'Add.PressKey',
   'Palette.Undo', 'Palette.Redo', 'Editor.Loop', 'Editor.TriggerOnce',
@@ -353,7 +486,7 @@ const english: Record<string, string> = {
   'Editor.DeleteTitle': 'Delete macro', 'Editor.Delete': 'Delete',
   'Editor.NamePlaceholder': 'Enter a name for your macro..', 'Editor.GroupPlaceholder': 'Group',
   'Editor.DescriptionPlaceholder': 'Describe what this macro does..',
-  'Editor.NoSteps': 'No steps yet.', 'Editor.GateActions': '{0} actions in the catalogue',
+  'Editor.NoSteps': 'No steps yet.',
   'Editor.AddStep': 'Add step', 'Editor.AddChildStep': 'Add inside selected step',
   'Editor.AddRow': 'Add row', 'Editor.RemoveRow': 'Remove row', 'Editor.Browse': 'Browse',
   'Editor.StepEnabled': 'Enabled', 'Editor.DuplicateStep': 'Duplicate step',
@@ -374,7 +507,6 @@ const english: Record<string, string> = {
   'Add.StepRetry': 'Retries', 'Add.StepRetryDelay': 'Retry delay', 'Add.StepOnError': 'When it fails',
   'Add.OnError.Stop': 'Stop the macro', 'Add.OnError.Continue': 'Carry on with the next step',
   'Add.OnError.NextIteration': 'Skip to the next loop round', 'Add.OnError.AskUser': 'Ask me: retry, skip or stop',
-  'Editor.OpenMacro': 'Open macro',
   'Editor.TriggerEntries': 'Trigger entries',
   'Editor.AddTrigger': 'Add entry', 'Editor.RemoveTrigger': 'Remove entry',
   'Editor.BindKey': 'Trigger / Bind Key :', 'Add.SetCombination': 'Set combination',
@@ -497,7 +629,7 @@ const chinese: Record<string, string> = {
   'Editor.DeleteTitle': '删除宏', 'Editor.Delete': '删除',
   'Editor.NamePlaceholder': '给这个宏起个名字..', 'Editor.GroupPlaceholder': '分组',
   'Editor.DescriptionPlaceholder': '说明这个宏做什么..',
-  'Editor.NoSteps': '还没有步骤。', 'Editor.GateActions': '动作目录共 {0} 项',
+  'Editor.NoSteps': '还没有步骤。',
   'Editor.AddStep': '添加步骤', 'Editor.AddChildStep': '添加到选中步骤内',
   'Editor.AddRow': '添加行', 'Editor.RemoveRow': '删除行', 'Editor.Browse': '浏览',
   'Editor.StepEnabled': '启用', 'Editor.DuplicateStep': '复制步骤',
@@ -518,7 +650,6 @@ const chinese: Record<string, string> = {
   'Add.StepRetry': '重试', 'Add.StepRetryDelay': '重试间隔', 'Add.StepOnError': '失败时',
   'Add.OnError.Stop': '停止宏', 'Add.OnError.Continue': '继续下一步',
   'Add.OnError.NextIteration': '跳到下一轮循环', 'Add.OnError.AskUser': '询问：重试、跳过或停止',
-  'Editor.OpenMacro': '打开宏',
   'Editor.TriggerEntries': '触发入口',
   'Editor.AddTrigger': '添加入口', 'Editor.RemoveTrigger': '删除入口',
   'Editor.BindKey': '触发 / 绑定按键：', 'Add.SetCombination': '设置组合键',
@@ -623,14 +754,14 @@ export class MockTransport implements BridgeTransport {
     project: { path: null, name: null, untitled: true, dirty: false, revision: 0, macros: 0 },
   };
 
-  private theme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null };
+  private theme: ThemeState = {
+    mode: 'dark', baseLight: false, accentHex: null, defaultAccent: '#c8401c',
+  };
 
   private windowState: WindowState = { state: 'normal', topmost: false };
 
   /** 等待删除确认的宏名；dialog.respond 带着答案回来时用。 */
   private pendingDelete: string | null = null;
-
-  private editor: EditorSnapshot | null = null;
 
   private runState = {
     loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
@@ -671,10 +802,6 @@ export class MockTransport implements BridgeTransport {
     { id: 'library-1', name: '打开记事本', version: 1, description: '公共示例宏' },
   ];
 
-  private recording = false;
-
-  private capturedCount = 0;
-
   private mcp: McpState = {
     allowControl: false,
     allowRun: false,
@@ -705,6 +832,12 @@ export class MockTransport implements BridgeTransport {
     ],
   };
 
+  /** 编辑器域的假宿主：多文档、步骤树与录制都在 MockEditor 里。 */
+  private readonly mockEditor = new MockEditor(
+    () => this.projectState.macros,
+    () => this.info.language,
+  );
+
   constructor() {
     const asked = new URLSearchParams(window.location.search).get('lang');
     if (asked === 'en') {
@@ -728,2010 +861,617 @@ export class MockTransport implements BridgeTransport {
     const params = request.params ?? {};
 
     let result: unknown;
-    switch (method) {
-      case 'bridge.ready':
-        break;
-      case 'app.info':
-        result = {
-          ...this.info,
-          project: { ...this.info.project, macros: this.projectState.macros.length },
-        };
-        break;
-      case 'strings.bundle':
-        result = this.bundle();
-        break;
-      case 'theme.get':
-        result = this.theme;
-        break;
-      case 'theme.set': {
-        const mode = String(params['mode'] ?? 'dark') as ThemeState['mode'];
-        const accentHex = (params['accentHex'] as string | null) ?? null;
-        this.theme = {
-          mode,
-          baseLight: params['baseLight'] === true,
-          accentHex,
-          accentUsable: true,
-          fill: accentHex ?? '#c8401c',
-          surface: accentHex ?? '#f5e6e2',
-          text: accentHex ?? '#c8401c',
-          defaultAccent: '#c8401c',
-        };
-        this.push('theme.changed', this.theme);
-        result = this.theme;
-        break;
-      }
-      case 'window.minimize':
-        this.windowState = { ...this.windowState, state: 'minimized' };
-        this.push('window.changed', this.windowState);
-        break;
-      case 'window.maximize':
-        this.windowState = {
-          ...this.windowState,
-          state: this.windowState.state === 'maximized' ? 'normal' : 'maximized',
-        };
-        this.push('window.changed', this.windowState);
-        break;
-      case 'window.close':
-        break;
-      case 'window.pin':
-        this.windowState = { ...this.windowState, topmost: !this.windowState.topmost };
-        this.push('window.changed', this.windowState);
-        break;
-      case 'window.drag':
-      case 'window.focus':
-      case 'app.quit':
-      case 'app.openExternal':
-        break;
-      case 'app.openRun':
-        this.push('run.openRequested', { name: String(params['name'] ?? '') });
-        break;
-      case 'run.state':
-        result = this.runState;
-        break;
-      case 'run.load':
-        this.runState = {
-          ...this.runState,
-          loaded: String(params['name'] ?? ''),
-          status: 'Loaded', canRun: true, canStep: true, busy: false, paused: false,
-          arguments: [{ name: 'target', label: 'target', hint: 'Text', required: true,
-            value: '', given: false, missing: true }],
-          globals: [{ name: 'count', type: 'Number', value: '3', defaultValue: '0' }],
-          locals: [{ name: 'found', macro: 'Demo', type: 'Boolean' }],
-          steps: [
-            { id: 's1', label: 'Step one', detail: 'action.key', depth: 0, shown: true,
-              container: false, current: false, breakpoint: false, canBreak: true,
-              time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
-            { id: 's2', label: 'Step two', detail: 'action.key', depth: 0, shown: true,
-              container: false, current: false, breakpoint: false, canBreak: true,
-              time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
-          ],
-        };
-        result = this.runState;
-        break;
-      case 'run.command':
-        this.runState = {
-          ...this.runState,
-          status: String(params['command'] ?? ''),
-          busy: params['command'] === 'run',
-          canStop: params['command'] === 'run',
-          canRun: params['command'] !== 'run',
-          canStep: params['command'] !== 'run',
-        };
-        result = this.runState;
-        break;
-      case 'run.answer':
-        result = this.runState;
-        break;
-      case 'run.argument':
-        this.runState = {
-          ...this.runState,
-          arguments: this.runState.arguments.map((argument) => argument.name === params['name']
-            ? { ...argument, value: String(params['value'] ?? ''),
-                given: String(params['value'] ?? '').length > 0,
-                missing: false }
-            : argument),
-        };
-        result = this.runState;
-        break;
-      case 'run.breakpointRule':
-        this.runState = {
-          ...this.runState,
-          steps: this.runState.steps.map((step) => step.id === params['id']
-            ? { ...step, hitTimes: Number(params['hitTimes'] ?? 1),
-                expression: String(params['expression'] ?? '') }
-            : step),
-        };
-        result = this.runState;
-        break;
-      case 'run.breakpoint':
-        this.runState = {
-          ...this.runState,
-          steps: this.runState.steps.map((step) => step.id === params['id']
-            ? { ...step, breakpoint: !step.breakpoint }
-            : step),
-        };
-        result = this.runState;
-        break;
-      case 'settings.state':
-        result = this.settingsState;
-        break;
-      case 'settings.update': {
-        const field = String(params['field'] ?? '');
-        const value = String(params['value'] ?? '');
-        this.settingsState = {
-          ...this.settingsState,
-          [field]: field === 'language'
-            || field === 'systemHotkey' || field === 'recordStopKey'
-            || field === 'windowWay' || field === 'screenWay'
-            ? value
-            : value === 'true' ? true : value === 'false' ? false : Number(value),
-        };
-        result = this.settingsState;
-        if (field === 'language') {
-          this.info = {
+    try {
+      switch (method) {
+        case 'bridge.ready':
+          break;
+        case 'app.info':
+          result = {
             ...this.info,
-            language: value,
+            project: { ...this.info.project, macros: this.projectState.macros.length },
           };
-          this.push('strings.changed', this.bundle());
-        }
-        break;
-      }
-      case 'settings.windows.list':
-        result = {
-          windows: demoWindows,
-          hows: [
-            { value: 'titleContains', label: '标题包含' },
-            { value: 'titleEquals', label: '标题等于' },
-            { value: 'process', label: '进程名包含' },
-            { value: 'class', label: '窗口类包含' },
-            { value: 'handle', label: '窗口句柄（当前实例）' },
-          ],
-        };
-        break;
-      case 'settings.windows.pick':
-        result = demoWindows[0];
-        break;
-      case 'settings.menu.capture': {
-        const binding = String(params['binding'] ?? '');
-        this.settingsState = {
-          ...this.settingsState,
-          menu: {
-            ...this.settingsState.menu,
-            launcher: binding,
-            display: binding,
-            isMiddle: binding === 'Mouse Middle',
-            isCustom: binding !== 'Mouse Middle',
-            status: binding ? '已设置' : '未设置',
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.menu.clear':
-        this.settingsState = {
-          ...this.settingsState,
-          menu: {
-            ...this.settingsState.menu,
-            launcher: '', display: '无', isMiddle: false, isCustom: false, status: '未设置',
-          },
-        };
-        result = this.settingsState;
-        break;
-      case 'settings.menu.rule.add': {
-        const rule = params['rule'] as WindowRuleState;
-        this.settingsState = {
-          ...this.settingsState,
-          menu: {
-            ...this.settingsState.menu,
-            rules: [...this.settingsState.menu.rules, {
-              key: 'rule-' + Date.now(), summary: rule.title || rule.process || '窗口规则',
-              pageCountLabel: '1 页', isDefault: false, isBlocked: false, canAddPage: true, rule,
-            }],
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.menu.rule.edit': {
-        const rule = params['rule'] as WindowRuleState;
-        this.settingsState = {
-          ...this.settingsState,
-          menu: {
-            ...this.settingsState.menu,
-            rules: this.settingsState.menu.rules.map((row) => row.key === params['key']
-              ? { ...row, rule, summary: rule.title || rule.process || '窗口规则' }
-              : row),
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.menu.rule.remove':
-        this.settingsState = {
-          ...this.settingsState,
-          menu: {
-            ...this.settingsState.menu,
-            rules: this.settingsState.menu.rules.filter((row) => row.key !== params['key']),
-          },
-        };
-        result = this.settingsState;
-        break;
-      case 'settings.menu.rule.addPage':
-        result = this.settingsState;
-        break;
-      case 'settings.menu.rule.move': {
-        const step = Number(params['step'] ?? 0);
-        const rules = [...this.settingsState.menu.rules];
-        const at = rules.findIndex((row) => row.key === params['key']);
-        const to = Math.max(0, Math.min(rules.length - 1, at + step));
-        if (at >= 0 && to !== at) {
-          const [row] = rules.splice(at, 1);
-          if (row) {
-            rules.splice(to, 0, row);
-          }
-        }
-        this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.menu.rule.moveTo': {
-        const rules = [...this.settingsState.menu.rules];
-        const from = rules.findIndex((row) => row.key === params['key']);
-        const to = rules.findIndex((row) => row.key === params['target']);
-        if (from >= 0 && to >= 0) {
-          const [row] = rules.splice(from, 1);
-          if (row) {
-            rules.splice(to, 0, row);
-          }
-        }
-        this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.update': {
-        const field = String(params['field'] ?? '');
-        const value = String(params['value'] ?? '');
-        const next: Record<string, unknown> = { ...this.settingsState.wheel };
-        if (['diameter', 'fontSize', 'thirdCapacity', 'timeoutMs'].includes(field)) {
-          next[field] = Number(value);
-        } else if (field === 'enabled') {
-          next[field] = value === 'true';
-        } else {
-          next[field] = value === 'true' ? true : value === 'false' ? false : value;
-        }
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: next as unknown as SettingsWheelState,
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.launcher': {
-        const launcher = String(params['value'] ?? '');
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: {
-            ...this.settingsState.wheel,
-            launcher,
-            enabled: launcher.length > 0,
-            launcherStatus: launcher ? '就绪' : '未设置',
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.enabled': {
-        const enabled = params['value'] === true;
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: {
-            ...this.settingsState.wheel,
-            enabled,
-            launcher: enabled ? (this.settingsState.wheel.launcher || 'Mouse Right') : '',
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.enableSystem':
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: { ...this.settingsState.wheel, isSystemOff: false },
-        };
-        result = this.settingsState;
-        break;
-      case 'settings.wheel.repeat': {
-        const key = String(params['binding'] ?? '');
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: { ...this.settingsState.wheel, repeatKey: key, repeatDisplay: key },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.scene.select':
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: { ...this.settingsState.wheel, selectedScene: String(params['key'] ?? 'global') },
-        };
-        result = this.settingsState;
-        break;
-      case 'settings.wheel.scene.add': {
-        const rule = params['rule'] as WindowRuleState;
-        const key = 'scene-' + Date.now();
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: {
-            ...this.settingsState.wheel,
-            selectedScene: key,
-            scenes: [...this.settingsState.wheel.scenes, {
-              key, summary: rule.title || rule.process || '窗口规则', isGlobal: false, rule,
-            }],
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.scene.edit': {
-        const rule = params['rule'] as WindowRuleState;
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: {
-            ...this.settingsState.wheel,
-            scenes: this.settingsState.wheel.scenes.map((scene) => scene.key === params['key']
-              ? { ...scene, rule, summary: rule.title || rule.process || '窗口规则' }
-              : scene),
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.scene.remove':
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: {
-            ...this.settingsState.wheel,
-            selectedScene: 'global',
-            scenes: this.settingsState.wheel.scenes.filter((scene) => scene.key !== params['key']),
-          },
-        };
-        result = this.settingsState;
-        break;
-      case 'settings.wheel.scene.move': {
-        const scenes = [...this.settingsState.wheel.scenes];
-        const at = scenes.findIndex((scene) => scene.key === this.settingsState.wheel.selectedScene);
-        const to = Math.max(1, Math.min(scenes.length - 1, at + Number(params['step'] ?? 0)));
-        if (at > 0 && to !== at) {
-          const [scene] = scenes.splice(at, 1);
-          if (scene) {
-            scenes.splice(to, 0, scene);
-          }
-        }
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: { ...this.settingsState.wheel, scenes },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.slot.set': {
-        const ring = String(params['ring'] ?? '');
-        const index = Number(params['index'] ?? 0);
-        const macro = String(params['macro'] ?? '');
-        const note = String(params['note'] ?? '');
-        const icon = params['icon'] as { kind: string; value: string } | null;
-        const update = (slot: SettingsWheelSlot): SettingsWheelSlot => ({
-          ...slot,
-          macro,
-          note,
-          label: note || macro,
-          icon,
-          inherited: false,
-          overridden: macro.length > 0,
-          empty: macro.length === 0,
-          tone: macro.length === 0 ? 'empty' : 'override',
-        });
-        this.settingsState = {
-          ...this.settingsState,
-          wheel: {
-            ...this.settingsState.wheel,
-            slots: this.settingsState.wheel.slots.map((slot) =>
-              slot.ring === ring && slot.index === index ? update(slot) : slot),
-          },
-        };
-        result = this.settingsState;
-        break;
-      }
-      case 'settings.wheel.pickIcon':
-        result = { kind: 'builtin', value: 'circle' };
-        break;
-      case 'app.about':
-        result = {
-          projectUrl: 'https://github.com/ilpoint/WhaleGenie',
-          notices: '第三方组件\n\n- Avalonia — MIT\n- Lit — BSD-3-Clause',
-        };
-        break;
-      case 'settings.openFolder':
-        result = null;
-        break;
-      case 'library.state':
-        result = { entries: this.libraryEntries, error: null };
-        break;
-      case 'library.delete':
-        this.libraryEntries = this.libraryEntries.filter((entry) => entry.id !== String(params['id']));
-        result = { entries: this.libraryEntries, error: null };
-        break;
-      case 'library.add': {
-        const macro = this.projectState.macros.find((entry) => entry.name === params['name']);
-        this.libraryEntries = [...this.libraryEntries, {
-          id: 'library-' + String(this.libraryEntries.length + 1),
-          name: String(params['name'] ?? macro?.name ?? ''),
-          version: 1,
-          description: macro?.description ?? '',
-        }];
-        result = { entries: this.libraryEntries, error: null };
-        break;
-      }
-      case 'library.replace':
-        this.libraryEntries = this.libraryEntries.map((entry) => entry.id === params['id']
-          ? { ...entry, name: String(params['name'] ?? entry.name), version: entry.version + 1 }
-          : entry);
-        result = { entries: this.libraryEntries, error: null };
-        break;
-      case 'editor.sessionNew':
-        this.editor = {
-          name: '未命名宏',
-          description: '',
-          group: '',
-          subMacros: [],
-          callableParameters: [],
-          callableResults: [],
-          followInputLimit: true,
-          inputLimit: 20,
-          toggleKey: '',
-          dirty: false,
-          stepCount: 0,
-          steps: [],
-          triggers: [],
-          variables: [],
-          globals: [],
-          valueChoices: [
-            { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
-          ],
-          valueFunctions: [
-            { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
-            { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
-          ],
-          conditionCompares: [
-            { value: 'Equal', label: '=' },
-            { value: 'NotEqual', label: '≠' },
-            { value: 'Greater', label: '>' },
-            { value: 'Less', label: '<' },
-            { value: 'Holds', label: 'holds' },
-          ],
-          variableTypes: [
-            { value: 'text', label: '文本' },
-            { value: 'number', label: '数字' },
-            { value: 'bool', label: '布尔' },
-            { value: 'record', label: '记录' },
-          ],
-          triggerKinds: [
-            { value: 'Key', label: '按键' },
-            { value: 'Timer', label: '定时' },
-            { value: 'Color', label: '颜色' },
-            { value: 'File', label: '文件' },
-            { value: 'Process', label: '程序' },
-            { value: 'Hotstring', label: '字串' },
-            { value: 'Idle', label: '空闲' },
-            { value: 'Window', label: '窗口' },
-            { value: 'Interface', label: '窗口内接口' },
-          ],
-          canUndo: false,
-          canRedo: false,
-        };
-        result = this.editor;
-        break;
-      case 'editor.sessionOpen': {
-        const name = params['name'] ? String(params['name']) : this.projectState.macros[0]?.name;
-        const macro = this.projectState.macros.find((entry) => entry.name === name);
-        this.editor = {
-          name: macro?.name ?? '未命名宏',
-          description: macro?.description ?? '',
-          group: macro?.group ?? '',
-          subMacros: ['辅助宏'],
-          callableParameters: [],
-          callableResults: [],
-          followInputLimit: true,
-          inputLimit: 20,
-          toggleKey: '',
-          dirty: false,
-          stepCount: 0,
-          steps: [],
-          triggers: [],
-          variables: [],
-          globals: [],
-          valueChoices: [
-            { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
-          ],
-          valueFunctions: [
-            { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
-            { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
-          ],
-          conditionCompares: [
-            { value: 'Equal', label: '=' },
-            { value: 'NotEqual', label: '≠' },
-            { value: 'Greater', label: '>' },
-            { value: 'Less', label: '<' },
-            { value: 'Holds', label: 'holds' },
-          ],
-          variableTypes: [
-            { value: 'text', label: '文本' },
-            { value: 'number', label: '数字' },
-            { value: 'bool', label: '布尔' },
-            { value: 'record', label: '记录' },
-          ],
-          triggerKinds: [
-            { value: 'Key', label: '按键' },
-            { value: 'Timer', label: '定时' },
-            { value: 'Color', label: '颜色' },
-            { value: 'File', label: '文件' },
-            { value: 'Process', label: '程序' },
-            { value: 'Hotstring', label: '字串' },
-            { value: 'Idle', label: '空闲' },
-            { value: 'Window', label: '窗口' },
-            { value: 'Interface', label: '窗口内接口' },
-          ],
-          canUndo: false,
-          canRedo: false,
-        };
-        result = this.editor;
-        break;
-      }
-      case 'editor.sessionState':
-        result = this.editor;
-        break;
-      case 'editor.sessionTabs': {
-        const tabs = this.projectState.macros.map((macro) => ({
-          key: macro.name,
-          name: macro.name,
-          dirty: false,
-        }));
-        if (this.editor && !tabs.some((tab) => tab.name === this.editor!.name)) {
-          tabs.push({ key: this.editor.name, name: this.editor.name, dirty: this.editor.dirty });
-        }
-        result = { activeKey: this.editor?.name ?? null, tabs };
-        break;
-      }
-      case 'editor.sessionParameterFieldAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== Number(params['index'])
-              ? parameter
-              : { ...parameter, fields: [...parameter.fields, { name: '', type: 'text' }] }),
+          break;
+        case 'strings.bundle':
+          result = this.bundle();
+          break;
+        case 'theme.get':
+          result = this.theme;
+          break;
+        case 'theme.set': {
+          const mode = String(params['mode'] ?? 'dark') as ThemeState['mode'];
+          const accentHex = (params['accentHex'] as string | null) ?? null;
+          this.theme = {
+            mode,
+            baseLight: params['baseLight'] === true,
+            accentHex,
+            accentUsable: true,
+            fill: accentHex ?? '#c8401c',
+            surface: accentHex ?? '#f5e6e2',
+            text: accentHex ?? '#c8401c',
+            defaultAccent: '#c8401c',
           };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterFieldPatch':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== Number(params['index'])
-              ? parameter
-              : {
-                  ...parameter,
-                  fields: parameter.fields.map((field, fieldAt) => fieldAt !== Number(params['fieldIndex'])
-                    ? field
-                    : {
-                        ...field,
-                        name: params['field'] === 'name' ? String(params['value'] ?? '') : field.name,
-                        type: params['field'] === 'type' ? String(params['value'] ?? '') : field.type,
-                      }),
-                }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterFieldRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== Number(params['index'])
-              ? parameter
-              : {
-                  ...parameter,
-                  fields: parameter.fields.filter((_, fieldAt) => fieldAt !== Number(params['fieldIndex'])),
-                }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionResultFieldAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableResults: this.editor.callableResults.map((resultItem, at) => at !== Number(params['index'])
-              ? resultItem
-              : { ...resultItem, fields: [...resultItem.fields, { name: '', type: 'text' }] }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionResultFieldPatch':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableResults: this.editor.callableResults.map((resultItem, at) => at !== Number(params['index'])
-              ? resultItem
-              : {
-                  ...resultItem,
-                  fields: resultItem.fields.map((field, fieldAt) => fieldAt !== Number(params['fieldIndex'])
-                    ? field
-                    : {
-                        ...field,
-                        name: params['field'] === 'name' ? String(params['value'] ?? '') : field.name,
-                        type: params['field'] === 'type' ? String(params['value'] ?? '') : field.type,
-                      }),
-                }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionResultFieldRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableResults: this.editor.callableResults.map((resultItem, at) => at !== Number(params['index'])
-              ? resultItem
-              : {
-                  ...resultItem,
-                  fields: resultItem.fields.filter((_, fieldAt) => fieldAt !== Number(params['fieldIndex'])),
-                }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterDeclAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableParameters: [...this.editor.callableParameters, {
-              name: 'parameter', type: 'text', required: false, default: '', description: '',
-              fields: [],
-            }],
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterDeclPatch':
-        if (this.editor) {
-          const index = Number(params['index']);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableParameters: this.editor.callableParameters.map((parameter, at) => at !== index
-              ? parameter
-              : {
-                  ...parameter,
-                  name: params['field'] === 'name' ? String(params['value'] ?? '') : parameter.name,
-                  type: params['field'] === 'type' ? String(params['value'] ?? '') : parameter.type,
-                  required: params['field'] === 'required'
-                    ? params['value'] === 'true'
-                    : parameter.required,
-                  default: params['field'] === 'default'
-                    ? String(params['value'] ?? '')
-                    : parameter.default,
-                  description: params['field'] === 'description'
-                    ? String(params['value'] ?? '')
-                    : parameter.description,
-                }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterDeclMove': {
-        const index = Number(params['index']);
-        const target = index + Number(params['offset']);
-        if (this.editor && target >= 0 && target < this.editor.callableParameters.length) {
-          const parameters = [...this.editor.callableParameters];
-          [parameters[index]!, parameters[target]!] = [parameters[target]!, parameters[index]!];
-          this.editor = { ...this.editor, dirty: true, callableParameters: parameters };
-        }
-        result = this.editor;
-        break;
-      }
-      case 'editor.sessionResultDeclMove': {
-        const index = Number(params['index']);
-        const target = index + Number(params['offset']);
-        if (this.editor && target >= 0 && target < this.editor.callableResults.length) {
-          const results = [...this.editor.callableResults];
-          [results[index]!, results[target]!] = [results[target]!, results[index]!];
-          this.editor = { ...this.editor, dirty: true, callableResults: results };
-        }
-        result = this.editor;
-        break;
-      }
-      case 'editor.sessionParameterDeclRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableParameters: this.editor.callableParameters.filter(
-              (_, at) => at !== Number(params['index'])),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionResultDeclAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableResults: [...this.editor.callableResults, {
-              name: 'result', type: 'text', description: '', fields: [],
-            }],
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionResultDeclPatch':
-        if (this.editor) {
-          const index = Number(params['index']);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableResults: this.editor.callableResults.map((resultItem, at) => at !== index
-              ? resultItem
-              : {
-                  ...resultItem,
-                  name: params['field'] === 'name' ? String(params['value'] ?? '') : resultItem.name,
-                  type: params['field'] === 'type' ? String(params['value'] ?? '') : resultItem.type,
-                  description: params['field'] === 'description'
-                    ? String(params['value'] ?? '')
-                    : resultItem.description,
-                }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionResultDeclRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            callableResults: this.editor.callableResults.filter(
-              (_, at) => at !== Number(params['index'])),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionMacroSetting':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            followInputLimit: params['field'] === 'followInputLimit'
-              ? params['value'] === 'true'
-              : this.editor.followInputLimit,
-            inputLimit: params['field'] === 'inputLimit'
-              ? Number(params['value'])
-              : this.editor.inputLimit,
-            toggleKey: params['field'] === 'toggleKey'
-              ? String(params['value'] ?? '')
-              : this.editor.toggleKey,
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionSubOpen':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            name: String(params['name'] ?? ''),
-            subMacros: [],
-            callableParameters: [],
-          callableResults: [],
-          followInputLimit: true,
-            inputLimit: 20,
-            toggleKey: '',
-            dirty: false,
-            stepCount: 0,
-            steps: [],
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionActivate': {
-        const macro = this.projectState.macros.find((entry) => entry.name === params['key']);
-        if (macro) {
-          this.editor = {
-            name: macro.name,
-            description: macro.description,
-            group: macro.group,
-            subMacros: [],
-            callableParameters: [],
-          callableResults: [],
-          followInputLimit: true,
-            inputLimit: 20,
-            toggleKey: '',
-            dirty: false,
-            stepCount: 0,
-            steps: [],
-            triggers: [],
-          variables: [],
-          globals: [],
-          valueChoices: [
-            { name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '' },
-          ],
-          valueFunctions: [
-            { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
-            { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
-          ],
-          conditionCompares: [
-            { value: 'Equal', label: '=' },
-            { value: 'NotEqual', label: '≠' },
-            { value: 'Greater', label: '>' },
-            { value: 'Less', label: '<' },
-            { value: 'Holds', label: 'holds' },
-          ],
-          variableTypes: [
-            { value: 'text', label: '文本' },
-            { value: 'number', label: '数字' },
-            { value: 'bool', label: '布尔' },
-            { value: 'record', label: '记录' },
-          ],
-          triggerKinds: [
-            { value: 'Key', label: '按键' },
-            { value: 'Timer', label: '定时' },
-            { value: 'Color', label: '颜色' },
-            { value: 'File', label: '文件' },
-            { value: 'Process', label: '程序' },
-            { value: 'Hotstring', label: '字串' },
-            { value: 'Idle', label: '空闲' },
-            { value: 'Window', label: '窗口' },
-            { value: 'Interface', label: '窗口内接口' },
-          ],
-          canUndo: false,
-          canRedo: false,
-          };
-        }
-        result = this.editor;
-        break;
-      }
-      case 'editor.sessionPatch':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            name: params['name'] === undefined ? this.editor.name : String(params['name']),
-            description: params['description'] === undefined
-              ? this.editor.description
-              : String(params['description']),
-            group: params['group'] === undefined ? this.editor.group : String(params['group']),
-            dirty: true,
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionConditionRowAdd':
-        if (this.editor) {
-          const path = this.conditionPath(params);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (condition) => this.addConditionNode(condition, path, 'row')),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionConditionGroupAdd':
-        if (this.editor) {
-          const path = this.conditionPath(params);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (condition) => this.addConditionNode(condition, path, 'group')),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionConditionRowRemove':
-        if (this.editor) {
-          const path = this.conditionPath(params);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (condition) => this.removeConditionNode(condition, path)),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionConditionRow':
-        if (this.editor) {
-          const path = this.conditionPath(params);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (condition) => this.setConditionCell(condition, path,
-                String(params['field'] ?? ''), String(params['value'] ?? ''))),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionConditionJoin':
-        if (this.editor) {
-          const path = this.conditionPath(params);
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeCondition(this.editor.steps, String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (condition) => this.setConditionJoinAt(condition, path,
-                String(params['join'] ?? 'All'))),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionStepMeta':
-        if (this.editor) {
-          const field = String(params['field'] ?? '');
-          const value = String(params['value'] ?? '');
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeStepMeta(this.editor.steps, String(params['stepId'] ?? ''), (step) => ({
-              ...step,
-              comment: field === 'comment' ? value : step.comment,
-              timeoutMs: field === 'timeoutMs' ? Number(value) : step.timeoutMs,
-              retryCount: field === 'retryCount' ? Number(value) : step.retryCount,
-              retryDelayMs: field === 'retryDelayMs' ? Number(value) : step.retryDelayMs,
-              onError: field === 'onError' ? value : step.onError,
-            })),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionStepDuplicate':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            canUndo: true,
-            canRedo: false,
-            stepCount: this.editor.stepCount + 1,
-            steps: this.duplicateStep(this.editor.steps, String(params['stepId'] ?? '')),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionStepEnabled':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.setStepEnabled(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
-              params['enabled'] === true),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionStep':
-        if (this.editor) {
-          const type = String(params['type'] ?? '');
-          const parentId = String(params['parentId'] ?? '');
-          const step: EditorStep = {
-            id: 'mock-' + String(this.editor.stepCount + 1),
-            type,
-            name: type === 'control.delay'
-              ? '延迟'
-              : type === 'control.repeat'
-                ? '重复'
-                : type === 'input.keyPress'
-                  ? '按键'
-                  : type === 'screen.color'
-                    ? '颜色'
-                    : type === 'image.find'
-                      ? '找图'
-                      : type === 'control.waitUntil'
-                        ? '等待条件'
-                        : type,
-            enabled: true,
-            comment: '',
-            timeoutMs: 0,
-            retryCount: 0,
-            retryDelayMs: 0,
-            onError: 'Stop',
-            acceptsSteps: type === 'control.repeat',
-            parameters: type === 'control.delay'
-              ? [{
-                  name: 'ms', label: '等待时长', kind: 'Number', value: '',
-                  options: [], columns: [], rows: [], condition: null,
-                }]
-              : type === 'input.keyPress'
-                ? [{
-                    name: 'key', label: '按键', kind: 'Key', value: '',
-                    options: [], columns: [], rows: [], condition: null,
-                  }]
-                : type === 'screen.color'
-                  ? [{
-                      name: 'hex', label: '颜色', kind: 'Color', value: '',
-                      options: [], columns: [], rows: [], condition: null,
-                    }]
-                  : type === 'control.repeat'
-                    ? [{
-                        name: 'returns', label: '返回值', kind: 'Rows', value: '',
-                        options: [],
-                        columns: [{ name: 'key', required: true }, { name: 'name', required: true }],
-                        rows: [],
-                        condition: null,
-                      }]
-                    : type === 'image.find'
-                      ? [{
-                          name: 'path', label: '图片', kind: 'Image', value: '',
-                          options: [], columns: [], rows: [], condition: null,
-                        }]
-                      : type === 'control.waitUntil'
-                        ? [{
-                            name: 'condition', label: '条件', kind: 'Condition', value: '',
-                            options: [], columns: [], rows: [],
-                            condition: {
-                              join: 'All',
-                              editable: true,
-                              nodes: [{
-                                kind: 'row', join: '', left: '', compare: 'Equal', right: '',
-                                children: [],
-                              }],
-                            },
-                          }]
-                        : [],
-            steps: [],
-          };
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            canUndo: true,
-            canRedo: false,
-            stepCount: this.editor.stepCount + 1,
-            steps: parentId
-              ? this.addChild(this.editor.steps, parentId, step)
-              : [...this.editor.steps, step],
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionUndo':
-        if (this.editor) {
-          this.editor = { ...this.editor, canUndo: false, canRedo: true };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionRedo':
-        if (this.editor) {
-          this.editor = { ...this.editor, canUndo: true, canRedo: false };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterRowAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeRows(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (rows) => [...rows, { cells: ['', ''] }]),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterRowRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeRows(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (rows) => rows.filter((_, index) => index !== Number(params['index']))),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameterRowCell':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.changeRows(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              (rows) => rows.map((row, index) => index !== Number(params['index'])
-                ? row
-                : {
-                    cells: row.cells.map((cell, cellIndex) =>
-                      cellIndex === this.columnIndex(String(params['column'] ?? ''))
-                        ? String(params['value'] ?? '')
-                        : cell),
-                  })),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionParameter':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            steps: this.setParameter(
-              this.editor.steps,
-              String(params['stepId'] ?? ''),
-              String(params['name'] ?? ''),
-              String(params['value'] ?? '')),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionRecordStart':
-        this.recording = true;
-        this.capturedCount = 0;
-        result = { recording: true, captured: 0 };
-        break;
-      case 'editor.sessionRecordState':
-        if (this.recording) {
-          this.capturedCount += 1;
-        }
-        result = { recording: this.recording, captured: this.capturedCount };
-        break;
-      case 'editor.sessionRecordStop':
-        this.recording = false;
-        result = {
-          captured: this.capturedCount,
-          steps: this.capturedCount > 0 ? 1 : 0,
-          snapshot: this.editor,
-        };
-        this.capturedCount = 0;
-        break;
-      case 'editor.sessionSave':
-        if (this.editor) {
-          this.editor = { ...this.editor, dirty: false };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerAdd': {
-        const kind = String(params['kind'] ?? 'Key');
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: [...this.editor.triggers, {
-              id: 'trigger',
-              kind,
-              kindLabel: kind === 'Key' ? '按键' : kind,
-              summary: '',
-              enabled: true,
-              binding: '',
-              loop: 'Press',
-              once: false,
-              timerMode: 'Interval',
-              time: '08:00',
-              interval: '5',
-              unit: 'Seconds',
-              filePath: '',
-              fileChange: 'Any',
-              fileFilter: '*',
-              fileSubfolders: false,
-              processName: '',
-              processChange: 'Started',
-              hotstringText: '',
-              colorMatch: 'ColorMatches',
-              colorHex: '#000000',
-              colorTolerance: '5',
-              colorX: '0',
-              colorY: '0',
-              followCursor: false,
-              idleSeconds: '60',
-              windowTitle: '',
-              windowProcess: '',
-              windowClass: '',
-              windowHow: 'TitleContains',
-              windowChange: 'Appeared',
-              interfaceTitle: '',
-              interfaceProcess: '',
-              interfaceHow: 'TitleContains',
-            }],
-          };
-        }
-        result = this.editor;
-        break;
-      }
-      case 'editor.sessionTriggerRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.filter((trigger) => trigger.id !== params['triggerId']),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerInterface':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => {
-              if (trigger.id !== params['triggerId']) {
-                return trigger;
-              }
-              const field = String(params['field'] ?? '');
-              const value = String(params['value'] ?? '');
-              return {
-                ...trigger,
-                interfaceTitle: field === 'title' ? value : trigger.interfaceTitle,
-                interfaceProcess: field === 'process' ? value : trigger.interfaceProcess,
-                interfaceHow: field === 'how' ? value : trigger.interfaceHow,
-              };
-            }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerWindow':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => {
-              if (trigger.id !== params['triggerId']) {
-                return trigger;
-              }
-              const field = String(params['field'] ?? '');
-              const value = String(params['value'] ?? '');
-              return {
-                ...trigger,
-                windowTitle: field === 'title' ? value : trigger.windowTitle,
-                windowProcess: field === 'process' ? value : trigger.windowProcess,
-                windowClass: field === 'class' ? value : trigger.windowClass,
-                windowHow: field === 'how' ? value : trigger.windowHow,
-                windowChange: field === 'change' ? value : trigger.windowChange,
-              };
-            }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerColor':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => {
-              if (trigger.id !== params['triggerId']) {
-                return trigger;
-              }
-              const field = String(params['field'] ?? '');
-              return {
-                ...trigger,
-                colorMatch: field === 'match' ? String(params['value'] ?? '') : trigger.colorMatch,
-                colorHex: field === 'hex' ? String(params['value'] ?? '') : trigger.colorHex,
-                colorTolerance: field === 'tolerance'
-                  ? String(params['value'] ?? '')
-                  : trigger.colorTolerance,
-                colorX: field === 'x' ? String(params['value'] ?? '') : trigger.colorX,
-                colorY: field === 'y' ? String(params['value'] ?? '') : trigger.colorY,
-                followCursor: field === 'follow'
-                  ? params['value'] === 'true'
-                  : trigger.followCursor,
-              };
-            }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerIdle':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? { ...trigger, idleSeconds: String(params['value'] ?? '') }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerProcess':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? {
-                  ...trigger,
-                  processName: params['field'] === 'name'
-                    ? String(params['value'] ?? '')
-                    : trigger.processName,
-                  processChange: params['field'] === 'change'
-                    ? String(params['value'] ?? '')
-                    : trigger.processChange,
-                }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerHotstring':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? { ...trigger, hotstringText: String(params['value'] ?? '') }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerFile':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => {
-              if (trigger.id !== params['triggerId']) {
-                return trigger;
-              }
-              const field = String(params['field'] ?? '');
-              const value = String(params['value'] ?? '');
-              return {
-                ...trigger,
-                filePath: field === 'path' ? value : trigger.filePath,
-                fileChange: field === 'change' ? value : trigger.fileChange,
-                fileFilter: field === 'filter' ? value : trigger.fileFilter,
-                fileSubfolders: field === 'subfolders' ? value === 'true' : trigger.fileSubfolders,
-              };
-            }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerTimer':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => {
-              if (trigger.id !== params['triggerId']) {
-                return trigger;
-              }
-              const field = String(params['field'] ?? '');
-              const value = String(params['value'] ?? '');
-              return {
-                ...trigger,
-                timerMode: field === 'mode' ? value : trigger.timerMode,
-                time: field === 'time' ? value : trigger.time,
-                interval: field === 'interval' ? value : trigger.interval,
-                unit: field === 'unit' ? value : trigger.unit,
-              };
-            }),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerEnabled':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? { ...trigger, enabled: params['enabled'] === true }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerLoop':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? { ...trigger, loop: String(params['loop'] ?? 'Press') }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerOnce':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? { ...trigger, once: params['once'] === true }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionTriggerBinding':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            triggers: this.editor.triggers.map((trigger) => trigger.id === params['triggerId']
-              ? { ...trigger, binding: String(params['binding'] ?? '') }
-              : trigger),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionGlobalAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            globals: [...this.editor.globals, {
-              name: 'variable',
-              type: 'text',
-              default: '',
-              description: '',
-              persisted: false,
-            }],
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionGlobalPatch':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            globals: this.editor.globals.map((global) =>
-              global.name === params['originalName']
-                ? {
-                    ...global,
-                    name: params['field'] === 'name' ? String(params['value'] ?? '') : global.name,
-                    type: params['field'] === 'type' ? String(params['value'] ?? '') : global.type,
-                    default: params['field'] === 'default'
-                      ? String(params['value'] ?? '')
-                      : global.default,
-                    description: params['field'] === 'description'
-                      ? String(params['value'] ?? '')
-                      : global.description,
-                    persisted: params['field'] === 'persist'
-                      ? params['value'] === 'true'
-                      : global.persisted,
-                  }
-                : global),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionGlobalRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            globals: this.editor.globals.filter((global) => global.name !== params['name']),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionVariableAdd':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            variables: [...this.editor.variables, {
-              name: '',
-              type: 'text',
-              initial: '',
-              description: '',
-              source: '声明',
-              isDeclared: true,
-            }],
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionVariablePatch':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            variables: this.editor.variables.map((variable) =>
-              variable.name === params['originalName']
-                ? {
-                    ...variable,
-                    name: params['field'] === 'name' ? String(params['value'] ?? '') : variable.name,
-                    type: params['field'] === 'type' ? String(params['value'] ?? '') : variable.type,
-                    initial: params['field'] === 'initial'
-                      ? String(params['value'] ?? '')
-                      : variable.initial,
-                    description: params['field'] === 'description'
-                      ? String(params['value'] ?? '')
-                      : variable.description,
-                  }
-                : variable),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionVariableRemove':
-        if (this.editor) {
-          this.editor = {
-            ...this.editor,
-            dirty: true,
-            variables: this.editor.variables.filter((variable) => variable.name !== params['name']),
-          };
-        }
-        result = this.editor;
-        break;
-      case 'editor.sessionClose':
-        if (this.editor?.dirty) {
-          throw new Error('Save this document before closing it.');
-        }
-        this.editor = null;
-        result = null;
-        break;
-      case 'editor.sessionActions':
-        result = {
-          count: 177,
-          actions: [
-            {
-              key: 'control.delay',
-              name: '延迟',
-              category: 'Control',
-              categoryLabel: 'Flow',
-              description: '',
-              hidden: false,
-              parameters: [
-                { name: 'ms', label: '等待时长', kind: 'Number', required: false, placeholder: '', options: [] },
-              ],
-            },
-            {
-              key: 'control.repeat',
-              name: '重复',
-              category: 'Control',
-              categoryLabel: 'Flow',
-              description: '',
-              hidden: false,
-              parameters: [],
-            },
-            {
-              key: 'input.keyPress',
-              name: '按键',
-              category: 'Input',
-              categoryLabel: 'Input',
-              description: '',
-              hidden: false,
-              parameters: [
-                { name: 'key', label: '按键', kind: 'Key', required: false, placeholder: '', options: [] },
-              ],
-            },
-            {
-              key: 'screen.color',
-              name: '颜色',
-              category: 'Screen',
-              categoryLabel: 'Vision',
-              description: '',
-              hidden: false,
-              parameters: [
-                { name: 'hex', label: '颜色', kind: 'Color', required: false, placeholder: '', options: [] },
-              ],
-            },
-            {
-              key: 'control.waitUntil',
-              name: '等待条件',
-              category: 'Control',
-              categoryLabel: 'Flow',
-              description: '',
-              hidden: false,
-              parameters: [
-                { name: 'condition', label: '条件', kind: 'Condition', required: false, placeholder: '', options: [] },
-              ],
-            },
-            {
-              key: 'image.find',
-              name: '找图',
-              category: 'Screen',
-              categoryLabel: 'Vision',
-              description: '',
-              hidden: false,
-              parameters: [
-                { name: 'path', label: '图片', kind: 'Image', required: false, placeholder: '', options: [] },
-              ],
-            },
-          ],
-        };
-        break;
-
-      case 'project.delete':
-        this.pendingDelete = String(params['name']);
-        this.push('dialog.request', {
-          requestId: 2,
-          title: chinese['Editor.DeleteTitle']!,
-          message: `确定删除“${String(params['name'])}”？此操作无法撤销。`,
-          confirmLabel: chinese['Editor.Delete']!,
-          cancelLabel: chinese['Common.Cancel']!,
-        });
-        break;
-      case 'project.export':
-        result = { exported: String(params['name']) };
-        break;
-      case 'project.import':
-        result = { imported: '/mock/SomeProject.wgmacro' };
-        break;
-      case 'project.state':
-        result = this.projectState;
-        break;
-      case 'project.toggle':
-        for (const entry of this.projectState.macros) {
-          if (entry.name === params['name']) {
-            entry.enabled = !entry.enabled;
-          }
-        }
-        // 启停一次宏就是一次修改：真机上 ToggleMacro 会把项目标脏，推送里带着这个标记。
-        this.projectState = { ...this.projectState, dirty: true };
-        this.push('project.changed', this.projectState);
-        break;
-      case 'project.system':
-        this.projectState = {
-          ...this.projectState,
-          systemEnabled: params['enabled'] === true,
-        };
-        this.push('project.changed', this.projectState);
-        break;
-      case 'dialog.pickImage':
-        result = { path: 'C:\\shot.png' };
-        break;
-      case 'dialog.pickOpenPackage':
-        result = '/mock/opened-project.wgmacro';
-        break;
-      case 'dialog.pickSavePackage':
-        result = `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`;
-        break;
-      case 'project.open': {
-        const path = String(params['path'] ?? '/mock/opened-project.wgmacro');
-        const name = path.split('/').pop()?.replace(/\.wgmacro$/, '') ?? null;
-        this.projectState = {
-          ...this.projectState,
-          path,
-          name,
-          untitled: false,
-          dirty: false,
-          revision: this.projectState.revision + 1,
-          macros: [
-            {
-              name: '包里的宏', group: '', description: '从包里打开的', enabled: true, running: false,
-              triggerSummary: '键：Ctrl+Alt+O', triggerActions: '', triggerPreview: 'Ctrl+Alt+O',
-              views: ['All', 'Keys'],
-            },
-          ],
-          groups: [],
-        };
-        this.push('project.changed', this.projectState);
-        break;
-      }
-      case 'project.save':
-        this.projectState = { ...this.projectState, dirty: false };
-        this.push('project.changed', this.projectState);
-        break;
-      case 'project.saveAs': {
-        const path = String(params['path'] ?? `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`);
-        const name = path.split('/').pop()?.replace(/\.wgmacro$/, '') ?? null;
-        this.projectState = { ...this.projectState, path, name, untitled: false, dirty: false };
-        this.push('project.changed', this.projectState);
-        break;
-      }
-      case 'project.reload':
-        this.projectState = { ...this.projectState, dirty: false };
-        this.push('project.changed', this.projectState);
-        break;
-      case 'project.closeAll':
-        // 关全部要页面确认；mock 的文案与真宿主同源（同一组词表键），页面上有人点确定，
-        // dialog.respond 才真的清。
-        this.push('dialog.request', {
-          requestId: 1,
-          title: chinese['Main.CloseAllTitle']!,
-          message: chinese['Main.CloseAllMessage']!,
-          confirmLabel: chinese['Main.CloseAll']!,
-          cancelLabel: null,
-        });
-        break;
-      case 'dialog.respond': {
-        if (params['accepted'] !== true) {
-          this.pendingDelete = null;
+          this.push('theme.changed', this.theme);
+          result = this.theme;
           break;
         }
-
-        if (this.pendingDelete !== null) {
-          // 删除确认被接受：那一个宏离开列表。
+        case 'window.minimize':
+          this.windowState = { ...this.windowState, state: 'minimized' };
+          this.push('window.changed', this.windowState);
+          break;
+        case 'window.maximize':
+          this.windowState = {
+            ...this.windowState,
+            state: this.windowState.state === 'maximized' ? 'normal' : 'maximized',
+          };
+          this.push('window.changed', this.windowState);
+          break;
+        case 'window.close':
+          break;
+        case 'window.pin':
+          this.windowState = { ...this.windowState, topmost: !this.windowState.topmost };
+          this.push('window.changed', this.windowState);
+          break;
+        case 'window.drag':
+        case 'window.focus':
+        case 'app.quit':
+        case 'app.openExternal':
+          break;
+        case 'app.openRun':
+          this.push('run.openRequested', { name: String(params['name'] ?? '') });
+          break;
+        case 'run.state':
+          result = this.runState;
+          break;
+        case 'run.load':
+          this.runState = {
+            ...this.runState,
+            loaded: String(params['name'] ?? ''),
+            status: 'Loaded', canRun: true, canStep: true, busy: false, paused: false,
+            arguments: [{ name: 'target', label: 'target', hint: 'Text', required: true,
+              value: '', given: false, missing: true }],
+            globals: [{ name: 'count', type: 'Number', value: '3', defaultValue: '0' }],
+            locals: [{ name: 'found', macro: 'Demo', type: 'Boolean' }],
+            steps: [
+              { id: 's1', label: 'Step one', detail: 'action.key', depth: 0, shown: true,
+                container: false, current: false, breakpoint: false, canBreak: true,
+                time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
+              { id: 's2', label: 'Step two', detail: 'action.key', depth: 0, shown: true,
+                container: false, current: false, breakpoint: false, canBreak: true,
+                time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
+            ],
+          };
+          result = this.runState;
+          break;
+        case 'run.command':
+          this.runState = {
+            ...this.runState,
+            status: String(params['command'] ?? ''),
+            busy: params['command'] === 'run',
+            canStop: params['command'] === 'run',
+            canRun: params['command'] !== 'run',
+            canStep: params['command'] !== 'run',
+          };
+          result = this.runState;
+          break;
+        case 'run.answer':
+          result = this.runState;
+          break;
+        case 'run.argument':
+          this.runState = {
+            ...this.runState,
+            arguments: this.runState.arguments.map((argument) => argument.name === params['name']
+              ? { ...argument, value: String(params['value'] ?? ''),
+                  given: String(params['value'] ?? '').length > 0,
+                  missing: false }
+              : argument),
+          };
+          result = this.runState;
+          break;
+        case 'run.breakpointRule':
+          this.runState = {
+            ...this.runState,
+            steps: this.runState.steps.map((step) => step.id === params['id']
+              ? { ...step, hitTimes: Number(params['hitTimes'] ?? 1),
+                  expression: String(params['expression'] ?? '') }
+              : step),
+          };
+          result = this.runState;
+          break;
+        case 'run.breakpoint':
+          this.runState = {
+            ...this.runState,
+            steps: this.runState.steps.map((step) => step.id === params['id']
+              ? { ...step, breakpoint: !step.breakpoint }
+              : step),
+          };
+          result = this.runState;
+          break;
+        case 'settings.state':
+          result = this.settingsState;
+          break;
+        case 'settings.update': {
+          const field = String(params['field'] ?? '');
+          const value = String(params['value'] ?? '');
+          this.settingsState = {
+            ...this.settingsState,
+            [field]: field === 'language'
+              || field === 'systemHotkey' || field === 'recordStopKey'
+              || field === 'windowWay' || field === 'screenWay'
+              ? value
+              : value === 'true' ? true : value === 'false' ? false : Number(value),
+          };
+          result = this.settingsState;
+          if (field === 'language') {
+            this.info = {
+              ...this.info,
+              language: value,
+            };
+            this.push('strings.changed', this.bundle());
+          }
+          break;
+        }
+        case 'settings.windows.list':
+          result = {
+            windows: demoWindows,
+            hows: [
+              { value: 'titleContains', label: '标题包含' },
+              { value: 'titleEquals', label: '标题等于' },
+              { value: 'process', label: '进程名包含' },
+              { value: 'class', label: '窗口类包含' },
+              { value: 'handle', label: '窗口句柄（当前实例）' },
+            ],
+          };
+          break;
+        case 'settings.windows.pick':
+          result = demoWindows[0];
+          break;
+        case 'settings.menu.capture': {
+          const binding = String(params['binding'] ?? '');
+          this.settingsState = {
+            ...this.settingsState,
+            menu: {
+              ...this.settingsState.menu,
+              launcher: binding,
+              display: binding,
+              isMiddle: binding === 'Mouse Middle',
+              isCustom: binding !== 'Mouse Middle',
+              status: binding ? '已设置' : '未设置',
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.menu.clear':
+          this.settingsState = {
+            ...this.settingsState,
+            menu: {
+              ...this.settingsState.menu,
+              launcher: '', display: '无', isMiddle: false, isCustom: false, status: '未设置',
+            },
+          };
+          result = this.settingsState;
+          break;
+        case 'settings.menu.rule.add': {
+          const rule = params['rule'] as WindowRuleState;
+          this.settingsState = {
+            ...this.settingsState,
+            menu: {
+              ...this.settingsState.menu,
+              rules: [...this.settingsState.menu.rules, {
+                key: 'rule-' + Date.now(), summary: rule.title || rule.process || '窗口规则',
+                pageCountLabel: '1 页', isDefault: false, isBlocked: false, canAddPage: true, rule,
+              }],
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.menu.rule.edit': {
+          const rule = params['rule'] as WindowRuleState;
+          this.settingsState = {
+            ...this.settingsState,
+            menu: {
+              ...this.settingsState.menu,
+              rules: this.settingsState.menu.rules.map((row) => row.key === params['key']
+                ? { ...row, rule, summary: rule.title || rule.process || '窗口规则' }
+                : row),
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.menu.rule.remove':
+          this.settingsState = {
+            ...this.settingsState,
+            menu: {
+              ...this.settingsState.menu,
+              rules: this.settingsState.menu.rules.filter((row) => row.key !== params['key']),
+            },
+          };
+          result = this.settingsState;
+          break;
+        case 'settings.menu.rule.addPage':
+          result = this.settingsState;
+          break;
+        case 'settings.menu.rule.move': {
+          const step = Number(params['step'] ?? 0);
+          const rules = [...this.settingsState.menu.rules];
+          const at = rules.findIndex((row) => row.key === params['key']);
+          const to = Math.max(0, Math.min(rules.length - 1, at + step));
+          if (at >= 0 && to !== at) {
+            const [row] = rules.splice(at, 1);
+            if (row) {
+              rules.splice(to, 0, row);
+            }
+          }
+          this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.menu.rule.moveTo': {
+          const rules = [...this.settingsState.menu.rules];
+          const from = rules.findIndex((row) => row.key === params['key']);
+          const to = rules.findIndex((row) => row.key === params['target']);
+          if (from >= 0 && to >= 0) {
+            const [row] = rules.splice(from, 1);
+            if (row) {
+              rules.splice(to, 0, row);
+            }
+          }
+          this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.update': {
+          const field = String(params['field'] ?? '');
+          const value = String(params['value'] ?? '');
+          const next: Record<string, unknown> = { ...this.settingsState.wheel };
+          if (['diameter', 'fontSize', 'thirdCapacity', 'timeoutMs'].includes(field)) {
+            next[field] = Number(value);
+          } else if (field === 'enabled') {
+            next[field] = value === 'true';
+          } else {
+            next[field] = value === 'true' ? true : value === 'false' ? false : value;
+          }
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: next as unknown as SettingsWheelState,
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.launcher': {
+          const launcher = String(params['value'] ?? '');
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: {
+              ...this.settingsState.wheel,
+              launcher,
+              enabled: launcher.length > 0,
+              launcherStatus: launcher ? '就绪' : '未设置',
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.enabled': {
+          const enabled = params['value'] === true;
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: {
+              ...this.settingsState.wheel,
+              enabled,
+              launcher: enabled ? (this.settingsState.wheel.launcher || 'Mouse Right') : '',
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.enableSystem':
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: { ...this.settingsState.wheel, isSystemOff: false },
+          };
+          result = this.settingsState;
+          break;
+        case 'settings.wheel.repeat': {
+          const key = String(params['binding'] ?? '');
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: { ...this.settingsState.wheel, repeatKey: key, repeatDisplay: key },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.scene.select':
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: { ...this.settingsState.wheel, selectedScene: String(params['key'] ?? 'global') },
+          };
+          result = this.settingsState;
+          break;
+        case 'settings.wheel.scene.add': {
+          const rule = params['rule'] as WindowRuleState;
+          const key = 'scene-' + Date.now();
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: {
+              ...this.settingsState.wheel,
+              selectedScene: key,
+              scenes: [...this.settingsState.wheel.scenes, {
+                key, summary: rule.title || rule.process || '窗口规则', isGlobal: false, rule,
+              }],
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.scene.edit': {
+          const rule = params['rule'] as WindowRuleState;
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: {
+              ...this.settingsState.wheel,
+              scenes: this.settingsState.wheel.scenes.map((scene) => scene.key === params['key']
+                ? { ...scene, rule, summary: rule.title || rule.process || '窗口规则' }
+                : scene),
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.scene.remove':
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: {
+              ...this.settingsState.wheel,
+              selectedScene: 'global',
+              scenes: this.settingsState.wheel.scenes.filter((scene) => scene.key !== params['key']),
+            },
+          };
+          result = this.settingsState;
+          break;
+        case 'settings.wheel.scene.move': {
+          const scenes = [...this.settingsState.wheel.scenes];
+          const at = scenes.findIndex((scene) => scene.key === this.settingsState.wheel.selectedScene);
+          const to = Math.max(1, Math.min(scenes.length - 1, at + Number(params['step'] ?? 0)));
+          if (at > 0 && to !== at) {
+            const [scene] = scenes.splice(at, 1);
+            if (scene) {
+              scenes.splice(to, 0, scene);
+            }
+          }
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: { ...this.settingsState.wheel, scenes },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.slot.set': {
+          const ring = String(params['ring'] ?? '');
+          const index = Number(params['index'] ?? 0);
+          const macro = String(params['macro'] ?? '');
+          const note = String(params['note'] ?? '');
+          const icon = params['icon'] as { kind: string; value: string } | null;
+          const update = (slot: SettingsWheelSlot): SettingsWheelSlot => ({
+            ...slot,
+            macro,
+            note,
+            label: note || macro,
+            icon,
+            inherited: false,
+            overridden: macro.length > 0,
+            empty: macro.length === 0,
+            tone: macro.length === 0 ? 'empty' : 'override',
+          });
+          this.settingsState = {
+            ...this.settingsState,
+            wheel: {
+              ...this.settingsState.wheel,
+              slots: this.settingsState.wheel.slots.map((slot) =>
+                slot.ring === ring && slot.index === index ? update(slot) : slot),
+            },
+          };
+          result = this.settingsState;
+          break;
+        }
+        case 'settings.wheel.pickIcon':
+          result = { kind: 'builtin', value: 'circle' };
+          break;
+        case 'app.about':
+          result = {
+            projectUrl: 'https://github.com/ilpoint/WhaleGenie',
+            notices: '第三方组件\n\n- Avalonia — MIT\n- Lit — BSD-3-Clause',
+          };
+          break;
+        case 'settings.openFolder':
+          result = null;
+          break;
+        case 'library.state':
+          result = { entries: this.libraryEntries, error: null };
+          break;
+        case 'library.delete':
+          this.libraryEntries = this.libraryEntries.filter((entry) => entry.id !== String(params['id']));
+          result = { entries: this.libraryEntries, error: null };
+          break;
+        case 'library.add': {
+          const macro = this.projectState.macros.find((entry) => entry.name === params['name']);
+          this.libraryEntries = [...this.libraryEntries, {
+            id: 'library-' + String(this.libraryEntries.length + 1),
+            name: String(params['name'] ?? macro?.name ?? ''),
+            version: 1,
+            description: macro?.description ?? '',
+          }];
+          result = { entries: this.libraryEntries, error: null };
+          break;
+        }
+        case 'library.replace':
+          this.libraryEntries = this.libraryEntries.map((entry) => entry.id === params['id']
+            ? { ...entry, name: String(params['name'] ?? entry.name), version: entry.version + 1 }
+            : entry);
+          result = { entries: this.libraryEntries, error: null };
+          break;
+        case 'project.delete':
+          this.pendingDelete = String(params['name']);
+          this.push('dialog.request', {
+            requestId: 2,
+            title: chinese['Editor.DeleteTitle']!,
+            message: `确定删除“${String(params['name'])}”？此操作无法撤销。`,
+            confirmLabel: chinese['Editor.Delete']!,
+            cancelLabel: chinese['Common.Cancel']!,
+          });
+          break;
+        case 'project.export':
+          result = { exported: String(params['name']) };
+          break;
+        case 'project.import':
+          result = { imported: '/mock/SomeProject.wgmacro' };
+          break;
+        case 'project.state':
+          result = this.projectState;
+          break;
+        case 'project.toggle':
+          for (const entry of this.projectState.macros) {
+            if (entry.name === params['name']) {
+              entry.enabled = !entry.enabled;
+            }
+          }
+          // 启停一次宏就是一次修改：真机上 ToggleMacro 会把项目标脏，推送里带着这个标记。
+          this.projectState = { ...this.projectState, dirty: true };
+          this.push('project.changed', this.projectState);
+          break;
+        case 'project.system':
           this.projectState = {
             ...this.projectState,
-            dirty: true,
-            macros: this.projectState.macros.filter(entry => entry.name !== this.pendingDelete),
+            systemEnabled: params['enabled'] === true,
           };
-          this.pendingDelete = null;
+          this.push('project.changed', this.projectState);
+          break;
+        case 'dialog.pickImage':
+          result = { path: 'C:\\shot.png' };
+          break;
+        case 'dialog.pickOpenPackage':
+          result = '/mock/opened-project.wgmacro';
+          break;
+        case 'dialog.pickSavePackage':
+          result = `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`;
+          break;
+        case 'project.open': {
+          const path = String(params['path'] ?? '/mock/opened-project.wgmacro');
+          const name = path.split('/').pop()?.replace(/\.wgmacro$/, '') ?? null;
+          this.projectState = {
+            ...this.projectState,
+            path,
+            name,
+            untitled: false,
+            dirty: false,
+            revision: this.projectState.revision + 1,
+            macros: [
+              {
+                name: '包里的宏', group: '', description: '从包里打开的', enabled: true, running: false,
+                triggerSummary: '键：Ctrl+Alt+O', triggerActions: '', triggerPreview: 'Ctrl+Alt+O',
+                views: ['All', 'Keys'],
+              },
+            ],
+            groups: [],
+          };
           this.push('project.changed', this.projectState);
           break;
         }
+        case 'project.save':
+          this.projectState = { ...this.projectState, dirty: false };
+          this.push('project.changed', this.projectState);
+          break;
+        case 'project.saveAs': {
+          const path = String(params['path'] ?? `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`);
+          const name = path.split('/').pop()?.replace(/\.wgmacro$/, '') ?? null;
+          this.projectState = { ...this.projectState, path, name, untitled: false, dirty: false };
+          this.push('project.changed', this.projectState);
+          break;
+        }
+        case 'project.reload':
+          this.projectState = { ...this.projectState, dirty: false };
+          this.push('project.changed', this.projectState);
+          break;
+        case 'project.closeAll':
+          // 关全部要页面确认；mock 的文案与真宿主同源（同一组词表键），页面上有人点确定，
+          // dialog.respond 才真的清。
+          this.push('dialog.request', {
+            requestId: 1,
+            title: chinese['Main.CloseAllTitle']!,
+            message: chinese['Main.CloseAllMessage']!,
+            confirmLabel: chinese['Main.CloseAll']!,
+            cancelLabel: null,
+          });
+          break;
+        case 'dialog.respond': {
+          if (params['accepted'] !== true) {
+            this.pendingDelete = null;
+            break;
+          }
 
-        this.projectState = {
-          ...this.projectState,
-          path: null,
-          name: null,
-          untitled: true,
-          dirty: false,
-          macros: [],
-          groups: [],
-        };
-        this.push('project.changed', this.projectState);
-        break;
+          if (this.pendingDelete !== null) {
+            // 删除确认被接受：那一个宏离开列表。
+            this.projectState = {
+              ...this.projectState,
+              dirty: true,
+              macros: this.projectState.macros.filter(entry => entry.name !== this.pendingDelete),
+            };
+            this.pendingDelete = null;
+            this.push('project.changed', this.projectState);
+            break;
+          }
+
+          this.projectState = {
+            ...this.projectState,
+            path: null,
+            name: null,
+            untitled: true,
+            dirty: false,
+            macros: [],
+            groups: [],
+          };
+          this.push('project.changed', this.projectState);
+          break;
+        }
+        case 'mcp.state':
+          result = this.mcp;
+          break;
+        case 'mcp.setGrants':
+          this.mcp = {
+            ...this.mcp,
+            allowControl: params['control'] === true,
+            allowRun: params['run'] === true,
+          };
+          this.push('mcp.changed', this.mcp);
+          break;
+        case 'mcp.copyConfig':
+        case 'mcp.openAudit':
+        case 'app.openManual':
+          break;
+        default:
+          if (method.startsWith('editor.')) {
+            result = this.mockEditor.run(method, params);
+            break;
+          }
+
+          this.answer({ id: request.id, ok: false, error: { code: 'NoSuchMethod', message: method } });
+          return;
       }
-      case 'mcp.state':
-        result = this.mcp;
-        break;
-      case 'mcp.setGrants':
-        this.mcp = {
-          ...this.mcp,
-          allowControl: params['control'] === true,
-          allowRun: params['run'] === true,
-        };
-        this.push('mcp.changed', this.mcp);
-        break;
-      case 'mcp.copyConfig':
-      case 'mcp.openAudit':
-      case 'app.openManual':
-        break;
-      default:
-        this.answer({ id: request.id, ok: false, error: { code: 'NoSuchMethod', message: method } });
-        return;
+    } catch (error) {
+      this.answer({
+        id: request.id,
+        ok: false,
+        error: {
+          code: 'BadArgument',
+          message: error instanceof Error ? error.message : String(error),
+        },
+      });
+      return;
     }
 
     this.answer({ id: request.id, ok: true, result });
-  }
-
-  private changeCondition(
-    steps: EditorStep[],
-    stepId: string,
-    name: string,
-    change: (condition: NonNullable<EditorStep['parameters'][number]['condition']>) =>
-      NonNullable<EditorStep['parameters'][number]['condition']>,
-  ): EditorStep[] {
-    return steps.map((step) => {
-      if (step.id === stepId) {
-        return {
-          ...step,
-          parameters: step.parameters.map((parameter) =>
-            parameter.name === name && parameter.condition
-              ? { ...parameter, condition: change(parameter.condition) }
-              : parameter),
-        };
-      }
-
-      return { ...step, steps: this.changeCondition(step.steps, stepId, name, change) };
-    });
-  }
-
-  private conditionPath(params: Record<string, unknown>): number[] {
-    const path = params['path'];
-    if (Array.isArray(path)) {
-      return path.map((item) => Number(item));
-    }
-
-    return params['index'] === undefined ? [] : [Number(params['index'])];
-  }
-
-  private addConditionNode(
-    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
-    path: number[],
-    kind: 'row' | 'group',
-  ): NonNullable<EditorStep['parameters'][number]['condition']> {
-    const root = this.conditionRoot(condition);
-    const next = this.changeConditionGroup(root, path, (group) => ({
-      ...group,
-      children: [...group.children, this.conditionNode(kind)],
-    }));
-    return this.conditionFromRoot(next);
-  }
-
-  private removeConditionNode(
-    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
-    path: number[],
-  ): NonNullable<EditorStep['parameters'][number]['condition']> {
-    if (path.length === 0) {
-      return condition;
-    }
-
-    const parentPath = path.slice(0, -1);
-    const index = path[path.length - 1];
-    const root = this.conditionRoot(condition);
-    const next = this.changeConditionGroup(root, parentPath, (group) => ({
-      ...group,
-      children: group.children.filter((_, at) => at !== index),
-    }));
-    return this.conditionFromRoot(next);
-  }
-
-  private setConditionCell(
-    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
-    path: number[],
-    field: string,
-    value: string,
-  ): NonNullable<EditorStep['parameters'][number]['condition']> {
-    if (path.length === 0) {
-      return condition;
-    }
-
-    const root = this.conditionRoot(condition);
-    const next = this.changeConditionNode(root, path, (node) => ({
-      ...node,
-      left: field === 'left' ? value : node.left,
-      compare: field === 'compare' ? value : node.compare,
-      right: field === 'right' ? value : node.right,
-    }));
-    return this.conditionFromRoot(next);
-  }
-
-  private setConditionJoinAt(
-    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
-    path: number[],
-    join: string,
-  ): NonNullable<EditorStep['parameters'][number]['condition']> {
-    const root = this.conditionRoot(condition);
-    const next = this.changeConditionGroup(root, path, (group) => ({ ...group, join }));
-    return this.conditionFromRoot(next);
-  }
-
-  private conditionRoot(
-    condition: NonNullable<EditorStep['parameters'][number]['condition']>,
-  ): EditorConditionNode {
-    return {
-      kind: 'group',
-      join: condition.join,
-      left: '',
-      compare: '',
-      right: '',
-      children: condition.nodes,
-    };
-  }
-
-  private conditionFromRoot(
-    root: EditorConditionNode,
-  ): NonNullable<EditorStep['parameters'][number]['condition']> {
-    return { join: root.join, nodes: root.children, editable: true };
-  }
-
-  private conditionNode(kind: 'row' | 'group'): EditorConditionNode {
-    return kind === 'row'
-      ? { kind: 'row', join: '', left: '', compare: 'Equal', right: '', children: [] }
-      : { kind: 'group', join: 'All', left: '', compare: '', right: '', children: [] };
-  }
-
-  private changeConditionGroup(
-    group: EditorConditionNode,
-    path: number[],
-    change: (group: EditorConditionNode) => EditorConditionNode,
-  ): EditorConditionNode {
-    if (path.length === 0) {
-      return change(group);
-    }
-
-    const [index, ...rest] = path;
-    return {
-      ...group,
-      children: group.children.map((node, at) => at === index
-        ? this.changeConditionGroup(node, rest, change)
-        : node),
-    };
-  }
-
-  private changeConditionNode(
-    group: EditorConditionNode,
-    path: number[],
-    change: (node: EditorConditionNode) => EditorConditionNode,
-  ): EditorConditionNode {
-    const [index, ...rest] = path;
-    return {
-      ...group,
-      children: group.children.map((node, at) => {
-        if (at !== index) {
-          return node;
-        }
-
-        return rest.length === 0
-          ? change(node)
-          : this.changeConditionNode(node, rest, change);
-      }),
-    };
-  }
-
-  private changeStepMeta(
-    steps: EditorStep[],
-    stepId: string,
-    change: (step: EditorStep) => EditorStep,
-  ): EditorStep[] {
-    return steps.map((step) => step.id === stepId
-      ? change(step)
-      : { ...step, steps: this.changeStepMeta(step.steps, stepId, change) });
-  }
-
-  private duplicateStep(steps: EditorStep[], stepId: string): EditorStep[] {
-    const copy: EditorStep[] = [];
-    for (const step of steps) {
-      copy.push(step);
-      if (step.id === stepId) {
-        copy.push(structuredClone(step));
-      } else {
-        copy.push({ ...step, steps: this.duplicateStep(step.steps, stepId) });
-      }
-    }
-    return copy;
-  }
-
-  private setStepEnabled(steps: EditorStep[], stepId: string, enabled: boolean): EditorStep[] {
-    return steps.map((step) => step.id === stepId
-      ? { ...step, enabled }
-      : { ...step, steps: this.setStepEnabled(step.steps, stepId, enabled) });
-  }
-
-  private changeRows(
-    steps: EditorStep[],
-    stepId: string,
-    name: string,
-    change: (rows: { cells: string[] }[]) => { cells: string[] }[],
-  ): EditorStep[] {
-    return steps.map((step) => step.id === stepId
-      ? {
-          ...step,
-          parameters: step.parameters.map((parameter) =>
-            parameter.name === name ? { ...parameter, rows: change(parameter.rows) } : parameter),
-        }
-      : { ...step, steps: this.changeRows(step.steps, stepId, name, change) });
-  }
-
-  private columnIndex(column: string): number {
-    return column === 'name' ? 1 : 0;
-  }
-
-  private setParameter(
-    steps: EditorStep[],
-    stepId: string,
-    name: string,
-    value: string,
-  ): EditorStep[] {
-    return steps.map((step) => step.id === stepId
-      ? {
-          ...step,
-          parameters: step.parameters.map((parameter) =>
-            parameter.name === name ? { ...parameter, value } : parameter),
-        }
-      : { ...step, steps: this.setParameter(step.steps, stepId, name, value) });
-  }
-
-  private addChild(steps: EditorStep[], parentId: string, child: EditorStep): EditorStep[] {
-    return steps.map((step) => step.id === parentId
-      ? { ...step, steps: [...step.steps, child] }
-      : { ...step, steps: this.addChild(step.steps, parentId, child) });
   }
 
   private bundle(): StringsBundle {

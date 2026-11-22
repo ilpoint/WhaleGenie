@@ -7,7 +7,7 @@ import {
   type Theme,
 } from '@fluentui/tokens';
 import { Store } from '../store.js';
-import { brandFromHex } from './brand.js';
+import { PROJECT_ACCENT, brandFromHex } from './brand.js';
 import type { ThemeState } from '../bridge/protocol.js';
 
 /**
@@ -51,17 +51,20 @@ class ThemeStore {
   }
 }
 
-/** 这一种选择用哪一套令牌：内置两套用 Fluent 默认主题，自定义强调色由色阶派生。 */
+/**
+ * 这一种选择用哪一套令牌：内置两套也取自项目强调色，自定义强调色用同一套派生。程序侧的
+ * ThemeController 已对自定义颜色做完对比度底线检查；这里只把颜色展开成 Fluent 的十六档。
+ */
 function tokensFor(theme: ThemeState): Theme {
-  if (theme.mode !== 'custom') {
+  const accent = theme.mode === 'custom'
+    ? theme.accentHex
+    : theme.defaultAccent ?? PROJECT_ACCENT;
+  const brand = brandFromHex(accent);
+  if (brand === null) {
+    // 没给颜色（或给的不是一个颜色）时回到 Fluent 内置主题：派生失败不是页面自己能修的事。
     return theme.baseLight ? webLightTheme : webDarkTheme;
   }
 
-  // 没给颜色（或给的不是一个颜色）时回到内置主题：派生失败不是页面自己能修的事。
-  const brand = brandFromHex(theme.accentHex);
-  if (brand === null) {
-    return theme.baseLight ? webLightTheme : webDarkTheme;
-  }
   return theme.baseLight ? createLightTheme(brand) : createDarkTheme(brand);
 }
 

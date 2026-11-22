@@ -62,7 +62,7 @@ export class WgWindowRule extends LitElement {
       display: grid;
       place-items: center;
       padding: var(--spacingVerticalXL);
-      background: rgba(0, 0, 0, 0.35);
+      background: var(--shell-scrim);
     }
 
     .dialog {
@@ -80,13 +80,13 @@ export class WgWindowRule extends LitElement {
 
     h2 {
       margin: 0;
-      font-size: var(--font-size-base-400);
+      font-size: var(--fontSizeBase400);
     }
 
     .hint {
       margin: 0;
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .body {
@@ -134,8 +134,8 @@ export class WgWindowRule extends LitElement {
     }
 
     .window strong {
-      font-size: var(--font-size-base-300);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase300);
+      font-weight: var(--fontWeightSemibold);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -143,7 +143,7 @@ export class WgWindowRule extends LitElement {
 
     .window span {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

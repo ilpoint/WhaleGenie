@@ -7,6 +7,7 @@ using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
@@ -26,7 +27,21 @@ internal sealed class HeadlessEditorSession
     private readonly string _submacroOriginal = string.Empty;
     private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
     private List<GlobalDraftEntry>? _globalDraft;
+    private HeadlessValueSession? _valueSession;
     private MacroItem? _existing;
+    private ActionDraft? _actionDraft;
+
+    private sealed class ActionDraft
+    {
+        public required MacroStep Step { get; init; }
+        public bool IsEditing { get; init; }
+        public string OriginalStepId { get; init; } = string.Empty;
+        public string ParentId { get; init; } = string.Empty;
+        public string ListName { get; init; } = string.Empty;
+        public string TargetStepId { get; init; } = string.Empty;
+        public bool Before { get; init; }
+    }
+
 
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing,
         HeadlessEditorSession? owner = null, string submacroOriginal = "")
@@ -51,6 +66,11 @@ internal sealed class HeadlessEditorSession
         {
             _model.UseDefaultName(workspace.Macros.Select(macro => macro.Name));
         }
+
+        // A submacro document has no triggers and no arm key of its own; the editor form and the
+        // tab strip read this flag.
+        _model.IsSubMacro = owner is not null;
+        _model.MacroLifted += lifted => _workspace.AddMacro(lifted);
     }
 
     public static HeadlessEditorSession OpenSubmacro(ProjectWorkspace workspace,
@@ -92,6 +112,26 @@ internal sealed class HeadlessEditorSession
     public bool CanUndo => _model.CanUndo;
 
     public bool CanRedo => _model.CanRedo;
+
+    /// <summary>True for a submacro document: it has no triggers and no input limit of its own.</summary>
+    public bool IsSubMacro => _model.IsSubMacro;
+
+    /// <summary>What the tab strip shows: a document that cannot be saved right now has a problem.</summary>
+    public bool HasProblem => !CanSave;
+
+    public string? NameProblem => _model.NameProblem;
+
+    public string ProblemSummary => _model.ProblemSummary;
+
+    public string DeclarationProblemSummary => _model.DeclarationProblemSummary;
+
+    public string CallImpactSummary => _model.CallImpactSummary;
+
+    public string Notice => _model.Notice;
+
+    public string TriggerProblemSummary => _model.TriggerProblemSummary;
+
+    public string ToggleKeyProblem => _model.ToggleKeyProblem;
 
     public IReadOnlyList<string> SubMacros
         => [.. _model.SubMacros.Select(macro => macro.Name)];
@@ -494,7 +534,10 @@ internal sealed class HeadlessEditorSession
             choice.Type is { } type ? WhaleGenie.Models.VariableTypes.Name(type) : "text",
             choice.Origin.ToString(),
             choice.Source,
-            choice.Description))];
+            choice.Description,
+            choice.Group.ToString(),
+            choice.Display,
+            choice.IsPersistent))];
 
     public IReadOnlyList<EditorGlobalSnapshot> Globals
         => [.. (_globalDraft?.Select(entry => entry.Variable) ?? _workspace.Variables.Globals)
@@ -527,21 +570,56 @@ internal sealed class HeadlessEditorSession
 
     public void Redo() => _model.RedoCommand.Execute(null);
 
-    public void AddStep(string type, string? parentId = null)
+    /// <summary>
+    /// Adds one catalogue step at the root or inside a named child list of a block, then writes
+    /// any values the caller already knows (a call step's macro, for one). The page selects the
+    /// returned step, so the command answers with the object rather than only a fresh snapshot.
+    /// </summary>
+    public MacroStep AddStep(string type, string? parentId = null, string? listName = null,
+        IReadOnlyDictionary<string, string>? presets = null)
     {
+        var step = NewStep(type);
         if (parentId is not { Length: > 0 })
         {
-            _model.AddStep(NewStep(type));
-            return;
+            if (listName is { Length: > 0 })
+            {
+                throw new InvalidOperationException("a root step has no child list named " + listName);
+            }
+
+            _model.AddStep(step);
+        }
+        else
+        {
+            var parent = FindStep(parentId)
+                ?? throw new InvalidOperationException("the macro has no step " + parentId);
+            var list = parent.Parameters.FirstOrDefault(parameter =>
+                    parameter.Kind == ActionParameterKind.Steps
+                    && (listName is not { Length: > 0 } || string.Equals(parameter.Name, listName,
+                        StringComparison.Ordinal)))?.Steps
+                ?? throw new InvalidOperationException(listName is { Length: > 0 }
+                    ? "step " + parentId + " has no child list " + listName
+                    : "step " + parentId + " holds no sub-steps");
+            list.Add(step);
+            _model.IsDirty = true;
         }
 
-        var parent = FindStep(parentId)
-            ?? throw new InvalidOperationException("the macro has no step " + parentId);
-        var list = parent.Parameters.FirstOrDefault(parameter =>
-            parameter.Kind == ActionParameterKind.Steps)?.Steps
-            ?? throw new InvalidOperationException("step " + parentId + " holds no sub-steps");
-        list.Add(NewStep(type));
-        _model.IsDirty = true;
+        if (presets is not null)
+        {
+            foreach (var (name, value) in presets)
+            {
+                WriteParameter(step, name, value);
+            }
+        }
+
+        return step;
+    }
+
+    private static void WriteParameter(MacroStep step, string name, string value)
+    {
+        var parameter = step.Parameters.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, name, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("step " + step.Type + " has no parameter " + name);
+        parameter.Written = WrittenFor(parameter.Kind, value);
     }
 
     public void AddGlobal()
@@ -1006,11 +1084,134 @@ internal sealed class HeadlessEditorSession
     {
         var step = FindStep(stepId)
             ?? throw new InvalidOperationException("the macro has no step " + stepId);
-        var parameter = step.Parameters.FirstOrDefault(candidate =>
-            string.Equals(candidate.Name, name, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException("step " + stepId + " has no parameter " + name);
-        parameter.Written = WrittenFor(parameter.Kind, value);
+        WriteParameter(step, name, value);
         _model.IsDirty = true;
+    }
+
+    public void SetStepsEnabled(IReadOnlyList<string> stepIds, bool enabled)
+    {
+        foreach (var step in FindSteps(stepIds))
+        {
+            step.Meta = step.Meta.WithEnabled(enabled);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void RemoveSteps(IReadOnlyList<string> stepIds)
+    {
+        var steps = FindSteps(stepIds);
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        _model.DeleteSelectedCommand.Execute(null);
+    }
+
+    public void DuplicateSteps(IReadOnlyList<string> stepIds)
+    {
+        var steps = FindSteps(stepIds);
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        _model.PasteSteps(steps);
+    }
+
+    public void GroupSteps(IReadOnlyList<string> stepIds)
+    {
+        var steps = FindSteps(stepIds);
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        _model.GroupSelectedCommand.Execute(null);
+    }
+
+    public void LiftSteps(IReadOnlyList<string> stepIds)
+    {
+        var steps = FindSteps(stepIds);
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        _model.LiftSelectedCommand.Execute(null);
+    }
+
+    public void MoveStepsBy(IReadOnlyList<string> stepIds, int delta)
+    {
+        if (delta == 0)
+        {
+            return;
+        }
+
+        var steps = FindSteps(stepIds);
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        for (var index = 0; index < Math.Abs(delta); index++)
+        {
+            if (delta < 0)
+            {
+                _model.MoveSelectedUpCommand.Execute(null);
+            }
+            else
+            {
+                _model.MoveSelectedDownCommand.Execute(null);
+            }
+        }
+    }
+
+    public void MoveStepsTo(IReadOnlyList<string> stepIds, string targetId, bool before)
+    {
+        var steps = FindSteps(stepIds);
+        var target = Find(targetId);
+        if (steps.Count == 0 || target is null)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        _model.MoveSelectionTo(target.Value.List, target.Value.Index + (before ? 0 : 1));
+    }
+
+    public string CopySteps(IReadOnlyList<string> stepIds)
+    {
+        var text = MacroEditorViewModel.SerializeSteps(FindSteps(stepIds));
+        ClipboardText = text;
+        return text;
+    }
+
+    public string CutSteps(IReadOnlyList<string> stepIds)
+    {
+        var text = CopySteps(stepIds);
+        RemoveSteps(stepIds);
+        return text;
+    }
+
+    public void PasteSteps(string? text, string? afterStepId)
+    {
+        var payload = string.IsNullOrWhiteSpace(text) ? ClipboardText : text;
+        var steps = MacroEditorViewModel.DeserializeSteps(payload);
+        if (steps is null)
+        {
+            return;
+        }
+
+        var anchor = afterStepId is { Length: > 0 } id ? FindStep(id) : null;
+        _model.SetSelection(anchor is null ? [] : [anchor]);
+        _model.PasteSteps(steps);
     }
 
     public void SetStepEnabled(string stepId, bool enabled)
@@ -1168,20 +1369,45 @@ internal sealed class HeadlessEditorSession
     private void ChangeCondition(string stepId, string name, Action<ConditionDraftNode> change)
     {
         var parameter = FindParameter(stepId, name);
-        if (!_conditionDrafts.TryGetValue(parameter, out var draft))
-        {
-            if (!Condition.TryRead(parameter.Written, out var shape))
-            {
-                throw new InvalidOperationException("the condition cannot be edited as rows");
-            }
-
-            draft = new ConditionDraft(ConditionDraftNode.Root(shape));
-        }
-
+        var draft = EnsureConditionDraft(parameter);
         change(draft.Root);
         _conditionDrafts[parameter] = draft;
         parameter.Written = Condition.ToNode(draft.Root.ToShape()) ?? Formula.Nothing;
         _model.IsDirty = true;
+    }
+
+    private ConditionDraft EnsureConditionDraft(StepParameter parameter)
+    {
+        if (_conditionDrafts.TryGetValue(parameter, out var draft))
+        {
+            return draft;
+        }
+
+        if (!Condition.TryRead(parameter.Written, out var shape))
+        {
+            throw new InvalidOperationException("the condition cannot be edited as rows");
+        }
+
+        draft = new ConditionDraft(ConditionDraftNode.Root(shape));
+        _conditionDrafts[parameter] = draft;
+        return draft;
+    }
+
+    private static ConditionDraftNode ConditionRowAt(ConditionDraftNode root, int[] path)
+    {
+        if (path.Length == 0)
+        {
+            throw new InvalidOperationException("the root condition is a group");
+        }
+
+        var parent = GroupAt(root, path[..^1]);
+        if (path[^1] < 0 || path[^1] >= parent.Children.Count
+            || parent.Children[path[^1]] is not { IsRow: true } row)
+        {
+            throw new InvalidOperationException("the condition has no row at " + string.Join('.', path));
+        }
+
+        return row;
     }
 
     private sealed class ConditionDraft(ConditionDraftNode root)
@@ -1328,6 +1554,411 @@ internal sealed class HeadlessEditorSession
     }
 
     /// <summary>Writes the draft through the same rule the native editor and the MCP save use.</summary>
+    /// <summary>
+    /// Opens the restored token picker on one scalar parameter of a step. The field is rebuilt from
+    /// the catalogue definition and the stored parameter, exactly as the old action editor did, and
+    /// the confirmed shape replaces that one parameter on the step.
+    /// </summary>
+    public EditorActionFormSnapshot OpenActionDraft(string type, string parentId = "", string listName = "",
+        string targetStepId = "", bool before = false)
+    {
+        var definition = ActionCatalog.Find(type)
+            ?? throw new InvalidOperationException("unknown action " + type);
+        CloseValueEditor();
+        var step = NewStep(type);
+        step.Id = StepIds.Next(CollectStepIds());
+        step.Meta = StepMeta.New;
+        _actionDraft = new ActionDraft
+        {
+            Step = step,
+            ParentId = parentId,
+            ListName = listName,
+            TargetStepId = targetStepId,
+            Before = before,
+        };
+        return ActionFormState();
+    }
+
+    public EditorActionFormSnapshot OpenStepDraft(string stepId)
+    {
+        var found = FindStep(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        CloseValueEditor();
+        _actionDraft = new ActionDraft
+        {
+            Step = MacroStep.FromJson(found.ToJson()),
+            IsEditing = true,
+            OriginalStepId = found.Id,
+        };
+        return ActionFormState();
+    }
+
+    public EditorActionFormSnapshot ActionFormState()
+        => _actionDraft is { } draft
+            ? ActionFormSnapshot(draft)
+            : new EditorActionFormSnapshot(false, false, false, false, string.Empty, string.Empty,
+                string.Empty, string.Empty, null, [], string.Empty, string.Empty, string.Empty, string.Empty);
+
+    public EditorSnapshot ConfirmActionDraft()
+    {
+        var draft = _actionDraft
+            ?? throw new InvalidOperationException("no action is being edited");
+        if (!ActionFormSnapshot(draft).CanConfirm)
+        {
+            return Snapshot();
+        }
+
+        if (draft.IsEditing)
+        {
+            var original = FindTreeStep(draft.OriginalStepId)
+                ?? throw new InvalidOperationException("the edited step is no longer in the macro");
+            _model.ReplaceStep(original, draft.Step);
+        }
+        else if (draft.TargetStepId is { Length: > 0 } targetId)
+        {
+            var target = Find(targetId)
+                ?? throw new InvalidOperationException("the insertion target is no longer in the macro");
+            _model.PrepareInsertionAt(target.List, target.Index + (draft.Before ? 0 : 1));
+            _model.AddStep(draft.Step);
+        }
+        else if (draft.ParentId is { Length: > 0 } parentId)
+        {
+            var parent = FindStep(parentId)
+                ?? throw new InvalidOperationException("the parent step is no longer in the macro");
+            var list = parent.Parameters.FirstOrDefault(parameter =>
+                    parameter.Kind == ActionParameterKind.Steps
+                    && (draft.ListName is not { Length: > 0 }
+                        || string.Equals(parameter.Name, draft.ListName, StringComparison.Ordinal)))?.Steps
+                ?? throw new InvalidOperationException("the parent has no child list " + draft.ListName);
+            _model.PrepareInsertionAt(list, list.Count);
+            _model.AddStep(draft.Step);
+        }
+        else
+        {
+            _model.AddStep(draft.Step);
+        }
+
+        _actionDraft = null;
+        return Snapshot();
+    }
+
+    public EditorSnapshot CancelActionDraft()
+    {
+        _actionDraft = null;
+        return Snapshot();
+    }
+
+    private EditorActionFormSnapshot ActionFormSnapshot(ActionDraft draft)
+    {
+        var definition = ActionCatalog.Find(draft.Step.Type);
+        var pageLabels = new[]
+        {
+            ("base", "Add.Page.Base"),
+            ("exec", "Add.Page.Exec"),
+            ("advanced", "Add.Page.Advanced"),
+            ("other", "Add.Page.Other"),
+        };
+        var hasAdvanced = definition?.Parameters.Any(parameter => parameter.Advanced) == true;
+        var pages = pageLabels
+            .Select(page => new EditorActionPageSnapshot(page.Item1, Strings.Get(page.Item2),
+                page.Item1 != "advanced" || hasAdvanced, false))
+            .ToList();
+        var missing = new List<string>();
+        if (definition is not null)
+        {
+            foreach (var field in definition.Parameters.Where(field => field.Required))
+            {
+                var parameter = draft.Step.Parameters.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Name, field.Name, StringComparison.Ordinal));
+                if (parameter is null || IsBlank(parameter))
+                {
+                    missing.Add(field.LocalLabel);
+                }
+            }
+        }
+
+        var validation = missing.Count > 0
+            ? Strings.Format("Add.StillNeeded", string.Join("、", missing))
+            : string.Empty;
+        return new EditorActionFormSnapshot(true, draft.IsEditing, missing.Count == 0, false,
+            validation, definition?.Key ?? draft.Step.Type,
+            definition?.LocalName ?? draft.Step.Type,
+            definition?.LocalDescription ?? string.Empty,
+            StepSnapshot(draft.Step, new Dictionary<MacroStep, string>()),
+            pages, draft.Step.ToJson().ToJsonString(), draft.Step.Id,
+            Strings.Get(draft.IsEditing ? "Add.CommitEdit" : "Add.Commit"),
+            Strings.Get("Add.RunUnavailable"));
+    }
+
+    private static bool IsBlank(StepParameter parameter)
+        => parameter.Kind switch
+        {
+            ActionParameterKind.Steps => false,
+            ActionParameterKind.Returns => false,
+            _ => parameter.Value.Trim().Length == 0,
+        };
+
+    private HashSet<string> CollectStepIds()
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (list, index) in Walk(_model.Steps))
+        {
+            ids.Add(list[index].Id);
+        }
+
+        return ids;
+    }
+
+    public EditorValueSnapshot OpenValue(string stepId, string parameterName)
+    {
+        var step = FindStep(stepId)
+            ?? throw new InvalidOperationException("the macro has no step " + stepId);
+        var definition = ActionCatalog.Find(step.Type)
+            ?? throw new InvalidOperationException("unknown action " + step.Type);
+        var parameter = definition.Parameters.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, parameterName, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the step has no parameter " + parameterName);
+        var stored = step.Parameters.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, parameterName, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the step has no stored parameter " + parameterName);
+
+        var field = new StepParameterViewModel(parameter, _model.CollectVariables(), [],
+            _model.StepChoices());
+        field.ApplyValue(stored);
+        var picker = new ValuePickerViewModel(field.CurrentShape, field.Variables,
+            parameter.ValueForm, field.Label, field.AllowsNewName);
+
+        _valueSession = new HeadlessValueSession(picker, value =>
+        {
+            field.WriteValue(value);
+            var updated = field.ToStepParameter();
+            var index = step.Parameters.FindIndex(candidate =>
+                string.Equals(candidate.Name, parameterName, StringComparison.Ordinal));
+            if (index >= 0)
+            {
+                step.Parameters[index] = updated;
+            }
+            else
+            {
+                step.Parameters.Add(updated);
+            }
+        }, () => _model.IsDirty = true);
+
+        return _valueSession.Snapshot();
+    }
+
+    public EditorValueSnapshot OpenConditionValue(string stepId, string name, int[] path, string field)
+    {
+        var parameter = FindParameter(stepId, name);
+        var draft = EnsureConditionDraft(parameter);
+        var row = ConditionRowAt(draft.Root, path);
+        var seed = field switch
+        {
+            "left" => row.Left,
+            "right" => row.Right,
+            _ => throw new InvalidOperationException("unknown condition field " + field),
+        };
+        var part = field == "left"
+            ? Strings.Get("Editor.ConditionLeft")
+            : Strings.Get("Editor.ConditionRight");
+        var picker = new ValuePickerViewModel(seed, _model.CollectVariables(),
+            ActionValueForm.Value, parameter.Name + " · " + part);
+        _valueSession = new HeadlessValueSession(picker, value =>
+        {
+            if (field == "left")
+            {
+                row.Left = value;
+            }
+            else
+            {
+                row.Right = value;
+            }
+
+            parameter.Written = Condition.ToNode(draft.Root.ToShape()) ?? Formula.Nothing;
+            _model.IsDirty = true;
+        }, () => _model.IsDirty = true);
+        return _valueSession.Snapshot();
+    }
+
+    public EditorValueSnapshot OpenRowValue(string stepId, string name, int rowIndex, string column)
+    {
+        var parameter = FindParameter(stepId, name);
+        if (rowIndex < 0 || rowIndex >= parameter.Rows.Count)
+        {
+            throw new InvalidOperationException("the row table has no row " + rowIndex);
+        }
+
+        var row = parameter.Rows[rowIndex];
+        var seed = row.Cells.TryGetValue(column, out var existing) ? existing : Formula.Nothing;
+        var picker = new ValuePickerViewModel(seed, _model.CollectVariables(),
+            ActionValueForm.Value, parameter.Name + " · " + column);
+        _valueSession = new HeadlessValueSession(picker, value =>
+        {
+            row.Cells[column] = value;
+            _model.IsDirty = true;
+        }, () => _model.IsDirty = true);
+        return _valueSession.Snapshot();
+    }
+
+    public EditorValueSnapshot ValueState()
+        => _valueSession?.Snapshot()
+            ?? throw new InvalidOperationException("no value field is open");
+
+    public EditorValueSnapshot ValueCommand(ValueEditorCommand command)
+        => _valueSession?.Execute(command)
+            ?? throw new InvalidOperationException("no value field is open");
+
+    public ValueEditorOutcome ConfirmValue()
+    {
+        var session = _valueSession
+            ?? throw new InvalidOperationException("no value field is open");
+        var outcome = session.Confirm();
+        if (outcome.Closed)
+        {
+            _valueSession = null;
+        }
+
+        return outcome;
+    }
+
+    public ValueEditorOutcome CancelValue()
+    {
+        var session = _valueSession
+            ?? throw new InvalidOperationException("no value field is open");
+        var outcome = session.Cancel();
+        _valueSession = null;
+        return outcome;
+    }
+
+    /// <summary>Switching or closing a document must not leave a picker holding the old field.</summary>
+    public void CloseValueEditor() => _valueSession = null;
+
+    /// <summary>Writes the page in front to a package of its own, the way the native export did.</summary>
+    public static IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros()
+    {
+        try
+        {
+            return [.. PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary).Select(entry =>
+                new EditorPublicMacroSnapshot(entry.Id, entry.Version,
+                    entry.Macro.Name, entry.Macro.Description))];
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
+    public EditorSnapshot AddPublicMacro(string id)
+    {
+        var entry = PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary)
+            .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the public library has no macro " + id);
+        var macro = MacroItem.FromJson(entry.Macro.ToSubMacroJson());
+        var taken = _model.SubMacros.Select(candidate => candidate.Name)
+            .Concat(_workspace.Macros.Select(candidate => candidate.Name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var stem = macro.Name.Trim();
+        var name = stem;
+        for (var index = 2; taken.Contains(name); index++)
+        {
+            name = stem + " " + index.ToString(CultureInfo.InvariantCulture);
+        }
+
+        macro.Name = name;
+        _model.SubMacros.Add(macro);
+
+        var call = new MacroStep
+        {
+            Type = "control.runMacro",
+            Meta = StepMeta.New,
+            Parameters =
+            [
+                new StepParameter
+                {
+                    Name = "macro",
+                    Kind = ActionParameterKind.Macro,
+                    Written = Formula.Text(name),
+                },
+            ],
+        };
+
+        if (macro.Parameters.Count > 0)
+        {
+            call.Parameters.Add(new StepParameter
+            {
+                Name = FieldNames.Arguments,
+                Kind = ActionParameterKind.Arguments,
+                Rows =
+                [
+                    .. macro.Parameters.Select(parameter => new StepParameterRow
+                    {
+                        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            [FieldNames.Name] = Formula.Text(parameter.Name),
+                            [FieldNames.Value] = Formula.Text(string.Empty),
+                        },
+                    }),
+                ],
+            });
+        }
+
+        if (macro.Results.Count > 0)
+        {
+            call.Parameters.Add(new StepParameter
+            {
+                Name = "returns",
+                Kind = ActionParameterKind.Returns,
+                Rows =
+                [
+                    .. macro.Results.Select(result => new StepParameterRow
+                    {
+                        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            [FieldNames.Key] = Formula.Text(result.Name),
+                            [FieldNames.Name] = Formula.Text(result.Name),
+                        },
+                    }),
+                ],
+            });
+        }
+
+        _model.Steps.Add(call);
+        _model.SettleStepIds();
+        _model.IsDirty = true;
+        return Snapshot();
+    }
+
+    public bool Export(string path)
+    {
+        if (path.Trim().Length == 0)
+        {
+            throw new InvalidOperationException("an export needs a file name");
+        }
+
+        var draft = _model.IsSubMacro
+            ? new MacroDraft(_model.BuildMacro(), [], [])
+            : _model.Draft();
+        var triggers = new ProjectTriggers();
+        foreach (var entry in draft.Entries)
+        {
+            triggers.Entries.Add(entry.Copy());
+        }
+
+        foreach (var layout in draft.Layouts)
+        {
+            triggers.InterfaceLayouts.Add(layout);
+        }
+
+        var assets = _workspace.CurrentPath is { Length: > 0 } current
+            ? MacroPackage.AssetFolderFor(current)
+            : null;
+        MacroPackage.Save(path, [draft.Macro],
+            MacroBundle.Take(triggers, [draft.Macro]),
+            MacroBundle.UsedGlobals([draft.Macro], _workspace.Variables.Globals),
+            AppVersion.Text, assets);
+        return true;
+    }
+
     public bool Save()
     {
         if (!CanSave)
@@ -1360,6 +1991,7 @@ internal sealed class HeadlessEditorSession
     {
         _model.SettleStepIds();
         var macro = _model.Draft().Macro;
+        var problems = ProblemByStep();
         return new EditorSnapshot(
             Name,
             Description,
@@ -1372,7 +2004,7 @@ internal sealed class HeadlessEditorSession
             ToggleKey,
             IsDirty,
             Count(macro.Steps),
-            [.. macro.Steps.Select(StepSnapshot)],
+            [.. macro.Steps.Select(step => StepSnapshot(step, problems))],
             Triggers,
             Variables,
             Globals,
@@ -1382,18 +2014,76 @@ internal sealed class HeadlessEditorSession
             VariableTypes,
             TriggerKindOptions,
             CanUndo,
-            CanRedo);
+            CanRedo,
+            CanSave,
+            NameProblem,
+            ProblemSummary,
+            DeclarationProblemSummary,
+            CallImpactSummary,
+            Notice,
+            TriggerProblemSummary,
+            ToggleKeyProblem,
+            IsSubMacro);
     }
 
-    /// <summary>The action catalogue, in the order the picker shows it and with its form fields.</summary>
+    /// <summary>The design-time check grouped by the step it belongs to, both messages when one
+    /// step has more than one.</summary>
+    private Dictionary<MacroStep, string> ProblemByStep()
+    {
+        var byStep = new Dictionary<MacroStep, string>();
+        foreach (var problem in _model.Problems)
+        {
+            byStep[problem.Step] = byStep.TryGetValue(problem.Step, out var seen)
+                ? seen + "\n" + problem.Message
+                : problem.Message;
+        }
+
+        return byStep;
+    }
+
+    /// <summary>The runnable actions, in catalogue order, with the grouping the palette draws.</summary>
     public static IReadOnlyList<EditorActionSnapshot> Actions()
-        => [.. ActionCatalog.Definitions.Select(action => new EditorActionSnapshot(
-            action.Key,
-            action.LocalName,
-            action.Category.ToString(),
-            Strings.Get($"Add.Category.{action.Category}", action.Category.ToString()),
-            action.LocalDescription,
-            action.Hidden,
+        => [.. ActionCatalog.RunnableActions.Select(ActionSnapshot)];
+
+    /// <summary>The category rail's order and labels, so the page never owns a second copy.</summary>
+    public static IReadOnlyList<EditorActionCategorySnapshot> ActionCategories()
+        => [.. ActionCategoryPresentation.BasicCategories().Select(choice =>
+            new EditorActionCategorySnapshot(choice.Value?.ToString(), choice.Label, choice.Short))];
+
+    private static EditorActionSnapshot ActionSnapshot(ActionDefinition action)
+    {
+        var category = ActionCategoryPresentation.PickerCategory(action.Category);
+        var categoryLabel = Strings.Get($"Add.Category.{category}", category.ToString());
+        var categoryShort = Strings.Get($"Add.Category.{category}.short", categoryLabel);
+        string group;
+        string groupLabel;
+        int groupRank;
+        if (category == ActionCategory.Control)
+        {
+            group = ActionCategoryPresentation.FlowGroup(action.Key);
+            groupLabel = Strings.Get($"Palette.Flow.{group}", group);
+            groupRank = ActionCategoryPresentation.FlowGroupRank(group);
+        }
+        else
+        {
+            group = action.Group;
+            groupLabel = group.Length == 0
+                ? Strings.Get("Palette.Group.Other")
+                : Strings.Get($"Palette.Group.{group}", group);
+            groupRank = int.MaxValue;
+            var order = ActionCategoryPresentation.BasicGroups(category);
+            for (var index = 0; index < order.Count; index++)
+            {
+                if (string.Equals(order[index], group, StringComparison.Ordinal))
+                {
+                    groupRank = index;
+                    break;
+                }
+            }
+        }
+
+        return new EditorActionSnapshot(action.Key, action.LocalName, category.ToString(),
+            categoryLabel, categoryShort, group, groupLabel, groupRank, action.LocalDescription,
             [.. action.Parameters
                 .Where(parameter => parameter.Kind != ActionParameterKind.Steps)
                 .Select(parameter => new EditorActionParameterSnapshot(
@@ -1403,7 +2093,8 @@ internal sealed class HeadlessEditorSession
                     parameter.Required,
                     parameter.Placeholder,
                     [.. parameter.OptionChoices.Select(choice => new EditorChoiceSnapshot(
-                        choice.Value, choice.Display))]))]))];
+                        choice.Value, choice.Display))]))]);
+    }
 
     private static int Count(IReadOnlyList<MacroStep> steps)
         => steps.Count + steps.Sum(step => step.Parameters
@@ -1471,7 +2162,7 @@ internal sealed class HeadlessEditorSession
             _ => Formula.Text(value),
         };
 
-    private EditorStepSnapshot StepSnapshot(MacroStep step)
+    private EditorStepSnapshot StepSnapshot(MacroStep step, IReadOnlyDictionary<MacroStep, string> problems)
     {
         var definition = ActionCatalog.Definitions.FirstOrDefault(action => action.Key == step.Type);
         var parameters = step.Parameters
@@ -1481,6 +2172,22 @@ internal sealed class HeadlessEditorSession
                 var field = definition?.Parameters.FirstOrDefault(candidate =>
                     candidate.Name == parameter.Name);
                 var columns = field?.Semantics.Columns ?? [];
+                var parts = parameter.Written is ConcatNode run
+                    ? run.Parts.Select(part => part switch
+                    {
+                        TextNode text => new EditorValuePartSnapshot("text", text.Text, string.Empty),
+                        VariableNode name => new EditorValuePartSnapshot("name", string.Empty, name.Name),
+                        _ => new EditorValuePartSnapshot("text", Expression.Render(part), string.Empty),
+                    }).ToList()
+                    : parameter.Written switch
+                    {
+                        TextNode text => [new EditorValuePartSnapshot("text", text.Text, string.Empty)],
+                        VariableNode name => [new EditorValuePartSnapshot("name", string.Empty, name.Name)],
+                        _ => new List<EditorValuePartSnapshot>(),
+                    };
+                var isNumber = field?.Kind is ActionParameterKind.Number;
+                var isMultiline = field?.Kind is ActionParameterKind.MultilineText
+                    or ActionParameterKind.Code;
                 return new EditorParameterSnapshot(
                     parameter.Name,
                     field?.LocalLabel ?? parameter.Name,
@@ -1493,24 +2200,70 @@ internal sealed class HeadlessEditorSession
                         [.. columns.Select(column => row.Text(column.Name))]))],
                     parameter.Kind == ActionParameterKind.Condition
                         ? ConditionSnapshot(parameter)
-                        : null);
+                        : null,
+                    parameter.Value,
+                    field?.ValueForm.ToString() ?? "Value",
+                    field is not null && field.Kind is not (ActionParameterKind.Bool
+                        or ActionParameterKind.Choice or ActionParameterKind.Step
+                        or ActionParameterKind.Steps)
+                        && field.Unit != ActionUnit.Percent,
+                    field?.AcceptsFormula == true
+                        || field?.Kind is ActionParameterKind.Expression or ActionParameterKind.Number,
+                    field?.NamesVariable == true,
+                    isNumber,
+                    isNumber && parameter.Written is not NumberNode,
+                    isMultiline,
+                    field?.Picker is ActionPickerKind.Color,
+                    field?.PathIntent is not PathIntent.None,
+                    field?.Kind is ActionParameterKind.Key or ActionParameterKind.Keys,
+                    field?.Placeholder ?? string.Empty,
+                    field?.Required == true,
+                    parts,
+                    field?.Advanced == true,
+                    field?.Group ?? string.Empty,
+                    field is { Group.Length: > 0 } grouped
+                        ? Strings.Get($"Palette.Group.{grouped.Group}")
+                        : string.Empty,
+                    field?.Kind == ActionParameterKind.Returns);
             })
             .ToList();
-        var children = step.Parameters
-            .Where(parameter => parameter.Kind == ActionParameterKind.Steps)
-            .SelectMany(parameter => parameter.Steps)
-            .Select(StepSnapshot)
+        var sections = step.StepLists
+            .Select(list => new EditorStepSectionSnapshot(list.Name, step.ParameterLabel(list),
+                [.. list.Steps.Select(child => StepSnapshot(child, problems))]))
             .ToList();
         var acceptsSteps = definition?.Parameters.Any(parameter =>
             parameter.Kind == ActionParameterKind.Steps) == true;
         return new EditorStepSnapshot(step.Id, step.Type,
             definition?.LocalName ?? step.Type, step.Meta.IsEnabled, step.Meta.Comment,
             step.Meta.TimeoutMs, step.Meta.RetryCount, step.Meta.RetryDelayMs,
-            step.Meta.OnError.ToString(), acceptsSteps, parameters, children);
+            step.Meta.OnError.ToString(), acceptsSteps, step.Detail,
+            problems.GetValueOrDefault(step) ?? string.Empty, step.InputMark, step.MetaSummary,
+            parameters, sections);
     }
 
-    private MacroStep? FindStep(string stepId)
+    private List<MacroStep> FindSteps(IReadOnlyList<string> stepIds)
+    {
+        var steps = new List<MacroStep>();
+        foreach (var id in stepIds)
+        {
+            if (FindStep(id) is { } step && !steps.Contains(step))
+            {
+                steps.Add(step);
+            }
+        }
+
+        return steps;
+    }
+
+    private static string? ClipboardText;
+
+    private MacroStep? FindTreeStep(string stepId)
         => Find(stepId) is { } found ? found.List[found.Index] : null;
+
+    private MacroStep? FindStep(string stepId)
+        => _actionDraft is { } draft && string.Equals(draft.Step.Id, stepId, StringComparison.Ordinal)
+            ? draft.Step
+            : Find(stepId) is { } found ? found.List[found.Index] : null;
 
     private (IList<MacroStep> List, int Index)? Find(string stepId)
     {
@@ -1540,6 +2293,15 @@ internal sealed class HeadlessEditorSession
     }
 }
 
+internal sealed record EditorPublicMacroSnapshot(string Id, int Version, string Name, string Description);
+
+internal sealed record EditorActionPageSnapshot(string Key, string Label, bool Present, bool HasDot);
+
+internal sealed record EditorActionFormSnapshot(bool Open, bool IsEditing, bool CanConfirm, bool CanRun,
+    string ValidationMessage, string ActionKey, string Name, string Description, EditorStepSnapshot? Step,
+    IReadOnlyList<EditorActionPageSnapshot> Pages, string Json, string StepId, string CommitLabel,
+    string RunNote);
+
 internal sealed record EditorSnapshot(string Name, string Description, string Group,
     IReadOnlyList<string> SubMacros, IReadOnlyList<EditorMacroParameterSnapshot> CallableParameters,
     IReadOnlyList<EditorMacroResultSnapshot> CallableResults,
@@ -1551,7 +2313,10 @@ internal sealed record EditorSnapshot(string Name, string Description, string Gr
     IReadOnlyList<EditorValueFunctionSnapshot> ValueFunctions,
     IReadOnlyList<EditorConditionCompareSnapshot> ConditionCompares,
     IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
-    IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo);
+    IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo,
+    bool CanSave, string? NameProblem, string ProblemSummary, string DeclarationProblemSummary,
+    string CallImpactSummary, string Notice, string TriggerProblemSummary,
+    string ToggleKeyProblem, bool IsSubMacro);
 
 internal sealed record EditorGlobalSnapshot(string Name, string Type, string Default, string Description,
     bool Persisted);
@@ -1565,7 +2330,7 @@ internal sealed record EditorMacroResultSnapshot(string Name, string Type, strin
 internal sealed record EditorMacroFieldSnapshot(string Name, string Type);
 
 internal sealed record EditorValueChoiceSnapshot(string Name, string Type, string Origin, string Source,
-    string Description);
+    string Description, string Group, string Display, bool Persistent);
 
 internal sealed record EditorValueFunctionSnapshot(string Name, string Signature, string Description,
     string Group);
@@ -1588,12 +2353,22 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     string Comment, int TimeoutMs, int RetryCount, int RetryDelayMs, string OnError,
-    bool AcceptsSteps, IReadOnlyList<EditorParameterSnapshot> Parameters,
+    bool AcceptsSteps, string Detail, string Problem, string InputMark, string MetaSummary,
+    IReadOnlyList<EditorParameterSnapshot> Parameters,
+    IReadOnlyList<EditorStepSectionSnapshot> Sections);
+
+internal sealed record EditorStepSectionSnapshot(string Name, string Label,
     IReadOnlyList<EditorStepSnapshot> Steps);
 
 internal sealed record EditorParameterSnapshot(string Name, string Label, string Kind, string Value,
     IReadOnlyList<EditorChoiceSnapshot> Options, IReadOnlyList<EditorColumnSnapshot> Columns,
-    IReadOnlyList<EditorRowSnapshot> Rows, EditorConditionSnapshot? Condition);
+    IReadOnlyList<EditorRowSnapshot> Rows, EditorConditionSnapshot? Condition,
+    string Display, string ValueForm, bool OffersValue, bool TakesFormula, bool ShowsNameMark,
+    bool IsNumber, bool IsNumberFormula, bool IsMultiline, bool IsColor, bool IsPath, bool IsKey,
+    string Placeholder, bool Required, IReadOnlyList<EditorValuePartSnapshot> Parts,
+    bool Advanced, string Group, string GroupLabel, bool IsReturns);
+
+internal sealed record EditorValuePartSnapshot(string Kind, string Text, string Name);
 
 internal sealed record EditorConditionSnapshot(string Join, IReadOnlyList<EditorConditionNodeSnapshot> Nodes,
     bool Editable);
@@ -1610,8 +2385,10 @@ internal sealed record EditorRowSnapshot(IReadOnlyList<string> Cells);
 internal sealed record EditorChoiceSnapshot(string Value, string Label);
 
 internal sealed record EditorActionSnapshot(string Key, string Name, string Category,
-    string CategoryLabel, string Description, bool Hidden,
-    IReadOnlyList<EditorActionParameterSnapshot> Parameters);
+    string CategoryLabel, string CategoryShort, string Group, string GroupLabel, int GroupRank,
+    string Description, IReadOnlyList<EditorActionParameterSnapshot> Parameters);
+
+internal sealed record EditorActionCategorySnapshot(string? Value, string Label, string Short);
 
 internal sealed record EditorActionParameterSnapshot(string Name, string Label, string Kind, bool Required,
     string Placeholder, IReadOnlyList<EditorChoiceSnapshot> Options);

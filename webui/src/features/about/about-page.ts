@@ -33,8 +33,8 @@ export class WgAbout extends LitElement {
 
     h1 {
       margin: 0 0 var(--spacingVerticalS);
-      font-size: var(--font-size-base-500);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase500);
+      font-weight: var(--fontWeightSemibold);
     }
 
     .card {
@@ -61,7 +61,7 @@ export class WgAbout extends LitElement {
 
     h2 {
       margin: 0;
-      font-size: var(--font-size-base-400);
+      font-size: var(--fontSizeBase400);
     }
 
     .actions {
@@ -95,13 +95,13 @@ export class WgAbout extends LitElement {
     }
 
     .code span {
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .notices {
       margin: 0;
       font-family: var(--fontFamilyMonospace);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       color: var(--colorNeutralForeground2);
     }
 

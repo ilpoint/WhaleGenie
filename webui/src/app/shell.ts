@@ -6,7 +6,7 @@ import './nav.js';
 import '../features/dialogs/confirm.js';
 import '../features/home/home-page.js';
 import '../features/macros/macros-page.js';
-import '../features/editor/editor-gate.js';
+import '../features/editor/editor-page.js';
 import '../features/library/library-page.js';
 import '../features/settings/settings-page.js';
 import '../features/run/run-page.js';
@@ -44,8 +44,8 @@ export class WgShell extends LitElement {
       height: 100vh;
       background: var(--colorNeutralBackground2);
       color: var(--colorNeutralForeground1);
-      font-family: var(--font-family-base);
-      font-size: var(--font-size-base-300);
+      font-family: var(--fontFamilyBase);
+      font-size: var(--fontSizeBase300);
     }
 
     wg-titlebar {
@@ -60,6 +60,11 @@ export class WgShell extends LitElement {
       grid-area: content;
       overflow: auto;
       min-width: 0;
+      min-height: 0;
+    }
+
+    .content.editor {
+      overflow: hidden;
     }
 
     .status {
@@ -72,7 +77,7 @@ export class WgShell extends LitElement {
       border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       background: var(--colorNeutralBackground3);
       color: var(--colorNeutralForeground2);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
   `;
 
@@ -104,8 +109,9 @@ export class WgShell extends LitElement {
   render() {
     return html`
       <wg-titlebar></wg-titlebar>
-      <wg-nav .active=${this.route} @wg-navigate=${this.onNavigate}></wg-nav>
-      <div class="content">${this.renderRoute()}</div>
+      <wg-nav .active=${this.route} ?narrow=${this.route === 'editor'}
+        @wg-navigate=${this.onNavigate}></wg-nav>
+      <div class="content ${this.route === 'editor' ? 'editor' : ''}">${this.renderRoute()}</div>
       <footer class="status" role="status">
         <span data-status="project">${this.projectLabel()}</span>
         <span data-status="revision">${this.revisionLabel()}</span>
@@ -139,7 +145,7 @@ export class WgShell extends LitElement {
       case 'macros':
         return html`<wg-macros></wg-macros>`;
       case 'editor':
-        return html`<wg-editor-gate></wg-editor-gate>`;
+        return html`<wg-editor></wg-editor>`;
       case 'run':
         return html`<wg-run></wg-run>`;
       case 'library':

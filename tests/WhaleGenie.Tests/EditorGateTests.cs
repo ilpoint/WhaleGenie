@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using WhaleGenie.Core.Execution;
@@ -97,7 +98,7 @@ public class EditorGateTests
 
         session.AddStep("control.delay", parent.Id);
         var withChild = Assert.Single(session.Snapshot().Steps);
-        Assert.Equal("control.delay", Assert.Single(withChild.Steps).Type);
+        Assert.Equal("control.delay", Assert.Single(withChild.Sections.Single().Steps).Type);
     }
 
     [Fact]
@@ -568,6 +569,129 @@ public class EditorGateTests
                 Assert.Equal(action.Key, form.SelectedDefinition!.Key);
             }
         });
+    }
+
+    [Fact]
+    public void Snapshot_carries_sections_details_and_problems()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "tree" });
+        var session = HeadlessEditorSession.Open(workspace, "tree");
+
+        var branch = session.AddStep("control.if");
+        session.AddStep("control.log", branch.Id, "then");
+        session.AddStep("control.stop", branch.Id, "else");
+        var delay = session.AddStep("control.delay");
+        session.PatchParameter(delay.Id, "ms", "500");
+        var waiting = session.AddStep("control.waitUntil");
+
+        var snapshot = session.Snapshot();
+        var block = snapshot.Steps.Single(step => step.Id == branch.Id);
+        Assert.Equal(new[] { "then", "else" }, block.Sections.Select(section => section.Name));
+        Assert.All(block.Sections, section =>
+            Assert.False(string.IsNullOrWhiteSpace(section.Label)));
+        Assert.Equal("control.log", Assert.Single(block.Sections[0].Steps).Type);
+        Assert.Equal("control.stop", Assert.Single(block.Sections[1].Steps).Type);
+
+        var delayed = snapshot.Steps.Single(step => step.Id == delay.Id);
+        Assert.Contains("500", delayed.Detail);
+        Assert.False(string.IsNullOrWhiteSpace(delayed.Id));
+
+        var incomplete = snapshot.Steps.Single(step => step.Id == waiting.Id);
+        Assert.False(string.IsNullOrWhiteSpace(incomplete.Problem));
+    }
+
+    [Fact]
+    public void Snapshot_carries_action_categories_and_groups()
+    {
+        var categories = HeadlessEditorSession.ActionCategories();
+        Assert.Null(categories[0].Value);
+        Assert.Equal("Input", categories[1].Value);
+        Assert.DoesNotContain(categories, category => category.Value == "Control");
+
+        var actions = HeadlessEditorSession.Actions();
+        var delay = actions.Single(action => action.Key == "control.delay");
+        Assert.Equal("Control", delay.Category);
+        Assert.Equal("Waiting", delay.Group);
+        Assert.False(delay.GroupLabel.StartsWith("Palette.", StringComparison.Ordinal));
+        Assert.False(string.IsNullOrWhiteSpace(delay.CategoryShort));
+
+        var pressed = actions.Single(action => action.Key == "input.keyPress");
+        Assert.Equal("Input", pressed.Category);
+        Assert.Equal("Keyboard", pressed.Group);
+        Assert.Equal(0, pressed.GroupRank);
+        Assert.Contains(actions, action => action.Category == "Vision");
+    }
+
+    [Fact]
+    public void Snapshot_carries_variable_groups_and_persistence()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "variables" });
+        var session = HeadlessEditorSession.Open(workspace, "variables");
+
+        session.AddGlobal();
+        session.PatchGlobal("variable", "name", "shared");
+        session.PatchGlobal("shared", "persist", "true");
+        session.AddVariable();
+        session.PatchVariable("", "name", "local");
+        Assert.True(session.Save());
+
+        var choices = session.Snapshot().ValueChoices;
+        var shared = choices.Single(choice => choice.Name == "shared");
+        Assert.Equal("Global", shared.Group);
+        Assert.True(shared.Persistent);
+        Assert.False(string.IsNullOrWhiteSpace(shared.Display));
+
+        var local = choices.Single(choice => choice.Name == "local");
+        Assert.Equal("Local", local.Group);
+        Assert.Contains(choices, choice => choice.Group == "System");
+    }
+
+    [Fact]
+    public void Tabs_keep_dirty_state_and_submacro_documents()
+    {
+        var workspace = new ProjectWorkspace();
+        var parent = new MacroItem { Name = "one" };
+        parent.SubMacros.Add(new MacroItem { Name = "sub" });
+        workspace.AddMacro(parent);
+        workspace.AddMacro(new MacroItem { Name = "two" });
+
+        var documents = new HeadlessEditorWorkspace(workspace);
+        var first = documents.Open("one");
+        documents.Open("two");
+        first.Patch(description: "edited");
+
+        var tabs = documents.Tabs;
+        Assert.True(tabs.Single(tab => tab.Name == "one").Dirty);
+        Assert.False(tabs.Single(tab => tab.Name == "two").Dirty);
+
+        var sub = documents.OpenSubmacro("one", "sub");
+        Assert.True(documents.Tabs.Single(tab => tab.Name == "sub").IsSubMacro);
+        Assert.Same(sub, documents.Active);
+    }
+
+    [Fact]
+    public void A_step_can_be_added_to_a_named_list_with_presets()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "preset" });
+        var session = HeadlessEditorSession.Open(workspace, "preset");
+
+        var attempt = session.AddStep("control.try");
+        session.AddStep("control.delay", attempt.Id, "catch");
+        var call = session.AddStep("control.runMacro", null, null,
+            new Dictionary<string, string> { ["macro"] = "helper" });
+
+        var snapshot = session.Snapshot();
+        var block = snapshot.Steps.Single(step => step.Id == attempt.Id);
+        Assert.Equal("control.delay",
+            Assert.Single(block.Sections.Single(section => section.Name == "catch").Steps).Type);
+        Assert.Empty(block.Sections.Single(section => section.Name == "body").Steps);
+
+        var step = snapshot.Steps.Single(candidate => candidate.Id == call.Id);
+        Assert.Equal("helper",
+            Assert.Single(step.Parameters, parameter => parameter.Name == "macro").Value);
     }
 
     [Fact]

@@ -44,8 +44,8 @@ export class WgMcpPanel extends LitElement {
     }
 
     h2 {
-      font-size: var(--font-size-base-400);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase400);
+      font-weight: var(--fontWeightSemibold);
       margin: 0 0 var(--spacingVerticalM);
     }
 
@@ -67,12 +67,12 @@ export class WgMcpPanel extends LitElement {
 
     .switch .hint {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     h3 {
-      font-size: var(--font-size-base-300);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase300);
+      font-weight: var(--fontWeightSemibold);
       margin: var(--spacingVerticalL) 0 var(--spacingVerticalS);
     }
 
@@ -81,8 +81,8 @@ export class WgMcpPanel extends LitElement {
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium);
       padding: var(--spacingVerticalM) var(--spacingHorizontalM);
-      font-family: var(--font-family-monospace);
-      font-size: var(--font-size-base-200);
+      font-family: var(--fontFamilyMonospace);
+      font-size: var(--fontSizeBase200);
       white-space: pre-wrap;
       word-break: break-all;
       margin: 0 0 var(--spacingVerticalM);

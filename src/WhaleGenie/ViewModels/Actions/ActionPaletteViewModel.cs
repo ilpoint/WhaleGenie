@@ -246,8 +246,8 @@ public partial class ActionPaletteViewModel : ViewModelBase
         if (SelectedTab.Dock == ActionPaletteDock.Flow)
         {
             foreach (var group in Cards
-                         .GroupBy(card => FlowGroup(card.Key))
-                         .OrderBy(group => FlowGroupRank(group.Key)))
+                         .GroupBy(card => ActionCategoryPresentation.FlowGroup(card.Key))
+                         .OrderBy(group => ActionCategoryPresentation.FlowGroupRank(group.Key)))
             {
                 Sections.Add(new ActionPaletteSection(
                     Strings.Get($"Palette.Flow.{group.Key}"), [.. group]));
@@ -312,32 +312,6 @@ public partial class ActionPaletteViewModel : ViewModelBase
             Icon = ActionCategoryPresentation.Icon(category),
         };
     }
-
-    private static string FlowGroup(string key) => key switch
-    {
-        "control.repeat" or "control.while" or "control.for"
-            or "control.forEach" or "control.if" or "control.switch" or "control.try" => "Branch",
-        "control.break" or "control.continue" or "control.return" or "control.rethrow"
-            or "control.stop" or "control.fail" => "Jump",
-        "control.delay" or "control.waitUntil"
-            or "control.holdInput" or "control.holdBrowser"
-            or "control.runMacro" => "Waiting",
-        // 变量与列表已经归到「数据与变量」这一分类里，走基础动作那一栏；这里只剩向人取一个
-        // 值的两步，它们仍属流程上的一个停顿。
-        "control.ask" or "control.input" => "Data",
-        "control.note" or "control.log" => "Notes",
-        _ => "Other",
-    };
-
-    private static int FlowGroupRank(string key) => key switch
-    {
-        "Branch" => 0,
-        "Jump" => 1,
-        "Waiting" => 2,
-        "Data" => 3,
-        "Notes" => 4,
-        _ => 5,
-    };
 
     private static ActionPaletteCardViewModel SubMacroCard(MacroItem macro) => new()
     {

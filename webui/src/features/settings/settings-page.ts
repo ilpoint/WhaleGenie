@@ -64,13 +64,13 @@ export class WgSettings extends LitElement {
 
     h1 {
       margin: 0 0 var(--spacingVerticalL);
-      font-size: var(--font-size-base-500);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase500);
+      font-weight: var(--fontWeightSemibold);
     }
 
     h3 {
       margin: var(--spacingVerticalM) 0 0;
-      font-size: var(--font-size-base-300);
+      font-size: var(--fontSizeBase300);
     }
 
     .cards {
@@ -97,12 +97,12 @@ export class WgSettings extends LitElement {
     .card h2,
     .slot-editor h3 {
       margin: 0;
-      font-size: var(--font-size-base-400);
+      font-size: var(--fontSizeBase400);
     }
 
     .note {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .row {
@@ -159,7 +159,7 @@ export class WgSettings extends LitElement {
 
     .inline-unit em {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       font-style: normal;
       white-space: nowrap;
     }
@@ -192,7 +192,7 @@ export class WgSettings extends LitElement {
       border-radius: var(--borderRadiusSmall);
       background: var(--colorNeutralBackground2);
       font-family: var(--fontFamilyMonospace);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .capture-target {
@@ -210,7 +210,7 @@ export class WgSettings extends LitElement {
     .status {
       margin: 0;
       color: var(--colorNeutralForeground2);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       line-height: 1.45;
     }
 
@@ -256,8 +256,8 @@ export class WgSettings extends LitElement {
     }
 
     .rule-text strong {
-      font-size: var(--font-size-base-300);
-      font-weight: var(--font-weight-semibold);
+      font-size: var(--fontSizeBase300);
+      font-weight: var(--fontWeightSemibold);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -265,7 +265,7 @@ export class WgSettings extends LitElement {
 
     .rule-text span {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
 
     .rule-buttons {
@@ -286,7 +286,7 @@ export class WgSettings extends LitElement {
 
     .storage-row .where {
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       word-break: break-all;
     }
 
@@ -383,7 +383,7 @@ export class WgSettings extends LitElement {
     }
 
     .wheel-slot .empty {
-      font-size: var(--font-size-base-400);
+      font-size: var(--fontSizeBase400);
       line-height: 1;
     }
 
@@ -395,7 +395,7 @@ export class WgSettings extends LitElement {
       transform: translate(-50%, -50%);
       text-align: center;
       color: var(--colorNeutralForeground3);
-      font-size: var(--font-size-base-100);
+      font-size: var(--fontSizeBase100);
       overflow: hidden;
       text-overflow: ellipsis;
       pointer-events: none;
@@ -405,7 +405,7 @@ export class WgSettings extends LitElement {
       display: flex;
       flex-wrap: wrap;
       gap: var(--spacingHorizontalM);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
       color: var(--colorNeutralForeground2);
     }
 
@@ -472,7 +472,7 @@ export class WgSettings extends LitElement {
       place-items: center;
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
       border-radius: var(--borderRadiusMedium);
-      font-size: var(--font-size-base-200);
+      font-size: var(--fontSizeBase200);
     }
   `;
 

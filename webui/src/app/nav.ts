@@ -17,16 +17,30 @@ export class WgNav extends LitElement {
   @property({ type: Boolean, reflect: true })
   collapsed = false;
 
+  /** The editor route's action library needs the width the native palette had. */
+  @property({ type: Boolean, reflect: true })
+  wide = false;
+
   static styles = css`
     :host {
       display: grid;
       grid-template-columns: 48px 220px;
       height: 100%;
+      min-height: 0;
       background: var(--colorNeutralBackground3);
     }
 
+    :host([wide]) {
+      grid-template-columns: 48px 280px;
+    }
+
+    :host([narrow]),
     :host([collapsed]) {
       grid-template-columns: 48px;
+    }
+
+    :host([narrow]) .side {
+      display: none;
     }
 
     :host([collapsed]) .side {
@@ -113,6 +127,19 @@ export class WgNav extends LitElement {
     }
 
     .side {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    .side ::slotted(wg-editor-palette) {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .links {
       display: grid;
       align-content: start;
       gap: var(--spacingVerticalXS);
@@ -166,17 +193,21 @@ export class WgNav extends LitElement {
         ${this.activityButton('settings')}
       </nav>
       <nav class="side">
-        ${mainRoutes.map(
-          (route) => html`
-            <button
-              type="button"
-              aria-current=${this.active === route ? 'page' : 'false'}
-              @click=${() => this.select(route)}
-            >
-              ${this.labels[route] ?? route}
-            </button>
-          `,
-        )}
+        <slot name="sidebar">
+          <div class="links">
+            ${mainRoutes.map(
+              (route) => html`
+                <button
+                  type="button"
+                  aria-current=${this.active === route ? 'page' : 'false'}
+                  @click=${() => this.select(route)}
+                >
+                  ${this.labels[route] ?? route}
+                </button>
+              `,
+            )}
+          </div>
+        </slot>
       </nav>
     `;
   }

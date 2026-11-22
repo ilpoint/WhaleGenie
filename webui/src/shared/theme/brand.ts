@@ -9,6 +9,13 @@ import type { BrandVariants } from '@fluentui/tokens';
  * 程序侧的 `ThemePalette`，这里对不可解析的颜色返回 null，由调用方退回内置主题。
  */
 
+/**
+ * The accent the two built-in variants paint with, matching the native theme's default. It is the
+ * one brand colour written in the page; a custom accent replaces the derived ramp, not this
+ * constant.
+ */
+export const PROJECT_ACCENT = '#C8401C';
+
 const brandValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160] as const;
 
 export function brandFromHex(value: string | null): BrandVariants | null {
