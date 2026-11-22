@@ -55,5 +55,5 @@
 - 宏设置、设置页、步骤树、动作字段已按同一 playbook 拆到 400 行以内；其中较长的模板函数仍留在
   `eslint-suppressions.json`，下一批可按字段/区块继续拆。
 - mock 宿主仍静态打进单文件产物。步骤工具已拆成展示（327 行）与结构编辑（380 行）两个文件，
-  设置/词表夹具也已移出 `mock.ts`；`mock.ts`（send）与 `mock-editor.ts`（run/actionField）仍是下一批
-  按域拆的 handler。要剔除 mock 需另立 ADR。
+  设置/词表夹具也已移出；`mock.ts` 已按 settings/run/shell 路由到 handler，降到 365 行。
+  `mock-editor.ts` 的 `run`/`actionField` 仍是下一批。要剔除 mock 需另立 ADR。
