@@ -35,12 +35,22 @@ public class ProjectBridgeTests : IDisposable
         // still goes through.
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
-        _server.Register(new ProjectBridge(_workspace, _runtime, _system, () => null,
-            new NoFileDialogs(), _dialogs, sound => _sounds.Add(sound),
-            rememberProject: _ => { }));
+        _server.Register(new ProjectBridge(_workspace, _runtime, _system,
+            new NoFileDialogs(), new NoProjectInteraction(), _dialogs,
+            sound => _sounds.Add(sound), rememberProject: _ => { }));
     }
 
     public void Dispose() => _runtime.Dispose();
+
+    private sealed class NoProjectInteraction : WhaleGenie.Contracts.IProjectInteraction
+    {
+        public Task<WhaleGenie.Contracts.ProjectOperationFailure?> ImportAsync()
+            => Task.FromResult<WhaleGenie.Contracts.ProjectOperationFailure?>(null);
+
+        public Task<WhaleGenie.Contracts.ProjectOperationFailure?> ExportAsync(
+            IReadOnlyList<string> macroNames)
+            => Task.FromResult<WhaleGenie.Contracts.ProjectOperationFailure?>(null);
+    }
 
     private sealed class NoFileDialogs : WhaleGenie.Contracts.IFileDialogs
     {

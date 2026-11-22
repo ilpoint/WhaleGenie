@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -32,11 +31,11 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
     private readonly TriggerRuntime _runtime;
 
-    /// <summary>The shell window, used by the native import/export interaction.</summary>
-    private readonly Func<Window?> _window;
-
     /// <summary>The file pickers; the UI project owns the windows and their filters.</summary>
     private readonly IFileDialogs _files;
+
+    /// <summary>The native import/export choosers and conflict windows.</summary>
+    private readonly IProjectInteraction _interaction;
 
     /// <summary>
     /// The system switch the page draws. The trigger host is the one that follows it; this handler
@@ -56,14 +55,14 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        Func<Window?> window, IFileDialogs files, DialogBridge dialogs,
+        IFileDialogs files, IProjectInteraction interaction, DialogBridge dialogs,
         Action<UiSound>? playSound = null, Action<string>? rememberProject = null)
     {
         _workspace = workspace;
         _runtime = runtime;
         _system = system;
-        _window = window;
         _files = files;
+        _interaction = interaction;
         _dialogs = dialogs;
         _playSound = playSound ?? AppSound.Play;
         _rememberProject = rememberProject ?? LocalSettings.StoreLastProject;
@@ -199,25 +198,15 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private async Task<object?> Export(JsonElement parameters)
     {
         var macro = Find(parameters);
-        if (_window() is not { } window)
-        {
-            return null;
-        }
-
-        var interaction = new ProjectInteraction(_workspace, () => window,
-            async (header, message) =>
-                await _dialogs.ConfirmAsync(header, message, Strings.Get("Common.Ok"), null));
-        try
-        {
-            await interaction.ExportAsync([macro]);
-            return null;
-        }
-        catch (ProjectInteractionException error)
+        var failure = await _interaction.ExportAsync([macro.Name]);
+        if (failure is not null)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(error.Path),
-                    error.InnerException?.Message ?? error.Message));
+                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(failure.Path),
+                    failure.Message));
         }
+
+        return null;
     }
 
     private MacroItem Find(JsonElement parameters)
@@ -243,25 +232,15 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// </summary>
     private async Task<object?> Import(JsonElement parameters)
     {
-        if (_window() is not { } window)
-        {
-            return null;
-        }
-
-        var interaction = new ProjectInteraction(_workspace, () => window,
-            async (header, message) =>
-                await _dialogs.ConfirmAsync(header, message, Strings.Get("Common.Ok"), null));
-        try
-        {
-            await interaction.ImportAsync();
-            return null;
-        }
-        catch (ProjectInteractionException error)
+        var failure = await _interaction.ImportAsync();
+        if (failure is not null)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(error.Path),
-                    error.InnerException?.Message ?? error.Message));
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(failure.Path),
+                    failure.Message));
         }
+
+        return null;
     }
 
     private async Task<object?> SystemSwitch(JsonElement parameters)

@@ -69,10 +69,12 @@ internal static class WindowedServices
             server.Register(new McpBridge(() => SharedDevices.Current.Clipboard));
             var dialogs = new DialogBridge();
             server.Register(dialogs);
-            server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
+            var project = sp.GetRequiredService<ProjectWorkspace>();
+            server.Register(new ProjectBridge(project,
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
-                () => sp.GetService<WebShellWindow>(),
-                new ProjectDialogs(() => sp.GetService<WebShellWindow>()), dialogs));
+                new ProjectDialogs(() => sp.GetService<WebShellWindow>()),
+                new ProjectInteractionAdapter(project,
+                    () => sp.GetService<WebShellWindow>(), dialogs), dialogs));
             var devices = sp.GetRequiredService<TriggerRuntime>().Devices;
             server.Register(new EditorSessionBridge(
                 sp.GetRequiredService<ProjectWorkspace>(), devices,
