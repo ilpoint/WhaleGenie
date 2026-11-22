@@ -4,6 +4,7 @@ export type {
   RunGlobal,
   RunLine,
   RunLocal,
+  RunLogBatch,
   RunLook,
   RunState,
   RunStep,

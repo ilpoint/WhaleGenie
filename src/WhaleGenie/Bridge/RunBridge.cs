@@ -29,6 +29,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     private RunLook? _look;
     private int _sentLog;
     private string _sentSteps = string.Empty;
+    private RunLook? _sentLook;
 
     public void Register(BridgeServer server)
     {
@@ -125,6 +126,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         _look = null;
         _sentLog = 0;
         _sentSteps = string.Empty;
+        _sentLook = null;
         return Task.FromResult<object?>(Snapshot());
     }
 
@@ -233,13 +235,37 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             return;
         }
 
-        var state = Incremental();
-        await _server.PushAsync("run.changed", state);
-        _sentLog = state.LogFrom + state.Log.Count;
-        if (state.Steps is not null)
+        var full = SnapshotCore();
+        var stepsSignature = StepsSignature(full.Steps ?? []);
+        if (!string.Equals(stepsSignature, _sentSteps, StringComparison.Ordinal))
         {
-            _sentSteps = StepsSignature(state.Steps);
+            await _server.PushAsync("run.steps", full.Steps);
+            _sentSteps = stepsSignature;
         }
+
+        var resetLog = _sentLog > full.Log.Count;
+        var from = resetLog ? 0 : _sentLog;
+        RunLine[] log = [.. full.Log.Skip(from)];
+        if (log.Length > 0 || resetLog)
+        {
+            await _server.PushAsync("run.log", new RunLogBatch(from, log), BridgePushMode.All);
+            _sentLog = from + log.Length;
+        }
+
+        if (!Equals(full.Look, _sentLook))
+        {
+            await _server.PushAsync("run.look", full.Look);
+            _sentLook = full.Look;
+        }
+
+        await _server.PushAsync("run.changed", full with
+        {
+            Steps = null,
+            Log = [],
+            LogFrom = _sentLog,
+            Look = null,
+        });
+
         if (!_run.IsBusy && !_run.IsPaused && !_run.IsAsking && !_run.IsAskingUser)
         {
             _timer?.Stop();
@@ -247,27 +273,14 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         }
     }
 
-    /// <summary>The full state for a query or command reply; it resets the log cursor.</summary>
+    /// <summary>The full state for a query or command reply; it resets the page cursors.</summary>
     private RunState Snapshot()
     {
         var state = SnapshotCore();
         _sentLog = state.Log.Count;
         _sentSteps = StepsSignature(state.Steps ?? []);
+        _sentLook = state.Look;
         return state;
-    }
-
-    /// <summary>The log lines and step tree the page has not seen, addressed by their cursors.</summary>
-    private RunState Incremental()
-    {
-        var full = SnapshotCore();
-        var from = _sentLog > full.Log.Count ? 0 : _sentLog;
-        var steps = StepsSignature(full.Steps ?? []);
-        return full with
-        {
-            Steps = string.Equals(steps, _sentSteps, StringComparison.Ordinal) ? null : full.Steps,
-            Log = [.. full.Log.Skip(from)],
-            LogFrom = from,
-        };
     }
 
     /// <summary>Changes that the page has to redraw; an unchanged tree is left off the push.</summary>

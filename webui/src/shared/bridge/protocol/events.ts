@@ -2,7 +2,7 @@
 import type { DialogRequest, StringsBundle, ThemeState, WindowState } from './app.js';
 import type { ProjectState } from './project.js';
 import type { McpState } from './mcp.js';
-import type { RunState } from './run.js';
+import type { RunLogBatch, RunLook, RunState, RunStep } from './run.js';
 
 export interface BridgeEvents {
   'strings.changed': StringsBundle;
@@ -13,6 +13,9 @@ export interface BridgeEvents {
   'mcp.changed': McpState;
   'editor.openRequested': { name: string };
   'run.changed': RunState;
+  'run.steps': RunStep[];
+  'run.log': RunLogBatch;
+  'run.look': RunLook | null;
   'run.openRequested': { name: string };
   'settings.openRequested': Record<string, never>;
 }

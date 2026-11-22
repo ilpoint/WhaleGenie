@@ -43,6 +43,10 @@ public sealed record RunGlobal(string Name, string Type, string Value, string De
 [BridgeContract]
 public sealed record RunLocal(string Name, string Macro, string Type);
 
+/// <summary>A batch of new log lines, addressed by the page's cursor.</summary>
+[BridgeContract]
+public sealed record RunLogBatch(int LogFrom, IReadOnlyList<RunLine> Lines);
+
 /// <summary>One step row: where it is, what it is doing and what it came to.</summary>
 [BridgeContract]
 public sealed record RunStep(

@@ -24,15 +24,41 @@ export class WgRun extends LitElement {
   protected readonly runController = new SubscriptionController(this, () =>
     bridge.value.on('run.changed', (payload) => {
       const next = payload as RunState;
-      const seen = this.run?.log.length ?? 0;
-      const log = next.logFrom === 0 || next.logFrom > seen
-        ? next.log
-        : [...(this.run?.log ?? []), ...next.log];
       this.run = {
         ...next,
-        steps: next.steps ?? this.run?.steps ?? [],
-        log,
+        steps: this.run?.steps ?? [],
+        log: this.run?.log ?? [],
+        look: this.run?.look ?? null,
       };
+    }));
+
+  protected readonly stepsController = new SubscriptionController(this, () =>
+    bridge.value.on('run.steps', (steps) => {
+      if (this.run) {
+        this.run = { ...this.run, steps };
+      }
+    }));
+
+  protected readonly logController = new SubscriptionController(this, () =>
+    bridge.value.on('run.log', (batch) => {
+      if (!this.run) {
+        return;
+      }
+
+      const seen = this.run.log.length;
+      this.run = {
+        ...this.run,
+        log: batch.logFrom === 0 || batch.logFrom > seen
+          ? batch.lines
+          : [...this.run.log, ...batch.lines],
+      };
+    }));
+
+  protected readonly lookController = new SubscriptionController(this, () =>
+    bridge.value.on('run.look', (look) => {
+      if (this.run) {
+        this.run = { ...this.run, look };
+      }
     }));
 
   static styles = runPageCss;

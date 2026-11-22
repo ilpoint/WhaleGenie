@@ -1296,6 +1296,11 @@ export interface RunLocal {
   type: string;
 }
 
+export interface RunLogBatch {
+  logFrom: number;
+  lines: RunLine[];
+}
+
 export interface RunLook {
   stepId: string;
   type: string;
