@@ -241,6 +241,8 @@ export class WgOverlayMenu extends LitElement {
           @input=${(event: Event) => {
             this.query = (event.target as HTMLInputElement).value;
           }}
+          @focus=${() => void bridgeApi.call('surface.menu.focus', { focused: true })}
+          @blur=${() => void bridgeApi.call('surface.menu.focus', { focused: false })}
         />
       </div>
     `;

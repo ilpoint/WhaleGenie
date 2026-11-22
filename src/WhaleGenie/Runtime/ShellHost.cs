@@ -20,7 +20,8 @@ internal sealed class ShellHost : IDisposable
     private readonly ProjectSession _session;
 
     internal ShellHost(ProjectWorkspace workspace, SystemState system, TriggerRuntime runtime,
-        RunQuestionHost questions, ShellNativeWindows actions, Window owner, ITriggerFocusProbe focus)
+        RunQuestionHost questions, ShellNativeWindows actions, Window owner, ITriggerFocusProbe focus,
+        IMenuOverlay? menuOverlay = null)
     {
         _actions = actions;
         _owner = owner;
@@ -30,7 +31,7 @@ internal sealed class ShellHost : IDisposable
         _session.Watch();
 
         _surface = new NativeSurfaceHost(workspace, runtime, system, runtime.Devices,
-            () => owner, () => _trigger!.Plan, actions);
+            () => owner, () => _trigger!.Plan, actions, menuOverlay);
         _trigger = new TriggerHost(workspace, system, runtime, runtime.Devices, _surface,
             questions, focus);
         _actions.Host = _trigger;
@@ -39,6 +40,9 @@ internal sealed class ShellHost : IDisposable
     }
 
     internal ShellNativeWindows Actions => _actions;
+
+    /// <summary>Opens the menu the way the launcher does; the debug switch uses it to check the host.</summary>
+    internal void OpenMenu() => _surface.OpenMenu();
 
     internal ProjectSession Session => _session;
 

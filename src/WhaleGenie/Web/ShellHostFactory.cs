@@ -31,24 +31,28 @@ internal sealed class ShellHostFactory(
             macro => owner.OpenRun(macro.Name),
             () => owner.OpenSettings());
 
+        IMenuOverlay? overlay = null;
 #if DEBUG
-        if (App.MenuOverlay)
+        if (App.MenuOverlay && owner.Bridge is { } bridge)
         {
-            if (owner.Bridge is { } bridge)
+            if (menu.Overlay is null)
             {
-                if (menu.Overlay is null)
-                {
-                    var host = new MenuOverlayHost(bridge, runtime.Devices);
-                    host.Attach();
-                    menu.Overlay = host;
-                }
-
+                var host = new MenuOverlayHost(bridge, runtime.Devices);
+                host.Attach();
+                menu.Overlay = host;
             }
 
-            menu.Overlay?.Show();
+            overlay = menu.Overlay;
         }
 #endif
 
-        return new ShellHost(workspace, system, runtime, questions, actions, owner, owner);
+        var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner, overlay);
+#if DEBUG
+        if (App.MenuOverlay)
+        {
+            shell.OpenMenu();
+        }
+#endif
+        return shell;
     }
 }

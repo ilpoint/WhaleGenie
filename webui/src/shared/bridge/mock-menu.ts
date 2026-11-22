@@ -19,6 +19,9 @@ export function handleSurfaceMenu(
     case 'surface.menu.pin':
       return { pinned: params['pinned'] === true };
 
+    case 'surface.menu.focus':
+      return undefined;
+
     case 'surface.menu.edit':
     case 'surface.menu.debug':
       return { opened: true };

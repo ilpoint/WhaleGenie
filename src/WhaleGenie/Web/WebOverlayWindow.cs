@@ -140,6 +140,9 @@ internal sealed class WebOverlayWindow : Window
     }
 
 
+    /// <summary>Puts the keyboard on the page: the native WebView is its own window and swallows keys.</summary>
+    internal void FocusPage() => _web.Focus();
+
     protected override void OnClosed(EventArgs e)
     {
         _web.AdapterCreated -= OnAdapterCreated;

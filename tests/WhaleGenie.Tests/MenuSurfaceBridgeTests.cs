@@ -28,7 +28,7 @@ public class MenuSurfaceBridgeTests
 
         await server.AcceptAsync("""{"id":1,"method":"surface.menu.close"}""");
 
-        Assert.Equal(1, overlay.Hidden);
+        Assert.Equal(1, overlay.HideCount);
         Assert.False(overlay.IsVisible);
     }
 
@@ -55,7 +55,7 @@ public class MenuSurfaceBridgeTests
         });
         await server.AcceptAsync(request);
 
-        Assert.Equal(1, overlay.Hidden);
+        Assert.Equal(1, overlay.HideCount);
     }
 
     [Fact]
@@ -98,13 +98,26 @@ public class MenuSurfaceBridgeTests
 
         public bool Pinned { get; set; }
 
-        public int Hidden { get; private set; }
+        public event Action? Hidden;
+
+        public event Action<bool>? FocusChanged;
+
+        public bool SearchFocused { get; private set; }
+
+        public void SetSearchFocused(bool focused)
+        {
+            SearchFocused = focused;
+            FocusChanged?.Invoke(focused);
+        }
+
+        public int HideCount { get; private set; }
 
         public void Show() => IsVisible = true;
 
         public void Hide()
         {
-            Hidden++;
+            HideCount++;
+            Hidden?.Invoke();
             IsVisible = false;
         }
     }

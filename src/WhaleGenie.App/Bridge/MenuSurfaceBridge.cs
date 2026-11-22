@@ -27,6 +27,13 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             Overlay?.Hide();
             return Task.FromResult<object?>(null);
         });
+        server.Register("surface.menu.focus", parameters =>
+        {
+            var focused = parameters.TryGetProperty("focused", out var given)
+                && given.ValueKind == System.Text.Json.JsonValueKind.True;
+            Overlay?.SetSearchFocused(focused);
+            return Task.FromResult<object?>(null);
+        });
         server.Register("surface.menu.pin", parameters =>
         {
             var pinned = parameters.TryGetProperty("pinned", out var given)

@@ -98,6 +98,7 @@ export type BridgeMethod =
   | 'surface.menu.close'
   | 'surface.menu.debug'
   | 'surface.menu.edit'
+  | 'surface.menu.focus'
   | 'surface.menu.icon'
   | 'surface.menu.move'
   | 'surface.menu.page.add'

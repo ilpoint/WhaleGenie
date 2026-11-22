@@ -158,8 +158,12 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
 - 结构操作已可用：`surface.menu.page.add/remove`、`surface.menu.rule.add`、`surface.menu.block`、
   `surface.menu.move`；页面在分页点旁提供「＋／×」，实测点「＋」后项目里多出一页（两个分页点）。
   `MenuSurfaceTests` 覆盖加页/删页与格子移动。
-- 原生菜单仍是默认入口。**尚未接线**：菜单热键仍开原生窗口；浮层还缺置顶钉住、按程序规则选上下文页、
-  拖拽落位与右键菜单（编辑/换图标/调试），这些补齐后才切换并删除 `MacroMenuWindow`。
+- **热键路径已切换（`--menu-overlay`，Debug）**：`NativeSurfaceHost.OpenMenu` 在拿到浮层时直接
+  `Show()` 并置开态，`Hidden` 事件负责复位（含 `MacroTriggerGate`），搜索框焦点经
+  `surface.menu.focus` 回报给热键判定。实测：启动走真实 `OpenMenu` 路径打开浮层，点面板后 Esc 收起。
+  **键盘要先点进页面**（S0 的同一限制）。
+- 原生菜单仍是默认入口。**尚未接线**：默认构建仍用原生窗口；浮层还缺“替换宏”、拖拽落位与按规则
+  编辑页面的完整交互，这些补齐后翻转默认并删除 `MacroMenuWindow`。
 
 0. **预建宿主**：壳启动时创建菜单浮层窗口与页面并隐藏；热键只 `Show()`（S0 实测 19–25 ms）。
 1. C#：把 `MacroMenuWindow` 的排版数据（分节、格子、图标、问题、搜索过滤、置顶与本屏坐标）

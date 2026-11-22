@@ -52,6 +52,10 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
         }
     }
 
+    public event Action? Hidden;
+
+    public event Action<bool>? FocusChanged;
+
     public bool IsVisible => _window?.IsVisible == true;
 
     public bool Pinned
@@ -76,7 +80,19 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
         _window.PlaceNearCursor();
         _window.Show();
         _window.Activate();
+        _window.FocusPage();
     }
 
-    public void Hide() => _window?.Hide();
+    public void Hide()
+    {
+        if (_window is not { IsVisible: true } window)
+        {
+            return;
+        }
+
+        window.Hide();
+        Hidden?.Invoke();
+    }
+
+    public void SetSearchFocused(bool focused) => FocusChanged?.Invoke(focused);
 }

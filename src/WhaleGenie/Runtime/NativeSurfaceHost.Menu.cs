@@ -63,7 +63,7 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
 
     internal NativeSurfaceHost(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
         IDeviceLayer devices, Func<Window?> owner, Func<GlobalHotkeyPlan> plan,
-        INativeSurfaceActions actions)
+        INativeSurfaceActions actions, IMenuOverlay? menuOverlay = null)
     {
         _workspace = workspace;
         _runtime = runtime;
@@ -72,9 +72,34 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
         _owner = owner;
         _plan = plan;
         _actions = actions;
+        _menuOverlay = menuOverlay;
+        if (menuOverlay is not null)
+        {
+            menuOverlay.Hidden += OnOverlayMenuHidden;
+            menuOverlay.FocusChanged += OnOverlayMenuFocusChanged;
+        }
+
         InitializeWheel();
         InitializePanels();
     }
+
+    /// <summary>The overlay menu, when the shell has one; it replaces the native window entirely.</summary>
+    private readonly IMenuOverlay? _menuOverlay;
+
+    private void OnOverlayMenuHidden()
+    {
+        MacroTriggerGate.Exit();
+        Volatile.Write(ref _menuOpen, 0);
+        Volatile.Write(ref _menuChildOpen, 0);
+        Volatile.Write(ref _menuPopupOpen, 0);
+        Volatile.Write(ref _menuSearchFocused, 0);
+        Volatile.Write(ref _menuPinned, 0);
+        Volatile.Write(ref _menuBounds, null);
+        _menuForeground = null;
+    }
+
+    private void OnOverlayMenuFocusChanged(bool focused)
+        => Volatile.Write(ref _menuSearchFocused, focused ? 1 : 0);
 
     public bool MenuOpen => Volatile.Read(ref _menuOpen) == 1;
 
@@ -95,7 +120,16 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
     /// <summary>Opens the menu; the hook may call this through the trigger host's surface.</summary>
     public void OpenMenu() => Dispatcher.UIThread.Post(() => _ = OpenMacroMenuAsync());
 
-    public void CloseMenuFromLauncher() => _menu?.CloseFromLauncher();
+    public void CloseMenuFromLauncher()
+    {
+        if (_menuOverlay is { } overlay)
+        {
+            overlay.Hide();
+            return;
+        }
+
+        _menu?.CloseFromLauncher();
+    }
 
     public void MenuHandleKey(string name) => _menu?.HandleKey(name);
 
@@ -144,6 +178,12 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
     /// </summary>
     public void CloseMenuForForegroundChange()
     {
+        // The overlay host watches the foreground itself and honours its own pin.
+        if (_menuOverlay is not null)
+        {
+            return;
+        }
+
         if (_menu is not { IsPinned: false } menu
             || _menuForeground is not { } expected
             || !CanCloseMenuFromOutside(
@@ -195,6 +235,20 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
 
         if (previous is not null && _workspace.Triggers.IsMenuBlocked(previous, _devices.Windows))
         {
+            return;
+        }
+
+        if (_menuOverlay is { } overlay)
+        {
+            _menuForeground = previous;
+            _menuChildOpen = 0;
+            _menuPopupOpen = 0;
+            _menuSearchFocused = 0;
+            _menuPinned = 0;
+            Volatile.Write(ref _menuOpen, 1);
+            HidePanels();
+            MacroTriggerGate.Enter();
+            overlay.Show();
             return;
         }
 
@@ -594,6 +648,12 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
     {
         DisposePanels();
         DisposeWheel();
+        if (_menuOverlay is { } overlay)
+        {
+            overlay.Hidden -= OnOverlayMenuHidden;
+            overlay.FocusChanged -= OnOverlayMenuFocusChanged;
+        }
+
         if (_menu is { } menu)
         {
             _menu = null;
