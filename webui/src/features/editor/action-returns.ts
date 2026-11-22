@@ -37,20 +37,20 @@ export class WgActionReturns extends LitElement {
         : this.rows.map((row) => html`
           <div class="line">
             <input type="checkbox" .checked=${row.ticked} aria-label=${row.label}
-              @change=${(event: Event) => void editor.patchActionReturn(row.key, {
+              @change=${(event: Event) => void editor.action.patchActionReturn(row.key, {
                 ticked: (event.target as HTMLInputElement).checked,
               })} />
             <span class="label" title=${row.hint}>${row.label}</span>
             <span class="structure" title=${row.structureTip}>${row.structure}</span>
             <input type="text" .value=${row.name} ?disabled=${!row.ticked}
               aria-label=${t('Add.ReturnName')}
-              @change=${(event: Event) => void editor.patchActionReturn(row.key, {
+              @change=${(event: Event) => void editor.action.patchActionReturn(row.key, {
                 name: (event.target as HTMLInputElement).value,
               })} />
             ${row.isNameTaken
               ? html`<span class="warning">${row.nameWarning}
                   <button class="fix" type="button"
-                    @click=${() => void editor.fixActionReturnName(row.key)}>${t('Add.NameMakeUnique')}</button>
+                    @click=${() => void editor.action.fixActionReturnName(row.key)}>${t('Add.NameMakeUnique')}</button>
                 </span>`
               : ''}
           </div>

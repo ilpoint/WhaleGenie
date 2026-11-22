@@ -157,12 +157,12 @@ export class WgValueField extends LitElement {
   `];
 
   private openPicker(): void {
-    void editor.openValue(this.stepId, this.parameter.name);
+    void editor.value.openValue(this.stepId, this.parameter.name);
   }
 
   private patchNumber(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    void editor.patchParameter(this.stepId, this.parameter.name, value);
+    void editor.steps.patchParameter(this.stepId, this.parameter.name, value);
   }
 
   render() {

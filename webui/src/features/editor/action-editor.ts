@@ -73,7 +73,7 @@ export class WgActionEditor extends LitElement {
   }
 
   private async run(): Promise<void> {
-    const reply = await editor.runAction();
+    const reply = await editor.action.runAction();
     if (reply?.needsConfirm && reply.question) {
       this.trialAsk = { title: reply.title ?? '', question: reply.question };
     }
@@ -81,7 +81,7 @@ export class WgActionEditor extends LitElement {
 
   private async confirmTrial(): Promise<void> {
     this.trialAsk = null;
-    await editor.runAction(true);
+    await editor.action.runAction(true);
   }
 
   private renderTrialAsk(): TemplateResult {
@@ -125,7 +125,7 @@ export class WgActionEditor extends LitElement {
           <p>${trial.detail}</p>
           <div class="actions">
             <fluent-button appearance="accent"
-              @click=${() => editor.closeTrial()}>${t('Common.Close')}</fluent-button>
+              @click=${() => editor.action.closeTrial()}>${t('Common.Close')}</fluent-button>
           </div>
         </div>
       </div>
@@ -148,7 +148,7 @@ export class WgActionEditor extends LitElement {
   private onKeydown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape' && editor.get().actionForm) {
       event.preventDefault();
-      void editor.cancelAction();
+      void editor.action.cancelAction();
     }
   };
 
@@ -172,14 +172,14 @@ export class WgActionEditor extends LitElement {
           <span class="type">${form.name}</span>
           ${form.description ? html`<span class="description" title=${form.description}>${form.description}</span>` : nothing}
           <button class="ghost close" type="button" title=${t('Common.Close')}
-            @click=${() => void editor.cancelAction()}>${icon('close')}</button>
+            @click=${() => void editor.action.cancelAction()}>${icon('close')}</button>
         </header>
         <div class="tabs" role="tablist">
           ${pages.map((candidate) => html`
             <button type="button" role="tab"
               aria-selected=${candidate.key === page ? 'true' : 'false'}
               title=${candidate.label}
-              @click=${() => void editor.setActionPage(candidate.key)}>
+              @click=${() => void editor.action.setActionPage(candidate.key)}>
               ${candidate.label}${candidate.hasDot ? ' ·' : ''}
             </button>
           `)}
@@ -202,9 +202,9 @@ export class WgActionEditor extends LitElement {
                 @click=${() => void this.run()}>${form.runLabel || t('Add.RunStep')}</fluent-button>`
             : nothing}
           <fluent-button appearance="subtle"
-            @click=${() => void editor.cancelAction()}>${t('Add.Cancel')}</fluent-button>
+            @click=${() => void editor.action.cancelAction()}>${t('Add.Cancel')}</fluent-button>
           <fluent-button appearance="accent" ?disabled=${!form.canConfirm}
-            @click=${() => void editor.confirmAction()}>${form.commitLabel}</fluent-button>
+            @click=${() => void editor.action.confirmAction()}>${form.commitLabel}</fluent-button>
         </footer>
       </div>
       ${this.trialAsk ? this.renderTrialAsk() : nothing}
@@ -237,7 +237,7 @@ export class WgActionEditor extends LitElement {
       <label class="block">
         <span>${t('Add.StepComment')}</span>
         <input .value=${form.meta.comment} placeholder=${t('Add.StepCommentPlaceholder')}
-          @change=${(event: Event) => void editor.patchActionMeta('comment',
+          @change=${(event: Event) => void editor.action.patchActionMeta('comment',
             (event.target as HTMLInputElement).value)} />
       </label>
       ${form.showsAttempt && form.attemptSummary
@@ -248,7 +248,7 @@ export class WgActionEditor extends LitElement {
           <div class="summary">
             ${form.branchSummary}
             <button class="chip" type="button"
-              @click=${() => void editor.addActionBranch()}>${t('Add.AddBranch')}</button>
+              @click=${() => void editor.action.addActionBranch()}>${t('Add.AddBranch')}</button>
           </div>
         `
         : nothing}
@@ -262,12 +262,12 @@ export class WgActionEditor extends LitElement {
                   <span class="name">${argument.name}${argument.required ? ' *' : ''}</span>
                   <input type="text" .value=${argument.value}
                     ?disabled=${argument.given}
-                    @change=${(event: Event) => void editor.patchActionCallArgument(argument.name, {
+                    @change=${(event: Event) => void editor.action.patchActionCallArgument(argument.name, {
                       value: (event.target as HTMLInputElement).value,
                     })} />
                   <label class="inline">
                     <input type="checkbox" .checked=${argument.given}
-                      @change=${(event: Event) => void editor.patchActionCallArgument(argument.name, {
+                      @change=${(event: Event) => void editor.action.patchActionCallArgument(argument.name, {
                         given: (event.target as HTMLInputElement).checked,
                       })} />
                     <span class="note">${t('Add.CallArgumentGiven')}</span>

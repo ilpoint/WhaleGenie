@@ -93,7 +93,7 @@ export class WgActionRows extends LitElement {
         ? html`<p class="hint">${t('Add.RegionEmpty')}</p>`
         : field.regions.map((row, index) => this.renderRegion(field, row, index))}
       <button class="chip add" type="button"
-        @click=${() => void editor.pickAction(field.name, 'region')}>${t('Add.PickRegion')}</button>
+        @click=${() => void editor.action.pickAction(field.name, 'region')}>${t('Add.PickRegion')}</button>
     `;
   }
 
@@ -102,22 +102,22 @@ export class WgActionRows extends LitElement {
       <div class="row" style="grid-template-columns: repeat(4, minmax(0, 1fr)) 96px 74px 24px">
         ${(['x', 'y', 'width', 'height'] as const).map((column) => html`
           <div class="cell">
-            <input .value=${row[column]} @change=${(event: Event) => void editor.patchActionRow(
+            <input .value=${row[column]} @change=${(event: Event) => void editor.action.patchActionRow(
               field.name, index, column, (event.target as HTMLInputElement).value)} />
             <button class="chip" type="button"
-              @click=${() => void editor.openRowValue(this.stepId, field.name, index, column)}>ƒ</button>
+              @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, column)}>ƒ</button>
           </div>
         `)}
         <div class="cell">
-          <input .value=${row.variable} @change=${(event: Event) => void editor.patchActionRow(
+          <input .value=${row.variable} @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'variable', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
-            @click=${() => void editor.openRowValue(this.stepId, field.name, index, 'variable')}>ƒ</button>
+            @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, 'variable')}>ƒ</button>
         </div>
         <button class="chip" type="button" title=${t('Add.PickRegionHint')}
-          @click=${() => void editor.pickAction(field.name, 'region', index)}>⌖</button>
+          @click=${() => void editor.action.pickAction(field.name, 'region', index)}>⌖</button>
         <button class="chip" type="button" title=${t('Editor.RemoveRow')}
-          @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+          @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
       </div>
     `;
   }
@@ -128,7 +128,7 @@ export class WgActionRows extends LitElement {
         ? html`<p class="hint">${t('Add.ImageEmpty')}</p>`
         : field.images.map((row, index) => this.renderImage(field, row, index))}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Add.ImageAdd')}</button>
+        @click=${() => void editor.action.addActionRow(field.name)}>${t('Add.ImageAdd')}</button>
     `;
   }
 
@@ -139,7 +139,7 @@ export class WgActionRows extends LitElement {
           ? html`<img src=${row.preview.dataUrl} alt=${row.preview.fileName || row.text} />`
           : html`<span class="missing">${t('Add.ImageEmpty')}</span>`}
         <div class="row" style="gap: 3px">
-          <input .value=${row.text} @change=${(event: Event) => void editor.patchActionRow(
+          <input .value=${row.text} @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'image', (event.target as HTMLInputElement).value)} />
           ${row.preview?.problem
             ? html`<span class="problem">${row.preview.problem}</span>`
@@ -147,20 +147,20 @@ export class WgActionRows extends LitElement {
         </div>
         <div class="row" style="grid-template-columns: repeat(6, auto); gap: 2px">
           <button class="chip" type="button"
-            @click=${() => void editor.pickAction(field.name, 'path', index)}>${t('Editor.Browse')}</button>
+            @click=${() => void editor.action.pickAction(field.name, 'path', index)}>${t('Editor.Browse')}</button>
           <button class="chip" type="button"
-            @click=${() => void editor.pickAction(field.name, 'capture', index)}>${t('Add.CaptureImage')}</button>
+            @click=${() => void editor.action.pickAction(field.name, 'capture', index)}>${t('Add.CaptureImage')}</button>
           <button class="chip" type="button"
-            @click=${() => void editor.patchActionRow(field.name, index, 'image', '')}>${t('Add.ClearImage')}</button>
+            @click=${() => void editor.action.patchActionRow(field.name, index, 'image', '')}>${t('Add.ClearImage')}</button>
           <button class="chip" type="button" ?disabled=${!row.canMoveUp}
             aria-label=${t('Add.ImageMoveUp')}
-            @click=${() => void editor.moveActionRow(field.name, index, -1)}>↑</button>
+            @click=${() => void editor.action.moveActionRow(field.name, index, -1)}>↑</button>
           <button class="chip" type="button" ?disabled=${!row.canMoveDown}
             aria-label=${t('Add.ImageMoveDown')}
-            @click=${() => void editor.moveActionRow(field.name, index, 1)}>↓</button>
+            @click=${() => void editor.action.moveActionRow(field.name, index, 1)}>↓</button>
           <button class="chip" type="button"
             aria-label=${t('Add.ImageRemove')}
-            @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+            @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
         </div>
       </div>
     `;
@@ -181,17 +181,17 @@ export class WgActionRows extends LitElement {
           ${this.colourPointCell(field, index, 'dy', row.dy)}
           ${this.colourPointCell(field, index, 'colour', row.colour)}
           <input type="checkbox" .checked=${row.mustNot}
-            @change=${(event: Event) => void editor.patchActionRow(field.name, index, 'mustNot',
+            @change=${(event: Event) => void editor.action.patchActionRow(field.name, index, 'mustNot',
               (event.target as HTMLInputElement).checked ? 'true' : 'false')} />
           ${this.colourPointCell(field, index, 'tolerance', row.tolerance)}
           <button class="chip" type="button"
-            @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+            @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
         </div>
       `)}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Add.ColourPointAdd')}</button>
+        @click=${() => void editor.action.addActionRow(field.name)}>${t('Add.ColourPointAdd')}</button>
       <button class="chip add" type="button"
-        @click=${() => void editor.pickAction(field.name, 'lookColours')}>${t('Add.PickColours')}</button>
+        @click=${() => void editor.action.pickAction(field.name, 'lookColours')}>${t('Add.PickColours')}</button>
     `;
   }
 
@@ -199,10 +199,10 @@ export class WgActionRows extends LitElement {
     column: string, value: string): TemplateResult {
     return html`
       <div class="cell">
-        <input .value=${value} @change=${(event: Event) => void editor.patchActionRow(
+        <input .value=${value} @change=${(event: Event) => void editor.action.patchActionRow(
           field.name, index, column, (event.target as HTMLInputElement).value)} />
         <button class="chip" type="button"
-          @click=${() => void editor.openRowValue(this.stepId, field.name, index, column)}>ƒ</button>
+          @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, column)}>ƒ</button>
       </div>
     `;
   }
@@ -211,7 +211,7 @@ export class WgActionRows extends LitElement {
     return html`
       ${field.colours.map((row, index) => this.renderColour(field, row, index))}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Editor.AddRow')}</button>
+        @click=${() => void editor.action.addActionRow(field.name)}>${t('Editor.AddRow')}</button>
     `;
   }
 
@@ -219,15 +219,15 @@ export class WgActionRows extends LitElement {
     return html`
       <div class="row" style="grid-template-columns: 64px minmax(0, 1fr) 96px 24px">
         <input type="color" .value=${/^#[0-9a-f]{6}$/i.test(row.colour) ? row.colour : '#000000'}
-          @input=${(event: Event) => void editor.patchActionRow(
+          @input=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'colour', (event.target as HTMLInputElement).value)} />
-        <input .value=${row.colour} @change=${(event: Event) => void editor.patchActionRow(
+        <input .value=${row.colour} @change=${(event: Event) => void editor.action.patchActionRow(
           field.name, index, 'colour', (event.target as HTMLInputElement).value)} />
         <input type="number" min="0" .value=${row.tolerance}
-          @change=${(event: Event) => void editor.patchActionRow(
+          @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'tolerance', (event.target as HTMLInputElement).value)} />
         <button class="chip" type="button"
-          @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+          @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
       </div>
     `;
   }
@@ -239,10 +239,10 @@ export class WgActionRows extends LitElement {
         : nothing}
       ${field.keys.map((row, index) => this.renderKey(field, row, index))}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Add.KeyRunAdd')}</button>
+        @click=${() => void editor.action.addActionRow(field.name)}>${t('Add.KeyRunAdd')}</button>
       ${this.pad
         ? html`<wg-key-pad .pad=${this.pad} label=${t('Add.KeyRunPress').replace('{0}', String(this.padIndex + 1))}
-            @wg-pad-key=${(event: CustomEvent<{ value: string }>) => void editor.padKey(
+            @wg-pad-key=${(event: CustomEvent<{ value: string }>) => void editor.action.padKey(
               field.name, event.detail.value, this.padIndex, 'keys')}
             @wg-pad-close=${() => { this.pad = null; }}></wg-key-pad>`
         : nothing}
@@ -253,7 +253,7 @@ export class WgActionRows extends LitElement {
     return html`
       <div class="row" style="grid-template-columns: minmax(0, 1fr) 88px 88px 24px">
         <div class="cell">
-          <input .value=${row.keys} @change=${(event: Event) => void editor.patchActionRow(
+          <input .value=${row.keys} @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'keys', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button" title=${t('Add.OpenKeyPadHint')}
             @click=${() => void this.openPad(index)}>⌨</button>
@@ -261,19 +261,19 @@ export class WgActionRows extends LitElement {
             @click=${() => this.beginCapture(index)}>⌨+</button>
         </div>
         <input type="number" min="0" .value=${row.hold}
-          @change=${(event: Event) => void editor.patchActionRow(
+          @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'hold', (event.target as HTMLInputElement).value)} />
         <input type="number" min="0" .value=${row.gap}
-          @change=${(event: Event) => void editor.patchActionRow(
+          @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'gap', (event.target as HTMLInputElement).value)} />
         <button class="chip" type="button"
-          @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+          @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
       </div>
     `;
   }
 
   private async openPad(index: number): Promise<void> {
-    const pad = await editor.keyPad('keys');
+    const pad = await editor.action.keyPad('keys');
     if (pad) {
       this.padIndex = index;
       this.pad = pad;
@@ -303,34 +303,34 @@ export class WgActionRows extends LitElement {
     const index = this.captureIndex;
     this.captureIndex = -1;
     window.removeEventListener('keydown', this.onCaptureKey, true);
-    void editor.padKey(this.field.name, parts.join('+'), index, 'keys');
+    void editor.action.padKey(this.field.name, parts.join('+'), index, 'keys');
   };
 
   private renderNarrow(field: EditorActionField): TemplateResult {
     return html`
       ${field.narrowRows.map((row, index) => this.renderNarrowRow(field, row, index))}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Add.NarrowAdd')}</button>
+        @click=${() => void editor.action.addActionRow(field.name)}>${t('Add.NarrowAdd')}</button>
     `;
   }
 
   private renderNarrowRow(field: EditorActionField, row: EditorNarrowRow, index: number): TemplateResult {
     return html`
       <div class="row" style="grid-template-columns: 140px minmax(0, 1fr) auto 24px">
-        <select .value=${row.how} @change=${(event: Event) => void editor.patchActionRow(
+        <select .value=${row.how} @change=${(event: Event) => void editor.action.patchActionRow(
           field.name, index, 'how', (event.target as HTMLSelectElement).value)}>
           ${row.ways.map((way) => html`<option value=${way.value}>${way.label}</option>`)}
         </select>
         <input .value=${row.value} ?disabled=${!row.needsValue}
-          @change=${(event: Event) => void editor.patchActionRow(
+          @change=${(event: Event) => void editor.action.patchActionRow(
             field.name, index, 'value', (event.target as HTMLInputElement).value)} />
         <span class="count">${row.count}</span>
         <button class="chip" type="button" title=${t('Add.NarrowLookHint')}
-          @click=${() => void editor.testNarrow(field.name, index)}>⌕</button>
+          @click=${() => void editor.action.testNarrow(field.name, index)}>⌕</button>
         <button class="chip" type="button"
-          @click=${() => void editor.pickAction(field.name, 'narrow', index)}>⌖</button>
+          @click=${() => void editor.action.pickAction(field.name, 'narrow', index)}>⌖</button>
         <button class="chip" type="button"
-          @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+          @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
       </div>
     `;
   }
@@ -350,18 +350,18 @@ export class WgActionRows extends LitElement {
           ${field.columns.map((column, cell) => html`
             <div class="cell">
               <input .value=${row.cells[cell] ?? ''} aria-label=${column.name}
-                @change=${(event: Event) => void editor.patchActionRow(field.name, index,
+                @change=${(event: Event) => void editor.action.patchActionRow(field.name, index,
                   column.name, (event.target as HTMLInputElement).value)} />
               <button class="chip" type="button"
-                @click=${() => void editor.openRowValue(this.stepId, field.name, index, column.name)}>ƒ</button>
+                @click=${() => void editor.value.openRowValue(this.stepId, field.name, index, column.name)}>ƒ</button>
             </div>
           `)}
           <button class="chip" type="button"
-            @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+            @click=${() => void editor.action.removeActionRow(field.name, index)}>×</button>
         </div>
       `)}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Editor.AddRow')}</button>
+        @click=${() => void editor.action.addActionRow(field.name)}>${t('Editor.AddRow')}</button>
     `;
   }
 

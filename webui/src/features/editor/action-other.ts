@@ -31,7 +31,7 @@ export class WgActionOther extends LitElement {
       </div>
       <label class="inline">
         <input type="checkbox" .checked=${this.form.meta.enabled}
-          @change=${(event: Event) => void editor.patchActionMeta('enabled',
+          @change=${(event: Event) => void editor.action.patchActionMeta('enabled',
             (event.target as HTMLInputElement).checked ? 'true' : 'false')} />
         <span>${t('Add.StepEnabled')}</span>
       </label>

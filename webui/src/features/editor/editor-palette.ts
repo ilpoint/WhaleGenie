@@ -21,7 +21,7 @@ export class WgEditorPalette extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    editor.ensureLoaded();
+    editor.session.ensureLoaded();
     this.unsubscribe = editor.subscribe(() => this.requestUpdate());
   }
 
@@ -55,7 +55,7 @@ export class WgEditorPalette extends LitElement {
                   type="button"
                   title=${category.label}
                   aria-pressed=${state.category === category.value ? 'true' : 'false'}
-                  @click=${() => editor.setPaletteCategory(category.value)}
+                  @click=${() => editor.ui.setPaletteCategory(category.value)}
                 >
                   ${icon(category.value === null
                     ? 'layout-grid'
@@ -74,7 +74,7 @@ export class WgEditorPalette extends LitElement {
             placeholder=${t('Add.SearchAction')}
             aria-label=${t('Add.SearchAction')}
             @input=${(event: Event) =>
-              editor.setPaletteSearch((event.target as HTMLInputElement).value)}
+              editor.ui.setPaletteSearch((event.target as HTMLInputElement).value)}
           />
           <div class="scroll">
             ${state.paletteSource === 'sub'
@@ -93,8 +93,8 @@ export class WgEditorPalette extends LitElement {
                         draggable="true"
                         title=${action.description || action.name}
                         aria-pressed=${state.selectedActionKey === action.key ? 'true' : 'false'}
-                        @click=${() => editor.selectAction(action.key)}
-                        @dblclick=${() => void editor.openAction(action.key)}
+                        @click=${() => editor.ui.selectAction(action.key)}
+                        @dblclick=${() => void editor.action.openAction(action.key)}
                         @dragstart=${(event: DragEvent) => {
                           event.dataTransfer?.setData('application/x-whalegenie-action', action.key);
                           event.dataTransfer?.setData('text/plain', action.key);
@@ -120,7 +120,7 @@ export class WgEditorPalette extends LitElement {
           data-recording=${state.recording ? 'true' : 'false'}
           ?disabled=${state.snapshot === null}
           title=${state.recording ? t('Editor.StopRecording') : t('Editor.Record')}
-          @click=${() => void editor.toggleRecording()}
+          @click=${() => void editor.recording.toggleRecording()}
         >
           ${state.recording
             ? html`<span class="record-stop"></span>`
@@ -145,7 +145,7 @@ export class WgEditorPalette extends LitElement {
         aria-selected=${state.paletteSource === source ? 'true' : 'false'}
         title=${label}
         @click=${() => {
-          editor.setPaletteSource(source);
+          editor.ui.setPaletteSource(source);
           if (source === 'sub' && state.paletteSource === 'sub' && state.snapshot === null) {
             return;
           }
@@ -174,7 +174,7 @@ export class WgEditorPalette extends LitElement {
           type="button"
           class="sub-card"
           title=${macro.description || macro.name}
-          @click=${() => void editor.addPublicMacro(macro.id)}
+          @click=${() => void editor.steps.addPublicMacro(macro.id)}
         >
           ${icon('folder')}
           <span>
@@ -197,7 +197,7 @@ export class WgEditorPalette extends LitElement {
           type="button"
           class="sub-card"
           title=${t('Editor.OpenSubMacro')}
-          @click=${() => void editor.openSubmacro(name)}
+          @click=${() => void editor.session.openSubmacro(name)}
         >
           ${icon('workflow')}
           <span>${name}</span>

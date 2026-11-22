@@ -28,11 +28,6 @@
       "count": 1
     }
   },
-  "src/features/editor/editor-store.ts": {
-    "max-lines": {
-      "count": 1
-    }
-  },
   "src/features/editor/macro-settings.ts": {
     "complexity": {
       "count": 1

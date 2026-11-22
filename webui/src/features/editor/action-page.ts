@@ -55,7 +55,7 @@ export class WgActionPage extends LitElement {
       return;
     }
 
-    void editor.pickAction(name, row.picker.mode);
+    void editor.action.pickAction(name, row.picker.mode);
   }
 }
 

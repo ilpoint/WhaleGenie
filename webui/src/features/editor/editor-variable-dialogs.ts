@@ -161,10 +161,10 @@ export class WgLocalVariables extends LitElement {
               <div class="row-line">
                 <input .value=${variable.name} ?readonly=${!variable.isDeclared}
                   placeholder=${t('LocalVariables.New')}
-                  @change=${(event: Event) => void editor.patchVariable(variable.name, 'name',
+                  @change=${(event: Event) => void editor.variables.patchVariable(variable.name, 'name',
                     (event.target as HTMLInputElement).value)} />
                 <select .value=${variable.type} ?disabled=${!variable.isDeclared}
-                  @change=${(event: Event) => void editor.patchVariable(variable.name, 'type',
+                  @change=${(event: Event) => void editor.variables.patchVariable(variable.name, 'type',
                     (event.target as HTMLSelectElement).value)}>
                   ${(snapshot.variableTypes).map((type) => html`
                     <option value=${type.value}>${type.label}</option>
@@ -173,16 +173,16 @@ export class WgLocalVariables extends LitElement {
                 ${variable.isDeclared
                   ? html`<input .value=${variable.initial}
                       placeholder=${t('LocalVariables.InitialPlaceholder')}
-                      @change=${(event: Event) => void editor.patchVariable(variable.name,
+                      @change=${(event: Event) => void editor.variables.patchVariable(variable.name,
                         'initial', (event.target as HTMLInputElement).value)} />`
                   : html`<span class="source">${variable.source}</span>`}
                 <input .value=${variable.description}
-                  @change=${(event: Event) => void editor.patchVariable(variable.name, 'description',
+                  @change=${(event: Event) => void editor.variables.patchVariable(variable.name, 'description',
                     (event.target as HTMLInputElement).value)} />
                 ${variable.isDeclared
                   ? html`<button class="ghost" title=${t('LocalVariables.Delete')}
                       aria-label=${t('LocalVariables.Delete')}
-                      @click=${() => void editor.removeVariable(variable.name)}>
+                      @click=${() => void editor.variables.removeVariable(variable.name)}>
                       ${icon('close')}
                     </button>`
                   : html`<span></span>`}
@@ -194,7 +194,7 @@ export class WgLocalVariables extends LitElement {
           `)}
       </div>
       <div class="footer">
-        <button class="link-button" type="button" @click=${() => void editor.addVariable()}>
+        <button class="link-button" type="button" @click=${() => void editor.variables.addVariable()}>
           ${t('LocalVariables.New')}
         </button>
         <fluent-button appearance="subtle" @click=${() => this.close()}>
@@ -261,10 +261,10 @@ export class WgGlobalVariables extends LitElement {
             <div class="row">
               <div class="row-line full">
                 <input .value=${global.name}
-                  @change=${(event: Event) => void editor.patchGlobal(global.name, 'name',
+                  @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'name',
                     (event.target as HTMLInputElement).value)} />
                 <select .value=${global.type}
-                  @change=${(event: Event) => void editor.patchGlobal(global.name, 'type',
+                  @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'type',
                     (event.target as HTMLSelectElement).value)}>
                   ${snapshot.variableTypes.map((type) => html`
                     <option value=${type.value}>${type.label}</option>
@@ -272,26 +272,26 @@ export class WgGlobalVariables extends LitElement {
                 </select>
                 <input .value=${global.default}
                   placeholder=${t('GlobalVariables.DefaultPlaceholder')}
-                  @change=${(event: Event) => void editor.patchGlobal(global.name, 'default',
+                  @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'default',
                     (event.target as HTMLInputElement).value)} />
                 <input .value=${global.description}
-                  @change=${(event: Event) => void editor.patchGlobal(global.name, 'description',
+                  @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'description',
                     (event.target as HTMLInputElement).value)} />
                 <label class="inline" title=${t('Variable.Persist')}>
                   <input type="checkbox" .checked=${global.persisted}
-                    @change=${(event: Event) => void editor.patchGlobal(global.name, 'persist',
+                    @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'persist',
                       String((event.target as HTMLInputElement).checked))} />
                 </label>
                 <button class="ghost" title=${t('GlobalVariables.Remove')}
                   aria-label=${t('GlobalVariables.Remove')}
-                  @click=${() => void editor.removeGlobal(global.name)}>${icon('close')}</button>
+                  @click=${() => void editor.variables.removeGlobal(global.name)}>${icon('close')}</button>
               </div>
               <span class="hint">${t('Variable.Persist')}</span>
             </div>
           `)}
       </div>
       <div class="footer">
-        <button class="link-button" type="button" @click=${() => void editor.addGlobal()}>
+        <button class="link-button" type="button" @click=${() => void editor.variables.addGlobal()}>
           ${t('GlobalVariables.New')}
         </button>
         <fluent-button appearance="subtle" @click=${() => this.close()}>

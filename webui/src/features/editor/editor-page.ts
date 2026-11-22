@@ -30,8 +30,8 @@ export class WgEditor extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    editor.ensureLoaded();
-    editor.refresh();
+    editor.session.ensureLoaded();
+    editor.session.refresh();
     this.unsubscribe = editor.subscribe(() => this.requestUpdate());
     window.addEventListener('keydown', this.onKeydown);
   }
@@ -66,7 +66,7 @@ export class WgEditor extends LitElement {
           <div class="empty">
             <span class="title">${t('Editor.NoDocument')}</span>
             <span>${t('Editor.NoDocumentHint')}</span>
-            <fluent-button appearance="accent" @click=${() => void editor.newDocument()}>
+            <fluent-button appearance="accent" @click=${() => void editor.session.newDocument()}>
               ${t('Main.AddMacro')}
             </fluent-button>
           </div>
@@ -79,51 +79,51 @@ export class WgEditor extends LitElement {
               <wg-editor-tabs></wg-editor-tabs>
               <div class="toolbar" role="toolbar" aria-label=${t('Editor.Steps')}>
                 ${this.iconButton('undo', t('Palette.Undo'), !snapshot.canUndo,
-                  () => void editor.undo())}
+                  () => void editor.steps.undo())}
                 ${this.iconButton('redo', t('Palette.Redo'), !snapshot.canRedo,
-                  () => void editor.redo())}
+                  () => void editor.steps.redo())}
                 ${this.iconButton('edit', t('Palette.Edit'), !singleStep,
-                  () => editor.openStepEditor())}
+                  () => editor.action.openStepEditor())}
                 ${this.iconButton('check', t('Palette.ToggleEnabled'), !hasStep,
                   () => {
                     const first = state.snapshot && state.selectedStepIds[0]
                       ? findStep(state.snapshot.steps, state.selectedStepIds[0])
                       : null;
                     if (first) {
-                      void editor.setStepEnabled(undefined, !first.enabled);
+                      void editor.steps.setStepEnabled(undefined, !first.enabled);
                     }
                   })}
                 ${this.iconButton('copy', t('Palette.Copy'), !hasStep,
-                  () => void editor.copySteps())}
+                  () => void editor.steps.copySteps())}
                 ${this.iconButton('cut', t('Palette.Cut'), !hasStep,
-                  () => void editor.cutSteps())}
+                  () => void editor.steps.cutSteps())}
                 ${this.iconButton('paste', t('Palette.Paste'), false,
-                  () => void editor.pasteSteps(state.selectedStepId))}
+                  () => void editor.steps.pasteSteps(state.selectedStepId))}
                 ${this.iconButton('group', t('Palette.Group'), !hasStep,
-                  () => void editor.groupSteps())}
+                  () => void editor.steps.groupSteps())}
                 ${this.iconButton('export', t('Palette.LiftToMacro'), !hasStep,
-                  () => void editor.liftSteps())}
+                  () => void editor.steps.liftSteps())}
                 <span class="sep"></span>
                 <fluent-button appearance="subtle"
                   title=${state.selectedActionKey.length === 0
                     ? t('Editor.PickActionHint') : t('Editor.AddStep')}
                   ?disabled=${state.selectedActionKey.length === 0}
-                  @click=${() => void editor.addSelectedStep()}>
+                  @click=${() => void editor.action.addSelectedStep()}>
                   ${t('Editor.AddStep')}
                 </fluent-button>
                 ${this.iconButton('copy', t('Editor.DuplicateStep'), !hasStep,
-                  () => void editor.duplicateStep())}
+                  () => void editor.steps.duplicateStep())}
                 ${this.iconButton('delete', t('Editor.Delete'), !hasStep,
-                  () => void editor.removeStep())}
+                  () => void editor.steps.removeStep())}
                 ${this.iconButton('arrow-up', t('Palette.MoveUp'), !hasStep,
-                  () => void editor.moveStep(undefined, -1))}
+                  () => void editor.steps.moveStep(undefined, -1))}
                 ${this.iconButton('arrow-down', t('Palette.MoveDown'), !hasStep,
-                  () => void editor.moveStep(undefined, 1))}
+                  () => void editor.steps.moveStep(undefined, 1))}
                 <span class="grow"></span>
                 <button class="ghost" type="button"
                   title=${state.inspectorVisible ? t('Editor.HideInspector') : t('Editor.ShowInspector')}
                   aria-label=${state.inspectorVisible ? t('Editor.HideInspector') : t('Editor.ShowInspector')}
-                  @click=${() => editor.setInspectorVisible(!state.inspectorVisible)}>
+                  @click=${() => editor.ui.setInspectorVisible(!state.inspectorVisible)}>
                   ${icon(state.inspectorVisible ? 'panel-right-close' : 'panel-right-open')}
                 </button>
               </div>
@@ -138,12 +138,12 @@ export class WgEditor extends LitElement {
                   @pointerdown=${this.onSplitDown}
                   @pointermove=${this.onSplitMove}
                   @pointerup=${this.onSplitUp}
-                  @dblclick=${() => editor.setInspectorWidth(360)}
+                  @dblclick=${() => editor.ui.setInspectorWidth(360)}
                   @keydown=${(event: KeyboardEvent) => {
                     if (event.key === 'ArrowLeft') {
-                      editor.setInspectorWidth(state.inspectorWidth + 16);
+                      editor.ui.setInspectorWidth(state.inspectorWidth + 16);
                     } else if (event.key === 'ArrowRight') {
-                      editor.setInspectorWidth(state.inspectorWidth - 16);
+                      editor.ui.setInspectorWidth(state.inspectorWidth - 16);
                     }
                   }}></div>
                 <div class="inspector" style=${'--inspector-width: ' + String(state.inspectorWidth) + 'px'}>
@@ -179,7 +179,7 @@ export class WgEditor extends LitElement {
       return;
     }
 
-    editor.setInspectorWidth(this.splitStartWidth - (event.clientX - this.splitStartX));
+    editor.ui.setInspectorWidth(this.splitStartWidth - (event.clientX - this.splitStartX));
   };
 
   private onSplitUp = (event: PointerEvent): void => {
@@ -201,10 +201,10 @@ export class WgEditor extends LitElement {
 
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
-        void editor.removeStep();
+        void editor.steps.removeStep();
       } else if (event.key === 'F2') {
         event.preventDefault();
-        editor.openStepEditor();
+        editor.action.openStepEditor();
       }
       return;
     }
@@ -217,25 +217,25 @@ export class WgEditor extends LitElement {
     switch (event.key.toLowerCase()) {
       case 's':
         event.preventDefault();
-        void editor.save();
+        void editor.session.save();
         break;
       case 'w': {
         event.preventDefault();
         if (state.activeKey.length > 0) {
-          editor.requestCloseTab(state.activeKey);
+          editor.session.requestCloseTab(state.activeKey);
         }
         break;
       }
       case 'z':
         if (!typing) {
           event.preventDefault();
-          void (event.shiftKey ? editor.redo() : editor.undo());
+          void (event.shiftKey ? editor.steps.redo() : editor.steps.undo());
         }
         break;
       case 'y':
         if (!typing) {
           event.preventDefault();
-          void editor.redo();
+          void editor.steps.redo();
         }
         break;
       case 'a':
@@ -243,32 +243,32 @@ export class WgEditor extends LitElement {
           event.preventDefault();
           const ids = flattenSteps(state.snapshot.steps).map((step) => step.id);
           if (ids.length > 0) {
-            editor.selectStep(ids.at(-1) ?? '', false, ids);
+            editor.ui.selectStep(ids.at(-1) ?? '', false, ids);
           }
         }
         break;
       case 'c':
         if (!typing) {
           event.preventDefault();
-          void editor.copySteps();
+          void editor.steps.copySteps();
         }
         break;
       case 'x':
         if (!typing) {
           event.preventDefault();
-          void editor.cutSteps();
+          void editor.steps.cutSteps();
         }
         break;
       case 'v':
         if (!typing) {
           event.preventDefault();
-          void editor.pasteSteps(state.selectedStepId);
+          void editor.steps.pasteSteps(state.selectedStepId);
         }
         break;
       case 'g':
         if (!typing) {
           event.preventDefault();
-          void editor.groupSteps();
+          void editor.steps.groupSteps();
         }
         break;
       case 'e':
@@ -278,20 +278,20 @@ export class WgEditor extends LitElement {
             ? findStep(state.snapshot.steps, state.selectedStepIds[0])
             : null;
           if (first) {
-            void editor.setStepEnabled(undefined, !first.enabled);
+            void editor.steps.setStepEnabled(undefined, !first.enabled);
           }
         }
         break;
       case 'arrowup':
         if (!typing) {
           event.preventDefault();
-          void editor.moveStep(undefined, -1);
+          void editor.steps.moveStep(undefined, -1);
         }
         break;
       case 'arrowdown':
         if (!typing) {
           event.preventDefault();
-          void editor.moveStep(undefined, 1);
+          void editor.steps.moveStep(undefined, 1);
         }
         break;
       default:

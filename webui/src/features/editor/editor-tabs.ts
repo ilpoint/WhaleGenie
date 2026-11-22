@@ -178,11 +178,11 @@ export class WgEditorTabs extends LitElement {
               aria-selected=${tab.key === state.activeKey ? 'true' : 'false'}
               tabindex=${tab.key === state.activeKey ? '0' : '-1'}
               title=${tab.name}
-              @click=${() => void editor.activateTab(tab.key)}
+              @click=${() => void editor.session.activateTab(tab.key)}
               @auxclick=${(event: MouseEvent) => {
                 if (event.button === 1) {
                   event.preventDefault();
-                  editor.requestCloseTab(tab.key);
+                  editor.session.requestCloseTab(tab.key);
                 }
               }}
             >
@@ -199,7 +199,7 @@ export class WgEditorTabs extends LitElement {
               aria-label=${t('Common.Close')}
               @click=${(event: Event) => {
                 event.stopPropagation();
-                editor.requestCloseTab(tab.key);
+                editor.session.requestCloseTab(tab.key);
               }}
             >${icon('close')}</button>
           </div>
@@ -209,27 +209,27 @@ export class WgEditorTabs extends LitElement {
           class="ghost export"
           title=${t('Editor.ExportDocument')}
           aria-label=${t('Editor.ExportDocument')}
-          @click=${() => void editor.exportDocument()}
+          @click=${() => void editor.session.exportDocument()}
         >${icon('export')}</button>
         <button
           class="ghost new"
           title=${t('Main.AddMacro')}
           aria-label=${t('Main.AddMacro')}
-          @click=${() => void editor.newDocument()}
+          @click=${() => void editor.session.newDocument()}
         >${icon('plus')}</button>
       </div>
       ${state.closeRequest
         ? html`
-          <div class="confirm-overlay" @click=${() => editor.cancelClose()}>
+          <div class="confirm-overlay" @click=${() => editor.session.cancelClose()}>
             <div class="confirm panel" role="dialog" aria-modal="true"
               @click=${(event: Event) => event.stopPropagation()}>
               <h2>${t('Editor.UnsavedTitle')}</h2>
               <p>${t('Editor.UnsavedMessage')}</p>
               <div class="confirm-actions">
-                <fluent-button appearance="subtle" @click=${() => editor.cancelClose()}>
+                <fluent-button appearance="subtle" @click=${() => editor.session.cancelClose()}>
                   ${t('Common.Cancel')}
                 </fluent-button>
-                <fluent-button appearance="accent" @click=${() => void editor.confirmClose()}>
+                <fluent-button appearance="accent" @click=${() => void editor.session.confirmClose()}>
                   ${t('Editor.Save')}
                 </fluent-button>
               </div>
@@ -266,7 +266,7 @@ export class WgEditorTabs extends LitElement {
       return;
     }
 
-    void editor.activateTab(tab.key).then(() => {
+    void editor.session.activateTab(tab.key).then(() => {
       const button = this.renderRoot.querySelector<HTMLButtonElement>(
         `.tab[data-key="${CSS.escape(tab.key)}"]`);
       button?.focus();

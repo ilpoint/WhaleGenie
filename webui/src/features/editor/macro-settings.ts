@@ -83,10 +83,10 @@ export class WgMacroSettings extends LitElement {
           : html`<span style="flex:1"></span>`}
         <fluent-button appearance="accent"
           ?disabled=${!snapshot.dirty || !snapshot.canSave}
-          @click=${() => void editor.save()}>${t('Editor.Save')}</fluent-button>
+          @click=${() => void editor.session.save()}>${t('Editor.Save')}</fluent-button>
         <fluent-button
           ?disabled=${snapshot.isSubMacro || snapshot.steps.length === 0 || !snapshot.canSave}
-          @click=${() => void editor.run()}>${t('Editor.RunDebug')}</fluent-button>
+          @click=${() => void editor.session.run()}>${t('Editor.RunDebug')}</fluent-button>
       </div>
       ${this.characterPad
         ? html`<wg-character-pad .pad=${this.characterPad} .text=${this.hotstringText()}
@@ -113,25 +113,25 @@ export class WgMacroSettings extends LitElement {
             <span>${t('Editor.MacroName')}</span>
             <input .value=${snapshot.name} data-field="name"
               placeholder=${t('Editor.NamePlaceholder')}
-              @input=${(event: Event) => editor.setDraft('name',
+              @input=${(event: Event) => editor.session.setDraft('name',
                 (event.target as HTMLInputElement).value)}
-              @change=${() => void editor.commitDrafts()} />
+              @change=${() => void editor.session.commitDrafts()} />
           </label>
           <label class="field">
             <span>${t('Editor.MacroDescription')}</span>
             <textarea .value=${snapshot.description} data-field="description"
               placeholder=${t('Editor.DescriptionPlaceholder')}
-              @input=${(event: Event) => editor.setDraft('description',
+              @input=${(event: Event) => editor.session.setDraft('description',
                 (event.target as HTMLTextAreaElement).value)}
-              @change=${() => void editor.commitDrafts()}></textarea>
+              @change=${() => void editor.session.commitDrafts()}></textarea>
           </label>
           <label class="field">
             <span>${t('Editor.MacroGroup')}</span>
             <input .value=${snapshot.group} data-field="group"
               placeholder=${t('Editor.GroupPlaceholder')}
-              @input=${(event: Event) => editor.setDraft('group',
+              @input=${(event: Event) => editor.session.setDraft('group',
                 (event.target as HTMLInputElement).value)}
-              @change=${() => void editor.commitDrafts()} />
+              @change=${() => void editor.session.commitDrafts()} />
           </label>
           ${snapshot.nameProblem
             ? html`<p class="problem">${snapshot.nameProblem}</p>`
@@ -163,7 +163,7 @@ export class WgMacroSettings extends LitElement {
               <input type="checkbox" .checked=${trigger.enabled}
                 title=${t('Editor.TriggerEnabled')} aria-label=${t('Editor.TriggerEnabled')}
                 @click=${(event: Event) => event.stopPropagation()}
-                @change=${(event: Event) => void editor.setTriggerEnabled(
+                @change=${(event: Event) => void editor.triggers.setTriggerEnabled(
                   trigger.id, (event.target as HTMLInputElement).checked)} />
               <span class="body">
                 <span class="kind">${trigger.kindLabel}</span>
@@ -173,7 +173,7 @@ export class WgMacroSettings extends LitElement {
                 aria-label=${t('Editor.RemoveTrigger')}
                 @click=${(event: Event) => {
                   event.stopPropagation();
-                  void editor.removeTrigger(trigger.id);
+                  void editor.triggers.removeTrigger(trigger.id);
                 }}>${icon('close')}</button>
             </div>
           `)}
@@ -225,9 +225,9 @@ export class WgMacroSettings extends LitElement {
                 event.preventDefault();
                 const key = this.keyName(event);
                 this.capturingTrigger = '';
-                void editor.setTriggerBinding(trigger.id, key);
+                void editor.triggers.setTriggerBinding(trigger.id, key);
               }}
-              @change=${(event: Event) => void editor.setTriggerBinding(
+              @change=${(event: Event) => void editor.triggers.setTriggerBinding(
                 trigger.id, (event.target as HTMLInputElement).value)}
             />
             <button class="link-button" type="button"
@@ -242,7 +242,7 @@ export class WgMacroSettings extends LitElement {
         <label class="field">
           <span>${t('Editor.Schedule')}</span>
           <select .value=${trigger.timerMode}
-            @change=${(event: Event) => void editor.setTriggerTimer(trigger.id, 'mode',
+            @change=${(event: Event) => void editor.triggers.setTriggerTimer(trigger.id, 'mode',
               (event.target as HTMLSelectElement).value)}>
             <option value="Interval">${t('Schedule.Interval')}</option>
             <option value="Daily">${t('Schedule.Daily')}</option>
@@ -253,7 +253,7 @@ export class WgMacroSettings extends LitElement {
             <label class="field">
               <span>${t('Editor.ScheduleTime')}</span>
               <input .value=${trigger.time} placeholder=${t('Editor.ScheduleTimeHint')}
-                @change=${(event: Event) => void editor.setTriggerTimer(trigger.id, 'time',
+                @change=${(event: Event) => void editor.triggers.setTriggerTimer(trigger.id, 'time',
                   (event.target as HTMLInputElement).value)} />
             </label>
           `
@@ -262,13 +262,13 @@ export class WgMacroSettings extends LitElement {
               <label class="field">
                 <span>${t('Editor.Interval')}</span>
                 <input type="number" min="1" .value=${trigger.interval}
-                  @change=${(event: Event) => void editor.setTriggerTimer(trigger.id, 'interval',
+                  @change=${(event: Event) => void editor.triggers.setTriggerTimer(trigger.id, 'interval',
                     (event.target as HTMLInputElement).value)} />
               </label>
               <label class="field">
                 <span>${t('Editor.Schedule')}</span>
                 <select .value=${trigger.unit}
-                  @change=${(event: Event) => void editor.setTriggerTimer(trigger.id, 'unit',
+                  @change=${(event: Event) => void editor.triggers.setTriggerTimer(trigger.id, 'unit',
                     (event.target as HTMLSelectElement).value)}>
                   <option value="Seconds">${t('Schedule.Unit.Seconds')}</option>
                   <option value="Minutes">${t('Schedule.Unit.Minutes')}</option>
@@ -283,14 +283,14 @@ export class WgMacroSettings extends LitElement {
         <label class="field">
           <span>${t('Editor.WatchPath')}</span>
           <input .value=${trigger.filePath} placeholder=${t('Editor.WatchPathHint')}
-            @change=${(event: Event) => void editor.setTriggerFile(trigger.id, 'path',
+            @change=${(event: Event) => void editor.triggers.setTriggerFile(trigger.id, 'path',
               (event.target as HTMLInputElement).value)} />
         </label>
         <div class="two">
           <label class="field">
             <span>${t('Editor.WatchChange')}</span>
             <select .value=${trigger.fileChange}
-              @change=${(event: Event) => void editor.setTriggerFile(trigger.id, 'change',
+              @change=${(event: Event) => void editor.triggers.setTriggerFile(trigger.id, 'change',
                 (event.target as HTMLSelectElement).value)}>
               <option value="Any">${t('FileChange.Any')}</option>
               <option value="Created">${t('FileChange.Created')}</option>
@@ -301,13 +301,13 @@ export class WgMacroSettings extends LitElement {
           <label class="field">
             <span>${t('Editor.WatchFilter')}</span>
             <input .value=${trigger.fileFilter} placeholder=${t('Editor.WatchFilter')}
-              @change=${(event: Event) => void editor.setTriggerFile(trigger.id, 'filter',
+              @change=${(event: Event) => void editor.triggers.setTriggerFile(trigger.id, 'filter',
                 (event.target as HTMLInputElement).value)} />
           </label>
         </div>
         <label class="inline">
           <input type="checkbox" .checked=${trigger.fileSubfolders}
-            @change=${(event: Event) => void editor.setTriggerFile(trigger.id, 'subfolders',
+            @change=${(event: Event) => void editor.triggers.setTriggerFile(trigger.id, 'subfolders',
               String((event.target as HTMLInputElement).checked))} />
           <span>${t('Editor.WatchSubfolders')}</span>
         </label>
@@ -317,13 +317,13 @@ export class WgMacroSettings extends LitElement {
         <label class="field">
           <span>${t('Editor.ProcessName')}</span>
           <input .value=${trigger.processName} placeholder=${t('Editor.ProcessNameHint')}
-            @change=${(event: Event) => void editor.setTriggerProcess(trigger.id, 'name',
+            @change=${(event: Event) => void editor.triggers.setTriggerProcess(trigger.id, 'name',
               (event.target as HTMLInputElement).value)} />
         </label>
         <label class="field">
           <span>${t('Editor.ProcessWhen')}</span>
           <select .value=${trigger.processChange}
-            @change=${(event: Event) => void editor.setTriggerProcess(trigger.id, 'change',
+            @change=${(event: Event) => void editor.triggers.setTriggerProcess(trigger.id, 'change',
               (event.target as HTMLSelectElement).value)}>
             <option value="Any">${t('ProcessChange.Any')}</option>
             <option value="Started">${t('ProcessChange.Started')}</option>
@@ -338,25 +338,25 @@ export class WgMacroSettings extends LitElement {
           <span>${t('WindowPart.Title')}</span>
           <input .value=${isWindow ? trigger.windowTitle : trigger.interfaceTitle}
             @change=${(event: Event) => void (isWindow
-              ? editor.setTriggerWindow(trigger.id, 'title', (event.target as HTMLInputElement).value)
-              : editor.setTriggerInterface(trigger.id, 'title',
+              ? editor.triggers.setTriggerWindow(trigger.id, 'title', (event.target as HTMLInputElement).value)
+              : editor.triggers.setTriggerInterface(trigger.id, 'title',
                 (event.target as HTMLInputElement).value))} />
         </label>
         <label class="field">
           <span>${t('WindowRule.Process')}</span>
           <input .value=${isWindow ? trigger.windowProcess : trigger.interfaceProcess}
             @change=${(event: Event) => void (isWindow
-              ? editor.setTriggerWindow(trigger.id, 'process',
+              ? editor.triggers.setTriggerWindow(trigger.id, 'process',
                 (event.target as HTMLInputElement).value)
-              : editor.setTriggerInterface(trigger.id, 'process',
+              : editor.triggers.setTriggerInterface(trigger.id, 'process',
                 (event.target as HTMLInputElement).value))} />
         </label>
         <label class="field">
           <span>${t('WindowRule.How')}</span>
           <select .value=${isWindow ? trigger.windowHow : trigger.interfaceHow}
             @change=${(event: Event) => void (isWindow
-              ? editor.setTriggerWindow(trigger.id, 'how', (event.target as HTMLSelectElement).value)
-              : editor.setTriggerInterface(trigger.id, 'how',
+              ? editor.triggers.setTriggerWindow(trigger.id, 'how', (event.target as HTMLSelectElement).value)
+              : editor.triggers.setTriggerInterface(trigger.id, 'how',
                 (event.target as HTMLSelectElement).value))}>
             <option value="TitleContains">${t('WindowRule.How.titleContains')}</option>
             <option value="TitleStartsWith">${t('WindowRule.How.titleStartsWith')}</option>
@@ -375,7 +375,7 @@ export class WgMacroSettings extends LitElement {
             <label class="field">
               <span>${t('WindowChange.Any')}</span>
               <select .value=${trigger.windowChange}
-                @change=${(event: Event) => void editor.setTriggerWindow(trigger.id, 'change',
+                @change=${(event: Event) => void editor.triggers.setTriggerWindow(trigger.id, 'change',
                   (event.target as HTMLSelectElement).value)}>
                 <option value="Appeared">${t('WindowChange.Appeared')}</option>
                 <option value="Disappeared">${t('WindowChange.Disappeared')}</option>
@@ -391,7 +391,7 @@ export class WgMacroSettings extends LitElement {
           <span>${t('Editor.Hotstring')}</span>
           <div class="inline">
             <input .value=${trigger.hotstringText} placeholder=${t('Editor.HotstringHint')}
-              @change=${(event: Event) => void editor.setTriggerHotstring(trigger.id,
+              @change=${(event: Event) => void editor.triggers.setTriggerHotstring(trigger.id,
                 (event.target as HTMLInputElement).value)} />
             <button class="keycap" type="button" @click=${() => void this.openCharacterPad(trigger)}>
               ${t('HotstringKeyboard.Choose')}</button>
@@ -406,7 +406,7 @@ export class WgMacroSettings extends LitElement {
           <label class="field">
             <span>${t('Editor.ColorTolerance')}</span>
             <select .value=${trigger.colorMatch}
-              @change=${(event: Event) => void editor.setTriggerColor(trigger.id, 'match',
+              @change=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'match',
                 (event.target as HTMLSelectElement).value)}>
               <option value="ColorMatches">${t('ColorMatch.Matches')}</option>
               <option value="ColorNotMatches">${t('ColorMatch.NotMatches')}</option>
@@ -416,10 +416,10 @@ export class WgMacroSettings extends LitElement {
             <span>${t('Editor.HexColor')}</span>
             <div class="inline">
               <input type="color" .value=${colour}
-                @input=${(event: Event) => void editor.setTriggerColor(trigger.id, 'hex',
+                @input=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'hex',
                   (event.target as HTMLInputElement).value)} />
               <input .value=${trigger.colorHex}
-                @change=${(event: Event) => void editor.setTriggerColor(trigger.id, 'hex',
+                @change=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'hex',
                   (event.target as HTMLInputElement).value)} />
             </div>
           </label>
@@ -428,12 +428,12 @@ export class WgMacroSettings extends LitElement {
           <label class="field">
             <span>${t('Editor.ColorTolerance')}</span>
             <input type="number" min="0" .value=${trigger.colorTolerance}
-              @change=${(event: Event) => void editor.setTriggerColor(trigger.id, 'tolerance',
+              @change=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'tolerance',
                 (event.target as HTMLInputElement).value)} />
           </label>
           <label class="inline">
             <input type="checkbox" .checked=${trigger.followCursor}
-              @change=${(event: Event) => void editor.setTriggerColor(trigger.id, 'follow',
+              @change=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'follow',
                 String((event.target as HTMLInputElement).checked))} />
             <span>${t('Editor.UseCursorPosition')}</span>
           </label>
@@ -445,13 +445,13 @@ export class WgMacroSettings extends LitElement {
               <label class="field">
                 <span>${t('Editor.X')}</span>
                 <input type="number" .value=${trigger.colorX}
-                  @change=${(event: Event) => void editor.setTriggerColor(trigger.id, 'x',
+                  @change=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'x',
                     (event.target as HTMLInputElement).value)} />
               </label>
               <label class="field">
                 <span>${t('Editor.Y')}</span>
                 <input type="number" .value=${trigger.colorY}
-                  @change=${(event: Event) => void editor.setTriggerColor(trigger.id, 'y',
+                  @change=${(event: Event) => void editor.triggers.setTriggerColor(trigger.id, 'y',
                     (event.target as HTMLInputElement).value)} />
               </label>
             </div>
@@ -462,7 +462,7 @@ export class WgMacroSettings extends LitElement {
         <label class="field">
           <span>${t('Editor.IdleSeconds')}</span>
           <input type="number" min="1" .value=${trigger.idleSeconds}
-            @change=${(event: Event) => void editor.setTriggerIdle(trigger.id,
+            @change=${(event: Event) => void editor.triggers.setTriggerIdle(trigger.id,
               (event.target as HTMLInputElement).value)} />
         </label>
       `);
@@ -475,7 +475,7 @@ export class WgMacroSettings extends LitElement {
         <label class="field">
           <span>${t('Editor.Loop')}</span>
           <select .value=${trigger.loop}
-            @change=${(event: Event) => void editor.setTriggerLoop(
+            @change=${(event: Event) => void editor.triggers.setTriggerLoop(
               trigger.id, (event.target as HTMLSelectElement).value)}>
             <option value="Press">${t('Loop.Press')}</option>
             <option value="Hold">${t('Loop.Hold')}</option>
@@ -490,7 +490,7 @@ export class WgMacroSettings extends LitElement {
       fields.push(html`
         <label class="inline">
           <input type="checkbox" .checked=${trigger.once}
-            @change=${(event: Event) => void editor.setTriggerOnce(
+            @change=${(event: Event) => void editor.triggers.setTriggerOnce(
               trigger.id, (event.target as HTMLInputElement).checked)} />
           <span>${t('Editor.TriggerOnce')}</span>
         </label>
@@ -505,7 +505,7 @@ export class WgMacroSettings extends LitElement {
             ${trigger.hotstringEndKeys.map((key) => html`
               <button class="keycap ${key.checked ? 'on' : ''} ${key.isCustom ? 'custom' : ''}"
                 type="button" aria-pressed=${key.checked ? 'true' : 'false'}
-                @click=${() => void editor.setTriggerHotstringEndKey(trigger.id, key.value, !key.checked)}>
+                @click=${() => void editor.triggers.setTriggerHotstringEndKey(trigger.id, key.value, !key.checked)}>
                 ${key.label}
               </button>
             `)}
@@ -515,7 +515,7 @@ export class WgMacroSettings extends LitElement {
               ${t('Editor.HotstringEndCapture')}
             </button>
             <button class="keycap" type="button"
-              @click=${() => void editor.resetTriggerHotstringEndKeys(trigger.id)}>
+              @click=${() => void editor.triggers.resetTriggerHotstringEndKeys(trigger.id)}>
               ${t('Editor.HotstringEndCharsReset')}
             </button>
           </div>
@@ -527,13 +527,13 @@ export class WgMacroSettings extends LitElement {
         <div class="two">
           <label class="inline">
             <input type="checkbox" .checked=${trigger.hotstringCaseSensitive}
-              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+              @change=${(event: Event) => void editor.triggers.setTriggerHotstringOption(trigger.id,
                 'caseSensitive', String((event.target as HTMLInputElement).checked))} />
             <span>${t('Editor.HotstringCase')}</span>
           </label>
           <label class="inline">
             <input type="checkbox" .checked=${trigger.hotstringInsideWord}
-              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+              @change=${(event: Event) => void editor.triggers.setTriggerHotstringOption(trigger.id,
                 'insideWord', String((event.target as HTMLInputElement).checked))} />
             <span>${t('Editor.HotstringInsideWord')}</span>
           </label>
@@ -541,20 +541,20 @@ export class WgMacroSettings extends LitElement {
         <div class="two">
           <label class="inline">
             <input type="checkbox" .checked=${trigger.hotstringRequireEnd}
-              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+              @change=${(event: Event) => void editor.triggers.setTriggerHotstringOption(trigger.id,
                 'requireEnd', String((event.target as HTMLInputElement).checked))} />
             <span>${t('Editor.HotstringRequireEnd')}</span>
           </label>
           <label class="inline">
             <input type="checkbox" .checked=${trigger.hotstringEraseTyped}
-              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+              @change=${(event: Event) => void editor.triggers.setTriggerHotstringOption(trigger.id,
                 'eraseTyped', String((event.target as HTMLInputElement).checked))} />
             <span>${t('Editor.HotstringErase')}</span>
           </label>
         </div>
         <label class="inline">
           <input type="checkbox" .checked=${trigger.hotstringKeepEnd}
-            @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+            @change=${(event: Event) => void editor.triggers.setTriggerHotstringOption(trigger.id,
               'keepEnd', String((event.target as HTMLInputElement).checked))} />
           <span>${t('Editor.HotstringKeepEnd')}</span>
         </label>
@@ -567,8 +567,8 @@ export class WgMacroSettings extends LitElement {
           <span>${t('WindowRule.Class')}</span>
           <input .value=${trigger.windowClass}
             @change=${(event: Event) => void (trigger.kind === 'Window'
-              ? editor.setTriggerWindow(trigger.id, 'class', (event.target as HTMLInputElement).value)
-              : editor.setTriggerInterface(trigger.id, 'class',
+              ? editor.triggers.setTriggerWindow(trigger.id, 'class', (event.target as HTMLInputElement).value)
+              : editor.triggers.setTriggerInterface(trigger.id, 'class',
                 (event.target as HTMLInputElement).value))} />
         </label>
       `);
@@ -583,7 +583,7 @@ export class WgMacroSettings extends LitElement {
             <button class="keycap" type="button" @click=${() => this.beginInterfaceCapture(trigger)}>
               ${t('Settings.HotkeySet')}</button>
             <button class="keycap" type="button"
-              @click=${() => void editor.clearTriggerInterfaceHotkey(trigger.id)}>
+              @click=${() => void editor.triggers.clearTriggerInterfaceHotkey(trigger.id)}>
               ${t('Settings.HotkeyClear')}</button>
           </div>
           <span class="hint">${t('Editor.InterfaceHotkeySupport')}</span>
@@ -617,14 +617,14 @@ export class WgMacroSettings extends LitElement {
               <h3>${t('Editor.InputLimit')}</h3>
               <label class="inline">
                 <input type="checkbox" data-setting="followInputLimit" .checked=${snapshot.followInputLimit}
-                  @change=${(event: Event) => void editor.setMacroSetting('followInputLimit',
+                  @change=${(event: Event) => void editor.session.setMacroSetting('followInputLimit',
                     String((event.target as HTMLInputElement).checked))} />
                 <span>${t('Editor.InputLimitFollow')}</span>
               </label>
               <div class="inline">
                 <input type="number" min="0" max="999" data-setting="inputLimit" .value=${String(snapshot.inputLimit)}
                   ?disabled=${snapshot.followInputLimit}
-                  @change=${(event: Event) => void editor.setMacroSetting('inputLimit',
+                  @change=${(event: Event) => void editor.session.setMacroSetting('inputLimit',
                     (event.target as HTMLInputElement).value)} />
                 <span class="hint">${t('Editor.InputLimitHint')}</span>
               </div>
@@ -633,10 +633,10 @@ export class WgMacroSettings extends LitElement {
               <h3>${t('Editor.ToggleKey')}</h3>
               <div class="inline">
                 <input .value=${snapshot.toggleKey} data-setting="toggleKey"
-                  @change=${(event: Event) => void editor.setMacroSetting('toggleKey',
+                  @change=${(event: Event) => void editor.session.setMacroSetting('toggleKey',
                     (event.target as HTMLInputElement).value)} />
                 <button class="link-button" type="button"
-                  @click=${() => void editor.setMacroSetting('toggleKey', '')}>
+                  @click=${() => void editor.session.setMacroSetting('toggleKey', '')}>
                   ${t('Settings.HotkeyClear')}
                 </button>
               </div>
@@ -651,7 +651,7 @@ export class WgMacroSettings extends LitElement {
           <label class="field">
             <span>${t('Editor.PositionCapture')}</span>
             <select .value=${String(snapshot.recording.positionIndex)}
-              @change=${(event: Event) => void editor.setRecordOption('positionCapture',
+              @change=${(event: Event) => void editor.session.setRecordOption('positionCapture',
                 (event.target as HTMLSelectElement).value)}>
               ${snapshot.recording.positionOptions.map((option, index) => html`
                 <option value=${String(index)}>${option}</option>`)}
@@ -672,7 +672,7 @@ export class WgMacroSettings extends LitElement {
           <label class="field">
             <span>${t('Editor.IgnoreDelays')}</span>
             <input type="number" min="0" max="60000" .value=${String(snapshot.recording.ignoreDelaysBelowMs)}
-              @change=${(event: Event) => void editor.setRecordOption('ignoreDelaysBelowMs',
+              @change=${(event: Event) => void editor.session.setRecordOption('ignoreDelaysBelowMs',
                 (event.target as HTMLInputElement).value)} />
           </label>
         </div>
@@ -681,12 +681,12 @@ export class WgMacroSettings extends LitElement {
           <p class="hint">${t('Speed.Explanation')}</p>
           <div class="inline">
             <input type="number" min="0.1" max="10" step="0.1" .value=${String(snapshot.recording.delayScale)}
-              @change=${(event: Event) => void editor.setDelayScale(
+              @change=${(event: Event) => void editor.session.setDelayScale(
                 Number((event.target as HTMLInputElement).value))} />
             <span class="hint">${snapshot.recording.delayScaleDisplay}</span>
             ${snapshot.recording.hasDelayScale
               ? html`<button class="link-button" type="button"
-                  @click=${() => void editor.setDelayScale(1)}>${t('Common.Restore')}</button>`
+                  @click=${() => void editor.session.setDelayScale(1)}>${t('Common.Restore')}</button>`
               : nothing}
           </div>
         </div>
@@ -705,7 +705,7 @@ export class WgMacroSettings extends LitElement {
   }
 
   private async openCharacterPad(trigger: EditorTrigger): Promise<void> {
-    const pad = await editor.hotstringKeyPad();
+    const pad = await editor.triggers.hotstringKeyPad();
     if (pad) {
       this.characterTrigger = trigger.id;
       this.characterPad = pad;
@@ -713,7 +713,7 @@ export class WgMacroSettings extends LitElement {
   }
 
   private async submitCharacter(event: CustomEvent<{ text: string }>): Promise<void> {
-    await editor.setTriggerHotstring(this.characterTrigger, event.detail.text);
+    await editor.triggers.setTriggerHotstring(this.characterTrigger, event.detail.text);
     this.characterPad = null;
   }
 
@@ -738,7 +738,7 @@ export class WgMacroSettings extends LitElement {
     const character = event.key === ' ' ? ' ' : event.key === 'Tab' ? '\t'
       : event.key === 'Enter' ? '\n' : event.key;
     if ([...character].length === 1) {
-      void editor.captureTriggerHotstringEnd(trigger, character);
+      void editor.triggers.captureTriggerHotstringEnd(trigger, character);
     }
   };
 
@@ -762,7 +762,7 @@ export class WgMacroSettings extends LitElement {
 
     const binding = keyboardChord(event);
     if (binding) {
-      void editor.setTriggerInterfaceHotkey(trigger, binding);
+      void editor.triggers.setTriggerInterfaceHotkey(trigger, binding);
     }
   };
 
@@ -770,7 +770,7 @@ export class WgMacroSettings extends LitElement {
     return html`
       <label class="inline">
         <input type="checkbox" .checked=${checked}
-          @change=${(event: Event) => void editor.setRecordOption(field,
+          @change=${(event: Event) => void editor.session.setRecordOption(field,
             String((event.target as HTMLInputElement).checked))} />
         <span>${label}</span>
       </label>
@@ -791,39 +791,39 @@ export class WgMacroSettings extends LitElement {
           <div class="declaration">
             <div class="declaration-head">
               <input .value=${parameter.name} placeholder=${t('MacroInterface.Name')}
-                @change=${(event: Event) => void editor.patchCallableParameter(index, 'name',
+                @change=${(event: Event) => void editor.declarations.patchCallableParameter(index, 'name',
                   (event.target as HTMLInputElement).value)} />
               <select .value=${parameter.type}
-                @change=${(event: Event) => void editor.patchCallableParameter(index, 'type',
+                @change=${(event: Event) => void editor.declarations.patchCallableParameter(index, 'type',
                   (event.target as HTMLSelectElement).value)}>
                 ${types.map((type) => html`<option value=${type.value}>${type.label}</option>`)}
               </select>
               <label class="inline" title=${t('MacroInterface.Required')}>
                 <input type="checkbox" .checked=${parameter.required}
-                  @change=${(event: Event) => void editor.patchCallableParameter(index, 'required',
+                  @change=${(event: Event) => void editor.declarations.patchCallableParameter(index, 'required',
                     String((event.target as HTMLInputElement).checked))} />
                 <span class="hint">${t('MacroInterface.Required')}</span>
               </label>
               <button class="ghost" title=${t('MacroInterface.MoveUp')}
                 aria-label=${t('MacroInterface.MoveUp')}
-                @click=${() => void editor.moveCallableParameter(index, -1)}>${icon('arrow-up')}</button>
+                @click=${() => void editor.declarations.moveCallableParameter(index, -1)}>${icon('arrow-up')}</button>
               <button class="ghost" title=${t('MacroInterface.MoveDown')}
                 aria-label=${t('MacroInterface.MoveDown')}
-                @click=${() => void editor.moveCallableParameter(index, 1)}>${icon('arrow-down')}</button>
+                @click=${() => void editor.declarations.moveCallableParameter(index, 1)}>${icon('arrow-down')}</button>
               <button class="ghost" title=${t('MacroInterface.Remove')}
                 aria-label=${t('MacroInterface.Remove')}
-                @click=${() => void editor.removeCallableParameter(index)}>${icon('close')}</button>
+                @click=${() => void editor.declarations.removeCallableParameter(index)}>${icon('close')}</button>
             </div>
             <label class="field">
               <span>${t('MacroInterface.Default')}</span>
               <input .value=${parameter.default} placeholder=${t('MacroInterface.Default')}
-                @change=${(event: Event) => void editor.patchCallableParameter(index, 'default',
+                @change=${(event: Event) => void editor.declarations.patchCallableParameter(index, 'default',
                   (event.target as HTMLInputElement).value)} />
             </label>
             <label class="field">
               <span>${t('MacroInterface.Description')}</span>
               <input .value=${parameter.description}
-                @change=${(event: Event) => void editor.patchCallableParameter(index, 'description',
+                @change=${(event: Event) => void editor.declarations.patchCallableParameter(index, 'description',
                   (event.target as HTMLInputElement).value)} />
             </label>
             ${parameter.type === 'record' ? this.renderRecordFields('parameter', index, parameter.fields) : nothing}
@@ -831,7 +831,7 @@ export class WgMacroSettings extends LitElement {
         `)}
       </div>
       <button class="link-button" type="button"
-        @click=${() => void editor.addCallableParameter()}>
+        @click=${() => void editor.declarations.addCallableParameter()}>
         ${t('MacroInterface.AddParameter')}
       </button>
       <h3>${t('MacroInterface.Results')}</h3>
@@ -840,28 +840,28 @@ export class WgMacroSettings extends LitElement {
           <div class="declaration">
             <div class="declaration-head">
               <input .value=${result.name} placeholder=${t('MacroInterface.Name')}
-                @change=${(event: Event) => void editor.patchCallableResult(index, 'name',
+                @change=${(event: Event) => void editor.declarations.patchCallableResult(index, 'name',
                   (event.target as HTMLInputElement).value)} />
               <select .value=${result.type}
-                @change=${(event: Event) => void editor.patchCallableResult(index, 'type',
+                @change=${(event: Event) => void editor.declarations.patchCallableResult(index, 'type',
                   (event.target as HTMLSelectElement).value)}>
                 ${types.map((type) => html`<option value=${type.value}>${type.label}</option>`)}
               </select>
               <span></span>
               <button class="ghost" title=${t('MacroInterface.MoveUp')}
                 aria-label=${t('MacroInterface.MoveUp')}
-                @click=${() => void editor.moveCallableResult(index, -1)}>${icon('arrow-up')}</button>
+                @click=${() => void editor.declarations.moveCallableResult(index, -1)}>${icon('arrow-up')}</button>
               <button class="ghost" title=${t('MacroInterface.MoveDown')}
                 aria-label=${t('MacroInterface.MoveDown')}
-                @click=${() => void editor.moveCallableResult(index, 1)}>${icon('arrow-down')}</button>
+                @click=${() => void editor.declarations.moveCallableResult(index, 1)}>${icon('arrow-down')}</button>
               <button class="ghost" title=${t('MacroInterface.Remove')}
                 aria-label=${t('MacroInterface.Remove')}
-                @click=${() => void editor.removeCallableResult(index)}>${icon('close')}</button>
+                @click=${() => void editor.declarations.removeCallableResult(index)}>${icon('close')}</button>
             </div>
             <label class="field">
               <span>${t('MacroInterface.Description')}</span>
               <input .value=${result.description}
-                @change=${(event: Event) => void editor.patchCallableResult(index, 'description',
+                @change=${(event: Event) => void editor.declarations.patchCallableResult(index, 'description',
                   (event.target as HTMLInputElement).value)} />
             </label>
             ${result.type === 'record' ? this.renderRecordFields('result', index, result.fields) : nothing}
@@ -869,7 +869,7 @@ export class WgMacroSettings extends LitElement {
         `)}
       </div>
       <button class="link-button" type="button"
-        @click=${() => void editor.addCallableResult()}>
+        @click=${() => void editor.declarations.addCallableResult()}>
         ${t('MacroInterface.AddResult')}
       </button>
     `;
@@ -884,29 +884,29 @@ export class WgMacroSettings extends LitElement {
           <div class="record-field">
             <input .value=${field.name} placeholder=${t('MacroInterface.FieldName')}
               @change=${(event: Event) => void (kind === 'parameter'
-                ? editor.patchCallableParameterField(index, fieldIndex, 'name',
+                ? editor.declarations.patchCallableParameterField(index, fieldIndex, 'name',
                   (event.target as HTMLInputElement).value)
-                : editor.patchCallableResultField(index, fieldIndex, 'name',
+                : editor.declarations.patchCallableResultField(index, fieldIndex, 'name',
                   (event.target as HTMLInputElement).value))} />
             <select .value=${field.type}
               @change=${(event: Event) => void (kind === 'parameter'
-                ? editor.patchCallableParameterField(index, fieldIndex, 'type',
+                ? editor.declarations.patchCallableParameterField(index, fieldIndex, 'type',
                   (event.target as HTMLSelectElement).value)
-                : editor.patchCallableResultField(index, fieldIndex, 'type',
+                : editor.declarations.patchCallableResultField(index, fieldIndex, 'type',
                   (event.target as HTMLSelectElement).value))}>
               ${types.map((type) => html`<option value=${type.value}>${type.label}</option>`)}
             </select>
             <button class="ghost" title=${t('MacroInterface.Remove')}
               aria-label=${t('MacroInterface.Remove')}
               @click=${() => void (kind === 'parameter'
-                ? editor.removeCallableParameterField(index, fieldIndex)
-                : editor.removeCallableResultField(index, fieldIndex))}>${icon('close')}</button>
+                ? editor.declarations.removeCallableParameterField(index, fieldIndex)
+                : editor.declarations.removeCallableResultField(index, fieldIndex))}>${icon('close')}</button>
           </div>
         `)}
         <button class="link-button" type="button"
           @click=${() => void (kind === 'parameter'
-            ? editor.addCallableParameterField(index)
-            : editor.addCallableResultField(index))}>
+            ? editor.declarations.addCallableParameterField(index)
+            : editor.declarations.addCallableResultField(index))}>
           ${t('MacroInterface.AddField')}
         </button>
       </div>
@@ -915,7 +915,7 @@ export class WgMacroSettings extends LitElement {
 
   private async addTrigger(): Promise<void> {
     const before = new Set((editor.get().snapshot?.triggers ?? []).map((trigger) => trigger.id));
-    await editor.addTrigger(this.newTriggerKind);
+    await editor.triggers.addTrigger(this.newTriggerKind);
     const added = (editor.get().snapshot?.triggers ?? [])
       .find((trigger) => !before.has(trigger.id));
     if (added) {

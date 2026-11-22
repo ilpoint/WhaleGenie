@@ -96,7 +96,7 @@ export class WgActionExec extends LitElement {
   }
 
   private meta(field: string, value: string): void {
-    void editor.patchActionMeta(field, value);
+    void editor.action.patchActionMeta(field, value);
   }
 }
 

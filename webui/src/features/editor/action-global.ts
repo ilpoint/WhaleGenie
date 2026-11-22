@@ -59,7 +59,7 @@ export class WgActionGlobal extends LitElement {
   }
 
   private patch(field: string, value: string): void {
-    void editor.patchActionGlobal(field, value);
+    void editor.action.patchActionGlobal(field, value);
   }
 }
 

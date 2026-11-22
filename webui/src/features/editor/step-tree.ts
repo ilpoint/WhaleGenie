@@ -28,7 +28,7 @@ export class WgStepTree extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    editor.ensureLoaded();
+    editor.session.ensureLoaded();
     this.unsubscribe = editor.subscribe(() => this.requestUpdate());
   }
 
@@ -101,7 +101,7 @@ export class WgStepTree extends LitElement {
           aria-current=${primary ? 'true' : 'false'}
           draggable="true"
           @click=${(event: MouseEvent) => this.onRowClick(event, step.id)}
-          @dblclick=${() => { editor.selectStep(step.id); editor.openStepEditor(); }}
+          @dblclick=${() => { editor.ui.selectStep(step.id); editor.action.openStepEditor(); }}
           @contextmenu=${(event: MouseEvent) => this.onContextMenu(event, step.id)}
           @dragstart=${(event: DragEvent) => this.onDragStart(event, step.id)}
           @dragover=${(event: DragEvent) => this.onDragOver(event, step.id)}
@@ -115,7 +115,7 @@ export class WgStepTree extends LitElement {
 
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
-              editor.selectStep(step.id);
+              editor.ui.selectStep(step.id);
             }
           }}
         >
@@ -128,7 +128,7 @@ export class WgStepTree extends LitElement {
                 aria-label=${folded ? t('Editor.Unfold') : t('Editor.Fold')}
                 @click=${(event: Event) => {
                   event.stopPropagation();
-                  editor.toggleStep(step.id);
+                  editor.ui.toggleStep(step.id);
                 }}
               >${icon(folded ? 'chevron-right' : 'chevron-down')}</button>
             `
@@ -142,7 +142,7 @@ export class WgStepTree extends LitElement {
             aria-label=${t('Editor.StepEnabled')}
             @click=${(event: Event) => event.stopPropagation()}
             @change=${(event: Event) =>
-              void editor.setStepEnabled(step.id, (event.target as HTMLInputElement).checked)}
+              void editor.steps.setStepEnabled(step.id, (event.target as HTMLInputElement).checked)}
           />
           <span class="name" title=${step.name}>${step.name}</span>
           <span class="badges">
@@ -157,10 +157,10 @@ export class WgStepTree extends LitElement {
             ? html`<span class="problem-mark" title=${step.problem}>${icon('triangle-alert')}</span>`
             : html`<span></span>`}
           <span class="row-actions">
-            ${this.actionButton('arrow-up', t('Palette.MoveUp'), () => void editor.moveStep(step.id, -1))}
-            ${this.actionButton('arrow-down', t('Palette.MoveDown'), () => void editor.moveStep(step.id, 1))}
-            ${this.actionButton('copy', t('Editor.DuplicateStep'), () => void editor.duplicateStep(step.id))}
-            ${this.actionButton('delete', t('Editor.Delete'), () => void editor.removeStep(step.id))}
+            ${this.actionButton('arrow-up', t('Palette.MoveUp'), () => void editor.steps.moveStep(step.id, -1))}
+            ${this.actionButton('arrow-down', t('Palette.MoveDown'), () => void editor.steps.moveStep(step.id, 1))}
+            ${this.actionButton('copy', t('Editor.DuplicateStep'), () => void editor.steps.duplicateStep(step.id))}
+            ${this.actionButton('delete', t('Editor.Delete'), () => void editor.steps.removeStep(step.id))}
           </span>
         </div>
         ${primary
@@ -193,12 +193,12 @@ export class WgStepTree extends LitElement {
       const from = ids.indexOf(anchor);
       const to = ids.indexOf(id);
       if (from >= 0 && to >= 0) {
-        editor.selectStep(id, false, ids.slice(Math.min(from, to), Math.max(from, to) + 1));
+        editor.ui.selectStep(id, false, ids.slice(Math.min(from, to), Math.max(from, to) + 1));
         return;
       }
     }
 
-    editor.selectStep(id, event.ctrlKey || event.metaKey);
+    editor.ui.selectStep(id, event.ctrlKey || event.metaKey);
   }
 
   private visibleIds(): string[] {
@@ -218,7 +218,7 @@ export class WgStepTree extends LitElement {
     const ctrl = event.ctrlKey || event.metaKey;
     if (event.key === 'Escape') {
       event.preventDefault();
-      editor.selectStep('');
+      editor.ui.selectStep('');
       this.menu = null;
       return;
     }
@@ -227,32 +227,32 @@ export class WgStepTree extends LitElement {
       event.preventDefault();
       const ids = this.visibleIds();
       if (ids.length > 0) {
-        editor.selectStep(ids.at(-1) ?? '', false, ids);
+        editor.ui.selectStep(ids.at(-1) ?? '', false, ids);
       }
       return;
     }
 
     if (ctrl && event.key.toLowerCase() === 'c') {
       event.preventDefault();
-      void editor.copySteps();
+      void editor.steps.copySteps();
       return;
     }
 
     if (ctrl && event.key.toLowerCase() === 'x') {
       event.preventDefault();
-      void editor.cutSteps();
+      void editor.steps.cutSteps();
       return;
     }
 
     if (ctrl && event.key.toLowerCase() === 'v') {
       event.preventDefault();
-      void editor.pasteSteps(state.selectedStepId);
+      void editor.steps.pasteSteps(state.selectedStepId);
       return;
     }
 
     if (ctrl && event.key.toLowerCase() === 'g') {
       event.preventDefault();
-      void editor.groupSteps();
+      void editor.steps.groupSteps();
       return;
     }
 
@@ -262,33 +262,33 @@ export class WgStepTree extends LitElement {
         ? findStep(state.snapshot.steps, selected[0] ?? '')
         : null;
       if (first) {
-        void editor.setStepEnabled(undefined, !first.enabled);
+        void editor.steps.setStepEnabled(undefined, !first.enabled);
       }
       return;
     }
 
     if (ctrl && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
       event.preventDefault();
-      void editor.moveStep(undefined, event.key === 'ArrowUp' ? -1 : 1);
+      void editor.steps.moveStep(undefined, event.key === 'ArrowUp' ? -1 : 1);
       return;
     }
 
     if (event.key === 'Delete' || event.key === 'Backspace') {
       event.preventDefault();
-      void editor.removeStep();
+      void editor.steps.removeStep();
       return;
     }
 
     if (event.key === 'F2') {
       event.preventDefault();
-      editor.openStepEditor();
+      editor.action.openStepEditor();
     }
   }
 
   private onContextMenu(event: MouseEvent, id: string): void {
     event.preventDefault();
     if (!editor.get().selectedStepIds.includes(id)) {
-      editor.selectStep(id);
+      editor.ui.selectStep(id);
     }
 
     this.menu = {
@@ -300,7 +300,7 @@ export class WgStepTree extends LitElement {
 
   private onDragStart(event: DragEvent, id: string): void {
     this.dragIds = editor.get().selectedStepIds.includes(id)
-      ? editor.selectedSteps()
+      ? editor.ui.selectedSteps()
       : [id];
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
@@ -346,11 +346,11 @@ export class WgStepTree extends LitElement {
     }
 
     if (actionKey.length > 0) {
-      void editor.openAction(actionKey, { targetStepId: id, before: target.before });
+      void editor.action.openAction(actionKey, { targetStepId: id, before: target.before });
       return;
     }
 
-    void editor.moveStepsTo(id, target.before, ids);
+    void editor.steps.moveStepsTo(id, target.before, ids);
   }
 
   private renderMenu(): TemplateResult | typeof nothing {
@@ -374,32 +374,32 @@ export class WgStepTree extends LitElement {
       <div class="menu-backdrop" @click=${close} @contextmenu=${(event: Event) => event.preventDefault()}></div>
       <div class="menu" role="menu" style=${'left:' + this.menu.x + 'px;top:' + this.menu.y + 'px'}
         @contextmenu=${(event: Event) => event.preventDefault()}>
-        ${this.menuButton('edit', t('Palette.Edit'), !single, () => run(() => editor.openStepEditor()))}
+        ${this.menuButton('edit', t('Palette.Edit'), !single, () => run(() => editor.action.openStepEditor()))}
         ${this.menuButton('check', t('Palette.ToggleEnabled'), !first, () => run(() => {
           if (first) {
-            void editor.setStepEnabled(undefined, !first.enabled);
+            void editor.steps.setStepEnabled(undefined, !first.enabled);
           }
         }))}
         <div class="sep"></div>
         ${this.menuButton('copy', t('Palette.Copy'), selected.length === 0,
-          () => run(() => void editor.copySteps()))}
+          () => run(() => void editor.steps.copySteps()))}
         ${this.menuButton('cut', t('Palette.Cut'), selected.length === 0,
-          () => run(() => void editor.cutSteps()))}
+          () => run(() => void editor.steps.cutSteps()))}
         ${this.menuButton('paste', t('Palette.Paste'), false,
-          () => run(() => void editor.pasteSteps(state.selectedStepId)))}
+          () => run(() => void editor.steps.pasteSteps(state.selectedStepId)))}
         ${this.menuButton('group', t('Palette.Group'), selected.length === 0,
-          () => run(() => void editor.groupSteps()))}
+          () => run(() => void editor.steps.groupSteps()))}
         ${this.menuButton('export', t('Palette.LiftToMacro'), selected.length === 0,
-          () => run(() => void editor.liftSteps()))}
+          () => run(() => void editor.steps.liftSteps()))}
         ${this.menuButton('copy', t('Editor.DuplicateStep'), selected.length === 0,
-          () => run(() => void editor.duplicateStep()))}
+          () => run(() => void editor.steps.duplicateStep()))}
         <div class="sep"></div>
         ${this.menuButton('arrow-up', t('Palette.MoveUp'), selected.length === 0,
-          () => run(() => void editor.moveStep(undefined, -1)))}
+          () => run(() => void editor.steps.moveStep(undefined, -1)))}
         ${this.menuButton('arrow-down', t('Palette.MoveDown'), selected.length === 0,
-          () => run(() => void editor.moveStep(undefined, 1)))}
+          () => run(() => void editor.steps.moveStep(undefined, 1)))}
         ${this.menuButton('delete', t('Palette.Delete'), selected.length === 0,
-          () => run(() => void editor.removeStep()))}
+          () => run(() => void editor.steps.removeStep()))}
       </div>
     `;
   }
@@ -438,8 +438,8 @@ export class WgStepTree extends LitElement {
                 @click=${(event: Event) => {
                   event.stopPropagation();
                   void (cases
-                    ? editor.addBranch(step.id)
-                    : editor.addSelectedStep(step.id, section.name));
+                    ? editor.steps.addBranch(step.id)
+                    : editor.action.addSelectedStep(step.id, section.name));
                 }}
               >${icon('plus')}${cases ? t('Editor.AddBranch') : t('Editor.AddStep')}</button>
             </div>

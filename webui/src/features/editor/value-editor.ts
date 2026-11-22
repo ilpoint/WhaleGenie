@@ -44,18 +44,18 @@ export class WgValueEditor extends LitElement {
 
     if (event.key === 'Escape') {
       event.preventDefault();
-      void editor.cancelValue();
+      void editor.value.cancelValue();
     } else if (event.ctrlKey && event.key.toLowerCase() === 'z') {
       event.preventDefault();
-      void editor.valueCommand(event.shiftKey ? 'redo' : 'undo');
+      void editor.value.valueCommand(event.shiftKey ? 'redo' : 'undo');
     } else if (event.ctrlKey && event.key.toLowerCase() === 'y') {
       event.preventDefault();
-      void editor.valueCommand('redo');
+      void editor.value.valueCommand('redo');
     }
   };
 
   private send(action: string, params: Record<string, unknown> = {}): void {
-    void editor.valueCommand(action, params);
+    void editor.value.valueCommand(action, params);
   }
 
   private samePath(path: number[] | null, other: number[]): boolean {
@@ -349,7 +349,7 @@ export class WgValueEditor extends LitElement {
           <p>${snapshot.targetLine || snapshot.hint}</p>
         </div>
         <button class="ghost close" type="button" title=${t('Common.Close')}
-          @click=${() => void editor.cancelValue()}>${icon('close')}</button>
+          @click=${() => void editor.value.cancelValue()}>${icon('close')}</button>
       </header>
       <div class="body" style=${'--band-height:' + String(this.bandHeight) + 'px'}>
         ${snapshot.isTextMode
@@ -374,9 +374,9 @@ export class WgValueEditor extends LitElement {
       <footer>
         <span class="hint">${snapshot.hint}</span>
         ${snapshot.noteIsProblem ? html`<span class="error">${snapshot.note}</span>` : nothing}
-        <button class="ghost" type="button" @click=${() => void editor.cancelValue()}>${t('Common.Cancel')}</button>
+        <button class="ghost" type="button" @click=${() => void editor.value.cancelValue()}>${t('Common.Cancel')}</button>
         <fluent-button appearance="accent" ?disabled=${!snapshot.canConfirm}
-          @click=${() => void editor.confirmValue()}>${t('Common.Ok')}</fluent-button>
+          @click=${() => void editor.value.confirmValue()}>${t('Common.Ok')}</fluent-button>
       </footer>
     </div>`;
   }

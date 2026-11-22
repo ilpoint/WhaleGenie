@@ -50,7 +50,7 @@ client.on('run.openRequested', ({ name }) => {
   void client.call('run.load', { name }).then(() => go('run'));
 });
 client.on('editor.openRequested', ({ name }) => {
-  void editor.open(name).then(() => go('editor'));
+  void editor.session.open(name).then(() => go('editor'));
 });
 
 await client.call('bridge.ready');

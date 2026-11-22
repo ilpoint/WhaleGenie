@@ -128,9 +128,9 @@ export class WgActionField extends LitElement {
             <button class="chip" type="button"
               @click=${() => void this.windowPick(field.name)}>${t('WindowRule.Menu.Capture')}</button>
             <button class="chip" type="button"
-              @click=${() => void editor.applyActionWindow(field.name, 'follow')}>${t('WindowRule.Following')}</button>
+              @click=${() => void editor.action.applyActionWindow(field.name, 'follow')}>${t('WindowRule.Following')}</button>
             <button class="chip" type="button"
-              @click=${() => void editor.applyActionWindow(field.name, 'foreground')}>${t('WindowRule.Menu.Foreground')}</button>
+              @click=${() => void editor.action.applyActionWindow(field.name, 'foreground')}>${t('WindowRule.Menu.Foreground')}</button>
           </div>
           ${this.renderWindowPreview(field)}
         </div>
@@ -171,7 +171,7 @@ export class WgActionField extends LitElement {
         </div>
         ${field.offersValue
           ? html`<button class="chip" type="button"
-              @click=${() => void editor.openValue(this.stepId, field.name)}>${t('Add.Value')}</button>`
+              @click=${() => void editor.value.openValue(this.stepId, field.name)}>${t('Add.Value')}</button>`
           : nothing}
       `;
     }
@@ -231,7 +231,7 @@ export class WgActionField extends LitElement {
           <input .value=${field.value}
             @change=${(event: Event) => this.write('text', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
-            @click=${() => void editor.pickImage(this.stepId, field.name)}>${t('Editor.Browse')}</button>
+            @click=${() => void editor.steps.pickImage(this.stepId, field.name)}>${t('Editor.Browse')}</button>
           <button class="chip" type="button"
             @click=${() => void this.pick(field.name, 'capture')}>${t('Add.CaptureImage')}</button>
           <button class="chip" type="button"
@@ -274,7 +274,7 @@ export class WgActionField extends LitElement {
                 ? t('Add.PickElement') : t('Add.PickBrowserElement')}</button>
           <button class="chip" type="button"
             @click=${() => void (field.isSelector
-              ? editor.testActionElement(field.name) : editor.testActionBrowser(field.name))}>
+              ? editor.action.testActionElement(field.name) : editor.action.testActionBrowser(field.name))}>
             ${t('Add.TestElement')}</button>
         </div>
         ${field.candidates.length > 0
@@ -310,7 +310,7 @@ export class WgActionField extends LitElement {
         <div class="inline">
           <span class="hint">${t('Editor.ConditionJoin')}</span>
           <select .value=${field.condition?.join ?? 'All'}
-            @change=${(event: Event) => void editor.setConditionJoin(
+            @change=${(event: Event) => void editor.steps.setConditionJoin(
               this.stepId, field.name, [], (event.target as HTMLSelectElement).value)}>
             <option value="All">${t('Condition.All')}</option>
             <option value="Any">${t('Condition.Any')}</option>
@@ -321,11 +321,11 @@ export class WgActionField extends LitElement {
           this.renderConditionNode(field, node, [index]))}
         <div class="condition-add">
           <button class="chip" type="button"
-            @click=${() => void editor.addConditionRow(this.stepId, field.name, [])}>
+            @click=${() => void editor.steps.addConditionRow(this.stepId, field.name, [])}>
             ${t('Editor.AddRow')}
           </button>
           <button class="chip" type="button"
-            @click=${() => void editor.addConditionGroup(this.stepId, field.name, [])}>
+            @click=${() => void editor.steps.addConditionGroup(this.stepId, field.name, [])}>
             ${t('Editor.AddGroup')}
           </button>
         </div>
@@ -340,25 +340,25 @@ export class WgActionField extends LitElement {
         <div class="condition-nested">
           <div class="inline">
             <select .value=${node.join}
-              @change=${(event: Event) => void editor.setConditionJoin(
+              @change=${(event: Event) => void editor.steps.setConditionJoin(
                 this.stepId, field.name, path, (event.target as HTMLSelectElement).value)}>
               <option value="All">${t('Condition.All')}</option>
               <option value="Any">${t('Condition.Any')}</option>
               <option value="None">${t('Condition.None')}</option>
             </select>
             <button class="chip" type="button"
-              @click=${() => void editor.removeConditionNode(this.stepId, field.name, path)}>
+              @click=${() => void editor.steps.removeConditionNode(this.stepId, field.name, path)}>
               ${t('Editor.RemoveRow')}
             </button>
           </div>
           ${node.children.map((child, index) => this.renderConditionNode(field, child, [...path, index]))}
           <div class="condition-add">
             <button class="chip" type="button"
-              @click=${() => void editor.addConditionRow(this.stepId, field.name, path)}>
+              @click=${() => void editor.steps.addConditionRow(this.stepId, field.name, path)}>
               ${t('Editor.AddRow')}
             </button>
             <button class="chip" type="button"
-              @click=${() => void editor.addConditionGroup(this.stepId, field.name, path)}>
+              @click=${() => void editor.steps.addConditionGroup(this.stepId, field.name, path)}>
               ${t('Editor.AddGroup')}
             </button>
           </div>
@@ -369,25 +369,25 @@ export class WgActionField extends LitElement {
     return html`
       <div class="condition-row">
         <div class="inline">
-          <input .value=${node.left} @change=${(event: Event) => void editor.setConditionRow(
+          <input .value=${node.left} @change=${(event: Event) => void editor.steps.setConditionRow(
             this.stepId, field.name, path, 'left', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
-            @click=${() => void editor.openConditionValue(this.stepId, field.name, path, 'left')}>ƒ</button>
+            @click=${() => void editor.value.openConditionValue(this.stepId, field.name, path, 'left')}>ƒ</button>
         </div>
         <select .value=${node.compare}
-          @change=${(event: Event) => void editor.setConditionRow(
+          @change=${(event: Event) => void editor.steps.setConditionRow(
             this.stepId, field.name, path, 'compare', (event.target as HTMLSelectElement).value)}>
           ${(editor.get().snapshot?.conditionCompares ?? []).map((compare) => html`
             <option value=${compare.value}>${compare.label}</option>`)}
         </select>
         <div class="inline">
-          <input .value=${node.right} @change=${(event: Event) => void editor.setConditionRow(
+          <input .value=${node.right} @change=${(event: Event) => void editor.steps.setConditionRow(
             this.stepId, field.name, path, 'right', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
-            @click=${() => void editor.openConditionValue(this.stepId, field.name, path, 'right')}>ƒ</button>
+            @click=${() => void editor.value.openConditionValue(this.stepId, field.name, path, 'right')}>ƒ</button>
         </div>
         <button class="chip" type="button"
-          @click=${() => void editor.removeConditionNode(this.stepId, field.name, path)}>×</button>
+          @click=${() => void editor.steps.removeConditionNode(this.stepId, field.name, path)}>×</button>
       </div>
     `;
   }
@@ -397,11 +397,11 @@ export class WgActionField extends LitElement {
   }
 
   private write(field: string, value: string): void {
-    void editor.patchActionField(this.field.name, field, value);
+    void editor.action.patchActionField(this.field.name, field, value);
   }
 
   private pick(name: string, mode: string): void {
-    void editor.pickAction(name, mode);
+    void editor.action.pickAction(name, mode);
   }
 
   private openWindowRule(field: EditorActionField): void {
@@ -445,7 +445,7 @@ export class WgActionField extends LitElement {
         title: rule.title, process: rule.process, class: rule.className, handle: rule.handle,
         how: rule.how, caseSensitive: rule.caseSensitive, trim: rule.trim, multiline: rule.multiline,
       });
-      void editor.previewActionWindow(this.windowRuleField.name, json).then((preview) => {
+      void editor.action.previewActionWindow(this.windowRuleField.name, json).then((preview) => {
         this.livePreview = preview;
       });
     }, 160);
@@ -464,7 +464,7 @@ export class WgActionField extends LitElement {
     });
     this.windowRuleField = null;
     this.livePreview = null;
-    await editor.applyActionWindowRule(field.name, json);
+    await editor.action.applyActionWindowRule(field.name, json);
   }
 
   private renderWindowPreview(field: EditorActionField): TemplateResult | typeof nothing {
@@ -484,7 +484,7 @@ export class WgActionField extends LitElement {
   }
 
   private async openPad(name: string, index: number, mode: string): Promise<void> {
-    const pad = await editor.keyPad(mode);
+    const pad = await editor.action.keyPad(mode);
     if (pad) {
       this.padTarget = { name, index, mode };
       this.pad = pad;
@@ -492,7 +492,7 @@ export class WgActionField extends LitElement {
   }
 
   private async onPadKey(event: CustomEvent<{ value: string }>): Promise<void> {
-    await editor.padKey(this.padTarget.name, event.detail.value,
+    await editor.action.padKey(this.padTarget.name, event.detail.value,
       this.padTarget.index, this.padTarget.mode);
     if (this.padTarget.index < 0) {
       this.pad = null;
@@ -500,9 +500,9 @@ export class WgActionField extends LitElement {
   }
 
   private async windowPick(name: string): Promise<void> {
-    const picked = await editor.pickWindowForAction();
+    const picked = await editor.action.pickWindowForAction();
     if (picked?.chosen && picked.rule.length > 0) {
-      await editor.applyActionWindowRule(name, picked.rule);
+      await editor.action.applyActionWindowRule(name, picked.rule);
     }
   }
 
