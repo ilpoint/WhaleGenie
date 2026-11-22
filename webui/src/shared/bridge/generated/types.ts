@@ -536,6 +536,13 @@ export interface EditorPublicMacroSnapshot {
   description: string;
 }
 
+export interface EditorRecordCommand {
+  kind: string;
+  field?: string | null;
+  value?: string | null;
+  factor?: number | null;
+}
+
 export interface EditorRecordingSnapshot {
   positionIndex: number;
   positionOptions: string[];

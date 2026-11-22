@@ -41,11 +41,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
         server.Register("editor.trigger", TriggerAction);
         server.Register("editor.variable", VariableAction);
-        server.Register("editor.sessionRecordStart", _ => Task.FromResult<object?>(StartRecording()));
-        server.Register("editor.sessionRecordStop", _ => Task.FromResult<object?>(StopRecording()));
-        server.Register("editor.sessionRecordState", _ => Task.FromResult<object?>(RecordingState()));
-        server.Register("editor.sessionRecordOption", SetRecordOption);
-        server.Register("editor.sessionDelayScale", SetDelayScale);
+        server.Register("editor.record", RecordAction);
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
         server.Register("editor.action", ActionCommand);
         server.Register("editor.actionOpen", ActionOpen);
@@ -429,6 +425,60 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 Strings.Get("Bridge.EditorNeedsField"));
 
 
+    private Task<object?> RecordAction(JsonElement parameters)
+    {
+        EditorRecordCommand command;
+        try
+        {
+            command = parameters.Deserialize<EditorRecordCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Editor.RecordFailed"));
+        }
+        catch (JsonException)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Editor.RecordFailed"));
+        }
+
+        try
+        {
+            return Task.FromResult<object?>(ApplyRecord(command));
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private object? ApplyRecord(EditorRecordCommand command)
+    {
+        switch (command.Kind)
+        {
+            case "start":
+                return StartRecording();
+            case "stop":
+                return StopRecording();
+            case "state":
+                return RecordingState();
+            case "option":
+                if (command.Field is not { Length: > 0 } || command.Value is null)
+                {
+                    throw new BridgeFailureException(BridgeErrors.BadArgument,
+                        Strings.Get("Editor.RecordFailed"));
+                }
+
+                Required().SetRecordOption(command.Field, command.Value);
+                return Snapshot();
+            case "delayScale":
+                Required().SetDelayScale(command.Factor ?? throw new BridgeFailureException(
+                    BridgeErrors.BadArgument, Strings.Get("Editor.Problem.CannotSave")));
+                return Snapshot();
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Editor.RecordFailed"));
+        }
+    }
+
     private object StartRecording()
     {
         if (_devices is null)
@@ -468,38 +518,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         };
     }
 
-    private Task<object?> SetRecordOption(JsonElement parameters)
-    {
-        var field = OptionalString(parameters, "field");
-        var value = OptionalString(parameters, "value");
-        if (field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Editor.RecordFailed"));
-        }
-
-        try
-        {
-            Required().SetRecordOption(field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetDelayScale(JsonElement parameters)
-    {
-        if (!parameters.TryGetProperty("factor", out var factor) || !factor.TryGetDouble(out var value))
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Editor.Problem.CannotSave"));
-        }
-
-        Required().SetDelayScale(value);
-        return Task.FromResult<object?>(Snapshot());
-    }
 
     private object RecordingState()
     {

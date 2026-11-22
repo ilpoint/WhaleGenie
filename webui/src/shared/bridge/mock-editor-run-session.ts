@@ -78,46 +78,55 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         };
       case 'editor.variable':
         return handleVariableCommand(host, params);
-      case 'editor.sessionRecordStart':
-        host.recording = true;
-        host.captured = 0;
-        return { recording: true, captured: 0 };
-      case 'editor.sessionRecordState':
-        if (host.recording) {
-          host.captured += 1;
-        }
-
-        return { recording: host.recording, captured: host.captured };
-      case 'editor.sessionRecordOption':
-        return host.change((document) => {
-          const field = host.text(params, 'field');
-          const value = host.text(params, 'value');
-          const recording = { ...document.recording } as Record<string, unknown>;
-          if (field === 'ignoreDelaysBelowMs') {
-            recording[field] = Number(value);
-          } else if (field === 'positionCapture') {
-            recording['positionIndex'] = Number(value);
-          } else {
-            recording[field] = value === 'true';
-          }
-          return { ...document, recording: recording as unknown as typeof document.recording };
-        });
-      case 'editor.sessionDelayScale':
-        return host.change((document) => ({
-          ...document,
-          recording: {
-            ...document.recording,
-            delayScale: Number(params['factor'] ?? 1),
-            delayScaleDisplay: '×' + String(params['factor'] ?? 1),
-            hasDelayScale: Number(params['factor'] ?? 1) !== 1,
-          },
-        }));
-      case 'editor.sessionRecordStop':
-        return host.stopRecording();
+      case 'editor.record':
+        return handleRecordCommand(host, params);
       case 'editor.sessionActions':
         return actionCatalogue(host.language());
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
+  }
+}
+
+function handleRecordCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'start':
+      host.recording = true;
+      host.captured = 0;
+      return { recording: true, captured: 0 };
+    case 'state':
+      if (host.recording) {
+        host.captured += 1;
+      }
+
+      return { recording: host.recording, captured: host.captured };
+    case 'option':
+      return host.change((document) => {
+        const field = host.text(params, 'field');
+        const value = host.text(params, 'value');
+        const recording = { ...document.recording } as Record<string, unknown>;
+        if (field === 'ignoreDelaysBelowMs') {
+          recording[field] = Number(value);
+        } else if (field === 'positionCapture') {
+          recording['positionIndex'] = Number(value);
+        } else {
+          recording[field] = value === 'true';
+        }
+        return { ...document, recording: recording as unknown as typeof document.recording };
+      });
+    case 'delayScale':
+      return host.change((document) => ({
+        ...document,
+        recording: {
+          ...document.recording,
+          delayScale: Number(params['factor'] ?? 1),
+          delayScaleDisplay: '×' + String(params['factor'] ?? 1),
+          hasDelayScale: Number(params['factor'] ?? 1) !== 1,
+        },
+      }));
+    case 'stop':
+      return host.stopRecording();
+    default:
+      throw new Error('不认识录制命令 ' + String(params['kind']) + '。');
   }
 }
 

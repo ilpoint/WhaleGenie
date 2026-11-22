@@ -11,7 +11,7 @@ export class EditorRecordingService {
   async startRecording(): Promise<void> {
     try {
       const state = await this.core.client.call<{ recording: boolean; captured: number }>(
-        'editor.sessionRecordStart');
+        'editor.record', { kind: 'start' });
       this.core.state.recording = state.recording;
       this.core.state.captured = state.captured;
       this.core.state.error = '';
@@ -31,7 +31,7 @@ export class EditorRecordingService {
         recording?: boolean;
         captured: number;
         snapshot?: EditorSnapshot;
-      }>('editor.sessionRecordState');
+      }>('editor.record', { kind: 'state' });
       this.core.state.captured = state.captured;
       if (state.snapshot) {
         this.core.applySnapshot(state.snapshot);
@@ -61,7 +61,7 @@ export class EditorRecordingService {
         captured: number;
         steps: number;
         snapshot: EditorSnapshot;
-      }>('editor.sessionRecordStop');
+      }>('editor.record', { kind: 'stop' });
       this.core.state.recording = false;
       this.core.state.captured = result.captured;
       this.core.applySnapshot(result.snapshot);

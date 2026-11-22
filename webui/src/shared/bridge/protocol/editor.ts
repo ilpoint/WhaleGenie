@@ -68,6 +68,7 @@ export type {
   EditorSessionRedoCommand,
   EditorSessionSaveCommand,
   EditorSessionSubOpenCommand,
+  EditorRecordCommand,
   EditorSessionUndoCommand,
   EditorStepCommand,
   EditorStepsCommand,

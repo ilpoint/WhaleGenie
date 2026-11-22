@@ -320,11 +320,11 @@ export class EditorSessionService {
   }
 
   async setRecordOption(field: string, value: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionRecordOption', { field, value });
+    return this.core.snapshotCommand('editor.record', { kind: 'option', field, value });
   }
 
   async setDelayScale(factor: number): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionDelayScale', { factor });
+    return this.core.snapshotCommand('editor.record', { kind: 'delayScale', factor });
   }
 
   async setMacroSetting(field: string, value: string): Promise<boolean> {
