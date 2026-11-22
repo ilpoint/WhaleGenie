@@ -22,6 +22,11 @@ namespace WhaleGenie.Web;
 /// (to measure a warm frame), Esc closes. The elapsed milliseconds on the page are the time from
 /// <see cref="NativeWebView.Navigate"/> to the completed navigation, which is the number the plan's
 /// gate is written against.
+///
+/// Keys arrive twice over: the window's own tunnelling handler catches them while the window has
+/// the keyboard, and the page posts every key back through <c>window.chrome.webview</c> while the
+/// WebView holds it. A native WebView is its own HWND and swallows the keyboard, so without the
+/// second path F1/F3 look dead — the same thing a menu search field would run into.
 /// </remarks>
 internal sealed class OverlayProbeWindow : Window
 {
@@ -64,6 +69,14 @@ internal sealed class OverlayProbeWindow : Window
             }
         };
 
+        _web.WebMessageReceived += (_, e) =>
+        {
+            if (e.Body is string body && body.StartsWith(ProbeKeyPrefix, StringComparison.Ordinal))
+            {
+                HandleKey(body[ProbeKeyPrefix.Length..]);
+            }
+        };
+
         _web.ProcessTerminated += (_, e) => Report("webview terminated: " + e.Reason);
 
         Content = _web;
@@ -98,25 +111,38 @@ internal sealed class OverlayProbeWindow : Window
         window.Show();
     }
 
+    private const string ProbeKeyPrefix = "probe:key:";
+
     private void OnKey(object? sender, KeyEventArgs e)
     {
-        switch (e.Key)
+        HandleKey(e.Key.ToString());
+        e.Handled = true;
+    }
+
+    /// <summary>One key, from either path; the name is the same as <see cref="Key"/> spells it.</summary>
+    private void HandleKey(string name)
+    {
+        Report("key " + name);
+        switch (name)
         {
-            case Key.Escape:
+            case "Escape":
                 Close();
                 break;
 
-            case Key.F1:
-                Width = Screens.Primary?.WorkingArea.Width ?? Width;
-                Height = Screens.Primary?.WorkingArea.Height ?? Height;
-                Position = Screens.Primary?.WorkingArea.Position ?? Position;
+            case "F1":
+                // Full screen rather than a manual size: the window manager then covers the whole
+                // display without the page having to be laid out for a size it was not built at.
+                WindowState = WindowState == WindowState.FullScreen
+                    ? WindowState.Normal
+                    : WindowState.FullScreen;
+                Report($"window state={WindowState} bounds={Bounds} web={_web.Bounds}");
                 break;
 
-            case Key.F2:
+            case "F2":
                 Topmost = !Topmost;
                 break;
 
-            case Key.F3:
+            case "F3":
                 _clock.Restart();
                 Navigate();
                 break;
@@ -165,6 +191,7 @@ internal sealed class OverlayProbeWindow : Window
           .grid i { width: 24px; height: 24px; background: #ddd; }
           .grid i:nth-child(odd) { background: #fff; }
           code { background: #f2f2f2; padding: 1px 4px; border-radius: 4px; }
+          #seen { color: #b33; }
         </style>
         </head>
         <body>
@@ -173,7 +200,20 @@ internal sealed class OverlayProbeWindow : Window
             <p>卡片外应当能看见后面的程序。棋盘格用来确认页面背景真的透明。</p>
             <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             <p><code>F1</code> 全屏 · <code>F2</code> 置顶开关 · <code>F3</code> 重新装载 · <code>Esc</code> 关闭</p>
+            <p>最近一次按键：<span id="seen">—</span></p>
           </div>
+          <script>
+            // A native WebView is its own window and takes the keyboard with it; the host's own
+            // key handler never sees these. Posting them back is what makes F1/F3 work while the
+            // page has focus, and it is the path a menu search field will use too.
+            const watch = ['F1', 'F2', 'F3', 'Escape'];
+            window.addEventListener('keydown', (event) => {
+              if (!watch.includes(event.key)) return;
+              event.preventDefault();
+              document.getElementById('seen').textContent = event.key;
+              window.chrome?.webview?.postMessage('probe:key:' + event.key);
+            }, true);
+          </script>
         </body>
         </html>
         """;
