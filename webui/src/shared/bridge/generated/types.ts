@@ -17,7 +17,126 @@ export interface DialogRequest {
   title: string;
   message: string;
   confirmLabel: string;
-  cancelLabel?: string;
+  cancelLabel: string | null;
+}
+
+export interface LibraryEntry {
+  id: string;
+  name: string;
+  version: number;
+  description: string;
+}
+
+export interface LibraryState {
+  entries: LibraryEntry[];
+  error: string | null;
+}
+
+export interface MacroEntry {
+  name: string;
+  group: string;
+  description: string;
+  enabled: boolean;
+  running: boolean;
+  triggerSummary: string;
+  triggerActions: string;
+  triggerPreview: string;
+  views: string[];
+}
+
+export interface McpState {
+  allowControl: boolean;
+  allowRun: boolean;
+  config: string;
+  auditFile: string;
+}
+
+export interface ProjectState {
+  path: string | null;
+  name: string | null;
+  untitled: boolean;
+  dirty: boolean;
+  revision: number;
+  systemEnabled: boolean;
+  enabledFirst: boolean;
+  views: string[];
+  groups: string[];
+  macros: MacroEntry[];
+}
+
+export interface RunArgument {
+  name: string;
+  label: string;
+  hint: string;
+  required: boolean;
+  value: string;
+  given: boolean;
+  missing: boolean;
+}
+
+export interface RunGlobal {
+  name: string;
+  type: string;
+  value: string;
+  defaultValue: string;
+}
+
+export interface RunLine {
+  time: string;
+  level: string;
+  text: string;
+}
+
+export interface RunLocal {
+  name: string;
+  macro: string;
+  type: string;
+}
+
+export interface RunLook {
+  stepId: string;
+  type: string;
+  looking: string;
+  image: string;
+}
+
+export interface RunState {
+  loaded: string;
+  status: string;
+  statusKind: string;
+  busy: boolean;
+  paused: boolean;
+  canRun: boolean;
+  canStep: boolean;
+  canStop: boolean;
+  question: string;
+  wantsTypedAnswer: boolean;
+  answerText: string;
+  isAskingUser: boolean;
+  isAsking: boolean;
+  arguments: RunArgument[];
+  look: RunLook | null;
+  globals: RunGlobal[];
+  locals: RunLocal[];
+  steps: RunStep[];
+  log: RunLine[];
+}
+
+export interface RunStep {
+  id: string;
+  label: string;
+  detail: string;
+  depth: number;
+  shown: boolean;
+  container: boolean;
+  current: boolean;
+  breakpoint: boolean;
+  canBreak: boolean;
+  time: string;
+  failure: string;
+  condition: string;
+  hitTimes: number;
+  expression: string;
 }
 
 export interface StringsBundle {
@@ -28,7 +147,7 @@ export interface StringsBundle {
 export interface ThemeState {
   mode: string;
   baseLight: boolean;
-  accentHex?: string;
+  accentHex: string | null;
   accentUsable: boolean;
   fill: string;
   surface: string;

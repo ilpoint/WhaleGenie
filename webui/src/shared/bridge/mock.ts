@@ -40,6 +40,7 @@ export class MockTransport implements BridgeTransport {
   theme: ThemeState = {
     mode: 'dark',
     baseLight: false,
+    accentHex: null,
     accentUsable: true,
     fill: '#c8401c',
     surface: '#f5e6e2',

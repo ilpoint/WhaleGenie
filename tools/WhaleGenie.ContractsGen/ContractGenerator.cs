@@ -14,10 +14,10 @@ namespace WhaleGenie.ContractsGen;
 /// a runtime surprise.
 /// </summary>
 /// <remarks>
-/// The bridge serializer writes camelCase property names and omits nulls, so the generator does
-/// the same: a property that may be null becomes optional in TypeScript. Only types marked
-/// <see cref="BridgeContractAttribute"/> are emitted; ports and helpers in the same assembly stay
-/// out of the page.
+/// The bridge serializer writes camelCase property names and writes nulls explicitly, so a
+/// property that may be null becomes <c>T | null</c> in TypeScript rather than an optional field.
+/// Only types marked <see cref="BridgeContractAttribute"/> are emitted; ports and helpers in the
+/// same assembly stay out of the page.
 /// </remarks>
 public static class ContractGenerator
 {
@@ -49,12 +49,13 @@ public static class ContractGenerator
             foreach (var property in properties)
             {
                 var info = nullability.Create(property);
-                var optional = Nullable.GetUnderlyingType(property.PropertyType) is not null
+                var nullable = Nullable.GetUnderlyingType(property.PropertyType) is not null
                                || info.ReadState == NullabilityState.Nullable;
                 text.Append("  ")
                     .Append(JsonNamingPolicy.CamelCase.ConvertName(property.Name))
-                    .Append(optional ? "?: " : ": ")
+                    .Append(": ")
                     .Append(TypeScript(property.PropertyType))
+                    .Append(nullable ? " | null" : string.Empty)
                     .AppendLine(";");
             }
 

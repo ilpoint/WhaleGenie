@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Localization;
@@ -24,14 +23,14 @@ namespace WhaleGenie.Bridge;
 public sealed class BridgeServer
 {
     /// <summary>
-    /// Serialization for every envelope. The default encoder escapes non-ASCII and every character
-    /// a script literal cannot carry, because the transport hands payloads over as JavaScript
-    /// expressions rather than strings.
+    /// Serialization for every envelope. Property names are camelCase; a null is written rather
+    /// than omitted, so every field the generated TypeScript interface declares is actually on the
+    /// wire. The default encoder escapes non-ASCII and every character a script literal cannot
+    /// carry, because the transport hands payloads over as JavaScript expressions rather than strings.
     /// </summary>
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
     private static readonly JsonDocument EmptyParameters = JsonDocument.Parse("{}");

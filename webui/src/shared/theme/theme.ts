@@ -20,6 +20,7 @@ class ThemeStore {
   private readonly state = new Store<ThemeState>({
     mode: 'dark',
     baseLight: false,
+    accentHex: null,
     accentUsable: true,
     fill: PROJECT_ACCENT,
     surface: '#f5e6e2',
