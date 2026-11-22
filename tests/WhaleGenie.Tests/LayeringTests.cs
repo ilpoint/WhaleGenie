@@ -60,6 +60,19 @@ public class LayeringTests
     }
 
     [Fact]
+    public void The_editing_project_is_free_of_the_window_and_the_program()
+    {
+        var referenced = Assembly.Load("WhaleGenie.Editing")
+            .GetReferencedAssemblies()
+            .Select(assembly => assembly.Name ?? string.Empty)
+            .ToList();
+
+        Assert.DoesNotContain(referenced, name =>
+            name.StartsWith("Avalonia", StringComparison.Ordinal));
+        Assert.DoesNotContain("WhaleGenie", referenced);
+    }
+
+    [Fact]
     public void The_engine_does_not_reference_the_Windows_adapters()
     {
         var referenced = typeof(WhaleGenie.Core.Execution.MacroRunner).Assembly

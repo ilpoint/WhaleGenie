@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The editor without a window: document models and the headless sessions the page talks to.
+    Only the base library, the contracts and the engine's device vocabulary belong here; Avalonia,
+    windows and WebView stay in the UI project. The generator reads only Contracts, so this project
+    can be tested without starting the application.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>WhaleGenie.Editing</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhaleGenie.Contracts\WhaleGenie.Contracts.csproj" />
+    <ProjectReference Include="..\..\core\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="WhaleGenie" />
+    <InternalsVisibleTo Include="WhaleGenie.Tests" />
+  </ItemGroup>
+
+</Project>

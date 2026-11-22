@@ -13,6 +13,9 @@
   <Project Path="src/WhaleGenie.Contracts/WhaleGenie.Contracts.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="src/WhaleGenie.Editing/WhaleGenie.Editing.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="tools/WhaleGenie.ContractsGen/WhaleGenie.ContractsGen.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
