@@ -124,11 +124,6 @@
       "count": 1
     }
   },
-  "src/shared/bridge/protocol.ts": {
-    "max-lines": {
-      "count": 1
-    }
-  },
   "src/shared/window-rule/window-rule-dialog.ts": {
     "max-lines-per-function": {
       "count": 1
