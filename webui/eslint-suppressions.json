@@ -15,6 +15,11 @@
       "count": 1
     }
   },
+  "src/features/editor/declarations/declarations.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/features/editor/editor-page.ts": {
     "complexity": {
       "count": 1
@@ -28,15 +33,9 @@
       "count": 1
     }
   },
-  "src/features/editor/macro-settings.ts": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
+  "src/features/editor/specific-render.ts": {
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     }
   },
   "src/features/editor/step-tree.ts": {
@@ -44,6 +43,14 @@
       "count": 2
     },
     "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/editor/triggers/trigger-fields.ts": {
+    "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
