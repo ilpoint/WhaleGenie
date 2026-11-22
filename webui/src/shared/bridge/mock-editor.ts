@@ -46,6 +46,10 @@ import {
   windowTrigger,
 } from './mock-editor-fixtures.js';
 import {
+  presentDocument,
+  stepFromAction,
+} from './mock-editor-steps.js';
+import {
   addConditionNode,
   addStepToTree,
   changeCondition,
@@ -56,15 +60,13 @@ import {
   duplicateStepInTree,
   locateStep,
   moveStepInTree,
-  presentDocument,
   removeConditionNode,
   removeStepFromTree,
   setConditionCell,
   setConditionJoinAt,
   setParameter,
   setStepEnabled,
-  stepFromAction,
-} from './mock-editor-steps.js';
+} from './mock-editor-step-ops.js';
 
 /** One project macro the mock editor may open; the mock passes the project list through. */
 export interface MockMacroEntry {

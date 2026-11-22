@@ -87,9 +87,6 @@
   "src/shared/bridge/mock-editor-steps.ts": {
     "complexity": {
       "count": 1
-    },
-    "max-lines": {
-      "count": 1
     }
   },
   "src/shared/bridge/mock-editor.ts": {
