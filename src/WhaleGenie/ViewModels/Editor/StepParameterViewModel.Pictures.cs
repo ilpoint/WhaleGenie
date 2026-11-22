@@ -73,7 +73,6 @@ public partial class StepParameterViewModel : ViewModelBase
         added.Take = RemovePicture;
         added.Move = MovePicture;
         added.Placeholder = Definition.Placeholder;
-        added.AssetFolder = _assetFolder;
         // A row of pictures says a file or the picture an earlier step saved, and the second one is
         // a name: the names go over the row's own box the same way they go over any other box that
         // takes one.
@@ -158,10 +157,6 @@ public partial class StepParameterViewModel : ViewModelBase
             }
 
             _assetFolder = value;
-            foreach (var picture in Pictures)
-            {
-                picture.AssetFolder = value;
-            }
         }
     }
 

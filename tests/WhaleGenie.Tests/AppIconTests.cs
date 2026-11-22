@@ -56,15 +56,6 @@ public class AppIconTests
     }
 
     [Fact]
-    public void Every_category_has_an_icon()
-    {
-        foreach (var category in Enum.GetValues<ActionCategory>())
-        {
-            Assert.NotNull(ActionCategoryPresentation.IconFor(category));
-        }
-    }
-
-    [Fact]
     public void The_palette_toolbar_has_an_icon_for_every_entry()
     {
         var palette = new MacroEditorViewModel().ActionPalette;

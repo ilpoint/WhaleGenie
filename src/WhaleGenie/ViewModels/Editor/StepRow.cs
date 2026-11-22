@@ -513,15 +513,6 @@ public sealed class StepRow : ILanguageAware, IFolds, INotifyPropertyChanged
 
     // The step's own look, passed through so one row template binds one kind of thing.
 
-    /// <summary>
-    /// The icon of the action this row stands for. It is worked out here rather than kept on the
-    /// step: which artwork an action gets is the interface's business, and a step read from a
-    /// package has no business carrying a drawing with it.
-    /// </summary>
-    public Lucide.Avalonia.LucideIconKind? Icon => Step.Definition is { } definition
-        ? ActionCategoryPresentation.IconFor(definition.Category)
-        : null;
-
     public string DisplayName => Step.DisplayName;
 
     /// <summary>True when this row sits inside a block, which is what the faint band marks.</summary>

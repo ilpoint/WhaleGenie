@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;

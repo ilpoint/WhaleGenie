@@ -5,7 +5,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Assets;
@@ -286,14 +285,6 @@ public partial class AddActionViewModel
     /// </summary>
     public bool ShowsClipboardPreview => SelectedDefinition?.Preview is ActionPreview.ClipboardImage;
 
-    /// <summary>The picture on the clipboard as it stands, or null when it holds none.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasClipboardPreview))]
-    public partial Bitmap? ClipboardPreview { get; set; }
-
-    /// <summary>True when there is a picture to show.</summary>
-    public bool HasClipboardPreview => ClipboardPreview is not null;
-
     /// <summary>
     /// One line under the title: how big the picture is, or why there is none to show. It stays
     /// visible when the picture does not, so "the clipboard holds nothing" is said rather than left
@@ -310,8 +301,6 @@ public partial class AddActionViewModel
     /// </summary>
     private void RefreshClipboardPreview()
     {
-        var previous = ClipboardPreview;
-        ClipboardPreview = null;
         var note = string.Empty;
 
         if (ShowsClipboardPreview && _clipboard is not null)
@@ -320,7 +309,6 @@ public partial class AddActionViewModel
             {
                 if (_clipboard.ReadImage() is { IsEmpty: false } picture)
                 {
-                    ClipboardPreview = BitmapImages.ToBitmap(picture);
                     note = Strings.Format("Add.ClipboardPreviewSize", picture.Width, picture.Height);
                 }
                 else
@@ -341,7 +329,6 @@ public partial class AddActionViewModel
         }
 
         ClipboardPreviewNote = note;
-        previous?.Dispose();
     }
 
     /// <summary>Asks the clipboard again, which the button beside the preview does.</summary>

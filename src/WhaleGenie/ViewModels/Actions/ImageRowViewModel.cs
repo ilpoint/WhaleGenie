@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Expressions;
@@ -65,62 +64,6 @@ public partial class ImageRowViewModel : ViewModelBase
     [NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
     public partial bool CanMoveDown { get; set; }
 
-    /// <summary>
-    /// Where pictures live while this dialog is open: beside the macro package when it has a path,
-    /// and WhaleGenie's own folder otherwise. A relative picture value is looked up here.
-    /// </summary>
-    public string AssetFolder
-    {
-        get => _assetFolder;
-        set
-        {
-            if (string.Equals(_assetFolder, value, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            _assetFolder = value;
-            RefreshThumbnail();
-        }
-    }
-
-    private string _assetFolder = string.Empty;
-
-    /// <summary>The picture this row names, or null while there is nothing to show.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasThumbnail))]
-    public partial Bitmap? Thumbnail { get; set; }
-
-    /// <summary>True when there is a picture to show.</summary>
-    public bool HasThumbnail => Thumbnail is not null;
-
-    /// <summary>Re-reads the picture this row names, so the preview always matches the text.</summary>
-    public void RefreshThumbnail()
-    {
-        var previous = Thumbnail;
-        Thumbnail = Load();
-        previous?.Dispose();
-    }
-
-    private Bitmap? Load()
-    {
-        if (ImageAssets.Resolve(Text, _assetFolder) is not { } path)
-        {
-            return null;
-        }
-
-        try
-        {
-            return new Bitmap(path);
-        }
-        catch (Exception)
-        {
-            // A file that turns out not to be a picture is not worth a crash: the row still shows
-            // the path, and the run reports it if the macro is used.
-            return null;
-        }
-    }
-
     partial void OnTextChanged(string value)
     {
         // Typing is the one place a line becomes a value here. It is read once, into a shape, and
@@ -130,7 +73,6 @@ public partial class ImageRowViewModel : ViewModelBase
             _shape = value.Trim().Length == 0 ? Formula.Nothing : Formula.Text(value);
         }
 
-        RefreshThumbnail();
     }
 
     /// <summary>Takes this picture out of the list.</summary>
@@ -176,7 +118,6 @@ public partial class ImageRowViewModel : ViewModelBase
             _composing = false;
         }
 
-        RefreshThumbnail();
     }
 
     public static ImageRowViewModel From(StepParameterRow row)
