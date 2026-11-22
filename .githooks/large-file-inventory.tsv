@@ -132,7 +132,7 @@
 439	src/WhaleGenie/ViewModels/Editor/MacroEditorViewModel.TriggerSettings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 335	src/WhaleGenie/ViewModels/Run/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 602	src/WhaleGenie/ViewModels/Editor/StepRow.cs	keep: 步骤行模型，行为/条件/结果/分支值同属一行的编辑状态，内聚
-316	src/WhaleGenie/ViewModels/Variables/VariableWallViewModel.cs	keep: 变量墙一页的状态与命令，单一职责
+316	src/WhaleGenie.Editing/Variables/VariableWallViewModel.cs	keep: 变量墙一页的状态与命令，单一职责
 382	src/WhaleGenie/ViewModels/Value/WindowPreviewViewModel.cs	keep: 一个界面的状态与命令
 606	src/WhaleGenie/Views/Pickers/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	src/WhaleGenie/Views/Pickers/ElementPickerWindow.cs	keep: 元素挑选的一次交互，与窗口挑选同一套走法
@@ -154,10 +154,10 @@
 371	tests/WhaleGenie.Domain.Tests/PersistentVariableTests.cs	keep: 持久变量的一张表与它的文件、补写和冲突，单一主题
 315	core/tests/WhaleGenie.Core.Tests/VariableBindingTests.cs	keep: 变量与步骤参数的绑定规则，单一主题
 342	core/tests/WhaleGenie.Platform.Tests/WindowsKeyTests.cs	keep: 键码与 Windows 键码的对照与可发送判定，一个主题
-587	src/WhaleGenie/ViewModels/Value/ValueDraft.cs	keep: 形状编辑、包裹、移动与一份历史共用同一个入口，拆开会让一步编辑跨文件
-374	src/WhaleGenie/ViewModels/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
-355	src/WhaleGenie/ViewModels/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
-321	src/WhaleGenie/ViewModels/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
+587	src/WhaleGenie.Editing/Value/ValueDraft.cs	keep: 形状编辑、包裹、移动与一份历史共用同一个入口，拆开会让一步编辑跨文件
+374	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
+355	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
+321	src/WhaleGenie.Editing/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 510	src/WhaleGenie/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
 369	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管

@@ -25,6 +25,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="WhaleGenie" />
     <InternalsVisibleTo Include="WhaleGenie.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Editor.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
   </ItemGroup>
 
 </Project>
