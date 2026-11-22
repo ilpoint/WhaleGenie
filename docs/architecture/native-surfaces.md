@@ -21,7 +21,7 @@
 | 面 | 位置 | 为什么保留 |
 | --- | --- | --- |
 | 网页外壳 | `Web/WebShellWindow` | WebView2 宿主、窗口外框、尺寸/拖动与焦点探测；网页本身负责页面 |
-| 宏菜单 / 轮盘 / 浮层 | `Views/Editor/MacroMenuWindow`、`WheelMenuWindow`、`Views/Shell/FloatingSurfaceWindow` | 全局钩子与指针轨迹必须在本进程最前面，网页无法接管系统级呼出 |
+| 轮盘 / 浮层 | `Views/Editor/WheelMenuWindow`、`Views/Shell/FloatingSurfaceWindow` | 全局钩子与指针轨迹必须在本进程最前面，网页无法接管系统级呼出 |
 | 取色覆盖层 | `Views/Pickers/ColorPickerWindow` | 冻结桌面、放大镜与像素读数只能在原生窗口里完成 |
 | 区域/拖拽/截图/窗口尺寸 | `Views/Pickers/RegionPickerWindow` | 全屏框选、箭头拖拽、截图落盘和实时移动目标窗口需要桌面覆盖层 |
 | 点位覆盖层 | `Views/Pickers/PointPickerWindow` | 十字线、UIA 描边与窗口坐标基准只能在桌面上取 |

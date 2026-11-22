@@ -1,3 +1,4 @@
+using System;
 using WhaleGenie.Bridge;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -31,22 +32,18 @@ internal sealed class ShellHostFactory(
             macro => owner.OpenRun(macro.Name),
             () => owner.OpenSettings());
 
-        IMenuOverlay? overlay = null;
-#if DEBUG
-        if (App.MenuOverlay && owner.Bridge is { } bridge)
+        // The menu is the Lit overlay in every build now; the native menu window is gone.
+        var bridge = owner.Bridge
+            ?? throw new InvalidOperationException("The shell has no bridge to attach the menu to.");
+        if (menu.Overlay is null)
         {
-            if (menu.Overlay is null)
-            {
-                var host = new MenuOverlayHost(bridge, runtime.Devices);
-                host.Attach();
-                menu.Overlay = host;
-            }
-
-            overlay = menu.Overlay;
+            var host = new MenuOverlayHost(bridge, runtime.Devices);
+            host.Attach();
+            menu.Overlay = host;
         }
-#endif
 
-        var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner, overlay);
+        var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
+            menu.Overlay);
 #if DEBUG
         if (App.MenuOverlay)
         {

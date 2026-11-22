@@ -10,7 +10,7 @@
 
 | 浮层 | 当前实现 | 规模 | 用户入口 |
 | --- | --- | --- | --- |
-| 宏菜单（菜单宏） | `Views/Editor/MacroMenuWindow*`（10 个文件） + `Runtime/NativeSurfaceHost.Menu.cs` | 约 1,900 + 621 行 | 菜单键、系统热键、置顶菜单 |
+| ~~宏菜单（菜单宏）~~ **已迁移** | Lit 浮层（`Web/WebOverlayWindow` + `features/overlay/menu`）；原生窗口已删 | — | 菜单键、系统热键、置顶菜单 |
 | 轮盘菜单 | `Views/Editor/WheelMenuWindow.cs`、`WheelCanvas.cs` + `Runtime/NativeSurfaceHost.Wheel.cs` | 526 + 332 + 465 行 | 轮盘手势、重复键、按程序/宏切换 |
 | 界面宏面板 | `Views/Shell/FloatingSurfaceWindow.cs` + `Runtime/NativeSurfaceHost.Panels.cs` | 603 + 292 行 | 界面热键、分组显示、跟随前台窗口 |
 
@@ -163,17 +163,14 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
   `Show()` 并置开态，`Hidden` 事件负责复位（含 `MacroTriggerGate`），搜索框焦点经
   `surface.menu.focus` 回报给热键判定。实测：启动走真实 `OpenMenu` 路径打开浮层，点面板后 Esc 收起。
   **键盘要先点进页面**（S0 的同一限制）。
-- 原生菜单仍是默认入口。**尚未接线**：默认构建仍用原生窗口；浮层还缺“替换宏”、拖拽落位与按规则
-  编辑页面的完整交互，这些补齐后翻转默认并删除 `MacroMenuWindow`。
+- **原生菜单已删除**：默认构建就是浮层（`ShellHostFactory` 总是创建 `MenuOverlayHost`）；
+  `MacroMenuWindow*`（11 个文件）、`MenuWindowTypes.cs` 与 `MenuWindowTests`（8 个文件）全部移除，
+  `NativeSurfaceHost.Menu.cs` 从 621 行收成 148 行，只保留开关状态。实测删除后 `--menu-overlay`
+  照常打开菜单。
 
-0. **预建宿主**：壳启动时创建菜单浮层窗口与页面并隐藏；热键只 `Show()`（S0 实测 19–25 ms）。
-1. C#：把 `MacroMenuWindow` 的排版数据（分节、格子、图标、问题、搜索过滤、置顶与本屏坐标）
-   抽到 App 的 `MenuSurfaceModel`，原生窗口改为只读它的快照（先保行为，再删窗口）；
-2. 桥：`surface.menu.*` 接入 `NativeSurfaceHost.Menu.cs` 的打开/关闭/前台订阅；
-3. 页面：`features/overlay/menu` 用 Lit + 现有 `wg-*` 组件画格子、搜索、右键菜单、拖拽；
-4. 原生删除：`MacroMenuWindow*`、`MenuWindowTypes.cs` 与菜单专用样式、测试；
-5. 验收：菜单键打开 <100ms；搜索、置顶、拖拽、右键、按程序规则、多屏定位与原生逐项一致；
-   菜单热键在游戏前台可用由真机清单覆盖。
+**S2 已完成**：预建宿主、`surface.menu.*` 桥、Lit 页面（搜索/分页/置顶/右键/拖拽/替换）、
+原生窗口与测试全部删除。剩余验收（真机清单）：菜单键打开 <100ms、多屏定位、游戏前台热键、
+DPI 125/150/200% 下的落点。
 
 ### S3 轮盘
 

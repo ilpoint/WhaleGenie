@@ -118,7 +118,7 @@
 301	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 458	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
-1133	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
+988	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
 37499	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
@@ -138,11 +138,9 @@
 386	src/WhaleGenie.Editing/Value/WindowPreviewViewModel.cs	keep: 一个界面的状态与命令
 606	src/WhaleGenie/Views/Pickers/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	src/WhaleGenie/Views/Pickers/ElementPickerWindow.cs	keep: 元素挑选的一次交互，与窗口挑选同一套走法
-322	src/WhaleGenie/Views/Editor/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
 455	src/WhaleGenie.Domain/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 370	src/WhaleGenie.Domain/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
 603	src/WhaleGenie/Views/Shell/FloatingSurfaceWindow.cs	keep: 浮动面板的窗口构造、排列、拾层与置层，单一窗口职责，暂不拆
-621	src/WhaleGenie/Runtime/NativeSurfaceHost.Menu.cs	keep: 菜单一个域——打开/关闭、布局刷新与选择器是同一次任务的读取集
 465	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
 311	src/WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 499	src/WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态

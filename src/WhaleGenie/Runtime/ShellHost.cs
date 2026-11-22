@@ -21,7 +21,7 @@ internal sealed class ShellHost : IDisposable
 
     internal ShellHost(ProjectWorkspace workspace, SystemState system, TriggerRuntime runtime,
         RunQuestionHost questions, ShellNativeWindows actions, Window owner, ITriggerFocusProbe focus,
-        IMenuOverlay? menuOverlay = null)
+        IMenuOverlay menuOverlay)
     {
         _actions = actions;
         _owner = owner;
