@@ -67,6 +67,31 @@ describe('BridgeClient', () => {
     expect(seen).toEqual(['maximized']);
   });
 
+  it('畸形消息被忽略而不是抛出', () => {
+    const pipe = new Pipe();
+    new BridgeClient(pipe);
+
+    expect(() => {
+      pipe.deliver(null);
+      pipe.deliver('not an envelope');
+      pipe.deliver(42);
+      pipe.deliver({});
+    }).not.toThrow();
+  });
+
+  it('发送失败会清掉等待项并拒绝调用', async () => {
+    const pipe = new Pipe();
+    pipe.send = () => {
+      throw new Error('host is gone');
+    };
+    const client = new BridgeClient(pipe);
+
+    await expect(client.call('app.info')).rejects.toThrow('host is gone');
+
+    // The failed request's id must not stay in the waiting table.
+    expect(() => pipe.deliver({ id: 1, ok: true, result: { version: 'late' } })).not.toThrow();
+  });
+
   it('一个监听者抛错不影响同一事件的其余监听者', () => {
     const pipe = new Pipe();
     const client = new BridgeClient(pipe);
