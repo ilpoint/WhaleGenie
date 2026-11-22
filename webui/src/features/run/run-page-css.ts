@@ -20,12 +20,6 @@ export const runPageCss = css`
       min-width: 0;
     }
 
-    .note {
-      margin: 0 0 var(--spacingVerticalM);
-      color: var(--colorNeutralForeground3);
-      font-size: var(--fontSizeBase200);
-    }
-
     .macros, .steps, .log {
       display: grid;
       gap: var(--spacingVerticalXS);

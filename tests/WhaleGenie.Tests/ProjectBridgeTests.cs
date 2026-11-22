@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Bridge;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
@@ -67,6 +68,10 @@ public class ProjectBridgeTests : IDisposable
         Assert.Contains("Keys", views);
         Assert.Contains("All", views);
         Assert.Contains("办公", Names(state.GetProperty("groups")));
+
+        // The page sorts the list itself; the program hands it the preference rather than sorting.
+        Assert.Equal(LocalSettings.LoadEnabledFirst(),
+            state.GetProperty("enabledFirst").GetBoolean());
     }
 
     [Fact]

@@ -388,12 +388,6 @@ public static class LocalSettings
 
     private static bool UsableSize(double value) => double.IsFinite(value) && value > 0;
 
-    public static MacroView LoadView()
-        => Enum.TryParse<MacroView>(Read().View, true, out var view) ? view : MacroView.All;
-
-    public static void StoreView(MacroView view)
-        => Write(model => model.View = view.ToString());
-
     private static Model Read()
     {
         try
@@ -534,8 +528,6 @@ public static class LocalSettings
 
         /// <summary>Whether the shell was maximized when it was last put away.</summary>
         public bool MainWindowMaximized { get; set; }
-
-        public string View { get; set; } = nameof(Models.MacroView.All);
 
         public bool McpAllowControl { get; set; }
 

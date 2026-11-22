@@ -20,6 +20,7 @@ export interface ProjectState {
   dirty: boolean;
   revision: number;
   systemEnabled: boolean;
+  enabledFirst: boolean;
   views: string[];
   groups: string[];
   macros: MacroEntry[];

@@ -1,20 +1,10 @@
 /** app bridge shapes. The barrel protocol.ts re-exports this file. */
 
-export interface ProjectInfo {
-  path: string | null;
-  name: string | null;
-  untitled: boolean;
-  dirty: boolean;
-  revision: number;
-  macros: number;
-}
-
 export interface AppInfo {
   name: string;
   version: string;
   language: string;
   debug: boolean;
-  project: ProjectInfo;
 }
 
 export interface StringsBundle {

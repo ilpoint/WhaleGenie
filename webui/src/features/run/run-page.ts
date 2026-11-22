@@ -37,7 +37,6 @@ export class WgRun extends LitElement {
     return html`
       <div class="side">
         <h1>${t('Run.Title')}</h1>
-        <p class="note">${t('Run.NativeNote')}</p>
         ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
         <div class="macros">
           ${this.project?.macros.map((macro) => html`

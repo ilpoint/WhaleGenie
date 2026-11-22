@@ -35,7 +35,6 @@ export class MockTransport implements BridgeTransport {
     version: '0.0.0-mock',
     language: 'zh-Hans',
     debug: true,
-    project: { path: null, name: null, untitled: true, dirty: false, revision: 0, macros: 0 },
   };
 
   theme: ThemeState = {
@@ -100,6 +99,7 @@ export class MockTransport implements BridgeTransport {
     dirty: false,
     revision: 0,
     systemEnabled: false,
+    enabledFirst: true,
     views: ['All', 'Keys', 'Interface', 'Hotstring', 'Menu', 'Wheel', 'Events'],
     groups: ['办公'],
     macros: [

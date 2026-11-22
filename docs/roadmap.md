@@ -27,7 +27,7 @@
 - **阶段 B1 网页壳转正（已完成）**：壳接管 NativeSurfaceHost、ProjectSession 与 TriggerHost，
   隐藏主窗已移除并成为默认窗口；网页编辑器、设置页、运行面板、宏库、首页关于/帮助与 app/open 桥命令
   已接，桥方法清单已对账；文件/帮助菜单与侧栏折叠按 DESIGN 落位；MainWindow 已删除，旧主窗用例按替代
-  或删除理由退役。MainViewModel 继续为网页编辑器、运行面板和原生菜单/轮盘提供无窗项目视图。
+  或删除理由退役。编辑器与运行面板直接读 `ProjectWorkspace`；MainViewModel 只为原生菜单/轮盘与设置保留无窗项目视图，宏列表的筛选与排序已归页面。
 - **阶段 C0 编辑器门禁（已完成）**：HeadlessEditorSession 持有 C# 编辑模型，编辑器桥暴露 sessionOpen/
   sessionPatch/sessionStep/sessionSave 等命令，网页门禁页渲染快照并保存；真实宏完成打开→改字段→
   保存→重开，177 项动作目录全部能建立表单，100 次快照/改字段往返在测试阈值内。原生编辑器已在 C2 删除。

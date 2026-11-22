@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Localization;
@@ -10,10 +9,11 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// What the page knows about the program itself: the version, the project it is showing, and the
-/// two things a page must never do by itself — leave through the tray, and open a browser.
+/// What the page knows about the program itself: the version and the language, plus the two things
+/// a page must never do by itself — leave through the tray, and open a browser. The open project is
+/// not repeated here; <c>project.state</c> is the one shape that carries it.
 /// </summary>
-public sealed class AppBridge(ProjectWorkspace workspace, Func<AppTray?> tray) : IBridgeHandler
+public sealed class AppBridge(Func<AppTray?> tray) : IBridgeHandler
 {
     public void Register(BridgeServer server)
     {
@@ -34,15 +34,6 @@ public sealed class AppBridge(ProjectWorkspace workspace, Func<AppTray?> tray) :
         version = AppVersion.Text,
         language = LanguageName(),
         debug = IsDebug,
-        project = new
-        {
-            path = workspace.CurrentPath,
-            name = workspace.CurrentPath is { } path ? Path.GetFileNameWithoutExtension(path) : null,
-            untitled = workspace.CurrentPath is null,
-            dirty = workspace.IsDirty,
-            revision = workspace.Revision,
-            macros = workspace.Macros.Count,
-        },
     };
 
     /// <summary>

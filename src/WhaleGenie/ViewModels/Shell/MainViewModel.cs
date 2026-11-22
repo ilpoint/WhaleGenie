@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
-using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -12,9 +10,9 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.ViewModels;
 
 /// <summary>
-/// The main window's own state: what is typed in the search box, which view is open, whether the
-/// system is armed and the MCP flyout. The document itself lives in <see cref="Workspace"/>; this
-/// class forwards it so the window and the existing bindings keep one object to talk to.
+/// The project's windowless view: the document every page, trigger and MCP tool reads, plus the
+/// system switch and the MCP server the shell and the native menu share. The macro list filters,
+/// searches and sorts in the page now; this class only forwards the document.
 /// </summary>
 public partial class MainViewModel : ViewModelBase
 {
@@ -36,15 +34,10 @@ public partial class MainViewModel : ViewModelBase
         // second one be made beside it.
         Workspace = workspace ?? new ProjectWorkspace(persisted, variables, AppVersion.Text);
         Workspace.PropertyChanged += OnWorkspacePropertyChanged;
-        Workspace.Changed += (_, _) => RefreshVisibleMacros();
-
-        SelectedView = LocalSettings.LoadView();
         Workspace.Macros.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(HasMacros));
             OnPropertyChanged(nameof(HasUnsavedChanges));
-            RefreshGroups();
-            RefreshVisibleMacros();
         };
         Localization.Strings.Current.LanguageChanged += () =>
         {
@@ -54,12 +47,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 macro.RefreshLanguage();
             }
-
-            // The filter's own two words ("all groups", "ungrouped") are drawn from the item, and a
-            // combo box keeps the text it was given, so the list is rebuilt for the new language.
-            RefreshGroups();
         };
-        RefreshGroups();
     }
 
     /// <summary>
@@ -129,87 +117,6 @@ public partial class MainViewModel : ViewModelBase
     /// lazy — and this is the cheaper side to make lazy.
     /// </summary>
     public McpServerViewModel Mcp => _mcp ??= _makeMcp?.Invoke(this) ?? new McpServerViewModel();
-
-    [ObservableProperty]
-    public partial string SearchText { get; set; } = string.Empty;
-
-    partial void OnSearchTextChanged(string value) => RefreshVisibleMacros();
-
-    /// <summary>
-    /// One entry of the group filter beside the search box: "all", "ungrouped", or a group name.
-    /// Groups are the second layer beside the fixed views — the view says how a macro starts, the
-    /// group says which part of someone's work it belongs to.
-    /// </summary>
-    public sealed record MacroGroupChoice(string? Name)
-    {
-        public override string ToString() => Name switch
-        {
-            null => Strings.Get("Main.Ungrouped"),
-            { Length: 0 } => Strings.Get("Main.GroupAll"),
-            _ => Name,
-        };
-    }
-
-    public ObservableCollection<MacroGroupChoice> Groups { get; } = [];
-
-    [ObservableProperty]
-    public partial MacroGroupChoice? SelectedGroup { get; set; }
-
-    partial void OnSelectedGroupChanged(MacroGroupChoice? value) => RefreshVisibleMacros();
-
-    /// <summary>
-    /// Rebuilds the filter from the groups the macros actually carry, keeping the chosen one by
-    /// name. A group disappears from the list when its last macro leaves it.
-    /// </summary>
-    private void RefreshGroups()
-    {
-        var wanted = SelectedGroup?.Name ?? string.Empty;
-        var names = Macros
-            .Select(macro => macro.Group.Trim())
-            .Where(name => name.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(name => name, StringComparer.CurrentCulture)
-            .ToList();
-
-        Groups.Clear();
-        Groups.Add(new MacroGroupChoice(string.Empty));
-        foreach (var name in names)
-        {
-            Groups.Add(new MacroGroupChoice(name));
-        }
-        Groups.Add(new MacroGroupChoice(null));
-
-        var keeping = Groups.FirstOrDefault(choice =>
-            string.Equals(choice.Name, wanted, StringComparison.OrdinalIgnoreCase)) ?? Groups[0];
-        if (!ReferenceEquals(SelectedGroup, keeping))
-        {
-            SelectedGroup = keeping;
-        }
-    }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsAllView))]
-    [NotifyPropertyChangedFor(nameof(IsKeysView))]
-    [NotifyPropertyChangedFor(nameof(IsInterfaceView))]
-    [NotifyPropertyChangedFor(nameof(IsHotstringView))]
-    [NotifyPropertyChangedFor(nameof(IsMenuView))]
-    [NotifyPropertyChangedFor(nameof(IsWheelView))]
-    [NotifyPropertyChangedFor(nameof(IsEventsView))]
-    public partial MacroView SelectedView { get; set; } = MacroView.All;
-
-    public bool IsAllView => SelectedView == MacroView.All;
-    public bool IsKeysView => SelectedView == MacroView.Keys;
-    public bool IsInterfaceView => SelectedView == MacroView.Interface;
-    public bool IsHotstringView => SelectedView == MacroView.Hotstring;
-    public bool IsMenuView => SelectedView == MacroView.Menu;
-    public bool IsWheelView => SelectedView == MacroView.Wheel;
-    public bool IsEventsView => SelectedView == MacroView.Events;
-
-    partial void OnSelectedViewChanged(MacroView value)
-    {
-        LocalSettings.StoreView(value);
-        RefreshVisibleMacros();
-    }
 
     /// <summary>
     /// The system switch the window draws. The value belongs to <see cref="SystemState"/>, so a page,
@@ -291,61 +198,7 @@ public partial class MainViewModel : ViewModelBase
         ? null
         : System.IO.Path.GetDirectoryName(CurrentPath);
 
-    /// <summary>
-    /// What the list actually shows: every macro, or the ones whose name matches what is in the
-    /// search box. The box narrows the view rather than the project, so nothing about the macros
-    /// themselves depends on what is typed there — closing the box puts them all back.
-    /// </summary>
-    public ObservableCollection<MacroItem> VisibleMacros { get; } = [];
-
     public bool HasMacros => Macros.Count > 0;
-
-    /// <summary>True when there are macros but the search left none of them on screen.</summary>
-    public bool HasNoMatch => Macros.Count > 0 && VisibleMacros.Count == 0
-        && SearchText.Trim().Length > 0;
-
-    /// <summary>
-    /// True when the view that is open holds nothing and no search is narrowing it — which is a
-    /// different sentence from "nothing matches what you typed", and the common one now that the
-    /// list has a view for every kind of trigger.
-    /// </summary>
-    public bool IsEmptyView => Macros.Count > 0 && VisibleMacros.Count == 0
-        && SearchText.Trim().Length == 0;
-
-    /// <summary>
-    /// Puts the macros the search box lets through into the list the window shows. Enabled ones come
-    /// first when that is asked for; the sort is stable, so the order a project was made in survives
-    /// inside each of the two groups.
-    /// </summary>
-    public void RefreshVisibleMacros()
-    {
-        var wanted = SearchText.Trim();
-        var group = SelectedGroup?.Name;
-        var keeping = Macros.Where(macro =>
-            Triggers.InView(macro.Name, SelectedView)
-            && (group switch
-            {
-                null => macro.Group.Trim().Length == 0,
-                { Length: 0 } => true,
-                _ => string.Equals(macro.Group.Trim(), group, StringComparison.OrdinalIgnoreCase),
-            })
-            && (wanted.Length == 0
-                || macro.Name.Contains(wanted, StringComparison.OrdinalIgnoreCase)));
-
-        if (LocalSettings.LoadEnabledFirst())
-        {
-            keeping = keeping.OrderByDescending(macro => macro.IsEnabled);
-        }
-
-        VisibleMacros.Clear();
-        foreach (var macro in keeping.ToList())
-        {
-            VisibleMacros.Add(macro);
-        }
-
-        OnPropertyChanged(nameof(HasNoMatch));
-        OnPropertyChanged(nameof(IsEmptyView));
-    }
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
     public void AddMacro(MacroItem macro, IReadOnlyList<TriggerEntry>? entries = null)
@@ -394,15 +247,6 @@ public partial class MainViewModel : ViewModelBase
 
     [RelayCommand]
     private void ToggleRun() => IsRunning = !IsRunning;
-
-    [RelayCommand]
-    private void SelectView(string? view)
-    {
-        if (Enum.TryParse<MacroView>(view, true, out var selected))
-        {
-            SelectedView = selected;
-        }
-    }
 
     /// <summary>
     /// Replaces the project with a draft the MCP tools have been editing. The caller has already

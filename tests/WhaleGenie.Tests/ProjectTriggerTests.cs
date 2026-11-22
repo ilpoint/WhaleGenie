@@ -45,15 +45,12 @@ public class ProjectTriggerTests
                      MacroView.Hotstring, MacroView.Menu,
                  })
         {
-            viewModel.SelectedView = view;
-            Assert.Equal(["multi"], viewModel.VisibleMacros.Select(item => item.Name));
+            Assert.True(viewModel.Triggers.InView("multi", view));
         }
 
         // It is on no wheel position and starts nothing on a schedule or a watch.
-        viewModel.SelectedView = MacroView.Wheel;
-        Assert.Empty(viewModel.VisibleMacros);
-        viewModel.SelectedView = MacroView.Events;
-        Assert.Empty(viewModel.VisibleMacros);
+        Assert.False(viewModel.Triggers.InView("multi", MacroView.Wheel));
+        Assert.False(viewModel.Triggers.InView("multi", MacroView.Events));
     }
 
     /// <summary>
@@ -78,11 +75,8 @@ public class ProjectTriggerTests
         viewModel.Triggers.Entries.Clear();
         viewModel.Triggers.Wheel.Global.At(new WheelSlotRef(WheelRing.Inner, 0)).Macro = "wheeled";
 
-        viewModel.SelectedView = MacroView.Wheel;
-        Assert.Equal(["wheeled"], viewModel.VisibleMacros.Select(item => item.Name));
-
-        viewModel.SelectedView = MacroView.Menu;
-        Assert.Empty(viewModel.VisibleMacros);
+        Assert.True(viewModel.Triggers.InView("wheeled", MacroView.Wheel));
+        Assert.False(viewModel.Triggers.InView("wheeled", MacroView.Menu));
     }
 
     /// <summary>
@@ -124,18 +118,6 @@ public class ProjectTriggerTests
     }
 
     [Fact]
-    public void A_view_with_nothing_in_it_says_so_without_blaming_a_search()
-    {
-        var viewModel = new MainViewModel();
-        viewModel.AddMacro(new MacroItem { Name = "only-key" });
-        viewModel.SelectedView = MacroView.Wheel;
-
-        Assert.Empty(viewModel.VisibleMacros);
-        Assert.True(viewModel.IsEmptyView);
-        Assert.False(viewModel.HasNoMatch, "nothing was typed, so no search can have failed");
-    }
-
-    [Fact]
     public void A_watched_pixel_belongs_to_the_event_view()
     {
         var viewModel = new MainViewModel();
@@ -145,11 +127,9 @@ public class ProjectTriggerTests
         viewModel.AddMacro(colour, [new TriggerEntry { MacroName = "colour", Spec = new ColorSpec() }]);
         viewModel.AddMacro(timer, [new TriggerEntry { MacroName = "timer", Spec = new TimerSpec() }]);
 
-        viewModel.SelectedView = MacroView.Events;
-        Assert.Equal(["colour", "timer"], viewModel.VisibleMacros.Select(item => item.Name));
-
-        viewModel.SelectedView = MacroView.Keys;
-        Assert.Empty(viewModel.VisibleMacros);
+        Assert.True(viewModel.Triggers.InView("colour", MacroView.Events));
+        Assert.True(viewModel.Triggers.InView("timer", MacroView.Events));
+        Assert.False(viewModel.Triggers.InView("colour", MacroView.Keys));
     }
 
     [Fact]

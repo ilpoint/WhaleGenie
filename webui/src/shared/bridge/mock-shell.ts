@@ -6,10 +6,7 @@ export function handleShell(host: MockShellContext, method: string, params: Reco
   let result: unknown;
   switch (method) {
         case 'app.info':
-          result = {
-            ...host.info,
-            project: { ...host.info.project, macros: host.projectState.macros.length },
-          };
+          result = host.info;
           break;
         case 'strings.bundle':
           result = host.bundle();

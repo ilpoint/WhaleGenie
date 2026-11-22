@@ -116,7 +116,6 @@ export const chinese: Record<string, string> = {
   'Settings.DriverAttachAtStart': '启动时预装虚拟键鼠',
   'Settings.RunAsAdmin': '启动时请求管理员权限',
   'Run.Title': '运行与调试', 'Run.Run': '运行',
-  'Run.NativeNote': '选一个宏载入运行面板；运行控制、步骤、日志与变量都在这里。',
   'Run.Variables': '变量监视',
   'Run.Step': '单步', 'Run.Continue': '继续', 'Run.SkipStep': '跳过这一步（这一次）',
   'Run.Stop': '停止', 'Run.AskRetry': '重试', 'Run.AskSkip': '跳过这一步',

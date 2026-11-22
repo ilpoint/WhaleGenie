@@ -10,10 +10,12 @@ import { StoreController } from '../../shared/lit/store-controller.js';
 import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
 import type { WgMcpPanel } from '../mcp/index.js';
 import '../mcp/index.js';
+import { filterMacros } from './macros-model.js';
 
 /**
- * 宏列表页：视图 dock、分组与搜索的过滤是页面自己的事（状态整包在手），启停与系统开关经桥
- * 命令程序。空状态有三种——没有宏、有宏但这一格视图没东西、搜不到——与旧主窗一致。
+ * 宏列表页：视图 dock、分组、搜索与「已启用优先」的排序都归页面，程序只给宏属于哪些视图和
+ * 这个开关的当前值；启停与系统开关经桥命令程序。空状态有两种——没有宏、这一格视图里没有
+ * 匹配的宏——与旧主窗的用户体感一致。
  */
 @customElement('wg-macros')
 export class WgMacros extends LitElement {
@@ -138,15 +140,12 @@ export class WgMacros extends LitElement {
       return [];
     }
 
-    const wanted = this.search.trim().toLowerCase();
-    return this.state.macros
-      .filter((entry) => entry.views.includes(this.view))
-      .filter((entry) => this.group === ''
-        || (this.group === null ? entry.group.trim().length === 0
-          : entry.group.trim().toLowerCase() === this.group.toLowerCase()))
-      .filter((entry) => wanted.length === 0
-        || entry.name.toLowerCase().includes(wanted))
-      .sort((left, right) => Number(right.enabled) - Number(left.enabled));
+    return filterMacros(this.state.macros, {
+      view: this.view,
+      group: this.group,
+      search: this.search,
+      enabledFirst: this.state.enabledFirst,
+    });
   }
 
   private renderEmpty() {
@@ -290,7 +289,7 @@ export class WgMacros extends LitElement {
   }
 
   private onRun(entry: MacroEntry): void {
-    // Run-and-debug is still a native window; the card hands the macro name across the bridge.
+    // The run panel is a page too; the name goes across the bridge and the shell switches route.
     void this.call('app.openRun', { name: entry.name });
   }
 

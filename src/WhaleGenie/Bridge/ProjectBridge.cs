@@ -116,6 +116,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         dirty = _workspace.IsDirty,
         revision = _workspace.Revision,
         systemEnabled = _system.IsEnabled,
+        enabledFirst = LocalSettings.LoadEnabledFirst(),
         views = Enum.GetNames<MacroView>(),
         groups = _workspace.Macros
             .Select(macro => macro.Group.Trim())

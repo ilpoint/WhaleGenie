@@ -2,8 +2,8 @@ import { Store } from '../store.js';
 import type { AppInfo } from '../bridge/protocol.js';
 
 /**
- * 程序自己的画像：版本、界面语言、当前项目。标题栏与首页读这里；项目变化由宿主推送，
- * 阶段 B 的 `project.changed` 到来时同一间屋子就能装下。
+ * 程序自己的画像：版本与界面语言。标题栏、首页与关于页读这里；当前项目不在这份快照里，
+ * 它由 `project.state` 与 `project.changed` 单独承载，避免同一事实写两份。
  */
 class AppInfoStore {
   private readonly state = new Store<AppInfo | null>(null);

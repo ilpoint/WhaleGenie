@@ -14,9 +14,9 @@ using WhaleGenie.Views;
 namespace WhaleGenie.Runtime;
 
 /// <summary>
-/// The native windows the web shell still opens while its pages are being moved: the macro editor,
-/// settings and run-and-debug. The shell owns the window, so these stand beside it rather than
-/// beside a hidden main window; the menu's actions and the temporary bridge commands both land here.
+/// The native windows the web shell still opens: the pickers, the icon and macro choosers, and the
+/// import/export flows. The pages themselves are web; the shell owns the window, so these stand
+/// beside it and the menu's actions route back through the page the same way the bridge commands do.
 /// </summary>
 internal sealed class ShellNativeWindows(
     ProjectWorkspace workspace,
@@ -43,7 +43,6 @@ internal sealed class ShellNativeWindows(
     {
         Host?.PublishPlan();
         viewModel.RefreshHotkeyHints();
-        viewModel.RefreshVisibleMacros();
     }
 
     internal static void OpenManual() => WebPage.Open(Manual.Where());

@@ -81,9 +81,9 @@ public static class ActionCategoryPresentation
     /// <summary>
     /// The order the small groups of one basic category are listed in. The group each action
     /// belongs to is named by the display file; this table decides only which section comes first,
-    /// the way <see cref="ActionPaletteViewModel"/>'s flow groups have a rank. A group the table
-    /// does not name is still listed — after the named ones — so an action can never disappear
-    /// from the palette because somebody forgot a line here.
+    /// the way the flow groups in the action catalogue have a rank. A group the table does not name
+    /// is still listed — after the named ones — so an action can never disappear from the palette
+    /// because somebody forgot a line here.
     /// </summary>
     private static readonly Dictionary<ActionCategory, string[]> BasicGroupOrder = new()
     {

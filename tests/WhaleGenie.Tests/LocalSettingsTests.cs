@@ -7,7 +7,6 @@ using Avalonia.Controls;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Localization;
-using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -126,69 +125,6 @@ public class LocalSettingsTests
 
             LocalSettings.StoreSystemAtStart(true);
             Assert.True(new MainViewModel().IsRunning);
-        });
-    }
-
-    /// <summary>
-    /// 已启用的宏排在前面：关闭时保持项目原有顺序，打开后只把两组分开，组内顺序不变。
-    /// </summary>
-    [Fact]
-    public void Enabled_macros_can_be_listed_first_without_reordering_each_group()
-    {
-        InOwnFile(_ =>
-        {
-            var viewModel = new MainViewModel();
-            viewModel.SelectedView = MacroView.All;
-
-            viewModel.AddMacro(new MacroItem { Name = "停用一", IsEnabled = false });
-            viewModel.AddMacro(new MacroItem { Name = "启用一" });
-            viewModel.AddMacro(new MacroItem { Name = "停用二", IsEnabled = false });
-            viewModel.AddMacro(new MacroItem { Name = "启用二" });
-
-            Assert.Equal(["停用一", "启用一", "停用二", "启用二"],
-                viewModel.VisibleMacros.Select(macro => macro.Name));
-
-            LocalSettings.StoreEnabledFirst(true);
-            viewModel.RefreshVisibleMacros();
-
-            Assert.Equal(["启用一", "启用二", "停用一", "停用二"],
-                viewModel.VisibleMacros.Select(macro => macro.Name));
-        });
-    }
-
-    /// <summary>
-    /// 启用/停用之后列表立刻按「已启用排前」换位，菜单上写的也是接下来会发生的事 —— 否则圆点与顺序
-    /// 会各说各的，直到下一次刷新。
-    /// </summary>
-    [Fact]
-    public void Arming_a_macro_moves_it_within_the_order_at_once()
-    {
-        InOwnFile(_ =>
-        {
-            LocalSettings.StoreEnabledFirst(true);
-            var viewModel = new MainViewModel();
-            viewModel.SelectedView = MacroView.All;
-
-            var first = new MacroItem { Name = "甲" };
-            var second = new MacroItem { Name = "乙", IsEnabled = false };
-            var third = new MacroItem { Name = "丙", IsEnabled = false };
-            viewModel.AddMacro(first);
-            viewModel.AddMacro(second);
-            viewModel.AddMacro(third);
-
-            Assert.Equal(["甲", "乙", "丙"], viewModel.VisibleMacros.Select(macro => macro.Name));
-            Assert.Equal(Strings.Get("Main.DisableMacro"), first.ToggleLabel);
-            Assert.Equal(Strings.Get("Main.EnableMacro"), third.ToggleLabel);
-
-            // 丙启用：进到启用的那一组末尾，乙仍在停用组里。
-            viewModel.ToggleMacro(third);
-            Assert.Equal(["甲", "丙", "乙"], viewModel.VisibleMacros.Select(macro => macro.Name));
-            Assert.Equal(Strings.Get("Main.DisableMacro"), third.ToggleLabel);
-
-            // 甲停用：让出第一位，两个停用的仍按项目里的先后排。
-            viewModel.ToggleMacro(first);
-            Assert.Equal(["丙", "甲", "乙"], viewModel.VisibleMacros.Select(macro => macro.Name));
-            Assert.Equal(Strings.Get("Main.EnableMacro"), first.ToggleLabel);
         });
     }
 
@@ -397,20 +333,17 @@ public class LocalSettingsTests
     }
 
     [Fact]
-    public void Trigger_shortcuts_and_the_selected_dock_page_are_remembered()
+    public void Trigger_shortcuts_and_the_menu_launcher_are_remembered()
     {
         InOwnFile(_ =>
         {
             Assert.Equal("Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(MacroView.All, LocalSettings.LoadView());
             Assert.Equal(string.Empty, LocalSettings.LoadMenuLauncher());
 
             LocalSettings.StoreSystemHotkey("Ctrl+Alt+Home");
-            LocalSettings.StoreView(MacroView.Menu);
             LocalSettings.StoreMenuLauncher("F9");
 
             Assert.Equal("Ctrl+Alt+Home", LocalSettings.LoadSystemHotkey());
-            Assert.Equal(MacroView.Menu, LocalSettings.LoadView());
             Assert.Equal("F9", LocalSettings.LoadMenuLauncher());
         });
     }

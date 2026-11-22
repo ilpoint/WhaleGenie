@@ -59,7 +59,7 @@ internal static class WindowedServices
             // bridge finds the shell through the container, which answers null while the shell
             // is not the window on duty.
             var server = new BridgeServer();
-            server.Register(new AppBridge(sp.GetRequiredService<ProjectWorkspace>(), () => AppTray.Current));
+            server.Register(new AppBridge(() => AppTray.Current));
             server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>()));
             server.Register(new StringsBridge());
             server.Register(new ThemeBridge());
