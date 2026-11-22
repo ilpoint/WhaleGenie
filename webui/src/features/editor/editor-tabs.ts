@@ -238,7 +238,7 @@ export class WgEditorTabs extends LitElement {
       return;
     }
 
-    let next = index;
+    let next: number;
     if (event.key === 'ArrowLeft') {
       next = Math.max(0, index - 1);
     } else if (event.key === 'ArrowRight') {
