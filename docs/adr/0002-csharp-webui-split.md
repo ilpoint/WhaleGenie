@@ -32,8 +32,8 @@
    `run.log` 带 `logFrom` 游标只追加、`run.look` 只在变化时推送（最长边 320 的 BMP 缩略图）；
    离开面板调用 `run.unload` 停止运行、计时器与订阅。
 7. **设置是内存模型 + 类型化补丁。**
-   `AppSettings` 启动读一次、原子写、路径可注入；`settings.update` 接收可空字段的补丁，不再解析
-   `{field, value}` 字符串。
+   设置文件由内存模型持有、原子写、路径可注入；`AppSettings` 作为注入入口逐步取代静态读取。
+   `settings.update` 接收可空字段的补丁，不再解析 `{field, value}` 字符串。
 8. **处理器不引用 Avalonia/WebView。**
    文件对话框、拾取器、窗口按钮、主题、声音、图像编码都经 Contracts 的端口；UI 工程实现端口。
    分层由 `LayeringTests` 与新增的 `WhaleGenie.Bridge.Tests` 保证。
@@ -43,6 +43,8 @@
 - 长耗时处理器的 IO 下放与 busy 事件延后到 P6/P7：保存/打开目前仍由界面线程持有的
   `ProjectWorkspace` 完成；先拆出 App/Editing 与 `IUiDispatcher`，再把纯文件 IO 放到工作线程，
   busy 复用同一条推送通道。
+- 运行会话从 `RunViewModel` 迁到 App 的 `RunSession` 同样等 `IUiDispatcher` 与帧图像编码端口；
+  当前 `RunBridge` 先完成增量事件、缩略图与卸载清理。
 
 ## 后果
 

@@ -143,6 +143,7 @@ public class LocalSettingsTests
             Assert.Equal("F9", LocalSettings.LoadRecordStopKey());
 
             File.WriteAllText(path, """{"RecordStopKey":""}""");
+            LocalSettings.Forget();
             Assert.Equal("Ctrl+F10", LocalSettings.LoadRecordStopKey());
 
             var settings = new SettingsViewModel(() => DriverInputState.Ready);
@@ -203,6 +204,7 @@ public class LocalSettingsTests
         InOwnFile(path =>
         {
             File.WriteAllText(path, "{}");
+            LocalSettings.Forget();
 
             Assert.Equal(LocalSettings.ForCulture(CultureInfo.CurrentUICulture), LocalSettings.Load());
             Assert.Equal(CaptureWay.Auto, LocalSettings.LoadCaptureWindow());
@@ -361,6 +363,7 @@ public class LocalSettingsTests
             File.WriteAllText(path, """
                 {"Theme":"custom","CustomThemeLight":true,"CustomThemeColors":{"AppAccent":"#112233","AppText":"#00FF00"}}
                 """);
+            LocalSettings.Forget();
 
             var migrated = LocalSettings.LoadTheme();
             Assert.Equal(ThemeMode.Custom, migrated.Mode);
@@ -400,6 +403,7 @@ public class LocalSettingsTests
             Assert.True(LocalSettings.LoadMainWindowMaximized());
 
             File.WriteAllText(path, """{"MainWindowWidth":-4,"MainWindowHeight":0}""");
+            LocalSettings.Forget();
             Assert.Null(LocalSettings.LoadMainWindowSize());
         });
     }

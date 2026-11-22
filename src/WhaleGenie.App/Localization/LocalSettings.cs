@@ -19,7 +19,46 @@ public static class LocalSettings
     /// an update or a reinstall does not take their settings with it. It can be moved so a check
     /// runs against a file of its own instead of the one whoever is using WhaleGenie keeps.
     /// </summary>
-    internal static string FilePath { get; set; } = Adopt(AppPaths.Settings, AppPaths.Root);
+    private static readonly object Gate = new();
+    private static string _filePath = Adopt(AppPaths.Settings, AppPaths.Root);
+    private static Model? _cached;
+    private static bool _loaded;
+
+    /// <summary>The file the choices live in; changing it drops the in-memory copy.</summary>
+    internal static string FilePath
+    {
+        get
+        {
+            lock (Gate)
+            {
+                return _filePath;
+            }
+        }
+
+        set
+        {
+            lock (Gate)
+            {
+                _filePath = value;
+                ForgetLocked();
+            }
+        }
+    }
+
+    /// <summary>Reads the file again after something outside this class changed it.</summary>
+    internal static void Forget()
+    {
+        lock (Gate)
+        {
+            ForgetLocked();
+        }
+    }
+
+    private static void ForgetLocked()
+    {
+        _cached = null;
+        _loaded = false;
+    }
 
     /// <summary>
     /// The oldest a reused picture may be, in milliseconds. A second is already the point where a
@@ -390,15 +429,26 @@ public static class LocalSettings
 
     private static Model Read()
     {
-        try
+        lock (Gate)
         {
-            return File.Exists(FilePath)
-                ? JsonSerializer.Deserialize<Model>(File.ReadAllText(FilePath)) ?? new Model()
-                : new Model();
-        }
-        catch
-        {
-            return new Model();
+            if (_loaded)
+            {
+                return _cached!;
+            }
+
+            _loaded = true;
+            try
+            {
+                _cached = File.Exists(_filePath)
+                    ? JsonSerializer.Deserialize<Model>(File.ReadAllText(_filePath)) ?? new Model()
+                    : new Model();
+            }
+            catch
+            {
+                _cached = new Model();
+            }
+
+            return _cached;
         }
     }
 
@@ -408,16 +458,30 @@ public static class LocalSettings
     /// </summary>
     private static void Write(Action<Model> change)
     {
-        try
+        lock (Gate)
         {
             var model = Read();
-            change(model);
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(model));
-        }
-        catch
-        {
-            // A settings file that cannot be written must never break the app.
+            var temp = _filePath + ".tmp";
+            try
+            {
+                change(model);
+                Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
+                File.WriteAllText(temp, JsonSerializer.Serialize(model));
+                File.Move(temp, _filePath, overwrite: true);
+            }
+            catch
+            {
+                // A settings file that cannot be written must never break the app; the in-memory
+                // choice still applies for this run.
+                try
+                {
+                    File.Delete(temp);
+                }
+                catch
+                {
+                    // Best effort: a leftover temp file is not worth surfacing to the person.
+                }
+            }
         }
     }
 
