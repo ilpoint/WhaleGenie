@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.GraphicsCapture;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
+using WhaleGenie.Settings;
 
 namespace WhaleGenie.Localization;
 
@@ -19,46 +18,17 @@ public static class LocalSettings
     /// an update or a reinstall does not take their settings with it. It can be moved so a check
     /// runs against a file of its own instead of the one whoever is using WhaleGenie keeps.
     /// </summary>
-    private static readonly object Gate = new();
-    private static string _filePath = Adopt(AppPaths.Settings, AppPaths.Root);
-    private static Model? _cached;
-    private static bool _loaded;
+    private static readonly SettingsStore _store = new(Adopt(AppPaths.Settings, AppPaths.Root));
 
     /// <summary>The file the choices live in; changing it drops the in-memory copy.</summary>
     internal static string FilePath
     {
-        get
-        {
-            lock (Gate)
-            {
-                return _filePath;
-            }
-        }
-
-        set
-        {
-            lock (Gate)
-            {
-                _filePath = value;
-                ForgetLocked();
-            }
-        }
+        get => _store.FilePath;
+        set => _store.FilePath = value;
     }
 
     /// <summary>Reads the file again after something outside this class changed it.</summary>
-    internal static void Forget()
-    {
-        lock (Gate)
-        {
-            ForgetLocked();
-        }
-    }
-
-    private static void ForgetLocked()
-    {
-        _cached = null;
-        _loaded = false;
-    }
+    internal static void Forget() => _store.Forget();
 
     /// <summary>
     /// The oldest a reused picture may be, in milliseconds. A second is already the point where a
@@ -427,191 +397,8 @@ public static class LocalSettings
 
     private static bool UsableSize(double value) => double.IsFinite(value) && value > 0;
 
-    private static Model Read()
-    {
-        lock (Gate)
-        {
-            if (_loaded)
-            {
-                return _cached!;
-            }
+    private static SettingsModel Read() => _store.Read();
 
-            _loaded = true;
-            try
-            {
-                _cached = File.Exists(_filePath)
-                    ? JsonSerializer.Deserialize<Model>(File.ReadAllText(_filePath)) ?? new Model()
-                    : new Model();
-            }
-            catch
-            {
-                _cached = new Model();
-            }
+    private static void Write(Action<SettingsModel> change) => _store.Write(change);
 
-            return _cached;
-        }
-    }
-
-    /// <summary>
-    /// Changes one choice and writes the file back. The whole file is written every time, so the
-    /// choice being changed has to start from what was already stored or it would drop the rest.
-    /// </summary>
-    private static void Write(Action<Model> change)
-    {
-        lock (Gate)
-        {
-            var model = Read();
-            var temp = _filePath + ".tmp";
-            try
-            {
-                change(model);
-                Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
-                File.WriteAllText(temp, JsonSerializer.Serialize(model));
-                File.Move(temp, _filePath, overwrite: true);
-            }
-            catch
-            {
-                // A settings file that cannot be written must never break the app; the in-memory
-                // choice still applies for this run.
-                try
-                {
-                    File.Delete(temp);
-                }
-                catch
-                {
-                    // Best effort: a leftover temp file is not worth surfacing to the person.
-                }
-            }
-        }
-    }
-
-    private sealed class Model
-    {
-        public string Language { get; set; } = string.Empty;
-
-        public string LastProject { get; set; } = string.Empty;
-
-        public bool PreloadOcr { get; set; }
-
-        public bool DriverAttachAtStart { get; set; }
-
-        public string CaptureWindow { get; set; } = string.Empty;
-
-        public string CaptureScreen { get; set; } = string.Empty;
-
-        public string SystemHotkey { get; set; } = "Home";
-
-        public string MenuLauncher { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Whether the frame cap follows the display. On by default: the display's own rate is the
-        /// fastest a macro can usefully look, and it is what every step used to get when it left the
-        /// interval empty.
-        /// </summary>
-        public bool FrameRateFollow { get; set; } = true;
-
-        /// <summary>The frames a second the person picked, zero while the cap follows the display.</summary>
-        public int FrameRateHertz { get; set; }
-
-        /// <summary>
-        /// Whether a picture already taken is read again rather than taken again. Off by default:
-        /// reuse is a deliberate trade, and a macro that waits for something to disappear must not
-        /// be shown a picture from before it disappeared.
-        /// </summary>
-        public bool FrameCache { get; set; }
-
-        /// <summary>How old a reused picture may be, in milliseconds, when reuse is on.</summary>
-        public int FrameCacheAgeMs { get; set; } = 100;
-
-        /// <summary>
-        /// Whether a start opens the project that was open when the program was last closed. On by
-        /// default: that is what the program has always done, and the choice is here to turn it off.
-        /// </summary>
-        public bool LoadLastProjectAtStart { get; set; } = true;
-
-        /// <summary>
-        /// Whether triggers listen as soon as the program starts. Off by default: a macro program that
-        /// starts taking keyboard and mouse the moment it opens is a surprise nobody asked for.
-        /// </summary>
-        public bool SystemAtStart { get; set; }
-
-        /// <summary>
-        /// Whether enabled macros are listed above disabled ones. Off by default, which keeps the
-        /// order the project was made in.
-        /// </summary>
-        public bool EnabledFirst { get; set; }
-
-        /// <summary>
-        /// Events per second this program may send. What the program has always done is the default:
-        /// the ceiling is there for the macros that need it, and turning it on by default is what
-        /// keeps a fresh install from typing like a machine on the first run.
-        /// </summary>
-        public int InputRate { get; set; } = WhaleGenie.Core.Devices.InputLimit.Usual;
-
-        /// <summary>
-        /// Whether what the program sends is ignored by its own triggers and left out of a
-        /// recording. On by default: a macro that presses a bound key would otherwise start another
-        /// macro, and a recording made while one runs would play that run back.
-        /// </summary>
-        public bool IgnoreOwnInput { get; set; } = true;
-
-        /// <summary>
-        /// Whether the program's own switch is heard when it goes on or off. On by default: that
-        /// hotkey is pressed blind, and nothing else on screen answers at that moment.
-        /// </summary>
-        public bool SoundSystem { get; set; } = true;
-
-        /// <summary>
-        /// Whether arming or disarming one macro is heard. On by default: the dot changes, but the
-        /// pointer is usually already moving away from it.
-        /// </summary>
-        public bool SoundMacro { get; set; } = true;
-
-        /// <summary>
-        /// How many failure and MCP logs are kept; the rest are deleted at startup, oldest first.
-        /// A hundred by default, which is what ordinary use leaves behind without filling a disk.
-        /// </summary>
-        public int LogCount { get; set; } = LogRetention.Usual;
-
-        /// <summary>
-        /// The shortcut that ends a recording, written as a hotkey is written. Ctrl+F10 by default,
-        /// which is what the recording panel has always said out loud.
-        /// </summary>
-        public string RecordStopKey { get; set; } = UsualRecordStopKey;
-
-        /// <summary>
-        /// Whether every start asks Windows for the administrator token. Off by default: a macro
-        /// tool that puts a UAC prompt in front of everybody is one people stop starting.
-        /// </summary>
-        public bool RunAsAdmin { get; set; }
-
-        /// <summary>Zero means no size has been stored, which is not a window size.</summary>
-        public double MainWindowWidth { get; set; }
-
-        public double MainWindowHeight { get; set; }
-
-        /// <summary>Whether the shell was maximized when it was last put away.</summary>
-        public bool MainWindowMaximized { get; set; }
-
-        public bool McpAllowControl { get; set; }
-
-        public bool McpAllowRun { get; set; }
-
-        public bool LightTheme { get; set; }
-
-        public string Theme { get; set; } = string.Empty;
-
-        public bool CustomThemeLight { get; set; }
-
-        /// <summary>The one colour a custom theme paints with; empty means the built-in accent.</summary>
-        public string Accent { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Where a custom theme used to keep twenty-two colours, one per interface colour. Read so
-        /// that the accent chosen there survives the move to a single colour, and never written:
-        /// leaving it behind would look like a palette that had not been migrated yet.
-        /// </summary>
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public Dictionary<string, string>? CustomThemeColors { get; set; } = new();
-    }
 }

@@ -104,7 +104,7 @@
 453	tests/WhaleGenie.Actions.Tests/ValueDraftTests.cs	keep: 形状编辑契约的一组用例，共用 ValueDraft 与 SlotReader.Shape 两套夹具
 4379	src/WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 2507	src/WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
-617	src/WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
+404	src/WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置的读写入口与默认值
 5921	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 动作目录的查询与描述投影，单一职责
 415	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 草稿表与其上限、校验入口，单一职责
