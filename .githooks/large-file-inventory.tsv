@@ -133,7 +133,7 @@
 335	src/WhaleGenie/ViewModels/Run/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 602	src/WhaleGenie/ViewModels/Editor/StepRow.cs	keep: 步骤行模型，行为/条件/结果/分支值同属一行的编辑状态，内聚
 316	src/WhaleGenie.Editing/Variables/VariableWallViewModel.cs	keep: 变量墙一页的状态与命令，单一职责
-386	src/WhaleGenie/ViewModels/Value/WindowPreviewViewModel.cs	keep: 一个界面的状态与命令
+386	src/WhaleGenie.Editing/Value/WindowPreviewViewModel.cs	keep: 一个界面的状态与命令
 606	src/WhaleGenie/Views/Pickers/ColorPickerWindow.axaml.cs	keep: 取色窗口的单一交互
 531	src/WhaleGenie/Views/Pickers/ElementPickerWindow.cs	keep: 元素挑选的一次交互，与窗口挑选同一套走法
 322	src/WhaleGenie/Views/Editor/MacroMenuWindow.Building.cs	keep: 菜单窗口的一族，按窗口职责拆分后单一职责
@@ -196,3 +196,4 @@
 27445	webui/src/shared/bridge/mock-strings-extra.ts	pending review
 32470	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 401	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
+314	src/WhaleGenie.Editing/Editor/ConditionEditorViewModel.cs	keep: 条件树的增删与拾取是同一个编辑任务
