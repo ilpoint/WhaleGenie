@@ -21,6 +21,7 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly Action? _markMenuChanged;
     private readonly SystemState? _system;
     private readonly IIconCatalog? _icons;
+    private readonly AppSettings _settings;
 
     /// <summary>
     /// The same, over whatever stands behind driver-level input: the program's own, or one a check
@@ -29,8 +30,9 @@ public partial class SettingsViewModel : ViewModelBase
     internal SettingsViewModel(IDriverInput driver, bool? elevated = null,
         ProjectWorkspace? project = null, string? packagePath = null,
         Action? markMenuChanged = null, SystemState? system = null,
-        IIconCatalog? icons = null)
-        : this(() => driver.State, elevated, project, packagePath, markMenuChanged, system, icons)
+        IIconCatalog? icons = null, AppSettings? settings = null)
+        : this(() => driver.State, elevated, project, packagePath, markMenuChanged, system, icons,
+            settings)
     {
     }
 
@@ -42,39 +44,40 @@ public partial class SettingsViewModel : ViewModelBase
     internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null,
         ProjectWorkspace? project = null, string? packagePath = null,
         Action? markMenuChanged = null, SystemState? system = null,
-        IIconCatalog? icons = null)
+        IIconCatalog? icons = null, AppSettings? settings = null)
     {
         Project = project;
         _markMenuChanged = markMenuChanged;
         _system = system;
         _icons = icons;
+        _settings = settings ?? AppSettings.Shared;
         PackagePath = packagePath;
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
-        LoadLastProjectAtStart = LocalSettings.LoadLastProjectAtStart();
-        SystemAtStart = LocalSettings.LoadSystemAtStart();
-        EnabledFirst = LocalSettings.LoadEnabledFirst();
-        PreloadOcr = LocalSettings.LoadPreloadOcr();
-        InputRate = LocalSettings.LoadInputRate();
-        FrameRateFollow = LocalSettings.LoadFrameRateFollow();
+        LoadLastProjectAtStart = _settings.LoadLastProjectAtStart();
+        SystemAtStart = _settings.LoadSystemAtStart();
+        EnabledFirst = _settings.LoadEnabledFirst();
+        PreloadOcr = _settings.LoadPreloadOcr();
+        InputRate = _settings.LoadInputRate();
+        FrameRateFollow = _settings.LoadFrameRateFollow();
         FrameRate = FrameRateFollow
             ? FrameSetup.FastestRate
-            : Math.Clamp(LocalSettings.LoadFrameRate(), 1, FrameSetup.FastestRate);
-        FrameCache = LocalSettings.LoadFrameCache();
-        FrameCacheAge = Math.Clamp(LocalSettings.LoadFrameCacheAge(), 0, LocalSettings.FrameCacheOldest);
+            : Math.Clamp(_settings.LoadFrameRate(), 1, FrameSetup.FastestRate);
+        FrameCache = _settings.LoadFrameCache();
+        FrameCacheAge = Math.Clamp(_settings.LoadFrameCacheAge(), 0, AppSettings.FrameCacheOldest);
         _frameReady = true;
-        IgnoreOwnInput = LocalSettings.LoadIgnoreOwnInput();
-        SoundSystem = LocalSettings.LoadSoundSystem();
-        SoundMacro = LocalSettings.LoadSoundMacro();
-        LogCount = LocalSettings.LoadLogCount();
-        AttachDriverAtStart = LocalSettings.LoadDriverAttachAtStart();
+        IgnoreOwnInput = _settings.LoadIgnoreOwnInput();
+        SoundSystem = _settings.LoadSoundSystem();
+        SoundMacro = _settings.LoadSoundMacro();
+        LogCount = _settings.LoadLogCount();
+        AttachDriverAtStart = _settings.LoadDriverAttachAtStart();
         SelectedWindowWay = WindowWays.First(option => option.Way == CaptureChoice.Current.Window);
         SelectedScreenWay = ScreenWays.First(option => option.Way == CaptureChoice.Current.Screen);
         IsElevated = elevated ?? ProcessRights.IsElevated;
-        RunAsAdmin = LocalSettings.LoadRunAsAdmin();
+        RunAsAdmin = _settings.LoadRunAsAdmin();
 
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
-        MenuLauncher = LocalSettings.LoadMenuLauncher();
+        MenuLauncher = _settings.LoadMenuLauncher();
         RefreshMenuRules();
         ReadWheel();
     }

@@ -24,7 +24,7 @@ public partial class SettingsViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RecordStopDisplay))]
-    public partial string RecordStopKey { get; set; } = LocalSettings.LoadRecordStopKey();
+    public partial string RecordStopKey { get; set; } = AppSettings.Shared.LoadRecordStopKey();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(RecordStopButton))]
@@ -57,7 +57,7 @@ public partial class SettingsViewModel
         IsCapturingRecordStop = false;
         RecordStopProblem = string.Empty;
         RecordStopKey = text;
-        LocalSettings.StoreRecordStopKey(text);
+        _settings.StoreRecordStopKey(text);
         return true;
     }
 
@@ -80,7 +80,7 @@ public partial class SettingsViewModel
 
     partial void OnSystemHotkeyChanged(string value)
     {
-        LocalSettings.StoreSystemHotkey(value);
+        _settings.StoreSystemHotkey(value);
         OnPropertyChanged(nameof(MenuLauncherStatus));
     }
 
@@ -99,9 +99,9 @@ public partial class SettingsViewModel
     /// <summary>Stores whether the next start asks for the administrator token.</summary>
     partial void OnRunAsAdminChanged(bool value)
     {
-        if (value != LocalSettings.LoadRunAsAdmin())
+        if (value != _settings.LoadRunAsAdmin())
         {
-            LocalSettings.StoreRunAsAdmin(value);
+            _settings.StoreRunAsAdmin(value);
         }
     }
 

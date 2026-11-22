@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -87,6 +88,10 @@ internal static class AppServices
 
         services.AddSingleton(ui);
         services.AddSingleton(aside);
+
+        // One settings object for the whole run: a window, the page and a check all read and write
+        // the same file through this instance rather than through a static of its own.
+        services.AddSingleton(_ => AppSettings.Shared);
 
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<McpLiveProject>();

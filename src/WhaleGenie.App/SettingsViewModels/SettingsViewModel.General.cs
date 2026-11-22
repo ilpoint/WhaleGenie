@@ -105,7 +105,7 @@ public partial class SettingsViewModel
 
     partial void OnFrameCacheAgeChanged(double value)
     {
-        var age = Math.Clamp((int)Math.Round(value), 0, LocalSettings.FrameCacheOldest);
+        var age = Math.Clamp((int)Math.Round(value), 0, AppSettings.FrameCacheOldest);
         if (_frameReady && FrameCache)
         {
             FrameSetup.StoreCache(reuse: true, age);
@@ -128,9 +128,9 @@ public partial class SettingsViewModel
     {
         var rate = Math.Clamp((int)Math.Round(value), 0, InputLimit.Most);
         InputLimit.PerSecond = rate;
-        if (rate != LocalSettings.LoadInputRate())
+        if (rate != _settings.LoadInputRate())
         {
-            LocalSettings.StoreInputRate(rate);
+            _settings.StoreInputRate(rate);
         }
     }
 
@@ -146,9 +146,9 @@ public partial class SettingsViewModel
     partial void OnLogCountChanged(double value)
     {
         var count = Math.Clamp((int)Math.Round(value), LogRetention.Fewest, LogRetention.Most);
-        if (count != LocalSettings.LoadLogCount())
+        if (count != _settings.LoadLogCount())
         {
-            LocalSettings.StoreLogCount(count);
+            _settings.StoreLogCount(count);
         }
     }
 
@@ -215,5 +215,5 @@ public partial class SettingsViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SystemHotkeyDisplay))]
-    public partial string SystemHotkey { get; set; } = LocalSettings.LoadSystemHotkey();
+    public partial string SystemHotkey { get; set; } = AppSettings.Shared.LoadSystemHotkey();
 }

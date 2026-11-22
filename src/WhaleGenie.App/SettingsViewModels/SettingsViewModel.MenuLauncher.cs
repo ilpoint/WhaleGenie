@@ -156,7 +156,7 @@ public partial class SettingsViewModel
         IsCapturingMenuLauncher = false;
         MenuLauncherMessage = string.Empty;
         MenuLauncher = binding.Trim();
-        LocalSettings.StoreMenuLauncher(MenuLauncher);
+        _settings.StoreMenuLauncher(MenuLauncher);
         OnPropertyChanged(nameof(MenuLauncherStatus));
         return true;
     }
@@ -166,7 +166,7 @@ public partial class SettingsViewModel
         IsCapturingMenuLauncher = false;
         MenuLauncherMessage = string.Empty;
         MenuLauncher = string.Empty;
-        LocalSettings.StoreMenuLauncher(string.Empty);
+        _settings.StoreMenuLauncher(string.Empty);
         OnPropertyChanged(nameof(MenuLauncherStatus));
     }
 

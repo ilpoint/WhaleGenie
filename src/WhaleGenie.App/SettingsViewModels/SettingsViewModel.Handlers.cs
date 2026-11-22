@@ -28,27 +28,27 @@ public partial class SettingsViewModel
     /// <summary>Stores whether a start opens the project that was open last time.</summary>
     partial void OnLoadLastProjectAtStartChanged(bool value)
     {
-        if (value != LocalSettings.LoadLastProjectAtStart())
+        if (value != _settings.LoadLastProjectAtStart())
         {
-            LocalSettings.StoreLastProjectAtStart(value);
+            _settings.StoreLastProjectAtStart(value);
         }
     }
 
     /// <summary>Stores whether triggers listen as soon as the program starts.</summary>
     partial void OnSystemAtStartChanged(bool value)
     {
-        if (value != LocalSettings.LoadSystemAtStart())
+        if (value != _settings.LoadSystemAtStart())
         {
-            LocalSettings.StoreSystemAtStart(value);
+            _settings.StoreSystemAtStart(value);
         }
     }
 
     /// <summary>Stores whether enabled macros are listed first.</summary>
     partial void OnEnabledFirstChanged(bool value)
     {
-        if (value != LocalSettings.LoadEnabledFirst())
+        if (value != _settings.LoadEnabledFirst())
         {
-            LocalSettings.StoreEnabledFirst(value);
+            _settings.StoreEnabledFirst(value);
         }
     }
 
@@ -59,36 +59,36 @@ public partial class SettingsViewModel
     partial void OnIgnoreOwnInputChanged(bool value)
     {
         WhaleGenieInputGate.IgnoreOwnInput = value;
-        if (value != LocalSettings.LoadIgnoreOwnInput())
+        if (value != _settings.LoadIgnoreOwnInput())
         {
-            LocalSettings.StoreIgnoreOwnInput(value);
+            _settings.StoreIgnoreOwnInput(value);
         }
     }
 
     /// <summary>Stores whether the system switch is heard.</summary>
     partial void OnSoundSystemChanged(bool value)
     {
-        if (value != LocalSettings.LoadSoundSystem())
+        if (value != _settings.LoadSoundSystem())
         {
-            LocalSettings.StoreSoundSystem(value);
+            _settings.StoreSoundSystem(value);
         }
     }
 
     /// <summary>Stores whether arming and disarming a macro is heard.</summary>
     partial void OnSoundMacroChanged(bool value)
     {
-        if (value != LocalSettings.LoadSoundMacro())
+        if (value != _settings.LoadSoundMacro())
         {
-            LocalSettings.StoreSoundMacro(value);
+            _settings.StoreSoundMacro(value);
         }
     }
 
     /// <summary>The same, for the choice that holds the text recognition models in memory.</summary>
     partial void OnPreloadOcrChanged(bool value)
     {
-        if (value != LocalSettings.LoadPreloadOcr())
+        if (value != _settings.LoadPreloadOcr())
         {
-            LocalSettings.StorePreloadOcr(value);
+            _settings.StorePreloadOcr(value);
         }
     }
 
@@ -98,9 +98,9 @@ public partial class SettingsViewModel
     /// </summary>
     partial void OnAttachDriverAtStartChanged(bool value)
     {
-        if (value != LocalSettings.LoadDriverAttachAtStart())
+        if (value != _settings.LoadDriverAttachAtStart())
         {
-            LocalSettings.StoreDriverAttachAtStart(value);
+            _settings.StoreDriverAttachAtStart(value);
         }
     }
 

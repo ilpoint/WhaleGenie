@@ -326,7 +326,8 @@ public class InterfaceSurfaceTests
 
                 var editor = new MacroEditorViewModel
                 {
-                    Settings = new WhaleGenie.Editing.LocalEditorSettings(),
+                    Settings = new WhaleGenie.Editing.LocalEditorSettings(
+                        WhaleGenie.Localization.AppSettings.Shared),
                 };
                 editor.LoadFrom(macro, triggers.ForMacro(macro.Name));
                 editor.LoadProjectTriggerSettings(triggers, [macro]);

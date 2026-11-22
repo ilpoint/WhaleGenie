@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Bridge;
 using WhaleGenie.Editing;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -80,7 +81,7 @@ internal static class WindowedServices
             var devices = sp.GetRequiredService<TriggerRuntime>().Devices;
             server.Register(new EditorSessionBridge(
                 sp.GetRequiredService<ProjectWorkspace>(), devices,
-                new LocalEditorSettings(),
+                new LocalEditorSettings(sp.GetRequiredService<AppSettings>()),
                 new EditorPickerHost(() => sp.GetService<WebShellWindow>(), devices),
                 new EditorWindowAside(() => sp.GetService<WebShellWindow>()),
                 new EditorBrowserTestHost(),
@@ -90,7 +91,8 @@ internal static class WindowedServices
             var settings = new SettingsViewModel(
                 SharedDevices.Current.Driver, null, main.Workspace,
                 main.Workspace.CurrentPath, main.MarkMenuChanged,
-                main.SystemSwitch, new MenuIconCatalogAdapter());
+                main.SystemSwitch, new MenuIconCatalogAdapter(),
+                sp.GetRequiredService<AppSettings>());
             server.Register(new SettingsBridge(settings, main.Workspace, devices,
                 new SettingsPickerHost(() => sp.GetService<WebShellWindow>(), devices),
                 () =>
