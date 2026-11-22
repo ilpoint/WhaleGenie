@@ -9,6 +9,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [dev/environment.md](dev/environment.md) | 常用命令、MCP 自检口径、工程结构与主要依赖 |
+| [dev/webui.md](dev/webui.md) | 网页壳的分层、目录、桥边界、拆分 playbook 与规模阈值 |
 | [dev/actions.md](dev/actions.md) | 修改动作的顺序、表单分块与各族的字段顺序 |
 | [dev/field-names.md](dev/field-names.md) | 同名字段的保留理由与新增例外规则 |
 | [dev/testing.md](dev/testing.md) | 测试分层、契约对账、界面与无头测试注意事项 |

@@ -169,10 +169,12 @@ AdvancedRows/ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 
 热字串字符键盘由 `EditorCharacterPad` 生成，结束键由 `HotstringEndKeys` 快照渲染；树的分节
 引导线仍由 `step-tree.ts` 绘制；旧 `step-inspector.ts` 参数表单已确认无引用并删除，不是步骤树。
 
-网页侧的页面状态集中在 `editor-store.ts`：快照、页签、动作目录、选中步骤、折叠、动作库筛选、
-右侧栏宽度、步骤编辑窗/取值窗口状态、录制状态和一次命令的错误；`wg-editor` 及其子组件只渲染并把
-编辑命令交回。右侧是变量中心与宏设置上下双面板；步骤参数在独立编辑窗里；C# 编辑模型与桥仍是唯一
-模型。mock 宿主的编辑器域拆在 `mock-editor*.ts`，与真桥同形，供 `e2e/editor.spec.ts` 驱动。
+网页侧的页面状态在 `features/editor/state/`，规格见 [dev/webui.md](../dev/webui.md)。
+`editor-store.ts` 只做组合根：`editor-core` 持有快照、监听、错误与通用请求助手，
+session/action/steps/value/triggers/declarations/variables/recording/ui 各是一个命令族 service；
+`wg-editor` 及其子组件只渲染并把编辑命令交回。订阅与 window 监听由 `shared/lit/` 的 controller
+绑定到元素生命周期。右侧是变量中心与宏设置上下双面板；步骤参数在独立编辑窗里；C# 编辑模型与桥
+仍是唯一模型。mock 宿主的编辑器域拆在 `mock-editor*.ts`，与真桥同形，供 `e2e/editor.spec.ts` 驱动。
 
 桥推送的时序也是契约：ready 前同一事件只留最新一份；页面显式取 `project.state`、`theme.get` 或
 `strings.bundle` 时清掉同域 pending；所有发送串行。页面问话在无页时立即答否，页内应答超时也

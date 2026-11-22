@@ -20,7 +20,8 @@ cd webui
 npm install          # 首次或 package.json 变化后
 npm run dev          # 带 mock 宿主的热重载开发，浏览器直接打开
 npm run test         # Vitest 单测
-npm run lint         # ESLint
+npm run lint         # ESLint；新增违规按错误失败，旧违规在 eslint-suppressions.json
+npm run check        # lint + 单测 + 类型检查 + 构建
 npm run build        # 类型检查 + 单文件构建，产物 dist/index.html
 npx playwright test  # 端到端冒烟（系统 Edge，走构建产物的 preview）
 ```

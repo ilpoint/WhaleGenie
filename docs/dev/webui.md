@@ -1,0 +1,166 @@
+# 网页壳结构、拆分与工程规范
+
+所属：[WhaleGenie 开发说明](../dev.md)。网页壳是界面层的一部分，桥与边界见
+[architecture/interface.md](../architecture/interface.md#5-网页壳)；用户行为见
+[manual.md](../manual.md)。
+
+## 1. 分层与依赖方向
+
+```text
+main.ts
+  └─ app/            壳、标题栏、导航（组合 features）
+       └─ features/  页面、store、service、controller、子组件
+            └─ shared/  bridge、lit、input、navigation、window-rule、通用 store
+```
+
+- `app/` 可以 import `features/` 与 `shared/`；`features/` 只能 import `shared/` 和自己的文件。
+- `shared/` 不得 import `features/` 或 `app/`。
+- feature 之间默认不互相 import；确需组合时只经对方的 `index.ts`（当前唯一例子：`macros -> mcp`）。
+- `tests/architecture.test.ts` 按解析后的路径检查这些规则；原生 `no-restricted-imports` 只看
+  import 字符串，不解析相对路径，因此边界以该测试为准。
+
+## 2. 目录约定
+
+现有健康文件不为了「树好看」而搬家。新文件和被拆文件按职责落位：
+
+```text
+features/<feature>/
+  <feature>-page.ts       路由入口与页面装配
+  <feature>-store.ts      跨组件状态 + 命令门面（可以只是组合）
+  state/                  state 类型、初始值、快照应用
+  services/               命令族；可以依赖 BridgeApi，不 import lit 或组件
+  model/                  纯函数与选择逻辑
+  components/             独立 UI 区块（各自一个文件）
+  controllers/            生命周期相关逻辑（订阅、捕获、拖拽状态机）
+  styles/                 纯样式模块
+  index.ts                只有需要被其他 feature 组合时才建
+```
+
+共享代码按用途放 `shared/bridge`、`shared/lit`、`shared/input`、`shared/navigation`、
+`shared/window-rule` 与既有的 `shared/strings|theme|app|project|window`。
+
+## 3. 文件命名
+
+| 角色 | 约定 | 例子 |
+| --- | --- | --- |
+| 页面 | `<feature>-page.ts` | `settings-page.ts` |
+| store | `<feature>-store.ts` | `editor-store.ts` |
+| service | `<feature>-service.ts` 或 `<family>-service.ts` | `session-service.ts` |
+| controller | `*-controller.ts` | `settings-capture-controller.ts` |
+| 纯逻辑 | `*-model.ts` | `editor-model.ts` |
+| 样式 | `*-css.ts` | `settings-page-css.ts` |
+| 协议 | `protocol/<domain>.ts` | `protocol/editor.ts` |
+| 单元测试 | `tests/**/<name>.test.ts` | `tests/features/editor/editor-model.test.ts` |
+
+组件文件 kebab-case，自定义元素 `wg-<feature>-<part>`，类名 PascalCase；保留 `wg-` 前缀。
+不建全局 `utils.ts`、`types.ts`、`helpers.ts`；按业务关注点命名。
+
+## 4. 新代码放哪里
+
+| 要写的东西 | 放哪里 |
+| --- | --- |
+| 一次桥命令、快照应用、错误归一 | feature 的 service/store |
+| 跟视图无关的选择、过滤、键位映射 | feature 的 `*-model.ts` + 单测 |
+| connectedCallback 订阅、window 监听、捕获模式 | `shared/lit` 的 controller |
+| 跨组件/跨路由的 UI 状态 | feature store |
+| 只影响本组件的临时状态（展开、搜索、对话框） | 组件的 `@state` |
+| 独立 UI 区块（有自己生命周期或需要独立渲染） | Lit 子组件 |
+| 同一 Shadow DOM 内的字段分组、行渲染 | 同目录渲染模块，不强行拆组件 |
+| 布局、间距、颜色 | `*-css.ts`，只用 Fluent 令牌 |
+
+## 5. 桥的规则
+
+- 页面只通过 `shared/bridge/bridge.js` 的 `bridge` 门面或 `bridgeApi` 说话；`transport.ts` 与
+  `pick.ts` 是唯一可以读 `window.invokeCSharpAction` / `window.__whale` 的文件。
+- 需要可测的命令族依赖 `BridgeApi`（`call` / `on`），不要直接依赖 `HostTransport`。
+- 视图可以做一行命令（如窗口按钮），但多步编排、快照应用、`actionError/valueError` 归必须进
+  service/store。
+- `protocol.ts` 是 barrel；新代码可以直接 import `protocol/<domain>.ts`，旧 import 保持不变。
+- C# 仍是唯一事实来源；页面不解析公式、不按动作名推断字段。
+- 方法名清单由 `BridgeMethodInventoryTests` 对账；新增/改名桥方法要同步 C# 与页面。
+
+## 6. 状态与 Controller
+
+- `StoreController<T>`：把 store 订阅绑定到元素生命周期，订阅时立即回调，断开时退订。
+- `WindowEventController`：绑定一个 window 监听，支持 capture 选项。
+- `SubscriptionController`：给桥事件或任何返回 unsubscribe 句柄的 API 用。
+- 控制器字段用 `protected readonly`，避免被 TypeScript 当作未使用私有成员；控制器只负责生命周期，
+  不把纯函数塞进去。
+- 只有跨组件、跨路由、需要生命周期清理的状态才进 store；局部临时状态留在组件，避免造一个更大的
+  全局 store。当前不为 prop drilling 引入 `@lit/context`。
+
+## 7. 子组件与渲染模块
+
+Lit 组件有自己的 Shadow DOM，父组件的 CSS 不会进入子组件。因此：
+
+- 独立区块抽组件时，把对应样式一起搬进子组件，并保留 e2e 使用的标签、类名与 `data-*`。
+- 与父组件强耦合的行、字段分组（如 step-tree 的行、action-field 的字段族）抽成同目录渲染模块，
+  仍在父组件的 Shadow DOM 内渲染；拆组件会把样式和事件绑定撕碎。
+- 组件标签名、类名、`data-*` 是 e2e 契约；优先保留，不轻易改测试。
+
+## 8. 规模与复杂度
+
+ESLint（`src/**/*.ts`）：
+
+- `max-lines`: 400（跳过空行/注释）
+- `max-lines-per-function`: 80
+- `complexity`: 15
+- `max-depth`: 4
+
+`src/**/*-css.ts` 关闭规模规则；样式是单一关注点，单文件超过 700 行时人工评估是否按页面区域拆。
+`tests/**` 与 `e2e/**` 的文件上限为 800 行，函数长度不设限（场景叙事）。
+
+阈值用 ESLint 9 的 bulk suppressions 渐进收紧：
+
+1. 新规则或新文件产生违规时，先修；确实要延后的，才进 `eslint-suppressions.json`。
+2. `npm run lint` 带 `--max-warnings 0`，新增违规不会因为「只是警告」而漏过。
+3. 每拆完一个文件跑一次 `--prune-suppressions`；refactored 文件不应保留抑制项。
+4. 文件改名/移动后必须 prune，否则旧路径的抑制项失效。
+
+判据：拆完一个文件应至少减少 30% 行数或完整移走一个关注点；service 超过 400 行说明混了多个命令族，
+组件抽完 CSS 仍超过 400 行说明混了多个 UI 区块。不要为凑行数机械切割。
+
+## 9. 测试
+
+- 纯函数：`tests/features/**`，覆盖边界与失败输入。
+- service/store：用 `tests/fakes/bridge.ts` 的 `FakeBridge` 记录 `{method, params}`，按方法返回/抛错；
+  成功、失败、状态应用、返回值都要有。
+- controller：用 `tests/fakes/host.ts` 的 `FakeHost` 验证连接/断开、重复连接、requestUpdate。
+- 结构：`tests/architecture.test.ts` 检查 import 路径、宿主全局与 DOM-free 层。
+- e2e：`webui/e2e/` 走 mock 宿主与系统 Edge；拆分组件时优先保留 DOM 契约，而不是改测试。
+- C# 对账：网页改动至少跑 `WhaleGenie.Tests` 中 `BridgeMethodInventoryTests`、`WebUiBoundaryTests`、
+  `SourceEncodingTests` 与 `AboutPageTests`。
+
+## 10. 拆分 playbook
+
+1. 先做关注点体检：行数、方法簇、状态字段、CSS、桥调用、生命周期监听。
+2. 纯类型按域移到 `protocol/<domain>.ts`，保留 barrel；纯样式移到 `*-css.ts`。
+3. 纯函数移到 `*-model.ts` 并加单测；先不改调用点。
+4. 桥命令按族移到 service；保留旧门面转发，逐个子提交。
+5. 独立 UI 区块抽组件（连同样式）；强耦合行/字段抽渲染模块。
+6. 生命周期逻辑抽 controller；最后把旧门面方法删除，组件切到命名空间 API。
+7. 每步跑 `npm run check` + 受影响的 Playwright；最后跑全量 C# 测试。
+
+每一步只做一类改动：机械移动、行为变化、规则变化分开提交。任何一步都可以单独 revert。
+
+## 11. 新增页面/命令/组件
+
+新增页面：
+
+1. 在 `shared/navigation/router.ts` 加路由，在 `app/shell.ts` 的 `renderRoute` 接页面。
+2. 导航项由 `Shell.<Route>` 键驱动；在 `Strings` 两种语言补键。
+3. 在 `features/<name>/` 建 page；需要状态时先想清楚是本地还是跨组件。
+4. 加一条 e2e 冒烟；文案键由 `WebUiBoundaryTests` 对账。
+
+新增桥命令：
+
+1. C# 端用 `域.动作` 命名并注册。
+2. TS 端只在 service/store 里调用；结果类型放进 `protocol/<domain>.ts`。
+3. 更新 `BridgeMethodInventoryTests` 的 Expected 列表（仅新增方法时）。
+4. 加 service 的成功/失败用例。
+
+新增组件：
+
+1. 先判断它是否有独立生命周期或需要独立 Shadow DOM；没有就用渲染模块。
+2. 组件文件与标签按命名约定；样式随组件走，只用 Fluent 令牌。
+3. 需要订阅时用 controller，不在 connectedCallback 里手写 subscribe/unsubscribe 对。
