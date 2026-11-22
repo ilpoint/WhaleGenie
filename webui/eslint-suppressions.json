@@ -75,10 +75,7 @@
       "count": 1
     }
   },
-  "src/features/settings/settings-page.ts": {
-    "max-lines": {
-      "count": 1
-    },
+  "src/features/settings/settings-sections.ts": {
     "max-lines-per-function": {
       "count": 1
     }

@@ -4,32 +4,19 @@ import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type {
   SettingsState,
-  SettingsWheelSlot,
   ThemeState,
   WindowRuleState,
 } from '../../shared/bridge/protocol.js';
 import { theme as themeStore } from '../../shared/theme/theme.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
-import { keyboardChord, pointerBinding } from '../../shared/input/capture.js';
 import { emptyRule, type WgWindowRule } from '../../shared/window-rule/window-rule-dialog.js';
-import { renderMenu, type MenuActions } from './settings-menu.js';
-import {
-  renderWheelActions,
-  renderWheelSettings,
-  type WheelActions,
-  type WheelSlotDraft,
-} from './settings-wheel.js';
-import { renderTheme, type ThemeActions } from './settings-theme.js';
-
-type CaptureKind = 'systemHotkey' | 'recordStopKey' | 'menu' | 'wheelRepeat' | '';
-
-interface RuleEditor {
-  kind: 'menu-add' | 'menu-edit' | 'wheel-add' | 'wheel-edit';
-  key: string;
-  title: string;
-  rule: WindowRuleState;
-}
+import type { MenuActions } from './settings-menu.js';
+import type { WheelActions, WheelSlotDraft } from './settings-wheel.js';
+import type { ThemeActions } from './settings-theme.js';
+import { draftOf, type CaptureKind, type RuleEditor } from './settings-model.js';
+import { SettingsCaptureController } from './settings-capture-controller.js';
+import { renderSettingsCards } from './settings-sections.js';
 
 const emptyTheme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null };
 
@@ -37,30 +24,29 @@ const emptyTheme: ThemeState = { mode: 'dark', baseLight: false, accentHex: null
 @customElement('wg-settings')
 export class WgSettings extends LitElement {
   @state()
-  private settings: SettingsState | null = null;
+  settings: SettingsState | null = null;
 
   @state()
-  private theme: ThemeState = emptyTheme;
+  theme: ThemeState = emptyTheme;
 
   @state()
   private error = '';
 
   @state()
-  private capturing: CaptureKind = '';
-
-  @state()
   private ruleEditor: RuleEditor | null = null;
 
   @state()
-  private selectedSlot: { ring: string; index: number } | null = null;
+  selectedSlot: { ring: string; index: number } | null = null;
 
   @state()
-  private slotDraft: WheelSlotDraft | null = null;
+  slotDraft: WheelSlotDraft | null = null;
 
   @state()
   private search = '';
 
   static styles = settingsPageCss;
+
+  readonly capture = new SettingsCaptureController(this);
 
   protected readonly stringsController = new StoreController(this, strings);
 
@@ -98,142 +84,7 @@ export class WgSettings extends LitElement {
       ${header}
       <div class="content">
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
-      <div class="cards">
-        <section class="card" data-settings-section="general">
-          <div class="card-head">
-            <h2>${t('Settings.GeneralCard')}</h2>
-            <span class="note">${t('Settings.GeneralCardNote')}</span>
-          </div>
-          <div class="row">
-            <label>${t('Settings.Language')}</label>
-            <select @change=${(event: Event) => void this.changeSetting('language', event)}>
-              <option value="zh-Hans" ?selected=${this.settings.language === 'zh-Hans'}>
-                ${t('Settings.Language.Chinese')}
-              </option>
-              <option value="en" ?selected=${this.settings.language === 'en'}>
-                ${t('Settings.Language.English')}
-              </option>
-            </select>
-          </div>
-          ${this.toggle('loadLastProjectAtStart', 'Settings.LoadLastProject')}
-          ${this.toggle('systemAtStart', 'Settings.SystemAtStart')}
-          ${this.toggle('enabledFirst', 'Settings.EnabledFirst')}
-        </section>
-
-        ${renderTheme(this.theme, this.themeActions())}
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.Hotkeys')}</h2>
-            <span class="note">${t('Settings.HotkeysNote')}</span>
-          </div>
-          ${this.hotkey('systemHotkey', 'Settings.SystemHotkey')}
-          ${this.hotkey('recordStopKey', 'Settings.RecordStopKey')}
-        </section>
-
-        ${renderMenu(this.settings.menu, this.capturing === 'menu', this.menuActions())}
-
-        ${renderWheelSettings(this.settings.wheel, this.capturing === 'wheelRepeat',
-          this.wheelActions())}
-        ${renderWheelActions(this.settings.wheel, this.selectedSlot, this.slotDraft,
-          this.wheelActions())}
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.Sounds')}</h2>
-            <span class="note">${t('Settings.SoundsNote')}</span>
-          </div>
-          ${this.toggle('soundSystem', 'Settings.SoundSystem')}
-          ${this.toggle('soundMacro', 'Settings.SoundMacro')}
-        </section>
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.Reading')}</h2>
-            <span class="note">${t('Settings.ReadingNote')}</span>
-          </div>
-          ${this.toggle('preloadOcr', 'Settings.PreloadOcr')}
-        </section>
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.FramesCard')}</h2>
-            <span class="note">${t('Settings.FramesCardNote')}</span>
-          </div>
-          ${this.toggle('frameRateFollow', 'Settings.FrameRateFollow')}
-          ${this.number('frameRate', 'Settings.FrameRate', 1, this.settings.frameRateMax,
-            this.settings.frameRateFollow)}
-          ${this.toggle('frameCache', 'Settings.FrameCache')}
-          ${this.number('frameCacheAge', 'Settings.FrameCacheAge', 0, 60000,
-            !this.settings.frameCache)}
-        </section>
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.InputCard')}</h2>
-            <span class="note">${t('Settings.InputCardNote')}</span>
-          </div>
-          ${this.toggle('ignoreOwnInput', 'Settings.IgnoreOwnInput')}
-          ${this.number('inputRate', 'Settings.InputLimit', 0, 999, false)}
-          ${this.number('logCount', 'Settings.LogCount', 1, 1000, false)}
-        </section>
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.Driver')}</h2>
-            <span class="note">${t('Settings.DriverNote')}</span>
-          </div>
-          <p class="status">${this.settings.driverStatus}</p>
-          ${this.toggle('attachDriverAtStart', 'Settings.DriverAttachAtStart')}
-          ${this.toggle('runAsAdmin', 'Settings.RunAsAdmin')}
-          <p class="status">${this.settings.adminStatus}</p>
-        </section>
-
-        <section class="card" data-settings-section="input">
-          <div class="card-head">
-            <h2>${t('Settings.CaptureCard')}</h2>
-          </div>
-          <div class="row">
-            <label>${t('Settings.CaptureWindow')}</label>
-            <select @change=${(event: Event) => void this.changeSetting('windowWay', event)}>
-              ${this.settings.windowWays.map((way) => html`
-                <option value=${way.value} ?selected=${way.value === this.settings!.windowWay}>
-                  ${way.label}
-                </option>
-              `)}
-            </select>
-          </div>
-          <div class="row">
-            <label>${t('Settings.CaptureScreen')}</label>
-            <select @change=${(event: Event) => void this.changeSetting('screenWay', event)}>
-              ${this.settings.screenWays.map((way) => html`
-                <option value=${way.value} ?selected=${way.value === this.settings!.screenWay}>
-                  ${way.label}
-                </option>
-              `)}
-            </select>
-          </div>
-        </section>
-
-        <section class="card" data-settings-section="storage">
-          <div class="card-head">
-            <h2>${t('Settings.Storage')}</h2>
-            <span class="note">${t('Settings.StorageNote')}</span>
-          </div>
-          ${this.settings.storage.map((row) => html`
-            <div class="storage-row">
-              <div>
-                <strong>${row.name}</strong>
-                <div>${row.what}</div>
-                <div class="where">${row.where}</div>
-              </div>
-              <fluent-button appearance="subtle" @click=${() => void this.openFolder(row.folder)}>
-                ${t('Settings.OpenFolder')}
-              </fluent-button>
-            </div>
-          `)}
-        </section>
-      </div>
+${renderSettingsCards(this)}
       </div>
       ${this.ruleEditor ? html`
         <wg-window-rule .rule=${this.ruleEditor.rule} .title=${this.ruleEditor.title}
@@ -273,54 +124,11 @@ export class WgSettings extends LitElement {
     });
   }
 
-  private toggle(field: keyof SettingsState, label: string) {
-    return html`
-      <div class="row">
-        <label>${t(label)}</label>
-        <input type="checkbox" .checked=${Boolean(this.settings![field])}
-          @change=${(event: Event) => void this.changeSetting(field, event)} />
-      </div>
-    `;
-  }
-
-  private number(field: keyof SettingsState, label: string, min: number, max: number,
-    disabled: boolean) {
-    return html`
-      <div class="row">
-        <label>${t(label)}</label>
-        <input type="number" min=${min} max=${max} ?disabled=${disabled}
-          .value=${String(this.settings![field])}
-          @change=${(event: Event) => void this.changeSetting(field, event)} />
-      </div>
-    `;
-  }
-
-  private hotkey(field: 'systemHotkey' | 'recordStopKey', label: string) {
-    const value = this.settings![field];
-    const problem = field === 'systemHotkey'
-      ? this.settings!.systemHotkeyProblem
-      : this.settings!.recordStopProblem;
-    return html`
-      <div class="hotkey hotkey-row">
-        <label>${t(label)}</label>
-        <input readonly data-hotkey=${field} .value=${value}
-          @keydown=${(event: KeyboardEvent) => this.captureKey(field, event)} />
-        <fluent-button appearance="subtle" @click=${() => void this.beginCapture(field)}>
-          ${t(this.capturing === field ? 'Settings.HotkeyPress' : 'Settings.HotkeySet')}
-        </fluent-button>
-        <fluent-button appearance="subtle" @click=${() => void this.setSettingValue(field, '')}>
-          ${t('Settings.HotkeyClear')}
-        </fluent-button>
-      </div>
-      ${problem ? html`<p class="error">${problem}</p>` : nothing}
-    `;
-  }
-
-  private menuActions(): MenuActions {
+  menuActions(): MenuActions {
     return {
       beginCapture: () => void this.beginCapture('menu'),
-      captureKey: (event) => this.captureKey('menu', event),
-      capturePointer: (event) => this.capturePointer('menu', event),
+      captureKey: (event) => this.capture.key('menu', event),
+      capturePointer: (event) => this.capture.pointer('menu', event),
       setMiddle: () => void this.applyCapture('menu', 'Mouse Middle'),
       clear: () => void this.menuState('settings.menu.clear'),
       addRule: () => this.openRuleEditor('menu-add'),
@@ -333,14 +141,14 @@ export class WgSettings extends LitElement {
     };
   }
 
-  private wheelActions(): WheelActions {
+  wheelActions(): WheelActions {
     return {
       update: (field, value) => void this.wheelState('settings.wheel.update', { field, value }),
       setLauncher: (value) => void this.wheelState('settings.wheel.launcher', { value }),
       setEnabled: (value) => void this.wheelState('settings.wheel.enabled', { value }),
       enableSystem: () => void this.wheelState('settings.wheel.enableSystem'),
       beginRepeatCapture: () => void this.beginCapture('wheelRepeat'),
-      captureRepeatKey: (event) => this.captureKey('wheelRepeat', event),
+      captureRepeatKey: (event) => this.capture.key('wheelRepeat', event),
       selectScene: (key) => void this.selectScene(key),
       addScene: () => this.openRuleEditor('wheel-add'),
       editScene: (key) => this.openRuleEditor('wheel-edit', key),
@@ -366,7 +174,7 @@ export class WgSettings extends LitElement {
     };
   }
 
-  private themeActions(): ThemeActions {
+  themeActions(): ThemeActions {
     return {
       setMode: (mode) => void this.applyTheme(mode),
       setBaseLight: (baseLight) => void this.applyTheme('custom', baseLight),
@@ -376,10 +184,12 @@ export class WgSettings extends LitElement {
     };
   }
 
-  private async beginCapture(kind: CaptureKind): Promise<void> {
-    this.capturing = kind;
+  async beginCapture(kind: CaptureKind): Promise<void> {
     this.error = '';
-    await this.updateComplete;
+    await this.capture.begin(kind);
+  }
+
+  async focusCapture(kind: CaptureKind): Promise<void> {
     const selector = kind === 'menu'
       ? '[data-menu-capture]'
       : kind === 'wheelRepeat'
@@ -388,40 +198,9 @@ export class WgSettings extends LitElement {
     this.renderRoot.querySelector<HTMLElement>(selector)?.focus();
   }
 
-  private captureKey(kind: CaptureKind, event: KeyboardEvent): void {
-    if (this.capturing !== kind) {
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      this.capturing = '';
-      return;
-    }
-    const binding = keyboardChord(event);
-    if (!binding) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    this.capturing = '';
-    void this.applyCapture(kind, binding);
-  }
 
-  private capturePointer(kind: CaptureKind, event: PointerEvent): void {
-    if (this.capturing !== kind) {
-      return;
-    }
-    const binding = pointerBinding(event);
-    if (!binding) {
-      return;
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    this.capturing = '';
-    void this.applyCapture(kind, binding);
-  }
 
-  private async applyCapture(kind: CaptureKind, binding: string): Promise<void> {
+  async applyCapture(kind: CaptureKind, binding: string): Promise<void> {
     try {
       if (kind === 'systemHotkey' || kind === 'recordStopKey') {
         await this.setSettingValue(kind, binding);
@@ -449,13 +228,13 @@ export class WgSettings extends LitElement {
     }
   }
 
-  private async changeSetting(field: keyof SettingsState, event: Event): Promise<void> {
+  async changeSetting(field: keyof SettingsState, event: Event): Promise<void> {
     const target = event.target as HTMLInputElement;
     const value = target.type === 'checkbox' ? String(target.checked) : target.value;
     await this.setSettingValue(field, value);
   }
 
-  private async setSettingValue(field: keyof SettingsState, value: string): Promise<void> {
+  async setSettingValue(field: keyof SettingsState, value: string): Promise<void> {
     try {
       this.settings = await bridge.value.call<SettingsState>('settings.update', { field, value });
       this.error = '';
@@ -464,7 +243,7 @@ export class WgSettings extends LitElement {
     }
   }
 
-  private async openFolder(folder: string): Promise<void> {
+  async openFolder(folder: string): Promise<void> {
     try {
       await bridge.value.call('settings.openFolder', { folder });
     } catch (error) {
@@ -607,19 +386,6 @@ export class WgSettings extends LitElement {
       this.error = String(error);
     }
   }
-}
-
-function draftOf(slot: SettingsWheelSlot): WheelSlotDraft {
-  return {
-    ring: slot.ring,
-    index: slot.index,
-    position: slot.position,
-    macro: slot.macro,
-    note: slot.note,
-    icon: slot.icon,
-    inherited: slot.inherited,
-    overridden: slot.overridden,
-  };
 }
 
 declare global {
