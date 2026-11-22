@@ -125,15 +125,7 @@ internal sealed partial class HeadlessActionSession
                 _form.ApplyDrag(result.X, result.Y, result.EndX, result.EndY);
                 break;
             case EditorPickKind.Capture:
-                if (field.IsImageList && request.Index >= 0 && request.Index < field.Pictures.Count)
-                {
-                    field.Pictures[request.Index].Text = result.Path;
-                }
-                else
-                {
-                    field.WriteValue(Formula.Text(result.Path));
-                }
-
+                WritePicture(field, request.Index, result.Path);
                 break;
             case EditorPickKind.Color:
                 if (PixelColor.TryParse(result.Colour, out var colour))
@@ -180,20 +172,28 @@ internal sealed partial class HeadlessActionSession
 
                 break;
             case EditorPickKind.Path:
-                if (field.IsImageList && request.Index >= 0
-                    && request.Index < field.Pictures.Count)
-                {
-                    field.Pictures[request.Index].Text = result.Path;
-                }
-                else
-                {
-                    field.WriteValue(Formula.Text(result.Path));
-                }
-
+                WritePicture(field, request.Index, result.Path);
                 break;
         }
 
         return Snapshot();
+    }
+
+    private static void WritePicture(StepParameterViewModel field, int index, string path)
+    {
+        if (!field.IsImageList)
+        {
+            field.WriteValue(Formula.Text(path));
+            return;
+        }
+
+        if (index < 0 || index >= field.Pictures.Count)
+        {
+            field.AddPicture();
+            index = field.Pictures.Count - 1;
+        }
+
+        field.Pictures[index].Text = path;
     }
 
     private EditorPickRequest Request(EditorPickKind kind, string name, int index, string mode,

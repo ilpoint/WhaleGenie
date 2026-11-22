@@ -109,8 +109,7 @@ export class WgShell extends LitElement {
   render() {
     return html`
       <wg-titlebar></wg-titlebar>
-      <wg-nav .active=${this.route} ?narrow=${this.route === 'editor'}
-        @wg-navigate=${this.onNavigate}></wg-nav>
+      <wg-nav .active=${this.route} @wg-navigate=${this.onNavigate}></wg-nav>
       <div class="content ${this.route === 'editor' ? 'editor' : ''}">${this.renderRoute()}</div>
       <footer class="status" role="status">
         <span data-status="project">${this.projectLabel()}</span>

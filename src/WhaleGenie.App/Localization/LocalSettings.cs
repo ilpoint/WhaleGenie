@@ -381,6 +381,11 @@ public static class LocalSettings
         });
     }
 
+    public static bool LoadMainWindowMaximized() => Read().MainWindowMaximized;
+
+    public static void StoreMainWindowMaximized(bool maximized)
+        => Write(model => model.MainWindowMaximized = maximized);
+
     private static bool UsableSize(double value) => double.IsFinite(value) && value > 0;
 
     public static MacroView LoadView()
@@ -526,6 +531,9 @@ public static class LocalSettings
         public double MainWindowWidth { get; set; }
 
         public double MainWindowHeight { get; set; }
+
+        /// <summary>Whether the shell was maximized when it was last put away.</summary>
+        public bool MainWindowMaximized { get; set; }
 
         public string View { get; set; } = nameof(Models.MacroView.All);
 

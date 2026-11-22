@@ -16,7 +16,7 @@ export function renderTheme(theme: ThemeState, actions: ThemeActions) {
   const surface = theme.surface ?? 'transparent';
   const text = theme.text ?? fill;
   return html`
-    <section class="card">
+    <section class="card" data-settings-section="theme">
       <div class="card-head">
         <h2>${t('Settings.Theme')}</h2>
         <span class="note">${t('Settings.ColorsNote')}</span>

@@ -187,7 +187,7 @@ test('公共宏库可列出并放入调用步骤', async ({ page }) => {
 test('动作库属于工作区而不是侧栏', async ({ page }) => {
   await openEditor(page);
   await expect(page.locator('wg-editor wg-editor-palette')).toBeVisible();
-  await expect(page.locator('wg-nav .side')).toBeHidden();
+  await expect(page.locator('wg-nav .activity')).toBeVisible();
   const box = await page.locator('wg-editor .palette-column').boundingBox();
   expect(box?.width ?? 0).toBeGreaterThanOrEqual(279);
 });
@@ -593,6 +593,16 @@ test('图片字段显示缩略图并可清除', async ({ page }) => {
   await expect(field.locator('img')).toBeVisible();
   await field.locator('button', { hasText: '清除' }).click();
   await expect(field.locator('img')).toHaveCount(0);
+  await closeStepEditor(page);
+});
+
+test('截图动作的图片路径显示预览', async ({ page }) => {
+  await openEditor(page);
+  await addStep(page, '基础动作', '截图');
+  await openStepEditor(page, '截图');
+  const field = page.locator('wg-action-editor .param[data-parameter="path"]');
+  await expect(field.locator('img')).toBeVisible();
+  await expect(field.locator('img')).toHaveAttribute('src', /^data:image\/png;base64,/);
   await closeStepEditor(page);
 });
 

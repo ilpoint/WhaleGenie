@@ -15,18 +15,23 @@ public static class WindowPlacement
     /// <summary>Applies the remembered size, limited to the desktop that is here now.</summary>
     public static void Restore(Window window)
     {
-        if (LocalSettings.LoadMainWindowSize() is not { } size)
+        if (LocalSettings.LoadMainWindowSize() is { } size)
         {
-            return;
+            var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
+            var scale = screen is { Scaling: > 0 } ? screen.Scaling : 1;
+            var widest = screen is null ? size.Width : screen.WorkingArea.Width / scale;
+            var tallest = screen is null ? size.Height : screen.WorkingArea.Height / scale;
+
+            window.Width = Math.Clamp(size.Width, window.MinWidth, Math.Max(window.MinWidth, widest));
+            window.Height = Math.Clamp(size.Height, window.MinHeight, Math.Max(window.MinHeight, tallest));
         }
 
-        var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
-        var scale = screen is { Scaling: > 0 } ? screen.Scaling : 1;
-        var widest = screen is null ? size.Width : screen.WorkingArea.Width / scale;
-        var tallest = screen is null ? size.Height : screen.WorkingArea.Height / scale;
-
-        window.Width = Math.Clamp(size.Width, window.MinWidth, Math.Max(window.MinWidth, widest));
-        window.Height = Math.Clamp(size.Height, window.MinHeight, Math.Max(window.MinHeight, tallest));
+        // A maximized window is a choice too. Without this the shell reopened at the last normal
+        // size after every launch, which read as the window shrinking by itself.
+        if (LocalSettings.LoadMainWindowMaximized())
+        {
+            window.WindowState = WindowState.Maximized;
+        }
     }
 
     /// <summary>Remembers the ordinary size; a maximized or minimized size is not a choice.</summary>
@@ -36,5 +41,7 @@ public static class WindowPlacement
         {
             LocalSettings.StoreMainWindowSize(window.Width, window.Height);
         }
+
+        LocalSettings.StoreMainWindowMaximized(window.WindowState == WindowState.Maximized);
     }
 }

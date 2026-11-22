@@ -38,7 +38,7 @@
 ## 明确保留、不是步骤树
 
 - **step-tree.ts**：步骤列表和引导线，本轮保留并增强。
-- **step-inspector.ts**：旧参数表单，不是步骤树；当前无 import，本轮不删除，作为迁移对照保留。是否单独删除另案处理。
+- **step-inspector.ts**：旧参数表单，不是步骤树；确认无 import、其字段/行表/条件控件已由 action-field、action-rows 和 action-page 覆盖后删除。步骤树仍保留在 step-tree.ts。
 - 旧 Avalonia 的 ActionEditorView.*、MacroEditorViewModel 仍是有用的行为参考；不因为网页有同名实现就删除其 C# 模型。
 - 旧键盘窗口和字符串键盘窗口不恢复为原生窗口：网页的 key-pad.ts、character-pad.ts 是替代实现；原生 LookPickWindow、WindowPickerWindow、区域/颜色/点位/UIA 覆盖层仍作为桌面覆盖层保留。
 

@@ -268,6 +268,10 @@ const ACTIONS: MockAction[] = [
     parameters: [parameter('hex', '颜色', 'Color', { initial: '#ff0000' })],
   },
   {
+    key: 'vision.capture', name: '截图', category: 'Vision', group: 'Capture', description: '',
+    parameters: [parameter('path', '图片', 'Path')],
+  },
+  {
     key: 'image.find', name: '找图', category: 'Vision', group: 'FindImage', description: '',
     parameters: [parameter('path', '图片', 'Image')],
   },

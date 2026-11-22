@@ -5,46 +5,24 @@ import { strings, t } from '../shared/strings/strings.js';
 import { routes, type Route } from './router.js';
 
 /**
- * 左侧导航。条目从词表键推导：`Shell.<Route>` 存在就是一项，所以阶段加页面只需要加键与
- * 一条路由，不用改导航的代码。当前选中的项铺强调色底。
+ * 左侧活动栏。条目从词表键推导：`Shell.<Route>` 存在就是一项，所以阶段加页面只需要加键与
+ * 一条路由，不用改导航的代码。当前选中的项铺强调色底。侧栏内容属于各页面自己的
+ * workbench（编辑器动作库、运行面板），这里只留一条 48px 的活动栏，避免同一份导航画两遍。
  */
 @customElement('wg-nav')
 export class WgNav extends LitElement {
   @property()
   active: Route = 'home';
 
-  /** The side bar folds away when the active icon is pressed again, like VS Code. */
-  @property({ type: Boolean, reflect: true })
-  collapsed = false;
 
-  /** The editor route's action library needs the width the native palette had. */
-  @property({ type: Boolean, reflect: true })
-  wide = false;
 
   static styles = css`
     :host {
       display: grid;
-      grid-template-columns: 48px 220px;
+      grid-template-columns: 48px;
       height: 100%;
       min-height: 0;
       background: var(--colorNeutralBackground3);
-    }
-
-    :host([wide]) {
-      grid-template-columns: 48px 280px;
-    }
-
-    :host([narrow]),
-    :host([collapsed]) {
-      grid-template-columns: 48px;
-    }
-
-    :host([narrow]) .side {
-      display: none;
-    }
-
-    :host([collapsed]) .side {
-      display: none;
     }
 
     button {
@@ -126,25 +104,6 @@ export class WgNav extends LitElement {
       height: 20px;
     }
 
-    .side {
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      overflow: hidden;
-      padding: 0;
-    }
-
-    .side ::slotted(wg-editor-palette) {
-      flex: 1;
-      min-height: 0;
-    }
-
-    .links {
-      display: grid;
-      align-content: start;
-      gap: var(--spacingVerticalXS);
-      padding: var(--spacingVerticalS) var(--spacingHorizontalS);
-    }
   `;
 
   private labels: Record<string, string> = {};
@@ -192,23 +151,6 @@ export class WgNav extends LitElement {
         <span class="grow"></span>
         ${this.activityButton('settings')}
       </nav>
-      <nav class="side">
-        <slot name="sidebar">
-          <div class="links">
-            ${mainRoutes.map(
-              (route) => html`
-                <button
-                  type="button"
-                  aria-current=${this.active === route ? 'page' : 'false'}
-                  @click=${() => this.select(route)}
-                >
-                  ${this.labels[route] ?? route}
-                </button>
-              `,
-            )}
-          </div>
-        </slot>
-      </nav>
     `;
   }
 
@@ -228,11 +170,9 @@ export class WgNav extends LitElement {
 
   private select(route: Route): void {
     if (route === this.active) {
-      this.collapsed = !this.collapsed;
       return;
     }
 
-    this.collapsed = false;
     this.dispatchEvent(new CustomEvent('wg-navigate', { detail: { route }, bubbles: true, composed: true }));
   }
 }

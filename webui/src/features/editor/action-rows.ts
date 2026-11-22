@@ -127,8 +127,14 @@ export class WgActionRows extends LitElement {
       ${field.images.length === 0
         ? html`<p class="hint">${t('Add.ImageEmpty')}</p>`
         : field.images.map((row, index) => this.renderImage(field, row, index))}
-      <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Add.ImageAdd')}</button>
+      <div class="chips">
+        <button class="chip" type="button"
+          @click=${() => void editor.addActionRow(field.name)}>${t('Add.ImageAdd')}</button>
+        <button class="chip" type="button"
+          @click=${() => void editor.pickAction(field.name, 'path')}>${t('Add.BrowseImage')}</button>
+        <button class="chip" type="button"
+          @click=${() => void editor.pickAction(field.name, 'capture')}>${t('Add.CaptureImage')}</button>
+      </div>
     `;
   }
 

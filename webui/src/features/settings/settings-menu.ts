@@ -18,7 +18,7 @@ export interface MenuActions {
 
 export function renderMenu(state: SettingsMenuState, capturing: boolean, actions: MenuActions) {
   return html`
-    <section class="card">
+    <section class="card" data-settings-section="menu">
       <div class="card-head">
         <h2>${t('Settings.MenuLauncher')}</h2>
         <span class="note">${t('Settings.MenuLauncherNote')}</span>
@@ -47,7 +47,7 @@ export function renderMenu(state: SettingsMenuState, capturing: boolean, actions
       <p class="status">${state.status}</p>
     </section>
 
-    <section class="card">
+    <section class="card" data-settings-section="menu">
       <div class="card-head">
         <h2>${t('Settings.MenuWindowRules')}</h2>
         <span class="note">${t('Settings.MenuWindowRulesNote')}</span>

@@ -249,6 +249,7 @@ export class WgActionField extends LitElement {
           <button class="chip" type="button"
             @click=${() => void this.pick(field.name, 'path')}>${t('Editor.Browse')}</button>
         </div>
+        ${this.renderImagePreview(field.imagePreview)}
       `;
     }
 

@@ -167,7 +167,7 @@ AdvancedRows/ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 
 `PrepareLook` 在窗口让开后用 `MacroRunner.LookOnce` 取景，`ApplyLook` 写偏移或颜色点。
 虚拟键盘由 C# 的 `EditorKeyPad` 生成完整键表（含 `KeyNames.Names` 未覆盖项的兜底），
 热字串字符键盘由 `EditorCharacterPad` 生成，结束键由 `HotstringEndKeys` 快照渲染；树的分节
-引导线仍由 `step-tree.ts` 绘制，`step-inspector.ts` 不是树。
+引导线仍由 `step-tree.ts` 绘制；旧 `step-inspector.ts` 参数表单已确认无引用并删除，不是步骤树。
 
 网页侧的页面状态集中在 `editor-store.ts`：快照、页签、动作目录、选中步骤、折叠、动作库筛选、
 右侧栏宽度、步骤编辑窗/取值窗口状态、录制状态和一次命令的错误；`wg-editor` 及其子组件只渲染并把

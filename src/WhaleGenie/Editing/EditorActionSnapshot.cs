@@ -295,7 +295,8 @@ internal static class EditorActionSnapshotFactory
             Candidates: [.. field.Candidates.Select(candidate =>
                 new EditorBrowserCandidateSnapshot(candidate.Selector, candidate.Text))],
             WindowPreview: windowPreview?.Invoke(field),
-            ImagePreview: field.IsImage ? imagePreview?.Invoke(field.CurrentText) : null);
+            ImagePreview: field.IsImage || field.IsPath
+                ? imagePreview?.Invoke(field.CurrentText) : null);
 
     private static IEnumerable<EditorGenericRowSnapshot> GenericRows(StepParameterViewModel field)
     {

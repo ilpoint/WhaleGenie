@@ -926,7 +926,7 @@ export class MockEditor {
       isCode: false,
       isColor: parameter.isColor,
       colour: parameter.isColor ? parameter.value : '',
-      isPath: parameter.isPath,
+      isPath: parameter.kind === 'Path',
       pathIntent: '',
       pathFilter: '',
       isKey: parameter.isKey,
@@ -993,7 +993,7 @@ export class MockEditor {
       steps: parameter.options ?? [],
       candidates: [],
       windowPreview: null,
-      imagePreview: parameter.kind === 'Image' && parameter.value
+      imagePreview: (parameter.kind === 'Image' || parameter.kind === 'Path') && parameter.value
         ? { dataUrl: MOCK_IMAGE, fileName: parameter.value, problem: '' }
         : null,
     };

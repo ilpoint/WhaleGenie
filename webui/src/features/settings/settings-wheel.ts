@@ -43,7 +43,7 @@ export function renderWheelSettings(
   actions: WheelActions,
 ) {
   return html`
-    <section class="card">
+    <section class="card" data-settings-section="menu">
       <div class="card-head">
         <h2>${t('Settings.WheelTitle')}</h2>
         <span class="note">${t('Settings.WheelTitleNote')}</span>
@@ -175,7 +175,7 @@ export function renderWheelActions(
 ) {
   const scene = state.scenes.find((candidate) => candidate.key === state.selectedScene);
   return html`
-    <section class="card">
+    <section class="card" data-settings-section="menu">
       <div class="card-head">
         <h2>${t('Settings.WheelActions')}</h2>
         <span class="note">${t('Settings.WheelActionsNote')}</span>

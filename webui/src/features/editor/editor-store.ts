@@ -89,7 +89,7 @@ const initial: EditorUiState = {
   category: null,
   search: '',
   inspectorTab: 'variables',
-  // The default window is 1100 wide; the column is a nuisance below 1000 and the toolbar can
+  // The shell opens 1280 wide; the column is a nuisance below 1000 and the toolbar can
   // bring it back. The choice is kept for the rest of the session once the person toggles it.
   inspectorVisible: window.innerWidth >= 1000,
   inspectorWidth: 360,

@@ -142,7 +142,7 @@
 322	tests/WhaleGenie.Actions.Tests/WindowPreviewTests.Steps.cs	keep: 窗口预览测试的一族，按列表/取景/排除拆分后单一职责
 4379	src/WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 2507	src/WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
-553	src/WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
+561	src/WhaleGenie.App/Localization/LocalSettings.cs	keep: 本机设置模型
 5843	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 302079	core/src/WhaleGenie.Core/PublicAPI.Shipped.txt	exempt: 生成的公共 API 基线，分析器按整份文件比对，切开就不再是"一份基线"
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 一组同域工具与它们的输入输出
@@ -247,13 +247,12 @@
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 22943	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
-30146	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
+33501	webui/src/features/settings/settings-page.ts	split: 总布局、常规卡片与桥命令仍在一个组件；菜单/轮盘/主题模板已拆出，下一步按常规与触发域再拆
 87583	webui/src/shared/bridge/mock.ts	split: 编辑器域已拆到 mock-editor*.ts，运行、项目、设置与宏库的假数据仍在一个类里
 25064	webui/src/shared/bridge/protocol.ts	keep: 桥命令与快照类型集中在一处，拆开会让消息形状分散
 34686	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
 50700	webui/src/features/editor/macro-settings.ts	split: 常规/专属两块、触发字段与形参返回卡片在一个组件；下一步按设置页、触发与声明拆
 46016	webui/src/features/editor/editor-store.ts	split: 状态、生命周期与全部编辑命令集中在一个 store；下一步按快照/步骤/声明/触发/变量/取值/录制拆
-23638	webui/src/features/editor/step-inspector.ts	split: 参数表单、条件、行表与键位捕获在一处；下一步按字段类型拆
 62604	webui/src/shared/bridge/mock-editor.ts	keep: 命令分派与会话生命周期同属一个假宿主，步骤/数据/动作/夹具/取值已拆到 mock-editor-*.ts
 27933	webui/src/features/editor/value-editor.ts	split: 结构带、材料盘、变量/函数面板与样式在一个组件；下一步按 token band 与 panels 拆
 25993	webui/src/features/editor/step-tree.ts	split: 步骤树、多选、右键菜单、拖放与键盘命令在一个组件；下一步按 tree 渲染与 interactions 拆
@@ -275,5 +274,5 @@
 148	webui/src/features/editor/character-pad.ts	keep: 热字串字符键盘组件
 26695	webui/src/features/editor/step-tree.ts	split: 步骤树渲染、拖放、分节与引导线同组件；下一步按渲染/交互拆分
 3698	docs/architecture/editor-parity.md	keep: 旧功能与网页消费点对账表
-22953	webui/src/features/editor/action-field.ts	keep: 动作字段的单组件，按字段类型分支；拆分会让字段语义分散
-17559	webui/src/features/editor/action-rows.ts	keep: 行表族统一组件，按字段类型分发
+23008	webui/src/features/editor/action-field.ts	keep: 动作字段的单组件，按字段类型分支；拆分会让字段语义分散
+17892	webui/src/features/editor/action-rows.ts	keep: 行表族统一组件，按字段类型分发

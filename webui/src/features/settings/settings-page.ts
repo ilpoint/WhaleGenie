@@ -55,14 +55,72 @@ export class WgSettings extends LitElement {
   @state()
   private slotDraft: WheelSlotDraft | null = null;
 
+  @state()
+  private search = '';
+
   static styles = css`
     :host {
-      display: block;
-      padding: var(--spacingVerticalL) var(--spacingHorizontalXXL);
-      max-width: 1240px;
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--colorNeutralBackground1);
     }
 
-    h1 {
+    .header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: var(--spacingHorizontalM);
+      padding: var(--spacingVerticalS) var(--spacingHorizontalL);
+      border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      background: var(--colorNeutralBackground1);
+    }
+
+    .header h1 {
+      margin: 0;
+      flex: 1;
+      font-size: var(--fontSizeBase400);
+      font-weight: var(--fontWeightSemibold);
+    }
+
+    .header input {
+      width: min(340px, 42vw);
+      font: inherit;
+    }
+
+    .rail {
+      min-height: 0;
+      overflow: auto;
+      padding: var(--spacingVerticalS) var(--spacingHorizontalXS);
+      border-right: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      background: var(--colorNeutralBackground2);
+    }
+
+    .rail button {
+      display: block;
+      width: 100%;
+      padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+      border: 0;
+      border-radius: var(--borderRadiusMedium);
+      background: transparent;
+      color: var(--colorNeutralForeground1);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .rail button:hover { background: var(--colorNeutralBackground2Hover); }
+
+    .content {
+      min-height: 0;
+      overflow: auto;
+      padding: var(--spacingVerticalL) var(--spacingHorizontalXXL);
+    }
+
+    .content h1 {
       margin: 0 0 var(--spacingVerticalL);
       font-size: var(--fontSizeBase500);
       font-weight: var(--fontWeightSemibold);
@@ -496,16 +554,32 @@ export class WgSettings extends LitElement {
   }
 
   render() {
+    const header = html`
+      <header class="header">
+        <h1>${t('Shell.Settings')}</h1>
+        <input type="search" .value=${this.search} placeholder=${t('Settings.Search')}
+          aria-label=${t('Settings.Search')}
+          @input=${(event: Event) => this.setSearch((event.target as HTMLInputElement).value)} />
+      </header>
+      <nav class="rail" aria-label=${t('Shell.Settings')}>
+        ${this.categories().map((category) => html`
+          <button type="button" @click=${() => this.jump(category.key)}>${t(category.label)}</button>
+        `)}
+      </nav>
+    `;
+
     if (!this.settings) {
-      return html`<h1>${t('Shell.Settings')}</h1>
-        ${this.error ? html`<p class="error">${this.error}</p>` : nothing}`;
+      return html`${header}<div class="content">
+        ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
+      </div>`;
     }
 
     return html`
-      <h1>${t('Shell.Settings')}</h1>
+      ${header}
+      <div class="content">
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
       <div class="cards">
-        <section class="card">
+        <section class="card" data-settings-section="general">
           <div class="card-head">
             <h2>${t('Settings.GeneralCard')}</h2>
             <span class="note">${t('Settings.GeneralCardNote')}</span>
@@ -528,7 +602,7 @@ export class WgSettings extends LitElement {
 
         ${renderTheme(this.theme, this.themeActions())}
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.Hotkeys')}</h2>
             <span class="note">${t('Settings.HotkeysNote')}</span>
@@ -544,7 +618,7 @@ export class WgSettings extends LitElement {
         ${renderWheelActions(this.settings.wheel, this.selectedSlot, this.slotDraft,
           this.wheelActions())}
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.Sounds')}</h2>
             <span class="note">${t('Settings.SoundsNote')}</span>
@@ -553,7 +627,7 @@ export class WgSettings extends LitElement {
           ${this.toggle('soundMacro', 'Settings.SoundMacro')}
         </section>
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.Reading')}</h2>
             <span class="note">${t('Settings.ReadingNote')}</span>
@@ -561,7 +635,7 @@ export class WgSettings extends LitElement {
           ${this.toggle('preloadOcr', 'Settings.PreloadOcr')}
         </section>
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.FramesCard')}</h2>
             <span class="note">${t('Settings.FramesCardNote')}</span>
@@ -574,7 +648,7 @@ export class WgSettings extends LitElement {
             !this.settings.frameCache)}
         </section>
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.InputCard')}</h2>
             <span class="note">${t('Settings.InputCardNote')}</span>
@@ -584,7 +658,7 @@ export class WgSettings extends LitElement {
           ${this.number('logCount', 'Settings.LogCount', 1, 1000, false)}
         </section>
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.Driver')}</h2>
             <span class="note">${t('Settings.DriverNote')}</span>
@@ -595,7 +669,7 @@ export class WgSettings extends LitElement {
           <p class="status">${this.settings.adminStatus}</p>
         </section>
 
-        <section class="card">
+        <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.CaptureCard')}</h2>
           </div>
@@ -621,7 +695,7 @@ export class WgSettings extends LitElement {
           </div>
         </section>
 
-        <section class="card">
+        <section class="card" data-settings-section="storage">
           <div class="card-head">
             <h2>${t('Settings.Storage')}</h2>
             <span class="note">${t('Settings.StorageNote')}</span>
@@ -640,6 +714,7 @@ export class WgSettings extends LitElement {
           `)}
         </section>
       </div>
+      </div>
       ${this.ruleEditor ? html`
         <wg-window-rule .rule=${this.ruleEditor.rule} .title=${this.ruleEditor.title}
           @wg-rule-submit=${(event: CustomEvent<WindowRuleState>) => void this.submitRule(event.detail)}
@@ -647,6 +722,35 @@ export class WgSettings extends LitElement {
         </wg-window-rule>
       ` : nothing}
     `;
+  }
+
+  private categories(): { key: string; label: string }[] {
+    return [
+      { key: 'general', label: 'Settings.GeneralCard' },
+      { key: 'theme', label: 'Settings.Theme' },
+      { key: 'input', label: 'Settings.InputCard' },
+      { key: 'menu', label: 'Settings.WheelTitle' },
+      { key: 'storage', label: 'Settings.Storage' },
+    ];
+  }
+
+  private jump(key: string): void {
+    const node = this.renderRoot.querySelector<HTMLElement>(
+      `[data-settings-section="${key}"]`);
+    node?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  private setSearch(value: string): void {
+    this.search = value;
+    void this.updateComplete.then(() => this.applySearch());
+  }
+
+  private applySearch(): void {
+    const wanted = this.search.trim().toLocaleLowerCase();
+    this.renderRoot.querySelectorAll<HTMLElement>('.cards > .card').forEach((card) => {
+      card.hidden = wanted.length > 0
+        && !(card.textContent ?? '').toLocaleLowerCase().includes(wanted);
+    });
   }
 
   private toggle(field: keyof SettingsState, label: string) {
