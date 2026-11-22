@@ -109,9 +109,7 @@
   断言。`ShowDialog` 打开的调度循环必须在本用例内完成：`RunJobs` 让循环启动，关闭窗口后 `await`
   返回的任务。`WindowStackingTests` 曾漏掉这两个步骤，把循环留给后续无关用例；新增模态用例照此写。
 - 已知共享状态抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`、
-  `GlobalVariablesTests.Closing_the_manager_without_save_changes_nothing`、
-  `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one`、
-  `LanguageRefreshTests.The_global_variable_manager_relabels_its_buttons_filters_and_types` 与
+  `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one` 与
   `RunLookTests.A_run_that_keeps_looking_does_not_hold_every_picture_it_ever_took`
   涉及进程级状态；遇到时比较单跑与全量结果并检查 `[RestoreSharedState]`，不要仅凭重跑放行。
   最后一条在目录收敛那轮的全量里出现过一次：单跑通过、整类 6/6、二次全量全绿，

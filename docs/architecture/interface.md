@@ -9,7 +9,7 @@
 | 状态 | 主要持有者 |
 | --- | --- |
 | 项目文档态 | `MainViewModel`：宏、触发器、路径、修订号和「磁盘上的包已过期」这一标记 |
-| 编辑态 | `MacroEditorSession` 与编辑器 ViewModel：文档页、子宏、录制、编辑操作，以及「这次编辑有未保存内容」 |
+| 编辑态 | `HeadlessEditorWorkspace` 与 `HeadlessEditorSession`：打开的文档、子宏、录制、编辑操作，以及「这次编辑有未保存内容」 |
 | 运行期态 | `TriggerRuntime`、运行宿主和窗口字段：触发快照、浮动界面、恢复和运行显示 |
 | 系统开关 | `SystemState`（App）：页面、热键与窗口读写同一个对象，触发宿主跟随它启停 |
 | 纯界面态 | 窗口与控件：拖动、落点、滚动、焦点和弹出层 |
