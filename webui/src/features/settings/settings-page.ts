@@ -3,6 +3,7 @@ import { settingsPageCss } from './settings-page-css.js';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type {
+  BridgeMethod,
   SettingsState,
   ThemeState,
   WindowRuleState,
@@ -260,7 +261,7 @@ ${renderSettingsCards(this)}
     }
   }
 
-  private async menuState(method: string, params: Record<string, unknown> = {}): Promise<void> {
+  private async menuState(method: BridgeMethod, params: Record<string, unknown> = {}): Promise<void> {
     try {
       this.settings = await bridge.value.call<SettingsState>(method, params);
       this.error = '';
@@ -269,7 +270,7 @@ ${renderSettingsCards(this)}
     }
   }
 
-  private async wheelState(method: string, params: Record<string, unknown> = {}): Promise<void> {
+  private async wheelState(method: BridgeMethod, params: Record<string, unknown> = {}): Promise<void> {
     try {
       this.settings = await bridge.value.call<SettingsState>(method, params);
       this.error = '';
@@ -279,7 +280,7 @@ ${renderSettingsCards(this)}
     }
   }
 
-  private async sceneState(method: string, params: Record<string, unknown> = {}): Promise<void> {
+  private async sceneState(method: BridgeMethod, params: Record<string, unknown> = {}): Promise<void> {
     this.selectedSlot = null;
     this.slotDraft = null;
     await this.wheelState(method, params);
@@ -331,9 +332,13 @@ ${renderSettingsCards(this)}
       return;
     }
     const editor = this.ruleEditor;
-    const method = editor.kind === 'menu-add' || editor.kind === 'menu-edit'
-      ? `settings.menu.rule.${editor.kind === 'menu-add' ? 'add' : 'edit'}`
-      : `settings.wheel.scene.${editor.kind === 'wheel-add' ? 'add' : 'edit'}`;
+    const method: BridgeMethod = editor.kind === 'menu-add'
+      ? 'settings.menu.rule.add'
+      : editor.kind === 'menu-edit'
+        ? 'settings.menu.rule.edit'
+        : editor.kind === 'wheel-add'
+          ? 'settings.wheel.scene.add'
+          : 'settings.wheel.scene.edit';
     try {
       this.settings = await bridge.value.call<SettingsState>(method,
         editor.key ? { key: editor.key, rule } : { rule });

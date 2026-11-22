@@ -7,7 +7,12 @@ import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
-import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
+import type {
+  BridgeFailurePayload,
+  BridgeMethod,
+  MacroEntry,
+  ProjectState,
+} from '../../shared/bridge/protocol.js';
 import type { WgMcpPanel } from '../mcp/index.js';
 import '../mcp/index.js';
 import { filterMacros } from './macros-model.js';
@@ -261,7 +266,7 @@ export class WgMacros extends LitElement {
   }
 
   /** 发命令，把程序的拒绝（坏包、没这个宏）拿到提示条上说，而不是静默失败。 */
-  private async call(method: string, params?: unknown): Promise<boolean> {
+  private async call(method: BridgeMethod, params?: unknown): Promise<boolean> {
     try
     {
       await bridge.value.call(method, params);

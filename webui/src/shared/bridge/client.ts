@@ -1,3 +1,4 @@
+import type { BridgeMethod } from './generated/methods.js';
 import type { BridgeEventName, BridgeEvents, BridgeMessage } from './protocol.js';
 
 /**
@@ -5,7 +6,7 @@ import type { BridgeEventName, BridgeEvents, BridgeMessage } from './protocol.js
  * transport, so a test can hand them an in-memory pipe without a WebView.
  */
 export interface BridgeApi {
-  call<T = void>(method: string, params?: unknown): Promise<T>;
+  call<T = void>(method: BridgeMethod, params?: unknown): Promise<T>;
   on<K extends BridgeEventName>(event: K, handler: (payload: BridgeEvents[K]) => void): () => void;
 }
 
@@ -30,7 +31,7 @@ export class BridgeClient implements BridgeApi {
     transport.onMessage((message) => this.receive(message));
   }
 
-  call<T = void>(method: string, params?: unknown): Promise<T> {
+  call<T = void>(method: BridgeMethod, params?: unknown): Promise<T> {
     const id = this.nextId++;
     return new Promise<T>((resolve, reject) => {
       this.waiting.set(id, { resolve: resolve as (value: unknown) => void, reject });

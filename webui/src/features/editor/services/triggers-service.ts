@@ -1,11 +1,11 @@
 import type { EditorCore } from './editor-core.js';
-import type { EditorCharacterPad } from '../../../shared/bridge/protocol.js';
+import type { BridgeMethod, EditorCharacterPad } from '../../../shared/bridge/protocol.js';
 
 /** The triggers command family. All state lives in EditorCore; C# remains the source of truth. */
 export class EditorTriggersService {
   constructor(private readonly core: EditorCore) {}
 
-  private trigger(method: string, params: Record<string, unknown>): Promise<boolean> {
+  private trigger(method: BridgeMethod, params: Record<string, unknown>): Promise<boolean> {
     return this.core.snapshotCommand(method, params);
   }
 

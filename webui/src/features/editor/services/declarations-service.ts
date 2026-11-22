@@ -1,10 +1,11 @@
+import type { BridgeMethod } from '../../../shared/bridge/protocol.js';
 import type { EditorCore } from './editor-core.js';
 
 /** The declarations command family. All state lives in EditorCore; C# remains the source of truth. */
 export class EditorDeclarationsService {
   constructor(private readonly core: EditorCore) {}
 
-  private declaration(method: string, params: Record<string, unknown>): Promise<boolean> {
+  private declaration(method: BridgeMethod, params: Record<string, unknown>): Promise<boolean> {
     return this.core.snapshotCommand(method, params);
   }
 

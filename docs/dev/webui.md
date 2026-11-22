@@ -76,10 +76,12 @@ features/<feature>/
 - 视图可以做一行命令（如窗口按钮），但多步编排、快照应用、`actionError/valueError` 归必须进
   service/store。
 - `protocol.ts` 是 barrel；新代码可以直接 import `protocol/<domain>.ts`，旧 import 保持不变。
-- **线缆类型由 C# 生成**：`WhaleGenie.Contracts` 里带 `[BridgeContract]` 的记录会写成
-  `webui/src/shared/bridge/generated/types.ts`。改了记录就跑
-  `dotnet run --project tools/WhaleGenie.ContractsGen` 重新生成；`ContractGenerationTests` 在没有
-  重新生成时失败。生成文件不手改，页面只从它 import 类型。
+- **线缆类型与方法名由 C# 生成**：`WhaleGenie.Contracts` 里带 `[BridgeContract]` 的记录写成
+  `webui/src/shared/bridge/generated/types.ts`，`BridgeMethods.All` 写成
+  `generated/methods.ts` 的 `BridgeMethod` 联合。改了记录或注册方法就跑
+  `dotnet run --project tools/WhaleGenie.ContractsGen -- webui/src/shared/bridge/generated` 重新生成；
+  `ContractGenerationTests` 在没有重新生成时失败。生成文件不手改，页面只从它 import 类型与
+  `BridgeMethod`；`client.call` 的方法名因此由编译器检查。
 - C# 仍是唯一事实来源；页面不解析公式、不按动作名推断字段。
 - 方法名清单由 `BridgeMethodInventoryTests` 对账；新增/改名桥方法要同步 C# 与页面。
 

@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
-import type { LibraryEntry } from '../../shared/bridge/protocol.js';
+import type { BridgeMethod, LibraryEntry } from '../../shared/bridge/protocol.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
@@ -174,7 +174,7 @@ export class WgLibrary extends LitElement {
     await this.change('library.replace', { id, name: this.selectedMacro });
   }
 
-  private async change(method: string, params: Record<string, unknown>): Promise<void> {
+  private async change(method: BridgeMethod, params: Record<string, unknown>): Promise<void> {
     try {
       const state = await bridge.value.call<{ entries: LibraryEntry[]; error: string | null }>(
         method, params);

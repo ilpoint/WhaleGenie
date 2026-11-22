@@ -1,5 +1,5 @@
 import type { BridgeApi } from './client.js';
-import type { BridgeEventName, BridgeEvents } from './protocol.js';
+import type { BridgeEventName, BridgeEvents, BridgeMethod } from './protocol.js';
 
 /**
  * 桥的单例持有者。main.ts 在启动装配时 connect，其余代码只管用；在 connect 之前调用是
@@ -27,7 +27,7 @@ export const bridge = new BridgeHolder();
  * importable before main.ts connects, and lets a test pass its own BridgeApi instead.
  */
 export const bridgeApi: BridgeApi = {
-  call<T = void>(method: string, params?: unknown): Promise<T> {
+  call<T = void>(method: BridgeMethod, params?: unknown): Promise<T> {
     return bridge.value.call<T>(method, params);
   },
   on<K extends BridgeEventName>(event: K, handler: (payload: BridgeEvents[K]) => void): () => void {

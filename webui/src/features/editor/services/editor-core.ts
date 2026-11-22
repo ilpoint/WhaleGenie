@@ -1,5 +1,6 @@
 import type { BridgeApi } from '../../../shared/bridge/client.js';
 import type {
+  BridgeMethod,
   EditorActionForm,
   EditorSnapshot,
   EditorTab,
@@ -54,7 +55,7 @@ export class EditorCore {
     this.notify();
   }
 
-  async mutate<T>(method: string, params: unknown, apply: (value: T) => void): Promise<boolean> {
+  async mutate<T>(method: BridgeMethod, params: unknown, apply: (value: T) => void): Promise<boolean> {
     try {
       const value = await this.client.call<T>(method, params);
       apply(value);
@@ -67,7 +68,7 @@ export class EditorCore {
     }
   }
 
-  async snapshotCommand(method: string, params?: unknown): Promise<boolean> {
+  async snapshotCommand(method: BridgeMethod, params?: unknown): Promise<boolean> {
     const ok = await this.mutate<EditorSnapshot | null>(method, params,
       (value) => this.applySnapshot(value));
     if (ok) {
@@ -81,7 +82,7 @@ export class EditorCore {
     return ok;
   }
 
-  async actionCommand(method: string, params: Record<string, unknown>): Promise<boolean> {
+  async actionCommand(method: BridgeMethod, params: Record<string, unknown>): Promise<boolean> {
     try {
       const form = await this.client.call<EditorActionForm>(method, params);
       this.state.actionForm = form.open ? form : null;

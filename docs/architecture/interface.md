@@ -127,7 +127,8 @@ MainViewModel 仍为编辑器、运行面板和原生菜单/轮盘提供无窗�
 `{id, method, params}`、应答 `{id, ok, result|error}`、事件 `{event, payload}`；方法名
 `域.动作`，错误码是稳定词表（`NoSuchMethod`、`BadArgument`、`Internal`）。载荷的形状写在
 `WhaleGenie.Contracts`，由 `tools/WhaleGenie.ContractsGen` 生成页面的
-`generated/types.ts`；页面不手写线缆类型。页面注册好收信口后发 `bridge.ready`，宿主在此之前缓存
+`generated/types.ts` 与 `generated/methods.ts`；页面不手写线缆类型，`client.call` 的方法名是
+`BridgeMethod` 联合，拼错在编译期就被拦住。页面注册好收信口后发 `bridge.ready`，宿主在此之前缓存
 推送，语言或主题的早到变化不会丢。
 
 方向只有一条：**C# 是唯一事实来源**。文档态（`ProjectWorkspace`）、系统开关、触发状态、语言与

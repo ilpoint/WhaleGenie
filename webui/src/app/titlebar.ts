@@ -9,6 +9,7 @@ import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import { windowMirror } from '../shared/window/window.js';
+import type { BridgeMethod } from '../shared/bridge/protocol.js';
 import whale from '../assets/whale.png';
 
 /**
@@ -308,7 +309,7 @@ export class WgTitlebar extends LitElement {
     go('about');
   }
 
-  private run(command: string): void {
+  private run(command: BridgeMethod): void {
     this.menu = null;
     void bridge.value.call(command);
   }

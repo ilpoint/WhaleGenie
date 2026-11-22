@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie;
 using WhaleGenie.Bridge;
+using WhaleGenie.Contracts;
 
 namespace WhaleGenie.Tests;
 
@@ -17,86 +18,7 @@ namespace WhaleGenie.Tests;
 /// </summary>
 public class BridgeMethodInventoryTests
 {
-    private static readonly HashSet<string> Expected = new(StringComparer.Ordinal)
-    {
-        "app.info", "app.about", "app.quit", "app.openExternal",
-        "app.openRun", "app.openManual",
-        "dialog.respond", "dialog.pickOpenPackage", "dialog.pickSavePackage", "dialog.pickImage",
-        "editor.sessionOpen", "editor.sessionTabs", "editor.sessionNew",
-        "editor.sessionSubOpen", "editor.sessionMacroSetting",
-        "editor.sessionParameterDeclAdd", "editor.sessionParameterDeclPatch",
-        "editor.sessionParameterDeclRemove", "editor.sessionParameterDeclMove",
-        "editor.sessionResultDeclAdd",
-        "editor.sessionResultDeclPatch", "editor.sessionResultDeclRemove",
-        "editor.sessionResultDeclMove",
-        "editor.sessionParameterFieldAdd", "editor.sessionParameterFieldPatch",
-        "editor.sessionParameterFieldRemove",
-        "editor.sessionPublicMacroAdd", "editor.sessionResultFieldAdd",
-        "editor.sessionResultFieldPatch", "editor.sessionResultFieldRemove",
-        "editor.sessionActivate",
-        "editor.sessionState", "editor.sessionPatch",
-        "editor.sessionStep", "editor.sessionStepEnabled", "editor.sessionStepMeta",
-        "editor.sessionParameter",
-        "editor.sessionParameterRowAdd",
-        "editor.sessionParameterRowRemove", "editor.sessionParameterRowCell",
-        "editor.sessionConditionRowAdd", "editor.sessionConditionGroupAdd",
-        "editor.sessionConditionRowRemove",
-        "editor.sessionExport",
-        "editor.sessionConditionRow", "editor.sessionConditionJoin",
-        "editor.sessionRecordStart", "editor.sessionRecordStop", "editor.sessionRecordState",
-        "editor.sessionStepDuplicate",
-        "editor.sessionStepsCopy", "editor.sessionStepsCut", "editor.sessionStepsDuplicate",
-        "editor.sessionStepsEnabled", "editor.sessionStepsGroup", "editor.sessionStepsLift",
-        "editor.sessionStepsMove", "editor.sessionStepsMoveBy", "editor.sessionStepsPaste",
-        "editor.sessionStepsRemove",
-        "editor.sessionUndo", "editor.sessionRedo",
-        "editor.sessionMove",
-        "editor.sessionRemove", "editor.sessionTriggerAdd", "editor.sessionTriggerRemove",
-        "editor.sessionTriggerBinding", "editor.sessionTriggerLoop", "editor.sessionTriggerOnce",
-        "editor.sessionTriggerEnabled", "editor.sessionTriggerTimer", "editor.sessionTriggerFile",
-        "editor.sessionTriggerProcess", "editor.sessionTriggerHotstring",
-        "editor.sessionTriggerHotstringOption",
-        "editor.sessionTriggerHotstringEndKey", "editor.sessionTriggerHotstringEndReset",
-        "editor.sessionTriggerHotstringEndCapture", "editor.sessionTriggerInterfaceHotkey",
-        "editor.sessionTriggerInterfaceHotkeyClear",
-        "editor.sessionTriggerColor", "editor.sessionTriggerIdle", "editor.sessionTriggerWindow",
-        "editor.sessionTriggerInterface",
-        "editor.sessionGlobalAdd", "editor.sessionGlobalPatch", "editor.sessionGlobalRemove",
-        "editor.sessionVariableAdd", "editor.sessionVariablePatch",
-        "editor.sessionVariableRemove", "editor.sessionSave", "editor.sessionClose",
-        "editor.actionCancel", "editor.actionConfirm", "editor.actionOpen", "editor.actionState",
-        "editor.actionPage", "editor.actionField", "editor.actionRowAdd", "editor.actionRowRemove",
-        "editor.actionRowMove", "editor.actionRowCell", "editor.actionReturns",
-        "editor.actionReturnsFixName", "editor.actionCallArgument", "editor.actionMeta",
-        "editor.actionGlobal", "editor.actionBranch", "editor.actionWindow",
-        "editor.actionWindowRule", "editor.actionPick",
-        "editor.actionWindowPick", "editor.actionRun", "editor.actionKeyPad",
-        "editor.actionPadKey", "editor.actionLook", "editor.actionWindowPreview",
-        "editor.actionTestBrowser", "editor.actionTestElement", "editor.actionTestNarrow",
-        "editor.hotstringKeyPad", "editor.sessionRecordOption", "editor.sessionDelayScale",
-        "editor.sessionActions",
-        "editor.valueCancel", "editor.valueCommand", "editor.valueConfirm",
-        "editor.valueOpen", "editor.valueState",
-        "library.state", "library.delete", "library.add", "library.replace",
-        "settings.state", "settings.update", "settings.openFolder",
-        "settings.windows.list", "settings.windows.pick",
-        "settings.menu.capture", "settings.menu.clear",
-        "settings.menu.rule.add", "settings.menu.rule.edit", "settings.menu.rule.remove",
-        "settings.menu.rule.addPage", "settings.menu.rule.move", "settings.menu.rule.moveTo",
-        "settings.wheel.update", "settings.wheel.launcher", "settings.wheel.enabled",
-        "settings.wheel.enableSystem", "settings.wheel.repeat",
-        "settings.wheel.scene.select", "settings.wheel.scene.add", "settings.wheel.scene.edit",
-        "settings.wheel.scene.remove", "settings.wheel.scene.move",
-        "settings.wheel.slot.set", "settings.wheel.pickIcon",
-        "run.state", "run.load", "run.command", "run.breakpoint", "run.breakpointRule", "run.argument", "run.answer",
-        "mcp.state", "mcp.setGrants", "mcp.copyConfig", "mcp.openAudit",
-        "project.state", "project.toggle", "project.delete", "project.export",
-        "project.system", "project.open", "project.import", "project.save",
-        "project.saveAs", "project.reload", "project.closeAll",
-        "strings.bundle", "theme.get", "theme.set",
-        "window.minimize", "window.maximize", "window.close", "window.pin",
-        "window.drag", "window.focus",
-    };
+    private static readonly HashSet<string> Expected = [.. BridgeMethods.All];
 
     [Fact]
     public void The_registered_methods_are_the_page_inventory()

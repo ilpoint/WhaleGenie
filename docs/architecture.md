@@ -44,9 +44,9 @@ WhaleGenie
 随目录变化，所以搬动工程是一次路径与声明的调整，不是一次改名。`tools/` 放构建期工具，不随程序发布。
 
 `WhaleGenie.Contracts` 是桥的载荷形状（请求、应答、事件与端口），只依赖 BCL。它的
-`[BridgeContract]` 记录由 `tools/WhaleGenie.ContractsGen` 写成
-`webui/src/shared/bridge/generated/types.ts`，页面不手写线缆类型；`ContractGenerationTests` 在没有
-重新生成时失败。编辑模型仍住在界面工程，迁移目标是新增 `WhaleGenie.Editing`（见
+`[BridgeContract]` 记录与 `BridgeMethods.All` 由 `tools/WhaleGenie.ContractsGen` 写成
+`webui/src/shared/bridge/generated/types.ts` 与 `generated/methods.ts`，页面不手写线缆类型，
+`client.call` 的方法名由编译器检查；`ContractGenerationTests` 在没有重新生成时失败。编辑模型仍住在界面工程，迁移目标是新增 `WhaleGenie.Editing`（见
 [ADR 0002](adr/0002-csharp-webui-split.md)），它同样不得依赖 Avalonia。
 
 `WhaleGenie.App` 引用 Mcp、Domain、Localization、Contracts、Core 与 Platform.Windows，不引用
