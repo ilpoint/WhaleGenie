@@ -1,18 +1,20 @@
-import { demoMenu, demoWheel, demoWindows } from './mock-fixtures.js';
+import { demoMenu, demoWheel } from './mock-fixtures.js';
 import { mockExtra } from './mock-strings-extra.js';
 import { chromeKeys, english } from './mock-strings-en.js';
 import { chinese } from './mock-strings-zh.js';
+import { handleSettings } from './mock-settings.js';
+import { handleRun } from './mock-run.js';
+import { handleShell } from './mock-shell.js';
 import type { BridgeTransport } from './transport.js';
 import { MockEditor } from './mock-editor.js';
 import type {
   AppInfo,
   McpState,
   ProjectState,
-  SettingsWheelSlot,
-  SettingsWheelState,
+  SettingsState,
+  RunState,
   StringsBundle,
   ThemeState,
-  WindowRuleState,
   WindowState,
 } from './protocol.js';
 
@@ -28,7 +30,7 @@ export class MockTransport implements BridgeTransport {
   /** 页面发来的请求按序记录，调试与 e2e 断言用。 */
   readonly seen: string[] = [];
 
-  private info: AppInfo = {
+  info: AppInfo = {
     name: 'WhaleGenie',
     version: '0.0.0-mock',
     language: 'zh-Hans',
@@ -36,16 +38,16 @@ export class MockTransport implements BridgeTransport {
     project: { path: null, name: null, untitled: true, dirty: false, revision: 0, macros: 0 },
   };
 
-  private theme: ThemeState = {
+  theme: ThemeState = {
     mode: 'dark', baseLight: false, accentHex: null, defaultAccent: '#c8401c',
   };
 
-  private windowState: WindowState = { state: 'normal', topmost: false };
+  windowState: WindowState = { state: 'normal', topmost: false };
 
   /** 等待删除确认的宏名；dialog.respond 带着答案回来时用。 */
   private pendingDelete: string | null = null;
 
-  private runState = {
+  runState: RunState = {
     loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
     canRun: false, canStep: false, canStop: false,
     question: '', wantsTypedAnswer: false, answerText: '', isAskingUser: false, isAsking: false,
@@ -60,7 +62,7 @@ export class MockTransport implements BridgeTransport {
     log: [] as { time: string; level: string; text: string }[],
   };
 
-  private settingsState = {
+  settingsState: SettingsState = {
     loadLastProjectAtStart: true, systemAtStart: false, enabledFirst: true,
     ignoreOwnInput: true, soundSystem: true, soundMacro: false, preloadOcr: false,
     inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
@@ -91,7 +93,7 @@ export class MockTransport implements BridgeTransport {
     auditFile: '/mock/logs/mcp-2026-11-21.log',
   };
 
-  private projectState: ProjectState = {
+  projectState: ProjectState = {
     path: null,
     name: null,
     untitled: true,
@@ -144,431 +146,16 @@ export class MockTransport implements BridgeTransport {
 
     let result: unknown;
     try {
+      if (method.startsWith('settings.')) {
+        result = handleSettings(this, method, params);
+      } else if (method.startsWith('run.')) {
+        result = handleRun(this, method, params);
+      } else if (method.startsWith('app.') || method.startsWith('strings.')
+          || method.startsWith('theme.') || method.startsWith('window.')) {
+        result = handleShell(this, method, params);
+      } else {
       switch (method) {
         case 'bridge.ready':
-          break;
-        case 'app.info':
-          result = {
-            ...this.info,
-            project: { ...this.info.project, macros: this.projectState.macros.length },
-          };
-          break;
-        case 'strings.bundle':
-          result = this.bundle();
-          break;
-        case 'theme.get':
-          result = this.theme;
-          break;
-        case 'theme.set': {
-          const mode = String(params['mode'] ?? 'dark') as ThemeState['mode'];
-          const accentHex = (params['accentHex'] as string | null) ?? null;
-          this.theme = {
-            mode,
-            baseLight: params['baseLight'] === true,
-            accentHex,
-            accentUsable: true,
-            fill: accentHex ?? '#c8401c',
-            surface: accentHex ?? '#f5e6e2',
-            text: accentHex ?? '#c8401c',
-            defaultAccent: '#c8401c',
-          };
-          this.push('theme.changed', this.theme);
-          result = this.theme;
-          break;
-        }
-        case 'window.minimize':
-          this.windowState = { ...this.windowState, state: 'minimized' };
-          this.push('window.changed', this.windowState);
-          break;
-        case 'window.maximize':
-          this.windowState = {
-            ...this.windowState,
-            state: this.windowState.state === 'maximized' ? 'normal' : 'maximized',
-          };
-          this.push('window.changed', this.windowState);
-          break;
-        case 'window.close':
-          break;
-        case 'window.pin':
-          this.windowState = { ...this.windowState, topmost: !this.windowState.topmost };
-          this.push('window.changed', this.windowState);
-          break;
-        case 'window.drag':
-        case 'window.focus':
-        case 'app.quit':
-        case 'app.openExternal':
-          break;
-        case 'app.openRun':
-          this.push('run.openRequested', { name: String(params['name'] ?? '') });
-          break;
-        case 'run.state':
-          result = this.runState;
-          break;
-        case 'run.load':
-          this.runState = {
-            ...this.runState,
-            loaded: String(params['name'] ?? ''),
-            status: 'Loaded', canRun: true, canStep: true, busy: false, paused: false,
-            arguments: [{ name: 'target', label: 'target', hint: 'Text', required: true,
-              value: '', given: false, missing: true }],
-            globals: [{ name: 'count', type: 'Number', value: '3', defaultValue: '0' }],
-            locals: [{ name: 'found', macro: 'Demo', type: 'Boolean' }],
-            steps: [
-              { id: 's1', label: 'Step one', detail: 'action.key', depth: 0, shown: true,
-                container: false, current: false, breakpoint: false, canBreak: true,
-                time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
-              { id: 's2', label: 'Step two', detail: 'action.key', depth: 0, shown: true,
-                container: false, current: false, breakpoint: false, canBreak: true,
-                time: '', failure: '', condition: '', hitTimes: 1, expression: '' },
-            ],
-          };
-          result = this.runState;
-          break;
-        case 'run.command':
-          this.runState = {
-            ...this.runState,
-            status: String(params['command'] ?? ''),
-            busy: params['command'] === 'run',
-            canStop: params['command'] === 'run',
-            canRun: params['command'] !== 'run',
-            canStep: params['command'] !== 'run',
-          };
-          result = this.runState;
-          break;
-        case 'run.answer':
-          result = this.runState;
-          break;
-        case 'run.argument':
-          this.runState = {
-            ...this.runState,
-            arguments: this.runState.arguments.map((argument) => argument.name === params['name']
-              ? { ...argument, value: String(params['value'] ?? ''),
-                  given: String(params['value'] ?? '').length > 0,
-                  missing: false }
-              : argument),
-          };
-          result = this.runState;
-          break;
-        case 'run.breakpointRule':
-          this.runState = {
-            ...this.runState,
-            steps: this.runState.steps.map((step) => step.id === params['id']
-              ? { ...step, hitTimes: Number(params['hitTimes'] ?? 1),
-                  expression: String(params['expression'] ?? '') }
-              : step),
-          };
-          result = this.runState;
-          break;
-        case 'run.breakpoint':
-          this.runState = {
-            ...this.runState,
-            steps: this.runState.steps.map((step) => step.id === params['id']
-              ? { ...step, breakpoint: !step.breakpoint }
-              : step),
-          };
-          result = this.runState;
-          break;
-        case 'settings.state':
-          result = this.settingsState;
-          break;
-        case 'settings.update': {
-          const field = String(params['field'] ?? '');
-          const value = String(params['value'] ?? '');
-          this.settingsState = {
-            ...this.settingsState,
-            [field]: field === 'language'
-              || field === 'systemHotkey' || field === 'recordStopKey'
-              || field === 'windowWay' || field === 'screenWay'
-              ? value
-              : value === 'true' ? true : value === 'false' ? false : Number(value),
-          };
-          result = this.settingsState;
-          if (field === 'language') {
-            this.info = {
-              ...this.info,
-              language: value,
-            };
-            this.push('strings.changed', this.bundle());
-          }
-          break;
-        }
-        case 'settings.windows.list':
-          result = {
-            windows: demoWindows,
-            hows: [
-              { value: 'titleContains', label: '标题包含' },
-              { value: 'titleEquals', label: '标题等于' },
-              { value: 'process', label: '进程名包含' },
-              { value: 'class', label: '窗口类包含' },
-              { value: 'handle', label: '窗口句柄（当前实例）' },
-            ],
-          };
-          break;
-        case 'settings.windows.pick':
-          result = demoWindows[0];
-          break;
-        case 'settings.menu.capture': {
-          const binding = String(params['binding'] ?? '');
-          this.settingsState = {
-            ...this.settingsState,
-            menu: {
-              ...this.settingsState.menu,
-              launcher: binding,
-              display: binding,
-              isMiddle: binding === 'Mouse Middle',
-              isCustom: binding !== 'Mouse Middle',
-              status: binding ? '已设置' : '未设置',
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.menu.clear':
-          this.settingsState = {
-            ...this.settingsState,
-            menu: {
-              ...this.settingsState.menu,
-              launcher: '', display: '无', isMiddle: false, isCustom: false, status: '未设置',
-            },
-          };
-          result = this.settingsState;
-          break;
-        case 'settings.menu.rule.add': {
-          const rule = params['rule'] as WindowRuleState;
-          this.settingsState = {
-            ...this.settingsState,
-            menu: {
-              ...this.settingsState.menu,
-              rules: [...this.settingsState.menu.rules, {
-                key: 'rule-' + Date.now(), summary: rule.title || rule.process || '窗口规则',
-                pageCountLabel: '1 页', isDefault: false, isBlocked: false, canAddPage: true, rule,
-              }],
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.menu.rule.edit': {
-          const rule = params['rule'] as WindowRuleState;
-          this.settingsState = {
-            ...this.settingsState,
-            menu: {
-              ...this.settingsState.menu,
-              rules: this.settingsState.menu.rules.map((row) => row.key === params['key']
-                ? { ...row, rule, summary: rule.title || rule.process || '窗口规则' }
-                : row),
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.menu.rule.remove':
-          this.settingsState = {
-            ...this.settingsState,
-            menu: {
-              ...this.settingsState.menu,
-              rules: this.settingsState.menu.rules.filter((row) => row.key !== params['key']),
-            },
-          };
-          result = this.settingsState;
-          break;
-        case 'settings.menu.rule.addPage':
-          result = this.settingsState;
-          break;
-        case 'settings.menu.rule.move': {
-          const step = Number(params['step'] ?? 0);
-          const rules = [...this.settingsState.menu.rules];
-          const at = rules.findIndex((row) => row.key === params['key']);
-          const to = Math.max(0, Math.min(rules.length - 1, at + step));
-          if (at >= 0 && to !== at) {
-            const [row] = rules.splice(at, 1);
-            if (row) {
-              rules.splice(to, 0, row);
-            }
-          }
-          this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.menu.rule.moveTo': {
-          const rules = [...this.settingsState.menu.rules];
-          const from = rules.findIndex((row) => row.key === params['key']);
-          const to = rules.findIndex((row) => row.key === params['target']);
-          if (from >= 0 && to >= 0) {
-            const [row] = rules.splice(from, 1);
-            if (row) {
-              rules.splice(to, 0, row);
-            }
-          }
-          this.settingsState = { ...this.settingsState, menu: { ...this.settingsState.menu, rules } };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.update': {
-          const field = String(params['field'] ?? '');
-          const value = String(params['value'] ?? '');
-          const next: Record<string, unknown> = { ...this.settingsState.wheel };
-          if (['diameter', 'fontSize', 'thirdCapacity', 'timeoutMs'].includes(field)) {
-            next[field] = Number(value);
-          } else if (field === 'enabled') {
-            next[field] = value === 'true';
-          } else {
-            next[field] = value === 'true' ? true : value === 'false' ? false : value;
-          }
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: next as unknown as SettingsWheelState,
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.launcher': {
-          const launcher = String(params['value'] ?? '');
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: {
-              ...this.settingsState.wheel,
-              launcher,
-              enabled: launcher.length > 0,
-              launcherStatus: launcher ? '就绪' : '未设置',
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.enabled': {
-          const enabled = params['value'] === true;
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: {
-              ...this.settingsState.wheel,
-              enabled,
-              launcher: enabled ? (this.settingsState.wheel.launcher || 'Mouse Right') : '',
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.enableSystem':
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: { ...this.settingsState.wheel, isSystemOff: false },
-          };
-          result = this.settingsState;
-          break;
-        case 'settings.wheel.repeat': {
-          const key = String(params['binding'] ?? '');
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: { ...this.settingsState.wheel, repeatKey: key, repeatDisplay: key },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.scene.select':
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: { ...this.settingsState.wheel, selectedScene: String(params['key'] ?? 'global') },
-          };
-          result = this.settingsState;
-          break;
-        case 'settings.wheel.scene.add': {
-          const rule = params['rule'] as WindowRuleState;
-          const key = 'scene-' + Date.now();
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: {
-              ...this.settingsState.wheel,
-              selectedScene: key,
-              scenes: [...this.settingsState.wheel.scenes, {
-                key, summary: rule.title || rule.process || '窗口规则', isGlobal: false, rule,
-              }],
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.scene.edit': {
-          const rule = params['rule'] as WindowRuleState;
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: {
-              ...this.settingsState.wheel,
-              scenes: this.settingsState.wheel.scenes.map((scene) => scene.key === params['key']
-                ? { ...scene, rule, summary: rule.title || rule.process || '窗口规则' }
-                : scene),
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.scene.remove':
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: {
-              ...this.settingsState.wheel,
-              selectedScene: 'global',
-              scenes: this.settingsState.wheel.scenes.filter((scene) => scene.key !== params['key']),
-            },
-          };
-          result = this.settingsState;
-          break;
-        case 'settings.wheel.scene.move': {
-          const scenes = [...this.settingsState.wheel.scenes];
-          const at = scenes.findIndex((scene) => scene.key === this.settingsState.wheel.selectedScene);
-          const to = Math.max(1, Math.min(scenes.length - 1, at + Number(params['step'] ?? 0)));
-          if (at > 0 && to !== at) {
-            const [scene] = scenes.splice(at, 1);
-            if (scene) {
-              scenes.splice(to, 0, scene);
-            }
-          }
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: { ...this.settingsState.wheel, scenes },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.slot.set': {
-          const ring = String(params['ring'] ?? '');
-          const index = Number(params['index'] ?? 0);
-          const macro = String(params['macro'] ?? '');
-          const note = String(params['note'] ?? '');
-          const icon = params['icon'] as { kind: string; value: string } | null;
-          const update = (slot: SettingsWheelSlot): SettingsWheelSlot => ({
-            ...slot,
-            macro,
-            note,
-            label: note || macro,
-            icon,
-            inherited: false,
-            overridden: macro.length > 0,
-            empty: macro.length === 0,
-            tone: macro.length === 0 ? 'empty' : 'override',
-          });
-          this.settingsState = {
-            ...this.settingsState,
-            wheel: {
-              ...this.settingsState.wheel,
-              slots: this.settingsState.wheel.slots.map((slot) =>
-                slot.ring === ring && slot.index === index ? update(slot) : slot),
-            },
-          };
-          result = this.settingsState;
-          break;
-        }
-        case 'settings.wheel.pickIcon':
-          result = { kind: 'builtin', value: 'circle' };
-          break;
-        case 'app.about':
-          result = {
-            projectUrl: 'https://github.com/ilpoint/WhaleGenie',
-            notices: '第三方组件\n\n- Avalonia — MIT\n- Lit — BSD-3-Clause',
-          };
-          break;
-        case 'settings.openFolder':
-          result = null;
           break;
         case 'library.state':
           result = { entries: this.libraryEntries, error: null };
@@ -730,7 +317,6 @@ export class MockTransport implements BridgeTransport {
           break;
         case 'mcp.copyConfig':
         case 'mcp.openAudit':
-        case 'app.openManual':
           break;
         default:
           if (method.startsWith('editor.')) {
@@ -740,6 +326,7 @@ export class MockTransport implements BridgeTransport {
 
           this.answer({ id: request.id, ok: false, error: { code: 'NoSuchMethod', message: method } });
           return;
+      }
       }
     } catch (error) {
       this.answer({
@@ -756,7 +343,7 @@ export class MockTransport implements BridgeTransport {
     this.answer({ id: request.id, ok: true, result });
   }
 
-  private bundle(): StringsBundle {
+  bundle(): StringsBundle {
     const entries: Record<string, string> = {};
     for (const key of [...chromeKeys, ...Object.keys(mockExtra)]) {
       entries[key] = this.info.language === 'en'
