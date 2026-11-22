@@ -16,7 +16,7 @@ namespace WhaleGenie.Runtime;
 /// leaves the user with nothing listening and no sign of why. So the window goes out of the way
 /// instead, the icon is where it comes back from, and stopping on purpose is the icon's menu.
 /// </summary>
-public sealed class AppTray : IDisposable
+public sealed class AppTray : IDisposable, WhaleGenie.Contracts.IAppExit
 {
     /// <summary>
     /// The tray this program has, or null when it has none. A window that asks about work which is

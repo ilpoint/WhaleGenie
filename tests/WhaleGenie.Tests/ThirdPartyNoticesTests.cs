@@ -135,7 +135,7 @@ public class ThirdPartyNoticesTests
     {
         // The button on About says there is a list; this is what makes sure the page asks the
         // bridge for the document the release carries rather than a promise with nothing behind it.
-        var bridge = File.ReadAllText(RepoPaths.Source("WhaleGenie", "Bridge", "AppBridge.cs"));
+        var bridge = File.ReadAllText(RepoPaths.Source("WhaleGenie.App", "Bridge", "AppBridge.cs"));
         var page = File.ReadAllText(
             RepoPaths.Path("webui", "src", "features", "about", "about-page.ts"));
 

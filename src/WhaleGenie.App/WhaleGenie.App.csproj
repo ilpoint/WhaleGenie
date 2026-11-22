@@ -13,9 +13,11 @@
 
   <ItemGroup>
     <!--
-      状态提示音。作为程序集资源随这一层走：谁播放谁携带，换程序集也不会在启动时才丢。
+      状态提示音与第三方许可。作为程序集资源随这一层走：谁播放/展示谁携带，换程序集也不会在
+      启动时才丢。
     -->
     <EmbeddedResource Include="Sounds\*.wav" />
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.md" Link="Assets\THIRD-PARTY-NOTICES.md" />
   </ItemGroup>
 
   <ItemGroup>

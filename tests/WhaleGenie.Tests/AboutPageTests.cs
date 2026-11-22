@@ -47,7 +47,7 @@ public class AboutPageTests
         Assert.Contains("app.about", page, StringComparison.Ordinal);
         Assert.Contains("notices", page, StringComparison.Ordinal);
 
-        var bridge = File.ReadAllText(RepoPaths.Source("WhaleGenie", "Bridge", "AppBridge.cs"));
+        var bridge = File.ReadAllText(RepoPaths.Source("WhaleGenie.App", "Bridge", "AppBridge.cs"));
         Assert.Contains("ProjectLinks.Home", bridge, StringComparison.Ordinal);
         Assert.Contains("ThirdPartyNotices.Read()", bridge, StringComparison.Ordinal);
     }

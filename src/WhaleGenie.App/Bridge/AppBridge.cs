@@ -14,7 +14,7 @@ namespace WhaleGenie.Bridge;
 /// a page must never do by itself — leave through the tray, and open a browser. The open project is
 /// not repeated here; <c>project.state</c> is the one shape that carries it.
 /// </summary>
-public sealed class AppBridge(Func<AppTray?> tray) : IBridgeHandler
+public sealed class AppBridge(Func<IAppExit?> exit) : IBridgeHandler
 {
     public void Register(BridgeServer server)
     {
@@ -45,7 +45,7 @@ public sealed class AppBridge(Func<AppTray?> tray) : IBridgeHandler
         // The one true exit goes through the tray, which asks the windows about work that is not
         // saved; a page that wanted to leave the work behind gets asked the same way everything
         // else is.
-        tray()?.RequestExit();
+        exit()?.RequestExit();
         return Task.FromResult<object?>(null);
     }
 
