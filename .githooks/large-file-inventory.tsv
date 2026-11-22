@@ -159,7 +159,7 @@
 355	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
 321	src/WhaleGenie.Editing/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
 434	src/WhaleGenie.App/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
-379	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
+389	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
 485	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 453	src/WhaleGenie/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 22960	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
