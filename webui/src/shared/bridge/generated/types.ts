@@ -1529,6 +1529,27 @@ export interface StringsBundle {
   entries: { [key: string]: string };
 }
 
+export interface SurfaceMenuCell {
+  row: number;
+  column: number;
+  entryId: string;
+  macroName: string;
+  iconKind: string | null;
+  iconValue: string | null;
+}
+
+export interface SurfaceMenuPage {
+  pageId: string;
+  isDefault: boolean;
+  ruleSummary: string;
+  cells: SurfaceMenuCell[];
+}
+
+export interface SurfaceMenuSnapshot {
+  common: SurfaceMenuPage[];
+  context: SurfaceMenuPage[];
+}
+
 export interface ThemeState {
   mode: string;
   baseLight: boolean;

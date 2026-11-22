@@ -106,6 +106,7 @@ public static class BridgeMethods
         "settings.windows.list",
         "settings.windows.pick",
         "strings.bundle",
+        "surface.menu.state",
         "theme.get",
         "theme.set",
         "window.close",

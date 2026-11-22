@@ -131,6 +131,10 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
 
 ### S2 宏菜单（先做，使用频率最高）
 
+**已完成（2026-11）**：契约 `SurfaceMenuSnapshot/Page/Cell` 与 `surface.menu.state` 已生成到页面；
+App 的 `MenuSurface` 把 `ProjectTriggers.BuildMenuLayout` 投影成线上形状（图标只留名称），
+`MenuSurfaceTests` 覆盖格子、禁用宏与默认上下文页。原生菜单仍是默认入口，页面只读这份快照。
+
 0. **预建宿主**：壳启动时创建菜单浮层窗口与页面并隐藏；热键只 `Show()`（S0 实测 19–25 ms）。
 1. C#：把 `MacroMenuWindow` 的排版数据（分节、格子、图标、问题、搜索过滤、置顶与本屏坐标）
    抽到 App 的 `MenuSurfaceModel`，原生窗口改为只读它的快照（先保行为，再删窗口）；

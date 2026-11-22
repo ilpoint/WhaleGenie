@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Bridge;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -72,6 +73,9 @@ internal static class WindowedServices
             sp.GetService<WebShellWindow>() is { } window ? new ShellWindowCommands(window) : null));
             server.Register(new McpBridge(() => SharedDevices.Current.Clipboard,
                 sp.GetRequiredService<AppSettings>()));
+            server.Register(new MenuSurfaceBridge(new MenuSurface(
+                sp.GetRequiredService<ProjectWorkspace>(),
+                sp.GetRequiredService<IDeviceLayer>().Windows)));
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();
