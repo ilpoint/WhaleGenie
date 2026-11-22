@@ -5,6 +5,7 @@ using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
+using WhaleGenie.Views.Pickers;
 using WhaleGenie.Web;
 
 namespace WhaleGenie;
@@ -85,14 +86,18 @@ internal static class WindowedServices
                 new EditorBrowserTestHost(),
                 new EditorElementTestHost(() => sp.GetService<WebShellWindow>())));
             server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>()));
-            server.Register(new SettingsBridge(
-                sp.GetRequiredService<MainViewModel>(),
-                () => sp.GetService<WebShellWindow>(),
+            var main = sp.GetRequiredService<MainViewModel>();
+            var settings = new SettingsViewModel(
+                SharedDevices.Current.Driver, null, main.Workspace,
+                main.Workspace.CurrentPath, main.MarkMenuChanged,
+                main.SystemSwitch, new MenuIconCatalogAdapter());
+            server.Register(new SettingsBridge(settings, main.Workspace, devices,
+                new SettingsPickerHost(() => sp.GetService<WebShellWindow>(), devices),
                 () =>
                 {
-                    if (sp.GetService<WebShellWindow>()?.Actions is { } settings)
+                    if (sp.GetService<WebShellWindow>()?.Actions is { } shell)
                     {
-                        settings.RefreshAfterSettings();
+                        shell.RefreshAfterSettings();
                     }
                 }));
             server.Register(new RunBridge(sp.GetRequiredService<ProjectWorkspace>(),

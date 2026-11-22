@@ -4,14 +4,12 @@ using System.Globalization;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -373,7 +371,7 @@ internal sealed partial class SettingsBridge
             try
             {
                 icon = new MenuIconReference(icon.Kind,
-                    ImageAssets.Adopt(icon.Value, _project.Workspace.CurrentPath));
+                    ImageAssets.Adopt(icon.Value, _project.CurrentPath));
             }
             catch (Exception)
             {
@@ -421,13 +419,7 @@ internal sealed partial class SettingsBridge
 
     private async Task<object?> PickWheelIcon()
     {
-        if (_owner() is not { } owner)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.SettingsNeedsWindow"));
-        }
-
-        var icon = await MenuIconPickerWindow.ShowAsync(owner);
+        var icon = await _pickers.PickMenuIconAsync();
         return icon is null
             ? null
             : new SettingsWheelIcon(icon.Kind.ToString().ToLowerInvariant(), icon.Value);

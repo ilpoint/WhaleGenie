@@ -4,11 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using WhaleGenie.Contracts;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
-using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
@@ -21,23 +20,18 @@ namespace WhaleGenie.Bridge;
 internal sealed partial class SettingsBridge : IBridgeHandler
 {
     private readonly SettingsViewModel _settings;
-    private readonly MainViewModel _project;
-    private readonly Func<Window?> _owner;
+    private readonly ProjectWorkspace _project;
+    private readonly IDeviceLayer _devices;
+    private readonly ISettingsPickerHost _pickers;
     private readonly Action _changed;
 
-    public SettingsBridge(MainViewModel project, Func<Window?> owner, Action? changed = null)
-        : this(new SettingsViewModel(SharedDevices.Current.Driver, null, project.Workspace,
-            project.Workspace.CurrentPath, project.MarkMenuChanged, project.SystemSwitch),
-            project, owner, changed)
-    {
-    }
-
-    internal SettingsBridge(SettingsViewModel settings, MainViewModel project,
-        Func<Window?> owner, Action? changed = null)
+    internal SettingsBridge(SettingsViewModel settings, ProjectWorkspace project,
+        IDeviceLayer devices, ISettingsPickerHost pickers, Action? changed = null)
     {
         _settings = settings;
         _project = project;
-        _owner = owner;
+        _devices = devices;
+        _pickers = pickers;
         _changed = changed ?? (() => { });
     }
 

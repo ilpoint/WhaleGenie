@@ -4,13 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -89,7 +87,7 @@ internal sealed partial class SettingsBridge
         IReadOnlyList<WindowEntry> entries;
         try
         {
-            entries = WindowPickerViewModel.From(SharedDevices.Current.Windows);
+            entries = WindowPickerViewModel.From(_devices.Windows);
         }
         catch (Exception)
         {
@@ -116,16 +114,7 @@ internal sealed partial class SettingsBridge
 
     private async Task<object?> PickWindow()
     {
-        if (_owner() is not { } owner)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.SettingsNeedsWindow"));
-        }
-
-        using var aside = AppWindows.StepAside(owner);
-        await AppWindows.SettleAsync();
-        var window = await WindowPickWindow.PickAsync(SharedDevices.Current.Windows,
-            SharedDevices.Current.Screen, SharedDevices.Current.Hook);
+        var window = await _pickers.PickWindowAsync();
         if (window is null)
         {
             return null;
@@ -135,8 +124,8 @@ internal sealed partial class SettingsBridge
         var className = string.Empty;
         try
         {
-            process = SharedDevices.Current.Windows.ProcessOf(window.Handle);
-            className = SharedDevices.Current.Windows.ClassOf(window.Handle);
+            process = _devices.Windows.ProcessOf(window.Handle);
+            className = _devices.Windows.ClassOf(window.Handle);
         }
         catch (Exception)
         {
