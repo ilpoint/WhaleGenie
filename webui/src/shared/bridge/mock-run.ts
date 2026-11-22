@@ -58,7 +58,7 @@ export function handleRun(host: MockRunContext, method: string, params: Record<s
         case 'run.breakpointRule':
           host.runState = {
             ...host.runState,
-            steps: host.runState.steps.map((step) => step.id === params['id']
+            steps: (host.runState.steps ?? []).map((step) => step.id === params['id']
               ? { ...step, hitTimes: Number(params['hitTimes'] ?? 1),
                   expression: String(params['expression'] ?? '') }
               : step),
@@ -68,7 +68,7 @@ export function handleRun(host: MockRunContext, method: string, params: Record<s
         case 'run.breakpoint':
           host.runState = {
             ...host.runState,
-            steps: host.runState.steps.map((step) => step.id === params['id']
+            steps: (host.runState.steps ?? []).map((step) => step.id === params['id']
               ? { ...step, breakpoint: !step.breakpoint }
               : step),
           };

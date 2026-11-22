@@ -1321,7 +1321,7 @@ export interface RunState {
   look: RunLook | null;
   globals: RunGlobal[];
   locals: RunLocal[];
-  steps: RunStep[];
+  steps: RunStep[] | null;
   log: RunLine[];
   logFrom: number;
 }

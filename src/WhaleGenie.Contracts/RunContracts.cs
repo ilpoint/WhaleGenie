@@ -22,7 +22,7 @@ public sealed record RunState(
     RunLook? Look,
     IReadOnlyList<RunGlobal> Globals,
     IReadOnlyList<RunLocal> Locals,
-    IReadOnlyList<RunStep> Steps,
+    IReadOnlyList<RunStep>? Steps,
     IReadOnlyList<RunLine> Log,
     int LogFrom = 0);
 

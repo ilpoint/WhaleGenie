@@ -28,6 +28,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     private DispatcherTimer? _timer;
     private RunLook? _look;
     private int _sentLog;
+    private string _sentSteps = string.Empty;
 
     public void Register(BridgeServer server)
     {
@@ -123,6 +124,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         _run = null;
         _look = null;
         _sentLog = 0;
+        _sentSteps = string.Empty;
         return Task.FromResult<object?>(Snapshot());
     }
 
@@ -234,6 +236,10 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         var state = Incremental();
         await _server.PushAsync("run.changed", state);
         _sentLog = state.LogFrom + state.Log.Count;
+        if (state.Steps is not null)
+        {
+            _sentSteps = StepsSignature(state.Steps);
+        }
         if (!_run.IsBusy && !_run.IsPaused && !_run.IsAsking && !_run.IsAskingUser)
         {
             _timer?.Stop();
@@ -246,19 +252,47 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     {
         var state = SnapshotCore();
         _sentLog = state.Log.Count;
+        _sentSteps = StepsSignature(state.Steps ?? []);
         return state;
     }
 
-    /// <summary>Only the log lines the page has not seen, addressed by the cursor.</summary>
+    /// <summary>The log lines and step tree the page has not seen, addressed by their cursors.</summary>
     private RunState Incremental()
     {
         var full = SnapshotCore();
         var from = _sentLog > full.Log.Count ? 0 : _sentLog;
+        var steps = StepsSignature(full.Steps ?? []);
         return full with
         {
+            Steps = string.Equals(steps, _sentSteps, StringComparison.Ordinal) ? null : full.Steps,
             Log = [.. full.Log.Skip(from)],
             LogFrom = from,
         };
+    }
+
+    /// <summary>Changes that the page has to redraw; an unchanged tree is left off the push.</summary>
+    private static string StepsSignature(IReadOnlyList<RunStep> steps)
+    {
+        var text = new System.Text.StringBuilder();
+        foreach (var step in steps)
+        {
+            text.Append(step.Id).Append('|')
+                .Append(step.Label).Append('|')
+                .Append(step.Detail).Append('|')
+                .Append(step.Depth).Append('|')
+                .Append(step.Shown ? '1' : '0')
+                .Append(step.Container ? '1' : '0')
+                .Append(step.Current ? '1' : '0')
+                .Append(step.Breakpoint ? '1' : '0')
+                .Append(step.CanBreak ? '1' : '0')
+                .Append(step.Time).Append('|')
+                .Append(step.Failure).Append('|')
+                .Append(step.Condition).Append('|')
+                .Append(step.HitTimes).Append('|')
+                .Append(step.Expression).Append(';');
+        }
+
+        return text.ToString();
     }
 
     private RunState SnapshotCore() => new(

@@ -25,9 +25,14 @@ export class WgRun extends LitElement {
     bridge.value.on('run.changed', (payload) => {
       const next = payload as RunState;
       const seen = this.run?.log.length ?? 0;
-      this.run = next.logFrom === 0 || next.logFrom > seen
-        ? next
-        : { ...next, log: [...(this.run?.log ?? []), ...next.log] };
+      const log = next.logFrom === 0 || next.logFrom > seen
+        ? next.log
+        : [...(this.run?.log ?? []), ...next.log];
+      this.run = {
+        ...next,
+        steps: next.steps ?? this.run?.steps ?? [],
+        log,
+      };
     }));
 
   static styles = runPageCss;
@@ -67,7 +72,7 @@ export class WgRun extends LitElement {
         ${this.arguments()}
         ${this.ask()}
         <div class="steps">
-          ${this.run?.steps.map((step) => this.step(step))}
+          ${(this.run?.steps ?? []).map((step) => this.step(step))}
         </div>
         <div class="log">
           ${this.run?.log.map((line) => this.line(line))}
