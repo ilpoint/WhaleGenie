@@ -50,7 +50,8 @@ export class EditorStepService {
       params['list'] = list;
     }
 
-    const ok = await this.core.mutate<EditorSnapshot>('editor.sessionStep', params, (next) => {
+    const ok = await this.core.mutate<EditorSnapshot>('editor.step',
+      { kind: 'add', ...params }, (next) => {
       this.core.applySnapshot(next);
       const added = flattenSteps(next.steps).find((step) => !before.has(step.id));
       if (added) {
@@ -214,13 +215,13 @@ export class EditorStepService {
   }
 
   async setStepMeta(stepId: string, field: string, value: string | number): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionStepMeta', {
-      stepId, field, value: String(value),
+    return this.core.snapshotCommand('editor.step', {
+      kind: 'meta', stepId, field, value: String(value),
     });
   }
 
   async patchParameter(stepId: string, name: string, value: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionParameter', { stepId, name, value });
+    return this.core.snapshotCommand('editor.step', { kind: 'parameter', stepId, name, value });
   }
 
   async undo(): Promise<boolean> {
@@ -232,17 +233,17 @@ export class EditorStepService {
   }
 
   async addParameterRow(stepId: string, name: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionParameterRowAdd', { stepId, name });
+    return this.core.snapshotCommand('editor.step', { kind: 'rowAdd', stepId, name });
   }
 
   async removeParameterRow(stepId: string, name: string, index: number): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionParameterRowRemove', { stepId, name, index });
+    return this.core.snapshotCommand('editor.step', { kind: 'rowRemove', stepId, name, index });
   }
 
   async patchRowCell(stepId: string, name: string, index: number, column: string,
     value: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionParameterRowCell', {
-      stepId, name, index, column, value,
+    return this.core.snapshotCommand('editor.step', {
+      kind: 'rowCell', stepId, name, index, column, value,
     });
   }
 

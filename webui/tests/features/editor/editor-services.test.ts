@@ -41,15 +41,15 @@ function storeWith(bridge: FakeBridge): EditorStore {
 describe('editor services', () => {
   it('addStep sends the type and selects the step C# added', async () => {
     const bridge = new FakeBridge();
-    bridge.reply('editor.sessionStep', snapshot('demo', [step('s1')]));
+    bridge.reply('editor.step', snapshot('demo', [step('s1')]));
     const store = storeWith(bridge);
     store.get().snapshot = snapshot();
 
     await expect(store.steps.addStep('control.delay')).resolves.toBe(true);
 
     expect(bridge.calls[0]).toEqual({
-      method: 'editor.sessionStep',
-      params: { type: 'control.delay' },
+      method: 'editor.step',
+      params: { kind: 'add', type: 'control.delay' },
     });
     expect(store.get().selectedStepId).toBe('s1');
     expect(store.get().selectedStepIds).toEqual(['s1']);

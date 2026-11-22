@@ -36,14 +36,8 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return host.activeSnapshot();
       case 'editor.declaration':
         return handleDeclarationCommand(host, params);
-      case 'editor.sessionStep':
-        return host.addStep(params);
-      case 'editor.sessionStepEnabled':
-        return host.setStepEnabledCommand(params);
-      case 'editor.sessionStepMeta':
-        return host.setStepMeta(params);
-      case 'editor.sessionStepDuplicate':
-        return host.duplicateStep(params);
+      case 'editor.step':
+        return handleStepCommand(host, params);
       case 'editor.steps':
         return handleStepsCommand(host, params);
 
@@ -69,27 +63,6 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
             throw new Error('不认识条件命令 ' + String(params['kind']) + '。');
         }
       }
-      case 'editor.sessionParameter':
-        return host.setParameterCommand(params);
-      case 'editor.sessionParameterRowAdd':
-        return host.rowCommand(params, (rows) => [...rows, { cells: ['', ''] }]);
-      case 'editor.sessionParameterRowRemove':
-        return host.rowCommand(params, (rows) => rows.filter((_, index) =>
-          index !== Number(params['index'])));
-      case 'editor.sessionParameterRowCell':
-        return host.rowCommand(params, (rows) => rows.map((row, index) =>
-          index !== Number(params['index'])
-            ? row
-            : {
-                cells: row.cells.map((cell, cellIndex) =>
-                  cellIndex === columnIndex(host.text(params, 'column'))
-                    ? host.text(params, 'value')
-                    : cell),
-              }));
-      case 'editor.sessionMove':
-        return host.moveStep(params);
-      case 'editor.sessionRemove':
-        return host.removeStep(params);
       case 'editor.trigger':
         return handleTriggerCommand(host, params);
       case 'editor.hotstringKeyPad':
@@ -145,6 +118,34 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         return actionCatalogue(host.language());
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
+  }
+}
+
+function handleStepCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'add':
+      return host.addStep(params);
+    case 'meta':
+      return host.setStepMeta(params);
+    case 'parameter':
+      return host.setParameterCommand(params);
+    case 'rowAdd':
+      return host.rowCommand(params, (rows) => [...rows, { cells: ['', ''] }]);
+    case 'rowRemove':
+      return host.rowCommand(params, (rows) => rows.filter((_, index) =>
+        index !== Number(params['index'])));
+    case 'rowCell':
+      return host.rowCommand(params, (rows) => rows.map((row, index) =>
+        index !== Number(params['index'])
+          ? row
+          : {
+              cells: row.cells.map((cell, cellIndex) =>
+                cellIndex === columnIndex(host.text(params, 'column'))
+                  ? host.text(params, 'value')
+                  : cell),
+            }));
+    default:
+      throw new Error('不认识步骤命令 ' + String(params['kind']) + '。');
   }
 }
 

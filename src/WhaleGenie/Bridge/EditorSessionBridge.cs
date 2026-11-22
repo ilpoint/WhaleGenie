@@ -35,17 +35,8 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
         server.Register("editor.declaration", DeclarationAction);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
-        server.Register("editor.sessionStep", AddStep);
-        server.Register("editor.sessionStepEnabled", SetStepEnabled);
-        server.Register("editor.sessionStepMeta", SetStepMeta);
+        server.Register("editor.step", StepAction);
         server.Register("editor.condition", ConditionAction);
-        server.Register("editor.sessionParameter", PatchParameter);
-        server.Register("editor.sessionParameterRowAdd", AddParameterRow);
-        server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
-        server.Register("editor.sessionParameterRowCell", PatchParameterRow);
-        server.Register("editor.sessionMove", MoveStep);
-        server.Register("editor.sessionRemove", RemoveStep);
-        server.Register("editor.sessionStepDuplicate", DuplicateStep);
         server.Register("editor.steps", StepsAction);
 
         server.Register("editor.trigger", TriggerAction);
@@ -208,55 +199,24 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
 
 
-    private Task<object?> AddStep(JsonElement parameters)
+    private Task<object?> StepAction(JsonElement parameters)
     {
-        if (!parameters.TryGetProperty("type", out var type) || type.GetString() is not { Length: > 0 } step)
+        EditorStepCommand command;
+        try
+        {
+            command = parameters.Deserialize<EditorStepCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsStep"));
+        }
+        catch (JsonException)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsStep"));
         }
 
-        var parentId = parameters.TryGetProperty("parentId", out var parent) ? parent.GetString() : null;
-        var list = parameters.TryGetProperty("list", out var namedList) ? namedList.GetString() : null;
-        Dictionary<string, string>? presets = null;
-        if (parameters.TryGetProperty("parameters", out var values)
-            && values.ValueKind == JsonValueKind.Object)
-        {
-            presets = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var field in values.EnumerateObject())
-            {
-                presets[field.Name] = field.Value.ValueKind == JsonValueKind.String
-                    ? field.Value.GetString() ?? string.Empty
-                    : field.Value.GetRawText();
-            }
-        }
-
         try
         {
-            Required().AddStep(step, parentId, list, presets);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (Exception error) when (error is InvalidOperationException or ArgumentException)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> PatchParameter(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var given) ? given.GetString() : null;
-        if (stepId is not { Length: > 0 } || name is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsField"));
-        }
-
-        try
-        {
-            Required().PatchParameter(stepId, name, value);
-            return Task.FromResult<object?>(Snapshot());
+            return Task.FromResult<object?>(ApplyStep(command));
         }
         catch (InvalidOperationException error)
         {
@@ -264,68 +224,68 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> MoveStep(JsonElement parameters)
+    private object? ApplyStep(EditorStepCommand command)
     {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var delta = parameters.TryGetProperty("delta", out var given) && given.TryGetInt32(out var value)
+        var session = Required();
+        switch (command.Kind)
+        {
+            case "add":
+                var type = StepText(command.Type, "Bridge.EditorNeedsStep");
+                Dictionary<string, string>? presets = command.Parameters is null
+                    ? null
+                    : new Dictionary<string, string>(command.Parameters, StringComparer.Ordinal);
+                try
+                {
+                    session.AddStep(type, command.ParentId, command.List, presets);
+                }
+                catch (Exception error) when (error is InvalidOperationException or ArgumentException)
+                {
+                    throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+                }
+
+                return Snapshot();
+            case "meta":
+                session.SetStepMeta(StepId(command.StepId),
+                    StepText(command.Field, "Bridge.EditorNeedsStep"), command.Value ?? string.Empty);
+                return Snapshot();
+            case "parameter":
+                session.PatchParameter(StepId(command.StepId), StepName(command.Name),
+                    command.Value ?? string.Empty);
+                return Snapshot();
+            case "rowAdd":
+                session.AddParameterRow(StepId(command.StepId), StepName(command.Name));
+                return Snapshot();
+            case "rowRemove":
+                session.RemoveParameterRow(StepId(command.StepId), StepName(command.Name),
+                    StepIndex(command.Index));
+                return Snapshot();
+            case "rowCell":
+                session.PatchParameterRow(StepId(command.StepId), StepName(command.Name),
+                    StepIndex(command.Index), StepText(command.Column, "Bridge.EditorNeedsRow"),
+                    command.Value ?? string.Empty);
+                return Snapshot();
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsStep"));
+        }
+    }
+
+    private static string StepId(string? value)
+        => StepText(value, "Bridge.EditorNeedsStep");
+
+    private static string StepName(string? value)
+        => StepText(value, "Bridge.EditorNeedsField");
+
+    private static int StepIndex(int? value)
+        => value is >= 0
+            ? value.Value
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsRow"));
+
+    private static string StepText(string? value, string key)
+        => value is { Length: > 0 }
             ? value
-            : 0;
-        if (stepId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsStep"));
-        }
-
-        try
-        {
-            Required().MoveStep(stepId, delta);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> DuplicateStep(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        if (stepId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsStep"));
-        }
-
-        try
-        {
-            Required().DuplicateStep(stepId);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> RemoveStep(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        if (stepId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsStep"));
-        }
-
-        try
-        {
-            Required().RemoveStep(stepId);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
+            : throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get(key));
 
     private Task<object?> StepsAction(JsonElement parameters)
     {
@@ -650,120 +610,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
 
 
-    private Task<object?> SetStepMeta(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (stepId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsStep"));
-        }
-
-        try
-        {
-            Required().SetStepMeta(stepId, field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> SetStepEnabled(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var enabled = parameters.TryGetProperty("enabled", out var value) && value.GetBoolean();
-        if (stepId is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsStep"));
-        }
-
-        try
-        {
-            Required().SetStepEnabled(stepId, enabled);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> AddParameterRow(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        if (stepId is not { Length: > 0 } || name is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsField"));
-        }
-
-        try
-        {
-            Required().AddParameterRow(stepId, name);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> RemoveParameterRow(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
-            ? number
-            : -1;
-        if (stepId is not { Length: > 0 } || name is not { Length: > 0 } || index < 0)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsRow"));
-        }
-
-        try
-        {
-            Required().RemoveParameterRow(stepId, name, index);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> PatchParameterRow(JsonElement parameters)
-    {
-        var stepId = parameters.TryGetProperty("stepId", out var id) ? id.GetString() : null;
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        var column = parameters.TryGetProperty("column", out var cell) ? cell.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        var index = parameters.TryGetProperty("index", out var row) && row.TryGetInt32(out var number)
-            ? number
-            : -1;
-        if (stepId is not { Length: > 0 } || name is not { Length: > 0 }
-            || column is not { Length: > 0 } || value is null || index < 0)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsRow"));
-        }
-
-        try
-        {
-            Required().PatchParameterRow(stepId, name, index, column, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
 
 

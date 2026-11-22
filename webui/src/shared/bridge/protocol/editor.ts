@@ -69,6 +69,7 @@ export type {
   EditorSessionSaveCommand,
   EditorSessionSubOpenCommand,
   EditorSessionUndoCommand,
+  EditorStepCommand,
   EditorStepsCommand,
   EditorVariableCommand,
   EditorActionCategorySnapshot,

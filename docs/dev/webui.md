@@ -88,7 +88,7 @@ features/<feature>/
   `editor.trigger`（add/remove/field 等）、`editor.action`（page/field/row 等）、
   `editor.declaration`（family/kind 矩阵）、`editor.condition`（行/组/join）、
   `editor.variable`（local/global × add/patch/remove）、`editor.session`（open/new/save/close 等）、
-  `editor.steps`（多选/复制/粘贴）。
+  `editor.steps`（多选/复制/粘贴）、`editor.step`（单步/参数）。
   矩阵型命令用一条 `[BridgeRequest]` 记录，可空字段生成
   `?:`，不必为每个 kind 建派生记录。新增编辑器命令时优先扩展现有联合，不再加一条按字段拆的
   `editor.*` 方法。

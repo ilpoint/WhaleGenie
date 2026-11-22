@@ -684,6 +684,20 @@ export interface EditorSnapshot {
   isSubMacro: boolean;
 }
 
+export interface EditorStepCommand {
+  kind: string;
+  stepId?: string | null;
+  type?: string | null;
+  parentId?: string | null;
+  list?: string | null;
+  parameters?: { [key: string]: string } | null;
+  name?: string | null;
+  field?: string | null;
+  value?: string | null;
+  column?: string | null;
+  index?: number | null;
+}
+
 export interface EditorStepSectionSnapshot {
   name: string;
   label: string;
