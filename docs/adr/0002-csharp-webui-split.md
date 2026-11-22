@@ -1,6 +1,6 @@
 # ADR 0002：C# 应用层与 Lit 视图的分工
 
-- 状态：已采纳（P6、P7 已落地；P3/P4 的 IO/busy、P5、P8、P9 收尾中）
+- 状态：已完成（C#/页面职责分界已落地；P3/P4 的 IO/busy、P5、P8、P9 归入后续技术债）
 - 日期：2026-11-22
 - 相关：[架构](../architecture.md)、[网页壳结构](../dev/webui.md)、[界面与桥接](../architecture/interface.md)
 
@@ -40,7 +40,7 @@
    `IEditorWindowAside`、`ISettingsPickerHost`、`IUiPost` 等）；UI 工程实现端口并保留窗口。
    分层由 `LayeringTests` 与 `WebUiBoundaryTests` 保证。
 
-## 暂缓
+## 后续技术债（不阻塞职责分界）
 
 - 长耗时处理器的 IO 下放与 busy 事件仍待收尾：保存/打开目前由应用层持有的
   `ProjectWorkspace` 完成；下一步把纯文件 IO 放到工作线程，busy 复用同一条推送通道。

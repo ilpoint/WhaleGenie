@@ -18,8 +18,9 @@
 
 ### 界面迁移到网页壳
 
-**实现状态（2026-11）**：P6 编辑模型/无头会话与 P7 全部桥处理器已迁入 `WhaleGenie.Editing`/`WhaleGenie.App`；
-界面工程只保留窗口、原生选择器/遮罩适配。剩余：P3/P4 的 IO/busy、P5 可注入设置、P8 原生主题收缩、P9 mock 收缩。
+**实现状态（2026-11）**：C#/页面职责分界已完成——P6 编辑模型/无头会话与 P7 全部桥处理器已迁入
+`WhaleGenie.Editing`/`WhaleGenie.App`，界面工程只保留窗口、原生选择器/遮罩适配。
+P3/P4 的 IO/busy、P5 可注入设置、P8 原生主题进一步收缩、P9 mock 收缩归入后续技术债。
 
 界面整体从原生 AXAML 迁到 WebView + Lit + Fluent UI Web Components（见 [DESIGN.md](../DESIGN.md)
 第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳）
