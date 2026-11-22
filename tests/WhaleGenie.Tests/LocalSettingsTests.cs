@@ -258,7 +258,7 @@ public class LocalSettingsTests
 
                 // A window opened afterwards shows what is in effect, and putting a choice back is a
                 // change like any other.
-                var viewModel = new SettingsViewModel();
+                var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
                 Assert.Equal(CaptureWay.PrintWindow, viewModel.SelectedWindowWay.Way);
                 Assert.Equal(CaptureWay.DesktopDuplication, viewModel.SelectedScreenWay.Way);
 
@@ -285,7 +285,7 @@ public class LocalSettingsTests
         {
             Assert.False(LocalSettings.LoadPreloadOcr());
 
-            var viewModel = new SettingsViewModel();
+            var viewModel = new SettingsViewModel(() => DriverInputState.Ready);
             Assert.False(viewModel.PreloadOcr);
 
             viewModel.PreloadOcr = true;
@@ -295,7 +295,7 @@ public class LocalSettingsTests
             // afterwards shows whichever of the two is in effect.
             viewModel.PreloadOcr = false;
             Assert.False(LocalSettings.LoadPreloadOcr());
-            Assert.False(new SettingsViewModel().PreloadOcr);
+            Assert.False(new SettingsViewModel(() => DriverInputState.Ready).PreloadOcr);
         });
     }
 

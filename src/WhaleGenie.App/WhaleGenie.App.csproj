@@ -27,6 +27,7 @@
     <ProjectReference Include="..\WhaleGenie.Editing\WhaleGenie.Editing.csproj" />
     <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\WhaleGenie.Mcp\WhaleGenie.Mcp.csproj" />
+    <ProjectReference Include="..\..\core\src\WhaleGenie.GraphicsCapture\WhaleGenie.GraphicsCapture.csproj" />
     <ProjectReference Include="..\..\core\src\WhaleGenie.Platform.Windows\WhaleGenie.Platform.Windows.csproj" />
   </ItemGroup>
 

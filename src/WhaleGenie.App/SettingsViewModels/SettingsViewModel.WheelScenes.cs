@@ -36,7 +36,7 @@ public partial class SettingsViewModel
     public WheelScene WheelGlobal => WheelRules.Global;
 
     public string WheelProblem => string.Join(" ", WheelRules.Problems(
-        [.. Project?.Macros ?? []], key => MenuIconCatalog.Knows(key)));
+        [.. Project?.Macros ?? []], key => _icons?.Knows(key) ?? true));
 
     public void RefreshWheelScenes()
     {

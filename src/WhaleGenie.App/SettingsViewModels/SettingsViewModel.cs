@@ -20,11 +20,7 @@ public partial class SettingsViewModel : ViewModelBase
 {
     private readonly Action? _markMenuChanged;
     private readonly SystemState? _system;
-
-    public SettingsViewModel()
-        : this(SharedDevices.Current.Driver)
-    {
-    }
+    private readonly IIconCatalog? _icons;
 
     /// <summary>
     /// The same, over whatever stands behind driver-level input: the program's own, or one a check
@@ -32,8 +28,9 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     internal SettingsViewModel(IDriverInput driver, bool? elevated = null,
         ProjectWorkspace? project = null, string? packagePath = null,
-        Action? markMenuChanged = null, SystemState? system = null)
-        : this(() => driver.State, elevated, project, packagePath, markMenuChanged, system)
+        Action? markMenuChanged = null, SystemState? system = null,
+        IIconCatalog? icons = null)
+        : this(() => driver.State, elevated, project, packagePath, markMenuChanged, system, icons)
     {
     }
 
@@ -44,11 +41,13 @@ public partial class SettingsViewModel : ViewModelBase
     /// </summary>
     internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null,
         ProjectWorkspace? project = null, string? packagePath = null,
-        Action? markMenuChanged = null, SystemState? system = null)
+        Action? markMenuChanged = null, SystemState? system = null,
+        IIconCatalog? icons = null)
     {
         Project = project;
         _markMenuChanged = markMenuChanged;
         _system = system;
+        _icons = icons;
         PackagePath = packagePath;
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         LoadLastProjectAtStart = LocalSettings.LoadLastProjectAtStart();

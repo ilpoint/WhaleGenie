@@ -81,7 +81,7 @@ public partial class SettingsViewModel
             }
 
             var menuProblems = Project?.Triggers.MenuProblems([.. Project.Macros],
-                MenuIconCatalog.Knows) ?? [];
+                key => _icons?.Knows(key) ?? true) ?? [];
             if (menuProblems.Count > 0)
             {
                 return menuProblems[0];
