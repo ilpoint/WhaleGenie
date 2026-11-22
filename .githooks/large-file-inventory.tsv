@@ -255,6 +255,9 @@
 44901	webui/src/shared/bridge/mock-editor.ts	keep: 命令分派与会话生命周期同属一个假宿主，步骤/数据/动作/夹具/取值已拆到 mock-editor-*.ts
 27933	webui/src/features/editor/value-editor.ts	split: 结构带、材料盘、变量/函数面板与样式在一个组件；下一步按 token band 与 panels 拆
 25993	webui/src/features/editor/step-tree.ts	split: 步骤树、多选、右键菜单、拖放与键盘命令在一个组件；下一步按 tree 渲染与 interactions 拆
-1491	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
-2394	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
+1573	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
+549	src/WhaleGenie/Editing/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
+388	src/WhaleGenie/Editing/EditorActionSnapshot.cs	keep: 动作表单快照记录与工厂是单一职责
+231	src/WhaleGenie/Views/Pickers/EditorPickerHost.cs	keep: 拾取请求到覆盖层的单一分发
+2634	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件

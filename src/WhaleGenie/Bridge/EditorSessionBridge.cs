@@ -17,11 +17,14 @@ namespace WhaleGenie.Bridge;
 /// step, save, close. The native editor is still the one a person uses; this is the path the page
 /// will take in C1, and the gate that proves it can be built without moving the model out of C#.
 /// </summary>
-internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLayer? devices = null)
+internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLayer? devices = null,
+    IEditorPickerHost? pickers = null, Func<Avalonia.Controls.Window?>? owner = null)
     : IBridgeHandler
 {
-    private readonly HeadlessEditorWorkspace _documents = new(workspace);
+    private readonly HeadlessEditorWorkspace _documents = new(workspace, devices);
     private readonly IDeviceLayer? _devices = devices;
+    private readonly IEditorPickerHost? _pickers = pickers;
+    private readonly Func<Avalonia.Controls.Window?>? _owner = owner;
     private RecordingSession? _recording;
     private volatile bool _stopRecordingRequested;
 
@@ -87,6 +90,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionTriggerFile", SetTriggerFile);
         server.Register("editor.sessionTriggerProcess", SetTriggerProcess);
         server.Register("editor.sessionTriggerHotstring", SetTriggerHotstring);
+        server.Register("editor.sessionTriggerHotstringOption", SetTriggerHotstringOption);
         server.Register("editor.sessionTriggerColor", SetTriggerColor);
         server.Register("editor.sessionTriggerWindow", SetTriggerWindow);
         server.Register("editor.sessionTriggerInterface", SetTriggerInterface);
@@ -100,6 +104,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.sessionRecordStart", _ => Task.FromResult<object?>(StartRecording()));
         server.Register("editor.sessionRecordStop", _ => Task.FromResult<object?>(StopRecording()));
         server.Register("editor.sessionRecordState", _ => Task.FromResult<object?>(RecordingState()));
+        server.Register("editor.sessionRecordOption", SetRecordOption);
+        server.Register("editor.sessionDelayScale", SetDelayScale);
         server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
         server.Register("editor.sessionClose", Close);
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
@@ -108,6 +114,26 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         server.Register("editor.actionState", _ => Task.FromResult<object?>(Required().ActionFormState()));
         server.Register("editor.actionConfirm", _ => Task.FromResult<object?>(Required().ConfirmActionDraft()));
         server.Register("editor.actionCancel", _ => Task.FromResult<object?>(Required().CancelActionDraft()));
+        server.Register("editor.actionPage", ActionPage);
+        server.Register("editor.actionField", ActionField);
+        server.Register("editor.actionRowAdd", ActionRowAdd);
+        server.Register("editor.actionRowRemove", ActionRowRemove);
+        server.Register("editor.actionRowMove", ActionRowMove);
+        server.Register("editor.actionRowCell", ActionRowCell);
+        server.Register("editor.actionReturns", ActionReturns);
+        server.Register("editor.actionReturnsFixName", ActionReturnsFixName);
+        server.Register("editor.actionCallArgument", ActionCallArgument);
+        server.Register("editor.actionMeta", ActionMeta);
+        server.Register("editor.actionGlobal", ActionGlobal);
+        server.Register("editor.actionBranch", ActionBranch);
+        server.Register("editor.actionWindow", ActionWindow);
+        server.Register("editor.actionWindowRule", ActionWindowRule);
+        server.Register("editor.actionWindowList", ActionWindowList);
+        server.Register("editor.actionPick", ActionPick);
+        server.Register("editor.actionWindowPick", ActionWindowPick);
+        server.Register("editor.actionRun", ActionRun);
+        server.Register("editor.actionKeyPad", ActionKeyPad);
+        server.Register("editor.actionPadKey", ActionPadKey);
         server.Register("editor.valueOpen", ValueOpen);
         server.Register("editor.valueState", _ => Task.FromResult<object?>(Required().ValueState()));
         server.Register("editor.valueCommand", ValueCommand);
@@ -136,7 +162,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
     private object? NewDocument()
     {
         _documents.Active?.CloseValueEditor();
-            _documents.Active?.CancelActionDraft();
+        _documents.Active?.CancelActionDraft();
         _documents.New();
         return Snapshot();
     }
@@ -536,7 +562,8 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
 
         _recording ??= new RecordingSession();
         _stopRecordingRequested = false;
-        if (!_recording.Start(_devices, ignoreInjected: true, recordController: false,
+        var model = Required();
+        if (!_recording.Start(_devices, model.RecordIgnoreInjected, model.RecordGamepadButtons,
             () => _stopRecordingRequested = true))
         {
             _recording = null;
@@ -549,7 +576,7 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
 
     private object StopRecording()
     {
-        var outcome = _recording?.Stop(new RecordingOptions()) ?? new RecordingSession.Outcome([], 0);
+        var outcome = _recording?.Stop(Required().RecordingChoices()) ?? new RecordingSession.Outcome([], 0);
         _recording = null;
         if (outcome.Steps.Count > 0)
         {
@@ -562,6 +589,39 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
             steps = outcome.Steps.Count,
             snapshot = Snapshot(),
         };
+    }
+
+    private Task<object?> SetRecordOption(JsonElement parameters)
+    {
+        var field = OptionalString(parameters, "field");
+        var value = OptionalString(parameters, "value");
+        if (field is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Editor.RecordFailed"));
+        }
+
+        try
+        {
+            Required().SetRecordOption(field, value);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetDelayScale(JsonElement parameters)
+    {
+        if (!parameters.TryGetProperty("factor", out var factor) || !factor.TryGetDouble(out var value))
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Editor.Problem.CannotSave"));
+        }
+
+        Required().SetDelayScale(value);
+        return Task.FromResult<object?>(Snapshot());
     }
 
     private object RecordingState()
@@ -981,6 +1041,28 @@ internal sealed class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLay
         try
         {
             Required().SetTriggerProcess(triggerId, field, value);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerHotstringOption(JsonElement parameters)
+    {
+        var triggerId = parameters.TryGetProperty("triggerId", out var id) ? id.GetString() : null;
+        var field = OptionalString(parameters, "field");
+        var value = OptionalString(parameters, "value");
+        if (triggerId is not { Length: > 0 } || field is not { Length: > 0 } || value is null)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsTrigger"));
+        }
+
+        try
+        {
+            Required().SetTriggerHotstringOption(triggerId, field, value);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

@@ -377,6 +377,14 @@ const mockExtra: Record<string, { en: string; zh: string }> = {
   'ValuePicker.Value.Text': { en: 'Text', zh: '文字' },
   'ValuePicker.Value.Insert': { en: 'Insert', zh: '插入' },
   'ExprBuilder.FunctionsFilter': { en: 'Filter functions', zh: '筛选函数' },
+  'Editor.PickColor': { en: 'Pick a color from the screen', zh: '从屏幕上拾取颜色' },
+  'Editor.KeyPad': { en: 'On-screen keyboard', zh: '屏幕键盘' },
+  'Add.StepCommentPlaceholder': { en: 'A note shown under the step in the list', zh: '显示在步骤下方的备注' },
+  'Add.ReturnPickHint': { en: 'Pick the results this step keeps', zh: '挑出这一步要留下的结果' },
+  'Add.ReturnKeep': { en: 'Keep', zh: '留下' },
+  'Add.ReturnResult': { en: 'Result', zh: '结果' },
+  'Add.ReturnShape': { en: 'Shape', zh: '结构' },
+  'Add.ReturnName': { en: 'Variable', zh: '变量名' },
 };
 
 const chromeKeys = [

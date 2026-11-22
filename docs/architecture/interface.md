@@ -150,6 +150,17 @@ Token 结构、光标、撤销与检查；`editor.valueOpen/State/Command/Confir
 把形状写回字段，页面从不解析或重写公式文本。值字段本身是只读显示加框内「取值」按钮（数字可直接
 输入），这部分也是 C# 快照驱动的。
 
+动作表单走同一条路：`HeadlessActionSession` 包住原生的 `AddActionViewModel`，草稿的字段、行表、
+条件、返回值、实参、全局声明、窗口规则与步骤设置都写在这个实例上；`editor.actionPage/Field/Row*/
+Returns/CallArgument/Meta/Global/Window*` 只传命令，`EditorActionSnapshotFactory` 把 `Pages/Rows/
+AdvancedRows/ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 的块与格排版，不按动作名或
+参数名推断。确认时 `BuildStepForSave` 才把草稿变成 `MacroStep` 并插入树；取消只丢掉会话。
+
+桌面拾取由 `IEditorPickerHost` 承接：会话的 `PreparePick` 从字段、动作目录和当前窗口算出请求，
+`EditorPickerHost` 打开恢复的颜色/区域/点位/UIA 覆盖层或现存的 `WindowPickWindow`/`BrowserPicker`，
+`ApplyPick` 把结果写回同一个 `StepParameterViewModel`。窗口规则表单、元素候选、键位和浏览器选择器
+文本都在网页；拾取器打开前仍由 `AppWindows.StepAside` 让开鲸灵窗口。
+
 网页侧的页面状态集中在 `editor-store.ts`：快照、页签、动作目录、选中步骤、折叠、动作库筛选、
 右侧栏宽度、步骤编辑窗/取值窗口状态、录制状态和一次命令的错误；`wg-editor` 及其子组件只渲染并把
 编辑命令交回。右侧是变量中心与宏设置上下双面板；步骤参数在独立编辑窗里；C# 编辑模型与桥仍是唯一
@@ -163,5 +174,5 @@ Token 结构、光标、撤销与检查；`editor.valueOpen/State/Command/Confir
 
 `webui/` 用 npm 构建（Vite + TypeScript + Lit + Fluent UI Web Components），产物是一个内联全部
 脚本与样式的 `index.html`，随程序输出与发布包一起走；开发用 `npm run dev` 起带 mock 宿主的
-热重载服务，程序以 `--webui-dev` 指向它。网页里的拾取器、宏运行浮层不在迁移范围——凡是要与
-桌面交互、透明置顶的窗口永远留在 Avalonia 一侧（见 7.4）。
+热重载服务，程序以 `--webui-dev` 指向它。需要与桌面交互、透明置顶的拾取器与运行浮层永远留在
+Avalonia 一侧（见 7.4），网页只负责按钮、规则表单和结果呈现。

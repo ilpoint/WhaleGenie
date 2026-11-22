@@ -5,6 +5,7 @@ using System.Linq;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Core.Recording;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
@@ -27,28 +28,23 @@ internal sealed class HeadlessEditorSession
     private readonly string _submacroOriginal = string.Empty;
     private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
     private List<GlobalDraftEntry>? _globalDraft;
+    private readonly IDeviceLayer? _devices;
     private HeadlessValueSession? _valueSession;
     private MacroItem? _existing;
-    private ActionDraft? _actionDraft;
+    private HeadlessActionSession? _actionSession;
+    private ActionTarget? _actionTarget;
 
-    private sealed class ActionDraft
-    {
-        public required MacroStep Step { get; init; }
-        public bool IsEditing { get; init; }
-        public string OriginalStepId { get; init; } = string.Empty;
-        public string ParentId { get; init; } = string.Empty;
-        public string ListName { get; init; } = string.Empty;
-        public string TargetStepId { get; init; } = string.Empty;
-        public bool Before { get; init; }
-    }
+    private sealed record ActionTarget(string ParentId, string ListName, string TargetStepId, bool Before);
 
 
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing,
-        HeadlessEditorSession? owner = null, string submacroOriginal = "")
+        HeadlessEditorSession? owner = null, string submacroOriginal = "",
+        IDeviceLayer? devices = null)
     {
         _workspace = workspace;
         _existing = existing;
         _owner = owner;
+        _devices = devices;
         _submacroOriginal = submacroOriginal;
         _model = new MacroEditorViewModel
         {
@@ -74,19 +70,21 @@ internal sealed class HeadlessEditorSession
     }
 
     public static HeadlessEditorSession OpenSubmacro(ProjectWorkspace workspace,
-        HeadlessEditorSession owner, string name)
+        HeadlessEditorSession owner, string name, IDeviceLayer? devices = null)
     {
         var submacro = owner._model.SubMacros.FirstOrDefault(candidate =>
             string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("the macro has no sub-macro named " + name);
-        return new HeadlessEditorSession(workspace, submacro, owner, submacro.Name);
+        return new HeadlessEditorSession(workspace, submacro, owner, submacro.Name,
+            devices ?? owner._devices);
     }
 
-    public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name)
+    public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name,
+        IDeviceLayer? devices = null)
     {
         if (name is not { Length: > 0 })
         {
-            return new HeadlessEditorSession(workspace, null);
+            return new HeadlessEditorSession(workspace, null, devices: devices);
         }
 
         var existing = workspace.Macros.FirstOrDefault(candidate =>
@@ -96,7 +94,7 @@ internal sealed class HeadlessEditorSession
             throw new InvalidOperationException("the project has no macro named " + name);
         }
 
-        return new HeadlessEditorSession(workspace, existing);
+        return new HeadlessEditorSession(workspace, existing, devices: devices);
     }
 
     public string Name => _model.Name;
@@ -447,8 +445,9 @@ internal sealed class HeadlessEditorSession
             entry.Summary,
             entry.IsEnabled,
             entry.Spec is KeySpec key ? key.Binding : string.Empty,
-            entry.Spec is KeySpec pressed ? pressed.Loop.ToString() : string.Empty,
-            entry.Spec is KeySpec once && once.Once,
+            entry.Spec is KeySpec pressed ? pressed.Loop.ToString()
+                : entry.Spec is ColorSpec colourLoop ? colourLoop.Loop.ToString() : string.Empty,
+            WhaleGenie.Models.TriggerKinds.RunsOnce(entry.Spec),
             entry.Spec is TimerSpec timer ? timer.Mode.ToString() : string.Empty,
             entry.Spec is TimerSpec timed ? timed.Time : string.Empty,
             entry.Spec is TimerSpec interval
@@ -479,12 +478,94 @@ internal sealed class HeadlessEditorSession
                 : string.Empty,
             entry.Spec is WindowSpec window ? window.Target.Title : string.Empty,
             entry.Spec is WindowSpec processWindow ? processWindow.Target.Process : string.Empty,
-            entry.Spec is WindowSpec classWindow ? classWindow.Target.ClassName : string.Empty,
+            entry.Spec is WindowSpec classWindow ? classWindow.Target.ClassName
+                : entry.Spec is InterfaceSpec interfaceClass ? interfaceClass.Window.ClassName
+                : string.Empty,
             entry.Spec is WindowSpec howWindow ? howWindow.Target.How.ToString() : string.Empty,
             entry.Spec is WindowSpec changeWindow ? changeWindow.Change.ToString() : string.Empty,
             entry.Spec is InterfaceSpec face ? face.Window.Title : string.Empty,
             entry.Spec is InterfaceSpec faceProcess ? faceProcess.Window.Process : string.Empty,
-            entry.Spec is InterfaceSpec faceHow ? faceHow.Window.How.ToString() : string.Empty))];
+            entry.Spec is InterfaceSpec faceHow ? faceHow.Window.How.ToString() : string.Empty,
+            entry.Spec is WindowSpec caseWindow && caseWindow.Target.CaseSensitive,
+            entry.Spec is WindowSpec trimWindow && trimWindow.Target.Trim,
+            entry.Spec is WindowSpec multiWindow && multiWindow.Target.Multiline,
+            entry.Spec is HotstringSpec ends ? ends.EndChars : string.Empty,
+            entry.Spec is HotstringSpec casing && casing.CaseSensitive,
+            entry.Spec is HotstringSpec inside && inside.InsideWord,
+            entry.Spec is HotstringSpec requiring && requiring.RequireEndChar,
+            entry.Spec is HotstringSpec erasing && erasing.EraseTyped,
+            entry.Spec is HotstringSpec keeping && keeping.KeepEndChar))];
+
+    public EditorRecordingSnapshot Recording => new(
+        _model.PositionCaptureIndex,
+        _model.PositionCaptureOptions,
+        _model.RecordMouseMovement,
+        _model.RecordMouseButtons,
+        _model.RecordKeyboardKeys,
+        _model.RecordGamepadButtons,
+        _model.RecordDelays,
+        (int)(_model.IgnoreDelaysBelowMs ?? 0),
+        _model.RecordIgnoreInjected,
+        _model.DelayScale,
+        _model.DelayScaleDisplay,
+        _model.HasDelayScale);
+
+    public void SetRecordOption(string field, string value)
+    {
+        switch (field)
+        {
+            case "positionCapture":
+                _model.PositionCaptureIndex = int.TryParse(value, out var index) ? index : 0;
+                break;
+            case "mouseMovement":
+                _model.RecordMouseMovement = Flag(value);
+                break;
+            case "mouseButtons":
+                _model.RecordMouseButtons = Flag(value);
+                break;
+            case "keyboardKeys":
+                _model.RecordKeyboardKeys = Flag(value);
+                break;
+            case "gamepadButtons":
+                _model.RecordGamepadButtons = Flag(value);
+                break;
+            case "delays":
+                _model.RecordDelays = Flag(value);
+                break;
+            case "ignoreDelaysBelowMs":
+                _model.IgnoreDelaysBelowMs = decimal.TryParse(value,
+                    System.Globalization.NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out var milliseconds) ? milliseconds : 0;
+                break;
+            case "ignoreInjected":
+                _model.RecordIgnoreInjected = Flag(value);
+                break;
+            default:
+                throw new InvalidOperationException("unknown recording option " + field);
+        }
+
+        _model.IsDirty = true;
+    }
+
+    public void SetDelayScale(double factor) => _model.SetDelayScale(factor);
+
+    public bool RecordIgnoreInjected => _model.RecordIgnoreInjected;
+
+    public bool RecordGamepadButtons => _model.RecordGamepadButtons;
+
+    public RecordingOptions RecordingChoices() => new()
+    {
+        MouseMovement = _model.RecordMouseMovement,
+        MouseButtons = _model.RecordMouseButtons,
+        KeyboardKeys = _model.RecordKeyboardKeys,
+        GamepadButtons = _model.RecordGamepadButtons,
+        Delays = _model.RecordDelays,
+        IgnoreDelaysBelowMs = (int)(_model.IgnoreDelaysBelowMs ?? 0),
+        RelativeMovement = _model.PositionCapture is MousePositionMode.SavePositionDifferences,
+    };
+
+    private static bool Flag(string value)
+        => string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
 
     public IReadOnlyList<EditorVariableSnapshot> Variables
         => [
@@ -824,13 +905,20 @@ internal sealed class HeadlessEditorSession
 
     public void SetTriggerLoop(string triggerId, string loop)
     {
-        var trigger = KeyTrigger(triggerId);
+        var trigger = AnyTrigger(triggerId);
+        if (trigger.Spec is not (KeySpec or ColorSpec))
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " has no loop mode");
+        }
+
         if (!Enum.TryParse<MacroLoop>(loop, ignoreCase: true, out var parsed))
         {
             throw new InvalidOperationException("unknown trigger loop " + loop);
         }
 
+        _model.SelectedTrigger = trigger;
         _model.LoopMode = parsed;
+        _model.CommitTriggerFields();
         _model.IsDirty = true;
     }
 
@@ -849,6 +937,7 @@ internal sealed class HeadlessEditorSession
         {
             "title" => _model.WindowTarget with { Title = value },
             "process" => _model.WindowTarget with { Process = value },
+            "class" => _model.WindowTarget with { ClassName = value },
             "how" => _model.WindowTarget with { How = value },
             _ => throw new InvalidOperationException("unknown interface field " + field),
         };
@@ -1059,10 +1148,54 @@ internal sealed class HeadlessEditorSession
 
     public void SetTriggerOnce(string triggerId, bool once)
     {
-        _ = KeyTrigger(triggerId);
+        var trigger = AnyTrigger(triggerId);
+        _model.SelectedTrigger = trigger;
         _model.TriggerOnce = once;
+        _model.CommitTriggerFields();
         _model.IsDirty = true;
     }
+
+    public void SetTriggerHotstringOption(string triggerId, string field, string value)
+    {
+        var trigger = AnyTrigger(triggerId);
+        if (trigger.Spec is not HotstringSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not a hotstring trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        switch (field)
+        {
+            case "endChars":
+                _model.HotstringEndChars = value;
+                break;
+            case "caseSensitive":
+                _model.HotstringCaseSensitive = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                break;
+            case "insideWord":
+                _model.HotstringInsideWord = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                break;
+            case "requireEnd":
+                _model.HotstringRequireEnd = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                break;
+            case "eraseTyped":
+                _model.HotstringEraseTyped = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                break;
+            case "keepEnd":
+                _model.HotstringKeepEnd = string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+                break;
+            default:
+                throw new InvalidOperationException("unknown hotstring option " + field);
+        }
+
+        _model.CommitTriggerFields();
+        _model.IsDirty = true;
+    }
+
+    private TriggerEntry AnyTrigger(string triggerId)
+        => _model.TriggerEntries.FirstOrDefault(entry =>
+               string.Equals(entry.Id, triggerId, StringComparison.Ordinal))
+           ?? throw new InvalidOperationException("the macro has no trigger " + triggerId);
 
     private TriggerEntry KeyTrigger(string triggerId)
     {
@@ -1082,6 +1215,22 @@ internal sealed class HeadlessEditorSession
 
     public void PatchParameter(string stepId, string name, string value)
     {
+        if (_actionSession is { } action)
+        {
+            var kind = action.Form.Parameters
+                .FirstOrDefault(parameter => parameter.Definition.Name == name)
+                ?.Definition.Kind ?? ActionParameterKind.Text;
+            action.PatchField(name, kind switch
+            {
+                ActionParameterKind.Number => "number",
+                ActionParameterKind.Bool => "bool",
+                ActionParameterKind.Choice or ActionParameterKind.Step => "choice",
+                ActionParameterKind.Key or ActionParameterKind.Keys => "key",
+                _ => "text",
+            }, value);
+            return;
+        }
+
         var step = FindStep(stepId)
             ?? throw new InvalidOperationException("the macro has no step " + stepId);
         WriteParameter(step, name, value);
@@ -1258,15 +1407,38 @@ internal sealed class HeadlessEditorSession
         };
 
     public void AddConditionRow(string stepId, string name, int[]? path = null)
-        => ChangeCondition(stepId, name, root =>
+    {
+        if (_actionSession is { } action)
+        {
+            action.AddConditionRow(name, path ?? []);
+            return;
+        }
+
+        ChangeCondition(stepId, name, root =>
             GroupAt(root, path ?? []).Children.Add(ConditionDraftNode.Row()));
+    }
 
     public void AddConditionGroup(string stepId, string name, int[]? path = null)
-        => ChangeCondition(stepId, name, root =>
+    {
+        if (_actionSession is { } action)
+        {
+            action.AddConditionGroup(name, path ?? []);
+            return;
+        }
+
+        ChangeCondition(stepId, name, root =>
             GroupAt(root, path ?? []).Children.Add(ConditionDraftNode.Group(Join.All)));
+    }
 
     public void RemoveConditionNode(string stepId, string name, int[] path)
-        => ChangeCondition(stepId, name, root =>
+    {
+        if (_actionSession is { } action)
+        {
+            action.RemoveConditionNode(name, path);
+            return;
+        }
+
+        ChangeCondition(stepId, name, root =>
         {
             if (path.Length == 0)
             {
@@ -1281,12 +1453,20 @@ internal sealed class HeadlessEditorSession
 
             parent.Children.RemoveAt(path[^1]);
         });
+    }
 
     public void RemoveConditionRow(string stepId, string name, int index)
         => RemoveConditionNode(stepId, name, [index]);
 
     public void SetConditionRow(string stepId, string name, int[] path, string field, string value)
-        => ChangeCondition(stepId, name, root =>
+    {
+        if (_actionSession is { } action)
+        {
+            action.SetConditionRow(name, path, field, value);
+            return;
+        }
+
+        ChangeCondition(stepId, name, root =>
         {
             if (path.Length == 0)
             {
@@ -1315,16 +1495,25 @@ internal sealed class HeadlessEditorSession
                     throw new InvalidOperationException("unknown condition field " + field);
             }
         });
+    }
 
     public void SetConditionRow(string stepId, string name, int index, string field, string value)
         => SetConditionRow(stepId, name, [index], field, value);
 
     public void SetConditionJoin(string stepId, string name, string value, int[]? path = null)
-        => ChangeCondition(stepId, name, root =>
+    {
+        if (_actionSession is { } action)
+        {
+            action.SetConditionJoin(name, path ?? [], value);
+            return;
+        }
+
+        ChangeCondition(stepId, name, root =>
         {
             var group = GroupAt(root, path ?? []);
             group.Join = Enum.Parse<Join>(value, ignoreCase: true);
         });
+    }
 
     private static ExpressionNode ConditionValue(string value)
     {
@@ -1474,6 +1663,12 @@ internal sealed class HeadlessEditorSession
 
     public void AddParameterRow(string stepId, string name)
     {
+        if (_actionSession is { } action)
+        {
+            action.AddRow(name);
+            return;
+        }
+
         var parameter = FindParameter(stepId, name);
         parameter.Rows.Add(new StepParameterRow());
         _model.IsDirty = true;
@@ -1481,6 +1676,12 @@ internal sealed class HeadlessEditorSession
 
     public void RemoveParameterRow(string stepId, string name, int index)
     {
+        if (_actionSession is { } action)
+        {
+            action.RemoveRow(name, index);
+            return;
+        }
+
         var parameter = FindParameter(stepId, name);
         if (index < 0 || index >= parameter.Rows.Count)
         {
@@ -1493,6 +1694,12 @@ internal sealed class HeadlessEditorSession
 
     public void PatchParameterRow(string stepId, string name, int index, string column, string value)
     {
+        if (_actionSession is { } action)
+        {
+            action.PatchRow(name, index, column, value);
+            return;
+        }
+
         var parameter = FindParameter(stepId, name);
         if (index < 0 || index >= parameter.Rows.Count)
         {
@@ -1565,138 +1772,138 @@ internal sealed class HeadlessEditorSession
         var definition = ActionCatalog.Find(type)
             ?? throw new InvalidOperationException("unknown action " + type);
         CloseValueEditor();
-        var step = NewStep(type);
-        step.Id = StepIds.Next(CollectStepIds());
-        step.Meta = StepMeta.New;
-        _actionDraft = new ActionDraft
-        {
-            Step = step,
-            ParentId = parentId,
-            ListName = listName,
-            TargetStepId = targetStepId,
-            Before = before,
-        };
-        return ActionFormState();
+        _actionTarget = new ActionTarget(parentId, listName, targetStepId, before);
+        PrepareTarget();
+        _actionSession = CreateActionSession(definition, null);
+        return _actionSession.Snapshot();
     }
 
     public EditorActionFormSnapshot OpenStepDraft(string stepId)
     {
-        var found = FindStep(stepId)
+        var found = FindTreeStep(stepId)
             ?? throw new InvalidOperationException("the macro has no step " + stepId);
         CloseValueEditor();
-        _actionDraft = new ActionDraft
-        {
-            Step = MacroStep.FromJson(found.ToJson()),
-            IsEditing = true,
-            OriginalStepId = found.Id,
-        };
-        return ActionFormState();
+        _actionTarget = null;
+        var definition = ActionCatalog.Find(found.Type)
+            ?? throw new InvalidOperationException("unknown action " + found.Type);
+        _actionSession = CreateActionSession(definition, found);
+        return _actionSession.Snapshot();
     }
 
     public EditorActionFormSnapshot ActionFormState()
-        => _actionDraft is { } draft
-            ? ActionFormSnapshot(draft)
-            : new EditorActionFormSnapshot(false, false, false, false, string.Empty, string.Empty,
-                string.Empty, string.Empty, null, [], string.Empty, string.Empty, string.Empty, string.Empty);
+        => _actionSession?.Snapshot() ?? EditorActionSnapshotFactory.Closed();
+
+    public HeadlessActionSession ActionForm
+        => _actionSession ?? throw new InvalidOperationException("no action is being edited");
 
     public EditorSnapshot ConfirmActionDraft()
     {
-        var draft = _actionDraft
+        var session = _actionSession
             ?? throw new InvalidOperationException("no action is being edited");
-        if (!ActionFormSnapshot(draft).CanConfirm)
+        if (!session.Form.CanSave)
         {
             return Snapshot();
         }
 
-        if (draft.IsEditing)
+        var step = session.BuildStepForSave();
+        if (session.IsEditing)
         {
-            var original = FindTreeStep(draft.OriginalStepId)
+            var original = FindTreeStep(session.Original!.Id)
                 ?? throw new InvalidOperationException("the edited step is no longer in the macro");
-            _model.ReplaceStep(original, draft.Step);
-        }
-        else if (draft.TargetStepId is { Length: > 0 } targetId)
-        {
-            var target = Find(targetId)
-                ?? throw new InvalidOperationException("the insertion target is no longer in the macro");
-            _model.PrepareInsertionAt(target.List, target.Index + (draft.Before ? 0 : 1));
-            _model.AddStep(draft.Step);
-        }
-        else if (draft.ParentId is { Length: > 0 } parentId)
-        {
-            var parent = FindStep(parentId)
-                ?? throw new InvalidOperationException("the parent step is no longer in the macro");
-            var list = parent.Parameters.FirstOrDefault(parameter =>
-                    parameter.Kind == ActionParameterKind.Steps
-                    && (draft.ListName is not { Length: > 0 }
-                        || string.Equals(parameter.Name, draft.ListName, StringComparison.Ordinal)))?.Steps
-                ?? throw new InvalidOperationException("the parent has no child list " + draft.ListName);
-            _model.PrepareInsertionAt(list, list.Count);
-            _model.AddStep(draft.Step);
+            _model.ReplaceStep(original, step);
         }
         else
         {
-            _model.AddStep(draft.Step);
+            PrepareTarget();
+            _model.AddStep(step);
         }
 
-        _actionDraft = null;
+        _actionSession = null;
+        _actionTarget = null;
         return Snapshot();
     }
 
     public EditorSnapshot CancelActionDraft()
     {
-        _actionDraft = null;
+        _actionSession = null;
+        _actionTarget = null;
+        _valueSession = null;
         return Snapshot();
     }
 
-    private EditorActionFormSnapshot ActionFormSnapshot(ActionDraft draft)
+    private HeadlessActionSession CreateActionSession(ActionDefinition definition, MacroStep? original)
     {
-        var definition = ActionCatalog.Find(draft.Step.Type);
-        var pageLabels = new[]
+        var actions = ActionCatalog.PlaceableActions;
+        if (actions.All(action => action.Key != definition.Key))
         {
-            ("base", "Add.Page.Base"),
-            ("exec", "Add.Page.Exec"),
-            ("advanced", "Add.Page.Advanced"),
-            ("other", "Add.Page.Other"),
-        };
-        var hasAdvanced = definition?.Parameters.Any(parameter => parameter.Advanced) == true;
-        var pages = pageLabels
-            .Select(page => new EditorActionPageSnapshot(page.Item1, Strings.Get(page.Item2),
-                page.Item1 != "advanced" || hasAdvanced, false))
-            .ToList();
-        var missing = new List<string>();
-        if (definition is not null)
-        {
-            foreach (var field in definition.Parameters.Where(field => field.Required))
-            {
-                var parameter = draft.Step.Parameters.FirstOrDefault(candidate =>
-                    string.Equals(candidate.Name, field.Name, StringComparison.Ordinal));
-                if (parameter is null || IsBlank(parameter))
-                {
-                    missing.Add(field.LocalLabel);
-                }
-            }
+            actions = [.. actions, definition];
         }
 
-        var validation = missing.Count > 0
-            ? Strings.Format("Add.StillNeeded", string.Join("、", missing))
-            : string.Empty;
-        return new EditorActionFormSnapshot(true, draft.IsEditing, missing.Count == 0, false,
-            validation, definition?.Key ?? draft.Step.Type,
-            definition?.LocalName ?? draft.Step.Type,
-            definition?.LocalDescription ?? string.Empty,
-            StepSnapshot(draft.Step, new Dictionary<MacroStep, string>()),
-            pages, draft.Step.ToJson().ToJsonString(), draft.Step.Id,
-            Strings.Get(draft.IsEditing ? "Add.CommitEdit" : "Add.Commit"),
-            Strings.Get("Add.RunUnavailable"));
+        var macros = new List<MacroCallable>(_workspace.Macros.Select(macro => macro.Callable));
+        macros.AddRange(_model.SubMacros.Select(macro => macro.Callable));
+        var above = WindowRuleChoices.NearestAbove(_model.Steps, _actionTarget?.TargetStepId);
+        var form = new AddActionViewModel(actions, _model.CollectVariables(), macros,
+            _model.StepChoices(), original is null ? StepIds.Next(CollectStepIds()) : null,
+            WindowRuleChoices.Of(_model.Steps), above.Length > 0, above,
+            _model.LoopNamesInScope())
+        {
+            Variables = _workspace.Variables,
+            Persisted = _workspace.Persisted,
+            Windows = _devices?.Windows,
+            Ui = _devices?.Ui,
+            Clipboard = _devices?.Clipboard,
+            AssetFolder = _workspace.CurrentPath is { Length: > 0 } current
+                ? MacroPackage.AssetFolderFor(current)
+                : string.Empty,
+            NextStepId = StepIds.Next,
+        };
+
+        if (original is null)
+        {
+            form.SelectAction(definition.Key);
+        }
+        else
+        {
+            form.LoadFrom(original);
+        }
+
+        return new HeadlessActionSession(form, original);
     }
 
-    private static bool IsBlank(StepParameter parameter)
-        => parameter.Kind switch
+    private void PrepareTarget()
+    {
+        if (_actionTarget is not { } target)
         {
-            ActionParameterKind.Steps => false,
-            ActionParameterKind.Returns => false,
-            _ => parameter.Value.Trim().Length == 0,
-        };
+            _model.PrepareInsertionAt(_model.Steps, _model.Steps.Count);
+            return;
+        }
+
+        if (target.TargetStepId is { Length: > 0 } targetId)
+        {
+            if (Find(targetId) is { } found)
+            {
+                _model.PrepareInsertionAt(found.List, found.Index + (target.Before ? 0 : 1));
+                return;
+            }
+
+            throw new InvalidOperationException("the insertion target is no longer in the macro");
+        }
+
+        if (target.ParentId is { Length: > 0 } parentId)
+        {
+            var parent = FindTreeStep(parentId)
+                ?? throw new InvalidOperationException("the parent step is no longer in the macro");
+            var list = parent.Parameters.FirstOrDefault(parameter =>
+                    parameter.Kind == ActionParameterKind.Steps
+                    && (target.ListName is not { Length: > 0 }
+                        || string.Equals(parameter.Name, target.ListName, StringComparison.Ordinal)))?.Steps
+                ?? throw new InvalidOperationException("the parent has no child list " + target.ListName);
+            _model.PrepareInsertionAt(list, list.Count);
+            return;
+        }
+
+        _model.PrepareInsertionAt(_model.Steps, _model.Steps.Count);
+    }
 
     private HashSet<string> CollectStepIds()
     {
@@ -1711,6 +1918,11 @@ internal sealed class HeadlessEditorSession
 
     public EditorValueSnapshot OpenValue(string stepId, string parameterName)
     {
+        if (_actionSession is { } action)
+        {
+            return action.OpenValue(parameterName);
+        }
+
         var step = FindStep(stepId)
             ?? throw new InvalidOperationException("the macro has no step " + stepId);
         var definition = ActionCatalog.Find(step.Type)
@@ -1749,6 +1961,11 @@ internal sealed class HeadlessEditorSession
 
     public EditorValueSnapshot OpenConditionValue(string stepId, string name, int[] path, string field)
     {
+        if (_actionSession is { } action)
+        {
+            return action.OpenConditionValue(name, path, field);
+        }
+
         var parameter = FindParameter(stepId, name);
         var draft = EnsureConditionDraft(parameter);
         var row = ConditionRowAt(draft.Root, path);
@@ -1782,6 +1999,11 @@ internal sealed class HeadlessEditorSession
 
     public EditorValueSnapshot OpenRowValue(string stepId, string name, int rowIndex, string column)
     {
+        if (_actionSession is { } action)
+        {
+            return action.OpenRowValue(name, rowIndex, column);
+        }
+
         var parameter = FindParameter(stepId, name);
         if (rowIndex < 0 || rowIndex >= parameter.Rows.Count)
         {
@@ -1801,15 +2023,22 @@ internal sealed class HeadlessEditorSession
     }
 
     public EditorValueSnapshot ValueState()
-        => _valueSession?.Snapshot()
-            ?? throw new InvalidOperationException("no value field is open");
+        => _actionSession?.ValueState()
+           ?? _valueSession?.Snapshot()
+           ?? throw new InvalidOperationException("no value field is open");
 
     public EditorValueSnapshot ValueCommand(ValueEditorCommand command)
-        => _valueSession?.Execute(command)
-            ?? throw new InvalidOperationException("no value field is open");
+        => _actionSession?.ValueCommand(command)
+           ?? _valueSession?.Execute(command)
+           ?? throw new InvalidOperationException("no value field is open");
 
     public ValueEditorOutcome ConfirmValue()
     {
+        if (_actionSession is { } action)
+        {
+            return action.ConfirmValue();
+        }
+
         var session = _valueSession
             ?? throw new InvalidOperationException("no value field is open");
         var outcome = session.Confirm();
@@ -1823,6 +2052,11 @@ internal sealed class HeadlessEditorSession
 
     public ValueEditorOutcome CancelValue()
     {
+        if (_actionSession is { } action)
+        {
+            return action.CancelValue();
+        }
+
         var session = _valueSession
             ?? throw new InvalidOperationException("no value field is open");
         var outcome = session.Cancel();
@@ -1831,7 +2065,11 @@ internal sealed class HeadlessEditorSession
     }
 
     /// <summary>Switching or closing a document must not leave a picker holding the old field.</summary>
-    public void CloseValueEditor() => _valueSession = null;
+    public void CloseValueEditor()
+    {
+        _valueSession = null;
+        _actionSession?.CloseValueEditor();
+    }
 
     /// <summary>Writes the page in front to a package of its own, the way the native export did.</summary>
     public static IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros()
@@ -2023,6 +2261,7 @@ internal sealed class HeadlessEditorSession
             Notice,
             TriggerProblemSummary,
             ToggleKeyProblem,
+            Recording,
             IsSubMacro);
     }
 
@@ -2261,9 +2500,7 @@ internal sealed class HeadlessEditorSession
         => Find(stepId) is { } found ? found.List[found.Index] : null;
 
     private MacroStep? FindStep(string stepId)
-        => _actionDraft is { } draft && string.Equals(draft.Step.Id, stepId, StringComparison.Ordinal)
-            ? draft.Step
-            : Find(stepId) is { } found ? found.List[found.Index] : null;
+        => Find(stepId) is { } found ? found.List[found.Index] : null;
 
     private (IList<MacroStep> List, int Index)? Find(string stepId)
     {
@@ -2297,11 +2534,6 @@ internal sealed record EditorPublicMacroSnapshot(string Id, int Version, string 
 
 internal sealed record EditorActionPageSnapshot(string Key, string Label, bool Present, bool HasDot);
 
-internal sealed record EditorActionFormSnapshot(bool Open, bool IsEditing, bool CanConfirm, bool CanRun,
-    string ValidationMessage, string ActionKey, string Name, string Description, EditorStepSnapshot? Step,
-    IReadOnlyList<EditorActionPageSnapshot> Pages, string Json, string StepId, string CommitLabel,
-    string RunNote);
-
 internal sealed record EditorSnapshot(string Name, string Description, string Group,
     IReadOnlyList<string> SubMacros, IReadOnlyList<EditorMacroParameterSnapshot> CallableParameters,
     IReadOnlyList<EditorMacroResultSnapshot> CallableResults,
@@ -2316,7 +2548,7 @@ internal sealed record EditorSnapshot(string Name, string Description, string Gr
     IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo,
     bool CanSave, string? NameProblem, string ProblemSummary, string DeclarationProblemSummary,
     string CallImpactSummary, string Notice, string TriggerProblemSummary,
-    string ToggleKeyProblem, bool IsSubMacro);
+    string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro);
 
 internal sealed record EditorGlobalSnapshot(string Name, string Type, string Default, string Description,
     bool Persisted);
@@ -2337,6 +2569,11 @@ internal sealed record EditorValueFunctionSnapshot(string Name, string Signature
 
 internal sealed record EditorTriggerKindSnapshot(string Value, string Label);
 
+internal sealed record EditorRecordingSnapshot(int PositionIndex,
+    IReadOnlyList<string> PositionOptions, bool MouseMovement, bool MouseButtons,
+    bool KeyboardKeys, bool GamepadButtons, bool Delays, int IgnoreDelaysBelowMs,
+    bool IgnoreInjected, double DelayScale, string DelayScaleDisplay, bool HasDelayScale);
+
 internal sealed record EditorVariableSnapshot(string Name, string Type, string Initial, string Description,
     string Source, bool IsDeclared);
 
@@ -2349,7 +2586,10 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
     string ColorMatch, string ColorHex, string ColorTolerance, string ColorX, string ColorY,
     bool FollowCursor, string IdleSeconds, string WindowTitle, string WindowProcess,
     string WindowClass, string WindowHow, string WindowChange, string InterfaceTitle,
-    string InterfaceProcess, string InterfaceHow);
+    string InterfaceProcess, string InterfaceHow, bool WindowCaseSensitive, bool WindowTrim,
+    bool WindowMultiline, string HotstringEndChars, bool HotstringCaseSensitive,
+    bool HotstringInsideWord, bool HotstringRequireEnd, bool HotstringEraseTyped,
+    bool HotstringKeepEnd);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     string Comment, int TimeoutMs, int RetryCount, int RetryDelayMs, string OnError,

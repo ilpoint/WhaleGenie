@@ -64,7 +64,7 @@ public partial class MacroEditorViewModel
     }
 
     /// <summary>Copies the fields of the form into the selected trigger entry.</summary>
-    private void CommitTriggerFields()
+    internal void CommitTriggerFields()
     {
         if (SelectedTrigger is not { } entry)
         {

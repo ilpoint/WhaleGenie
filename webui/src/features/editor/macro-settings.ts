@@ -476,25 +476,6 @@ export class WgMacroSettings extends LitElement {
             </button>
           </div>
         </div>
-        <div class="two">
-          <label class="field">
-            <span>${t('Editor.Loop')}</span>
-            <select .value=${trigger.loop}
-              @change=${(event: Event) => void editor.setTriggerLoop(
-                trigger.id, (event.target as HTMLSelectElement).value)}>
-              <option value="Press">${t('Loop.Press')}</option>
-              <option value="Hold">${t('Loop.Hold')}</option>
-              <option value="Toggle">${t('Loop.Toggle')}</option>
-              <option value="Release">${t('Loop.Release')}</option>
-            </select>
-          </label>
-          <label class="inline">
-            <input type="checkbox" .checked=${trigger.once}
-              @change=${(event: Event) => void editor.setTriggerOnce(
-                trigger.id, (event.target as HTMLInputElement).checked)} />
-            <span>${t('Editor.TriggerOnce')}</span>
-          </label>
-        </div>
       `);
     } else if (trigger.kind === 'Timer') {
       fields.push(html`
@@ -724,6 +705,91 @@ export class WgMacroSettings extends LitElement {
       fields.push(html`<p class="hint">${trigger.summary}</p>`);
     }
 
+    if (trigger.kind === 'Key' || trigger.kind === 'Color') {
+      fields.push(html`
+        <label class="field">
+          <span>${t('Editor.Loop')}</span>
+          <select .value=${trigger.loop}
+            @change=${(event: Event) => void editor.setTriggerLoop(
+              trigger.id, (event.target as HTMLSelectElement).value)}>
+            <option value="Press">${t('Loop.Press')}</option>
+            <option value="Hold">${t('Loop.Hold')}</option>
+            <option value="Toggle">${t('Loop.Toggle')}</option>
+            <option value="Release">${t('Loop.Release')}</option>
+          </select>
+        </label>
+      `);
+    }
+
+    if (['Key', 'Color', 'Timer', 'File', 'Process', 'Window', 'Idle'].includes(trigger.kind)) {
+      fields.push(html`
+        <label class="inline">
+          <input type="checkbox" .checked=${trigger.once}
+            @change=${(event: Event) => void editor.setTriggerOnce(
+              trigger.id, (event.target as HTMLInputElement).checked)} />
+          <span>${t('Editor.TriggerOnce')}</span>
+        </label>
+      `);
+    }
+
+    if (trigger.kind === 'Hotstring') {
+      fields.push(html`
+        <label class="field">
+          <span>${t('Editor.HotstringEndChars')}</span>
+          <input .value=${trigger.hotstringEndChars}
+            @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id, 'endChars',
+              (event.target as HTMLInputElement).value)} />
+        </label>
+        <div class="two">
+          <label class="inline">
+            <input type="checkbox" .checked=${trigger.hotstringCaseSensitive}
+              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+                'caseSensitive', String((event.target as HTMLInputElement).checked))} />
+            <span>${t('Editor.HotstringCase')}</span>
+          </label>
+          <label class="inline">
+            <input type="checkbox" .checked=${trigger.hotstringInsideWord}
+              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+                'insideWord', String((event.target as HTMLInputElement).checked))} />
+            <span>${t('Editor.HotstringInsideWord')}</span>
+          </label>
+        </div>
+        <div class="two">
+          <label class="inline">
+            <input type="checkbox" .checked=${trigger.hotstringRequireEnd}
+              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+                'requireEnd', String((event.target as HTMLInputElement).checked))} />
+            <span>${t('Editor.HotstringRequireEnd')}</span>
+          </label>
+          <label class="inline">
+            <input type="checkbox" .checked=${trigger.hotstringEraseTyped}
+              @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+                'eraseTyped', String((event.target as HTMLInputElement).checked))} />
+            <span>${t('Editor.HotstringErase')}</span>
+          </label>
+        </div>
+        <label class="inline">
+          <input type="checkbox" .checked=${trigger.hotstringKeepEnd}
+            @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id,
+              'keepEnd', String((event.target as HTMLInputElement).checked))} />
+          <span>${t('Editor.HotstringKeepEnd')}</span>
+        </label>
+      `);
+    }
+
+    if (trigger.kind === 'Window' || trigger.kind === 'Interface') {
+      fields.push(html`
+        <label class="field">
+          <span>${t('WindowRule.Class')}</span>
+          <input .value=${trigger.windowClass}
+            @change=${(event: Event) => void (trigger.kind === 'Window'
+              ? editor.setTriggerWindow(trigger.id, 'class', (event.target as HTMLInputElement).value)
+              : editor.setTriggerInterface(trigger.id, 'class',
+                (event.target as HTMLInputElement).value))} />
+        </label>
+      `);
+    }
+
     return html`<div class="trigger-fields">${fields}</div>`;
   }
 
@@ -773,10 +839,65 @@ export class WgMacroSettings extends LitElement {
             </div>
           `}
         <div class="group">
+          <h3>${t('Editor.RecordActions')}</h3>
+          <label class="field">
+            <span>${t('Editor.PositionCapture')}</span>
+            <select .value=${String(snapshot.recording.positionIndex)}
+              @change=${(event: Event) => void editor.setRecordOption('positionCapture',
+                (event.target as HTMLSelectElement).value)}>
+              ${snapshot.recording.positionOptions.map((option, index) => html`
+                <option value=${String(index)}>${option}</option>`)}
+            </select>
+          </label>
+          <div class="two">
+            ${this.recordToggle('mouseMovement', t('Editor.MouseMovement'), snapshot.recording.mouseMovement)}
+            ${this.recordToggle('mouseButtons', t('Editor.MouseButtons'), snapshot.recording.mouseButtons)}
+          </div>
+          <div class="two">
+            ${this.recordToggle('keyboardKeys', t('Editor.KeyboardKeys'), snapshot.recording.keyboardKeys)}
+            ${this.recordToggle('delays', t('Editor.Delays'), snapshot.recording.delays)}
+          </div>
+          <div class="two">
+            ${this.recordToggle('gamepadButtons', t('Editor.GamepadButtons'), snapshot.recording.gamepadButtons)}
+            ${this.recordToggle('ignoreInjected', t('Editor.IgnoreInjected'), snapshot.recording.ignoreInjected)}
+          </div>
+          <label class="field">
+            <span>${t('Editor.IgnoreDelays')}</span>
+            <input type="number" min="0" max="60000" .value=${String(snapshot.recording.ignoreDelaysBelowMs)}
+              @change=${(event: Event) => void editor.setRecordOption('ignoreDelaysBelowMs',
+                (event.target as HTMLInputElement).value)} />
+          </label>
+        </div>
+        <div class="group">
+          <h3>${t('Speed.Title')}</h3>
+          <p class="hint">${t('Speed.Explanation')}</p>
+          <div class="inline">
+            <input type="number" min="0.1" max="10" step="0.1" .value=${String(snapshot.recording.delayScale)}
+              @change=${(event: Event) => void editor.setDelayScale(
+                Number((event.target as HTMLInputElement).value))} />
+            <span class="hint">${snapshot.recording.delayScaleDisplay}</span>
+            ${snapshot.recording.hasDelayScale
+              ? html`<button class="link-button" type="button"
+                  @click=${() => void editor.setDelayScale(1)}>${t('Common.Restore')}</button>`
+              : nothing}
+          </div>
+        </div>
+        <div class="group">
           <h3>${t('Editor.MacroInterface')}</h3>
           ${this.renderDeclarations()}
         </div>
       </div>
+    `;
+  }
+
+  private recordToggle(field: string, label: string, checked: boolean): TemplateResult {
+    return html`
+      <label class="inline">
+        <input type="checkbox" .checked=${checked}
+          @change=${(event: Event) => void editor.setRecordOption(field,
+            String((event.target as HTMLInputElement).checked))} />
+        <span>${label}</span>
+      </label>
     `;
   }
 

@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { EditorParameter } from '../../shared/bridge/protocol.js';
+import type { EditorValueField } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
@@ -17,7 +17,7 @@ export class WgValueField extends LitElement {
   stepId = '';
 
   @property({ attribute: false })
-  parameter!: EditorParameter;
+  parameter!: EditorValueField;
 
   static styles = [editorBase, css`
     :host {

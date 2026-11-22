@@ -7,6 +7,9 @@ namespace WhaleGenie.Tests;
 
 public class ActionEditorTests
 {
+    private static EditorActionFieldSnapshot Field(EditorActionFormSnapshot form, string name)
+        => form.Rows.SelectMany(row => row.Cells).First(field => field.Name == name);
+
     private static HeadlessEditorSession Open(out ProjectWorkspace workspace)
     {
         workspace = new ProjectWorkspace();
@@ -27,8 +30,7 @@ public class ActionEditorTests
         Assert.False(session.IsDirty);
 
         session.PatchParameter(form.StepId, "ms", "750");
-        Assert.Equal("750", session.ActionFormState().Step!.Parameters
-            .Single(parameter => parameter.Name == "ms").Value);
+        Assert.Equal("750", Field(session.ActionFormState(), "ms").Value);
         Assert.Empty(session.Snapshot().Steps);
 
         var after = session.ConfirmActionDraft();
@@ -105,8 +107,7 @@ public class ActionEditorTests
         session.ValueCommand(new ValueEditorCommand("place", Token: "750"));
         session.ConfirmValue();
 
-        Assert.Equal("750", session.ActionFormState().Step!.Parameters
-            .Single(parameter => parameter.Name == "ms").Value);
+        Assert.Equal("750", Field(session.ActionFormState(), "ms").Value);
         Assert.Empty(session.Snapshot().Steps);
     }
 }

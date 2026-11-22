@@ -43,7 +43,7 @@ export function stepFromAction(action: MockAction, id: string): EditorStep {
         value,
         options: entry.options ?? [],
         columns: entry.columns ?? [],
-        rows: [],
+        rows: entry.kind === 'Returns' ? [{ cells: ['found', ''] }] : [],
         condition: entry.kind === 'Condition' ? emptyCondition() : null,
         display: value,
         valueForm,

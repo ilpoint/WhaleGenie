@@ -182,7 +182,7 @@ const ACTIONS: MockAction[] = [
     key: 'control.repeat', name: '重复', category: 'Control', group: 'Branch', description: '',
     parameters: [
       parameter('times', '重复几次', 'Number', { initial: '3' }),
-      parameter('returns', '返回值', 'Rows', {
+      parameter('returns', '返回值', 'Returns', {
         columns: [{ name: 'key', required: true }, { name: 'name', required: true }],
       }),
     ],
@@ -265,7 +265,7 @@ const ACTIONS: MockAction[] = [
   },
   {
     key: 'screen.color', name: '屏幕取色', category: 'Vision', group: 'Colour', description: '',
-    parameters: [parameter('hex', '颜色', 'Color')],
+    parameters: [parameter('hex', '颜色', 'Color', { initial: '#ff0000' })],
   },
   {
     key: 'image.find', name: '找图', category: 'Vision', group: 'FindImage', description: '',

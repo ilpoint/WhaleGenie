@@ -12,6 +12,10 @@ import type {
   EditorValueOutcome,
   EditorValueSnapshot,
   EditorPublicMacro,
+  EditorKeyPad,
+  EditorTrialReply,
+  EditorTrialResult,
+  EditorWindowEntry,
   ProjectState,
 } from '../../shared/bridge/protocol.js';
 import { project } from '../../shared/project/store.js';
@@ -53,6 +57,7 @@ export interface EditorUiState {
   actionForm: EditorActionForm | null;
   actionPage: string;
   actionError: string;
+  trial: EditorTrialResult | null;
 }
 
 export function describeError(error: unknown): string {
@@ -103,6 +108,7 @@ const initial: EditorUiState = {
   actionForm: null,
   actionPage: 'base',
   actionError: '',
+  trial: null,
 };
 
 /**
@@ -583,7 +589,7 @@ class EditorStore {
         ...target,
       });
       this.state.actionForm = form;
-      this.state.actionPage = form.pages.find((page) => page.present)?.key ?? 'base';
+      this.state.actionPage = form.page;
       this.state.actionError = '';
       this.state.stepEditorOpen = false;
       this.notify();
@@ -600,7 +606,7 @@ class EditorStore {
     try {
       const form = await bridge.value.call<EditorActionForm>('editor.actionOpen', { stepId });
       this.state.actionForm = form;
-      this.state.actionPage = 'base';
+      this.state.actionPage = form.page;
       this.state.actionError = '';
       this.state.stepEditorOpen = false;
       this.notify();
@@ -613,9 +619,8 @@ class EditorStore {
     }
   }
 
-  setActionPage(page: string): void {
-    this.state.actionPage = page;
-    this.notify();
+  async setActionPage(page: string): Promise<void> {
+    await this.actionCommand('editor.actionPage', { page });
   }
 
   async confirmAction(): Promise<boolean> {
@@ -663,6 +668,132 @@ class EditorStore {
     this.state.actionError = '';
     this.state.stepEditorOpen = false;
     this.notify();
+  }
+
+  async patchActionField(name: string, field: string, value: string): Promise<boolean> {
+    return this.actionCommand('editor.actionField', { name, field, value });
+  }
+
+  async addActionRow(name: string): Promise<boolean> {
+    return this.actionCommand('editor.actionRowAdd', { name });
+  }
+
+  async removeActionRow(name: string, index: number): Promise<boolean> {
+    return this.actionCommand('editor.actionRowRemove', { name, index });
+  }
+
+  async moveActionRow(name: string, index: number, by: number): Promise<boolean> {
+    return this.actionCommand('editor.actionRowMove', { name, index, by });
+  }
+
+  async patchActionRow(name: string, index: number, column: string, value: string): Promise<boolean> {
+    return this.actionCommand('editor.actionRowCell', { name, index, column, value });
+  }
+
+  async patchActionReturn(key: string, change: { ticked?: boolean; name?: string }): Promise<boolean> {
+    return this.actionCommand('editor.actionReturns', { key, ...change });
+  }
+
+  async fixActionReturnName(key: string): Promise<boolean> {
+    return this.actionCommand('editor.actionReturnsFixName', { key });
+  }
+
+  async patchActionCallArgument(name: string,
+    change: { given?: boolean; value?: string }): Promise<boolean> {
+    return this.actionCommand('editor.actionCallArgument', { name, ...change });
+  }
+
+  async patchActionMeta(field: string, value: string, unit = ''): Promise<boolean> {
+    return this.actionCommand('editor.actionMeta', { field, value, unit });
+  }
+
+  async patchActionGlobal(field: string, value: string): Promise<boolean> {
+    return this.actionCommand('editor.actionGlobal', { field, value });
+  }
+
+  async addActionBranch(): Promise<boolean> {
+    return this.actionCommand('editor.actionBranch', {});
+  }
+
+  async applyActionWindow(name: string, choice: string, value = ''): Promise<boolean> {
+    return this.actionCommand('editor.actionWindow', { name, choice, value });
+  }
+
+  async applyActionWindowRule(name: string, rule: string): Promise<boolean> {
+    return this.actionCommand('editor.actionWindowRule', { name, rule });
+  }
+
+  async runAction(confirmed = false): Promise<EditorTrialReply | null> {
+    try {
+      const reply = await bridge.value.call<EditorTrialReply>('editor.actionRun', { confirmed });
+      if (reply.result) {
+        this.state.trial = reply.result;
+        this.notify();
+      }
+      return reply;
+    } catch (error) {
+      this.state.actionError = describeError(error);
+      this.notify();
+      return null;
+    }
+  }
+
+  closeTrial(): void {
+    this.state.trial = null;
+    this.notify();
+  }
+
+  async keyPad(mode = 'key'): Promise<EditorKeyPad | null> {
+    try {
+      return await bridge.value.call<EditorKeyPad>('editor.actionKeyPad', { mode });
+    } catch (error) {
+      this.fail(error);
+      return null;
+    }
+  }
+
+  async padKey(name: string, key: string, index = -1, mode = 'key'): Promise<boolean> {
+    return this.actionCommand('editor.actionPadKey', { name, key, index, mode });
+  }
+
+  async pickAction(name: string, mode: string, index = -1): Promise<boolean> {
+    return this.actionCommand('editor.actionPick', { name, mode, index });
+  }
+
+  async pickWindowForAction(): Promise<{ chosen: boolean; rule: string; title: string } | null> {
+    try {
+      return await bridge.value.call<{ chosen: boolean; rule: string; title: string }>(
+        'editor.actionWindowPick');
+    } catch (error) {
+      this.fail(error);
+      return null;
+    }
+  }
+
+  async actionWindowList(): Promise<EditorWindowEntry[]> {
+    try {
+      const result = await bridge.value.call<{ entries: EditorWindowEntry[] }>(
+        'editor.actionWindowList');
+      return result.entries ?? [];
+    } catch (error) {
+      this.fail(error);
+      return [];
+    }
+  }
+
+  private async actionCommand(method: string, params: Record<string, unknown>): Promise<boolean> {
+    try {
+      const form = await bridge.value.call<EditorActionForm>(method, params);
+      this.state.actionForm = form.open ? form : null;
+      this.state.actionPage = form.page;
+      this.state.actionError = '';
+      this.notify();
+      return true;
+    } catch (error) {
+      this.state.actionError = describeError(error);
+      this.notify();
+      return false;
+    }
   }
 
   selectStep(id: string, additive = false, range: string[] | null = null): void {
@@ -1129,6 +1260,14 @@ class EditorStore {
     return this.snapshotCommand('editor.sessionConditionJoin', { stepId, name, path, join });
   }
 
+  async setRecordOption(field: string, value: string): Promise<boolean> {
+    return this.snapshotCommand('editor.sessionRecordOption', { field, value });
+  }
+
+  async setDelayScale(factor: number): Promise<boolean> {
+    return this.snapshotCommand('editor.sessionDelayScale', { factor });
+  }
+
   async setMacroSetting(field: string, value: string): Promise<boolean> {
     return this.snapshotCommand('editor.sessionMacroSetting', { field, value });
   }
@@ -1241,6 +1380,10 @@ class EditorStore {
 
   setTriggerHotstring(triggerId: string, value: string): Promise<boolean> {
     return this.trigger('editor.sessionTriggerHotstring', { triggerId, value });
+  }
+
+  setTriggerHotstringOption(triggerId: string, field: string, value: string): Promise<boolean> {
+    return this.trigger('editor.sessionTriggerHotstringOption', { triggerId, field, value });
   }
 
   setTriggerColor(triggerId: string, field: string, value: string): Promise<boolean> {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -11,7 +12,7 @@ namespace WhaleGenie.Editing;
 /// state, so switching tabs never throws away an edit; this is the document-strip half of the
 /// editor the native window used to keep in <c>MacroEditorSession</c>.
 /// </summary>
-internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace)
+internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace, IDeviceLayer? devices = null)
 {
     private const string NewKey = "\u0000new";
 
@@ -38,7 +39,7 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace)
             key = NewKey + ":" + index;
         }
 
-        var session = HeadlessEditorSession.Open(workspace, null);
+        var session = HeadlessEditorSession.Open(workspace, null, devices);
         _sessions[key] = session;
         _order.Add(key);
         _active = key;
@@ -50,7 +51,8 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace)
         var key = name is { Length: > 0 } ? name.Trim() : NewKey;
         if (!_sessions.TryGetValue(key, out var session))
         {
-            session = HeadlessEditorSession.Open(workspace, name is { Length: > 0 } ? key : null);
+            session = HeadlessEditorSession.Open(workspace, name is { Length: > 0 } ? key : null,
+                devices);
             _sessions[key] = session;
             _order.Add(key);
         }
@@ -69,7 +71,7 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace)
         var key = "\0sub:" + parentKey + ":" + name.Trim();
         if (!_sessions.TryGetValue(key, out var session))
         {
-            session = HeadlessEditorSession.OpenSubmacro(workspace, parent, name);
+            session = HeadlessEditorSession.OpenSubmacro(workspace, parent, name, devices);
             _sessions[key] = session;
             _order.Add(key);
         }

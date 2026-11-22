@@ -55,12 +55,20 @@ public class BridgeMethodInventoryTests
         "editor.sessionTriggerBinding", "editor.sessionTriggerLoop", "editor.sessionTriggerOnce",
         "editor.sessionTriggerEnabled", "editor.sessionTriggerTimer", "editor.sessionTriggerFile",
         "editor.sessionTriggerProcess", "editor.sessionTriggerHotstring",
+        "editor.sessionTriggerHotstringOption",
         "editor.sessionTriggerColor", "editor.sessionTriggerIdle", "editor.sessionTriggerWindow",
         "editor.sessionTriggerInterface",
         "editor.sessionGlobalAdd", "editor.sessionGlobalPatch", "editor.sessionGlobalRemove",
         "editor.sessionVariableAdd", "editor.sessionVariablePatch",
         "editor.sessionVariableRemove", "editor.sessionSave", "editor.sessionClose",
         "editor.actionCancel", "editor.actionConfirm", "editor.actionOpen", "editor.actionState",
+        "editor.actionPage", "editor.actionField", "editor.actionRowAdd", "editor.actionRowRemove",
+        "editor.actionRowMove", "editor.actionRowCell", "editor.actionReturns",
+        "editor.actionReturnsFixName", "editor.actionCallArgument", "editor.actionMeta",
+        "editor.actionGlobal", "editor.actionBranch", "editor.actionWindow",
+        "editor.actionWindowRule", "editor.actionWindowList", "editor.actionPick",
+        "editor.actionWindowPick", "editor.actionRun", "editor.actionKeyPad",
+        "editor.actionPadKey", "editor.sessionRecordOption", "editor.sessionDelayScale",
         "editor.sessionActions",
         "editor.valueCancel", "editor.valueCommand", "editor.valueConfirm",
         "editor.valueOpen", "editor.valueState",
@@ -91,7 +99,10 @@ public class BridgeMethodInventoryTests
         using var services = WindowedServices.Build();
         var server = services.GetRequiredService<BridgeServer>();
 
-        Assert.Equal(Expected.Order(StringComparer.Ordinal), server.Methods);
+        var missing = Expected.Except(server.Methods).Order(StringComparer.Ordinal).ToList();
+        var extra = server.Methods.Except(Expected).Order(StringComparer.Ordinal).ToList();
+        Assert.True(missing.Count == 0 && extra.Count == 0,
+            "missing: " + string.Join(", ", missing) + " | extra: " + string.Join(", ", extra));
     }
 
     [Fact]

@@ -144,6 +144,17 @@ public partial class AddActionViewModel
         CloseRequested?.Invoke(BuildStep());
     }
 
+    /// <summary>
+    /// The step as saving it would write it, with the global declaration it carries committed first.
+    /// The headless editor confirms a draft through this rather than through the window's command,
+    /// so both paths create a missing global exactly once and in the same order.
+    /// </summary>
+    internal MacroStep BuildStepForSave()
+    {
+        CommitGlobalVariable();
+        return BuildStep();
+    }
+
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(null);
 

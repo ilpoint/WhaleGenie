@@ -34,15 +34,21 @@ async function completeActionForm(page: Page): Promise<void> {
 
   if (await form.locator('.condition-row').count() === 0
       && await form.locator('.condition-add').count() > 0) {
-    await form.locator('.condition-add fluent-button', { hasText: '添加行' }).click();
+    await form.locator('.condition-add button', { hasText: '添加行' }).click();
     const row = form.locator('.condition-row').last();
     await row.locator('input').nth(0).fill('found');
     await row.locator('input').nth(1).fill('1');
   }
 
-  const parameters = form.locator('.param');
-  for (let index = 0; index < await parameters.count(); index++) {
-    const param = parameters.nth(index);
+  const names = await form.locator('.param').evaluateAll((nodes) => nodes
+    .map((node) => node.getAttribute('data-parameter') ?? '')
+    .filter((name) => name.length > 0));
+  for (const name of names) {
+    const param = form.locator('.param[data-parameter="' + name + '"]');
+    if (await param.count() === 0) {
+      continue;
+    }
+
     const inputs = param.locator('input:not([type="checkbox"]):visible');
     for (let at = 0; at < await inputs.count(); at++) {
       const input = inputs.nth(at);
@@ -50,15 +56,16 @@ async function completeActionForm(page: Page): Promise<void> {
         continue;
       }
 
-      const label = await param.locator('label').first().innerText().catch(() => '');
-      const key = await param.getAttribute('data-parameter') ?? '';
-      const value = key.includes('key') || label.includes('键')
+      const label = await param.locator('.label, label').first()
+        .textContent({ timeout: 1000 }).catch(() => '') ?? '';
+      const value = name.includes('key') || label.includes('键')
         ? 'F8'
-        : key.includes('path') || label.includes('图片') || label.includes('路径')
+        : name.includes('path') || label.includes('图片') || label.includes('路径')
           ? 'C:\\shot.png'
           : await input.getAttribute('type') === 'number' ? '1' : 'found';
       await input.fill(value);
-      await input.press('Tab');
+      await input.evaluate((element) => (element as HTMLInputElement).blur());
+      await page.waitForTimeout(30);
     }
   }
 
@@ -261,7 +268,7 @@ test('数字字段带内嵌取值钮，取值窗口可插入并确认', async ({
   await openEditor(page);
   await addStep(page, '流程控制', '延迟');
   await openStepEditor(page, '延迟');
-  const field = page.locator('wg-action-editor wg-step-inspector .param[data-parameter="ms"] wg-value-field');
+  const field = page.locator('wg-action-editor .param[data-parameter="ms"] wg-value-field');
   await expect(field.locator('.chip')).toHaveText(/取值/);
   await field.locator('.chip').click();
   await expect(page.locator('wg-value-editor .dialog')).toBeVisible();
@@ -282,7 +289,7 @@ test('取值窗口可从变量墙插入名字', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '基础动作', '设置变量');
   await openStepEditor(page, '设置变量');
-  const field = page.locator('wg-action-editor wg-step-inspector .param[data-parameter="value"] wg-value-field');
+  const field = page.locator('wg-action-editor .param[data-parameter="value"] wg-value-field');
   await field.locator('.chip').click();
   await expect(page.locator('wg-value-editor .dialog')).toBeVisible();
   await page.locator('wg-value-editor .panel', { hasText: '变量' })
@@ -299,13 +306,12 @@ test('步骤元数据在独立编辑窗修改', async ({ page }) => {
   await openStepEditor(page, '延迟');
   await page.locator('wg-action-editor .tabs button', { hasText: '执行与容错' }).click();
   const meta = page.locator('wg-action-editor .step-meta');
-  await meta.locator('input').nth(0).fill('retry it');
-  await meta.locator('input').nth(0).press('Tab');
-  await meta.locator('input').nth(1).fill('500');
-  await meta.locator('input').nth(1).press('Tab');
-  await meta.locator('select').selectOption({ label: '继续下一步' });
+  const numbers = meta.locator('input[type="number"]');
+  await numbers.nth(0).fill('500');
+  await numbers.nth(0).press('Tab');
+  await meta.locator('label', { hasText: '继续下一步' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionStepMeta')))
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.actionMeta')))
     .toBe(true);
   await closeStepEditor(page);
 });
@@ -391,7 +397,7 @@ test('条件参数按行编辑', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '等待条件');
   await openStepEditor(page, '等待条件');
-  await page.locator('wg-action-editor .condition-add fluent-button', { hasText: '添加行' }).click();
+  await page.locator('wg-action-editor .condition-add button', { hasText: '添加行' }).click();
   const row = page.locator('wg-action-editor .condition-row').first();
   await row.locator('input').nth(0).fill('$found');
   await row.locator('input').nth(0).press('Tab');
@@ -490,9 +496,21 @@ test('键位字段可捕获按键', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '基础动作', '按键');
   await openStepEditor(page, '按键');
-  await page.locator('wg-action-editor .param[data-parameter="key"] fluent-button', { hasText: '设置组合键' }).click();
+  await page.locator('wg-action-editor .param[data-parameter="key"] button', { hasText: '设置组合键' }).click();
   await page.keyboard.press('F8');
   await expect(page.locator('wg-action-editor .param[data-parameter="key"] input')).toHaveValue('F8');
+  await closeStepEditor(page);
+});
+
+test('颜色字段的拾取按钮向桥发命令', async ({ page }) => {
+  await openEditor(page);
+  await addStep(page, '基础动作', '屏幕取色');
+  await openStepEditor(page, '屏幕取色');
+  await page.locator('wg-action-editor .param[data-parameter="hex"] button',
+    { hasText: '从屏幕上拾取颜色' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.actionPick')))
+    .toBe(true);
   await closeStepEditor(page);
 });
 
@@ -500,7 +518,7 @@ test('图片字段可调用原生选择器', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '基础动作', '找图');
   await openStepEditor(page, '找图');
-  await page.locator('wg-action-editor .param[data-parameter="path"] fluent-button', { hasText: '浏览' }).click();
+  await page.locator('wg-action-editor .param[data-parameter="path"] button', { hasText: '浏览' }).click();
   await expect(page.locator('wg-action-editor .param[data-parameter="path"] input'))
     .toHaveValue('C:\\shot.png');
   await closeStepEditor(page);
@@ -510,9 +528,9 @@ test('条件格的取值钮打开 Token 窗口并写回', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '等待条件');
   await openStepEditor(page, '等待条件');
-  await page.locator('wg-action-editor .condition-add fluent-button', { hasText: '添加行' }).click();
+  await page.locator('wg-action-editor .condition-add button', { hasText: '添加行' }).click();
   const row = page.locator('wg-action-editor .condition-row').first();
-  await row.locator('.value-cell .chip').first().click();
+  await row.locator('.chip').first().click();
   await expect(page.locator('wg-value-editor .dialog')).toBeVisible();
   await page.locator('wg-value-editor .band-head button[title*="清空"]').click();
   await page.locator('wg-value-editor .typed input').fill('found');
@@ -524,35 +542,29 @@ test('条件格的取值钮打开 Token 窗口并写回', async ({ page }) => {
     .toBe(true);
 });
 
-test('行表单元格的取值钮打开 Token 窗口并写回', async ({ page }) => {
+test('返回值表可勾选并命名', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '重复');
   await openStepEditor(page, '重复');
-  const param = page.locator('wg-action-editor .param[data-parameter="returns"]');
-  await param.locator('fluent-button', { hasText: '添加行' }).click();
-  await param.locator('.value-cell .chip').first().click();
-  await expect(page.locator('wg-value-editor .dialog')).toBeVisible();
-  await page.locator('wg-value-editor .typed input').fill('found');
-  await page.locator('wg-value-editor .typed button', { hasText: '插入' }).click();
-  await page.locator('wg-value-editor footer fluent-button', { hasText: '确定' }).click();
-  await expect(param.locator('.row-list .row-line input').nth(0)).toHaveValue('found');
+  const returns = page.locator('wg-action-editor wg-action-returns');
+  await expect(returns.locator('input[type="checkbox"]').first()).toBeChecked();
+  const name = returns.locator('input[type="text"]').first();
+  await name.fill('found');
+  await name.press('Tab');
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.actionReturns')))
+    .toBe(true);
 });
 
-test('行表参数可加行并填单元格', async ({ page }) => {
+test('返回值表的重名提示可换一个名字', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '重复');
   await openStepEditor(page, '重复');
-  const param = page.locator('wg-action-editor .param[data-parameter="returns"]');
-  await param.locator('fluent-button', { hasText: '添加行' }).click();
-  const cells = param.locator('.row-list .row-line input');
-  await cells.nth(0).fill('found');
-  await cells.nth(0).press('Tab');
-  await cells.nth(1).fill('hit');
-  await cells.nth(1).press('Tab');
-  await expect(param.locator('.row-list .row-line')).toHaveCount(2);
-  await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameterRowCell')))
-    .toBe(true);
+  const returns = page.locator('wg-action-editor wg-action-returns');
+  await expect(returns.locator('input[type="checkbox"]').first()).toBeChecked();
+  const name = returns.locator('input[type="text"]').first();
+  await name.fill('found');
+  await name.press('Tab');
   await closeStepEditor(page);
 });
 

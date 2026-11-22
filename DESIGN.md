@@ -326,7 +326,11 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   “专属设置”（输入限制、启停键、形参与返回值）；子宏文档不显示触发入口与输入限制。
 - **动作编辑器**：双击动作卡、拖动作卡到步骤接缝、工具条“添加步骤”或双击步骤行，打开同一表单。
   表单先编辑未入树的草稿步骤，确认后才添加/替换；取消不改树。表单按基础设置、执行与容错、高级设置、
-  其它设置分页，基础页末尾是返回值表；底部是运行（当前禁用）、取消与添加/保存。
+  其它设置分页。基础页按动作目录的块分组，成对字段与四数矩形按 C# 快照的行布局排；末尾是返回值表
+  （留下/结果/结构/变量名）与调用宏的实参。执行与容错页放前后延迟、超时、重试次数/间隔、退避方式、
+  失败四卡与重试计划；其它设置页放步骤 ID、启用开关与 JSON 预览。字段旁的「取值」按钮打开 14.4.2 的
+  取值窗口；颜色、区域、点位、UIA、浏览器页元素、窗口与截图按钮打开原生覆盖层，取消不改草稿。
+  底部是运行、取消与添加/保存；运行按当前写法执行一次并显示取景图与命中框，不可撤销动作先确认。
 
   ![动作编辑器](docs/images/action-editor.png)
 - **动作库**：来源 dock 四个（基础动作/流程控制/子宏/公共宏）；基础动作再有一列 64px 分类 rail；搜索框；
@@ -384,6 +388,10 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 壳加载、导航、标题栏按钮、主题推送 | webui `e2e/shell.spec.ts`（Playwright，mock 模式，系统 Edge） |
 | 编辑器页签、动作库、步骤树与分节、堆叠变量/宏设置、步骤编辑窗、脏关闭、语言与主题刷新 | webui `e2e/editor.spec.ts`（Playwright，mock 模式） |
 | 取值窗口 Token 插入/删除/确认、框内取值按钮、数字字段 | webui `e2e/editor.spec.ts` 与 `ValueEditorTests` |
+| 动作表单分组/行表/返回值/执行与容错/其它设置、取消不改树 | `HeadlessActionSessionTests`、`ActionEditorTests` 与 webui `e2e/editor.spec.ts` |
+| 动作字段拾取器的请求/写回与取消不变性 | `EditorActionBridgeTests`、`PickerHostTests` 与手动清单 |
+| 触发入口热字串选项、once/loop 与录制选项 | `EditorTriggerTests`、`EditorRecordingTests` 与 webui e2e |
+| 试运行与取景结果 | `HeadlessActionSessionTests` 与手动清单（不可撤销确认、Esc、焦点恢复） |
 | 页签右端导出当前文档 | webui `e2e/editor.spec.ts` 与 `ValueEditorTests.Export_writes_a_package_of_its_own` |
 | 步骤多选/右键/复制粘贴/分组/提取/拖放与公共宏 | webui `e2e/editor.spec.ts` 与 `StepEditingTests` |
 | C# 编辑器快照：分节/摘要/问题/动作分组/变量组/多文档页签 | `EditorGateTests` |

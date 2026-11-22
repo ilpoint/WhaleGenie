@@ -70,9 +70,11 @@ internal static class WindowedServices
             server.Register(new ProjectBridge(sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
                 () => sp.GetService<WebShellWindow>(), dialogs));
+            var devices = sp.GetRequiredService<TriggerRuntime>().Devices;
             server.Register(new EditorSessionBridge(
-                sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>().Devices));
+                sp.GetRequiredService<ProjectWorkspace>(), devices,
+                new EditorPickerHost(() => sp.GetService<WebShellWindow>(), devices),
+                () => sp.GetService<WebShellWindow>()));
             server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>()));
             server.Register(new SettingsBridge(
                 sp.GetRequiredService<MainViewModel>(),

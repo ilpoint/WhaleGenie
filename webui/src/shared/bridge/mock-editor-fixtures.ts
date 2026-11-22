@@ -59,6 +59,15 @@ export function newTrigger(id: string, kind: string): EditorTrigger {
     interfaceTitle: '',
     interfaceProcess: '',
     interfaceHow: 'TitleContains',
+    windowCaseSensitive: false,
+    windowTrim: true,
+    windowMultiline: false,
+    hotstringEndChars: ' -()[]{}:;,.?!',
+    hotstringCaseSensitive: false,
+    hotstringInsideWord: false,
+    hotstringRequireEnd: true,
+    hotstringEraseTyped: true,
+    hotstringKeepEnd: true,
   };
 }
 
@@ -252,6 +261,11 @@ export function createDocumentSnapshot(
     notice: '',
     triggerProblemSummary: '',
     toggleKeyProblem: '',
+    recording: {
+      positionIndex: 0, positionOptions: ['当前', '差值'], mouseMovement: true, mouseButtons: true,
+      keyboardKeys: true, gamepadButtons: true, delays: true, ignoreDelaysBelowMs: 50,
+      ignoreInjected: true, delayScale: 1, delayScaleDisplay: '×1', hasDelayScale: false,
+    },
     isSubMacro: false,
     ...overrides,
   });
