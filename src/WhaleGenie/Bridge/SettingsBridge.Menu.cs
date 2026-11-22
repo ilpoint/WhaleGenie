@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -25,25 +26,21 @@ internal sealed partial class SettingsBridge
         server.Register("settings.menu.rule.moveTo", MoveMenuRuleTo);
     }
 
-    private object MenuState() => new
-    {
-        launcher = _settings.MenuLauncher,
-        display = _settings.MenuLauncherDisplay,
-        status = _settings.MenuLauncherStatus,
-        isMiddle = _settings.MenuLauncherMiddle,
-        isCustom = _settings.MenuLauncherCustom,
-        problem = _settings.MenuRuleProblem,
-        rules = _settings.MenuRules.Select(row => new
-        {
-            key = row.GroupKey,
-            summary = row.Summary,
-            pageCountLabel = row.PageCountLabel,
-            isDefault = row.IsDefault,
-            isBlocked = row.IsBlocked,
-            canAddPage = !row.IsBlocked && row.PageCount < ProjectTriggers.MaxCommonMenuPages,
-            rule = RuleDto(row.Rule),
-        }),
-    };
+    private SettingsMenuState MenuState() => new(
+        _settings.MenuLauncher,
+        _settings.MenuLauncherDisplay,
+        _settings.MenuLauncherStatus,
+        _settings.MenuLauncherMiddle,
+        _settings.MenuLauncherCustom,
+        _settings.MenuRuleProblem,
+        [.. _settings.MenuRules.Select(row => new SettingsMenuRule(
+            row.GroupKey,
+            row.Summary,
+            row.PageCountLabel,
+            row.IsDefault,
+            row.IsBlocked,
+            !row.IsBlocked && row.PageCount < ProjectTriggers.MaxCommonMenuPages,
+            RuleDto(row.Rule)))]);
 
     private object ClearMenuLauncher()
     {

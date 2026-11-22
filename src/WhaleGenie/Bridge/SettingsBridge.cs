@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -48,55 +49,41 @@ internal sealed partial class SettingsBridge : IBridgeHandler
         RegisterWheel(server);
     }
 
-    private object State()
-        => new
-        {
-            loadLastProjectAtStart = _settings.LoadLastProjectAtStart,
-            systemAtStart = _settings.SystemAtStart,
-            enabledFirst = _settings.EnabledFirst,
-            ignoreOwnInput = _settings.IgnoreOwnInput,
-            soundSystem = _settings.SoundSystem,
-            soundMacro = _settings.SoundMacro,
-            preloadOcr = _settings.PreloadOcr,
-            inputRate = _settings.InputRate,
-            frameRateFollow = _settings.FrameRateFollow,
-            frameRate = _settings.FrameRate,
-            frameRateMax = _settings.FastestRate,
-            frameCache = _settings.FrameCache,
-            frameCacheAge = _settings.FrameCacheAge,
-            logCount = _settings.LogCount,
-            language = Strings.Current.Language == Language.Chinese ? "zh-Hans" : "en",
-            systemHotkey = _settings.SystemHotkey,
-            recordStopKey = _settings.RecordStopKey,
-            systemHotkeyProblem = _settings.SystemHotkeyProblem,
-            recordStopProblem = _settings.RecordStopProblem,
-            storage = _settings.StorageRows.Select(row => new
-            {
-                name = row.Name,
-                what = row.What,
-                where = row.Where,
-                folder = row.Folder,
-            }),
-            driverStatus = _settings.DriverStatus,
-            driverReady = _settings.DriverReady,
-            attachDriverAtStart = _settings.AttachDriverAtStart,
-            runAsAdmin = _settings.RunAsAdmin,
-            adminStatus = _settings.AdminStatus,
-            windowWay = _settings.SelectedWindowWay.Way.ToString(),
-            screenWay = _settings.SelectedScreenWay.Way.ToString(),
-            windowWays = _settings.WindowWays.Select(way => new
-            {
-                value = way.Way.ToString(),
-                label = way.ToString(),
-            }),
-            screenWays = _settings.ScreenWays.Select(way => new
-            {
-                value = way.Way.ToString(),
-                label = way.ToString(),
-            }),
-            menu = MenuState(),
-            wheel = WheelState(),
-        };
+    private SettingsState State() => new(
+        _settings.LoadLastProjectAtStart,
+        _settings.SystemAtStart,
+        _settings.EnabledFirst,
+        _settings.IgnoreOwnInput,
+        _settings.SoundSystem,
+        _settings.SoundMacro,
+        _settings.PreloadOcr,
+        _settings.InputRate,
+        _settings.FrameRateFollow,
+        _settings.FrameRate,
+        _settings.FastestRate,
+        _settings.FrameCache,
+        _settings.FrameCacheAge,
+        _settings.LogCount,
+        Strings.Current.Language == Language.Chinese ? "zh-Hans" : "en",
+        _settings.SystemHotkey,
+        _settings.RecordStopKey,
+        _settings.SystemHotkeyProblem,
+        _settings.RecordStopProblem,
+        [.. _settings.StorageRows.Select(row => new SettingsStorage(
+            row.Name, row.What, row.Where, row.Folder))],
+        _settings.DriverStatus,
+        _settings.DriverReady,
+        _settings.AttachDriverAtStart,
+        _settings.RunAsAdmin,
+        _settings.AdminStatus,
+        _settings.SelectedWindowWay.Way.ToString(),
+        _settings.SelectedScreenWay.Way.ToString(),
+        [.. _settings.WindowWays.Select(way => new SettingsChoice(
+            way.Way.ToString(), way.ToString()))],
+        [.. _settings.ScreenWays.Select(way => new SettingsChoice(
+            way.Way.ToString(), way.ToString()))],
+        MenuState(),
+        WheelState());
 
     private Task<object?> OpenFolder(JsonElement parameters)
     {

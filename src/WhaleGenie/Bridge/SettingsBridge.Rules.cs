@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
@@ -17,17 +18,15 @@ namespace WhaleGenie.Bridge;
 // one desktop pick that still needs a native overlay, and the rule shape both editors send back.
 internal sealed partial class SettingsBridge
 {
-    private static object RuleDto(WindowRule rule) => new
-    {
-        title = rule.Title,
-        process = rule.Process,
-        className = rule.ClassName,
-        handle = rule.Handle,
-        how = rule.How,
-        caseSensitive = rule.CaseSensitive,
-        trim = rule.Trim,
-        multiline = rule.Multiline,
-    };
+    private static WindowRuleState RuleDto(WindowRule rule) => new(
+        rule.Title,
+        rule.Process,
+        rule.ClassName,
+        rule.Handle,
+        rule.How,
+        rule.CaseSensitive,
+        rule.Trim,
+        rule.Multiline);
 
     private static WindowRule ReadRule(JsonElement parameters)
     {
@@ -85,7 +84,7 @@ internal sealed partial class SettingsBridge
             : 0;
     }
 
-    private object WindowPickerState()
+    private WindowRulePickerState WindowPickerState()
     {
         IReadOnlyList<WindowEntry> entries;
         try
@@ -98,25 +97,18 @@ internal sealed partial class SettingsBridge
         }
 
         var own = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
-        return new
-        {
-            windows = entries
+        return new WindowRulePickerState(
+            [.. entries
                 .Where(entry => !string.Equals(entry.Process, own, StringComparison.OrdinalIgnoreCase))
-                .Select(entry => new
-                {
-                    handle = entry.Handle,
-                    title = entry.Title,
-                    process = entry.Process,
-                    className = entry.Class,
-                    detail = entry.Detail,
-                    summary = entry.Summary,
-                }),
-            hows = WindowHow.Values.Select((value, index) => new
-            {
-                value,
-                label = Strings.Get($"WindowRule.How.{value}", WindowHow.Labels[index]),
-            }),
-        };
+                .Select(entry => new WindowEntryState(
+                    entry.Handle,
+                    entry.Title,
+                    entry.Process,
+                    entry.Class,
+                    entry.Detail,
+                    entry.Summary))],
+            [.. WindowHow.Values.Select((value, index) => new SettingsChoice(
+                value, Strings.Get($"WindowRule.How.{value}", WindowHow.Labels[index])))]);
     }
 
     private Task<object?> WindowPicker(JsonElement parameters)
@@ -152,16 +144,14 @@ internal sealed partial class SettingsBridge
             // title and handle; an empty process or class just means the rule uses the title.
         }
 
-        return new
-        {
-            handle = window.Handle,
-            title = window.Title,
+        return new WindowEntryState(
+            window.Handle,
+            window.Title,
             process,
             className,
-            detail = $"{window.Size.Width}×{window.Size.Height}",
-            summary = string.Join(" · ", new[] { process, className }
+            $"{window.Size.Width}×{window.Size.Height}",
+            string.Join(" · ", new[] { process, className }
                 .Where(part => part.Length > 0)
-                .Append($"{window.Size.Width}×{window.Size.Height}")),
-        };
+                .Append($"{window.Size.Width}×{window.Size.Height}")));
     }
 }

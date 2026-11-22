@@ -78,10 +78,10 @@ export const demoWheel: SettingsWheelState = {
     { value: 'Mouse 4', label: '鼠标后退键' },
   ],
   thirdChoices: [
-    { value: 0, label: '关闭（两圈）' },
-    { value: 8, label: '8 格' },
-    { value: 16, label: '16 格' },
-    { value: 24, label: '24 格' },
+    { value: '0', label: '关闭（两圈）' },
+    { value: '8', label: '8 格' },
+    { value: '16', label: '16 格' },
+    { value: '24', label: '24 格' },
   ],
   scenes: [
     { key: 'global', summary: '全局', isGlobal: true, rule: { ...demoRule, title: '', process: '', className: '' } },

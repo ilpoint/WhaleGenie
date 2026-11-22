@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -36,87 +37,70 @@ internal sealed partial class SettingsBridge
         server.Register("settings.wheel.pickIcon", _ => PickWheelIcon());
     }
 
-    private object WheelState()
+    private SettingsWheelState WheelState()
     {
         var scene = _settings.EditingWheelScene;
         var global = _settings.WheelGlobal;
         var metrics = WheelGeometry.For(WheelEditorDiameter, _settings.WideOuter,
             _settings.SelectedThirdCapacity.Value);
-        return new
-        {
-            enabled = _settings.WheelEnabled,
-            launcher = _settings.WheelLauncher,
-            launcherStatus = _settings.WheelLauncherStatus,
-            launcherMessage = _settings.WheelLauncherMessage,
-            onlyInPrograms = _settings.OnlyInPrograms,
-            diameter = _settings.WheelDiameter,
-            fontSize = _settings.WheelFontSize,
-            thirdCapacity = _settings.SelectedThirdCapacity.Value,
-            timeoutMs = _settings.WheelTimeoutMs,
-            repeatKey = _settings.WheelRepeatKey,
-            repeatDisplay = _settings.WheelRepeatKey.Length == 0
+        return new SettingsWheelState(
+            _settings.WheelEnabled,
+            _settings.WheelLauncher,
+            _settings.WheelLauncherStatus,
+            _settings.WheelLauncherMessage,
+            _settings.OnlyInPrograms,
+            _settings.WheelDiameter,
+            _settings.WheelFontSize,
+            _settings.SelectedThirdCapacity.Value,
+            _settings.WheelTimeoutMs,
+            _settings.WheelRepeatKey,
+            _settings.WheelRepeatKey.Length == 0
                 ? Strings.Get("Common.None")
                 : _settings.WheelRepeatKey,
-            wideOuter = _settings.WideOuter,
-            hideEmptyOuter = _settings.HideEmptyOuter,
-            hideLabelWithIcon = _settings.HideWheelLabelWithIcon,
-            centerName = _settings.CenterName,
-            clampToScreen = _settings.ClampToScreen,
-            movePointerToCenter = _settings.MovePointerToCenter,
-            showGuide = _settings.ShowGuide,
-            extendedHint = _settings.ExtendedHint,
-            followTheme = _settings.FollowTheme,
-            gloss = _settings.Gloss,
-            hoverBorder = _settings.HoverBorder,
-            popAnimation = _settings.PopAnimation,
-            isSystemOff = _settings.IsSystemOff,
-            problem = _settings.WheelProblem,
-            launcherChoices = _settings.WheelLauncherChoices.Select(choice => new
-            {
-                value = choice.Binding,
-                label = Strings.Get(choice.Key),
-            }),
-            thirdChoices = _settings.ThirdCapacityOptions.Select(choice => new
-            {
-                value = choice.Value,
-                label = Strings.Get(choice.Key),
-            }),
-            scenes = _settings.WheelScenes.Select(row => new
-            {
-                key = row.Key,
-                summary = row.Summary,
-                isGlobal = row.IsGlobal,
-                rule = RuleDto(row.Scene.Window),
-            }),
-            selectedScene = _settings.SelectedWheelScene?.Key ?? WheelScene.GlobalKey,
-            geometry = new
-            {
-                diameter = WheelEditorDiameter,
-                center = metrics.Center,
-                inner = metrics.Inner,
-                outer = metrics.Outer,
-                third = metrics.Third,
-                edge = metrics.Edge,
-                outerCount = metrics.OuterCount,
-                thirdCount = metrics.ThirdCount,
-                hasOuter = metrics.HasOuter,
-                hasThird = metrics.HasThird,
-            },
-            slots = scene is null ? [] : WheelSlots(scene, global, true),
-            preview = WheelSlots(global, global, false),
-            macros = _project.Macros.Select(macro => new
-            {
-                name = macro.Name,
-                enabled = macro.IsEnabled,
-            }),
-        };
+            _settings.WideOuter,
+            _settings.HideEmptyOuter,
+            _settings.HideWheelLabelWithIcon,
+            _settings.CenterName,
+            _settings.ClampToScreen,
+            _settings.MovePointerToCenter,
+            _settings.ShowGuide,
+            _settings.ExtendedHint,
+            _settings.FollowTheme,
+            _settings.Gloss,
+            _settings.HoverBorder,
+            _settings.PopAnimation,
+            _settings.IsSystemOff,
+            _settings.WheelProblem,
+            [.. _settings.WheelLauncherChoices.Select(choice => new SettingsWheelChoice(
+                choice.Binding, Strings.Get(choice.Key)))],
+            [.. _settings.ThirdCapacityOptions.Select(choice => new SettingsWheelChoice(
+                choice.Value.ToString(CultureInfo.InvariantCulture), Strings.Get(choice.Key)))],
+            [.. _settings.WheelScenes.Select(row => new SettingsWheelScene(
+                row.Key, row.Summary, row.IsGlobal, RuleDto(row.Scene.Window)))],
+            _settings.SelectedWheelScene?.Key ?? WheelScene.GlobalKey,
+            new SettingsWheelGeometry(
+                WheelEditorDiameter,
+                metrics.Center,
+                metrics.Inner,
+                metrics.Outer,
+                metrics.Third,
+                metrics.Edge,
+                metrics.OuterCount,
+                metrics.ThirdCount,
+                metrics.HasOuter,
+                metrics.HasThird),
+            scene is null ? Array.Empty<SettingsWheelSlot>() : WheelSlots(scene, global, true),
+            WheelSlots(global, global, false),
+            [.. _project.Macros.Select(macro => new SettingsMacroChoice(
+                macro.Name, macro.IsEnabled))]);
     }
 
-    private object[] WheelSlots(WheelScene scene, WheelScene global, bool inherit)
+    private IReadOnlyList<SettingsWheelSlot> WheelSlots(
+        WheelScene scene, WheelScene global, bool inherit)
     {
         var metrics = WheelGeometry.For(WheelEditorDiameter, _settings.WideOuter,
             _settings.SelectedThirdCapacity.Value);
-        var slots = new List<object>();
+        var slots = new List<SettingsWheelSlot>();
         foreach (var ring in new[]
                  {
                      WheelRing.Inner, WheelRing.Outer, WheelRing.Third, WheelRing.Extended,
@@ -139,34 +123,32 @@ internal sealed partial class SettingsBridge
                     WheelRing.Third => "Wheel.RingThird",
                     _ => "Wheel.RingExtended",
                 });
-                slots.Add(new
-                {
-                    ring = ring.ToString().ToLowerInvariant(),
+                slots.Add(new SettingsWheelSlot(
+                    ring.ToString().ToLowerInvariant(),
                     index,
                     x,
                     y,
-                    position = Strings.Format("Wheel.ActionPosition", ringLabel, index + 1),
-                    macro = effective.Macro,
-                    note = effective.Note,
-                    label = effective.Label,
-                    icon = IconDto(effective.Icon),
+                    Strings.Format("Wheel.ActionPosition", ringLabel, index + 1),
+                    effective.Macro,
+                    effective.Note,
+                    effective.Label,
+                    IconDto(effective.Icon),
                     inherited,
-                    overridden = !own.IsEmpty,
-                    empty = effective.IsEmpty,
-                    tone = ring == WheelRing.Extended ? "extended"
+                    !own.IsEmpty,
+                    effective.IsEmpty,
+                    ring == WheelRing.Extended ? "extended"
                         : inherited ? "global"
                         : !effective.IsEmpty ? (scene.IsGlobal ? "global" : "override")
-                        : "empty",
-                });
+                        : "empty"));
             }
         }
 
-        return [.. slots];
+        return slots;
     }
 
-    private static object? IconDto(MenuIconReference? icon)
+    private static SettingsWheelIcon? IconDto(MenuIconReference? icon)
         => icon is { IsEmpty: false }
-            ? new { kind = icon.Kind.ToString().ToLowerInvariant(), value = icon.Value }
+            ? new SettingsWheelIcon(icon.Kind.ToString().ToLowerInvariant(), icon.Value)
             : null;
 
     private Task<object?> UpdateWheel(JsonElement parameters)
@@ -448,6 +430,6 @@ internal sealed partial class SettingsBridge
         var icon = await MenuIconPickerWindow.ShowAsync(owner);
         return icon is null
             ? null
-            : new { kind = icon.Kind.ToString().ToLowerInvariant(), value = icon.Value };
+            : new SettingsWheelIcon(icon.Kind.ToString().ToLowerInvariant(), icon.Value);
     }
 }
