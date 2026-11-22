@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -159,46 +158,10 @@ public partial class StepParameterViewModel : ViewModelBase
             }
 
             _assetFolder = value;
-            RefreshThumbnail();
             foreach (var picture in Pictures)
             {
                 picture.AssetFolder = value;
             }
-        }
-    }
-
-    /// <summary>The picture this parameter names, shown underneath its field, or null.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasThumbnail))]
-    public partial Bitmap? Thumbnail { get; set; }
-
-    /// <summary>True when there is a picture to show.</summary>
-    public bool HasThumbnail => Thumbnail is not null;
-
-    /// <summary>Re-reads the picture the field names, so the preview always matches the text.</summary>
-    public void RefreshThumbnail()
-    {
-        var previous = Thumbnail;
-        Thumbnail = IsImage ? LoadThumbnail() : null;
-        previous?.Dispose();
-    }
-
-    private Bitmap? LoadThumbnail()
-    {
-        if (ImageAssets.Resolve(Text, _assetFolder) is not { } path)
-        {
-            return null;
-        }
-
-        try
-        {
-            return new Bitmap(path);
-        }
-        catch (Exception)
-        {
-            // A file that turns out not to be a picture is not worth a crash: the field
-            // still shows the path, and the run reports it if the macro is used.
-            return null;
         }
     }
 

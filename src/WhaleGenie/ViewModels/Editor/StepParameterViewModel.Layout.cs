@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -68,15 +67,6 @@ public partial class StepParameterViewModel : ViewModelBase
     /// a script of its own needs.
     /// </summary>
     public double MultilineHeight => IsCode ? 240 : 76;
-
-    /// <summary>
-    /// Whether the box folds long lines. Writing wraps, because a sentence has no wrong place to
-    /// break it; a program does not, because a line broken where the author did not break it reads
-    /// as two statements. A long line is read by scrolling instead.
-    /// </summary>
-    public Avalonia.Media.TextWrapping Wrap => IsCode
-        ? Avalonia.Media.TextWrapping.NoWrap
-        : Avalonia.Media.TextWrapping.Wrap;
 
     public bool IsNumber => Definition.Kind is ActionParameterKind.Number;
 

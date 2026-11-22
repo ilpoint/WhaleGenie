@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -53,11 +52,6 @@ public partial class StepParameterViewModel : ViewModelBase
         {
             UseFormula = false;
             return;
-        }
-
-        if (IsImage)
-        {
-            RefreshThumbnail();
         }
 
         if (IsExpression || IsNumberFormula)
