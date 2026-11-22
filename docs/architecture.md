@@ -77,7 +77,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | 工程 | 主要职责 | 不得承担 |
 | --- | --- | --- |
 | `WhaleGenie` | 窗口、ViewModel、应用生命周期、窗口化组合根、依赖窗口/对话框的桥处理器与 WebView 适配 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp/App |
-| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、系统开关（`SystemState`）、MCP 宿主与设备控制/运行工具、桥路由/推送队列与无 UI 依赖的处理器、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
+| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、系统开关（`SystemState`）、MCP 宿主与设备控制/运行工具、桥路由/推送队列与无 UI 依赖的处理器（应用信息、字符串、MCP、库、窗口按钮）、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
 | `WhaleGenie.Contracts` | 桥的请求/应答/事件记录、方法与端口；只依赖 BCL，页面类型由它生成 | Avalonia、Domain/Core 类型、设备或文件读写 |
 | `WhaleGenie.Editing` | 编辑模型与无头会话（迁移中；键位表、字符面板、`ViewModelBase`、取值选择器、形状树、变量墙与 `HeadlessValueSession` 已迁入）；`net10.0-windows10.0.19041`，引用 Contracts、Domain、Localization 与 Core | Avalonia、窗口、WebView、项目文档读写 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸 | Avalonia、窗口、ViewModel、MCP、设备控制 |
