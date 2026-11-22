@@ -362,12 +362,43 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             line.Level.ToString(),
             line.Text)).ToArray() ?? Array.Empty<RunLine>());
 
-    /// <summary>A BMP data URL: no image library on the bridge thread, and browsers decode it.</summary>
-    private static string ToDataUrl(ImageFrame frame)
+    /// <summary>The longest side a look frame keeps; debugger frames do not need native detail.</summary>
+    private const int LookMaxSide = 320;
+
+    /// <summary>
+    /// A BMP data URL scaled to fit <see cref="LookMaxSide"/>. No image library on the bridge
+    /// thread, and browsers decode BMP; nearest-neighbour is enough for a debugger thumbnail.
+    /// </summary>
+    internal static string ToDataUrl(ImageFrame frame)
     {
-        var width = frame.Width;
-        var height = frame.Height;
+        var sourceWidth = frame.Width;
+        var sourceHeight = frame.Height;
+        var scale = Math.Min(1.0, LookMaxSide / (double)Math.Max(sourceWidth, sourceHeight));
+        var width = Math.Max(1, (int)Math.Round(sourceWidth * scale));
+        var height = Math.Max(1, (int)Math.Round(sourceHeight * scale));
         var pixels = frame.Bgra;
+        if (width != sourceWidth || height != sourceHeight)
+        {
+            var scaled = new byte[width * height * 4];
+            for (var y = 0; y < height; y++)
+            {
+                var sourceY = Math.Min(sourceHeight - 1, y * sourceHeight / height);
+                for (var x = 0; x < width; x++)
+                {
+                    var sourceX = Math.Min(sourceWidth - 1, x * sourceWidth / width);
+                    Buffer.BlockCopy(pixels, (sourceY * sourceWidth + sourceX) * 4,
+                        scaled, (y * width + x) * 4, 4);
+                }
+            }
+
+            pixels = scaled;
+        }
+
+        return EncodeBmp(pixels, width, height);
+    }
+
+    private static string EncodeBmp(byte[] pixels, int width, int height)
+    {
         var stride = width * 4;
         var size = 54 + stride * height;
         var bytes = new byte[size];
