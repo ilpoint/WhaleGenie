@@ -966,7 +966,15 @@ class EditorStore {
       return false;
     }
 
-    return this.openAction(action.key, { parentId, list });
+    const target: { parentId?: string; list?: string } = {};
+    if (parentId !== undefined) {
+      target.parentId = parentId;
+    }
+    if (list !== undefined) {
+      target.list = list;
+    }
+
+    return this.openAction(action.key, target);
   }
 
   async addBranch(parentId: string): Promise<boolean> {

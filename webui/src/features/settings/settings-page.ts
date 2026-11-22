@@ -987,8 +987,8 @@ export class WgSettings extends LitElement {
     const current = this.theme;
     const params: Record<string, unknown> = { mode };
     if (mode === 'custom') {
-      params.baseLight = baseLight ?? current.baseLight;
-      params.accentHex = accentHex ?? current.accentHex ?? current.defaultAccent;
+      params['baseLight'] = baseLight ?? current.baseLight;
+      params['accentHex'] = accentHex ?? current.accentHex ?? current.defaultAccent;
     }
     try {
       this.theme = await bridge.value.call<ThemeState>('theme.set', params);

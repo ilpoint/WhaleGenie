@@ -1,0 +1,151 @@
+{
+  "src/features/editor/action-editor.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/features/editor/action-field.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/editor/editor-page.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/features/editor/editor-palette.ts": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/editor/editor-store.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/features/editor/macro-settings.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 3
+    }
+  },
+  "src/features/editor/step-tree.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/editor/value-editor.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/macros/macros-page.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/features/run/run-page.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/features/settings/settings-menu.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/settings/settings-page.ts": {
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/settings/settings-wheel.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/features/settings/window-rule-dialog.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/shared/bridge/mock-editor-steps.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    }
+  },
+  "src/shared/bridge/mock-editor.ts": {
+    "complexity": {
+      "count": 4
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 4
+    }
+  },
+  "src/shared/bridge/mock-value-editor.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/shared/bridge/mock.ts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/shared/bridge/protocol.ts": {
+    "max-lines": {
+      "count": 1
+    }
+  }
+}

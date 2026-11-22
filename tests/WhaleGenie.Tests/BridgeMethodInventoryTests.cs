@@ -114,17 +114,27 @@ public class BridgeMethodInventoryTests
     public void The_page_calls_only_registered_methods()
     {
         var called = new HashSet<string>(StringComparer.Ordinal);
-        var pattern = new Regex(@"\b(?:client|this|bridge\.value)\.call\(['""]([a-zA-Z.]+)['""]",
+        // The old pattern only saw .call('method'); it missed .call<T>('method') and the method
+        // names handed to the editor's command helpers. Scan call sites instead of every dotted
+        // literal so action-catalogue keys such as window.activate do not look like bridge methods.
+        var callPattern = new Regex(@"\.call(?:\s*<[^>]*>)?\s*\(\s*['""]([a-zA-Z.]+)['""]",
+            RegexOptions.CultureInvariant);
+        var helperPattern = new Regex(
+            @"\.(?:snapshotCommand|actionCommand|declaration|trigger)\(\s*['""]([a-zA-Z.]+)['""]",
             RegexOptions.CultureInvariant);
         foreach (var file in Directory.EnumerateFiles(
             Path.Combine(RepoPaths.Root, "webui", "src"), "*.ts", SearchOption.AllDirectories))
         {
-            foreach (Match match in pattern.Matches(File.ReadAllText(file)))
+            var text = File.ReadAllText(file);
+            foreach (var pattern in new[] { callPattern, helperPattern })
             {
-                var method = match.Groups[1].Value;
-                if (method != "bridge.ready")
+                foreach (Match match in pattern.Matches(text))
                 {
-                    called.Add(method);
+                    var method = match.Groups[1].Value;
+                    if (method != "bridge.ready")
+                    {
+                        called.Add(method);
+                    }
                 }
             }
         }

@@ -736,12 +736,12 @@ export class WgStepTree extends LitElement {
     const before = event.clientY < rect.top + rect.height / 2;
     this.clearDropMarks();
     this.dropTarget = { id, before };
-    (event.currentTarget as HTMLElement).dataset.drop = before ? 'before' : 'after';
+    (event.currentTarget as HTMLElement).dataset['drop'] = before ? 'before' : 'after';
   }
 
   private clearDropMarks(): void {
     for (const row of this.renderRoot.querySelectorAll<HTMLElement>('.row[data-drop]')) {
-      row.dataset.drop = 'none';
+      row.dataset['drop'] = 'none';
     }
   }
 

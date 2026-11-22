@@ -516,7 +516,7 @@ export class MockEditor {
           if (field === 'ignoreDelaysBelowMs') {
             recording[field] = Number(value);
           } else if (field === 'positionCapture') {
-            recording.positionIndex = Number(value);
+            recording['positionIndex'] = Number(value);
           } else {
             recording[field] = value === 'true';
           }
