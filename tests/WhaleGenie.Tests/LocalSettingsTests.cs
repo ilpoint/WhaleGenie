@@ -462,6 +462,10 @@ public class LocalSettingsTests
             LocalSettings.StoreMainWindowSize(0, -1);
             Assert.Equal((620d, 740d), LocalSettings.LoadMainWindowSize());
 
+            Assert.False(LocalSettings.LoadMainWindowMaximized());
+            LocalSettings.StoreMainWindowMaximized(true);
+            Assert.True(LocalSettings.LoadMainWindowMaximized());
+
             File.WriteAllText(path, """{"MainWindowWidth":-4,"MainWindowHeight":0}""");
             Assert.Null(LocalSettings.LoadMainWindowSize());
         });

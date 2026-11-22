@@ -59,7 +59,8 @@ public partial class RegionPickerWindow : Window
         // picker's own overlay out of the picture.
         await AppWindows.SettleAsync();
 
-        return BitmapImages.Capture(screen, region.X, region.Y, region.Width, region.Height, folder);
+        return BitmapImages.Capture(screen, region.X, region.Y, region.Width, region.Height,
+            string.IsNullOrWhiteSpace(folder) ? ImageAssets.DefaultFolder() : folder);
     }
 
     /// <summary>

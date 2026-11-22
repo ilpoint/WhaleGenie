@@ -158,7 +158,7 @@
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 454	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
 1960	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
-37157	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
+37499	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 376	src/WhaleGenie/ViewModels/Actions/ActionPaletteViewModel.cs	keep: 一个界面的状态与命令
@@ -275,4 +275,4 @@
 26695	webui/src/features/editor/step-tree.ts	split: 步骤树渲染、拖放、分节与引导线同组件；下一步按渲染/交互拆分
 3698	docs/architecture/editor-parity.md	keep: 旧功能与网页消费点对账表
 23008	webui/src/features/editor/action-field.ts	keep: 动作字段的单组件，按字段类型分支；拆分会让字段语义分散
-17892	webui/src/features/editor/action-rows.ts	keep: 行表族统一组件，按字段类型分发
+17559	webui/src/features/editor/action-rows.ts	keep: 行表族统一组件，按字段类型分发

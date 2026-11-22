@@ -1922,7 +1922,7 @@ internal sealed class HeadlessEditorSession
             Clipboard = _devices?.Clipboard,
             AssetFolder = _workspace.CurrentPath is { Length: > 0 } current
                 ? MacroPackage.AssetFolderFor(current)
-                : string.Empty,
+                : ImageAssets.DefaultFolder(),
             NextStepId = StepIds.Next,
         };
 

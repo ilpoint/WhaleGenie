@@ -47,6 +47,17 @@ public class HeadlessActionSessionTests
     }
 
     [Fact]
+    public void An_unsaved_action_still_has_a_capture_folder()
+    {
+        var session = Open(out _);
+        session.OpenActionDraft("vision.capture");
+        var request = session.ActionForm.PreparePick("path", -1, "capture");
+
+        Assert.NotNull(request);
+        Assert.False(string.IsNullOrWhiteSpace(request!.AssetFolder));
+    }
+
+    [Fact]
     public void A_result_is_written_only_after_it_is_ticked_and_named()
     {
         var session = Open(out _);

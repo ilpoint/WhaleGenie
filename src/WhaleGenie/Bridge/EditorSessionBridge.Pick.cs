@@ -34,6 +34,10 @@ internal sealed partial class EditorSessionBridge
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
+        catch (Exception error) when (error is not BridgeFailureException)
+        {
+            throw new BridgeFailureException(BridgeErrors.Internal, error.Message);
+        }
     }
 
     private async Task<object?> ActionWindowPick(JsonElement parameters)
