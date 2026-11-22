@@ -158,7 +158,7 @@
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 454	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
 1960	src/WhaleGenie/Themes/Controls.axaml	keep: 全程序共用的样式表，选择器顺序决定层叠；按控件族重排会改变优先级，而按字节连续切块只会切出彼此无关的片段
-27526	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
+37157	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 376	src/WhaleGenie/ViewModels/Actions/ActionPaletteViewModel.cs	keep: 一个界面的状态与命令
@@ -257,11 +257,11 @@
 62604	webui/src/shared/bridge/mock-editor.ts	keep: 命令分派与会话生命周期同属一个假宿主，步骤/数据/动作/夹具/取值已拆到 mock-editor-*.ts
 27933	webui/src/features/editor/value-editor.ts	split: 结构带、材料盘、变量/函数面板与样式在一个组件；下一步按 token band 与 panels 拆
 25993	webui/src/features/editor/step-tree.ts	split: 步骤树、多选、右键菜单、拖放与键盘命令在一个组件；下一步按 tree 渲染与 interactions 拆
-1573	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
+1657	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
 549	src/WhaleGenie/Editing/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
-388	src/WhaleGenie/Editing/EditorActionSnapshot.cs	keep: 动作表单快照记录与工厂是单一职责
+390	src/WhaleGenie/Editing/EditorActionSnapshot.cs	keep: 动作表单快照记录与工厂是单一职责
 231	src/WhaleGenie/Views/Pickers/EditorPickerHost.cs	keep: 拾取请求到覆盖层的单一分发
-2634	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
+2708	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
 101	src/WhaleGenie/Editing/ActionImagePreviews.cs	keep: 图片文件到 data URL 的单一读取与缓存
 41	src/WhaleGenie/Editing/EditorCharacterPad.cs	keep: 热字串字面字符键盘的单一模型
@@ -273,7 +273,7 @@
 232	src/WhaleGenie/Views/Common/ScreenFrameWindow.cs	keep: 元素测试框的单一窗口
 58	src/WhaleGenie/Views/Run/ElementFlash.cs	keep: UIA 元素定位与闪烁
 148	webui/src/features/editor/character-pad.ts	keep: 热字串字符键盘组件
-904	webui/src/features/editor/step-tree.ts	split: 步骤树渲染、拖放、分节与引导线同组件；下一步按渲染/交互拆分
+26695	webui/src/features/editor/step-tree.ts	split: 步骤树渲染、拖放、分节与引导线同组件；下一步按渲染/交互拆分
 3698	docs/architecture/editor-parity.md	keep: 旧功能与网页消费点对账表
 22953	webui/src/features/editor/action-field.ts	keep: 动作字段的单组件，按字段类型分支；拆分会让字段语义分散
 17559	webui/src/features/editor/action-rows.ts	keep: 行表族统一组件，按字段类型分发
