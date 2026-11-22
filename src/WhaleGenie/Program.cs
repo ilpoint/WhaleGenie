@@ -109,6 +109,15 @@ sealed class Program
             return 0;
         }
 
+        // The S0 gate of the Lit overlay plan: one transparent page over the desktop, with no
+        // project, no devices and no bridge, so the machine's own answer can be looked at.
+        if (args.Contains("--overlay-probe", System.StringComparer.Ordinal))
+        {
+            App.OverlayProbe = true;
+            Run(args);
+            return 0;
+        }
+
         // The web shell is the ordinary window; --webui-dev points it at a Vite dev server so page
         // edits hot-reload while the program runs. Debug only: Release loads the packed page.
         foreach (var argument in args)

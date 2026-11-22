@@ -28,6 +28,12 @@ public partial class App : Application
 
     /// <summary>The Vite dev server the web shell loads instead of the packed page, if asked.</summary>
     internal static string? WebUiDev { get; set; }
+
+    /// <summary>
+    /// Whether this launch is the transparent-overlay probe the Lit migration's S0 gate runs. Debug
+    /// only: it exists to be looked at on a real machine and then goes away with the gate.
+    /// </summary>
+    internal static bool OverlayProbe { get; set; }
 #endif
 
     public override void Initialize()
@@ -37,6 +43,17 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+#if DEBUG
+        // The probe answers one question — can a transparent page sit over another program — and
+        // must not touch the machine to answer it: no devices, no project, no recovery snapshot.
+        if (OverlayProbe && ApplicationLifetime is IClassicDesktopStyleApplicationLifetime probeLifetime)
+        {
+            OverlayProbeWindow.Show(probeLifetime);
+            base.OnFrameworkInitializationCompleted();
+            return;
+        }
+#endif
+
         // A window is about to be shown, so the machine is prepared the same way it always was.
         // A headless MCP run prepares itself before it builds Avalonia at all.
         PrepareProject();
