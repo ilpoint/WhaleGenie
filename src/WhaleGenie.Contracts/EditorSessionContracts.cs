@@ -29,7 +29,7 @@ public sealed record EditorSnapshot(
     string CallImpactSummary, string Notice, string TriggerProblemSummary,
     string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro,
     IReadOnlyList<EditorTabSnapshot>? Tabs = null, string? ActiveKey = null,
-    EditorActionFormSnapshot? ActionForm = null);
+    EditorActionFormSnapshot? ActionForm = null, int Revision = 0);
 
 /// <summary>One global declaration in the editor.</summary>
 [BridgeContract]

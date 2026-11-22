@@ -92,6 +92,7 @@ features/<feature>/
   `editor.record`（start/stop/state/option/delayScale）。
 - 编辑命令的返回值是带 `tabs`/`activeKey`/`actionForm` 的完整快照；页面成功后不再追加
   `sessionTabs` 或刷新动作表单，`sessionTabs` 只在没有活动文档时兜底。
+- 快照带单调 `revision`；页面丢弃 revision 不大于当前值的快照，迟到的响应不会覆盖新状态。
   矩阵型命令用一条 `[BridgeRequest]` 记录，可空字段生成
   `?:`，不必为每个 kind 建派生记录。新增编辑器命令时优先扩展现有联合，不再加一条按字段拆的
   `editor.*` 方法。

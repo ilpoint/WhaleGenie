@@ -878,6 +878,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 tabs = _documents.Tabs,
                 activeKey = _documents.ActiveKey,
                 actionForm = active.ActionFormState(),
+                revision = snapshot.Revision,
             };
     }
 

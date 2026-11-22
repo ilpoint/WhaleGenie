@@ -34,6 +34,7 @@ internal sealed class HeadlessEditorSession
     private MacroItem? _existing;
     private HeadlessActionSession? _actionSession;
     private ActionTarget? _actionTarget;
+    private int _revision;
 
     private sealed record ActionTarget(string ParentId, string ListName, string TargetStepId, bool Before);
 
@@ -2331,7 +2332,8 @@ internal sealed class HeadlessEditorSession
             TriggerProblemSummary,
             ToggleKeyProblem,
             Recording,
-            IsSubMacro);
+            IsSubMacro,
+            Revision: ++_revision);
     }
 
     /// <summary>The design-time check grouped by the step it belongs to, both messages when one

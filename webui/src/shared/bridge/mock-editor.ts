@@ -82,6 +82,8 @@ export class MockEditor {
 
   captured = 0;
 
+  snapshotRevision = 0;
+
   private stepSequence = 0;
 
   private triggerSequence = 0;

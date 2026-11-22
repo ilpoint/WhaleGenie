@@ -99,6 +99,11 @@ export class EditorCore {
   }
 
   applySnapshot(snapshot: EditorSnapshot | null): void {
+    if (snapshot && this.state.snapshot
+        && snapshot.revision <= this.state.snapshot.revision) {
+      return;
+    }
+
     applySnapshotToState(this.state, snapshot);
   }
 

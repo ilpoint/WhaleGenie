@@ -7,6 +7,7 @@ import type {
   ProjectState,
 } from '../../../src/shared/bridge/protocol.js';
 import { EditorStore } from '../../../src/features/editor/editor-store.js';
+import { EditorCore } from '../../../src/features/editor/services/editor-core.js';
 import { FakeBridge } from '../../fakes/bridge.js';
 
 const step = (id: string): EditorStep => ({ id, sections: [] } as unknown as EditorStep);
@@ -113,6 +114,14 @@ describe('editor services', () => {
     });
     expect(store.get().valueEditor).not.toBeNull();
     expect(store.get().valueError).toBe('');
+  });
+
+  it('an older snapshot does not overwrite a newer one', () => {
+    const core = new EditorCore(new FakeBridge());
+    core.applySnapshot({ ...snapshot('newer'), revision: 2 } as EditorSnapshot);
+    core.applySnapshot({ ...snapshot('older'), revision: 1 } as EditorSnapshot);
+
+    expect(core.get().snapshot?.name).toBe('newer');
   });
 
   it('selectStep is pure page state and notifies subscribers', () => {

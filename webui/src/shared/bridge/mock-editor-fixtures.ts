@@ -283,6 +283,7 @@ export function createDocumentSnapshot(
     tabs: [],
     activeKey: null,
     actionForm: null,
+    revision: 0,
     ...overrides,
   });
 }

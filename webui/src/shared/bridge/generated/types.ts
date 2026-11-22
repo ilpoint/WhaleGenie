@@ -692,6 +692,7 @@ export interface EditorSnapshot {
   tabs: EditorTabSnapshot[] | null;
   activeKey: string | null;
   actionForm: EditorActionFormSnapshot | null;
+  revision: number;
 }
 
 export interface EditorStepCommand {
