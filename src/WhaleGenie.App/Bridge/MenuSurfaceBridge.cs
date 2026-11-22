@@ -24,7 +24,36 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             Overlay?.Hide();
             return Task.FromResult<object?>(null);
         });
+        server.Register("surface.menu.page.add", parameters =>
+            Task.FromResult<object?>(menu.AddPage(OptionalString(parameters, "pageId"))));
+        server.Register("surface.menu.page.remove", parameters =>
+            Task.FromResult<object?>(menu.RemovePage(RequiredString(parameters, "pageId"))));
+        server.Register("surface.menu.rule.add", _ =>
+            Task.FromResult<object?>(menu.AddRuleForForeground()));
+        server.Register("surface.menu.block", _ =>
+            Task.FromResult<object?>(menu.BlockForeground()));
+        server.Register("surface.menu.move", parameters =>
+            Task.FromResult<object?>(menu.MoveCell(
+                RequiredString(parameters, "entryId"),
+                RequiredString(parameters, "pageId"),
+                RequiredInt(parameters, "row"),
+                RequiredInt(parameters, "column"))));
     }
+
+    private static string RequiredString(System.Text.Json.JsonElement parameters, string name)
+        => parameters.TryGetProperty(name, out var value) && value.GetString() is { Length: > 0 } text
+            ? text
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.BadArgument"));
+
+    private static string? OptionalString(System.Text.Json.JsonElement parameters, string name)
+        => parameters.TryGetProperty(name, out var value) ? value.GetString() : null;
+
+    private static int RequiredInt(System.Text.Json.JsonElement parameters, string name)
+        => parameters.TryGetProperty(name, out var value) && value.TryGetInt32(out var number)
+            ? number
+            : throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.BadArgument"));
 
     private Task<object?> Activate(System.Text.Json.JsonElement parameters)
     {

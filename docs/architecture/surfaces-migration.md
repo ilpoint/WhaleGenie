@@ -150,6 +150,9 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
   实测真实桥与真实项目数据可画出菜单面板，位置跟随鼠标。
 - `surface.menu.close`：页面按 Esc 收起浮层；`surface.menu.activate` 先收起再运行宏。
   `MenuSurfaceBridgeTests` 覆盖这两条。
+- 结构操作已可用：`surface.menu.page.add/remove`、`surface.menu.rule.add`、`surface.menu.block`、
+  `surface.menu.move`；页面在分页点旁提供「＋／×」，实测点「＋」后项目里多出一页（两个分页点）。
+  `MenuSurfaceTests` 覆盖加页/删页与格子移动。
 - 原生菜单仍是默认入口。**尚未接线**：菜单热键仍开原生窗口；浮层还缺置顶钉住、按程序规则选上下文页、
   拖拽落位与右键菜单（编辑/换图标/调试），这些补齐后才切换并删除 `MacroMenuWindow`。
 

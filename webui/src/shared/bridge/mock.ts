@@ -5,6 +5,7 @@ import { chinese } from './mock-strings-zh.js';
 import { handleSettings } from './mock-settings.js';
 import { handleRun } from './mock-run.js';
 import { handleShell } from './mock-shell.js';
+import { handleSurfaceMenu } from './mock-menu.js';
 import type { BridgeTransport } from './transport.js';
 import { MockEditor } from './mock-editor.js';
 import type {
@@ -161,9 +162,10 @@ export class MockTransport implements BridgeTransport {
         result = handleSettings(this, method, params);
       } else if (method.startsWith('run.')) {
         result = handleRun(this, method, params);
+      } else if (method.startsWith('surface.')) {
+        result = handleSurfaceMenu(this, method, params);
       } else if (method.startsWith('app.') || method.startsWith('strings.')
-          || method.startsWith('theme.') || method.startsWith('window.')
-          || method.startsWith('surface.')) {
+          || method.startsWith('theme.') || method.startsWith('window.')) {
         result = handleShell(this, method, params);
       } else {
       switch (method) {

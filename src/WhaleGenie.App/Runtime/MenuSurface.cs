@@ -34,6 +34,133 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
         return new SurfaceMenuSnapshot(Pages(layout.CommonPages), Pages(layout.ContextPages));
     }
 
+    /// <summary>Adds one common page, or one more page under an existing page's rule.</summary>
+    public SurfaceMenuSnapshot AddPage(string? pageId)
+    {
+        var triggers = workspace.Triggers;
+        var page = pageId is { Length: > 0 }
+            ? triggers.MenuPages.FirstOrDefault(candidate => candidate.Id == pageId)
+            : null;
+
+        if (page is null)
+        {
+            if (triggers.CommonMenuPages().Count < ProjectTriggers.MaxCommonMenuPages)
+            {
+                triggers.AddCommonMenuPage();
+                workspace.MarkMenuChanged();
+            }
+        }
+        else if (page.IsDefault)
+        {
+            if (triggers.DefaultContextMenuPages().Count < ProjectTriggers.MaxCommonMenuPages)
+            {
+                triggers.AddDefaultContextPage();
+                workspace.MarkMenuChanged();
+            }
+        }
+        else if (triggers.ContextPagesFor(page.Window).Count < ProjectTriggers.MaxCommonMenuPages)
+        {
+            triggers.AddContextMenuPage(page.Window);
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
+    /// <summary>Removes one page, unless it is the only one its rule has.</summary>
+    public SurfaceMenuSnapshot RemovePage(string pageId)
+    {
+        if (workspace.Triggers.CanRemoveMenuPage(pageId))
+        {
+            workspace.Triggers.RemoveMenuPage(pageId);
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
+    /// <summary>Gives the program in front a menu page of its own.</summary>
+    public SurfaceMenuSnapshot AddRuleForForeground()
+    {
+        if (ForegroundProcess() is { Length: > 0 } process && Foreground() is { } foreground)
+        {
+            workspace.Triggers.EnsureProcessMenuRule(foreground, process, ClassOf(foreground));
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
+    /// <summary>Stops the menu from opening over the program in front.</summary>
+    public SurfaceMenuSnapshot BlockForeground()
+    {
+        if (ForegroundProcess() is { Length: > 0 } process && Foreground() is { } foreground
+            && workspace.Triggers.BlockMenuForProcess(foreground, process, ClassOf(foreground)))
+        {
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
+    /// <summary>Moves one cell's macro to another page and place; the entry keeps its identity.</summary>
+    public SurfaceMenuSnapshot MoveCell(string entryId, string pageId, int row, int column)
+    {
+        var entry = workspace.Triggers.Entries.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, entryId, StringComparison.Ordinal));
+        if (entry is not null
+            && row is >= 0 and < ProjectTriggers.MenuRegionRows
+            && column is >= 0 and < ProjectTriggers.MenuColumns)
+        {
+            entry.MoveMenuCell(pageId, row, column);
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
+    private WindowInfo? Foreground()
+    {
+        try
+        {
+            return windows.Foreground();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string? ForegroundProcess()
+    {
+        if (Foreground() is not { } foreground)
+        {
+            return null;
+        }
+
+        try
+        {
+            var process = windows.ProcessOf(foreground.Handle);
+            return process.Length > 0 ? process : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string ClassOf(WindowInfo window)
+    {
+        try
+        {
+            return windows.ClassOf(window.Handle);
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
     /// <summary>
     /// Runs the macro one cell points at. The entry is looked up by its stable id rather than by the
     /// name the page saw, so a rename between opening the menu and clicking does not run a stranger.

@@ -69,4 +69,34 @@ public class MenuSurfaceTests
         Assert.All(snapshot.Context, page => Assert.True(page.IsDefault));
         Assert.All(snapshot.Context, page => Assert.Empty(page.Cells));
     }
+
+    [Fact]
+    public void A_page_can_be_added_and_taken_away_again()
+    {
+        var project = new ProjectWorkspace();
+        var surface = Surface(project);
+        var before = surface.Snapshot().Common.Count;
+
+        var added = surface.AddPage(null);
+        Assert.Equal(before + 1, added.Common.Count);
+
+        var removed = surface.RemovePage(added.Common[^1].PageId);
+        Assert.Equal(before, removed.Common.Count);
+    }
+
+    [Fact]
+    public void A_cell_moves_to_the_place_it_is_dropped_on()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        var first = project.Triggers.CommonMenuPages()[0];
+        var entry = new TriggerEntry { MacroName = "one", Spec = new MenuSpec(first.Id, 0, 0) };
+        project.Triggers.Entries.Add(entry);
+
+        var moved = Surface(project).MoveCell(entry.Id, first.Id, 2, 3);
+
+        var cell = Assert.Single(moved.Common.SelectMany(page => page.Cells));
+        Assert.Equal(2, cell.Row);
+        Assert.Equal(3, cell.Column);
+    }
 }

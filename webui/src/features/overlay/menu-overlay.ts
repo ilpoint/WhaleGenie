@@ -160,6 +160,22 @@ export class WgOverlayMenu extends LitElement {
       background: var(--colorBrandBackground);
     }
 
+    .pages button.add,
+    .pages button.remove {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: var(--colorNeutralBackground3);
+      color: var(--colorNeutralForeground2);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .pages button.add:hover,
+    .pages button.remove:hover {
+      background: var(--colorNeutralBackground3Hover);
+    }
+
     .section-title {
       margin: 6px 0 4px;
       font-size: 11px;
@@ -245,11 +261,13 @@ export class WgOverlayMenu extends LitElement {
     return html`<div class="grid">${slots}</div>`;
   }
 
-  private renderDots(count: number, active: number, pick: (index: number) => void) {
-    if (count <= 1) {
-      return nothing;
-    }
-
+  private renderDots(
+    count: number,
+    active: number,
+    pick: (index: number) => void,
+    onAdd: () => void,
+    onRemove: () => void,
+  ) {
     return html`
       <div class="pages">
         ${Array.from({ length: count }, (_, index) => html`
@@ -259,8 +277,26 @@ export class WgOverlayMenu extends LitElement {
             @click=${() => pick(index)}
           ></button>
         `)}
+        <button class="add" aria-label=${t('Menu.AddPage')} title=${t('Menu.AddPage')}
+          @click=${onAdd}>＋</button>
+        ${count > 1
+          ? html`<button class="remove" aria-label=${t('Menu.RemovePage')}
+              title=${t('Menu.RemovePage')} @click=${onRemove}>×</button>`
+          : nothing}
       </div>
     `;
+  }
+
+  private async addPage(pageId?: string): Promise<void> {
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.page.add',
+      pageId === undefined ? {} : { pageId });
+  }
+
+  private async removePage(pageId: string): Promise<void> {
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.page.remove',
+      { pageId });
+    this.common = Math.min(this.common, Math.max(0, this.commonPages.length - 1));
+    this.context = Math.min(this.context, Math.max(0, this.contextPages.length - 1));
   }
 
   private renderSearch() {
@@ -316,16 +352,30 @@ export class WgOverlayMenu extends LitElement {
           ? this.renderMatches()
           : html`
               ${commonPage ? this.renderPage(commonPage) : nothing}
-              ${this.renderDots(this.commonPages.length, this.common, (index) => {
-                this.common = index;
-              })}
+              ${this.renderDots(this.commonPages.length, this.common,
+                (index) => {
+                  this.common = index;
+                },
+                () => void this.addPage(commonPage?.pageId),
+                () => {
+                  if (commonPage) {
+                    void this.removePage(commonPage.pageId);
+                  }
+                })}
               ${contextPage
                 ? html`
                     <p class="section-title">${contextPage.ruleSummary}</p>
                     ${this.renderPage(contextPage)}
-                    ${this.renderDots(this.contextPages.length, this.context, (index) => {
-                      this.context = index;
-                    })}
+                    ${this.renderDots(this.contextPages.length, this.context,
+                      (index) => {
+                        this.context = index;
+                      },
+                      () => void this.addPage(contextPage?.pageId),
+                      () => {
+                        if (contextPage) {
+                          void this.removePage(contextPage.pageId);
+                        }
+                      })}
                   `
                 : nothing}
             `}
