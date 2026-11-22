@@ -121,11 +121,6 @@
       "count": 1
     }
   },
-  "src/shared/bridge/mock-editor.ts": {
-    "max-lines": {
-      "count": 1
-    }
-  },
   "src/shared/bridge/mock-settings.ts": {
     "complexity": {
       "count": 1
