@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Avalonia.Threading;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -43,9 +43,11 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// <summary>How many of them are listed: the rest are a line saying how many are left.</summary>
     private const int Shown = 5;
 
-    private DispatcherTimer? _timer;
+    private readonly SynchronizationContext? _context = SynchronizationContext.Current;
 
-    private DispatcherTimer? _follow;
+    private Timer? _timer;
+
+    private Timer? _follow;
 
     /// <summary>The windows to read. Asked for at every read rather than kept, because the dialog
     /// hands them over once and a check may swap them out under it.</summary>
@@ -159,15 +161,9 @@ public partial class WindowPreviewViewModel : ViewModelBase
             return;
         }
 
-        if (_timer is null)
-        {
-            _timer = new DispatcherTimer();
-            _timer.Tick += (_, _) => Read();
-        }
-
-        _timer.Interval = Interval;
-        _timer.Stop();
-        _timer.Start();
+        _timer ??= new Timer(_ => Post(Read), null,
+            Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _timer.Change(Interval, Timeout.InfiniteTimeSpan);
     }
 
     /// <summary>Reads the windows again at once, which is what the button beside the list is for: a
@@ -178,8 +174,8 @@ public partial class WindowPreviewViewModel : ViewModelBase
     /// <summary>Stops watching, for a dialog that has moved on to another action.</summary>
     public void Stop()
     {
-        _timer?.Stop();
-        _follow?.Stop();
+        _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _follow?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         _windows = null;
         _rule = null;
         _shown = false;
@@ -207,7 +203,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
         }
         else if (!shown)
         {
-            _follow?.Stop();
+            _follow?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             Places = [];
         }
     }
@@ -271,7 +267,7 @@ public partial class WindowPreviewViewModel : ViewModelBase
 
     private void Read()
     {
-        _timer?.Stop();
+        _timer?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         Rows.Clear();
         More = string.Empty;
         Note = string.Empty;
@@ -337,10 +333,13 @@ public partial class WindowPreviewViewModel : ViewModelBase
         // frame pointing at where it used to be.
         if (_shown && Places.Count > 0)
         {
-            _follow ??= StartFollowing();
-            _follow.Interval = FollowInterval;
-            _follow.Stop();
-            _follow.Start();
+            _follow ??= new Timer(_ => Post(Follow), null,
+                Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _follow.Change(FollowInterval, FollowInterval);
+        }
+        else
+        {
+            _follow?.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
         }
 
         More = found.Count > Shown
@@ -348,12 +347,17 @@ public partial class WindowPreviewViewModel : ViewModelBase
             : string.Empty;
     }
 
-    /// <summary>The clock that puts the frames back where their windows are.</summary>
-    private DispatcherTimer StartFollowing()
+    /// <summary>Runs a timer callback on the thread the model was built on, when there is one.</summary>
+    private void Post(Action action)
     {
-        var timer = new DispatcherTimer();
-        timer.Tick += (_, _) => Follow();
-        return timer;
+        if (_context is { } context)
+        {
+            context.Post(_ => action(), null);
+        }
+        else
+        {
+            action();
+        }
     }
 
     /// <summary>
