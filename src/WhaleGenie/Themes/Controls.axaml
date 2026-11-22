@@ -140,42 +140,27 @@
       LAYER1 Button.Secondary Button
       LAYER1 TextBox.Field TextControl
       LAYER1 ComboBox.Field ComboBox
-      LAYER1 ComboBox.Field.Cell ComboBox
       LAYER1 AutoCompleteBox.Field TextControl
       STATIC ListBox.Panel
       STATIC Border.Badge
       STATIC Border.Badge.Danger
-      STATIC Border.Badge.Info
       STATIC Border.Badge.Success
       STATIC Border.Badge.Warning
-      STATIC Border.Card
-      STATIC Border.Card.Target
-      STATIC Border.Divider
       STATIC Border.Panel
       STATIC Border.Readout
       STATIC Border.Sunken
-      STATIC Border.Token
-      STATIC SelectableTextBlock.Part
-      STATIC Border.Tag
       STATIC ListBox.List
-      STATIC ListBox.List.Bare
       STATIC ListBox.List.Boxed
       STATIC CheckBox.Field
-      STATIC Border.Row
-      STATIC GridSplitter.Split
-      STATIC Button.Thumb
       STATIC Button.Square
-      STATIC Button.Secondary.Block
       STATIC TextBlock.Mono
       STATIC TextBlock.Body
       STATIC TextBlock.Code
       STATIC TextBox.Code
       STATIC StackPanel.Empty
-      STATIC Ellipse.Dot
       STATIC TextBlock.Caption
       STATIC TextBlock.Hint
       STATIC TextBlock.Problem
-      STATIC TextBlock.Note
       STATIC TextBlock.SectionHeader
       STATIC TextBlock.Title
       STATE Rejected
@@ -234,26 +219,10 @@
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
 
-    <Style Selector="Button.Icon">
-        <Setter Property="Width" Value="34" />
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceControl}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Icon:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
-    </Style>
-    <Style Selector="Button.Icon:pressed">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
-    </Style>
-    <Style Selector="Button.Icon:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
+    
+    
+    
+    
 
     <!--
       磁贴：`.Occupied` 只改底（这一格有人占了），`.Current` 只改描边（这一格是当前选择的）——
@@ -263,38 +232,16 @@
       标题栏上的**图标**钮：固定 30×24、`Pad0`。图标宽度本来就不同（关窗 10、最小化 8），
       靠 `PadChrome` 自适应会让一排按钮参差不齐——图标钮是固定方形，不是文字钮的那一族。
     -->
-    <Style Selector="Button.Chrome.Icon">
-        <Setter Property="Width" Value="30" />
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
+    
     <!-- 大的工具钮：拾取器与运行窗里那种比图标大一圈的按钮。尺寸是一个维度，强度是另一个。 -->
-    <Style Selector="Button.Chrome.Icon.Wide">
-        <Setter Property="Width" Value="42" />
-        <Setter Property="Height" Value="28" />
-    </Style>
+    
 
     <!-- `Quiet` = 更弱的工具钮：前景降一档，悬停不再提亮到 `TextPrimary`。 -->
-    <Style Selector="Button.Chrome.Icon.Quiet">
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-    </Style>
-    <Style Selector="Button.Chrome.Icon.Quiet:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-    </Style>
+    
+    
 
-    <Style Selector="Button.Chrome.Icon:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-    </Style>
-    <Style Selector="Button.Chrome.Icon:pressed">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-    </Style>
+    
+    
 
     <!--
       标题栏右端那颗关闭键，尺寸按 WinUI 的 caption 走（46×32），与左边那一排工具钮不是同一族：
@@ -324,12 +271,8 @@
       标题栏上带状态的钮（目前是置顶）：尺寸、底色、悬停都和系统按钮一致，只有"开着"这一档多一笔强调色，
       图标本身在代码里换（`Pin` ↔ `PinOff`），所以认得出当前是哪一档。
     -->
-    <Style Selector="Button.Caption.pinned views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource AccentText}" />
-    </Style>
-    <Style Selector="Button.Caption.pinned /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-    </Style>
+    
+    
     <Style Selector="Button.Caption:pointerover">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
     </Style>
@@ -388,25 +331,12 @@
       状态点：8 平方的圆，颜色由类给。`Fill` 是 `Shape` 的通道——给它写 `Foreground` 语法合法、
       静默无效（`dev.md` 第 4 条），所以五个档位各写一条 `Fill`。
     -->
-    <Style Selector="Ellipse.Dot">
-        <Setter Property="Width" Value="8" />
-        <Setter Property="Height" Value="8" />
-    </Style>
-    <Style Selector="Ellipse.Dot.Success">
-        <Setter Property="Fill" Value="{DynamicResource Success}" />
-    </Style>
-    <Style Selector="Ellipse.Dot.Warning">
-        <Setter Property="Fill" Value="{DynamicResource Warning}" />
-    </Style>
-    <Style Selector="Ellipse.Dot.Danger">
-        <Setter Property="Fill" Value="{DynamicResource Danger}" />
-    </Style>
-    <Style Selector="Ellipse.Dot.Info">
-        <Setter Property="Fill" Value="{DynamicResource Info}" />
-    </Style>
-    <Style Selector="Ellipse.Dot.Disabled">
-        <Setter Property="Fill" Value="{DynamicResource TextDisabled}" />
-    </Style>
+    
+    
+    
+    
+    
+    
 
     <!--
       输入族。三件输入框的外观四态全部由层 1 的 `TextControl*` / `ComboBox*` / `AutoCompleteList*`
@@ -424,11 +354,7 @@
     </Style>
 
     <!-- 24 这一档必须留：公式行里用 30 会把整行撑高 6px。 -->
-    <Style Selector="TextBox.Field.Cell">
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="{DynamicResource PadCell}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-    </Style>
+    
 
     <Style Selector="ComboBox.Field">
         <Setter Property="Height" Value="30" />
@@ -441,13 +367,7 @@
     </Style>
 
     <!-- 与 `TextBox.Field.Cell` 对称的 24 档：公式行里两种格子并排，差 6px 看得出来。 -->
-    <Style Selector="ComboBox.Field.Cell">
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="{DynamicResource PadCell}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-    </Style>
+    
 
     <!--
       自动补全里面也有一支 `TextBox`，格子该由它来画：外面这层只占 30 的高度，自己不再画边框。
@@ -478,36 +398,13 @@
     
     <!-- 值的读法：一个名字是一块，块里就是它的名字；文字是文字，不带框。
          一块与一行文字之间只留字距，让读的人先看见句子，再看见句子里的名字。 -->
-    <Style Selector="Border.Token">
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="Border.Token.Name">
-        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="5,0" />
-        <Setter Property="Margin" Value="1,0" />
-    </Style>
-    <Style Selector="Border.Token > TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Border.Token.Name > TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
-    </Style>
+    
+    
+    
+    
 
     <!-- 一格值里的一段文字：只读显示，看起来只是字。名字各占一块，中间不需要空框来填。 -->
-    <Style Selector="SelectableTextBlock.Part">
-        <Setter Property="MinWidth" Value="6" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
+    
     
     
     
@@ -544,9 +441,7 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
     </Style>
 
-    <Style Selector="TextBox.Code.ReadOnly">
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
-    </Style>
+    
 
     <!--
       勾选项是"字段族"的成员，不是新的字号档：它与 `TextBox.Field` / `ComboBox.Field` 常常同排、
@@ -610,37 +505,13 @@
       尺寸 32×32 与开关版一致；按下走 `AccentFillPressed`（品牌橙就是它），不用 `AccentFill`
       ——后者是静息的强调底。
     -->
-    <Style Selector="Button.Key">
-        <Setter Property="Width" Value="32" />
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Key:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
-    </Style>
-    <Style Selector="Button.Key:pressed">
-        <Setter Property="Background" Value="{DynamicResource AccentFillPressed}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentFillPressed}" />
-    </Style>
-    <Style Selector="Button.Key:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-    </Style>
+    
+    
+    
+    
 
     <!-- 键帽的小字档：侧边那些长词的键，一格降字号，仍可读。 -->
-    <Style Selector="Button.Key.Small">
-        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
-    </Style>
+    
 
     <!--
       文本族的其余七类。层次靠字号与字重，不靠亮度——`FieldLabel` + `FontWeight=600` 就是替掉原来那套
@@ -662,12 +533,7 @@
     </Style>
 
     <!-- 单行附注：与 `Hint` 同字号同色，只是不折行。用 `ColumnHeader` 顶替会让附注看起来像表头（那是 600 字重）。 -->
-    <Style Selector="TextBlock.Note">
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-        <Setter Property="TextWrapping" Value="NoWrap" />
-    </Style>
+    
 
     <Style Selector="TextBlock.Problem">
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
@@ -745,22 +611,10 @@
       **词表预留，无消费者**。等什么写成可判的：**等出现"可拖动的缩略图/比例手柄"时启用；
       否则它就是 `Ghost` 的重复**（4 条态，与 `Ghost` 同形但没有缩略图语义）。
     -->
-<Style Selector="Button.Thumb">
-        <Setter Property="Padding" Value="{DynamicResource Pad1}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
-<Style Selector="Button.Thumb:pointerover">
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-    </Style>
-<Style Selector="Button.Thumb:pressed">
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-    </Style>
-<Style Selector="Button.Thumb:disabled">
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-    </Style>
+
+
+
+
 
     <Style Selector="Button.Primary">
         <Setter Property="Height" Value="32" />
@@ -800,9 +654,7 @@
       搬到类里之后，尺寸的来源只剩一处。
       **缝保持 6，不改值**：先让"来源"统一，"值该多大"是另一件事，一次只改一件。
     -->
-    <Style Selector="Button.Secondary.Block">
-        <Setter Property="Margin" Value="0,0,6,6" />
-    </Style>
+    
 
     <Style Selector="Button.Secondary">
         <Setter Property="Height" Value="30" />
@@ -886,28 +738,10 @@
       标题栏上的动作钮，比 Ghost 宽一档、能带一个词。`Button*` 在层 1 是实心次按钮的样子，所以
       这一类必须显式把底改回透明，否则标题栏上会出现一排灰块。
     -->
-    <Style Selector="Button.Chrome">
-        <Setter Property="Height" Value="24" />
-        <Setter Property="Padding" Value="{DynamicResource PadChrome}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Chrome:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="Button.Chrome:pressed">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="Button.Chrome:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
+    
+    
+    
+    
 
     <!--
       页签三档。选中态用 `.selected` 类表达而不是伪类：这些是 `Button` 不是 `ToggleButton`，
@@ -915,39 +749,14 @@
 
       下划线与左侧那条竖线的粗细是族的度量（2px / 3px），与高度同一类，按字面写；颜色才是令牌。
     -->
-    <Style Selector="Button.Tab.Root">
-        <Setter Property="MinHeight" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0,0,0,2" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Tab.Root:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="Button.Tab.Root:pressed">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="Button.Tab.Root:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-    <Style Selector="Button.Tab.Root.selected">
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-    </Style>
+    
+    
+    
+    
+    
 
     <!-- 根页签的紧凑档：只改高度与字号，四态沿用 Root。`MinHeight` 而不是 `Height`，因为它要说几行。 -->
-    <Style Selector="Button.Tab.Root.Compact">
-        <Setter Property="MinHeight" Value="28" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-    </Style>
+    
 
     <!--
       设置窗顶部三个分组页签的胶囊档。`Root` 的下划线选中留给主窗与宏设置，这里只做窄化。
@@ -976,33 +785,11 @@
     </Style>
 
     <!-- 侧栏页签：选中时整行铺强调浅底，左侧一条竖线标位置。 -->
-    <Style Selector="Button.Tab.Side">
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource PadControl}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="3,0,0,0" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Tab.Side:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="Button.Tab.Side:pressed">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-    </Style>
-    <Style Selector="Button.Tab.Side:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-    <Style Selector="Button.Tab.Side.selected">
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-    </Style>
+    
+    
+    
+    
+    
 
     <!--
       分类栏那一列方钮。规范注明它"不属 Tab 族"，但在同一个窗口里它和页签是同一个导航面，
@@ -1037,13 +824,7 @@
     </Style>
 
     <!-- 卡片：列表里、面板里那一块内容。底色比它所在的面板亮一档，靠 1px 描边收边。 -->
-    <Style Selector="Border.Card">
-        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
+    
 
     <!--
       薄卡片：壳跟 Card 一样，只多两个状态。`.chosen` 只改描边颜色不改底，因为它和 `.selected`
@@ -1066,22 +847,10 @@
 
       描边 1px 与 `Card` 一致，所以不需要"未选中占位"那 2px：跳位只发生在粗细真的变的时候。
     -->
-    <Style Selector="Border.Card.Selectable">
-        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceCard}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
-    <Style Selector="Border.Card.Selectable:pointerover:not(.selected)">
-        <Setter Property="Background" Value="{DynamicResource SurfaceHover}" />
-    </Style>
-    <Style Selector="Border.Card.Selectable.selected">
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-    </Style>
-    <Style Selector="Border.Card.Selectable.problem">
-        <Setter Property="BorderBrush" Value="{DynamicResource Warning}" />
-    </Style>
+    
+    
+    
+    
 
     <!--
       拖动落点的目标卡：不透明的强调浅底 + 强调描边。不透明是有意的——它会压在别的内容上，
@@ -1091,13 +860,7 @@
       画一道亮边，半透明正是为了让底下的内容看得见（原编辑器 `Border.DropTarget`
       就是这一种）。两者不是矛盾，是两种落点：整卡接管 vs 插一条缝。
     -->
-    <Style Selector="Border.Card.Target">
-        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-        <Setter Property="BorderThickness" Value="2" />
-    </Style>
+    
     
 
     <!--
@@ -1107,14 +870,7 @@
       对 `Border.*` 是实现不了的。徽标的档位色（`XxxSurface` / `Xxx`）由调用点那一层的类给，
       规范没给那些类名，所以这里只有几何：档位由 H18 决定，不由字号规则决定。
     -->
-    <Style Selector="Border.Tag">
-        <Setter Property="Height" Value="18" />
-        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
+    
 
     <Style Selector="Border.Badge">
         <Setter Property="Height" Value="18" />
@@ -1126,21 +882,13 @@
       徽标的四个档位：底与外框由档位色给，字色靠后代选择器——`Border` 没有 `Foreground`，
       给 `Border` 设一条 `Foreground` 是静默无效的（`dev.md` 第 4 条同族）。
     -->
-    <Style Selector="Border.Badge.Info">
-        <Setter Property="Background" Value="{DynamicResource InfoSurface}" />
-    </Style>
-    <Style Selector="Border.Badge.Info TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource Info}" />
-    </Style>
+    
+    
 
     <!-- 强调档：给的是**标识**而不是状态（步骤 ID 这类要在一条长步骤里一眼找到的东西）。
          它借的是界面主色，所以不表示成功、失败或警告中的任何一种。 -->
-    <Style Selector="Border.Badge.Accent">
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-    </Style>
-    <Style Selector="Border.Badge.Accent TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource AccentText}" />
-    </Style>
+    
+    
 
     <Style Selector="Border.Badge.Success">
         <Setter Property="Background" Value="{DynamicResource SuccessSurface}" />
@@ -1164,11 +912,7 @@
     </Style>
 
     <!-- 分隔线：一条 1px 的线，两侧间隙由 `GapDivider` 给（见令牌注释）。 -->
-    <Style Selector="Border.Divider">
-        <Setter Property="Height" Value="1" />
-        <Setter Property="Background" Value="{DynamicResource BorderSubtle}" />
-        <Setter Property="Margin" Value="{DynamicResource GapDivider}" />
-    </Style>
+    
     <!--
       分类 dock：一排按钮把一大片收窄成一组。变量中心的分组与动作库的四个来源都站在这上面，
       所以它只有一个样子——不在窗口里各写一套分类按钮。
@@ -1224,12 +968,8 @@
       样式统一给 `Width=6` 必然错一半——横向条会被压成 6px 宽，可抓的地方缩成中间一小条，
       **而且不报任何错**。宽高属于"使用场景"，不属于"外观"。
     -->
-    <Style Selector="GridSplitter.Split">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-<Style Selector="GridSplitter.Split:pointerover">
-        <Setter Property="Background" Value="{DynamicResource AccentFill}" />
-    </Style>
+    
+
 
     <Style Selector="ListBox.List">
         <Setter Property="Padding" Value="{DynamicResource Pad0}" />
@@ -1287,25 +1027,12 @@
     
 
     <!-- 全透明的一档：行的六个态都不画底，外观交给放进来的子元素。 -->
-    <Style Selector="ListBox.List.Bare ListBoxItem">
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-    </Style>
-    <Style Selector="ListBox.List.Bare ListBoxItem /template/ ContentPresenter">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="ListBox.List.Bare ListBoxItem:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.List.Bare ListBoxItem:pressed /template/ ContentPresenter">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.List.Bare ListBoxItem:selected /template/ ContentPresenter">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.List.Bare ListBoxItem:disabled /template/ ContentPresenter">
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
+    
+    
+    
+    
+    
+    
 
     <!--
       带行距的一档：卡片放进 `List` 里时，行与行之间要留一道缝，而 `ListBox` 没有 `Spacing`
@@ -1358,21 +1085,9 @@
       谁再想加第三个状态，先看这两条占满了没有——**底 1 个（`Picked`）、边 1 个（`DropTarget`），
       只剩"左条归属"没被单独占用**。加之前先定"这一条归谁"，别默认还有地方。
     -->
-    <Style Selector="Border.Row">
-        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-    </Style>
-    <Style Selector="Border.Row:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-    </Style>
-    <Style Selector="Border.Row.Picked">
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-        <Setter Property="BorderThickness" Value="3,1,1,1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentFill}" />
-    </Style>
+    
+    
+    
     
 
     
