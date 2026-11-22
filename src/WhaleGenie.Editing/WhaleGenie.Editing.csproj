@@ -12,8 +12,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WhaleGenie.Contracts\WhaleGenie.Contracts.csproj" />
     <ProjectReference Include="..\WhaleGenie.Domain\WhaleGenie.Domain.csproj" />
+    <ProjectReference Include="..\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
     <ProjectReference Include="..\..\core\src\WhaleGenie.Core\WhaleGenie.Core.csproj" />
   </ItemGroup>
 
