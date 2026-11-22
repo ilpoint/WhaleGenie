@@ -31,15 +31,10 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
     public void Register(BridgeServer server)
     {
-        server.Register("editor.sessionOpen", Open);
+        server.Register("editor.session", SessionAction);
         server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
-        server.Register("editor.sessionNew", _ => Task.FromResult<object?>(NewDocument()));
-        server.Register("editor.sessionSubOpen", OpenSubmacro);
-        server.Register("editor.sessionMacroSetting", SetMacroSetting);
         server.Register("editor.declaration", DeclarationAction);
-        server.Register("editor.sessionActivate", Activate);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
-        server.Register("editor.sessionPatch", Patch);
         server.Register("editor.sessionStep", AddStep);
         server.Register("editor.sessionStepEnabled", SetStepEnabled);
         server.Register("editor.sessionStepMeta", SetStepMeta);
@@ -48,8 +43,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionParameterRowAdd", AddParameterRow);
         server.Register("editor.sessionParameterRowRemove", RemoveParameterRow);
         server.Register("editor.sessionParameterRowCell", PatchParameterRow);
-        server.Register("editor.sessionUndo", _ => Task.FromResult<object?>(Undo()));
-        server.Register("editor.sessionRedo", _ => Task.FromResult<object?>(Redo()));
         server.Register("editor.sessionMove", MoveStep);
         server.Register("editor.sessionRemove", RemoveStep);
         server.Register("editor.sessionStepDuplicate", DuplicateStep);
@@ -71,10 +64,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionRecordState", _ => Task.FromResult<object?>(RecordingState()));
         server.Register("editor.sessionRecordOption", SetRecordOption);
         server.Register("editor.sessionDelayScale", SetDelayScale);
-        server.Register("editor.sessionSave", _ => Task.FromResult<object?>(Save()));
-        server.Register("editor.sessionClose", Close);
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
-        server.Register("editor.sessionPublicMacroAdd", AddPublicMacro);
         server.Register("editor.action", ActionCommand);
         server.Register("editor.actionOpen", ActionOpen);
         server.Register("editor.actionState", _ => Task.FromResult<object?>(Required().ActionFormState()));
@@ -92,55 +82,28 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.hotstringKeyPad", HotstringKeyPad);
         server.Register("editor.value", ValueAction);
         server.Register("editor.valueState", _ => Task.FromResult<object?>(Required().ValueState()));
-        server.Register("editor.sessionExport", Export);
     }
 
-    private Task<object?> Open(JsonElement parameters)
+
+
+    private Task<object?> SessionAction(JsonElement parameters)
     {
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        EditorSessionCommand command;
         try
         {
-            _documents.Active?.CloseValueEditor();
-            _documents.Active?.CancelActionDraft();
-            _documents.Open(name);
-            return Task.FromResult<object?>(Snapshot());
+            command = parameters.Deserialize<EditorSessionCommand>(CommandOptions)
+                ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsMacro"));
         }
-        catch (InvalidOperationException)
-        {
-            throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
-                Strings.Format("Bridge.NoSuchMacro", name ?? string.Empty));
-        }
-    }
-
-    private object? NewDocument()
-    {
-        _documents.Active?.CloseValueEditor();
-        _documents.Active?.CancelActionDraft();
-        _documents.New();
-        return Snapshot();
-    }
-
-    private object Tabs() => new
-    {
-        activeKey = _documents.ActiveKey,
-        tabs = _documents.Tabs,
-    };
-
-    private Task<object?> Activate(JsonElement parameters)
-    {
-        var key = parameters.TryGetProperty("key", out var named) ? named.GetString() : null;
-        if (key is not { Length: > 0 })
+        catch (JsonException)
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsDocument"));
+                Strings.Get("Bridge.EditorNeedsMacro"));
         }
 
         try
         {
-            _documents.Active?.CloseValueEditor();
-            _documents.Active?.CancelActionDraft();
-            _documents.Activate(key);
-            return Task.FromResult<object?>(Snapshot());
+            return Task.FromResult<object?>(ApplySession(command));
         }
         catch (InvalidOperationException error)
         {
@@ -148,15 +111,111 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private Task<object?> Patch(JsonElement parameters)
+    private object? ApplySession(EditorSessionCommand command)
     {
-        var session = Required();
-        session.Patch(
-            parameters.TryGetProperty("name", out var name) ? name.GetString() : null,
-            parameters.TryGetProperty("description", out var description) ? description.GetString() : null,
-            parameters.TryGetProperty("group", out var group) ? group.GetString() : null);
-        return Task.FromResult<object?>(Snapshot());
+        switch (command)
+        {
+            case EditorSessionOpenCommand open:
+                _documents.Active?.CloseValueEditor();
+                _documents.Active?.CancelActionDraft();
+                try
+                {
+                    _documents.Open(open.Name);
+                }
+                catch (InvalidOperationException)
+                {
+                    throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                        Strings.Format("Bridge.NoSuchMacro", open.Name ?? string.Empty));
+                }
+
+                return Snapshot();
+            case EditorSessionNewCommand:
+                _documents.Active?.CloseValueEditor();
+                _documents.Active?.CancelActionDraft();
+                _documents.New();
+                return Snapshot();
+            case EditorSessionSubOpenCommand sub:
+                var subName = SessionText(sub.Name, "Bridge.EditorNeedsMacro");
+                var parentKey = _documents.ActiveKey;
+                if (parentKey is null)
+                {
+                    throw new BridgeFailureException(BridgeErrors.BadArgument,
+                        Strings.Get("Bridge.EditorNeedsMacro"));
+                }
+
+                _documents.Active?.CloseValueEditor();
+                _documents.Active?.CancelActionDraft();
+                _documents.OpenSubmacro(parentKey, subName);
+                return Snapshot();
+            case EditorSessionMacroSettingCommand setting:
+                Required().SetMacroSetting(
+                    SessionText(setting.Field, "Bridge.EditorNeedsField"), setting.Value);
+                return Snapshot();
+            case EditorSessionActivateCommand activate:
+                var activeKey = SessionText(activate.Key, "Bridge.EditorNeedsDocument");
+                _documents.Active?.CloseValueEditor();
+                _documents.Active?.CancelActionDraft();
+                _documents.Activate(activeKey);
+                return Snapshot();
+            case EditorSessionPatchCommand patch:
+                Required().Patch(patch.Name, patch.Description, patch.Group);
+                return Snapshot();
+            case EditorSessionUndoCommand:
+                Required().Undo();
+                return Snapshot();
+            case EditorSessionRedoCommand:
+                Required().Redo();
+                return Snapshot();
+            case EditorSessionSaveCommand:
+                var session = Required();
+                try
+                {
+                    if (!session.Save())
+                    {
+                        throw new BridgeFailureException(BridgeErrors.Internal,
+                            Strings.Get("Bridge.EditorSaveFailed"));
+                    }
+                }
+                catch (InvalidOperationException error)
+                {
+                    throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+                }
+
+                return Snapshot();
+            case EditorSessionCloseCommand close:
+                _documents.Active?.CloseValueEditor();
+                _documents.Active?.CancelActionDraft();
+                if (close.Key is { Length: > 0 } closeKey)
+                {
+                    _documents.Close(closeKey);
+                }
+                else
+                {
+                    _documents.CloseActive();
+                }
+
+                return Snapshot();
+            case EditorSessionPublicMacroAddCommand add:
+                return Required().AddPublicMacro(SessionText(add.Id, "Bridge.EditorNeedsStep"));
+            case EditorSessionExportCommand export:
+                return Required().Export(SessionText(export.Path, "Bridge.EditorNeedsFile"));
+            default:
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Bridge.EditorNeedsMacro"));
+        }
     }
+
+    private static string SessionText(string? value, string key)
+        => value is { Length: > 0 }
+            ? value
+            : throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get(key));
+    private object Tabs() => new
+    {
+        activeKey = _documents.ActiveKey,
+        tabs = _documents.Tabs,
+    };
+
+
 
     private Task<object?> AddStep(JsonElement parameters)
     {
@@ -678,49 +737,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
             : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.EditorNeedsField"));
 
-    private Task<object?> SetMacroSetting(JsonElement parameters)
-    {
-        var field = parameters.TryGetProperty("field", out var named) ? named.GetString() : null;
-        var value = parameters.TryGetProperty("value", out var written) ? written.GetString() : null;
-        if (field is not { Length: > 0 } || value is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsField"));
-        }
 
-        try
-        {
-            Required().SetMacroSetting(field, value);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> OpenSubmacro(JsonElement parameters)
-    {
-        var name = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
-        var parentKey = _documents.ActiveKey;
-        if (name is not { Length: > 0 } || parentKey is null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsMacro"));
-        }
-
-        try
-        {
-            _documents.Active?.CloseValueEditor();
-            _documents.Active?.CancelActionDraft();
-            _documents.OpenSubmacro(parentKey, name);
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
     private Task<object?> SetStepMeta(JsonElement parameters)
     {
@@ -837,17 +854,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         }
     }
 
-    private object? Undo()
-    {
-        Required().Undo();
-        return Snapshot();
-    }
 
-    private object? Redo()
-    {
-        Required().Redo();
-        return Snapshot();
-    }
 
     private Task<object?> TriggerAction(JsonElement parameters)
     {
@@ -1049,48 +1056,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 Strings.Get("Bridge.EditorNeedsVariable"));
 
 
-    private object? Save()
-    {
-        var session = Required();
-        try
-        {
-            if (!session.Save())
-            {
-                throw new BridgeFailureException(BridgeErrors.Internal,
-                    Strings.Get("Bridge.EditorSaveFailed"));
-            }
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
 
-        return Snapshot();
-    }
-
-    private Task<object?> Close(JsonElement parameters)
-    {
-        try
-        {
-            var key = parameters.TryGetProperty("key", out var named) ? named.GetString() : null;
-            _documents.Active?.CloseValueEditor();
-            _documents.Active?.CancelActionDraft();
-            if (key is { Length: > 0 })
-            {
-                _documents.Close(key);
-            }
-            else
-            {
-                _documents.CloseActive();
-            }
-
-            return Task.FromResult<object?>(Snapshot());
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
     private object? Snapshot()
         => _documents.Active?.Snapshot() is { } snapshot
@@ -1254,43 +1220,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
             ? [.. value.EnumerateArray().Select(item => item.GetInt32())]
             : null;
 
-    private Task<object?> Export(JsonElement parameters)
-    {
-        var path = parameters.TryGetProperty("path", out var named) ? named.GetString() : null;
-        if (path is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsFile"));
-        }
 
-        try
-        {
-            return Task.FromResult<object?>(Required().Export(path));
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
-
-    private Task<object?> AddPublicMacro(JsonElement parameters)
-    {
-        var id = parameters.TryGetProperty("id", out var named) ? named.GetString() : null;
-        if (id is not { Length: > 0 })
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Get("Bridge.EditorNeedsStep"));
-        }
-
-        try
-        {
-            return Task.FromResult<object?>(Required().AddPublicMacro(id));
-        }
-        catch (InvalidOperationException error)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-        }
-    }
 
     private static EditorCatalogue Actions()
         => new(

@@ -282,13 +282,13 @@ export class WgMacros extends LitElement {
 
   private async onAddMacro(): Promise<void> {
     // 网页编辑器是默认编辑器：先开一份 C# 会话，再切到编辑器路由。
-    if (await this.call('editor.sessionNew')) {
+    if (await this.call('editor.session', { kind: 'new' })) {
       go('editor');
     }
   }
 
   private async onEdit(entry: MacroEntry): Promise<void> {
-    if (await this.call('editor.sessionOpen', { name: entry.name })) {
+    if (await this.call('editor.session', { kind: 'open', name: entry.name })) {
       go('editor');
     }
   }

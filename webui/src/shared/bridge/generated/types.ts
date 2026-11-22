@@ -576,6 +576,79 @@ export interface EditorRowSnapshot {
   cells: string[];
 }
 
+export type EditorSessionCommand =
+  | EditorSessionOpenCommand
+  | EditorSessionNewCommand
+  | EditorSessionSubOpenCommand
+  | EditorSessionMacroSettingCommand
+  | EditorSessionActivateCommand
+  | EditorSessionPatchCommand
+  | EditorSessionUndoCommand
+  | EditorSessionRedoCommand
+  | EditorSessionSaveCommand
+  | EditorSessionCloseCommand
+  | EditorSessionPublicMacroAddCommand
+  | EditorSessionExportCommand;
+
+export interface EditorSessionOpenCommand {
+  kind: 'open';
+  name?: string | null;
+}
+
+export interface EditorSessionNewCommand {
+  kind: 'new';
+}
+
+export interface EditorSessionSubOpenCommand {
+  kind: 'subOpen';
+  name: string;
+}
+
+export interface EditorSessionMacroSettingCommand {
+  kind: 'macroSetting';
+  field: string;
+  value: string;
+}
+
+export interface EditorSessionActivateCommand {
+  kind: 'activate';
+  key: string;
+}
+
+export interface EditorSessionPatchCommand {
+  kind: 'patch';
+  name?: string | null;
+  description?: string | null;
+  group?: string | null;
+}
+
+export interface EditorSessionUndoCommand {
+  kind: 'undo';
+}
+
+export interface EditorSessionRedoCommand {
+  kind: 'redo';
+}
+
+export interface EditorSessionSaveCommand {
+  kind: 'save';
+}
+
+export interface EditorSessionCloseCommand {
+  kind: 'close';
+  key?: string | null;
+}
+
+export interface EditorSessionPublicMacroAddCommand {
+  kind: 'publicMacroAdd';
+  id: string;
+}
+
+export interface EditorSessionExportCommand {
+  kind: 'export';
+  path: string;
+}
+
 export interface EditorSnapshot {
   name: string;
   description: string;

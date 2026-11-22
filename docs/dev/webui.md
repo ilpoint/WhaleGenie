@@ -87,7 +87,8 @@ features/<feature>/
   （命令请求可省略）。首批是 `editor.value`（open/command/confirm/cancel）与
   `editor.trigger`（add/remove/field 等）、`editor.action`（page/field/row 等）、
   `editor.declaration`（family/kind 矩阵）、`editor.condition`（行/组/join）、
-  `editor.variable`（local/global × add/patch/remove）。矩阵型命令用一条 `[BridgeRequest]` 记录，可空字段生成
+  `editor.variable`（local/global × add/patch/remove）、`editor.session`（open/new/save/close 等）。
+  矩阵型命令用一条 `[BridgeRequest]` 记录，可空字段生成
   `?:`，不必为每个 kind 建派生记录。新增编辑器命令时优先扩展现有联合，不再加一条按字段拆的
   `editor.*` 方法。
 - 状态类推送在服务端按事件名合并；日志等流式事件必须传 `BridgePushMode.All`，否则中间值会被

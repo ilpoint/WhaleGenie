@@ -114,7 +114,7 @@ export class EditorSessionService {
     this.core.state.actionForm = null;
     this.core.state.actionError = '';
     this.value.closeValue();
-    const ok = await this.core.snapshotCommand('editor.sessionOpen', { name });
+    const ok = await this.core.snapshotCommand('editor.session', { kind: 'open', name });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -129,7 +129,7 @@ export class EditorSessionService {
     this.core.state.actionForm = null;
     this.core.state.actionError = '';
     this.value.closeValue();
-    const ok = await this.core.snapshotCommand('editor.sessionNew', {});
+    const ok = await this.core.snapshotCommand('editor.session', { kind: 'new' });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -144,7 +144,7 @@ export class EditorSessionService {
     this.core.state.actionForm = null;
     this.core.state.actionError = '';
     this.value.closeValue();
-    const ok = await this.core.snapshotCommand('editor.sessionSubOpen', { name });
+    const ok = await this.core.snapshotCommand('editor.session', { kind: 'subOpen', name });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -162,7 +162,7 @@ export class EditorSessionService {
       return true;
     }
 
-    const ok = await this.core.snapshotCommand('editor.sessionActivate', { key });
+    const ok = await this.core.snapshotCommand('editor.session', { kind: 'activate', key });
     if (ok) {
       this.core.state.selectedStepId = '';
       this.core.state.selectedStepIds = [];
@@ -212,7 +212,8 @@ export class EditorSessionService {
   }
 
   private async closeTab(key: string): Promise<void> {
-    const ok = await this.core.mutate<EditorSnapshot | null>('editor.sessionClose', { key },
+    const ok = await this.core.mutate<EditorSnapshot | null>('editor.session',
+      { kind: 'close', key },
       (value) => this.core.applySnapshot(value));
     if (ok) {
       await this.core.refreshTabs();
@@ -246,7 +247,8 @@ export class EditorSessionService {
       return true;
     }
 
-    return this.core.snapshotCommand('editor.sessionPatch', {
+    return this.core.snapshotCommand('editor.session', {
+      kind: 'patch',
       name: this.core.state.draftName,
       description: this.core.state.draftDescription,
       group: this.core.state.draftGroup,
@@ -267,7 +269,7 @@ export class EditorSessionService {
         return;
       }
 
-      await this.core.client.call<boolean>('editor.sessionExport', { path });
+      await this.core.client.call<boolean>('editor.session', { kind: 'export', path });
       this.core.state.notice = t('Editor.Exported');
       this.core.state.error = '';
     } catch (error) {
@@ -286,7 +288,7 @@ export class EditorSessionService {
       return false;
     }
 
-    const ok = await this.core.snapshotCommand('editor.sessionSave', {});
+    const ok = await this.core.snapshotCommand('editor.session', { kind: 'save' });
     if (ok) {
       this.core.state.saved = true;
       this.core.notify();
@@ -326,6 +328,6 @@ export class EditorSessionService {
   }
 
   async setMacroSetting(field: string, value: string): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionMacroSetting', { field, value });
+    return this.core.snapshotCommand('editor.session', { kind: 'macroSetting', field, value });
   }
 }

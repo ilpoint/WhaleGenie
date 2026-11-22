@@ -141,8 +141,9 @@ export class EditorCore {
       if (snapshot) {
         this.applySnapshot(snapshot);
       } else if (tabs.activeKey) {
-        const activated = await this.client.call<EditorSnapshot>('editor.sessionActivate',
-          { key: tabs.activeKey });
+        const activated = await this.client.call<EditorSnapshot>('editor.session', {
+          kind: 'activate', key: tabs.activeKey,
+        });
         this.applySnapshot(activated);
       } else {
         this.applySnapshot(null);

@@ -65,7 +65,7 @@ describe('editor services', () => {
 
   it('a failed save leaves the error text and returns false', async () => {
     const bridge = new FakeBridge();
-    bridge.fail('editor.sessionSave', new Error('disk full'));
+    bridge.fail('editor.session', new Error('disk full'));
     const store = storeWith(bridge);
     const open = snapshot('demo');
     store.get().snapshot = open;

@@ -17,7 +17,8 @@ export class EditorStepService {
     }
 
     const before = new Set(flattenSteps(snapshot.steps).map((step) => step.id));
-    const ok = await this.core.mutate<EditorSnapshot>('editor.sessionPublicMacroAdd', { id }, (next) => {
+    const ok = await this.core.mutate<EditorSnapshot>('editor.session',
+      { kind: 'publicMacroAdd', id }, (next) => {
       this.core.applySnapshot(next);
       const added = flattenSteps(next.steps).find((step) => !before.has(step.id));
       if (added) {
@@ -222,11 +223,11 @@ export class EditorStepService {
   }
 
   async undo(): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionUndo', {});
+    return this.core.snapshotCommand('editor.session', { kind: 'undo' });
   }
 
   async redo(): Promise<boolean> {
-    return this.core.snapshotCommand('editor.sessionRedo', {});
+    return this.core.snapshotCommand('editor.session', { kind: 'redo' });
   }
 
   async addParameterRow(stepId: string, name: string): Promise<boolean> {

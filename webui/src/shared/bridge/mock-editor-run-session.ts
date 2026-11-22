@@ -28,24 +28,12 @@ import {
 /** One editor command family, split out of MockEditor.run. */
 export function handleSessionRun(host: MockEditor, method: string, params: Record<string, unknown>): unknown {
   switch (method) {
-      case 'editor.sessionOpen':
-        return host.open(host.text(params, 'name'));
+      case 'editor.session':
+        return handleSessionCommand(host, params);
       case 'editor.sessionTabs':
         return host.tabs();
-      case 'editor.sessionNew':
-        return host.newDocument();
-      case 'editor.sessionSubOpen':
-        return host.subOpen(host.text(params, 'name'));
-      case 'editor.sessionActivate':
-        return host.activate(host.text(params, 'key'));
       case 'editor.sessionState':
         return host.activeSnapshot();
-      case 'editor.sessionClose':
-        return host.close(host.optionalText(params, 'key'));
-      case 'editor.sessionPatch':
-        return host.patch(params);
-      case 'editor.sessionMacroSetting':
-        return host.macroSetting(params);
       case 'editor.declaration':
         return handleDeclarationCommand(host, params);
       case 'editor.sessionStep':
@@ -116,10 +104,6 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
                     ? host.text(params, 'value')
                     : cell),
               }));
-      case 'editor.sessionUndo':
-        return host.change((document) => ({ ...document, canUndo: false, canRedo: true }));
-      case 'editor.sessionRedo':
-        return host.change((document) => ({ ...document, canUndo: true, canRedo: false }));
       case 'editor.sessionMove':
         return host.moveStep(params);
       case 'editor.sessionRemove':
@@ -139,8 +123,6 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         };
       case 'editor.variable':
         return handleVariableCommand(host, params);
-      case 'editor.sessionExport':
-        return true;
       case 'editor.sessionRecordStart':
         host.recording = true;
         host.captured = 0;
@@ -177,14 +159,41 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
         }));
       case 'editor.sessionRecordStop':
         return host.stopRecording();
-      case 'editor.sessionSave':
-        return host.save();
       case 'editor.sessionActions':
         return actionCatalogue(host.language());
-      case 'editor.sessionPublicMacroAdd':
-        return host.addStep({ type: 'control.runMacro' });
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
+  }
+}
+
+function handleSessionCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'open':
+      return host.open(host.text(params, 'name'));
+    case 'new':
+      return host.newDocument();
+    case 'subOpen':
+      return host.subOpen(host.text(params, 'name'));
+    case 'activate':
+      return host.activate(host.text(params, 'key'));
+    case 'close':
+      return host.close(host.optionalText(params, 'key'));
+    case 'patch':
+      return host.patch(params);
+    case 'macroSetting':
+      return host.macroSetting(params);
+    case 'undo':
+      return host.change((document) => ({ ...document, canUndo: false, canRedo: true }));
+    case 'redo':
+      return host.change((document) => ({ ...document, canUndo: true, canRedo: false }));
+    case 'export':
+      return true;
+    case 'save':
+      return host.save();
+    case 'publicMacroAdd':
+      return host.addStep({ type: 'control.runMacro' });
+    default:
+      throw new Error('不认识会话命令 ' + String(params['kind']) + '。');
   }
 }
 
