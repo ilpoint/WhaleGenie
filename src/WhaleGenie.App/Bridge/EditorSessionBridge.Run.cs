@@ -6,7 +6,6 @@ using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -38,17 +37,8 @@ internal sealed partial class EditorSessionBridge
         async Task<EditorTrialResult> Run() => await session.ActionForm.RunTrialAsync(
             _devices, library, workspace.Variables);
 
-        EditorTrialResult result;
-        if (_owner?.Invoke() is { } owner)
-        {
-            using var aside = AppWindows.StepAside(owner);
-            await AppWindows.SettleAsync(_devices.Screen);
-            result = await Task.Run(Run);
-        }
-        else
-        {
-            result = await Task.Run(Run);
-        }
+        using var aside = _aside is null ? null : await _aside.StepAsideAsync(_devices.Screen);
+        var result = await Task.Run(Run);
 
         return new EditorTrialReply(false, null, null, null, result);
     }

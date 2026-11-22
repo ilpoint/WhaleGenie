@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -28,7 +27,7 @@ internal sealed partial class EditorSessionBridge
 
         try
         {
-            var found = await BrowserPicker.HighlightAsync(_devices.Browser, target);
+            var found = await _browserTests!.HighlightAsync(_devices.Browser, target);
             return session.Say(found.Found
                 ? Strings.Format("Add.TestPageElementFound", found.Line, found.Matches)
                 : Strings.Get("Add.TestPageElementMissing"), !found.Found);
@@ -58,7 +57,7 @@ internal sealed partial class EditorSessionBridge
 
         try
         {
-            var found = await BrowserPicker.HighlightAsync(_devices.Browser, target);
+            var found = await _browserTests!.HighlightAsync(_devices.Browser, target);
             return session.SayNarrow(name, index, found);
         }
         catch (Exception error)
@@ -83,23 +82,10 @@ internal sealed partial class EditorSessionBridge
             return session.Say(Strings.Get("Add.TestElementEmpty"), true);
         }
 
-        var found = ElementFlash.Locate(_devices.Ui, selector, session.TestWindowRule("window"));
-        if (found is null)
-        {
-            return session.Say(Strings.Get("Add.TestElementMissing"), true);
-        }
-
-        if (_owner?.Invoke() is { } owner)
-        {
-            using var aside = AppWindows.StepAside(owner);
-            await AppWindows.SettleAsync(_devices.Screen);
-            var frame = ElementFlash.Show(found);
-            if (frame is not null)
-            {
-                await frame.Finished;
-            }
-        }
-
-        return session.Say(Strings.Get("Add.TestElementFound"), false);
+        var found = _elementTests is not null && await _elementTests.FlashAsync(
+            _devices, selector, session.TestWindowRule("window"));
+        return session.Say(found
+            ? Strings.Get("Add.TestElementFound")
+            : Strings.Get("Add.TestElementMissing"), !found);
     }
 }

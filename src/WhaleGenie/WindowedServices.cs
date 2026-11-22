@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Bridge;
+using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -78,8 +79,11 @@ internal static class WindowedServices
             var devices = sp.GetRequiredService<TriggerRuntime>().Devices;
             server.Register(new EditorSessionBridge(
                 sp.GetRequiredService<ProjectWorkspace>(), devices,
+                new LocalEditorSettings(),
                 new EditorPickerHost(() => sp.GetService<WebShellWindow>(), devices),
-                () => sp.GetService<WebShellWindow>()));
+                new EditorWindowAside(() => sp.GetService<WebShellWindow>()),
+                new EditorBrowserTestHost(),
+                new EditorElementTestHost(() => sp.GetService<WebShellWindow>())));
             server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>()));
             server.Register(new SettingsBridge(
                 sp.GetRequiredService<MainViewModel>(),

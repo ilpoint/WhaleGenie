@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Bridge;
 
@@ -23,19 +22,8 @@ internal sealed partial class EditorSessionBridge
         var session = Required().ActionForm;
         try
         {
-            EditorLookRequest request;
-            if (_owner?.Invoke() is { } owner)
-            {
-                using (AppWindows.StepAside(owner))
-                {
-                    await AppWindows.SettleAsync(_devices.Screen);
-                    request = await Task.Run(() => session.PrepareLook(_devices, name, mode));
-                }
-            }
-            else
-            {
-                request = await Task.Run(() => session.PrepareLook(_devices, name, mode));
-            }
+            using var aside = _aside is null ? null : await _aside.StepAsideAsync(_devices.Screen);
+            var request = await Task.Run(() => session.PrepareLook(_devices, name, mode));
 
             var result = await lookHost.PickLookAsync(request);
             return session.ApplyLook(request, result);

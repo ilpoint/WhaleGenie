@@ -18,15 +18,20 @@ namespace WhaleGenie.Bridge;
 /// step, save, close. The native editor is still the one a person uses; this is the path the page
 /// will take in C1, and the gate that proves it can be built without moving the model out of C#.
 /// </summary>
-internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, IDeviceLayer? devices = null,
-    IEditorPickerHost? pickers = null, Func<Avalonia.Controls.Window?>? owner = null)
+internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
+    IDeviceLayer? devices = null, IEditorSettings? settings = null,
+    IEditorPickerHost? pickers = null, IEditorWindowAside? aside = null,
+    IEditorBrowserTestHost? browserTests = null, IEditorElementTestHost? elementTests = null)
     : IBridgeHandler
 {
-    private readonly HeadlessEditorWorkspace _documents =
-        new(workspace, devices, new WhaleGenie.Editing.LocalEditorSettings());
+    private readonly HeadlessEditorWorkspace _documents = new(workspace, devices,
+        settings ?? DefaultEditorSettings.Instance);
     private readonly IDeviceLayer? _devices = devices;
+    private readonly IEditorSettings _settings = settings ?? DefaultEditorSettings.Instance;
     private readonly IEditorPickerHost? _pickers = pickers;
-    private readonly Func<Avalonia.Controls.Window?>? _owner = owner;
+    private readonly IEditorWindowAside? _aside = aside;
+    private readonly IEditorBrowserTestHost? _browserTests = browserTests;
+    private readonly IEditorElementTestHost? _elementTests = elementTests;
     private RecordingSession? _recording;
     private volatile bool _stopRecordingRequested;
 
@@ -488,7 +493,7 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 Strings.Get("Editor.RecordFailed"));
         }
 
-        _recording ??= new RecordingSession(new WhaleGenie.Editing.LocalEditorSettings());
+        _recording ??= new RecordingSession(_settings);
         _stopRecordingRequested = false;
         var model = Required();
         if (!_recording.Start(_devices, model.RecordIgnoreInjected, model.RecordGamepadButtons,
