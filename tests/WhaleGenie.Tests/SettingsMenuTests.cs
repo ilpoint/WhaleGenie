@@ -32,7 +32,7 @@ public class SettingsMenuTests
     {
         var project = new MainViewModel();
         var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
-            project: project);
+            project: project.Workspace, markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch);
 
         viewModel.AddMenuRule(new WindowRule(Title: "Notepad"));
         var row = viewModel.MenuRules.Single(candidate => !candidate.IsDefault);
@@ -49,7 +49,7 @@ public class SettingsMenuTests
     {
         var project = new MainViewModel();
         var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
-            project: project);
+            project: project.Workspace, markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch);
         var rule = new WindowRule(Process: "game", How: WindowHow.ProcessEquals);
         project.Triggers.BlockedMenuRules.Add(rule);
         viewModel.RefreshMenuRules();
@@ -72,7 +72,7 @@ public class SettingsMenuTests
         {
             var project = new MainViewModel();
             var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
-                project: project);
+                project: project.Workspace, markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch);
             viewModel.CaptureMenuLauncher("F11");
 
             Assert.Equal(Strings.Get("Settings.MenuSystemOff"), viewModel.MenuLauncherStatus);
@@ -96,7 +96,7 @@ public class SettingsMenuTests
     {
         var project = new MainViewModel();
         var viewModel = new SettingsViewModel(() => DriverInputState.Ready,
-            project: project);
+            project: project.Workspace, markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch);
         viewModel.AddMenuRule(new WindowRule(Title: "Notepad"));
         viewModel.AddMenuRule(new WindowRule(Title: "Browser"));
         viewModel.AddMenuRule(new WindowRule(Title: "Office"));

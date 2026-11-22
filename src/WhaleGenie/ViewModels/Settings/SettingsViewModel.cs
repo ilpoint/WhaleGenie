@@ -18,6 +18,9 @@ namespace WhaleGenie.ViewModels;
 /// <summary>Backs the settings window. Changing the language applies immediately.</summary>
 public partial class SettingsViewModel : ViewModelBase
 {
+    private readonly Action? _markMenuChanged;
+    private readonly SystemState? _system;
+
     public SettingsViewModel()
         : this(SharedDevices.Current.Driver)
     {
@@ -28,8 +31,9 @@ public partial class SettingsViewModel : ViewModelBase
     /// hands in so that a machine which is not this one can be described.
     /// </summary>
     internal SettingsViewModel(IDriverInput driver, bool? elevated = null,
-        MainViewModel? project = null, string? packagePath = null)
-        : this(() => driver.State, elevated, project, packagePath)
+        ProjectWorkspace? project = null, string? packagePath = null,
+        Action? markMenuChanged = null, SystemState? system = null)
+        : this(() => driver.State, elevated, project, packagePath, markMenuChanged, system)
     {
     }
 
@@ -39,9 +43,12 @@ public partial class SettingsViewModel : ViewModelBase
     /// program has, which a check cannot give itself either.
     /// </summary>
     internal SettingsViewModel(Func<DriverInputState> driverInput, bool? elevated = null,
-        MainViewModel? project = null, string? packagePath = null)
+        ProjectWorkspace? project = null, string? packagePath = null,
+        Action? markMenuChanged = null, SystemState? system = null)
     {
         Project = project;
+        _markMenuChanged = markMenuChanged;
+        _system = system;
         PackagePath = packagePath;
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         LoadLastProjectAtStart = LocalSettings.LoadLastProjectAtStart();

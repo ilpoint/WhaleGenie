@@ -177,7 +177,7 @@ public class SettingsBridgeTests
     {
         var server = new BridgeServer();
         server.Register(new SettingsBridge(
-            new SettingsViewModel(() => DriverInputState.Ready, project: project),
+            new SettingsViewModel(() => DriverInputState.Ready, project: project.Workspace, markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch),
             project, () => null, changed));
         return server;
     }

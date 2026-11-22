@@ -58,7 +58,7 @@ public partial class SettingsViewModel
         }
 
         Project.Triggers.AddContextMenuPage(rule);
-        Project.MarkMenuChanged();
+        _markMenuChanged?.Invoke();
         RefreshMenuRules();
     }
 
@@ -79,7 +79,7 @@ public partial class SettingsViewModel
                 return;
             }
             Project.Triggers.BlockedMenuRules[blocked.index] = rule;
-            Project.MarkMenuChanged();
+            _markMenuChanged?.Invoke();
             RefreshMenuRules();
             return;
         }
@@ -95,7 +95,7 @@ public partial class SettingsViewModel
             var index = Project.Triggers.MenuPages.IndexOf(page);
             Project.Triggers.MenuPages[index] = page with { Window = rule };
         }
-        Project.MarkMenuChanged();
+        _markMenuChanged?.Invoke();
         RefreshMenuRules();
     }
 
@@ -119,7 +119,7 @@ public partial class SettingsViewModel
         {
             Project.Triggers.RemoveContextRule(row.GroupKey);
         }
-        Project.MarkMenuChanged();
+        _markMenuChanged?.Invoke();
         RefreshMenuRules();
     }
 
@@ -143,7 +143,7 @@ public partial class SettingsViewModel
         {
             Project.Triggers.AddContextMenuPage(row.Rule);
         }
-        Project.MarkMenuChanged();
+        _markMenuChanged?.Invoke();
         RefreshMenuRules();
     }
 
@@ -162,7 +162,7 @@ public partial class SettingsViewModel
         }
         var target = groups[Math.Clamp(currentGroup + step, 0, groups.Count - 1)];
         Project.Triggers.MoveContextRule(row.GroupKey, target.Key);
-        Project.MarkMenuChanged();
+        _markMenuChanged?.Invoke();
         RefreshMenuRules();
     }
 
@@ -175,7 +175,7 @@ public partial class SettingsViewModel
             return;
         }
         Project.Triggers.MoveContextRule(row.GroupKey, target.GroupKey);
-        Project.MarkMenuChanged();
+        _markMenuChanged?.Invoke();
         RefreshMenuRules();
     }
 

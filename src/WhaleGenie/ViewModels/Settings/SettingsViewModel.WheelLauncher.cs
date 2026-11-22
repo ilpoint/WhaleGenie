@@ -74,7 +74,7 @@ public partial class SettingsViewModel
                 return Strings.Get("Wheel.LauncherConflictHotkey");
             }
 
-            if (Project is { IsRunning: false })
+            if (_system is { IsEnabled: false })
             {
                 return Strings.Get("Wheel.SystemOff");
             }
@@ -94,13 +94,13 @@ public partial class SettingsViewModel
     /// The wheel and the menu both need the system switch on. It is off by default after a restart,
     /// and that looks exactly like a broken hotkey, so the settings page offers the switch itself.
     /// </summary>
-    public bool IsSystemOff => Project is { IsRunning: false };
+    public bool IsSystemOff => _system is { IsEnabled: false };
 
     public void EnableSystem()
     {
-        if (Project is { IsRunning: false } project)
+        if (_system is { IsEnabled: false } project)
         {
-            project.IsRunning = true;
+            _system!.Set(true);
             OnPropertyChanged(nameof(IsSystemOff));
             OnPropertyChanged(nameof(WheelLauncherStatus));
         }

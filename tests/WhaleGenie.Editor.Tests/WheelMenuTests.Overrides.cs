@@ -25,7 +25,7 @@ public partial class WheelMenuTests
         InOwnFiles(() =>
         {
             var project = new MainViewModel();
-            var settings = new SettingsViewModel(() => DriverInputState.Ready, project: project);
+            var settings = new SettingsViewModel(() => DriverInputState.Ready, project: project.Workspace, markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch);
             var scene = project.Triggers.Wheel.AddScene(
                 new WindowRule(Process: "notepad", How: WindowHow.ProcessEquals));
             project.Triggers.Wheel.Global.At(Top).Macro = "copy";

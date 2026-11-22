@@ -29,7 +29,7 @@ public partial class SettingsViewModel
         RefreshWheelScenes();
     }
 
-    public MainViewModel? Project { get; }
+    public ProjectWorkspace? Project { get; }
 
     public string? PackagePath { get; }
 

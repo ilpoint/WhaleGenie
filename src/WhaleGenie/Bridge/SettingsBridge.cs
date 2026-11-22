@@ -26,8 +26,9 @@ internal sealed partial class SettingsBridge : IBridgeHandler
     private readonly Action _changed;
 
     public SettingsBridge(MainViewModel project, Func<Window?> owner, Action? changed = null)
-        : this(new SettingsViewModel(SharedDevices.Current.Driver, null, project,
-            project.Workspace.CurrentPath), project, owner, changed)
+        : this(new SettingsViewModel(SharedDevices.Current.Driver, null, project.Workspace,
+            project.Workspace.CurrentPath, project.MarkMenuChanged, project.SystemSwitch),
+            project, owner, changed)
     {
     }
 

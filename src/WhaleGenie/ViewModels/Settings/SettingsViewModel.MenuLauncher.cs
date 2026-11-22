@@ -68,7 +68,7 @@ public partial class SettingsViewModel
                 return Strings.Get("Settings.MenuLauncherConflictHotkey");
             }
 
-            if (Project is { IsRunning: false })
+            if (_system is { IsEnabled: false })
             {
                 return Strings.Get("Settings.MenuSystemOff");
             }
