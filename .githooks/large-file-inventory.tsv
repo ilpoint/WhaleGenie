@@ -120,10 +120,10 @@
 37499	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
-468	src/WhaleGenie/ViewModels/Actions/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
-361	src/WhaleGenie/ViewModels/Actions/AddActionViewModel.Parameters.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
-371	src/WhaleGenie/ViewModels/Actions/AddActionViewModel.Preview.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
-318	src/WhaleGenie/ViewModels/Actions/AddActionViewModel.Settings.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+466	src/WhaleGenie.Editing/Actions/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+359	src/WhaleGenie.Editing/Actions/AddActionViewModel.Parameters.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+356	src/WhaleGenie.Editing/Actions/AddActionViewModel.Preview.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
+316	src/WhaleGenie.Editing/Actions/AddActionViewModel.Settings.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 315	src/WhaleGenie/ViewModels/Editor/ConditionEditorViewModel.cs	keep: 条件树的编辑与读写，节点类型已另起一文件
 576	src/WhaleGenie/ViewModels/Editor/MacroEditorViewModel.Editing.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 362	src/WhaleGenie/ViewModels/Editor/MacroEditorViewModel.Rows.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
@@ -166,7 +166,7 @@
 35133	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
 1021	src/WhaleGenie/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
 547	src/WhaleGenie/Editing/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
-308	src/WhaleGenie/Editing/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
+308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 2602	src/WhaleGenie/Editing/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
 371	.build/uiprobe/Program.cs	pending review
