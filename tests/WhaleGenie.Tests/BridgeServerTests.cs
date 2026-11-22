@@ -30,6 +30,38 @@ public class BridgeServerTests
         public void Receive(string json) => MessageFromWeb?.Invoke(json);
     }
 
+    /// <summary>A channel that holds the next send open so a second push can queue behind it.</summary>
+    private sealed class GatedChannel : IBridgeChannel
+    {
+        private readonly TaskCompletionSource _gate =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private readonly TaskCompletionSource _started =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<string> Sent { get; } = [];
+
+        public event Action<string>? MessageFromWeb;
+
+        public bool Block { get; set; }
+
+        public Task Started => _started.Task;
+
+        public async Task SendToWebAsync(string json)
+        {
+            Sent.Add(json);
+            if (Block)
+            {
+                _started.TrySetResult();
+                await _gate.Task;
+            }
+        }
+
+        public void Release() => _gate.TrySetResult();
+
+        public void Receive(string json) => MessageFromWeb?.Invoke(json);
+    }
+
     [Fact]
     public async Task A_registered_method_answers_with_its_result()
     {
@@ -133,6 +165,56 @@ public class BridgeServerTests
         Assert.Equal(2, channel.Sent.Count);
         var pushed = JsonDocument.Parse(channel.Sent[1]).RootElement;
         Assert.Equal("light", pushed.GetProperty("payload").GetProperty("mode").GetString());
+    }
+
+    [Fact]
+    public async Task Ready_pushes_coalesce_to_the_latest_while_one_is_in_flight()
+    {
+        var channel = new GatedChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        channel.Block = true;
+
+        var first = server.PushAsync("project.changed", new { revision = 1 });
+        await channel.Started;
+        var second = server.PushAsync("project.changed", new { revision = 2 });
+        var third = server.PushAsync("project.changed", new { revision = 3 });
+        channel.Release();
+
+        await Task.WhenAll(first, second, third);
+
+        var events = channel.Sent
+            .Where(json => json.Contains("\"event\":\"project.changed\"", StringComparison.Ordinal))
+            .ToList();
+        Assert.Equal(2, events.Count);
+        Assert.Contains("\"revision\":1", events[0], StringComparison.Ordinal);
+        Assert.Contains("\"revision\":3", events[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Streaming_pushes_keep_every_payload_while_one_is_in_flight()
+    {
+        var channel = new GatedChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        channel.Block = true;
+
+        var first = server.PushAsync("run.log", new { n = 1 }, BridgePushMode.All);
+        await channel.Started;
+        var second = server.PushAsync("run.log", new { n = 2 }, BridgePushMode.All);
+        var third = server.PushAsync("run.log", new { n = 3 }, BridgePushMode.All);
+        channel.Release();
+
+        await Task.WhenAll(first, second, third);
+
+        var events = channel.Sent
+            .Where(json => json.Contains("\"event\":\"run.log\"", StringComparison.Ordinal))
+            .ToList();
+        Assert.Equal(3, events.Count);
+        Assert.Contains("\"n\":2", events[1], StringComparison.Ordinal);
+        Assert.Contains("\"n\":3", events[2], StringComparison.Ordinal);
     }
 
     [Fact]

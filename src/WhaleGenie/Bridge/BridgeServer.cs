@@ -16,9 +16,10 @@ namespace WhaleGenie.Bridge;
 /// </summary>
 /// <remarks>
 /// The server knows nothing about the web control: a channel hands it text and takes text back,
-/// which is what keeps the routing testable without a WebView. Everything here runs on the
-/// interface thread — the control raises its events there — so handlers may touch windows and
-/// themes freely.
+/// which is what keeps the routing testable without a WebView. Handlers run on the interface
+/// thread — the control raises its events there — so they may touch windows and themes freely.
+/// Pushes may also come from the trigger thread; they go through one locked queue and are sent in
+/// order by a single pump.
 /// </remarks>
 public sealed class BridgeServer
 {
@@ -46,6 +47,12 @@ public sealed class BridgeServer
     /// </summary>
     private readonly List<(string Event, string Json)> _pending = [];
 
+    /// <summary>Events ready to go out. The pump sends them in order, one at a time.</summary>
+    private readonly List<PendingPush> _queue = [];
+
+    /// <summary>Guards the pending buffer, the ready queue and the ready flag.</summary>
+    private readonly object _stateGate = new();
+
     /// <summary>Serializes sends so two events cannot reach the page in the opposite order.</summary>
     private readonly SemaphoreSlim _sendGate = new(1, 1);
 
@@ -54,6 +61,18 @@ public sealed class BridgeServer
     private Action<string>? _pump;
 
     private bool _ready;
+
+    private bool _draining;
+
+    private sealed class PendingPush(string @event, string json)
+    {
+        public string Event { get; } = @event;
+
+        public string Json { get; set; } = json;
+
+        public TaskCompletionSource Completion { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
 
     /// <summary>
     /// Raised when the server goes back to "no page yet" — a fresh attach or an explicit reset.
@@ -78,8 +97,18 @@ public sealed class BridgeServer
         _channel = channel;
         _pump = message => _ = AcceptAsync(message);
         _channel.MessageFromWeb += _pump;
-        _ready = false;
-        _pending.Clear();
+        lock (_stateGate)
+        {
+            _ready = false;
+            _pending.Clear();
+            foreach (var queued in _queue)
+            {
+                queued.Completion.TrySetResult();
+            }
+
+            _queue.Clear();
+        }
+
         PageReset?.Invoke();
     }
 
@@ -169,39 +198,115 @@ public sealed class BridgeServer
     /// Sends one event to the page. Before the page is ready — or before any page is attached —
     /// events buffer, so a theme or language change made while the window loads is not lost.
     /// </summary>
-    public async Task PushAsync(string @event, object? payload)
+    /// <remarks>
+    /// A state event is coalesced: while an earlier push of the same event is still queued, the
+    /// newer payload replaces it. The page only needs the latest theme or project state, and four
+    /// pushes a second would otherwise queue up behind a slow script call. Streaming events — log
+    /// lines, for example — pass <see cref="BridgePushMode.All"/> and keep every push.
+    /// </remarks>
+    public Task PushAsync(string @event, object? payload,
+        BridgePushMode mode = BridgePushMode.Latest)
     {
         var json = JsonSerializer.Serialize(new { @event, payload }, Options);
-        if (!_ready || _channel is null)
+        Task completion;
+        var start = false;
+        lock (_stateGate)
         {
-            _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
-            _pending.Add((@event, json));
-            return;
+            if (!_ready || _channel is null)
+            {
+                _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
+                _pending.Add((@event, json));
+                return Task.CompletedTask;
+            }
+
+            if (mode == BridgePushMode.Latest)
+            {
+                var existing = _queue.FindLast(entry =>
+                    string.Equals(entry.Event, @event, StringComparison.Ordinal));
+                if (existing is not null)
+                {
+                    existing.Json = json;
+                    return existing.Completion.Task;
+                }
+            }
+
+            var queued = new PendingPush(@event, json);
+            _queue.Add(queued);
+            completion = queued.Completion.Task;
+            start = !_draining;
+            _draining = start;
         }
 
-        await SendAsync(json);
+        if (start)
+        {
+            _ = DrainAsync();
+        }
+
+        return completion;
     }
 
     /// <summary>Whether the page has registered its receiver and may be sent events.</summary>
-    public bool IsReady => _ready;
+    public bool IsReady
+    {
+        get
+        {
+            lock (_stateGate)
+            {
+                return _ready;
+            }
+        }
+    }
 
     /// <summary>
     /// Drops an event waiting for the page. A handler that has just answered the same state in a
     /// request clears the buffered copy, so an older push cannot overwrite the newer answer.
     /// </summary>
     public void DropPending(string @event)
-        => _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
+    {
+        lock (_stateGate)
+        {
+            _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
+        }
+    }
+
+    /// <summary>Sends the ready queue in order until it is empty.</summary>
+    private async Task DrainAsync()
+    {
+        while (true)
+        {
+            PendingPush next;
+            lock (_stateGate)
+            {
+                if (_queue.Count == 0)
+                {
+                    _draining = false;
+                    return;
+                }
+
+                next = _queue[0];
+                _queue.RemoveAt(0);
+            }
+
+            await SendAsync(next.Json);
+            next.Completion.TrySetResult();
+        }
+    }
 
     private async Task AnswerReadyAsync(int? id)
     {
-        _ready = true;
+        (string Event, string Json)[] buffered;
+        lock (_stateGate)
+        {
+            _ready = true;
+            buffered = [.. _pending];
+            _pending.Clear();
+        }
+
         if (id is { } readyId)
         {
             await SendAsync(JsonSerializer.Serialize(new { id = readyId, ok = true, result = (object?)null }, Options));
         }
 
-        var buffered = _pending.ToArray();
-        _pending.Clear();
         foreach (var (_, json) in buffered)
         {
             await SendAsync(json);
@@ -240,6 +345,16 @@ public sealed class BridgeServer
             _sendGate.Release();
         }
     }
+}
+
+/// <summary>How a push treats an older push of the same event that has not gone out yet.</summary>
+public enum BridgePushMode
+{
+    /// <summary>Replace the queued payload with the newest one; the page only needs the latest state.</summary>
+    Latest,
+
+    /// <summary>Keep every push, in order — log lines and other streams need each one.</summary>
+    All,
 }
 
 /// <summary>Names the protocol's fixed words in one place.</summary>

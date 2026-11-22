@@ -86,6 +86,8 @@ features/<feature>/
   `[JsonDerivedType]` 会生成 TypeScript 判别联合；派生记录的可空字段是 `field?: T | null`
   （命令请求可省略）。首批是 `editor.value` 的 open/command/confirm/cancel。新增编辑器命令时优先扩展
   现有联合，不再加一条按字段拆的 `editor.*` 方法。
+- 状态类推送在服务端按事件名合并；日志等流式事件必须传 `BridgePushMode.All`，否则中间值会被
+  最新值覆盖。
 - C# 仍是唯一事实来源；页面不解析公式、不按动作名推断字段。
 - 方法名清单由 `BridgeMethodInventoryTests` 对账；新增/改名桥方法要同步 C# 与页面。
 
