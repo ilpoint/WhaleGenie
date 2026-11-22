@@ -174,7 +174,7 @@ AdvancedRows/ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 
 `PrepareLook` 在窗口让开后用 `MacroRunner.LookOnce` 取景，`ApplyLook` 写偏移或颜色点。
 虚拟键盘由 C# 的 `EditorKeyPad` 生成完整键表（含 `KeyNames.Names` 未覆盖项的兜底），
 热字串字符键盘由 `EditorCharacterPad` 生成，结束键由 `HotstringEndKeys` 快照渲染；树的分节
-引导线仍由 `step-tree.ts` 绘制；旧 `step-inspector.ts` 参数表单已确认无引用并删除，不是步骤树。
+引导线仍由 `step-tree.ts` 绘制
 
 网页侧的页面状态在 `features/editor/state/`，规格见 [dev/webui.md](../dev/webui.md)。
 `editor-store.ts` 只做组合根：`editor-core` 持有快照、监听、错误与通用请求助手，
