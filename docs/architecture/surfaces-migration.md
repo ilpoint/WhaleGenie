@@ -145,7 +145,10 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
   `entryId` 运行宏；`MenuSurfaceTests` 覆盖格子、禁用宏与默认上下文页；
 - 页面 `features/overlay/menu-overlay.ts`（`wg-overlay-menu`）：4×3 格子、分页、搜索、点击运行；
   `main.ts` 见到 `#overlay/menu` 时只挂这一个组件，不画壳；
-- 原生菜单仍是默认入口。**尚未接线**：C# 侧还没有创建浮层窗口并把它挂到 `BridgeSurface.Menu`。
+- 浮层宿主 `WebOverlayWindow`（透明、置顶、不抢焦点）已建：加载同一份产物，按 `BridgeSurface.Menu`
+  附着；`--menu-overlay`（Debug）在壳旁边打开它，实测真实桥与真实项目数据可画出菜单面板。
+- 原生菜单仍是默认入口。**尚未接线**：菜单热键仍开原生窗口，浮层只在调试开关下打开；下一步把
+  `NativeSurfaceHost` 的打开/关闭/定位换成浮层，再删 `MacroMenuWindow`。
 
 0. **预建宿主**：壳启动时创建菜单浮层窗口与页面并隐藏；热键只 `Show()`（S0 实测 19–25 ms）。
 1. C#：把 `MacroMenuWindow` 的排版数据（分节、格子、图标、问题、搜索过滤、置顶与本屏坐标）

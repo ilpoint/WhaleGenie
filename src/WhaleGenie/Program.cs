@@ -118,6 +118,13 @@ sealed class Program
             return 0;
         }
 
+        // Opens the Lit menu overlay beside the ordinary shell: the bridge, the project and the
+        // page are real, so the host can be judged before the native menu is taken away.
+        if (args.Contains("--menu-overlay", System.StringComparer.Ordinal))
+        {
+            App.MenuOverlay = true;
+        }
+
         // The web shell is the ordinary window; --webui-dev points it at a Vite dev server so page
         // edits hot-reload while the program runs. Debug only: Release loads the packed page.
         foreach (var argument in args)

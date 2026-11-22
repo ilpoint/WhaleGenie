@@ -18,6 +18,7 @@ import { appInfo } from './shared/app/app.js';
 import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
 import { go } from './shared/navigation/router.js';
+import './features/overlay/menu-overlay.js';
 import { installFocusReporting } from './shared/focus/focus.js';
 import { editor } from './features/editor/editor-store.js';
 import './app/shell.js';
@@ -39,14 +40,16 @@ strings.load(bundle);
 
 // 同一份产物也承载浮层：#overlay/menu 只画菜单，不画壳。浮层与壳是两个 WebView，各自附着在
 // 自己的桥面上（Main / Menu），所以这里必须先决定画哪一张，再去拉那一张要的数据。
-const overlay = window.location.hash.startsWith('#overlay/');
+// The native host asks for an overlay twice over — a query the file URL always keeps and the hash
+// the router reads — because a file navigation may drop the fragment on some WebView builds.
+const overlay = new URLSearchParams(window.location.search).has('overlay')
+  || window.location.hash.startsWith('#overlay/');
 
 theme.load(await client.call<ThemeState>('theme.get'));
 client.on('strings.changed', (next) => strings.load(next));
 client.on('theme.changed', (next) => theme.load(next));
 
 if (overlay) {
-  await import('./features/overlay/menu-overlay.js');
   document.body.replaceChildren(document.createElement('wg-overlay-menu'));
 } else {
   appInfo.load(await client.call<AppInfo>('app.info'));

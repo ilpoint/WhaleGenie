@@ -34,6 +34,9 @@ public partial class App : Application
     /// only: it exists to be looked at on a real machine and then goes away with the gate.
     /// </summary>
     internal static bool OverlayProbe { get; set; }
+
+    /// <summary>Whether the shell also opens the Lit menu overlay, for checking the host end to end.</summary>
+    internal static bool MenuOverlay { get; set; }
 #endif
 
     public override void Initialize()
