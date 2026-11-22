@@ -19,17 +19,11 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 2
     }
   },
   "src/features/editor/editor-palette.ts": {
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -65,15 +59,7 @@
     "complexity": {
       "count": 1
     },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/features/macros/macros-page.ts": {
-    "max-lines": {
       "count": 1
     }
   },
