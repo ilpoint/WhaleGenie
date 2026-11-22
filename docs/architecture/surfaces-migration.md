@@ -46,12 +46,15 @@ S0 探针（`--overlay-probe`，Debug）已验证这条路径可以编译，真�
 现在 `BridgeServer` 只有一个 `_channel`（`BridgeServer.cs:59`，`Attach` 在 90 行）。
 主壳与浮层是两个 WebView，需要按"面"路由：
 
-- `Attach(channel, surface)`，`surface` 是 `main`/`menu`/`wheel`/`panel`；
-- 推送按面过滤：菜单快照只发给菜单面，主壳只收 `project.changed` 等全局事件；
-- `bridge.ready` 按面确认，未 ready 的面各自缓冲；
-- 处理器的 `IBridgeHandler` 接口不变，新增 `BridgeSurface` 参数或注册时声明所属面。
+- `Attach(channel)` 仍是主壳；新增 `Attach(BridgeSurface, channel)`，面是 `Main`/`Menu`/`Wheel`/`Panel`；
+- `PushAsync(..., surface)` 与 `DropPending(..., surface)` 按面过滤；未 ready 的面只缓冲自己的事件；
+- `bridge.ready` 与请求应答回到发话的那一面；`PageReset` 只在主壳换页时触发（浮层重载不等于
+  壳的对话框被丢弃）；
+- `IBridgeHandler` 不变；处理器照旧调用 `PushAsync`，默认面是 `Main`。
 
-这一步可以先用现有主壳单面落地（面参数默认 `main`），不改变行为，再由浮层面接入。
+**已完成（2026-11）**：`BridgeServer` 已按面路由，`BridgeSurfaceTests`（6 条）覆盖只发所属面、
+按面缓冲、ready/应答回源、`PageReset` 仅主壳与按面合并。测试放进现有 `WhaleGenie.Tests` 而不是
+新建工程：桥的既有测试与夹具都在那里，再开一个工程只会复制夹具。
 
 ### 2.3 契约：快照 + 命令，不传控件
 

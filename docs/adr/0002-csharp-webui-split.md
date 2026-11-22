@@ -38,6 +38,7 @@
    文件对话框、拾取器、窗口按钮/遮罩、主题、设置、编辑器测试、运行调度都经端口
    （`IFileDialogs`、`IProjectInteraction`、`IEditorSettings`、`IEditorPickerHost`、
    `IEditorWindowAside`、`ISettingsPickerHost`、`IUiPost` 等）；UI 工程实现端口并保留窗口。
+   桥已按面（`Main`/`Menu`/`Wheel`/`Panel`）路由，浮层可以各自带一页。
    分层由 `LayeringTests` 与 `WebUiBoundaryTests` 保证。
 
 ## 后续技术债（不阻塞职责分界）

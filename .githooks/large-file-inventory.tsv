@@ -175,5 +175,5 @@
 438	src/WhaleGenie.App/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
 27445	webui/src/shared/bridge/mock-strings-extra.ts	exempt: mock 词表（键到中英），与 Strings 同构，切碎会让取词入口分散
 32470	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
-401	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
+449	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 314	src/WhaleGenie.Editing/Editor/ConditionEditorViewModel.cs	keep: 条件树的增删与拾取是同一个编辑任务

@@ -41,28 +41,24 @@ public sealed class BridgeServer
     /// <summary>The method names the handlers registered, for the inventory check.</summary>
     internal IReadOnlyCollection<string> Methods => _methods.Keys.Order(StringComparer.Ordinal).ToArray();
 
-    /// <summary>
-    /// Event envelopes held back until the page asked for them, one per event: a page that has not
-    /// drawn yet wants the latest theme or project, not every state it passed through while loading.
-    /// </summary>
-    private readonly List<(string Event, string Json)> _pending = [];
-
-    /// <summary>Events ready to go out. The pump sends them in order, one at a time.</summary>
-    private readonly List<PendingPush> _queue = [];
-
-    /// <summary>Guards the pending buffer, the ready queue and the ready flag.</summary>
+    /// <summary>Guards every surface's pending buffer, ready queue and ready flag.</summary>
     private readonly object _stateGate = new();
 
-    /// <summary>Serializes sends so two events cannot reach the page in the opposite order.</summary>
+    /// <summary>Serializes sends so two events cannot reach one page in the opposite order.</summary>
     private readonly SemaphoreSlim _sendGate = new(1, 1);
 
-    private IBridgeChannel? _channel;
-
-    private Action<string>? _pump;
-
-    private bool _ready;
-
-    private bool _draining;
+    /// <summary>
+    /// One page each, not one page in total: the shell talks about the project, and an overlay
+    /// talks about the menu, the wheel or one panel. A push names its surface, and a surface that
+    /// has not registered its receiver yet keeps its own buffer instead of delaying the others.
+    /// </summary>
+    private readonly Dictionary<BridgeSurface, SurfaceState> _surfaces = new()
+    {
+        [BridgeSurface.Main] = new SurfaceState(),
+        [BridgeSurface.Menu] = new SurfaceState(),
+        [BridgeSurface.Wheel] = new SurfaceState(),
+        [BridgeSurface.Panel] = new SurfaceState(),
+    };
 
     private sealed class PendingPush(string @event, string json)
     {
@@ -73,6 +69,25 @@ public sealed class BridgeServer
         public TaskCompletionSource Completion { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
+
+    private sealed class SurfaceState
+    {
+        /// <summary>Event envelopes held back until this page asked for them, one per event.</summary>
+        public List<(string Event, string Json)> Pending { get; } = [];
+
+        /// <summary>Events ready to go out; one pump sends them in order.</summary>
+        public List<PendingPush> Queue { get; } = [];
+
+        public IBridgeChannel? Channel { get; set; }
+
+        public Action<string>? Pump { get; set; }
+
+        public bool Ready { get; set; }
+
+        public bool Draining { get; set; }
+    }
+
+    private SurfaceState State(BridgeSurface surface) => _surfaces[surface];
 
     /// <summary>
     /// Raised when the server goes back to "no page yet" — a fresh attach or an explicit reset.
@@ -87,29 +102,38 @@ public sealed class BridgeServer
     /// Attaching twice — the shell does it once in its constructor and once per fresh page — must
     /// not listen twice, or every request would be answered twice.
     /// </summary>
-    public void Attach(IBridgeChannel channel)
+    public void Attach(IBridgeChannel channel) => Attach(BridgeSurface.Main, channel);
+
+    /// <summary>The same, for one of the overlay pages beside the shell.</summary>
+    public void Attach(BridgeSurface surface, IBridgeChannel channel)
     {
-        if (_channel is { } previous && _pump is { } pump)
+        var state = State(surface);
+        if (state.Channel is { } previous && state.Pump is { } pump)
         {
             previous.MessageFromWeb -= pump;
         }
 
-        _channel = channel;
-        _pump = message => _ = AcceptAsync(message);
-        _channel.MessageFromWeb += _pump;
+        state.Channel = channel;
+        state.Pump = message => _ = AcceptAsync(surface, message);
+        state.Channel.MessageFromWeb += state.Pump;
         lock (_stateGate)
         {
-            _ready = false;
-            _pending.Clear();
-            foreach (var queued in _queue)
+            state.Ready = false;
+            state.Pending.Clear();
+            foreach (var queued in state.Queue)
             {
                 queued.Completion.TrySetResult();
             }
 
-            _queue.Clear();
+            state.Queue.Clear();
         }
 
-        PageReset?.Invoke();
+        // A dialog question is asked on the shell's page. An overlay reloading is not the page
+        // going away, so the questions the shell is answering stay open.
+        if (surface is BridgeSurface.Main)
+        {
+            PageReset?.Invoke();
+        }
     }
 
     /// <summary>Registers every method a handler answers.</summary>
@@ -132,7 +156,10 @@ public sealed class BridgeServer
     /// an answer with, and the only way it happens is a broken page, which the debugger sees
     /// directly.
     /// </summary>
-    public async Task AcceptAsync(string json)
+    public Task AcceptAsync(string json) => AcceptAsync(BridgeSurface.Main, json);
+
+    /// <summary>The same, with the page that spoke named so the answer goes back to it.</summary>
+    public async Task AcceptAsync(BridgeSurface surface, string json)
     {
         JsonDocument document;
         try
@@ -159,13 +186,13 @@ public sealed class BridgeServer
 
             if (method == BridgeProtocol.ReadyMethod)
             {
-                await AnswerReadyAsync(id);
+                await AnswerReadyAsync(surface, id);
                 return;
             }
 
             if (!_methods.TryGetValue(method, out var handler))
             {
-                await AnswerFailureAsync(id, BridgeErrors.NoSuchMethod,
+                await AnswerFailureAsync(surface, id, BridgeErrors.NoSuchMethod,
                     Strings.Format("Bridge.NoSuchMethod", method));
                 return;
             }
@@ -180,17 +207,17 @@ public sealed class BridgeServer
             }
             catch (BridgeFailureException failure)
             {
-                await AnswerFailureAsync(id, failure.Code, failure.Message);
+                await AnswerFailureAsync(surface, id, failure.Code, failure.Message);
                 return;
             }
             catch (Exception error)
             {
                 AppDiagnostics.Record("bridge.method", error);
-                await AnswerFailureAsync(id, BridgeErrors.Internal, Strings.Get("Bridge.Internal"));
+                await AnswerFailureAsync(surface, id, BridgeErrors.Internal, Strings.Get("Bridge.Internal"));
                 return;
             }
 
-            await SendAsync(JsonSerializer.Serialize(new { id, ok = true, result }, Options));
+            await SendAsync(surface, JsonSerializer.Serialize(new { id, ok = true, result }, Options));
         }
     }
 
@@ -205,23 +232,24 @@ public sealed class BridgeServer
     /// lines, for example — pass <see cref="BridgePushMode.All"/> and keep every push.
     /// </remarks>
     public Task PushAsync(string @event, object? payload,
-        BridgePushMode mode = BridgePushMode.Latest)
+        BridgePushMode mode = BridgePushMode.Latest, BridgeSurface surface = BridgeSurface.Main)
     {
+        var state = State(surface);
         var json = JsonSerializer.Serialize(new { @event, payload }, Options);
         Task completion;
         var start = false;
         lock (_stateGate)
         {
-            if (!_ready || _channel is null)
+            if (!state.Ready || state.Channel is null)
             {
-                _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
-                _pending.Add((@event, json));
+                state.Pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
+                state.Pending.Add((@event, json));
                 return Task.CompletedTask;
             }
 
             if (mode == BridgePushMode.Latest)
             {
-                var existing = _queue.FindLast(entry =>
+                var existing = state.Queue.FindLast(entry =>
                     string.Equals(entry.Event, @event, StringComparison.Ordinal));
                 if (existing is not null)
                 {
@@ -231,29 +259,29 @@ public sealed class BridgeServer
             }
 
             var queued = new PendingPush(@event, json);
-            _queue.Add(queued);
+            state.Queue.Add(queued);
             completion = queued.Completion.Task;
-            start = !_draining;
-            _draining = start;
+            start = !state.Draining;
+            state.Draining = start;
         }
 
         if (start)
         {
-            _ = DrainAsync();
+            _ = DrainAsync(surface);
         }
 
         return completion;
     }
 
     /// <summary>Whether the page has registered its receiver and may be sent events.</summary>
-    public bool IsReady
+    public bool IsReady => IsReadyOn(BridgeSurface.Main);
+
+    /// <summary>Whether one page has registered its receiver and may be sent events.</summary>
+    public bool IsReadyOn(BridgeSurface surface)
     {
-        get
+        lock (_stateGate)
         {
-            lock (_stateGate)
-            {
-                return _ready;
-            }
+            return State(surface).Ready;
         }
     }
 
@@ -261,79 +289,83 @@ public sealed class BridgeServer
     /// Drops an event waiting for the page. A handler that has just answered the same state in a
     /// request clears the buffered copy, so an older push cannot overwrite the newer answer.
     /// </summary>
-    public void DropPending(string @event)
+    public void DropPending(string @event, BridgeSurface surface = BridgeSurface.Main)
     {
         lock (_stateGate)
         {
-            _pending.RemoveAll(entry => string.Equals(entry.Event, @event, StringComparison.Ordinal));
+            State(surface).Pending.RemoveAll(entry =>
+                string.Equals(entry.Event, @event, StringComparison.Ordinal));
         }
     }
 
     /// <summary>Sends the ready queue in order until it is empty.</summary>
-    private async Task DrainAsync()
+    private async Task DrainAsync(BridgeSurface surface)
     {
+        var state = State(surface);
         while (true)
         {
             PendingPush next;
             lock (_stateGate)
             {
-                if (_queue.Count == 0)
+                if (state.Queue.Count == 0)
                 {
-                    _draining = false;
+                    state.Draining = false;
                     return;
                 }
 
-                next = _queue[0];
-                _queue.RemoveAt(0);
+                next = state.Queue[0];
+                state.Queue.RemoveAt(0);
             }
 
-            await SendAsync(next.Json);
+            await SendAsync(surface, next.Json);
             next.Completion.TrySetResult();
         }
     }
 
-    private async Task AnswerReadyAsync(int? id)
+    private async Task AnswerReadyAsync(BridgeSurface surface, int? id)
     {
+        var state = State(surface);
         (string Event, string Json)[] buffered;
         lock (_stateGate)
         {
-            _ready = true;
-            buffered = [.. _pending];
-            _pending.Clear();
+            state.Ready = true;
+            buffered = [.. state.Pending];
+            state.Pending.Clear();
         }
 
         if (id is { } readyId)
         {
-            await SendAsync(JsonSerializer.Serialize(new { id = readyId, ok = true, result = (object?)null }, Options));
+            await SendAsync(surface,
+                JsonSerializer.Serialize(new { id = readyId, ok = true, result = (object?)null }, Options));
         }
 
         foreach (var (_, json) in buffered)
         {
-            await SendAsync(json);
+            await SendAsync(surface, json);
         }
     }
 
-    private Task AnswerFailureAsync(int? id, string code, string message)
+    private Task AnswerFailureAsync(BridgeSurface surface, int? id, string code, string message)
         => id is null
             ? Task.CompletedTask
-            : SendAsync(JsonSerializer.Serialize(new
+            : SendAsync(surface, JsonSerializer.Serialize(new
             {
                 id,
                 ok = false,
                 error = new { code, message },
             }, Options));
 
-    private async Task SendAsync(string json)
+    private async Task SendAsync(BridgeSurface surface, string json)
     {
         await _sendGate.WaitAsync();
         try
         {
-            if (_channel is null)
+            if (State(surface).Channel is not { } channel)
             {
                 return;
             }
 
-            await _channel.SendToWebAsync(json);
+            await channel.SendToWebAsync(json);
         }
         catch (Exception)
         {
@@ -345,6 +377,22 @@ public sealed class BridgeServer
             _sendGate.Release();
         }
     }
+}
+
+/// <summary>Which page a message belongs to: the shell, or one of the overlays beside it.</summary>
+public enum BridgeSurface
+{
+    /// <summary>The shell: project, editor, settings and run panels.</summary>
+    Main,
+
+    /// <summary>The macro menu overlay.</summary>
+    Menu,
+
+    /// <summary>The wheel overlay.</summary>
+    Wheel,
+
+    /// <summary>One interface panel beside the window in front.</summary>
+    Panel,
 }
 
 /// <summary>How a push treats an older push of the same event that has not gone out yet.</summary>
