@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
@@ -20,12 +20,13 @@ namespace WhaleGenie.Bridge;
 /// native window uses. Steps, log lines, arguments and the four run commands are snapshotted; the
 /// page never owns a second run.
 /// </summary>
-internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runtime)
-    : IBridgeHandler, IDisposable
+internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runtime,
+    IUiPost? ui = null) : IBridgeHandler, IDisposable
 {
+    private readonly IUiPost _ui = ui ?? InlineUiPost.Instance;
     private BridgeServer? _server;
     private RunViewModel? _run;
-    private DispatcherTimer? _timer;
+    private Timer? _timer;
     private RunLook? _look;
     private int _sentLog;
     private string _sentSteps = string.Empty;
@@ -44,7 +45,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
         server.Register("run.answer", Answer);
     }
 
-    public void Dispose() => _timer?.Stop();
+    public void Dispose() => _timer?.Dispose();
 
     private async Task<object?> LoadAsync(JsonElement parameters)
     {
@@ -67,7 +68,7 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     private RunViewModel NewRun()
     {
         var run = new RunViewModel([], runtime.Devices, listed: [.. workspace.Macros],
-            triggers: runtime.Triggers, variables: workspace.Variables);
+            triggers: runtime.Triggers, variables: workspace.Variables, ui: _ui);
         run.LookRequested += look =>
         {
             _look = new RunLook(look.StepId, look.StepType, look.Looking, ToDataUrl(look.Frame));
@@ -115,7 +116,8 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
     /// <summary>Leaving the panel ends the debugger session: stop the clock and release the run.</summary>
     private Task<object?> Unload(JsonElement parameters)
     {
-        _timer?.Stop();
+        _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _timer?.Dispose();
         _timer = null;
         if (_run?.IsBusy == true)
         {
@@ -223,9 +225,8 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
             return;
         }
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        _timer.Tick += (_, _) => _ = PushAsync();
-        _timer.Start();
+        _timer = new Timer(_ => _ui.Post(() => _ = PushAsync()), null,
+            TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
     }
 
     private async Task PushAsync()
@@ -268,7 +269,8 @@ internal sealed class RunBridge(ProjectWorkspace workspace, TriggerRuntime runti
 
         if (!_run.IsBusy && !_run.IsPaused && !_run.IsAsking && !_run.IsAskingUser)
         {
-            _timer?.Stop();
+            _timer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _timer?.Dispose();
             _timer = null;
         }
     }

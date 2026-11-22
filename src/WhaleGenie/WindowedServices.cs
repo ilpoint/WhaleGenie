@@ -101,7 +101,7 @@ internal static class WindowedServices
                     }
                 }));
             server.Register(new RunBridge(sp.GetRequiredService<ProjectWorkspace>(),
-                sp.GetRequiredService<TriggerRuntime>()));
+                sp.GetRequiredService<TriggerRuntime>(), new AvaloniaUiPost()));
             return server;
         })
         .AddSingleton(sp => new WebShellWindow(sp.GetRequiredService<BridgeServer>(),

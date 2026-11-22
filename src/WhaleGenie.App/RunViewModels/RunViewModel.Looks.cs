@@ -5,12 +5,8 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WhaleGenie.Assets;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -29,15 +25,14 @@ public partial class RunViewModel
     /// Takes what a step saw and puts it on that step's row. Called from the thread the run is on,
     /// so the picture is handed to the window's own thread before anything is done with it.
     /// </summary>
-    public void Look(StepLook look)
-        => Dispatcher.UIThread.Post(() => Keep(look));
+    public void Look(StepLook look) => _ui.Post(() => Keep(look));
 
     /// <summary>
     /// Takes what a step came to — how long it took, how it ended, why if it failed, and everything
     /// it worked out whether or not the macro keeps any of it — and puts it on that step's row.
     /// Called from the thread the run is on, so it is handed to the window's own thread first.
     /// </summary>
-    public void Ran(StepRun run) => Dispatcher.UIThread.Post(() => KeepRun(run));
+    public void Ran(StepRun run) => _ui.Post(() => KeepRun(run));
 
     /// <summary>Fills in the panel under a step's row with what the step just came to.</summary>
     private void KeepRun(StepRun run)
@@ -48,7 +43,6 @@ public partial class RunViewModel
         }
     }
 
-    /// <summary>Opens one step's picture, which is the whole of what it saw rather than a thumbnail.</summary>
     public event Action<StepLook>? LookRequested;
 
     /// <summary>
@@ -73,7 +67,7 @@ public partial class RunViewModel
     /// The call comes from the thread the run is on, so the frame is drawn on the thread that owns
     /// windows.
     /// </summary>
-    public void Reading(WindowInfo? window) => Dispatcher.UIThread.Post(() => ReadingAt(window));
+    public void Reading(WindowInfo? window) => _ui.Post(() => ReadingAt(window));
 
     /// <summary>
     /// Moves the frame to the window being read. A reading that lands after the run has stopped
@@ -113,17 +107,12 @@ public partial class RunViewModel
 
         if (Steps.FirstOrDefault(step => step.Id == look.StepId) is { } row)
         {
-            var small = look.Frame.IsEmpty ? null : BitmapImages.ToBitmap(look.Frame);
-            var previous = row.Thumbnail;
-            row.Thumbnail = small;
-            row.HasLook = small is not null;
-            previous?.Dispose();
+            row.HasLook = true;
         }
     }
 
     /// <summary>
     /// Takes a step's picture off its row, once the run has let that picture go. Keeping the
-    /// thumbnail of a look that is no longer held would put the memory back without the picture.
     /// </summary>
     private void Forget(string stepId)
     {
@@ -134,10 +123,7 @@ public partial class RunViewModel
 
         if (Steps.FirstOrDefault(step => step.Id == stepId) is { } row)
         {
-            var previous = row.Thumbnail;
-            row.Thumbnail = null;
             row.HasLook = false;
-            previous?.Dispose();
         }
     }
 
@@ -146,8 +132,7 @@ public partial class RunViewModel
     {
         foreach (var step in Steps)
         {
-            step.Thumbnail?.Dispose();
-            step.Thumbnail = null;
+            step.HasLook = false;
         }
 
         _looks.Clear();

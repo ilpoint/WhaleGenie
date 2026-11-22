@@ -5,9 +5,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -40,7 +37,7 @@ public partial class RunViewModel
             _runNote = null;
             Lines.Add(new RunLineViewModel(
                 DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
-                LogLevel.Warn, default, note));
+                LogLevel.Warn, note));
         }
 
         IsBusy = true;
@@ -63,7 +60,7 @@ public partial class RunViewModel
             var runner = RunFactory.Create(new RunRequest
             {
                 Variables = _variables,
-                Host = new UiThreadRunHost(this),
+                Host = new PostedRunHost(this, _ui),
                 Devices = _devices,
                 Library = Library,
                 Name = Debugged,
@@ -205,7 +202,7 @@ public partial class RunViewModel
     private void Write(string text)
         => Lines.Add(new RunLineViewModel(
             DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
-            LogLevel.Warn, default, text));
+            LogLevel.Warn, text));
 
     /// <summary>Hands a failed step to the user, who picks what happens next.</summary>
     public async Task<StepErrorChoice> Ask(string step, string reason, string detail, string comment,
@@ -268,7 +265,6 @@ public partial class RunViewModel
         Lines.Add(new RunLineViewModel(
             entry.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
             entry.Level,
-            new Thickness(entry.Depth * 14, 0, 0, 0),
             text));
         _capture?.Add(entry, text);
     }

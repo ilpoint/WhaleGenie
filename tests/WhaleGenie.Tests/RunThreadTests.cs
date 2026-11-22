@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Runtime;
+using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Tests;
 
@@ -19,7 +20,7 @@ public class RunThreadTests
         var landed = Ui.RunAsync(async () =>
         {
             var threads = new List<bool>();
-            var host = new UiThreadRunHost(new Watching(threads));
+            var host = new PostedRunHost(new Watching(threads), new WhaleGenie.Web.AvaloniaUiPost());
 
             // Each of these is called the way the runner calls it: from a thread that is not the
             // window's own.

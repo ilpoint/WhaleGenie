@@ -5,9 +5,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -114,14 +111,6 @@ public partial class RunStepViewModel : ObservableObject
     /// <summary>True once this step has something to show for itself: what it last looked at.</summary>
     [ObservableProperty]
     public partial bool HasLook { get; set; }
-
-    /// <summary>
-    /// The picture this step last looked at, small. It is what makes a run readable after the
-    /// fact: a log line says a picture was found, and this says what the screen looked like when
-    /// that was decided.
-    /// </summary>
-    [ObservableProperty]
-    public partial Bitmap? Thumbnail { get; set; }
 
     /// <summary>True once this step has run, so the panel under it has something to say.</summary>
     [ObservableProperty]

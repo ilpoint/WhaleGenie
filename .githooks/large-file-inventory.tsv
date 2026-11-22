@@ -130,7 +130,7 @@
 304	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Insertion.cs	keep: 插入、粘贴与落点判定同属「这一步放到哪里」，落点也要被对话框读成计数器的作用域
 685	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.Settings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
 439	src/WhaleGenie.Editing/Editor/MacroEditorViewModel.TriggerSettings.cs	keep: 编辑器视图模型的一族，按关注点拆分后单一职责
-335	src/WhaleGenie/ViewModels/Run/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
+332	src/WhaleGenie.App/RunViewModels/RunViewModel.Rebuild.cs	keep: 运行窗口的一族，按面板与关注点拆分后单一职责
 591	src/WhaleGenie.Editing/Editor/StepRow.cs	keep: 步骤行模型，行为/条件/结果/分支值同属一行的编辑状态，内聚
 316	src/WhaleGenie.Editing/Variables/VariableWallViewModel.cs	keep: 变量墙一页的状态与命令，单一职责
 386	src/WhaleGenie.Editing/Value/WindowPreviewViewModel.cs	keep: 一个界面的状态与命令
@@ -192,7 +192,7 @@
 987	.workbuddy/tmp/orig_tests.cs	pending review
 545	.workbuddy/tmp/sshvenv/Scripts/Activate.ps1	pending review
 20011	docs/manual/05-values-and-placement.md	pending review
-436	src/WhaleGenie/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
+438	src/WhaleGenie.App/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
 27445	webui/src/shared/bridge/mock-strings-extra.ts	pending review
 32470	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 401	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责

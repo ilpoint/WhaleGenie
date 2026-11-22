@@ -5,9 +5,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -48,7 +45,7 @@ public sealed record RunResultViewModel(string Name, string Value, bool Kept)
 /// One line under a step's result: a field of a record, or one entry of a list of them, indented by
 /// how deep it sits.
 /// </summary>
-public sealed record RunResultLine(string Name, string Value, Thickness Indent);
+public sealed record RunResultLine(string Name, string Value);
 
 /// <summary>
 /// One try at a step, already worded for the debugger: when it ran, how much of the step's budget
@@ -63,9 +60,6 @@ public sealed record RunAttemptViewModel(string Note, string Failure, bool HasFa
 /// </summary>
 public static class RunResultLines
 {
-    /// <summary>How far in one level of nesting puts a line.</summary>
-    private const double IndentStep = 16;
-
     /// <summary>The lines for the fields of one result, the fields themselves one level in.</summary>
     public static IReadOnlyList<RunResultLine> Of(IReadOnlyList<JsonTreeNode> fields)
     {
@@ -78,8 +72,7 @@ public static class RunResultLines
     {
         foreach (var node in nodes)
         {
-            lines.Add(new RunResultLine(node.Name, node.Preview,
-                new Thickness(depth * IndentStep, 0, 0, 0)));
+            lines.Add(new RunResultLine(node.Name, node.Preview));
 
             // A field that is a record or a list of them keeps its own name and puts what is inside
             // it on the lines below, so a list of hits reads as hits rather than as one long line.

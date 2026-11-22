@@ -5,9 +5,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -23,7 +20,7 @@ namespace WhaleGenie.ViewModels;
 
 // One line of the run log.
 /// <summary>One line of the run log, already translated.</summary>
-public sealed record RunLineViewModel(string Time, LogLevel Level, Thickness Indent, string Text)
+public sealed record RunLineViewModel(string Time, LogLevel Level, string Text)
 {
     public string Color => Level switch
     {

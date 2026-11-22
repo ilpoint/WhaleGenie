@@ -5,9 +5,6 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Devices;
@@ -47,6 +44,7 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     private IReadOnlyList<ExecutableStep> _steps;
 
     private readonly VariableStore _variables;
+    private readonly IUiPost _ui;
     private readonly IDeviceLayer _devices;
     private readonly double _delayScale;
 
@@ -215,8 +213,10 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public RunViewModel(IEnumerable<MacroStep> steps, IDeviceLayer devices, double delayScale = 1,
         IMacroLibrary? macros = null, IReadOnlyList<MacroItem>? listed = null,
         MacroTriggerService? triggers = null, string macroName = "",
-        MacroCallable? callable = null, int? inputRate = null, VariableSession? variables = null)
+        MacroCallable? callable = null, int? inputRate = null, VariableSession? variables = null,
+        IUiPost? ui = null)
     {
+        _ui = ui ?? InlineUiPost.Instance;
         _devices = devices;
         _session = variables ?? new VariableSession();
         _delayScale = delayScale;
