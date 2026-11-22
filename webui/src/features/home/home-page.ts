@@ -4,6 +4,7 @@ import { appInfo } from '../../shared/app/app.js';
 import { project } from '../../shared/project/store.js';
 import { go, type Route } from '../../shared/navigation/router.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import type { AppInfo, ProjectState } from '../../shared/bridge/protocol.js';
 
 /** The first page: what build and project are open, and where each part of the work lives. */
@@ -78,28 +79,15 @@ export class WgHomePage extends LitElement {
 
   `;
 
-  private unsubscribers: Array<() => void> = [];
+  protected readonly stringsController = new StoreController(this, strings);
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribers = [
-      strings.subscribe(() => this.requestUpdate()),
-      appInfo.subscribe((info) => {
-        this.info = info;
-      }),
-      project.subscribe((state) => {
-        this.document = state;
-      }),
-    ];
-  }
+  protected readonly appInfoController = new StoreController(this, appInfo, (info) => {
+    this.info = info;
+  });
 
-  disconnectedCallback(): void {
-    for (const unsubscribe of this.unsubscribers) {
-      unsubscribe();
-    }
-    this.unsubscribers = [];
-    super.disconnectedCallback();
-  }
+  protected readonly projectController = new StoreController(this, project, (state) => {
+    this.document = state;
+  });
 
   render() {
     return html`

@@ -6,6 +6,7 @@ import { bridge } from '../../shared/bridge/bridge.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
 import type { WgMcpPanel } from '../mcp/index.js';
 import '../mcp/index.js';
@@ -37,25 +38,11 @@ export class WgMacros extends LitElement {
 
   static styles = macrosPageCss;
 
-  private unsubscribers: Array<() => void> = [];
+  protected readonly stringsController = new StoreController(this, strings);
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    this.unsubscribers = [
-      strings.subscribe(() => this.requestUpdate()),
-      project.subscribe((state) => {
-        this.state = state;
-      }),
-    ];
-  }
-
-  disconnectedCallback(): void {
-    for (const unsubscribe of this.unsubscribers) {
-      unsubscribe();
-    }
-    this.unsubscribers = [];
-    super.disconnectedCallback();
-  }
+  protected readonly projectController = new StoreController(this, project, (state) => {
+    this.state = state;
+  });
 
   render() {
     if (this.state === null) {

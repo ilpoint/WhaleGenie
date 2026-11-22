@@ -13,6 +13,8 @@ import '../features/run/run-page.js';
 import '../features/about/about-page.js';
 import { project } from '../shared/project/store.js';
 import { strings, t } from '../shared/strings/strings.js';
+import { StoreController } from '../shared/lit/store-controller.js';
+import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import type { ProjectState } from '../shared/bridge/protocol.js';
 
 /**
@@ -28,9 +30,15 @@ export class WgShell extends LitElement {
   @state()
   private document: ProjectState | null = null;
 
-  private unsubscribeProject?: () => void;
+  protected readonly stringsController = new StoreController(this, strings);
 
-  private unsubscribeStrings?: () => void;
+  protected readonly projectController = new StoreController(this, project, (value) => {
+    this.document = value;
+  });
+
+  protected readonly popstateController = new WindowEventController(this, 'popstate', () => {
+    this.route = currentRoute();
+  });
 
   static styles = css`
     :host {
@@ -80,26 +88,6 @@ export class WgShell extends LitElement {
       font-size: var(--fontSizeBase200);
     }
   `;
-
-  connectedCallback(): void {
-    super.connectedCallback();
-    window.addEventListener('popstate', this.onPopState);
-    this.unsubscribeProject = project.subscribe((value) => {
-      this.document = value;
-    });
-    this.unsubscribeStrings = strings.subscribe(() => this.requestUpdate());
-  }
-
-  disconnectedCallback(): void {
-    window.removeEventListener('popstate', this.onPopState);
-    this.unsubscribeProject?.();
-    this.unsubscribeStrings?.();
-    super.disconnectedCallback();
-  }
-
-  private readonly onPopState = (): void => {
-    this.route = currentRoute();
-  };
 
   private onNavigate(event: CustomEvent<{ route: Route }>): void {
     go(event.detail.route);

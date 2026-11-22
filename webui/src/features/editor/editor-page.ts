@@ -4,6 +4,8 @@ import { customElement } from 'lit/decorators.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
+import { WindowEventController } from '../../shared/lit/window-event-controller.js';
 import { findStep, flattenSteps } from './editor-model.js';
 import { editorBase } from './editor-css.js';
 import './editor-tabs.js';
@@ -22,7 +24,11 @@ import './value-editor.js';
 export class WgEditor extends LitElement {
   static styles = [editorBase, editorPageCss];
 
-  private unsubscribe?: () => void;
+  protected readonly editorController = new StoreController<void>(this, editor);
+
+  protected readonly keydownController = new WindowEventController(this, 'keydown', (event) => {
+    this.onKeydown(event);
+  });
 
   private splitStartX = 0;
 
@@ -32,13 +38,9 @@ export class WgEditor extends LitElement {
     super.connectedCallback();
     editor.session.ensureLoaded();
     editor.session.refresh();
-    this.unsubscribe = editor.subscribe(() => this.requestUpdate());
-    window.addEventListener('keydown', this.onKeydown);
   }
 
   disconnectedCallback(): void {
-    this.unsubscribe?.();
-    window.removeEventListener('keydown', this.onKeydown);
     editor.leaveEditor();
     super.disconnectedCallback();
   }

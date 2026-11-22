@@ -10,6 +10,7 @@ import type {
 } from '../../shared/bridge/protocol.js';
 import { theme as themeStore } from '../../shared/theme/theme.js';
 import { strings, t } from '../../shared/strings/strings.js';
+import { StoreController } from '../../shared/lit/store-controller.js';
 import { keyboardChord, pointerBinding } from '../../shared/input/capture.js';
 import { emptyRule, type WgWindowRule } from '../../shared/window-rule/window-rule-dialog.js';
 import { renderMenu, type MenuActions } from './settings-menu.js';
@@ -61,23 +62,15 @@ export class WgSettings extends LitElement {
 
   static styles = settingsPageCss;
 
-  private unsubscribeStrings?: () => void;
+  protected readonly stringsController = new StoreController(this, strings);
 
-  private unsubscribeTheme?: () => void;
+  protected readonly themeController = new StoreController(this, themeStore, (theme) => {
+    this.theme = theme;
+  });
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.unsubscribeStrings = strings.subscribe(() => this.requestUpdate());
-    this.unsubscribeTheme = themeStore.subscribe((theme) => {
-      this.theme = theme;
-    });
     void this.load();
-  }
-
-  disconnectedCallback(): void {
-    this.unsubscribeStrings?.();
-    this.unsubscribeTheme?.();
-    super.disconnectedCallback();
   }
 
   render() {
