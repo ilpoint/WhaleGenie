@@ -28,7 +28,8 @@ public sealed record EditorSnapshot(
     bool CanSave, string? NameProblem, string ProblemSummary, string DeclarationProblemSummary,
     string CallImpactSummary, string Notice, string TriggerProblemSummary,
     string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro,
-    IReadOnlyList<EditorTabSnapshot>? Tabs = null, string? ActiveKey = null);
+    IReadOnlyList<EditorTabSnapshot>? Tabs = null, string? ActiveKey = null,
+    EditorActionFormSnapshot? ActionForm = null);
 
 /// <summary>One global declaration in the editor.</summary>
 [BridgeContract]

@@ -79,7 +79,12 @@ export function close(host: MockEditor, key?: string | null): EditorSnapshot | n
   }
 
 function withTabs(host: MockEditor, document: EditorSnapshot): EditorSnapshot {
-  return { ...document, tabs: tabs(host).tabs, activeKey: host.activeKey };
+  return {
+    ...document,
+    tabs: tabs(host).tabs,
+    activeKey: host.activeKey,
+    actionForm: host.actionForm,
+  };
 }
 
 export function tabs(host: MockEditor): { activeKey: string | null; tabs: EditorTab[] } {

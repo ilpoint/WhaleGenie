@@ -70,14 +70,8 @@ export class EditorCore {
   }
 
   async snapshotCommand(method: BridgeMethod, params?: unknown): Promise<boolean> {
-    const ok = await this.mutate<EditorSnapshot | null>(method, params,
+    return this.mutate<EditorSnapshot | null>(method, params,
       (value) => this.applySnapshot(value));
-    if (ok && this.state.actionForm) {
-      await this.refreshActionForm();
-      this.notify();
-    }
-
-    return ok;
   }
 
   async actionCommand(method: BridgeMethod, params: Record<string, unknown>): Promise<boolean> {
@@ -101,15 +95,6 @@ export class EditorCore {
       this.state.actionError = describeError(error);
       this.notify();
       return false;
-    }
-  }
-
-  async refreshActionForm(): Promise<void> {
-    try {
-      const form = await this.client.call<EditorActionForm>('editor.actionState');
-      this.state.actionForm = form.open ? form : null;
-    } catch {
-      // A closed document has no form; the next snapshot handles the state.
     }
   }
 

@@ -282,6 +282,7 @@ export function createDocumentSnapshot(
     isSubMacro: false,
     tabs: [],
     activeKey: null,
+    actionForm: null,
     ...overrides,
   });
 }

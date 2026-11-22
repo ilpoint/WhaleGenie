@@ -834,9 +834,15 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
 
 
     private object? Snapshot()
-        => _documents.Active?.Snapshot() is { } snapshot
-            ? new
-            {
+    {
+        var active = _documents.Active;
+        if (active?.Snapshot() is not { } snapshot)
+        {
+            return null;
+        }
+
+        return new
+        {
                 name = snapshot.Name,
                 description = snapshot.Description,
                 group = snapshot.Group,
@@ -871,8 +877,9 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
                 isSubMacro = snapshot.IsSubMacro,
                 tabs = _documents.Tabs,
                 activeKey = _documents.ActiveKey,
-            }
-            : null;
+                actionForm = active.ActionFormState(),
+            };
+    }
 
     private static readonly JsonSerializerOptions CommandOptions = new()
     {

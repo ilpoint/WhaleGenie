@@ -691,6 +691,7 @@ export interface EditorSnapshot {
   isSubMacro: boolean;
   tabs: EditorTabSnapshot[] | null;
   activeKey: string | null;
+  actionForm: EditorActionFormSnapshot | null;
 }
 
 export interface EditorStepCommand {

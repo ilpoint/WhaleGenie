@@ -83,9 +83,6 @@ export class EditorValueService {
         this.core.state.valueError = '';
         if (outcome.applied) {
           await this.core.reload();
-          if (this.core.state.actionForm) {
-            await this.core.refreshActionForm();
-          }
         }
       } else {
         this.core.state.valueEditor = outcome.snapshot;

@@ -90,8 +90,8 @@ features/<feature>/
   `editor.variable`（local/global × add/patch/remove）、`editor.session`（open/new/save/close 等）、
   `editor.steps`（多选/复制/粘贴）、`editor.step`（单步/参数）、
   `editor.record`（start/stop/state/option/delayScale）。
-- 编辑命令的返回值是带 `tabs`/`activeKey` 的完整快照；页面成功后不再追加 `sessionTabs`，
-  只在没有活动文档时用它兜底。
+- 编辑命令的返回值是带 `tabs`/`activeKey`/`actionForm` 的完整快照；页面成功后不再追加
+  `sessionTabs` 或刷新动作表单，`sessionTabs` 只在没有活动文档时兜底。
   矩阵型命令用一条 `[BridgeRequest]` 记录，可空字段生成
   `?:`，不必为每个 kind 建派生记录。新增编辑器命令时优先扩展现有联合，不再加一条按字段拆的
   `editor.*` 方法。
