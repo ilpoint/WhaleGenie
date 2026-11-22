@@ -3,6 +3,7 @@ import type { EditorTrigger } from '../../../shared/bridge/protocol.js';
 import { t } from '../../../shared/strings/strings.js';
 import { editor } from '../editor-store.js';
 import type { TriggerFieldHost } from './trigger-field-host.js';
+import { renderIdleFields } from './trigger-idle.js';
 
 export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigger): TemplateResult {
     const fields: TemplateResult[] = [];
@@ -260,14 +261,7 @@ export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigg
           `}
       `);
     } else if (trigger.kind === 'Idle') {
-      fields.push(html`
-        <label class="field">
-          <span>${t('Editor.IdleSeconds')}</span>
-          <input type="number" min="1" .value=${trigger.idleSeconds}
-            @change=${(event: Event) => void editor.triggers.setTriggerIdle(trigger.id,
-              (event.target as HTMLInputElement).value)} />
-        </label>
-      `);
+      fields.push(renderIdleFields(trigger));
     } else {
       fields.push(html`<p class="hint">${trigger.summary}</p>`);
     }
