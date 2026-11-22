@@ -56,6 +56,5 @@
   `eslint-suppressions.json`，下一批可按字段/区块继续拆。
 - mock 宿主仍静态打进单文件产物。步骤工具已拆成展示（327 行）与结构编辑（380 行）两个文件，
   设置/词表夹具也已移出；`mock.ts` 已按 settings/run/shell 路由到 handler，降到 365 行。
-  `mock-editor.ts` 的 `run` 已拆到 action/value/session handler，action 表单方法也已移到
-  `mock-editor-action-form`，文件降到 924 行；下一批拆 `openValue`/`valueCommand` 与 steps/trigger 方法。
-  要剔除 mock 需另立 ADR。
+  `mock-editor.ts` 的 `run` 已拆到 action/value/session handler，action 表单与取值窗口也已拆出，
+  文件降到 798 行；下一批拆步骤/触发器命令与文档会话方法。要剔除 mock 需另立 ADR。
