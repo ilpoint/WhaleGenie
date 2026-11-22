@@ -52,6 +52,7 @@
 - `editor-store.ts` 从 1574 行降到约 115 行；最大的 service 约 330 行。
 - 组件不再手写 store 订阅/退订；窗口监听走 controller。
 - 架构边界由 `tests/architecture.test.ts` 守护；规模由 ESLint 抑制基线守护。
-- 剩余较大的视图文件（宏设置、设置页、步骤树、动作字段）按同一 playbook 分批拆；在拆完前，
-  它们的违规保留在 `eslint-suppressions.json`，不新增。
-- mock 宿主仍静态打进单文件产物；本轮只规划按域拆，不改变发布形状。要剔除 mock 需另立 ADR。
+- 宏设置、设置页、步骤树、动作字段已按同一 playbook 拆到 400 行以内；其中较长的模板函数仍留在
+  `eslint-suppressions.json`，下一批可按字段/区块继续拆。
+- mock 宿主（`mock.ts`、`mock-editor.ts`、`mock-editor-steps.ts`）仍超过 400 行，且静态打进单文件
+  产物；下一步按域拆 handler，发布形状不变。要剔除 mock 需另立 ADR。
