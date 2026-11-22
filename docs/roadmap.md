@@ -55,13 +55,14 @@
   读取随包文档；首页去掉“仍在迁移”的假状态。AdvancedSettingsWindow、ThemePaletteWindow、AboutWindow、
   WindowRuleWindow、WheelMenuEditorView 与 WheelActionWindow 已删除，设置桥新增窗口/菜单/轮盘命令
   与回归用例。
-- **阶段 G 动作表单与拾取器补齐（进行中）**：HeadlessActionSession 以 AddActionViewModel 为草稿模型，
+- **阶段 G 动作表单与拾取器补齐（已完成）**：HeadlessActionSession 以 AddActionViewModel 为草稿模型，
   网页动作表单恢复分组、行表、返回值、调用实参、全局声明、执行与容错、其它设置与试运行；
   颜色/区域/拖拽/截图/窗口尺寸/点位/UIA 元素覆盖层经 EditorPickerHost 由桥命令打开，窗口规则、
   浏览器页元素、路径、虚拟键盘与取景图点选在网页；触发入口补齐热字串六项、once/loop、窗口类与
-  界面热键字段，录制选项与运行速度进入宏设置。验收：全部桥命令与页面按钮对账、编辑器无头用例、
-  动作目录全量表单、颜色/区域/点位/UIA/浏览器/截图/键盘/录制/试运行真机清单，以及 manual、
-  architecture/interface、native-surfaces、DESIGN 与规模台账同轮更新。完成后删除本条。
+  界面热键字段，录制选项与运行速度进入宏设置。后续补齐图片缩略图、区域/颜色点行操作、窗口规则
+  对话框与预览、完整虚拟键盘/字符键盘/结束键格子、偏差点选、窗口列表选择、元素/页元素测试与
+  步骤树引导线；manual、architecture/interface、native-surfaces、DESIGN、editor-parity 与规模台账
+  同轮更新。
 
 ## 待评估
 

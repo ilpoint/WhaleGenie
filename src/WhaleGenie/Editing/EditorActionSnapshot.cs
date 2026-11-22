@@ -53,11 +53,14 @@ internal sealed record EditorActionFieldSnapshot(
     IReadOnlyList<EditorNarrowRowSnapshot> NarrowRows, IReadOnlyList<EditorGenericRowSnapshot> Rows,
     IReadOnlyList<EditorChoiceSnapshot> Macros, IReadOnlyList<EditorChoiceSnapshot> Steps,
     IReadOnlyList<EditorBrowserCandidateSnapshot> Candidates,
-    EditorWindowPreviewSnapshot? WindowPreview);
+    EditorWindowPreviewSnapshot? WindowPreview, EditorImagePreviewSnapshot? ImagePreview);
 
 internal sealed record EditorRegionRowSnapshot(string X, string Y, string Width, string Height,
     string Variable);
-internal sealed record EditorImageRowSnapshot(string Text, bool CanMoveUp, bool CanMoveDown);
+internal sealed record EditorImageRowSnapshot(string Text, bool CanMoveUp, bool CanMoveDown,
+    EditorImagePreviewSnapshot? Preview);
+
+internal sealed record EditorImagePreviewSnapshot(string DataUrl, string FileName, string Problem);
 internal sealed record EditorColourRowSnapshot(string Colour, string Tolerance);
 internal sealed record EditorColourPointRowSnapshot(string Dx, string Dy, string Colour, bool MustNot,
     string Tolerance);
@@ -86,12 +89,6 @@ internal sealed record EditorGlobalDraftSnapshot(string Name, string Type, strin
 
 internal sealed record EditorWindowRuleChoiceSnapshot(string Summary, string Rule, int Count);
 
-internal sealed record EditorWindowEntrySnapshot(long Handle, string Title, string Process,
-    string ClassName, string MatchValue, string RuleJson);
-
-internal sealed record EditorWindowRuleSnapshot(string Summary, string Json, bool HasRule, bool Following,
-    string AboveSummary);
-
 internal sealed record EditorWindowPreviewSnapshot(string Summary, string Note, string More,
     IReadOnlyList<EditorWindowPreviewRowSnapshot> Rows);
 
@@ -105,7 +102,8 @@ internal sealed record EditorClipboardPreviewSnapshot(bool Shown, string Note);
 internal static class EditorActionSnapshotFactory
 {
     public static EditorActionFormSnapshot Build(AddActionViewModel form, string stepId, string originalStepId,
-        string json, Func<StepParameterViewModel, EditorWindowPreviewSnapshot?>? windowPreview = null)
+        string json, Func<StepParameterViewModel, EditorWindowPreviewSnapshot?>? windowPreview = null,
+        Func<string, EditorImagePreviewSnapshot?>? imagePreview = null)
     {
         var returns = form.ReturnsRows
             .Select(row => new EditorReturnsRowSnapshot(row.Key, row.Label, row.Hint, row.Structure,
@@ -137,8 +135,8 @@ internal static class EditorActionSnapshotFactory
             Page: form.Page?.Key ?? AddActionViewModel.BasePage,
             Pages: [.. form.Pages.Select(page => new EditorActionPageSnapshot(page.Key, page.Title,
                 page.IsPresent, page.HasDot))],
-            Rows: [.. form.Rows.Select(row => Row(row, windowPreview))],
-            AdvancedRows: [.. form.AdvancedRows.Select(row => Row(row, windowPreview))],
+            Rows: [.. form.Rows.Select(row => Row(row, windowPreview, imagePreview))],
+            AdvancedRows: [.. form.AdvancedRows.Select(row => Row(row, windowPreview, imagePreview))],
             Returns: returns,
             CallArguments: arguments,
             Meta: Meta(form),
@@ -167,14 +165,15 @@ internal static class EditorActionSnapshotFactory
             false, string.Empty, string.Empty, false, new EditorClipboardPreviewSnapshot(false, string.Empty));
 
     private static EditorActionRowSnapshot Row(ParameterRowViewModel row,
-        Func<StepParameterViewModel, EditorWindowPreviewSnapshot?>? windowPreview)
+        Func<StepParameterViewModel, EditorWindowPreviewSnapshot?>? windowPreview,
+        Func<string, EditorImagePreviewSnapshot?>? imagePreview)
     {
         var first = row.First;
         return new EditorActionRowSnapshot(row.GroupKey, row.GroupTitle, row.GroupHint, row.GroupIndex,
             row.IsGroupStart, row.IsQuad,
             [.. new[] { row.First, row.Second, row.Third, row.Fourth }
                 .Where(field => field is not null)
-                .Select(field => Field(field!, windowPreview))],
+                .Select(field => Field(field!, windowPreview, imagePreview))],
             Picker(row));
     }
 
@@ -202,14 +201,15 @@ internal static class EditorActionSnapshotFactory
         if (row.ShowsOffsetPick)
         {
             return new EditorPickerSnapshot("LookOffset", Strings.Get("Add.PickOffset"),
-                Strings.Get("Add.PickOffsetHint"), string.Empty);
+                Strings.Get("Add.PickOffsetHint"), "lookOffset");
         }
 
         return null;
     }
 
     private static EditorActionFieldSnapshot Field(StepParameterViewModel field,
-        Func<StepParameterViewModel, EditorWindowPreviewSnapshot?>? windowPreview)
+        Func<StepParameterViewModel, EditorWindowPreviewSnapshot?>? windowPreview,
+        Func<string, EditorImagePreviewSnapshot?>? imagePreview)
         => new(
             Name: field.Definition.Name,
             Label: field.Label,
@@ -278,7 +278,8 @@ internal static class EditorActionSnapshotFactory
             Regions: [.. field.Regions.Select(row => new EditorRegionRowSnapshot(
                 row.X.Text, row.Y.Text, row.Width.Text, row.Height.Text, row.OrVariable))],
             Images: [.. field.Pictures.Select((row, index) => new EditorImageRowSnapshot(
-                row.Text, index > 0, index < field.Pictures.Count - 1))],
+                row.Text, index > 0, index < field.Pictures.Count - 1,
+                imagePreview?.Invoke(row.Text)))],
             Colours: [.. field.ColourRows.Select(row => new EditorColourRowSnapshot(
                 row.Colour, row.Tolerance))],
             ColourPoints: [.. field.ColourPointRows.Select(row => new EditorColourPointRowSnapshot(
@@ -293,7 +294,8 @@ internal static class EditorActionSnapshotFactory
             Steps: [.. field.Steps.Select(step => new EditorChoiceSnapshot(step.Value, step.Display))],
             Candidates: [.. field.Candidates.Select(candidate =>
                 new EditorBrowserCandidateSnapshot(candidate.Selector, candidate.Text))],
-            WindowPreview: windowPreview?.Invoke(field));
+            WindowPreview: windowPreview?.Invoke(field),
+            ImagePreview: field.IsImage ? imagePreview?.Invoke(field.CurrentText) : null);
 
     private static IEnumerable<EditorGenericRowSnapshot> GenericRows(StepParameterViewModel field)
     {

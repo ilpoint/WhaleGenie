@@ -9,14 +9,19 @@ export class WgKeyPad extends LitElement {
   @property({ attribute: false })
   public pad: EditorKeyPad | null = null;
 
+  @property()
+  public label = '';
+
   static styles = css`
     :host { display: contents; }
     .overlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: var(--shell-scrim); }
-    .card { width: min(760px, 100%); display: grid; gap: var(--spacingVerticalS); padding: var(--spacingVerticalL); background: var(--colorNeutralBackground1); border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusLarge); box-shadow: var(--shadow64); }
-    .head { display: flex; align-items: center; }
+    .card { width: min(1120px, 100%); max-height: 90vh; overflow: auto; display: grid; gap: var(--spacingVerticalS); padding: var(--spacingVerticalL); background: var(--colorNeutralBackground1); border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusLarge); box-shadow: var(--shadow64); }
+    .head { display: flex; align-items: center; gap: var(--spacingHorizontalS); }
     .head h3 { margin: 0; flex: 1; font-size: var(--fontSizeBase400); }
-    .row { display: flex; gap: 4px; justify-content: center; }
-    .cap { min-width: 34px; height: 34px; padding: 0 6px; border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusMedium); background: var(--colorNeutralBackground2); color: var(--colorNeutralForeground1); font: inherit; font-size: var(--fontSizeBase200); cursor: pointer; }
+    .head .label { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); }
+    .rows { display: grid; gap: 5px; }
+    .row { display: flex; gap: 4px; justify-content: center; min-width: max-content; }
+    .cap { min-width: 34px; height: 34px; padding: 0 6px; border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusMedium); background: var(--colorNeutralBackground2); color: var(--colorNeutralForeground1); font: inherit; font-size: var(--fontSizeBase200); cursor: pointer; white-space: nowrap; }
     .cap:hover { background: var(--colorNeutralBackground1Hover); }
     .cap:active { background: var(--colorNeutralBackground1Pressed); }
   `;
@@ -32,10 +37,12 @@ export class WgKeyPad extends LitElement {
         <div class="card" role="dialog" aria-modal="true" aria-label=${t('Editor.KeyPad')}>
           <div class="head">
             <h3>${t('Editor.KeyPad')}</h3>
+            ${this.label ? html`<span class="label">${this.label}</span>` : nothing}
             <button class="cap" type="button" @click=${() => this.dispatchEvent(new CustomEvent('wg-pad-close'))}>
               ${t('Common.Close')}
             </button>
           </div>
+          <div class="rows">
           ${pad.rows.map((row) => html`
             <div class="row">
               ${row.map((cap) => html`
@@ -44,6 +51,7 @@ export class WgKeyPad extends LitElement {
               `)}
             </div>
           `)}
+          </div>
         </div>
       </div>
     `;

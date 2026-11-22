@@ -14,6 +14,8 @@ import type {
   EditorValueSnapshot,
 } from './protocol.js';
 import { actionCatalogue, findAction } from './mock-editor-actions.js';
+
+const MOCK_IMAGE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL5WQAAAABJRU5ErkJggg==';
 import { MockValueEditor } from './mock-value-editor.js';
 import {
   addDeclaredField,
@@ -398,6 +400,55 @@ export class MockEditor {
           [field]: field === 'endChars' ? value : value === 'true',
         }));
       }
+      case 'editor.sessionTriggerHotstringEndKey':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          hotstringEndKeys: trigger.hotstringEndKeys.map((key) => key.value === this.text(params, 'value')
+            ? { ...key, checked: params['checked'] === true }
+            : key),
+        }));
+      case 'editor.sessionTriggerHotstringEndReset':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          hotstringEndKeys: trigger.hotstringEndKeys.map((key) => ({ ...key, checked: true })),
+        }));
+      case 'editor.sessionTriggerHotstringEndCapture': {
+        const character = this.text(params, 'character');
+        return this.patchTrigger(params, (trigger) => {
+          const known = trigger.hotstringEndKeys.some((key) => key.value === character);
+          return {
+            ...trigger,
+            hotstringEndKeys: known
+              ? trigger.hotstringEndKeys.map((key) => key.value === character
+                ? { ...key, checked: true } : key)
+              : [...trigger.hotstringEndKeys, { value: character, label: character,
+                checked: true, isCustom: true }],
+          };
+        });
+      }
+      case 'editor.sessionTriggerInterfaceHotkey':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          interfaceHotkey: this.text(params, 'binding'),
+          interfaceHotkeyProblem: '',
+        }));
+      case 'editor.sessionTriggerInterfaceHotkeyClear':
+        return this.patchTrigger(params, (trigger) => ({
+          ...trigger,
+          interfaceHotkey: '',
+          interfaceHotkeyProblem: '',
+        }));
+      case 'editor.hotstringKeyPad':
+        return {
+          maximumLength: 40,
+          rows: [
+            [{ normal: 'a', shifted: 'A', width: 1, kind: 'char' },
+              { normal: '1', shifted: '!', width: 1, kind: 'char' },
+              { normal: 'Space', shifted: 'Space', width: 4, kind: 'space' }],
+            [{ normal: 'Shift', shifted: 'Shift', width: 2, kind: 'shift' },
+              { normal: 'Backspace', shifted: 'Backspace', width: 2, kind: 'backspace' }],
+          ],
+        };
       case 'editor.sessionTriggerColor':
         return this.patchTrigger(params, (trigger) => colorTrigger(trigger, params));
       case 'editor.sessionTriggerWindow':
@@ -611,12 +662,27 @@ export class MockEditor {
       case 'editor.actionWindow':
       case 'editor.actionWindowRule':
         return this.actionForm;
-      case 'editor.actionWindowList':
-        return { entries: [] };
       case 'editor.actionPick':
         return this.actionForm;
+      case 'editor.actionLook':
+        return this.actionForm;
+      case 'editor.actionWindowPreview':
+        return null;
+      case 'editor.actionTestBrowser':
+      case 'editor.actionTestElement':
+      case 'editor.actionTestNarrow':
+        return this.actionForm;
       case 'editor.actionKeyPad':
-        return { mode: 'key', maxLength: 0, rows: [] };
+        return {
+          mode: 'key', maxLength: 0,
+          rows: [
+            [{ label: 'Esc', value: 'Esc', width: 1 }, { label: 'F1', value: 'F1', width: 1 },
+              { label: 'F13', value: 'F13', width: 1 }],
+            [{ label: 'Num 7', value: 'NumPad7', width: 1 },
+              { label: 'MediaPlay', value: 'MediaPlay', width: 1 },
+              { label: 'BrowserHome', value: 'BrowserHome', width: 1 }],
+          ],
+        };
       case 'editor.actionPadKey':
         return this.actionForm;
       case 'editor.actionWindowPick':
@@ -895,6 +961,9 @@ export class MockEditor {
       images: parameter.kind === 'Images'
         ? rows.map((row, index) => ({
             text: row.cells[0] ?? '', canMoveUp: index > 0, canMoveDown: index < rows.length - 1,
+            preview: row.cells[0]
+              ? { dataUrl: MOCK_IMAGE, fileName: row.cells[0], problem: '' }
+              : null,
           }))
         : [],
       colours: [],
@@ -924,6 +993,9 @@ export class MockEditor {
       steps: parameter.options ?? [],
       candidates: [],
       windowPreview: null,
+      imagePreview: parameter.kind === 'Image' && parameter.value
+        ? { dataUrl: MOCK_IMAGE, fileName: parameter.value, problem: '' }
+        : null,
     };
   }
 

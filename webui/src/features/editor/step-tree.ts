@@ -266,6 +266,29 @@ export class WgStepTree extends LitElement {
       margin: 1px 0 4px 14px;
       padding-left: 8px;
       border-left: 1px dashed var(--colorNeutralStroke2);
+      position: relative;
+    }
+
+    .sections > .section-head,
+    .sections > .section-empty,
+    .sections > .list > .step {
+      position: relative;
+    }
+
+    .sections > .section-head::before,
+    .sections > .section-empty::before,
+    .sections > .list > .step::before {
+      content: '';
+      position: absolute;
+      left: -9px;
+      top: 15px;
+      width: 9px;
+      border-top: 1px dashed var(--colorNeutralStroke2);
+      pointer-events: none;
+    }
+
+    .sections > .section-empty::before {
+      top: 9px;
     }
 
     .section-head {
@@ -444,7 +467,7 @@ export class WgStepTree extends LitElement {
           `
           : html`
             <div class="list" role="list" aria-label=${t('Editor.Steps')}>
-              ${repeat(snapshot.steps, (step) => step.id, (step) => this.renderStep(step))}
+              ${repeat(snapshot.steps, (step) => step.id, (step) => this.renderStep(step, 0))}
             </div>
           `}
       </div>
@@ -452,14 +475,14 @@ export class WgStepTree extends LitElement {
     `;
   }
 
-  private renderStep(step: EditorStep): TemplateResult {
+  private renderStep(step: EditorStep, depth: number): TemplateResult {
     const state = editor.get();
     const selected = state.selectedStepIds.includes(step.id);
     const primary = state.selectedStepId === step.id;
     const folded = state.collapsedSteps.has(step.id);
     const block = step.sections.length > 0;
     return html`
-      <div class="step ${block ? 'block' : ''}">
+      <div class="step ${block ? 'block' : ''}" data-depth=${String(depth)}>
         <div
           class="row"
           role="listitem"
@@ -549,7 +572,7 @@ export class WgStepTree extends LitElement {
             </div>
           `
           : nothing}
-        ${block && !folded ? this.renderSections(step) : nothing}
+        ${block && !folded ? this.renderSections(step, depth) : nothing}
       </div>
     `;
   }
@@ -808,15 +831,15 @@ export class WgStepTree extends LitElement {
     `;
   }
 
-  private renderSections(step: EditorStep): TemplateResult {
+  private renderSections(step: EditorStep, depth: number): TemplateResult {
     const state = editor.get();
     return html`
-      <div class="sections">
+      <div class="sections" data-depth=${String(depth + 1)}>
         ${step.sections.map((section) => {
           const cases = section.name === 'cases';
           const disabled = !cases && state.selectedActionKey.length === 0;
           return html`
-            <div class="section-head">
+            <div class="section-head" data-depth=${String(depth + 1)}>
               <span class="label">${section.label}</span>
               <span class="count">${t('Editor.StepCount').replace('{0}', String(section.steps.length))}</span>
               <button
@@ -833,13 +856,13 @@ export class WgStepTree extends LitElement {
               >${icon('plus')}${cases ? t('Editor.AddBranch') : t('Editor.AddStep')}</button>
             </div>
             ${section.steps.length === 0
-              ? html`<div class="section-empty">${cases
+              ? html`<div class="section-empty" data-depth=${String(depth + 1)}>${cases
                 ? t('Editor.EmptyBranchList')
                 : t('Editor.NoStepsHint')}</div>`
               : html`
                 <div class="list" role="list">
                   ${repeat(section.steps, (child) => child.id,
-                    (child) => this.renderStep(child))}
+                    (child) => this.renderStep(child, depth + 1))}
                 </div>
               `}
           `;

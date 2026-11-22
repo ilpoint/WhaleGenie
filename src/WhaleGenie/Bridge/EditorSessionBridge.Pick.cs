@@ -46,7 +46,7 @@ internal sealed partial class EditorSessionBridge
 
         var request = new EditorPickRequest(EditorPickKind.Window, string.Empty, -1, "window",
             0, 0, 0, 0, 0, string.Empty, string.Empty, string.Empty, string.Empty,
-            string.Empty, string.Empty, string.Empty, false, false, []);
+            string.Empty, string.Empty, string.Empty, string.Empty, false, false, []);
         var result = await _pickers.PickAsync(request);
         return new
         {

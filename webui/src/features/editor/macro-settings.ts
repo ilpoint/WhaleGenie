@@ -2,9 +2,11 @@ import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
-import type { EditorTrigger } from '../../shared/bridge/protocol.js';
+import type { EditorCharacterPad, EditorTrigger } from '../../shared/bridge/protocol.js';
+import { keyboardChord } from '../settings/capture.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
+import './character-pad.js';
 
 /**
  * Macro settings: the general half (name, description, group and the trigger entries) and the
@@ -24,6 +26,13 @@ export class WgMacroSettings extends LitElement {
 
   @state()
   private newTriggerKind = 'Key';
+
+  @state()
+  private characterPad: EditorCharacterPad | null = null;
+
+  private characterTrigger = '';
+  private endCaptureTrigger = '';
+  private interfaceCaptureTrigger = '';
 
   static styles = [editorBase, css`
     :host {
@@ -282,6 +291,15 @@ export class WgMacroSettings extends LitElement {
       color: var(--colorStatusSuccessForeground1);
       font-size: var(--fontSizeBase200);
     }
+
+    .end-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+    .keycap { min-width: 34px; height: 32px; padding: 0 7px; border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusMedium); background: var(--colorNeutralBackground2); color: var(--colorNeutralForeground3); font: inherit; font-size: var(--fontSizeBase200); cursor: pointer; }
+    .keycap.on { border-color: var(--colorBrandStroke1); background: var(--colorBrandBackground2); color: var(--colorBrandForeground2); }
+    .keycap.custom { border-style: dashed; }
+    .keycap:hover { background: var(--colorNeutralBackground2Hover); }
+    .key-row { display: flex; gap: var(--spacingHorizontalXS); flex-wrap: wrap; align-items: center; }
+    .member-list { display: flex; flex-wrap: wrap; gap: 3px; margin: 0; padding: 0; list-style: none; }
+    .member-list li { padding: 1px 6px; border-radius: var(--borderRadiusSmall); background: var(--colorNeutralBackground3); font-size: var(--fontSizeBase100); }
   `];
 
   private unsubscribe?: () => void;
@@ -293,6 +311,8 @@ export class WgMacroSettings extends LitElement {
 
   disconnectedCallback(): void {
     this.unsubscribe?.();
+    window.removeEventListener('keydown', this.onEndCapture, true);
+    window.removeEventListener('keydown', this.onInterfaceCapture, true);
     super.disconnectedCallback();
   }
 
@@ -333,6 +353,11 @@ export class WgMacroSettings extends LitElement {
           ?disabled=${snapshot.isSubMacro || snapshot.steps.length === 0 || !snapshot.canSave}
           @click=${() => void editor.run()}>${t('Editor.RunDebug')}</fluent-button>
       </div>
+      ${this.characterPad
+        ? html`<wg-character-pad .pad=${this.characterPad} .text=${this.hotstringText()}
+            @wg-character-submit=${(event: CustomEvent<{ text: string }>) => void this.submitCharacter(event)}
+            @wg-character-close=${() => { this.characterPad = null; }}></wg-character-pad>`
+        : nothing}
     `;
   }
 
@@ -629,9 +654,14 @@ export class WgMacroSettings extends LitElement {
       fields.push(html`
         <label class="field">
           <span>${t('Editor.Hotstring')}</span>
-          <input .value=${trigger.hotstringText} placeholder=${t('Editor.HotstringHint')}
-            @change=${(event: Event) => void editor.setTriggerHotstring(trigger.id,
-              (event.target as HTMLInputElement).value)} />
+          <div class="inline">
+            <input .value=${trigger.hotstringText} placeholder=${t('Editor.HotstringHint')}
+              @change=${(event: Event) => void editor.setTriggerHotstring(trigger.id,
+                (event.target as HTMLInputElement).value)} />
+            <button class="keycap" type="button" @click=${() => void this.openCharacterPad(trigger)}>
+              ${t('HotstringKeyboard.Choose')}</button>
+          </div>
+          <span class="hint">${trigger.hotstringText.length}/${trigger.hotstringMaximumLength}</span>
         </label>
       `);
     } else if (trigger.kind === 'Color') {
@@ -736,9 +766,28 @@ export class WgMacroSettings extends LitElement {
       fields.push(html`
         <label class="field">
           <span>${t('Editor.HotstringEndChars')}</span>
-          <input .value=${trigger.hotstringEndChars}
-            @change=${(event: Event) => void editor.setTriggerHotstringOption(trigger.id, 'endChars',
-              (event.target as HTMLInputElement).value)} />
+          <div class="end-grid">
+            ${trigger.hotstringEndKeys.map((key) => html`
+              <button class="keycap ${key.checked ? 'on' : ''} ${key.isCustom ? 'custom' : ''}"
+                type="button" aria-pressed=${key.checked ? 'true' : 'false'}
+                @click=${() => void editor.setTriggerHotstringEndKey(trigger.id, key.value, !key.checked)}>
+                ${key.label}
+              </button>
+            `)}
+          </div>
+          <div class="key-row">
+            <button class="keycap" type="button" @click=${() => this.beginEndCapture(trigger)}>
+              ${t('Editor.HotstringEndCapture')}
+            </button>
+            <button class="keycap" type="button"
+              @click=${() => void editor.resetTriggerHotstringEndKeys(trigger.id)}>
+              ${t('Editor.HotstringEndCharsReset')}
+            </button>
+          </div>
+          ${trigger.hotstringEndCaptureProblem
+            ? html`<span class="problem">${trigger.hotstringEndCaptureProblem}</span>`
+            : nothing}
+          <span class="hint">${t('Editor.HotstringEndCharsHint')}</span>
         </label>
         <div class="two">
           <label class="inline">
@@ -786,6 +835,30 @@ export class WgMacroSettings extends LitElement {
               ? editor.setTriggerWindow(trigger.id, 'class', (event.target as HTMLInputElement).value)
               : editor.setTriggerInterface(trigger.id, 'class',
                 (event.target as HTMLInputElement).value))} />
+        </label>
+      `);
+    }
+
+    if (trigger.kind === 'Interface') {
+      fields.push(html`
+        <label class="field">
+          <span>${t('Editor.InterfaceHotkey')}</span>
+          <div class="key-row">
+            <input .value=${trigger.interfaceHotkey} readonly placeholder=${t('Common.None')} />
+            <button class="keycap" type="button" @click=${() => this.beginInterfaceCapture(trigger)}>
+              ${t('Settings.HotkeySet')}</button>
+            <button class="keycap" type="button"
+              @click=${() => void editor.clearTriggerInterfaceHotkey(trigger.id)}>
+              ${t('Settings.HotkeyClear')}</button>
+          </div>
+          <span class="hint">${t('Editor.InterfaceHotkeySupport')}</span>
+          ${trigger.interfaceHotkeyProblem
+            ? html`<span class="problem">${trigger.interfaceHotkeyProblem}</span>`
+            : nothing}
+          ${trigger.interfaceGroupMembers.length > 0
+            ? html`<ul class="member-list">${trigger.interfaceGroupMembers.map((member) =>
+              html`<li>${member}</li>`)}</ul>`
+            : nothing}
         </label>
       `);
     }
@@ -889,6 +962,74 @@ export class WgMacroSettings extends LitElement {
       </div>
     `;
   }
+
+  private hotstringText(): string {
+    const trigger = editor.get().snapshot?.triggers.find((entry) =>
+      entry.id === this.characterTrigger);
+    return trigger?.hotstringText ?? '';
+  }
+
+  private async openCharacterPad(trigger: EditorTrigger): Promise<void> {
+    const pad = await editor.hotstringKeyPad();
+    if (pad) {
+      this.characterTrigger = trigger.id;
+      this.characterPad = pad;
+    }
+  }
+
+  private async submitCharacter(event: CustomEvent<{ text: string }>): Promise<void> {
+    await editor.setTriggerHotstring(this.characterTrigger, event.detail.text);
+    this.characterPad = null;
+  }
+
+  private beginEndCapture(trigger: EditorTrigger): void {
+    this.endCaptureTrigger = trigger.id;
+    window.addEventListener('keydown', this.onEndCapture, true);
+  }
+
+  private onEndCapture = (event: KeyboardEvent): void => {
+    if (this.endCaptureTrigger.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const trigger = this.endCaptureTrigger;
+    this.endCaptureTrigger = '';
+    window.removeEventListener('keydown', this.onEndCapture, true);
+    if (event.key === 'Escape') {
+      return;
+    }
+
+    const character = event.key === ' ' ? ' ' : event.key === 'Tab' ? '\t'
+      : event.key === 'Enter' ? '\n' : event.key;
+    if ([...character].length === 1) {
+      void editor.captureTriggerHotstringEnd(trigger, character);
+    }
+  };
+
+  private beginInterfaceCapture(trigger: EditorTrigger): void {
+    this.interfaceCaptureTrigger = trigger.id;
+    window.addEventListener('keydown', this.onInterfaceCapture, true);
+  }
+
+  private onInterfaceCapture = (event: KeyboardEvent): void => {
+    if (this.interfaceCaptureTrigger.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const trigger = this.interfaceCaptureTrigger;
+    this.interfaceCaptureTrigger = '';
+    window.removeEventListener('keydown', this.onInterfaceCapture, true);
+    if (event.key === 'Escape') {
+      return;
+    }
+
+    const binding = keyboardChord(event);
+    if (binding) {
+      void editor.setTriggerInterfaceHotkey(trigger, binding);
+    }
+  };
 
   private recordToggle(field: string, label: string, checked: boolean): TemplateResult {
     return html`

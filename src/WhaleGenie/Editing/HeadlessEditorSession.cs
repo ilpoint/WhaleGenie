@@ -494,7 +494,18 @@ internal sealed class HeadlessEditorSession
             entry.Spec is HotstringSpec inside && inside.InsideWord,
             entry.Spec is HotstringSpec requiring && requiring.RequireEndChar,
             entry.Spec is HotstringSpec erasing && erasing.EraseTyped,
-            entry.Spec is HotstringSpec keeping && keeping.KeepEndChar))];
+            entry.Spec is HotstringSpec keeping && keeping.KeepEndChar,
+            HotstringCharacters.MaximumLength,
+            _model.SelectedTrigger?.Id == entry.Id
+                ? [.. _model.HotstringEndKeys.Select(option => new EditorHotstringEndKeySnapshot(
+                    option.Value, option.Label, option.IsChecked, option.IsCustom))]
+                : [],
+            _model.SelectedTrigger?.Id == entry.Id ? _model.HotstringEndCaptureStatus : string.Empty,
+            entry.Spec is InterfaceSpec && _model.SelectedTrigger?.Id == entry.Id
+                ? _model.InterfaceToggleHotkey
+                : string.Empty,
+            _model.SelectedTrigger?.Id == entry.Id ? _model.InterfaceHotkeyProblem : string.Empty,
+            _model.SelectedTrigger?.Id == entry.Id ? [.. _model.InterfaceGroupMembers] : []))];
 
     public EditorRecordingSnapshot Recording => new(
         _model.PositionCaptureIndex,
@@ -1069,7 +1080,64 @@ internal sealed class HeadlessEditorSession
         }
 
         _model.SelectedTrigger = trigger;
-        _model.HotstringText = value;
+        _model.HotstringText = value.Length > HotstringCharacters.MaximumLength
+            ? value[..HotstringCharacters.MaximumLength]
+            : value;
+        _model.CommitTriggerFields();
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerHotstringEndKey(string triggerId, string value, bool checkedState)
+    {
+        var trigger = AnyTrigger(triggerId);
+        _model.SelectedTrigger = trigger;
+        var option = _model.HotstringEndKeys.FirstOrDefault(candidate =>
+            string.Equals(candidate.Value, value, StringComparison.Ordinal))
+            ?? throw new InvalidOperationException("the hotstring has no end key " + value);
+        option.IsChecked = checkedState;
+        _model.CommitTriggerFields();
+        _model.IsDirty = true;
+    }
+
+    public void ResetTriggerHotstringEndKeys(string triggerId)
+    {
+        var trigger = AnyTrigger(triggerId);
+        _model.SelectedTrigger = trigger;
+        _model.HotstringEndChars = HotstringCharacters.DefaultEndChars;
+        _model.CommitTriggerFields();
+        _model.IsDirty = true;
+    }
+
+    public void CaptureTriggerHotstringEnd(string triggerId, string character)
+    {
+        var trigger = AnyTrigger(triggerId);
+        _model.SelectedTrigger = trigger;
+        _model.IsCapturingHotstringEnd = true;
+        _model.CaptureHotstringEnd(character);
+        _model.CommitTriggerFields();
+        _model.IsDirty = true;
+    }
+
+    public void SetTriggerInterfaceHotkey(string triggerId, string binding)
+    {
+        var trigger = AnyTrigger(triggerId);
+        if (trigger.Spec is not InterfaceSpec)
+        {
+            throw new InvalidOperationException("trigger " + triggerId + " is not an interface trigger");
+        }
+
+        _model.SelectedTrigger = trigger;
+        if (_model.SetInterfaceToggleHotkey(binding))
+        {
+            _model.IsDirty = true;
+        }
+    }
+
+    public void ClearTriggerInterfaceHotkey(string triggerId)
+    {
+        var trigger = AnyTrigger(triggerId);
+        _model.SelectedTrigger = trigger;
+        _model.ClearInterfaceToggleHotkey();
         _model.IsDirty = true;
     }
 
@@ -2589,7 +2657,13 @@ internal sealed record EditorTriggerSnapshot(string Id, string Kind, string Kind
     string InterfaceProcess, string InterfaceHow, bool WindowCaseSensitive, bool WindowTrim,
     bool WindowMultiline, string HotstringEndChars, bool HotstringCaseSensitive,
     bool HotstringInsideWord, bool HotstringRequireEnd, bool HotstringEraseTyped,
-    bool HotstringKeepEnd);
+    bool HotstringKeepEnd, int HotstringMaximumLength,
+    IReadOnlyList<EditorHotstringEndKeySnapshot> HotstringEndKeys,
+    string HotstringEndCaptureProblem, string InterfaceHotkey, string InterfaceHotkeyProblem,
+    IReadOnlyList<string> InterfaceGroupMembers);
+
+internal sealed record EditorHotstringEndKeySnapshot(string Value, string Label,
+    bool Checked, bool IsCustom);
 
 internal sealed record EditorStepSnapshot(string Id, string Type, string Name, bool Enabled,
     string Comment, int TimeoutMs, int RetryCount, int RetryDelayMs, string OnError,

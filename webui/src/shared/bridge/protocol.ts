@@ -238,6 +238,19 @@ export interface EditorTrigger {
   hotstringRequireEnd: boolean;
   hotstringEraseTyped: boolean;
   hotstringKeepEnd: boolean;
+  hotstringMaximumLength: number;
+  hotstringEndKeys: EditorHotstringEndKey[];
+  hotstringEndCaptureProblem: string;
+  interfaceHotkey: string;
+  interfaceHotkeyProblem: string;
+  interfaceGroupMembers: string[];
+}
+
+export interface EditorHotstringEndKey {
+  value: string;
+  label: string;
+  checked: boolean;
+  isCustom: boolean;
 }
 
 export interface EditorVariable {
@@ -849,10 +862,17 @@ export interface EditorRegionRow {
   variable: string;
 }
 
+export interface EditorImagePreview {
+  dataUrl: string;
+  fileName: string;
+  problem: string;
+}
+
 export interface EditorImageRow {
   text: string;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  preview: EditorImagePreview | null;
 }
 
 export interface EditorColourRow {
@@ -981,6 +1001,7 @@ export interface EditorActionField {
   steps: EditorChoice[];
   candidates: EditorBrowserCandidate[];
   windowPreview: EditorWindowPreview | null;
+  imagePreview: EditorImagePreview | null;
 }
 
 export interface EditorActionRow {
@@ -1055,15 +1076,6 @@ export interface EditorWindowRuleChoice {
   count: number;
 }
 
-export interface EditorWindowEntry {
-  handle: number;
-  title: string;
-  process: string;
-  className: string;
-  matchValue: string;
-  ruleJson: string;
-}
-
 export interface EditorClipboardPreview {
   shown: boolean;
   note: string;
@@ -1079,6 +1091,18 @@ export interface EditorKeyPad {
   mode: string;
   maxLength: number;
   rows: EditorKeyCap[][];
+}
+
+export interface EditorCharacterCap {
+  normal: string;
+  shifted: string;
+  width: number;
+  kind: string;
+}
+
+export interface EditorCharacterPad {
+  maximumLength: number;
+  rows: EditorCharacterCap[][];
 }
 
 export interface EditorTrialBox {

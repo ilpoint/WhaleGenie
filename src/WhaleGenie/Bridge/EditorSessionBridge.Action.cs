@@ -100,6 +100,9 @@ internal sealed partial class EditorSessionBridge
         }
     }
 
+    private Task<object?> HotstringKeyPad(JsonElement parameters)
+        => Task.FromResult<object?>(EditorCharacterPad.Build());
+
     private Task<object?> ActionPadKey(JsonElement parameters)
     {
         var name = RequiredString(parameters, "name");
@@ -127,11 +130,13 @@ internal sealed partial class EditorSessionBridge
         return Form(parameters, form => form.ApplyWindowRule(name, rule));
     }
 
-    private Task<object?> ActionWindowList(JsonElement parameters)
+    private Task<object?> ActionWindowPreview(JsonElement parameters)
     {
+        var name = RequiredString(parameters, "name");
+        var rule = OptionalString(parameters, "rule") ?? string.Empty;
         try
         {
-            return Task.FromResult<object?>(new { entries = Required().ActionForm.WindowList() });
+            return Task.FromResult<object?>(Required().ActionForm.PreviewWindowRule(name, rule));
         }
         catch (InvalidOperationException error)
         {

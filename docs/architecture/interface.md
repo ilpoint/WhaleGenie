@@ -161,6 +161,14 @@ AdvancedRows/ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 
 `ApplyPick` 把结果写回同一个 `StepParameterViewModel`。窗口规则表单、元素候选、键位和浏览器选择器
 文本都在网页；拾取器打开前仍由 `AppWindows.StepAside` 让开鲸灵窗口。
 
+动作表单的图片字段由 `ActionImagePreviews` 把文件读成 `data:` 预览，页面只显示缩略图和不可读
+原因；区域/颜色点/键位序列通过索引把结果写回对应行。窗口规则对话框复用 `wg-window-rule`，
+`editor.actionWindowPreview` 返回“现在会认到”的窗口列表。偏差点选恢复原生 `LookPickWindow`，
+`PrepareLook` 在窗口让开后用 `MacroRunner.LookOnce` 取景，`ApplyLook` 写偏移或颜色点。
+虚拟键盘由 C# 的 `EditorKeyPad` 生成完整键表（含 `KeyNames.Names` 未覆盖项的兜底），
+热字串字符键盘由 `EditorCharacterPad` 生成，结束键由 `HotstringEndKeys` 快照渲染；树的分节
+引导线仍由 `step-tree.ts` 绘制，`step-inspector.ts` 不是树。
+
 网页侧的页面状态集中在 `editor-store.ts`：快照、页签、动作目录、选中步骤、折叠、动作库筛选、
 右侧栏宽度、步骤编辑窗/取值窗口状态、录制状态和一次命令的错误；`wg-editor` 及其子组件只渲染并把
 编辑命令交回。右侧是变量中心与宏设置上下双面板；步骤参数在独立编辑窗里；C# 编辑模型与桥仍是唯一

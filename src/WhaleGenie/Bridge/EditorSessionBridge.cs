@@ -91,6 +91,11 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.sessionTriggerProcess", SetTriggerProcess);
         server.Register("editor.sessionTriggerHotstring", SetTriggerHotstring);
         server.Register("editor.sessionTriggerHotstringOption", SetTriggerHotstringOption);
+        server.Register("editor.sessionTriggerHotstringEndKey", SetTriggerHotstringEndKey);
+        server.Register("editor.sessionTriggerHotstringEndReset", ResetTriggerHotstringEndKeys);
+        server.Register("editor.sessionTriggerHotstringEndCapture", CaptureTriggerHotstringEnd);
+        server.Register("editor.sessionTriggerInterfaceHotkey", SetTriggerInterfaceHotkey);
+        server.Register("editor.sessionTriggerInterfaceHotkeyClear", ClearTriggerInterfaceHotkey);
         server.Register("editor.sessionTriggerColor", SetTriggerColor);
         server.Register("editor.sessionTriggerWindow", SetTriggerWindow);
         server.Register("editor.sessionTriggerInterface", SetTriggerInterface);
@@ -128,12 +133,17 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         server.Register("editor.actionBranch", ActionBranch);
         server.Register("editor.actionWindow", ActionWindow);
         server.Register("editor.actionWindowRule", ActionWindowRule);
-        server.Register("editor.actionWindowList", ActionWindowList);
+        server.Register("editor.actionWindowPreview", ActionWindowPreview);
         server.Register("editor.actionPick", ActionPick);
+        server.Register("editor.actionLook", ActionLook);
+        server.Register("editor.actionTestBrowser", ActionTestBrowser);
+        server.Register("editor.actionTestElement", ActionTestElement);
+        server.Register("editor.actionTestNarrow", ActionTestNarrow);
         server.Register("editor.actionWindowPick", ActionWindowPick);
         server.Register("editor.actionRun", ActionRun);
         server.Register("editor.actionKeyPad", ActionKeyPad);
         server.Register("editor.actionPadKey", ActionPadKey);
+        server.Register("editor.hotstringKeyPad", HotstringKeyPad);
         server.Register("editor.valueOpen", ValueOpen);
         server.Register("editor.valueState", _ => Task.FromResult<object?>(Required().ValueState()));
         server.Register("editor.valueCommand", ValueCommand);
@@ -1063,6 +1073,80 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace, ID
         try
         {
             Required().SetTriggerHotstringOption(triggerId, field, value);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerHotstringEndKey(JsonElement parameters)
+    {
+        var triggerId = RequiredString(parameters, "triggerId");
+        var value = RequiredString(parameters, "value");
+        var checkedState = OptionalBool(parameters, "checked") ?? false;
+        try
+        {
+            Required().SetTriggerHotstringEndKey(triggerId, value, checkedState);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> ResetTriggerHotstringEndKeys(JsonElement parameters)
+    {
+        var triggerId = RequiredString(parameters, "triggerId");
+        try
+        {
+            Required().ResetTriggerHotstringEndKeys(triggerId);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> CaptureTriggerHotstringEnd(JsonElement parameters)
+    {
+        var triggerId = RequiredString(parameters, "triggerId");
+        var character = RequiredString(parameters, "character");
+        try
+        {
+            Required().CaptureTriggerHotstringEnd(triggerId, character);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SetTriggerInterfaceHotkey(JsonElement parameters)
+    {
+        var triggerId = RequiredString(parameters, "triggerId");
+        var binding = OptionalString(parameters, "binding") ?? string.Empty;
+        try
+        {
+            Required().SetTriggerInterfaceHotkey(triggerId, binding);
+            return Task.FromResult<object?>(Snapshot());
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> ClearTriggerInterfaceHotkey(JsonElement parameters)
+    {
+        var triggerId = RequiredString(parameters, "triggerId");
+        try
+        {
+            Required().ClearTriggerInterfaceHotkey(triggerId);
             return Task.FromResult<object?>(Snapshot());
         }
         catch (InvalidOperationException error)

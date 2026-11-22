@@ -14,10 +14,10 @@ internal enum EditorPickKind
     Color,
     WindowBounds,
     Window,
+    WindowTitle,
     Element,
     Browser,
     Path,
-    Look,
 }
 
 /// <summary>
@@ -36,6 +36,7 @@ internal sealed record EditorPickRequest(
     int Height,
     long Handle,
     string WindowRuleJson,
+    string WindowMatch,
     string AssetFolder,
     string Url,
     string Profile,

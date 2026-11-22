@@ -22,6 +22,7 @@ internal sealed partial class HeadlessActionSession
     private readonly AddActionViewModel _form;
     private readonly MacroStep? _original;
     private readonly Func<StepParameterViewModel, EditorWindowPreviewSnapshot?> _preview;
+    private readonly ActionImagePreviews _images = new();
 
     public HeadlessActionSession(AddActionViewModel form, MacroStep? original)
     {
@@ -40,7 +41,8 @@ internal sealed partial class HeadlessActionSession
 
     public EditorActionFormSnapshot Snapshot()
         => EditorActionSnapshotFactory.Build(_form, _form.StepId,
-            _original?.Id ?? string.Empty, _form.JsonPreview, _preview);
+            _original?.Id ?? string.Empty, _form.JsonPreview, _preview,
+            value => _images.For(value, _form.AssetFolder));
 
     public MacroStep BuildStepForSave() => _form.BuildStepForSave();
 
@@ -423,41 +425,36 @@ internal sealed partial class HeadlessActionSession
         return Snapshot();
     }
 
-    public IReadOnlyList<EditorWindowEntrySnapshot> WindowList()
+    public EditorWindowPreviewSnapshot? PreviewWindowRule(string name, string? ruleJson)
     {
         if (_form.Windows is null)
         {
-            return [];
+            return null;
         }
 
-        var own = System.IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
+        var field = Field(name);
+        var rule = !string.IsNullOrWhiteSpace(ruleJson) && WindowRule.TryParse(ruleJson, out var parsed)
+            ? parsed
+            : _form.WindowRuleFor(name);
+        var preview = new WindowPreviewViewModel();
         try
         {
-            return [.. _form.Windows.List()
-                .Where(window => !string.Equals(_form.Windows.ProcessOf(window.Handle), own,
-                    StringComparison.OrdinalIgnoreCase))
-                .Select(window =>
-                {
-                    var process = string.Empty;
-                    var className = string.Empty;
-                    try
-                    {
-                        process = _form.Windows.ProcessOf(window.Handle);
-                        className = _form.Windows.ClassOf(window.Handle);
-                    }
-                    catch (Exception)
-                    {
-                        // A window that went away still has its title; the rule falls back to it.
-                    }
-
-                    var rule = WindowRule.From(window, process, className);
-                    return new EditorWindowEntrySnapshot(window.Handle, window.Title, process, className,
-                        rule.MatchValue, rule.ToJson().ToJsonString());
-                })];
+            preview.Watch(() => _form.Windows);
+            preview.Follow(rule,
+                emptyIsEvery: _form.SelectedKey == "window.list",
+                needsAnswer: field.HasToBeAnswered,
+                holdsVariable: false);
+            return new EditorWindowPreviewSnapshot(preview.Summary, preview.Note, preview.More,
+                [.. preview.Rows.Select(row => new EditorWindowPreviewRowSnapshot(
+                    row.Title, row.PartLabel, row.Part))]);
         }
         catch (Exception)
         {
-            return [];
+            return null;
+        }
+        finally
+        {
+            preview.Stop();
         }
     }
 

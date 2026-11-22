@@ -4,13 +4,17 @@ import type {
   EditorActionField,
   EditorConditionNode,
   EditorKeyPad,
+  EditorWindowPreview,
 } from '../../shared/bridge/protocol.js';
+import { emptyRule } from '../settings/window-rule-dialog.js';
+import type { WindowRuleState } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
 import './value-field.js';
 import './action-rows.js';
 import './key-pad.js';
+import '../settings/window-rule-dialog.js';
 
 /**
  * One field of an action draft. The field's kind and the buttons beside it come from the snapshot;
@@ -26,6 +30,17 @@ export class WgActionField extends LitElement {
 
   @state()
   private pad: EditorKeyPad | null = null;
+
+  @state()
+  private windowRuleField: EditorActionField | null = null;
+
+  @state()
+  private windowRule: WindowRuleState = emptyRule();
+
+  @state()
+  private livePreview: EditorWindowPreview | null = null;
+
+  private previewTimer = 0;
 
   private padTarget = { name: '', index: -1, mode: 'key' };
 
@@ -47,8 +62,13 @@ export class WgActionField extends LitElement {
     .chips { display: flex; gap: 3px; flex-wrap: wrap; }
     .chip { border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusSmall); background: var(--colorNeutralBackground1); color: var(--colorBrandForeground2); font-size: var(--fontSizeBase100); padding: 1px 5px; cursor: pointer; }
     .window { display: grid; gap: 3px; padding: var(--spacingVerticalS) var(--spacingHorizontalS); border: var(--strokeWidthThin) solid var(--colorNeutralStroke2); border-radius: var(--borderRadiusMedium); background: var(--colorNeutralBackground2); }
+    .preview { display: grid; gap: 3px; justify-items: start; }
+    .preview img { display: block; max-width: 240px; max-height: 110px; object-fit: contain; border: var(--strokeWidthThin) solid var(--colorNeutralStroke2); border-radius: var(--borderRadiusMedium); background: var(--colorNeutralBackground2); }
+    .preview .file { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); overflow-wrap: anywhere; }
+    .preview .problem { color: var(--colorStatusDangerForeground1); font-size: var(--fontSizeBase100); }
     .window .summary { color: var(--colorNeutralForeground1); }
     .window .note { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); }
+    .preview-note { display: grid; gap: 2px; padding-top: var(--spacingVerticalXS); border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2); color: var(--colorNeutralForeground2); font-size: var(--fontSizeBase100); }
   `];
 
   render() {
@@ -74,6 +94,13 @@ export class WgActionField extends LitElement {
             @wg-pad-key=${(event: CustomEvent<{ value: string }>) => void this.onPadKey(event)}
             @wg-pad-close=${() => { this.pad = null; }}></wg-key-pad>`
         : nothing}
+      ${this.windowRuleField
+        ? html`<wg-window-rule .rule=${this.windowRule} .title=${t('WindowRule.Choose')}
+            .preview=${this.livePreview}
+            @wg-rule-change=${(event: CustomEvent<WindowRuleState>) => this.scheduleWindowPreview(event)}
+            @wg-rule-submit=${(event: CustomEvent<WindowRuleState>) => void this.submitWindowRule(event)}
+            @wg-rule-close=${() => { this.windowRuleField = null; }}></wg-window-rule>`
+        : nothing}
       </div>
     `;
   }
@@ -97,12 +124,33 @@ export class WgActionField extends LitElement {
             : nothing}
           <div class="chips">
             <button class="chip" type="button"
+              @click=${() => void this.openWindowRule(field)}>${t('WindowRule.Choose')}</button>
+            <button class="chip" type="button"
               @click=${() => void this.windowPick(field.name)}>${t('WindowRule.Menu.Capture')}</button>
             <button class="chip" type="button"
               @click=${() => void editor.applyActionWindow(field.name, 'follow')}>${t('WindowRule.Following')}</button>
             <button class="chip" type="button"
               @click=${() => void editor.applyActionWindow(field.name, 'foreground')}>${t('WindowRule.Menu.Foreground')}</button>
           </div>
+          ${this.renderWindowPreview(field)}
+        </div>
+      `;
+    }
+
+    if (field.isMultiline || field.isCode) {
+      return html`
+        <textarea .value=${field.value} placeholder=${field.placeholder}
+          @change=${(event: Event) => this.write('text', (event.target as HTMLTextAreaElement).value)}></textarea>
+      `;
+    }
+
+    if (field.isWindow) {
+      return html`
+        <div class="inline">
+          <input .value=${field.value}
+            @change=${(event: Event) => this.write('text', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void this.pick(field.name, 'windowTitle')}>${t('Add.PickWindow')}</button>
         </div>
       `;
     }
@@ -121,10 +169,10 @@ export class WgActionField extends LitElement {
           <button class="chip" type="button" title=${t('Editor.KeyPad')}
             @click=${() => void this.openPad(field.name, -1, 'key')}>⌨</button>
         </div>
-        <button class="chip" type="button"
-          @click=${() => void editor.openValue(this.stepId, field.name)}>
-          ${field.offersValue ? t('Add.Value') : ''}
-        </button>
+        ${field.offersValue
+          ? html`<button class="chip" type="button"
+              @click=${() => void editor.openValue(this.stepId, field.name)}>${t('Add.Value')}</button>`
+          : nothing}
       `;
     }
 
@@ -186,7 +234,10 @@ export class WgActionField extends LitElement {
             @click=${() => void editor.pickImage(this.stepId, field.name)}>${t('Editor.Browse')}</button>
           <button class="chip" type="button"
             @click=${() => void this.pick(field.name, 'capture')}>${t('Add.CaptureImage')}</button>
+          <button class="chip" type="button"
+            @click=${() => this.write('text', '')}>${t('Add.ClearImage')}</button>
         </div>
+        ${this.renderImagePreview(field.imagePreview)}
       `;
     }
 
@@ -214,16 +265,42 @@ export class WgActionField extends LitElement {
     if (field.isSelector || field.isBrowserTarget) {
       return html`
         <div class="inline">
-          <wg-value-field .stepId=${this.stepId} .parameter=${field}></wg-value-field>
+          <input .value=${field.value}
+            @change=${(event: Event) => this.write('text', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
             @click=${() => void this.pick(field.name,
               field.isSelector ? 'element' : 'browser')}>${field.isSelector
                 ? t('Add.PickElement') : t('Add.PickBrowserElement')}</button>
+          <button class="chip" type="button"
+            @click=${() => void (field.isSelector
+              ? editor.testActionElement(field.name) : editor.testActionBrowser(field.name))}>
+            ${t('Add.TestElement')}</button>
         </div>
+        ${field.candidates.length > 0
+          ? html`<div class="chips">${field.candidates.map((candidate) => html`
+              <button class="chip" type="button" title=${candidate.text}
+                @click=${() => this.write('text', candidate.selector)}>${candidate.selector}</button>`)}</div>`
+          : nothing}
       `;
     }
 
     return html`<wg-value-field .stepId=${this.stepId} .parameter=${field}></wg-value-field>`;
+  }
+
+  private renderImagePreview(preview: EditorActionField['imagePreview']): TemplateResult | typeof nothing {
+    if (!preview) {
+      return nothing;
+    }
+
+    return html`
+      <div class="preview">
+        ${preview.dataUrl
+          ? html`<img src=${preview.dataUrl} alt=${preview.fileName || this.field.label} />`
+          : nothing}
+        <span class="file">${preview.fileName}</span>
+        ${preview.problem ? html`<span class="problem">${preview.problem}</span>` : nothing}
+      </div>
+    `;
   }
 
   private renderCondition(field: EditorActionField): TemplateResult {
@@ -324,6 +401,85 @@ export class WgActionField extends LitElement {
 
   private pick(name: string, mode: string): void {
     void editor.pickAction(name, mode);
+  }
+
+  private openWindowRule(field: EditorActionField): void {
+    let seen: Record<string, unknown> = {};
+    try {
+      const parsed = JSON.parse(field.value || '{}') as unknown;
+      if (parsed && typeof parsed === 'object') {
+        seen = parsed as Record<string, unknown>;
+      }
+    } catch {
+      seen = {};
+    }
+
+    this.windowRule = {
+      title: String(seen['title'] ?? ''),
+      process: String(seen['process'] ?? ''),
+      className: String(seen['class'] ?? seen['className'] ?? ''),
+      handle: Number(seen['handle'] ?? 0) || 0,
+      how: String(seen['how'] ?? 'titleContains'),
+      caseSensitive: seen['caseSensitive'] === true,
+      trim: seen['trim'] !== false,
+      multiline: seen['multiline'] === true,
+    };
+    this.livePreview = field.windowPreview;
+    this.windowRuleField = field;
+  }
+
+  private scheduleWindowPreview(event: CustomEvent<WindowRuleState>): void {
+    if (!this.windowRuleField) {
+      return;
+    }
+
+    window.clearTimeout(this.previewTimer);
+    const rule = event.detail;
+    this.previewTimer = window.setTimeout(() => {
+      if (!this.windowRuleField) {
+        return;
+      }
+
+      const json = JSON.stringify({
+        title: rule.title, process: rule.process, class: rule.className, handle: rule.handle,
+        how: rule.how, caseSensitive: rule.caseSensitive, trim: rule.trim, multiline: rule.multiline,
+      });
+      void editor.previewActionWindow(this.windowRuleField.name, json).then((preview) => {
+        this.livePreview = preview;
+      });
+    }, 160);
+  }
+
+  private async submitWindowRule(event: CustomEvent<WindowRuleState>): Promise<void> {
+    const field = this.windowRuleField;
+    if (!field) {
+      return;
+    }
+
+    const rule = event.detail;
+    const json = JSON.stringify({
+      title: rule.title, process: rule.process, class: rule.className, handle: rule.handle,
+      how: rule.how, caseSensitive: rule.caseSensitive, trim: rule.trim, multiline: rule.multiline,
+    });
+    this.windowRuleField = null;
+    this.livePreview = null;
+    await editor.applyActionWindowRule(field.name, json);
+  }
+
+  private renderWindowPreview(field: EditorActionField): TemplateResult | typeof nothing {
+    const preview = this.livePreview ?? field.windowPreview;
+    if (!preview) {
+      return nothing;
+    }
+
+    return html`
+      <div class="preview-note">
+        <span>${preview.summary}</span>
+        ${preview.rows.map((row) => html`<span class="note">${row.title}${row.part ? ' · ' + row.part : ''}</span>`)}
+        ${preview.more ? html`<span class="note">${preview.more}</span>` : nothing}
+        ${preview.note ? html`<span class="note">${preview.note}</span>` : nothing}
+      </div>
+    `;
   }
 
   private async openPad(name: string, index: number, mode: string): Promise<void> {

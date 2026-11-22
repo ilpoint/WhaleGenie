@@ -292,6 +292,15 @@ const ACTIONS: MockAction[] = [
     parameters: [parameter('title', '标题', 'Text')],
   },
   {
+    key: 'window.resize', name: '移动或调整窗口大小', category: 'Process', group: 'Window',
+    description: '',
+    parameters: [
+      parameter('window', '窗口', 'WindowRule'),
+      parameter('x', 'X', 'Number'), parameter('y', 'Y', 'Number'),
+      parameter('width', '宽度', 'Number'), parameter('height', '高度', 'Number'),
+    ],
+  },
+  {
     key: 'data.set', name: '设置变量', category: 'Data', group: 'Variables', description: '',
     parameters: [parameter('name', '变量', 'Text'), parameter('value', '值', 'Text')],
   },

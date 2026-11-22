@@ -16,7 +16,7 @@ namespace WhaleGenie.Views;
 /// the picker commands know a window type; the session above it works with plain requests.
 /// </summary>
 internal sealed class EditorPickerHost(Func<Window?> owner, IDeviceLayer devices)
-    : IEditorPickerHost
+    : IEditorPickerHost, IEditorLookHost
 {
     public async Task<EditorPickResult> PickAsync(EditorPickRequest request)
     {
@@ -87,6 +87,16 @@ internal sealed class EditorPickerHost(Func<Window?> owner, IDeviceLayer devices
                         ? Result(colour.At.X, colour.At.Y, colour: colour.Colour.ToHex())
                         : EditorPickResult.Cancelled;
                 }
+            case EditorPickKind.WindowTitle:
+                {
+                    var match = Enum.TryParse<WindowMatch>(request.WindowMatch, ignoreCase: true,
+                        out var parsed) ? parsed : WindowMatch.Title;
+                    var picked = await WindowPickerWindow.PickAsync(window, match, devices.Windows);
+                    return picked is { Length: > 0 }
+                        ? new EditorPickResult(true, 0, 0, 0, 0, 0, 0, string.Empty,
+                            string.Empty, picked, string.Empty, string.Empty, [], [], string.Empty, false)
+                        : EditorPickResult.Cancelled;
+                }
             case EditorPickKind.Window:
                 {
                     using var aside = AppWindows.StepAside(window);
@@ -153,6 +163,29 @@ internal sealed class EditorPickerHost(Func<Window?> owner, IDeviceLayer devices
             default:
                 return EditorPickResult.Cancelled;
         }
+    }
+
+    public async Task<EditorLookResult> PickLookAsync(EditorLookRequest request)
+    {
+        if (owner() is not { } window)
+        {
+            return EditorLookResult.Cancelled;
+        }
+
+        if (request.Mode == EditorLookMode.Offset)
+        {
+            var point = await LookPickWindow.PickOffsetAsync(window, request.Look,
+                request.Area, request.Origin, request.Centre, request.Variables);
+            return point is { } at
+                ? new EditorLookResult(true, at.X, at.Y, [])
+                : EditorLookResult.Cancelled;
+        }
+
+        var entries = await LookPickWindow.PickColoursAsync(window, request.Look,
+            request.Area, request.Origin, request.Centre, request.Variables, request.Entries);
+        return entries is { Count: > 0 }
+            ? new EditorLookResult(true, 0, 0, entries)
+            : EditorLookResult.Cancelled;
     }
 
     private static async Task<EditorPickResult> PickPathAsync(Window owner, EditorPickRequest request)

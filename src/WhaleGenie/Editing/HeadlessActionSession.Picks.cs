@@ -36,6 +36,9 @@ internal sealed partial class HeadlessActionSession
 
                 return Request(mode == "drag" ? EditorPickKind.Drag : EditorPickKind.Region,
                     name, index, mode, field, bounds: area);
+            case "windowTitle":
+                return Request(EditorPickKind.WindowTitle, name, index, mode, field,
+                    windowMatch: _form.WindowMatchFor(field).ToString());
             case "windowBounds":
                 {
                     if (_form.CurrentWindow() is not { } window)
@@ -101,6 +104,16 @@ internal sealed partial class HeadlessActionSession
                 _form.ApplyCursorPosition(result.X, result.Y);
                 break;
             case EditorPickKind.Region:
+                if (field.IsRegion && request.Index >= 0 && request.Index < field.Regions.Count)
+                {
+                    field.Regions[request.Index].Put(result.X, result.Y, result.Width, result.Height);
+                }
+                else if (!_form.ApplyRegion(result.X, result.Y, result.Width, result.Height))
+                {
+                    field.WriteValue(Formula.Nothing);
+                }
+
+                break;
             case EditorPickKind.WindowBounds:
                 if (!_form.ApplyRegion(result.X, result.Y, result.Width, result.Height))
                 {
@@ -130,6 +143,9 @@ internal sealed partial class HeadlessActionSession
                 }
 
                 break;
+            case EditorPickKind.WindowTitle:
+                field.WriteValue(Formula.Text(result.Selector));
+                break;
             case EditorPickKind.Window:
                 if (WindowRule.TryParse(result.WindowRuleJson, out var windowRule))
                 {
@@ -146,7 +162,17 @@ internal sealed partial class HeadlessActionSession
 
                 break;
             case EditorPickKind.Browser:
-                field.WriteValue(Formula.Text(result.Selector));
+                if (string.Equals(request.Mode, "narrow", StringComparison.Ordinal)
+                    && field.IsNarrow && request.Index >= 0
+                    && request.Index < field.NarrowRows.Count)
+                {
+                    field.NarrowRows[request.Index].Value = result.Selector;
+                }
+                else
+                {
+                    field.WriteValue(Formula.Text(result.Selector));
+                }
+
                 if (result.Candidates.Count > 0)
                 {
                     field.OfferCandidates(result.Candidates);
@@ -154,9 +180,16 @@ internal sealed partial class HeadlessActionSession
 
                 break;
             case EditorPickKind.Path:
-                field.WriteValue(Formula.Text(result.Path));
-                break;
-            case EditorPickKind.Look:
+                if (field.IsImageList && request.Index >= 0
+                    && request.Index < field.Pictures.Count)
+                {
+                    field.Pictures[request.Index].Text = result.Path;
+                }
+                else
+                {
+                    field.WriteValue(Formula.Text(result.Path));
+                }
+
                 break;
         }
 
@@ -165,13 +198,13 @@ internal sealed partial class HeadlessActionSession
 
     private EditorPickRequest Request(EditorPickKind kind, string name, int index, string mode,
         StepParameterViewModel field, (int X, int Y, int Width, int Height)? bounds = null,
-        long handle = 0, string windowRule = "", string assetFolder = "", string url = "",
+        long handle = 0, string windowRule = "", string windowMatch = "", string assetFolder = "", string url = "",
         string profile = "", string pathIntent = "", string pathFilter = "", string pathLabel = "",
         bool multiple = false, bool wantsWords = false)
         => new(kind, name, index, mode,
             bounds?.X ?? 0, bounds?.Y ?? 0, bounds?.Width ?? 0, bounds?.Height ?? 0,
-            handle, windowRule, assetFolder, url, profile, pathIntent, pathFilter, pathLabel,
-            multiple, wantsWords, []);
+            handle, windowRule, windowMatch, assetFolder, url, profile, pathIntent, pathFilter,
+            pathLabel, multiple, wantsWords, []);
 
     private string ParameterText(string name)
         => _form.Parameters.FirstOrDefault(parameter =>

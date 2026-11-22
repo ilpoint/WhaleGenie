@@ -328,6 +328,27 @@ test('块的分节可以把子步骤加进去', async ({ page }) => {
   await expect(page.locator('wg-step-tree .sections .row .name')).toHaveText('设置变量');
 });
 
+test('嵌套步骤树保留引导线', async ({ page }) => {
+  await openEditor(page);
+  await addStep(page, '流程控制', '重复');
+  for (const depth of [0, 1]) {
+    await selectSource(page, '流程控制');
+    await page.locator('wg-editor-palette .action-search').fill('重复');
+    await page.locator('wg-editor-palette .card', { hasText: '重复' }).first().click();
+    await page.locator(`wg-step-tree .step[data-depth="${depth}"] .section-add`).first().click();
+    await completeActionForm(page);
+  }
+
+  await expect(page.locator('wg-step-tree .step[data-depth="0"]')).toHaveCount(1);
+  await expect(page.locator('wg-step-tree .step[data-depth="1"]')).toHaveCount(1);
+  await expect(page.locator('wg-step-tree .step[data-depth="2"]')).toHaveCount(1);
+  await expect(page.locator('wg-step-tree .sections')).toHaveCount(3);
+  await expect(page.locator('wg-step-tree .sections > .list > .step').first()).toBeVisible();
+  const guide = await page.locator('wg-step-tree .sections > .list > .step').first()
+    .evaluate((element) => getComputedStyle(element, '::before').borderTopStyle);
+  expect(guide).toBe('dashed');
+});
+
 test('多选步骤可一起启用、分组并留下一个块', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '流程控制', '延迟');
@@ -475,6 +496,26 @@ test('触发入口可添加并捕获按键', async ({ page }) => {
     .toBe(true);
 });
 
+test('热字串字符键盘和结束键格子可用', async ({ page }) => {
+  await openEditor(page);
+  await page.locator('wg-macro-settings select[aria-label="添加入口"]').selectOption({ label: '字串' });
+  await page.locator('wg-macro-settings button.link-button', { hasText: '添加入口' }).click();
+  const fields = page.locator('wg-macro-settings .trigger-fields');
+  await expect(fields.locator('input').first()).toBeVisible();
+  await fields.locator('button', { hasText: '选择字符' }).click();
+  const pad = page.locator('wg-character-pad .card');
+  await expect(pad).toBeVisible();
+  await pad.getByRole('button', { name: 'a', exact: true }).click();
+  await pad.locator('.cap', { hasText: '确定' }).click();
+  await expect(fields.locator('input').first()).toHaveValue('a');
+  const endKeys = fields.locator('.end-grid');
+  await expect(endKeys).toBeVisible();
+  await endKeys.locator('.keycap', { hasText: 'Space' }).click();
+  await expect
+    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerHotstringEndKey')))
+    .toBe(true);
+});
+
 test('变量中心始终可见并按组过滤', async ({ page }) => {
   await openEditor(page);
   await page.locator('wg-variable-wall .filters button', { hasText: '局部变量' }).click();
@@ -502,6 +543,36 @@ test('键位字段可捕获按键', async ({ page }) => {
   await closeStepEditor(page);
 });
 
+test('键位字段打开完整虚拟键盘', async ({ page }) => {
+  await openEditor(page);
+  await addStep(page, '基础动作', '按键');
+  await openStepEditor(page, '按键');
+  await page.locator('wg-action-editor .param[data-parameter="key"] button',
+    { hasText: '⌨' }).click();
+  const pad = page.locator('wg-key-pad .card');
+  await expect(pad).toBeVisible();
+  await expect(pad.locator('.cap', { hasText: 'F13' })).toBeVisible();
+  await expect(pad.locator('.cap', { hasText: 'Num 7' })).toBeVisible();
+  await pad.locator('.cap', { hasText: '关闭' }).click();
+  await expect(pad).toHaveCount(0);
+  await closeStepEditor(page);
+});
+
+test('窗口规则字段打开匹配方式对话框', async ({ page }) => {
+  await openEditor(page);
+  await addStep(page, '基础动作', '移动或调整窗口大小');
+  await openStepEditor(page, '移动或调整窗口大小');
+  await page.locator('wg-action-editor .param[data-parameter="window"] button',
+    { hasText: '选择窗口' }).click();
+  const rule = page.locator('wg-window-rule');
+  await expect(rule).toBeVisible();
+  await expect(rule.locator('h2')).toContainText('选择窗口');
+  await expect(rule.locator('select').first()).toBeVisible();
+  await rule.locator('.actions fluent-button', { hasText: '取消' }).click();
+  await expect(rule).toHaveCount(0);
+  await closeStepEditor(page);
+});
+
 test('颜色字段的拾取按钮向桥发命令', async ({ page }) => {
   await openEditor(page);
   await addStep(page, '基础动作', '屏幕取色');
@@ -511,6 +582,17 @@ test('颜色字段的拾取按钮向桥发命令', async ({ page }) => {
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.actionPick')))
     .toBe(true);
+  await closeStepEditor(page);
+});
+
+test('图片字段显示缩略图并可清除', async ({ page }) => {
+  await openEditor(page);
+  await addStep(page, '基础动作', '找图');
+  await openStepEditor(page, '找图');
+  const field = page.locator('wg-action-editor .param[data-parameter="path"]');
+  await expect(field.locator('img')).toBeVisible();
+  await field.locator('button', { hasText: '清除' }).click();
+  await expect(field.locator('img')).toHaveCount(0);
   await closeStepEditor(page);
 });
 

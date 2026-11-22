@@ -1,5 +1,5 @@
 import { LitElement, css, html, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import type {
   EditorActionField,
   EditorColourRow,
@@ -7,16 +7,30 @@ import type {
   EditorKeyRow,
   EditorNarrowRow,
   EditorRegionRow,
+  EditorKeyPad,
 } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
+import './key-pad.js';
 
 /** The row families of an action field: regions, pictures, colours, colour points, keys, narrowing. */
 @customElement('wg-action-rows')
 export class WgActionRows extends LitElement {
   @property({ attribute: false })
   public field!: EditorActionField;
+
+  @state()
+  private pad: EditorKeyPad | null = null;
+
+  @state()
+  private padIndex = -1;
+
+  private captureIndex = -1;
+
+  private get stepId(): string {
+    return editor.get().actionForm?.stepId ?? '';
+  }
 
   static styles = [editorBase, css`
     :host { display: grid; gap: 3px; min-width: 0; }
@@ -29,6 +43,11 @@ export class WgActionRows extends LitElement {
     .chip { flex: none; border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); border-radius: var(--borderRadiusSmall); background: var(--colorNeutralBackground1); color: var(--colorBrandForeground2); font-size: var(--fontSizeBase100); cursor: pointer; }
     .wide { grid-column: 1 / -1; }
     .count { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); }
+    .image-row { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: var(--spacingHorizontalS); align-items: start; padding: var(--spacingVerticalXS) 0; border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2); }
+    .image-row img { width: 72px; height: 52px; object-fit: contain; border: var(--strokeWidthThin) solid var(--colorNeutralStroke2); border-radius: var(--borderRadiusSmall); background: var(--colorNeutralBackground2); }
+    .image-row .missing { display: grid; place-items: center; width: 72px; height: 52px; color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); border: 1px dashed var(--colorNeutralStroke2); border-radius: var(--borderRadiusSmall); }
+    .image-row .problem { color: var(--colorStatusDangerForeground1); font-size: var(--fontSizeBase100); }
+    .image-row .file { color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); overflow-wrap: anywhere; }
   `];
 
   render() {
@@ -62,23 +81,25 @@ export class WgActionRows extends LitElement {
 
   private renderRegions(field: EditorActionField): TemplateResult {
     return html`
-      <div class="row" style="grid-template-columns: repeat(4, minmax(0, 1fr)) 96px 24px">
+      <div class="row" style="grid-template-columns: repeat(4, minmax(0, 1fr)) 96px 74px 24px">
         <span class="head">${t('Add.RegionXShort')}</span>
         <span class="head">${t('Add.RegionYShort')}</span>
         <span class="head">${t('Add.RegionWidthShort')}</span>
         <span class="head">${t('Add.RegionHeightShort')}</span>
         <span class="head">${t('Add.RegionOrVariable')}</span>
-        <span></span>
+        <span></span><span></span>
       </div>
-      ${field.regions.map((row, index) => this.renderRegion(field, row, index))}
+      ${field.regions.length === 0
+        ? html`<p class="hint">${t('Add.RegionEmpty')}</p>`
+        : field.regions.map((row, index) => this.renderRegion(field, row, index))}
       <button class="chip add" type="button"
-        @click=${() => void editor.addActionRow(field.name)}>${t('Add.RegionAdd')}</button>
+        @click=${() => void editor.pickAction(field.name, 'region')}>${t('Add.PickRegion')}</button>
     `;
   }
 
   private renderRegion(field: EditorActionField, row: EditorRegionRow, index: number): TemplateResult {
     return html`
-      <div class="row" style="grid-template-columns: repeat(4, minmax(0, 1fr)) 96px 24px">
+      <div class="row" style="grid-template-columns: repeat(4, minmax(0, 1fr)) 96px 74px 24px">
         ${(['x', 'y', 'width', 'height'] as const).map((column) => html`
           <div class="cell">
             <input .value=${row[column]} @change=${(event: Event) => void editor.patchActionRow(
@@ -87,8 +108,14 @@ export class WgActionRows extends LitElement {
               @click=${() => void editor.openRowValue(this.stepId, field.name, index, column)}>ƒ</button>
           </div>
         `)}
-        <input .value=${row.variable} @change=${(event: Event) => void editor.patchActionRow(
-          field.name, index, 'variable', (event.target as HTMLInputElement).value)} />
+        <div class="cell">
+          <input .value=${row.variable} @change=${(event: Event) => void editor.patchActionRow(
+            field.name, index, 'variable', (event.target as HTMLInputElement).value)} />
+          <button class="chip" type="button"
+            @click=${() => void editor.openRowValue(this.stepId, field.name, index, 'variable')}>ƒ</button>
+        </div>
+        <button class="chip" type="button" title=${t('Add.PickRegionHint')}
+          @click=${() => void editor.pickAction(field.name, 'region', index)}>⌖</button>
         <button class="chip" type="button" title=${t('Editor.RemoveRow')}
           @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
       </div>
@@ -97,7 +124,9 @@ export class WgActionRows extends LitElement {
 
   private renderImages(field: EditorActionField): TemplateResult {
     return html`
-      ${field.images.map((row, index) => this.renderImage(field, row, index))}
+      ${field.images.length === 0
+        ? html`<p class="hint">${t('Add.ImageEmpty')}</p>`
+        : field.images.map((row, index) => this.renderImage(field, row, index))}
       <button class="chip add" type="button"
         @click=${() => void editor.addActionRow(field.name)}>${t('Add.ImageAdd')}</button>
     `;
@@ -105,25 +134,43 @@ export class WgActionRows extends LitElement {
 
   private renderImage(field: EditorActionField, row: EditorImageRow, index: number): TemplateResult {
     return html`
-      <div class="row" style="grid-template-columns: minmax(0, 1fr) auto auto auto auto auto">
-        <input .value=${row.text} @change=${(event: Event) => void editor.patchActionRow(
-          field.name, index, 'image', (event.target as HTMLInputElement).value)} />
-        <button class="chip" type="button"
-          @click=${() => void editor.pickImage(this.stepId, field.name)}>${t('Editor.Browse')}</button>
-        <button class="chip" type="button"
-          @click=${() => void editor.pickAction(field.name, 'capture', index)}>${t('Add.CaptureImage')}</button>
-        <button class="chip" type="button" ?disabled=${!row.canMoveUp}
-          @click=${() => void editor.moveActionRow(field.name, index, -1)}>↑</button>
-        <button class="chip" type="button" ?disabled=${!row.canMoveDown}
-          @click=${() => void editor.moveActionRow(field.name, index, 1)}>↓</button>
-        <button class="chip" type="button"
-          @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+      <div class="image-row">
+        ${row.preview?.dataUrl
+          ? html`<img src=${row.preview.dataUrl} alt=${row.preview.fileName || row.text} />`
+          : html`<span class="missing">${t('Add.ImageEmpty')}</span>`}
+        <div class="row" style="gap: 3px">
+          <input .value=${row.text} @change=${(event: Event) => void editor.patchActionRow(
+            field.name, index, 'image', (event.target as HTMLInputElement).value)} />
+          ${row.preview?.problem
+            ? html`<span class="problem">${row.preview.problem}</span>`
+            : html`<span class="file">${row.preview?.fileName ?? ''}</span>`}
+        </div>
+        <div class="row" style="grid-template-columns: repeat(6, auto); gap: 2px">
+          <button class="chip" type="button"
+            @click=${() => void editor.pickAction(field.name, 'path', index)}>${t('Editor.Browse')}</button>
+          <button class="chip" type="button"
+            @click=${() => void editor.pickAction(field.name, 'capture', index)}>${t('Add.CaptureImage')}</button>
+          <button class="chip" type="button"
+            @click=${() => void editor.patchActionRow(field.name, index, 'image', '')}>${t('Add.ClearImage')}</button>
+          <button class="chip" type="button" ?disabled=${!row.canMoveUp}
+            aria-label=${t('Add.ImageMoveUp')}
+            @click=${() => void editor.moveActionRow(field.name, index, -1)}>↑</button>
+          <button class="chip" type="button" ?disabled=${!row.canMoveDown}
+            aria-label=${t('Add.ImageMoveDown')}
+            @click=${() => void editor.moveActionRow(field.name, index, 1)}>↓</button>
+          <button class="chip" type="button"
+            aria-label=${t('Add.ImageRemove')}
+            @click=${() => void editor.removeActionRow(field.name, index)}>×</button>
+        </div>
       </div>
     `;
   }
 
   private renderColourPoints(field: EditorActionField): TemplateResult {
     return html`
+      ${field.colourPoints.length === 0
+        ? html`<p class="hint">${t('Add.ColourPointEmpty')}</p>`
+        : nothing}
       <div class="row" style="grid-template-columns: repeat(5, minmax(0, 1fr)) 24px">
         <span class="head">dx</span><span class="head">dy</span><span class="head">${t('Add.ColourPointColour')}</span>
         <span class="head">${t('Add.ColourPointMustNot')}</span><span class="head">${t('Editor.ColorTolerance')}</span><span></span>
@@ -143,6 +190,8 @@ export class WgActionRows extends LitElement {
       `)}
       <button class="chip add" type="button"
         @click=${() => void editor.addActionRow(field.name)}>${t('Add.ColourPointAdd')}</button>
+      <button class="chip add" type="button"
+        @click=${() => void editor.pickAction(field.name, 'lookColours')}>${t('Add.PickColours')}</button>
     `;
   }
 
@@ -185,9 +234,18 @@ export class WgActionRows extends LitElement {
 
   private renderKeys(field: EditorActionField): TemplateResult {
     return html`
+      ${field.keys.length === 0
+        ? html`<p class="hint">${t('Add.KeyRunEmpty')}</p>`
+        : nothing}
       ${field.keys.map((row, index) => this.renderKey(field, row, index))}
       <button class="chip add" type="button"
         @click=${() => void editor.addActionRow(field.name)}>${t('Add.KeyRunAdd')}</button>
+      ${this.pad
+        ? html`<wg-key-pad .pad=${this.pad} label=${t('Add.KeyRunPress').replace('{0}', String(this.padIndex + 1))}
+            @wg-pad-key=${(event: CustomEvent<{ value: string }>) => void editor.padKey(
+              field.name, event.detail.value, this.padIndex, 'keys')}
+            @wg-pad-close=${() => { this.pad = null; }}></wg-key-pad>`
+        : nothing}
     `;
   }
 
@@ -197,7 +255,10 @@ export class WgActionRows extends LitElement {
         <div class="cell">
           <input .value=${row.keys} @change=${(event: Event) => void editor.patchActionRow(
             field.name, index, 'keys', (event.target as HTMLInputElement).value)} />
-          <button class="chip" type="button" title=${t('Add.SetCombination')}>⌨</button>
+          <button class="chip" type="button" title=${t('Add.OpenKeyPadHint')}
+            @click=${() => void this.openPad(index)}>⌨</button>
+          <button class="chip" type="button" title=${t('Add.CaptureKeyHint')}
+            @click=${() => this.beginCapture(index)}>⌨+</button>
         </div>
         <input type="number" min="0" .value=${row.hold}
           @change=${(event: Event) => void editor.patchActionRow(
@@ -210,6 +271,40 @@ export class WgActionRows extends LitElement {
       </div>
     `;
   }
+
+  private async openPad(index: number): Promise<void> {
+    const pad = await editor.keyPad('keys');
+    if (pad) {
+      this.padIndex = index;
+      this.pad = pad;
+    }
+  }
+
+  private beginCapture(index: number): void {
+    this.captureIndex = index;
+    window.addEventListener('keydown', this.onCaptureKey, true);
+  }
+
+  private onCaptureKey = (event: KeyboardEvent): void => {
+    if (this.captureIndex < 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const parts: string[] = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+    if (event.metaKey) parts.push('Win');
+    let key = event.key;
+    if (key === ' ') key = 'Space';
+    else if (key.length === 1) key = key.toUpperCase();
+    parts.push(key);
+    const index = this.captureIndex;
+    this.captureIndex = -1;
+    window.removeEventListener('keydown', this.onCaptureKey, true);
+    void editor.padKey(this.field.name, parts.join('+'), index, 'keys');
+  };
 
   private renderNarrow(field: EditorActionField): TemplateResult {
     return html`
@@ -230,6 +325,8 @@ export class WgActionRows extends LitElement {
           @change=${(event: Event) => void editor.patchActionRow(
             field.name, index, 'value', (event.target as HTMLInputElement).value)} />
         <span class="count">${row.count}</span>
+        <button class="chip" type="button" title=${t('Add.NarrowLookHint')}
+          @click=${() => void editor.testNarrow(field.name, index)}>⌕</button>
         <button class="chip" type="button"
           @click=${() => void editor.pickAction(field.name, 'narrow', index)}>⌖</button>
         <button class="chip" type="button"
@@ -268,9 +365,6 @@ export class WgActionRows extends LitElement {
     `;
   }
 
-  private get stepId(): string {
-    return editor.get().actionForm?.stepId ?? '';
-  }
 }
 
 declare global {

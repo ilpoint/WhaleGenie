@@ -68,6 +68,19 @@ export function newTrigger(id: string, kind: string): EditorTrigger {
     hotstringRequireEnd: true,
     hotstringEraseTyped: true,
     hotstringKeepEnd: true,
+    hotstringMaximumLength: 40,
+    hotstringEndKeys: kind === 'Hotstring'
+      ? [
+        { value: ' ', label: 'Space', checked: true, isCustom: false },
+        { value: '\n', label: 'Enter', checked: true, isCustom: false },
+        { value: ';', label: ';', checked: true, isCustom: false },
+        { value: '.', label: '.', checked: true, isCustom: false },
+      ]
+      : [],
+    hotstringEndCaptureProblem: '',
+    interfaceHotkey: '',
+    interfaceHotkeyProblem: '',
+    interfaceGroupMembers: [],
   };
 }
 

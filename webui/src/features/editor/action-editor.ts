@@ -27,6 +27,8 @@ export class WgActionEditor extends LitElement {
     .tabs button:focus-visible { outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2); outline-offset: -2px; }
     .body { flex: 1; min-height: 0; overflow: auto; padding: var(--spacingVerticalM) var(--spacingHorizontalL) var(--spacingVerticalL); display: grid; gap: var(--spacingVerticalL); align-content: start; }
     .sections { display: grid; gap: var(--spacingVerticalS); }
+    .banner { margin: 0 0 var(--spacingVerticalS); padding: var(--spacingVerticalS) var(--spacingHorizontalM); border-radius: var(--borderRadiusMedium); font-size: var(--fontSizeBase200); white-space: pre-wrap; }
+    .banner.problem { color: var(--colorStatusDangerForeground1); background: var(--colorStatusDangerBackground1); border: var(--strokeWidthThin) solid var(--colorStatusDangerBorder1); }
     .block { display: grid; gap: 3px; }
     .block > span { color: var(--colorNeutralForeground2); font-size: var(--fontSizeBase200); }
     .note { margin: 0; color: var(--colorNeutralForeground3); font-size: var(--fontSizeBase100); }
@@ -183,6 +185,9 @@ export class WgActionEditor extends LitElement {
           `)}
         </div>
         <div class="body">
+          ${state.actionError
+            ? html`<p class="banner problem" role="alert">${state.actionError}</p>`
+            : nothing}
           ${this.renderPage(form, page)}
         </div>
         <footer>

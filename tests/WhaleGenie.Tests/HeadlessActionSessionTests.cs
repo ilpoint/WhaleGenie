@@ -87,6 +87,43 @@ public class HeadlessActionSessionTests
     }
 
     [Fact]
+    public void Hotstring_end_keys_toggle_and_keep_a_captured_key()
+    {
+        var session = Open(out _);
+        session.AddTrigger("Hotstring");
+        var trigger = session.Snapshot().Triggers.Single();
+        session.SetTriggerHotstring(trigger.Id, "abc");
+
+        var space = session.Snapshot().Triggers.Single().HotstringEndKeys
+            .First(key => key.Value == " ");
+        session.SetTriggerHotstringEndKey(trigger.Id, " ", false);
+        var after = session.Snapshot().Triggers.Single();
+        Assert.False(after.HotstringEndKeys.First(key => key.Value == " ").Checked);
+
+        session.CaptureTriggerHotstringEnd(trigger.Id, "~");
+        after = session.Snapshot().Triggers.Single();
+        Assert.Contains(after.HotstringEndKeys, key => key.Value == "~" && key.IsCustom && key.Checked);
+
+        session.ResetTriggerHotstringEndKeys(trigger.Id);
+        after = session.Snapshot().Triggers.Single();
+        Assert.DoesNotContain(after.HotstringEndKeys, key => key.IsCustom);
+    }
+
+    [Fact]
+    public void Interface_hotkey_is_saved_for_the_window_group()
+    {
+        var session = Open(out _);
+        session.AddTrigger("Interface");
+        var trigger = session.Snapshot().Triggers.Single();
+        session.SetTriggerInterface(trigger.Id, "title", "Notepad");
+        session.SetTriggerInterfaceHotkey(trigger.Id, "Ctrl+F8");
+
+        var after = session.Snapshot().Triggers.Single();
+        Assert.Equal("Ctrl+F8", after.InterfaceHotkey);
+        Assert.Empty(after.InterfaceHotkeyProblem);
+    }
+
+    [Fact]
     public void Recording_options_are_part_of_the_document_snapshot()
     {
         var session = Open(out _);

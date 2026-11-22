@@ -12,10 +12,11 @@ import type {
   EditorValueOutcome,
   EditorValueSnapshot,
   EditorPublicMacro,
+  EditorCharacterPad,
   EditorKeyPad,
   EditorTrialReply,
   EditorTrialResult,
-  EditorWindowEntry,
+  EditorWindowPreview,
   ProjectState,
 } from '../../shared/bridge/protocol.js';
 import { project } from '../../shared/project/store.js';
@@ -723,6 +724,28 @@ class EditorStore {
     return this.actionCommand('editor.actionWindowRule', { name, rule });
   }
 
+  async testActionBrowser(name: string): Promise<boolean> {
+    return this.actionCommand('editor.actionTestBrowser', { name });
+  }
+
+  async testActionElement(name: string): Promise<boolean> {
+    return this.actionCommand('editor.actionTestElement', { name });
+  }
+
+  async testNarrow(name: string, index: number): Promise<boolean> {
+    return this.actionCommand('editor.actionTestNarrow', { name, index });
+  }
+
+  async previewActionWindow(name: string, rule: string): Promise<EditorWindowPreview | null> {
+    try {
+      return await bridge.value.call<EditorWindowPreview | null>('editor.actionWindowPreview',
+        { name, rule });
+    } catch (error) {
+      this.fail(error);
+      return null;
+    }
+  }
+
   async runAction(confirmed = false): Promise<EditorTrialReply | null> {
     try {
       const reply = await bridge.value.call<EditorTrialReply>('editor.actionRun', { confirmed });
@@ -757,6 +780,12 @@ class EditorStore {
   }
 
   async pickAction(name: string, mode: string, index = -1): Promise<boolean> {
+    if (mode === 'lookOffset' || mode === 'lookColours') {
+      return this.actionCommand('editor.actionLook', {
+        name, mode: mode === 'lookColours' ? 'colours' : 'offset', index,
+      });
+    }
+
     return this.actionCommand('editor.actionPick', { name, mode, index });
   }
 
@@ -767,17 +796,6 @@ class EditorStore {
     } catch (error) {
       this.fail(error);
       return null;
-    }
-  }
-
-  async actionWindowList(): Promise<EditorWindowEntry[]> {
-    try {
-      const result = await bridge.value.call<{ entries: EditorWindowEntry[] }>(
-        'editor.actionWindowList');
-      return result.entries ?? [];
-    } catch (error) {
-      this.fail(error);
-      return [];
     }
   }
 
@@ -1384,6 +1402,35 @@ class EditorStore {
 
   setTriggerHotstringOption(triggerId: string, field: string, value: string): Promise<boolean> {
     return this.trigger('editor.sessionTriggerHotstringOption', { triggerId, field, value });
+  }
+
+  setTriggerHotstringEndKey(triggerId: string, value: string, checked: boolean): Promise<boolean> {
+    return this.trigger('editor.sessionTriggerHotstringEndKey', { triggerId, value, checked });
+  }
+
+  resetTriggerHotstringEndKeys(triggerId: string): Promise<boolean> {
+    return this.trigger('editor.sessionTriggerHotstringEndReset', { triggerId });
+  }
+
+  captureTriggerHotstringEnd(triggerId: string, character: string): Promise<boolean> {
+    return this.trigger('editor.sessionTriggerHotstringEndCapture', { triggerId, character });
+  }
+
+  setTriggerInterfaceHotkey(triggerId: string, binding: string): Promise<boolean> {
+    return this.trigger('editor.sessionTriggerInterfaceHotkey', { triggerId, binding });
+  }
+
+  clearTriggerInterfaceHotkey(triggerId: string): Promise<boolean> {
+    return this.trigger('editor.sessionTriggerInterfaceHotkeyClear', { triggerId });
+  }
+
+  async hotstringKeyPad(): Promise<EditorCharacterPad | null> {
+    try {
+      return await bridge.value.call<EditorCharacterPad>('editor.hotstringKeyPad');
+    } catch (error) {
+      this.fail(error);
+      return null;
+    }
   }
 
   setTriggerColor(triggerId: string, field: string, value: string): Promise<boolean> {

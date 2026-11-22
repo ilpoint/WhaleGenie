@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import type {
+  EditorWindowPreview,
   SettingsChoice,
   WindowEntryState,
   WindowRulePickerState,
@@ -29,6 +30,9 @@ export class WgWindowRule extends LitElement {
   @property()
   public title = '';
 
+  @property({ attribute: false })
+  public preview: EditorWindowPreview | null = null;
+
   @state()
   private windows: WindowEntryState[] = [];
 
@@ -52,13 +56,13 @@ export class WgWindowRule extends LitElement {
       display: block;
       position: fixed;
       inset: 0;
-      z-index: 40;
+      z-index: 80;
     }
 
     .backdrop {
       position: fixed;
       inset: 0;
-      z-index: 40;
+      z-index: 80;
       display: grid;
       place-items: center;
       padding: var(--spacingVerticalXL);
@@ -182,6 +186,21 @@ export class WgWindowRule extends LitElement {
       margin: 0;
     }
 
+    .preview {
+      display: grid;
+      gap: 2px;
+      padding: var(--spacingVerticalS);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground2);
+      font-size: var(--fontSizeBase100);
+      color: var(--colorNeutralForeground2);
+    }
+
+    .preview strong {
+      color: var(--colorNeutralForeground1);
+    }
+
     input,
     select {
       font: inherit;
@@ -199,7 +218,8 @@ export class WgWindowRule extends LitElement {
   render() {
     return html`
       <div class="backdrop" @pointerdown=${this.onBackdrop}>
-        <div class="dialog" role="dialog" aria-modal="true" aria-label=${this.title}>
+        <div class="dialog" role="dialog" aria-modal="true" aria-label=${this.title}
+          @input=${this.emitChange} @change=${this.emitChange}>
           <div>
             <h2>${this.title}</h2>
             <p class="hint">${t('WindowRule.CaptureHint')}</p>
@@ -276,6 +296,14 @@ export class WgWindowRule extends LitElement {
               <p class="hint">${t(this.rule.how === 'handle'
                 ? 'WindowRule.HandleHint'
                 : 'WindowRule.FieldHint')}</p>
+              ${this.preview
+                ? html`<div class="preview">
+                    <strong>${this.preview.summary}</strong>
+                    ${this.preview.rows.map((row) => html`<span>${row.title}${row.part ? ' · ' + row.part : ''}</span>`)}
+                    ${this.preview.more ? html`<span>${this.preview.more}</span>` : nothing}
+                    ${this.preview.note ? html`<span class="hint">${this.preview.note}</span>` : nothing}
+                  </div>`
+                : nothing}
               ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
             </section>
           </div>
@@ -398,6 +426,14 @@ export class WgWindowRule extends LitElement {
 
   private cancel = (): void => {
     this.dispatchEvent(new CustomEvent('wg-rule-close', { bubbles: true, composed: true }));
+  };
+
+  private emitChange = (): void => {
+    this.dispatchEvent(new CustomEvent<WindowRuleState>('wg-rule-change', {
+      detail: { ...this.rule },
+      bubbles: true,
+      composed: true,
+    }));
   };
 
   private onBackdrop = (event: PointerEvent): void => {
