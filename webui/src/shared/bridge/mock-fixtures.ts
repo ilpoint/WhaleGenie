@@ -1,6 +1,7 @@
 import type {
   SettingsMenuState,
   SurfaceMenuSnapshot,
+  SurfaceWheelSnapshot,
   SettingsWheelSlot,
   SettingsWheelState,
   WindowEntryState,
@@ -129,5 +130,19 @@ export const demoSurfaceMenu: SurfaceMenuSnapshot = {
   ],
   context: [
     { pageId: 'ctx', isDefault: true, ruleSummary: 'Default', cells: [] },
+  ],
+};
+/** 轮盘浮层：内外两圈各几格，够开发与 e2e 看清扇区与标签。 */
+export const demoSurfaceWheel: SurfaceWheelSnapshot = {
+  diameter: 420,
+  wideOuter: false,
+  rings: 2,
+  thirdCapacity: 0,
+  sceneName: 'Global',
+  slots: [
+    { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null },
+    { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null },
+    { ring: 'outer', index: 0, label: '每日签到', iconKind: null, iconValue: null },
+    { ring: 'outer', index: 3, label: '清理日志', iconKind: null, iconValue: null },
   ],
 };

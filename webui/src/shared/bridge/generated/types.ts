@@ -1550,6 +1550,23 @@ export interface SurfaceMenuSnapshot {
   context: SurfaceMenuPage[];
 }
 
+export interface SurfaceWheelSlot {
+  ring: string;
+  index: number;
+  label: string;
+  iconKind: string | null;
+  iconValue: string | null;
+}
+
+export interface SurfaceWheelSnapshot {
+  diameter: number;
+  wideOuter: boolean;
+  rings: number;
+  thirdCapacity: number;
+  sceneName: string;
+  slots: SurfaceWheelSlot[];
+}
+
 export interface ThemeState {
   mode: string;
   baseLight: boolean;

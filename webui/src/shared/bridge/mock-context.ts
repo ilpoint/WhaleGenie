@@ -5,6 +5,7 @@ import type {
   SettingsState,
   StringsBundle,
   SurfaceMenuSnapshot,
+  SurfaceWheelSnapshot,
   ThemeState,
   WindowState,
 } from './protocol.js';
@@ -29,6 +30,7 @@ export interface MockShellContext {
   windowState: WindowState;
   projectState: ProjectState;
   surfaceMenu: SurfaceMenuSnapshot;
+  surfaceWheel: SurfaceWheelSnapshot;
   push(event: string, payload: unknown): void;
   bundle(): StringsBundle;
 }

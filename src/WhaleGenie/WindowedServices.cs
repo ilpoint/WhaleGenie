@@ -59,6 +59,8 @@ internal static class WindowedServices
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
             sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
             sp.GetRequiredService<MenuSurfaceBridge>()))
+        .AddSingleton(sp => new WheelSurfaceBridge(new WheelSurface(
+            sp.GetRequiredService<ProjectWorkspace>())))
         .AddSingleton(sp => new MenuSurfaceBridge(new MenuSurface(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<IDeviceLayer>().Windows,
@@ -79,6 +81,7 @@ internal static class WindowedServices
             server.Register(new McpBridge(() => SharedDevices.Current.Clipboard,
                 sp.GetRequiredService<AppSettings>()));
             server.Register(sp.GetRequiredService<MenuSurfaceBridge>());
+            server.Register(sp.GetRequiredService<WheelSurfaceBridge>());
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();

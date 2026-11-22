@@ -19,6 +19,7 @@ import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
 import { go } from './shared/navigation/router.js';
 import './features/overlay/menu-overlay.js';
+import './features/overlay/wheel.js';
 import { installFocusReporting } from './shared/focus/focus.js';
 import { editor } from './features/editor/editor-store.js';
 import './app/shell.js';
@@ -42,15 +43,17 @@ strings.load(bundle);
 // 自己的桥面上（Main / Menu），所以这里必须先决定画哪一张，再去拉那一张要的数据。
 // The native host asks for an overlay twice over — a query the file URL always keeps and the hash
 // the router reads — because a file navigation may drop the fragment on some WebView builds.
-const overlay = new URLSearchParams(window.location.search).has('overlay')
-  || window.location.hash.startsWith('#overlay/');
+const query = new URLSearchParams(window.location.search);
+const overlayRoute = query.get('overlay')
+  ?? (window.location.hash.startsWith('#overlay/') ? window.location.hash.slice('#overlay/'.length) : null);
 
 theme.load(await client.call<ThemeState>('theme.get'));
 client.on('strings.changed', (next) => strings.load(next));
 client.on('theme.changed', (next) => theme.load(next));
 
-if (overlay) {
-  document.body.replaceChildren(document.createElement('wg-overlay-menu'));
+if (overlayRoute) {
+  document.body.replaceChildren(document.createElement(
+    overlayRoute.startsWith('wheel') ? 'wg-overlay-wheel' : 'wg-overlay-menu'));
 } else {
   appInfo.load(await client.call<AppInfo>('app.info'));
   project.load(await client.call<ProjectState>('project.state'));
