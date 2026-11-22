@@ -84,6 +84,14 @@
       "count": 1
     }
   },
+  "src/shared/bridge/mock-editor-action-form.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
   "src/shared/bridge/mock-editor-run-action.ts": {
     "complexity": {
       "count": 1
@@ -107,13 +115,13 @@
   },
   "src/shared/bridge/mock-editor.ts": {
     "complexity": {
-      "count": 3
+      "count": 1
     },
     "max-lines": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     }
   },
   "src/shared/bridge/mock-settings.ts": {
