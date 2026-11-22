@@ -17,7 +17,7 @@ import { theme } from './shared/theme/theme.js';
 import { appInfo } from './shared/app/app.js';
 import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
-import { go } from './app/router.js';
+import { go } from './shared/navigation/router.js';
 import { installFocusReporting } from './shared/focus/focus.js';
 import { editor } from './features/editor/editor-store.js';
 import './app/shell.js';

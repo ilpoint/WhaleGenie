@@ -2,7 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { appInfo } from '../../shared/app/app.js';
 import { project } from '../../shared/project/store.js';
-import { go, type Route } from '../../app/router.js';
+import { go, type Route } from '../../shared/navigation/router.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import type { AppInfo, ProjectState } from '../../shared/bridge/protocol.js';
 

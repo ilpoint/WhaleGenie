@@ -1,14 +1,14 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import { bridge } from '../../shared/bridge/bridge.js';
+import { bridge } from '../bridge/bridge.js';
 import type {
   EditorWindowPreview,
   SettingsChoice,
   WindowEntryState,
   WindowRulePickerState,
   WindowRuleState,
-} from '../../shared/bridge/protocol.js';
-import { t } from '../../shared/strings/strings.js';
+} from '../bridge/protocol.js';
+import { t } from '../strings/strings.js';
 
 export function emptyRule(): WindowRuleState {
   return {

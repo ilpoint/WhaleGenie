@@ -100,11 +100,6 @@
       "count": 1
     }
   },
-  "src/features/settings/window-rule-dialog.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/shared/bridge/mock-editor-steps.ts": {
     "complexity": {
       "count": 1
@@ -145,6 +140,11 @@
   },
   "src/shared/bridge/protocol.ts": {
     "max-lines": {
+      "count": 1
+    }
+  },
+  "src/shared/window-rule/window-rule-dialog.ts": {
+    "max-lines-per-function": {
       "count": 1
     }
   }

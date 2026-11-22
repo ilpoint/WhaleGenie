@@ -3,7 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import type { EditorCharacterPad, EditorTrigger } from '../../shared/bridge/protocol.js';
-import { keyboardChord } from '../settings/capture.js';
+import { keyboardChord } from '../../shared/input/capture.js';
 import { editor } from './editor-store.js';
 import { editorBase } from './editor-css.js';
 import './character-pad.js';

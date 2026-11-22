@@ -2,7 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import { icon } from '../shared/icons.js';
 import { strings, t } from '../shared/strings/strings.js';
-import { routes, type Route } from './router.js';
+import { routes, type Route } from '../shared/navigation/router.js';
 
 /**
  * 左侧活动栏。条目从词表键推导：`Shell.<Route>` 存在就是一项，所以阶段加页面只需要加键与

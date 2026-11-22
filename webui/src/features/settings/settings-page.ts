@@ -9,8 +9,8 @@ import type {
 } from '../../shared/bridge/protocol.js';
 import { theme as themeStore } from '../../shared/theme/theme.js';
 import { strings, t } from '../../shared/strings/strings.js';
-import { keyboardChord, pointerBinding } from './capture.js';
-import { emptyRule, type WgWindowRule } from './window-rule-dialog.js';
+import { keyboardChord, pointerBinding } from '../../shared/input/capture.js';
+import { emptyRule, type WgWindowRule } from '../../shared/window-rule/window-rule-dialog.js';
 import { renderMenu, type MenuActions } from './settings-menu.js';
 import {
   renderWheelActions,

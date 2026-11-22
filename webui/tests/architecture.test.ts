@@ -66,16 +66,9 @@ function featureOf(path: string): string | null {
   return path.startsWith('features/') ? path.split('/')[1] ?? null : null;
 }
 
-const crossFeatureAllow = new Set([
-  'features/editor/action-field.ts -> features/settings/window-rule-dialog.ts',
-  'features/editor/macro-settings.ts -> features/settings/capture.ts',
-  'features/macros/macros-page.ts -> features/mcp/mcp-panel.ts',
-]);
+const crossFeatureAllow = new Set<string>();
 
-const featureToAppAllow = new Set([
-  'features/home/home-page.ts -> app/router.ts',
-  'features/macros/macros-page.ts -> app/router.ts',
-]);
+const featureToAppAllow = new Set<string>();
 
 const hostFiles = new Set(['shared/bridge/transport.ts', 'shared/bridge/pick.ts']);
 

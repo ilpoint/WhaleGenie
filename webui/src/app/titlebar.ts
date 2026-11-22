@@ -4,7 +4,7 @@ import { appInfo } from '../shared/app/app.js';
 import { bridge } from '../shared/bridge/bridge.js';
 import { project } from '../shared/project/store.js';
 import { icon } from '../shared/icons.js';
-import { go } from './router.js';
+import { go } from '../shared/navigation/router.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { windowMirror } from '../shared/window/window.js';
 import whale from '../assets/whale.png';

@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { currentRoute, go, type Route } from './router.js';
+import { currentRoute, go, type Route } from '../shared/navigation/router.js';
 import './titlebar.js';
 import './nav.js';
 import '../features/dialogs/confirm.js';

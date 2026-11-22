@@ -1,13 +1,13 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, query, state } from 'lit/decorators.js';
-import { go } from '../../app/router.js';
+import { go } from '../../shared/navigation/router.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import type { BridgeFailurePayload, MacroEntry, ProjectState } from '../../shared/bridge/protocol.js';
-import type { WgMcpPanel } from '../mcp/mcp-panel.js';
-import '../mcp/mcp-panel.js';
+import type { WgMcpPanel } from '../mcp/index.js';
+import '../mcp/index.js';
 
 /**
  * 宏列表页：视图 dock、分组与搜索的过滤是页面自己的事（状态整包在手），启停与系统开关经桥

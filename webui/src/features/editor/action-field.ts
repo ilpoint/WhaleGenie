@@ -6,7 +6,7 @@ import type {
   EditorKeyPad,
   EditorWindowPreview,
 } from '../../shared/bridge/protocol.js';
-import { emptyRule } from '../settings/window-rule-dialog.js';
+import { emptyRule } from '../../shared/window-rule/window-rule-dialog.js';
 import type { WindowRuleState } from '../../shared/bridge/protocol.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
@@ -14,7 +14,7 @@ import { editorBase } from './editor-css.js';
 import './value-field.js';
 import './action-rows.js';
 import './key-pad.js';
-import '../settings/window-rule-dialog.js';
+import '../../shared/window-rule/window-rule-dialog.js';
 
 /**
  * One field of an action draft. The field's kind and the buttons beside it come from the snapshot;
