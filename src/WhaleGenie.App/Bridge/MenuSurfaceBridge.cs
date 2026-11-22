@@ -49,6 +49,8 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             Task.FromResult<object?>(new { opened = menu.Edit(RequiredString(parameters, "entryId")) }));
         server.Register("surface.menu.debug", parameters =>
             Task.FromResult<object?>(new { opened = menu.Debug(RequiredString(parameters, "entryId")) }));
+        server.Register("surface.menu.replace", async parameters =>
+            await menu.ReplaceAsync(RequiredString(parameters, "entryId")));
         server.Register("surface.menu.icon", async parameters =>
             await menu.ChooseIconAsync(RequiredString(parameters, "entryId")));
         server.Register("surface.menu.page.add", parameters =>

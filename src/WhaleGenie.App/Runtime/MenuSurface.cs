@@ -84,6 +84,24 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
         return Snapshot();
     }
 
+    /// <summary>Puts another macro in one cell, keeping the cell's place.</summary>
+    public async Task<SurfaceMenuSnapshot> ReplaceAsync(string entryId)
+    {
+        var entry = EntryOf(entryId);
+        if (entry is null || Actions is null)
+        {
+            return Snapshot();
+        }
+
+        if (await Actions.PickMacroAsync() is { Length: > 0 } name)
+        {
+            entry.MacroName = name;
+            workspace.MarkMenuChanged();
+        }
+
+        return Snapshot();
+    }
+
     private MacroItem? MacroOf(string entryId)
         => EntryOf(entryId) is { } entry
             ? workspace.Macros.FirstOrDefault(candidate =>

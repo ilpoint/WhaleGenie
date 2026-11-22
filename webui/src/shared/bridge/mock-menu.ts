@@ -27,6 +27,7 @@ export function handleSurfaceMenu(
       return { opened: true };
 
     case 'surface.menu.icon':
+    case 'surface.menu.replace':
       return host.surfaceMenu;
 
     case 'surface.menu.page.add':

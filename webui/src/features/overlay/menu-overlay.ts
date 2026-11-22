@@ -45,6 +45,9 @@ export class WgOverlayMenu extends LitElement {
   @state()
   private menuY = 0;
 
+  @state()
+  private dragging: string | null = null;
+
   protected readonly stringsController = new StoreController(this, strings);
 
 
@@ -102,6 +105,30 @@ export class WgOverlayMenu extends LitElement {
     this.menuY = event.clientY;
   }
 
+  private dropOn(event: DragEvent, page: SurfaceMenuPage, row: number, column: number): void {
+    event.preventDefault();
+    const entryId = event.dataTransfer?.getData('text/plain') || this.dragging;
+    this.dragging = null;
+    if (!entryId) {
+      return;
+    }
+
+    void bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.move',
+      { entryId, pageId: page.pageId, row, column }).then((snapshot) => {
+      this.snapshot = snapshot;
+    });
+  }
+
+  private async addRule(): Promise<void> {
+    this.menuFor = null;
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.rule.add');
+  }
+
+  private async blockForeground(): Promise<void> {
+    this.menuFor = null;
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.block');
+  }
+
   private async edit(cell: SurfaceMenuCell): Promise<void> {
     this.menuFor = null;
     await bridgeApi.call('surface.menu.edit', { entryId: cell.entryId });
@@ -110,6 +137,12 @@ export class WgOverlayMenu extends LitElement {
   private async debug(cell: SurfaceMenuCell): Promise<void> {
     this.menuFor = null;
     await bridgeApi.call('surface.menu.debug', { entryId: cell.entryId });
+  }
+
+  private async replace(cell: SurfaceMenuCell): Promise<void> {
+    this.menuFor = null;
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.replace',
+      { entryId: cell.entryId });
   }
 
   private async chooseIcon(cell: SurfaceMenuCell): Promise<void> {
@@ -129,6 +162,9 @@ export class WgOverlayMenu extends LitElement {
         <button @click=${() => void this.edit(cell)}>${t('Menu.EditMacro')}</button>
         <button @click=${() => void this.debug(cell)}>${t('Menu.Debug')}</button>
         <button @click=${() => void this.chooseIcon(cell)}>${t('Menu.ChooseIcon')}</button>
+        <button @click=${() => void this.replace(cell)}>${t('Menu.ReplaceMacro')}</button>
+        <button @click=${() => void this.addRule()}>${t('Menu.AddRule')}</button>
+        <button @click=${() => void this.blockForeground()}>${t('Menu.Block')}</button>
       </div>
     `;
   }
@@ -144,11 +180,20 @@ export class WgOverlayMenu extends LitElement {
   private renderCell(page: SurfaceMenuPage, row: number, column: number) {
     const cell = page.cells.find((candidate) => candidate.row === row && candidate.column === column);
     if (!cell) {
-      return html`<button class="cell empty" tabindex="-1" aria-hidden="true"></button>`;
+      return html`<button class="cell empty" tabindex="-1" aria-hidden="true"
+        @dragover=${(event: DragEvent) => event.preventDefault()}
+        @drop=${(event: DragEvent) => this.dropOn(event, page, row, column)}></button>`;
     }
 
     return html`
       <button class="cell" title=${cell.macroName}
+        draggable="true"
+        @dragstart=${(event: DragEvent) => {
+          this.dragging = cell.entryId;
+          event.dataTransfer?.setData('text/plain', cell.entryId);
+        }}
+        @dragover=${(event: DragEvent) => event.preventDefault()}
+        @drop=${(event: DragEvent) => this.dropOn(event, page, row, column)}
         @click=${() => void this.activate(cell)}
         @contextmenu=${(event: MouseEvent) => this.openMenu(event, cell)}>
         ${cell.iconKind === 'image' && cell.iconValue

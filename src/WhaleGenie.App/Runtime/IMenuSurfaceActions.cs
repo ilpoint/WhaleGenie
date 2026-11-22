@@ -14,4 +14,7 @@ public interface IMenuSurfaceActions
 
     /// <summary>The icon the person picked, as the wire spells it, or null when called off.</summary>
     Task<(string Kind, string Value)?> PickIconAsync();
+
+    /// <summary>The macro the person picked for a cell, or null when called off.</summary>
+    Task<string?> PickMacroAsync();
 }

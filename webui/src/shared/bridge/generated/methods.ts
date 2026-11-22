@@ -104,6 +104,7 @@ export type BridgeMethod =
   | 'surface.menu.page.add'
   | 'surface.menu.page.remove'
   | 'surface.menu.pin'
+  | 'surface.menu.replace'
   | 'surface.menu.rule.add'
   | 'surface.menu.state'
   | 'theme.get'

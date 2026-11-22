@@ -135,6 +135,26 @@ public class MenuSurfaceTests
         Assert.Equal("builtin", cell.IconKind);
     }
 
+    [Fact]
+    public async Task Replacing_a_cell_keeps_its_place_and_takes_the_new_macro()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        project.AddMacro(new MacroItem { Name = "two" });
+        var page = project.Triggers.CommonMenuPages()[0];
+        var entry = new TriggerEntry { MacroName = "one", Spec = new MenuSpec(page.Id, 1, 2) };
+        project.Triggers.Entries.Add(entry);
+        var surface = Surface(project);
+        surface.Actions = new RecordingActions { Macro = "two" };
+
+        var snapshot = await surface.ReplaceAsync(entry.Id);
+
+        var cell = Assert.Single(snapshot.Common.SelectMany(candidate => candidate.Cells));
+        Assert.Equal("two", cell.MacroName);
+        Assert.Equal(1, cell.Row);
+        Assert.Equal(2, cell.Column);
+    }
+
     private sealed class RecordingActions : IMenuSurfaceActions
     {
         public List<string> Opened { get; } = [];
@@ -145,7 +165,11 @@ public class MenuSurfaceTests
 
         public void OpenRun(string macroName) => Opened.Add(macroName);
 
+        public string? Macro { get; init; }
+
         public Task<(string Kind, string Value)?> PickIconAsync()
             => Task.FromResult(Icon);
+
+        public Task<string?> PickMacroAsync() => Task.FromResult(Macro);
     }
 }
