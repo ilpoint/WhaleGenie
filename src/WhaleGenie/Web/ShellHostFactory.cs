@@ -45,6 +45,12 @@ internal sealed class ShellHostFactory(
         var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
             menu.Overlay);
 #if DEBUG
+        if (App.WheelOverlay)
+        {
+            new WheelOverlayHost(bridge).Show();
+        }
+#endif
+#if DEBUG
         if (App.MenuOverlay)
         {
             shell.OpenMenu();
