@@ -1,6 +1,6 @@
 using System;
-using WhaleGenie.Bridge;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Runtime;
 using Xunit;
 
 namespace WhaleGenie.Tests;
@@ -13,7 +13,7 @@ public class RunLookTests
     {
         var frame = new ImageFrame(1000, 500, new byte[1000 * 500 * 4]);
 
-        var bytes = Decode(RunBridge.ToDataUrl(frame));
+        var bytes = Decode(FrameDataUrl.ToDataUrl(frame));
 
         Assert.Equal(320, BitConverter.ToInt32(bytes, 18));
         Assert.Equal(160, BitConverter.ToInt32(bytes, 22));
@@ -25,7 +25,7 @@ public class RunLookTests
     {
         var frame = new ImageFrame(100, 50, new byte[100 * 50 * 4]);
 
-        var bytes = Decode(RunBridge.ToDataUrl(frame));
+        var bytes = Decode(FrameDataUrl.ToDataUrl(frame));
 
         Assert.Equal(100, BitConverter.ToInt32(bytes, 18));
         Assert.Equal(50, BitConverter.ToInt32(bytes, 22));
