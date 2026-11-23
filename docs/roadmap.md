@@ -20,10 +20,21 @@
 
 **实现状态（2026-11）**：C#/页面职责分界已完成——P6 编辑模型/无头会话与 P7 全部桥处理器已迁入
 `WhaleGenie.Editing`/`WhaleGenie.App`，界面工程只保留窗口、原生选择器/遮罩适配。
-P3/P4 的 IO/busy、P8 原生主题进一步收缩、P9 mock 收缩归入后续技术债（P5 可注入设置已完成）。
-三块运行期浮层（宏菜单、轮盘、界面面板）已全部迁到 Lit，原生窗口与窗口类测试已删除；迁移记录与
-真机验收清单见 [surfaces-migration.md](architecture/surfaces-migration.md)。剩余清理债务（P3/P4 的
-IO/busy、P8 主题收缩、P9 mock 收缩）仍留在本节作为后续技术债。
+P8 原生主题收缩已完成（1133 → 436/340/324）。P5 可注入设置、两处大文件拆分（编辑桥、无头会话）与
+迁移后的死代码清理也已完成，记录见各次提交与 [surfaces-migration.md](architecture/surfaces-migration.md)。
+三块运行期浮层（宏菜单、轮盘、界面面板）已全部迁到 Lit，原生窗口与窗口类测试已删除；真机验收清单
+仍在那份文档里。
+
+剩余技术债按实测重定基线：
+
+- **P9 mock 收缩**：5,550 → 4,902 行（词表改由 Strings 生成后省下 654 行）。剩下约 2,700 行是编辑器
+  mock，而 editor.spec.ts（658 行、209 处引用）依赖它的行为级模拟；压到 2,500 只能删掉这些行为，
+  等于牺牲 e2e 覆盖。新的目标是先把纯数据（动作目录、步骤样例）外置为 JSON，再评估能否低于 3,500；
+  “2,500”作为过时目标保留在记录里，不再按它判断完成。
+- **P3/P4 IO/busy**：保存路径确认是同步 zip 写（MacroPackage.Save 直接从 UI 线程调用）。要移出线程得
+  新增“准备数据 → 后台写 → 回 UI 收尾”的接口，并同时改窗口保存、MCP 保存与另存为三处调用；这是独立
+  改造，不与浮层迁移同批做。下一次动它时先改 MCP 保存（唯一已有异步签名的路径），再推广。
+- 真机验收（游戏全屏、多屏、DPI 125–200%）只能由使用者完成，代码侧已把清单列在迁移文档里。
 
 界面整体从原生 AXAML 迁到 WebView + Lit + Fluent UI Web Components（见 [DESIGN.md](../DESIGN.md)
 第 14 节与 [architecture/interface.md §7.6](architecture/interface.md)）。阶段 A（宿主、桥接、壳）
