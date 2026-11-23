@@ -23,7 +23,7 @@ npm run test         # Vitest 单测
 npm run lint         # ESLint；新增违规按错误失败，旧违规在 eslint-suppressions.json
 npm run check        # lint + 单测 + 类型检查 + 构建
 npm run build        # 类型检查 + 单文件构建，产物 dist/index.html
-npx playwright test  # 端到端冒烟（系统 Edge，走构建产物的 preview）
+npm run e2e          # 端到端冒烟（系统 Edge，走构建产物的 preview；CI 在构建之后跑同一条）
 ```
 
 网页壳是默认窗口；装不上 WebView2 Runtime 的机器回退原生窗口。DEBUG 下

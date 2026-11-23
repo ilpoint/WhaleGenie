@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 /**
  * 壳的冒烟：加载、导航切换、标题栏按钮与主题推送。跑在 mock 模式上——真实桥的真机验收在
@@ -10,6 +10,14 @@ test.beforeEach(async ({ page }) => {
   // 等词表与信息都到齐：标题栏能显示鲸灵的名字，说明启动装配走完了。
   await expect(page.locator('wg-titlebar .title')).toContainText('鲸灵');
 });
+
+/** 页面按命令域发方法名，具体命令在 params 的 kind 里；断言一条调用，而不是去看方法名。 */
+function called(page: Page, method: string, params: Record<string, string>): Promise<boolean> {
+  return page.evaluate(({ method: wanted, params: wantedParams }) => window.__mock!.calls.some(
+    (call) => call.method === wanted
+      && Object.entries(wantedParams).every(([name, value]) => call.params[name] === value)),
+  { method, params });
+}
 
 test('首页显示程序信息', async ({ page }) => {
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
@@ -75,7 +83,8 @@ test('标题栏文件与帮助菜单', async ({ page }) => {
 test('设置页读取并显示常规设置', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   await expect(page.locator('wg-settings h1')).toHaveText('设置');
-  await expect(page.locator('wg-settings .rail button')).toHaveCount(5);
+  // 轮盘菜单并进设置页后，rail 是六项。
+  await expect(page.locator('wg-settings .rail button')).toHaveCount(6);
   await expect(page.locator('wg-settings .header input[type="search"]')).toBeVisible();
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.state')))
@@ -92,7 +101,7 @@ test('导航切换到宏列表与占位页', async ({ page }) => {
 
   await page.locator('wg-nav .activity button[aria-label="运行调试"]').click();
   await expect(page.locator('wg-run h1')).toHaveText('运行与调试');
-  await expect(page.locator('wg-run')).toContainText('运行面板');
+  await expect(page.locator('wg-run .panel')).toBeVisible();
 
   await page.locator('wg-nav .activity button[aria-label="首页"]').click();
   await expect(page.locator('wg-home h1')).toHaveText('欢迎使用鲸灵');
@@ -102,9 +111,13 @@ test('宏列表的过滤、搜索与启停', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
 
   // 视图 dock：切到"按键"，只剩带键触发的宏。视图 dock 是过滤区的第一排，分组 chips 在它
-  // 下面，也用同一种按钮——按第一排定位，"全部"就不会点到分组里去。
+  // 下面、不带 role——按第一排的 role=tab 定位。dock 文案来自桥下发的词表，按 views 的
+  // 顺序点第二格（按键），不把词表内容写进断言。
   const viewDock = page.locator('wg-macros .filters .dock').first();
-  await viewDock.locator('button', { hasText: '按键' }).click();
+  const views = viewDock.getByRole('tab');
+  await expect(views).toHaveCount(7);
+  await views.nth(1).click();
+  await expect(views.nth(1)).toHaveAttribute('aria-current', 'true');
   await expect(page.locator('wg-macros .card .name')).toContainText('游戏连招');
   const cards = page.locator('wg-macros .card');
   await expect(cards).toHaveCount(1);
@@ -112,7 +125,7 @@ test('宏列表的过滤、搜索与启停', async ({ page }) => {
   // 搜索：搜"自动"在"按键"视图下没有结果，切回"全部"才有。
   await page.locator('wg-macros input[type="search"]').fill('自动');
   await expect(page.locator('wg-macros .empty')).toBeVisible();
-  await viewDock.locator('button', { hasText: '全部' }).click();
+  await views.nth(0).click();
   await expect(page.locator('wg-macros .card .name')).toContainText('自动保存');
 
   // 启停：关掉"自动保存"，程序侧翻转后由推送回来，开关与状态点跟着变。
@@ -270,13 +283,13 @@ test('设置页内编辑轮盘动作', async ({ page }) => {
 test('设置页内编辑菜单呼出键与窗口规则', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="设置"]').click();
   const menu = page.locator('wg-settings .card').filter({ hasText: '菜单呼出键' }).first();
-  await menu.locator('fluent-button', { hasText: '鼠标中键（默认）' }).click();
+  await menu.locator('fluent-button', { hasText: '鼠标中键按下（默认）' }).click();
   await expect
     .poll(async () => page.evaluate(() => window.__mock!.seen.includes('settings.menu.capture')))
     .toBe(true);
 
-  const rules = page.locator('wg-settings .card').filter({ hasText: '下方区域窗口规则' }).first();
-  await rules.locator('fluent-button', { hasText: '添加规则' }).click();
+  const rules = page.locator('wg-settings .card').filter({ hasText: '下半区窗口规则' }).first();
+  await rules.locator('fluent-button', { hasText: '新增规则' }).click();
   const dialog = page.locator('wg-window-rule');
   await expect(dialog).toBeVisible();
   await expect(dialog.locator('.window').first()).toContainText('Notepad');
@@ -339,7 +352,7 @@ test('设置页可改常规与画面选项', async ({ page }) => {
   const general = page.locator('wg-settings .card').first();
   await general.locator('input[type="checkbox"]').first().uncheck();
   const frames = page.locator('wg-settings .card')
-    .filter({ has: page.getByRole('heading', { name: '画面', exact: true }) }).first();
+    .filter({ has: page.getByRole('heading', { name: '画面捕获', exact: true }) }).first();
   await frames.locator('input[type="checkbox"]').first().uncheck();
   await frames.locator('input[type="number"]').first().fill('30');
   await frames.locator('input[type="number"]').first().press('Tab');
@@ -387,7 +400,7 @@ test('原生菜单请求编辑会进入网页编辑器', async ({ page }) => {
   await expect(page.locator('wg-nav')).toBeVisible();
   await page.evaluate(() => window.__mock!.push('editor.openRequested', { name: '游戏连招' }));
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionOpen')))
+    .poll(() => called(page, 'editor.session', { kind: 'open', name: '游戏连招' }))
     .toBe(true);
   await expect(page).toHaveURL(/#editor$/);
   await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('游戏连招');
@@ -399,15 +412,15 @@ test('从宏列表新建与编辑进入网页编辑器', async ({ page }) => {
   await page.locator('wg-macros .footer fluent-button', { hasText: '新建宏' }).click();
   await expect(page).toHaveURL(/#editor$/);
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.filter((name) => name.startsWith('editor'))))
-    .toContain('editor.sessionNew');
+    .poll(() => called(page, 'editor.session', { kind: 'new' }))
+    .toBe(true);
   await expect(page.locator('wg-editor-tabs .tab', { hasText: '未命名宏' })).toBeVisible();
 
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
   await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
   await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('自动保存');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionOpen')))
+    .poll(() => called(page, 'editor.session', { kind: 'open', name: '自动保存' }))
     .toBe(true);
 });
 

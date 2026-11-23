@@ -114,6 +114,17 @@ async function closeStepEditor(page: Page): Promise<void> {
   await expect(page.locator('wg-action-editor .dialog')).toHaveCount(0);
 }
 
+/**
+ * 页面按命令域发方法名，具体命令在 params 的 kind 里（声明与变量再加 family）；断言一条调用，
+ * 而不是去看方法名——同一方法下的 open/new/save 只有参数能分开。
+ */
+function called(page: Page, method: string, params: Record<string, string>): Promise<boolean> {
+  return page.evaluate(({ method: wanted, params: wantedParams }) => window.__mock!.calls.some(
+    (call) => call.method === wanted
+      && Object.entries(wantedParams).every(([name, value]) => call.params[name] === value)),
+  { method, params });
+}
+
 test('编辑器显示动作库、堆叠变量中心与宏设置', async ({ page }) => {
   await openEditor(page);
   await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('自动保存');
@@ -131,7 +142,7 @@ test('从其他页面请求打开宏会进入对应页签', async ({ page }) => 
   await page.locator('wg-editor-tabs .tab', { hasText: '自动保存' }).click();
   await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('自动保存');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionActivate')))
+    .poll(() => called(page, 'editor.session', { kind: 'activate' }))
     .toBe(true);
 });
 
@@ -139,7 +150,7 @@ test('导出按钮把当前文档写给宿主', async ({ page }) => {
   await openEditor(page);
   await page.locator('wg-editor-tabs .export').click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionExport')))
+    .poll(() => called(page, 'editor.session', { kind: 'export' }))
     .toBe(true);
   await expect(page.locator('wg-editor .notice')).toContainText('已导出');
 });
@@ -149,7 +160,7 @@ test('新建与关闭干净页签', async ({ page }) => {
   await page.locator('wg-editor-tabs .new').click();
   await expect(page.locator('wg-editor-tabs .tab', { hasText: '未命名宏' })).toBeVisible();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionNew')))
+    .poll(() => called(page, 'editor.session', { kind: 'new' }))
     .toBe(true);
   const tab = page.locator('wg-editor-tabs .tab-wrap', { hasText: '未命名宏' });
   await tab.locator('.close').click();
@@ -168,7 +179,7 @@ test('脏页签关闭前询问，取消保留，确认后保存', async ({ page 
   await tab.locator('.close').click();
   await page.locator('wg-editor-tabs .confirm fluent-button', { hasText: '保存' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionSave')))
+    .poll(() => called(page, 'editor.session', { kind: 'save' }))
     .toBe(true);
   await expect(page.locator('wg-editor-tabs .tab', { hasText: '未命名宏' })).toHaveCount(0);
 });
@@ -180,7 +191,7 @@ test('公共宏库可列出并放入调用步骤', async ({ page }) => {
   await page.locator('wg-editor-palette .sub-card', { hasText: '发送邮件' }).click();
   await expect(page.locator('wg-step-tree .row').first()).toContainText('调用宏');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionPublicMacroAdd')))
+    .poll(() => called(page, 'editor.session', { kind: 'publicMacroAdd' }))
     .toBe(true);
 });
 
@@ -311,7 +322,7 @@ test('步骤元数据在独立编辑窗修改', async ({ page }) => {
   await numbers.nth(0).press('Tab');
   await meta.locator('label', { hasText: '继续下一步' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.actionMeta')))
+    .poll(() => called(page, 'editor.action', { kind: 'meta' }))
     .toBe(true);
   await closeStepEditor(page);
 });
@@ -402,7 +413,7 @@ test('拖到另一行下方会改变步骤顺序', async ({ page }) => {
   await expect(page.locator('wg-step-tree .row .name').nth(0)).toHaveText('备注');
   await expect(page.locator('wg-step-tree .row .name').nth(1)).toHaveText('延迟');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionStepsMove')))
+    .poll(() => called(page, 'editor.steps', { kind: 'move' }))
     .toBe(true);
 });
 
@@ -426,7 +437,7 @@ test('条件参数按行编辑', async ({ page }) => {
   await row.locator('input').nth(1).fill('1');
   await row.locator('input').nth(1).press('Tab');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionConditionRow')))
+    .poll(() => called(page, 'editor.condition', { kind: 'row' }))
     .toBe(true);
   await closeStepEditor(page);
 });
@@ -437,11 +448,11 @@ test('宏设置改名并保存，页签跟着改名', async ({ page }) => {
   await name.fill('我的宏');
   await name.press('Tab');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionPatch')))
+    .poll(() => called(page, 'editor.session', { kind: 'patch' }))
     .toBe(true);
   await page.locator('wg-macro-settings .footer fluent-button', { hasText: '保存' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionSave')))
+    .poll(() => called(page, 'editor.session', { kind: 'save' }))
     .toBe(true);
   await expect(page.locator('wg-editor-tabs .tab[aria-selected="true"]')).toContainText('我的宏');
 });
@@ -457,7 +468,7 @@ test('专属设置可改输入限制与启停键', async ({ page }) => {
   await toggle.fill('F8');
   await toggle.press('Tab');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionMacroSetting')))
+    .poll(() => called(page, 'editor.session', { kind: 'macroSetting' }))
     .toBe(true);
 });
 
@@ -471,10 +482,10 @@ test('宏可声明形参与返回值', async ({ page }) => {
   await parameter.locator('input[type="checkbox"]').check();
   await page.getByRole('button', { name: '添加结果' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionParameterDeclAdd')))
+    .poll(() => called(page, 'editor.declaration', { family: 'parameter', kind: 'add' }))
     .toBe(true);
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionResultDeclAdd')))
+    .poll(() => called(page, 'editor.declaration', { family: 'result', kind: 'add' }))
     .toBe(true);
 });
 
@@ -489,10 +500,10 @@ test('触发入口可添加并捕获按键', async ({ page }) => {
   await expect(page.locator('wg-macro-settings [data-trigger-capture]')).toHaveValue('F8');
   await trigger.locator('input[type="checkbox"]').uncheck();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerBinding')))
+    .poll(() => called(page, 'editor.trigger', { kind: 'binding' }))
     .toBe(true);
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerEnabled')))
+    .poll(() => called(page, 'editor.trigger', { kind: 'enabled' }))
     .toBe(true);
 });
 
@@ -512,7 +523,7 @@ test('热字串字符键盘和结束键格子可用', async ({ page }) => {
   await expect(endKeys).toBeVisible();
   await endKeys.locator('.keycap', { hasText: 'Space' }).click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionTriggerHotstringEndKey')))
+    .poll(() => called(page, 'editor.trigger', { kind: 'hotstringEndKey' }))
     .toBe(true);
 });
 
@@ -528,7 +539,7 @@ test('变量中心始终可见并按组过滤', async ({ page }) => {
   await name.fill('count');
   await name.press('Tab');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionVariablePatch')))
+    .poll(() => called(page, 'editor.variable', { family: 'local', kind: 'patch' }))
     .toBe(true);
   await dialog.locator('fluent-button', { hasText: '关闭' }).click();
 });
@@ -630,7 +641,7 @@ test('条件格的取值钮打开 Token 窗口并写回', async ({ page }) => {
   await page.locator('wg-value-editor footer fluent-button', { hasText: '确定' }).click();
   await expect(row.locator('input').first()).toHaveValue('found');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.valueOpen')))
+    .poll(() => called(page, 'editor.value', { kind: 'open' }))
     .toBe(true);
 });
 
@@ -644,7 +655,7 @@ test('返回值表可勾选并命名', async ({ page }) => {
   await name.fill('found');
   await name.press('Tab');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.actionReturns')))
+    .poll(() => called(page, 'editor.action', { kind: 'returns' }))
     .toBe(true);
 });
 
@@ -666,11 +677,11 @@ test('开始与停止录制会把捕获的步骤写回', async ({ page }) => {
   await record.click();
   await expect(record).toHaveAttribute('data-recording', 'true');
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionRecordStart')))
+    .poll(() => called(page, 'editor.record', { kind: 'start' }))
     .toBe(true);
   await record.click();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('editor.sessionRecordStop')))
+    .poll(() => called(page, 'editor.record', { kind: 'stop' }))
     .toBe(true);
   await expect(page.locator('wg-step-tree .row')).toHaveCount(2);
 });
@@ -694,7 +705,7 @@ test('主题与语言推送刷新编辑器', async ({ page }) => {
   const background = await page.locator('wg-editor-palette')
     .evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(background).toBe('rgb(245, 245, 245)');
-  await page.evaluate(() => window.__bridge!.call('settings.update', { field: 'language', value: 'en' }));
+  await page.evaluate(() => window.__bridge!.call('settings.update', { patch: { language: 'en' } }));
   await expect(page.locator('wg-editor-palette .source', { hasText: 'Basic actions' })).toBeVisible();
 });
 

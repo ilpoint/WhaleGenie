@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "e2e": "playwright test",
     "lint": "eslint src tests e2e vite.config.ts --max-warnings 0",
     "check": "npm run lint && npm run test && npm run build"
   },

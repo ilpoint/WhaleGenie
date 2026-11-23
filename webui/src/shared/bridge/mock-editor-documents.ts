@@ -28,7 +28,7 @@ export function open(host: MockEditor, name?: string | null): EditorSnapshot  {
     }
 
     host.activeKey = key;
-    return document;
+    return withTabs(host, document);
   }
 
 export function newDocument(host: MockEditor): EditorSnapshot  {
@@ -36,7 +36,7 @@ export function newDocument(host: MockEditor): EditorSnapshot  {
     const document = createDocumentSnapshot('未命名宏', {});
     host.documents.set(key, document);
     host.activeKey = key;
-    return document;
+    return withTabs(host, document);
   }
 
 export function newSession(host: MockEditor): EditorSnapshot {
@@ -50,7 +50,7 @@ export function activate(host: MockEditor, key: string): EditorSnapshot  {
     }
 
     host.activeKey = key;
-    return document;
+    return withTabs(host, document);
   }
 
 export function close(host: MockEditor, key?: string | null): EditorSnapshot | null  {

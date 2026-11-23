@@ -268,7 +268,9 @@ export class MockEditor {
       return handleValueRun(this, method, params);
     }
 
-    if (method.startsWith('editor.session') || method === 'editor.hotstringKeyPad') {
+    // handler 的 switch 覆盖 editor.session* 之外的 step/steps/condition/trigger/variable/
+    // declaration/record 与字符键盘；只放行 session 前缀会让这些命令族一律报"不认识"。
+    if (method.startsWith('editor.')) {
       return handleSessionRun(this, method, params);
     }
 

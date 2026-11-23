@@ -41,6 +41,13 @@ jobs:
           npm run test
           npm run build
 
+      - name: Run the web e2e
+        # The shell's end-to-end smoke runs on the runner's Edge against the build the step
+        # above produced; it stays out of npm run check so that loop stays quick.
+        run: |
+          cd webui
+          npm run e2e
+
       - name: Restore
         run: dotnet restore WhaleGenie.slnx
 

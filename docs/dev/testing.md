@@ -135,7 +135,9 @@
   必须包在 `Ui.Run` / `Ui.RunAsync` 里，不要在测试线程直接改 `Strings.Current.Language`。
 - webui 的 Vitest 用 jsdom 环境（词表换包要改 `html@lang`）；组件逻辑测 store 与客户端，
   不测像素。Playwright 冒烟用 `?bridge=mock` 走 mock 宿主与系统 Edge（`channel: 'msedge'`，
-  免下载浏览器），起 `vite preview` 供真实产物。
+  免下载浏览器），起 `vite preview` 供真实产物；`npm run e2e` 是唯一入口，CI 在构建之后执行。
+  断言按「方法名 + `params` 里的 `kind`」写：同一聚合方法下的命令只有参数能分开，`seen` 只
+  记录方法名，`calls` 记录 `{method, params}`（`mock.ts`）。
 - 页面新增用户可见文案的正确顺序：先在 `Strings.cs` 双语表加键，页面再 `t('键')`；
   `WebUiBoundaryTests` 会拦住只出现在页面里的键与写进页面的中文句子，`SourceEncodingTests`
   拦住把文件存成系统代码页的情况。
@@ -143,3 +145,5 @@
   `DialogBridgeTests` 守住这一条。
 - mock 宿主（`webui/src/shared/bridge/mock.ts`）里的词表是**夹具**，与真表同步维护：新增键时
   两边都要加，对账靠 `Every_shell_key_the_pages_name_exists_in_the_word_tables` 与人工。
+  生成器按字面量收键（`t('A.B')`、映射表里的字符串），页面别用 `t(`A.${x}`)` 动态拼键：那样
+  mock 词表收不到，只剩原始键名。有限集合写成显式映射，参照 `macros-page.ts` 的 `dockKeys`。
