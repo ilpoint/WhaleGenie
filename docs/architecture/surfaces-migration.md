@@ -153,6 +153,8 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
 - 置顶钉住：页面右上角有钉住开关，状态经 `surface.menu.pin` 写到宿主。
 - 收起时机：`MenuOverlayPolicy` 规定“可见 + 未钉住 + 前台是别的窗口”才收起，`MenuOverlayHost`
   订阅设备层的前台变化并执行。策略有单测（5 组）；前台事件的真实手感仍需真机确认。
+- 拖动：页面标题按下时发 `surface.menu.drag`，宿主用 `WM_NCLBUTTONDOWN/HTCAPTION` 起系统移动
+  （网页自己的指针事件出不了窗口边界，这条必须由系统移动循环做）。
 - 右键菜单：编辑宏 / 调试运行 / 更换图标 / 替换宏 / 为当前程序加规则 / 屏蔽此程序；
   格子可拖到任意页的任意格（`surface.menu.move`）。`surface.menu.edit/debug` 经 `IMenuSurfaceActions`
   打开编辑器或运行面板；`surface.menu.icon` 调原生图标选择器并写回条目。`MenuSurfaceTests` 覆盖委托与写回。
