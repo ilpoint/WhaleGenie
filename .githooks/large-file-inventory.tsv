@@ -161,7 +161,6 @@
 35133	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
 549	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
-2605	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
 20011	docs/manual/05-values-and-placement.md	keep: 取值窗口、文字比较与落点是'值怎么读、怎么落'的一整篇，一次任务读完这一篇
 438	src/WhaleGenie.App/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
@@ -174,3 +173,7 @@
 340	src/WhaleGenie/Themes/Controls.Navigation.axaml	keep: 导航与列表一族的样式，随导航控件一起变
 324	src/WhaleGenie/Themes/Controls.Badges.axaml	keep: 徽标与状态色一族，随状态词汇一起变
 359	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
+648	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.cs	keep: 会话字段、装载保存与设置同属一次编辑会话的入口
+642	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
+587	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Triggers.cs	keep: 全局变量、局部变量与触发器是同一处“怎么被调用”
+633	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Values.cs	keep: 取值编辑器一族，随取值模型一起变
