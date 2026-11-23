@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Editing;
 using WhaleGenie.Core.Recording;
+using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;

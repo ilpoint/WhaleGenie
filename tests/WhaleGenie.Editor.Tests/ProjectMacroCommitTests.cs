@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Editing;
 
 namespace WhaleGenie.Tests;
 

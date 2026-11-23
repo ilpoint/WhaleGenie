@@ -1,10 +1,10 @@
 using System.IO;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Devices;
+using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
-using WhaleGenie.Editing;
 
 namespace WhaleGenie.Tests;
 

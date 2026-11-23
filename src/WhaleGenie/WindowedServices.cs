@@ -51,9 +51,7 @@ internal static class WindowedServices
         return services.BuildServiceProvider();
     }
 
-    private static void Add(IServiceCollection services)
-        =>
-        // The view model the shell's native windows read is the same instance the MCP server reads.
+    private static void Add(IServiceCollection services) =>
         services.AddSingleton<RunQuestionHost>()
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
