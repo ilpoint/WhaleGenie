@@ -77,9 +77,9 @@
 ## 5. 字体与密度
 
 - 正文使用 `UiFont`；代码、表达式和需要等宽的内容使用 `UiCodeFont`，不用等宽字体做普通界面字。
-- 字号/行高只使用 `UiCaption`、`UiBodySmall`、`UiBody`、`UiSubtitle`、`UiTitle`、`UiDisplay`
-  这组角色（每档对应 `*Size` / `*Line` 两个令牌）；不新增“差不多大”的字号档。字号与行高必须成对
-  取同一档，说明浮层正文是 `UiBodySmall`（12 / 16）。
+- 字号/行高只使用 `UiCaption`、`UiBodySmall`、`UiBody`、`UiSubtitle` 这组角色（每档对应
+  `*Size` / `*Line` 两个令牌）；不新增“差不多大”的字号档。字号与行高必须成对取同一档，说明浮层
+  正文是 `UiBodySmall`（12 / 16）。
 - 密度沿用 Fluent v2 的默认密度；FluentAvaloniaTheme 没有单独的密度开关，表格行、列表项、
   菜单项随库样式走，不为了“紧凑”再手写一套行高。
 - Fluent v2 的基础控件字号是 14（`ControlContentThemeFontSize`）；项目把它映射为 `UiBody` 的
@@ -94,17 +94,14 @@
 
 - 间距使用 `Space1` 至 `Space8`；`StackPanel.Spacing` 使用 `StackGap`（它是 `Double`，
   不能拿 `Thickness` 的 `Space*` 代替）。
-- 内边距使用 `Pad*` 族：`PadControl`、`PadField`、`PadCell`、`PadChip`、`PadRow`、
-  `PadSection` 等按用途命名，不按数字命名。
+- 内边距使用 `Pad*` 族：`PadControl`、`PadField`、`PadCell`、`PadChip`、`PadRow` 等按用途
+  命名，不按数字命名。
 - `Gap*` 只用于没有父容器能提供间距的少数位置；新增 `Gap*` 前先说明为什么 `Spacing` 做不到。
 - 圆角只用 `RadiusControl`、`RadiusContainer`、`RadiusOverlay` 三个角色。Fluent v2 默认
   `ControlCornerRadius=4`、`OverlayCornerRadius=8`，项目把前者映射到 `RadiusControl`、后者映射到
   `RadiusOverlay`；`RadiusContainer=6` 用于卡片/面板，不另写按钮、输入框的圆角。标题栏上
   与系统 caption 按钮同形的自绘按钮是唯一例外，取直角并贴顶，见第 8 节。
 - 列宽、窗口尺寸、图标尺寸等结构尺寸可以单独写；同一模式重复出现时抽成令牌或共享常量，不散落魔法数。
-- 行内说明图标：视觉 14×14、命中区 24×24、行高 24，图标与同行文字的间距 6；带图标的行内标签
-  不带走 `GapField` 的下边距，普通字段仍保留 8。勾选框与图标同行时按同一 24 行高收敛，不裁字。
-  这条对齐只在 `HintInfo` 一处实现，视图里不写逐行 `Margin`。
 
 ## 7. 状态与交互
 
@@ -178,7 +175,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   `WheelGeometry` 的快照，页面只按坐标画圆与按钮。全局、程序覆盖与划动圈用同一组中性/品牌令牌
   区分，不引入轮盘专用色板；空位仍有可点击的淡色命中区。主题自定义只给一个强调色、控件底子和
   三个预览，颜色可用性由 `ThemeBridge` 回传的派生结果判定。
-- 数字输入使用 `FANumberBox`，项目已有 `HasChip` 样式；不要用普通 `TextBox` 或另造数字框。
+- 数字输入使用 `FANumberBox`；不要用普通 `TextBox` 或另造数字框。
 - 内联、可关闭的全局提示用 `InfoBar`，由 `Severity` 决定状态色与图标；需要用户选择时仍走项目
   `ConfirmDialog` / `TextPromptDialog`，不把 `InfoBar` 当对话框。
 - `ContentDialog` / `TaskDialog` 只在需要其按钮、命令、进度或详情语义时使用；现有确认问题仍走统一
@@ -190,7 +187,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   压在 `AccentFill` 上——浅色主题下那一对只有 3.5:1。要用强调色铺底，字必须是 `TextOnAccent`。
   选中态不靠字号或字重变化，行宽在切换时不动。
   同一个 dock 不在窗口里另写一套分类按钮。
-- 图标继续使用项目 `AppIcons` 与 Lucide 的现有族；不混入第二套图标库。
+- 图标继续使用 Lucide 的现有族（`LucideIconKind`，经 `IconBridge` 取路径）；不混入第二套图标库。
 
 ## 11. 视觉验收
 

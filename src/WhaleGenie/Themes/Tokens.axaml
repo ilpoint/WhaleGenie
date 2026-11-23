@@ -61,10 +61,6 @@
             <Color x:Key="OverlayHoverColor">#14FFFFFF</Color>
             <Color x:Key="OverlayPressedColor">#24FFFFFF</Color>
 
-            <!-- 标题栏关闭键的悬停底：WinUI 在同一处用的就是这个红，深浅两套都用它，
-                 因为"这一下是关窗"不该随主题换说法。 -->
-            <Color x:Key="CaptionCloseHoverColor">#C42B1C</Color>
-
             <!-- 表面 -->
             <SolidColorBrush x:Key="SurfaceWindow" Color="{StaticResource SurfaceWindowColor}" />
             <SolidColorBrush x:Key="SurfaceChrome" Color="{StaticResource SurfaceChromeColor}" />
@@ -115,7 +111,6 @@
             <!-- 叠层 -->
             <SolidColorBrush x:Key="OverlayHover" Color="{StaticResource OverlayHoverColor}" />
             <SolidColorBrush x:Key="OverlayPressed" Color="{StaticResource OverlayPressedColor}" />
-            <SolidColorBrush x:Key="CaptionCloseHover" Color="{StaticResource CaptionCloseHoverColor}" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Light">
@@ -170,9 +165,6 @@
             <Color x:Key="OverlayHoverColor">#0F000000</Color>
             <Color x:Key="OverlayPressedColor">#1A000000</Color>
 
-            <!-- 标题栏关闭键的悬停底。与深色同一支红：WinUI 在这里也不按主题换。 -->
-            <Color x:Key="CaptionCloseHoverColor">#C42B1C</Color>
-
             <!-- 表面 -->
             <SolidColorBrush x:Key="SurfaceWindow" Color="{StaticResource SurfaceWindowColor}" />
             <SolidColorBrush x:Key="SurfaceChrome" Color="{StaticResource SurfaceChromeColor}" />
@@ -223,7 +215,6 @@
             <!-- 叠层 -->
             <SolidColorBrush x:Key="OverlayHover" Color="{StaticResource OverlayHoverColor}" />
             <SolidColorBrush x:Key="OverlayPressed" Color="{StaticResource OverlayPressedColor}" />
-            <SolidColorBrush x:Key="CaptionCloseHover" Color="{StaticResource CaptionCloseHoverColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
@@ -256,10 +247,6 @@
     <sys:Double x:Key="UiBodyLine">18</sys:Double>
     <sys:Double x:Key="UiSubtitleSize">15</sys:Double>
     <sys:Double x:Key="UiSubtitleLine">20</sys:Double>
-    <sys:Double x:Key="UiTitleSize">18</sys:Double>
-    <sys:Double x:Key="UiTitleLine">24</sys:Double>
-    <sys:Double x:Key="UiDisplaySize">24</sys:Double>
-    <sys:Double x:Key="UiDisplayLine">30</sys:Double>
 
     <!--
       间距用 Thickness 而不是 Double：Padding 与 Margin 直接吃它，Spacing 要的是 Double 时
@@ -278,37 +265,23 @@
     -->
     <Thickness x:Key="Pad0">0</Thickness>
     <Thickness x:Key="Pad1">1</Thickness>
-    <Thickness x:Key="PadChrome">8,0</Thickness>
     <Thickness x:Key="PadControl">12,0</Thickness>
     <Thickness x:Key="PadControlWide">16,0</Thickness>
     <Thickness x:Key="PadField">8,6</Thickness>
     <Thickness x:Key="PadCell">6,1</Thickness>
     <Thickness x:Key="PadChip">8,2</Thickness>
     <Thickness x:Key="PadRow">8,4</Thickness>
-    <Thickness x:Key="PadSection">16</Thickness>
 
     <!--
-      两处允许的 Margin。纵向间距本该由父容器的 Spacing 承担，但这两个间隙没有能用它的父容器：
-      区块之间不相邻（`GapSection`），标签到它管着的那个控件之间也隔着一层模板（`GapField`）。
-      规范要求"标签的下边距"长在标签身上，所以这里是 Margins 的第二个、也是最后一个例外。
+      区块之间的下边距。纵向间距本该由父容器的 `Spacing` 承担，但区块之间不相邻，没有能用它的
+      父容器，所以这里留一个 Margin 例外。
     -->
     <Thickness x:Key="GapSection">0,0,0,12</Thickness>
-    <Thickness x:Key="GapField">0,0,0,8</Thickness>
     <!--
-      分隔线两侧的间隙。第三个 `Gap*`，理由同前两个：分隔线常常是 `Grid` 里独立的一行，与它上面
-      下面的内容不在同一个 `StackPanel` 里，没有 `Spacing` 可给。
+      节标题的间距同时有"上"和"下"，而且上大于下。父容器的 `Spacing` 只能给等值，所以只能长在
+      标题自己身上——这也是"新增 `Gap*` 之前先说明为什么 `Spacing` 做不到"那个规矩要的答案。
     -->
-    <Thickness x:Key="GapDivider">0,12,0,12</Thickness>
-    <!--
-      标题的三处间距，都同时有"上"和"下"，而且上大于下。父容器的 `Spacing` 只能给等值，
-      所以这三处只能长在标题自己身上——这也是"新增 `Gap*` 之前先说明为什么 `Spacing` 做不到"
-      那个规矩要的答案。
-    -->
-    <Thickness x:Key="GapPageHeader">0,24,0,16</Thickness>
-    <Thickness x:Key="GapGroupHeader">0,24,0,8</Thickness>
     <Thickness x:Key="GapSectionHeader">0,16,0,4</Thickness>
-    <!-- 空状态那一段的上下留白：它自己是容器，上下都是 32，没有父容器能给出这个值。 -->
-    <Thickness x:Key="GapEmpty">0,32,0,32</Thickness>
 
     <!--
       `StackPanel.Spacing` 要的是 `Double`，而 `Space*` 是 `Thickness`——类型不同，不能互用，

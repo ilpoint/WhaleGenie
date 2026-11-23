@@ -1,7 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:views="using:WhaleGenie.Views"
-        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
 
@@ -56,16 +55,6 @@
         <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
 
-    <!-- 单行附注：与 `Hint` 同字号同色，只是不折行。用 `ColumnHeader` 顶替会让附注看起来像表头（那是 600 字重）。 -->
-
-
-    <Style Selector="TextBlock.Problem">
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
-        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-
     <!--
       说明性小字：11px、**400** 字重、三级灰。它和 `ColumnHeader` 同字号同颜色，差别就是字重——
       `ColumnHeader` 是"列的标题"（600），`Caption` 是"说明性的小字"（400）。中文里两个都叫小字，
@@ -81,36 +70,14 @@
 
 
 
-    <!-- 等宽：数字要等比宽（`tnum`），否则表格里每行的小数点都会错开。 -->
-    <Style Selector="TextBlock.Code">
-        <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
-        <Setter Property="LineHeight" Value="{DynamicResource UiBodySmallLine}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="FontFeatures" Value="tnum" />
-        <Setter Property="TextWrapping" Value="NoWrap" />
-    </Style>
-
     <!--
       拾取器的覆盖层。这一族的硬约束是**明暗同值、不跟随主题**：拾取器站着的时候，屏幕像素与它
       画出来的遮罩必须是同一件事，遮罩一跟着明暗变，取到的颜色与截出来的图就跟着变。令牌那边已经
       写在变体之外，用例钉住"切明暗后颜色相等"。
-
-      读数条的双色描边（外 `PickerEdgeDark` + 内 `PickerEdgeLight`）一层 `Border` 画不出来——
-      `Border` 只有一支 `BorderBrush`。按 `GridSplitter.Split` 的先例记成已知偏差：真要双色就得
-      在窗口里叠两个元素，那是结构改动，迁移时再议。
     -->
 
 
 
-
-    <Style Selector="Border.Readout">
-        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Background" Value="{DynamicResource PickerReadout}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-    </Style>
 
     <Style Selector="TextBlock.Body">
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
@@ -221,36 +188,10 @@
 
 
     <!--
-      等宽修饰：**只设字体，不设前景色**。
-      `TextBlock.Code` 把字体和颜色捆在一起，想要"等宽 + 主文字色"就得绕开它手写 `FontFamily`——
-      本轮绕过三次之后把它单独拆出来。**等宽是字形，不该同时决定颜色。**
+      等宽修饰：**只设字体，不设前景色**。等宽是字形，不该同时决定颜色。
     -->
     <Style Selector="TextBlock.Mono">
         <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-    </Style>
-
-    <!--
-      可点方块：图标砖。80×80 是族的度量，**图标 22、居中、无文字**，全名走 tooltip。
-
-      **为什么没有文字**：砖上的标签是 Lucide 的枚举名（`CircleQuestionMark` 18 字符 ≈ 108px），
-      而可用宽度只有 64px（80 − 8×2）。**那不是"标签挤了"，那是枚举名被截成残词**——
-      `CircleQuestion…` / `…Mark` 对人没有意义。**要给文字，先得有给人看的短名**（见缺变体清单）。
-
-      边是 1px `BorderSubtle`：**浅色主题下没有这道边，砖与底几乎同色**，一排砖会糊成一片。
-    -->
-    <Style Selector="Button.Square">
-        <Setter Property="Width" Value="80" />
-        <Setter Property="Height" Value="80" />
-        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
-        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Square:pointerover">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
 
 
@@ -294,20 +235,6 @@
 
 
 
-    <!--
-      设置窗左栏的图标跟着行的状态换色。不能绑 `FANavigationViewItem.Foreground`：库的选中态把
-      颜色写在模板里的两个 ContentPresenter 上，item 自己的前景始终是静息色。
-    -->
-    <Style Selector="fa|FANavigationViewItem views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource TextSecondary}" />
-    </Style>
-    <Style Selector="fa|FANavigationViewItem:pointerover views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="fa|FANavigationViewItem:selected views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
-    </Style>
-
     <!-- 侧栏页签：选中时整行铺强调浅底，左侧一条竖线标位置。 -->
 
 
@@ -325,16 +252,4 @@
 
 
 
-    <!--
-      容器与卡片。`Border.Card.Selectable` 当初留了两处空白，现在都定了（"底表达选中、描边表达标记"），
-      所以下面四态是写完的——这行注释以前写的是"留着没写"，那是旧状态，别照着它判断这一族空着。
-
-      卡片都不碰焦点：`Views/` 里接点击的 `Border` 是 0 个，可点的卡片全是 `Button` 的替身，
-      所以焦点环归外层控件。给纯容器加 `Focusable` 只会造出一个键盘停靠点。
-    -->
-    <Style Selector="Border.Panel">
-        <Setter Property="Padding" Value="{DynamicResource Space4}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
-        <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
-    </Style>
 </Styles>

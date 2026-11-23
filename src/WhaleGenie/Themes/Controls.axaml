@@ -1,7 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:views="using:WhaleGenie.Views"
-        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Styles.Resources>
@@ -57,25 +56,9 @@
     </Style>
 
     <!--
-      数字输入框没有上下按钮。它们原来折进取焦才开的弹层，为的是一行四个数字时不吃宽度；可弹层
-      开在框的右端，正好压住框里的数字：76 宽的抖动框只剩两个数字的位置。带片的数字格现在把那
-      一端留给「取值」片（见下面的 `HasChip`），数字照旧手打，要算式的走「取值」。
-    -->
-    <Style Selector="fa|FANumberBox">
-        <Setter Property="SpinButtonPlacementMode" Value="Hidden" />
-    </Style>
-
-    <!--
-      带片的数字框：片浮在框的右端，字让开它。数字框的模板只有内嵌**左**内容的位置，右侧那一格
-      被上下按钮占着，所以这里换一种让法——改内层输入框的右内边距，与 `TextBox.HasChip` 同一个数。
-      片本身是这个框的兄弟（在同一个格子里右对齐），画在框的上面，读起来仍在框里。
-    -->
-
-
-    <!--
       层 3：我们自己画的族。颜色全部取自 Themes/Tokens.axaml，能由层 1（FluentKeys.axaml）给的
-      外观一律不在这里重写——`Button.Secondary` / `TextBox.Field` / `ComboBox.Field` 的外观已经
-      实测跟着层 1 走（见 LayerOneTests），这里只给它们度量。
+      外观一律不在这里重写——`Button.Secondary` / `TextBox.Field` 的外观已经实测跟着层 1 走
+      （见 LayerOneTests），这里只给它们度量。
 
       四条硬规则，写之前先看：
       1. **`Margin` 先归类，再决定怎么写。** 五种形态，只有第二、四、五种允许落在元素上：
@@ -139,28 +122,14 @@
 
       LAYER1 Button.Secondary Button
       LAYER1 TextBox.Field TextControl
-      LAYER1 ComboBox.Field ComboBox
-      LAYER1 AutoCompleteBox.Field TextControl
-      STATIC ListBox.Panel
       STATIC Border.Badge
-      STATIC Border.Badge.Danger
-      STATIC Border.Badge.Success
-      STATIC Border.Badge.Warning
-      STATIC Border.Panel
-      STATIC Border.Readout
       STATIC Border.Sunken
       STATIC ListBox.List
       STATIC ListBox.List.Boxed
-      STATIC CheckBox.Field
-      STATIC Button.Square
-      STATIC TextBlock.Mono
       STATIC TextBlock.Body
-      STATIC TextBlock.Code
-      STATIC TextBox.Code
-      STATIC StackPanel.Empty
       STATIC TextBlock.Caption
       STATIC TextBlock.Hint
-      STATIC TextBlock.Problem
+      STATIC TextBlock.Mono
       STATIC TextBlock.SectionHeader
       STATIC TextBlock.Title
       STATE Rejected
@@ -178,8 +147,6 @@
       STATE DropTarget
       STATE Current
 
-      这份文件按批落：这一批只有 `ConfirmDialog` 用到的五个类，用来把"层 2 令牌 → 层 3 类 →
-      窗口"这条链跑通。批量的族（`Tab.*`、`Border.*`、`ListBox.*`、`Picker*`）随后按规范表补。
     -->
 
     <Style Selector="TextBlock.Title">
@@ -228,11 +195,6 @@
       磁贴：`.Occupied` 只改底（这一格有人占了），`.Current` 只改描边（这一格是当前选择的）——
       又是"两个状态各走一个通道"，同 `.Card.Selectable` 的做法。
     -->
-    <!--
-      标题栏上的**图标**钮：固定 30×24、`Pad0`。图标宽度本来就不同（关窗 10、最小化 8），
-      靠 `PadChrome` 自适应会让一排按钮参差不齐——图标钮是固定方形，不是文字钮的那一族。
-    -->
-
     <!-- 大的工具钮：拾取器与运行窗里那种比图标大一圈的按钮。尺寸是一个维度，强度是另一个。 -->
 
 
@@ -244,72 +206,6 @@
 
 
     <!--
-      标题栏右端那颗关闭键，尺寸按 WinUI 的 caption 走（46×32），与左边那一排工具钮不是同一族：
-      工具钮是"在这里做点什么"，关闭键是"离开这里"。`Close` 那一档只为它自己：悬停底换成
-      `CaptionCloseHover`（WinUI 的关窗红），字形同时转白——红底上留深色字，浅色主题里会糊。
-      图标用 `IconView` 画，笔画是它自己的属性，不是 `Foreground`，所以这里连它一起给。
-
-      直角不是漏写圆角：系统画的 caption 按钮就是一块贴顶的直角热区（悬停时整块 46×32 变色），
-      自绘的置顶钮挨着它们，圆角会让它看起来像浮在标题栏上的一张卡片。三档圆角管的是内容区里的
-      控件，标题栏按钮跟系统同形，是这条契约唯一的例外。
-    -->
-    <Style Selector="Button.Caption">
-        <Setter Property="Width" Value="46" />
-        <Setter Property="Height" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="CornerRadius" Value="0" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Caption views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <!--
-      标题栏上带状态的钮（目前是置顶）：尺寸、底色、悬停都和系统按钮一致，只有"开着"这一档多一笔强调色，
-      图标本身在代码里换（`Pin` ↔ `PinOff`），所以认得出当前是哪一档。
-    -->
-
-
-    <Style Selector="Button.Caption:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
-    </Style>
-    <Style Selector="Button.Caption:pressed">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
-    </Style>
-    <Style Selector="Button.Caption:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-
-    <Style Selector="Button.Caption.Close:pointerover">
-        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-    </Style>
-    <Style Selector="Button.Caption.Close:pressed">
-        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextOnAccent}" />
-    </Style>
-    <!--
-      这两笔必须落在模板里的 `ContentPresenter` 上：库把它这个态的底色写在自己的主题里，
-      控件上的 `Background` 到了那个态带不进去（量过：只写在控件上，指针压上去是主题的灰
-      `#3D3D3D`；写到 presenter 上才是 `#C42B1C`，深浅两套都是）。
-    -->
-    <Style Selector="Button.Caption.Close:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
-    </Style>
-    <Style Selector="Button.Caption.Close:pressed /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource CaptionCloseHover}" />
-    </Style>
-    <Style Selector="Button.Caption.Close:pointerover views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
-    </Style>
-    <Style Selector="Button.Caption.Close:pressed views|IconView">
-        <Setter Property="Stroke" Value="{DynamicResource TextOnAccent}" />
-    </Style>
-
-    <!--
       16 平方的极小图标钮：卡片角落、行尾那些地方用它。尺寸自己给，底色与禁用态沿用 `Ghost`；
       悬停与按下只把前景转成 `AccentText`——16px 的钮上"暗一点→亮一点"几乎看不出来，转色才是
       唯一"这里能点"的信号。
@@ -317,15 +213,6 @@
 
 
 
-
-    <!--
-      空状态：图标 + 标题 + 说明竖着排。它是容器，`Spacing` 与上下留白由它给；里面三类文字各用
-      `TextBlock.*` 的类，**不给 `StackPanel` 写 `Foreground`**——它没有这个属性，写了静默无效。
-    -->
-    <Style Selector="StackPanel.Empty">
-        <Setter Property="Spacing" Value="{DynamicResource StackGap}" />
-        <Setter Property="Margin" Value="{DynamicResource GapEmpty}" />
-    </Style>
 
     <!--
       状态点：8 平方的圆，颜色由类给。`Fill` 是 `Shape` 的通道——给它写 `Foreground` 语法合法、
@@ -339,11 +226,8 @@
 
 
     <!--
-      输入族。三件输入框的外观四态全部由层 1 的 `TextControl*` / `ComboBox*` / `AutoCompleteList*`
-      给（`LayerOneTests` 实测跟随），这里只给度量——**有类名、只是不写状态**，这两件事不一样：
-      没有类名，窗口里就没有东西可挂。
-
-      `TextBox.Code` 明说没有 hover：等宽代码块是只读的阅读区，指针压上去不该变。
+      输入框的外观四态由层 1 的 `TextControl*` 给（`LayerOneTests` 实测跟随），这里只给度量——
+      **有类名、只是不写状态**，这两件事不一样：没有类名，窗口里就没有东西可挂。
     -->
     <Style Selector="TextBox.Field">
         <Setter Property="Height" Value="30" />
@@ -352,49 +236,6 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
     </Style>
-
-    <!-- 24 这一档必须留：公式行里用 30 会把整行撑高 6px。 -->
-
-
-    <Style Selector="ComboBox.Field">
-        <Setter Property="Height" Value="30" />
-        <Setter Property="Padding" Value="{DynamicResource PadField}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="MinWidth" Value="0" />
-        <Setter Property="HorizontalAlignment" Value="Stretch" />
-    </Style>
-
-    <!-- 与 `TextBox.Field.Cell` 对称的 24 档：公式行里两种格子并排，差 6px 看得出来。 -->
-
-
-    <!--
-      自动补全里面也有一支 `TextBox`，格子该由它来画：外面这层只占 30 的高度，自己不再画边框。
-      原来只清了内层的底、没管它的高度——内层按自己的最小高度排下来比 30 高，上下两条边被裁掉，
-      界面上就剩一对"括号"（断点窗的条件框、动作表单的表达式框都是这样，截图里看得最清楚），
-      而且内层的底被清成透明后连格子底色也没了。度量交给内层，边框就完整回来。
-    -->
-    <Style Selector="AutoCompleteBox.Field">
-        <Setter Property="Height" Value="30" />
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="0" />
-    </Style>
-    <Style Selector="AutoCompleteBox.Field TextBox">
-        <Setter Property="Padding" Value="{DynamicResource PadField}" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="MinHeight" Value="0" />
-        <Setter Property="VerticalAlignment" Value="Stretch" />
-    </Style>
-
-    <!--
-      嵌在输入框里的那枚按钮。格子里的按钮不能靠悬停才认得出，所以它带字、有边，像一枚小片；
-      右端的空白由 `HasChip` 让出来，字才不会跑到它下面去。
-    -->
-
 
     <!-- 值的读法：一个名字是一块，块里就是它的名字；文字是文字，不带框。
          一块与一行文字之间只留字距，让读的人先看见句子，再看见句子里的名字。 -->
@@ -416,70 +257,14 @@
 
 
 
-    <!-- 一列材料：行与行之间只为可读留一点缝，行自己不带内边距。 -->
-    <Style Selector="ListBox.Panel > ListBoxItem">
-        <Setter Property="Padding" Value="0" />
-        <Setter Property="Margin" Value="0,1" />
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-
     <!-- 一条分组芯片：几个词排一行，按下一个列表就换。 -->
 
 
 
 
 
-    <Style Selector="TextBox.Code">
-        <Setter Property="Padding" Value="{DynamicResource PadField}" />
-        <Setter Property="MinHeight" Value="58" />
-        <Setter Property="FontFamily" Value="{DynamicResource UiCodeFont}" />
-        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-    </Style>
 
 
-
-    <!--
-      勾选项是"字段族"的成员，不是新的字号档：它与 `TextBox.Field` / `ComboBox.Field` 常常同排、
-      同在一个面板里，文字本来就该跟输入框一样是 `UiBody`(13)。之前这一族缺它，不是设计选择，是漏了。
-      勾选框本身的几何交给 Fluent 模板，我们只给字号与前景；四态里只有禁用要写。
-    -->
-    <Style Selector="CheckBox.Field">
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <Style Selector="CheckBox.Field:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-
-    <!-- 输入框形状的按钮：它没有层 1 可借，所以四态自己写。 -->
-    <Style Selector="Button.Field">
-        <Setter Property="Height" Value="34" />
-        <Setter Property="Padding" Value="{DynamicResource PadField}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FontSize" Value="{DynamicResource UiBodySize}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceField}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="HorizontalContentAlignment" Value="Left" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.Field:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControlHover}" />
-    </Style>
-    <Style Selector="Button.Field:pressed">
-        <Setter Property="Background" Value="{DynamicResource SurfaceControlPressed}" />
-    </Style>
-    <Style Selector="Button.Field:disabled">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
-    </Style>
     <StyleInclude Source="avares://WhaleGenie/Themes/Controls.Navigation.axaml" />
     <StyleInclude Source="avares://WhaleGenie/Themes/Controls.Badges.axaml" />
 </Styles>

@@ -33,7 +33,7 @@ public class ThemeTokenTests
         "AccentFill", "AccentFillHover", "AccentFillPressed", "AccentText", "AccentSurface",
         "Success", "SuccessSurface", "Warning", "WarningSurface",
         "Danger", "DangerSurface", "Info", "InfoSurface",
-        "OverlayHover", "OverlayPressed", "CaptionCloseHover",
+        "OverlayHover", "OverlayPressed",
 
     ];
 
@@ -111,7 +111,6 @@ public class ThemeTokenTests
             var keys = DeclaredKeys(tokens);
 
             Assert.Contains("UiCodeFont", keys, StringComparer.Ordinal);
-            Assert.Contains("PadSection", keys, StringComparer.Ordinal);
             Assert.Contains("GapSection", keys, StringComparer.Ordinal);
 
             foreach (var key in keys)

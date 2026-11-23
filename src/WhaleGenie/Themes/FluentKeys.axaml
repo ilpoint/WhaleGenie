@@ -9,9 +9,10 @@
       从主题资源里枚举出来核对过（当前共 830 个键）。写错一个键名不会报错、也不会有任何效果——静默地"看起来正常"，所以这个文件
       里不许出现没核过的名字。
 
-      这份清单只覆盖设计规范里给了取值的四个族（Button / TextControl / ComboBox / ToolTip）加四个
-      度量键。ScrollBar、MenuFlyout、CheckBox、ToggleSwitch、ToggleButton、TableView 六个族的四态
-      取值规范里还没给，先不写：凭空补 130 个键的取值，等于把设计决定悄悄做在实现里。
+      这份清单覆盖设计规范里给了取值的十个族（Button / TextControl / ComboBox / ToolTip / ScrollBar /
+      MenuFlyout / CheckBox / ToggleSwitch / ToggleButton / TableView）、设置窗导航的 NavigationView
+      键、WinUI 的文本填充与焦点环键，以及四个度量键。规范里还没给取值的族不写：凭空补键的取值，
+      等于把设计决定悄悄做在实现里。
 
       注意这里的别名只能引用同一层能看见的键：主题变体里的别名能引 Tokens 变体里的颜色，文件末尾
       那些与明暗无关的别名只能引 Tokens 里同在最外层的键（圆角、字号那批）。放在最外层去引

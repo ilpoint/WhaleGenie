@@ -1,7 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:fa="using:FluentAvalonia.UI.Controls"
         xmlns:views="using:WhaleGenie.Views"
-        xmlns:conv="using:WhaleGenie.Converters"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
 
@@ -58,8 +57,7 @@
       单类的四个：标签、徽标、分隔线、拖动分隔条。各自只有一个类、没有修饰、没有状态叠加。
 
       标签与徽标的"前景"由里面的 `TextBlock` 自己给——`Border` 没有 `Foreground`，规范表里那一列
-      对 `Border.*` 是实现不了的。徽标的档位色（`XxxSurface` / `Xxx`）由调用点那一层的类给，
-      规范没给那些类名，所以这里只有几何：档位由 H18 决定，不由字号规则决定。
+      对 `Border.*` 是实现不了的。徽标这里只有几何：档位由 H18 决定，不由字号规则决定。
     -->
 
 
@@ -68,41 +66,6 @@
         <Setter Property="Padding" Value="{DynamicResource PadChip}" />
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
     </Style>
-
-    <!--
-      徽标的四个档位：底与外框由档位色给，字色靠后代选择器——`Border` 没有 `Foreground`，
-      给 `Border` 设一条 `Foreground` 是静默无效的（`dev.md` 第 4 条同族）。
-    -->
-
-
-
-    <!-- 强调档：给的是**标识**而不是状态（步骤 ID 这类要在一条长步骤里一眼找到的东西）。
-         它借的是界面主色，所以不表示成功、失败或警告中的任何一种。 -->
-
-
-
-    <Style Selector="Border.Badge.Success">
-        <Setter Property="Background" Value="{DynamicResource SuccessSurface}" />
-    </Style>
-    <Style Selector="Border.Badge.Success TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource Success}" />
-    </Style>
-
-    <Style Selector="Border.Badge.Warning">
-        <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
-    </Style>
-    <Style Selector="Border.Badge.Warning TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
-    </Style>
-
-    <Style Selector="Border.Badge.Danger">
-        <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
-    </Style>
-    <Style Selector="Border.Badge.Danger TextBlock">
-        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
-    </Style>
-
-    <!-- 分隔线：一条 1px 的线，两侧间隙由 `GapDivider` 给（见令牌注释）。 -->
 
     <!--
       分类 dock：一排按钮把一大片收窄成一组。变量中心的分组与动作库的四个来源都站在这上面，
