@@ -130,6 +130,11 @@ sealed class Program
             App.WheelOverlay = true;
         }
 
+        if (args.Contains("--panel-overlay", System.StringComparer.Ordinal))
+        {
+            App.PanelOverlay = true;
+        }
+
         // The web shell is the ordinary window; --webui-dev points it at a Vite dev server so page
         // edits hot-reload while the program runs. Debug only: Release loads the packed page.
         foreach (var argument in args)

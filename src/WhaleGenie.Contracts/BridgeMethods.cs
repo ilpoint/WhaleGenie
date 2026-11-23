@@ -120,6 +120,7 @@ public static class BridgeMethods
         "surface.menu.replace",
         "surface.menu.rule.add",
         "surface.menu.state",
+        "surface.panel.state",
         "surface.wheel.state",
         "theme.get",
         "theme.set",

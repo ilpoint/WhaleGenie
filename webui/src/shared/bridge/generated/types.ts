@@ -1550,6 +1550,21 @@ export interface SurfaceMenuSnapshot {
   context: SurfaceMenuPage[];
 }
 
+export interface SurfacePanelItem {
+  label: string;
+  state: string;
+  iconKind: string | null;
+  iconValue: string | null;
+}
+
+export interface SurfacePanelSnapshot {
+  groupKey: string;
+  title: string;
+  horizontal: boolean;
+  collapsed: boolean;
+  items: SurfacePanelItem[];
+}
+
 export interface SurfaceWheelAim {
   ring: string;
   index: number;

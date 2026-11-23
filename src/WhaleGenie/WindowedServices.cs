@@ -60,6 +60,8 @@ internal static class WindowedServices
             sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
             sp.GetRequiredService<MenuSurfaceBridge>(),
             sp.GetRequiredService<WheelSurfaceBridge>()))
+        .AddSingleton(sp => new PanelSurfaceBridge(new PanelSurface(
+            sp.GetRequiredService<ProjectWorkspace>())))
         .AddSingleton(sp => new WheelSurfaceBridge(new WheelSurface(
             sp.GetRequiredService<ProjectWorkspace>())))
         .AddSingleton(sp => new MenuSurfaceBridge(new MenuSurface(
@@ -83,6 +85,7 @@ internal static class WindowedServices
                 sp.GetRequiredService<AppSettings>()));
             server.Register(sp.GetRequiredService<MenuSurfaceBridge>());
             server.Register(sp.GetRequiredService<WheelSurfaceBridge>());
+            server.Register(sp.GetRequiredService<PanelSurfaceBridge>());
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();

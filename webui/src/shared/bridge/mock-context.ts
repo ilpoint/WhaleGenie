@@ -5,6 +5,7 @@ import type {
   SettingsState,
   StringsBundle,
   SurfaceMenuSnapshot,
+  SurfacePanelSnapshot,
   SurfaceWheelSnapshot,
   ThemeState,
   WindowState,
@@ -31,6 +32,7 @@ export interface MockShellContext {
   projectState: ProjectState;
   surfaceMenu: SurfaceMenuSnapshot;
   surfaceWheel: SurfaceWheelSnapshot;
+  surfacePanel: SurfacePanelSnapshot;
   push(event: string, payload: unknown): void;
   bundle(): StringsBundle;
 }

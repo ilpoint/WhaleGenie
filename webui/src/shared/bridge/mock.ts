@@ -1,4 +1,4 @@
-import { demoMenu, demoSurfaceMenu, demoSurfaceWheel, demoWheel } from './mock-fixtures.js';
+import { demoMenu, demoSurfacePanel, demoSurfaceMenu, demoSurfaceWheel, demoWheel } from './mock-fixtures.js';
 import { mockExtra } from './mock-strings-extra.js';
 import { chromeKeys, english } from './mock-strings-en.js';
 import { chinese } from './mock-strings-zh.js';
@@ -16,6 +16,7 @@ import type {
   RunState,
   StringsBundle,
   SurfaceMenuSnapshot,
+  SurfacePanelSnapshot,
   SurfaceWheelSnapshot,
   ThemeState,
   WindowState,
@@ -107,6 +108,8 @@ export class MockTransport implements BridgeTransport {
 
   surfaceWheel: SurfaceWheelSnapshot = demoSurfaceWheel;
 
+  surfacePanel: SurfacePanelSnapshot = demoSurfacePanel;
+
   projectState: ProjectState = {
     path: null,
     name: null,
@@ -165,6 +168,8 @@ export class MockTransport implements BridgeTransport {
         result = handleSettings(this, method, params);
       } else if (method.startsWith('run.')) {
         result = handleRun(this, method, params);
+      } else if (method === 'surface.panel.state') {
+        result = this.surfacePanel;
       } else if (method === 'surface.wheel.state') {
         result = this.surfaceWheel;
       } else if (method.startsWith('surface.')) {

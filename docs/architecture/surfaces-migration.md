@@ -172,6 +172,16 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
 原生窗口与测试全部删除。剩余验收（真机清单）：菜单键打开 <100ms、多屏定位、游戏前台热键、
 DPI 125/150/200% 下的落点。
 
+### S4 界面面板（已开始）
+
+- 契约 `SurfacePanelSnapshot/Item` 与 `surface.panel.state`；App 的 `PanelSurface` 用
+  `InterfaceMemberResolver` 只投影可显示的成员（停用/缺宏不上面板）。
+- 页面 `features/overlay/panel` 画标题与成员（横向/纵向、停用态），`#overlay/panel` 路由。
+- 宿主 `PanelOverlayHost`（`BridgeSurface.Panel`，240×320，启动预热），`--panel-overlay`（Debug）
+  实测能在真实项目上打开。
+- **未接线**：分组热键/锚定窗口/移动与收起仍走 `FloatingSurfaceWindow`；面板位置与规则留在 C#，
+  页面只负责排版。
+
 ### S3 轮盘
 
 **已完成（第一步）**：`WheelGeometry` 早已是纯函数并有 `WheelMenuTests.Gesture/Drawing` 覆盖；新增

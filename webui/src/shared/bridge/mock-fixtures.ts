@@ -1,6 +1,7 @@
 import type {
   SettingsMenuState,
   SurfaceMenuSnapshot,
+  SurfacePanelSnapshot,
   SurfaceWheelSnapshot,
   SettingsWheelSlot,
   SettingsWheelState,
@@ -145,5 +146,17 @@ export const demoSurfaceWheel: SurfaceWheelSnapshot = {
     { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null },
     { ring: 'outer', index: 0, label: '每日签到', iconKind: null, iconValue: null },
     { ring: 'outer', index: 3, label: '清理日志', iconKind: null, iconValue: null },
+  ],
+};
+/** 界面宏浮层：一个组的两三个成员，够开发与 e2e 看排版。 */
+export const demoSurfacePanel: SurfacePanelSnapshot = {
+  groupKey: 'demo',
+  title: '界面宏',
+  horizontal: false,
+  collapsed: false,
+  items: [
+    { label: '演示宏', state: 'visible', iconKind: null, iconValue: null },
+    { label: '备份', state: 'visible', iconKind: null, iconValue: null },
+    { label: '每日签到', state: 'disabled', iconKind: null, iconValue: null },
   ],
 };

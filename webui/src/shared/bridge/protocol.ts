@@ -11,6 +11,7 @@ export * from './protocol/run.js';
 export * from './protocol/library.js';
 export * from './protocol/surface.js';
 export * from './protocol/wheel.js';
+export * from './protocol/panel.js';
 export * from './protocol/mcp.js';
 export * from './protocol/editor.js';
 export * from './protocol/editor-value.js';

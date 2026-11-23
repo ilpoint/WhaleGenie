@@ -20,6 +20,7 @@ import { windowMirror } from './shared/window/window.js';
 import { go } from './shared/navigation/router.js';
 import './features/overlay/menu-overlay.js';
 import './features/overlay/wheel.js';
+import './features/overlay/panel.js';
 import { installFocusReporting } from './shared/focus/focus.js';
 import { editor } from './features/editor/editor-store.js';
 import './app/shell.js';
@@ -53,7 +54,8 @@ client.on('theme.changed', (next) => theme.load(next));
 
 if (overlayRoute) {
   document.body.replaceChildren(document.createElement(
-    overlayRoute.startsWith('wheel') ? 'wg-overlay-wheel' : 'wg-overlay-menu'));
+    overlayRoute.startsWith('wheel') ? 'wg-overlay-wheel'
+      : overlayRoute.startsWith('panel') ? 'wg-overlay-panel' : 'wg-overlay-menu'));
 } else {
   appInfo.load(await client.call<AppInfo>('app.info'));
   project.load(await client.call<ProjectState>('project.state'));

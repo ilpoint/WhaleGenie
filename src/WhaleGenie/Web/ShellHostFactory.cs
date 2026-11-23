@@ -45,8 +45,16 @@ internal sealed class ShellHostFactory(
         menu.Overlay.Warm();
         var wheelOverlay = new WheelOverlayHost(bridge, wheel);
         wheelOverlay.Warm();
+        var panelOverlay = new PanelOverlayHost(bridge);
+        panelOverlay.Warm();
         var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
             menu.Overlay, wheelOverlay);
+#if DEBUG
+        if (App.PanelOverlay)
+        {
+            panelOverlay.Show();
+        }
+#endif
 #if DEBUG
         if (App.WheelOverlay)
         {
