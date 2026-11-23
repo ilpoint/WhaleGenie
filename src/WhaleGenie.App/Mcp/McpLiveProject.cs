@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Mcp;
 
@@ -62,20 +63,25 @@ public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui) :
     /// itself, so this path and the window's own Save behave the same way.
     /// </summary>
     public async Task<string> SaveAsync()
-        => await ui.InvokeAsync(() =>
-        {
-            var path = project.CurrentPath;
-            if (path is null || path.Length == 0)
-            {
-                throw new McpFailure(McpErrors.NoPackagePath,
-                    "The project has no package path yet, so there is nothing to save to.",
-                    "Ask the person to save the project once in WhaleGenie, or to choose a location when MCP starts.");
-            }
+    {
+        // The copy is made on the interface thread; the zip is written on a worker so a large
+        // project does not freeze the window; the clean flag goes back on the interface thread.
+        var plan = await ui.InvokeAsync(() => project.PrepareSave()
+            ?? throw new McpFailure(McpErrors.NoPackagePath,
+                "The project has no package path yet, so there is nothing to save to.",
+                "Ask the person to save the project once in WhaleGenie, or to choose a location when MCP starts."));
 
-            project.SavePackage(path);
-            McpAudit.Note("project.save", path);
-            return path;
+        await Task.Run(() => MacroPackage.Save(plan.Path, plan.Macros, plan.Triggers, plan.Globals,
+            plan.AppVersion, plan.AssetFolder));
+        await ui.InvokeAsync(() =>
+        {
+            project.MarkSaved(plan.Path);
+            return true;
         });
+
+        McpAudit.Note("project.save", plan.Path);
+        return plan.Path;
+    }
 
     private McpProjectSnapshot Snapshot()
     {

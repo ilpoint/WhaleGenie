@@ -18,7 +18,7 @@ namespace WhaleGenie.Models;
 /// window. The split is what lets the MCP tools talk to the document instead of to the window: a
 /// draft is applied to this object, and the window hears about it through <see cref="Changed"/>.
 /// </remarks>
-public sealed class ProjectWorkspace : ObservableObject
+public sealed partial class ProjectWorkspace : ObservableObject
 {
     private readonly string _appVersion;
     private string? _currentPath;

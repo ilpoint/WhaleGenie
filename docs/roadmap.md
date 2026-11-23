@@ -31,9 +31,9 @@ P8 原生主题收缩已完成（1133 → 436/340/324）。P5 可注入设置、
   mock，而 editor.spec.ts（658 行、209 处引用）依赖它的行为级模拟；压到 2,500 只能删掉这些行为，
   等于牺牲 e2e 覆盖。新的目标是先把纯数据（动作目录、步骤样例）外置为 JSON，再评估能否低于 3,500；
   “2,500”作为过时目标保留在记录里，不再按它判断完成。
-- **P3/P4 IO/busy**：保存路径确认是同步 zip 写（MacroPackage.Save 直接从 UI 线程调用）。要移出线程得
-  新增“准备数据 → 后台写 → 回 UI 收尾”的接口，并同时改窗口保存、MCP 保存与另存为三处调用；这是独立
-  改造，不与浮层迁移同批做。下一次动它时先改 MCP 保存（唯一已有异步签名的路径），再推广。
+- **P3/P4 IO/busy**：MCP 保存已改成“UI 线程准备（ProjectWorkspace.PrepareSave 拷出计划）→ 后台
+  Task.Run 写 zip（MacroPackage.Save）→ UI 线程 MarkSaved 收尾”，用例覆盖计划是副本、无文件时无计划、
+  收尾清脏。剩余：窗口自身的保存/另存为仍走同步 ProjectFiles.Save，下一步改成同一计划的异步版本。
 - 真机验收（游戏全屏、多屏、DPI 125–200%）只能由使用者完成，代码侧已把清单列在迁移文档里。
 
 界面整体从原生 AXAML 迁到 WebView + Lit + Fluent UI Web Components（见 [DESIGN.md](../DESIGN.md)
