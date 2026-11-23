@@ -6,8 +6,6 @@ export function handleActionRun(host: MockEditor, method: string, params: Record
   switch (method) {
     case 'editor.actionOpen':
       return host.actionOpen(params);
-    case 'editor.actionState':
-      return host.actionForm ?? host.emptyActionForm();
     case 'editor.actionConfirm':
       return host.actionConfirm();
     case 'editor.actionCancel':

@@ -31,8 +31,6 @@ export function handleValueRun(host: MockEditor, method: string, params: Record<
             throw new Error('不认识取值命令 ' + String(params['kind']) + '。');
         }
       }
-      case 'editor.valueState':
-        return host.valueEditor?.snapshot() ?? (() => { throw new Error('没有打开的取值窗口。'); })();
     default:
       throw new Error('不认识编辑器命令 ' + method + '。');
   }

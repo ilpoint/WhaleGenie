@@ -35,12 +35,6 @@ public class BridgeMethodInventoryTests
 
         // WP6b: the import wizard is what opens a package; the picker is a door until it lands.
         ["dialog.pickOpenPackage"] = "等 WP6b 的导入向导启用；向导接上桥后删掉这行。",
-
-        // WP1 removes the action-state snapshot the page used to poll for the dialog.
-        ["editor.actionState"] = "WP1 删除这条方法；删除前页面不再需要它。",
-
-        // WP1 removes the value-editor state snapshot in the same pass.
-        ["editor.valueState"] = "WP1 删除这条方法；删除前页面不再需要它。",
     };
 
     private static readonly Regex[] CallSitePatterns =

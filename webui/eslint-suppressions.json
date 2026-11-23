@@ -92,11 +92,6 @@
       "count": 2
     }
   },
-  "src/shared/bridge/mock-editor-run-action.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/shared/bridge/mock-editor-run-session.ts": {
     "complexity": {
       "count": 1

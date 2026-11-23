@@ -51,7 +51,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
         server.Register("editor.action", ActionCommand);
         server.Register("editor.actionOpen", ActionOpen);
-        server.Register("editor.actionState", _ => Task.FromResult<object?>(Required().ActionFormState()));
         server.Register("editor.actionConfirm", _ => Task.FromResult<object?>(Required().ConfirmActionDraft()));
         server.Register("editor.actionCancel", _ => Task.FromResult<object?>(Required().CancelActionDraft()));
         server.Register("editor.actionWindowPreview", ActionWindowPreview);
@@ -65,7 +64,6 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
         server.Register("editor.actionKeyPad", ActionKeyPad);
         server.Register("editor.hotstringKeyPad", HotstringKeyPad);
         server.Register("editor.value", ValueAction);
-        server.Register("editor.valueState", _ => Task.FromResult<object?>(Required().ValueState()));
     }
 
 
