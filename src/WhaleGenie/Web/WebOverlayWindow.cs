@@ -35,6 +35,27 @@ internal sealed class WebOverlayWindow : Window
     /// again as soon as the navigation finishes. A first open then costs a <c>Show()</c> (S0: 9 ms)
     /// instead of a WebView cold start (S0: about 0.6 s).
     /// </summary>
+    /// <summary>
+    /// Starts a system caption drag. A page cannot move a window itself: pointer events stop at the
+    /// window edge, so dragging a small panel across the screen needs the OS move loop.
+    /// </summary>
+    internal void BeginWindowDrag()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        ReleaseCapture();
+        SendMessage(handle, WmNcLeftButtonDown, HtCaption, IntPtr.Zero);
+    }
+
     /// <summary>The warm-up load no longer owns the window; a real open must not be hidden by it.</summary>
     internal void EndWarm() => _warming = false;
 
@@ -162,6 +183,15 @@ internal sealed class WebOverlayWindow : Window
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool GetCursorPos(out NativePoint point);
+
+    private const int WmNcLeftButtonDown = 0x00A1;
+    private const int HtCaption = 2;
+
+    [DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
 
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct NativePoint

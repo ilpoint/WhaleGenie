@@ -22,6 +22,11 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
     {
         server.Register("surface.menu.state", _ => Task.FromResult<object?>(menu.Snapshot()));
         server.Register("surface.menu.activate", Activate);
+        server.Register("surface.menu.drag", _ =>
+        {
+            Overlay?.BeginDrag();
+            return Task.FromResult<object?>(null);
+        });
         server.Register("surface.menu.close", _ =>
         {
             Overlay?.Hide();

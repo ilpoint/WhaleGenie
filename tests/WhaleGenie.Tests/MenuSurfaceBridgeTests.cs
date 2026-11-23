@@ -116,6 +116,10 @@ public class MenuSurfaceBridgeTests
         {
         }
 
+        public void BeginDrag()
+        {
+        }
+
         public void Show() => IsVisible = true;
 
         public void Hide()

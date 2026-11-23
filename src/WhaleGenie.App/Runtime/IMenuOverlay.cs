@@ -13,6 +13,9 @@ public interface IMenuOverlay
     /// <summary>Pinned menus stay open when another window takes the focus.</summary>
     bool Pinned { get; set; }
 
+    /// <summary>Starts a system move of the window, so it can follow the pointer off its own bounds.</summary>
+    void BeginDrag();
+
     /// <summary>Raised whenever the overlay goes away, whichever path closed it.</summary>
     event Action? Hidden;
 

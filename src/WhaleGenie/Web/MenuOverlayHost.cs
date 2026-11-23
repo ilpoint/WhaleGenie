@@ -90,6 +90,8 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
         _window.FocusPage();
     }
 
+    public void BeginDrag() => _window?.BeginWindowDrag();
+
     public void Hide()
     {
         if (_window is not { IsVisible: true } window)

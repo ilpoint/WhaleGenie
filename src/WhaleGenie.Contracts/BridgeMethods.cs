@@ -110,6 +110,7 @@ public static class BridgeMethods
         "surface.menu.block",
         "surface.menu.close",
         "surface.menu.debug",
+        "surface.menu.drag",
         "surface.menu.edit",
         "surface.menu.focus",
         "surface.menu.icon",

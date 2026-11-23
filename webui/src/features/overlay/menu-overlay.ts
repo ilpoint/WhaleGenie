@@ -265,7 +265,7 @@ export class WgOverlayMenu extends LitElement {
   private renderHeader() {
     return html`
       <div class="header">
-        <span class="title">${t('Menu.Search')}</span>
+        <span class="title" @pointerdown=${() => void bridgeApi.call('surface.menu.drag')}>${t('Menu.Search')}</span>
         <button
           class="pin ${this.pinned ? 'on' : ''}"
           aria-pressed=${this.pinned ? 'true' : 'false'}
