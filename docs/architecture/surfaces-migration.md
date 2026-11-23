@@ -235,6 +235,14 @@ DPI 125/150/200% 下的落点。
 图标选择器（Lucide 或图片）；左侧底栏按钮为当前前台程序建立进程名相等的场景规则，右侧为禁止在此程序
 呼出；上半区/下半区的加号各自加分页，滚轮悬在哪个半区就翻哪组页。
 
+**原生选择器迁移（2026-11-24）**：MenuMacroPickerWindow、MenuIconPickerWindow 删除，宏选择改为
+空格右键的二级列表（surface.menu.macros + surface.menu.cell.assign），图标选择器由页面内
+wg-icon-picker 承担（icon.names + 懒取 icon.path + 图片对话框），菜单格与设置轮盘共用；
+图标写回走 surface.menu.cell.icon，图片对话框经 surface.menu.image 在挂起自动关闭的状态下打开。
+置顶状态由宿主持有并在打开/切换时推 surface.menu.pinned，设置里可选择是否跨打开记忆；外边点击
+由宿主自己的 Hook.MouseDown（派发到 UI 线程）加按钮轮询兜底，置顶时不响应。右键层移出
+.panel 的 overflow:hidden 并按窗口四边夹取，二级宏列表位置同源。
+
 已自动验证：`WheelSurfaceTests` 7 条（圈数/宽外圈/第三圈/tone/中心文案/画布/aim 偏移）、
 `MenuSurfaceTests` 格子描述、`npm run check`。已手工看：菜单尺寸与图标、搜索默认隐藏/点开可
 输入/Esc 收起、右键无浏览器菜单、轮盘完整网格与透明窗口。真机剩余：面板折叠/滚动、轮盘手势与
