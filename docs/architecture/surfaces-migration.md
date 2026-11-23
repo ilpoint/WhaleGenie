@@ -196,9 +196,9 @@ DPI 125/150/200% 下的落点。
 `surface.wheel.state`（`SurfaceWheelSnapshot/Slot`）与 App 的 `WheelSurface` 投影，页面
 `features/overlay/wheel` 用生成的 SVG 画扇区（Lit 模板里的嵌套 SVG 会落进 HTML 命名空间，
 必须整段 `unsafeSVG`）。`WheelSurfaceTests` 覆盖“有宏的格子出现在正确环/位置”与空轮盘。
-浮层宿主 `WheelOverlayHost` 已建（`BridgeSurface.Wheel`，440×440），`--wheel-overlay`（Debug）
-实测能用真实项目数据画出扇区。瞄准帧 `surface.wheel.changed`（`SurfaceWheelAim`，按 Latest 合并）
-与页面 `.sector.aimed` 高亮已就绪，`IWheelOverlay.SetAim` 负责推送。
+浮层宿主 `WheelOverlayHost` 已建（`BridgeSurface.Wheel`，全屏透明框），`--wheel-overlay`（Debug）
+实测能用真实项目数据画出扇区。布局帧 `surface.wheel.changed` 走完整快照；瞄准帧改走轻量
+`surface.wheel.aim`（按 Latest 合并），页面只更新动态层，`IWheelOverlay.SetAim` 负责推送。
 **手势已切换**：`NativeSurfaceHost.Wheel` 改为驱动 `WheelOverlayHost`（定位到指针、瞄准帧、滚动换
 场景、超时、关闭），命中测试改用 `WheelGeometry` + 已解析布局；原生 `WheelMenuWindow.cs`(526)、
 `WheelCanvas.cs`(332) 与窗口类测试已删除，`WheelGesture` 用例保留为 `WheelGestureTests`。
@@ -245,13 +245,15 @@ wg-icon-picker 承担（icon.names + 懒取 icon.path + 图片对话框），菜
 
 **轮盘补缺（2026-11-24）**：`WheelOverlayHost` 现在使用覆盖当前屏幕的全屏透明框，按原生规则只夹取
 可见圆圆心（轮盘画布外的透明区可出屏，引导线不再被方形裁断），
-勾选“指针移到中心”时先把指针移到实际圆心再显示（不再只限夹取情形）；窗口先透明加载新帧，
-页面经 `surface.wheel.ready` 回报后再显现，避免旧位置闪一帧；命中测试改用窗口回报的实际圆心。字号、Gloss、HoverBorder、ShowGuide、
+勾选“指针移到中心”时先把指针移到实际圆心再显示（不再只限夹取情形）；窗口保持隐藏加载新帧，
+页面经 `surface.wheel.ready` 回报后再显示，未回报则重发 opening，约 1.6 秒仍无回报就放弃该次打开，
+关闭时推 `surface.wheel.closed` 清空页面，避免旧位置闪一帧；
+瞄准帧只推 `surface.wheel.aim`，指示线独立于扇区始终跟指针；命中测试改用窗口回报的实际圆心。字号、Gloss、HoverBorder、ShowGuide、
 HideLabelWithIcon、FollowTheme 进入快照由页面实际绘制；每次打开推 `surface.wheel.opened`，
 页面按 PopAnimation 做一次缩放淡入，时长由 `settings.wheel.update/popAnimationMs` 的滑块传入。
 设置页增加“轮盘”导航，外观开关、预览和动作管理沿用同一几何；格子右键不再出现针对当前程序的规则/屏蔽项，这两项只留在底栏。
 
-已自动验证：`WheelSurfaceTests` 8 条（圈数/宽外圈/第三圈/tone/中心文案/画布/aim 偏移/外观开关）、
+已自动验证：`WheelSurfaceTests` 9 条（圈数/宽外圈/第三圈/tone/中心文案/画布/aim 偏移/外观开关/Opening）、
 `WheelPlacementTests` 3 条（边缘夹取与关闭夹取）、
 `MenuSurfaceTests` 格子描述、`npm run check`。已手工看：菜单尺寸与图标、搜索默认隐藏/点开可
 输入/Esc 收起、右键无浏览器菜单、轮盘完整网格与透明窗口。真机剩余：面板折叠/滚动、轮盘手势与
