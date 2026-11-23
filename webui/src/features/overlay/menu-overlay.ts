@@ -83,6 +83,7 @@ export class WgOverlayMenu extends LitElement {
     bridgeApi.on('surface.menu.pinned', (payload) => {
       this.pinned = payload.pinned;
     });
+    bridgeApi.on('surface.menu.refreshed', () => void this.reload());
     bridgeApi.on('surface.menu.closed', () => {
       this.searchOpen = false;
       this.query = '';
@@ -146,6 +147,7 @@ export class WgOverlayMenu extends LitElement {
     try {
       this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.state');
       this.pinned = this.snapshot.pinned;
+      this.clampPages();
       this.error = '';
     } catch (failure) {
       this.error = failure instanceof Error ? failure.message : String(failure);
@@ -437,8 +439,6 @@ export class WgOverlayMenu extends LitElement {
           debug: (cell) => void this.debug(cell),
           chooseIcon: (cell) => this.chooseIcon(cell),
           replace: () => this.replace(),
-          addRule: () => void this.addRule(),
-          block: () => void this.blockForeground(),
         })}
         ${renderPageMenu(this.pageMenu, (pageId) => void this.removePage(pageId))}
         ${renderEmptyCellMenu(this.emptyMenu, (withIcon) => {

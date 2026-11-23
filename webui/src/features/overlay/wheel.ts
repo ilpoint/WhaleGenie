@@ -21,6 +21,11 @@ export class WgOverlayWheel extends LitElement {
   @state()
   private error = '';
 
+  @state()
+  private animating = false;
+
+  private animationTimer = 0;
+
   private readonly iconCache = new Map<string, string | null>();
 
   protected readonly stringsController = new StoreController(this, strings);
@@ -70,12 +75,15 @@ export class WgOverlayWheel extends LitElement {
 
     .sector.aimed {
       fill: var(--colorBrandBackground2);
+    }
+
+    .sector.aimed.border {
       stroke: var(--colorBrandStroke1);
       stroke-width: 2.5;
     }
 
     .label {
-      font-size: 12px;
+      font-size: 1em;
       fill: var(--colorNeutralForeground1);
       text-anchor: middle;
       dominant-baseline: middle;
@@ -88,7 +96,7 @@ export class WgOverlayWheel extends LitElement {
     }
 
     .scene {
-      font-size: 12px;
+      font-size: 1em;
       fill: var(--colorNeutralForeground2);
       text-anchor: middle;
       dominant-baseline: middle;
@@ -109,10 +117,37 @@ export class WgOverlayWheel extends LitElement {
       fill: var(--colorBrandBackground);
     }
 
+    .label.small {
+      font-size: 0.85em;
+    }
+
+    .wheel.fixed .surface,
+    .wheel.fixed .sector {
+      fill: #f3f3f3;
+    }
+
     .note {
       padding: 10px;
       font-size: 12px;
       color: var(--colorNeutralForeground3);
+    }
+
+    .wheel {
+      display: block;
+      transform-origin: center;
+    }
+
+    .wheel text {
+      font-family: var(--fontFamilyBase);
+    }
+
+    .wheel.pop {
+      animation: wheel-pop 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    @keyframes wheel-pop {
+      from { opacity: 0.25; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
     }
   `;
 
@@ -122,6 +157,18 @@ export class WgOverlayWheel extends LitElement {
     bridgeApi.on('surface.wheel.changed', (next) => {
       this.snapshot = next;
       this.preload(next);
+    });
+    bridgeApi.on('surface.wheel.opened', (event) => {
+      window.clearTimeout(this.animationTimer);
+      this.animating = false;
+      if (!event.pop) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        this.animating = true;
+        this.animationTimer = window.setTimeout(() => { this.animating = false; }, 180);
+      });
     });
   }
 
@@ -160,7 +207,9 @@ export class WgOverlayWheel extends LitElement {
       return html`<p class="note">…</p>`;
     }
 
-    return html`${unsafeSVG(this.svgMarkup(this.snapshot))}`;
+    return html`<div class="wheel ${this.animating ? 'pop' : ''} ${this.snapshot.followTheme ? '' : 'fixed'}"
+      style=${'font-size:' + this.snapshot.fontSize + 'px'}>
+      ${unsafeSVG(this.svgMarkup(this.snapshot))}</div>`;
   }
 
   private svgMarkup(snapshot: SurfaceWheelSnapshot): string {
@@ -175,7 +224,7 @@ export class WgOverlayWheel extends LitElement {
     }
 
     const parts = [
-      ...surfaceMarkup(centre, edge),
+      ...surfaceMarkup(snapshot, centre, edge),
       ...sectorMarkup(snapshot, centre, bySlot),
       ...slotMarkup(snapshot, centre, this.iconCache),
       centreMarkup(snapshot, centre),
@@ -186,16 +235,22 @@ export class WgOverlayWheel extends LitElement {
   }
 }
 
-function surfaceMarkup(centre: number, edge: number): string[] {
-  return [
-    '<defs><linearGradient id="wg-wheel-gloss" x1="0" y1="0" x2="0" y2="1">'
+function surfaceMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
+  edge: number): string[] {
+  const parts = [
+    '<circle class="surface" cx="' + centre + '" cy="' + centre + '" r="' + edge + '"></circle>',
+  ];
+  if (snapshot.gloss) {
+    parts.push(
+      '<defs><linearGradient id="wg-wheel-gloss" x1="0" y1="0" x2="0" y2="1">'
       + '<stop offset="0" stop-color="#fff" stop-opacity="0.22"/>'
       + '<stop offset="0.55" stop-color="#fff" stop-opacity="0"/>'
       + '<stop offset="1" stop-color="#000" stop-opacity="0.10"/></linearGradient></defs>',
-    '<circle class="surface" cx="' + centre + '" cy="' + centre + '" r="' + edge + '"></circle>',
-    '<circle class="gloss" cx="' + centre + '" cy="' + centre + '" r="' + edge
+      '<circle class="gloss" cx="' + centre + '" cy="' + centre + '" r="' + edge
       + '" fill="url(#wg-wheel-gloss)"></circle>',
-  ];
+    );
+  }
+  return parts;
 }
 
 function sectorMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
@@ -205,7 +260,8 @@ function sectorMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
     for (let index = 0; index < ring.count; index += 1) {
       const slot = bySlot.get(ring.ring + ':' + index);
       const aimed = snapshot.aim?.ring === ring.ring && snapshot.aim.index === index;
-      parts.push('<path class="sector ' + (slot?.tone ?? 'empty') + (aimed ? ' aimed' : '')
+      parts.push('<path class="sector ' + (slot?.tone ?? 'empty')
+        + (aimed ? ' aimed' : '') + (aimed && snapshot.hoverBorder ? ' border' : '')
         + '" d="' + sectorPath(centre, ring.from, ring.to, index, ring.count) + '"></path>');
     }
   }
@@ -226,17 +282,23 @@ function slotMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
     const path = slot.iconKind === 'builtin' && slot.iconValue
       ? icons.get(slot.iconValue)
       : null;
+    let hasIcon = false;
     if (path) {
+      hasIcon = true;
       parts.push('<path d="' + escapeXml(svgPath(path)) + '" fill="none" stroke="currentColor"'
         + ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"'
-        + ' transform="translate(' + (x - 12).toFixed(2) + ' ' + (y - 12).toFixed(2)
+        + ' transform="translate(' + (x - 12).toFixed(2) + ' ' + (y - 18).toFixed(2)
         + ') scale(1.0)"></path>');
     } else if (slot.iconKind === 'image' && slot.iconValue) {
-      parts.push('<image x="' + (x - 14).toFixed(2) + '" y="' + (y - 14).toFixed(2)
+      hasIcon = true;
+      parts.push('<image x="' + (x - 14).toFixed(2) + '" y="' + (y - 20).toFixed(2)
         + '" width="28" height="28" href="' + escapeXml(fileUrl(slot.iconValue)) + '"></image>');
-    } else {
-      parts.push('<text class="label" x="' + x.toFixed(2) + '" y="' + y.toFixed(2)
-        + '">' + escapeXml(slot.label) + '</text>');
+    }
+
+    if (!hasIcon || !snapshot.hideLabelWithIcon) {
+      const labelY = hasIcon ? y + 17 : y;
+      parts.push('<text class="label' + (hasIcon ? ' small' : '') + '" x="' + x.toFixed(2)
+        + '" y="' + labelY.toFixed(2) + '">' + escapeXml(slot.label) + '</text>');
     }
   }
 
@@ -251,7 +313,7 @@ function centreMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string {
 }
 
 function guideMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string[] {
-  if (!snapshot.aim) {
+  if (!snapshot.aim || !snapshot.showGuide) {
     return [];
   }
 

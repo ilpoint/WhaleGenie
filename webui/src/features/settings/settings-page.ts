@@ -128,7 +128,8 @@ ${renderSettingsCards(this)}
       { key: 'general', label: 'Settings.GeneralCard' },
       { key: 'theme', label: 'Settings.Theme' },
       { key: 'input', label: 'Settings.InputCard' },
-      { key: 'menu', label: 'Settings.WheelTitle' },
+      { key: 'menu', label: 'Settings.MenuLauncher' },
+      { key: 'wheel', label: 'Settings.WheelTitle' },
       { key: 'storage', label: 'Settings.Storage' },
     ];
   }

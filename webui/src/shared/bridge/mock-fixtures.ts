@@ -146,6 +146,12 @@ export const demoSurfaceWheel: SurfaceWheelSnapshot = {
   sceneName: 'Global',
   centerText: '关闭',
   aim: null,
+  gloss: true,
+  hoverBorder: true,
+  showGuide: true,
+  hideLabelWithIcon: false,
+  followTheme: true,
+  fontSize: 11,
   slots: [
     { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null, tone: 'global' },
     { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null, tone: 'global' },

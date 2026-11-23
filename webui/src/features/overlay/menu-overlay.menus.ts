@@ -32,8 +32,6 @@ export interface CellMenuActions {
   debug: (cell: SurfaceMenuCell) => void;
   chooseIcon: (cell: SurfaceMenuCell) => void;
   replace: (cell: SurfaceMenuCell) => void;
-  addRule: () => void;
-  block: () => void;
 }
 
 export function renderCellMenu(state: CellMenuState | null,
@@ -53,10 +51,6 @@ export function renderCellMenu(state: CellMenuState | null,
         <wg-icon name="Image" .size=${14}></wg-icon>${t('Menu.ChooseIcon')}</button>
       <button @click=${() => actions.replace(cell)}>
         <wg-icon name="RefreshCw" .size=${14}></wg-icon>${t('Menu.Replace')}</button>
-      <button @click=${() => actions.addRule()}>
-        <wg-icon name="SquarePlus" .size=${14}></wg-icon>${t('Menu.AddRule')}</button>
-      <button @click=${() => actions.block()}>
-        <wg-icon name="Ban" .size=${14}></wg-icon>${t('Menu.Block')}</button>
     </div>
   `;
 }

@@ -76,7 +76,13 @@ internal sealed class WheelSurface
             layout.SceneName,
             CenterText(layout, options, aim),
             slots,
-            pointed);
+            pointed,
+            options.Gloss,
+            options.HoverBorder,
+            options.ShowGuide,
+            options.HideLabelWithIcon,
+            options.FollowTheme,
+            options.FontSize);
     }
 
     private static IReadOnlyList<SurfaceWheelRing> Rings(WheelMetrics metrics, int rings)

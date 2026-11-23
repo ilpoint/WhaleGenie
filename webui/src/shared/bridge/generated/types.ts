@@ -1605,6 +1605,12 @@ export interface SurfaceWheelSnapshot {
   centerText: string;
   slots: SurfaceWheelSlot[];
   aim: SurfaceWheelAim | null;
+  gloss: boolean;
+  hoverBorder: boolean;
+  showGuide: boolean;
+  hideLabelWithIcon: boolean;
+  followTheme: boolean;
+  fontSize: number;
 }
 
 export interface ThemeState {

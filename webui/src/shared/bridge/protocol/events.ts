@@ -24,6 +24,8 @@ export interface BridgeEvents {
   'surface.panel.changed': SurfacePanelSnapshot;
   'surface.menu.closed': null;
   'surface.menu.pinned': { pinned: boolean };
+  'surface.menu.refreshed': null;
+  'surface.wheel.opened': { pop: boolean };
 }
 
 export type BridgeEventName = keyof BridgeEvents;

@@ -74,8 +74,12 @@ export class WgIconPicker extends LitElement {
     }
     .icon:hover { background: var(--colorNeutralBackground1Hover); }
     .icon.on { background: var(--colorBrandBackground2); border-color: var(--colorBrandStroke1); }
-    .footer { display: flex; align-items: center; gap: 6px; }
+    .footer {
+      display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; white-space: nowrap;
+    }
     .footer .spacer { flex: 1; }
+    .footer button { flex: none; padding: 0 6px; }
+    .footer .note { flex: none; white-space: nowrap; }
     button {
       height: 28px; padding: 0 10px; border: 1px solid var(--colorNeutralStroke1);
       border-radius: var(--borderRadiusMedium); background: var(--colorNeutralBackground1);

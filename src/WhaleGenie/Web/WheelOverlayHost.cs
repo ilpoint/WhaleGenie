@@ -59,9 +59,18 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         var side = options.Diameter * 2;
         window.Width = side;
         window.Height = side;
-        window.PlaceCenteredAt(new PixelPoint(origin.X, origin.Y), options.Diameter);
+        var centre = PlaceOnScreen(window, origin, options);
+        _origin = new OverlayPoint(centre.X, centre.Y);
         window.Show();
+        if (options.MovePointerToCenter && options.ClampToScreen
+            && (centre.X != origin.X || centre.Y != origin.Y))
+        {
+            SetCursorPos(centre.X, centre.Y);
+        }
+
         Push(null);
+        _ = bridge.PushAsync("surface.wheel.opened", new { pop = options.PopAnimation },
+            BridgePushMode.Latest, BridgeSurface.Wheel);
 
         _timeout?.Stop();
         if (timeoutMs > 0)
@@ -75,6 +84,49 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
             _timeout.Start();
         }
     }
+
+    /// <summary>
+    /// Keeps only the visible wheel inside the working area. The transparent square is twice the
+    /// diameter and may hang over an edge; clamping the square would drag the wheel away from the
+    /// press that opened it, which is why the native window clamped the centre instead.
+    /// </summary>
+    private static PixelPoint PlaceOnScreen(WebOverlayWindow window, OverlayPoint origin,
+        WheelOptions options)
+    {
+        var side = options.Diameter * 2;
+        var scale = window.RenderScaling;
+        var area = new PixelRect(0, 0, (int)Math.Ceiling(side * scale),
+            (int)Math.Ceiling(side * scale));
+        try
+        {
+            var screen = window.Screens.ScreenFromPoint(new PixelPoint(origin.X, origin.Y))
+                ?? window.Screens.Primary;
+            if (screen is not null)
+            {
+                area = screen.WorkingArea;
+                scale = screen.Scaling > 0 ? screen.Scaling : scale;
+            }
+        }
+        catch
+        {
+            // A headless session has no screen list; the wheel still gets a centre to aim at.
+        }
+
+        var wheel = (int)Math.Ceiling(options.Diameter * scale);
+        var sidePixels = (int)Math.Ceiling(side * scale);
+        var x = origin.X;
+        var y = origin.Y;
+        var centre = WheelPlacement.Center(origin.X, origin.Y, wheel,
+            area.X, area.Y, area.Right, area.Bottom, options.ClampToScreen);
+        x = (int)Math.Round(centre.X);
+        y = (int)Math.Round(centre.Y);
+
+        window.Position = new PixelPoint(x - sidePixels / 2, y - sidePixels / 2);
+        return new PixelPoint(x, y);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
 
     public void SetLayout(WheelRuntimeLayout layout)
     {

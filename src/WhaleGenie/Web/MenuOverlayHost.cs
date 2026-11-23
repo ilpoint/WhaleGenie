@@ -53,9 +53,19 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
             return;
         }
 
-        if (MenuOverlayPolicy.ShouldClose(true, window.Pinned, own, foreground))
+        // The WebView is a child window of the overlay; activating the page puts that child, not
+        // the overlay, in front. It is still the same menu, not another program.
+        var sameOverlay = foreground == own
+            || (foreground != 0 && GetAncestor(new IntPtr(foreground), GaRoot).ToInt64() == own);
+        if (!sameOverlay && MenuOverlayPolicy.ShouldClose(true, window.Pinned, own, foreground))
         {
             Hide();
+        }
+        else if (!sameOverlay)
+        {
+            // The context pages are about the program in front; a pinned menu that survives the
+            // switch must rebuild them for the new one.
+            PushRefreshed();
         }
     }
 
@@ -132,6 +142,7 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
         _window.PlaceNearCursor(350, 667);
         _window.Show();
         PushPinned();
+        PushRefreshed();
         StartOutsideWatch();
         // The menu keeps the game's keyboard until its search button is pressed; only then does
         // the page get the focus, and closing the search gives it back.
@@ -215,6 +226,10 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
         => _ = bridge.PushAsync("surface.menu.pinned", new { pinned = Pinned },
             BridgePushMode.Latest, BridgeSurface.Menu);
 
+    private void PushRefreshed()
+        => _ = bridge.PushAsync("surface.menu.refreshed", null,
+            BridgePushMode.Latest, BridgeSurface.Menu);
+
     public void Hide()
     {
         if (_window is not { IsVisible: true } window)
@@ -292,4 +307,9 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
 
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool SetForegroundWindow(IntPtr window);
+
+    private const uint GaRoot = 2;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetAncestor(IntPtr window, uint flags);
 }

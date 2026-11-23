@@ -27,6 +27,29 @@ public class WheelSurfaceTests
     }
 
     [Fact]
+    public void The_appearance_options_reach_the_page()
+    {
+        var options = new WheelOptions
+        {
+            Gloss = false,
+            HoverBorder = false,
+            ShowGuide = false,
+            HideLabelWithIcon = true,
+            FollowTheme = false,
+            FontSize = 18,
+        };
+
+        var snapshot = Frame(new ProjectWorkspace(), options);
+
+        Assert.False(snapshot.Gloss);
+        Assert.False(snapshot.HoverBorder);
+        Assert.False(snapshot.ShowGuide);
+        Assert.True(snapshot.HideLabelWithIcon);
+        Assert.False(snapshot.FollowTheme);
+        Assert.Equal(18, snapshot.FontSize);
+    }
+
+    [Fact]
     public void An_empty_outer_circle_is_hidden_when_the_setting_asks_for_it()
     {
         var project = new ProjectWorkspace();
@@ -109,5 +132,36 @@ public class WheelSurfaceTests
         var layout = project.Triggers.Wheel.Resolve(null, WheelSource.Global, options.WideOuter,
             [.. project.Macros], options.ThirdCapacity, options.HideEmptyOuter);
         return WheelSurface.Of(layout, options, aim);
+    }
+}
+
+/// <summary>The wheel centre against the edge it was opened at.</summary>
+public class WheelPlacementTests
+{
+    [Fact]
+    public void An_edge_pointer_clamps_only_the_visible_circle()
+    {
+        var centre = WheelPlacement.Center(1350, 700, 420, 0, 0, 1366, 728, clamp: true);
+
+        Assert.Equal(1156, centre.X);
+        Assert.Equal(518, centre.Y);
+    }
+
+    [Fact]
+    public void A_centre_pointer_stays_where_it_was()
+    {
+        var centre = WheelPlacement.Center(700, 300, 420, 0, 0, 1366, 728, clamp: true);
+
+        Assert.Equal(700, centre.X);
+        Assert.Equal(300, centre.Y);
+    }
+
+    [Fact]
+    public void Turning_clamping_off_leaves_the_centre_on_the_pointer()
+    {
+        var centre = WheelPlacement.Center(1350, 700, 420, 0, 0, 1366, 728, clamp: false);
+
+        Assert.Equal(1350, centre.X);
+        Assert.Equal(700, centre.Y);
     }
 }

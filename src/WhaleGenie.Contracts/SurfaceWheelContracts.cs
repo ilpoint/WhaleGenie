@@ -40,4 +40,6 @@ public sealed record SurfaceWheelSnapshot(
     string SceneName,
     string CenterText,
     IReadOnlyList<SurfaceWheelSlot> Slots,
-    SurfaceWheelAim? Aim = null);
+    SurfaceWheelAim? Aim = null, bool Gloss = true, bool HoverBorder = true,
+    bool ShowGuide = true, bool HideLabelWithIcon = false, bool FollowTheme = true,
+    double FontSize = 12);
