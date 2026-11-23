@@ -181,6 +181,17 @@ public class ControlsRegistryTests
             Assert.Fail($"the styles are not where the repository root says they are: {path}");
         }
 
+        // Controls.axaml is split by control family and pulls the parts in through StyleInclude;
+        // the rules below must see all of them, not just the file the include lives in.
+        if (file == "Controls.axaml")
+        {
+            var folder = Path.GetDirectoryName(path)!;
+            var parts = Directory.EnumerateFiles(folder, "Controls.*.axaml")
+                .OrderBy(part => part, StringComparer.Ordinal);
+            return File.ReadAllText(path) + Environment.NewLine + string.Join(
+                Environment.NewLine, parts.Select(File.ReadAllText));
+        }
+
         return File.ReadAllText(path);
     }
 

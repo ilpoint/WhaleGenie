@@ -70,7 +70,7 @@
       被上下按钮占着，所以这里换一种让法——改内层输入框的右内边距，与 `TextBox.HasChip` 同一个数。
       片本身是这个框的兄弟（在同一个格子里右对齐），画在框的上面，读起来仍在框里。
     -->
-    
+
 
     <!--
       层 3：我们自己画的族。颜色全部取自 Themes/Tokens.axaml，能由层 1（FluentKeys.axaml）给的
@@ -195,7 +195,7 @@
       所以标签自己带 `Space2`；成段的说明与对话框正文下面不该多出一道空白，所以 `Body` 不带。
       借 `FieldLabel` 写正文会让每段正文底下多 8px，看着像排版松了，其实是类的语义用错了。
     -->
-    
+
 
     <!--
       图标块与其余六类。修饰型（`Ghost.Tiny`）同样用类叠加写（`Classes="Ghost Tiny"`），
@@ -219,10 +219,10 @@
         <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
     </Style>
 
-    
-    
-    
-    
+
+
+
+
 
     <!--
       磁贴：`.Occupied` 只改底（这一格有人占了），`.Current` 只改描边（这一格是当前选择的）——
@@ -232,16 +232,16 @@
       标题栏上的**图标**钮：固定 30×24、`Pad0`。图标宽度本来就不同（关窗 10、最小化 8），
       靠 `PadChrome` 自适应会让一排按钮参差不齐——图标钮是固定方形，不是文字钮的那一族。
     -->
-    
+
     <!-- 大的工具钮：拾取器与运行窗里那种比图标大一圈的按钮。尺寸是一个维度，强度是另一个。 -->
-    
+
 
     <!-- `Quiet` = 更弱的工具钮：前景降一档，悬停不再提亮到 `TextPrimary`。 -->
-    
-    
 
-    
-    
+
+
+
+
 
     <!--
       标题栏右端那颗关闭键，尺寸按 WinUI 的 caption 走（46×32），与左边那一排工具钮不是同一族：
@@ -271,8 +271,8 @@
       标题栏上带状态的钮（目前是置顶）：尺寸、底色、悬停都和系统按钮一致，只有"开着"这一档多一笔强调色，
       图标本身在代码里换（`Pin` ↔ `PinOff`），所以认得出当前是哪一档。
     -->
-    
-    
+
+
     <Style Selector="Button.Caption:pointerover">
         <Setter Property="Background" Value="{DynamicResource SurfaceControlHover}" />
     </Style>
@@ -314,9 +314,9 @@
       悬停与按下只把前景转成 `AccentText`——16px 的钮上"暗一点→亮一点"几乎看不出来，转色才是
       唯一"这里能点"的信号。
     -->
-    
-    
-    
+
+
+
 
     <!--
       空状态：图标 + 标题 + 说明竖着排。它是容器，`Spacing` 与上下留白由它给；里面三类文字各用
@@ -331,12 +331,12 @@
       状态点：8 平方的圆，颜色由类给。`Fill` 是 `Shape` 的通道——给它写 `Foreground` 语法合法、
       静默无效（`dev.md` 第 4 条），所以五个档位各写一条 `Fill`。
     -->
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
 
     <!--
       输入族。三件输入框的外观四态全部由层 1 的 `TextControl*` / `ComboBox*` / `AutoCompleteList*`
@@ -354,7 +354,7 @@
     </Style>
 
     <!-- 24 这一档必须留：公式行里用 30 会把整行撑高 6px。 -->
-    
+
 
     <Style Selector="ComboBox.Field">
         <Setter Property="Height" Value="30" />
@@ -367,7 +367,7 @@
     </Style>
 
     <!-- 与 `TextBox.Field.Cell` 对称的 24 档：公式行里两种格子并排，差 6px 看得出来。 -->
-    
+
 
     <!--
       自动补全里面也有一支 `TextBox`，格子该由它来画：外面这层只占 30 的高度，自己不再画边框。
@@ -394,27 +394,27 @@
       嵌在输入框里的那枚按钮。格子里的按钮不能靠悬停才认得出，所以它带字、有边，像一枚小片；
       右端的空白由 `HasChip` 让出来，字才不会跑到它下面去。
     -->
-    
-    
+
+
     <!-- 值的读法：一个名字是一块，块里就是它的名字；文字是文字，不带框。
          一块与一行文字之间只留字距，让读的人先看见句子，再看见句子里的名字。 -->
-    
-    
-    
-    
+
+
+
+
 
     <!-- 一格值里的一段文字：只读显示，看起来只是字。名字各占一块，中间不需要空框来填。 -->
-    
-    
-    
-    
+
+
+
+
 
     <!-- 一块地方装着读法本身：它不像输入框，但点一下就是输入框。 -->
-    
-    
 
-    
-    
+
+
+
+
 
     <!-- 一列材料：行与行之间只为可读留一点缝，行自己不带内边距。 -->
     <Style Selector="ListBox.Panel > ListBoxItem">
@@ -425,10 +425,10 @@
     </Style>
 
     <!-- 一条分组芯片：几个词排一行，按下一个列表就换。 -->
-    
-    
-    
-    
+
+
+
+
 
     <Style Selector="TextBox.Code">
         <Setter Property="Padding" Value="{DynamicResource PadField}" />
@@ -441,7 +441,7 @@
         <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
     </Style>
 
-    
+
 
     <!--
       勾选项是"字段族"的成员，不是新的字号档：它与 `TextBox.Field` / `ComboBox.Field` 常常同排、

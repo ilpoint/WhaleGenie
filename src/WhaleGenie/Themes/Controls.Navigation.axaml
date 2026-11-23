@@ -6,22 +6,22 @@
 
 
     <!-- 芯片：四态由层 1 的 `ToggleButton*` 给，这里只覆盖"选中"那一档。 -->
-    
-    
+
+
 
 
     <!-- 键位芯片：按下去要亮，所以四态自己写。 -->
-    
-    
-    
-    
+
+
+
+
     <!--
       键位芯片的选中态必须也写在**控件**这一层。模板把 presenter 的 `Background` 绑给控件自己的
       `Background`，那条绑定是"本地值"，样式写在 presenter 上会被它压掉——所以只写 presenter 的话，
       选中时屏幕上还是未选中的底色（实测读到 `#2A2A2A`，正是 `SurfaceField`）。
     -->
-    
-    
+
+
 
     <!--
       键帽：`Button` 侧的对应物。`ToggleButton.Chip.Key` 是同一个尺寸的开关版（键盘上的
@@ -29,13 +29,13 @@
       尺寸 32×32 与开关版一致；按下走 `AccentFillPressed`（品牌橙就是它），不用 `AccentFill`
       ——后者是静息的强调底。
     -->
-    
-    
-    
-    
+
+
+
+
 
     <!-- 键帽的小字档：侧边那些长词的键，一格降字号，仍可读。 -->
-    
+
 
     <!--
       文本族的其余七类。层次靠字号与字重，不靠亮度——`FieldLabel` + `FontWeight=600` 就是替掉原来那套
@@ -43,9 +43,9 @@
 
       `SectionHeader` 是 11px 的单行短标签，所以必须 `NoWrap`：这一类唯一的使用禁忌就是让它换行。
     -->
-    
 
-    
+
+
 
     <Style Selector="TextBlock.SectionHeader">
         <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
@@ -57,7 +57,7 @@
     </Style>
 
     <!-- 单行附注：与 `Hint` 同字号同色，只是不折行。用 `ColumnHeader` 顶替会让附注看起来像表头（那是 600 字重）。 -->
-    
+
 
     <Style Selector="TextBlock.Problem">
         <Setter Property="FontSize" Value="{DynamicResource UiBodySmallSize}" />
@@ -79,7 +79,7 @@
         <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
     </Style>
 
-    
+
 
     <!-- 等宽：数字要等比宽（`tnum`），否则表格里每行的小数点都会错开。 -->
     <Style Selector="TextBlock.Code">
@@ -100,9 +100,9 @@
       `Border` 只有一支 `BorderBrush`。按 `GridSplitter.Split` 的先例记成已知偏差：真要双色就得
       在窗口里叠两个元素，那是结构改动，迁移时再议。
     -->
-    
 
-    
+
+
 
     <Style Selector="Border.Readout">
         <Setter Property="Padding" Value="{DynamicResource PadChip}" />
@@ -178,7 +178,7 @@
       搬到类里之后，尺寸的来源只剩一处。
       **缝保持 6，不改值**：先让"来源"统一，"值该多大"是另一件事，一次只改一件。
     -->
-    
+
 
     <Style Selector="Button.Secondary">
         <Setter Property="Height" Value="30" />
@@ -195,7 +195,7 @@
       高度用 `Height`，并且**这一条必须排在 `Secondary` 之后**：Avalonia 对同是样式来源的 setter
       按"后写覆盖先写"决定，**不比类名个数**——写在前面时 `Secondary` 的 30 会赢，实测行距因此是 36 而不是 34。
     -->
-    
+
 
     <!--
       更小的变量片：用在"这个变量被谁用过"那一列。**24 与 11.5 都保持原值**，
@@ -203,13 +203,13 @@
       类名用 `Dense` 而不是 `Compact`：`Compact` 是 `Tab.Root.Compact` 的词，**同一个词属于两族会让
       "这条选择器配不配得到元素"那条检查判错**（它按词匹配，分不清前缀链）。
     -->
-    
+
 
     <!--
       分支还没填值：这一支现在谁都不应答，是一个该被看见的空缺。灰字说的和"值"是同一种语气，
       读的人会以为填好了；警示色说的是"这里还缺点东西"。
     -->
-    
+
 
 
     <!-- 只有图标的动作钮（关窗、折叠）。底色透明，悬停靠叠层，所以它不必知道底下是什么颜色。 -->
@@ -218,7 +218,7 @@
       24 高的按钮配 12 的圆角正好是圆——**圆角是形状，不是值**，所以它单独一层，
       以后 32 高的按钮挂同一个类也还是圆的（值要跟着高度走，这里取 24 的一半）。
     -->
-    
+
 
     <!--
       等宽修饰：**只设字体，不设前景色**。
@@ -253,19 +253,19 @@
         <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
     </Style>
 
-    
-    
-    
-    
+
+
+
+
 
     <!--
       标题栏上的动作钮，比 Ghost 宽一档、能带一个词。`Button*` 在层 1 是实心次按钮的样子，所以
       这一类必须显式把底改回透明，否则标题栏上会出现一排灰块。
     -->
-    
-    
-    
-    
+
+
+
+
 
     <!--
       页签三档。选中态用 `.selected` 类表达而不是伪类：这些是 `Button` 不是 `ToggleButton`，
@@ -273,26 +273,26 @@
 
       下划线与左侧那条竖线的粗细是族的度量（2px / 3px），与高度同一类，按字面写；颜色才是令牌。
     -->
-    
-    
-    
-    
-    
+
+
+
+
+
 
     <!-- 根页签的紧凑档：只改高度与字号，四态沿用 Root。`MinHeight` 而不是 `Height`，因为它要说几行。 -->
-    
+
 
     <!--
       设置窗顶部三个分组页签的胶囊档。`Root` 的下划线选中留给主窗与宏设置，这里只做窄化。
       不叫 `Pill`：`Button.Pill` 已经是另一个东西，窄化规则会把它一起算进来。
     -->
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
 
     <!--
       设置窗左栏的图标跟着行的状态换色。不能绑 `FANavigationViewItem.Foreground`：库的选中态把
@@ -309,21 +309,21 @@
     </Style>
 
     <!-- 侧栏页签：选中时整行铺强调浅底，左侧一条竖线标位置。 -->
-    
-    
-    
-    
-    
+
+
+
+
+
 
     <!--
       分类栏那一列方钮。规范注明它"不属 Tab 族"，但在同一个窗口里它和页签是同一个导航面，
       所以放一起比分成两处好找。48×50 是族的度量：图标 22 加一行 `UiCaption` 单行标题。
     -->
-    
-    
-    
-    
-    
+
+
+
+
+
 
     <!--
       容器与卡片。`Border.Card.Selectable` 当初留了两处空白，现在都定了（"底表达选中、描边表达标记"），
