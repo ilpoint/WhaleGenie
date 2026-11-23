@@ -293,7 +293,9 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   瞄准格用品牌色高亮，引导线从圆心一直画到指针，可以超出画布方形，但不会超出屏幕。字号、
   Gloss、HoverBorder、ShowGuide、HideLabelWithIcon、FollowTheme 也随快照下发，页面按选项画。
   贴边只夹取“可见圆”的圆心，透明的两倍方形允许出屏；只有确实被夹取且勾选“指针移到中心”时，
-  显示后才移动指针。PopAnimation 由宿主在每次打开时发 `surface.wheel.opened`，页面做一次
+  勾选“指针移到中心”时先移动指针再显示，不必等到夹取改变圆心。窗口先以透明状态加载新一帧，
+  页面回报 `surface.wheel.ready` 后才显示，避免上一位置的帧闪一下。PopAnimation 由宿主在
+  显示后发 `surface.wheel.opened`，页面做一次
   60–600ms 的缩放淡入（设置用滑块调整，默认 160ms），不重复用于瞄准帧。
 - 面板宽 86、标题 20、成员 80×24、间距 2；折叠时只留 20 高标题条，由窗口区域裁切。
 - 设置页的轮盘有独立导航项，包含外观/行为开关、实时预览和动作管理（场景选择、槽位几何、

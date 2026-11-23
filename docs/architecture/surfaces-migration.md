@@ -245,7 +245,8 @@ wg-icon-picker 承担（icon.names + 懒取 icon.path + 图片对话框），菜
 
 **轮盘补缺（2026-11-24）**：`WheelOverlayHost` 现在使用覆盖当前屏幕的全屏透明框，按原生规则只夹取
 可见圆圆心（轮盘画布外的透明区可出屏，引导线不再被方形裁断），
-夹取且勾选“指针移到中心”时在窗口显示后移动指针，命中测试改用窗口回报的实际圆心；字号、Gloss、HoverBorder、ShowGuide、
+勾选“指针移到中心”时先把指针移到实际圆心再显示（不再只限夹取情形）；窗口先透明加载新帧，
+页面经 `surface.wheel.ready` 回报后再显现，避免旧位置闪一帧；命中测试改用窗口回报的实际圆心。字号、Gloss、HoverBorder、ShowGuide、
 HideLabelWithIcon、FollowTheme 进入快照由页面实际绘制；每次打开推 `surface.wheel.opened`，
 页面按 PopAnimation 做一次缩放淡入，时长由 `settings.wheel.update/popAnimationMs` 的滑块传入。
 设置页增加“轮盘”导航，外观开关、预览和动作管理沿用同一几何；格子右键不再出现针对当前程序的规则/屏蔽项，这两项只留在底栏。
