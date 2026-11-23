@@ -8,4 +8,6 @@ export type {
   RunLook,
   RunState,
   RunStep,
+  RunTrigger,
+  RunWatch,
 } from '../generated/types.js';

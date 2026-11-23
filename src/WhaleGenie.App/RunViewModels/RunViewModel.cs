@@ -98,11 +98,26 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     /// <summary>True while some run holds the input door, so the line means something.</summary>
     public bool ShowsInputOwner => SharedDoors.Input.Owner.Length > 0;
 
+    /// <summary>
+    /// The macro's own input ceiling, or 0 when it follows the program. It belongs to the macro
+    /// being run rather than to the window, so it is read again whenever the window is pointed at
+    /// another one.
+    /// </summary>
+    public int InputRate => _inputRate ?? 0;
+
+    /// <summary>
+    /// The line naming the run that holds the input door, already worded, or empty while nobody
+    /// does. Shown beside the rate because a macro that hesitates is answered by both halves: how
+    /// fast it may send, and who is sending at that moment.
+    /// </summary>
+    public string InputRateOwner => ShowsInputOwner ? InputOwnerLine : string.Empty;
+
     /// <summary>The door changed hands, so what the line says has changed with it.</summary>
     public void RefreshInputOwner()
     {
         OnPropertyChanged(nameof(InputOwnerLine));
         OnPropertyChanged(nameof(ShowsInputOwner));
+        OnPropertyChanged(nameof(InputRateOwner));
     }
 
     /// <summary>
@@ -126,6 +141,13 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
 
     /// <summary>The names a breakpoint's condition may use, read off the macro being debugged.</summary>
     private IReadOnlyList<VariableChoice> _choices = [];
+
+    /// <summary>
+    /// The names a breakpoint's condition may use, as the panel offers them: a condition that
+    /// quietly misspells a name does not stop the run, so the names come from the macro rather
+    /// than from memory. Typing one that is not here is still allowed.
+    /// </summary>
+    internal IReadOnlyList<string> ChoiceNames => [.. _choices.Select(choice => choice.Name)];
 
     /// <summary>
     /// The macros this run may call, when the window was handed them outright: the editor's own run
@@ -199,6 +221,27 @@ public partial class RunViewModel : ViewModelBase, IRunHost, IRunLooks
     public string WindowTitle => Debugged.Length == 0
         ? Strings.Get("Run.Title")
         : $"{Strings.Get("Run.Title")} · {Debugged}";
+
+    /// <summary>
+    /// Why the panel left one macro to debug another, or empty when it has not. The line is worded
+    /// when the switch happens and read until the next run starts, where the same words go into the
+    /// log: a run that began before anyone could read the panel would otherwise explain itself to
+    /// nobody.
+    /// </summary>
+    public string SwapNote
+    {
+        get => _runNote ?? string.Empty;
+        private set
+        {
+            if ((_runNote ?? string.Empty) == value)
+            {
+                return;
+            }
+
+            _runNote = value.Length == 0 ? null : value;
+            OnPropertyChanged();
+        }
+    }
 
     /// <param name="triggers">
     /// The service that watches for the macros of the list to be wanted. Handed in so the window can

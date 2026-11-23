@@ -1,47 +1,35 @@
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Globalization;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using WhaleGenie.Core.Devices;
-using WhaleGenie.Core.Execution;
-using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
+using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
-using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.Storage;
 
 namespace WhaleGenie.ViewModels;
 
 // One line of the triggers in play when a run starts.
 /// <summary>
-/// One line of what a trigger is waiting for, already written out. The words come from the text
-/// table, so the two languages read alike and the line is not put together twice.
+/// One armed trigger as the panel lists it. The words come from the text table, so the two
+/// languages read alike and the line is not put together twice — the page draws the parts it is
+/// handed instead of knowing which part goes where.
 /// </summary>
-public sealed record TriggerWatchLine(string Text)
+public static class RunTriggerLine
 {
-    public static TriggerWatchLine Of(TriggerWatch watch)
+    /// <summary>The whole of what one watched trigger is waiting for, split into its parts.</summary>
+    public static RunTrigger Of(TriggerWatch watch)
     {
-        var parts = new List<string> { watch.Macro, watch.Looking };
-
-        if (watch.Matched is { } matched)
+        var status = watch.Matched switch
         {
-            parts.Add(Strings.Get(matched ? "Run.TriggerThere" : "Run.TriggerAway"));
-        }
+            true => Strings.Get("Run.TriggerThere"),
+            false => Strings.Get("Run.TriggerAway"),
+            _ => string.Empty,
+        };
 
-        parts.Add(Strings.Format("Run.TriggerLooked", Moment(watch.Checked), Moment(watch.Next)));
+        var checkedAt = watch.Checked == default
+            ? Strings.Get("Run.TriggerNoClock")
+            : Strings.Format("Run.TriggerLooked", Moment(watch.Checked), Moment(watch.Next));
 
-        if (watch.Told)
-        {
-            parts.Add(Strings.Get("Run.TriggerTold"));
-        }
-
-        return new TriggerWatchLine(string.Join(" · ", parts.Where(part => part.Length > 0)));
+        return new RunTrigger(watch.Macro, watch.Looking, status, checkedAt,
+            watch.Told ? Strings.Get("Run.TriggerTold") : string.Empty);
     }
 
     /// <summary>A time of day, or the words for a trigger nothing is on a clock for.</summary>

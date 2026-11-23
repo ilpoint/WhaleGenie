@@ -69,9 +69,18 @@ export class MockTransport implements BridgeTransport {
     locals: [] as { name: string; macro: string; type: string }[],
     steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;
       container: boolean; current: boolean; breakpoint: boolean; canBreak: boolean;
-      time: string; failure: string; condition: string; hitTimes: number; expression: string }[],
+      time: string; failure: string; condition: string; hitTimes: number; expression: string;
+      outcome: string; result: string }[],
     log: [] as { time: string; level: string; text: string }[],
     logFrom: 0,
+    inputRate: 0,
+    inputRateOwner: '',
+    swapNote: '',
+    triggers: [] as { name: string; kind: string; status: string; checked: string; detail: string }[],
+    watches: [] as { name: string; type: string; value: string }[],
+    looks: [] as { stepId: string; type: string; looking: string; image: string }[],
+    activeLook: '',
+    breakpointChoices: [] as string[],
   };
 
   settingsState: SettingsState = {

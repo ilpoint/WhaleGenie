@@ -1,13 +1,21 @@
-import { LitElement, html, nothing } from 'lit';
-import { runPageCss } from './run-page-css.js';
+import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
-import type { ProjectState, RunLine, RunState, RunStep } from '../../shared/bridge/protocol.js';
+import type { ProjectState, RunLook, RunState } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { SubscriptionController } from '../../shared/lit/subscription-controller.js';
+import { renderLog } from './run-log.js';
+import { LOOKS_KEPT, renderLooks } from './run-look.js';
+import { runPageCss } from './run-page-css.js';
+import { renderSteps, type StepActions } from './run-steps.js';
+import { renderTriggers } from './run-triggers.js';
+import { renderVariables } from './run-variables.js';
 
-/** The web run panel: loads one macro and drives the shared RunViewModel through the bridge. */
+/**
+ * 运行面板的装配：装一个宏、经桥驱动程序里那一个 RunViewModel，再把状态交给各区块画。
+ * 页面只做视图——草稿、校验与历史都在程序里；这里记的只是推来的快照与命令的回复。
+ */
 @customElement('wg-run')
 export class WgRun extends LitElement {
   @state()
@@ -21,6 +29,7 @@ export class WgRun extends LitElement {
 
   protected readonly stringsController = new StoreController(this, strings);
 
+  /** 推送来的整份状态。行、日志与取景走各自的差量，所以带着上一次的副本合并。 */
   protected readonly runController = new SubscriptionController(this, () =>
     bridge.value.on('run.changed', (payload) => {
       const next = payload as RunState;
@@ -29,6 +38,7 @@ export class WgRun extends LitElement {
         steps: this.run?.steps ?? [],
         log: this.run?.log ?? [],
         look: this.run?.look ?? null,
+        looks: this.run?.looks ?? [],
       };
     }));
 
@@ -55,11 +65,7 @@ export class WgRun extends LitElement {
     }));
 
   protected readonly lookController = new SubscriptionController(this, () =>
-    bridge.value.on('run.look', (look) => {
-      if (this.run) {
-        this.run = { ...this.run, look };
-      }
-    }));
+    bridge.value.on('run.look', (look) => this.keepLook(look)));
 
   static styles = runPageCss;
 
@@ -73,7 +79,7 @@ export class WgRun extends LitElement {
     void bridge.value.call<RunState>('run.unload');
   }
 
-  render() {
+  render(): TemplateResult {
     return html`
       <div class="side">
         <h1>${t('Run.Title')}</h1>
@@ -87,94 +93,47 @@ export class WgRun extends LitElement {
         </div>
       </div>
       <div class="panel">
-        <div class="toolbar">
-          ${this.button('run', 'Run.Run', this.run?.canRun ?? false)}
-          ${this.button('step', 'Run.Step', this.run?.canStep ?? false)}
-          ${this.button('continue', 'Run.Continue', this.run?.paused ?? false)}
-          ${this.button('skip', 'Run.SkipStep', this.run?.paused ?? false)}
-          ${this.button('stop', 'Run.Stop', this.run?.canStop ?? false)}
-        </div>
+        ${this.toolbar()}
         <div class="status">${this.run?.status ?? ''}</div>
+        ${this.swapNote()}
+        ${renderTriggers(this.run)}
         ${this.arguments()}
         ${this.ask()}
-        <div class="steps">
-          ${(this.run?.steps ?? []).map((step) => this.step(step))}
-        </div>
-        <div class="log">
-          ${this.run?.log.map((line) => this.line(line))}
-        </div>
-        ${this.run?.look ? html`
-          <figure class="look">
-            <img src=${this.run.look.image} alt="" />
-            <figcaption>${this.run.look.stepId}${this.run.look.looking ? ` · ${this.run.look.looking}` : ''}</figcaption>
-          </figure>
-        ` : nothing}
-        <div class="vars">
-          <h3>${t('Run.Variables')}</h3>
-          <div class="var-grid">
-            ${this.run?.globals.map((item) => html`
-              <div class="var"><span>${item.name}</span><span>${item.type}</span><span>${item.value}</span></div>
-            `)}
-            ${this.run?.locals.map((item) => html`
-              <div class="var"><span>${item.name}</span><span>${item.type}</span><span>${item.macro}</span></div>
-            `)}
-          </div>
-        </div>
+        ${renderSteps(this.run, this.stepActions())}
+        ${renderLog(this.run?.log ?? [])}
+        ${renderLooks(this.run, (stepId) => void this.lookSelect(stepId))}
+        ${renderVariables(this.run)}
       </div>
     `;
   }
 
-  private button(command: string, label: string, enabled: boolean) {
+  private toolbar(): TemplateResult {
     return html`
-      <fluent-button appearance="subtle" ?disabled=${!enabled}
-        @click=${() => void this.send(command)}>${t(label)}</fluent-button>
-    `;
-  }
-
-  private step(step: RunStep) {
-    return html`
-      <div class="step ${step.current ? 'current' : ''}" style="padding-left: ${step.depth * 12}px">
-        ${step.canBreak
-          ? html`<input type="checkbox" .checked=${step.breakpoint}
-              @change=${() => void this.breakpoint(step.id)} />`
-          : html`<span></span>`}
-        <div class="body">
-          <div>${step.label}</div>
-          ${step.detail ? html`<div class="detail">${step.detail}</div>` : nothing}
-          ${step.time ? html`<div class="detail">${step.time}</div>` : nothing}
-          ${step.failure ? html`<div class="detail error">${step.failure}</div>` : nothing}
-          ${step.condition ? html`<div class="detail">${step.condition}</div>` : nothing}
-          ${step.breakpoint ? html`
-            <div class="rule">
-              <input type="number" min="1" .value=${String(step.hitTimes)}
-                @change=${(event: Event) => void this.rule(step.id, event)} />
-              <input .value=${step.expression} placeholder=${t('Run.BreakpointExpressionWatermark')}
-                @change=${(event: Event) => void this.rule(step.id, event)} />
-            </div>
-          ` : nothing}
-        </div>
+      <div class="toolbar">
+        ${this.button('run', 'Run.Run', this.run?.canRun ?? false)}
+        ${this.button('step', 'Run.Step', this.run?.canStep ?? false)}
+        ${this.button('continue', 'Run.Continue', this.run?.paused ?? false)}
+        ${this.button('skip', 'Run.SkipStep', this.run?.paused ?? false)}
+        ${this.button('stop', 'Run.Stop', this.run?.canStop ?? false)}
       </div>
     `;
   }
 
-  private line(line: RunLine) {
-    return html`
-      <div class="log-line">
-        <span class="time">${line.time}</span>
-        <span>${line.level}</span>
-        <span>${line.text}</span>
-      </div>
-    `;
+  /** 换宏的说明：程序在切换时写好的那句话，读过一次运行就把它挪进日志。 */
+  private swapNote(): TemplateResult | typeof nothing {
+    const note = this.run?.swapNote ?? '';
+    return note.length === 0 ? nothing : html`<p class="swap">${note}</p>`;
   }
 
-  private arguments() {
-    if (!this.run?.arguments.length) {
+  private arguments(): TemplateResult | typeof nothing {
+    const arguments_ = this.run?.arguments ?? [];
+    if (arguments_.length === 0) {
       return nothing;
     }
 
     return html`
       <div class="args">
-        ${this.run.arguments.map((argument) => html`
+        ${arguments_.map((argument) => html`
           <label class="arg">
             <span>${argument.label}${argument.required ? ' *' : ''}</span>
             <input .value=${argument.value}
@@ -186,7 +145,7 @@ export class WgRun extends LitElement {
     `;
   }
 
-  private ask() {
+  private ask(): TemplateResult | typeof nothing {
     if (!this.run) {
       return nothing;
     }
@@ -227,6 +186,36 @@ export class WgRun extends LitElement {
     return nothing;
   }
 
+  private button(command: string, label: string, enabled: boolean): TemplateResult {
+    return html`
+      <fluent-button appearance="subtle" ?disabled=${!enabled}
+        @click=${() => void this.send(command)}>${t(label)}</fluent-button>
+    `;
+  }
+
+  /** 步骤列表要发回去的两件事，接到桥上。 */
+  private stepActions(): StepActions {
+    return {
+      breakpoint: (id: string) => void this.breakpoint(id),
+      rule: (id: string, hitTimes: number, expression: string) => void this.rule(id, hitTimes, expression),
+    };
+  }
+
+  /** 推来的取景：历史按步骤去重、只留最近几张，与程序侧同一条规则。 */
+  private keepLook(look: RunLook | null): void {
+    if (!this.run || !look) {
+      return;
+    }
+
+    const kept = [...(this.run.looks ?? []).filter((item) => item.stepId !== look.stepId), look];
+    this.run = {
+      ...this.run,
+      look,
+      activeLook: look.stepId,
+      looks: kept.slice(-LOOKS_KEPT),
+    };
+  }
+
   private async load(): Promise<void> {
     try {
       this.project = await bridge.value.call<ProjectState>('project.state');
@@ -246,15 +235,7 @@ export class WgRun extends LitElement {
     }
   }
 
-  private async rule(id: string, event: Event): Promise<void> {
-    const target = event.target as HTMLInputElement;
-    const row = target.closest('.step');
-    if (!row) {
-      return;
-    }
-
-    const hitTimes = Number(row.querySelector<HTMLInputElement>('input[type="number"]')?.value ?? 1);
-    const expression = row.querySelectorAll<HTMLInputElement>('input:not([type])')[0]?.value ?? '';
+  private async rule(id: string, hitTimes: number, expression: string): Promise<void> {
     try {
       this.run = await bridge.value.call<RunState>('run.breakpointRule',
         { id, hitTimes, expression });
@@ -295,6 +276,16 @@ export class WgRun extends LitElement {
   private async breakpoint(id: string): Promise<void> {
     try {
       this.run = await bridge.value.call<RunState>('run.breakpoint', { id });
+      this.error = '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
+  /** 换一张取景来看：只切正在看哪张，不重跑、也不重新抓屏。 */
+  private async lookSelect(stepId: string): Promise<void> {
+    try {
+      this.run = await bridge.value.call<RunState>('run.lookSelect', { stepId });
       this.error = '';
     } catch (error) {
       this.error = String(error);

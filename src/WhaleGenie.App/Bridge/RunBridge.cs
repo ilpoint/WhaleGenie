@@ -29,6 +29,7 @@ internal sealed partial class RunBridge : IBridgeHandler, IDisposable
         server.Register("run.state", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("run.unload", Unload);
         server.Register("run.load", LoadAsync);
+        server.Register("run.lookSelect", LookSelect);
         server.Register("run.command", CommandAsync);
         server.Register("run.breakpoint", Breakpoint);
         server.Register("run.breakpointRule", BreakpointRule);
@@ -69,6 +70,29 @@ internal sealed partial class RunBridge : IBridgeHandler, IDisposable
 
         StartClock();
         await PushAsync();
+        return Snapshot();
+    }
+
+    /// <summary>
+    /// Shows a picture the session already kept. Nothing runs again and nothing is read again: what
+    /// changes is which of the frames the run took is on show, so the delta pushed for it is the
+    /// frame and the panel's own state, not the rows or the log.
+    /// </summary>
+    private async Task<object?> LookSelect(JsonElement parameters)
+    {
+        var id = parameters.TryGetProperty("stepId", out var given) ? given.GetString() : null;
+        var run = _session.Run ?? throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get("Run.NotLoaded"));
+        if (!run.Steps.Any(step => string.Equals(step.Id, id, StringComparison.Ordinal)))
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get("Run.UnknownStep"));
+        }
+
+        if (!_session.SelectLook(id ?? string.Empty))
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get("Run.NotALookingStep"));
+        }
+
+        await PushLookAsync();
         return Snapshot();
     }
 

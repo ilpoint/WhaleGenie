@@ -69,17 +69,44 @@ internal sealed partial class RunBridge
             _sentLook = full.Look;
         }
 
-        await _server.PushAsync("run.changed", full with
-        {
-            Steps = null,
-            Log = [],
-            LogFrom = _sentLog,
-            Look = null,
-        });
+        await PushChangedAsync(full);
 
         if (!run.IsBusy && !run.IsPaused && !run.IsAsking && !run.IsAskingUser)
         {
             _session.StopClock();
         }
     }
+
+    /// <summary>
+    /// Pushes only the frame the panel shows, which is the whole of what switching from one kept
+    /// picture to another changes. The rows and the log are untouched by it, so they are neither
+    /// looked at again nor sent.
+    /// </summary>
+    private async Task PushLookAsync()
+    {
+        if (_server is null)
+        {
+            return;
+        }
+
+        var full = _session.Snapshot();
+        await _server.PushAsync("run.look", full.Look);
+        _sentLook = full.Look;
+        await PushChangedAsync(full);
+    }
+
+    /// <summary>
+    /// The parts of the state a push does not carry: the rows, the log and the frames come as their
+    /// own deltas, and a full state is only ever a reply. The pictures are the largest thing the
+    /// state holds, so a clock tick that resent them would put a run's every frame on the pipe
+    /// several times a second; the page keeps the list it was last handed instead.
+    /// </summary>
+    private Task PushChangedAsync(RunState full) => _server!.PushAsync("run.changed", full with
+    {
+        Steps = null,
+        Log = [],
+        LogFrom = _sentLog,
+        Look = null,
+        Looks = null,
+    });
 }

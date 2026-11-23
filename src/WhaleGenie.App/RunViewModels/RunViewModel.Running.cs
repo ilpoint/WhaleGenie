@@ -29,12 +29,14 @@ public partial class RunViewModel
         // is about whichever run holds it right now.
         OnPropertyChanged(nameof(ShowsInputOwner));
         OnPropertyChanged(nameof(InputOwnerLine));
+        OnPropertyChanged(nameof(InputRateOwner));
 
         // A run asked for after another one was stopped says why the first one ended: a run that
         // stopped by itself and one that was stopped on the way to this read the same otherwise.
-        if (_runNote is { } note)
+        if (SwapNote.Length > 0)
         {
-            _runNote = null;
+            var note = SwapNote;
+            SwapNote = string.Empty;
             Lines.Add(new RunLineViewModel(
                 DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
                 LogLevel.Warn, note));

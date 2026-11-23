@@ -1329,6 +1329,14 @@ export interface RunState {
   steps: RunStep[] | null;
   log: RunLine[];
   logFrom: number;
+  inputRate: number;
+  inputRateOwner: string;
+  swapNote: string;
+  triggers: RunTrigger[] | null;
+  watches: RunWatch[] | null;
+  looks: RunLook[] | null;
+  activeLook: string;
+  breakpointChoices: string[] | null;
 }
 
 export interface RunStep {
@@ -1346,6 +1354,22 @@ export interface RunStep {
   condition: string;
   hitTimes: number;
   expression: string;
+  outcome: string;
+  result: string;
+}
+
+export interface RunTrigger {
+  name: string;
+  kind: string;
+  status: string;
+  checked: string;
+  detail: string;
+}
+
+export interface RunWatch {
+  name: string;
+  type: string;
+  value: string;
 }
 
 export interface SettingsChoice {

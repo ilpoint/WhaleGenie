@@ -66,6 +66,7 @@ export type BridgeMethod =
   | 'run.breakpointRule'
   | 'run.command'
   | 'run.load'
+  | 'run.lookSelect'
   | 'run.state'
   | 'run.unload'
   | 'settings.menu.capture'

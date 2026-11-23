@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
@@ -59,9 +60,11 @@ public partial class RunViewModel
         _inputRate = macro.InputRate;
         OnPropertyChanged(nameof(ShowsInputOwner));
         OnPropertyChanged(nameof(InputOwnerLine));
+        OnPropertyChanged(nameof(InputRate));
+        OnPropertyChanged(nameof(InputRateOwner));
         if (switched)
         {
-            _runNote = Strings.Format("Run.DebugSwitched", was, macro.Name);
+            SwapNote = Strings.Format("Run.DebugSwitched", was, macro.Name);
         }
     }
 
@@ -133,7 +136,7 @@ public partial class RunViewModel
     /// Only the triggers something looks at on a clock are here: a key binding answers a key, so
     /// there is no moment it was last looked at.
     /// </summary>
-    public ObservableCollection<TriggerWatchLine> Triggers { get; } = [];
+    public ObservableCollection<RunTrigger> Triggers { get; } = [];
 
     public bool HasTriggers => Triggers.Count > 0;
 
@@ -146,7 +149,7 @@ public partial class RunViewModel
         {
             foreach (var watch in service.Watches())
             {
-                Triggers.Add(TriggerWatchLine.Of(watch));
+                Triggers.Add(RunTriggerLine.Of(watch));
             }
         }
 

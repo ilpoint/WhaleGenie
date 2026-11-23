@@ -30,11 +30,32 @@ export const runPageCss = css`
       text-align: left;
     }
 
+    /* 面板里区块的多少随一次运行变化（有触发行才有那一块），所以不按固定行数排，整块可滚。 */
     .panel {
       display: grid;
-      grid-template-rows: auto auto auto minmax(120px, 1fr) minmax(100px, 0.7fr) auto;
+      grid-auto-rows: min-content;
+      align-content: start;
       gap: var(--spacingVerticalM);
       min-width: 0;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    /* 步骤与日志跟着运行增长，各自滚自己的那一块，底下的取景与变量不必等它全部画完。 */
+    .steps, .log {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    section > h3 {
+      margin: 0 0 var(--spacingVerticalXS);
+      font-size: var(--fontSizeBase300);
+    }
+
+    .hint {
+      margin: 0 0 var(--spacingVerticalXS);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--fontSizeBase200);
     }
 
     .toolbar {
@@ -46,6 +67,16 @@ export const runPageCss = css`
 
     .status {
       color: var(--colorNeutralForeground2);
+    }
+
+    .swap {
+      margin: 0;
+      padding: var(--spacingVerticalS) var(--spacingHorizontalM);
+      border-left: var(--strokeWidthThick) solid var(--colorBrandStroke1);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground2);
+      color: var(--colorNeutralForeground2);
+      font-size: var(--fontSizeBase200);
     }
 
     .args {
@@ -94,6 +125,18 @@ export const runPageCss = css`
       min-width: 0;
     }
 
+    /* 一步的结果与结局贴在这一行里：结局说它怎么结束的，结果说它算出了什么。 */
+    .step .outcome {
+      font-size: var(--fontSizeBase200);
+      color: var(--colorPaletteGreenForeground1);
+    }
+
+    .step .result {
+      font-size: var(--fontSizeBase200);
+      color: var(--colorNeutralForeground2);
+      overflow-wrap: anywhere;
+    }
+
     .rule {
       display: grid;
       grid-template-columns: 72px minmax(0, 1fr);
@@ -101,10 +144,42 @@ export const runPageCss = css`
       margin-top: var(--spacingVerticalXS);
     }
 
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalXS);
+      margin-top: var(--spacingVerticalXS);
+    }
+
+    .choice {
+      padding: 2px var(--spacingHorizontalXS);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      border-radius: var(--borderRadiusSmall);
+      background: var(--colorNeutralBackground1);
+      color: var(--colorNeutralForeground2);
+      font-size: var(--fontSizeBase100);
+      cursor: pointer;
+    }
+
+    .choice:hover {
+      background: var(--colorNeutralBackground1Hover);
+    }
+
     .step .detail {
       color: var(--colorNeutralForeground3);
       font-size: var(--fontSizeBase200);
       overflow-wrap: anywhere;
+    }
+
+    .trigger-row {
+      display: grid;
+      grid-template-columns: minmax(110px, 1fr) minmax(0, 1.6fr) auto auto;
+      gap: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      font-size: var(--fontSizeBase200);
+    }
+
+    .trigger-row .status, .trigger-row .checked, .trigger-row .detail {
+      color: var(--colorNeutralForeground3);
     }
 
     .log-line {
@@ -114,8 +189,12 @@ export const runPageCss = css`
       font-size: var(--fontSizeBase200);
     }
 
-    .log-line .time {
+    .log-line .time, .log-line .level {
       color: var(--colorNeutralForeground3);
+    }
+
+    .log-line .text {
+      overflow-wrap: anywhere;
     }
 
     .look {
@@ -137,9 +216,68 @@ export const runPageCss = css`
       font-size: var(--fontSizeBase200);
     }
 
-    .vars h3 {
-      margin: 0 0 var(--spacingVerticalXS);
-      font-size: var(--fontSizeBase300);
+    /* 历史取景：一张缩略图一张卡片，正在看的那张描品牌色，点一下就换过去。 */
+    .look-thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalS);
+      margin-top: var(--spacingVerticalXS);
+    }
+
+    .look-thumb {
+      display: grid;
+      gap: var(--spacingVerticalXS);
+      padding: 2px;
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground1);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--fontSizeBase100);
+      cursor: pointer;
+    }
+
+    .look-thumb.active {
+      border-color: var(--colorBrandStroke1);
+      color: var(--colorNeutralForeground2);
+    }
+
+    .look-thumb:hover {
+      background: var(--colorNeutralBackground1Hover);
+    }
+
+    .look-thumb img {
+      width: 108px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: var(--borderRadiusSmall);
+    }
+
+    .rate {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacingHorizontalS);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--fontSizeBase200);
+    }
+
+    .rate .pair {
+      color: var(--colorNeutralForeground2);
+    }
+
+    .watch-grid {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) 110px minmax(0, 1.4fr);
+      gap: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      font-size: var(--fontSizeBase200);
+      margin-bottom: var(--spacingVerticalS);
+    }
+
+    .watch {
+      display: contents;
+    }
+
+    .watch span:last-child {
+      overflow-wrap: anywhere;
     }
 
     .var-grid {
