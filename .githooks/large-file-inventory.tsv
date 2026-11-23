@@ -159,7 +159,6 @@
 427	src/WhaleGenie.App/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
 22960	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
 35133	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
-1027	src/WhaleGenie.App/Bridge/EditorSessionBridge.cs	split: 编辑器桥的会话、步骤、参数、触发、取值与变量命令集中在一个分部类上；下一步按命令域拆
 549	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 2605	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.cs	split: 快照、步骤、声明、触发、变量、取值窗口、录制、导出与保存同在一个会话类；下一步按命令域拆分部类
@@ -174,3 +173,4 @@
 436	src/WhaleGenie/Themes/Controls.axaml	keep: 主题资源入口与基础控件，其余按族经 StyleInclude 接入
 340	src/WhaleGenie/Themes/Controls.Navigation.axaml	keep: 导航与列表一族的样式，随导航控件一起变
 324	src/WhaleGenie/Themes/Controls.Badges.axaml	keep: 徽标与状态色一族，随状态词汇一起变
+359	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
