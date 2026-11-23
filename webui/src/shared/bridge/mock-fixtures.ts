@@ -73,7 +73,7 @@ export const demoWheel: SettingsWheelState = {
   repeatKey: 'F1', repeatDisplay: 'F1', wideOuter: false, hideEmptyOuter: true,
   hideLabelWithIcon: false, centerName: false, clampToScreen: true,
   movePointerToCenter: false, showGuide: true, extendedHint: true, followTheme: true,
-  gloss: true, hoverBorder: true, popAnimation: true, isSystemOff: false, problem: '',
+  gloss: true, hoverBorder: true, popAnimation: true, popAnimationMs: 160, isSystemOff: false, problem: '',
   launcherChoices: [
     { value: 'Mouse Right', label: '鼠标右键' },
     { value: 'Mouse Middle', label: '鼠标中键' },
@@ -152,6 +152,8 @@ export const demoSurfaceWheel: SurfaceWheelSnapshot = {
   hideLabelWithIcon: false,
   followTheme: true,
   fontSize: 11,
+  centerX: 420,
+  centerY: 420,
   slots: [
     { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null, tone: 'global' },
     { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null, tone: 'global' },

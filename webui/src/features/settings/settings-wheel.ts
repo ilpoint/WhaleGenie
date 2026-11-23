@@ -157,6 +157,15 @@ export function renderWheelSettings(
         ${toggle('gloss', 'Settings.WheelGloss', state.gloss, actions)}
         ${toggle('hoverBorder', 'Settings.WheelHoverBorder', state.hoverBorder, actions)}
         ${toggle('popAnimation', 'Settings.WheelPopAnimation', state.popAnimation, actions)}
+        <label class="field">
+          <span>${t('Settings.WheelPopDuration')}</span>
+          <span class="inline-unit">
+            <input type="range" min="60" max="600" step="10" .value=${String(state.popAnimationMs)}
+              @input=${(event: Event) => actions.update('popAnimationMs',
+                (event.target as HTMLInputElement).value)} />
+            <em>${state.popAnimationMs} ms</em>
+          </span>
+        </label>
       </div>
       ${state.problem ? html`<p class="error">${state.problem}</p>` : nothing}
 

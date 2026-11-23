@@ -66,6 +66,7 @@ internal sealed partial class SettingsBridge
             _settings.Gloss,
             _settings.HoverBorder,
             _settings.PopAnimation,
+            _settings.PopAnimationMs,
             _settings.IsSystemOff,
             _settings.WheelProblem,
             [.. _settings.WheelLauncherChoices.Select(choice => new SettingsWheelChoice(
@@ -219,6 +220,9 @@ internal sealed partial class SettingsBridge
                 break;
             case "popAnimation":
                 _settings.PopAnimation = flag;
+                break;
+            case "popAnimationMs":
+                _settings.PopAnimationMs = (int)Math.Round(number);
                 break;
             case "launcher":
                 if (raw.Length == 0)

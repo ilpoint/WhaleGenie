@@ -19,6 +19,9 @@ public interface IWheelOverlay
     /// <summary>The radii the open wheel was drawn with; the hit test reads them.</summary>
     WheelMetrics Metrics { get; }
 
+    /// <summary>The visible wheel's centre after screen clamping; the hit test must use this.</summary>
+    OverlayPoint Center { get; }
+
     /// <summary>Builds the window and loads its page ahead of the first open.</summary>
     void Warm();
 

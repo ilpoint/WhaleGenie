@@ -92,6 +92,9 @@ public sealed class WheelOptions
     /// <summary>Scales and fades the wheel in when it opens.</summary>
     public bool PopAnimation { get; set; } = true;
 
+    /// <summary>How long the opening animation runs, in milliseconds.</summary>
+    public int PopAnimationMs { get; set; } = 160;
+
     public WheelOptions Copy() => new()
     {
         Launcher = Launcher,
@@ -113,6 +116,7 @@ public sealed class WheelOptions
         Gloss = Gloss,
         HoverBorder = HoverBorder,
         PopAnimation = PopAnimation,
+        PopAnimationMs = PopAnimationMs,
     };
 
     public WheelOptions Clamped() => new()
@@ -140,6 +144,7 @@ public sealed class WheelOptions
         Gloss = Gloss,
         HoverBorder = HoverBorder,
         PopAnimation = PopAnimation,
+        PopAnimationMs = Math.Clamp(PopAnimationMs, 60, 600),
     };
 
     /// <summary>

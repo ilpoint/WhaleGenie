@@ -345,12 +345,13 @@ internal sealed partial class NativeSurfaceHost
             _wheelOverlay.Open(layout, state.Options, new OverlayPoint(origin.X, origin.Y),
                 state.Options.TimeoutMs);
             Volatile.Write(ref _wheelHostOpen, 1);
-            _wheel?.SetCenter(origin.X, origin.Y, _wheelMetrics);
+            var centre = _wheelOverlay.Center;
+            _wheelOrigin = new PixelPoint(centre.X, centre.Y);
+            _wheel?.SetCenter(centre.X, centre.Y, _wheelMetrics);
 
             _wheelOpenedAt = Stopwatch.GetTimestamp();
             _wheelMovesAtOpen = _wheelAim.Counts.Written;
             _wheelDrawnAtOpen = _wheelAim.Counts.Taken;
-            _wheelOrigin = origin;
             _wheelAim.Clear();
             Volatile.Write(ref _wheelAimScheduled, 0);
         }

@@ -1513,6 +1513,7 @@ export interface SettingsWheelState {
   gloss: boolean;
   hoverBorder: boolean;
   popAnimation: boolean;
+  popAnimationMs: number;
   isSystemOff: boolean;
   problem: string;
   launcherChoices: SettingsWheelChoice[];
@@ -1611,6 +1612,8 @@ export interface SurfaceWheelSnapshot {
   hideLabelWithIcon: boolean;
   followTheme: boolean;
   fontSize: number;
+  centerX: number;
+  centerY: number;
 }
 
 export interface ThemeState {

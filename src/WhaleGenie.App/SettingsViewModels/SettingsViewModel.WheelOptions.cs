@@ -134,6 +134,12 @@ public partial class SettingsViewModel
         set => SetWheel(o => o.PopAnimation, (o, v) => o.PopAnimation = v, value);
     }
 
+    public int PopAnimationMs
+    {
+        get => _wheelState.Options.PopAnimationMs;
+        set => SetWheel(o => o.PopAnimationMs, (o, v) => o.PopAnimationMs = v, value);
+    }
+
     /// <summary>
     /// Every wheel choice reads and writes the same option object, so the file, the preview and the
     /// running wheel can never disagree. The caller's name is used for the change notification.

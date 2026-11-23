@@ -26,6 +26,8 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     private OverlayPoint _origin;
     private SurfaceWheelAim? _aim;
     private OverlayPoint? _pointer;
+    private double _centerX = -1;
+    private double _centerY = -1;
 
     public event Action? TimedOut;
 
@@ -33,6 +35,8 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
 
     public WheelMetrics Metrics { get; private set; } =
         WheelGeometry.For(WheelSurface.DefaultDiameter, false);
+
+    public OverlayPoint Center => _origin;
 
     public void Warm()
     {
@@ -56,9 +60,6 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         window.EndWarm();
         window.SetClickThrough(true);
         window.SetNoActivate(true);
-        var side = options.Diameter * 2;
-        window.Width = side;
-        window.Height = side;
         var centre = PlaceOnScreen(window, origin, options);
         _origin = new OverlayPoint(centre.X, centre.Y);
         window.Show();
@@ -69,7 +70,7 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         }
 
         Push(null);
-        _ = bridge.PushAsync("surface.wheel.opened", new { pop = options.PopAnimation },
+        _ = bridge.PushAsync("surface.wheel.opened", new { pop = options.PopAnimation, ms = options.PopAnimationMs },
             BridgePushMode.Latest, BridgeSurface.Wheel);
 
         _timeout?.Stop();
@@ -90,20 +91,22 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     /// diameter and may hang over an edge; clamping the square would drag the wheel away from the
     /// press that opened it, which is why the native window clamped the centre instead.
     /// </summary>
-    private static PixelPoint PlaceOnScreen(WebOverlayWindow window, OverlayPoint origin,
+    private PixelPoint PlaceOnScreen(WebOverlayWindow window, OverlayPoint origin,
         WheelOptions options)
     {
         var side = options.Diameter * 2;
         var scale = window.RenderScaling;
-        var area = new PixelRect(0, 0, (int)Math.Ceiling(side * scale),
+        var full = new PixelRect(0, 0, (int)Math.Ceiling(side * scale),
             (int)Math.Ceiling(side * scale));
+        var work = full;
         try
         {
             var screen = window.Screens.ScreenFromPoint(new PixelPoint(origin.X, origin.Y))
                 ?? window.Screens.Primary;
             if (screen is not null)
             {
-                area = screen.WorkingArea;
+                full = screen.Bounds;
+                work = screen.WorkingArea;
                 scale = screen.Scaling > 0 ? screen.Scaling : scale;
             }
         }
@@ -113,15 +116,18 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         }
 
         var wheel = (int)Math.Ceiling(options.Diameter * scale);
-        var sidePixels = (int)Math.Ceiling(side * scale);
-        var x = origin.X;
-        var y = origin.Y;
         var centre = WheelPlacement.Center(origin.X, origin.Y, wheel,
-            area.X, area.Y, area.Right, area.Bottom, options.ClampToScreen);
-        x = (int)Math.Round(centre.X);
-        y = (int)Math.Round(centre.Y);
+            work.X, work.Y, work.Right, work.Bottom, options.ClampToScreen);
+        var x = (int)Math.Round(centre.X);
+        var y = (int)Math.Round(centre.Y);
 
-        window.Position = new PixelPoint(x - sidePixels / 2, y - sidePixels / 2);
+        // A full-screen transparent frame: the guide line can leave the wheel's square and still
+        // reach the pointer, instead of being clipped by a 2×diameter window.
+        window.Position = new PixelPoint(full.X, full.Y);
+        window.Width = Math.Max(1, full.Width / scale);
+        window.Height = Math.Max(1, full.Height / scale);
+        _centerX = (x - full.X) / scale;
+        _centerY = (y - full.Y) / scale;
         return new PixelPoint(x, y);
     }
 
@@ -160,7 +166,7 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         }
 
         var (dx, dy) = Offset();
-        wheel.PushLayout(layout, _options, aim, dx, dy);
+        wheel.PushLayout(layout, _options, aim, dx, dy, _centerX, _centerY);
     }
 
     /// <summary>The pointer from the wheel's centre in DIPs; the page adds it to the canvas centre.</summary>

@@ -42,4 +42,4 @@ public sealed record SurfaceWheelSnapshot(
     IReadOnlyList<SurfaceWheelSlot> Slots,
     SurfaceWheelAim? Aim = null, bool Gloss = true, bool HoverBorder = true,
     bool ShowGuide = true, bool HideLabelWithIcon = false, bool FollowTheme = true,
-    double FontSize = 12);
+    double FontSize = 12, double CenterX = -1, double CenterY = -1);

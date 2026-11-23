@@ -25,7 +25,7 @@ export interface BridgeEvents {
   'surface.menu.closed': null;
   'surface.menu.pinned': { pinned: boolean };
   'surface.menu.refreshed': null;
-  'surface.wheel.opened': { pop: boolean };
+  'surface.wheel.opened': { pop: boolean; ms: number };
 }
 
 export type BridgeEventName = keyof BridgeEvents;

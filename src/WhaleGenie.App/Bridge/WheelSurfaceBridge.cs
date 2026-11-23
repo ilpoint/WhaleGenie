@@ -12,17 +12,37 @@ namespace WhaleGenie.Bridge;
 internal sealed class WheelSurfaceBridge(WheelSurface wheel) : IBridgeHandler
 {
     private BridgeServer? _server;
+    private double _centerX = -1;
+    private double _centerY = -1;
 
     public void Register(BridgeServer server)
     {
         _server = server;
-        server.Register("surface.wheel.state", _ => Task.FromResult<object?>(wheel.Snapshot()));
+        server.Register("surface.wheel.state", _ => Task.FromResult<object?>(State()));
+    }
+
+    private SurfaceWheelSnapshot State()
+    {
+        var snapshot = wheel.Snapshot();
+        return _centerX >= 0 && _centerY >= 0
+            ? snapshot with { CenterX = _centerX, CenterY = _centerY }
+            : snapshot;
     }
 
     /// <summary>Pushes one frame of a wheel the caller resolved, aimed where the pointer is.</summary>
     internal void PushLayout(WhaleGenie.Models.WheelRuntimeLayout layout,
         WhaleGenie.Models.WheelOptions options, SurfaceWheelAim? aim = null,
-        double dx = 0, double dy = 0)
-        => _server?.PushAsync("surface.wheel.changed", WheelSurface.Of(layout, options, aim, dx, dy),
-            BridgePushMode.Latest, BridgeSurface.Wheel);
+        double dx = 0, double dy = 0, double centerX = -1, double centerY = -1)
+    {
+        var snapshot = WheelSurface.Of(layout, options, aim, dx, dy);
+        if (centerX >= 0 && centerY >= 0)
+        {
+            _centerX = centerX;
+            _centerY = centerY;
+            snapshot = snapshot with { CenterX = centerX, CenterY = centerY };
+        }
+
+        _server?.PushAsync("surface.wheel.changed", snapshot, BridgePushMode.Latest,
+            BridgeSurface.Wheel);
+    }
 }

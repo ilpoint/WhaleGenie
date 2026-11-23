@@ -122,6 +122,7 @@ public sealed record SettingsWheelState(
     bool Gloss,
     bool HoverBorder,
     bool PopAnimation,
+    int PopAnimationMs,
     bool IsSystemOff,
     string Problem,
     IReadOnlyList<SettingsWheelChoice> LauncherChoices,

@@ -26,14 +26,23 @@ export class WgOverlayWheel extends LitElement {
 
   private animationTimer = 0;
 
+  private changedFrame = false;
+
+  @state()
+  private animationMs = 160;
+
   private readonly iconCache = new Map<string, string | null>();
 
   protected readonly stringsController = new StoreController(this, strings);
 
   static styles = css`
     :host {
+      position: fixed;
+      inset: 0;
       display: block;
-      width: max-content;
+      width: 100vw;
+      height: 100vh;
+      overflow: visible;
       background: transparent;
       font-family: var(--fontFamilyBase);
       color: var(--colorNeutralForeground1);
@@ -133,6 +142,7 @@ export class WgOverlayWheel extends LitElement {
     }
 
     .wheel {
+      position: absolute;
       display: block;
       transform-origin: center;
     }
@@ -142,7 +152,7 @@ export class WgOverlayWheel extends LitElement {
     }
 
     .wheel.pop {
-      animation: wheel-pop 160ms cubic-bezier(0.2, 0.9, 0.3, 1);
+      animation: wheel-pop var(--wheel-pop-ms, 160ms) cubic-bezier(0.2, 0.9, 0.3, 1);
     }
 
     @keyframes wheel-pop {
@@ -152,14 +162,15 @@ export class WgOverlayWheel extends LitElement {
   `;
 
   protected override async firstUpdated(): Promise<void> {
-    await this.reload();
     window.addEventListener('focus', () => void this.reload());
     bridgeApi.on('surface.wheel.changed', (next) => {
+      this.changedFrame = true;
       this.snapshot = next;
       this.preload(next);
     });
     bridgeApi.on('surface.wheel.opened', (event) => {
       window.clearTimeout(this.animationTimer);
+      this.animationMs = event.ms > 0 ? event.ms : 160;
       this.animating = false;
       if (!event.pop) {
         return;
@@ -167,15 +178,21 @@ export class WgOverlayWheel extends LitElement {
 
       requestAnimationFrame(() => {
         this.animating = true;
-        this.animationTimer = window.setTimeout(() => { this.animating = false; }, 180);
+        this.animationTimer = window.setTimeout(() => { this.animating = false; }, this.animationMs);
       });
     });
+    await this.reload();
   }
 
   private async reload(): Promise<void> {
     try {
-      this.snapshot = await bridgeApi.call<SurfaceWheelSnapshot>('surface.wheel.state');
-      this.preload(this.snapshot);
+      const state = await bridgeApi.call<SurfaceWheelSnapshot>('surface.wheel.state');
+      // A changed frame may have arrived while the initial state request was in flight; it is
+      // newer and carries the full-screen centre, so do not overwrite it with the warm state.
+      if (!this.changedFrame || !this.snapshot) {
+        this.snapshot = state;
+        this.preload(state);
+      }
       this.error = '';
     } catch (failure) {
       this.error = failure instanceof Error ? failure.message : String(failure);
@@ -207,8 +224,14 @@ export class WgOverlayWheel extends LitElement {
       return html`<p class="note">…</p>`;
     }
 
+    const centerX = this.snapshot.centerX >= 0
+      ? this.snapshot.centerX : this.snapshot.canvasSize / 2;
+    const centerY = this.snapshot.centerY >= 0
+      ? this.snapshot.centerY : this.snapshot.canvasSize / 2;
+    const left = centerX - this.snapshot.canvasSize / 2;
+    const top = centerY - this.snapshot.canvasSize / 2;
     return html`<div class="wheel ${this.animating ? 'pop' : ''} ${this.snapshot.followTheme ? '' : 'fixed'}"
-      style=${'font-size:' + this.snapshot.fontSize + 'px'}>
+      style=${'left:' + left + 'px;top:' + top + 'px;font-size:' + this.snapshot.fontSize + 'px;--wheel-pop-ms:' + this.animationMs + 'ms'}>
       ${unsafeSVG(this.svgMarkup(this.snapshot))}</div>`;
   }
 
@@ -317,13 +340,14 @@ function guideMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string[] {
     return [];
   }
 
-  const end = clampToSquare(centre, snapshot.aim.x, snapshot.aim.y, snapshot.canvasSize);
+  const endX = centre + snapshot.aim.x;
+  const endY = centre + snapshot.aim.y;
   const extended = snapshot.aim.ring === 'extended';
   return [
     '<line class="guide' + (extended ? ' extended' : '') + '" x1="' + centre
-      + '" y1="' + centre + '" x2="' + end[0].toFixed(2) + '" y2="' + end[1].toFixed(2)
+      + '" y1="' + centre + '" x2="' + endX.toFixed(2) + '" y2="' + endY.toFixed(2)
       + '"></line>',
-    '<circle class="guide-dot" cx="' + end[0].toFixed(2) + '" cy="' + end[1].toFixed(2)
+    '<circle class="guide-dot" cx="' + endX.toFixed(2) + '" cy="' + endY.toFixed(2)
       + '" r="' + (extended ? 5 : 3.5) + '"></circle>',
   ];
 }
@@ -357,26 +381,6 @@ function point(centre: number, radius: number, angle: number): string {
   return (centre + radius * Math.sin(angle)).toFixed(2) + ' '
     + (centre - radius * Math.cos(angle)).toFixed(2);
 }
-
-/** 从圆心指向指针的线段，超出方形窗口时按窗口边裁断。 */
-function clampToSquare(centre: number, x: number, y: number, size: number): [number, number] {
-  let fraction = 1;
-  if (x > 0) {
-    fraction = Math.min(fraction, (size - centre) / x);
-  } else if (x < 0) {
-    fraction = Math.min(fraction, -centre / x);
-  }
-
-  if (y > 0) {
-    fraction = Math.min(fraction, (size - centre) / y);
-  } else if (y < 0) {
-    fraction = Math.min(fraction, -centre / y);
-  }
-
-  fraction = Math.max(0, Math.min(1, fraction));
-  return [centre + x * fraction, centre + y * fraction];
-}
-
 function escapeXml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
