@@ -191,7 +191,7 @@ internal sealed class OverlayProbeWindow : Window
           .grid i { width: 24px; height: 24px; background: #ddd; }
           .grid i:nth-child(odd) { background: #fff; }
           code { background: #f2f2f2; padding: 1px 4px; border-radius: 4px; }
-          #seen { color: #b33; }
+          span#seen { color: #b33; }
         </style>
         </head>
         <body>
