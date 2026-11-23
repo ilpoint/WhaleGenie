@@ -1550,6 +1550,11 @@ export interface SurfaceMenuSnapshot {
   context: SurfaceMenuPage[];
 }
 
+export interface SurfaceWheelAim {
+  ring: string;
+  index: number;
+}
+
 export interface SurfaceWheelSlot {
   ring: string;
   index: number;
@@ -1565,6 +1570,7 @@ export interface SurfaceWheelSnapshot {
   thirdCapacity: number;
   sceneName: string;
   slots: SurfaceWheelSlot[];
+  aim: SurfaceWheelAim | null;
 }
 
 export interface ThemeState {

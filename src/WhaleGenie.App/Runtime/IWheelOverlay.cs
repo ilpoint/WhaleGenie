@@ -1,4 +1,5 @@
 using System;
+using WhaleGenie.Contracts;
 
 namespace WhaleGenie.Runtime;
 
@@ -13,6 +14,9 @@ public interface IWheelOverlay
     void Show();
 
     void Hide();
+
+    /// <summary>The pointer moved to a position, or to the centre when the aim is null.</summary>
+    void SetAim(SurfaceWheelAim? aim);
 
     /// <summary>Raised whenever the overlay goes away, whichever path closed it.</summary>
     event Action? Hidden;

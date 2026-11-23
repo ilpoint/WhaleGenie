@@ -1,11 +1,12 @@
 using System;
 using WhaleGenie.Bridge;
+using WhaleGenie.Contracts;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Web;
 
 /// <summary>One wheel window, built once and shown at the pointer when the gesture opens it.</summary>
-internal sealed class WheelOverlayHost(BridgeServer bridge) : IWheelOverlay
+internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge wheel) : IWheelOverlay
 {
     private WebOverlayWindow? _window;
 
@@ -19,6 +20,8 @@ internal sealed class WheelOverlayHost(BridgeServer bridge) : IWheelOverlay
         _window.Show();
         _window.FocusPage();
     }
+
+    public void SetAim(SurfaceWheelAim? aim) => wheel.PushAim(aim);
 
     public void Hide()
     {

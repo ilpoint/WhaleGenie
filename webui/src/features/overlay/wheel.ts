@@ -94,6 +94,10 @@ export class WgOverlayWheel extends LitElement {
       fill: var(--colorNeutralBackground3Hover);
     }
 
+    .sector.aimed {
+      fill: var(--colorBrandBackground2);
+    }
+
     .label {
       font-size: 12px;
       fill: var(--colorNeutralForeground1);
@@ -124,6 +128,10 @@ export class WgOverlayWheel extends LitElement {
   protected override async firstUpdated(): Promise<void> {
     await this.reload();
     window.addEventListener('focus', () => void this.reload());
+    // The aim arrives as whole frames: the pointer writes many positions, the page keeps the last.
+    bridgeApi.on('surface.wheel.changed', (next) => {
+      this.snapshot = next;
+    });
   }
 
   private async reload(): Promise<void> {
@@ -149,7 +157,8 @@ export class WgOverlayWheel extends LitElement {
       const middle = (annulus.from + annulus.to) / 2;
       const step = (Math.PI * 2) / annulus.count;
       const [x, y] = point(centre, middle, slot.index * step);
-      parts.push(`<path class="sector" d="${sectorPath(centre, annulus.from, annulus.to, slot.index, annulus.count)}"></path>`);
+      const aimed = snapshot.aim?.ring === slot.ring && snapshot.aim.index === slot.index;
+      parts.push(`<path class="sector${aimed ? ' aimed' : ''}" d="${sectorPath(centre, annulus.from, annulus.to, slot.index, annulus.count)}"></path>`);
       parts.push(`<text class="label" x="${x}" y="${y}">${escapeXml(slot.label)}</text>`);
     }
 

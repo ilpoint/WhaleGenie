@@ -179,7 +179,9 @@ DPI 125/150/200% 下的落点。
 `features/overlay/wheel` 用生成的 SVG 画扇区（Lit 模板里的嵌套 SVG 会落进 HTML 命名空间，
 必须整段 `unsafeSVG`）。`WheelSurfaceTests` 覆盖“有宏的格子出现在正确环/位置”与空轮盘。
 浮层宿主 `WheelOverlayHost` 已建（`BridgeSurface.Wheel`，440×440），`--wheel-overlay`（Debug）
-实测能用真实项目数据画出扇区。**尚未接线**：手势打开/瞄准/选择仍走原生 `WheelMenuWindow`。
+实测能用真实项目数据画出扇区。瞄准帧 `surface.wheel.changed`（`SurfaceWheelAim`，按 Latest 合并）
+与页面 `.sector.aimed` 高亮已就绪，`IWheelOverlay.SetAim` 负责推送。**尚未接线**：手势打开/瞄准/
+选择仍走原生 `WheelMenuWindow`，所以页面高亮暂时只在调试宿主里可见。
 
 1. 几何与命中先迁为纯函数并加测试（扇区、半径、角度、紧邻边界）；
 2. `WheelGesture`/`WheelAim` 保留在 C#，页面发 `surface.wheel.aim/commit`；

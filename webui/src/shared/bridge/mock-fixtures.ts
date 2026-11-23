@@ -139,6 +139,7 @@ export const demoSurfaceWheel: SurfaceWheelSnapshot = {
   rings: 2,
   thirdCapacity: 0,
   sceneName: 'Global',
+  aim: null,
   slots: [
     { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null },
     { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null },

@@ -1,4 +1,5 @@
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using Xunit;
@@ -21,6 +22,20 @@ public class WheelSurfaceTests
         Assert.Equal(2, snapshot.Rings);
         var slot = Assert.Single(snapshot.Slots, candidate => candidate.Ring == "inner" && candidate.Index == 0);
         Assert.Equal("one", slot.Label);
+    }
+
+    [Fact]
+    public void An_aim_frame_carries_the_ring_and_the_position()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        project.Triggers.Wheel.Global.Outer[3].Macro = "one";
+
+        var snapshot = new WheelSurface(project).Snapshot(new SurfaceWheelAim("outer", 3));
+
+        Assert.NotNull(snapshot.Aim);
+        Assert.Equal("outer", snapshot.Aim.Ring);
+        Assert.Equal(3, snapshot.Aim.Index);
     }
 
     [Fact]

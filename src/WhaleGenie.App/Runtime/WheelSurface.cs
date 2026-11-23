@@ -13,7 +13,7 @@ internal sealed class WheelSurface(ProjectWorkspace workspace)
 {
     public const double Diameter = 420;
 
-    public SurfaceWheelSnapshot Snapshot()
+    public SurfaceWheelSnapshot Snapshot(SurfaceWheelAim? aim = null)
     {
         var wheel = workspace.Triggers.Wheel;
         var layout = wheel.Resolve(null, WheelSource.Global, wideOuter: false,
@@ -21,7 +21,7 @@ internal sealed class WheelSurface(ProjectWorkspace workspace)
         var rings = layout.ThirdCapacity > 0 ? 3 : layout.HideEmptyOuter ? 1 : 2;
 
         return new SurfaceWheelSnapshot(Diameter, layout.WideOuter, rings, layout.ThirdCapacity,
-            layout.SceneName, [.. layout.Slots.Where(slot => slot.Label.Length > 0).Select(Slot)]);
+            layout.SceneName, [.. layout.Slots.Where(slot => slot.Label.Length > 0).Select(Slot)], aim);
     }
 
     private static SurfaceWheelSlot Slot(WheelRuntimeSlot slot)

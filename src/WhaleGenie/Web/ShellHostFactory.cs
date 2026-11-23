@@ -17,7 +17,8 @@ internal sealed class ShellHostFactory(
     TriggerRuntime runtime,
     RunQuestionHost questions,
     MainViewModel viewModel,
-    MenuSurfaceBridge menu)
+    MenuSurfaceBridge menu,
+    WheelSurfaceBridge wheel)
 {
     public ShellHost Create(WebShellWindow owner)
     {
@@ -47,7 +48,7 @@ internal sealed class ShellHostFactory(
 #if DEBUG
         if (App.WheelOverlay)
         {
-            new WheelOverlayHost(bridge).Show();
+            new WheelOverlayHost(bridge, wheel).Show();
         }
 #endif
 #if DEBUG
