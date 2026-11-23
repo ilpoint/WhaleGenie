@@ -207,4 +207,3 @@ public class WheelGestureTests
         Assert.Equal(16, WheelGeometry.For(420, true).OuterCount);
     }
 }
-
