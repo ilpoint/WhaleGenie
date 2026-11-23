@@ -23,6 +23,7 @@ export interface BridgeEvents {
   'surface.wheel.changed': SurfaceWheelSnapshot;
   'surface.panel.changed': SurfacePanelSnapshot;
   'surface.menu.closed': null;
+  'surface.menu.pinned': { pinned: boolean };
 }
 
 export type BridgeEventName = keyof BridgeEvents;

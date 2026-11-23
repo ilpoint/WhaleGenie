@@ -14,6 +14,7 @@ export interface MenuActions {
   addPage(key: string): void;
   moveRule(key: string, step: number): void;
   moveRuleTo(key: string, target: string): void;
+  setRememberPinned(value: boolean): void;
 }
 
 export function renderMenu(state: SettingsMenuState, capturing: boolean, actions: MenuActions) {
@@ -45,6 +46,13 @@ export function renderMenu(state: SettingsMenuState, capturing: boolean, actions
         </fluent-button>
       </div>
       <p class="status">${state.status}</p>
+      <label class="check-row">
+        <input type="checkbox" .checked=${state.rememberPinned}
+          @change=${(event: Event) =>
+            actions.setRememberPinned((event.target as HTMLInputElement).checked)} />
+        <span>${t('Settings.RememberMenuPin')}</span>
+      </label>
+      <p class="hint">${t('Settings.RememberMenuPinNote')}</p>
     </section>
 
     <section class="card" data-settings-section="menu">

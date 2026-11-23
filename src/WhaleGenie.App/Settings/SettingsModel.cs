@@ -26,6 +26,12 @@ internal sealed class SettingsModel
 
         public string MenuLauncher { get; set; } = string.Empty;
 
+        /// <summary>Whether the menu's pin survives closing the menu and restarting the program.</summary>
+        public bool RememberMenuPin { get; set; }
+
+        /// <summary>The remembered pin state, read only while <see cref="RememberMenuPin"/> is on.</summary>
+        public bool MenuPinned { get; set; }
+
         /// <summary>
         /// Whether the frame cap follows the display. On by default: the display's own rate is the
         /// fastest a macro can usefully look, and it is what every step used to get when it left the

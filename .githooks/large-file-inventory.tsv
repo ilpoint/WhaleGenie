@@ -139,7 +139,6 @@
 455	src/WhaleGenie.Domain/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 370	src/WhaleGenie.Domain/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
 465	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
-311	src/WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 499	src/WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 660	src/WhaleGenie/Views/Pickers/PointPickerWindow.cs	keep: 取点窗口的单一交互
 438	src/WhaleGenie/Views/Common/HintBubbleHost.cs	keep: 每窗口一个气泡的状态机、调度与离场，单一职责

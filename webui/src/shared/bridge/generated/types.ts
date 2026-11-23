@@ -1376,6 +1376,7 @@ export interface SettingsMenuState {
   isCustom: boolean;
   problem: string;
   rules: SettingsMenuRule[];
+  rememberPinned: boolean;
 }
 
 export interface SettingsPatch {
@@ -1537,6 +1538,11 @@ export interface SurfaceMenuCell {
   iconKind: string | null;
   iconValue: string | null;
   description: string;
+}
+
+export interface SurfaceMenuMacro {
+  name: string;
+  preview: string;
 }
 
 export interface SurfaceMenuPage {

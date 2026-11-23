@@ -6,6 +6,9 @@ import '../../shared/icons/icon.js';
 /** 菜单格子的右键菜单状态与动作；页面只持有位置，画与命令留在这一份。 */
 export interface CellMenuState {
   cell: SurfaceMenuCell;
+  pageId: string;
+  row: number;
+  column: number;
   x: number;
   y: number;
 }

@@ -24,6 +24,7 @@ internal sealed partial class SettingsBridge
         server.Register("settings.menu.rule.addPage", AddMenuPage);
         server.Register("settings.menu.rule.move", MoveMenuRule);
         server.Register("settings.menu.rule.moveTo", MoveMenuRuleTo);
+        server.Register("settings.menu.rememberPin", RememberMenuPin);
     }
 
     private SettingsMenuState MenuState() => new(
@@ -40,7 +41,17 @@ internal sealed partial class SettingsBridge
             row.IsDefault,
             row.IsBlocked,
             !row.IsBlocked && row.PageCount < ProjectTriggers.MaxCommonMenuPages,
-            RuleDto(row.Rule)))]);
+            RuleDto(row.Rule)))],
+        _settings.RememberMenuPin);
+
+    private Task<object?> RememberMenuPin(JsonElement parameters)
+    {
+        var remember = parameters.TryGetProperty("remember", out var given)
+            && given.ValueKind == JsonValueKind.True;
+        _settings.SetRememberMenuPin(remember);
+        Changed();
+        return Task.FromResult<object?>(State());
+    }
 
     private object ClearMenuLauncher()
     {

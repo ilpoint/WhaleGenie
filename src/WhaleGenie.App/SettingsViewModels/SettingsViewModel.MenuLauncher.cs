@@ -25,6 +25,20 @@ public partial class SettingsViewModel
     [ObservableProperty]
     public partial string MenuLauncherMessage { get; set; } = string.Empty;
 
+    /// <summary>Whether the menu's pin is remembered; off means every opening starts unpinned.</summary>
+    [ObservableProperty]
+    public partial bool RememberMenuPin { get; set; }
+
+    public void SetRememberMenuPin(bool remember)
+    {
+        RememberMenuPin = remember;
+        _settings.StoreRememberMenuPin(remember);
+        if (!remember)
+        {
+            _settings.StoreMenuPinned(false);
+        }
+    }
+
     public string MenuLauncherDisplay => MenuLauncher.Length == 0
         ? Strings.Get("Common.None")
         : MenuLauncher switch

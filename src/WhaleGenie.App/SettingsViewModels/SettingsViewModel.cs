@@ -78,6 +78,7 @@ public partial class SettingsViewModel : ViewModelBase
         DriverState = driverInput();
         DriverReady = DriverState == DriverInputState.Ready;
         MenuLauncher = _settings.LoadMenuLauncher();
+        RememberMenuPin = _settings.LoadRememberMenuPin();
         RefreshMenuRules();
         ReadWheel();
     }

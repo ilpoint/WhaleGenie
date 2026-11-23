@@ -54,7 +54,7 @@ function demoWheelSlots(): SettingsWheelSlot[] {
 
 export const demoMenu: SettingsMenuState = {
   launcher: 'Mouse Middle', display: '鼠标中键', status: '就绪',
-  isMiddle: true, isCustom: false, problem: '',
+  isMiddle: true, isCustom: false, problem: '', rememberPinned: false,
   rules: [
     {
       key: 'default', summary: 'Default', pageCountLabel: '1 页', isDefault: true,

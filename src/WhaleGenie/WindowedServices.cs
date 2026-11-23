@@ -60,7 +60,8 @@ internal static class WindowedServices
             sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
             sp.GetRequiredService<MenuSurfaceBridge>(),
             sp.GetRequiredService<WheelSurfaceBridge>(),
-            sp.GetRequiredService<PanelSurfaceBridge>()))
+            sp.GetRequiredService<PanelSurfaceBridge>(),
+            sp.GetRequiredService<AppSettings>()))
         .AddSingleton(sp => new PanelSurfaceBridge(new PanelSurface(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>())))
@@ -69,7 +70,8 @@ internal static class WindowedServices
         .AddSingleton(sp => new MenuSurfaceBridge(new MenuSurface(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<IDeviceLayer>().Windows,
-            sp.GetRequiredService<TriggerRuntime>())))
+            sp.GetRequiredService<TriggerRuntime>()),
+            new ProjectDialogs(() => sp.GetService<WebShellWindow>())))
         .AddSingleton(sp =>
         {
             // The web shell's handlers are registered once and serve the one page; the window

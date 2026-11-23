@@ -24,7 +24,6 @@ public interface ITriggerSurfaceHost
     void CloseMenuFromLauncher();
     void OpenMenu();
     void MenuHandleKey(string name);
-    void MenuMouseDown(MouseHookEvent e);
     void WheelMouseDown(MouseHookEvent e);
     void WheelMouseMoved(MouseMovedHookEvent e);
     void WheelMouseUp(MouseHookEvent e);
@@ -229,7 +228,6 @@ public sealed class TriggerHost : IDisposable
             var hook = _devices.Hook;
             hook.KeyDown += OnSystemHotkeyDown;
             hook.KeyUp += OnSystemHotkeyUp;
-            hook.MouseDown += OnSurfaceMouseDown;
             hook.MouseDown += OnSurfaceWheelMouseDown;
             hook.MouseUp += OnSurfaceWheelMouseUp;
             hook.Moved += OnSurfaceWheelMouseMoved;
@@ -254,7 +252,6 @@ public sealed class TriggerHost : IDisposable
 
         hook.KeyDown -= OnSystemHotkeyDown;
         hook.KeyUp -= OnSystemHotkeyUp;
-        hook.MouseDown -= OnSurfaceMouseDown;
         hook.MouseDown -= OnSurfaceWheelMouseDown;
         hook.MouseUp -= OnSurfaceWheelMouseUp;
         hook.Moved -= OnSurfaceWheelMouseMoved;
@@ -293,8 +290,7 @@ public sealed class TriggerHost : IDisposable
                     return;
                 }
 
-                if (_surface.MenuPinned && !_surface.MenuSearchFocused
-                    && name is "Esc" or "Escape" or "Esc键")
+                if (_surface.MenuPinned && name is "Esc" or "Escape" or "Esc键")
                 {
                     e.Suppress = true;
                     Dispatcher.UIThread.Post(() => _surface.MenuHandleKey(name));
@@ -417,18 +413,6 @@ public sealed class TriggerHost : IDisposable
         }
 
         _playSound(macro.IsEnabled ? UiSound.MacroOn : UiSound.MacroOff);
-    }
-
-    private void OnSurfaceMouseDown(MouseHookEvent e)
-    {
-        try
-        {
-            _surface.MenuMouseDown(e);
-        }
-        catch (Exception error)
-        {
-            AppDiagnostics.Record("hook.menu-mouse", error);
-        }
     }
 
     private void OnSurfaceWheelMouseDown(MouseHookEvent e)

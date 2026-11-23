@@ -7,6 +7,10 @@ namespace WhaleGenie.Contracts;
 public sealed record SurfaceMenuCell(int Row, int Column, string EntryId, string MacroName,
     string? IconKind, string? IconValue, string Description = "");
 
+/// <summary>One enabled macro the menu's second-level chooser can put in a cell.</summary>
+[BridgeContract]
+public sealed record SurfaceMenuMacro(string Name, string Preview);
+
 /// <summary>One four-by-three menu page: the common pages and the context pages are shaped alike.</summary>
 [BridgeContract]
 public sealed record SurfaceMenuPage(string PageId, bool IsDefault, string RuleSummary,

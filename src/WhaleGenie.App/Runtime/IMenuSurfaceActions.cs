@@ -1,5 +1,3 @@
-using System.Threading.Tasks;
-
 namespace WhaleGenie.Runtime;
 
 /// <summary>
@@ -11,12 +9,6 @@ public interface IMenuSurfaceActions
     void OpenEditor(string macroName);
 
     void OpenRun(string macroName);
-
-    /// <summary>The icon the person picked, as the wire spells it, or null when called off.</summary>
-    Task<(string Kind, string Value)?> PickIconAsync();
-
-    /// <summary>The macro the person picked for a cell, or null when called off.</summary>
-    Task<string?> PickMacroAsync();
 
     /// <summary>Closes the menu and opens the settings window, the menu's gear button.</summary>
     void OpenSettings();

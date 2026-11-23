@@ -365,6 +365,18 @@ public sealed class AppSettings
     public void StoreMenuLauncher(string value)
         => Write(model => model.MenuLauncher = value.Trim());
 
+    /// <summary>Whether the menu's pin is remembered between openings.</summary>
+    public bool LoadRememberMenuPin() => Read().RememberMenuPin;
+
+    public void StoreRememberMenuPin(bool remember)
+        => Write(model => model.RememberMenuPin = remember);
+
+    /// <summary>The remembered pin, meaningful only while <see cref="LoadRememberMenuPin"/> is on.</summary>
+    public bool LoadMenuPinned() => Read().MenuPinned;
+
+    public void StoreMenuPinned(bool pinned)
+        => Write(model => model.MenuPinned = pinned);
+
     /// <summary>
     /// The size the main window was last closed at. A missing or invalid size means this machine
     /// has not chosen one yet, so the window keeps the size declared in XAML.

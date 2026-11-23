@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
@@ -7,11 +8,10 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// The menu's side of the bridge: the pages the project has and the cells they put macros in. The
-/// overlay asks once when it opens; paging and search are the page's own state, so nothing here
-/// pushes.
+/// The menu's side of the bridge: the pages the project has, the cells they put macros in, and the
+/// macros and icons the page's own pickers offer. Paging and search are the page's state.
 /// </summary>
-internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
+internal sealed class MenuSurfaceBridge(MenuSurface menu, IFileDialogs files) : IBridgeHandler
 {
     /// <summary>The projection itself, so the shell can hand it the interface behind the page.</summary>
     internal MenuSurface Menu => menu;
@@ -21,8 +21,7 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
 
     public void Register(BridgeServer server)
     {
-        server.Register("surface.menu.state", _ => Task.FromResult<object?>(
-            menu.Snapshot() with { Pinned = Overlay?.Pinned == true }));
+        server.Register("surface.menu.state", _ => Task.FromResult<object?>(State()));
         server.Register("surface.menu.activate", Activate);
         server.Register("surface.menu.drag", _ =>
         {
@@ -37,7 +36,7 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
         server.Register("surface.menu.focus", parameters =>
         {
             var focused = parameters.TryGetProperty("focused", out var given)
-                && given.ValueKind == System.Text.Json.JsonValueKind.True;
+                && given.ValueKind == JsonValueKind.True;
             Overlay?.SetSearchFocused(focused);
             return Task.FromResult<object?>(null);
         });
@@ -50,7 +49,7 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
         server.Register("surface.menu.pin", parameters =>
         {
             var pinned = parameters.TryGetProperty("pinned", out var given)
-                && given.ValueKind == System.Text.Json.JsonValueKind.True;
+                && given.ValueKind == JsonValueKind.True;
             if (Overlay is { } overlay)
             {
                 overlay.Pinned = pinned;
@@ -62,15 +61,21 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             Task.FromResult<object?>(new { opened = menu.Edit(RequiredString(parameters, "entryId")) }));
         server.Register("surface.menu.debug", parameters =>
             Task.FromResult<object?>(new { opened = menu.Debug(RequiredString(parameters, "entryId")) }));
-        server.Register("surface.menu.replace", parameters => Suspended(
-            () => menu.ReplaceAsync(RequiredString(parameters, "entryId"))));
-        server.Register("surface.menu.icon", parameters => Suspended(
-            () => menu.ChooseIconAsync(RequiredString(parameters, "entryId"))));
-        server.Register("surface.menu.cell.pick", parameters => Suspended(
-            () => menu.PickCellAsync(
+        server.Register("surface.menu.macros", _ =>
+            Task.FromResult<object?>(menu.MacroChoices()));
+        server.Register("surface.menu.cell.assign", parameters =>
+            Task.FromResult<object?>(menu.AssignCell(
                 RequiredString(parameters, "pageId"),
                 RequiredInt(parameters, "row"),
-                RequiredInt(parameters, "column"))));
+                RequiredInt(parameters, "column"),
+                RequiredString(parameters, "name"))));
+        server.Register("surface.menu.cell.icon", parameters =>
+            Task.FromResult<object?>(menu.SetIcon(
+                RequiredString(parameters, "entryId"),
+                RequiredString(parameters, "kind"),
+                RequiredString(parameters, "value"))));
+        server.Register("surface.menu.image", _ => Suspended(async () =>
+            new { path = await files.OpenImageAsync() }));
         server.Register("surface.menu.page.add", parameters =>
             Task.FromResult<object?>(menu.AddPage(OptionalString(parameters, "pageId"))));
         server.Register("surface.menu.page.remove", parameters =>
@@ -87,8 +92,10 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
                 RequiredInt(parameters, "column"))));
     }
 
-    /// <summary>Runs an action that opens one of the menu's own pickers.</summary>
-    private async Task<object?> Suspended(Func<Task<SurfaceMenuSnapshot>> work)
+    private object State() => menu.Snapshot() with { Pinned = Overlay?.Pinned == true };
+
+    /// <summary>Holds the menu open while one of its own native dialogs is in front.</summary>
+    private async Task<object?> Suspended(Func<Task<object?>> work)
     {
         if (Overlay is { } overlay)
         {
@@ -108,22 +115,22 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
         }
     }
 
-    private static string RequiredString(System.Text.Json.JsonElement parameters, string name)
+    private static string RequiredString(JsonElement parameters, string name)
         => parameters.TryGetProperty(name, out var value) && value.GetString() is { Length: > 0 } text
             ? text
             : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.BadArgument"));
 
-    private static string? OptionalString(System.Text.Json.JsonElement parameters, string name)
+    private static string? OptionalString(JsonElement parameters, string name)
         => parameters.TryGetProperty(name, out var value) ? value.GetString() : null;
 
-    private static int RequiredInt(System.Text.Json.JsonElement parameters, string name)
+    private static int RequiredInt(JsonElement parameters, string name)
         => parameters.TryGetProperty(name, out var value) && value.TryGetInt32(out var number)
             ? number
             : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.BadArgument"));
 
-    private Task<object?> Activate(System.Text.Json.JsonElement parameters)
+    private Task<object?> Activate(JsonElement parameters)
     {
         var entryId = parameters.TryGetProperty("entryId", out var named) ? named.GetString() : null;
         if (entryId is not { Length: > 0 })

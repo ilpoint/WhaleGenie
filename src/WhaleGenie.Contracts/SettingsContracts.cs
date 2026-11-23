@@ -42,7 +42,8 @@ public sealed record SettingsMenuState(
     bool IsMiddle,
     bool IsCustom,
     string Problem,
-    IReadOnlyList<SettingsMenuRule> Rules);
+    IReadOnlyList<SettingsMenuRule> Rules,
+    bool RememberPinned = false);
 
 /// <summary>One wheel dropdown value, already written as the string the page sends back.</summary>
 [BridgeContract]

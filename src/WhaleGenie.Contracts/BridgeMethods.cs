@@ -16,6 +16,9 @@ public static class BridgeMethods
     /// <summary>The Lucide path of one icon name, asked by the overlay pages once per name.</summary>
     public const string IconPath = "icon.path";
 
+    /// <summary>Every icon name this build knows; the picker filters the list in the page.</summary>
+    public const string IconNames = "icon.names";
+
     public static IReadOnlyList<string> All { get; } =
     [
         "app.about",
@@ -55,6 +58,7 @@ public static class BridgeMethods
         "editor.steps",
         "editor.session",
         "editor.value",
+        "icon.names",
         "icon.path",
         "editor.valueState",
         "library.add",
@@ -92,13 +96,13 @@ public static class BridgeMethods
         "settings.menu.rule.move",
         "settings.menu.rule.moveTo",
         "settings.menu.rule.remove",
+        "settings.menu.rememberPin",
         "settings.openFolder",
         "settings.state",
         "settings.update",
         "settings.wheel.enabled",
         "settings.wheel.enableSystem",
         "settings.wheel.launcher",
-        "settings.wheel.pickIcon",
         "settings.wheel.repeat",
         "settings.wheel.scene.add",
         "settings.wheel.scene.edit",
@@ -112,18 +116,19 @@ public static class BridgeMethods
         "strings.bundle",
         "surface.menu.activate",
         "surface.menu.block",
-        "surface.menu.cell.pick",
+        "surface.menu.cell.assign",
+        "surface.menu.cell.icon",
         "surface.menu.close",
         "surface.menu.debug",
         "surface.menu.drag",
         "surface.menu.edit",
         "surface.menu.focus",
-        "surface.menu.icon",
+        "surface.menu.image",
+        "surface.menu.macros",
         "surface.menu.move",
         "surface.menu.page.add",
         "surface.menu.page.remove",
         "surface.menu.pin",
-        "surface.menu.replace",
         "surface.menu.rule.add",
         "surface.menu.state",
         "surface.menu.settings",

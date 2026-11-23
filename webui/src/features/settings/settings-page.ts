@@ -24,6 +24,7 @@ import {
 import { patchFor } from './settings-patch.js';
 import { SettingsCaptureController } from './settings-capture-controller.js';
 import { renderSettingsCards } from './settings-sections.js';
+import '../../shared/icons/icon-picker.js';
 
 const emptyTheme: ThemeState = {
   mode: 'dark',
@@ -56,6 +57,9 @@ export class WgSettings extends LitElement {
 
   @state()
   slotDraft: WheelSlotDraft | null = null;
+
+  @state()
+  private iconPickerOpen = false;
 
   @state()
   private search = '';
@@ -102,6 +106,14 @@ export class WgSettings extends LitElement {
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
 ${renderSettingsCards(this)}
       </div>
+      <wg-icon-picker
+        .open=${this.iconPickerOpen}
+        .selectedKind=${this.slotDraft?.icon?.kind ?? ''}
+        .selectedValue=${this.slotDraft?.icon?.value ?? ''}
+        .imagePicker=${() => this.pickSettingsImage()}
+        @icon-picked=${(event: CustomEvent<{ kind: string; value: string }>) =>
+          this.chooseSlotIcon(event.detail)}
+        @icon-cancel=${() => { this.iconPickerOpen = false; }}></wg-icon-picker>
       ${this.ruleEditor ? html`
         <wg-window-rule .rule=${this.ruleEditor.rule} .title=${this.ruleEditor.title}
           @wg-rule-submit=${(event: CustomEvent<WindowRuleState>) => void this.submitRule(event.detail)}
@@ -154,6 +166,8 @@ ${renderSettingsCards(this)}
       moveRule: (key, step) => void this.menuState('settings.menu.rule.move', { key, step }),
       moveRuleTo: (key, target) =>
         void this.menuState('settings.menu.rule.moveTo', { key, target }),
+      setRememberPinned: (value) =>
+        void this.menuState('settings.menu.rememberPin', { remember: value }),
     };
   }
 
@@ -389,23 +403,25 @@ ${renderSettingsCards(this)}
     }
   }
 
-  private async pickIcon(): Promise<void> {
-    if (!this.slotDraft) {
-      return;
+  private pickIcon(): void {
+    if (this.slotDraft) {
+      this.iconPickerOpen = true;
     }
-    try {
-      const icon = await bridge.value.call<{ kind: string; value: string } | null>(
-        'settings.wheel.pickIcon');
-      if (icon) {
-        this.slotDraft = {
-          ...this.slotDraft,
-          icon: icon.value.length > 0 ? icon : null,
-        };
-      }
-      this.error = '';
-    } catch (error) {
-      this.error = String(error);
+  }
+
+  private chooseSlotIcon(icon: { kind: string; value: string }): void {
+    if (this.slotDraft && icon.value.length > 0) {
+      this.slotDraft = {
+        ...this.slotDraft,
+        icon: { kind: icon.kind, value: icon.value },
+      };
     }
+    this.iconPickerOpen = false;
+  }
+
+  private async pickSettingsImage(): Promise<string | null> {
+    const answer = await bridge.value.call<{ path: string | null }>('dialog.pickImage');
+    return answer.path;
   }
 }
 

@@ -41,6 +41,31 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void The_menu_pin_is_off_by_default_and_round_trips_when_remembered()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-appsettings-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var file = Path.Combine(folder, "settings.json");
+            var settings = new AppSettings(file);
+            Assert.False(settings.LoadRememberMenuPin());
+            Assert.False(settings.LoadMenuPinned());
+
+            settings.StoreRememberMenuPin(true);
+            settings.StoreMenuPinned(true);
+
+            var fresh = new AppSettings(file);
+            Assert.True(fresh.LoadRememberMenuPin());
+            Assert.True(fresh.LoadMenuPinned());
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Moving_an_instance_to_another_file_drops_what_it_cached()
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-appsettings-" + Guid.NewGuid().ToString("N"));

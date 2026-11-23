@@ -8,7 +8,7 @@ namespace WhaleGenie.Tests;
 
 /// <summary>
 /// The menu projected for a page: which cells a project puts where, with the icon reduced to the
-/// name the wire carries. Paging and search are not here — they are the page's own state.
+/// name the wire carries, and the edits the page can make without a native picker.
 /// </summary>
 public class MenuSurfaceTests
 {
@@ -42,18 +42,45 @@ public class MenuSurfaceTests
     }
 
     [Fact]
-    public async Task An_empty_cell_gets_the_macro_the_picker_returns()
+    public void The_chooser_lists_enabled_macros_in_project_order()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        project.AddMacro(new MacroItem { Name = "two", IsEnabled = false });
+        project.AddMacro(new MacroItem { Name = "three" });
+
+        var choices = Surface(project).MacroChoices();
+
+        Assert.Equal(["one", "three"], choices.Select(choice => choice.Name));
+        Assert.All(choices, choice => Assert.False(string.IsNullOrEmpty(choice.Preview)));
+    }
+
+    [Fact]
+    public void An_empty_cell_gets_the_named_macro()
     {
         var project = new ProjectWorkspace();
         project.AddMacro(new MacroItem { Name = "one" });
         var page = project.Triggers.CommonMenuPages()[0];
-        var surface = Surface(project);
-        surface.Actions = new RecordingActions { Macro = "one" };
 
-        var snapshot = await surface.PickCellAsync(page.Id, 0, 0);
+        var snapshot = Surface(project).AssignCell(page.Id, 0, 0, "one");
 
         var cell = Assert.Single(snapshot.Common.Single(candidate => candidate.PageId == page.Id).Cells);
         Assert.Equal("one", cell.MacroName);
+    }
+
+    [Fact]
+    public void A_disabled_or_unknown_macro_is_not_assigned()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "off", IsEnabled = false });
+        var page = project.Triggers.CommonMenuPages()[0];
+        var surface = Surface(project);
+
+        var disabled = surface.AssignCell(page.Id, 0, 0, "off");
+        var unknown = surface.AssignCell(page.Id, 0, 0, "missing");
+
+        Assert.Empty(disabled.Common.SelectMany(candidate => candidate.Cells));
+        Assert.Empty(unknown.Common.SelectMany(candidate => candidate.Cells));
     }
 
     [Fact]
@@ -134,25 +161,35 @@ public class MenuSurfaceTests
     }
 
     [Fact]
-    public async Task Choosing_an_icon_writes_it_to_the_entry()
+    public void Setting_an_icon_writes_it_to_the_entry()
     {
         var project = new ProjectWorkspace();
         project.AddMacro(new MacroItem { Name = "one" });
         var page = project.Triggers.CommonMenuPages()[0];
         var entry = new TriggerEntry { MacroName = "one", Spec = new MenuSpec(page.Id, 0, 0) };
         project.Triggers.Entries.Add(entry);
-        var surface = Surface(project);
-        surface.Actions = new RecordingActions { Icon = ("builtin", "Play") };
 
-        var snapshot = await surface.ChooseIconAsync(entry.Id);
+        var snapshot = Surface(project).SetIcon(entry.Id, "image", @"C:\icons\one.png");
 
         var cell = Assert.Single(snapshot.Common.SelectMany(candidate => candidate.Cells));
-        Assert.Equal("Play", cell.IconValue);
-        Assert.Equal("builtin", cell.IconKind);
+        Assert.Equal("image", cell.IconKind);
+        Assert.EndsWith("one.png", cell.IconValue);
     }
 
     [Fact]
-    public async Task Replacing_a_cell_keeps_its_place_and_takes_the_new_macro()
+    public void An_unknown_entry_keeps_the_project_untouched()
+    {
+        var project = new ProjectWorkspace();
+        var before = Surface(project).Snapshot();
+
+        var after = Surface(project).SetIcon("nope", "builtin", "Play");
+
+        Assert.Empty(after.Common.SelectMany(candidate => candidate.Cells));
+        Assert.Empty(before.Common.SelectMany(candidate => candidate.Cells));
+    }
+
+    [Fact]
+    public void Replacing_a_cell_keeps_its_place_and_takes_the_new_macro()
     {
         var project = new ProjectWorkspace();
         project.AddMacro(new MacroItem { Name = "one" });
@@ -160,10 +197,8 @@ public class MenuSurfaceTests
         var page = project.Triggers.CommonMenuPages()[0];
         var entry = new TriggerEntry { MacroName = "one", Spec = new MenuSpec(page.Id, 1, 2) };
         project.Triggers.Entries.Add(entry);
-        var surface = Surface(project);
-        surface.Actions = new RecordingActions { Macro = "two" };
 
-        var snapshot = await surface.ReplaceAsync(entry.Id);
+        var snapshot = Surface(project).AssignCell(page.Id, 1, 2, "two");
 
         var cell = Assert.Single(snapshot.Common.SelectMany(candidate => candidate.Cells));
         Assert.Equal("two", cell.MacroName);
@@ -175,21 +210,12 @@ public class MenuSurfaceTests
     {
         public List<string> Opened { get; } = [];
 
-        public (string Kind, string Value)? Icon { get; init; }
+        public bool SettingsOpened { get; private set; }
 
         public void OpenEditor(string macroName) => Opened.Add(macroName);
 
         public void OpenRun(string macroName) => Opened.Add(macroName);
 
-        public bool SettingsOpened { get; private set; }
-
         public void OpenSettings() => SettingsOpened = true;
-
-        public string? Macro { get; init; }
-
-        public Task<(string Kind, string Value)?> PickIconAsync()
-            => Task.FromResult(Icon);
-
-        public Task<string?> PickMacroAsync() => Task.FromResult(Macro);
     }
 }

@@ -114,15 +114,6 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
         }
     }
 
-    /// <summary>A press outside the menu dismisses it; inside is the page's own click.</summary>
-    public void MenuMouseDown(MouseHookEvent e)
-    {
-        if (Volatile.Read(ref _menuOpen) == 1)
-        {
-            _menu.MouseDown(new OverlayPoint((int)Math.Round((double)e.X), (int)Math.Round((double)e.Y)));
-        }
-    }
-
     /// <summary>The overlay watches the foreground itself and honours its own pin.</summary>
     public void CloseMenuForForegroundChange()
     {

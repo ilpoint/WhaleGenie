@@ -32,7 +32,6 @@ internal sealed partial class SettingsBridge
         server.Register("settings.wheel.scene.remove", RemoveWheelScene);
         server.Register("settings.wheel.scene.move", MoveWheelScene);
         server.Register("settings.wheel.slot.set", SetWheelSlot);
-        server.Register("settings.wheel.pickIcon", _ => PickWheelIcon());
     }
 
     private SettingsWheelState WheelState()
@@ -417,11 +416,4 @@ internal sealed partial class SettingsBridge
             : new MenuIconReference(parsed, value);
     }
 
-    private async Task<object?> PickWheelIcon()
-    {
-        var icon = await _pickers.PickMenuIconAsync();
-        return icon is null
-            ? null
-            : new SettingsWheelIcon(icon.Kind.ToString().ToLowerInvariant(), icon.Value);
-    }
 }

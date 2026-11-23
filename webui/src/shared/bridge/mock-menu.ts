@@ -14,9 +14,13 @@ export function handleSurfaceMenu(
     'surface.menu.focus': () => undefined,
     'surface.menu.edit': () => ({ opened: true }),
     'surface.menu.debug': () => ({ opened: true }),
-    'surface.menu.icon': () => host.surfaceMenu,
-    'surface.menu.replace': () => host.surfaceMenu,
-    'surface.menu.cell.pick': () => host.surfaceMenu,
+    'surface.menu.macros': () => [
+      { name: 'demo', preview: 'Ctrl+F1' },
+      { name: 'second', preview: 'F2' },
+    ],
+    'surface.menu.cell.assign': () => assignCell(host, params),
+    'surface.menu.cell.icon': () => setCellIcon(host, params),
+    'surface.menu.image': () => ({ path: 'C:\\demo\\icon.png' }),
     'surface.menu.rule.add': () => host.surfaceMenu,
     'surface.menu.block': () => host.surfaceMenu,
   };
@@ -35,6 +39,51 @@ export function handleSurfaceMenu(
     default:
       throw new Error('unknown surface method: ' + method);
   }
+}
+
+function assignCell(host: MockShellContext, params: Record<string, unknown>): unknown {
+  const pageId = String(params['pageId'] ?? '');
+  const row = Number(params['row'] ?? 0);
+  const column = Number(params['column'] ?? 0);
+  const name = String(params['name'] ?? '');
+  const pages = [...host.surfaceMenu.common, ...host.surfaceMenu.context];
+  const page = pages.find((candidate) => candidate.pageId === pageId);
+  if (!page) {
+    return host.surfaceMenu;
+  }
+
+  const cells = page.cells.filter((cell) => cell.row !== row || cell.column !== column);
+  cells.push({
+    row, column, macroName: name, description: '',
+    entryId: 'mock-' + pageId + '-' + row + '-' + column,
+    iconKind: null, iconValue: null,
+  });
+  const update = (list: typeof host.surfaceMenu.common) => list.map((candidate) =>
+    candidate.pageId === pageId ? { ...candidate, cells } : candidate);
+  host.surfaceMenu = {
+    ...host.surfaceMenu,
+    common: update(host.surfaceMenu.common),
+    context: update(host.surfaceMenu.context),
+  };
+  return host.surfaceMenu;
+}
+
+function setCellIcon(host: MockShellContext, params: Record<string, unknown>): unknown {
+  const entryId = String(params['entryId'] ?? '');
+  const kind = String(params['kind'] ?? '');
+  const value = String(params['value'] ?? '');
+  const update = (list: typeof host.surfaceMenu.common) => list.map((page) => ({
+    ...page,
+    cells: page.cells.map((cell) => cell.entryId === entryId
+      ? { ...cell, iconKind: kind, iconValue: value }
+      : cell),
+  }));
+  host.surfaceMenu = {
+    ...host.surfaceMenu,
+    common: update(host.surfaceMenu.common),
+    context: update(host.surfaceMenu.context),
+  };
+  return host.surfaceMenu;
 }
 
 function addPage(host: MockShellContext, params: Record<string, unknown>): unknown {

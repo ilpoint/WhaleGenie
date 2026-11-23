@@ -30,7 +30,8 @@ export function renderHeader(state: ChromeState, actions: ChromeActions): Templa
         <wg-icon name="Settings" .size=${14}></wg-icon></button>
       <button class="tool search ${state.searchOpen ? 'on' : ''}" title=${t('Menu.SearchOpen')}
         @click=${actions.toggleSearch}><wg-icon name="Search" .size=${14}></wg-icon></button>
-      <button class="tool pin ${state.pinned ? 'on' : ''}"
+      <button class="tool pin ${state.pinned ? 'pinned' : ''}"
+        aria-pressed=${String(state.pinned)}
         title=${state.pinned ? t('Menu.Unpin') : t('Menu.Pin')}
         @click=${actions.togglePin}>
         <wg-icon name=${state.pinned ? 'PinOff' : 'Pin'} .size=${13}></wg-icon></button>

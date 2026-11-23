@@ -131,7 +131,6 @@ public class TriggerHostTests : IDisposable
         public void CloseMenuFromLauncher() => CloseMenuCalled = true;
         public void OpenMenu() { }
         public void MenuHandleKey(string name) { }
-        public void MenuMouseDown(MouseHookEvent e) { }
         public void WheelMouseDown(MouseHookEvent e) { }
         public void WheelMouseMoved(MouseMovedHookEvent e) { }
         public void WheelMouseUp(MouseHookEvent e) { }

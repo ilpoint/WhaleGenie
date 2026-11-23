@@ -11,16 +11,6 @@ namespace WhaleGenie.Views.Pickers;
 /// <summary>The native menu-icon and window pickers behind the settings bridge's port.</summary>
 internal sealed class SettingsPickerHost(Func<Window?> owner, IDeviceLayer devices) : ISettingsPickerHost
 {
-    public async Task<MenuIconReference?> PickMenuIconAsync()
-    {
-        if (owner() is not { } window)
-        {
-            return null;
-        }
-
-        return await MenuIconPickerWindow.ShowAsync(window);
-    }
-
     public async Task<WindowInfo?> PickWindowAsync()
     {
         if (owner() is not { } window)

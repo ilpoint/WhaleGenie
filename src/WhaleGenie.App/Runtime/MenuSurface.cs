@@ -39,35 +39,6 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
             CanUseForeground: foreground is not null);
     }
 
-    /// <summary>Fills an empty cell with a macro the native picker returns.</summary>
-    public async Task<SurfaceMenuSnapshot> PickCellAsync(string pageId, int row, int column)
-    {
-        if (Actions is null || await Actions.PickMacroAsync() is not { Length: > 0 } macroName)
-        {
-            return Snapshot();
-        }
-
-        var existing = workspace.Triggers.Entries.FirstOrDefault(entry =>
-            entry.Spec is MenuSpec spec && spec.PageId == pageId
-            && spec.Row == row && spec.Column == column);
-        if (existing is not null)
-        {
-            existing.MacroName = macroName;
-        }
-        else
-        {
-            workspace.Triggers.Entries.Add(new TriggerEntry
-            {
-                Spec = new MenuSpec(pageId, row, column),
-                MacroName = macroName,
-                IsEnabled = true,
-            });
-        }
-
-        workspace.MarkMenuChanged();
-        return Snapshot();
-    }
-
     /// <summary>Opens one cell's macro in the editor.</summary>
     public bool Edit(string entryId)
     {
@@ -92,43 +63,65 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
         return true;
     }
 
-    /// <summary>Replaces one cell's icon with the one the native picker returns.</summary>
-    public async Task<SurfaceMenuSnapshot> ChooseIconAsync(string entryId)
+    /// <summary>The enabled macros the page's second-level chooser lists, in project order.</summary>
+    public IReadOnlyList<SurfaceMenuMacro> MacroChoices()
+        => [.. workspace.Macros
+            .Where(macro => macro.IsEnabled)
+            .Select(macro => new SurfaceMenuMacro(macro.Name, macro.CardTriggerPreview))];
+
+    /// <summary>
+    /// Puts a named macro in one cell: replaces the entry that is already there, or adds one at the
+    /// empty slot. A name that is not an enabled macro leaves the project untouched.
+    /// </summary>
+    public SurfaceMenuSnapshot AssignCell(string pageId, int row, int column, string macroName)
     {
-        var entry = EntryOf(entryId);
-        if (entry is null || Actions is null)
+        var macro = workspace.Macros.FirstOrDefault(candidate =>
+            candidate.IsEnabled
+            && string.Equals(candidate.Name.Trim(), macroName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (macro is null
+            || row is < 0 or >= ProjectTriggers.MenuRegionRows
+            || column is < 0 or >= ProjectTriggers.MenuColumns)
         {
             return Snapshot();
         }
 
-        if (await Actions.PickIconAsync() is { } icon)
+        var existing = workspace.Triggers.Entries.FirstOrDefault(entry =>
+            entry.Spec is MenuSpec spec && spec.PageId == pageId
+            && spec.Row == row && spec.Column == column);
+        if (existing is not null)
         {
-            entry.SetMenuIcon(new MenuIconReference(
-                string.Equals(icon.Kind, "image", StringComparison.OrdinalIgnoreCase)
-                    ? MenuIconKind.Image
-                    : MenuIconKind.Builtin,
-                icon.Value));
-            workspace.MarkMenuChanged();
+            existing.MacroName = macro.Name;
+        }
+        else
+        {
+            workspace.Triggers.Entries.Add(new TriggerEntry
+            {
+                Spec = new MenuSpec(pageId, row, column),
+                MacroName = macro.Name,
+                IsEnabled = true,
+            });
         }
 
+        workspace.MarkMenuChanged();
         return Snapshot();
     }
 
-    /// <summary>Puts another macro in one cell, keeping the cell's place.</summary>
-    public async Task<SurfaceMenuSnapshot> ReplaceAsync(string entryId)
+    /// <summary>Replaces one cell's icon with the choice the web picker returned.</summary>
+    public SurfaceMenuSnapshot SetIcon(string entryId, string kind, string value)
     {
         var entry = EntryOf(entryId);
-        if (entry is null || Actions is null)
+        var iconKind = string.Equals(kind, "image", StringComparison.OrdinalIgnoreCase)
+            ? MenuIconKind.Image
+            : string.Equals(kind, "builtin", StringComparison.OrdinalIgnoreCase)
+                ? MenuIconKind.Builtin
+                : (MenuIconKind?)null;
+        if (entry is null || iconKind is null || value.Trim().Length == 0)
         {
             return Snapshot();
         }
 
-        if (await Actions.PickMacroAsync() is { Length: > 0 } name)
-        {
-            entry.MacroName = name;
-            workspace.MarkMenuChanged();
-        }
-
+        entry.SetMenuIcon(new MenuIconReference(iconKind.Value, value.Trim()));
+        workspace.MarkMenuChanged();
         return Snapshot();
     }
 

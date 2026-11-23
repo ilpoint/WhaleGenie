@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Lucide.Avalonia;
@@ -14,7 +15,11 @@ namespace WhaleGenie.Bridge;
 internal sealed class IconBridge : IBridgeHandler
 {
     public void Register(BridgeServer server)
-        => server.Register(BridgeMethods.IconPath, Path);
+    {
+        server.Register(BridgeMethods.IconPath, Path);
+        server.Register(BridgeMethods.IconNames, _ => Task.FromResult<object?>(
+            Enum.GetNames<LucideIconKind>().Order(StringComparer.Ordinal).ToArray()));
+    }
 
     private static Task<object?> Path(JsonElement parameters)
     {

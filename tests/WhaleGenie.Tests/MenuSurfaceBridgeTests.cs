@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WhaleGenie.Bridge;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
@@ -21,7 +23,7 @@ public class MenuSurfaceBridgeTests
     {
         var server = new BridgeServer();
         var menu = Surface();
-        var bridge = new MenuSurfaceBridge(menu);
+        var bridge = new MenuSurfaceBridge(menu, new FakeFiles());
         var overlay = new RecordingOverlay();
         bridge.Overlay = overlay;
         bridge.Register(server);
@@ -42,7 +44,7 @@ public class MenuSurfaceBridgeTests
         project.Triggers.Entries.Add(entry);
 
         var server = new BridgeServer();
-        var bridge = new MenuSurfaceBridge(Surface(project));
+        var bridge = new MenuSurfaceBridge(Surface(project), new FakeFiles());
         var overlay = new RecordingOverlay();
         bridge.Overlay = overlay;
         bridge.Register(server);
@@ -62,7 +64,7 @@ public class MenuSurfaceBridgeTests
     public async Task An_entry_that_is_gone_does_not_run_anything()
     {
         var server = new BridgeServer();
-        var bridge = new MenuSurfaceBridge(Surface());
+        var bridge = new MenuSurfaceBridge(Surface(), new FakeFiles());
         var overlay = new RecordingOverlay();
         bridge.Overlay = overlay;
         bridge.Register(server);
@@ -76,7 +78,7 @@ public class MenuSurfaceBridgeTests
     public async Task Pinning_the_menu_is_kept_on_the_overlay()
     {
         var server = new BridgeServer();
-        var bridge = new MenuSurfaceBridge(Surface());
+        var bridge = new MenuSurfaceBridge(Surface(), new FakeFiles());
         var overlay = new RecordingOverlay();
         bridge.Overlay = overlay;
         bridge.Register(server);
@@ -88,9 +90,68 @@ public class MenuSurfaceBridgeTests
         Assert.False(overlay.Pinned);
     }
 
+    [Fact]
+    public async Task Assigning_and_setting_an_icon_write_the_project()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        var page = project.Triggers.CommonMenuPages()[0];
+        var server = new BridgeServer();
+        var bridge = new MenuSurfaceBridge(Surface(project), new FakeFiles());
+        bridge.Register(server);
+
+        await server.AcceptAsync(JsonSerializer.Serialize(new
+        {
+            id = 10,
+            method = "surface.menu.cell.assign",
+            @params = new { pageId = page.Id, row = 1, column = 2, name = "one" },
+        }));
+        var entry = Assert.Single(project.Triggers.Entries);
+        Assert.Equal("one", entry.MacroName);
+
+        await server.AcceptAsync(JsonSerializer.Serialize(new
+        {
+            id = 11,
+            method = "surface.menu.cell.icon",
+            @params = new { entryId = entry.Id, kind = "builtin", value = "Play" },
+        }));
+        var cell = Assert.Single(bridge.Menu.Snapshot().Common.SelectMany(candidate => candidate.Cells));
+        Assert.Equal("builtin", cell.IconKind);
+        Assert.Equal("Play", cell.IconValue);
+    }
+
+    [Fact]
+    public async Task The_image_command_asks_the_file_dialogs()
+    {
+        var files = new FakeFiles { ImagePath = @"C:\icons\one.png" };
+        var server = new BridgeServer();
+        new MenuSurfaceBridge(Surface(), files).Register(server);
+
+        await server.AcceptAsync("""{"id":12,"method":"surface.menu.image"}""");
+
+        Assert.True(files.ImageAsked);
+    }
+
     private static MenuSurface Surface(ProjectWorkspace? project = null)
         => new(project ?? new ProjectWorkspace(), NullDeviceLayer.Instance.Windows,
             new TriggerRuntime(NullDeviceLayer.Instance, (project ?? new ProjectWorkspace()).Variables));
+
+    private sealed class FakeFiles : IFileDialogs
+    {
+        public string? ImagePath { get; init; }
+
+        public bool ImageAsked { get; private set; }
+
+        public Task<string?> OpenImageAsync()
+        {
+            ImageAsked = true;
+            return Task.FromResult(ImagePath);
+        }
+
+        public Task<string?> OpenPackageAsync() => Task.FromResult<string?>(null);
+
+        public Task<string?> SavePackageAsync(string suggestedName) => Task.FromResult<string?>(null);
+    }
 
     private sealed class RecordingOverlay : IMenuOverlay
     {

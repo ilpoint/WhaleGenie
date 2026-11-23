@@ -1,16 +1,25 @@
 import { LitElement, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridgeApi } from '../../shared/bridge/bridge.js';
-import type { SurfaceMenuCell, SurfaceMenuPage, SurfaceMenuSnapshot } from '../../shared/bridge/protocol.js';
+import type {
+  SurfaceMenuCell,
+  SurfaceMenuPage,
+  SurfaceMenuSnapshot,
+} from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { menuOverlayStyles } from './menu-overlay.styles.js';
 import '../../shared/icons/icon.js';
 import { renderHeader, renderDots, renderSearch } from './menu-overlay.chrome.js';
 import type { ChromeActions } from './menu-overlay.chrome.js';
-import { renderGrid } from './menu-overlay.grid.js';
+import { findCell, matchesCell, renderGrid } from './menu-overlay.grid.js';
 import type { GridActions } from './menu-overlay.grid.js';
 import { renderCellMenu, renderEmptyCellMenu, renderPageMenu } from './menu-overlay.menus.js';
+import { renderMacroMenu } from './menu-overlay.macros.js';
+import { dropCell } from './menu-overlay.moves.js';
+import { MenuPickerState } from './menu-overlay.pickers.js';
+import { CellMenuHeight, ContextWidth, EmptyMenuHeight, PageMenuHeight, clampMenuPoint } from './menu-overlay.position.js';
+import '../../shared/icons/icon-picker.js';
 import type { CellMenuState, EmptyCellMenuState, PageMenuState } from './menu-overlay.menus.js';
 
 /**
@@ -53,6 +62,16 @@ export class WgOverlayMenu extends LitElement {
   @state()
   private emptyMenu: EmptyCellMenuState | null = null;
 
+  private readonly picker = new MenuPickerState({
+    snapshot: () => this.snapshot,
+    setSnapshot: (snapshot) => { this.snapshot = snapshot; },
+    setError: (message) => { this.error = message; },
+    searchOpen: () => this.searchOpen,
+    focusKeyboard: (active) => { void bridgeApi.call('surface.menu.focus', { focused: active }); },
+    focusMacroInput: () => this.renderRoot.querySelector<HTMLInputElement>('.macro-search')?.focus(),
+    refresh: () => this.requestUpdate(),
+  });
+
   @state()
   private dragging: string | null = null;
 
@@ -61,11 +80,16 @@ export class WgOverlayMenu extends LitElement {
   protected override async firstUpdated(): Promise<void> {
     await this.reload();
     window.addEventListener('focus', () => void this.reload());
+    bridgeApi.on('surface.menu.pinned', (payload) => {
+      this.pinned = payload.pinned;
+    });
     bridgeApi.on('surface.menu.closed', () => {
       this.searchOpen = false;
       this.query = '';
       this.menuFor = null;
       this.pageMenu = null;
+      this.emptyMenu = null;
+      this.picker.reset();
       void this.reload();
     });
     window.addEventListener('keydown', (event) => {
@@ -74,7 +98,11 @@ export class WgOverlayMenu extends LitElement {
       }
 
       event.preventDefault();
-      if (this.menuFor) {
+      if (this.picker.iconTarget) {
+        this.picker.closeIcon();
+      } else if (this.picker.macroMenu) {
+        this.picker.closeMacro();
+      } else if (this.menuFor) {
         this.menuFor = null;
       } else if (this.pageMenu) {
         this.pageMenu = null;
@@ -87,18 +115,27 @@ export class WgOverlayMenu extends LitElement {
       }
     });
     window.addEventListener('pointerdown', (event) => {
-      this.menuFor = null;
-      this.pageMenu = null;
-      this.emptyMenu = null;
+      const path = event.composedPath();
+      const inside = (className: string) => path.some((node) =>
+        node instanceof HTMLElement && node.classList.contains(className));
+      if (!inside('context')) {
+        this.menuFor = null;
+        this.pageMenu = null;
+        this.emptyMenu = null;
+      }
+      if (!inside('macro-menu') && !inside('context')) {
+        this.picker.closeMacro();
+      }
+      if (!inside('icon-backdrop')) {
+        this.picker.closeIcon();
+      }
       if (!this.searchOpen) {
         return;
       }
 
-      // Shadow DOM retargets the event to the host; the composed path still names the input.
-      const insideSearch = event.composedPath().some((node) =>
-        node instanceof HTMLElement
-        && (node.classList.contains('search-slot')
-          || (node.classList.contains('tool') && node.classList.contains('search'))));
+      const insideSearch = inside('search-slot')
+        || path.some((node) => node instanceof HTMLElement
+          && node.classList.contains('tool') && node.classList.contains('search'));
       if (!insideSearch) {
         this.closeSearch();
       }
@@ -123,15 +160,8 @@ export class WgOverlayMenu extends LitElement {
     return this.snapshot?.context ?? [];
   }
 
-  private get filtering(): boolean {
-    return this.query.trim().length > 0;
-  }
-
   private matchesQuery(cell: SurfaceMenuCell): boolean {
-    const wanted = this.query.trim().toLowerCase();
-    return wanted.length === 0
-      || cell.macroName.toLowerCase().includes(wanted)
-      || cell.description.toLowerCase().includes(wanted);
+    return matchesCell(cell, this.query);
   }
 
   private stop(event: Event): void {
@@ -196,11 +226,16 @@ export class WgOverlayMenu extends LitElement {
     void bridgeApi.call('surface.menu.close');
   }
 
-  private openCellMenu(event: MouseEvent, cell: SurfaceMenuCell): void {
+  private openCellMenu(event: MouseEvent, cell: SurfaceMenuCell, page: SurfaceMenuPage,
+    row: number, column: number): void {
     event.preventDefault();
     event.stopPropagation();
     this.pageMenu = null;
-    this.menuFor = { cell, x: event.clientX, y: event.clientY };
+    this.emptyMenu = null;
+    this.picker.macroMenu = null;
+    const point = clampMenuPoint(event.clientX, event.clientY, ContextWidth, CellMenuHeight,
+      window.innerWidth, window.innerHeight);
+    this.menuFor = { cell, pageId: page.pageId, row, column, ...point };
   }
 
   private openPageMenu(event: MouseEvent, pageId: string, pageCount: number): void {
@@ -212,7 +247,9 @@ export class WgOverlayMenu extends LitElement {
 
     this.menuFor = null;
     this.emptyMenu = null;
-    this.pageMenu = { pageId, x: event.clientX, y: event.clientY };
+    const point = clampMenuPoint(event.clientX, event.clientY, ContextWidth, PageMenuHeight,
+      window.innerWidth, window.innerHeight);
+    this.pageMenu = { pageId, ...point };
   }
 
   private openEmptyMenu(event: MouseEvent, page: SurfaceMenuPage, row: number,
@@ -221,31 +258,15 @@ export class WgOverlayMenu extends LitElement {
     event.stopPropagation();
     this.menuFor = null;
     this.pageMenu = null;
-    this.emptyMenu = { pageId: page.pageId, row, column, x: event.clientX, y: event.clientY };
-  }
-
-  /** 空格子：先选宏，再按需要打开原生图标选择器。 */
-  private async pickCell(page: SurfaceMenuPage, row: number, column: number,
-    withIcon: boolean): Promise<void> {
-    this.emptyMenu = null;
-    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.cell.pick',
-      { pageId: page.pageId, row, column });
-    if (!withIcon) {
-      return;
-    }
-
-    const cell = this.snapshot.common.concat(this.snapshot.context)
-      .flatMap((candidate) => candidate.cells)
-      .find((candidate) => candidate.row === row && candidate.column === column);
-    if (cell) {
-      this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.icon',
-        { entryId: cell.entryId });
-    }
+    this.picker.macroMenu = null;
+    const point = clampMenuPoint(event.clientX, event.clientY, ContextWidth, EmptyMenuHeight,
+      window.innerWidth, window.innerHeight);
+    this.emptyMenu = { pageId: page.pageId, row, column, ...point };
   }
 
   /** 滚轮在哪个半区上，就翻哪一组页；上半区与下半区互不影响。 */
   private pageWheel(event: WheelEvent, common: boolean): void {
-    if (this.filtering) {
+    if (this.query.trim().length > 0) {
       return;
     }
 
@@ -283,16 +304,19 @@ export class WgOverlayMenu extends LitElement {
     await bridgeApi.call('surface.menu.debug', { entryId: cell.entryId });
   }
 
-  private async chooseIcon(cell: SurfaceMenuCell): Promise<void> {
+  private chooseIcon(cell: SurfaceMenuCell): void {
     this.menuFor = null;
-    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.icon',
-      { entryId: cell.entryId });
+    this.picker.openIcon(cell.entryId);
   }
 
-  private async replace(cell: SurfaceMenuCell): Promise<void> {
+  private replace(): void {
+    const state = this.menuFor;
+    if (!state) {
+      return;
+    }
+
     this.menuFor = null;
-    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.replace',
-      { entryId: cell.entryId });
+    void this.picker.openMacro(state.pageId, state.row, state.column, state.x, state.y, false);
   }
 
   private async addRule(): Promise<void> {
@@ -323,17 +347,13 @@ export class WgOverlayMenu extends LitElement {
   }
 
   private dropOn(event: DragEvent, page: SurfaceMenuPage, row: number, column: number): void {
-    event.preventDefault();
-    const entryId = event.dataTransfer?.getData('text/plain') || this.dragging;
+    const dragging = this.dragging;
     this.dragging = null;
-    if (!entryId) {
-      return;
-    }
+    dropCell(event, dragging, page.pageId, row, column, (snapshot) => { this.snapshot = snapshot; });
+  }
 
-    void bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.move',
-      { entryId, pageId: page.pageId, row, column }).then((snapshot) => {
-      this.snapshot = snapshot;
-    });
+  private iconCell(): SurfaceMenuCell | undefined {
+    return findCell(this.snapshot, this.picker.iconTarget);
   }
 
   private chromeActions(): ChromeActions {
@@ -350,17 +370,18 @@ export class WgOverlayMenu extends LitElement {
 
   private gridActions(): GridActions {
     return {
-      filtering: this.filtering,
+      filtering: this.query.trim().length > 0,
       matches: (cell) => this.matchesQuery(cell),
       drop: (event, page, row, column) => this.dropOn(event, page, row, column),
-      add: (page, row, column) => void this.pickCell(page, row, column, false),
+      add: (page, row, column) => void this.picker.openMacro(page.pageId, row, column,
+        window.innerWidth / 2 - 150, window.innerHeight / 2, false),
       emptyMenu: (event, page, row, column) => this.openEmptyMenu(event, page, row, column),
       dragStart: (event, cell) => {
         this.dragging = cell.entryId;
         event.dataTransfer?.setData('text/plain', cell.entryId);
       },
       activate: (cell) => void this.activate(cell),
-      cellMenu: (event, cell) => this.openCellMenu(event, cell),
+      cellMenu: (event, cell, page, row, column) => this.openCellMenu(event, cell, page, row, column),
     };
   }
 
@@ -376,6 +397,7 @@ export class WgOverlayMenu extends LitElement {
     const commonPage = this.commonPages[this.common] ?? this.commonPages[0];
     const contextPage = this.contextPages[this.context] ?? this.contextPages[0];
 
+    const iconCell = this.iconCell();
     return html`
       <div class="panel">
         ${renderHeader({ searchOpen: this.searchOpen, pinned: this.pinned, query: this.query }, this.chromeActions())}
@@ -408,23 +430,38 @@ export class WgOverlayMenu extends LitElement {
             <wg-icon name="Ban" .size=${15}></wg-icon>
           </button>
         </div>
+      </div>
+      <div class="menu-context-layer">
         ${renderCellMenu(this.menuFor, {
           edit: (cell) => void this.edit(cell),
           debug: (cell) => void this.debug(cell),
-          chooseIcon: (cell) => void this.chooseIcon(cell),
-          replace: (cell) => void this.replace(cell),
+          chooseIcon: (cell) => this.chooseIcon(cell),
+          replace: () => this.replace(),
           addRule: () => void this.addRule(),
           block: () => void this.blockForeground(),
         })}
         ${renderPageMenu(this.pageMenu, (pageId) => void this.removePage(pageId))}
         ${renderEmptyCellMenu(this.emptyMenu, (withIcon) => {
           const state = this.emptyMenu;
-          const page = [...this.commonPages, ...this.contextPages]
-            .find((candidate) => candidate.pageId === state?.pageId);
-          if (state && page) {
-            void this.pickCell(page, state.row, state.column, withIcon);
+          if (state) {
+            this.emptyMenu = null;
+            void this.picker.openMacro(state.pageId, state.row, state.column,
+              state.x, state.y, withIcon);
           }
         })}
+        ${renderMacroMenu(this.picker.macroMenu, this.picker.macros, this.picker.macroQuery, this.picker.macroLoading, {
+          query: (value) => { this.picker.macroQuery = value; this.requestUpdate(); },
+          choose: (macro) => void this.picker.chooseMacro(macro),
+          cancel: () => this.picker.closeMacro(),
+        })}
+        <wg-icon-picker
+          .open=${this.picker.iconTarget !== null}
+          .selectedKind=${iconCell?.iconKind ?? ''}
+          .selectedValue=${iconCell?.iconValue ?? ''}
+          .imagePicker=${() => this.picker.pickImage()}
+          @icon-picked=${(event: CustomEvent<{ kind: string; value: string }>) =>
+            void this.picker.pickIcon(event.detail)}
+          @icon-cancel=${() => this.picker.closeIcon()}></wg-icon-picker>
       </div>
     `;
   }

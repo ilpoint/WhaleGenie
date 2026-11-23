@@ -293,8 +293,15 @@ export function handleSettings(host: MockContext, method: string, params: Record
           result = host.settingsState;
           break;
         }
-        case 'settings.wheel.pickIcon':
-          result = { kind: 'builtin', value: 'circle' };
+        case 'settings.menu.rememberPin':
+          host.settingsState = {
+            ...host.settingsState,
+            menu: {
+              ...host.settingsState.menu,
+              rememberPinned: params['remember'] === true,
+            },
+          };
+          result = host.settingsState;
           break;
         case 'settings.openFolder':
           result = null;

@@ -79,7 +79,7 @@ export const menuOverlayStyles = css`
     color: var(--colorNeutralForeground1);
   }
 
-  .tool.pin.on {
+  .tool.pin.pinned {
     background: var(--colorBrandBackground2);
     color: var(--colorBrandForeground1);
   }
@@ -283,6 +283,10 @@ export const menuOverlayStyles = css`
     color: var(--colorNeutralForeground3);
   }
 
+  .menu-context-layer {
+    display: contents;
+  }
+
   .context {
     position: fixed;
     z-index: 10;
@@ -312,5 +316,85 @@ export const menuOverlayStyles = css`
 
   .context button:hover {
     background: var(--colorNeutralBackground3Hover);
+  }
+
+  .context.macro-menu {
+    width: 300px;
+    z-index: 20;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .macro-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .macro-head strong {
+    flex: 1;
+    font-size: 12px;
+  }
+
+  .macro-head .plain {
+    width: 22px;
+    height: 22px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .macro-search {
+    box-sizing: border-box;
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    border-radius: 5px;
+    background: var(--colorNeutralBackground1);
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+  }
+
+  .macro-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 280px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .macro-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    align-items: stretch;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .macro-row:hover {
+    background: var(--colorNeutralBackground3Hover);
+  }
+
+  .macro-row strong {
+    font-size: 12px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .macro-row span {
+    font-size: 11px;
+    color: var(--colorNeutralForeground3);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 `;

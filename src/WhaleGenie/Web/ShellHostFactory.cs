@@ -1,5 +1,6 @@
 using System;
 using WhaleGenie.Bridge;
+using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
@@ -18,11 +19,12 @@ internal sealed class ShellHostFactory(
     MainViewModel viewModel,
     MenuSurfaceBridge menu,
     WheelSurfaceBridge wheel,
-    PanelSurfaceBridge panelFrames)
+    PanelSurfaceBridge panelFrames,
+    AppSettings settings)
 {
     public ShellHost Create(WebShellWindow owner)
     {
-        menu.Menu.Actions ??= new MenuSurfaceActions(() => owner, workspace);
+        menu.Menu.Actions ??= new MenuSurfaceActions(() => owner);
 
         var actions = new ShellNativeWindows(workspace, viewModel, () => owner,
             macro =>
@@ -38,7 +40,7 @@ internal sealed class ShellHostFactory(
             ?? throw new InvalidOperationException("The shell has no bridge to attach the menu to.");
         if (menu.Overlay is null)
         {
-            var host = new MenuOverlayHost(bridge, runtime.Devices);
+            var host = new MenuOverlayHost(bridge, runtime.Devices, settings);
             host.Attach();
             menu.Overlay = host;
         }
