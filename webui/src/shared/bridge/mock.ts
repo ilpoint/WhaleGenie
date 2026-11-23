@@ -32,6 +32,9 @@ export class MockTransport implements BridgeTransport {
   /** 页面发来的请求按序记录，调试与 e2e 断言用。 */
   readonly seen: string[] = [];
 
+  /** 每次请求的方法与参数：同一方法下有多个命令时，e2e 靠 params 区分种类。 */
+  readonly calls: { method: string; params: Record<string, unknown> }[] = [];
+
   info: AppInfo = {
     name: 'WhaleGenie',
     version: '0.0.0-mock',
@@ -157,8 +160,10 @@ export class MockTransport implements BridgeTransport {
   send(envelope: unknown): void {
     const request = envelope as { id: number; method: string; params?: Record<string, unknown> };
     const method = request.method;
-    this.seen.push(method);
     const params = request.params ?? {};
+    this.seen.push(method);
+    // 浅拷贝：调用方之后改写自己的 params 时，记录不会跟着变。
+    this.calls.push({ method, params: { ...params } });
 
     let result: unknown;
     try {
