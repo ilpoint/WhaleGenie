@@ -73,7 +73,7 @@ internal sealed class ShellNativeWindows(
             }
         }
 
-        var saved = ProjectFiles.Save(workspace, path);
+        var saved = await ProjectFiles.SaveAsync(workspace, path);
         if (!saved.Ok)
         {
             await ConfirmDialog.ShowAsync(window, Strings.Get("Package.SaveFailed"),

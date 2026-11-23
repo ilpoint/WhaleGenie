@@ -1,6 +1,9 @@
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
+using WhaleGenie.Storage;
 using Xunit;
 
 namespace WhaleGenie.Tests;
@@ -25,6 +28,30 @@ public class ProjectSavePlanTests
 
         Assert.Equal("one", Assert.Single(plan.Macros).Name);
         Assert.Equal(project.CurrentPath, plan.Path);
+    }
+
+    [Fact]
+    public async Task An_async_save_writes_the_package_and_clears_the_dirty_flag()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-save-" + System.Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var project = new ProjectWorkspace();
+            project.AddMacro(new MacroItem { Name = "one" });
+            var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+
+            var saved = await ProjectFiles.SaveAsync(project, path);
+
+            Assert.True(saved.Ok);
+            Assert.True(File.Exists(path));
+            Assert.Equal(path, project.CurrentPath);
+            Assert.False(project.IsDirty);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]

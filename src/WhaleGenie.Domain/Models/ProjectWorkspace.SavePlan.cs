@@ -23,16 +23,22 @@ public sealed partial class ProjectWorkspace
     /// <see cref="ProjectSavePlan"/> on a worker and then calls <see cref="MarkSaved"/> on the
     /// interface thread.
     /// </summary>
-    public ProjectSavePlan? PrepareSave()
-        => CurrentPath is { Length: > 0 } path
-            ? new ProjectSavePlan(
+    public ProjectSavePlan? PrepareSave() => CurrentPath is { Length: > 0 } path
+        ? PrepareSave(path)
+        : null;
+
+    /// <summary>
+    /// Copies the project for a save to the given file. The pictures still come from the folder of
+    /// the project as it stands now, which is what a save-as has to carry along.
+    /// </summary>
+    public ProjectSavePlan PrepareSave(string path)
+        => new(
                 path,
                 [.. Macros.Select(macro => MacroItem.FromJson(macro.ToJson()))],
                 Triggers.Copy(),
                 [.. Variables.Globals.Select(Clone)],
                 _appVersion,
-                ImageAssets.FolderFor(CurrentPath))
-            : null;
+                ImageAssets.FolderFor(CurrentPath));
 
     /// <summary>Records that the file now holds this project's contents.</summary>
     public void MarkSaved(string path)

@@ -301,7 +301,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return await SaveAs(parameters);
         }
 
-        var saved = ProjectFiles.Save(_workspace, path);
+        var saved = await ProjectFiles.SaveAsync(_workspace, path);
         if (!saved.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
