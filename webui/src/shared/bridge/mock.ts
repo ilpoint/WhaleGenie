@@ -168,6 +168,13 @@ export class MockTransport implements BridgeTransport {
         result = handleSettings(this, method, params);
       } else if (method.startsWith('run.')) {
         result = handleRun(this, method, params);
+      } else if (method === 'surface.panel.view') {
+        this.surfacePanel = {
+          ...this.surfacePanel,
+          collapsed: params['collapsed'] === true,
+          horizontal: params['horizontal'] === true,
+        };
+        result = this.surfacePanel;
       } else if (method === 'surface.panel.run') {
         result = { started: true };
       } else if (method === 'surface.panel.state') {

@@ -2,12 +2,12 @@ import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridgeApi } from '../../shared/bridge/bridge.js';
 import type { SurfacePanelSnapshot } from '../../shared/bridge/protocol.js';
-import { strings } from '../../shared/strings/strings.js';
+import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 
 /**
- * 界面宏浮层：一组宏按标题排开，横向或纵向。窗口规则、锚定位置与出现时机都在 C#，
- * 页面只负责画出来并把点击交回去。
+ * 界面宏浮层：一组宏按标题排开，横向或纵向、折叠或展开。窗口规则、锚定位置与出现时机都在 C#，
+ * 页面只负责画出来并把点击与折叠交回去。
  */
 @customElement('wg-overlay-panel')
 export class WgOverlayPanel extends LitElement {
@@ -45,10 +45,28 @@ export class WgOverlayPanel extends LitElement {
       align-items: center;
     }
 
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .title {
       font-size: 11px;
       color: var(--colorNeutralForeground3);
-      margin-bottom: 2px;
+      flex: 1;
+    }
+
+    .header button {
+      width: 20px;
+      height: 18px;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      background: var(--colorNeutralBackground3);
+      color: inherit;
+      font-size: 11px;
+      cursor: pointer;
     }
 
     button.member {
@@ -93,8 +111,30 @@ export class WgOverlayPanel extends LitElement {
     }
   }
 
-  private run(itemLabel: string): void {
-    void bridgeApi.call('surface.panel.run', { name: itemLabel });
+  private run(label: string): void {
+    void bridgeApi.call('surface.panel.run', { name: label });
+  }
+
+  private async toggle(collapsed: boolean, horizontal: boolean): Promise<void> {
+    this.snapshot = await bridgeApi.call<SurfacePanelSnapshot>('surface.panel.view',
+      { groupKey: this.snapshot?.groupKey ?? '', collapsed, horizontal });
+  }
+
+  private renderHeader(snapshot: SurfacePanelSnapshot) {
+    return html`
+      <div class="header">
+        <span class="title">${snapshot.title}</span>
+        <button aria-label=${t('Interface.Collapse')}
+          title=${snapshot.collapsed ? t('Interface.Expand') : t('Interface.Collapse')}
+          @click=${() => void this.toggle(!snapshot.collapsed, snapshot.horizontal)}>
+          ${snapshot.collapsed ? '▸' : '▾'}
+        </button>
+        <button aria-label=${t('Interface.Layout')} title=${t('Interface.Layout')}
+          @click=${() => void this.toggle(snapshot.collapsed, !snapshot.horizontal)}>
+          ${snapshot.horizontal ? '⇅' : '⇆'}
+        </button>
+      </div>
+    `;
   }
 
   protected override render() {
@@ -109,18 +149,16 @@ export class WgOverlayPanel extends LitElement {
     const snapshot = this.snapshot;
     return html`
       <div class="panel ${snapshot.horizontal ? 'horizontal' : ''}">
-        <span class="title">${snapshot.title}</span>
-        ${snapshot.items.length === 0
-          ? html`<span class="note">${strings.t('Interface.Panel')}</span>`
-          : snapshot.items.map((item) => html`
-              <button class="member ${item.state === 'visible' ? '' : 'disabled'}"
-                title=${item.label}
-                @click=${() => {
-                  if (item.state === 'visible') {
-                    this.run(item.label);
-                  }
-                }}>${item.label}</button>
-            `)}
+        ${this.renderHeader(snapshot)}
+        ${snapshot.collapsed ? '' : snapshot.items.map((item) => html`
+          <button class="member ${item.state === 'visible' ? '' : 'disabled'}"
+            title=${item.label}
+            @click=${() => {
+              if (item.state === 'visible') {
+                this.run(item.label);
+              }
+            }}>${item.label}</button>
+        `)}
       </div>
     `;
   }

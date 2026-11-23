@@ -40,6 +40,27 @@ public class PanelSurfaceTests
     }
 
     [Fact]
+    public void A_group_remembers_how_it_was_folded_and_turned()
+    {
+        var project = new ProjectWorkspace();
+        var key = project.Triggers.InterfaceGroups()
+            .Select(group => group.Key)
+            .FirstOrDefault() ?? "global";
+        var surface = Surface(project);
+
+        var folded = surface.View(key, collapsed: true, horizontal: null);
+        Assert.True(folded.Collapsed);
+
+        var turned = surface.View(key, collapsed: null, horizontal: true);
+        Assert.True(turned.Collapsed);
+        Assert.True(turned.Horizontal);
+
+        var again = surface.Snapshot(key, horizontal: false, collapsed: false);
+        Assert.True(again.Collapsed);
+        Assert.True(again.Horizontal);
+    }
+
+    [Fact]
     public void Running_a_name_that_is_not_there_does_nothing()
         => Assert.False(Surface(new ProjectWorkspace()).Run("missing"));
 

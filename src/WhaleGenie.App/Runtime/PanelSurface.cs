@@ -13,6 +13,18 @@ namespace WhaleGenie.Runtime;
 /// </summary>
 internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime runtime)
 {
+    /// <summary>How each group was left: folded or turned. Outlives one panel window.</summary>
+    private readonly Dictionary<string, (bool Collapsed, bool Horizontal)> _views = new(StringComparer.Ordinal);
+
+    /// <summary>Folds or turns one group and answers with the frame the page should now draw.</summary>
+    public SurfacePanelSnapshot View(string groupKey, bool? collapsed, bool? horizontal)
+    {
+        var current = _views.TryGetValue(groupKey, out var remembered) ? remembered : default;
+        current = (collapsed ?? current.Collapsed, horizontal ?? current.Horizontal);
+        _views[groupKey] = current;
+        return Snapshot(groupKey, current.Horizontal, current.Collapsed);
+    }
+
     /// <summary>Runs one member from the panel, by name, if it is still there and switched on.</summary>
     public bool Run(string name)
     {
@@ -29,6 +41,11 @@ internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime ru
 
     public SurfacePanelSnapshot Snapshot(string groupKey, bool horizontal, bool collapsed)
     {
+        if (_views.TryGetValue(groupKey, out var remembered))
+        {
+            (collapsed, horizontal) = (remembered.Collapsed, remembered.Horizontal);
+        }
+
         var groups = workspace.Triggers.InterfaceGroups();
         var group = groupKey.Length == 0
             ? groups.FirstOrDefault(candidate => candidate.Entries.Count > 0) ?? groups.FirstOrDefault()

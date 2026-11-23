@@ -109,6 +109,7 @@ export type BridgeMethod =
   | 'surface.menu.state'
   | 'surface.panel.run'
   | 'surface.panel.state'
+  | 'surface.panel.view'
   | 'surface.wheel.state'
   | 'theme.get'
   | 'theme.set'

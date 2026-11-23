@@ -180,6 +180,8 @@ DPI 125/150/200% 下的落点。
 - 宿主 `PanelOverlayHost`（`BridgeSurface.Panel`，240×320，启动预热），`--panel-overlay`（Debug）
   实测能在真实项目上打开。
 - 成员点击：`surface.panel.run` 按名字查找并只在宏启用时运行；页面只对可显示成员发命令。
+- 折叠与排列：`surface.panel.view` 把状态记在 App 的 `PanelSurface`（按组键），页面标题栏两个按钮
+  切换；`Snapshot` 优先读记忆值，切换生产入口时原生窗口那份 `_surfaceViews` 可以删掉。
 - **未接线**：分组热键/锚定窗口/移动与收起仍走 `FloatingSurfaceWindow`；面板位置与规则留在 C#，
   页面只负责排版。
 
