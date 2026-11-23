@@ -1,0 +1,324 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:fa="using:FluentAvalonia.UI.Controls"
+        xmlns:views="using:WhaleGenie.Views"
+        xmlns:conv="using:WhaleGenie.Converters"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+
+    <!-- 内凹的一块：设置页里"权限"这类要跟别的组分开讲的东西。 -->
+    <Style Selector="Border.Sunken">
+        <Setter Property="Padding" Value="{DynamicResource Space4}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusContainer}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- 卡片：列表里、面板里那一块内容。底色比它所在的面板亮一档，靠 1px 描边收边。 -->
+    
+
+    <!--
+      薄卡片：壳跟 Card 一样，只多两个状态。`.chosen` 只改描边颜色不改底，因为它和 `.selected`
+      说的不是一件事：选中的底要铺开，而"已经挑进这一批"只是打个标。
+    -->
+    
+    
+    
+
+    <!--
+      可选卡片：两个状态**各用一个通道**，谁也覆盖不了谁。
+      - `.selected` 只改**底**（`AccentSurface`），描边留在 `BorderSubtle`；
+      - `.problem` 只改**描边**（整圈 `Warning`），底不动。
+      这样"选着它"和"它有问题"同时成立时不用仲裁，也不靠书写顺序。原来那版"左 2px 条"用一支
+      `BorderBrush` 画不出来（四边共用一支画刷），而为此在窗口里加一个 1px 元素是结构改动——
+      能用描边表达的事不该造元素。
+
+      悬停加了 `:not(.selected)`：不然悬停的 `SurfaceHover` 和选中的 `AccentSurface` 抢同一个底，
+      又回到"谁写在后面谁赢"。选中之后指针压上去，底仍是选中的样子，这才是"选中"的意思。
+
+      描边 1px 与 `Card` 一致，所以不需要"未选中占位"那 2px：跳位只发生在粗细真的变的时候。
+    -->
+    
+    
+    
+    
+
+    <!--
+      拖动落点的目标卡：不透明的强调浅底 + 强调描边。不透明是有意的——它会压在别的内容上，
+      半透明底会让底下的字透出来。
+
+      **"不透明"说的是"整张卡片变成放置区"这一种表达**。另一种是"细边框落点标记"——它在两行之间
+      画一道亮边，半透明正是为了让底下的内容看得见（原编辑器 `Border.DropTarget`
+      就是这一种）。两者不是矛盾，是两种落点：整卡接管 vs 插一条缝。
+    -->
+    
+    
+
+    <!--
+      单类的四个：标签、徽标、分隔线、拖动分隔条。各自只有一个类、没有修饰、没有状态叠加。
+
+      标签与徽标的"前景"由里面的 `TextBlock` 自己给——`Border` 没有 `Foreground`，规范表里那一列
+      对 `Border.*` 是实现不了的。徽标的档位色（`XxxSurface` / `Xxx`）由调用点那一层的类给，
+      规范没给那些类名，所以这里只有几何：档位由 H18 决定，不由字号规则决定。
+    -->
+    
+
+    <Style Selector="Border.Badge">
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Padding" Value="{DynamicResource PadChip}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+    </Style>
+
+    <!--
+      徽标的四个档位：底与外框由档位色给，字色靠后代选择器——`Border` 没有 `Foreground`，
+      给 `Border` 设一条 `Foreground` 是静默无效的（`dev.md` 第 4 条同族）。
+    -->
+    
+    
+
+    <!-- 强调档：给的是**标识**而不是状态（步骤 ID 这类要在一条长步骤里一眼找到的东西）。
+         它借的是界面主色，所以不表示成功、失败或警告中的任何一种。 -->
+    
+    
+
+    <Style Selector="Border.Badge.Success">
+        <Setter Property="Background" Value="{DynamicResource SuccessSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Success TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Success}" />
+    </Style>
+
+    <Style Selector="Border.Badge.Warning">
+        <Setter Property="Background" Value="{DynamicResource WarningSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Warning TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Warning}" />
+    </Style>
+
+    <Style Selector="Border.Badge.Danger">
+        <Setter Property="Background" Value="{DynamicResource DangerSurface}" />
+    </Style>
+    <Style Selector="Border.Badge.Danger TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+
+    <!-- 分隔线：一条 1px 的线，两侧间隙由 `GapDivider` 给（见令牌注释）。 -->
+    
+    <!--
+      分类 dock：一排按钮把一大片收窄成一组。变量中心的分组与动作库的四个来源都站在这上面，
+      所以它只有一个样子——不在窗口里各写一套分类按钮。
+
+      静息是一行字，悬停叠一层透明色（悬停与按下都用叠层令牌：dock 底下是什么表面都不该换颜色），
+      选中的那一枚用强调底与强调字：与 `Button.ChipWord`、`ToggleButton.Chip` 同一个语汇。
+      `AccentFill` 留给"按下去"的实心钮——它上面的 `TextPrimary` 在浅色主题只有 3.54:1，
+      `AccentSurface` + `AccentText` 两套都是 5.7:1。这不是偏好，是第 9 节那条底线。
+
+      边是 1px，静息就占着（透明），选中才亮出来：选中因此有底、字、边框三重信号，尺寸一次都不动。
+      态写在模板的 `ContentPresenter` 上——这是 `ListBoxItem` 一族画底的地方，与 `ListBox.List` 同一条。
+    -->
+    
+    
+    
+    <!--
+      前景色写两处，是因为它有两种读者：字在模板里，继承 ContentPresenter 的那一份；图标是模板里的
+      另一个控件，绑的是这一行自己的 Foreground（它没有可继承的字体色）。只改 presenter 的话，
+      选中时字变了、图标不动；两处同写，随行的每一个信号一起变。
+    -->
+    
+    
+    
+    
+    
+    
+    
+    <!--
+      库在选中那一行里还画一条 3 像素的强调竖条。dock 的选中已经由底、字、边框三重信号说清，
+      再叠一条竖条就成了四重，而且圆角里的竖条看起来像多出来的一截括号。
+    -->
+    
+
+    <!--
+      列表一族：四个壳 + 两种行。
+
+      **态画在模板的 `ContentPresenter` 上，不是 `ListBoxItem` 自身。** `ListBoxItem*` 没有层 1
+      可覆盖的键，所以这一族必须自己写；而写在自身上的话语法合法、编译通过，屏幕上什么都不发生
+      ——这是"读错观察点"的写侧版本。Fluent 的模板把行的底与边框画在 `ContentPresenter` 上，
+      所以选择器一律 `/template/ ContentPresenter`。
+
+      选择器用后代（空格）还是子代（`>`）都能用——**别按视觉树推断**。`>` 看的是**逻辑父级**，
+      而 `ListBoxItem` 的逻辑父级就是 `ListBox`（容器是 `ItemsControl` 的逻辑子元素，面板只是视觉父级）。
+      这一节原先写的是"写 `>` 匹配不到"，**实测是错的**（`GlobalVariablesWindow` 的 `FilterList`
+      用 `>` 写的那几条逐项生效）。要判一条行样式活没活，读行上的属性，别按树推。
+
+      `.Bare` 不是可选项：`Border.Card.*` 放进 `ListBoxItem` 之后两层都会画底（行有 hover/selected
+      底、卡片自己也有），所以先有"行全透明"这一档，卡片才敢往里放。写 `Border.Card.*` 之前先确认
+      `.Bare` 在。
+    -->
+<!--
+      **样式只管外观，尺寸留给元素。** 分隔条的朝向是**布局决定的**：竖条有宽、横条有高。
+      样式统一给 `Width=6` 必然错一半——横向条会被压成 6px 宽，可抓的地方缩成中间一小条，
+      **而且不报任何错**。宽高属于"使用场景"，不属于"外观"。
+    -->
+    
+
+
+    <Style Selector="ListBox.List">
+        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <Style Selector="ListBox.List ListBoxItem">
+        <Setter Property="MinWidth" Value="0" />
+        <!-- 下限而不是定高：一行文字的行是 32，而步骤行有两行字、还有换行的时候。写死高度的地方，
+            多出来的那一行就压到卡片边线下面去了（看起来像"字被边框挡住"）。 -->
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <!--
+      选中态左侧有一条 2px 的指示条，所以**静息态就要把同样粗细的透明边框占上**：不占的话，选中
+      那一刻内容会右移 2px。位置跳动在截图里永远看不出来，只有并排对比才看得见。
+      规则见文件头第 5 条：态只改颜色，不改尺寸。
+    -->
+    <Style Selector="ListBox.List ListBoxItem /template/ ContentPresenter">
+        <Setter Property="BorderThickness" Value="2,0,0,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:selected /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
+    </Style>
+    <Style Selector="ListBox.List ListBoxItem:disabled /template/ ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
+    </Style>
+
+    <Style Selector="ListBox.List.Boxed">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
+        <Setter Property="Padding" Value="{DynamicResource Pad1}" />
+        <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
+    </Style>
+
+    <!--
+      胶囊一档靠描边站住，不靠底色差：胶囊底与它所在的面板同值之后，"两个填充之间的亮度差"这条
+      识别路径就没了，能改的只有描边。见规范「三处裁定」第 1 条。
+    -->
+    
+    
+    
+    
+    
+
+    <!-- 全透明的一档：行的六个态都不画底，外观交给放进来的子元素。 -->
+    
+    
+    
+    
+    
+    
+
+    <!--
+      带行距的一档：卡片放进 `List` 里时，行与行之间要留一道缝，而 `ListBox` 没有 `Spacing`
+      （`ItemsControl` 的宿主是面板，我们拿不到它的一致入口），所以行距只能长在 `ListBoxItem` 上。
+      末行也多出这 6px——那是这一档的代价，比"每个窗口自己写一条 Margin"便宜。
+      6 是数字不是令牌：它是这一族内部的一次决定，跟"高度允许族定义里写一次"同一条规矩。
+    -->
+    
+
+    <!-- 步骤树：一行就是一步，30 够装图标、名称、徽标与一句截断的摘要。展开箭头由树控件画，
+         所以行里不再留折叠钮；行的高亮由这一行自己画，树控件自己那层底与描边全部让开，
+         免得两套高亮叠在一起。
+
+         行是**平**的，不是卡片：一列卡片摞起来会先读出"一堆方块"，读不出"谁在谁里面"。
+         层级交给缩进线与分节行，方块只在选中与悬停时出现。 -->
+    
+    <!-- 容器：块自己那一行是一张很淡的卡片，和它下面的动作分开。 -->
+    
+    <!-- 块里的行铺一层几乎看不见的底，上下相接，连成一条"这一块"的带子。 -->
+    
+    
+    
+    <!-- 块的"体"：一块列表的头，参考软件里它叫「循环体」。给它一层浅底，让人一眼看出
+         "从这里往下都属于这个块"，也给它一个可以把步骤拖进去的地方。 -->
+    
+    
+
+    <!-- 有问题的那一步：左边一条警示色的边，与"选中"的整块底不同通道。
+         容器行是一张卡片，整圈变黄会把一块宏都染成警报色，所以它只留右边那枚图标。 -->
+    
+    
+    
+    
+    
+    
+    <!--
+      区块容器：设置页与面板里每一组东西的壳。间距长在它身上而不是父容器上，因为区块之间不挨着；
+      组标题与第一个区块之间的 0 由父容器的 `Spacing` 管，这里只带自己的底距。
+    -->
+    <!--
+      可点行：一行能被点、也(有时)能被放东西。**两个状态是两个意思**，不是一个意思的两种颜色：
+
+      - `.Picked`：**下一笔点击会落进这一行**——所以改的是"底"（整行亮起来）；
+      - `.DropTarget`：**东西正拖到这一行上面**——所以改的是"边"（描一圈，不盖住底）。
+
+      两者可以同时成立（拖到一个已选中的行上），所以**一个改底、一个改边，互不覆盖**。
+      这正是不把它们做成"一个状态两个色"的理由：做成两色就只能显示一个。
+
+      **通道不是靠约定，是靠归属**：`.Picked` 管**厚度**（左边 3px），`.DropTarget` **只管颜色**。
+      谁再想加第三个状态，先看这两条占满了没有——**底 1 个（`Picked`）、边 1 个（`DropTarget`），
+      只剩"左条归属"没被单独占用**。加之前先定"这一条归谁"，别默认还有地方。
+    -->
+    
+    
+    
+    
+
+    
+
+    <!--
+      一张“几个里选一个”的卡：圆点在左，标题一行，说明一行。
+      四个失败规则用下拉时只看得见四行字的开头，而它们之间的差别是“宏停不停下来”，
+      这个差别必须写在脸上，不能等人展开下拉才看见。
+      模板整份重写而不是改 Fluent 的：单选按钮在这个界面里只用来做这种卡，没有别的用法要兼顾。
+    -->
+    
+
+    
+
+    <!-- 选中的卡：边用强调色，底用强调色压暗的那一层。圆点填实，一眼看出是哪个。 -->
+    
+
+    
+
+    
+
+    <!-- 卡里的两行字：标题与它会发生什么。 -->
+    
+
+    
+
+    
+
+    <!--
+      表单里一块的编号与标题。编号只是一个次序：读者要的是“这一步先问这个、再问那个”，
+      所以它比正文弱一档，靠形状（圆）而不是靠颜色被认出来。
+    -->
+    <!--
+      块头的标记：**一圈边都没有**。里面装的是一枚线形图标（这一块问的是什么），图标本身已经有
+      轮廓，再套一圈就是两道边；序号时代的圆圈只是为了"这是一个标记"，图标自己就说明了这点。
+      没有图标的块仍旧摆序号，那时数字就是标记本身。
+    -->
+    
+
+    
+
+    
+</Styles>
