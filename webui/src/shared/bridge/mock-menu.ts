@@ -6,43 +6,32 @@ export function handleSurfaceMenu(
   method: string,
   params: Record<string, unknown>,
 ): unknown {
+  const simple: Record<string, () => unknown> = {
+    'surface.menu.state': () => host.surfaceMenu,
+    'surface.menu.activate': () => ({ started: true }),
+    'surface.menu.close': () => undefined,
+    'surface.menu.pin': () => ({ pinned: params['pinned'] === true }),
+    'surface.menu.focus': () => undefined,
+    'surface.menu.edit': () => ({ opened: true }),
+    'surface.menu.debug': () => ({ opened: true }),
+    'surface.menu.icon': () => host.surfaceMenu,
+    'surface.menu.replace': () => host.surfaceMenu,
+    'surface.menu.cell.pick': () => host.surfaceMenu,
+    'surface.menu.rule.add': () => host.surfaceMenu,
+    'surface.menu.block': () => host.surfaceMenu,
+  };
+  const known = simple[method];
+  if (known) {
+    return known();
+  }
+
   switch (method) {
-    case 'surface.menu.state':
-      return host.surfaceMenu;
-
-    case 'surface.menu.activate':
-      return { started: true };
-
-    case 'surface.menu.close':
-      return undefined;
-
-    case 'surface.menu.pin':
-      return { pinned: params['pinned'] === true };
-
-    case 'surface.menu.focus':
-      return undefined;
-
-    case 'surface.menu.edit':
-    case 'surface.menu.debug':
-      return { opened: true };
-
-    case 'surface.menu.icon':
-    case 'surface.menu.replace':
-      return host.surfaceMenu;
-
     case 'surface.menu.page.add':
       return addPage(host, params);
-
     case 'surface.menu.page.remove':
       return removePage(host, params);
-
     case 'surface.menu.move':
       return moveCell(host, params);
-
-    case 'surface.menu.rule.add':
-    case 'surface.menu.block':
-      return host.surfaceMenu;
-
     default:
       throw new Error('unknown surface method: ' + method);
   }

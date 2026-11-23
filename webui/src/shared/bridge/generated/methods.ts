@@ -96,6 +96,7 @@ export type BridgeMethod =
   | 'strings.bundle'
   | 'surface.menu.activate'
   | 'surface.menu.block'
+  | 'surface.menu.cell.pick'
   | 'surface.menu.close'
   | 'surface.menu.debug'
   | 'surface.menu.drag'

@@ -293,6 +293,14 @@ public sealed class TriggerHost : IDisposable
                     return;
                 }
 
+                if (_surface.MenuPinned && !_surface.MenuSearchFocused
+                    && name is "Esc" or "Escape" or "Esc键")
+                {
+                    e.Suppress = true;
+                    Dispatcher.UIThread.Post(() => _surface.MenuHandleKey(name));
+                    return;
+                }
+
                 if (_surface.MenuSearchFocused || _surface.MenuPinned)
                 {
                     return;

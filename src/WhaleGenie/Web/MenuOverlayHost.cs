@@ -23,7 +23,7 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
     /// </summary>
     private void OnForegroundChanged()
     {
-        if (_window is not { IsVisible: true } window)
+        if (AutoCloseSuspended || _window is not { IsVisible: true } window)
         {
             return;
         }
@@ -53,6 +53,8 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
             window.Hide();
         }
     }
+
+    public bool AutoCloseSuspended { get; set; }
 
     public event Action? Hidden;
 
@@ -96,6 +98,19 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
 
     public void BeginDrag() => _window?.BeginWindowDrag();
 
+    public void MouseDown(OverlayPoint point)
+    {
+        if (AutoCloseSuspended || _window is not { IsVisible: true } window || window.Pinned)
+        {
+            return;
+        }
+
+        if (!window.ContainsScreen(point.X, point.Y))
+        {
+            Hide();
+        }
+    }
+
     public void Hide()
     {
         if (_window is not { IsVisible: true } window)
@@ -109,6 +124,9 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
         }
 
         window.Hide();
+        // A pin belongs to the opening: the native window was new every time, so the next menu
+        // starts unpinned even when this one was closed while pinned.
+        window.Pinned = false;
         // The page is reused for the next opening: tell it to drop the search and the menus it
         // may still be holding, so a reopened menu starts the way the native one did.
         _ = bridge.PushAsync("surface.menu.closed", null, BridgePushMode.Latest, BridgeSurface.Menu);

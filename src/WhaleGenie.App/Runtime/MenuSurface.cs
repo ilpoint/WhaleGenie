@@ -39,6 +39,35 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
             CanUseForeground: foreground is not null);
     }
 
+    /// <summary>Fills an empty cell with a macro the native picker returns.</summary>
+    public async Task<SurfaceMenuSnapshot> PickCellAsync(string pageId, int row, int column)
+    {
+        if (Actions is null || await Actions.PickMacroAsync() is not { Length: > 0 } macroName)
+        {
+            return Snapshot();
+        }
+
+        var existing = workspace.Triggers.Entries.FirstOrDefault(entry =>
+            entry.Spec is MenuSpec spec && spec.PageId == pageId
+            && spec.Row == row && spec.Column == column);
+        if (existing is not null)
+        {
+            existing.MacroName = macroName;
+        }
+        else
+        {
+            workspace.Triggers.Entries.Add(new TriggerEntry
+            {
+                Spec = new MenuSpec(pageId, row, column),
+                MacroName = macroName,
+                IsEnabled = true,
+            });
+        }
+
+        workspace.MarkMenuChanged();
+        return Snapshot();
+    }
+
     /// <summary>Opens one cell's macro in the editor.</summary>
     public bool Edit(string entryId)
     {

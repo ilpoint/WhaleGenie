@@ -4,13 +4,14 @@ import { bridgeApi } from '../../shared/bridge/bridge.js';
 import type { SurfaceMenuCell, SurfaceMenuPage, SurfaceMenuSnapshot } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
-import { fileUrl } from '../../shared/files/file-url.js';
 import { menuOverlayStyles } from './menu-overlay.styles.js';
-import logoUrl from '../../assets/whale.png';
 import '../../shared/icons/icon.js';
-import { renderCellMenu, renderPageMenu } from './menu-overlay.menus.js';
-import type { CellMenuState, PageMenuState } from './menu-overlay.menus.js';
-const Columns = 4; const Rows = 3;
+import { renderHeader, renderDots, renderSearch } from './menu-overlay.chrome.js';
+import type { ChromeActions } from './menu-overlay.chrome.js';
+import { renderGrid } from './menu-overlay.grid.js';
+import type { GridActions } from './menu-overlay.grid.js';
+import { renderCellMenu, renderEmptyCellMenu, renderPageMenu } from './menu-overlay.menus.js';
+import type { CellMenuState, EmptyCellMenuState, PageMenuState } from './menu-overlay.menus.js';
 
 /**
  * 菜单浮层：把 C# 给的 `surface.menu.state` 画成原生尺寸的 4×3 两段菜单。
@@ -50,6 +51,9 @@ export class WgOverlayMenu extends LitElement {
   private pageMenu: PageMenuState | null = null;
 
   @state()
+  private emptyMenu: EmptyCellMenuState | null = null;
+
+  @state()
   private dragging: string | null = null;
 
   protected readonly stringsController = new StoreController(this, strings);
@@ -74,6 +78,8 @@ export class WgOverlayMenu extends LitElement {
         this.menuFor = null;
       } else if (this.pageMenu) {
         this.pageMenu = null;
+      } else if (this.emptyMenu) {
+        this.emptyMenu = null;
       } else if (this.searchOpen) {
         this.closeSearch();
       } else {
@@ -83,12 +89,17 @@ export class WgOverlayMenu extends LitElement {
     window.addEventListener('pointerdown', (event) => {
       this.menuFor = null;
       this.pageMenu = null;
+      this.emptyMenu = null;
       if (!this.searchOpen) {
         return;
       }
 
-      const target = event.target as HTMLElement;
-      if (!target.closest('.search-slot') && !target.closest('.tool.search')) {
+      // Shadow DOM retargets the event to the host; the composed path still names the input.
+      const insideSearch = event.composedPath().some((node) =>
+        node instanceof HTMLElement
+        && (node.classList.contains('search-slot')
+          || (node.classList.contains('tool') && node.classList.contains('search'))));
+      if (!insideSearch) {
         this.closeSearch();
       }
     });
@@ -192,15 +203,65 @@ export class WgOverlayMenu extends LitElement {
     this.menuFor = { cell, x: event.clientX, y: event.clientY };
   }
 
-  private openPageMenu(event: MouseEvent, pageId: string): void {
+  private openPageMenu(event: MouseEvent, pageId: string, pageCount: number): void {
     event.preventDefault();
     event.stopPropagation();
-    if (this.commonPages.length + this.contextPages.length <= 2) {
+    if (pageCount <= 1) {
       return;
     }
 
     this.menuFor = null;
+    this.emptyMenu = null;
     this.pageMenu = { pageId, x: event.clientX, y: event.clientY };
+  }
+
+  private openEmptyMenu(event: MouseEvent, page: SurfaceMenuPage, row: number,
+    column: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.menuFor = null;
+    this.pageMenu = null;
+    this.emptyMenu = { pageId: page.pageId, row, column, x: event.clientX, y: event.clientY };
+  }
+
+  /** 空格子：先选宏，再按需要打开原生图标选择器。 */
+  private async pickCell(page: SurfaceMenuPage, row: number, column: number,
+    withIcon: boolean): Promise<void> {
+    this.emptyMenu = null;
+    this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.cell.pick',
+      { pageId: page.pageId, row, column });
+    if (!withIcon) {
+      return;
+    }
+
+    const cell = this.snapshot.common.concat(this.snapshot.context)
+      .flatMap((candidate) => candidate.cells)
+      .find((candidate) => candidate.row === row && candidate.column === column);
+    if (cell) {
+      this.snapshot = await bridgeApi.call<SurfaceMenuSnapshot>('surface.menu.icon',
+        { entryId: cell.entryId });
+    }
+  }
+
+  /** 滚轮在哪个半区上，就翻哪一组页；上半区与下半区互不影响。 */
+  private pageWheel(event: WheelEvent, common: boolean): void {
+    if (this.filtering) {
+      return;
+    }
+
+    const pages = common ? this.commonPages : this.contextPages;
+    if (pages.length <= 1 || event.deltaY === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    const current = common ? this.common : this.context;
+    const next = Math.max(0, Math.min(pages.length - 1, current + (event.deltaY > 0 ? -1 : 1)));
+    if (common) {
+      this.common = next;
+    } else {
+      this.context = next;
+    }
   }
 
   private async activate(cell: SurfaceMenuCell): Promise<void> {
@@ -275,119 +336,32 @@ export class WgOverlayMenu extends LitElement {
     });
   }
 
-  private renderCell(page: SurfaceMenuPage, row: number, column: number) {
-    const cell = page.cells.find((candidate) => candidate.row === row && candidate.column === column);
-    if (!cell) {
-      return html`<button class="cell empty" tabindex="-1" aria-hidden="true"
-        @dragover=${(event: DragEvent) => event.preventDefault()}
-        @drop=${(event: DragEvent) => this.dropOn(event, page, row, column)}>
-        <wg-icon name="SquarePlus" .size=${24} .strokeWidth=${1.4}></wg-icon>
-      </button>`;
-    }
-
-    const dimmed = this.filtering && !this.matchesQuery(cell);
-    return html`
-      <button class="cell ${dimmed ? 'dimmed' : ''}" title=${cell.description.length > 0
-          ? cell.macroName + '\n' + cell.description : cell.macroName}
-        draggable="true"
-        @dragstart=${(event: DragEvent) => {
-          this.dragging = cell.entryId;
-          event.dataTransfer?.setData('text/plain', cell.entryId);
-        }}
-        @dragover=${(event: DragEvent) => event.preventDefault()}
-        @drop=${(event: DragEvent) => this.dropOn(event, page, row, column)}
-        @click=${() => void this.activate(cell)}
-        @contextmenu=${(event: MouseEvent) => this.openCellMenu(event, cell)}>
-        ${cell.iconKind === 'image' && cell.iconValue
-          ? html`<img src=${fileUrl(cell.iconValue)} alt="" />`
-          : cell.iconKind === 'builtin' && cell.iconValue
-            ? html`<wg-icon name=${cell.iconValue} .size=${44} .strokeWidth=${1.5}></wg-icon>`
-            : html`<span class="name">${cell.macroName}</span>`}
-      </button>
-    `;
+  private chromeActions(): ChromeActions {
+    return {
+      drag: (event) => this.startDrag(event),
+      settings: (event) => { this.stop(event); this.openSettings(); },
+      toggleSearch: (event) => { this.stop(event); void this.toggleSearch(); },
+      togglePin: (event) => { this.stop(event); void this.togglePin(); },
+      close: (event) => { this.stop(event); this.close(); },
+      setQuery: (value) => { this.query = value; },
+      closeSearch: () => this.closeSearch(),
+    };
   }
 
-  private renderPage(page: SurfaceMenuPage) {
-    const slots = [];
-    for (let row = 0; row < Rows; row += 1) {
-      for (let column = 0; column < Columns; column += 1) {
-        slots.push(this.renderCell(page, row, column));
-      }
-    }
-
-    return html`<div class="grid">${slots}</div>`;
-  }
-
-  private renderDots(pages: SurfaceMenuPage[], active: number, common: boolean) {
-    return html`
-      <div class="dots">
-        ${pages.map((page, index) => html`
-          <button class="dot ${index === active ? 'on' : ''}" aria-label=${String(index + 1)}
-            @click=${() => {
-              this.menuFor = null;
-              if (common) {
-                this.common = index;
-              } else {
-                this.context = index;
-              }
-            }}
-            @contextmenu=${(event: MouseEvent) => this.openPageMenu(event, page.pageId)}>
-            <span></span>
-          </button>
-        `)}
-        <button class="dot add" aria-label=${t('Menu.AddPage')} title=${t('Menu.AddPage')}
-          @click=${() => void this.addPage(pages[active]?.pageId)}>
-          <wg-icon name="Plus" .size=${11}></wg-icon>
-        </button>
-      </div>
-    `;
-  }
-
-
-  private renderHeader() {
-    return html`
-      <div class="titlebar" @pointerdown=${(event: PointerEvent) => this.startDrag(event)}>
-        <img class="logo" src=${logoUrl} alt="" />
-        <span class="app-title">${t('Main.Title')}</span>
-        <button class="tool" title=${t('Menu.Settings')} @click=${(event: Event) => {
-          this.stop(event);
-          this.openSettings();
-        }}><wg-icon name="Settings" .size=${14}></wg-icon></button>
-        <button class="tool search ${this.searchOpen ? 'on' : ''}" title=${t('Menu.SearchOpen')}
-          @click=${(event: Event) => {
-            this.stop(event);
-            void this.toggleSearch();
-          }}><wg-icon name="Search" .size=${14}></wg-icon></button>
-        <button class="tool ${this.pinned ? 'on' : ''}" title=${this.pinned ? t('Menu.Unpin') : t('Menu.Pin')}
-          @click=${(event: Event) => {
-            this.stop(event);
-            void this.togglePin();
-          }}><wg-icon name=${this.pinned ? 'PinOff' : 'Pin'} .size=${13}></wg-icon></button>
-        <button class="tool close" title=${t('Menu.Close')} @click=${(event: Event) => {
-          this.stop(event);
-          this.close();
-        }}><wg-icon name="X" .size=${14}></wg-icon></button>
-      </div>
-    `;
-  }
-
-  private renderSearch() {
-    return html`
-      <div class="search-slot ${this.searchOpen ? 'open' : ''}">
-        <input type="search" placeholder=${t('Menu.Search')} .value=${this.query}
-          ?disabled=${!this.searchOpen}
-          @input=${(event: Event) => {
-            this.query = (event.target as HTMLInputElement).value;
-          }}
-          @keydown=${(event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              event.stopPropagation();
-              this.closeSearch();
-            }
-          }} />
-      </div>
-    `;
+  private gridActions(): GridActions {
+    return {
+      filtering: this.filtering,
+      matches: (cell) => this.matchesQuery(cell),
+      drop: (event, page, row, column) => this.dropOn(event, page, row, column),
+      add: (page, row, column) => void this.pickCell(page, row, column, false),
+      emptyMenu: (event, page, row, column) => this.openEmptyMenu(event, page, row, column),
+      dragStart: (event, cell) => {
+        this.dragging = cell.entryId;
+        event.dataTransfer?.setData('text/plain', cell.entryId);
+      },
+      activate: (cell) => void this.activate(cell),
+      cellMenu: (event, cell) => this.openCellMenu(event, cell),
+    };
   }
 
   protected override render() {
@@ -404,18 +378,26 @@ export class WgOverlayMenu extends LitElement {
 
     return html`
       <div class="panel">
-        ${this.renderHeader()}
-        ${this.renderSearch()}
-        ${commonPage ? this.renderPage(commonPage) : nothing}
+        ${renderHeader({ searchOpen: this.searchOpen, pinned: this.pinned, query: this.query }, this.chromeActions())}
+        ${renderSearch({ searchOpen: this.searchOpen, pinned: this.pinned, query: this.query }, this.chromeActions())}
+        ${commonPage ? renderGrid(commonPage, (event) => this.pageWheel(event, true), this.gridActions()) : nothing}
         <div class="divider">
           <span class="rule">${contextPage?.ruleSummary ?? ''}</span>
           <div class="dot-rows">
-            ${this.renderDots(this.commonPages, this.common, true)}
+            ${renderDots(this.commonPages, this.common, {
+            select: (index) => { this.menuFor = null; this.common = index; },
+            add: () => void this.addPage(),
+            pageMenu: (event, pageId, count) => this.openPageMenu(event, pageId, count),
+          })}
             ${this.contextPages.length > 0
-              ? this.renderDots(this.contextPages, this.context, false) : nothing}
+              ? renderDots(this.contextPages, this.context, {
+                select: (index) => { this.menuFor = null; this.context = index; },
+                add: () => void this.addPage(contextPage?.pageId),
+                pageMenu: (event, pageId, count) => this.openPageMenu(event, pageId, count),
+              }) : nothing}
           </div>
         </div>
-        ${contextPage ? this.renderPage(contextPage) : nothing}
+        ${contextPage ? renderGrid(contextPage, (event) => this.pageWheel(event, false), this.gridActions()) : nothing}
         <div class="footer">
           <button title=${t('Menu.AddRule')} ?disabled=${!this.snapshot.canUseForeground}
             @click=${() => void this.addRule()}>
@@ -435,6 +417,14 @@ export class WgOverlayMenu extends LitElement {
           block: () => void this.blockForeground(),
         })}
         ${renderPageMenu(this.pageMenu, (pageId) => void this.removePage(pageId))}
+        ${renderEmptyCellMenu(this.emptyMenu, (withIcon) => {
+          const state = this.emptyMenu;
+          const page = [...this.commonPages, ...this.contextPages]
+            .find((candidate) => candidate.pageId === state?.pageId);
+          if (state && page) {
+            void this.pickCell(page, state.row, state.column, withIcon);
+          }
+        })}
       </div>
     `;
   }

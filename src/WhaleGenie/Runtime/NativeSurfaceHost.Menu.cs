@@ -105,14 +105,22 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
 
     public void CloseMenuFromLauncher() => Dispatcher.UIThread.Post(_menu.Hide);
 
-    /// <summary>The page owns its keys; the hook never needs to replay them.</summary>
+    /// <summary>The page owns its keys; only Esc has to work while the page does not.</summary>
     public void MenuHandleKey(string name)
     {
+        if (name is "Esc" or "Escape" or "Esc键")
+        {
+            _menu.Hide();
+        }
     }
 
-    /// <summary>The page owns its clicks; this hook exists for the interface only.</summary>
+    /// <summary>A press outside the menu dismisses it; inside is the page's own click.</summary>
     public void MenuMouseDown(MouseHookEvent e)
     {
+        if (Volatile.Read(ref _menuOpen) == 1)
+        {
+            _menu.MouseDown(new OverlayPoint((int)Math.Round((double)e.X), (int)Math.Round((double)e.Y)));
+        }
     }
 
     /// <summary>The overlay watches the foreground itself and honours its own pin.</summary>

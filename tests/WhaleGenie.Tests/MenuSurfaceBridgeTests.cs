@@ -98,6 +98,12 @@ public class MenuSurfaceBridgeTests
 
         public bool Pinned { get; set; }
 
+        public bool AutoCloseSuspended { get; set; }
+
+        public void MouseDown(OverlayPoint point)
+        {
+        }
+
         public event Action? Hidden;
 
         public event Action<bool>? FocusChanged;

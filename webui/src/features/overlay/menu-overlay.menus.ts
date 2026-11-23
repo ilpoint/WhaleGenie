@@ -16,6 +16,14 @@ export interface PageMenuState {
   y: number;
 }
 
+export interface EmptyCellMenuState {
+  pageId: string;
+  row: number;
+  column: number;
+  x: number;
+  y: number;
+}
+
 export interface CellMenuActions {
   edit: (cell: SurfaceMenuCell) => void;
   debug: (cell: SurfaceMenuCell) => void;
@@ -46,6 +54,22 @@ export function renderCellMenu(state: CellMenuState | null,
         <wg-icon name="SquarePlus" .size=${14}></wg-icon>${t('Menu.AddRule')}</button>
       <button @click=${() => actions.block()}>
         <wg-icon name="Ban" .size=${14}></wg-icon>${t('Menu.Block')}</button>
+    </div>
+  `;
+}
+
+export function renderEmptyCellMenu(state: EmptyCellMenuState | null,
+  add: (withIcon: boolean) => void): TemplateResult | typeof nothing {
+  if (!state) {
+    return nothing;
+  }
+
+  return html`
+    <div class="context" style=${'left:' + state.x + 'px;top:' + state.y + 'px'}>
+      <button @click=${() => add(false)}>
+        <wg-icon name="SquarePlus" .size=${14}></wg-icon>${t('Menu.AddCell')}</button>
+      <button @click=${() => add(true)}>
+        <wg-icon name="ImagePlus" .size=${14}></wg-icon>${t('Menu.AddCellIcon')}</button>
     </div>
   `;
 }

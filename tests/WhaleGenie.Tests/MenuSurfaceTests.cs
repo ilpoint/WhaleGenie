@@ -42,6 +42,21 @@ public class MenuSurfaceTests
     }
 
     [Fact]
+    public async Task An_empty_cell_gets_the_macro_the_picker_returns()
+    {
+        var project = new ProjectWorkspace();
+        project.AddMacro(new MacroItem { Name = "one" });
+        var page = project.Triggers.CommonMenuPages()[0];
+        var surface = Surface(project);
+        surface.Actions = new RecordingActions { Macro = "one" };
+
+        var snapshot = await surface.PickCellAsync(page.Id, 0, 0);
+
+        var cell = Assert.Single(snapshot.Common.Single(candidate => candidate.PageId == page.Id).Cells);
+        Assert.Equal("one", cell.MacroName);
+    }
+
+    [Fact]
     public void A_disabled_macro_is_not_put_on_the_menu()
     {
         var project = new ProjectWorkspace();

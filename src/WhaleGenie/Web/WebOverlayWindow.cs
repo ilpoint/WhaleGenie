@@ -281,6 +281,17 @@ internal sealed class WebOverlayWindow : Window
         ApplyStyles();
     }
 
+    /// <summary>Whether a screen point (physical pixels) lies inside this window.</summary>
+    internal bool ContainsScreen(int x, int y)
+    {
+        var scale = RenderScaling;
+        var position = Position;
+        var width = (int)Math.Round(Width * scale);
+        var height = (int)Math.Round(Height * scale);
+        return x >= position.X && y >= position.Y
+            && x < position.X + width && y < position.Y + height;
+    }
+
     /// <summary>Clips the window after Windows refused a very short height, as the native panel did.</summary>
     internal void ClipToBody(int width, int height)
     {

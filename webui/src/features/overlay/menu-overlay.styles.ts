@@ -79,6 +79,11 @@ export const menuOverlayStyles = css`
     color: var(--colorNeutralForeground1);
   }
 
+  .tool.pin.on {
+    background: var(--colorBrandBackground2);
+    color: var(--colorBrandForeground1);
+  }
+
   .tool.close:hover {
     background: var(--colorPaletteRedBackground2);
     color: var(--colorPaletteRedForeground1);

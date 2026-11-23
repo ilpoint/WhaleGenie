@@ -96,7 +96,12 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
 
     /// <summary>Asks the page to show its settings page, from a native menu.</summary>
     internal void OpenSettings()
-        => _ = _bridge?.PushAsync("settings.openRequested", new { });
+    {
+        // 菜单是置顶且不激活的；打开设置必须先把自己带到前台，否则页面在后台换了路由，人还留在游戏里。
+        Show();
+        Activate();
+        _ = _bridge?.PushAsync("settings.openRequested", new { });
+    }
 
     /// <summary>The page reports focus changes through window.focus.</summary>
     internal void SetTextInputFocused(bool focused)

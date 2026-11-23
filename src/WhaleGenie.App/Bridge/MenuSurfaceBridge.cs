@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
@@ -61,10 +62,15 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             Task.FromResult<object?>(new { opened = menu.Edit(RequiredString(parameters, "entryId")) }));
         server.Register("surface.menu.debug", parameters =>
             Task.FromResult<object?>(new { opened = menu.Debug(RequiredString(parameters, "entryId")) }));
-        server.Register("surface.menu.replace", async parameters =>
-            await menu.ReplaceAsync(RequiredString(parameters, "entryId")));
-        server.Register("surface.menu.icon", async parameters =>
-            await menu.ChooseIconAsync(RequiredString(parameters, "entryId")));
+        server.Register("surface.menu.replace", parameters => Suspended(
+            () => menu.ReplaceAsync(RequiredString(parameters, "entryId"))));
+        server.Register("surface.menu.icon", parameters => Suspended(
+            () => menu.ChooseIconAsync(RequiredString(parameters, "entryId"))));
+        server.Register("surface.menu.cell.pick", parameters => Suspended(
+            () => menu.PickCellAsync(
+                RequiredString(parameters, "pageId"),
+                RequiredInt(parameters, "row"),
+                RequiredInt(parameters, "column"))));
         server.Register("surface.menu.page.add", parameters =>
             Task.FromResult<object?>(menu.AddPage(OptionalString(parameters, "pageId"))));
         server.Register("surface.menu.page.remove", parameters =>
@@ -79,6 +85,27 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
                 RequiredString(parameters, "pageId"),
                 RequiredInt(parameters, "row"),
                 RequiredInt(parameters, "column"))));
+    }
+
+    /// <summary>Runs an action that opens one of the menu's own pickers.</summary>
+    private async Task<object?> Suspended(Func<Task<SurfaceMenuSnapshot>> work)
+    {
+        if (Overlay is { } overlay)
+        {
+            overlay.AutoCloseSuspended = true;
+        }
+
+        try
+        {
+            return await work();
+        }
+        finally
+        {
+            if (Overlay is { } done)
+            {
+                done.AutoCloseSuspended = false;
+            }
+        }
     }
 
     private static string RequiredString(System.Text.Json.JsonElement parameters, string name)
