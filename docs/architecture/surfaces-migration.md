@@ -243,13 +243,15 @@ wg-icon-picker 承担（icon.names + 懒取 icon.path + 图片对话框），菜
 由宿主自己的 Hook.MouseDown（派发到 UI 线程）加按钮轮询兜底，置顶时不响应。右键层移出
 .panel 的 overflow:hidden 并按窗口四边夹取，二级宏列表位置同源。
 
-**轮盘补缺（2026-11-24）**：`WheelOverlayHost` 现在按原生规则只夹取可见圆圆心（透明方形可出屏），
-夹取且勾选“指针移到中心”时在窗口显示后移动指针；字号、Gloss、HoverBorder、ShowGuide、
+**轮盘补缺（2026-11-24）**：`WheelOverlayHost` 现在使用覆盖当前屏幕的全屏透明框，按原生规则只夹取
+可见圆圆心（轮盘画布外的透明区可出屏，引导线不再被方形裁断），
+夹取且勾选“指针移到中心”时在窗口显示后移动指针，命中测试改用窗口回报的实际圆心；字号、Gloss、HoverBorder、ShowGuide、
 HideLabelWithIcon、FollowTheme 进入快照由页面实际绘制；每次打开推 `surface.wheel.opened`，
-页面按 PopAnimation 做一次缩放淡入。设置页增加“轮盘”导航，外观开关、预览和动作管理沿用同一
-几何；格子右键不再出现针对当前程序的规则/屏蔽项，这两项只留在底栏。
+页面按 PopAnimation 做一次缩放淡入，时长由 `settings.wheel.update/popAnimationMs` 的滑块传入。
+设置页增加“轮盘”导航，外观开关、预览和动作管理沿用同一几何；格子右键不再出现针对当前程序的规则/屏蔽项，这两项只留在底栏。
 
-已自动验证：`WheelSurfaceTests` 8 条（圈数/宽外圈/第三圈/tone/中心文案/画布/aim 偏移/外观开关）、`WheelPlacementTests` 3 条（边缘夹取与关闭夹取）、
+已自动验证：`WheelSurfaceTests` 8 条（圈数/宽外圈/第三圈/tone/中心文案/画布/aim 偏移/外观开关）、
+`WheelPlacementTests` 3 条（边缘夹取与关闭夹取）、
 `MenuSurfaceTests` 格子描述、`npm run check`。已手工看：菜单尺寸与图标、搜索默认隐藏/点开可
 输入/Esc 收起、右键无浏览器菜单、轮盘完整网格与透明窗口。真机剩余：面板折叠/滚动、轮盘手势与
 引导线、多屏与 DPI。
