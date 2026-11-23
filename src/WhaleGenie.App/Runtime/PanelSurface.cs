@@ -16,6 +16,22 @@ internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime ru
     /// <summary>How each group was left: folded or turned. Outlives one panel window.</summary>
     private readonly Dictionary<string, (bool Collapsed, bool Horizontal)> _views = new(StringComparer.Ordinal);
 
+    /// <summary>The windows that carry each group, so the page can ask one of them to move.</summary>
+    private readonly Dictionary<string, IPanelOverlay> _overlays = new(StringComparer.Ordinal);
+
+    public void Attach(string groupKey, IPanelOverlay overlay) => _overlays[groupKey] = overlay;
+
+    public void Detach(string groupKey) => _overlays.Remove(groupKey);
+
+    /// <summary>Starts the system move of one group's window, if it is on screen.</summary>
+    public void BeginDrag(string groupKey)
+    {
+        if (_overlays.TryGetValue(groupKey, out var overlay))
+        {
+            overlay.BeginDrag();
+        }
+    }
+
     /// <summary>Folds or turns one group and answers with the frame the page should now draw.</summary>
     public SurfacePanelSnapshot View(string groupKey, bool? collapsed, bool? horizontal)
     {

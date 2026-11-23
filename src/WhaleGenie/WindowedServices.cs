@@ -59,7 +59,8 @@ internal static class WindowedServices
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
             sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
             sp.GetRequiredService<MenuSurfaceBridge>(),
-            sp.GetRequiredService<WheelSurfaceBridge>()))
+            sp.GetRequiredService<WheelSurfaceBridge>(),
+            sp.GetRequiredService<PanelSurfaceBridge>()))
         .AddSingleton(sp => new PanelSurfaceBridge(new PanelSurface(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>())))

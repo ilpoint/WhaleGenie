@@ -22,6 +22,7 @@ internal sealed class WebOverlayWindow : Window
     private readonly BridgeServer _bridge;
     private readonly BridgeSurface _surface;
     private readonly string _route;
+    private readonly string? _extraQuery;
     private WebBridge? _channel;
 
     /// <summary>True once the page has been loaded in the background.</summary>
@@ -31,14 +32,32 @@ internal sealed class WebOverlayWindow : Window
     private bool _warming;
 
     /// <summary>
-    /// Loads the page while nobody is looking: the window is placed off screen, shown, and hidden
-    /// again as soon as the navigation finishes. A first open then costs a <c>Show()</c> (S0: 9 ms)
-    /// instead of a WebView cold start (S0: about 0.6 s).
-    /// </summary>
-    /// <summary>
     /// Starts a system caption drag. A page cannot move a window itself: pointer events stop at the
     /// window edge, so dragging a small panel across the screen needs the OS move loop.
     /// </summary>
+    /// <summary>
+    /// Puts the window directly above the target in the ordinary z-order: ask for the target's
+    /// predecessor and go behind it, which lands just above the target.
+    /// </summary>
+    internal void PlaceAbove(long targetHandle)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle == IntPtr.Zero || targetHandle == 0)
+        {
+            return;
+        }
+
+        var target = new IntPtr(targetHandle);
+        var above = GetWindow(target, GwHwndPrev);
+        SetWindowPos(handle, above, 0, 0, 0, 0,
+            SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
+    }
+
     internal void BeginWindowDrag()
     {
         if (!OperatingSystem.IsWindows())
@@ -59,6 +78,11 @@ internal sealed class WebOverlayWindow : Window
     /// <summary>The warm-up load no longer owns the window; a real open must not be hidden by it.</summary>
     internal void EndWarm() => _warming = false;
 
+    /// <summary>
+    /// Loads the page while nobody is looking: the window is placed off screen, shown, and hidden
+    /// again as soon as the navigation finishes. A first open then costs a <c>Show()</c> (S0: 9 ms)
+    /// instead of a WebView cold start (S0: about 0.6 s).
+    /// </summary>
     internal void Warm()
     {
         if (_warmed || _channel is null)
@@ -76,15 +100,16 @@ internal sealed class WebOverlayWindow : Window
 
 
     internal WebOverlayWindow(BridgeServer bridge, BridgeSurface surface, string route,
-        double width, double height)
+        double width, double height, string? extraQuery = null, bool topmost = true)
     {
         _bridge = bridge;
         _surface = surface;
         _route = route.TrimStart('/');
+        _extraQuery = extraQuery;
         WindowDecorations = Avalonia.Controls.WindowDecorations.None;
         TransparencyLevelHint = [WindowTransparencyLevel.Transparent];
         Background = Brushes.Transparent;
-        Topmost = true;
+        Topmost = topmost;
         ShowInTaskbar = false;
         ShowActivated = false;
         CanResize = false;
@@ -126,7 +151,8 @@ internal sealed class WebOverlayWindow : Window
 #if DEBUG
         if (App.WebUiDev is { Length: > 0 } dev)
         {
-            return new Uri(dev.TrimEnd('/') + "/#" + _route);
+            var query = _extraQuery is { Length: > 0 } ? "?" + _extraQuery : "";
+            return new Uri(dev.TrimEnd('/') + "/" + query + "#" + _route);
         }
 #endif
         // Uri treats a relative "#..." against a file as a rooted path and escapes the hash, so the
@@ -136,7 +162,8 @@ internal sealed class WebOverlayWindow : Window
         {
             // The stamp keeps WebView2 from answering a file navigation out of its cache: a page
             // built after the last launch would otherwise be served as the one before it.
-            Query = "v=" + DateTime.Now.Ticks,
+            Query = "v=" + DateTime.Now.Ticks
+                + (_extraQuery is { Length: > 0 } ? "&" + _extraQuery : ""),
             Fragment = _route,
         };
         return page.Uri;
@@ -186,6 +213,18 @@ internal sealed class WebOverlayWindow : Window
 
     private const int WmNcLeftButtonDown = 0x00A1;
     private const int HtCaption = 2;
+    private const int GwHwndPrev = 3;
+    private const int SwpNoSize = 0x0001;
+    private const int SwpNoMove = 0x0002;
+    private const int SwpNoActivate = 0x0010;
+    private const int SwpNoOwnerZOrder = 0x0200;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr window, int command);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int cx,
+        int cy, int flags);
 
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();

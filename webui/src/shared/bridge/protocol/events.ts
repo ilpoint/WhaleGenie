@@ -3,6 +3,7 @@ import type { DialogRequest, StringsBundle, ThemeState, WindowState } from './ap
 import type { ProjectState } from './project.js';
 import type { McpState } from './mcp.js';
 import type { RunLogBatch, RunLook, RunState, RunStep } from './run.js';
+import type { SurfacePanelSnapshot } from './panel.js';
 import type { SurfaceWheelSnapshot } from './wheel.js';
 
 export interface BridgeEvents {
@@ -20,6 +21,7 @@ export interface BridgeEvents {
   'run.openRequested': { name: string };
   'settings.openRequested': Record<string, never>;
   'surface.wheel.changed': SurfaceWheelSnapshot;
+  'surface.panel.changed': SurfacePanelSnapshot;
 }
 
 export type BridgeEventName = keyof BridgeEvents;

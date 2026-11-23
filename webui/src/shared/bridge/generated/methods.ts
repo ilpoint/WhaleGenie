@@ -108,6 +108,7 @@ export type BridgeMethod =
   | 'surface.menu.replace'
   | 'surface.menu.rule.add'
   | 'surface.menu.state'
+  | 'surface.panel.drag'
   | 'surface.panel.run'
   | 'surface.panel.state'
   | 'surface.panel.view'

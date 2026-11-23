@@ -179,8 +179,10 @@ DPI 125/150/200% 下的落点。
 - 契约 `SurfacePanelSnapshot/Item` 与 `surface.panel.state`；App 的 `PanelSurface` 用
   `InterfaceMemberResolver` 只投影可显示的成员（停用/缺宏不上面板）。
 - 页面 `features/overlay/panel` 画标题与成员（横向/纵向、停用态），`#overlay/panel` 路由。
-- 宿主 `PanelOverlayHost`（`BridgeSurface.Panel`，240×320，启动预热），`--panel-overlay`（Debug）
-  实测能在真实项目上打开。
+- 宿主已改为**每组一个** `PanelOverlayHost`（实现 `IPanelOverlay`）：尺寸由 `PanelGeometry` 按成员数/
+  折叠/排列算，位置按目标客户区原点 + `InterfaceLayout` 偏移并夹在客户区内，`PlaceAbove` 把窗口排到
+  目标窗口上方，拖动走系统移动循环并回报位置；帧经 `surface.panel.changed` 推送。
+- `--panel-overlay`（Debug）实测能在真实项目上打开。
 - 成员点击：`surface.panel.run` 按名字查找并只在宏启用时运行；页面只对可显示成员发命令。
 - 折叠与排列：`surface.panel.view` 把状态记在 App 的 `PanelSurface`（按组键），页面标题栏两个按钮
   切换；`Snapshot` 优先读记忆值，切换生产入口时原生窗口那份 `_surfaceViews` 可以删掉。

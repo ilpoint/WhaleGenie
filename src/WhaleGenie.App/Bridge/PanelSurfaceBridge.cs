@@ -7,8 +7,20 @@ namespace WhaleGenie.Bridge;
 /// <summary>One interface panel's frame; the page asks again when its group or members change.</summary>
 internal sealed class PanelSurfaceBridge(PanelSurface panel) : IBridgeHandler
 {
+    private BridgeServer? _server;
+
+    /// <summary>The projection itself, for callers that need a frame before a page asks.</summary>
+    internal PanelSurface Surface => panel;
+
     public void Register(BridgeServer server)
     {
+        _server = server;
+        server.Register("surface.panel.drag", parameters =>
+        {
+            var key = parameters.TryGetProperty("groupKey", out var group) ? group.GetString() ?? "" : "";
+            panel.BeginDrag(key);
+            return Task.FromResult<object?>(null);
+        });
         server.Register("surface.panel.run", parameters =>
         {
             var name = parameters.TryGetProperty("name", out var given) ? given.GetString() : null;
@@ -32,6 +44,11 @@ internal sealed class PanelSurfaceBridge(PanelSurface panel) : IBridgeHandler
             return Task.FromResult<object?>(panel.Snapshot(key, horizontal, collapsed));
         });
     }
+
+    /// <summary>Pushes one frame to the panel page, which updates without a round trip.</summary>
+    internal void Push(SurfacePanelSnapshot snapshot)
+        => _server?.PushAsync("surface.panel.changed", snapshot, BridgePushMode.Latest,
+            BridgeSurface.Panel);
 
     private static bool? OptionalBool(System.Text.Json.JsonElement parameters, string name)
         => parameters.TryGetProperty(name, out var value)

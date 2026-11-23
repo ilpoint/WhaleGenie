@@ -121,6 +121,7 @@ public static class BridgeMethods
         "surface.menu.replace",
         "surface.menu.rule.add",
         "surface.menu.state",
+        "surface.panel.drag",
         "surface.panel.run",
         "surface.panel.view",
         "surface.panel.state",

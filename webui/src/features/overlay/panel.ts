@@ -96,15 +96,21 @@ export class WgOverlayPanel extends LitElement {
     }
   `;
 
+  /** The group this window was opened for; an empty key means the first group with members. */
+  private readonly groupKey = new URLSearchParams(window.location.search).get('group') ?? '';
+
   protected override async firstUpdated(): Promise<void> {
     await this.reload();
     window.addEventListener('focus', () => void this.reload());
+    bridgeApi.on('surface.panel.changed', (next) => {
+      this.snapshot = next;
+    });
   }
 
   private async reload(): Promise<void> {
     try {
       this.snapshot = await bridgeApi.call<SurfacePanelSnapshot>('surface.panel.state',
-        { groupKey: '', horizontal: false, collapsed: false });
+        { groupKey: this.groupKey, horizontal: false, collapsed: false });
       this.error = '';
     } catch (failure) {
       this.error = failure instanceof Error ? failure.message : String(failure);
@@ -117,12 +123,12 @@ export class WgOverlayPanel extends LitElement {
 
   private async toggle(collapsed: boolean, horizontal: boolean): Promise<void> {
     this.snapshot = await bridgeApi.call<SurfacePanelSnapshot>('surface.panel.view',
-      { groupKey: this.snapshot?.groupKey ?? '', collapsed, horizontal });
+      { groupKey: this.snapshot?.groupKey || this.groupKey, collapsed, horizontal });
   }
 
   private renderHeader(snapshot: SurfacePanelSnapshot) {
     return html`
-      <div class="header">
+      <div class="header" @pointerdown=${() => void bridgeApi.call('surface.panel.drag', { groupKey: snapshot.groupKey })}>
         <span class="title">${snapshot.title}</span>
         <button aria-label=${t('Interface.Collapse')}
           title=${snapshot.collapsed ? t('Interface.Expand') : t('Interface.Collapse')}
