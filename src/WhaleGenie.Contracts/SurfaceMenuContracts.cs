@@ -5,7 +5,7 @@ namespace WhaleGenie.Contracts;
 /// <summary>One occupied cell of a menu page: which macro, where, and with what icon.</summary>
 [BridgeContract]
 public sealed record SurfaceMenuCell(int Row, int Column, string EntryId, string MacroName,
-    string? IconKind, string? IconValue);
+    string? IconKind, string? IconValue, string Description = "");
 
 /// <summary>One four-by-three menu page: the common pages and the context pages are shaped alike.</summary>
 [BridgeContract]
@@ -19,4 +19,4 @@ public sealed record SurfaceMenuPage(string PageId, bool IsDefault, string RuleS
 /// </summary>
 [BridgeContract]
 public sealed record SurfaceMenuSnapshot(IReadOnlyList<SurfaceMenuPage> Common,
-    IReadOnlyList<SurfaceMenuPage> Context);
+    IReadOnlyList<SurfaceMenuPage> Context, bool Pinned = false, bool CanUseForeground = true);

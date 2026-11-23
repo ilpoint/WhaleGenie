@@ -23,13 +23,13 @@ public interface IWheelOverlay
     void Warm();
 
     /// <summary>Shows the wheel centred on the pointer, with its own idle timeout.</summary>
-    void Open(WheelRuntimeLayout layout, OverlayPoint origin, int timeoutMs);
+    void Open(WheelRuntimeLayout layout, WheelOptions options, OverlayPoint origin, int timeoutMs);
 
     /// <summary>The wheel's scene changed while it is open; the page redraws, the window stays put.</summary>
     void SetLayout(WheelRuntimeLayout layout);
 
     /// <summary>The pointer moved to a position, or to the centre when the aim is null.</summary>
-    void SetAim(SurfaceWheelAim? aim);
+    void SetAim(SurfaceWheelAim? aim, OverlayPoint pointer);
 
     void Close();
 

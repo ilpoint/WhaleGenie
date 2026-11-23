@@ -20,7 +20,7 @@ public class MenuSurfaceTests
     public void A_common_page_carries_its_cells_and_the_icon_as_a_name()
     {
         var project = new ProjectWorkspace();
-        project.AddMacro(new MacroItem { Name = "one" });
+        project.AddMacro(new MacroItem { Name = "one", Description = "the first one" });
         var page = project.Triggers.CommonMenuPages()[0];
         project.Triggers.Entries.Add(new TriggerEntry
         {
@@ -37,6 +37,7 @@ public class MenuSurfaceTests
         Assert.Equal("one", cell.MacroName);
         Assert.Equal("builtin", cell.IconKind);
         Assert.Equal("Play", cell.IconValue);
+        Assert.Equal("the first one", cell.Description);
         Assert.False(string.IsNullOrEmpty(cell.EntryId));
     }
 
@@ -164,6 +165,10 @@ public class MenuSurfaceTests
         public void OpenEditor(string macroName) => Opened.Add(macroName);
 
         public void OpenRun(string macroName) => Opened.Add(macroName);
+
+        public bool SettingsOpened { get; private set; }
+
+        public void OpenSettings() => SettingsOpened = true;
 
         public string? Macro { get; init; }
 

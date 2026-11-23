@@ -80,6 +80,7 @@ internal static class WindowedServices
             server.Register(new ShellBridge(sp.GetRequiredService<ProjectWorkspace>(),
             new ShellCommands()));
             server.Register(new StringsBridge());
+            server.Register(new IconBridge());
             server.Register(new ThemeBridge(new ThemeCommands(sp.GetRequiredService<AppSettings>())));
             server.Register(new WindowBridge(() =>
             sp.GetService<WebShellWindow>() is { } window ? new ShellWindowCommands(window) : null));

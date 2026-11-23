@@ -20,12 +20,9 @@ internal sealed class WheelSurfaceBridge(WheelSurface wheel) : IBridgeHandler
     }
 
     /// <summary>Pushes one frame of a wheel the caller resolved, aimed where the pointer is.</summary>
-    internal void PushLayout(WhaleGenie.Models.WheelRuntimeLayout layout, SurfaceWheelAim? aim)
-        => _server?.PushAsync("surface.wheel.changed", WheelSurface.Of(layout, aim),
-            BridgePushMode.Latest, BridgeSurface.Wheel);
-
-    /// <summary>Sends one aim frame; a null aim means the pointer is over the centre.</summary>
-    internal void PushAim(SurfaceWheelAim? aim)
-        => _server?.PushAsync("surface.wheel.changed", wheel.Snapshot(aim),
+    internal void PushLayout(WhaleGenie.Models.WheelRuntimeLayout layout,
+        WhaleGenie.Models.WheelOptions options, SurfaceWheelAim? aim = null,
+        double dx = 0, double dy = 0)
+        => _server?.PushAsync("surface.wheel.changed", WheelSurface.Of(layout, options, aim, dx, dy),
             BridgePushMode.Latest, BridgeSurface.Wheel);
 }

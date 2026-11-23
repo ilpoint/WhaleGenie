@@ -20,7 +20,8 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
 
     public void Register(BridgeServer server)
     {
-        server.Register("surface.menu.state", _ => Task.FromResult<object?>(menu.Snapshot()));
+        server.Register("surface.menu.state", _ => Task.FromResult<object?>(
+            menu.Snapshot() with { Pinned = Overlay?.Pinned == true }));
         server.Register("surface.menu.activate", Activate);
         server.Register("surface.menu.drag", _ =>
         {
@@ -37,6 +38,12 @@ internal sealed class MenuSurfaceBridge(MenuSurface menu) : IBridgeHandler
             var focused = parameters.TryGetProperty("focused", out var given)
                 && given.ValueKind == System.Text.Json.JsonValueKind.True;
             Overlay?.SetSearchFocused(focused);
+            return Task.FromResult<object?>(null);
+        });
+        server.Register("surface.menu.settings", _ =>
+        {
+            Overlay?.Hide();
+            menu.Actions?.OpenSettings();
             return Task.FromResult<object?>(null);
         });
         server.Register("surface.menu.pin", parameters =>

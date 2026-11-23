@@ -1536,6 +1536,7 @@ export interface SurfaceMenuCell {
   macroName: string;
   iconKind: string | null;
   iconValue: string | null;
+  description: string;
 }
 
 export interface SurfaceMenuPage {
@@ -1548,6 +1549,8 @@ export interface SurfaceMenuPage {
 export interface SurfaceMenuSnapshot {
   common: SurfaceMenuPage[];
   context: SurfaceMenuPage[];
+  pinned: boolean;
+  canUseForeground: boolean;
 }
 
 export interface SurfacePanelItem {
@@ -1568,6 +1571,15 @@ export interface SurfacePanelSnapshot {
 export interface SurfaceWheelAim {
   ring: string;
   index: number;
+  x: number;
+  y: number;
+}
+
+export interface SurfaceWheelRing {
+  ring: string;
+  from: number;
+  to: number;
+  count: number;
 }
 
 export interface SurfaceWheelSlot {
@@ -1576,14 +1588,15 @@ export interface SurfaceWheelSlot {
   label: string;
   iconKind: string | null;
   iconValue: string | null;
+  tone: string;
 }
 
 export interface SurfaceWheelSnapshot {
   diameter: number;
-  wideOuter: boolean;
-  rings: number;
-  thirdCapacity: number;
+  canvasSize: number;
+  rings: SurfaceWheelRing[];
   sceneName: string;
+  centerText: string;
   slots: SurfaceWheelSlot[];
   aim: SurfaceWheelAim | null;
 }

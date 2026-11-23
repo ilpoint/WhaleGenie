@@ -4,10 +4,13 @@ import { bridgeApi } from '../../shared/bridge/bridge.js';
 import type { SurfacePanelSnapshot } from '../../shared/bridge/protocol.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
+import '../../shared/icons/icon.js';
 
 /**
  * 界面宏浮层：一组宏按标题排开，横向或纵向、折叠或展开。窗口规则、锚定位置与出现时机都在 C#，
  * 页面只负责画出来并把点击与折叠交回去。
+ *
+ * 尺寸与 `PanelGeometry` 是同一组数：面板 86 宽、标题 20、成员 80×24、间距 2、最多 6 行。
  */
 @customElement('wg-overlay-panel')
 export class WgOverlayPanel extends LitElement {
@@ -30,53 +33,97 @@ export class WgOverlayPanel extends LitElement {
     }
 
     .panel {
+      box-sizing: border-box;
+      width: 86px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      padding: 8px;
-      border-radius: 10px;
-      background: var(--colorNeutralBackground1);
+      border-radius: 6px;
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
-      box-shadow: var(--shadow8);
+      background: var(--colorNeutralBackground1);
+      overflow: hidden;
     }
 
     .panel.horizontal {
-      flex-direction: row;
-      align-items: center;
+      width: max-content;
+      max-width: 500px;
     }
 
     .header {
+      box-sizing: border-box;
+      height: 20px;
+      flex: none;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 2px;
+      padding: 0 4px;
+      background: var(--colorNeutralBackground2);
+      cursor: move;
     }
 
     .title {
-      font-size: 11px;
-      color: var(--colorNeutralForeground3);
       flex: 1;
+      min-width: 0;
+      font-size: 10.5px;
+      line-height: 1;
+      color: var(--colorNeutralForeground2);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .header button {
-      width: 20px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       padding: 0;
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      border-radius: 3px;
+      background: transparent;
+      color: var(--colorNeutralForeground2);
+      cursor: pointer;
+    }
+
+    .header button:hover {
+      background: var(--colorNeutralBackground3Hover);
+    }
+
+    .members {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 2px;
+      max-height: 154px;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .members.horizontal {
+      flex-direction: row;
+      max-height: none;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    button.member {
+      box-sizing: border-box;
+      width: 80px;
+      height: 24px;
+      flex: none;
+      padding: 0 4px;
       border: none;
       border-radius: 4px;
       background: var(--colorNeutralBackground3);
       color: inherit;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    button.member {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 6px;
-      background: var(--colorNeutralBackground3);
-      color: inherit;
       font: inherit;
+      font-size: 11px;
+      line-height: 1;
       text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       cursor: pointer;
     }
 
@@ -126,18 +173,31 @@ export class WgOverlayPanel extends LitElement {
       { groupKey: this.snapshot?.groupKey || this.groupKey, collapsed, horizontal });
   }
 
+  private startDrag(event: PointerEvent): void {
+    if (event.button !== 0 || (event.target as HTMLElement).closest('button')) {
+      return;
+    }
+
+    const snapshot = this.snapshot;
+    if (snapshot) {
+      void bridgeApi.call('surface.panel.drag', { groupKey: snapshot.groupKey });
+    }
+  }
+
   private renderHeader(snapshot: SurfacePanelSnapshot) {
     return html`
-      <div class="header" @pointerdown=${() => void bridgeApi.call('surface.panel.drag', { groupKey: snapshot.groupKey })}>
-        <span class="title">${snapshot.title}</span>
+      <div class="header" @pointerdown=${(event: PointerEvent) => this.startDrag(event)}>
+        <span class="title" title=${snapshot.title}>${snapshot.title}</span>
         <button aria-label=${t('Interface.Collapse')}
           title=${snapshot.collapsed ? t('Interface.Expand') : t('Interface.Collapse')}
+          @pointerdown=${(event: Event) => event.stopPropagation()}
           @click=${() => void this.toggle(!snapshot.collapsed, snapshot.horizontal)}>
-          ${snapshot.collapsed ? '▸' : '▾'}
+          <wg-icon name=${snapshot.collapsed ? 'ChevronRight' : 'ChevronDown'} .size=${11}></wg-icon>
         </button>
         <button aria-label=${t('Interface.Layout')} title=${t('Interface.Layout')}
+          @pointerdown=${(event: Event) => event.stopPropagation()}
           @click=${() => void this.toggle(snapshot.collapsed, !snapshot.horizontal)}>
-          ${snapshot.horizontal ? '⇅' : '⇆'}
+          <wg-icon name=${snapshot.horizontal ? 'Rows3' : 'Columns3'} .size=${11}></wg-icon>
         </button>
       </div>
     `;
@@ -156,15 +216,19 @@ export class WgOverlayPanel extends LitElement {
     return html`
       <div class="panel ${snapshot.horizontal ? 'horizontal' : ''}">
         ${this.renderHeader(snapshot)}
-        ${snapshot.collapsed ? '' : snapshot.items.map((item) => html`
-          <button class="member ${item.state === 'visible' ? '' : 'disabled'}"
-            title=${item.label}
-            @click=${() => {
-              if (item.state === 'visible') {
-                this.run(item.label);
-              }
-            }}>${item.label}</button>
-        `)}
+        ${snapshot.collapsed ? '' : html`
+          <div class="members ${snapshot.horizontal ? 'horizontal' : ''}">
+            ${snapshot.items.map((item) => html`
+              <button class="member ${item.state === 'visible' ? '' : 'disabled'}"
+                title=${item.label}
+                @click=${() => {
+                  if (item.state === 'visible') {
+                    this.run(item.label);
+                  }
+                }}>${item.label}</button>
+            `)}
+          </div>
+        `}
       </div>
     `;
   }

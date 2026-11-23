@@ -22,6 +22,7 @@ export interface BridgeEvents {
   'settings.openRequested': Record<string, never>;
   'surface.wheel.changed': SurfaceWheelSnapshot;
   'surface.panel.changed': SurfacePanelSnapshot;
+  'surface.menu.closed': null;
 }
 
 export type BridgeEventName = keyof BridgeEvents;

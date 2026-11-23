@@ -18,6 +18,7 @@ import { appInfo } from './shared/app/app.js';
 import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
 import { go } from './shared/navigation/router.js';
+import './shared/icons/icon.js';
 import './features/overlay/menu-overlay.js';
 import './features/overlay/wheel.js';
 import './features/overlay/panel.js';
@@ -30,6 +31,10 @@ import './app/shell.js';
  * 顺序不能乱：收信口在 HostTransport 构造时注册，`bridge.ready` 一定在拉完第一轮数据之后
  * 才发——宿主缓存的推送（窗口状态、切语言、项目变化）等到页面能接住时才到。
  */
+// WebView2 自带浏览器右键菜单；桌面程序里没有“返回/刷新/打印/检查”的位置，页面自己的菜单
+// 仍然在各自元素上处理，并且先于这里阻止默认。
+window.addEventListener('contextmenu', (event) => event.preventDefault());
+
 const client = new BridgeClient(pickTransport());
 bridge.connect(client);
 installFocusReporting();
@@ -53,6 +58,9 @@ client.on('strings.changed', (next) => strings.load(next));
 client.on('theme.changed', (next) => theme.load(next));
 
 if (overlayRoute) {
+  // 浮层只画自己的圆/卡片，窗口四周要透出后面的游戏或桌面。
+  document.documentElement.style.background = 'transparent';
+  document.body.style.background = 'transparent';
   document.body.replaceChildren(document.createElement(
     overlayRoute.startsWith('wheel') ? 'wg-overlay-wheel'
       : overlayRoute.startsWith('panel') ? 'wg-overlay-panel' : 'wg-overlay-menu'));

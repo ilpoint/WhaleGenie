@@ -17,4 +17,7 @@ public interface IMenuSurfaceActions
 
     /// <summary>The macro the person picked for a cell, or null when called off.</summary>
     Task<string?> PickMacroAsync();
+
+    /// <summary>Closes the menu and opens the settings window, the menu's gear button.</summary>
+    void OpenSettings();
 }

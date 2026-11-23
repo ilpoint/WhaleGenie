@@ -13,6 +13,9 @@ namespace WhaleGenie.Contracts;
 /// </remarks>
 public static class BridgeMethods
 {
+    /// <summary>The Lucide path of one icon name, asked by the overlay pages once per name.</summary>
+    public const string IconPath = "icon.path";
+
     public static IReadOnlyList<string> All { get; } =
     [
         "app.about",
@@ -52,6 +55,7 @@ public static class BridgeMethods
         "editor.steps",
         "editor.session",
         "editor.value",
+        "icon.path",
         "editor.valueState",
         "library.add",
         "library.delete",
@@ -121,6 +125,7 @@ public static class BridgeMethods
         "surface.menu.replace",
         "surface.menu.rule.add",
         "surface.menu.state",
+        "surface.menu.settings",
         "surface.panel.drag",
         "surface.panel.run",
         "surface.panel.view",

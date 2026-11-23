@@ -1,1 +1,1 @@
-export type { SurfaceWheelSlot, SurfaceWheelSnapshot } from '../generated/types.js';
+export type { SurfaceWheelRing, SurfaceWheelSlot, SurfaceWheelSnapshot } from '../generated/types.js';

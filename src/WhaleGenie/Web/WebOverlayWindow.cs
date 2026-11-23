@@ -24,6 +24,8 @@ internal sealed class WebOverlayWindow : Window
     private readonly string _route;
     private readonly string? _extraQuery;
     private WebBridge? _channel;
+    private bool _noActivate;
+    private bool _clickThrough;
 
     /// <summary>True once the page has been loaded in the background.</summary>
     private bool _warmed;
@@ -121,6 +123,7 @@ internal sealed class WebOverlayWindow : Window
         // reaches the WebView2 controller as its default background.
         _web.Background = Brushes.Transparent;
         _web.AdapterCreated += OnAdapterCreated;
+        Opened += (_, _) => ApplyStyles();
 
         Content = _web;
         _channel = new WebBridge(_web);
@@ -135,6 +138,11 @@ internal sealed class WebOverlayWindow : Window
             return;
         }
 
+        // The control applies Background to the controller; a value set before the adapter exists
+        // can miss it, so it is written again here. Clearing first is what makes the property change.
+        _web.Background = null;
+        _web.Background = Brushes.Transparent;
+        ApplyStyles();
         _bridge.Attach(_surface, channel);
         if (_warming)
         {
@@ -174,7 +182,7 @@ internal sealed class WebOverlayWindow : Window
     /// of the screen makes the person look for it. A position that would leave the display is
     /// pulled back inside the work area.
     /// </summary>
-    internal void PlaceNearCursor()
+    internal void PlaceNearCursor(double width, double height)
     {
         var screen = Screens.ScreenFromPoint(Position) ?? Screens.Primary;
         if (screen is not { } area)
@@ -184,10 +192,9 @@ internal sealed class WebOverlayWindow : Window
 
         var work = area.WorkingArea;
         var cursor = TryCursor() ?? new PixelPoint(work.X + work.Width / 2, work.Y + work.Height / 2);
-        var width = (int)Width;
-        var height = (int)Height;
-        var x = Math.Min(cursor.X, work.X + work.Width - width);
-        var y = Math.Min(cursor.Y, work.Y + work.Height - height);
+        var scale = RenderScaling;
+        var x = Math.Min(cursor.X, work.X + work.Width - (int)Math.Round(width * scale));
+        var y = Math.Min(cursor.Y, work.Y + work.Height - (int)Math.Round(height * scale));
         Position = new PixelPoint(Math.Max(work.X, x), Math.Max(work.Y, y));
     }
 
@@ -251,13 +258,96 @@ internal sealed class WebOverlayWindow : Window
     /// <summary>Centres a square of <paramref name="contentSize"/> on a screen point.</summary>
     internal void PlaceCenteredAt(PixelPoint centre, double contentSize)
     {
-        var offset = (int)Math.Round((Width - contentSize) / 2);
-        Position = new PixelPoint(centre.X - (int)Math.Round(contentSize / 2) - offset,
-            centre.Y - (int)Math.Round(contentSize / 2) - offset);
+        var scale = RenderScaling;
+        var offset = (int)Math.Round((Width - contentSize) / 2 * scale);
+        Position = new PixelPoint(centre.X - (int)Math.Round(contentSize / 2 * scale) - offset,
+            centre.Y - (int)Math.Round(contentSize / 2 * scale) - offset);
     }
 
     /// <summary>Puts the keyboard on the page: the native WebView is its own window and swallows keys.</summary>
     internal void FocusPage() => _web.Focus();
+
+    /// <summary>A menu or panel must not take the keyboard until its search is opened.</summary>
+    internal void SetNoActivate(bool value)
+    {
+        _noActivate = value;
+        ApplyStyles();
+    }
+
+    /// <summary>The wheel is driven by the global hook; the pointer belongs to whatever is behind it.</summary>
+    internal void SetClickThrough(bool value)
+    {
+        _clickThrough = value;
+        ApplyStyles();
+    }
+
+    /// <summary>Clips the window after Windows refused a very short height, as the native panel did.</summary>
+    internal void ClipToBody(int width, int height)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle == IntPtr.Zero || width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        var scale = RenderScaling;
+        var region = CreateRectRgn(0, 0, (int)Math.Round(width * scale), (int)Math.Round(height * scale));
+        if (region == IntPtr.Zero)
+        {
+            return;
+        }
+
+        if (SetWindowRgn(handle, region, true) == 0)
+        {
+            DeleteObject(region);
+        }
+    }
+
+    private void ApplyStyles()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var style = GetWindowLongPtr(handle, GwlExStyle).ToInt64();
+        style = _noActivate
+            ? style | WsExNoActivate | WsExToolWindow
+            : style & ~(long)WsExNoActivate;
+        style = _clickThrough ? style | WsExTransparent : style & ~(long)WsExTransparent;
+        SetWindowLongPtr(handle, GwlExStyle, new IntPtr(style));
+    }
+
+    private const int GwlExStyle = -20;
+    private const long WsExTransparent = 0x00000020L;
+    private const long WsExToolWindow = 0x00000080L;
+    private const long WsExNoActivate = 0x08000000L;
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowRgn(IntPtr window, IntPtr region, bool redraw);
+
+    [DllImport("user32.dll")]
+    private static extern bool DeleteObject(IntPtr handle);
 
     protected override void OnClosed(EventArgs e)
     {

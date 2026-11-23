@@ -2,62 +2,16 @@ import { LitElement, css, html } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { bridgeApi } from '../../shared/bridge/bridge.js';
-import type { SurfaceWheelSnapshot } from '../../shared/bridge/protocol.js';
+import type { SurfaceWheelRing, SurfaceWheelSlot, SurfaceWheelSnapshot } from '../../shared/bridge/protocol.js';
+import { iconPath, svgPath } from '../../shared/icons/icons.js';
 import { strings } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
-
-interface Annulus {
-  from: number;
-  to: number;
-  count: number;
-}
-
-/** The radii of the rings a wheel draws, in the wheel's own coordinates. */
-function rings(snapshot: SurfaceWheelSnapshot): Annulus[] {
-  const half = snapshot.diameter / 2;
-  if (snapshot.rings <= 1) {
-    return [{ from: half * 0.30, to: half * 0.94, count: 6 }];
-  }
-
-  const inner: Annulus = { from: half * (snapshot.rings === 3 ? 0.16 : 0.22), to: half * (snapshot.rings === 3 ? 0.40 : 0.56), count: 8 };
-  const outer: Annulus = { from: inner.to, to: half * (snapshot.rings === 3 ? 0.66 : 0.94), count: 8 };
-  return snapshot.rings === 3
-    ? [inner, outer, { from: outer.to, to: half * 0.94, count: Math.max(1, snapshot.thirdCapacity) }]
-    : [inner, outer];
-}
-
-function point(centre: number, radius: number, angle: number): [number, number] {
-  return [centre + radius * Math.sin(angle), centre - radius * Math.cos(angle)];
-}
-
-function sectorPath(centre: number, from: number, to: number, index: number, count: number): string {
-  const step = (Math.PI * 2) / count;
-  const start = angle(index - 0.5, step);
-  const end = angle(index + 0.5, step);
-  const segments = 16;
-  const points: string[] = [];
-  for (let stepIndex = 0; stepIndex <= segments; stepIndex += 1) {
-    const at = start + (end - start) * (stepIndex / segments);
-    const [x, y] = point(centre, to, at);
-    points.push(`${x.toFixed(2)} ${y.toFixed(2)}`);
-  }
-
-  for (let stepIndex = segments; stepIndex >= 0; stepIndex -= 1) {
-    const at = start + (end - start) * (stepIndex / segments);
-    const [x, y] = point(centre, from, at);
-    points.push(`${x.toFixed(2)} ${y.toFixed(2)}`);
-  }
-
-  return `M ${points.join(' L ')} Z`;
-}
-
-function angle(index: number, step: number): number {
-  return (index - 0.5) * step;
-}
+import { fileUrl } from '../../shared/files/file-url.js';
 
 /**
- * 轮盘浮层：C# 说“这一圈画几格、每格是什么”，页面只负责把扇区画出来。指针落点、扇区命中与
- * 重复/取消的判定留在 C#，所以换 DPI 或换主题不会改变“指针落在哪一格”。
+ * 轮盘浮层：C# 给出圈、每一圈的位置数和已填的格子，页面只负责画。
+ *
+ * 画布是直径的两倍，和原生一样：引导线要跟到圈外的指针。窗口本身透明且点击穿透，指针由全局钩子读。
  */
 @customElement('wg-overlay-wheel')
 export class WgOverlayWheel extends LitElement {
@@ -66,6 +20,8 @@ export class WgOverlayWheel extends LitElement {
 
   @state()
   private error = '';
+
+  private readonly iconCache = new Map<string, string | null>();
 
   protected readonly stringsController = new StoreController(this, strings);
 
@@ -84,18 +40,38 @@ export class WgOverlayWheel extends LitElement {
       overflow: visible;
     }
 
-    .sector {
+    .surface {
       fill: var(--colorNeutralBackground1);
       stroke: var(--colorNeutralStroke2);
       stroke-width: 1;
     }
 
-    .sector:hover {
-      fill: var(--colorNeutralBackground3Hover);
+    .gloss {
+      opacity: 0.9;
+    }
+
+    .sector {
+      fill: var(--colorNeutralBackground1);
+      stroke: var(--colorNeutralStroke2);
+      stroke-width: 0.8;
+    }
+
+    .sector.global {
+      fill: var(--colorNeutralBackground3);
+    }
+
+    .sector.overridden {
+      fill: var(--colorPaletteYellowBackground2);
+    }
+
+    .sector.extended {
+      fill: var(--colorNeutralBackground2);
     }
 
     .sector.aimed {
       fill: var(--colorBrandBackground2);
+      stroke: var(--colorBrandStroke1);
+      stroke-width: 2.5;
     }
 
     .label {
@@ -113,9 +89,24 @@ export class WgOverlayWheel extends LitElement {
 
     .scene {
       font-size: 12px;
-      fill: var(--colorNeutralForeground3);
+      fill: var(--colorNeutralForeground2);
       text-anchor: middle;
       dominant-baseline: middle;
+    }
+
+    .guide {
+      stroke: var(--colorBrandStroke1);
+      stroke-width: 2;
+      fill: none;
+    }
+
+    .guide.extended {
+      stroke-width: 2.5;
+      stroke-dasharray: 6 5;
+    }
+
+    .guide-dot {
+      fill: var(--colorBrandBackground);
     }
 
     .note {
@@ -128,44 +119,36 @@ export class WgOverlayWheel extends LitElement {
   protected override async firstUpdated(): Promise<void> {
     await this.reload();
     window.addEventListener('focus', () => void this.reload());
-    // The aim arrives as whole frames: the pointer writes many positions, the page keeps the last.
     bridgeApi.on('surface.wheel.changed', (next) => {
       this.snapshot = next;
+      this.preload(next);
     });
   }
 
   private async reload(): Promise<void> {
     try {
       this.snapshot = await bridgeApi.call<SurfaceWheelSnapshot>('surface.wheel.state');
+      this.preload(this.snapshot);
       this.error = '';
     } catch (failure) {
       this.error = failure instanceof Error ? failure.message : String(failure);
     }
   }
 
-  private svgMarkup(snapshot: SurfaceWheelSnapshot): string {
-    const centre = snapshot.diameter / 2;
-    const annuli = rings(snapshot);
-    const parts: string[] = [];
+  /** 把这一帧用到的 Lucide 路径先取回来，取到一个就让画面重画一次。 */
+  private preload(snapshot: SurfaceWheelSnapshot): void {
     for (const slot of snapshot.slots) {
-      const ring = slot.ring === 'inner' ? 0 : slot.ring === 'outer' ? 1 : 2;
-      const annulus = annuli[ring];
-      if (!annulus) {
+      if (slot.iconKind !== 'builtin' || !slot.iconValue || this.iconCache.has(slot.iconValue)) {
         continue;
       }
 
-      const middle = (annulus.from + annulus.to) / 2;
-      const step = (Math.PI * 2) / annulus.count;
-      const [x, y] = point(centre, middle, slot.index * step);
-      const aimed = snapshot.aim?.ring === slot.ring && snapshot.aim.index === slot.index;
-      parts.push(`<path class="sector${aimed ? ' aimed' : ''}" d="${sectorPath(centre, annulus.from, annulus.to, slot.index, annulus.count)}"></path>`);
-      parts.push(`<text class="label" x="${x}" y="${y}">${escapeXml(slot.label)}</text>`);
+      const name = slot.iconValue;
+      this.iconCache.set(name, null);
+      void iconPath(name).then((path) => {
+        this.iconCache.set(name, path);
+        this.requestUpdate();
+      });
     }
-
-    const circle = (annuli[0]?.from ?? centre * 0.2) - 2;
-    parts.push(`<circle class="centre" cx="${centre}" cy="${centre}" r="${circle}"></circle>`);
-    parts.push(`<text class="scene" x="${centre}" y="${centre}">${escapeXml(snapshot.sceneName)}</text>`);
-    return `<svg width="${snapshot.diameter}" height="${snapshot.diameter}" viewBox="0 0 ${snapshot.diameter} ${snapshot.diameter}">${parts.join('')}</svg>`;
   }
 
   protected override render() {
@@ -177,10 +160,159 @@ export class WgOverlayWheel extends LitElement {
       return html`<p class="note">…</p>`;
     }
 
-    // Lit's template parser puts nested SVG shapes in the HTML namespace, where they never render;
-    // the wheel is one generated <svg> string instead.
     return html`${unsafeSVG(this.svgMarkup(this.snapshot))}`;
   }
+
+  private svgMarkup(snapshot: SurfaceWheelSnapshot): string {
+    const size = snapshot.canvasSize;
+    const centre = size / 2;
+    const edge = snapshot.rings.length > 0
+      ? snapshot.rings[snapshot.rings.length - 1]!.to
+      : snapshot.diameter / 2;
+    const bySlot = new Map<string, SurfaceWheelSlot>();
+    for (const slot of snapshot.slots) {
+      bySlot.set(slot.ring + ':' + slot.index, slot);
+    }
+
+    const parts = [
+      ...surfaceMarkup(centre, edge),
+      ...sectorMarkup(snapshot, centre, bySlot),
+      ...slotMarkup(snapshot, centre, this.iconCache),
+      centreMarkup(snapshot, centre),
+      ...guideMarkup(snapshot, centre),
+    ];
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' '
+      + size + '">' + parts.join('') + '</svg>';
+  }
+}
+
+function surfaceMarkup(centre: number, edge: number): string[] {
+  return [
+    '<defs><linearGradient id="wg-wheel-gloss" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0" stop-color="#fff" stop-opacity="0.22"/>'
+      + '<stop offset="0.55" stop-color="#fff" stop-opacity="0"/>'
+      + '<stop offset="1" stop-color="#000" stop-opacity="0.10"/></linearGradient></defs>',
+    '<circle class="surface" cx="' + centre + '" cy="' + centre + '" r="' + edge + '"></circle>',
+    '<circle class="gloss" cx="' + centre + '" cy="' + centre + '" r="' + edge
+      + '" fill="url(#wg-wheel-gloss)"></circle>',
+  ];
+}
+
+function sectorMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
+  bySlot: Map<string, SurfaceWheelSlot>): string[] {
+  const parts: string[] = [];
+  for (const ring of snapshot.rings) {
+    for (let index = 0; index < ring.count; index += 1) {
+      const slot = bySlot.get(ring.ring + ':' + index);
+      const aimed = snapshot.aim?.ring === ring.ring && snapshot.aim.index === index;
+      parts.push('<path class="sector ' + (slot?.tone ?? 'empty') + (aimed ? ' aimed' : '')
+        + '" d="' + sectorPath(centre, ring.from, ring.to, index, ring.count) + '"></path>');
+    }
+  }
+
+  return parts;
+}
+
+function slotMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
+  icons: Map<string, string | null>): string[] {
+  const parts: string[] = [];
+  for (const slot of snapshot.slots) {
+    const ring = snapshot.rings.find((candidate) => candidate.ring === slot.ring);
+    if (!ring) {
+      continue;
+    }
+
+    const [x, y] = labelPoint(centre, ring, slot.index);
+    const path = slot.iconKind === 'builtin' && slot.iconValue
+      ? icons.get(slot.iconValue)
+      : null;
+    if (path) {
+      parts.push('<path d="' + escapeXml(svgPath(path)) + '" fill="none" stroke="currentColor"'
+        + ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"'
+        + ' transform="translate(' + (x - 12).toFixed(2) + ' ' + (y - 12).toFixed(2)
+        + ') scale(1.0)"></path>');
+    } else if (slot.iconKind === 'image' && slot.iconValue) {
+      parts.push('<image x="' + (x - 14).toFixed(2) + '" y="' + (y - 14).toFixed(2)
+        + '" width="28" height="28" href="' + escapeXml(fileUrl(slot.iconValue)) + '"></image>');
+    } else {
+      parts.push('<text class="label" x="' + x.toFixed(2) + '" y="' + y.toFixed(2)
+        + '">' + escapeXml(slot.label) + '</text>');
+    }
+  }
+
+  return parts;
+}
+
+function centreMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string {
+  const radius = (snapshot.rings[0]?.from ?? snapshot.diameter * 0.11) - 2;
+  return '<circle class="centre" cx="' + centre + '" cy="' + centre + '" r="' + radius
+    + '"></circle><text class="scene" x="' + centre + '" y="' + centre + '">'
+    + escapeXml(snapshot.centerText) + '</text>';
+}
+
+function guideMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string[] {
+  if (!snapshot.aim) {
+    return [];
+  }
+
+  const end = clampToSquare(centre, snapshot.aim.x, snapshot.aim.y, snapshot.canvasSize);
+  const extended = snapshot.aim.ring === 'extended';
+  return [
+    '<line class="guide' + (extended ? ' extended' : '') + '" x1="' + centre
+      + '" y1="' + centre + '" x2="' + end[0].toFixed(2) + '" y2="' + end[1].toFixed(2)
+      + '"></line>',
+    '<circle class="guide-dot" cx="' + end[0].toFixed(2) + '" cy="' + end[1].toFixed(2)
+      + '" r="' + (extended ? 5 : 3.5) + '"></circle>',
+  ];
+}
+
+/** 一格扇区：一段外弧加一段内弧，所有平台都按同一组点画。 */
+function sectorPath(centre: number, from: number, to: number, index: number, count: number): string {
+  const step = (Math.PI * 2) / count;
+  const start = index * step - step / 2;
+  const points: string[] = [];
+  const segments = 12;
+  for (let part = 0; part <= segments; part += 1) {
+    const at = start + step * (part / segments);
+    points.push(point(centre, to, at));
+  }
+
+  for (let part = segments; part >= 0; part -= 1) {
+    const at = start + step * (part / segments);
+    points.push(point(centre, from, at));
+  }
+
+  return 'M ' + points.join(' L ') + ' Z';
+}
+
+function labelPoint(centre: number, ring: SurfaceWheelRing, index: number): [number, number] {
+  const radius = (ring.from + ring.to) / 2;
+  const angle = index * Math.PI * 2 / ring.count;
+  return [centre + radius * Math.sin(angle), centre - radius * Math.cos(angle)];
+}
+
+function point(centre: number, radius: number, angle: number): string {
+  return (centre + radius * Math.sin(angle)).toFixed(2) + ' '
+    + (centre - radius * Math.cos(angle)).toFixed(2);
+}
+
+/** 从圆心指向指针的线段，超出方形窗口时按窗口边裁断。 */
+function clampToSquare(centre: number, x: number, y: number, size: number): [number, number] {
+  let fraction = 1;
+  if (x > 0) {
+    fraction = Math.min(fraction, (size - centre) / x);
+  } else if (x < 0) {
+    fraction = Math.min(fraction, -centre / x);
+  }
+
+  if (y > 0) {
+    fraction = Math.min(fraction, (size - centre) / y);
+  } else if (y < 0) {
+    fraction = Math.min(fraction, -centre / y);
+  }
+
+  fraction = Math.max(0, Math.min(1, fraction));
+  return [centre + x * fraction, centre + y * fraction];
 }
 
 function escapeXml(value: string): string {

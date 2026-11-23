@@ -14,6 +14,8 @@ internal sealed class MenuSurfaceActions(Func<WebShellWindow?> owner, ProjectWor
 
     public void OpenRun(string macroName) => owner()?.OpenRun(macroName);
 
+    public void OpenSettings() => owner()?.OpenSettings();
+
     public async Task<(string Kind, string Value)?> PickIconAsync()
     {
         if (owner() is not { } window)

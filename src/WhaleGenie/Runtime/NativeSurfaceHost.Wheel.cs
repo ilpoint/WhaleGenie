@@ -23,7 +23,7 @@ internal sealed partial class NativeSurfaceHost
 
     /// <summary>The frame the open wheel was drawn with; the hit test reads it.</summary>
     private WheelRuntimeLayout? _wheelLayout;
-    private WheelMetrics _wheelMetrics = WheelGeometry.For(WheelSurface.Diameter, false);
+    private WheelMetrics _wheelMetrics = WheelGeometry.For(WheelSurface.DefaultDiameter, false);
 
     /// <summary>Whether a wheel is on screen, copied for the hook thread.</summary>
     private int _wheelHostOpen;
@@ -240,7 +240,7 @@ internal sealed partial class NativeSurfaceHost
                 {
                     var next = LayoutFor(Volatile.Read(ref _wheelState).Options);
                     _wheelLayout = next;
-                    _wheelMetrics = WheelSurface.MetricsOf(next);
+                    _wheelMetrics = WheelSurface.MetricsOf(next, Volatile.Read(ref _wheelState).Options);
                     _wheelOverlay.SetLayout(next);
                 }
             }, "wheel.scroll");
@@ -341,8 +341,9 @@ internal sealed partial class NativeSurfaceHost
 
             var layout = LayoutFor(state.Options);
             _wheelLayout = layout;
-            _wheelMetrics = WheelSurface.MetricsOf(layout);
-            _wheelOverlay.Open(layout, new OverlayPoint(origin.X, origin.Y), state.Options.TimeoutMs);
+            _wheelMetrics = WheelSurface.MetricsOf(layout, state.Options);
+            _wheelOverlay.Open(layout, state.Options, new OverlayPoint(origin.X, origin.Y),
+                state.Options.TimeoutMs);
             Volatile.Write(ref _wheelHostOpen, 1);
             _wheel?.SetCenter(origin.X, origin.Y, _wheelMetrics);
 
@@ -409,8 +410,9 @@ internal sealed partial class NativeSurfaceHost
         var chosen = WheelGeometry.At(x - origin.X, y - origin.Y, _wheelMetrics);
         _wheel?.Hover(chosen);
         _wheelOverlay.SetAim(chosen is { } aimed
-            ? new SurfaceWheelAim(aimed.Ring.ToString().ToLowerInvariant(), aimed.Index)
-            : null);
+            ? new SurfaceWheelAim(aimed.Ring.ToString().ToLowerInvariant(), aimed.Index, 0, 0)
+            : null,
+            new OverlayPoint((int)Math.Round(x), (int)Math.Round(y)));
     }
 
     private void RunWheelSlot(WheelSlotRef? reference)

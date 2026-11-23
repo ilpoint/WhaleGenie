@@ -52,7 +52,8 @@ internal sealed class ShellHostFactory(
 #if DEBUG
         if (App.WheelOverlay)
         {
-            wheelOverlay.Open(WheelSurface.Resolve(workspace), new OverlayPoint(720, 420), 0);
+            wheelOverlay.Open(WheelSurface.Resolve(workspace), new WheelOptions(),
+                new OverlayPoint(720, 420), 0);
         }
 #endif
 #if DEBUG

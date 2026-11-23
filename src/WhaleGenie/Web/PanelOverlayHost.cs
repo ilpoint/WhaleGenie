@@ -28,10 +28,14 @@ internal sealed class PanelOverlayHost(BridgeServer bridge, PanelSurfaceBridge f
         var window = Ensure();
         window.EndWarm();
         _placing = true;
+        window.SetNoActivate(true);
         window.Width = width;
         window.Height = height;
         window.Position = new PixelPoint(position.X, position.Y);
         window.Show();
+        // Windows may refuse a body as short as the folded handle; the region is what makes the
+        // strip exact, so a taller window cannot show a white band under it.
+        window.ClipToBody(width, height);
         _placing = false;
         window.PlaceAbove(aboveHandle);
         frames.Push(snapshot);
@@ -50,6 +54,7 @@ internal sealed class PanelOverlayHost(BridgeServer bridge, PanelSurfaceBridge f
 
         _window = new WebOverlayWindow(bridge, BridgeSurface.Panel, "overlay/panel", 86, 24,
             "overlay=panel&group=" + Uri.EscapeDataString(groupKey), topmost: false);
+        _window.SetNoActivate(true);
         _window.PositionChanged += (_, _) =>
         {
             if (!_placing && IsVisible)

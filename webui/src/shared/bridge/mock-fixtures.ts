@@ -115,9 +115,9 @@ export const demoSurfaceMenu: SurfaceMenuSnapshot = {
       isDefault: false,
       ruleSummary: '',
       cells: [
-        { row: 0, column: 0, entryId: 'e1', macroName: '演示宏', iconKind: null, iconValue: null },
-        { row: 0, column: 1, entryId: 'e2', macroName: '备份', iconKind: null, iconValue: null },
-        { row: 1, column: 2, entryId: 'e3', macroName: '每日签到', iconKind: null, iconValue: null },
+        { row: 0, column: 0, entryId: 'e1', macroName: '演示宏', iconKind: null, iconValue: null, description: '' },
+        { row: 0, column: 1, entryId: 'e2', macroName: '备份', iconKind: null, iconValue: null, description: '' },
+        { row: 1, column: 2, entryId: 'e3', macroName: '每日签到', iconKind: null, iconValue: null, description: '' },
       ],
     },
     {
@@ -125,27 +125,32 @@ export const demoSurfaceMenu: SurfaceMenuSnapshot = {
       isDefault: false,
       ruleSummary: '',
       cells: [
-        { row: 2, column: 0, entryId: 'e4', macroName: '清理日志', iconKind: null, iconValue: null },
+        { row: 2, column: 0, entryId: 'e4', macroName: '清理日志', iconKind: null, iconValue: null, description: '' },
       ],
     },
   ],
   context: [
     { pageId: 'ctx', isDefault: true, ruleSummary: 'Default', cells: [] },
   ],
+  pinned: false,
+  canUseForeground: true,
 };
-/** 轮盘浮层：内外两圈各几格，够开发与 e2e 看清扇区与标签。 */
+/** 轮盘浮层：内外两圈、每格 8 个位置，空白格也要看得见。 */
 export const demoSurfaceWheel: SurfaceWheelSnapshot = {
   diameter: 420,
-  wideOuter: false,
-  rings: 2,
-  thirdCapacity: 0,
+  canvasSize: 840,
+  rings: [
+    { ring: 'inner', from: 46.2, to: 117.6, count: 8 },
+    { ring: 'outer', from: 117.6, to: 197.4, count: 8 },
+  ],
   sceneName: 'Global',
+  centerText: '关闭',
   aim: null,
   slots: [
-    { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null },
-    { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null },
-    { ring: 'outer', index: 0, label: '每日签到', iconKind: null, iconValue: null },
-    { ring: 'outer', index: 3, label: '清理日志', iconKind: null, iconValue: null },
+    { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null, tone: 'global' },
+    { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null, tone: 'global' },
+    { ring: 'outer', index: 0, label: '每日签到', iconKind: null, iconValue: null, tone: 'overridden' },
+    { ring: 'outer', index: 3, label: '清理日志', iconKind: null, iconValue: null, tone: 'global' },
   ],
 };
 /** 界面宏浮层：一个组的两三个成员，够开发与 e2e 看排版。 */

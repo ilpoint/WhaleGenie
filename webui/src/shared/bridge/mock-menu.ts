@@ -65,6 +65,7 @@ function addPage(host: MockShellContext, params: Record<string, unknown>): unkno
 function removePage(host: MockShellContext, params: Record<string, unknown>): unknown {
   const pageId = String(params['pageId'] ?? '');
   host.surfaceMenu = {
+    ...host.surfaceMenu,
     common: host.surfaceMenu.common.filter((page) => page.pageId !== pageId),
     context: host.surfaceMenu.context.filter((page) => page.pageId !== pageId),
   };
@@ -77,6 +78,7 @@ function moveCell(host: MockShellContext, params: Record<string, unknown>): unkn
   const row = Number(params['row'] ?? 0);
   const column = Number(params['column'] ?? 0);
   host.surfaceMenu = {
+    ...host.surfaceMenu,
     common: host.surfaceMenu.common.map((page) => ({
       ...page,
       cells: page.cells

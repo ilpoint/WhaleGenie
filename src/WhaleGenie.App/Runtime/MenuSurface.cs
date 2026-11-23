@@ -35,7 +35,8 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
         }
 
         var layout = workspace.Triggers.BuildMenuLayout(foreground, windows, workspace.Macros);
-        return new SurfaceMenuSnapshot(Pages(layout.CommonPages), Pages(layout.ContextPages));
+        return new SurfaceMenuSnapshot(Pages(layout.CommonPages), Pages(layout.ContextPages),
+            CanUseForeground: foreground is not null);
     }
 
     /// <summary>Opens one cell's macro in the editor.</summary>
@@ -273,5 +274,6 @@ internal sealed class MenuSurface(ProjectWorkspace workspace, IWindowDevice wind
             cell.Icon is { IsEmpty: false } icon
                 ? icon.Kind.ToString().ToLowerInvariant()
                 : null,
-            cell.Icon is { IsEmpty: false } value ? value.Value : null);
+            cell.Icon is { IsEmpty: false } value ? value.Value : null,
+            cell.Macro.Description ?? string.Empty);
 }
