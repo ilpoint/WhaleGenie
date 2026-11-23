@@ -36,13 +36,14 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
     private readonly Func<GlobalHotkeyPlan> _plan;
     private readonly INativeSurfaceActions _actions;
     private readonly IMenuOverlay _menu;
+    private readonly IWheelOverlay _wheelOverlay;
 
     private int _menuOpen;
     private int _menuSearchFocused;
 
     internal NativeSurfaceHost(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
         IDeviceLayer devices, Func<Avalonia.Controls.Window?> owner, Func<GlobalHotkeyPlan> plan,
-        INativeSurfaceActions actions, IMenuOverlay menu)
+        INativeSurfaceActions actions, IMenuOverlay menu, IWheelOverlay wheelOverlay)
     {
         _workspace = workspace;
         _runtime = runtime;
@@ -52,8 +53,10 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
         _plan = plan;
         _actions = actions;
         _menu = menu;
+        _wheelOverlay = wheelOverlay;
         _menu.Hidden += OnMenuHidden;
         _menu.FocusChanged += OnMenuFocusChanged;
+        _wheelOverlay.TimedOut += OnWheelTimedOut;
         InitializeWheel();
         InitializePanels();
     }
@@ -124,6 +127,12 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
     private void OnMenuFocusChanged(bool focused)
         => Volatile.Write(ref _menuSearchFocused, focused ? 1 : 0);
 
+    private void OnWheelTimedOut()
+    {
+        _wheel?.Timeout();
+        CloseWheel();
+    }
+
     private WindowInfo? Foreground()
     {
         try
@@ -142,6 +151,7 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
         DisposeWheel();
         _menu.Hidden -= OnMenuHidden;
         _menu.FocusChanged -= OnMenuFocusChanged;
+        _wheelOverlay.TimedOut -= OnWheelTimedOut;
         Volatile.Write(ref _menuOpen, 0);
         MacroTriggerGate.Exit();
     }

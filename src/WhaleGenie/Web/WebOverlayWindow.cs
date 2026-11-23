@@ -140,6 +140,14 @@ internal sealed class WebOverlayWindow : Window
     }
 
 
+    /// <summary>Centres a square of <paramref name="contentSize"/> on a screen point.</summary>
+    internal void PlaceCenteredAt(PixelPoint centre, double contentSize)
+    {
+        var offset = (int)Math.Round((Width - contentSize) / 2);
+        Position = new PixelPoint(centre.X - (int)Math.Round(contentSize / 2) - offset,
+            centre.Y - (int)Math.Round(contentSize / 2) - offset);
+    }
+
     /// <summary>Puts the keyboard on the page: the native WebView is its own window and swallows keys.</summary>
     internal void FocusPage() => _web.Focus();
 

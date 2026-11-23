@@ -17,7 +17,7 @@ using WhaleGenie.Views;
 namespace WhaleGenie.Tests;
 
 // The wheel gesture: the buttons that start it, how it ends, and the thread it runs on.
-public partial class WheelMenuTests
+public class WheelGestureTests
 {
     [Fact]
     public void A_middle_press_still_requests_the_macro_menu_with_a_wheel_configured()
@@ -120,6 +120,38 @@ public partial class WheelMenuTests
         Assert.False(gesture.IsPending);
     }
 
+    private static readonly WheelSlotRef Top = new(WheelRing.Inner, 0);
+    private static readonly WheelSlotRef Right = new(WheelRing.Inner, 2);
+
+    private static WheelGesture Gesture() => new(
+        () => WheelOptions.RightButton,
+        () => WheelOptions.UsualRepeatKey,
+        () => true);
+
+    private static void InOwnFiles(Action check)
+    {
+        var folder = Path.Combine(Path.GetTempPath(),
+            "whalegenie-wheel-" + Guid.NewGuid().ToString("N"));
+        var settings = LocalSettings.FilePath;
+        var wheel = WheelMenuStore.FilePathOverride;
+        try
+        {
+            Directory.CreateDirectory(folder);
+            LocalSettings.FilePath = Path.Combine(folder, "settings.json");
+            WheelMenuStore.FilePathOverride = Path.Combine(folder, "wheel-menu.json");
+            check();
+        }
+        finally
+        {
+            LocalSettings.FilePath = settings;
+            WheelMenuStore.FilePathOverride = wheel;
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, true);
+            }
+        }
+    }
+
     private sealed class RunningFlag
     {
         private int _value = 1;
@@ -175,3 +207,4 @@ public partial class WheelMenuTests
         Assert.Equal(16, WheelGeometry.For(420, true).OuterCount);
     }
 }
+

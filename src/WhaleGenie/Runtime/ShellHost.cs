@@ -21,7 +21,7 @@ internal sealed class ShellHost : IDisposable
 
     internal ShellHost(ProjectWorkspace workspace, SystemState system, TriggerRuntime runtime,
         RunQuestionHost questions, ShellNativeWindows actions, Window owner, ITriggerFocusProbe focus,
-        IMenuOverlay menuOverlay)
+        IMenuOverlay menuOverlay, IWheelOverlay wheelOverlay)
     {
         _actions = actions;
         _owner = owner;
@@ -31,7 +31,7 @@ internal sealed class ShellHost : IDisposable
         _session.Watch();
 
         _surface = new NativeSurfaceHost(workspace, runtime, system, runtime.Devices,
-            () => owner, () => _trigger!.Plan, actions, menuOverlay);
+            () => owner, () => _trigger!.Plan, actions, menuOverlay, wheelOverlay);
         _trigger = new TriggerHost(workspace, system, runtime, runtime.Devices, _surface,
             questions, focus);
         _actions.Host = _trigger;

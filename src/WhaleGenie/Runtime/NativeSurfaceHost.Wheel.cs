@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using WhaleGenie.Contracts;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
@@ -18,8 +19,11 @@ namespace WhaleGenie.Runtime;
 internal sealed partial class NativeSurfaceHost
 {
     private WheelGesture? _wheel;
-    private WheelMenuWindow? _wheelWindow;
     private WheelMenuState _wheelState = new();
+
+    /// <summary>The frame the open wheel was drawn with; the hit test reads it.</summary>
+    private WheelRuntimeLayout? _wheelLayout;
+    private WheelMetrics _wheelMetrics = WheelGeometry.For(WheelSurface.Diameter, false);
 
     /// <summary>Whether a wheel is on screen, copied for the hook thread.</summary>
     private int _wheelHostOpen;
@@ -41,6 +45,7 @@ internal sealed partial class NativeSurfaceHost
     private long _wheelMovesAtOpen;
     private long _wheelDrawnAtOpen;
 
+    private PixelPoint _wheelOrigin;
     private int _wheelGeneration;
 
     private void InitializeWheel()
@@ -231,9 +236,12 @@ internal sealed partial class NativeSurfaceHost
             _wheelSource = _wheelSource == wanted ? WheelSource.Merged : wanted;
             PostWheel(() =>
             {
-                if (_wheelWindow is { } window)
+                if (Volatile.Read(ref _wheelHostOpen) == 1)
                 {
-                    window.SetLayout(LayoutFor(Volatile.Read(ref _wheelState).Options));
+                    var next = LayoutFor(Volatile.Read(ref _wheelState).Options);
+                    _wheelLayout = next;
+                    _wheelMetrics = WheelSurface.MetricsOf(next);
+                    _wheelOverlay.SetLayout(next);
                 }
             }, "wheel.scroll");
             e.Suppress = true;
@@ -302,7 +310,7 @@ internal sealed partial class NativeSurfaceHost
 
     private void OpenWheel(PixelPoint origin)
     {
-        if (_wheelWindow is not null)
+        if (Volatile.Read(ref _wheelHostOpen) == 1)
         {
             return;
         }
@@ -332,30 +340,16 @@ internal sealed partial class NativeSurfaceHost
             }
 
             var layout = LayoutFor(state.Options);
-            var window = new WheelMenuWindow(layout, state.Options, origin);
-            window.TimedOut += () =>
-            {
-                _wheel?.Timeout();
-                CloseWheel();
-            };
-
-            if (_owner() is { } owner)
-            {
-                window.ShowAsPeer(owner);
-            }
-            else
-            {
-                window.Show();
-            }
-
-            window.Position = window.PlaceAt(origin);
-            _wheelWindow = window;
+            _wheelLayout = layout;
+            _wheelMetrics = WheelSurface.MetricsOf(layout);
+            _wheelOverlay.Open(layout, new OverlayPoint(origin.X, origin.Y), state.Options.TimeoutMs);
             Volatile.Write(ref _wheelHostOpen, 1);
-            _wheel?.SetCenter(window.Center.X, window.Center.Y, window.Metrics);
+            _wheel?.SetCenter(origin.X, origin.Y, _wheelMetrics);
 
             _wheelOpenedAt = Stopwatch.GetTimestamp();
             _wheelMovesAtOpen = _wheelAim.Counts.Written;
             _wheelDrawnAtOpen = _wheelAim.Counts.Taken;
+            _wheelOrigin = origin;
             _wheelAim.Clear();
             Volatile.Write(ref _wheelAimScheduled, 0);
         }
@@ -382,7 +376,7 @@ internal sealed partial class NativeSurfaceHost
 
     private void DrainWheelAim()
     {
-        if (_wheelWindow is null)
+        if (Volatile.Read(ref _wheelHostOpen) == 0)
         {
             _wheelAim.Clear();
             return;
@@ -406,23 +400,23 @@ internal sealed partial class NativeSurfaceHost
 
     private void UpdateWheelHover(double x, double y)
     {
-        if (_wheelWindow is not { } window)
+        if (Volatile.Read(ref _wheelHostOpen) == 0)
         {
             return;
         }
 
-        var dx = x - window.Center.X;
-        var dy = y - window.Center.Y;
-        var chosen = WheelGeometry.At(dx, dy, window.Metrics);
+        var origin = _wheelOrigin;
+        var chosen = WheelGeometry.At(x - origin.X, y - origin.Y, _wheelMetrics);
         _wheel?.Hover(chosen);
-        window.Hover(chosen);
-        window.Aim(x, y);
+        _wheelOverlay.SetAim(chosen is { } aimed
+            ? new SurfaceWheelAim(aimed.Ring.ToString().ToLowerInvariant(), aimed.Index)
+            : null);
     }
 
     private void RunWheelSlot(WheelSlotRef? reference)
     {
         if (reference is not { } chosen
-            || _wheelWindow?.SlotAt(chosen) is not { Macro: { } macro })
+            || _wheelLayout?.At(chosen) is not { Macro: { } macro })
         {
             return;
         }
@@ -432,9 +426,8 @@ internal sealed partial class NativeSurfaceHost
 
     public void CloseWheel()
     {
-        var window = _wheelWindow;
-        _wheelWindow = null;
         Volatile.Write(ref _wheelHostOpen, 0);
+        _wheelLayout = null;
         _wheelScene = null;
         _wheelRules = null;
         _wheelMacros = [];
@@ -443,7 +436,7 @@ internal sealed partial class NativeSurfaceHost
         _wheelGeneration++;
         _wheelAim.Clear();
         NoteWheelFrames();
-        window?.Close();
+        _wheelOverlay.Close();
     }
 
     private void NoteWheelFrames()

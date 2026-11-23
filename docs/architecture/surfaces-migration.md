@@ -180,8 +180,11 @@ DPI 125/150/200% 下的落点。
 必须整段 `unsafeSVG`）。`WheelSurfaceTests` 覆盖“有宏的格子出现在正确环/位置”与空轮盘。
 浮层宿主 `WheelOverlayHost` 已建（`BridgeSurface.Wheel`，440×440），`--wheel-overlay`（Debug）
 实测能用真实项目数据画出扇区。瞄准帧 `surface.wheel.changed`（`SurfaceWheelAim`，按 Latest 合并）
-与页面 `.sector.aimed` 高亮已就绪，`IWheelOverlay.SetAim` 负责推送。**尚未接线**：手势打开/瞄准/
-选择仍走原生 `WheelMenuWindow`，所以页面高亮暂时只在调试宿主里可见。
+与页面 `.sector.aimed` 高亮已就绪，`IWheelOverlay.SetAim` 负责推送。
+**手势已切换**：`NativeSurfaceHost.Wheel` 改为驱动 `WheelOverlayHost`（定位到指针、瞄准帧、滚动换
+场景、超时、关闭），命中测试改用 `WheelGeometry` + 已解析布局；原生 `WheelMenuWindow.cs`(526)、
+`WheelCanvas.cs`(332) 与窗口类测试已删除，`WheelGesture` 用例保留为 `WheelGestureTests`。
+**待办**：首帧仍是懒建窗口（菜单同样，需要在启动时预热），真机手势验收未做。
 
 1. 几何与命中先迁为纯函数并加测试（扇区、半径、角度、紧邻边界）；
 2. `WheelGesture`/`WheelAim` 保留在 C#，页面发 `surface.wheel.aim/commit`；

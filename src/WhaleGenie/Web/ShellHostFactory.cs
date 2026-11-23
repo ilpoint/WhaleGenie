@@ -6,8 +6,7 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Web;
 
-/// <summary>
-/// Builds the session the web shell carries: the native surfaces, the trigger host and the native
+/// <summary>/// Builds the session the web shell carries: the native surfaces, the trigger host and the native
 /// windows the pages have not taken over. It is a factory because the owner window does not exist
 /// when the container is built; the shell asks for its host once it is opening.
 /// </summary>
@@ -43,12 +42,13 @@ internal sealed class ShellHostFactory(
             menu.Overlay = host;
         }
 
+        var wheelOverlay = new WheelOverlayHost(bridge, wheel);
         var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
-            menu.Overlay);
+            menu.Overlay, wheelOverlay);
 #if DEBUG
         if (App.WheelOverlay)
         {
-            new WheelOverlayHost(bridge, wheel).Show();
+            wheelOverlay.Open(WheelSurface.Resolve(workspace), new OverlayPoint(720, 420), 0);
         }
 #endif
 #if DEBUG
