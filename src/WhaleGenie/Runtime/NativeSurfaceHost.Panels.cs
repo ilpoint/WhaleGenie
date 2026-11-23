@@ -1,30 +1,26 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using Avalonia;
 using Avalonia.Threading;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Models;
-using WhaleGenie.Views;
 
 namespace WhaleGenie.Runtime;
 
-// The floating panel beside the window in front: which interface group it shows, where it sits,
-// and when it goes away. It reads the project and the trigger service directly and owns the
-// foreground/bounds subscriptions, so it keeps working when the web shell is the visible window.
+// The interface panels beside a window: one overlay per group, placed from the group's rule and
+// the target's client area. The page draws them; this part owns which ones are up and where.
 internal sealed partial class NativeSurfaceHost
 {
-    private readonly Dictionary<string, FloatingSurfaceWindow> _surfaces = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IPanelOverlay> _panels = new(StringComparer.Ordinal);
     private readonly Dictionary<string, WindowInfo> _surfaceTargets = new(StringComparer.Ordinal);
     private readonly Dictionary<string, WindowRule> _surfaceRules = new(StringComparer.Ordinal);
     private readonly HashSet<string> _hiddenInterfaceGroups = new(StringComparer.Ordinal);
 
-    /// <summary>How each group was left folded or turned; outlives one panel window.</summary>
-    private readonly Dictionary<string, FloatingSurfaceWindow.SurfaceViewState> _surfaceViews =
-        new(StringComparer.Ordinal);
+    /// <summary>Builds one group's window; the shell supplies it so this layer stays window-agnostic.</summary>
+    private readonly Func<string, IPanelOverlay> _panelFactory;
 
-    internal IReadOnlyCollection<FloatingSurfaceWindow> SurfaceWindowsForCheck => [.. _surfaces.Values];
+    /// <summary>The projection whose fold/turn state the page writes and every frame reads.</summary>
+    private readonly PanelSurface _panelFrames;
 
     private void InitializePanels()
     {
@@ -68,11 +64,6 @@ internal sealed partial class NativeSurfaceHost
 
     internal void RefreshPanels()
     {
-        if (_surfaces.Values.Any(surface => surface.IsMoving))
-        {
-            return;
-        }
-
         if (!_system.IsEnabled || MacroTriggerGate.IsOpen || MenuOpen)
         {
             HidePanels();
@@ -95,17 +86,12 @@ internal sealed partial class NativeSurfaceHost
         {
             if (_hiddenInterfaceGroups.Contains(group.Key))
             {
-                // Hiding a group takes its buttons off the screen but not the window they belong
-                // to; showing it again puts them back where they were.
-                CloseSurfaceWindow(group.Key);
+                RemoveSurface(group.Key);
                 continue;
             }
 
-            var macros = InterfaceMemberResolver.Resolve(group, [.. _workspace.Macros])
-                .Where(member => member.IsVisibleOnSurface)
-                .Select(member => member.Macro!)
-                .ToList();
-            if (macros.Count == 0)
+            var frame = _panelFrames.Snapshot(group.Key, horizontal: false, collapsed: false);
+            if (frame.Items.Count == 0)
             {
                 RemoveSurface(group.Key);
                 continue;
@@ -119,51 +105,20 @@ internal sealed partial class NativeSurfaceHost
             }
 
             active.Add(group.Key);
-            var created = false;
-            if (!_surfaces.TryGetValue(group.Key, out var surface))
+            if (!_panels.TryGetValue(group.Key, out var panel))
             {
-                var view = _surfaceViews.TryGetValue(group.Key, out var remembered)
-                    ? remembered
-                    : default;
-                surface = new FloatingSurfaceWindow(macros, macro =>
-                {
-                    if (macro.IsEnabled)
-                    {
-                        _runtime.Triggers.RunOnce(macro);
-                    }
-                }, view);
-                surface.MoveCompleted += position => OnSurfaceMoved(group.Key, position);
-                surface.ViewChanged += state => OnSurfaceViewChanged(group.Key, surface, state);
-                _surfaces[group.Key] = surface;
-                created = true;
-            }
-            else
-            {
-                surface.SetMacros(macros);
+                panel = _panelFactory(group.Key);
+                panel.Moved += position => OnPanelMoved(group.Key, position);
+                _panels[group.Key] = panel;
+                _panelFrames.Attach(group.Key, panel);
             }
 
             _surfaceTargets[group.Key] = target;
             _surfaceRules[group.Key] = group.Rule;
-            if (!surface.IsMoving)
-            {
-                surface.PlaceAt(target, _devices.Windows, _workspace.Triggers.LayoutFor(group.Rule));
-                if (created)
-                {
-                    if (_owner() is { } owner)
-                    {
-                        surface.ShowAsPeer(owner);
-                    }
-                    else
-                    {
-                        surface.Show();
-                    }
-                }
-
-                surface.SitAbove(target.Handle);
-            }
+            ShowPanel(group, frame, target, panel);
         }
 
-        foreach (var key in _surfaces.Keys.Where(key => !active.Contains(key)).ToList())
+        foreach (var key in _panels.Keys.Where(key => !active.Contains(key)).ToList())
         {
             RemoveSurface(key);
         }
@@ -173,7 +128,6 @@ internal sealed partial class NativeSurfaceHost
         {
             _surfaceTargets.Remove(key);
             _surfaceRules.Remove(key);
-            _surfaceViews.Remove(key);
         }
 
         foreach (var gone in _hiddenInterfaceGroups
@@ -183,20 +137,18 @@ internal sealed partial class NativeSurfaceHost
         }
     }
 
-    private void OnSurfaceViewChanged(string groupKey, FloatingSurfaceWindow surface,
-        FloatingSurfaceWindow.SurfaceViewState state)
+    private void ShowPanel(InterfaceGroupView group, Contracts.SurfacePanelSnapshot frame,
+        WindowInfo target, IPanelOverlay panel)
     {
-        _surfaceViews[groupKey] = state;
-        if (!_surfaceTargets.TryGetValue(groupKey, out var target)
-            || !_surfaceRules.TryGetValue(groupKey, out var rule))
-        {
-            return;
-        }
-
         try
         {
-            surface.PlaceAt(target, _devices.Windows, _workspace.Triggers.LayoutFor(rule));
-            surface.SitAbove(target.Handle);
+            var layout = _workspace.Triggers.LayoutFor(group.Rule);
+            var origin = _devices.Windows.ClientOrigin(target.Handle);
+            var client = _devices.Windows.ClientSize(target.Handle);
+            var size = PanelGeometry.Size(frame.Items.Count, frame.Horizontal, frame.Collapsed);
+            var (x, y) = PanelGeometry.Place((origin.X, origin.Y), (client.Width, client.Height),
+                layout.OffsetX, layout.OffsetY, size);
+            panel.Show(frame, new OverlayPoint(x, y), size.Width, size.Height, target.Handle);
         }
         catch
         {
@@ -204,7 +156,7 @@ internal sealed partial class NativeSurfaceHost
         }
     }
 
-    private void OnSurfaceMoved(string groupKey, PixelPoint position)
+    private void OnPanelMoved(string groupKey, OverlayPoint position)
     {
         if (!_surfaceTargets.TryGetValue(groupKey, out var target)
             || !_surfaceRules.TryGetValue(groupKey, out var rule))
@@ -225,57 +177,32 @@ internal sealed partial class NativeSurfaceHost
 
     private void HidePanels()
     {
-        foreach (var key in _surfaces.Keys.ToList())
+        foreach (var key in _panels.Keys.ToList())
         {
-            CloseSurfaceWindow(key);
-        }
-    }
-
-    private void CloseSurfaceWindow(string key)
-    {
-        if (_surfaces.Remove(key, out var surface))
-        {
-            surface.Close();
+            RemoveSurface(key);
         }
     }
 
     private void RemoveSurface(string key)
     {
-        CloseSurfaceWindow(key);
+        if (_panels.Remove(key, out var panel))
+        {
+            panel.Hide();
+            _panelFrames.Detach(key);
+        }
+
         _surfaceTargets.Remove(key);
         _surfaceRules.Remove(key);
     }
 
     private WindowInfo? SurfaceTargetFor(InterfaceGroupView group, WindowInfo? foreground)
     {
-        if (!group.Rule.HasTarget)
-        {
-            return foreground is { Minimized: false } ? foreground : null;
-        }
-
-        if (_surfaceTargets.TryGetValue(group.Key, out var held)
-            && LivingWindow(held.Handle) is { Minimized: false } living)
-        {
-            return living;
-        }
-
-        _surfaceTargets.Remove(group.Key);
-        return foreground is { Minimized: false } && RuleMatches(group.Rule, foreground)
-            ? foreground
-            : null;
-    }
-
-    private WindowInfo? LivingWindow(long handle)
-    {
-        try
-        {
-            return _devices.Windows.Find(handle.ToString(CultureInfo.InvariantCulture),
-                WindowMatch.Handle, TextCompare.Exactly);
-        }
-        catch
+        if (foreground is not { } target)
         {
             return null;
         }
+
+        return RuleMatches(group.Rule, target) ? target : null;
     }
 
     private bool RuleMatches(WindowRule rule, WindowInfo foreground)

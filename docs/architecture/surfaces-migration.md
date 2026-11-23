@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | ~~宏菜单（菜单宏）~~ **已迁移** | Lit 浮层（`Web/WebOverlayWindow` + `features/overlay/menu`）；原生窗口已删 | — | 菜单键、系统热键、置顶菜单 |
 | 轮盘菜单 | `Views/Editor/WheelMenuWindow.cs`、`WheelCanvas.cs` + `Runtime/NativeSurfaceHost.Wheel.cs` | 526 + 332 + 465 行 | 轮盘手势、重复键、按程序/宏切换 |
-| 界面宏面板 | `Views/Shell/FloatingSurfaceWindow.cs` + `Runtime/NativeSurfaceHost.Panels.cs` | 603 + 292 行 | 界面热键、分组显示、跟随前台窗口 |
+| ~~界面宏面板~~ **已迁移** | Lit 浮层（每组一个 `PanelOverlayHost`）；原生窗口已删 | — | 界面热键、分组显示、跟随前台窗口 |
 
 桌面拾取器（`Views/Pickers`，约 6,900 行）不在本轮范围：它们必须抓屏、取色或叠加在别的窗口上，
 迁移顺序排在浮层之后（见 §7）。
@@ -182,7 +182,9 @@ DPI 125/150/200% 下的落点。
 - 宿主已改为**每组一个** `PanelOverlayHost`（实现 `IPanelOverlay`）：尺寸由 `PanelGeometry` 按成员数/
   折叠/排列算，位置按目标客户区原点 + `InterfaceLayout` 偏移并夹在客户区内，`PlaceAbove` 把窗口排到
   目标窗口上方，拖动走系统移动循环并回报位置；帧经 `surface.panel.changed` 推送。
-- `--panel-overlay`（Debug）实测能在真实项目上打开。
+- **生产已切换**：`NativeSurfaceHost.Panels` 改用 `IPanelOverlay` 与 `PanelGeometry`（尺寸、客户区
+  偏移、夹取、`PlaceAbove` z 序、拖动回报 `StoreLayout`）；`FloatingSurfaceWindow`(603) 与
+  `NativeSurfaceHost.Panels.cs`(292) 的原生实现、`InterfaceSurfaceTests` 一并删除。真机验收未做。
 - 成员点击：`surface.panel.run` 按名字查找并只在宏启用时运行；页面只对可显示成员发命令。
 - 折叠与排列：`surface.panel.view` 把状态记在 App 的 `PanelSurface`（按组键），页面标题栏两个按钮
   切换；`Snapshot` 优先读记忆值，切换生产入口时原生窗口那份 `_surfaceViews` 可以删掉。

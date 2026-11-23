@@ -88,7 +88,6 @@
 451	core/src/WhaleGenie.GraphicsCapture/DesktopDuplicator.cs	keep: 一条采集路径，像素从这里进来
 401	core/src/WhaleGenie.GraphicsCapture/ScreenGrabber.cs	keep: 一条采集路径，像素从这里进来
 304	core/src/WhaleGenie.GraphicsCapture/WindowsDesktop.cs	keep: 一条采集路径，像素从这里进来
-396	tests/WhaleGenie.Tests/InterfaceSurfaceTests.cs	keep: 界面面板与窗口规则分组的单一测试
 308	tests/WhaleGenie.Actions.Tests/FieldNameTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 485	tests/WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
 681	tests/WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
@@ -140,7 +139,6 @@
 531	src/WhaleGenie/Views/Pickers/ElementPickerWindow.cs	keep: 元素挑选的一次交互，与窗口挑选同一套走法
 455	src/WhaleGenie.Domain/Models/MacroCheck.cs	keep: 检查入口与判断表；一次走查在 Inspection 分部，读取步骤名与类型在 Reading 分部
 370	src/WhaleGenie.Domain/Models/MacroCheck.Reading.cs	keep: 只回答「哪些名字被读、被定义、是什么类型」，不报问题
-603	src/WhaleGenie/Views/Shell/FloatingSurfaceWindow.cs	keep: 浮动面板的窗口构造、排列、拾层与置层，单一窗口职责，暂不拆
 465	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
 311	src/WhaleGenie/Views/Editor/MenuIconPickerWindow.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 499	src/WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态

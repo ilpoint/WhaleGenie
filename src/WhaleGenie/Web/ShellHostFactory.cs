@@ -46,18 +46,9 @@ internal sealed class ShellHostFactory(
         menu.Overlay.Warm();
         var wheelOverlay = new WheelOverlayHost(bridge, wheel);
         wheelOverlay.Warm();
-        var panelOverlay = new PanelOverlayHost(bridge, panelFrames, "");
-        panelOverlay.Warm();
         var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
-            menu.Overlay, wheelOverlay);
-#if DEBUG
-        if (App.PanelOverlay)
-        {
-            var frame = panelFrames.Surface.Snapshot("", horizontal: false, collapsed: false);
-            var size = PanelGeometry.Size(frame.Items.Count, frame.Horizontal, frame.Collapsed);
-            panelOverlay.Show(frame, new OverlayPoint(720, 320), size.Width, size.Height, 0);
-        }
-#endif
+            menu.Overlay, wheelOverlay,
+            key => new PanelOverlayHost(bridge, panelFrames, key), panelFrames.Surface);
 #if DEBUG
         if (App.WheelOverlay)
         {

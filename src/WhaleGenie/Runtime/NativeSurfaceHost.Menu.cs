@@ -43,7 +43,8 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
 
     internal NativeSurfaceHost(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
         IDeviceLayer devices, Func<Avalonia.Controls.Window?> owner, Func<GlobalHotkeyPlan> plan,
-        INativeSurfaceActions actions, IMenuOverlay menu, IWheelOverlay wheelOverlay)
+        INativeSurfaceActions actions, IMenuOverlay menu, IWheelOverlay wheelOverlay,
+        Func<string, IPanelOverlay> panelFactory, PanelSurface panelFrames)
     {
         _workspace = workspace;
         _runtime = runtime;
@@ -54,6 +55,8 @@ internal sealed partial class NativeSurfaceHost : ITriggerSurfaceHost, IDisposab
         _actions = actions;
         _menu = menu;
         _wheelOverlay = wheelOverlay;
+        _panelFactory = panelFactory;
+        _panelFrames = panelFrames;
         _menu.Hidden += OnMenuHidden;
         _menu.FocusChanged += OnMenuFocusChanged;
         _wheelOverlay.TimedOut += OnWheelTimedOut;

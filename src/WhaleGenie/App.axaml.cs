@@ -41,8 +41,6 @@ public partial class App : Application
     /// <summary>Whether to open the Lit wheel overlay at startup, for checking the host end to end.</summary>
     internal static bool WheelOverlay { get; set; }
 
-    /// <summary>Whether to open the Lit interface panel at startup, for checking the host end to end.</summary>
-    internal static bool PanelOverlay { get; set; }
 #endif
 
     public override void Initialize()
