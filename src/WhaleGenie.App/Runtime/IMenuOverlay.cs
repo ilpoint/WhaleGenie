@@ -24,5 +24,8 @@ public interface IMenuOverlay
 
     void Show();
 
+    /// <summary>Builds the window and loads its page ahead of the first open.</summary>
+    void Warm();
+
     void Hide();
 }

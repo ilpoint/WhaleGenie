@@ -42,7 +42,9 @@ internal sealed class ShellHostFactory(
             menu.Overlay = host;
         }
 
+        menu.Overlay.Warm();
         var wheelOverlay = new WheelOverlayHost(bridge, wheel);
+        wheelOverlay.Warm();
         var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
             menu.Overlay, wheelOverlay);
 #if DEBUG

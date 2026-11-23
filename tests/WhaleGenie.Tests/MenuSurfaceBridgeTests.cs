@@ -112,6 +112,10 @@ public class MenuSurfaceBridgeTests
 
         public int HideCount { get; private set; }
 
+        public void Warm()
+        {
+        }
+
         public void Show() => IsVisible = true;
 
         public void Hide()

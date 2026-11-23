@@ -74,9 +74,16 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices)
     internal void Attach()
         => devices.WindowEvents.ForegroundChanged += OnForegroundChanged;
 
+    public void Warm()
+    {
+        _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", 356, 312);
+        _window.Warm();
+    }
+
     public void Show()
     {
         _window ??= new WebOverlayWindow(bridge, BridgeSurface.Menu, "overlay/menu", 356, 312);
+        _window.EndWarm();
         _window.PlaceNearCursor();
         _window.Show();
         _window.Activate();

@@ -24,11 +24,18 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
 
     public WheelMetrics Metrics { get; private set; } = WheelGeometry.For(420, false);
 
+    public void Warm()
+    {
+        _window ??= new WebOverlayWindow(bridge, BridgeSurface.Wheel, "overlay/wheel", 440, 440);
+        _window.Warm();
+    }
+
     public void Open(WheelRuntimeLayout layout, OverlayPoint origin, int timeoutMs)
     {
         _layout = layout;
         Metrics = WheelSurface.MetricsOf(layout);
         _window ??= new WebOverlayWindow(bridge, BridgeSurface.Wheel, "overlay/wheel", 440, 440);
+        _window.EndWarm();
         _window.PlaceCenteredAt(new PixelPoint(origin.X, origin.Y), 420);
         _window.Show();
         _window.FocusPage();

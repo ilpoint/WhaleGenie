@@ -24,6 +24,32 @@ internal sealed class WebOverlayWindow : Window
     private readonly string _route;
     private WebBridge? _channel;
 
+    /// <summary>True once the page has been loaded in the background.</summary>
+    private bool _warmed;
+
+    /// <summary>True while the window is shown only to get the page loaded.</summary>
+    private bool _warming;
+
+    /// <summary>
+    /// Loads the page while nobody is looking: the window is placed off screen, shown, and hidden
+    /// again as soon as the navigation finishes. A first open then costs a <c>Show()</c> (S0: 9 ms)
+    /// instead of a WebView cold start (S0: about 0.6 s).
+    /// </summary>
+    /// <summary>The warm-up load no longer owns the window; a real open must not be hidden by it.</summary>
+    internal void EndWarm() => _warming = false;
+
+    internal void Warm()
+    {
+        if (_warmed || _channel is null)
+        {
+            return;
+        }
+
+        _warming = true;
+        Position = new PixelPoint(-20000, -20000);
+        Show();
+    }
+
     /// <summary>Pinned overlays stay up when the user clicks another program.</summary>
     internal bool Pinned { get; set; }
 
@@ -64,6 +90,11 @@ internal sealed class WebOverlayWindow : Window
         }
 
         _bridge.Attach(_surface, channel);
+        if (_warming)
+        {
+            _web.NavigationCompleted += OnWarmNavigationCompleted;
+        }
+
         var url = StartUrl();
         WhaleGenie.Runtime.AppDiagnostics.Note("overlay.url", url.AbsoluteUri);
         _web.Navigate(url);
@@ -139,6 +170,14 @@ internal sealed class WebOverlayWindow : Window
         public int Y;
     }
 
+
+    private void OnWarmNavigationCompleted(object? sender, EventArgs args)
+    {
+        _web.NavigationCompleted -= OnWarmNavigationCompleted;
+        _warmed = true;
+        _warming = false;
+        Hide();
+    }
 
     /// <summary>Centres a square of <paramref name="contentSize"/> on a screen point.</summary>
     internal void PlaceCenteredAt(PixelPoint centre, double contentSize)

@@ -19,6 +19,9 @@ public interface IWheelOverlay
     /// <summary>The radii the open wheel was drawn with; the hit test reads them.</summary>
     WheelMetrics Metrics { get; }
 
+    /// <summary>Builds the window and loads its page ahead of the first open.</summary>
+    void Warm();
+
     /// <summary>Shows the wheel centred on the pointer, with its own idle timeout.</summary>
     void Open(WheelRuntimeLayout layout, OverlayPoint origin, int timeoutMs);
 

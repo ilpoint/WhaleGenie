@@ -184,7 +184,8 @@ DPI 125/150/200% 下的落点。
 **手势已切换**：`NativeSurfaceHost.Wheel` 改为驱动 `WheelOverlayHost`（定位到指针、瞄准帧、滚动换
 场景、超时、关闭），命中测试改用 `WheelGeometry` + 已解析布局；原生 `WheelMenuWindow.cs`(526)、
 `WheelCanvas.cs`(332) 与窗口类测试已删除，`WheelGesture` 用例保留为 `WheelGestureTests`。
-**待办**：首帧仍是懒建窗口（菜单同样，需要在启动时预热），真机手势验收未做。
+**预热已接**：壳启动时两个浮层都在屏幕外 `Show` 一次并把页面加载完再 `Hide`，第一次呼出只剩
+`Show()`（S0 实测 9 ms）。真机手势验收仍未做。
 
 1. 几何与命中先迁为纯函数并加测试（扇区、半径、角度、紧邻边界）；
 2. `WheelGesture`/`WheelAim` 保留在 C#，页面发 `surface.wheel.aim/commit`；
