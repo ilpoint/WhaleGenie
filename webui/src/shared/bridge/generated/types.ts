@@ -1353,6 +1353,14 @@ export interface SettingsChoice {
   label: string;
 }
 
+export interface SettingsLimits {
+  logCountMin: number;
+  logCountMax: number;
+  frameCacheAgeMax: number;
+  inputRateMin: number;
+  inputRateMax: number;
+}
+
 export interface SettingsMacroChoice {
   name: string;
   enabled: boolean;
@@ -1414,6 +1422,7 @@ export interface SettingsState {
   frameRateFollow: boolean;
   frameRate: number;
   frameRateMax: number;
+  frameRateNote: string;
   frameCache: boolean;
   frameCacheAge: number;
   logCount: number;
@@ -1428,12 +1437,15 @@ export interface SettingsState {
   attachDriverAtStart: boolean;
   runAsAdmin: boolean;
   adminStatus: string;
+  canRestartElevated: boolean;
+  restartNote: string;
   windowWay: string;
   screenWay: string;
   windowWays: SettingsChoice[];
   screenWays: SettingsChoice[];
   menu: SettingsMenuState;
   wheel: SettingsWheelState;
+  limits: SettingsLimits;
 }
 
 export interface SettingsStorage {

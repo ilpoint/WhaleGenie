@@ -10,9 +10,9 @@ using WhaleGenie.Runtime;
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// What the page knows about the program itself: the version and the language, plus the two things
-/// a page must never do by itself — leave through the tray, and open a browser. The open project is
-/// not repeated here; <c>project.state</c> is the one shape that carries it.
+/// What the page knows about the program itself: the version and the language, plus the things a
+/// page must never do by itself — end or elevate this copy, and open a browser. The open project
+/// is not repeated here; <c>project.state</c> is the one shape that carries it.
 /// </summary>
 public sealed class AppBridge(Func<IAppExit?> exit) : IBridgeHandler
 {
@@ -21,6 +21,7 @@ public sealed class AppBridge(Func<IAppExit?> exit) : IBridgeHandler
         server.Register("app.info", _ => Task.FromResult<object?>(Info()));
         server.Register("app.about", _ => Task.FromResult<object?>(About()));
         server.Register("app.quit", _ => QuitAsync());
+        server.Register("app.restartElevated", _ => RestartElevatedAsync());
         server.Register("app.openExternal", OpenExternal);
     }
 
@@ -46,6 +47,25 @@ public sealed class AppBridge(Func<IAppExit?> exit) : IBridgeHandler
         // saved; a page that wanted to leave the work behind gets asked the same way everything
         // else is.
         exit()?.RequestExit();
+        return Task.FromResult<object?>(null);
+    }
+
+    /// <summary>
+    /// Starts the copy that holds the administrator token and lets this one go: the token is
+    /// decided at launch, and two copies would listen for the same hotkeys. A declined prompt
+    /// leaves this copy running, which is what <see cref="ProcessRights.RestartElevated"/> reports.
+    /// </summary>
+    private Task<object?> RestartElevatedAsync()
+    {
+        // Hand the virtual devices over before the elevated copy starts its own server: the one this
+        // copy opened would otherwise be closed on the way out, under the new copy. The hand-over can
+        // be called off, so a declined prompt leaves this copy able to open a server again.
+        SharedDevices.Current.Driver.HandOver();
+        if (ProcessRights.RestartElevated())
+        {
+            exit()?.RequestExit();
+        }
+
         return Task.FromResult<object?>(null);
     }
 

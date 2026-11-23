@@ -275,6 +275,15 @@ ${renderSettingsCards(this)}
     }
   }
 
+  async restartElevated(): Promise<void> {
+    try {
+      await bridge.value.call('app.restartElevated');
+      this.error = '';
+    } catch (error) {
+      this.error = String(error);
+    }
+  }
+
   async openFolder(folder: string): Promise<void> {
     try {
       await bridge.value.call('settings.openFolder', { folder });

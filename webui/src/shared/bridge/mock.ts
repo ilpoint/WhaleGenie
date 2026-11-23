@@ -78,6 +78,7 @@ export class MockTransport implements BridgeTransport {
     loadLastProjectAtStart: true, systemAtStart: false, enabledFirst: true,
     ignoreOwnInput: true, soundSystem: true, soundMacro: false, preloadOcr: false,
     inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
+    frameRateNote: 'This display runs at 60 Hz.',
     frameCache: false, frameCacheAge: 100, logCount: 100,
     language: 'zh-Hans',
     systemHotkey: 'Ctrl+F12', recordStopKey: 'Ctrl+F10',
@@ -87,11 +88,20 @@ export class MockTransport implements BridgeTransport {
     ],
     driverStatus: 'Ready', driverReady: true, attachDriverAtStart: false,
     runAsAdmin: false, adminStatus: 'Running normally',
+    canRestartElevated: true,
+    restartNote: 'Restarting asks Windows for an administrator token and closes this copy.',
     windowWay: 'Auto', screenWay: 'Auto',
     windowWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'PrintWindow', label: 'PrintWindow' }],
     screenWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'Gdi', label: 'GDI' }],
     menu: demoMenu,
     wheel: demoWheel,
+    limits: {
+      logCountMin: 1,
+      logCountMax: 999,
+      frameCacheAgeMax: 1000,
+      inputRateMin: 0,
+      inputRateMax: 999,
+    },
   };
 
   private libraryEntries: { id: string; name: string; version: number; description: string }[] = [

@@ -30,9 +30,6 @@ public class BridgeMethodInventoryTests
     /// </summary>
     private static readonly Dictionary<string, string> DoorsWithoutCallers = new(StringComparer.Ordinal)
     {
-        // WP3: the File menu has no exit item yet, so nothing on the page reaches the command.
-        ["app.quit"] = "等 WP3 补上 File 菜单的退出项；那一条带出调用者后删掉这行。",
-
         // WP6b: the import wizard is what opens a package; the picker is a door until it lands.
         ["dialog.pickOpenPackage"] = "等 WP6b 的导入向导启用；向导接上桥后删掉这行。",
     };

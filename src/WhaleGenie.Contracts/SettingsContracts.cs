@@ -18,6 +18,16 @@ public sealed record WindowRuleState(
 [BridgeContract]
 public sealed record SettingsChoice(string Value, string Label);
 
+/// <summary>The clamps behind every number field in the general settings, so the page does not
+/// write its own copy of a range the program already enforces.</summary>
+[BridgeContract]
+public sealed record SettingsLimits(
+    int LogCountMin,
+    int LogCountMax,
+    int FrameCacheAgeMax,
+    double InputRateMin,
+    double InputRateMax);
+
 /// <summary>One folder the settings page can open.</summary>
 [BridgeContract]
 public sealed record SettingsStorage(string Name, string What, string Where, string Folder);
@@ -148,6 +158,7 @@ public sealed record SettingsState(
     bool FrameRateFollow,
     double FrameRate,
     int FrameRateMax,
+    string FrameRateNote,
     bool FrameCache,
     double FrameCacheAge,
     double LogCount,
@@ -162,12 +173,15 @@ public sealed record SettingsState(
     bool AttachDriverAtStart,
     bool RunAsAdmin,
     string AdminStatus,
+    bool CanRestartElevated,
+    string RestartNote,
     string WindowWay,
     string ScreenWay,
     IReadOnlyList<SettingsChoice> WindowWays,
     IReadOnlyList<SettingsChoice> ScreenWays,
     SettingsMenuState Menu,
-    SettingsWheelState Wheel);
+    SettingsWheelState Wheel,
+    SettingsLimits Limits);
 
 /// <summary>One open window the rule editor can choose from.</summary>
 [BridgeContract]

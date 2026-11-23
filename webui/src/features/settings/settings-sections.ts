@@ -22,6 +22,7 @@ export interface SettingsSectionsHost {
   openFolder(folder: string): Promise<void>;
   beginCapture(kind: CaptureKind): Promise<void>;
   setSettingValue(field: EditableSetting, value: string): Promise<void>;
+  restartElevated(): Promise<void>;
   themeActions(): ThemeActions;
   menuActions(): MenuActions;
   wheelActions(): WheelActions;
@@ -100,9 +101,10 @@ export function renderSettingsCards(host: SettingsSectionsHost): TemplateResult 
           ${toggle(host, 'frameRateFollow', 'Settings.FrameRateFollow')}
           ${number(host, 'frameRate', 'Settings.FrameRate', 1, settings.frameRateMax,
             settings.frameRateFollow)}
+          <p class="status">${settings.frameRateNote}</p>
           ${toggle(host, 'frameCache', 'Settings.FrameCache')}
-          ${number(host, 'frameCacheAge', 'Settings.FrameCacheAge', 0, 60000,
-            !settings.frameCache)}
+          ${number(host, 'frameCacheAge', 'Settings.FrameCacheAge', 0,
+            settings.limits.frameCacheAgeMax, !settings.frameCache)}
         </section>
 
         <section class="card" data-settings-section="input">
@@ -111,8 +113,10 @@ export function renderSettingsCards(host: SettingsSectionsHost): TemplateResult 
             <span class="note">${t('Settings.InputCardNote')}</span>
           </div>
           ${toggle(host, 'ignoreOwnInput', 'Settings.IgnoreOwnInput')}
-          ${number(host, 'inputRate', 'Settings.InputLimit', 0, 999, false)}
-          ${number(host, 'logCount', 'Settings.LogCount', 1, 1000, false)}
+          ${number(host, 'inputRate', 'Settings.InputLimit',
+            settings.limits.inputRateMin, settings.limits.inputRateMax, false)}
+          ${number(host, 'logCount', 'Settings.LogCount',
+            settings.limits.logCountMin, settings.limits.logCountMax, false)}
         </section>
 
         <section class="card" data-settings-section="input">
@@ -124,6 +128,12 @@ export function renderSettingsCards(host: SettingsSectionsHost): TemplateResult 
           ${toggle(host, 'attachDriverAtStart', 'Settings.DriverAttachAtStart')}
           ${toggle(host, 'runAsAdmin', 'Settings.RunAsAdmin')}
           <p class="status">${settings.adminStatus}</p>
+          ${settings.canRestartElevated ? html`
+            <p class="status">${settings.restartNote}</p>
+            <fluent-button appearance="subtle" @click=${() => void host.restartElevated()}>
+              ${t('Settings.AdminRestart')}
+            </fluent-button>
+          ` : nothing}
         </section>
 
         <section class="card" data-settings-section="input">

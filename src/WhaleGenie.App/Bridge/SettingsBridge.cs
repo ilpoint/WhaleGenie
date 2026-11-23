@@ -8,6 +8,7 @@ using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
@@ -56,6 +57,7 @@ internal sealed partial class SettingsBridge : IBridgeHandler
         _settings.FrameRateFollow,
         _settings.FrameRate,
         _settings.FastestRate,
+        _settings.FrameRateNote,
         _settings.FrameCache,
         _settings.FrameCacheAge,
         _settings.LogCount,
@@ -71,6 +73,8 @@ internal sealed partial class SettingsBridge : IBridgeHandler
         _settings.AttachDriverAtStart,
         _settings.RunAsAdmin,
         _settings.AdminStatus,
+        !_settings.IsElevated,
+        Strings.Get("Settings.AdminRestartNote"),
         _settings.SelectedWindowWay.Way.ToString(),
         _settings.SelectedScreenWay.Way.ToString(),
         [.. _settings.WindowWays.Select(way => new SettingsChoice(
@@ -78,7 +82,13 @@ internal sealed partial class SettingsBridge : IBridgeHandler
         [.. _settings.ScreenWays.Select(way => new SettingsChoice(
             way.Way.ToString(), way.ToString()))],
         MenuState(),
-        WheelState());
+        WheelState(),
+        new SettingsLimits(
+            LogRetention.Fewest,
+            LogRetention.Most,
+            AppSettings.FrameCacheOldest,
+            0,
+            InputLimit.Most));
 
     private Task<object?> OpenFolder(JsonElement parameters)
     {

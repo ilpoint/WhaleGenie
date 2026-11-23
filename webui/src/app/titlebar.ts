@@ -112,6 +112,11 @@ export class WgTitlebar extends LitElement {
       background: var(--colorNeutralBackground1Hover);
     }
 
+    .dropdown .separator {
+      margin: var(--spacingVerticalXS) 0;
+      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+    }
+
     .dropdown .version {
       padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
       color: var(--colorNeutralForeground3);
@@ -228,6 +233,8 @@ export class WgTitlebar extends LitElement {
                   <button role="menuitem" @click=${() => this.run('project.saveAs')}>${t('Main.SaveProjectAs')}</button>
                   <button role="menuitem" @click=${() => this.run('project.import')}>${t('Main.Import')}</button>
                   <button role="menuitem" @click=${() => this.run('project.closeAll')}>${t('Main.CloseAll')}</button>
+                  <div class="separator" role="separator"></div>
+                  <button role="menuitem" @click=${() => this.run('app.quit')}>${t('Main.Exit')}</button>
                 </div>`
               : nothing}
           </div>

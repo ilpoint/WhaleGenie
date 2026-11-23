@@ -8,6 +8,7 @@ export type BridgeMethod =
   | 'app.openManual'
   | 'app.openRun'
   | 'app.quit'
+  | 'app.restartElevated'
   | 'dialog.pickImage'
   | 'dialog.pickOpenPackage'
   | 'dialog.pickSavePackage'

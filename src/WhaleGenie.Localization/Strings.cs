@@ -2146,6 +2146,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.AdminYes"] = "Running with administrator rights.",
         ["Settings.AdminNo"] = "Not running with administrator rights.",
         ["Settings.AdminRestart"] = "Restart with administrator rights",
+        ["Settings.AdminRestartNote"] = "Restarting asks Windows for an administrator token and closes this copy.",
         ["Settings.RunAsAdmin"] = "Ask for administrator rights at startup",
         ["Settings.RunAsAdminHint"] = "Off by default; on asks at every start and can be declined.",
 
@@ -5154,6 +5155,7 @@ public sealed class Strings : INotifyPropertyChanged
         ["Settings.AdminYes"] = "正以管理员权限运行。",
         ["Settings.AdminNo"] = "未以管理员权限运行。",
         ["Settings.AdminRestart"] = "以管理员权限重新启动",
+        ["Settings.AdminRestartNote"] = "重新启动会向 Windows 申请管理员权限，并关闭当前这一份。",
         ["Settings.RunAsAdmin"] = "启动时请求管理员权限",
         ["Settings.RunAsAdminHint"] = "默认关闭；打开后每次启动都要确认，可以拒绝。",
 

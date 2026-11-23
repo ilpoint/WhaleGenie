@@ -51,6 +51,7 @@ export function handleShell(host: MockShellContext, method: string, params: Reco
         case 'window.drag':
         case 'window.focus':
         case 'app.quit':
+        case 'app.restartElevated':
         case 'app.openExternal':
           break;
         case 'app.openRun':

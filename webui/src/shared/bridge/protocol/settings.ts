@@ -1,6 +1,7 @@
 /** settings bridge shapes. The generated module is the only place these are written. */
 export type {
   SettingsChoice,
+  SettingsLimits,
   SettingsMacroChoice,
   SettingsMenuRule,
   SettingsMenuState,

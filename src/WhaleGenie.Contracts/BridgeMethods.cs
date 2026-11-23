@@ -27,6 +27,7 @@ public static class BridgeMethods
         "app.openManual",
         "app.openRun",
         "app.quit",
+        "app.restartElevated",
         "dialog.pickImage",
         "dialog.pickOpenPackage",
         "dialog.pickSavePackage",
