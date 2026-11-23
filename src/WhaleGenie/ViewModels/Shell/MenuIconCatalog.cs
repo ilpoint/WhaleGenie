@@ -27,13 +27,10 @@ public static class MenuIconCatalog
     private static readonly IReadOnlyDictionary<string, MenuIconOption> ByKey =
         Options.ToDictionary(option => option.Key, StringComparer.Ordinal);
 
-    public static MenuIconOption? Find(string? key)
-        => key is not null && ByKey.TryGetValue(key, out var option) ? option : null;
-
     /// <summary>
     /// Whether a key names an icon this build has. The model asks through this rather than holding
     /// the catalogue itself: which artwork exists is the interface's fact, and the project file only
     /// remembers the name.
     /// </summary>
-    public static bool Knows(string? key) => Find(key) is not null;
+    public static bool Knows(string? key) => key is not null && ByKey.ContainsKey(key);
 }

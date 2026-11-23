@@ -55,9 +55,5 @@ public class AppVersionTests
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
                                StringComparison.Ordinal)
                            && !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
-                               StringComparison.Ordinal)
-                           // The icon geometry is data: adjacent coordinates and relative commands
-                           // read as three-part numbers, and the set's own version is in its
-                           // comment. Neither is the program's version.
-                           && !file.EndsWith("AppIcons.cs", StringComparison.OrdinalIgnoreCase));
+                               StringComparison.Ordinal));
 }

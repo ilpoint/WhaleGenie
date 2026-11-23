@@ -1,31 +1,12 @@
-using System.Reflection;
 using Lucide.Avalonia;
-using WhaleGenie.Core.Execution;
-using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Tests;
 
-/// <summary>Every semantic interface icon resolves to one enum in the Lucide set.</summary>
+/// <summary>Every icon the interface can name has to be drawable and sized by its own box.</summary>
 public class AppIconTests
 {
-    [Fact]
-    public void Every_app_icon_is_a_defined_lucide_icon()
-    {
-        var icons = typeof(AppIcons)
-            .GetProperties(BindingFlags.Public | BindingFlags.Static)
-            .Where(property => property.PropertyType == typeof(LucideIconKind))
-            .ToArray();
-
-        Assert.NotEmpty(icons);
-        foreach (var property in icons)
-        {
-            var value = Assert.IsType<LucideIconKind>(property.GetValue(null));
-            Assert.True(Enum.IsDefined(value), $"{property.Name} is not a Lucide icon");
-        }
-    }
-
     [Fact]
     public void Every_icon_can_be_created_by_the_interface_control()
     {
@@ -44,13 +25,13 @@ public class AppIconTests
     {
         Ui.Run(() =>
         {
-            var small = new IconView { Data = AppIcons.X, Width = 10, Height = 10 };
+            var small = new IconView { Data = LucideIconKind.X, Width = 10, Height = 10 };
             Assert.Equal(10, small.Size);
 
-            var nonSquare = new IconView { Data = AppIcons.Minus, Width = 10, Height = 8 };
+            var nonSquare = new IconView { Data = LucideIconKind.Minus, Width = 10, Height = 8 };
             Assert.Equal(8, nonSquare.Size);
 
-            var widthOnly = new IconView { Data = AppIcons.X, Width = 14 };
+            var widthOnly = new IconView { Data = LucideIconKind.X, Width = 14 };
             Assert.Equal(14, widthOnly.Size);
         });
     }
@@ -66,7 +47,6 @@ public class AppIconTests
             Assert.True(Enum.IsDefined(option.Kind));
             Assert.NotEmpty(option.Key);
             Assert.Equal(option.Key, option.Label);
-            Assert.Same(option, MenuIconCatalog.Find(option.Key));
         });
     }
 }

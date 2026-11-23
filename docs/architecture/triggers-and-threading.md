@@ -33,8 +33,7 @@ Core 的录制层将原始输入翻译为去抖、合并后的 `RecordedAction`�
 
 `Models/WheelMenu.cs` 负责场景、槽位、几何与选项，`WheelCanvas` 同时服务实时轮盘和设置页编辑器。
 槽位只包含一个宏、一条备注和一个图标；动作编辑以副本进出，程序场景保存为对全局槽位的覆盖。项目内容
-写入 `ProjectTriggers.Wheel` 并随 `triggers.json` 保存，本机面板选项写入 `wheel-menu.json`。设置页以
-`ShowAsPeer` 保持单实例，预览模式复用同一窗口但只走 Avalonia 指针事件。
+写入 `ProjectTriggers.Wheel` 并随 `triggers.json` 保存，本机面板选项写入 `wheel-menu.json`。设置页与预览都在网页侧，不再有原生轮盘设置窗。
 
 ## 11. 线程与退出
 

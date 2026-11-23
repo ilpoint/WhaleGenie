@@ -163,8 +163,7 @@ act 的宿主工作区里运行，因此 `%TEMP%` 与进程创建不受本机命
 | `Avalonia`、`Avalonia.Desktop`、`Avalonia.Fonts.Inter` | 界面：桌面应用、输入、渲染和统一字体 |
 | `Avalonia.Controls.WebView`（传递依赖 `Microsoft.Web.WebView2`） | 界面 `Web/`：网页壳的 WebView 装载、消息与导航管控；运行时需要系统的 WebView2 Evergreen Runtime |
 | `FluentAvaloniaUI` | 界面：`FluentAvaloniaTheme`、控件模板和 `FAAppWindow` 标题栏 |
-| `Avalonia.Controls.DataGrid` | 界面：表格展示与编辑 |
-| `Avalonia.Controls.ColorPicker`、`Avalonia.Themes.Fluent` | 界面：自定义强调色及相关 Fluent 资源；应用主主题由 FluentAvalonia 提供，ColorPicker 样式文件来自 ColorPicker 包 |
+| `Avalonia.Themes.Fluent` | 界面：Avalonia 自带的 Fluent 主题资源；应用主主题由 FluentAvalonia 提供 |
 | `CommunityToolkit.Mvvm` | Domain 与界面：可观察属性和源生成命令 |
 | `Lucide.Avalonia` | 界面：动作、工具栏和菜单图标 |
 | `ModelContextProtocol`、`Microsoft.Extensions.Hosting` | Mcp：stdio 协议服务、草稿与工具；界面：MCP 宿主与工具发现 |

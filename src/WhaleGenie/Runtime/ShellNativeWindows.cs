@@ -8,7 +8,6 @@ using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
 using WhaleGenie.Storage;
-using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Runtime;
@@ -20,7 +19,6 @@ namespace WhaleGenie.Runtime;
 /// </summary>
 internal sealed class ShellNativeWindows(
     ProjectWorkspace workspace,
-    MainViewModel viewModel,
     Func<Window?> owner,
     Func<MacroItem, bool> openEditor,
     Action<MacroItem> openRun,
@@ -40,14 +38,10 @@ internal sealed class ShellNativeWindows(
     public void OpenRun(MacroItem macro) => openRun(macro);
 
     /// <summary>
-    /// Settings live in the page now; after one changes, the trigger plan and the hints that read
-    /// the same values have to be rebuilt without waiting for a native window to close.
+    /// Settings live in the page now; after one changes, the trigger plan has to be rebuilt
+    /// without waiting for a native window to close.
     /// </summary>
-    internal void RefreshAfterSettings()
-    {
-        Host?.PublishPlan();
-        viewModel.RefreshHotkeyHints();
-    }
+    internal void RefreshAfterSettings() => Host?.PublishPlan();
 
     internal static void OpenManual() => WebPage.Open(Manual.Where());
 

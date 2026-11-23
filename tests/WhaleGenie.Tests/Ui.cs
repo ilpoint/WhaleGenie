@@ -213,6 +213,5 @@ internal static class SessionStartsFirst
         // are looking at.
         Strings.Current.Language = Language.Chinese;
         _ = ActionCatalog.Definitions.Count;
-        _ = AppIcons.Workflow;
     });
 }

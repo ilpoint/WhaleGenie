@@ -11,9 +11,9 @@ using WhaleGenie;
 namespace WhaleGenie.Tests;
 
 /// <summary>
-/// Whether layer one actually reaches the screen. It is the whole bet behind three families —
-/// <c>Button.Secondary</c>, <c>TextBox.Field</c>, <c>ComboBox.Field</c> — whose appearance is
-/// supposed to come from the Fluent keys rather than from styles of ours. If those keys were wrong,
+/// Whether layer one actually reaches the screen. It is the whole bet behind the bare controls —
+/// a <c>Button</c> and a <c>TextBox</c> with no class of ours — whose appearance is supposed to come
+/// from the Fluent keys rather than from styles of ours. If those keys were wrong,
 /// or the theme ignored them, nothing would fail: the controls would simply paint the stock Fluent
 /// colours and the styles would look correct. So the states are driven here and the painted colours
 /// are read back.

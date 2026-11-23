@@ -52,23 +52,6 @@ public class WindowStackingTests
         });
     }
 
-    [Fact]
-    public void A_window_that_pins_itself_keeps_its_pin()
-    {
-        // A window that pins itself on purpose keeps its pin: opening it from an ordinary window
-        // must not take that away.
-        Ui.Run(() =>
-        {
-            var owner = OnScreen(new Window());
-            var picker = new Window { Topmost = true };
-
-            DialogWindow.ShowOver(picker, owner);
-
-            Assert.True(picker.Topmost);
-            picker.Close();
-        });
-    }
-
     /// <summary>Shows a window, because only a window that is on screen can own another.</summary>
     private static Window OnScreen(Window window)
     {

@@ -57,7 +57,7 @@ internal static class WindowedServices
         services.AddSingleton<RunQuestionHost>()
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
-            sp.GetRequiredService<RunQuestionHost>(), sp.GetRequiredService<MainViewModel>(),
+            sp.GetRequiredService<RunQuestionHost>(),
             sp.GetRequiredService<MenuSurfaceBridge>(),
             sp.GetRequiredService<WheelSurfaceBridge>(),
             sp.GetRequiredService<PanelSurfaceBridge>(),

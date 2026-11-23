@@ -56,8 +56,7 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 | Fluent 资源键 | `Themes/FluentKeys.axaml` | 将 FluentAvalonia 模板读取的资源键映射到项目令牌 |
 | 自定义控件类 | `Themes/Controls.axaml` | 项目控件族及其状态、变体和必要模板补充 |
 
-ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
-`Themes/Fluent/Fluent.xaml` 引入；`Avalonia.Themes.Fluent` 不作为应用主主题。`ThemePalette` 与
+原生只剩 `FluentAvaloniaTheme` 一套主题；`Avalonia.Themes.Fluent` 不作为应用主主题。`ThemePalette` 与
 `ThemeController` 负责应用和保存主题选择。新增样式时须遵守 `Controls.axaml` 文件头的登记规则，
 并通过相关样式测试。
 

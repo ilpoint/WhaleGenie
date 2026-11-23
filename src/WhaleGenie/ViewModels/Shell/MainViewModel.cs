@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
 
@@ -19,7 +18,6 @@ public partial class MainViewModel : ViewModelBase
     private readonly Func<MainViewModel, McpServerViewModel>? _makeMcp;
     private McpServerViewModel? _mcp;
     private readonly SystemState _system;
-    private readonly WhaleGenie.Localization.AppSettings _settings;
 
     public MainViewModel(Func<MainViewModel, McpServerViewModel>? mcp = null,
         PersistedVariables? persisted = null, VariableSession? variables = null,
@@ -27,8 +25,7 @@ public partial class MainViewModel : ViewModelBase
         WhaleGenie.Localization.AppSettings? settings = null)
     {
         _makeMcp = mcp;
-        _settings = settings ?? WhaleGenie.Localization.AppSettings.Shared;
-        _system = system ?? new SystemState(_settings);
+        _system = system ?? new SystemState(settings ?? WhaleGenie.Localization.AppSettings.Shared);
         _system.Changed += OnSystemChanged;
 
         // The document is made first: every other member here reads it, and a window that opens a
@@ -39,7 +36,6 @@ public partial class MainViewModel : ViewModelBase
         Workspace.PropertyChanged += OnWorkspacePropertyChanged;
         Workspace.Macros.CollectionChanged += (_, _) =>
         {
-            OnPropertyChanged(nameof(HasMacros));
             OnPropertyChanged(nameof(HasUnsavedChanges));
         };
         Localization.Strings.Current.LanguageChanged += () =>
@@ -105,8 +101,6 @@ public partial class MainViewModel : ViewModelBase
                 break;
             case nameof(ProjectWorkspace.CurrentPath):
                 OnPropertyChanged(nameof(CurrentPath));
-                OnPropertyChanged(nameof(WindowTitle));
-                OnPropertyChanged(nameof(CurrentFolder));
                 break;
             case nameof(ProjectWorkspace.Revision):
                 OnPropertyChanged(nameof(Revision));
@@ -134,39 +128,7 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>The one switch, handed to anything that needs to read or move it.</summary>
     public SystemState SystemSwitch => _system;
 
-    private void OnSystemChanged()
-    {
-        OnPropertyChanged(nameof(IsRunning));
-        OnPropertyChanged(nameof(SystemLabel));
-        OnPropertyChanged(nameof(SystemHint));
-    }
-
-    /// <summary>
-    /// Label of the system button, which names the state rather than the action: it reads
-    /// "已启用" while the system is on, and pressing it turns the system off.
-    /// </summary>
-    public string SystemLabel => Localization.Strings.Get(IsRunning ? "Main.SystemEnabled" : "Main.SystemDisabled");
-
-    /// <summary>
-    /// Hint under the button. Which macros are running is already plain on their cards, so this
-    /// only has to point at the key that switches the system.
-    /// </summary>
-    public string SystemHint
-    {
-        get
-        {
-            var hotkey = _settings.LoadSystemHotkey();
-            return hotkey.Length == 0
-                ? Localization.Strings.Get(IsRunning
-                    ? "Main.SystemDisableNoHotkey"
-                    : "Main.SystemEnableNoHotkey")
-                : Localization.Strings.Format(
-                    IsRunning ? "Main.SystemDisableHint" : "Main.SystemEnableHint",
-                    hotkey);
-        }
-    }
-
-    public void RefreshHotkeyHints() => OnPropertyChanged(nameof(SystemHint));
+    private void OnSystemChanged() => OnPropertyChanged(nameof(IsRunning));
 
     /// <summary>
     /// What the program is called in the corner of the window, and what a package says wrote it.
@@ -181,27 +143,6 @@ public partial class MainViewModel : ViewModelBase
     /// memory does not turn into a question at exit.
     /// </summary>
     public bool HasUnsavedChanges => IsDirty && (Macros.Count > 0 || CurrentPath is not null);
-
-    /// <summary>Title bar text, which names the open package once there is one.</summary>
-    public string WindowTitle => CurrentPath is null
-        ? BaseTitle
-        : $"{BaseTitle} · {System.IO.Path.GetFileName(CurrentPath)}";
-
-    /// <summary>
-    /// The application name as the title bar shows it. The admin badge appears only when the
-    /// process really is elevated: a badge that is always there says nothing, and it made the
-    /// window claim rights the program did not have.
-    /// </summary>
-    private static string BaseTitle => ProcessRights.IsElevated
-        ? Localization.Strings.Get("Main.Title") + Localization.Strings.Get("Main.AdminBadge")
-        : Localization.Strings.Get("Main.Title");
-
-    /// <summary>Folder holding the open package, used by "open location".</summary>
-    public string? CurrentFolder => CurrentPath is null
-        ? null
-        : System.IO.Path.GetDirectoryName(CurrentPath);
-
-    public bool HasMacros => Macros.Count > 0;
 
     /// <summary>Adds a macro created in the macro editor and assigns it a display name.</summary>
     public void AddMacro(MacroItem macro, IReadOnlyList<TriggerEntry>? entries = null)

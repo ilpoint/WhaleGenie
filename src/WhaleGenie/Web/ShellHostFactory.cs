@@ -3,7 +3,6 @@ using WhaleGenie.Bridge;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Web;
 
@@ -16,7 +15,6 @@ internal sealed class ShellHostFactory(
     SystemState system,
     TriggerRuntime runtime,
     RunQuestionHost questions,
-    MainViewModel viewModel,
     MenuSurfaceBridge menu,
     WheelSurfaceBridge wheel,
     PanelSurfaceBridge panelFrames,
@@ -26,7 +24,7 @@ internal sealed class ShellHostFactory(
     {
         menu.Menu.Actions ??= new MenuSurfaceActions(() => owner);
 
-        var actions = new ShellNativeWindows(workspace, viewModel, () => owner,
+        var actions = new ShellNativeWindows(workspace, () => owner,
             macro =>
             {
                 owner.OpenEditor(macro.Name);

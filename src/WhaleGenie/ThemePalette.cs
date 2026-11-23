@@ -194,19 +194,6 @@ public static class ThemePalette
         Set(app, "AccentFillPressed", tokens.Pressed);
         Set(app, "AccentText", tokens.Text);
         Set(app, "AccentSurface", tokens.Surface);
-
-        // The tab strip's selected bar reads its own WinUI name, which the dictionary ties to
-        // `AccentFill` by a static alias — a static alias is baked when the dictionary is first
-        // parsed, so it would keep the accent the user chose before this one. Writing it here as
-        // well is what makes a custom accent reach the tab under the window it was chosen in.
-        app.Resources["PivotHeaderItemSelectedPipeFill"] = new SolidColorBrush(tokens.Fill);
-
-        // The settings window's left column fills its selected row with the same accent, and those
-        // keys are static aliases too. Three of them rather than one: the row still has to answer
-        // the pointer, and a hover that fell back to the parsed accent would be the wrong colour.
-        app.Resources["NavigationViewItemBackgroundSelected"] = new SolidColorBrush(tokens.Fill);
-        app.Resources["NavigationViewItemBackgroundSelectedPointerOver"] = new SolidColorBrush(tokens.Hover);
-        app.Resources["NavigationViewItemBackgroundSelectedPressed"] = new SolidColorBrush(tokens.Pressed);
     }
 
     private static void Set(Application app, string token, Color colour)
@@ -222,10 +209,5 @@ public static class ThemePalette
             app.Resources.Remove(token);
             app.Resources.Remove(token + "Color");
         }
-
-        app.Resources.Remove("PivotHeaderItemSelectedPipeFill");
-        app.Resources.Remove("NavigationViewItemBackgroundSelected");
-        app.Resources.Remove("NavigationViewItemBackgroundSelectedPointerOver");
-        app.Resources.Remove("NavigationViewItemBackgroundSelectedPressed");
     }
 }

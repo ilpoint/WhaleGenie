@@ -124,12 +124,6 @@ public class ThemePaletteTests
                 Assert.Equal(tokens.Fill, ColorAt("AccentFillColor", ThemeVariant.Dark));
                 Assert.Equal(tokens.Text, ColorAt("AccentText", ThemeVariant.Dark));
                 Assert.Equal(tokens.Surface, ColorAt("AccentSurface", ThemeVariant.Dark));
-
-                // FluentAvalonia 的选中行资源键同样是静态别名：自定义强调色不写这三个，
-                // 选中行会停在字典解析时的那个橙。
-                Assert.Equal(tokens.Fill, ColorAt("NavigationViewItemBackgroundSelected", ThemeVariant.Dark));
-                Assert.Equal(tokens.Hover, ColorAt("NavigationViewItemBackgroundSelectedPointerOver", ThemeVariant.Dark));
-                Assert.Equal(tokens.Pressed, ColorAt("NavigationViewItemBackgroundSelectedPressed", ThemeVariant.Dark));
             }
             finally
             {

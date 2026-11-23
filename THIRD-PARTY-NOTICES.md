@@ -33,10 +33,6 @@ Lucide.Avalonia 0.2.27. Lucide is licensed under ISC and Lucide.Avalonia under M
 
 - Avalonia（Avalonia、Avalonia.Desktop、Avalonia.Themes.Fluent、Avalonia.Fonts.Inter）— MIT
   <https://github.com/AvaloniaUI/Avalonia>
-- Avalonia.Controls.ColorPicker — MIT
-  <https://github.com/AvaloniaUI/Avalonia>
-- Avalonia.Controls.DataGrid — MIT
-  <https://github.com/AvaloniaUI/Avalonia>
 - Avalonia.Controls.WebView — MIT
   <https://github.com/AvaloniaUI/Avalonia.Controls.WebView>
   网页壳用它承载页面。它传递依赖 Microsoft.Web.WebView2（WebView2 SDK，许可见其包内
