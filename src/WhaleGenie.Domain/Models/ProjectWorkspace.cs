@@ -234,9 +234,14 @@ public sealed partial class ProjectWorkspace : ObservableObject
 
     /// <summary>Replaces everything with the contents of a package file.</summary>
     public void OpenPackage(string path)
-    {
-        var contents = MacroPackage.Load(path);
+        => ApplyPackage(path, MacroPackage.Load(path));
 
+    /// <summary>
+    /// Replaces everything with a package already read on some other thread. The reader owns the
+    /// file; this part owns the lists.
+    /// </summary>
+    public void ApplyPackage(string path, PackageContents contents)
+    {
         Macros.Clear();
         foreach (var macro in contents.Macros)
         {

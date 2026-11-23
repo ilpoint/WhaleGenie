@@ -32,6 +32,25 @@ public static class ProjectFiles
         }
     }
 
+    /// <summary>
+    /// Opens a package without reading the file on the interface thread: the archive and its
+    /// pictures are read on a worker, then the project is replaced in one turn of the caller's
+    /// thread. The window and the page both open through here.
+    /// </summary>
+    public static async Task<ProjectFileResult> OpenAsync(ProjectWorkspace workspace, string path)
+    {
+        try
+        {
+            var contents = await Task.Run(() => MacroPackage.Load(path));
+            workspace.ApplyPackage(path, contents);
+            return ProjectFileResult.Success();
+        }
+        catch (Exception error)
+        {
+            return ProjectFileResult.Failed(error);
+        }
+    }
+
     public static ProjectFileResult Save(ProjectWorkspace workspace, string path)
     {
         try

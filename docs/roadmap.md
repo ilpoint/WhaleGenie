@@ -33,8 +33,9 @@ P8 原生主题收缩已完成（1133 → 436/340/324）。P5 可注入设置、
   “2,500”作为过时目标保留在记录里，不再按它判断完成。
 - **P3/P4 IO/busy**：保存已全部改成“UI 线程准备（ProjectWorkspace.PrepareSave 拷出计划）→ 后台
   Task.Run 写 zip（MacroPackage.Save）→ UI 线程 MarkSaved 收尾”。MCP 保存、窗口保存与另存为共用这套；
-  用例覆盖计划是副本、无文件时无计划、收尾清脏、异步保存落盘。剩余：打开/重载仍同步读包，下一步
-  按同一形态改成“后台读 → UI 线程替换”。
+  用例覆盖计划是副本、无文件时无计划、收尾清脏、异步保存落盘。打开/重载也改成“后台读
+  MacroPackage.Load → UI 线程 ApplyPackage 替换”，用例覆盖替换后的宏、路径与脏标记。剩下的同步
+  读包只有启动时（窗口还没画）与无窗口的 MCP 自检，它们本来就不在界面线程上。
 - 真机验收（游戏全屏、多屏、DPI 125–200%）只能由使用者完成，代码侧已把清单列在迁移文档里。
 
 界面整体从原生 AXAML 迁到 WebView + Lit + Fluent UI Web Components（见 [DESIGN.md](../DESIGN.md)

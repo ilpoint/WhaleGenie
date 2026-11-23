@@ -55,6 +55,34 @@ public class ProjectSavePlanTests
     }
 
     [Fact]
+    public async Task An_async_open_reads_the_package_and_replaces_the_project()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-open-" + System.Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
+            var source = new ProjectWorkspace();
+            source.AddMacro(new MacroItem { Name = "one" });
+            Assert.True((await ProjectFiles.SaveAsync(source, path)).Ok);
+
+            var target = new ProjectWorkspace();
+            target.AddMacro(new MacroItem { Name = "old" });
+            var opened = await ProjectFiles.OpenAsync(target, path);
+
+            Assert.True(opened.Ok);
+            Assert.Equal(path, target.CurrentPath);
+            Assert.False(target.IsDirty);
+            Assert.Contains(target.Macros, macro => macro.Name == "one");
+            Assert.DoesNotContain(target.Macros, macro => macro.Name == "old");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
     public void A_project_with_no_file_has_nothing_to_plan()
         => Assert.Null(new ProjectWorkspace().PrepareSave());
 

@@ -382,7 +382,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
     private async Task OpenPackage(string path)
     {
-        var opened = ProjectFiles.Open(_workspace, path);
+        var opened = await ProjectFiles.OpenAsync(_workspace, path);
         if (!opened.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
