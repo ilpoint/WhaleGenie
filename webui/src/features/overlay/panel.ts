@@ -93,6 +93,10 @@ export class WgOverlayPanel extends LitElement {
     }
   }
 
+  private run(itemLabel: string): void {
+    void bridgeApi.call('surface.panel.run', { name: itemLabel });
+  }
+
   protected override render() {
     if (this.error.length > 0) {
       return html`<p class="note">${this.error}</p>`;
@@ -110,7 +114,12 @@ export class WgOverlayPanel extends LitElement {
           ? html`<span class="note">${strings.t('Interface.Panel')}</span>`
           : snapshot.items.map((item) => html`
               <button class="member ${item.state === 'visible' ? '' : 'disabled'}"
-                title=${item.label}>${item.label}</button>
+                title=${item.label}
+                @click=${() => {
+                  if (item.state === 'visible') {
+                    this.run(item.label);
+                  }
+                }}>${item.label}</button>
             `)}
       </div>
     `;

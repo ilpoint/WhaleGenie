@@ -179,6 +179,7 @@ DPI 125/150/200% 下的落点。
 - 页面 `features/overlay/panel` 画标题与成员（横向/纵向、停用态），`#overlay/panel` 路由。
 - 宿主 `PanelOverlayHost`（`BridgeSurface.Panel`，240×320，启动预热），`--panel-overlay`（Debug）
   实测能在真实项目上打开。
+- 成员点击：`surface.panel.run` 按名字查找并只在宏启用时运行；页面只对可显示成员发命令。
 - **未接线**：分组热键/锚定窗口/移动与收起仍走 `FloatingSurfaceWindow`；面板位置与规则留在 C#，
   页面只负责排版。
 

@@ -8,7 +8,13 @@ namespace WhaleGenie.Bridge;
 internal sealed class PanelSurfaceBridge(PanelSurface panel) : IBridgeHandler
 {
     public void Register(BridgeServer server)
-        => server.Register("surface.panel.state", parameters =>
+    {
+        server.Register("surface.panel.run", parameters =>
+        {
+            var name = parameters.TryGetProperty("name", out var given) ? given.GetString() : null;
+            return Task.FromResult<object?>(new { started = panel.Run(name ?? string.Empty) });
+        });
+        server.Register("surface.panel.state", parameters =>
         {
             var key = parameters.TryGetProperty("groupKey", out var group) ? group.GetString() ?? "" : "";
             var horizontal = parameters.TryGetProperty("horizontal", out var side)
@@ -17,4 +23,5 @@ internal sealed class PanelSurfaceBridge(PanelSurface panel) : IBridgeHandler
                 && fold.ValueKind == System.Text.Json.JsonValueKind.True;
             return Task.FromResult<object?>(panel.Snapshot(key, horizontal, collapsed));
         });
+    }
 }

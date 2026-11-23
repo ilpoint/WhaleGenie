@@ -11,8 +11,22 @@ namespace WhaleGenie.Runtime;
 /// Projects one interface group into the page's shape. The window rules and the anchor stay in C#;
 /// this only lists the members and how each should read.
 /// </summary>
-internal sealed class PanelSurface(ProjectWorkspace workspace)
+internal sealed class PanelSurface(ProjectWorkspace workspace, TriggerRuntime runtime)
 {
+    /// <summary>Runs one member from the panel, by name, if it is still there and switched on.</summary>
+    public bool Run(string name)
+    {
+        var macro = workspace.Macros.FirstOrDefault(candidate =>
+            string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (macro is not { IsEnabled: true })
+        {
+            return false;
+        }
+
+        runtime.Triggers.RunOnce(macro);
+        return true;
+    }
+
     public SurfacePanelSnapshot Snapshot(string groupKey, bool horizontal, bool collapsed)
     {
         var groups = workspace.Triggers.InterfaceGroups();

@@ -22,7 +22,7 @@ public class PanelSurfaceTests
 
         var key = project.Triggers.InterfaceGroups()
             .First(group => group.Entries.Any()).Key;
-        var snapshot = new PanelSurface(project).Snapshot(key, horizontal: false, collapsed: false);
+        var snapshot = Surface(project).Snapshot(key, horizontal: false, collapsed: false);
 
         var item = Assert.Single(snapshot.Items);
         Assert.Equal("one", item.Label);
@@ -32,10 +32,17 @@ public class PanelSurfaceTests
     [Fact]
     public void Without_a_group_the_panel_is_empty_but_titled()
     {
-        var snapshot = new PanelSurface(new ProjectWorkspace())
+        var snapshot = Surface(new ProjectWorkspace())
             .Snapshot("missing", horizontal: false, collapsed: false);
 
         Assert.Empty(snapshot.Items);
         Assert.Equal("界面宏", snapshot.Title);
     }
+
+    [Fact]
+    public void Running_a_name_that_is_not_there_does_nothing()
+        => Assert.False(Surface(new ProjectWorkspace()).Run("missing"));
+
+    private static PanelSurface Surface(ProjectWorkspace project)
+        => new(project, new TriggerRuntime(NullDeviceLayer.Instance, project.Variables));
 }
