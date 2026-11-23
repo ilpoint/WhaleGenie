@@ -176,3 +176,4 @@
 642	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
 587	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Triggers.cs	keep: 全局变量、局部变量与触发器是同一处“怎么被调用”
 633	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Values.cs	keep: 取值编辑器一族，随取值模型一起变
+67224	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
