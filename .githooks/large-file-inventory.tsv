@@ -90,7 +90,7 @@
 304	core/src/WhaleGenie.GraphicsCapture/WindowsDesktop.cs	keep: 一条采集路径，像素从这里进来
 308	tests/WhaleGenie.Actions.Tests/FieldNameTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 485	tests/WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
-681	tests/WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
+662	tests/WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
 593	tests/WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
 344	tests/WhaleGenie.Tests/McpRunTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 326	tests/WhaleGenie.Tests/McpServerTests.Patches.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
@@ -116,9 +116,8 @@
 301	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 458	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
-40222	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
-626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
-322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
+39836	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
+627	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 466	src/WhaleGenie.Editing/Actions/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 359	src/WhaleGenie.Editing/Actions/AddActionViewModel.Parameters.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 356	src/WhaleGenie.Editing/Actions/AddActionViewModel.Preview.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
@@ -140,7 +139,6 @@
 461	src/WhaleGenie/Runtime/NativeSurfaceHost.Wheel.cs	keep: 轮盘一个域——手势、命中、窗口与代际号是同一次任务的读取集
 499	src/WhaleGenie/Views/Pickers/PickEntryWindow.axaml.cs	keep: 一个窗口或视图的交互与布局，拆开要跨文件追同一组状态
 660	src/WhaleGenie/Views/Pickers/PointPickerWindow.cs	keep: 取点窗口的单一交互
-438	src/WhaleGenie/Views/Common/HintBubbleHost.cs	keep: 每窗口一个气泡的状态机、调度与离场，单一职责
 562	src/WhaleGenie/Views/Pickers/WindowPickWindow.cs	keep: 窗口挑选的一次交互：跟随指针、框选与读数同属一个手势
 516	core/src/WhaleGenie.Core/Variables/VariableBag.cs	keep: 一张值表的读写、标记与容量，单一职责
 390	src/WhaleGenie.Domain/Models/PersistedVariables.cs	keep: 持久化全局值的声明、文件与补写，单一职责
@@ -163,9 +161,6 @@
 438	src/WhaleGenie.App/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
 34141	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 449	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
-485	src/WhaleGenie/Themes/Controls.axaml	keep: 主题资源入口与基础控件，其余按族经 StyleInclude 接入
-340	src/WhaleGenie/Themes/Controls.Navigation.axaml	keep: 导航与列表一族的样式，随导航控件一起变
-324	src/WhaleGenie/Themes/Controls.Badges.axaml	keep: 徽标与状态色一族，随状态词汇一起变
 359	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
 648	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.cs	keep: 会话字段、装载保存与设置同属一次编辑会话的入口
 642	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
