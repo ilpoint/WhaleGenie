@@ -1,18 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Reads the [BridgeContract] records and writes one TypeScript module. The output is checked in:
-    the web build uses it, and a C# case fails when the two drift apart. Runs on the base library,
-    so it never pulls a window toolkit or the document model into the generator.
+    Reads the [BridgeContract] records and the text tables; writes one TypeScript module plus the
+    word list the browser mock answers with. The output is checked in: the web build uses it, and a
+    C# case fails when the two drift apart. It references only base libraries (Contracts,
+    Localization, Core), so no window toolkit or document model comes into the generator.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041</TargetFramework>
     <RootNamespace>WhaleGenie.ContractsGen</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\WhaleGenie.Contracts\WhaleGenie.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\WhaleGenie.Localization\WhaleGenie.Localization.csproj" />
   </ItemGroup>
 
 </Project>

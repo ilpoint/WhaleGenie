@@ -17,6 +17,7 @@
     <InternalsVisibleTo Include="WhaleGenie.Actions.Tests" />
     <InternalsVisibleTo Include="WhaleGenie.Domain.Tests" />
     <InternalsVisibleTo Include="WhaleGenie.Core.Tests" />
+    <InternalsVisibleTo Include="WhaleGenie.ContractsGen" />
   </ItemGroup>
 
 </Project>

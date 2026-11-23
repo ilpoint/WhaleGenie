@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using WhaleGenie.Contracts;
 using WhaleGenie.ContractsGen;
+using WhaleGenie.Localization;
 
 namespace WhaleGenie.Tests;
 
@@ -21,6 +23,32 @@ public class ContractGenerationTests
     {
         AssertCurrent("types.ts", ContractGenerator.Generate());
         AssertCurrent("methods.ts", ContractGenerator.GenerateMethods());
+    }
+
+    [Fact]
+    public void The_generated_mock_words_are_current()
+    {
+        var path = Path.Combine(RepoPaths.Root,
+            "webui", "src", "shared", "bridge", "generated", "strings.json");
+        Assert.True(File.Exists(path), $"the generated mock words are missing: {path}");
+
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        foreach (var (language, table) in new[]
+                 {
+                     ("en", Strings.English),
+                     ("zh", Strings.Chinese),
+                 })
+        {
+            var entries = document.RootElement.GetProperty(language).EnumerateObject().ToList();
+            Assert.NotEmpty(entries);
+            foreach (var entry in entries)
+            {
+                Assert.True(table.TryGetValue(entry.Name, out var word),
+                    $"{language} has an unknown key: {entry.Name}");
+                Assert.True(word == entry.Value.GetString(),
+                    $"{language}.{entry.Name} is stale; run {Regenerate}");
+            }
+        }
     }
 
     [Fact]
