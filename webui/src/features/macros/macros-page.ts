@@ -18,6 +18,20 @@ import '../mcp/index.js';
 import { filterMacros } from './macros-model.js';
 
 /**
+ * 视图到文案键的显式映射：程序给的是 MacroView 的枚举名，页面按字面量取词。生成器的 mock 词表
+ * 与对账测试都按字面量扫键，动态拼出来的键两边都扫不到，于是 mock 下只剩原始键名。
+ */
+const dockKeys: Record<string, string> = {
+  All: 'Main.Dock.All',
+  Keys: 'Main.Dock.Keys',
+  Interface: 'Main.Dock.Interface',
+  Hotstring: 'Main.Dock.Hotstring',
+  Menu: 'Main.Dock.Menu',
+  Wheel: 'Main.Dock.Wheel',
+  Events: 'Main.Dock.Events',
+};
+
+/**
  * 宏列表页：视图 dock、分组、搜索与「已启用优先」的排序都归页面，程序只给宏属于哪些视图和
  * 这个开关的当前值；启停与系统开关经桥命令程序。空状态有两种——没有宏、这一格视图里没有
  * 匹配的宏——与旧主窗的用户体感一致。
@@ -77,7 +91,7 @@ export class WgMacros extends LitElement {
               aria-current=${String(this.view === view)}
               @click=${() => this.selectView(view)}
             >
-              ${t(`Main.Dock.${view}`)}
+              ${t(dockKeys[view] ?? view)}
             </button>
           `)}
         </div>
