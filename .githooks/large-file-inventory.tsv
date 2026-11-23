@@ -117,7 +117,7 @@
 301	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 458	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
-38997	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
+40086	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 626	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 322	src/WhaleGenie/Themes/Tokens.axaml	keep: 设计令牌
 466	src/WhaleGenie.Editing/Actions/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
@@ -163,7 +163,7 @@
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
 20011	docs/manual/05-values-and-placement.md	keep: 取值窗口、文字比较与落点是'值怎么读、怎么落'的一整篇，一次任务读完这一篇
 438	src/WhaleGenie.App/Bridge/RunBridge.cs	keep: 运行调试一个域——会话、命令、快照与转换后的行和日志是同一次任务的读取集
-33896	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
+34034	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 449	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 314	src/WhaleGenie.Editing/Editor/ConditionEditorViewModel.cs	keep: 条件树的增删与拾取是同一个编辑任务
 311	src/WhaleGenie/Web/WebShellWindow.axaml.cs	keep: 壳窗口的外框、页面装载与浮层入口同属窗口生命周期
@@ -178,5 +178,7 @@
 67679	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
 
 368	src/WhaleGenie/Web/WebOverlayWindow.cs	keep: 一个透明置顶浮层的全部窗口职责：尺寸、定位、区域裁切与 Win32 样式
-21680	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
+22349	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
 308	src/WhaleGenie.App/Runtime/MenuSurface.cs	keep: 菜单投影与格子编辑命令同属一处；页面只收快照
+
+315	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
