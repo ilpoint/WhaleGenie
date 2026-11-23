@@ -28,6 +28,9 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     private OverlayPoint? _pointer;
     private double _centerX = -1;
     private double _centerY = -1;
+    private DispatcherTimer? _revealTimer;
+    private bool _readyHooked;
+    private bool _revealPending;
 
     public event Action? TimedOut;
 
@@ -43,6 +46,12 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         _window ??= new WebOverlayWindow(bridge, BridgeSurface.Wheel, "overlay/wheel", 840, 840);
         _window.SetClickThrough(true);
         _window.SetNoActivate(true);
+        if (!_readyHooked)
+        {
+            wheel.Ready += OnWheelReady;
+            _readyHooked = true;
+        }
+
         _window.Warm();
     }
 
@@ -62,16 +71,16 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         window.SetNoActivate(true);
         var centre = PlaceOnScreen(window, origin, options);
         _origin = new OverlayPoint(centre.X, centre.Y);
-        window.Show();
-        if (options.MovePointerToCenter && options.ClampToScreen
-            && (centre.X != origin.X || centre.Y != origin.Y))
+        if (options.MovePointerToCenter)
         {
+            // Move first, then reveal: the wheel appears already centred on the pointer.
             SetCursorPos(centre.X, centre.Y);
         }
 
+        window.Opacity = 0;
+        window.Show();
+        BeginReveal();
         Push(null);
-        _ = bridge.PushAsync("surface.wheel.opened", new { pop = options.PopAnimation, ms = options.PopAnimationMs },
-            BridgePushMode.Latest, BridgeSurface.Wheel);
 
         _timeout?.Stop();
         if (timeoutMs > 0)
@@ -150,12 +159,53 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
 
     public void Close()
     {
+        CancelReveal();
         _timeout?.Stop();
         _timeout = null;
         _layout = null;
         _aim = null;
         _pointer = null;
         _window?.Hide();
+    }
+
+    private void OnWheelReady()
+    {
+        if (_revealPending)
+        {
+            Reveal();
+        }
+    }
+
+    private void BeginReveal()
+    {
+        CancelReveal();
+        _revealPending = true;
+        _revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _revealTimer.Tick += (_, _) => Reveal();
+        _revealTimer.Start();
+    }
+
+    private void Reveal()
+    {
+        if (!_revealPending)
+        {
+            return;
+        }
+
+        _revealPending = false;
+        _revealTimer?.Stop();
+        _revealTimer = null;
+        _window?.Opacity = 1;
+        _ = bridge.PushAsync("surface.wheel.opened",
+            new { pop = _options.PopAnimation, ms = _options.PopAnimationMs },
+            BridgePushMode.Latest, BridgeSurface.Wheel);
+    }
+
+    private void CancelReveal()
+    {
+        _revealPending = false;
+        _revealTimer?.Stop();
+        _revealTimer = null;
     }
 
     private void Push(SurfaceWheelAim? aim)

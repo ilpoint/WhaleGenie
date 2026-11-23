@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Runtime;
@@ -15,10 +16,18 @@ internal sealed class WheelSurfaceBridge(WheelSurface wheel) : IBridgeHandler
     private double _centerX = -1;
     private double _centerY = -1;
 
+    /// <summary>The page has painted the frame it was last sent and can be revealed.</summary>
+    internal event Action? Ready;
+
     public void Register(BridgeServer server)
     {
         _server = server;
         server.Register("surface.wheel.state", _ => Task.FromResult<object?>(State()));
+        server.Register("surface.wheel.ready", _ =>
+        {
+            Ready?.Invoke();
+            return Task.FromResult<object?>(null);
+        });
     }
 
     private SurfaceWheelSnapshot State()

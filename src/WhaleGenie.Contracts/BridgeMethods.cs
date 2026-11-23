@@ -136,6 +136,7 @@ public static class BridgeMethods
         "surface.panel.run",
         "surface.panel.view",
         "surface.panel.state",
+        "surface.wheel.ready",
         "surface.wheel.state",
         "theme.get",
         "theme.set",

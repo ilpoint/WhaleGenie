@@ -167,6 +167,9 @@ export class WgOverlayWheel extends LitElement {
       this.changedFrame = true;
       this.snapshot = next;
       this.preload(next);
+      void this.updateComplete.then(() => {
+        void bridgeApi.call('surface.wheel.ready').catch(() => undefined);
+      });
     });
     bridgeApi.on('surface.wheel.opened', (event) => {
       window.clearTimeout(this.animationTimer);

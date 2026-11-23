@@ -186,6 +186,8 @@ export class MockTransport implements BridgeTransport {
       } else if (method === 'icon.path') {
         // 开发页没有 Lucide 表，用一个圆角方框代替；路径仍是 SVG 能读的一条。
         result = { path: 'M4 4 H20 V20 H4 Z' };
+      } else if (method === 'surface.wheel.ready') {
+        result = null;
       } else if (method === 'surface.wheel.state') {
         result = this.surfaceWheel;
       } else if (method.startsWith('surface.')) {
