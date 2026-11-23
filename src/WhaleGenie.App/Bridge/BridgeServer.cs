@@ -49,8 +49,9 @@ public sealed class BridgeServer
 
     /// <summary>
     /// One page each, not one page in total: the shell talks about the project, and an overlay
-    /// talks about the menu, the wheel or one panel. A push names its surface, and a surface that
-    /// has not registered its receiver yet keeps its own buffer instead of delaying the others.
+    /// talks about the menu, the wheel or one panel. A push names its surface — or goes to all of
+    /// them for a fact every page must know — and a surface that has not registered its receiver
+    /// yet keeps its own buffer instead of delaying the others.
     /// </summary>
     private readonly Dictionary<BridgeSurface, SurfaceState> _surfaces = new()
     {
@@ -229,7 +230,8 @@ public sealed class BridgeServer
     /// A state event is coalesced: while an earlier push of the same event is still queued, the
     /// newer payload replaces it. The page only needs the latest theme or project state, and four
     /// pushes a second would otherwise queue up behind a slow script call. Streaming events — log
-    /// lines, for example — pass <see cref="BridgePushMode.All"/> and keep every push.
+    /// lines, for example — pass <see cref="BridgePushMode.All"/> and keep every push. A fact every
+    /// page shares — the word table or the theme — is sent with <see cref="PushAllAsync"/> instead.
     /// </remarks>
     public Task PushAsync(string @event, object? payload,
         BridgePushMode mode = BridgePushMode.Latest, BridgeSurface surface = BridgeSurface.Main)
@@ -271,6 +273,29 @@ public sealed class BridgeServer
         }
 
         return completion;
+    }
+
+    /// <summary>
+    /// Sends one event to every page, each through its own <see cref="PushAsync"/>: the shell and
+    /// every overlay keep their own buffer and queue, so a page that has not registered its
+    /// receiver yet holds the event back without delaying the pages that are listening.
+    /// </summary>
+    /// <remarks>
+    /// For the few facts every page has to draw with — the word table and the theme, which change
+    /// the words and colours all of them show. A state that belongs to one surface (the project,
+    /// a menu, a run panel) is still pushed with <see cref="PushAsync"/>, so a page cannot
+    /// overwrite another's view with a snapshot meant for one of them.
+    /// </remarks>
+    public Task PushAllAsync(string @event, object? payload,
+        BridgePushMode mode = BridgePushMode.Latest)
+    {
+        var pushes = new List<Task>(_surfaces.Count);
+        foreach (var surface in _surfaces.Keys)
+        {
+            pushes.Add(PushAsync(@event, payload, mode, surface));
+        }
+
+        return Task.WhenAll(pushes);
     }
 
     /// <summary>Whether the page has registered its receiver and may be sent events.</summary>
@@ -377,50 +402,6 @@ public sealed class BridgeServer
             _sendGate.Release();
         }
     }
-}
-
-/// <summary>Which page a message belongs to: the shell, or one of the overlays beside it.</summary>
-public enum BridgeSurface
-{
-    /// <summary>The shell: project, editor, settings and run panels.</summary>
-    Main,
-
-    /// <summary>The macro menu overlay.</summary>
-    Menu,
-
-    /// <summary>The wheel overlay.</summary>
-    Wheel,
-
-    /// <summary>One interface panel beside the window in front.</summary>
-    Panel,
-}
-
-/// <summary>How a push treats an older push of the same event that has not gone out yet.</summary>
-public enum BridgePushMode
-{
-    /// <summary>Replace the queued payload with the newest one; the page only needs the latest state.</summary>
-    Latest,
-
-    /// <summary>Keep every push, in order — log lines and other streams need each one.</summary>
-    All,
-}
-
-/// <summary>Names the protocol's fixed words in one place.</summary>
-public static class BridgeProtocol
-{
-    /// <summary>The page sends this once its receiver is registered; buffered events follow.</summary>
-    public const string ReadyMethod = "bridge.ready";
-}
-
-/// <summary>The stable rejection words the bridge answers with.</summary>
-public static class BridgeErrors
-{
-    public const string BadArgument = "BadArgument";
-    public const string NoSuchMethod = "NoSuchMethod";
-    public const string NoSuchMacro = "NoSuchMacro";
-    public const string PackageOpenFailed = "PackageOpenFailed";
-    public const string PackageSaveFailed = "PackageSaveFailed";
-    public const string Internal = "Internal";
 }
 
 /// <summary>A rejection a handler means to hand to the page, with the words to hand it under.</summary>

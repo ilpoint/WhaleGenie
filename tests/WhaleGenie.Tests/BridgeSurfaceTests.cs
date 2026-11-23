@@ -12,6 +12,8 @@ namespace WhaleGenie.Tests;
 /// One bridge, several pages: the shell keeps the project, an overlay keeps a menu or a wheel. A
 /// push names its surface, and a surface that is not ready buffers only its own events — mixing
 /// those up would send a menu payload to the shell or drop one overlay's state behind another's.
+/// A fact every page draws with, like the word table or the theme, is broadcast instead; each page
+/// still gets, or buffers, its own copy.
 /// </summary>
 public class BridgeSurfaceTests
 {
@@ -130,6 +132,88 @@ public class BridgeSurfaceTests
         Assert.Contains(menu.Sent, json => json.Contains("\"step\":2", StringComparison.Ordinal));
         Assert.DoesNotContain(menu.Sent, json => json.Contains("\"step\":1", StringComparison.Ordinal));
         Assert.Contains(main.Sent, json => json.Contains("\"step\":9", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_broadcast_reaches_every_page_that_is_listening()
+    {
+        var server = new BridgeServer();
+        var main = new RecordingChannel();
+        var menu = new RecordingChannel();
+        var wheel = new RecordingChannel();
+        server.Attach(BridgeSurface.Main, main);
+        server.Attach(BridgeSurface.Menu, menu);
+        server.Attach(BridgeSurface.Wheel, wheel);
+        await ReadyAsync(server, BridgeSurface.Main, main, 1);
+        await ReadyAsync(server, BridgeSurface.Menu, menu, 2);
+        await ReadyAsync(server, BridgeSurface.Wheel, wheel, 3);
+
+        await server.PushAllAsync("strings.changed", new { language = "zh-Hans" });
+
+        foreach (var channel in new[] { main, menu, wheel })
+        {
+            // The answer to ready, then the one broadcast: nothing else, and no duplicate.
+            Assert.Equal(2, channel.Sent.Count);
+            Assert.Single(channel.Sent,
+                json => json.Contains("\"event\":\"strings.changed\"", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public async Task A_broadcast_buffers_on_a_page_that_is_not_ready_and_replays_it()
+    {
+        var server = new BridgeServer();
+        var main = new RecordingChannel();
+        var menu = new RecordingChannel();
+        server.Attach(BridgeSurface.Main, main);
+        server.Attach(BridgeSurface.Menu, menu);
+        await ReadyAsync(server, BridgeSurface.Main, main, 1);
+
+        // The overlay page has not registered its receiver yet, so the broadcast waits in its
+        // buffer while the shell gets it straight away. The overlay's own state event is held in
+        // the same buffer.
+        await server.PushAsync("surface.menu", new { open = true }, BridgePushMode.All,
+            BridgeSurface.Menu);
+        await server.PushAllAsync("theme.changed", new { mode = "dark" }, BridgePushMode.All);
+        await server.PushAllAsync("strings.changed", new { language = "en" }, BridgePushMode.All);
+
+        Assert.Contains(main.Sent,
+            json => json.Contains("\"event\":\"theme.changed\"", StringComparison.Ordinal));
+        Assert.Empty(menu.Sent);
+
+        await ReadyAsync(server, BridgeSurface.Menu, menu, 2);
+
+        // The answer to ready comes first, then every held-back event in the order it was pushed.
+        Assert.Equal(4, menu.Sent.Count);
+        Assert.Contains("\"id\":2", menu.Sent[0], StringComparison.Ordinal);
+        Assert.Contains("\"event\":\"surface.menu\"", menu.Sent[1], StringComparison.Ordinal);
+        Assert.Contains("\"event\":\"theme.changed\"", menu.Sent[2], StringComparison.Ordinal);
+        Assert.Contains("\"event\":\"strings.changed\"", menu.Sent[3], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_broadcast_is_held_for_each_page_separately()
+    {
+        var server = new BridgeServer();
+        var main = new RecordingChannel();
+        var menu = new RecordingChannel();
+        server.Attach(BridgeSurface.Main, main);
+        server.Attach(BridgeSurface.Menu, menu);
+
+        // Neither page is ready. The broadcast is held in both buffers; the shell becoming ready
+        // must deliver its copy without counting the overlay's copy as already sent.
+        await server.PushAllAsync("strings.changed", new { language = "zh-Hans" });
+
+        await ReadyAsync(server, BridgeSurface.Main, main, 1);
+        Assert.Equal(2, main.Sent.Count);
+        Assert.Single(main.Sent,
+            json => json.Contains("\"event\":\"strings.changed\"", StringComparison.Ordinal));
+        Assert.Empty(menu.Sent);
+
+        await ReadyAsync(server, BridgeSurface.Menu, menu, 2);
+        Assert.Equal(2, menu.Sent.Count);
+        Assert.Single(menu.Sent,
+            json => json.Contains("\"event\":\"strings.changed\"", StringComparison.Ordinal));
     }
 
     private static async Task ReadyAsync(BridgeServer server, BridgeSurface surface,

@@ -59,8 +59,9 @@ S0 探针（`--overlay-probe`，Debug）已验证这条路径可以编译，真�
   壳的对话框被丢弃）；
 - `IBridgeHandler` 不变；处理器照旧调用 `PushAsync`，默认面是 `Main`。
 
-**已完成（2026-11）**：`BridgeServer` 已按面路由，`BridgeSurfaceTests`（6 条）覆盖只发所属面、
-按面缓冲、ready/应答回源、`PageReset` 仅主壳与按面合并。测试放进现有 `WhaleGenie.Tests` 而不是
+**已完成（2026-11）**：`BridgeServer` 已按面路由，`BridgeSurfaceTests`（9 条）覆盖只发所属面、
+按面缓冲、ready/应答回源、`PageReset` 仅主壳、按面合并与 `PushAllAsync` 的全表面广播。语言与主题
+这类所有页面共享的事实走广播，状态快照仍按面推。测试放进现有 `WhaleGenie.Tests` 而不是
 新建工程：桥的既有测试与夹具都在那里，再开一个工程只会复制夹具。
 
 ### 2.3 契约：快照 + 命令，不传控件

@@ -6,9 +6,9 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// Hands the page the whole word table and keeps it current. The page draws only from what this
+/// Hands every page the whole word table and keeps it current. A page draws only from what this
 /// bridge sends: which table a key belongs to and what the fallback is are decided once, in
-/// <see cref="Strings.Snapshot"/>, and the page never guesses.
+/// <see cref="Strings.Snapshot"/>, and no page ever guesses.
 /// </summary>
 public sealed class StringsBridge : IBridgeHandler, IDisposable
 {
@@ -19,8 +19,9 @@ public sealed class StringsBridge : IBridgeHandler, IDisposable
         _server = server;
         server.Register("strings.bundle", _ =>
         {
-            // The answer is current; a buffered language change from before the page was ready is
-            // older and must not land after it.
+            // The answer is current; the shell's buffered language change from before it was
+            // ready would at best repeat it and must not land after it. An overlay's copy stays:
+            // it asked before this answer existed and may still have a newer change to apply.
             server.DropPending("strings.changed");
             return Task.FromResult<object?>(Bundle());
         });
@@ -30,7 +31,7 @@ public sealed class StringsBridge : IBridgeHandler, IDisposable
     public void Dispose() => Strings.Current.LanguageChanged -= OnLanguageChanged;
 
     private void OnLanguageChanged()
-        => _ = _server?.PushAsync("strings.changed", Bundle());
+        => _ = _server?.PushAllAsync("strings.changed", Bundle());
 
     private static StringsBundle Bundle()
         => new(LanguageName(), Strings.Snapshot());

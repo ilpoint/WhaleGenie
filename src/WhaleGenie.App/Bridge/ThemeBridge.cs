@@ -7,8 +7,9 @@ using WhaleGenie.Localization;
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// The one theme choice, read and written through the same door the settings window uses. The UI
-/// project owns the palette and applies the resources; this handler owns the wire shape.
+/// The one theme choice, read and written through the same door the settings window uses. Every
+/// page draws with it, so a save is pushed to all of them; the UI project owns the palette and
+/// applies the resources, this handler owns the wire shape.
 /// </summary>
 public sealed class ThemeBridge(IThemeCommands theme) : IBridgeHandler
 {
@@ -49,7 +50,7 @@ public sealed class ThemeBridge(IThemeCommands theme) : IBridgeHandler
             ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("Bridge.ThemeMode"));
 
-        await _server!.PushAsync("theme.changed", state);
+        await _server!.PushAllAsync("theme.changed", state);
         return state;
     }
 }
