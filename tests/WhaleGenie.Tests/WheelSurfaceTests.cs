@@ -104,6 +104,14 @@ public class WheelSurfaceTests
     }
 
     [Fact]
+    public void A_runtime_frame_is_not_an_opening_frame()
+    {
+        var snapshot = Frame(new ProjectWorkspace(), new WheelOptions());
+
+        Assert.False(snapshot.Opening);
+    }
+
+    [Fact]
     public void The_centre_reads_close_when_the_pointer_is_inside_it()
     {
         var snapshot = Frame(new ProjectWorkspace(), new WheelOptions());

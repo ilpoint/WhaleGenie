@@ -1612,8 +1612,10 @@ export interface SurfaceWheelSnapshot {
   hideLabelWithIcon: boolean;
   followTheme: boolean;
   fontSize: number;
+  centerName: boolean;
   centerX: number;
   centerY: number;
+  opening: boolean;
 }
 
 export interface ThemeState {

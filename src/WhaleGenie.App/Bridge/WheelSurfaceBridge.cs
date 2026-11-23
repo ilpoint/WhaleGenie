@@ -38,10 +38,17 @@ internal sealed class WheelSurfaceBridge(WheelSurface wheel) : IBridgeHandler
             : snapshot;
     }
 
+    /// <summary>Pushes only the pointer and the rewarded ring; the wheel itself stays static.</summary>
+    internal void PushAim(SurfaceWheelAim? aim, double x, double y)
+        => _server?.PushAsync("surface.wheel.aim",
+            new { x, y, ring = aim?.Ring, index = aim?.Index ?? -1, hasAim = aim is not null },
+            BridgePushMode.Latest, BridgeSurface.Wheel);
+
     /// <summary>Pushes one frame of a wheel the caller resolved, aimed where the pointer is.</summary>
     internal void PushLayout(WhaleGenie.Models.WheelRuntimeLayout layout,
         WhaleGenie.Models.WheelOptions options, SurfaceWheelAim? aim = null,
-        double dx = 0, double dy = 0, double centerX = -1, double centerY = -1)
+        double dx = 0, double dy = 0, double centerX = -1, double centerY = -1,
+        bool opening = false)
     {
         var snapshot = WheelSurface.Of(layout, options, aim, dx, dy);
         if (centerX >= 0 && centerY >= 0)
@@ -49,6 +56,11 @@ internal sealed class WheelSurfaceBridge(WheelSurface wheel) : IBridgeHandler
             _centerX = centerX;
             _centerY = centerY;
             snapshot = snapshot with { CenterX = centerX, CenterY = centerY };
+        }
+
+        if (opening)
+        {
+            snapshot = snapshot with { Opening = true };
         }
 
         _server?.PushAsync("surface.wheel.changed", snapshot, BridgePushMode.Latest,

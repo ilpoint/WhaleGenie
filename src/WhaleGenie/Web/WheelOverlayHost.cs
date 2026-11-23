@@ -13,9 +13,9 @@ namespace WhaleGenie.Web;
 /// is a window concern; what a timeout means is the gesture's.
 /// </summary>
 /// <remarks>
-/// The window is a square twice the wheel's diameter, as the native one was: the guide line has to
-/// follow the pointer outside the circles. It never takes focus and it is click-through; the global
-/// hook is what reads the pointer.
+/// The window is a full-screen transparent frame, so the guide line can follow the pointer past the
+/// wheel square without being clipped. It stays hidden until the page has painted the opening frame.
+/// It never takes focus and it is click-through; the global hook reads the pointer.
 /// </remarks>
 internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge wheel) : IWheelOverlay
 {
@@ -31,6 +31,7 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     private DispatcherTimer? _revealTimer;
     private bool _readyHooked;
     private bool _revealPending;
+    private int _revealAttempts;
 
     public event Action? TimedOut;
 
@@ -67,20 +68,23 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
 
         var window = Ensure();
         window.EndWarm();
+        window.Hide();
         window.SetClickThrough(true);
         window.SetNoActivate(true);
         var centre = PlaceOnScreen(window, origin, options);
         _origin = new OverlayPoint(centre.X, centre.Y);
         if (options.MovePointerToCenter)
         {
-            // Move first, then reveal: the wheel appears already centred on the pointer.
-            SetCursorPos(centre.X, centre.Y);
+            MovePointerTo(centre);
+            _pointer = new OverlayPoint(centre.X, centre.Y);
         }
 
-        window.Opacity = 0;
-        window.Show();
+        // Prepare the opening frame while the window is hidden, and reveal only after the page
+        // says the frame is painted. The WebView is a native child and does not honour top-level
+        // opacity, so showing first would flash the previous wheel. Closing already cleared the
+        // previous frame; this frame overwrites it before anything can become visible.
         BeginReveal();
-        Push(null);
+        Push(null, opening: true);
 
         _timeout?.Stop();
         if (timeoutMs > 0)
@@ -143,6 +147,17 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool SetCursorPos(int x, int y);
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out ScreenPoint point);
+
+    [System.Runtime.InteropServices.StructLayout(
+        System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct ScreenPoint
+    {
+        public int X;
+        public int Y;
+    }
+
     public void SetLayout(WheelRuntimeLayout layout)
     {
         _layout = layout;
@@ -154,7 +169,10 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     {
         _aim = aim;
         _pointer = pointer;
-        Push(aim);
+        if (!_revealPending)
+        {
+            PushAim();
+        }
     }
 
     public void Close()
@@ -165,6 +183,8 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         _layout = null;
         _aim = null;
         _pointer = null;
+        _ = bridge.PushAsync("surface.wheel.closed", null,
+            BridgePushMode.Latest, BridgeSurface.Wheel);
         _window?.Hide();
     }
 
@@ -172,7 +192,7 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     {
         if (_revealPending)
         {
-            Reveal();
+            Reveal("ready");
         }
     }
 
@@ -180,12 +200,46 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
     {
         CancelReveal();
         _revealPending = true;
-        _revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        _revealTimer.Tick += (_, _) => Reveal();
+        _revealAttempts = 1;
+        ArmRevealTimer();
+    }
+
+    private void ArmRevealTimer()
+    {
+        _revealTimer?.Stop();
+        _revealTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+        _revealTimer.Tick += (_, _) => RetryReveal();
         _revealTimer.Start();
     }
 
-    private void Reveal()
+    /// <summary>
+    /// Never reveal an unacknowledged frame. A page that is still warming up may lose the first
+    /// opening push, so resend it while the window stays hidden; after a short budget give up rather
+    /// than flash the previous wheel.
+    /// </summary>
+    private void RetryReveal()
+    {
+        if (!_revealPending)
+        {
+            return;
+        }
+
+        _revealTimer?.Stop();
+        _revealTimer = null;
+        if (_revealAttempts >= 20)
+        {
+            CancelReveal();
+            _window?.Hide();
+            TimedOut?.Invoke();
+            return;
+        }
+
+        _revealAttempts++;
+        Push(null, opening: true);
+        ArmRevealTimer();
+    }
+
+    private void Reveal(string reason)
     {
         if (!_revealPending)
         {
@@ -193,22 +247,29 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         }
 
         _revealPending = false;
+        _revealAttempts = 0;
         _revealTimer?.Stop();
         _revealTimer = null;
-        _window?.Opacity = 1;
+        AppDiagnostics.Note("wheel.reveal", reason + " " + _centerX + "," + _centerY);
+        _window?.Show();
         _ = bridge.PushAsync("surface.wheel.opened",
             new { pop = _options.PopAnimation, ms = _options.PopAnimationMs },
             BridgePushMode.Latest, BridgeSurface.Wheel);
+        if (_pointer is not null)
+        {
+            PushAim();
+        }
     }
 
     private void CancelReveal()
     {
         _revealPending = false;
+        _revealAttempts = 0;
         _revealTimer?.Stop();
         _revealTimer = null;
     }
 
-    private void Push(SurfaceWheelAim? aim)
+    private void Push(SurfaceWheelAim? aim, bool opening = false)
     {
         if (_layout is not { } layout)
         {
@@ -216,7 +277,27 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         }
 
         var (dx, dy) = Offset();
-        wheel.PushLayout(layout, _options, aim, dx, dy, _centerX, _centerY);
+        wheel.PushLayout(layout, _options, aim, dx, dy, _centerX, _centerY, opening);
+    }
+
+    private void PushAim()
+    {
+        var (dx, dy) = Offset();
+        wheel.PushAim(_aim, dx, dy);
+    }
+
+    private void MovePointerTo(PixelPoint centre)
+    {
+        SetCursorPos(centre.X, centre.Y);
+        if (GetCursorPos(out var now) && now.X == centre.X && now.Y == centre.Y)
+        {
+            AppDiagnostics.Note("wheel.recenter", "ok");
+            return;
+        }
+
+        SetCursorPos(centre.X, centre.Y);
+        AppDiagnostics.Note("wheel.recenter",
+            GetCursorPos(out now) ? $"retry at {now.X},{now.Y}" : "cursor unreadable");
     }
 
     /// <summary>The pointer from the wheel's centre in DIPs; the page adds it to the canvas centre.</summary>

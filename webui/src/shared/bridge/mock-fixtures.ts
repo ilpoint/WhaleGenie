@@ -154,6 +154,8 @@ export const demoSurfaceWheel: SurfaceWheelSnapshot = {
   fontSize: 11,
   centerX: 420,
   centerY: 420,
+  opening: false,
+  centerName: true,
   slots: [
     { ring: 'inner', index: 0, label: '演示宏', iconKind: null, iconValue: null, tone: 'global' },
     { ring: 'inner', index: 4, label: '备份', iconKind: null, iconValue: null, tone: 'global' },

@@ -82,7 +82,8 @@ internal sealed class WheelSurface
             options.ShowGuide,
             options.HideLabelWithIcon,
             options.FollowTheme,
-            options.FontSize);
+            options.FontSize,
+            options.CenterName);
     }
 
     private static IReadOnlyList<SurfaceWheelRing> Rings(WheelMetrics metrics, int rings)

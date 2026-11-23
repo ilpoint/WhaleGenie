@@ -1,8 +1,13 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { unsafeSVG } from 'lit/directives/unsafe-svg.js';
 import { bridgeApi } from '../../shared/bridge/bridge.js';
-import type { SurfaceWheelRing, SurfaceWheelSlot, SurfaceWheelSnapshot } from '../../shared/bridge/protocol.js';
+import type {
+  SurfaceWheelAim,
+  SurfaceWheelRing,
+  SurfaceWheelSlot,
+  SurfaceWheelSnapshot,
+} from '../../shared/bridge/protocol.js';
 import { iconPath, svgPath } from '../../shared/icons/icons.js';
 import { strings } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
@@ -17,6 +22,14 @@ import { fileUrl } from '../../shared/files/file-url.js';
 export class WgOverlayWheel extends LitElement {
   @state()
   private snapshot: SurfaceWheelSnapshot | null = null;
+
+  @state()
+  private aim: SurfaceWheelAim | null = null;
+
+  @state()
+  private pointer: { x: number; y: number } | null = null;
+
+  private baseMarkup = '';
 
   @state()
   private error = '';
@@ -52,6 +65,18 @@ export class WgOverlayWheel extends LitElement {
     svg {
       display: block;
       overflow: visible;
+    }
+
+    .base-svg {
+      display: block;
+    }
+
+    .aim-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      overflow: visible;
+      pointer-events: none;
     }
 
     .surface {
@@ -166,10 +191,33 @@ export class WgOverlayWheel extends LitElement {
     bridgeApi.on('surface.wheel.changed', (next) => {
       this.changedFrame = true;
       this.snapshot = next;
+      this.aim = next.aim;
+      this.pointer = null;
+      this.refreshBase(next);
       this.preload(next);
-      void this.updateComplete.then(() => {
-        void bridgeApi.call('surface.wheel.ready').catch(() => undefined);
-      });
+      if (next.opening) {
+        void this.updateComplete.then(() => {
+          void bridgeApi.call('surface.wheel.ready').catch(() => undefined);
+        });
+      }
+    });
+    bridgeApi.on('surface.wheel.aim', (event) => {
+      this.pointer = { x: event.x, y: event.y };
+      this.aim = event.hasAim && event.ring
+        ? { ring: event.ring, index: event.index, x: event.x, y: event.y }
+        : null;
+      this.requestUpdate();
+    });
+    bridgeApi.on('surface.wheel.closed', () => {
+      this.snapshot = null;
+      this.aim = null;
+      this.pointer = null;
+      this.baseMarkup = '';
+      this.changedFrame = false;
+      this.error = '';
+      window.clearTimeout(this.animationTimer);
+      this.animating = false;
+      this.requestUpdate();
     });
     bridgeApi.on('surface.wheel.opened', (event) => {
       window.clearTimeout(this.animationTimer);
@@ -194,6 +242,8 @@ export class WgOverlayWheel extends LitElement {
       // newer and carries the full-screen centre, so do not overwrite it with the warm state.
       if (!this.changedFrame || !this.snapshot) {
         this.snapshot = state;
+        this.aim = state.aim;
+        this.refreshBase(state);
         this.preload(state);
       }
       this.error = '';
@@ -213,6 +263,9 @@ export class WgOverlayWheel extends LitElement {
       this.iconCache.set(name, null);
       void iconPath(name).then((path) => {
         this.iconCache.set(name, path);
+        if (this.snapshot) {
+          this.refreshBase(this.snapshot);
+        }
         this.requestUpdate();
       });
     }
@@ -224,7 +277,7 @@ export class WgOverlayWheel extends LitElement {
     }
 
     if (!this.snapshot) {
-      return html`<p class="note">…</p>`;
+      return nothing;
     }
 
     const centerX = this.snapshot.centerX >= 0
@@ -235,10 +288,14 @@ export class WgOverlayWheel extends LitElement {
     const top = centerY - this.snapshot.canvasSize / 2;
     return html`<div class="wheel ${this.animating ? 'pop' : ''} ${this.snapshot.followTheme ? '' : 'fixed'}"
       style=${'left:' + left + 'px;top:' + top + 'px;font-size:' + this.snapshot.fontSize + 'px;--wheel-pop-ms:' + this.animationMs + 'ms'}>
-      ${unsafeSVG(this.svgMarkup(this.snapshot))}</div>`;
+      <div class="base">${unsafeSVG(this.baseMarkup)}</div>
+      <svg class="aim-layer" width=${this.snapshot.canvasSize} height=${this.snapshot.canvasSize}
+        viewBox=${'0 0 ' + this.snapshot.canvasSize + ' ' + this.snapshot.canvasSize}>
+        ${unsafeSVG(aimMarkup(this.snapshot, this.aim, this.pointer))}
+      </svg></div>`;
   }
 
-  private svgMarkup(snapshot: SurfaceWheelSnapshot): string {
+  private refreshBase(snapshot: SurfaceWheelSnapshot): void {
     const size = snapshot.canvasSize;
     const centre = size / 2;
     const edge = snapshot.rings.length > 0
@@ -249,15 +306,12 @@ export class WgOverlayWheel extends LitElement {
       bySlot.set(slot.ring + ':' + slot.index, slot);
     }
 
-    const parts = [
-      ...surfaceMarkup(snapshot, centre, edge),
-      ...sectorMarkup(snapshot, centre, bySlot),
-      ...slotMarkup(snapshot, centre, this.iconCache),
-      centreMarkup(snapshot, centre),
-      ...guideMarkup(snapshot, centre),
-    ];
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' '
-      + size + '">' + parts.join('') + '</svg>';
+    this.baseMarkup = '<svg class="base-svg" width="' + size + '" height="' + size
+      + '" viewBox="0 0 ' + size + ' ' + size + '">'
+      + [...surfaceMarkup(snapshot, centre, edge),
+        ...sectorMarkup(snapshot, centre, bySlot),
+        ...slotMarkup(snapshot, centre, this.iconCache),
+        centreMarkup(snapshot, centre)].join('') + '</svg>';
   }
 }
 
@@ -285,9 +339,7 @@ function sectorMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
   for (const ring of snapshot.rings) {
     for (let index = 0; index < ring.count; index += 1) {
       const slot = bySlot.get(ring.ring + ':' + index);
-      const aimed = snapshot.aim?.ring === ring.ring && snapshot.aim.index === index;
       parts.push('<path class="sector ' + (slot?.tone ?? 'empty')
-        + (aimed ? ' aimed' : '') + (aimed && snapshot.hoverBorder ? ' border' : '')
         + '" d="' + sectorPath(centre, ring.from, ring.to, index, ring.count) + '"></path>');
     }
   }
@@ -333,26 +385,50 @@ function slotMarkup(snapshot: SurfaceWheelSnapshot, centre: number,
 
 function centreMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string {
   const radius = (snapshot.rings[0]?.from ?? snapshot.diameter * 0.11) - 2;
+  const label = snapshot.centerName
+    ? ''
+    : '<text class="scene" x="' + centre + '" y="' + centre + '">'
+      + escapeXml(snapshot.centerText) + '</text>';
   return '<circle class="centre" cx="' + centre + '" cy="' + centre + '" r="' + radius
-    + '"></circle><text class="scene" x="' + centre + '" y="' + centre + '">'
-    + escapeXml(snapshot.centerText) + '</text>';
+    + '"></circle>' + label;
 }
 
-function guideMarkup(snapshot: SurfaceWheelSnapshot, centre: number): string[] {
-  if (!snapshot.aim || !snapshot.showGuide) {
-    return [];
+export function aimMarkup(snapshot: SurfaceWheelSnapshot, aim: SurfaceWheelAim | null,
+  pointer: { x: number; y: number } | null): string {
+  const centre = snapshot.canvasSize / 2;
+  const parts: string[] = [];
+  if (snapshot.centerName) {
+    const slot = aim
+      ? snapshot.slots.find((candidate) => candidate.ring === aim.ring
+        && candidate.index === aim.index)
+      : undefined;
+    const label = slot && slot.label.length > 0 ? slot.label : snapshot.centerText;
+    parts.push('<text class="scene" x="' + centre + '" y="' + centre + '">'
+      + escapeXml(label) + '</text>');
   }
 
-  const endX = centre + snapshot.aim.x;
-  const endY = centre + snapshot.aim.y;
-  const extended = snapshot.aim.ring === 'extended';
-  return [
-    '<line class="guide' + (extended ? ' extended' : '') + '" x1="' + centre
+  if (aim) {
+    const ring = snapshot.rings.find((candidate) => candidate.ring === aim.ring);
+    if (ring) {
+      parts.push('<path class="sector aimed'
+        + (snapshot.hoverBorder ? ' border' : '')
+        + '" d="' + sectorPath(centre, ring.from, ring.to, aim.index, ring.count)
+        + '"></path>');
+    }
+  }
+
+  if (pointer && snapshot.showGuide) {
+    const endX = centre + pointer.x;
+    const endY = centre + pointer.y;
+    const extended = aim?.ring === 'extended';
+    parts.push('<line class="guide' + (extended ? ' extended' : '') + '" x1="' + centre
       + '" y1="' + centre + '" x2="' + endX.toFixed(2) + '" y2="' + endY.toFixed(2)
       + '"></line>',
     '<circle class="guide-dot" cx="' + endX.toFixed(2) + '" cy="' + endY.toFixed(2)
-      + '" r="' + (extended ? 5 : 3.5) + '"></circle>',
-  ];
+      + '" r="' + (extended ? 5 : 3.5) + '"></circle>');
+  }
+
+  return parts.join('');
 }
 
 /** 一格扇区：一段外弧加一段内弧，所有平台都按同一组点画。 */
