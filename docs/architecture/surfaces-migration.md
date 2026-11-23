@@ -11,7 +11,7 @@
 | 浮层 | 当前实现 | 规模 | 用户入口 |
 | --- | --- | --- | --- |
 | ~~宏菜单（菜单宏）~~ **已迁移** | Lit 浮层（`Web/WebOverlayWindow` + `features/overlay/menu`）；原生窗口已删 | — | 菜单键、系统热键、置顶菜单 |
-| 轮盘菜单 | `Views/Editor/WheelMenuWindow.cs`、`WheelCanvas.cs` + `Runtime/NativeSurfaceHost.Wheel.cs` | 526 + 332 + 465 行 | 轮盘手势、重复键、按程序/宏切换 |
+| ~~轮盘菜单~~ **已迁移** | Lit 浮层（`WheelOverlayHost` + `features/overlay/wheel`）；原生窗口已删 | — | 轮盘手势、重复键、按程序/宏切换 |
 | ~~界面宏面板~~ **已迁移** | Lit 浮层（每组一个 `PanelOverlayHost`）；原生窗口已删 | — | 界面热键、分组显示、跟随前台窗口 |
 
 桌面拾取器（`Views/Pickers`，约 6,900 行）不在本轮范围：它们必须抓屏、取色或叠加在别的窗口上，
@@ -188,8 +188,7 @@ DPI 125/150/200% 下的落点。
 - 成员点击：`surface.panel.run` 按名字查找并只在宏启用时运行；页面只对可显示成员发命令。
 - 折叠与排列：`surface.panel.view` 把状态记在 App 的 `PanelSurface`（按组键），页面标题栏两个按钮
   切换；`Snapshot` 优先读记忆值，切换生产入口时原生窗口那份 `_surfaceViews` 可以删掉。
-- **未接线**：分组热键/锚定窗口/移动与收起仍走 `FloatingSurfaceWindow`；面板位置与规则留在 C#，
-  页面只负责排版。
+- **生产已切换**（见上）：原生窗口与窗口类测试已删除。
 
 ### S3 轮盘
 
@@ -206,19 +205,12 @@ DPI 125/150/200% 下的落点。
 **预热已接**：壳启动时两个浮层都在屏幕外 `Show` 一次并把页面加载完再 `Hide`，第一次呼出只剩
 `Show()`（S0 实测 9 ms）。真机手势验收仍未做。
 
-1. 几何与命中先迁为纯函数并加测试（扇区、半径、角度、紧邻边界）；
-2. `WheelGesture`/`WheelAim` 保留在 C#，页面发 `surface.wheel.aim/commit`；
-3. 页面画扇区与中心标签，动画用 CSS/Canvas；
-4. 删除 `WheelMenuWindow`/`WheelCanvas` 与相关样式、测试；
-5. 验收：重复键、按住不动、快速划过、切换程序场景、与旧版命中一致（几何用例对账）。
+**剩余验收**（真机）：重复键、按住不动、快速划过、切换程序场景、与旧版命中一致（几何用例已对账）。
 
 ### S4 界面面板
 
-1. 面板控制模型（`InterfaceLayouts` 已有数据）抽成 `SurfacePanelModel`；
-2. 复用 S2/S3 的浮层宿主，按前台窗口与边界跟随；
-3. 折叠/旋转状态留在 C#（`SurfaceViewState`），页面只显示；
-4. 删除 `FloatingSurfaceWindow`；
-5. 验收：跟随、折叠、界面热键、多程序多分组与原生一致。
+**S4 已完成**：投影 `PanelSurface`、几何 `PanelGeometry`、每组宿主 `PanelOverlayHost`、页面
+`features/overlay/panel`；原生窗口删除。**剩余验收**（真机）：跟随、折叠、界面热键、多程序多分组。
 
 ### S5 收尾（清理债务一并结清）
 

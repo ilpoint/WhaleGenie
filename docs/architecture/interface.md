@@ -28,11 +28,12 @@
 轮盘。页签也有同一处回答：哪个页面代表某个宏、关掉一页之后谁在前。后者要记住按下关闭按钮时的
 前台，因为按钮长在页签上，按下的那一刻前台已经换成要走的那一页。
 
-窗口与视图按功能分目录：`Views/Editor`（菜单与轮盘的窗口、菜单图标/宏选择器和
+窗口与视图按功能分目录：`Views/Editor`（菜单图标/宏选择器等原生拾取器与
 `ProjectMacroCommit`）、`Views/Pickers`（浏览器与窗口拾取覆盖层）、`Views/Variables`（字段标签列与
 全局变量冲突提示）、`Views/Settings`（主题探针）、`Views/Shell`（窗口外壳、文件选择与通用对话框）与
 `Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应。宏编辑器、动作表单、步骤树、
-条件与取值构建器已迁入网页壳（§7.6），原生侧只保留要抓桌面或透明置顶的窗口。命名空间仍是
+条件与取值构建器、宏菜单、轮盘与界面面板都已迁入网页壳（§7.6），原生侧只保留要抓桌面或透明置顶的
+拾取器。命名空间仍是
 `WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条
 `avares` 路径。
 
@@ -107,14 +108,15 @@ ColorPicker 的 Fluent 样式从 `Avalonia.Controls.ColorPicker` 包内的
 
 ### 7.6 网页壳与桥接
 
-> 三块原生运行期浮层（宏菜单、轮盘、界面面板）仍在 Avalonia 窗口；迁往 Lit 的透明浮层宿主、
-> 桥多通道与契约计划见 [surfaces-migration.md](surfaces-migration.md)。
-> 已落地：桥按 `Main/Menu/Wheel/Panel` 路由；菜单快照 `surface.menu.state` 与页面类型已生成。
+> 三块运行期浮层（宏菜单、轮盘、界面面板）已全部迁到 Lit 透明浮层，原生窗口已删除；宿主、桥通道、
+> 契约与验收清单见 [surfaces-migration.md](surfaces-migration.md)。
+> 已落地：桥按 `Main/Menu/Wheel/Panel` 路由；`surface.menu.*`、`surface.wheel.*`、`surface.panel.*`
+> 的命令、快照与页面类型已生成。
 
 网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
 开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
 B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow。
-设置页、运行面板、编辑器、关于与帮助都已走网页入口；`MainViewModel` 只为原生菜单/轮盘转发项目视图。
+设置页、运行面板、编辑器、关于与帮助都已走网页入口；`MainViewModel` 只为原生拾取器转发项目视图。
 窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
@@ -192,5 +194,5 @@ session/action/steps/value/triggers/declarations/variables/recording/ui 各是�
 
 `webui/` 用 npm 构建（Vite + TypeScript + Lit + Fluent UI Web Components），产物是一个内联全部
 脚本与样式的 `index.html`，随程序输出与发布包一起走；开发用 `npm run dev` 起带 mock 宿主的
-热重载服务，程序以 `--webui-dev` 指向它。需要与桌面交互、透明置顶的拾取器与运行浮层永远留在
-Avalonia 一侧（见 7.4），网页只负责按钮、规则表单和结果呈现。
+热重载服务，程序以 `--webui-dev` 指向它。需要与桌面交互、透明置顶的拾取器留在
+Avalonia 一侧（见 7.4）；运行浮层已由网页承载，网页只负责按钮、规则表单和结果呈现。
