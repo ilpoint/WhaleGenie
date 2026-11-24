@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -34,9 +35,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The file pickers; the UI project owns the windows and their filters.</summary>
     private readonly IFileDialogs _files;
 
-    /// <summary>The native import/export choosers and conflict windows.</summary>
-    private readonly IProjectInteraction _interaction;
-
     /// <summary>
     /// The system switch the page draws. The trigger host is the one that follows it; this handler
     /// only writes the same object the window and the hotkey write.
@@ -58,7 +56,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        IFileDialogs files, IProjectInteraction interaction, DialogBridge dialogs,
+        IFileDialogs files, DialogBridge dialogs,
         Action<UiSound>? playSound = null, Action<string>? rememberProject = null,
         AppSettings? settings = null)
     {
@@ -67,7 +65,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _runtime = runtime;
         _system = system;
         _files = files;
-        _interaction = interaction;
         _dialogs = dialogs;
         _playSound = playSound ?? (sound => AppSound.Play(_settings, sound));
         _rememberProject = rememberProject ?? _settings.StoreLastProject;
@@ -85,10 +82,12 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         });
         server.Register("project.toggle", Toggle);
         server.Register("project.delete", Delete);
-        server.Register("project.export", Export);
+        server.Register("project.exportPlan", ExportPlan);
+        server.Register("project.exportApply", ExportApply);
         server.Register("project.system", SystemSwitch);
         server.Register("project.open", Open);
-        server.Register("project.import", Import);
+        server.Register("project.importPlan", ImportPlan);
+        server.Register("project.importApply", ImportApply);
         server.Register("project.save", Save);
         server.Register("project.saveAs", SaveAs);
         server.Register("project.reload", Reload);
@@ -195,23 +194,28 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         return null;
     }
 
-    /// <summary>
-    /// Writes one macro and what it needs into a package of its own. The choosing and the asking
-    /// happen in the two native windows the main window uses — the picker wants a screen's worth of
-    /// list, which is not the shell's job to imitate.
-    /// </summary>
-    private async Task<object?> Export(JsonElement parameters)
+    /// <summary>What an export could hold, before the page asks which macros and where.</summary>
+    private Task<object?> ExportPlan(JsonElement _)
+        => Task.FromResult<object?>(PackageTransfer.PlanExport(_workspace));
+
+    /// <summary>Writes the ticked macros into the file the page's save dialog picked.</summary>
+    private Task<object?> ExportApply(JsonElement parameters)
     {
-        var macro = Find(parameters);
-        var failure = await _interaction.ExportAsync([macro.Name]);
-        if (failure is not null)
+        var path = RequiredPath(parameters);
+        var names = Names(parameters);
+        try
+        {
+            return Task.FromResult<object?>(PackageTransfer.ApplyExport(_workspace, path, names));
+        }
+        catch (BridgeFailureException)
+        {
+            throw;
+        }
+        catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(failure.Path),
-                    failure.Message));
+                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path), error.Message));
         }
-
-        return null;
     }
 
     private MacroItem Find(JsonElement parameters)
@@ -229,23 +233,48 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     }
 
     /// <summary>
-    /// Imports from a package, through the same two native windows the main window uses: the
-    /// chooser that says what is inside, and the conflicts window that asks what a variable both
-    /// sides declare should become. Everything that arrives lands in the project, and the page
-    /// hears about it with the usual change event; the report comes back as a question with one
-    /// button, because "what did it do" is a report and not a choice.
+    /// What a package would bring, before any of it is written. A package that cannot be read is
+    /// named to the page with the same words the window list uses; the project stays as it was.
     /// </summary>
-    private async Task<object?> Import(JsonElement parameters)
+    private Task<object?> ImportPlan(JsonElement parameters)
     {
-        var failure = await _interaction.ImportAsync();
-        if (failure is not null)
+        var path = RequiredPath(parameters);
+        try
+        {
+            return Task.FromResult<object?>(PackageTransfer.PlanImport(_workspace, path));
+        }
+        catch (Exception error)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(failure.Path),
-                    failure.Message));
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
         }
+    }
 
-        return null;
+    /// <summary>
+    /// Writes the ticked part of a package, with the answers the wizard collected about the global
+    /// variables both sides declare. Everything that arrives lands in the project, and the page
+    /// hears about it with the usual change event; the words come back with the state so the
+    /// wizard can show the report and the list the same answer.
+    /// </summary>
+    private Task<object?> ImportApply(JsonElement parameters)
+    {
+        var path = RequiredPath(parameters);
+        var names = Names(parameters);
+        var decisions = Decisions(parameters);
+        try
+        {
+            var report = PackageTransfer.ApplyImport(_workspace, path, names, decisions);
+            return Task.FromResult<object?>(new ImportResult(report, State()));
+        }
+        catch (BridgeFailureException)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
+                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
+        }
     }
 
     private async Task<object?> SystemSwitch(JsonElement parameters)
@@ -394,15 +423,75 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         await PushState();
     }
 
-    /// <summary>Opens the shell's open dialog for a package; the answer is a path or "called off".</summary>
+    /// <summary>Asks where a package goes; the answer is a path or "called off".</summary>
     private async Task<object?> PickSavePackageHandler(JsonElement parameters)
     {
-        var suggested = parameters.TryGetProperty("suggestedName", out var named)
-            && named.GetString() is { Length: > 0 } given
-            ? given
-            : $"macros{MacroPackage.Extension}";
+        // The wizard names the file it is about to write; one field name for both the transfer
+        // wizard and the editor's export.
+        var suggested = Given(parameters, "suggested")
+            ?? $"macros{MacroPackage.Extension}";
         return await PickSavePackage(suggested);
     }
+
+    /// <summary>The package path a transfer needs, or a refusal that names what is missing.</summary>
+    private static string RequiredPath(JsonElement parameters)
+    {
+        var path = Given(parameters, "path");
+        if (path is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.TransferNeedsPath"));
+        }
+
+        return path;
+    }
+
+    /// <summary>The macro names a transfer carries; a missing list is an empty one.</summary>
+    private static IReadOnlyList<string> Names(JsonElement parameters)
+    {
+        if (!parameters.TryGetProperty("names", out var names) || names.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return [.. names.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => item.GetString()?.Trim() ?? string.Empty)
+            .Where(name => name.Length > 0)];
+    }
+
+    /// <summary>The answers to the global conflicts, one per name.</summary>
+    private static IReadOnlyList<ImportDecision> Decisions(JsonElement parameters)
+    {
+        if (!parameters.TryGetProperty("decisions", out var decisions)
+            || decisions.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var answers = new List<ImportDecision>();
+        foreach (var item in decisions.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var name = Given(item, "name")?.Trim();
+            var action = Given(item, "action")?.Trim();
+            if (name is { Length: > 0 } && action is { Length: > 0 })
+            {
+                answers.Add(new ImportDecision(name, action));
+            }
+        }
+
+        return answers;
+    }
+
+    private static string? Given(JsonElement node, string name)
+        => node.TryGetProperty(name, out var given) && given.ValueKind == JsonValueKind.String
+            ? given.GetString()
+            : null;
 
     private async Task<object?> PickImage(JsonElement parameters)
         => new { path = await _files.OpenImageAsync() };

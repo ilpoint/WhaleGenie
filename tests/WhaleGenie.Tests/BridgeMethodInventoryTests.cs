@@ -28,11 +28,7 @@ public class BridgeMethodInventoryTests
     /// must not leave its old door behind) and when a page starts calling one (the list is then
     /// stale and has to go), so this table cannot outlive its reasons.
     /// </summary>
-    private static readonly Dictionary<string, string> DoorsWithoutCallers = new(StringComparer.Ordinal)
-    {
-        // WP6b: the import wizard is what opens a package; the picker is a door until it lands.
-        ["dialog.pickOpenPackage"] = "等 WP6b 的导入向导启用；向导接上桥后删掉这行。",
-    };
+    private static readonly Dictionary<string, string> DoorsWithoutCallers = new(StringComparer.Ordinal);
 
     private static readonly Regex[] CallSitePatterns =
     [

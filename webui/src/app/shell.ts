@@ -4,6 +4,7 @@ import { currentRoute, go, type Route } from '../shared/navigation/router.js';
 import './titlebar.js';
 import './nav.js';
 import '../features/dialogs/confirm.js';
+import '../features/transfer/transfer-dialog.js';
 import '../features/home/home-page.js';
 import '../features/macros/macros-page.js';
 import '../features/editor/editor-page.js';
@@ -106,6 +107,7 @@ export class WgShell extends LitElement {
         <span data-status="system">${this.systemLabel()}</span>
       </footer>
       <wg-confirm></wg-confirm>
+      <wg-transfer></wg-transfer>
     `;
   }
 

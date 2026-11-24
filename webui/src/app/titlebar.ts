@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { appInfo } from '../shared/app/app.js';
 import { bridge } from '../shared/bridge/bridge.js';
+import { describeError } from '../shared/errors.js';
 import { project } from '../shared/project/store.js';
 import { icon } from '../shared/icons.js';
 import { go } from '../shared/navigation/router.js';
@@ -9,6 +10,7 @@ import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import { windowMirror } from '../shared/window/window.js';
+import { startImport, transfer } from '../features/transfer/index.js';
 import type { BridgeMethod } from '../shared/bridge/protocol.js';
 import whale from '../assets/whale.png';
 
@@ -231,7 +233,7 @@ export class WgTitlebar extends LitElement {
                   <button role="menuitem" @click=${() => this.run('project.open')}>${t('Main.OpenProject')}</button>
                   <button role="menuitem" @click=${() => this.run('project.save')}>${t('Main.SaveProject')}</button>
                   <button role="menuitem" @click=${() => this.run('project.saveAs')}>${t('Main.SaveProjectAs')}</button>
-                  <button role="menuitem" @click=${() => this.run('project.import')}>${t('Main.Import')}</button>
+                  <button role="menuitem" @click=${() => void this.onImport()}>${t('Main.Import')}</button>
                   <button role="menuitem" @click=${() => this.run('project.closeAll')}>${t('Main.CloseAll')}</button>
                   <div class="separator" role="separator"></div>
                   <button role="menuitem" @click=${() => this.run('app.quit')}>${t('Main.Exit')}</button>
@@ -319,6 +321,19 @@ export class WgTitlebar extends LitElement {
   private run(command: BridgeMethod): void {
     this.menu = null;
     void bridge.value.call(command);
+  }
+
+  /** Import asks for the file first, then hands the plan to the wizard. */
+  private async onImport(): Promise<void> {
+    this.menu = null;
+    try {
+      const session = await startImport(bridge.value);
+      if (session !== null) {
+        transfer.show(session);
+      }
+    } catch (error) {
+      transfer.fail('import', describeError(error));
+    }
   }
 
   private onDragPointerDown(event: PointerEvent): void {

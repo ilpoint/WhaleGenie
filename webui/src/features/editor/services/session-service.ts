@@ -262,7 +262,7 @@ export class EditorSessionService {
 
     try {
       const path = await this.core.client.call<string | null>('dialog.pickSavePackage', {
-        suggestedName: snapshot.name + '.wgmacro',
+        suggested: snapshot.name + '.wgmacro',
       });
       if (!path) {
         return;

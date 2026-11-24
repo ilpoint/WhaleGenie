@@ -31,8 +31,6 @@
 | 元素测试框 | `Views/Common/ScreenFrameWindow`、`Views/Run/ElementFlash` | UIA 元素测试需要跨进程框出控件；动作仍不执行 |
 | 浏览器选择 | `Views/Pickers/BrowserPicker` | 列出本机浏览器配置并打开目标浏览器，属于桌面能力 |
 | 图标与宏选择 | `Views/Editor/MenuIconPickerWindow`、`MenuMacroPickerWindow` | 菜单、轮盘和网页轮盘动作编辑器共用的图标/宏选择器；网页只拿选择结果 |
-| 导入/导出选择 | `Views/Editor/MacroChooseWindow`、`Projects/ProjectInteraction` | 在包内挑选宏，属于文件格式与导入导出编排 |
-| 全局变量冲突 | `Views/Variables/GlobalConflictWindow` | 导入时逐项询问覆盖/保留，必须模态回答 |
 | 后台问话/确认 | `Views/Shell/TextPromptDialog`、`ConfirmDialog` | 触发器、后台运行与退出未保存没有网页在场，仍由原生窗口作答 |
 | 网页缺失提示 | `Web/WebViewMissingWindow` | WebView2 运行时缺失时给出安装指引，不能依赖网页渲染 |
 
@@ -41,6 +39,7 @@
 ## 已退役
 
 编辑器、动作编辑、取值、全局/局部变量、设置主窗、高级设置窗、主题调色板、原生关于窗、原生轮盘
-动作编辑窗和运行调试窗已全部删除；对应的窗口用例随窗口退役。动作字段的桌面拾取器随后以覆盖层形式
+动作编辑窗、运行调试窗、导入/导出选择窗和全局变量冲突窗已全部删除（导入/导出与冲突问答改由网页
+`wg-transfer` 向导承担）；对应的窗口用例随窗口退役。动作字段的桌面拾取器随后以覆盖层形式
 恢复，入口改由网页桥命令打开；偏差点选与 UIA 元素测试框也保留在同一侧；按标题/进程/窗口类列出窗口的列表已搬到网页，由 `window.list` 与 `wg-window-list` 提供。编辑、设置、轮盘规则与运行行为由 `HeadlessEditorSession`、
 `SettingsViewModel`、`RunViewModel` 的 C# 用例和网页用例覆盖。

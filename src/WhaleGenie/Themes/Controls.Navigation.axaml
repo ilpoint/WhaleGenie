@@ -62,12 +62,6 @@
       它立起来的依据是频次不是偏好：`10.5` 10 处 / 6 窗、`11px` 那 19 处 / 6 窗里有一部分是 400，
       这已经够"≥3 窗即常项"。
     -->
-    <Style Selector="TextBlock.Caption">
-        <Setter Property="FontSize" Value="{DynamicResource UiCaptionSize}" />
-        <Setter Property="LineHeight" Value="{DynamicResource UiCaptionLine}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextTertiary}" />
-    </Style>
-
 
 
     <!--

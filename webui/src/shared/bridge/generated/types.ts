@@ -1245,6 +1245,20 @@ export interface EditorWindowRuleChoiceSnapshot {
   count: number;
 }
 
+export interface ExportResult {
+  path: string;
+}
+
+export interface ImportDecision {
+  name: string;
+  action: string;
+}
+
+export interface ImportResult {
+  report: string;
+  state: ProjectState;
+}
+
 export interface LibraryEntry {
   id: string;
   name: string;
@@ -1274,6 +1288,18 @@ export interface McpState {
   allowRun: boolean;
   config: string;
   auditFile: string;
+}
+
+export interface ProjectExportPlan {
+  suggestedName: string;
+  macros: TransferMacro[];
+}
+
+export interface ProjectImportPlan {
+  source: string;
+  fileName: string;
+  macros: TransferMacro[];
+  globals: TransferGlobal[];
 }
 
 export interface ProjectState {
@@ -1685,6 +1711,20 @@ export interface ThemeState {
   surface: string;
   text: string;
   defaultAccent: string;
+}
+
+export interface TransferGlobal {
+  name: string;
+  type: string;
+  conflicts: boolean;
+}
+
+export interface TransferMacro {
+  name: string;
+  kind: string;
+  steps: number;
+  problem: string;
+  isSub: boolean;
 }
 
 export interface WindowEntryState {

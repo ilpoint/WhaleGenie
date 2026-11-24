@@ -36,21 +36,11 @@ public class ProjectBridgeTests : IDisposable
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
         _server.Register(new ProjectBridge(_workspace, _runtime, _system,
-            new NoFileDialogs(), new NoProjectInteraction(), _dialogs,
+            new NoFileDialogs(), _dialogs,
             sound => _sounds.Add(sound), rememberProject: _ => { }));
     }
 
     public void Dispose() => _runtime.Dispose();
-
-    private sealed class NoProjectInteraction : WhaleGenie.Contracts.IProjectInteraction
-    {
-        public Task<WhaleGenie.Contracts.ProjectOperationFailure?> ImportAsync()
-            => Task.FromResult<WhaleGenie.Contracts.ProjectOperationFailure?>(null);
-
-        public Task<WhaleGenie.Contracts.ProjectOperationFailure?> ExportAsync(
-            IReadOnlyList<string> macroNames)
-            => Task.FromResult<WhaleGenie.Contracts.ProjectOperationFailure?>(null);
-    }
 
     private sealed class NoFileDialogs : WhaleGenie.Contracts.IFileDialogs
     {
@@ -242,16 +232,64 @@ public class ProjectBridgeTests : IDisposable
     }
 
     [Fact]
-    public async Task An_export_without_a_window_is_quietly_called_off()
+    public async Task The_export_plan_lists_the_projects_macros()
     {
         _workspace.AddMacro(new MacroItem { Name = "自动保存" });
         await _server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
         _channel.Sent.Clear();
 
-        await _server.AcceptAsync("""{"id":2,"method":"project.export","params":{"name":"自动保存"}}""");
+        await _server.AcceptAsync("""{"id":2,"method":"project.exportPlan"}""");
 
         var answer = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":2"))).RootElement;
         Assert.True(answer.GetProperty("ok").GetBoolean());
+        var plan = answer.GetProperty("result");
+        Assert.EndsWith(MacroPackage.Extension,
+            plan.GetProperty("suggestedName").GetString()!, StringComparison.Ordinal);
+        Assert.Equal("自动保存",
+            plan.GetProperty("macros").EnumerateArray().Single().GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task A_package_plan_and_apply_round_trip_over_the_bridge()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, "incoming" + MacroPackage.Extension);
+        MacroPackage.Save(path, [new MacroItem { Name = "包里的" }], new ProjectTriggers(), [], "0.0.0");
+
+        try
+        {
+            await _server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 1,
+                method = "project.importPlan",
+                @params = new { path },
+            }));
+
+            var plan = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":1")))
+                .RootElement.GetProperty("result");
+            Assert.Equal("incoming.wgmacro", plan.GetProperty("fileName").GetString());
+            Assert.Equal("包里的",
+                plan.GetProperty("macros").EnumerateArray().Single().GetProperty("name").GetString());
+
+            await _server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 2,
+                method = "project.importApply",
+                @params = new { path, names = new[] { "包里的" }, decisions = Array.Empty<object>() },
+            }));
+
+            var answer = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":2")))
+                .RootElement;
+            Assert.True(answer.GetProperty("ok").GetBoolean());
+            Assert.Contains("包里的", answer.GetProperty("result").GetProperty("report").GetString()!,
+                StringComparison.Ordinal);
+            Assert.Equal("包里的", Assert.Single(_workspace.Macros).Name);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
     }
 
     [Fact]

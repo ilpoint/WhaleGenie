@@ -77,7 +77,7 @@
 ## 5. 字体与密度
 
 - 正文使用 `UiFont`；代码、表达式和需要等宽的内容使用 `UiCodeFont`，不用等宽字体做普通界面字。
-- 字号/行高只使用 `UiCaption`、`UiBodySmall`、`UiBody`、`UiSubtitle` 这组角色（每档对应
+- 字号/行高只使用 `UiCaption`、`UiBodySmall`、`UiBody` 这组角色（每档对应
   `*Size` / `*Line` 两个令牌）；不新增“差不多大”的字号档。字号与行高必须成对取同一档，说明浮层
   正文是 `UiBodySmall`（12 / 16）。
 - 密度沿用 Fluent v2 的默认密度；FluentAvaloniaTheme 没有单独的密度开关，表格行、列表项、

@@ -125,11 +125,9 @@
       STATIC Border.Badge
       STATIC Border.Sunken
       STATIC TextBlock.Body
-      STATIC TextBlock.Caption
       STATIC TextBlock.Hint
       STATIC TextBlock.Mono
       STATIC TextBlock.SectionHeader
-      STATIC TextBlock.Title
       STATE Rejected
       STATE chosen
       STATE problem
@@ -146,14 +144,6 @@
       STATE Current
 
     -->
-
-    <Style Selector="TextBlock.Title">
-        <Setter Property="FontSize" Value="{DynamicResource UiSubtitleSize}" />
-        <Setter Property="LineHeight" Value="{DynamicResource UiSubtitleLine}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
 
     <!--
       两类 13px 的字分得很细，因为差别在**下边距**而不在字号：标签下面紧跟着就是它管着的控件，

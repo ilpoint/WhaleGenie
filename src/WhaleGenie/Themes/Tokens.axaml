@@ -245,8 +245,6 @@
     <sys:Double x:Key="UiBodySmallLine">16</sys:Double>
     <sys:Double x:Key="UiBodySize">13</sys:Double>
     <sys:Double x:Key="UiBodyLine">18</sys:Double>
-    <sys:Double x:Key="UiSubtitleSize">15</sys:Double>
-    <sys:Double x:Key="UiSubtitleLine">20</sys:Double>
 
     <!--
       间距用 Thickness 而不是 Double：Padding 与 Margin 直接吃它，Spacing 要的是 Double 时

@@ -435,13 +435,44 @@ test('宏卡片的运行按钮进入网页运行面板', async ({ page }) => {
     .toBe(true);
 });
 
-test('导入命令过桥', async ({ page }) => {
+test('导入导出向导走完一个往返', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
+
+  // Import: the picker answers a path, the plan lists the package, the wizard asks the ticks and
+  // the global conflict, and the apply report is shown before the wizard closes.
   await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
   await page.getByRole('menuitem', { name: '导入…' }).click();
+  const wizard = page.locator('wg-transfer');
+  await expect(wizard.locator('.row', { hasText: '包里的宏' })).toBeVisible();
+  await expect(wizard).toContainText('opened-project.wgmacro');
+  await expect(wizard.locator('.conflicts')).toContainText('计数');
+
+  await wizard.locator('.row', { hasText: '包里的宏' }).locator('input[type="checkbox"]').check();
+  await wizard.locator('select').selectOption('keep');
+  await wizard.locator('fluent-button', { hasText: '导入' }).click();
+  await expect(wizard.locator('.report')).toContainText('包里的宏');
+  await wizard.locator('fluent-button', { hasText: '关闭' }).click();
+  await expect(wizard.locator('.dialog')).toHaveCount(0);
+
+  await expect(page.locator('wg-macros .card', { hasText: '包里的宏' })).toBeVisible();
   await expect
-    .poll(async () => page.evaluate(() => window.__mock!.seen.includes('project.import')))
+    .poll(() => called(page, 'project.importPlan', { path: '/mock/opened-project.wgmacro' }))
     .toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => window.__mock!.seen.includes('project.importApply')))
+    .toBe(true);
+
+  // Export: the plan comes first, the file picker second, and the write carries the ticked name.
+  await page.locator('wg-macros .card', { hasText: '包里的宏' })
+    .locator('.iconbuttons button[title="导出宏…"]').click();
+  await expect(wizard.locator('.row', { hasText: '包里的宏' }).locator('input')).toBeChecked();
+  await wizard.locator('fluent-button', { hasText: '导出' }).click();
+  await expect(wizard.locator('.report')).toContainText('/mock/');
+  await wizard.locator('fluent-button', { hasText: '关闭' }).click();
+
+  const exportCalls = await page.evaluate(() => window.__mock!.seen.filter(
+    (method) => method === 'project.exportPlan' || method === 'project.exportApply'));
+  expect(exportCalls).toEqual(['project.exportPlan', 'project.exportApply']);
 });
 
 interface MockProbe {

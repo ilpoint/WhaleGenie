@@ -3,6 +3,7 @@ import { macrosPageCss } from './macros-page-css.js';
 import { customElement, query, state } from 'lit/decorators.js';
 import { go } from '../../shared/navigation/router.js';
 import { bridge } from '../../shared/bridge/bridge.js';
+import { describeError } from '../../shared/errors.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
@@ -15,6 +16,7 @@ import type {
 } from '../../shared/bridge/protocol.js';
 import type { WgMcpPanel } from '../mcp/index.js';
 import '../mcp/index.js';
+import { startExport, transfer } from '../transfer/index.js';
 import { filterMacros } from './macros-model.js';
 
 /**
@@ -263,8 +265,15 @@ export class WgMacros extends LitElement {
     void this.call('project.system', { enabled: !this.state.systemEnabled });
   }
 
-  private onExport(entry: MacroEntry): void {
-    void this.call('project.export', { name: entry.name });
+  private async onExport(entry: MacroEntry): Promise<void> {
+    // The plan is the page's call, so a project it cannot read is said here; the wizard asks the
+    // rest — which macros travel and where the package goes.
+    try {
+      const session = await startExport(bridge.value);
+      transfer.show(session, [entry.name]);
+    } catch (error) {
+      this.note = describeError(error);
+    }
   }
 
   private onDelete(entry: MacroEntry): void {

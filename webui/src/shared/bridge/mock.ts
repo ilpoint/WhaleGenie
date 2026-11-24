@@ -7,6 +7,7 @@ import { handleShell } from './mock-shell.js';
 import { handleSurfaceMenu } from './mock-menu.js';
 import type { BridgeTransport } from './transport.js';
 import { MockEditor } from './mock-editor.js';
+import { MockTransfer } from './mock-transfer.js';
 import type {
   AppInfo,
   McpState,
@@ -58,6 +59,13 @@ export class MockTransport implements BridgeTransport {
 
   /** 等待删除确认的宏名；dialog.respond 带着答案回来时用。 */
   private pendingDelete: string | null = null;
+
+  /** 导入导出向导的假应答：包的形状、勾选与落盘都按真桥来。 */
+  private readonly mockTransfer = new MockTransfer(
+    () => this.projectState,
+    (state) => { this.projectState = state; },
+    (event, payload) => this.push(event, payload),
+  );
 
   runState: RunState = {
     loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
@@ -187,7 +195,9 @@ export class MockTransport implements BridgeTransport {
 
     let result: unknown;
     try {
-      if (method.startsWith('settings.')) {
+      if (MockTransfer.handles(method)) {
+        result = this.mockTransfer.answer(method, params);
+      } else if (method.startsWith('settings.')) {
         result = handleSettings(this, method, params);
       } else if (method === 'window.list' || method === 'window.pick') {
         result = handleWindow(method);
@@ -260,12 +270,6 @@ export class MockTransport implements BridgeTransport {
             cancelLabel: wordTables.zh['Common.Cancel']!,
           });
           break;
-        case 'project.export':
-          result = { exported: String(params['name']) };
-          break;
-        case 'project.import':
-          result = { imported: '/mock/SomeProject.wgmacro' };
-          break;
         case 'project.state':
           result = this.projectState;
           break;
@@ -288,12 +292,6 @@ export class MockTransport implements BridgeTransport {
           break;
         case 'dialog.pickImage':
           result = { path: 'C:\\shot.png' };
-          break;
-        case 'dialog.pickOpenPackage':
-          result = '/mock/opened-project.wgmacro';
-          break;
-        case 'dialog.pickSavePackage':
-          result = `/mock/${String(params['suggestedName'] ?? 'macros.wgmacro')}`;
           break;
         case 'project.open': {
           const path = String(params['path'] ?? '/mock/opened-project.wgmacro');
