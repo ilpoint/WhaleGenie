@@ -27,6 +27,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\WhaleGenie.Tests\StatePathForChecks.cs" Link="Support\StatePathForChecks.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 

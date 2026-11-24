@@ -27,6 +27,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\WhaleGenie.Tests\StatePathForChecks.cs" Link="Support\StatePathForChecks.cs" />
+    <Compile Include="..\WhaleGenie.Tests\RecoveryPathForChecks.cs" Link="Support\RecoveryPathForChecks.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
     <Using Include="WhaleGenie.TestSupport" />
     <Using Include="WhaleGenie.Tests.Support" />
