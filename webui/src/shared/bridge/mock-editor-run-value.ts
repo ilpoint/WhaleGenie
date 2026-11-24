@@ -1,4 +1,5 @@
 import type { MockEditor } from './mock-editor.js';
+import { openValue, valueCommand } from './mock-editor-value.js';
 
 /** One editor command family, split out of MockEditor.run. */
 export function handleValueRun(host: MockEditor, method: string, params: Record<string, unknown>): unknown {
@@ -6,9 +7,9 @@ export function handleValueRun(host: MockEditor, method: string, params: Record<
       case 'editor.value': {
         switch (params['kind']) {
           case 'open':
-            return host.openValue(params);
+            return openValue(host, params);
           case 'command':
-            return host.valueCommand(params);
+            return valueCommand(host, params);
           case 'confirm': {
             if (!host.valueEditor) {
               throw new Error('没有打开的取值窗口。');

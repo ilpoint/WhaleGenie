@@ -7,12 +7,26 @@ import type {
   EditorValueVariable,
   EditorValuePickerFunction,
 } from './protocol.js';
+import raw from './data/value-panel.json';
 
 /**
  * A small mock of the value window. It is enough for the preview and the end-to-end tests to
  * exercise the same token band and panels as the host: one value token, the signs, the wall and
- * the function cards. The real shapes and readings stay in C#.
+ * the function cards. The panel's fixed wording, not operators and starting snapshot live in
+ * data/value-panel.json; the real shapes and readings stay in C#.
  */
+
+interface ValuePanelData {
+  modes: Record<string, Partial<EditorValueSnapshot>>;
+  base: EditorValueSnapshot;
+  node: EditorValueNode;
+  operators: EditorValueSnapshot['operators'];
+  values: EditorValueSnapshot['values'];
+  wallFilters: EditorValueSnapshot['wall']['filters'];
+}
+
+const DATA = raw as unknown as ValuePanelData;
+
 export class MockValueEditor {
   private text: string;
   private textBody: string;
@@ -83,33 +97,18 @@ export class MockValueEditor {
       && !variables.some((variable) => variable.name.toLowerCase() === name.toLowerCase());
 
     return {
+      ...structuredClone(DATA.base),
+      ...structuredClone(DATA.modes[this.mode] ?? {}),
       mode: this.mode,
-      title: this.mode === 'Text' ? '取值' : this.mode === 'Name' ? '选择变量' : '取值',
-      hint: this.mode === 'Text' ? '一整段文字' : '按块搭出一条式子',
-      target: '',
       targetLine: this.parameter.label,
-      showsBand: this.mode === 'Run' || this.mode === 'Value',
-      showsFormulaMaterials: this.mode === 'Value',
-      panelSpan: this.mode === 'Value' ? 1 : 3,
-      isTextMode: this.mode === 'Text',
-      isRunMode: this.mode === 'Run',
-      isValueMode: this.mode === 'Value',
-      isNameMode: this.mode === 'Name',
       recipe,
       caret: this.text.length,
       spanEnd: this.text.length,
       caretPath: [0, 0],
-      caretAfter: true,
-      selectedPath: null,
       isValueEmpty: this.text.length === 0,
-      emptyBandHint: '从下面挑一个名字或值。',
-      structureHint: this.mode === 'Run' ? '文字与名字' : '式子的结构',
       text: this.text,
       note: this.text.length === 0 ? '还没有填值。' : '读得通。',
-      noteIsProblem: false,
-      saying: '',
       reads: this.text.length > 0,
-      hasSaying: false,
       canConfirm: this.mode === 'Text' || this.mode === 'Name'
         ? this.textBody.length > 0 || this.text.length > 0 || canCreateName
         : this.text.length > 0,
@@ -121,44 +120,23 @@ export class MockValueEditor {
       typingText: this.typingText,
       typingPlaceholder: this.typingNumber ? '数字' : '文字',
       canInsertTyped: this.typingText.trim().length > 0,
-      typingNote: '',
-      hasTypingNote: false,
       functionQuery: this.functionQuery,
       selectedFunctionGroup: this.functionGroup.length > 0 ? this.functionGroup : null,
       isAllFunctions: this.functionGroup.length === 0,
-      hasChosenFunction: false,
       hasChosenVariable: this.looking.length > 0,
       allowNewName: this.mode === 'Name',
       newName: name,
       canCreateName,
       newNameLine: canCreateName ? '新建 ' + name : '',
-      operators: [
-        { token: '+', insert: ' + ', hint: '加', tone: 'maths', enabled: true },
-        { token: '−', insert: ' - ', hint: '减', tone: 'maths', enabled: true },
-        { token: '×', insert: ' * ', hint: '乘', tone: 'maths', enabled: true },
-        { token: '÷', insert: ' / ', hint: '除', tone: 'maths', enabled: true },
-        { token: '=', insert: ' == ', hint: '等于', tone: 'dates', enabled: true },
-        { token: '≠', insert: ' != ', hint: '不等于', tone: 'dates', enabled: true },
-        { token: '>', insert: ' > ', hint: '大于', tone: 'dates', enabled: true },
-        { token: '<', insert: ' < ', hint: '小于', tone: 'dates', enabled: true },
-        { token: 'and', insert: ' and ', hint: '并且', tone: 'records', enabled: true },
-        { token: 'or', insert: ' or ', hint: '或者', tone: 'records', enabled: true },
-      ],
-      values: [
-        { text: '真', insert: 'true' },
-        { text: '假', insert: 'false' },
-        { text: '空', insert: 'null' },
-      ],
+      operators: structuredClone(DATA.operators),
+      values: structuredClone(DATA.values),
       functionGroups,
       functions,
       wall: {
-        filters: [
-          { group: 'All', label: '全部', hint: '', selected: this.wallFilter === 'All' },
-          { group: 'Local', label: '局部变量', hint: '', selected: this.wallFilter === 'Local' },
-          { group: 'Global', label: '全局变量', hint: '', selected: this.wallFilter === 'Global' },
-          { group: 'System', label: '系统变量', hint: '', selected: this.wallFilter === 'System' },
-          { group: 'StepResult', label: '步骤状态', hint: '', selected: this.wallFilter === 'StepResult' },
-        ],
+        filters: DATA.wallFilters.map((filter) => ({
+          ...filter,
+          selected: this.wallFilter === filter.group,
+        })),
         selectedFilter: this.wallFilter,
         search: this.wallSearch,
         looking: this.looking,
@@ -303,35 +281,14 @@ export class MockValueEditor {
     extra: Partial<EditorValueNode> = {},
   ): EditorValueNode {
     return {
+      ...structuredClone(DATA.node),
       kind,
       path,
-      start: 0,
       length: text.length,
       text,
-      operator: '',
       tone: kind === 'value' ? 'text' : '',
-      name: '',
-      before: '',
-      isName: false,
-      isGhost: false,
-      isRequired: false,
       isEmpty: kind === 'empty',
-      isSelected: false,
-      hasProblem: false,
-      problemHint: '',
-      hoverHint: null,
       canRemove: kind === 'value',
-      hasNoArguments: false,
-      hasNoItems: false,
-      stacked: false,
-      compact: true,
-      argumentLabel: '',
-      argumentFlag: '',
-      argumentIndex: 0,
-      argumentOptional: false,
-      argumentRequired: false,
-      children: [],
-      ghost: null,
       ...extra,
     };
   }

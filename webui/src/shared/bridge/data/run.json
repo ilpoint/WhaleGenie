@@ -1,0 +1,123 @@
+{
+  "lookImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "looks": [
+    {
+      "stepId": "s1",
+      "type": "control.findImage",
+      "looking": "找图：按钮",
+      "image": null
+    },
+    {
+      "stepId": "s2",
+      "type": "control.findImage",
+      "looking": "找图：确认",
+      "image": null
+    }
+  ],
+  "breakpointChoices": [
+    "i",
+    "count",
+    "found"
+  ],
+  "triggers": [
+    {
+      "name": "自动保存",
+      "kind": "定时：每 1 分钟",
+      "status": "现在在",
+      "checked": "上次判定 12:00:01，下次 12:00:11",
+      "detail": ""
+    },
+    {
+      "name": "游戏连招",
+      "kind": "键：F8",
+      "status": "",
+      "checked": "没有排在钟上",
+      "detail": "窗口有变化时机器会先说一声"
+    }
+  ],
+  "watches": [
+    {
+      "name": "count",
+      "type": "数字",
+      "value": "3"
+    },
+    {
+      "name": "found",
+      "type": "布尔",
+      "value": "true"
+    }
+  ],
+  "arguments": [
+    {
+      "name": "target",
+      "label": "target",
+      "hint": "Text",
+      "required": true,
+      "value": "",
+      "given": false,
+      "missing": true
+    }
+  ],
+  "globals": [
+    {
+      "name": "count",
+      "type": "Number",
+      "value": "3",
+      "defaultValue": "0"
+    }
+  ],
+  "locals": [
+    {
+      "name": "found",
+      "macro": "Demo",
+      "type": "Boolean"
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1",
+      "label": "Step one",
+      "outcome": "已完成",
+      "result": "found = 12"
+    },
+    {
+      "id": "s2",
+      "label": "Step two",
+      "outcome": "",
+      "result": ""
+    }
+  ],
+  "stepDefaults": {
+    "detail": "action.key",
+    "depth": 0,
+    "shown": true,
+    "container": false,
+    "current": false,
+    "breakpoint": false,
+    "canBreak": true,
+    "time": "",
+    "failure": "",
+    "condition": "",
+    "hitTimes": 1,
+    "expression": ""
+  },
+  "unload": {
+    "loaded": "",
+    "status": "",
+    "busy": false,
+    "paused": false,
+    "canRun": false,
+    "canStep": false,
+    "canStop": false,
+    "steps": [],
+    "look": null,
+    "looks": [],
+    "activeLook": "",
+    "triggers": [],
+    "watches": [],
+    "swapNote": "",
+    "inputRate": 0,
+    "inputRateOwner": "",
+    "breakpointChoices": []
+  }
+}

@@ -32,7 +32,7 @@ export function open(host: MockEditor, name?: string | null): EditorSnapshot  {
   }
 
 export function newDocument(host: MockEditor): EditorSnapshot  {
-    const key = host.nextNewKey();
+    const key = nextNewKey(host);
     const document = createDocumentSnapshot('未命名宏', {});
     host.documents.set(key, document);
     host.activeKey = key;
@@ -40,7 +40,7 @@ export function newDocument(host: MockEditor): EditorSnapshot  {
   }
 
 export function newSession(host: MockEditor): EditorSnapshot {
-    return host.newDocument();
+    return newDocument(host);
   }
 
 export function activate(host: MockEditor, key: string): EditorSnapshot  {

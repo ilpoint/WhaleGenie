@@ -1,0 +1,258 @@
+{
+  "modes": {
+    "Text": {
+      "title": "取值",
+      "hint": "一整段文字",
+      "showsBand": false,
+      "showsFormulaMaterials": false,
+      "panelSpan": 3,
+      "isTextMode": true,
+      "isRunMode": false,
+      "isValueMode": false,
+      "isNameMode": false,
+      "structureHint": "式子的结构"
+    },
+    "Run": {
+      "title": "取值",
+      "hint": "按块搭出一条式子",
+      "showsBand": true,
+      "showsFormulaMaterials": false,
+      "panelSpan": 3,
+      "isTextMode": false,
+      "isRunMode": true,
+      "isValueMode": false,
+      "isNameMode": false,
+      "structureHint": "文字与名字"
+    },
+    "Value": {
+      "title": "取值",
+      "hint": "按块搭出一条式子",
+      "showsBand": true,
+      "showsFormulaMaterials": true,
+      "panelSpan": 1,
+      "isTextMode": false,
+      "isRunMode": false,
+      "isValueMode": true,
+      "isNameMode": false,
+      "structureHint": "式子的结构"
+    },
+    "Name": {
+      "title": "选择变量",
+      "hint": "按块搭出一条式子",
+      "showsBand": false,
+      "showsFormulaMaterials": false,
+      "panelSpan": 3,
+      "isTextMode": false,
+      "isRunMode": false,
+      "isValueMode": false,
+      "isNameMode": true,
+      "structureHint": "式子的结构"
+    }
+  },
+  "base": {
+    "mode": "Text",
+    "title": "",
+    "hint": "",
+    "target": "",
+    "targetLine": "",
+    "showsBand": false,
+    "showsFormulaMaterials": false,
+    "panelSpan": 0,
+    "isTextMode": false,
+    "isRunMode": false,
+    "isValueMode": false,
+    "isNameMode": false,
+    "recipe": null,
+    "caret": 0,
+    "spanEnd": 0,
+    "caretPath": [],
+    "caretAfter": true,
+    "selectedPath": null,
+    "isValueEmpty": false,
+    "emptyBandHint": "从下面挑一个名字或值。",
+    "structureHint": "",
+    "text": "",
+    "note": "",
+    "noteIsProblem": false,
+    "saying": "",
+    "reads": false,
+    "hasSaying": false,
+    "canConfirm": false,
+    "canUndo": false,
+    "canRedo": false,
+    "canClear": false,
+    "textBody": "",
+    "isTypingNumber": false,
+    "typingText": "",
+    "typingPlaceholder": "文字",
+    "canInsertTyped": false,
+    "typingNote": "",
+    "hasTypingNote": false,
+    "functionQuery": "",
+    "selectedFunctionGroup": null,
+    "isAllFunctions": true,
+    "hasChosenFunction": false,
+    "hasChosenVariable": false,
+    "allowNewName": false,
+    "newName": "",
+    "canCreateName": false,
+    "newNameLine": "",
+    "operators": [],
+    "values": [],
+    "functionGroups": [],
+    "functions": [],
+    "wall": {
+      "filters": [],
+      "selectedFilter": "All",
+      "search": "",
+      "looking": "",
+      "details": "",
+      "isEmpty": false,
+      "shown": []
+    }
+  },
+  "node": {
+    "kind": "",
+    "path": null,
+    "start": 0,
+    "length": 0,
+    "text": "",
+    "operator": "",
+    "tone": "",
+    "name": "",
+    "before": "",
+    "isName": false,
+    "isGhost": false,
+    "isRequired": false,
+    "isEmpty": false,
+    "isSelected": false,
+    "hasProblem": false,
+    "problemHint": "",
+    "hoverHint": null,
+    "canRemove": false,
+    "hasNoArguments": false,
+    "hasNoItems": false,
+    "stacked": false,
+    "compact": true,
+    "argumentLabel": "",
+    "argumentFlag": "",
+    "argumentIndex": 0,
+    "argumentOptional": false,
+    "argumentRequired": false,
+    "children": [],
+    "ghost": null
+  },
+  "operators": [
+    {
+      "token": "+",
+      "insert": " + ",
+      "hint": "加",
+      "tone": "maths",
+      "enabled": true
+    },
+    {
+      "token": "−",
+      "insert": " - ",
+      "hint": "减",
+      "tone": "maths",
+      "enabled": true
+    },
+    {
+      "token": "×",
+      "insert": " * ",
+      "hint": "乘",
+      "tone": "maths",
+      "enabled": true
+    },
+    {
+      "token": "÷",
+      "insert": " / ",
+      "hint": "除",
+      "tone": "maths",
+      "enabled": true
+    },
+    {
+      "token": "=",
+      "insert": " == ",
+      "hint": "等于",
+      "tone": "dates",
+      "enabled": true
+    },
+    {
+      "token": "≠",
+      "insert": " != ",
+      "hint": "不等于",
+      "tone": "dates",
+      "enabled": true
+    },
+    {
+      "token": ">",
+      "insert": " > ",
+      "hint": "大于",
+      "tone": "dates",
+      "enabled": true
+    },
+    {
+      "token": "<",
+      "insert": " < ",
+      "hint": "小于",
+      "tone": "dates",
+      "enabled": true
+    },
+    {
+      "token": "and",
+      "insert": " and ",
+      "hint": "并且",
+      "tone": "records",
+      "enabled": true
+    },
+    {
+      "token": "or",
+      "insert": " or ",
+      "hint": "或者",
+      "tone": "records",
+      "enabled": true
+    }
+  ],
+  "values": [
+    {
+      "text": "真",
+      "insert": "true"
+    },
+    {
+      "text": "假",
+      "insert": "false"
+    },
+    {
+      "text": "空",
+      "insert": "null"
+    }
+  ],
+  "wallFilters": [
+    {
+      "group": "All",
+      "label": "全部",
+      "hint": ""
+    },
+    {
+      "group": "Local",
+      "label": "局部变量",
+      "hint": ""
+    },
+    {
+      "group": "Global",
+      "label": "全局变量",
+      "hint": ""
+    },
+    {
+      "group": "System",
+      "label": "系统变量",
+      "hint": ""
+    },
+    {
+      "group": "StepResult",
+      "label": "步骤状态",
+      "hint": ""
+    }
+  ]
+}

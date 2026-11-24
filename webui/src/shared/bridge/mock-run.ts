@@ -1,26 +1,38 @@
 import type { MockRunContext } from './mock-context.js';
-import type { RunStep } from './protocol.js';
+import type {
+  RunArgument,
+  RunGlobal,
+  RunLocal,
+  RunLook,
+  RunState,
+  RunStep,
+  RunTrigger,
+  RunWatch,
+} from './protocol.js';
+import raw from './data/run.json';
 
-/** 一张 1×1 的 PNG，冒充当一步取景的画面：页面上只看大小与位置，不看像素。 */
-const LOOK_IMAGE =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+/**
+ * 运行页 mock：装宏时给出的取景、断点候选、触发等待、监视值、参数与每步结局都是固定样例，
+ * 放在 data/run.json；这里只留下随命令推进的状态机。
+ */
 
-const LOOK_A = { stepId: 's1', type: 'control.findImage', looking: '找图：按钮', image: LOOK_IMAGE };
-const LOOK_B = { stepId: 's2', type: 'control.findImage', looking: '找图：确认', image: LOOK_IMAGE };
+interface RunFixtures {
+  lookImage: string;
+  looks: Omit<RunLook, 'image'>[];
+  breakpointChoices: string[];
+  triggers: RunTrigger[];
+  watches: RunWatch[];
+  arguments: RunArgument[];
+  globals: RunGlobal[];
+  locals: RunLocal[];
+  steps: { id: string; label: string; outcome: string; result: string }[];
+  stepDefaults: Omit<RunStep, 'id' | 'label' | 'outcome' | 'result'>;
+  unload: Partial<RunState>;
+}
 
-/** 装一个宏时给出的那些区块：断点候选、触发等待、监视值、取景与每步结局。 */
-const CHOICES = ['i', 'count', 'found'];
-
-const TRIGGERS = [
-  { name: '自动保存', kind: '定时：每 1 分钟', status: '现在在',
-    checked: '上次判定 12:00:01，下次 12:00:11', detail: '' },
-  { name: '游戏连招', kind: '键：F8', status: '', checked: '没有排在钟上', detail: '窗口有变化时机器会先说一声' },
-];
-
-const WATCHES = [
-  { name: 'count', type: '数字', value: '3' },
-  { name: 'found', type: '布尔', value: 'true' },
-];
+const DATA = raw as unknown as RunFixtures;
+const LOOK_A: RunLook = { ...DATA.looks[0]!, image: DATA.lookImage };
+const LOOK_B: RunLook = { ...DATA.looks[1]!, image: DATA.lookImage };
 
 /** handleRun-domain answers for the mock host. The transport routes by the method prefix. */
 export function handleRun(host: MockRunContext, method: string, params: Record<string, unknown>): unknown {
@@ -57,37 +69,28 @@ function load(host: MockRunContext, params: Record<string, unknown>): unknown {
     status: 'Loaded', canRun: true, canStep: true, busy: false, paused: false,
     swapNote: was.length > 0 && was !== name ? swapNote(was, name) : '',
     inputRate: 120,
-    inputRateOwner: `正在发输入：${name}`,
-    triggers: TRIGGERS,
-    watches: WATCHES,
+    inputRateOwner: '正在发输入：' + name,
+    triggers: DATA.triggers,
+    watches: DATA.watches,
     looks: [LOOK_A, LOOK_B],
     activeLook: 's1',
     look: LOOK_A,
-    breakpointChoices: CHOICES,
-    arguments: [{ name: 'target', label: 'target', hint: 'Text', required: true,
-      value: '', given: false, missing: true }],
-    globals: [{ name: 'count', type: 'Number', value: '3', defaultValue: '0' }],
-    locals: [{ name: 'found', macro: 'Demo', type: 'Boolean' }],
-    steps: [
-      step('s1', 'Step one', '已完成', 'found = 12'),
-      step('s2', 'Step two'),
-    ],
+    breakpointChoices: DATA.breakpointChoices,
+    arguments: DATA.arguments,
+    globals: DATA.globals,
+    locals: DATA.locals,
+    steps: DATA.steps.map((entry) => step(entry.id, entry.label, entry.outcome, entry.result)),
   };
   return host.runState;
 }
 
 /** 换宏时程序写在面板上的那句话，与程序里的词表同形。 */
 function swapNote(was: string, name: string): string {
-  return `已停止“${was}”的运行，改为调试“${name}”。`;
+  return '已停止“' + was + '”的运行，改为调试“' + name + '”。';
 }
 
 function step(id: string, label: string, outcome = '', result = ''): RunStep {
-  return {
-    id, label, detail: 'action.key', depth: 0, shown: true,
-    container: false, current: false, breakpoint: false, canBreak: true,
-    time: '', failure: '', condition: '', hitTimes: 1, expression: '',
-    outcome, result,
-  };
+  return { ...structuredClone(DATA.stepDefaults), id, label, outcome, result };
 }
 
 /** 一次运行命令：按钮的可用状态跟着走，换宏的说明在真的开始运行时让开。 */
@@ -150,12 +153,6 @@ function toggleBreakpoint(host: MockRunContext, params: Record<string, unknown>)
 }
 
 function unload(host: MockRunContext): unknown {
-  host.runState = {
-    ...host.runState,
-    loaded: '', status: '', busy: false, paused: false,
-    canRun: false, canStep: false, canStop: false, steps: [],
-    look: null, looks: [], activeLook: '', triggers: [], watches: [],
-    swapNote: '', inputRate: 0, inputRateOwner: '', breakpointChoices: [],
-  };
+  host.runState = { ...host.runState, ...structuredClone(DATA.unload) };
   return host.runState;
 }

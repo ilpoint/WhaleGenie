@@ -62,7 +62,7 @@ export function requestedSteps(_host: MockEditor, params: Record<string, unknown
   }
 
 export function stepsEnabled(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
-    const ids = host.requestedSteps(params);
+    const ids = requestedSteps(host, params);
     const enabled = params['enabled'] === true;
     return host.change((document) => {
       let steps = document.steps;
@@ -74,7 +74,7 @@ export function stepsEnabled(host: MockEditor, params: Record<string, unknown>):
   }
 
 export function stepsRemove(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
-    const ids = host.requestedSteps(params);
+    const ids = requestedSteps(host, params);
     return host.change((document) => {
       let steps = document.steps;
       for (const id of ids) {
@@ -85,7 +85,7 @@ export function stepsRemove(host: MockEditor, params: Record<string, unknown>): 
   }
 
 export function stepsDuplicate(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
-    const ids = host.requestedSteps(params);
+    const ids = requestedSteps(host, params);
     return host.change((document) => {
       let steps = document.steps;
       for (const id of ids) {
@@ -96,7 +96,7 @@ export function stepsDuplicate(host: MockEditor, params: Record<string, unknown>
   }
 
 export function stepsMoveBy(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
-    const ids = host.requestedSteps(params);
+    const ids = requestedSteps(host, params);
     const delta = Number(params['delta'] ?? 0);
     return host.change((document) => {
       let steps = document.steps;
@@ -108,7 +108,7 @@ export function stepsMoveBy(host: MockEditor, params: Record<string, unknown>): 
   }
 
 export function stepsCopy(host: MockEditor, params: Record<string, unknown>): string {
-    const ids = host.requestedSteps(params);
+    const ids = requestedSteps(host, params);
     const document = host.activeSnapshot();
     const steps = document
       ? ids
@@ -121,8 +121,8 @@ export function stepsCopy(host: MockEditor, params: Record<string, unknown>): st
   }
 
 export function stepsCut(host: MockEditor, params: Record<string, unknown>): string {
-    const text = host.stepsCopy(params);
-    host.stepsRemove(params);
+    const text = stepsCopy(host, params);
+    stepsRemove(host, params);
     return text;
   }
 
@@ -145,7 +145,7 @@ export function stepsPaste(host: MockEditor, params: Record<string, unknown>): E
       return host.activeSnapshot();
     }
 
-    const copies = pasted.map((step) => host.cloneStep(step));
+    const copies = pasted.map((step) => cloneStep(host, step));
     const after = typeof params['after'] === 'string' ? params['after'] as string : '';
     return host.change((document) => {
       const found = after.length > 0 ? locateStep(document.steps, after) : null;
@@ -157,7 +157,7 @@ export function stepsPaste(host: MockEditor, params: Record<string, unknown>): E
   }
 
 export function stepsGroup(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
-    const ids = host.requestedSteps(params);
+    const ids = requestedSteps(host, params);
     const document = host.activeSnapshot();
     if (!document) {
       return null;
@@ -207,7 +207,7 @@ export function stepsMoveTo(host: MockEditor, params: Record<string, unknown>): 
       return document;
     }
 
-    const selected = located(document.steps, host.requestedSteps(params));
+    const selected = located(document.steps, requestedSteps(host, params));
     if (selected.length === 0) {
       return document;
     }

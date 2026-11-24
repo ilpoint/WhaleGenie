@@ -1,4 +1,5 @@
 import type {
+  SettingsMenuState,
   SettingsState,
   SettingsWheelSlot,
   SettingsWheelState,
@@ -6,7 +7,11 @@ import type {
 } from './protocol.js';
 import type { MockContext } from './mock-context.js';
 
-/** Settings-domain answers for the mock host. The transport routes by the settings. prefix. */
+/**
+ * Settings-domain answers for the mock host. The transport routes by the settings. prefix.
+ * Most commands are a patch of one nested state, so the two small helpers below keep each
+ * case to its own edit instead of repeating the whole snapshot.
+ */
 export function handleSettings(host: MockContext, method: string, params: Record<string, unknown>): unknown {
   let result: unknown;
   switch (method) {
@@ -28,68 +33,43 @@ export function handleSettings(host: MockContext, method: string, params: Record
         }
         case 'settings.menu.capture': {
           const binding = String(params['binding'] ?? '');
-          host.settingsState = {
-            ...host.settingsState,
-            menu: {
-              ...host.settingsState.menu,
-              launcher: binding,
-              display: binding,
-              isMiddle: binding === 'Mouse Middle',
-              isCustom: binding !== 'Mouse Middle',
-              status: binding ? '已设置' : '未设置',
-            },
-          };
-          result = host.settingsState;
+          result = setMenu(host, {
+            launcher: binding,
+            display: binding,
+            isMiddle: binding === 'Mouse Middle',
+            isCustom: binding !== 'Mouse Middle',
+            status: binding ? '已设置' : '未设置',
+          });
           break;
         }
         case 'settings.menu.clear':
-          host.settingsState = {
-            ...host.settingsState,
-            menu: {
-              ...host.settingsState.menu,
-              launcher: '', display: '无', isMiddle: false, isCustom: false, status: '未设置',
-            },
-          };
-          result = host.settingsState;
+          result = setMenu(host, {
+            launcher: '', display: '无', isMiddle: false, isCustom: false, status: '未设置',
+          });
           break;
         case 'settings.menu.rule.add': {
           const rule = params['rule'] as WindowRuleState;
-          host.settingsState = {
-            ...host.settingsState,
-            menu: {
-              ...host.settingsState.menu,
-              rules: [...host.settingsState.menu.rules, {
-                key: 'rule-' + Date.now(), summary: rule.title || rule.process || '窗口规则',
-                pageCountLabel: '1 页', isDefault: false, isBlocked: false, canAddPage: true, rule,
-              }],
-            },
-          };
-          result = host.settingsState;
+          result = setMenu(host, {
+            rules: [...host.settingsState.menu.rules, {
+              key: 'rule-' + Date.now(), summary: rule.title || rule.process || '窗口规则',
+              pageCountLabel: '1 页', isDefault: false, isBlocked: false, canAddPage: true, rule,
+            }],
+          });
           break;
         }
         case 'settings.menu.rule.edit': {
           const rule = params['rule'] as WindowRuleState;
-          host.settingsState = {
-            ...host.settingsState,
-            menu: {
-              ...host.settingsState.menu,
-              rules: host.settingsState.menu.rules.map((row) => row.key === params['key']
-                ? { ...row, rule, summary: rule.title || rule.process || '窗口规则' }
-                : row),
-            },
-          };
-          result = host.settingsState;
+          result = setMenu(host, {
+            rules: host.settingsState.menu.rules.map((row) => row.key === params['key']
+              ? { ...row, rule, summary: rule.title || rule.process || '窗口规则' }
+              : row),
+          });
           break;
         }
         case 'settings.menu.rule.remove':
-          host.settingsState = {
-            ...host.settingsState,
-            menu: {
-              ...host.settingsState.menu,
-              rules: host.settingsState.menu.rules.filter((row) => row.key !== params['key']),
-            },
-          };
-          result = host.settingsState;
+          result = setMenu(host, {
+            rules: host.settingsState.menu.rules.filter((row) => row.key !== params['key']),
+          });
           break;
         case 'settings.menu.rule.addPage':
           result = host.settingsState;
@@ -105,8 +85,7 @@ export function handleSettings(host: MockContext, method: string, params: Record
               rules.splice(to, 0, row);
             }
           }
-          host.settingsState = { ...host.settingsState, menu: { ...host.settingsState.menu, rules } };
-          result = host.settingsState;
+          result = setMenu(host, { rules });
           break;
         }
         case 'settings.menu.rule.moveTo': {
@@ -119,8 +98,7 @@ export function handleSettings(host: MockContext, method: string, params: Record
               rules.splice(to, 0, row);
             }
           }
-          host.settingsState = { ...host.settingsState, menu: { ...host.settingsState.menu, rules } };
-          result = host.settingsState;
+          result = setMenu(host, { rules });
           break;
         }
         case 'settings.wheel.update': {
@@ -134,103 +112,62 @@ export function handleSettings(host: MockContext, method: string, params: Record
           } else {
             next[field] = value === 'true' ? true : value === 'false' ? false : value;
           }
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: next as unknown as SettingsWheelState,
-          };
-          result = host.settingsState;
+          result = setWheel(host, next as unknown as Partial<SettingsWheelState>);
           break;
         }
         case 'settings.wheel.launcher': {
           const launcher = String(params['value'] ?? '');
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: {
-              ...host.settingsState.wheel,
-              launcher,
-              enabled: launcher.length > 0,
-              launcherStatus: launcher ? '就绪' : '未设置',
-            },
-          };
-          result = host.settingsState;
+          result = setWheel(host, {
+            launcher,
+            enabled: launcher.length > 0,
+            launcherStatus: launcher ? '就绪' : '未设置',
+          });
           break;
         }
         case 'settings.wheel.enabled': {
           const enabled = params['value'] === true;
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: {
-              ...host.settingsState.wheel,
-              enabled,
-              launcher: enabled ? (host.settingsState.wheel.launcher || 'Mouse Right') : '',
-            },
-          };
-          result = host.settingsState;
+          result = setWheel(host, {
+            enabled,
+            launcher: enabled ? (host.settingsState.wheel.launcher || 'Mouse Right') : '',
+          });
           break;
         }
         case 'settings.wheel.enableSystem':
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: { ...host.settingsState.wheel, isSystemOff: false },
-          };
-          result = host.settingsState;
+          result = setWheel(host, { isSystemOff: false });
           break;
         case 'settings.wheel.repeat': {
           const key = String(params['binding'] ?? '');
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: { ...host.settingsState.wheel, repeatKey: key, repeatDisplay: key },
-          };
-          result = host.settingsState;
+          result = setWheel(host, { repeatKey: key, repeatDisplay: key });
           break;
         }
         case 'settings.wheel.scene.select':
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: { ...host.settingsState.wheel, selectedScene: String(params['key'] ?? 'global') },
-          };
-          result = host.settingsState;
+          result = setWheel(host, { selectedScene: String(params['key'] ?? 'global') });
           break;
         case 'settings.wheel.scene.add': {
           const rule = params['rule'] as WindowRuleState;
           const key = 'scene-' + Date.now();
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: {
-              ...host.settingsState.wheel,
-              selectedScene: key,
-              scenes: [...host.settingsState.wheel.scenes, {
-                key, summary: rule.title || rule.process || '窗口规则', isGlobal: false, rule,
-              }],
-            },
-          };
-          result = host.settingsState;
+          result = setWheel(host, {
+            selectedScene: key,
+            scenes: [...host.settingsState.wheel.scenes, {
+              key, summary: rule.title || rule.process || '窗口规则', isGlobal: false, rule,
+            }],
+          });
           break;
         }
         case 'settings.wheel.scene.edit': {
           const rule = params['rule'] as WindowRuleState;
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: {
-              ...host.settingsState.wheel,
-              scenes: host.settingsState.wheel.scenes.map((scene) => scene.key === params['key']
-                ? { ...scene, rule, summary: rule.title || rule.process || '窗口规则' }
-                : scene),
-            },
-          };
-          result = host.settingsState;
+          result = setWheel(host, {
+            scenes: host.settingsState.wheel.scenes.map((scene) => scene.key === params['key']
+              ? { ...scene, rule, summary: rule.title || rule.process || '窗口规则' }
+              : scene),
+          });
           break;
         }
         case 'settings.wheel.scene.remove':
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: {
-              ...host.settingsState.wheel,
-              selectedScene: 'global',
-              scenes: host.settingsState.wheel.scenes.filter((scene) => scene.key !== params['key']),
-            },
-          };
-          result = host.settingsState;
+          result = setWheel(host, {
+            selectedScene: 'global',
+            scenes: host.settingsState.wheel.scenes.filter((scene) => scene.key !== params['key']),
+          });
           break;
         case 'settings.wheel.scene.move': {
           const scenes = [...host.settingsState.wheel.scenes];
@@ -242,11 +179,7 @@ export function handleSettings(host: MockContext, method: string, params: Record
               scenes.splice(to, 0, scene);
             }
           }
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: { ...host.settingsState.wheel, scenes },
-          };
-          result = host.settingsState;
+          result = setWheel(host, { scenes });
           break;
         }
         case 'settings.wheel.slot.set': {
@@ -266,26 +199,14 @@ export function handleSettings(host: MockContext, method: string, params: Record
             empty: macro.length === 0,
             tone: macro.length === 0 ? 'empty' : 'override',
           });
-          host.settingsState = {
-            ...host.settingsState,
-            wheel: {
-              ...host.settingsState.wheel,
-              slots: host.settingsState.wheel.slots.map((slot) =>
-                slot.ring === ring && slot.index === index ? update(slot) : slot),
-            },
-          };
-          result = host.settingsState;
+          result = setWheel(host, {
+            slots: host.settingsState.wheel.slots.map((slot) =>
+              slot.ring === ring && slot.index === index ? update(slot) : slot),
+          });
           break;
         }
         case 'settings.menu.rememberPin':
-          host.settingsState = {
-            ...host.settingsState,
-            menu: {
-              ...host.settingsState.menu,
-              rememberPinned: params['remember'] === true,
-            },
-          };
-          result = host.settingsState;
+          result = setMenu(host, { rememberPinned: params['remember'] === true });
           break;
         case 'settings.openFolder':
           result = null;
@@ -293,4 +214,23 @@ export function handleSettings(host: MockContext, method: string, params: Record
   }
 
   return result;
+}
+
+function commit(host: MockContext, next: SettingsState): SettingsState {
+  host.settingsState = next;
+  return next;
+}
+
+function setMenu(host: MockContext, patch: Partial<SettingsMenuState>): SettingsState {
+  return commit(host, {
+    ...host.settingsState,
+    menu: { ...host.settingsState.menu, ...patch },
+  });
+}
+
+function setWheel(host: MockContext, patch: Partial<SettingsWheelState>): SettingsState {
+  return commit(host, {
+    ...host.settingsState,
+    wheel: { ...host.settingsState.wheel, ...patch },
+  });
 }

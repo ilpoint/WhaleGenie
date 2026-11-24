@@ -1,0 +1,268 @@
+{
+  "mockImage": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL5WQAAAABJRU5ErkJggg==",
+  "pages": {
+    "zh": [
+      {
+        "key": "base",
+        "label": "基础设置",
+        "present": true,
+        "hasDot": false
+      },
+      {
+        "key": "exec",
+        "label": "执行与容错",
+        "present": true,
+        "hasDot": false
+      },
+      {
+        "key": "advanced",
+        "label": "高级设置",
+        "present": false,
+        "hasDot": false
+      },
+      {
+        "key": "other",
+        "label": "其它设置",
+        "present": true,
+        "hasDot": false
+      }
+    ],
+    "en": [
+      {
+        "key": "base",
+        "label": "Basics",
+        "present": true,
+        "hasDot": false
+      },
+      {
+        "key": "exec",
+        "label": "Execution",
+        "present": true,
+        "hasDot": false
+      },
+      {
+        "key": "advanced",
+        "label": "Advanced",
+        "present": false,
+        "hasDot": false
+      },
+      {
+        "key": "other",
+        "label": "More",
+        "present": true,
+        "hasDot": false
+      }
+    ]
+  },
+  "returnsDefault": [
+    {
+      "key": "found",
+      "label": "是否找到",
+      "hint": "",
+      "structure": "true | false",
+      "structureTip": "",
+      "ticked": false,
+      "name": "",
+      "isNameTaken": false,
+      "nameWarning": "",
+      "isPrimary": true
+    }
+  ],
+  "fieldBase": {
+    "name": "",
+    "label": "",
+    "hint": "",
+    "kind": "",
+    "valueForm": "",
+    "value": "",
+    "display": "",
+    "parts": [],
+    "options": [],
+    "columns": [],
+    "condition": null,
+    "isApplicable": true,
+    "isDefault": false,
+    "isMissing": false,
+    "required": false,
+    "advanced": false,
+    "group": "",
+    "groupLabel": "",
+    "offersValue": false,
+    "takesFormula": false,
+    "showsNameMark": false,
+    "allowsNewName": false,
+    "isNumber": false,
+    "isNumberFormula": false,
+    "isDuration": false,
+    "unit": "",
+    "unitLabel": "",
+    "durationUnits": [],
+    "isPercent": false,
+    "percentValue": 0,
+    "channelNote": "",
+    "jitterRange": "",
+    "isMultiline": false,
+    "isCode": false,
+    "isColor": false,
+    "colour": "",
+    "isPath": false,
+    "pathIntent": "",
+    "pathFilter": "",
+    "isKey": false,
+    "isKeys": false,
+    "isSelector": false,
+    "isBrowserTarget": false,
+    "isImage": false,
+    "isImageList": false,
+    "isRegion": false,
+    "isRegionList": false,
+    "isColourPoints": false,
+    "isColourRows": false,
+    "isKeySequence": false,
+    "isNarrow": false,
+    "isWindow": false,
+    "isWindowRule": false,
+    "isMacro": false,
+    "isStepChoice": false,
+    "isRecord": false,
+    "isPoint": false,
+    "isRect": false,
+    "placeholder": "",
+    "hasToBeAnswered": false,
+    "isFollowingWindow": false,
+    "windowRuleSummary": "",
+    "regions": [],
+    "images": [],
+    "colours": [],
+    "colourPoints": [],
+    "keys": [],
+    "narrowRows": [],
+    "rows": [],
+    "macros": [],
+    "steps": [],
+    "candidates": [],
+    "windowPreview": null,
+    "imagePreview": null
+  },
+  "fieldKinds": {
+    "Path": {
+      "isPath": true
+    },
+    "Keys": {
+      "isKeys": true
+    },
+    "Selector": {
+      "isSelector": true
+    },
+    "Browser": {
+      "isBrowserTarget": true
+    },
+    "Image": {
+      "isImage": true
+    },
+    "Images": {
+      "isImageList": true
+    },
+    "Region": {
+      "isRegion": true,
+      "isRegionList": true
+    },
+    "ColourPoints": {
+      "isColourPoints": true
+    },
+    "KeySequence": {
+      "isKeySequence": true
+    },
+    "Narrow": {
+      "isNarrow": true
+    },
+    "WindowRule": {
+      "isWindow": true,
+      "isWindowRule": true
+    },
+    "Macro": {
+      "isMacro": true
+    },
+    "Step": {
+      "isStepChoice": true
+    },
+    "Record": {
+      "isRecord": true
+    },
+    "Point": {
+      "isPoint": true
+    },
+    "Rect": {
+      "isRect": true
+    }
+  },
+  "emptyForm": {
+    "open": false,
+    "isEditing": false,
+    "canConfirm": false,
+    "canRun": false,
+    "running": false,
+    "runLabel": "",
+    "validationMessage": "",
+    "validationIsProblem": false,
+    "actionKey": "",
+    "name": "",
+    "description": "",
+    "stepId": "",
+    "commitLabel": "",
+    "page": "base",
+    "pages": [],
+    "rows": [],
+    "advancedRows": [],
+    "returns": [],
+    "callArguments": [],
+    "meta": {
+      "enabled": true,
+      "comment": "",
+      "timeout": {
+        "milliseconds": 0,
+        "written": "",
+        "unit": "",
+        "units": []
+      },
+      "retryCount": null,
+      "retryDelay": {
+        "milliseconds": 0,
+        "written": "",
+        "unit": "",
+        "units": []
+      },
+      "delayBefore": {
+        "milliseconds": 0,
+        "written": "",
+        "unit": "",
+        "units": []
+      },
+      "delayAfter": {
+        "milliseconds": 0,
+        "written": "",
+        "unit": "",
+        "units": []
+      },
+      "retryBackoff": "fixed",
+      "onError": "stop",
+      "retryPlan": "",
+      "tuned": false
+    },
+    "globalDraft": null,
+    "windowRules": [],
+    "windowAbove": "",
+    "branchSummary": "",
+    "attemptSummary": "",
+    "isBlock": false,
+    "showsBranches": false,
+    "showsAttempt": false,
+    "json": "",
+    "notice": "",
+    "noticeIsWarning": false,
+    "clipboardPreview": {
+      "shown": false,
+      "note": ""
+    }
+  }
+}

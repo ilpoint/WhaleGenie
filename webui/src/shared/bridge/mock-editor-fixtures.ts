@@ -1,86 +1,41 @@
 import type { EditorSnapshot, EditorTrigger } from './protocol.js';
 import { presentDocument } from './mock-editor-steps.js';
+import raw from './data/editor-fixtures.json';
 
 /**
- * The mock editor's fixed data: triggers and the value wall's first entries. They are fixtures
- * rather than edits, so they stay out of the step tree and the command dispatch.
+ * 编辑器 mock 的固定样例：触发器默认值、取值墙的起始条目与空白文档的骨架都在
+ * data/editor-fixtures.json；这里只负责按种类拼出它们，并与页面的命令对接。
  */
+
+type TriggerDefaults = Omit<EditorTrigger, 'id' | 'kind' | 'kindLabel' | 'hotstringEndKeys'>;
+type DocumentBase = Omit<EditorSnapshot, 'name' | 'valueChoices' | 'valueFunctions'
+  | 'conditionCompares' | 'variableTypes' | 'triggerKinds'>;
+
+interface EditorFixtures {
+  triggerKinds: Record<string, string>;
+  triggerDefaults: TriggerDefaults;
+  hotstringEndKeys: EditorTrigger['hotstringEndKeys'];
+  valueChoices: EditorSnapshot['valueChoices'];
+  valueFunctions: EditorSnapshot['valueFunctions'];
+  conditionCompares: EditorSnapshot['conditionCompares'];
+  variableTypes: EditorSnapshot['variableTypes'];
+  document: DocumentBase;
+}
+
+const DATA = raw as unknown as EditorFixtures;
 
 function text(params: Record<string, unknown>, name: string): string {
   const value = params[name];
   return value === undefined || value === null ? '' : String(value);
 }
 
-const TRIGGER_KIND_LABELS: Record<string, string> = {
-  Key: '按键',
-  Timer: '定时',
-  Color: '颜色',
-  File: '文件',
-  Process: '程序',
-  Hotstring: '字串',
-  Idle: '空闲',
-  Window: '窗口',
-  Interface: '窗口内接口',
-};
-
 export function newTrigger(id: string, kind: string): EditorTrigger {
   return {
     id,
     kind,
-    kindLabel: TRIGGER_KIND_LABELS[kind] ?? kind,
-    summary: '',
-    enabled: true,
-    binding: '',
-    loop: 'Press',
-    once: false,
-    timerMode: 'Interval',
-    time: '08:00',
-    interval: '5',
-    unit: 'Seconds',
-    filePath: '',
-    fileChange: 'Any',
-    fileFilter: '*',
-    fileSubfolders: false,
-    processName: '',
-    processChange: 'Started',
-    hotstringText: '',
-    colorMatch: 'ColorMatches',
-    colorHex: '#000000',
-    colorTolerance: '5',
-    colorX: '0',
-    colorY: '0',
-    followCursor: false,
-    idleSeconds: '60',
-    windowTitle: '',
-    windowProcess: '',
-    windowClass: '',
-    windowHow: 'TitleContains',
-    windowChange: 'Appeared',
-    interfaceTitle: '',
-    interfaceProcess: '',
-    interfaceHow: 'TitleContains',
-    windowCaseSensitive: false,
-    windowTrim: true,
-    windowMultiline: false,
-    hotstringEndChars: ' -()[]{}:;,.?!',
-    hotstringCaseSensitive: false,
-    hotstringInsideWord: false,
-    hotstringRequireEnd: true,
-    hotstringEraseTyped: true,
-    hotstringKeepEnd: true,
-    hotstringMaximumLength: 40,
-    hotstringEndKeys: kind === 'Hotstring'
-      ? [
-        { value: ' ', label: 'Space', checked: true, isCustom: false },
-        { value: '\n', label: 'Enter', checked: true, isCustom: false },
-        { value: ';', label: ';', checked: true, isCustom: false },
-        { value: '.', label: '.', checked: true, isCustom: false },
-      ]
-      : [],
-    hotstringEndCaptureProblem: '',
-    interfaceHotkey: '',
-    interfaceHotkeyProblem: '',
-    interfaceGroupMembers: [],
+    kindLabel: DATA.triggerKinds[kind] ?? kind,
+    ...structuredClone(DATA.triggerDefaults),
+    hotstringEndKeys: kind === 'Hotstring' ? structuredClone(DATA.hotstringEndKeys) : [],
   };
 }
 
@@ -99,54 +54,23 @@ export function changeTrigger(
 }
 
 export function defaultValueChoices(): EditorSnapshot['valueChoices'] {
-  return [
-    {
-      name: 'found', type: 'text', origin: 'Local', source: 'find.text', description: '',
-      group: 'Local', display: 'found', persistent: false,
-    },
-    {
-      name: 'count', type: 'number', origin: 'Global', source: 'global.count', description: '',
-      group: 'Global', display: 'count', persistent: true,
-    },
-    {
-      name: 'date', type: 'text', origin: 'System', source: 'sys.date', description: '',
-      group: 'System', display: '日期', persistent: false,
-    },
-    {
-      name: 'last', type: 'text', origin: 'StepResult', source: 'step.last', description: '',
-      group: 'StepResult', display: '上一步状态', persistent: false,
-    },
-  ];
+  return structuredClone(DATA.valueChoices);
 }
 
 export function defaultValueFunctions(): EditorSnapshot['valueFunctions'] {
-  return [
-    { name: 'upper', signature: 'upper(text)', description: 'Capitals', group: 'Text' },
-    { name: 'length', signature: 'length(value)', description: 'How many', group: 'Text' },
-  ];
+  return structuredClone(DATA.valueFunctions);
 }
 
 export function defaultConditionCompares(): EditorSnapshot['conditionCompares'] {
-  return [
-    { value: 'Equal', label: '=' },
-    { value: 'NotEqual', label: '≠' },
-    { value: 'Greater', label: '>' },
-    { value: 'Less', label: '<' },
-    { value: 'Holds', label: 'holds' },
-  ];
+  return structuredClone(DATA.conditionCompares);
 }
 
 export function defaultVariableTypes(): EditorSnapshot['variableTypes'] {
-  return [
-    { value: 'text', label: '文本' },
-    { value: 'number', label: '数字' },
-    { value: 'bool', label: '布尔' },
-    { value: 'record', label: '记录' },
-  ];
+  return structuredClone(DATA.variableTypes);
 }
 
 export function defaultTriggerKinds(): EditorSnapshot['triggerKinds'] {
-  return Object.entries(TRIGGER_KIND_LABELS).map(([value, label]) => ({ value, label }));
+  return Object.entries(DATA.triggerKinds).map(([value, label]) => ({ value, label }));
 }
 
 export function timerTrigger(
@@ -244,46 +168,13 @@ export function createDocumentSnapshot(
   overrides: Partial<EditorSnapshot>,
 ): EditorSnapshot {
   return presentDocument({
+    ...structuredClone(DATA.document),
     name,
-    description: '',
-    group: '',
-    subMacros: [],
-    callableParameters: [],
-    callableResults: [],
-    followInputLimit: true,
-    inputLimit: 20,
-    toggleKey: '',
-    dirty: false,
-    stepCount: 0,
-    steps: [],
-    triggers: [],
-    variables: [],
-    globals: [],
     valueChoices: defaultValueChoices(),
     valueFunctions: defaultValueFunctions(),
     conditionCompares: defaultConditionCompares(),
     variableTypes: defaultVariableTypes(),
     triggerKinds: defaultTriggerKinds(),
-    canUndo: false,
-    canRedo: false,
-    canSave: true,
-    nameProblem: null,
-    problemSummary: '',
-    declarationProblemSummary: '',
-    callImpactSummary: '',
-    notice: '',
-    triggerProblemSummary: '',
-    toggleKeyProblem: '',
-    recording: {
-      positionIndex: 0, positionOptions: ['当前', '差值'], mouseMovement: true, mouseButtons: true,
-      keyboardKeys: true, gamepadButtons: true, delays: true, ignoreDelaysBelowMs: 50,
-      ignoreInjected: true, delayScale: 1, delayScaleDisplay: '×1', hasDelayScale: false,
-    },
-    isSubMacro: false,
-    tabs: [],
-    activeKey: null,
-    actionForm: null,
-    revision: 0,
     ...overrides,
   });
 }

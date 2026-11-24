@@ -152,6 +152,8 @@ ESLint（`src/**/*.ts`）：
 - e2e：入口是 `npm run e2e`（`playwright test`，配置在 `webui/playwright.config.ts`，走 mock 宿主与
   系统 Edge）。它需要先有构建产物（`npm run build`），因此在 CI 的构建步骤之后执行，`npm run check`
   不包含它；拆分组件时优先保留 DOM 契约，而不是改测试。
+- mock 宿主的固定数据在 `webui/src/shared/bridge/data/*.json`（动作目录、表单骨架、步骤模板、
+  浮层快照等），命令分派与状态机留在 `mock-*.ts`：改数据只动 JSON，改行为才动 TS。
 - C# 对账：网页改动至少跑 `WhaleGenie.Tests` 中 `BridgeMethodInventoryTests`、`WebUiBoundaryTests`、
   `SourceEncodingTests` 与 `AboutPageTests`。
 

@@ -1,0 +1,168 @@
+{
+  "step": {
+    "id": "",
+    "type": "",
+    "name": "",
+    "enabled": true,
+    "comment": "",
+    "timeoutMs": 0,
+    "retryCount": 0,
+    "retryDelayMs": 0,
+    "onError": "Stop",
+    "acceptsSteps": false,
+    "detail": "",
+    "problem": "",
+    "inputMark": "",
+    "metaSummary": "",
+    "parameters": [],
+    "sections": []
+  },
+  "parameter": {
+    "name": "",
+    "label": "",
+    "kind": "",
+    "value": "",
+    "options": [],
+    "columns": [],
+    "rows": [],
+    "condition": null,
+    "display": "",
+    "valueForm": "Value",
+    "offersValue": false,
+    "takesFormula": false,
+    "showsNameMark": false,
+    "isNumber": false,
+    "isNumberFormula": false,
+    "isMultiline": false,
+    "isColor": false,
+    "isPath": false,
+    "isKey": false,
+    "placeholder": "",
+    "required": false,
+    "parts": [],
+    "advanced": false,
+    "group": "",
+    "groupLabel": "",
+    "isReturns": false
+  },
+  "compareLabels": {
+    "Equal": "=",
+    "NotEqual": "≠",
+    "Greater": ">",
+    "Less": "<",
+    "Holds": "包含"
+  },
+  "details": {
+    "control.delay": {
+      "template": "等待 {ms} 毫秒",
+      "fields": [
+        "ms"
+      ],
+      "fallback": "等待"
+    },
+    "input.keyPress": {
+      "template": "按 {key}",
+      "fields": [
+        "key"
+      ],
+      "fallback": "按键"
+    },
+    "input.mouseClick": {
+      "template": "点击 {button}",
+      "fields": [
+        "button"
+      ],
+      "fallback": "点击"
+    },
+    "input.text": {
+      "template": "输入 {text}",
+      "fields": [
+        "text"
+      ],
+      "fallback": "输入文字"
+    },
+    "screen.color": {
+      "template": "取色 {hex}",
+      "fields": [
+        "hex"
+      ],
+      "fallback": "取色"
+    },
+    "image.find": {
+      "template": "找图 {path}",
+      "fields": [
+        "path"
+      ],
+      "fallback": "找图"
+    },
+    "control.waitUntil": {
+      "condition": "等待 {summary}",
+      "fallback": "等待条件"
+    },
+    "control.runMacro": {
+      "template": "调用 {macro}",
+      "fields": [
+        "macro"
+      ],
+      "fallback": "调用宏"
+    },
+    "control.if": {
+      "condition": "如果 {summary}",
+      "fallback": "如果"
+    },
+    "control.repeat": {
+      "template": "重复 {times} 次",
+      "fields": [
+        "times"
+      ],
+      "fallback": "重复"
+    },
+    "control.forEach": {
+      "template": "遍历 {items}",
+      "fields": [
+        "items"
+      ],
+      "fallback": "遍历"
+    },
+    "control.for": {
+      "template": "从 {from} 到 {to}",
+      "fields": [
+        "from",
+        "to"
+      ],
+      "fallback": "计数循环"
+    },
+    "control.while": {
+      "condition": "当 {summary}",
+      "fallback": "当条件"
+    },
+    "control.switch": {
+      "template": "按 {value} 分支",
+      "fields": [
+        "value"
+      ],
+      "fallback": "多分支"
+    },
+    "control.case": {
+      "template": "分支 {values}",
+      "fields": [
+        "values"
+      ],
+      "fallback": "分支"
+    },
+    "control.note": {
+      "template": "{text}",
+      "fields": [
+        "text"
+      ],
+      "fallbackName": true
+    },
+    "control.log": {
+      "template": "{text}",
+      "fields": [
+        "text"
+      ],
+      "fallbackName": true
+    }
+  }
+}

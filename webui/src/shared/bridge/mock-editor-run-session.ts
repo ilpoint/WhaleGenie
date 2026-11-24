@@ -1,5 +1,39 @@
 import type { MockEditor } from './mock-editor.js';
 import { actionCatalogue } from './mock-editor-actions.js';
+import {
+  activate,
+  close,
+  macroSetting,
+  newDocument,
+  open,
+  patch,
+  save,
+  stopRecording,
+  subMacroCopy,
+  subMacroCreate,
+  subMacroDelete,
+  subOpen,
+  tabs,
+} from './mock-editor-documents.js';
+import {
+  addStep,
+  addTrigger,
+  conditionCommand,
+  removeTrigger,
+  rowCommand,
+  setParameterCommand,
+  setStepMeta,
+  stepsCopy,
+  stepsCut,
+  stepsDuplicate,
+  stepsEnabled,
+  stepsGroup,
+  stepsLift,
+  stepsMoveBy,
+  stepsMoveTo,
+  stepsPaste,
+  stepsRemove,
+} from './mock-editor-step-commands.js';
 import { handleDeclarationCommand } from './mock-editor-declarations.js';
 import {
   addGlobal,
@@ -31,7 +65,7 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
       case 'editor.session':
         return handleSessionCommand(host, params);
       case 'editor.sessionTabs':
-        return host.tabs();
+        return tabs(host);
       case 'editor.sessionState':
         return host.activeSnapshot();
       case 'editor.declaration':
@@ -104,7 +138,7 @@ function handleRecordCommand(host: MockEditor, params: Record<string, unknown>):
         },
       }));
     case 'stop':
-      return host.stopRecording();
+      return stopRecording(host);
     default:
       throw new Error('不认识录制命令 ' + String(params['kind']) + '。');
   }
@@ -113,18 +147,18 @@ function handleRecordCommand(host: MockEditor, params: Record<string, unknown>):
 function handleStepCommand(host: MockEditor, params: Record<string, unknown>): unknown {
   switch (String(params['kind'] ?? '')) {
     case 'add':
-      return host.addStep(params);
+      return addStep(host, params);
     case 'meta':
-      return host.setStepMeta(params);
+      return setStepMeta(host, params);
     case 'parameter':
-      return host.setParameterCommand(params);
+      return setParameterCommand(host, params);
     case 'rowAdd':
-      return host.rowCommand(params, (rows) => [...rows, { cells: ['', ''] }]);
+      return rowCommand(host, params, (rows) => [...rows, { cells: ['', ''] }]);
     case 'rowRemove':
-      return host.rowCommand(params, (rows) => rows.filter((_, index) =>
+      return rowCommand(host, params, (rows) => rows.filter((_, index) =>
         index !== Number(params['index'])));
     case 'rowCell':
-      return host.rowCommand(params, (rows) => rows.map((row, index) =>
+      return rowCommand(host, params, (rows) => rows.map((row, index) =>
         index !== Number(params['index'])
           ? row
           : {
@@ -141,25 +175,25 @@ function handleStepCommand(host: MockEditor, params: Record<string, unknown>): u
 function handleStepsCommand(host: MockEditor, params: Record<string, unknown>): unknown {
   switch (String(params['kind'] ?? '')) {
     case 'enabled':
-      return host.stepsEnabled(params);
+      return stepsEnabled(host, params);
     case 'remove':
-      return host.stepsRemove(params);
+      return stepsRemove(host, params);
     case 'duplicate':
-      return host.stepsDuplicate(params);
+      return stepsDuplicate(host, params);
     case 'moveBy':
-      return host.stepsMoveBy(params);
+      return stepsMoveBy(host, params);
     case 'copy':
-      return host.stepsCopy(params);
+      return stepsCopy(host, params);
     case 'cut':
-      return host.stepsCut(params);
+      return stepsCut(host, params);
     case 'paste':
-      return host.stepsPaste(params);
+      return stepsPaste(host, params);
     case 'group':
-      return host.stepsGroup(params);
+      return stepsGroup(host, params);
     case 'lift':
-      return host.stepsLift();
+      return stepsLift(host);
     case 'move':
-      return host.stepsMoveTo(params);
+      return stepsMoveTo(host, params);
     default:
       throw new Error('不认识多选命令 ' + String(params['kind']) + '。');
   }
@@ -173,19 +207,19 @@ function handleSessionCommand(host: MockEditor, params: Record<string, unknown>)
 
   switch (kind) {
     case 'open':
-      return host.open(host.text(params, 'name'));
+      return open(host, host.text(params, 'name'));
     case 'new':
-      return host.newDocument();
+      return newDocument(host);
     case 'subOpen':
-      return host.subOpen(host.text(params, 'name'));
+      return subOpen(host, host.text(params, 'name'));
     case 'activate':
-      return host.activate(host.text(params, 'key'));
+      return activate(host, host.text(params, 'key'));
     case 'close':
-      return host.close(host.optionalText(params, 'key'));
+      return close(host, host.optionalText(params, 'key'));
     case 'patch':
-      return host.patch(params);
+      return patch(host, params);
     case 'macroSetting':
-      return host.macroSetting(params);
+      return macroSetting(host, params);
     case 'undo':
       return host.change((document) => ({ ...document, canUndo: false, canRedo: true }));
     case 'redo':
@@ -193,9 +227,9 @@ function handleSessionCommand(host: MockEditor, params: Record<string, unknown>)
     case 'export':
       return true;
     case 'save':
-      return host.save();
+      return save(host);
     case 'publicMacroAdd':
-      return host.addStep({ type: 'control.runMacro' });
+      return addStep(host, { type: 'control.runMacro' });
     default:
       throw new Error('不认识会话命令 ' + String(params['kind']) + '。');
   }
@@ -206,11 +240,11 @@ function handleSubMacroCommand(host: MockEditor, kind: string,
     params: Record<string, unknown>): unknown {
   switch (kind) {
     case 'subMacroCreate':
-      return host.subMacroCreate(host.optionalText(params, 'name'));
+      return subMacroCreate(host, host.optionalText(params, 'name'));
     case 'subMacroCopy':
-      return host.subMacroCopy(host.text(params, 'from'), host.optionalText(params, 'name'));
+      return subMacroCopy(host, host.text(params, 'from'), host.optionalText(params, 'name'));
     case 'subMacroDelete':
-      return host.subMacroDelete(host.text(params, 'name'));
+      return subMacroDelete(host, host.text(params, 'name'));
     default:
       throw new Error('不认识子宏命令 ' + kind + '。');
   }
@@ -220,19 +254,19 @@ function handleSubMacroCommand(host: MockEditor, kind: string,
 function handleConditionCommand(host: MockEditor, params: Record<string, unknown>): unknown {
   switch (String(params['kind'] ?? '')) {
     case 'rowAdd':
-      return host.conditionCommand(params, (condition, path) =>
+      return conditionCommand(host, params, (condition, path) =>
         addConditionNode(condition, path, 'row'));
     case 'groupAdd':
-      return host.conditionCommand(params, (condition, path) =>
+      return conditionCommand(host, params, (condition, path) =>
         addConditionNode(condition, path, 'group'));
     case 'rowRemove':
-      return host.conditionCommand(params, (condition, path) =>
+      return conditionCommand(host, params, (condition, path) =>
         removeConditionNode(condition, path));
     case 'row':
-      return host.conditionCommand(params, (condition, path) =>
+      return conditionCommand(host, params, (condition, path) =>
         setConditionCell(condition, path, host.text(params, 'field'), host.text(params, 'value')));
     case 'join':
-      return host.conditionCommand(params, (condition, path) =>
+      return conditionCommand(host, params, (condition, path) =>
         setConditionJoinAt(condition, path, host.text(params, 'join')));
     default:
       throw new Error('不认识条件命令 ' + String(params['kind']) + '。');
@@ -270,8 +304,8 @@ function handleTriggerCommand(host: MockEditor, params: Record<string, unknown>)
 }
 
 const triggerCommands: Record<string, TriggerHandler> = {
-  add: (host, params) => host.addTrigger({ ...params, kind: params['triggerKind'] }),
-  remove: (host, params) => host.removeTrigger(params),
+  add: (host, params) => addTrigger(host, { ...params, kind: params['triggerKind'] }),
+  remove: (host, params) => removeTrigger(host, params),
   binding: (host, params) => handleTriggerSwitchCommand(host, params),
   loop: (host, params) => handleTriggerSwitchCommand(host, params),
   once: (host, params) => handleTriggerSwitchCommand(host, params),

@@ -1,13 +1,14 @@
 import type { MockEditor } from './mock-editor.js';
 import { handleActionCommand } from './mock-editor-action-commands.js';
+import { actionConfirm, actionOpen } from './mock-editor-action-form.js';
 
 /** One editor command family, split out of MockEditor.run. */
 export function handleActionRun(host: MockEditor, method: string, params: Record<string, unknown>): unknown {
   switch (method) {
     case 'editor.actionOpen':
-      return host.actionOpen(params);
+      return actionOpen(host, params);
     case 'editor.actionConfirm':
-      return host.actionConfirm();
+      return actionConfirm(host);
     case 'editor.actionCancel':
       host.actionForm = null;
       host.actionStep = null;

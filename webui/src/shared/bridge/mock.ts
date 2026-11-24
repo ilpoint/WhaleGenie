@@ -10,6 +10,8 @@ import { MockEditor } from './mock-editor.js';
 import { MockTransfer } from './mock-transfer.js';
 import type {
   AppInfo,
+  LibraryEntry,
+  MacroEntry,
   McpState,
   ProjectState,
   SettingsState,
@@ -21,12 +23,28 @@ import type {
   ThemeState,
   WindowState,
 } from './protocol.js';
+import raw from './data/host-state.json';
 
 /**
  * 浏览器里的假宿主：不依赖程序就能开发壳、跑 Playwright。它回答壳用到的每个方法，并留出
  * `push()` 让测试往页面里灌事件。真实词表以程序下发的为准——这里只放壳需要的键，与真表
  * 同步更新（有测试对账）。
  */
+
+interface HostStateData {
+  info: AppInfo;
+  theme: ThemeState;
+  window: WindowState;
+  run: RunState;
+  settings: Omit<SettingsState, 'menu' | 'wheel'>;
+  library: LibraryEntry[];
+  mcp: McpState;
+  project: ProjectState;
+  openedMacro: MacroEntry;
+  icons: { names: string[]; path: string };
+}
+
+const STATE = raw as unknown as HostStateData;
 
 export class MockTransport implements BridgeTransport {
   private receive?: (message: unknown) => void;
@@ -37,25 +55,11 @@ export class MockTransport implements BridgeTransport {
   /** 每次请求的方法与参数：同一方法下有多个命令时，e2e 靠 params 区分种类。 */
   readonly calls: { method: string; params: Record<string, unknown> }[] = [];
 
-  info: AppInfo = {
-    name: 'WhaleGenie',
-    version: '0.0.0-mock',
-    language: 'zh-Hans',
-    debug: true,
-  };
+  info: AppInfo = structuredClone(STATE.info);
 
-  theme: ThemeState = {
-    mode: 'dark',
-    baseLight: false,
-    accentHex: null,
-    accentUsable: true,
-    fill: '#c8401c',
-    surface: '#f5e6e2',
-    text: '#c8401c',
-    defaultAccent: '#c8401c',
-  };
+  theme: ThemeState = structuredClone(STATE.theme);
 
-  windowState: WindowState = { state: 'normal', topmost: false };
+  windowState: WindowState = structuredClone(STATE.window);
 
   /** 等待删除确认的宏名；dialog.respond 带着答案回来时用。 */
   private pendingDelete: string | null = null;
@@ -67,71 +71,17 @@ export class MockTransport implements BridgeTransport {
     (event, payload) => this.push(event, payload),
   );
 
-  runState: RunState = {
-    loaded: '', status: '', statusKind: 'Ready', busy: false, paused: false,
-    canRun: false, canStep: false, canStop: false,
-    question: '', wantsTypedAnswer: false, answerText: '', isAskingUser: false, isAsking: false,
-    arguments: [] as { name: string; label: string; hint: string; required: boolean;
-      value: string; given: boolean; missing: boolean }[],
-    look: null as { stepId: string; type: string; looking: string; image: string } | null,
-    globals: [] as { name: string; type: string; value: string; defaultValue: string }[],
-    locals: [] as { name: string; macro: string; type: string }[],
-    steps: [] as { id: string; label: string; detail: string; depth: number; shown: boolean;
-      container: boolean; current: boolean; breakpoint: boolean; canBreak: boolean;
-      time: string; failure: string; condition: string; hitTimes: number; expression: string;
-      outcome: string; result: string }[],
-    log: [] as { time: string; level: string; text: string }[],
-    logFrom: 0,
-    inputRate: 0,
-    inputRateOwner: '',
-    swapNote: '',
-    triggers: [] as { name: string; kind: string; status: string; checked: string; detail: string }[],
-    watches: [] as { name: string; type: string; value: string }[],
-    looks: [] as { stepId: string; type: string; looking: string; image: string }[],
-    activeLook: '',
-    breakpointChoices: [] as string[],
-  };
+  runState: RunState = structuredClone(STATE.run);
 
   settingsState: SettingsState = {
-    loadLastProjectAtStart: true, systemAtStart: false, enabledFirst: true,
-    ignoreOwnInput: true, soundSystem: true, soundMacro: false, preloadOcr: false,
-    inputRate: 20, frameRateFollow: true, frameRate: 60, frameRateMax: 60,
-    frameRateNote: 'This display runs at 60 Hz.',
-    frameCache: false, frameCacheAge: 100, logCount: 100,
-    language: 'zh-Hans',
-    systemHotkey: 'Ctrl+F12', recordStopKey: 'Ctrl+F10',
-    systemHotkeyProblem: '', recordStopProblem: '',
-    storage: [
-      { name: 'State', what: 'Settings and logs', where: 'C:\\mock\\state', folder: 'C:\\mock\\state' },
-    ],
-    driverStatus: 'Ready', driverReady: true, attachDriverAtStart: false,
-    runAsAdmin: false, adminStatus: 'Running normally',
-    canRestartElevated: true,
-    restartNote: 'Restarting asks Windows for an administrator token and closes this copy.',
-    windowWay: 'Auto', screenWay: 'Auto',
-    windowWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'PrintWindow', label: 'PrintWindow' }],
-    screenWays: [{ value: 'Auto', label: 'Automatic' }, { value: 'Gdi', label: 'GDI' }],
+    ...structuredClone(STATE.settings),
     menu: demoMenu,
     wheel: demoWheel,
-    limits: {
-      logCountMin: 1,
-      logCountMax: 999,
-      frameCacheAgeMax: 1000,
-      inputRateMin: 0,
-      inputRateMax: 999,
-    },
   };
 
-  private libraryEntries: { id: string; name: string; version: number; description: string }[] = [
-    { id: 'library-1', name: '打开记事本', version: 1, description: '公共示例宏' },
-  ];
+  private libraryEntries: LibraryEntry[] = structuredClone(STATE.library);
 
-  private mcp: McpState = {
-    allowControl: false,
-    allowRun: false,
-    config: '{\n  "mcpServers": {\n    "whalegenie": {\n      "command": "WhaleGenie.exe",\n      "args": ["--mcp"]\n    }\n  }\n}',
-    auditFile: '/mock/logs/mcp-2026-11-21.log',
-  };
+  private mcp: McpState = structuredClone(STATE.mcp);
 
   surfaceMenu: SurfaceMenuSnapshot = demoSurfaceMenu;
 
@@ -139,29 +89,7 @@ export class MockTransport implements BridgeTransport {
 
   surfacePanel: SurfacePanelSnapshot = demoSurfacePanel;
 
-  projectState: ProjectState = {
-    path: null,
-    name: null,
-    untitled: true,
-    dirty: false,
-    revision: 0,
-    systemEnabled: false,
-    enabledFirst: true,
-    views: ['All', 'Keys', 'Interface', 'Hotstring', 'Menu', 'Wheel', 'Events'],
-    groups: ['办公'],
-    macros: [
-      {
-        name: '自动保存', group: '办公', description: '每分钟存一次', enabled: true, running: false,
-        triggerSummary: '定时：每 1 分钟', triggerActions: '', triggerPreview: '每 1 分钟',
-        views: ['All', 'Events'],
-      },
-      {
-        name: '游戏连招', group: '', description: '', enabled: false, running: false,
-        triggerSummary: '键：F8', triggerActions: '', triggerPreview: 'F8',
-        views: ['All', 'Keys'],
-      },
-    ],
-  };
+  projectState: ProjectState = structuredClone(STATE.project);
 
   /** 编辑器域的假宿主：多文档、步骤树与录制都在 MockEditor 里。 */
   private readonly mockEditor = new MockEditor(
@@ -219,10 +147,10 @@ export class MockTransport implements BridgeTransport {
       } else if (method === 'surface.panel.state') {
         result = this.surfacePanel;
       } else if (method === 'icon.names') {
-        result = ['Play', 'Pause', 'Square', 'Settings', 'Search', 'Image', 'Plus', 'Ban', 'X', 'BugPlay'];
+        result = STATE.icons.names;
       } else if (method === 'icon.path') {
         // 开发页没有 Lucide 表，用一个圆角方框代替；路径仍是 SVG 能读的一条。
-        result = { path: 'M4 4 H20 V20 H4 Z' };
+        result = { path: STATE.icons.path };
       } else if (method === 'surface.wheel.ready') {
         result = null;
       } else if (method === 'surface.wheel.state') {
@@ -303,13 +231,7 @@ export class MockTransport implements BridgeTransport {
             untitled: false,
             dirty: false,
             revision: this.projectState.revision + 1,
-            macros: [
-              {
-                name: '包里的宏', group: '', description: '从包里打开的', enabled: true, running: false,
-                triggerSummary: '键：Ctrl+Alt+O', triggerActions: '', triggerPreview: 'Ctrl+Alt+O',
-                views: ['All', 'Keys'],
-              },
-            ],
+            macros: [structuredClone(STATE.openedMacro)],
             groups: [],
           };
           this.push('project.changed', this.projectState);

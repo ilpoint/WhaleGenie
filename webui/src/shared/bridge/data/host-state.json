@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "WhaleGenie",
+    "version": "0.0.0-mock",
+    "language": "zh-Hans",
+    "debug": true
+  },
+  "theme": {
+    "mode": "dark",
+    "baseLight": false,
+    "accentHex": null,
+    "accentUsable": true,
+    "fill": "#c8401c",
+    "surface": "#f5e6e2",
+    "text": "#c8401c",
+    "defaultAccent": "#c8401c"
+  },
+  "window": {
+    "state": "normal",
+    "topmost": false
+  },
+  "run": {
+    "loaded": "",
+    "status": "",
+    "statusKind": "Ready",
+    "busy": false,
+    "paused": false,
+    "canRun": false,
+    "canStep": false,
+    "canStop": false,
+    "question": "",
+    "wantsTypedAnswer": false,
+    "answerText": "",
+    "isAskingUser": false,
+    "isAsking": false,
+    "arguments": [],
+    "look": null,
+    "globals": [],
+    "locals": [],
+    "steps": [],
+    "log": [],
+    "logFrom": 0,
+    "inputRate": 0,
+    "inputRateOwner": "",
+    "swapNote": "",
+    "triggers": [],
+    "watches": [],
+    "looks": [],
+    "activeLook": "",
+    "breakpointChoices": []
+  },
+  "settings": {
+    "loadLastProjectAtStart": true,
+    "systemAtStart": false,
+    "enabledFirst": true,
+    "ignoreOwnInput": true,
+    "soundSystem": true,
+    "soundMacro": false,
+    "preloadOcr": false,
+    "inputRate": 20,
+    "frameRateFollow": true,
+    "frameRate": 60,
+    "frameRateMax": 60,
+    "frameRateNote": "This display runs at 60 Hz.",
+    "frameCache": false,
+    "frameCacheAge": 100,
+    "logCount": 100,
+    "language": "zh-Hans",
+    "systemHotkey": "Ctrl+F12",
+    "recordStopKey": "Ctrl+F10",
+    "systemHotkeyProblem": "",
+    "recordStopProblem": "",
+    "storage": [
+      {
+        "name": "State",
+        "what": "Settings and logs",
+        "where": "C:\\mock\\state",
+        "folder": "C:\\mock\\state"
+      }
+    ],
+    "driverStatus": "Ready",
+    "driverReady": true,
+    "attachDriverAtStart": false,
+    "runAsAdmin": false,
+    "adminStatus": "Running normally",
+    "canRestartElevated": true,
+    "restartNote": "Restarting asks Windows for an administrator token and closes this copy.",
+    "windowWay": "Auto",
+    "screenWay": "Auto",
+    "windowWays": [
+      {
+        "value": "Auto",
+        "label": "Automatic"
+      },
+      {
+        "value": "PrintWindow",
+        "label": "PrintWindow"
+      }
+    ],
+    "screenWays": [
+      {
+        "value": "Auto",
+        "label": "Automatic"
+      },
+      {
+        "value": "Gdi",
+        "label": "GDI"
+      }
+    ],
+    "limits": {
+      "logCountMin": 1,
+      "logCountMax": 999,
+      "frameCacheAgeMax": 1000,
+      "inputRateMin": 0,
+      "inputRateMax": 999
+    }
+  },
+  "library": [
+    {
+      "id": "library-1",
+      "name": "打开记事本",
+      "version": 1,
+      "description": "公共示例宏"
+    }
+  ],
+  "mcp": {
+    "allowControl": false,
+    "allowRun": false,
+    "config": "{\n  \"mcpServers\": {\n    \"whalegenie\": {\n      \"command\": \"WhaleGenie.exe\",\n      \"args\": [\"--mcp\"]\n    }\n  }\n}",
+    "auditFile": "/mock/logs/mcp-2026-11-21.log"
+  },
+  "project": {
+    "path": null,
+    "name": null,
+    "untitled": true,
+    "dirty": false,
+    "revision": 0,
+    "systemEnabled": false,
+    "enabledFirst": true,
+    "views": [
+      "All",
+      "Keys",
+      "Interface",
+      "Hotstring",
+      "Menu",
+      "Wheel",
+      "Events"
+    ],
+    "groups": [
+      "办公"
+    ],
+    "macros": [
+      {
+        "name": "自动保存",
+        "group": "办公",
+        "description": "每分钟存一次",
+        "enabled": true,
+        "running": false,
+        "triggerSummary": "定时：每 1 分钟",
+        "triggerActions": "",
+        "triggerPreview": "每 1 分钟",
+        "views": [
+          "All",
+          "Events"
+        ]
+      },
+      {
+        "name": "游戏连招",
+        "group": "",
+        "description": "",
+        "enabled": false,
+        "running": false,
+        "triggerSummary": "键：F8",
+        "triggerActions": "",
+        "triggerPreview": "F8",
+        "views": [
+          "All",
+          "Keys"
+        ]
+      }
+    ]
+  },
+  "openedMacro": {
+    "name": "包里的宏",
+    "group": "",
+    "description": "从包里打开的",
+    "enabled": true,
+    "running": false,
+    "triggerSummary": "键：Ctrl+Alt+O",
+    "triggerActions": "",
+    "triggerPreview": "Ctrl+Alt+O",
+    "views": [
+      "All",
+      "Keys"
+    ]
+  },
+  "icons": {
+    "names": [
+      "Play",
+      "Pause",
+      "Square",
+      "Settings",
+      "Search",
+      "Image",
+      "Plus",
+      "Ban",
+      "X",
+      "BugPlay"
+    ],
+    "path": "M4 4 H20 V20 H4 Z"
+  }
+}

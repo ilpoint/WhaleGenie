@@ -1,27 +1,69 @@
-import type { EditorSnapshot } from './protocol.js';
+import type {
+  EditorMacroField,
+  EditorMacroParameter,
+  EditorMacroResult,
+  EditorSnapshot,
+} from './protocol.js';
+import raw from './data/editor-data.json';
 
 /**
  * The mock editor's declaration, global and local variable edits. They are whole-snapshot
- * transformations so the command dispatch stays a thin table of names.
+ * transformations so the command dispatch stays a thin table of names. The blank records a new
+ * row starts from live in data/editor-data.json.
  */
+
+interface EditorDataTemplates {
+  parameter: EditorMacroParameter;
+  result: EditorMacroResult;
+  field: EditorMacroField;
+  global: EditorSnapshot['globals'][number];
+  variable: EditorSnapshot['variables'][number];
+}
+
+const DATA = raw as unknown as EditorDataTemplates;
+type DeclaredKind = 'parameters' | 'results';
 
 function text(params: Record<string, unknown>, name: string): string {
   const value = params[name];
   return value === undefined || value === null ? '' : String(value);
 }
 
+function patchAt<T>(items: T[], index: number, patch: (item: T) => T): T[] {
+  return items.map((item, at) => at === index ? patch(item) : item);
+}
+
+function addFieldAt<T extends { fields: EditorMacroField[] }>(items: T[], index: number): T[] {
+  return items.map((item, at) => at === index
+    ? { ...item, fields: [...item.fields, structuredClone(DATA.field)] }
+    : item);
+}
+
+function patchFieldAt<T extends { fields: EditorMacroField[] }>(
+  items: T[],
+  index: number,
+  fieldIndex: number,
+  patch: (field: EditorMacroField) => EditorMacroField,
+): T[] {
+  return items.map((item, at) => at === index
+    ? { ...item, fields: item.fields.map((field, part) => part === fieldIndex ? patch(field) : field) }
+    : item);
+}
+
+function removeFieldAt<T extends { fields: EditorMacroField[] }>(
+  items: T[],
+  index: number,
+  fieldIndex: number,
+): T[] {
+  return items.map((item, at) => at === index
+    ? { ...item, fields: item.fields.filter((_, part) => part !== fieldIndex) }
+    : item);
+}
+
 export function addDeclaredParameter(document: EditorSnapshot): EditorSnapshot {
   return {
     ...document,
     dirty: true,
-    callableParameters: [...document.callableParameters, {
-      name: 'parameter',
-      type: 'text',
-      required: false,
-      default: '',
-      description: '',
-      fields: [],
-    }],
+    callableParameters: [...document.callableParameters, structuredClone(DATA.parameter)],
   };
 }
 
@@ -35,16 +77,14 @@ export function patchDeclaredParameter(
   return {
     ...document,
     dirty: true,
-    callableParameters: document.callableParameters.map((parameter, at) => at !== index
-      ? parameter
-      : {
-          ...parameter,
-          name: field === 'name' ? value : parameter.name,
-          type: field === 'type' ? value : parameter.type,
-          required: field === 'required' ? value === 'true' : parameter.required,
-          default: field === 'default' ? value : parameter.default,
-          description: field === 'description' ? value : parameter.description,
-        }),
+    callableParameters: patchAt(document.callableParameters, index, (parameter) => ({
+      ...parameter,
+      name: field === 'name' ? value : parameter.name,
+      type: field === 'type' ? value : parameter.type,
+      required: field === 'required' ? value === 'true' : parameter.required,
+      default: field === 'default' ? value : parameter.default,
+      description: field === 'description' ? value : parameter.description,
+    })),
   };
 }
 
@@ -52,12 +92,7 @@ export function addDeclaredResult(document: EditorSnapshot): EditorSnapshot {
   return {
     ...document,
     dirty: true,
-    callableResults: [...document.callableResults, {
-      name: 'result',
-      type: 'text',
-      description: '',
-      fields: [],
-    }],
+    callableResults: [...document.callableResults, structuredClone(DATA.result)],
   };
 }
 
@@ -71,156 +106,92 @@ export function patchDeclaredResult(
   return {
     ...document,
     dirty: true,
-    callableResults: document.callableResults.map((resultItem, at) => at !== index
-      ? resultItem
-      : {
-          ...resultItem,
-          name: field === 'name' ? value : resultItem.name,
-          type: field === 'type' ? value : resultItem.type,
-          description: field === 'description' ? value : resultItem.description,
-        }),
+    callableResults: patchAt(document.callableResults, index, (resultItem) => ({
+      ...resultItem,
+      name: field === 'name' ? value : resultItem.name,
+      type: field === 'type' ? value : resultItem.type,
+      description: field === 'description' ? value : resultItem.description,
+    })),
   };
 }
 
 export function removeDeclared(
   document: EditorSnapshot,
-  kind: 'parameters' | 'results',
+  kind: DeclaredKind,
   params: Record<string, unknown>,
 ): EditorSnapshot {
   const index = Number(params['index']);
   return kind === 'parameters'
-    ? {
-        ...document,
-        dirty: true,
-        callableParameters: document.callableParameters.filter((_, at) => at !== index),
-      }
-    : {
-        ...document,
-        dirty: true,
-        callableResults: document.callableResults.filter((_, at) => at !== index),
-      };
+    ? { ...document, dirty: true, callableParameters: document.callableParameters.filter((_, at) => at !== index) }
+    : { ...document, dirty: true, callableResults: document.callableResults.filter((_, at) => at !== index) };
 }
 
 export function moveDeclared(
   document: EditorSnapshot,
-  kind: 'parameters' | 'results',
+  kind: DeclaredKind,
   params: Record<string, unknown>,
 ): EditorSnapshot {
+  const items = kind === 'parameters' ? document.callableParameters : document.callableResults;
   const index = Number(params['index']);
   const target = index + Number(params['offset']);
-  if (kind === 'parameters') {
-    if (target < 0 || target >= document.callableParameters.length) {
-      return document;
-    }
-
-    const parameters = [...document.callableParameters];
-    [parameters[index]!, parameters[target]!] = [parameters[target]!, parameters[index]!];
-    return { ...document, dirty: true, callableParameters: parameters };
-  }
-
-  if (target < 0 || target >= document.callableResults.length) {
+  if (target < 0 || target >= items.length) {
     return document;
   }
 
-  const results = [...document.callableResults];
-  [results[index]!, results[target]!] = [results[target]!, results[index]!];
-  return { ...document, dirty: true, callableResults: results };
+  const moved = [...items];
+  [moved[index]!, moved[target]!] = [moved[target]!, moved[index]!];
+  return kind === 'parameters'
+    ? { ...document, dirty: true, callableParameters: moved as EditorMacroParameter[] }
+    : { ...document, dirty: true, callableResults: moved as EditorMacroResult[] };
 }
 
 export function addDeclaredField(
   document: EditorSnapshot,
-  kind: 'parameters' | 'results',
+  kind: DeclaredKind,
   params: Record<string, unknown>,
 ): EditorSnapshot {
   const index = Number(params['index']);
   return kind === 'parameters'
-    ? {
-        ...document,
-        dirty: true,
-        callableParameters: document.callableParameters.map((parameter, at) => at !== index
-          ? parameter
-          : { ...parameter, fields: [...parameter.fields, { name: '', type: 'text' }] }),
-      }
-    : {
-        ...document,
-        dirty: true,
-        callableResults: document.callableResults.map((resultItem, at) => at !== index
-          ? resultItem
-          : { ...resultItem, fields: [...resultItem.fields, { name: '', type: 'text' }] }),
-      };
+    ? { ...document, dirty: true, callableParameters: addFieldAt(document.callableParameters, index) }
+    : { ...document, dirty: true, callableResults: addFieldAt(document.callableResults, index) };
 }
 
 export function patchDeclaredField(
   document: EditorSnapshot,
-  kind: 'parameters' | 'results',
+  kind: DeclaredKind,
   params: Record<string, unknown>,
 ): EditorSnapshot {
   const index = Number(params['index']);
   const fieldIndex = Number(params['fieldIndex']);
   const field = text(params, 'field');
   const value = text(params, 'value');
-  const patchField = (fields: { name: string; type: string }[]): { name: string; type: string }[] =>
-    fields.map((entry, at) => at !== fieldIndex
-      ? entry
-      : {
-          ...entry,
-          name: field === 'name' ? value : entry.name,
-          type: field === 'type' ? value : entry.type,
-        });
+  const patch = (entry: EditorMacroField): EditorMacroField => ({
+    ...entry,
+    name: field === 'name' ? value : entry.name,
+    type: field === 'type' ? value : entry.type,
+  });
   return kind === 'parameters'
-    ? {
-        ...document,
-        dirty: true,
-        callableParameters: document.callableParameters.map((parameter, at) => at !== index
-          ? parameter
-          : { ...parameter, fields: patchField(parameter.fields) }),
-      }
-    : {
-        ...document,
-        dirty: true,
-        callableResults: document.callableResults.map((resultItem, at) => at !== index
-          ? resultItem
-          : { ...resultItem, fields: patchField(resultItem.fields) }),
-      };
+    ? { ...document, dirty: true, callableParameters: patchFieldAt(document.callableParameters, index, fieldIndex, patch) }
+    : { ...document, dirty: true, callableResults: patchFieldAt(document.callableResults, index, fieldIndex, patch) };
 }
 
 export function removeDeclaredField(
   document: EditorSnapshot,
-  kind: 'parameters' | 'results',
+  kind: DeclaredKind,
   params: Record<string, unknown>,
 ): EditorSnapshot {
   const index = Number(params['index']);
   const fieldIndex = Number(params['fieldIndex']);
-  const keep = (fields: { name: string; type: string }[]): { name: string; type: string }[] =>
-    fields.filter((_, at) => at !== fieldIndex);
   return kind === 'parameters'
-    ? {
-        ...document,
-        dirty: true,
-        callableParameters: document.callableParameters.map((parameter, at) => at !== index
-          ? parameter
-          : { ...parameter, fields: keep(parameter.fields) }),
-      }
-    : {
-        ...document,
-        dirty: true,
-        callableResults: document.callableResults.map((resultItem, at) => at !== index
-          ? resultItem
-          : { ...resultItem, fields: keep(resultItem.fields) }),
-      };
+    ? { ...document, dirty: true, callableParameters: removeFieldAt(document.callableParameters, index, fieldIndex) }
+    : { ...document, dirty: true, callableResults: removeFieldAt(document.callableResults, index, fieldIndex) };
 }
 
 export function addGlobal(document: EditorSnapshot): EditorSnapshot {
   return {
     ...document,
     dirty: true,
-    globals: [...document.globals, {
-      name: 'variable',
-      type: 'text',
-      default: '',
-      description: '',
-      persisted: false,
-    }],
+    globals: [...document.globals, structuredClone(DATA.global)],
   };
 }
 
@@ -262,14 +233,7 @@ export function addVariable(document: EditorSnapshot): EditorSnapshot {
   return {
     ...document,
     dirty: true,
-    variables: [...document.variables, {
-      name: '',
-      type: 'text',
-      initial: '',
-      description: '',
-      source: '声明',
-      isDeclared: true,
-    }],
+    variables: [...document.variables, structuredClone(DATA.variable)],
   };
 }
 

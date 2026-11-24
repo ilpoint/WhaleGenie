@@ -84,11 +84,6 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
-    }
-  },
-  "src/shared/bridge/mock-editor-steps.ts": {
-    "complexity": {
       "count": 1
     }
   },
@@ -115,7 +110,7 @@
   },
   "src/shared/bridge/mock-value-editor.ts": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 2

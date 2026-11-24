@@ -1,0 +1,35 @@
+{
+  "parameter": {
+    "name": "parameter",
+    "type": "text",
+    "required": false,
+    "default": "",
+    "description": "",
+    "fields": []
+  },
+  "result": {
+    "name": "result",
+    "type": "text",
+    "description": "",
+    "fields": []
+  },
+  "field": {
+    "name": "",
+    "type": "text"
+  },
+  "global": {
+    "name": "variable",
+    "type": "text",
+    "default": "",
+    "description": "",
+    "persisted": false
+  },
+  "variable": {
+    "name": "",
+    "type": "text",
+    "initial": "",
+    "description": "",
+    "source": "声明",
+    "isDeclared": true
+  }
+}

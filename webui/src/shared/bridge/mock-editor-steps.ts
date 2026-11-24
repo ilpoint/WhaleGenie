@@ -1,72 +1,76 @@
 import type {
   EditorCondition,
   EditorConditionNode,
+  EditorParameter,
   EditorSnapshot,
   EditorStep,
 } from './protocol.js';
-import type { MockAction } from './mock-editor-actions.js';
+import type { MockAction, MockActionParameter } from './mock-editor-actions.js';
+import raw from './data/step-templates.json';
 
 /**
- * The mock editor's step tree: the actions it is built from live in mock-editor-actions.ts, while
+ * The mock editor's step tree: the actions it is built from live in mock-editor-actions.ts, the
+ * step and parameter skeletons plus the summary wordings live in data/step-templates.json, and
  * this file owns the shape the page reads back and the structural edits the commands apply.
  */
+
+interface DetailSpec {
+  template?: string;
+  fields?: string[];
+  condition?: string;
+  fallback?: string;
+  fallbackName?: boolean;
+}
+
+interface StepTemplates {
+  step: EditorStep;
+  parameter: EditorParameter;
+  compareLabels: Record<string, string>;
+  details: Record<string, DetailSpec>;
+}
+
+const DATA = raw as unknown as StepTemplates;
 
 function emptyCondition(): EditorCondition {
   return { join: 'All', nodes: [], editable: true };
 }
 
+function parameterFrom(entry: MockActionParameter): EditorParameter {
+  const value = entry.initial ?? '';
+  const valueForm = entry.kind === 'Number'
+    ? 'Value'
+    : entry.kind === 'Text' ? 'Run' : 'Value';
+  return {
+    ...structuredClone(DATA.parameter),
+    name: entry.name,
+    label: entry.label,
+    kind: entry.kind,
+    value,
+    options: entry.options ?? [],
+    columns: entry.columns ?? [],
+    rows: entry.kind === 'Returns' ? [{ cells: ['found', ''] }] : [],
+    condition: entry.kind === 'Condition' ? emptyCondition() : null,
+    display: value,
+    valueForm,
+    offersValue: !['Select', 'Rows', 'Condition', 'Key'].includes(entry.kind),
+    takesFormula: entry.kind === 'Number' || valueForm === 'Value',
+    isNumber: entry.kind === 'Number',
+    isColor: entry.kind === 'Color',
+    isKey: entry.kind === 'Key',
+    placeholder: entry.placeholder ?? '',
+    parts: value.length > 0 ? [{ kind: 'text', text: value, name: '' }] : [],
+    isReturns: entry.kind === 'Returns',
+  };
+}
+
 export function stepFromAction(action: MockAction, id: string): EditorStep {
   return {
+    ...structuredClone(DATA.step),
     id,
     type: action.key,
     name: action.name,
-    enabled: true,
-    comment: '',
-    timeoutMs: 0,
-    retryCount: 0,
-    retryDelayMs: 0,
-    onError: 'Stop',
     acceptsSteps: (action.sections?.length ?? 0) > 0,
-    detail: '',
-    problem: '',
-    inputMark: '',
-    metaSummary: '',
-    parameters: action.parameters.map((entry) => {
-      const value = entry.initial ?? '';
-      const valueForm = entry.kind === 'Number'
-        ? 'Value'
-        : entry.kind === 'Text' ? 'Run' : 'Value';
-      return {
-        name: entry.name,
-        label: entry.label,
-        kind: entry.kind,
-        value,
-        options: entry.options ?? [],
-        columns: entry.columns ?? [],
-        rows: entry.kind === 'Returns' ? [{ cells: ['found', ''] }] : [],
-        condition: entry.kind === 'Condition' ? emptyCondition() : null,
-        display: value,
-        valueForm,
-        offersValue: !['Select', 'Rows', 'Condition', 'Key'].includes(entry.kind),
-        takesFormula: entry.kind === 'Number' || valueForm === 'Value',
-        showsNameMark: false,
-        isNumber: entry.kind === 'Number',
-        isNumberFormula: false,
-        isMultiline: false,
-        isColor: entry.kind === 'Color',
-        isPath: false,
-        isKey: entry.kind === 'Key',
-        placeholder: entry.placeholder ?? '',
-        required: false,
-        parts: value.length > 0
-          ? [{ kind: 'text', text: value, name: '' }]
-          : [],
-        advanced: false,
-        group: '',
-        groupLabel: '',
-        isReturns: entry.kind === 'Returns',
-      };
-    }),
+    parameters: action.parameters.map((entry) => parameterFrom(entry)),
     sections: (action.sections ?? []).map((section) => ({
       name: section.name,
       label: section.label,
@@ -83,12 +87,8 @@ function conditionOf(step: EditorStep): EditorCondition | null {
   return step.parameters.find((parameter) => parameter.kind === 'Condition')?.condition ?? null;
 }
 
-const COMPARE_LABELS: Record<string, string> = {
-  Equal: '=', NotEqual: '≠', Greater: '>', Less: '<', Holds: '包含',
-};
-
 function compareLabel(compare: string): string {
-  return COMPARE_LABELS[compare] ?? compare;
+  return DATA.compareLabels[compare] ?? compare;
 }
 
 function nodeIsFilled(node: EditorConditionNode): boolean {
@@ -139,77 +139,32 @@ export function conditionSummary(condition: EditorCondition | null): string {
   return parts.length === 1 ? parts[0]! : '(' + parts.join(joiner) + ')';
 }
 
+function fill(template: string, values: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_match, name: string) => values[name] ?? '');
+}
+
 function stepDetail(step: EditorStep): string {
-  switch (step.type) {
-    case 'control.delay': {
-      const ms = parameterValue(step, 'ms');
-      return ms.length > 0 ? '等待 ' + ms + ' 毫秒' : '等待';
-    }
-    case 'input.keyPress': {
-      const key = parameterValue(step, 'key');
-      return key.length > 0 ? '按 ' + key : '按键';
-    }
-    case 'input.mouseClick': {
-      const button = parameterValue(step, 'button');
-      return button.length > 0 ? '点击 ' + button : '点击';
-    }
-    case 'input.text': {
-      const text = parameterValue(step, 'text');
-      return text.length > 0 ? '输入 ' + text : '输入文字';
-    }
-    case 'screen.color': {
-      const hex = parameterValue(step, 'hex');
-      return hex.length > 0 ? '取色 ' + hex : '取色';
-    }
-    case 'image.find': {
-      const path = parameterValue(step, 'path');
-      return path.length > 0 ? '找图 ' + path : '找图';
-    }
-    case 'control.waitUntil': {
-      const summary = conditionSummary(conditionOf(step));
-      return summary.length > 0 ? '等待 ' + summary : '等待条件';
-    }
-    case 'control.runMacro': {
-      const macro = parameterValue(step, 'macro');
-      return macro.length > 0 ? '调用 ' + macro : '调用宏';
-    }
-    case 'control.if': {
-      const summary = conditionSummary(conditionOf(step));
-      return summary.length > 0 ? '如果 ' + summary : '如果';
-    }
-    case 'control.repeat': {
-      const times = parameterValue(step, 'times');
-      return times.length > 0 ? '重复 ' + times + ' 次' : '重复';
-    }
-    case 'control.forEach': {
-      const items = parameterValue(step, 'items');
-      return items.length > 0 ? '遍历 ' + items : '遍历';
-    }
-    case 'control.for': {
-      const from = parameterValue(step, 'from');
-      const to = parameterValue(step, 'to');
-      return from.length > 0 || to.length > 0 ? '从 ' + from + ' 到 ' + to : '计数循环';
-    }
-    case 'control.while': {
-      const summary = conditionSummary(conditionOf(step));
-      return summary.length > 0 ? '当 ' + summary : '当条件';
-    }
-    case 'control.switch': {
-      const value = parameterValue(step, 'value');
-      return value.length > 0 ? '按 ' + value + ' 分支' : '多分支';
-    }
-    case 'control.case': {
-      const values = parameterValue(step, 'values');
-      return values.length > 0 ? '分支 ' + values : '分支';
-    }
-    case 'control.note':
-    case 'control.log': {
-      const text = parameterValue(step, 'text');
-      return text.length > 0 ? text : step.name;
-    }
-    default:
-      return step.name;
+  const spec = DATA.details[step.type];
+  if (!spec) {
+    return step.name;
   }
+
+  if (spec.condition !== undefined) {
+    const summary = conditionSummary(conditionOf(step));
+    return summary.length > 0 ? fill(spec.condition, { summary }) : spec.fallback ?? step.name;
+  }
+
+  const values: Record<string, string> = {};
+  for (const name of spec.fields ?? []) {
+    values[name] = parameterValue(step, name);
+  }
+
+  const empty = (spec.fields ?? []).every((name) => (values[name] ?? '').length === 0);
+  if (empty) {
+    return spec.fallbackName === true ? step.name : spec.fallback ?? step.name;
+  }
+
+  return fill(spec.template ?? step.name, values);
 }
 
 function stepProblem(step: EditorStep): string {
@@ -324,4 +279,3 @@ function countProblemSteps(steps: readonly EditorStep[]): number {
 
   return total;
 }
-

@@ -1,0 +1,230 @@
+{
+  "triggerKinds": {
+    "Key": "按键",
+    "Timer": "定时",
+    "Color": "颜色",
+    "File": "文件",
+    "Process": "程序",
+    "Hotstring": "字串",
+    "Idle": "空闲",
+    "Window": "窗口",
+    "Interface": "窗口内接口"
+  },
+  "triggerDefaults": {
+    "summary": "",
+    "enabled": true,
+    "binding": "",
+    "loop": "Press",
+    "once": false,
+    "timerMode": "Interval",
+    "time": "08:00",
+    "interval": "5",
+    "unit": "Seconds",
+    "filePath": "",
+    "fileChange": "Any",
+    "fileFilter": "*",
+    "fileSubfolders": false,
+    "processName": "",
+    "processChange": "Started",
+    "hotstringText": "",
+    "colorMatch": "ColorMatches",
+    "colorHex": "#000000",
+    "colorTolerance": "5",
+    "colorX": "0",
+    "colorY": "0",
+    "followCursor": false,
+    "idleSeconds": "60",
+    "windowTitle": "",
+    "windowProcess": "",
+    "windowClass": "",
+    "windowHow": "TitleContains",
+    "windowChange": "Appeared",
+    "interfaceTitle": "",
+    "interfaceProcess": "",
+    "interfaceHow": "TitleContains",
+    "windowCaseSensitive": false,
+    "windowTrim": true,
+    "windowMultiline": false,
+    "hotstringEndChars": " -()[]{}:;,.?!",
+    "hotstringCaseSensitive": false,
+    "hotstringInsideWord": false,
+    "hotstringRequireEnd": true,
+    "hotstringEraseTyped": true,
+    "hotstringKeepEnd": true,
+    "hotstringMaximumLength": 40,
+    "hotstringEndCaptureProblem": "",
+    "interfaceHotkey": "",
+    "interfaceHotkeyProblem": "",
+    "interfaceGroupMembers": []
+  },
+  "hotstringEndKeys": [
+    {
+      "value": " ",
+      "label": "Space",
+      "checked": true,
+      "isCustom": false
+    },
+    {
+      "value": "\n",
+      "label": "Enter",
+      "checked": true,
+      "isCustom": false
+    },
+    {
+      "value": ";",
+      "label": ";",
+      "checked": true,
+      "isCustom": false
+    },
+    {
+      "value": ".",
+      "label": ".",
+      "checked": true,
+      "isCustom": false
+    }
+  ],
+  "valueChoices": [
+    {
+      "name": "found",
+      "type": "text",
+      "origin": "Local",
+      "source": "find.text",
+      "description": "",
+      "group": "Local",
+      "display": "found",
+      "persistent": false
+    },
+    {
+      "name": "count",
+      "type": "number",
+      "origin": "Global",
+      "source": "global.count",
+      "description": "",
+      "group": "Global",
+      "display": "count",
+      "persistent": true
+    },
+    {
+      "name": "date",
+      "type": "text",
+      "origin": "System",
+      "source": "sys.date",
+      "description": "",
+      "group": "System",
+      "display": "日期",
+      "persistent": false
+    },
+    {
+      "name": "last",
+      "type": "text",
+      "origin": "StepResult",
+      "source": "step.last",
+      "description": "",
+      "group": "StepResult",
+      "display": "上一步状态",
+      "persistent": false
+    }
+  ],
+  "valueFunctions": [
+    {
+      "name": "upper",
+      "signature": "upper(text)",
+      "description": "Capitals",
+      "group": "Text"
+    },
+    {
+      "name": "length",
+      "signature": "length(value)",
+      "description": "How many",
+      "group": "Text"
+    }
+  ],
+  "conditionCompares": [
+    {
+      "value": "Equal",
+      "label": "="
+    },
+    {
+      "value": "NotEqual",
+      "label": "≠"
+    },
+    {
+      "value": "Greater",
+      "label": ">"
+    },
+    {
+      "value": "Less",
+      "label": "<"
+    },
+    {
+      "value": "Holds",
+      "label": "holds"
+    }
+  ],
+  "variableTypes": [
+    {
+      "value": "text",
+      "label": "文本"
+    },
+    {
+      "value": "number",
+      "label": "数字"
+    },
+    {
+      "value": "bool",
+      "label": "布尔"
+    },
+    {
+      "value": "record",
+      "label": "记录"
+    }
+  ],
+  "document": {
+    "description": "",
+    "group": "",
+    "subMacros": [],
+    "callableParameters": [],
+    "callableResults": [],
+    "followInputLimit": true,
+    "inputLimit": 20,
+    "toggleKey": "",
+    "dirty": false,
+    "stepCount": 0,
+    "steps": [],
+    "triggers": [],
+    "variables": [],
+    "globals": [],
+    "canUndo": false,
+    "canRedo": false,
+    "canSave": true,
+    "nameProblem": null,
+    "problemSummary": "",
+    "declarationProblemSummary": "",
+    "callImpactSummary": "",
+    "notice": "",
+    "triggerProblemSummary": "",
+    "toggleKeyProblem": "",
+    "recording": {
+      "positionIndex": 0,
+      "positionOptions": [
+        "当前",
+        "差值"
+      ],
+      "mouseMovement": true,
+      "mouseButtons": true,
+      "keyboardKeys": true,
+      "gamepadButtons": true,
+      "delays": true,
+      "ignoreDelaysBelowMs": 50,
+      "ignoreInjected": true,
+      "delayScale": 1,
+      "delayScaleDisplay": "×1",
+      "hasDelayScale": false
+    },
+    "isSubMacro": false,
+    "tabs": [],
+    "activeKey": null,
+    "actionForm": null,
+    "revision": 0
+  }
+}
