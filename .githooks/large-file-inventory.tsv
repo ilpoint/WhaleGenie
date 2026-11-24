@@ -105,7 +105,7 @@
 4379	src/WhaleGenie.Localization/ActionStrings.cs	exempt: 文案查表，键与文案一一对应
 2507	src/WhaleGenie.Localization/ActionEnglish.cs	exempt: 文案查表，键与中文表一一对应
 417	src/WhaleGenie.App/Settings/AppSettings.cs	keep: 设置文件的一个实例——读取、写入、默认值与迁移规则同属一份文件
-5898	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
+5912	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 动作目录的查询与描述投影，单一职责
 415	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 草稿表与其上限、校验入口，单一职责
 315	src/WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
@@ -116,7 +116,7 @@
 301	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 458	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
-39836	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
+39821	DESIGN.md	keep: 界面视觉契约的唯一一份：章节之间靠同一组令牌与验收清单互相对照，拆开就没有一处说了算；网页壳章节（14）随阶段迁移收敛，原生部分在阶段 E 删除
 627	src/WhaleGenie/Themes/FluentKeys.axaml	keep: 资源键映射
 466	src/WhaleGenie.Editing/Actions/AddActionViewModel.Coordinates.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
 359	src/WhaleGenie.Editing/Actions/AddActionViewModel.Parameters.cs	keep: 动作表单的一族，按表单关注点拆分后单一职责
@@ -149,23 +149,23 @@
 374	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
 355	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
 321	src/WhaleGenie.Editing/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
-439	src/WhaleGenie.App/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关与文件操作是同一次任务的读取集
-389	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话），夹具与断言共享一份读写管道
+528	src/WhaleGenie.App/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关、文件操作与传送计划/写入是同一次任务的读取集
+427	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话、传送），夹具与断言共享一份读写管道
 481	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 423	src/WhaleGenie.App/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
-23591	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
+25493	webui/e2e/shell.spec.ts	split: 编辑器用例已拆到 editor.spec.ts，其余壳/设置/运行/宏库用例仍待按功能拆文件
 39718	webui/e2e/editor.spec.ts	keep: 一套编辑器端到端场景按主题分组，共享 helper 与顺序契约不宜拆散
 549	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 719	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
-35376	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
+36013	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 430	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 371	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
 413	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
 327	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Snapshot.cs	keep: 编辑快照投影一族（步骤/条件/动作/标签），只把模型读成线上形状
 330	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.TriggerSettings.cs	keep: 按类型分组的触发字段写入（14 个 SetTrigger*），一次触发编辑只读这一份
 
-70673	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
+73299	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
 
 368	src/WhaleGenie/Web/WebOverlayWindow.cs	keep: 一个透明置顶浮层的全部窗口职责：尺寸、定位、区域裁切与 Win32 样式
 23076	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
