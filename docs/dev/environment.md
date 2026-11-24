@@ -7,7 +7,7 @@
 ```powershell
 dotnet build WhaleGenie.slnx -c Release
 dotnet test WhaleGenie.slnx -c Release
-dotnet format WhaleGenie.slnx --verify-no-changes --no-restore
+dotnet format WhaleGenie.slnx --verify-no-changes   # 格式检查；让它先还原（界面自省包只在 Debug 还原）
 dotnet build core/WhaleGenie.Core.slnx -c Release
 dotnet run --project src/WhaleGenie
 pwsh build/site.ps1

@@ -97,15 +97,13 @@
       <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
     </PackageReference>
     <!--
-      界面自省，只在 Debug 用：agent 通过 loopback 的 MCP 看视觉树、布局与截图，用来核对对齐、
-      裁字与遮挡。它带进 ASP.NET Core 那一套，所以 Release 不引用它的任何资产（发布物里既没有
-      这些程序集，也没有额外的框架引用）；但清单里始终还原——按配置条件删掉整条包会让
-      Debug/Release 的 assets 不同，`dotnet format` 在 Release 构建之后加载工作区时会找不到它。
+      界面自省，只在 Debug 还原：agent 通过 loopback 的 MCP 看视觉树、布局与截图，用来核对对齐、
+      裁字与遮挡。这一包会带进 ASP.NET Core 那一套，所以 Release 干脆不还原它——发布物里既没有
+      这些程序集，也没有额外的框架引用。还原是按配置走的，所以跑过 Release 构建之后要让
+      `dotnet format` 先还原（不要加 no-restore 开关），否则 Debug 工作区里没有它。
     -->
-    <PackageReference Include="Declarative.Avalonia.AgentTools">
-      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
-      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
-    </PackageReference>
+    <PackageReference Include="Declarative.Avalonia.AgentTools"
+                      Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Lucide.Avalonia" />
   </ItemGroup>
