@@ -189,3 +189,30 @@ src/WhaleGenie/bin/x64/Debug/net10.0-windows10.0.19041/WhaleGenie.exe
 - **其他发布资源**：涉及收款码变更时，分别用手机扫码验证内容。
 
 真实输入须在交互式 Windows 会话中验证。不要通过落入会话 0 的 SSH 会话判断桌面输入或窗口行为。
+
+## 自动化能验到哪一步（2026-11 实测边界）
+
+清单里的一部分可以脚本化，不必每次交给人工；剩下的必须由使用者在目标机器上过一遍。这个边界已按
+本机实测确认过一次，方法留在这里，日期性结果写在对应提交信息里。
+
+**可脚本验证**（在 Debug 构建上，WebView2 暴露 CDP 端口 9223）：
+
+- **壳的生命周期**：启动后的窗口尺寸/位置、`WM_CLOSE` 后隐藏而进程仍在、第二次启动时第一个进程的
+  窗口被唤回且第二个进程退出。
+- **浮层的窗口状态与相对顺序**：先让一个置顶程序（或用 `SetWindowPos` 把记事本置顶）在前，再启动
+  `--wheel-overlay`/`--menu-overlay`；枚举窗口读 `GWL_EXSTYLE`（topmost 0x8、hit-transparent 0x20、
+  no-activate 0x08000000、tool-window 0x80）与 Z 序，确认浮层压在置顶程序之上。
+- **拾取器与浮层的进入/退出**：从页面发桥命令（`editor.actionWindowPick`、`editor.actionPick` 的
+  point/region/drag/color/element 模式、`editor.session`/`editor.actionOpen` 打开表单）→ 枚举出新的
+  置顶覆盖窗口 → 发 `WM_KEYDOWN Esc` 与 `WM_CLOSE` → 读桥回复确认取消。桥调用走页面里的
+  `window.invokeCSharpAction`，应答从 `window.__whale.onMessage` 回来（C# 传的是对象，不是字符串）。
+
+**只能人工验证**（脚本不能替代判断）：
+
+- DPI 125/150/200% 与多屏（含负坐标）：需要改系统缩放或接显示器；单屏 100% 只能验到“能用”。
+- 像素级读数与命中：取色/取点的颜色是否真取自屏幕、框选是否对齐、UIA 描边是否框准——脚本只能验
+  窗口进出，不能验读数对不对。
+- 偏差点选（`LookPickWindow`）：要有一次真实运行留下的取景图才能进入。
+- 界面面板：需要一个配好界面宏的项目与目标程序。
+- 独占全屏游戏、UAC 提权、屏幕锁定、托盘菜单退出与真实手势：注入的事件被设计性忽略（`e.Injected`），
+  脚本不能触发轮盘手势，只能用真实鼠标键盘。
