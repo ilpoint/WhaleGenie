@@ -251,7 +251,16 @@ internal sealed class WheelOverlayHost(BridgeServer bridge, WheelSurfaceBridge w
         _revealTimer?.Stop();
         _revealTimer = null;
         AppDiagnostics.Note("wheel.reveal", reason + " " + _centerX + "," + _centerY);
-        _window?.Show();
+        if (_window is { } window)
+        {
+            // The window was built at startup and has been hidden since. Showing it again puts it
+            // back where it sat in the topmost band, which is below anything that became topmost
+            // in the meantime — the game the wheel is opened over, a pinned shell, a panel. Ask for
+            // the top of the band before and after the show; both are idempotent.
+            window.EnsureTopmost();
+            window.Show();
+            window.EnsureTopmost();
+        }
         _ = bridge.PushAsync("surface.wheel.opened",
             new { pop = _options.PopAnimation, ms = _options.PopAnimationMs },
             BridgePushMode.Latest, BridgeSurface.Wheel);

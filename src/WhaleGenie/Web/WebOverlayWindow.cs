@@ -221,6 +221,7 @@ internal sealed class WebOverlayWindow : Window
     private const int WmNcLeftButtonDown = 0x00A1;
     private const int HtCaption = 2;
     private const int GwHwndPrev = 3;
+    private static readonly IntPtr HwndTopmost = new(-1);
     private const int SwpNoSize = 0x0001;
     private const int SwpNoMove = 0x0002;
     private const int SwpNoActivate = 0x0010;
@@ -279,6 +280,30 @@ internal sealed class WebOverlayWindow : Window
     {
         _clickThrough = value;
         ApplyStyles();
+    }
+
+    /// <summary>
+    /// Puts the window at the top of the topmost band. A window that is hidden and shown again
+    /// keeps the place it had in the band, so anything that became topmost while it was away —
+    /// the game the wheel is opened over, a pinned window, a panel — stays above it. A no-activate
+    /// window is never raised by a click either, which leaves a re-shown overlay looking like it
+    /// opened underneath everything. Every host that shows its window again asks for the band.
+    /// </summary>
+    internal void EnsureTopmost()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var handle = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        SetWindowPos(handle, HwndTopmost, 0, 0, 0, 0,
+            SwpNoMove | SwpNoSize | SwpNoActivate | SwpNoOwnerZOrder);
     }
 
     /// <summary>Whether a screen point (physical pixels) lies inside this window.</summary>

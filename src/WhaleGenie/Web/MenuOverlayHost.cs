@@ -141,6 +141,12 @@ internal sealed class MenuOverlayHost(BridgeServer bridge, IDeviceLayer devices,
         _window.Topmost = !AutoCloseSuspended;
         _window.PlaceNearCursor(350, 667);
         _window.Show();
+        if (!AutoCloseSuspended)
+        {
+            // A shown window keeps its old place in the topmost band; ask for the top of it, the way
+            // the wheel does.
+            _window.EnsureTopmost();
+        }
         PushPinned();
         PushRefreshed();
         StartOutsideWatch();
