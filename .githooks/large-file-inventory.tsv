@@ -167,9 +167,9 @@
 
 73299	webui/src/shared/bridge/generated/strings.json	exempt: 由文案表生成的查表 JSON，页面用到的键与中英文值一一对应
 
-368	src/WhaleGenie/Web/WebOverlayWindow.cs	keep: 一个透明置顶浮层的全部窗口职责：尺寸、定位、区域裁切与 Win32 样式
-23853	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
+393	src/WhaleGenie/Web/WebOverlayWindow.cs	keep: 一个透明置顶浮层的全部窗口职责：尺寸、定位、区域裁切与 Win32 样式
+24939	docs/architecture/surfaces-migration.md	keep: 三块浮层的迁移记录与真机验收清单，按阶段顺序读
 301	src/WhaleGenie.App/Runtime/MenuSurface.cs	keep: 菜单投影与格子编辑命令同属一处；页面只收快照
 
-315	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
-320	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
+321	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
+329	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
