@@ -22,10 +22,10 @@
 拾取器、后台问话与宿主。剩余三项：
 
 - **tier-1 拾取覆盖层的成本测量与决策**：取色、区域、点位、UIA、窗口与偏差点选仍是原生 Avalonia
-  覆盖层（`Views/Pickers`，32 个文件 5,880 行）。先在真机测把它们换成透明网页浮层的成本——冷/热
+  覆盖层（`Views/Pickers`，32 个文件 6,732 行）。先在真机测把它们换成透明网页浮层的成本——冷/热
   首帧、指针跟随延迟、键盘焦点、100–200% DPI 与多屏落点——再决定迁哪几个；测量前不承诺迁移。
-- **P9 mock 收缩**：`webui/src/shared/bridge/mock*.ts` 现为 26 个文件 5,341 行，其中编辑器 mock
-  17 个文件 3,999 行。e2e（`editor.spec.ts`，752 行）依赖它的行为级模拟；下一步先把纯数据（动作
+- **P9 mock 收缩**（行数按仓库规模台账口径，含空行）：`webui/src/shared/bridge/mock*.ts` 现为 26 个文件 5,841 行，其中编辑器 mock
+  16 个文件 4,076 行。e2e（`editor.spec.ts`，820 行）依赖它的行为级模拟；下一步先把纯数据（动作
   目录、步骤样例）外置为 JSON，再评估能否低于 3,500。收缩时原 C0 的编辑器门禁仍按聚合命令核对：
   `editor.session`、`editor.steps`、`editor.step`、`editor.sessionState`、`editor.sessionTabs`、
   `editor.sessionActions`。
