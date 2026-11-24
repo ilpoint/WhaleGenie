@@ -5,8 +5,9 @@
 具体颜色、字号、间距与圆角值以 [Tokens.axaml](src/WhaleGenie/Themes/Tokens.axaml) 为准；自定义强调色由
 `ThemePalette` 在运行时派生并覆盖这组强调令牌，是唯一的例外。
 
-界面正在迁移到网页壳（见第 14 节）：迁移期间第 1–13 节管原生窗口，第 14 节管网页壳；一个区域
-迁入网页时，它的原生契约条目随旧实现同版删除，最终本文件只剩第 14 节。
+界面已经迁到网页壳（见第 14 节）：原生只剩桌面拾取器、后台问话与网页宿主，清单见
+[native-surfaces.md](docs/architecture/native-surfaces.md)。第 1–13 节只保留仍在用的令牌、窗口框架
+与拾取器条款；新增界面规则只写进第 14 节。
 
 本文件对照 FluentAvalonia 3.1.0 的 [FluentAvaloniaTheme](https://amwx.github.io/FluentAvaloniaDocs/pages/FATheme)、
 [AppWindow](https://amwx.github.io/FluentAvaloniaDocs/pages/Controls/AppWindow)、
@@ -106,9 +107,6 @@
 ## 7. 状态与交互
 
 - 每个可交互控件至少要有静息、悬停、按下、禁用和焦点五种可读状态；焦点态必须能在两种主题下看见。
-- 树上的折叠钮是**控件**，不是引导线的一部分：实心底（`SurfaceControl`）+ 描边 + 主文字色字形，
-  并压在穿过它的那条虚线之上（模板里那一格的层级高于内容列）。树线是虚线，一枚与线同亮度的方块读起来
-  就是“线的一部分”，而不是“这里可以折叠”；悬停与按下各换底和边，焦点仍由行的焦点环表达。
 - 状态类遵守 `Controls.axaml` 头部的 `STATE` / `VARIANT` / `LAYER1` / `STATIC` 登记：
   不发明新的状态词，新类要么自己画悬停态，要么登记为由层 1 绘制。
 - `selected` 表示“当前选中”，`chosen` 表示“已经选好”，`problem` 表示“这里有问题”；
@@ -137,9 +135,7 @@
 - 标题栏上的自绘按钮与系统 caption 按钮同形：46×32，贴标题栏顶边（不是 40 像素条里的垂直居中），
   直角，紧挨系统按钮左侧，系统按钮的宽度仍由窗口框架在行尾留出。圆角只有这一处不取
   `RadiusControl`；它不是在内容区里的控件，而是一块系统按钮的邻居。
-- 主窗口、宏编辑器、动作编辑器、运行窗把内容扩展到标题栏；其他普通窗口使用库默认标题栏。
-- 设置、宏编辑器、运行窗是并列窗口，不是主窗的模态附属；拾取器打开期间按既定规则收起鲸灵窗口，
-  结束后恢复。
+- 拾取器打开期间按既定规则收起鲸灵窗口，结束后恢复。
 - 框选、取色、点与元素拾取、屏幕框、菜单浮窗和浮动面板使用无标题栏覆盖层；覆盖层不为了“统一”
   强行套普通窗口框架。
 - 不重新引入 `<FluentTheme/>`：`ContextMenu` 等缺模板的控件由 `Controls.axaml` 补齐；删掉那份模板
@@ -175,18 +171,6 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   `WheelGeometry` 的快照，页面只按坐标画圆与按钮。全局、程序覆盖与划动圈用同一组中性/品牌令牌
   区分，不引入轮盘专用色板；空位仍有可点击的淡色命中区。主题自定义只给一个强调色、控件底子和
   三个预览，颜色可用性由 `ThemeBridge` 回传的派生结果判定。
-- 数字输入使用 `FANumberBox`；不要用普通 `TextBox` 或另造数字框。
-- 内联、可关闭的全局提示用 `InfoBar`，由 `Severity` 决定状态色与图标；需要用户选择时仍走项目
-  `ConfirmDialog` / `TextPromptDialog`，不把 `InfoBar` 当对话框。
-- `ContentDialog` / `TaskDialog` 只在需要其按钮、命令、进度或详情语义时使用；现有确认问题仍走统一
-  对话框，不并行新增第三套。
-- `TabView` 只在需要可拖动/可关闭的文档页签时使用；主窗的根视图是项目自己的 `Tab.Root` 按钮，
-  不为统一控件而替换。
-- 分类 dock（变量中心的五个分组、动作库顶部的四个来源）是同一个 `ListBox.Dock`：静息是一行字、
-  悬停叠一层半透明反馈、选中用 `AccentSurface` 底 + `AccentText` 字 + 同色描边；不把 `AccentText`
-  压在 `AccentFill` 上——浅色主题下那一对只有 3.5:1。要用强调色铺底，字必须是 `TextOnAccent`。
-  选中态不靠字号或字重变化，行宽在切换时不动。
-  同一个 dock 不在窗口里另写一套分类按钮。
 - 图标继续使用 Lucide 的现有族（`LucideIconKind`，经 `IconBridge` 取路径）；不混入第二套图标库。
 
 ## 11. 视觉验收
@@ -198,24 +182,17 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 状态词表与登记表一致 | `StyleVocabularyTests` |
 | 每个类画悬停或登记为层 1 | `ControlsRegistryTests` |
 | 右键菜单有主题、有尺寸和 `ItemsPresenter` | `MenuThemeTests` |
-| 模板部件存在，颜色/状态读取实际部件 | `TemplatePartTests` |
-| 普通窗口统一走 `WindowChrome` | `WindowChromeTests` |
-| 标题栏置顶钮与系统 caption 按钮同形、贴顶、同色，置顶态用强调色面与强调色图标 | `MainTitleBarTests`、`MacroEditorChromeTests` |
-| 分类 dock 的静息/悬停/按下/选中/禁用读实际部件，选中字色过对比度底线 | `DockStyleTests` |
 | 设置页可改菜单、窗口规则、轮盘动作与主题；窗口规则对话框可取窗口并写回 | `webui/e2e/shell.spec.ts` |
 | 关于页显示支持码、项目链接和第三方组件清单 | `webui/e2e/shell.spec.ts`、`AboutPageTests` |
 | 强调色派生与对比度底线 | `ThemePaletteTests` |
-| 步骤树的折叠钮是控件而不是引导线（取令牌、压在线上、四态可读） | `StepFoldBoxTests` |
-| 拖到折叠的块上只给块外两缝，插入带停在它自己那一列 | `StepDropTests` |
 
 人工检查：
 
-- 深色与浅色各走一遍受影响窗口；100% 与 150% DPI 至少各看一次。
+- 深色与浅色各走一遍受影响的拾取器与问话框；100% 与 150% DPI 至少各看一次。
 - 检查标题栏、窗口按钮、焦点环、禁用态、错误态、长中文/长英文换行和最小窗口尺寸。
-- 深色下打开一条说明气泡：正文要能看清（主文字色压卡片底）；行内图标与文字同一中线，图标命中区
-  24×24、与文字间距 6；150% DPI 下重复同一组读数。
-- 宏编辑器的步骤树：深色与浅色各看一枚折叠钮的静息、悬停、按下与展开（转动 90 度）四态；方块要读成
-  压在虚线之上的钮，而不是线的一部分；150% DPI 下仍是一枚 14 像素的方钮，不被线穿过。
+- 拾取器：取色/区域/点位/UIA/窗口/偏差点选各打开一次，确认读数、选框与放大镜在深浅两色和
+  150% DPI 下都读得出来，取消后鲸灵窗口恢复。
+- 问话框：触发器、后台运行与退出未保存各触发一次，长文案换行、默认按钮与 Esc 取消都按预期。
 - 出图优先用 Debug 自省通道截运行中的窗口；手动清单见 [docs/dev/validation.md](docs/dev/validation.md)。
 
 ## 12. 变更流程
@@ -237,7 +214,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 - [ ] 窗口仍走 `AppWindow` / `WindowChrome`，没有自搭标题栏或第二套主题。
 - [ ] 视觉规则、令牌、控件样式、测试和 `DESIGN.md` 在同一轮完成。
 
-## 14. 网页壳（迁移期）
+## 14. 网页壳
 
 网页壳由 WebView 承载一张整页（`webui/`，Lit + Fluent UI Web Components v3），标题栏与导航都在
 网页里画。视觉以 **Fluent UI 默认观感为底**，项目只做少量覆盖；它是程序的默认窗口，页面可用
@@ -306,7 +283,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   “记住菜单置顶状态”默认关闭：关闭时每次从未置顶开始，开启时跨打开和重启保留。
 - 右键菜单与宏二级列表在窗口四边自动夹取，靠近右/下边时向左上展开，不被面板或窗口裁掉。
 - 宏选择和图标选择都在页面内：空格右键“添加宏”展开可搜索的启用宏列表；图标选择器由菜单格与设置
-  轮盘共用，覆盖全部 Lucide 名称与图片；不再打开原生 MenuMacroPickerWindow / MenuIconPickerWindow。
+  轮盘共用，覆盖全部 Lucide 名称与图片；不再打开原生图标或宏选择窗。
 
 ### 14.5 导航、工作区与宏编辑器
 
@@ -354,7 +331,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   表单先编辑未入树的草稿步骤，确认后才添加/替换；取消不改树。表单按基础设置、执行与容错、高级设置、
   其它设置分页。基础页按动作目录的块分组，成对字段与四数矩形按 C# 快照的行布局排；末尾是返回值表
   （留下/结果/结构/变量名）与调用宏的实参。执行与容错页放前后延迟、超时、重试次数/间隔、退避方式、
-  失败四卡与重试计划；其它设置页放步骤 ID、启用开关与 JSON 预览。字段旁的「取值」按钮打开 14.4.2 的
+  失败四卡与重试计划；其它设置页放步骤 ID、启用开关与 JSON 预览。字段旁的「取值」按钮打开 14.5.2 的
   取值窗口；颜色、区域、点位、UIA、浏览器页元素、窗口与截图按钮打开原生覆盖层，取消不改草稿。
   图片字段显示缩略图（240×110 上限、object-fit contain），读不到时显示文件名与原因；区域/图片/
   颜色点/键位序列行各自带操作按钮。窗口规则字段打开 `wg-window-rule`，含匹配方式、内容、大小写/
@@ -383,7 +360,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   Fluent 令牌；按钮、徽标、消息条与开关用 Fluent Web Components。
 - **值字段**：恢复原版“框内取值按钮”：文本、名字、颜色、多行与条件单元格是只读显示，名字以独立
   小片呈现；“取值”按钮贴在输入框右缘，多行框贴右上角。数字可直接输入并保留框内按钮；键位仍是
-  键位/捕获控件。点击按钮打开 14.4.2 的取值窗口，确认后把形状写回字段。
+  键位/捕获控件。点击按钮打开 14.5.2 的取值窗口，确认后把形状写回字段。
 - **主题与语言**：主题由 `theme.changed` 推送，页面只换令牌；语言由 `strings.changed` 推送，
   页面重载动作目录、快照与页签，使 C# 提供的分节标题、摘要与问题也换成新语言。
 
@@ -420,8 +397,7 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
 | 编辑器页签、动作库、步骤树与分节、堆叠变量/宏设置、步骤编辑窗、脏关闭、语言与主题刷新 | webui `e2e/editor.spec.ts`（Playwright，mock 模式） |
 | 取值窗口 Token 插入/删除/确认、框内取值按钮、数字字段 | webui `e2e/editor.spec.ts` 与 `ValueEditorTests` |
 | 动作表单分组/行表/返回值/执行与容错/其它设置、取消不改树 | `HeadlessActionSessionTests`、`ActionEditorTests` 与 webui `e2e/editor.spec.ts` |
-| 动作字段拾取器的请求/写回与取消不变性 | `EditorActionBridgeTests`、`PickerHostTests` 与手动清单 |
-| 触发入口热字串选项、once/loop 与录制选项 | `EditorTriggerTests`、`EditorRecordingTests` 与 webui e2e |
+| 触发入口可加删与绑定，录制结果进当前文档 | `EditorGateTests` 与 webui e2e |
 | 试运行与取景结果 | `HeadlessActionSessionTests` 与手动清单（不可撤销确认、Esc、焦点恢复） |
 | 页签右端导出当前文档 | webui `e2e/editor.spec.ts` 与 `ValueEditorTests.Export_writes_a_package_of_its_own` |
 | 步骤多选/右键/复制粘贴/分组/提取/拖放与公共宏 | webui `e2e/editor.spec.ts` 与 `StepEditingTests` |
@@ -435,6 +411,8 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   块的分节与“添加分支”可用；右侧变量中心与宏设置都能读写；双击步骤/点铅笔打开动作编辑器；
   框内“取值”按钮打开 Token 取值窗口；页签切换与脏关闭确认可用；保存、运行调试与 Ctrl+S/Ctrl+W
   可用；窄窗下右侧栏可收起、内容区允许横向滚动。
+- 动作字段拾取器（颜色/区域/拖拽/截图/点位/UIA/窗口/浏览器/偏差点选）逐个打开、取一个值并取消一次，
+  确认写回只发生在确认后。
 - 托盘唤回、单实例唤回、`--mcp` 无窗口形态与退出链路回归不破坏。
 - 网页控制台无错误；发布形状（`webui/index.html`）随包走。
 

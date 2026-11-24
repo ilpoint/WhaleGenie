@@ -16,8 +16,8 @@
 4. **更新展示与文案。** `ActionDisplay.json` 只写形状决定不了的事：编辑器种类（默认由值形态与
    拾取器推导，例外才写）、选项文案、启用条件、路径意图、页面归属与预览，以及基础动作那一栏的
    小分类（`Group`）。小分类的标题是 `Palette.Group.*`，顺序表在
-   `ActionCategoryPresentation.BasicGroups`；新动作必须归到一个已有的组里，
-   `ActionPaletteCategoryTests` 会挡住没归组或归到表外组的动作。文字写进
+   `ActionCategoryPresentation.BasicGroups`；新动作必须归到一个已有的组里，并补该组的页面归属与
+   文案对账用例。文字写进
    `ActionEnglish`（英文）与 `ActionStrings`（中文），键是 `<动作>.name`、`<动作>.desc`、
    `<动作>.<字段>.label` / `.hint`、`<动作>.return.<结果>.label` / `.hint`；缺英文会被
    `LocalizationTests` 挡住，中文可以后补并回落到英文。菜单图标的可选名由

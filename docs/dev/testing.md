@@ -11,13 +11,13 @@
 | 画面获取 | `WhaleGenie.GraphicsCapture.Tests` | 选路、缓存、复用、矩形越界与图片落位 |
 | 文档与运行期服务 | `WhaleGenie.Domain.Tests` | 包往返、设计期检查、变量、触发器、运行日志与单实例；不开窗口 |
 | 协议与工具 | `WhaleGenie.Mcp.Tests` | 工具清单、拒绝码、审计、命令行与容器生命周期；不经窗口 |
-| 编辑器 | `WhaleGenie.Editor.Tests` | 宏编辑窗、步骤树、变量墙、窗口规则与菜单的无头交互 |
+| 编辑器 | `WhaleGenie.Editor.Tests` | 动作目录契约、菜单规则与主题、宏包与问句、步骤文件与 id、轮盘手势与项目落位的无头交互 |
 | 动作表单 | `WhaleGenie.Actions.Tests` | 动作对话框、页面归属、返回值与拾取器 |
 | 运行与其余界面 | `WhaleGenie.Tests` | 运行与调试、MCP、设置、界面文案与文档对账 |
 | 网页壳协议 | `WhaleGenie.Tests`（`BridgeServerTests`、`ProjectBridgeTests`、`DialogBridgeTests`、`StringsBundleTests`） | 桥路由、错误码、ready 前按事件合并、显式 fetch 清 pending、问话无页/超时失败关闭、系统开关推送、词表快照；内存管道直调处理器，不开窗口 |
 | 网页壳边界与窗口 | `WhaleGenie.Tests`（`WebUiBoundaryTests`、`SourceEncodingTests`、`WebShellNavigationTests`、`WebViewRuntimeTests`） | 处理器不认识 WebView；页面源严格 UTF-8 且不带用户文案；键都在词表里；导航按精确 origin/路径；WebView2 运行时缺失有检测 |
 | 网页壳前端 | `webui/`（Vitest + Playwright） | 桥客户端、词表 store、壳加载、导航与标题栏冒烟；跑在 mock 宿主上，不经 WebView |
-| 外部程序 | `BrowserTabTests`、`ScriptBridgeTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
+| 外部程序 | `BrowserTabTests`、`ScriptHostRunTests` | 无头 Edge、真实脚本宿主和命名管道桥 |
 | 真实桌面 | 手动验收 | 系统输入、真实窗口、抓屏取色、UIA、录制和驱动级输入 |
 | 公共面与依赖方向 | `WhaleGenie.Tests`（`LayeringTests`）与 PublicAPI 分析器 | 引擎的引用闭包、目标框架、IVT 名单、画面工程的方向；公共成员与基线一致 |
 | 界面观感 | agent 自省通道（Debug） | 连运行中的程序读树、点、截图，核对对齐、裁字与遮挡 |
@@ -35,36 +35,34 @@
 | 参数约束、行列表、类型检查和设计期诊断 | `MacroRunnerTests`、`MacroCheckTests`、`ActionContractTests` |
 | 宏声明、直接运行、调用参数和结果交付 | `MacroSignatureTests`、`MacroCallTests`、`RunDebugTests` |
 | 输入副作用、互斥门和宏调用图 | `ActionContractTests`、`DeviceActionTests`、`MacroRunnerTests` |
-| 输入限速（程序与每宏）、启用/停用键 | `InputLimitTests`、`LocalSettingsTests`、`RuntimeHookSafetyTests`、`MacroEditorChromeTests` |
+| 输入限速（程序与每宏）、启用/停用键 | `InputLimitTests`、`LocalSettingsTests`、`RuntimeHookSafetyTests` |
 | 返回页、引擎返回键和记录字段 | `ReturnsPageTests`、`ActionContractTests`、`DeviceActionTests` |
 | 失败键、函数表和中英文文案 | `FailureKeyTests`、`FunctionTableTests`、`LocalizationTests` |
-| 字段命名与步骤落点 | `FieldNameTests`、`StepPlacementTests`、`MacroEditorWorkspaceTests` |
-| 依赖方向与主题资源 | `LayeringTests`、`ControlsRegistryTests`、`StyleVocabularyTests`、`TemplatePartTests` |
+| 字段命名与步骤落点 | `FieldNameTests`、`StepEditingTests`、`EditorGateTests` |
+| 依赖方向与主题资源 | `LayeringTests`、`ControlsRegistryTests`、`StyleVocabularyTests` |
 | 引擎的公共面与自足 | `core/src/WhaleGenie.Core/PublicAPI.Shipped.txt`（RS0016/RS0017）、`LayeringTests` 的五条守卫 |
-| 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、图标绘制、选项往返、设置页与轮盘预览 | `WheelMenuTests` |
+| 中键菜单宏回归、按住/移动/松开手势、方向命中、第三圈几何、场景覆盖来源、图标绘制、选项往返、设置页与轮盘预览 | `WheelGestureTests`、`WheelSurfaceTests`、`WheelPlacementTests` |
 
 ### 界面与无头测试注意事项
 
 - 主题资源查询须携带 `ActualThemeVariant`。属性需要跟随主题时使用 `DynamicResource` 或
   `ThemeBrush.Assign`；`ThemeBrush.Of` 只提供快照。
 - 验证样式时读取模板中实际接收颜色或状态的部件，不能只读控件静息属性。需要按名称命中模板部件时，
-  使用 `TemplatePartTests` 验证部件存在。
+  按库文档的 `Required Template Parts` 命名取部件，并保留可失败断言。
 - 普通窗口继承 `AppWindow`。无头平台的 `HWND` 为 0，`AppWindow` 已处理 FluentAvalonia 的句柄表；
   标题栏的实际外观仍需在真机检查。覆盖层不强制继承 `AppWindow`。
 - 带内容的窗口在构造函数里调用 `WindowChrome.Attach(this)`，不要自己搭标题栏：它负责把标题栏交给
-  内容、画鲸鱼与标题、留出系统按钮的宽度。漏掉它的窗口会退回库的默认标题栏——没有鲸鱼，也拖不动；
-  `WindowChromeTests` 核对这一点。
+  内容、画鲸鱼与标题、留出系统按钮的宽度。漏掉它的窗口会退回库的默认标题栏——没有鲸鱼，也拖不动。
 - `DataTemplate` 内不使用 `x:Name` 作为实例定位手段。按类名查找元素时同时限定具体控件类型，
   避免继承关系导致多个匹配。
 - 修改样式类时同时添加类并移除与其重复的本地属性；样式不设置由布局决定的宽、高或对齐。
 - 列表行的高度写下限（`MinHeight`），不写定高。步骤行是两行字，名称与徽标还会换行；`Height` 定死之后
   多出来的那一行压到卡片边线下面，看起来只是"字被边框挡住"，而行本身没有任何报错。
-  `MacroEditorTests` 核对行高不小于卡片高度。
 - 一行里并排的东西各占一列。同一个 `Grid` 单元格里放两个元素，它们会叠在一起而不是左右排开，
   而且叠上去的那个往往有底色：运行调试的步骤缩略图就这样盖住过「第 1 次 20 毫秒」。
   `RunLookTests` 用两个元素的矩形是否相交来核对这一点。
 - 提示只挂在说到它的那个小部件上。整张卡片挂一条 ID 提示，等于指针落在任何一处都弹同一句、
-  挡住正文；`MacroEditorTests` 核对卡片上没有提示、ID 徽标上有。
+  挡住正文。
 - 一个参数模板里画着好几支（单行、数字、多行、变量…），只有一支显示，其余仍会生成控件。
   在测试里按 `DataContext` 去找会命中多枚，`IsVisible` 也仍是 `true`（局部值不看祖先）；每一支
   都带着同一枚 `ValueChip`，所以按按钮文字找更不可靠。要按位置找，或直接断言模型上的标志与行集合。
@@ -108,8 +106,7 @@
 - 无头用例报告 `You've caused dispatcher loop` 时，先找前一个启动模态窗口的用例，不要改被随机点中的
   断言。`ShowDialog` 打开的调度循环必须在本用例内完成：`RunJobs` 让循环启动，关闭窗口后 `await`
   返回的任务。`WindowStackingTests` 曾漏掉这两个步骤，把循环留给后续无关用例；新增模态用例照此写。
-- 已知共享状态抖动：`MacroEditorWorkspaceTests.Setting_a_variable_can_create_a_persistent_global_in_the_same_save`、
-  `SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one` 与
+- 已知共享状态抖动：`SharedStateTests.A_change_made_between_two_checks_is_not_there_for_the_second_one` 与
   `RunLookTests.A_run_that_keeps_looking_does_not_hold_every_picture_it_ever_took`
   涉及进程级状态；遇到时比较单跑与全量结果并检查 `[RestoreSharedState]`，不要仅凭重跑放行。
   最后一条在目录收敛那轮的全量里出现过一次：单跑通过、整类 6/6、二次全量全绿，

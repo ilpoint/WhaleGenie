@@ -21,19 +21,17 @@
 丢掉上一次运行留下的草稿。网页壳与编辑器都用它，差别只在一次写往磁盘上放什么：编辑器放正在写
 的那个宏，壳放整个项目。
 
-一次保存由 `EditorCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、收下之后
+一次保存由 `ProjectMacroCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、收下之后
 才清脏并收草稿。它给出三种结局——页面挡住了、项目没收、已经进包——窗口只负责把它们说出来：把挡住
-的那一页翻到前面、点明项目为什么没收、或者关窗。宏交给项目后的落位与去重由 `ProjectMacroCommit`
-回答：目标宏是否还在列表、抬出的子宏是否只加入一次、未改动时是否真的写回，以及新宏落在菜单还是
-轮盘。页签也有同一处回答：哪个页面代表某个宏、关掉一页之后谁在前。后者要记住按下关闭按钮时的
+的那一页翻到前面、点明项目为什么没收、或者关窗。宏交给项目后的落位与去重也由它回答：目标宏是否还在
+列表、抬出的子宏是否只加入一次、未改动时是否真的写回，以及新宏落在菜单还是轮盘。页签也有同一处回答：哪个页面代表某个宏、关掉一页之后谁在前。后者要记住按下关闭按钮时的
 前台，因为按钮长在页签上，按下的那一刻前台已经换成要走的那一页。
 
-窗口与视图按功能分目录：`Views/Editor`（菜单图标/宏选择器等原生拾取器与
-`ProjectMacroCommit`）、`Views/Pickers`（浏览器与窗口拾取覆盖层）、`Views/Variables`（字段标签列与
-全局变量冲突提示）、`Views/Settings`（主题探针）、`Views/Shell`（窗口外壳、文件选择与通用对话框）与
-`Views/Common`（跨窗口的画法辅助）；`ViewModels` 的分组与之一一对应。宏编辑器、动作表单、步骤树、
-条件与取值构建器、宏菜单、轮盘与界面面板都已迁入网页壳（§7.6），原生侧只保留要抓桌面或透明置顶的
-拾取器。命名空间仍是
+窗口与视图按功能分目录：`Views/Pickers`（取色/区域/点位/UIA/窗口/偏差点选覆盖层与拾取宿主）、
+`Views/Common`（跨窗口的画法辅助与元素测试框）、`Views/Run`（元素测试的闪烁框）、`Views/Settings`
+（主题探针）与 `Views/Shell`（窗口外壳、文件选择与通用对话框）；`ViewModels` 只剩 `Mcp` 与 `Shell`。
+宏编辑器、动作表单、步骤树、条件与取值构建器、宏菜单、轮盘与界面面板都已迁入网页壳（§7.6），
+原生侧只保留要抓桌面或透明置顶的拾取器、后台问话与网页宿主。命名空间仍是
 `WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条
 `avares` 路径。
 
@@ -61,7 +59,7 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 并通过相关样式测试。
 
 `App.axaml` 只合并主题与上面三层资源，不写控件样式：控件类一律落在 `Themes/Controls.axaml`，
-这样选择器的顺序与登记表只有一处。`ClassAuditTests` 连 `App.axaml` 一起读，样式若再漂回应用层，
+这样选择器的顺序与登记表只有一处。`StyleVocabularyTests` 与 `ControlsRegistryTests` 连 `App.axaml` 一起读，样式若再漂回应用层，
 “挂了类却没有样式”的报告仍看得见，不需要另开白名单。
 
 `FluentAvaloniaTheme` 没有接手 `ContextMenu` 的控件主题。库的 `ControlThemes/BasicControls` 里有
@@ -74,11 +72,12 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 ### 7.4 窗口与覆盖层
 
 普通应用窗口继承 `AppWindow`，后者继承 `FAAppWindow`。`WindowChrome.Attach(this)` 把标题栏
-约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，并留出系统按钮需要的宽度。剩余的
-图标/宏选择与确认/问话窗口在构造函数里调用它；标题文字跟随
-`Window.Title`，所以运行中会改名的窗口不必自己同步。
+约定收成一处：它把标题栏交给内容，画上鲸鱼图标和窗口标题，并留出系统按钮需要的宽度。需要把内容
+伸进标题栏的拾取器（`LookPickWindow`、`PickEntryWindow`）在构造函数里调用它；`ConfirmDialog` 与
+`TextPromptDialog` 只继承 `AppWindow`，使用库默认标题栏。标题文字跟随 `Window.Title`，所以运行中
+会改名的窗口不必自己同步。
 
-框选、取色、点与元素拾取、屏幕框、菜单浮窗和浮动面板等无标题栏覆盖层继续使用 Avalonia `Window`。
+框选、取色、点与元素拾取、窗口拾取和元素测试框等无标题栏覆盖层继续使用 Avalonia `Window`；菜单、轮盘与面板三块运行期浮层由 `WebOverlayWindow` 承载网页路由。
 拾取器打开时先通过 `AppWindows.StepAside` 隐藏鲸灵窗口，再取屏幕；取图一律经过 `ScreenReady`：
 它连拍到相邻两张一致为止，因为桌面复制器在收不到新帧时会继续交出隐藏前的画面，只等合成器
 （`DwmFlush`）不足以保证这一点。取色器铺满整个桌面并显示这张冻结的画面，放大镜是它上面的浮层，
@@ -100,10 +99,15 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 原生 `WindowPickWindow` 覆盖层取得一个窗口。规则本身由页面编辑后经
 `settings.menu.rule.*` / `settings.wheel.scene.*` 写回项目。轮盘的扇区动作在网页里选宏、备注和图标，
 位置坐标与扇区几何由 C# 的 `WheelGeometry` 算好后随快照返回，保证编辑器和实时轮盘不会各画一套。
-图标选择仍打开 `MenuIconPickerWindow`，因为它要在内置图标、图片文件和项目资源之间做桌面选择。
+图标选择在页面内完成：`icon.names` 列出本构建认识的图标名、`icon.path` 按名取 Lucide 路径，
+图片文件经 `dialog.pickImage` 选取；菜单格与设置轮盘的图标写回都走 `surface.menu.cell.icon`。
 
 关于页同样是网页：Help 菜单进入 `about` 路由，`app.about` 交出版本可以格式化的项目地址和随包
 嵌入的第三方组件清单；项目链接经 `app.openExternal` 交给系统浏览器。原生关于窗口与主题调色板已删除。
+
+导入/导出也走网页：`project.importPlan/importApply` 与 `project.exportPlan/exportApply` 由
+`PackageTransfer` 负责计划与应用，网页 `wg-transfer` 向导收集勾选与全局变量决定；原生侧不再有
+选择宏或冲突确认的窗口。
 
 
 ### 7.6 网页壳与桥接
@@ -113,17 +117,17 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 > 已落地：桥按 `Main/Menu/Wheel/Panel` 路由；`surface.menu.*`、`surface.wheel.*`、`surface.panel.*`
 > 的命令、快照与页面类型已生成。
 
-网页壳是界面的下一站：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。B0 已把系统
-开关、触发器、菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排搬出主窗。
-B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐藏主窗并删除 MainWindow。
-设置页、运行面板、编辑器、关于与帮助都已走网页入口；`MainViewModel` 只为原生拾取器转发项目视图。
-窗口本体 `WebShellWindow` 只保留外框职责——尺寸、窗口状态与拖动——其余全部是页面的事。
+网页壳是程序的主界面：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。系统开关、触发器、
+菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排都不再挂在一个原生主窗上；壳
+接管 ProjectSession、NativeSurfaceHost 与 TriggerHost。设置页、运行面板、编辑器、关于与帮助都已走
+网页入口；`MainViewModel` 只为原生拾取器转发项目视图。窗口本体 `WebShellWindow` 只保留外框
+职责——尺寸、窗口状态与拖动——其余全部是页面的事。
 
 分层是一条硬边界：
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
-| 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebBridge`（程序里唯一认识 WebView 控件的类型） |
+| 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebOverlayWindow`（透明浮层宿主）、`OverlayProbeWindow`（Debug 首帧探针）各自持有 `NativeWebView`；`WebBridge` 只做网页消息与桥之间的管道 |
 | 桥协议与处理器 | `src/WhaleGenie.App/Bridge/` | `BridgeServer` 路由请求/应答/事件；全部处理器（应用、字符串、主题、窗口、项目、编辑器、设置、运行）与端口在此；UI 只实现端口 |
 | 触发会话与原生面 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`NativeSurfaceHost` 持菜单、轮盘、浮层与前台订阅；`RunQuestionHost` 持后台问话；`ProjectSession` 持恢复与未保存流程；`SystemState`（App）是页面/热键/窗口共写的开关 |
 | 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
@@ -147,24 +151,32 @@ B1 已让壳接管 SessionHost、NativeSurfaceHost 与 TriggerHost，去掉隐�
 设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
 
 编辑器在同一方向：`HeadlessEditorWorkspace` 持有多个 `HeadlessEditorSession`，每个会话持有
-`MacroEditorViewModel` 与 `ProjectMacroCommit`；桥的 `editor.sessionOpen/State/Patch/Step/Save/Close/
-Actions` 只传快照与命令。快照现在同时给出步骤的分节（`sections`，每个子列表带本地化标题）、摘要、
-问题、输入去向与步骤设置摘要，动作目录的类别/小分组/顺序，变量组的显示名与持久化，以及每份文档的
-页签脏/问题/子宏标记；页面不再按动作名或参数自己拼这些事实。`editor.sessionStep` 接受
-`list`（子列表名）与 `parameters`（预置字段），用来把动作放进指定分节或在加入时就写好字段。
+`MacroEditorViewModel` 与 `ProjectMacroCommit`；桥只传快照与命令，编辑域是聚合方法加 `kind`
+判别联合：`editor.session`（open/new/subOpen/macroSetting/activate/patch/undo/redo/save/close/
+publicMacroAdd/subMacroCreate/subMacroCopy/subMacroDelete/export）、`editor.steps`（多选/复制/粘贴/
+分组/移动/删除）、`editor.step`（单步/参数/落点）、`editor.condition`、`editor.trigger`、
+`editor.variable`、`editor.declaration`、`editor.record`、`editor.action`（page/field/rowAdd/
+rowRemove/rowMove/rowCell/returns/returnsFixName/callArgument/meta/global/branch/window/windowRule/
+padKey）、`editor.value`（open/command/confirm/cancel），以及只读快照 `editor.sessionState`、
+`editor.sessionTabs`、`editor.sessionActions`。快照同时给出步骤的分节（`sections`，每个子列表带
+本地化标题）、摘要、问题、输入去向与步骤设置摘要，动作目录的类别/小分组/顺序，变量组的显示名与
+持久化，以及每份文档的页签脏/问题/子宏标记；页面不再按动作名或参数自己拼这些事实。`editor.step`
+的 `kind` 带 `parentId`/`list`/`index` 与 `parameters`（预置字段），用来把动作放进指定分节或
+在加入时就写好字段。
 
 取值走的是同一条方向：`ValueDraft`/`SlotNodes` 和恢复的 `ValuePickerViewModel` 在 C# 里持有
-Token 结构、光标、撤销与检查；`editor.valueOpen/State/Command/Confirm/Cancel` 只传
+Token 结构、光标、撤销与检查；`editor.value` 的 open/command/confirm/cancel 只传
 `EditorValueSnapshot` 和一组插入/摘除/换运算符/包裹/移动/常量输入命令。网页的
 `wg-value-editor` 只画结构带、符号/变量/函数三盘；确认时 C# 通过 `StepParameterViewModel.WriteValue`
 把形状写回字段，页面从不解析或重写公式文本。值字段本身是只读显示加框内「取值」按钮（数字可直接
 输入），这部分也是 C# 快照驱动的。
 
 动作表单走同一条路：`HeadlessActionSession` 包住原生的 `AddActionViewModel`，草稿的字段、行表、
-条件、返回值、实参、全局声明、窗口规则与步骤设置都写在这个实例上；`editor.actionPage/Field/Row*/
-Returns/CallArgument/Meta/Global/Window*` 只传命令，`EditorActionSnapshotFactory` 把 `Pages/Rows/
-AdvancedRows/ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 的块与格排版，不按动作名或
-参数名推断。确认时 `BuildStepForSave` 才把草稿变成 `MacroStep` 并插入树；取消只丢掉会话。
+条件、返回值、实参、全局声明、窗口规则与步骤设置都写在这个实例上；`editor.action` 用 `kind` 区分
+page/field/rowAdd/rowRemove/rowMove/rowCell/returns/returnsFixName/callArgument/meta/global/branch/
+window/windowRule/padKey，只传命令，`EditorActionSnapshotFactory` 把 `Pages/Rows/AdvancedRows/
+ReturnsRows/CallArguments/Meta` 投影成快照，页面按 `rows` 的块与格排版，不按动作名或参数名推断。
+确认时 `BuildStepForSave` 才把草稿变成 `MacroStep` 并插入树；取消只丢掉会话。
 
 桌面拾取由 `IEditorPickerHost` 承接：会话的 `PreparePick` 从字段、动作目录和当前窗口算出请求，
 `EditorPickerHost` 打开恢复的颜色/区域/点位/UIA 覆盖层或现存的 `WindowPickWindow`/`BrowserPicker`，

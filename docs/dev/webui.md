@@ -1,7 +1,7 @@
 # 网页壳结构、拆分与工程规范
 
 所属：[WhaleGenie 开发说明](../dev.md)。网页壳是界面层的一部分，桥与边界见
-[architecture/interface.md](../architecture/interface.md#5-网页壳)；用户行为见
+[architecture/interface.md](../architecture/interface.md#76-网页壳与桥接)；用户行为见
 [manual.md](../manual.md)。
 
 ## 1. 分层与依赖方向
@@ -149,7 +149,9 @@ ESLint（`src/**/*.ts`）：
   成功、失败、状态应用、返回值都要有。
 - controller：用 `tests/fakes/host.ts` 的 `FakeHost` 验证连接/断开、重复连接、requestUpdate。
 - 结构：`tests/architecture.test.ts` 检查 import 路径、宿主全局与 DOM-free 层。
-- e2e：`webui/e2e/` 走 mock 宿主与系统 Edge；拆分组件时优先保留 DOM 契约，而不是改测试。
+- e2e：入口是 `npm run e2e`（`playwright test`，配置在 `webui/playwright.config.ts`，走 mock 宿主与
+  系统 Edge）。它需要先有构建产物（`npm run build`），因此在 CI 的构建步骤之后执行，`npm run check`
+  不包含它；拆分组件时优先保留 DOM 契约，而不是改测试。
 - C# 对账：网页改动至少跑 `WhaleGenie.Tests` 中 `BridgeMethodInventoryTests`、`WebUiBoundaryTests`、
   `SourceEncodingTests` 与 `AboutPageTests`。
 
@@ -161,7 +163,8 @@ ESLint（`src/**/*.ts`）：
 4. 桥命令按族移到 service；保留旧门面转发，逐个子提交。
 5. 独立 UI 区块抽组件（连同样式）；强耦合行/字段抽渲染模块。
 6. 生命周期逻辑抽 controller；最后把旧门面方法删除，组件切到命名空间 API。
-7. 每步跑 `npm run check` + 受影响的 Playwright；最后跑全量 C# 测试。
+7. 每步跑 `npm run check`；改动页面后等构建完成再跑 `npm run e2e`（受影响的 Playwright）；最后跑
+   全量 C# 测试。
 
 每一步只做一类改动：机械移动、行为变化、规则变化分开提交。任何一步都可以单独 revert。
 

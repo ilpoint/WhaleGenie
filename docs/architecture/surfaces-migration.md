@@ -1,12 +1,12 @@
 # 原生浮层迁移到 Lit：轮盘、宏菜单与界面宏
 
 所属：[架构](../architecture.md)、[界面与桥接](interface.md)。
-状态：计划（2026-11）。本文只写"怎么迁、按什么顺序、怎么验收"；已完成的结构见
-[ADR 0002](../adr/0002-csharp-webui-split.md)。
+状态：已完成（2026-11）。三块运行期浮层、桥的多面路由与契约都已落地；剩余只有真机验收和
+tier-1 拾取覆盖层的成本决策（见 §5、§7）。结构见 [ADR 0002](../adr/0002-csharp-webui-split.md)。
 
 ## 1. 范围
 
-网页壳已接管主窗、编辑器、设置与运行面板。仍是 Avalonia 窗口的三块**运行期浮层**：
+网页壳已接管界面、编辑器、设置与运行面板；三块**运行期浮层**也已迁完：
 
 | 浮层 | 当前实现 | 规模 | 用户入口 |
 | --- | --- | --- | --- |
@@ -14,7 +14,7 @@
 | ~~轮盘菜单~~ **已迁移** | Lit 浮层（`WheelOverlayHost` + `features/overlay/wheel`）；原生窗口已删 | — | 轮盘手势、重复键、按程序/宏切换 |
 | ~~界面宏面板~~ **已迁移** | Lit 浮层（每组一个 `PanelOverlayHost`）；原生窗口已删 | — | 界面热键、分组显示、跟随前台窗口 |
 
-桌面拾取器（`Views/Pickers`，约 6,900 行）不在本轮范围：它们必须抓屏、取色或叠加在别的窗口上，
+桌面拾取器（`Views/Pickers`，32 个文件 5,880 行）不在本轮范围：它们必须抓屏、取色或叠加在别的窗口上，
 迁移顺序排在浮层之后（见 §7）。
 
 ## 2. 目标结构
@@ -30,7 +30,7 @@
 `MakeHwndTransparent` 完成——**后者是 internal，不直接调用**。窗口侧仍需 Avalonia 的透明窗口
 （`TransparencyLevelHint` + 透明 `Window.Background`）。
 
-S0 探针（`--overlay-probe`，Debug）已验证这条路径可以编译，真机结论记录在 §3.1。
+S0 探针（`--overlay-probe`，Debug）已验证这条路径可以编译，真机结论见 §3 的 S0 表。
 
 原生侧只保留三件事：**窗口定位**（光标/前台窗口/多显示器与 DPI）、**命中与焦点策略**
 （菜单需要键盘焦点做搜索；轮盘需要不抢焦点、只读原始鼠标增量）、**显示/隐藏时机**
@@ -50,10 +50,9 @@ S0 探针（`--overlay-probe`，Debug）已验证这条路径可以编译，真�
 
 ### 2.2 桥的多通道
 
-现在 `BridgeServer` 只有一个 `_channel`（`BridgeServer.cs:59`，`Attach` 在 90 行）。
-主壳与浮层是两个 WebView，需要按"面"路由：
+`BridgeServer` 按“面”保存通道，主壳与浮层是各自附着的一面：
 
-- `Attach(channel)` 仍是主壳；新增 `Attach(BridgeSurface, channel)`，面是 `Main`/`Menu`/`Wheel`/`Panel`；
+- `Attach(channel)` 是主壳；另有 `Attach(BridgeSurface, channel)`，面是 `Main`/`Menu`/`Wheel`/`Panel`；
 - `PushAsync(..., surface)` 与 `DropPending(..., surface)` 按面过滤；未 ready 的面只缓冲自己的事件；
 - `bridge.ready` 与请求应答回到发话的那一面；`PageReset` 只在主壳换页时触发（浮层重载不等于
   壳的对话框被丢弃）；
@@ -67,29 +66,37 @@ S0 探针（`--overlay-probe`，Debug）已验证这条路径可以编译，真�
 ### 2.3 契约：快照 + 命令，不传控件
 
 每个浮层一组 `surface.*` 方法与 `WhaleGenie.Contracts` 记录，规则与其他命令一致：
-快照是可渲染的只读形状；命令带 `kind` 与参数；结果回变化的切片并带 `revision`。
+快照是可渲染的只读形状；命令只带参数；结果回变化的切片。
 
 **菜单**（`surface.menu.*`）：
 
-- `open` / `close` / `pin` / `move` / `search` / `activate`（页面点击/回车）；
-- 快照：`SurfaceMenuSnapshot(Sections, Cells, Bounds, Pinned, SearchText, Revision)`，
-  cell 带 `kind`（宏/分组/空位/更多）、`macroName`、`icon`、`enabled`、`problem`；
-- 拖拽落位走 `surface.menu.drop(from, to)`，复用 `ProjectTriggers.MenuPages` 的既有规则。
+- 命令：`state`、`activate`、`close`、`pin`、`move`、`drag`、`focus`、`edit`、`debug`、
+  `image`、`macros`、`settings`、`rule.add`、`block`、`page.add`、`page.remove`、
+  `cell.assign`、`cell.icon`；
+- 快照：`SurfaceMenuSnapshot(Common, Context, Pinned, CanUseForeground)`，页是
+  `SurfaceMenuPage(PageId, IsDefault, RuleSummary, Cells)`，cell 带 `Row`/`Column`/`EntryId`/
+  `MacroName`/`IconKind`/`IconValue`/`Description`；
+- 拖拽落位走 `surface.menu.move`，复用 `ProjectTriggers.MenuPages` 的既有规则；图标写回走
+  `surface.menu.cell.icon`，图片经 `surface.menu.image` 在菜单挂起时打开文件对话框；
+- 推送：`surface.menu.closed`、`surface.menu.pinned`、`surface.menu.refreshed`。
 
 **轮盘**（`surface.wheel.*`）：
 
-- `open` / `close` / `aim(x, y)` / `commit` / `cancel`；
-- 快照：`SurfaceWheelSnapshot(Sectors, Centre, Radius, SceneName, Revision)`，
-  sector 带 `index`、`macroName`、`label`、`icon`、`enabled`；
-- 手势状态机仍在 C#（`WheelGesture`/`WheelAim`），页面只发坐标与选择；
-  命中判定由 C# 的 `WheelCanvas` 几何迁为纯函数（`SurfaceWheelGeometry`），页面用同一份扇区。
+- 命令只有 `ready`（页面回报可以显示）与 `state`（取快照）；打开、关闭、瞄准与布局由宿主推送
+  `surface.wheel.opened`/`closed`/`aim`/`changed`，页面不反向驱动窗口；
+- 快照：`SurfaceWheelSnapshot(Diameter, CanvasSize, Rings, SceneName, CenterText, Slots, Aim,
+  Gloss, HoverBorder, ShowGuide, HideLabelWithIcon, FollowTheme, FontSize, CenterName, CenterX,
+  CenterY, Opening)`，slot 带 `Ring`/`Index`/`Label`/`IconKind`/`IconValue`/`Tone`；
+- 手势状态机仍在 C#（`WheelGesture`/`WheelAim`），页面只发坐标与选择；命中判定用 C# 的纯函数
+  `WheelGeometry`（`src/WhaleGenie.Domain/Models/WheelGeometry.cs`），页面用同一份扇区。
 
 **界面面板**（`surface.panel.*`）：
 
-- `show` / `hide` / `toggleGroup` / `state`；
-- 快照：`SurfacePanelSnapshot(GroupKey, Target, Width, Height, Controls, Revision)`，
-  control 带 `kind`（按钮/标签/滑块/开关）、`label`、`action`、`enabled`；
-- 位置由 C# 计算（`WindowPlacement`），页面只按给定尺寸排版。
+- 命令：`state`、`drag`、`run`、`view`；
+- 快照：`SurfacePanelSnapshot(GroupKey, Title, Horizontal, Collapsed, Items)`，item 带 `Label`/
+  `State`/`IconKind`/`IconValue`；
+- 位置与尺寸由 C# 的 `PanelGeometry` 计算，页面只按给定尺寸排版；变化经 `surface.panel.changed`
+  推送。
 
 ## 3. 阶段
 
@@ -129,13 +136,13 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
 | 双屏（含负坐标） | 副屏与 `F1` 全屏落点 | 待真机 |
 | 键盘焦点 | 点页面后键入能被页面收到 | **通过**：但宿主窗口收不到键（见下） |
 
-### S1 桥多通道 + 契约
+### S1 桥多通道 + 契约（已完成）
 
 - `BridgeServer` 按面路由（§2.2），主壳单面先行，行为不变；
-- 新增 `WhaleGenie.Bridge.Tests`（ADR 0002 已承诺）：内存管道直调处理器，覆盖多面路由、
-  缓冲、错误码；
-- 落 `surface.menu/wheel/panel` 契记录与方法名，生成 TypeScript；
-- 验收：`ContractGenerationTests` 无漂移；新测试覆盖"只发给所属面"。
+- 桥用例放进现有 `WhaleGenie.Tests`（`BridgeSurfaceTests`，9 条）：内存管道直调处理器，覆盖
+  多面路由、缓冲、错误码；
+- 落 `surface.menu/wheel/panel` 契约记录与方法名，生成 TypeScript；
+- 验收：`ContractGenerationTests` 无漂移；`BridgeSurfaceTests` 覆盖"只发给所属面"。
 
 ### S2 宏菜单（先做，使用频率最高）
 
@@ -158,7 +165,7 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
   （网页自己的指针事件出不了窗口边界，这条必须由系统移动循环做）。
 - 右键菜单：编辑宏 / 调试运行 / 更换图标 / 替换宏 / 为当前程序加规则 / 屏蔽此程序；
   格子可拖到任意页的任意格（`surface.menu.move`）。`surface.menu.edit/debug` 经 `IMenuSurfaceActions`
-  打开编辑器或运行面板；`surface.menu.icon` 调原生图标选择器并写回条目。`MenuSurfaceTests` 覆盖委托与写回。
+  打开编辑器或运行面板；`surface.menu.cell.icon` 让页面内图标选择器写回条目。`MenuSurfaceTests` 覆盖委托与写回。
 - 结构操作已可用：`surface.menu.page.add/remove`、`surface.menu.rule.add`、`surface.menu.block`、
   `surface.menu.move`；页面在分页点旁提供「＋／×」，实测点「＋」后项目里多出一页（两个分页点）。
   `MenuSurfaceTests` 覆盖加页/删页与格子移动。
@@ -166,16 +173,15 @@ dotnet run --project src/WhaleGenie -- --overlay-probe
   `Show()` 并置开态，`Hidden` 事件负责复位（含 `MacroTriggerGate`），搜索框焦点经
   `surface.menu.focus` 回报给热键判定。实测：启动走真实 `OpenMenu` 路径打开浮层，点面板后 Esc 收起。
   **键盘要先点进页面**（S0 的同一限制）。
-- **原生菜单已删除**：默认构建就是浮层（`ShellHostFactory` 总是创建 `MenuOverlayHost`）；
-  `MacroMenuWindow*`（11 个文件）、`MenuWindowTypes.cs` 与 `MenuWindowTests`（8 个文件）全部移除，
-  `NativeSurfaceHost.Menu.cs` 从 621 行收成 148 行，只保留开关状态。实测删除后 `--menu-overlay`
-  照常打开菜单。
+- **原生菜单已删除**：默认构建就是浮层（`ShellHostFactory` 总是创建 `MenuOverlayHost`）；原生
+  菜单窗、类型与窗口类用例全部移除，`NativeSurfaceHost.Menu.cs` 从 621 行收成 138 行，只保留
+  开关状态。实测删除后 `--menu-overlay` 照常打开菜单。
 
 **S2 已完成**：预建宿主、`surface.menu.*` 桥、Lit 页面（搜索/分页/置顶/右键/拖拽/替换）、
 原生窗口与测试全部删除。剩余验收（真机清单）：菜单键打开 <100ms、多屏定位、游戏前台热键、
 DPI 125/150/200% 下的落点。
 
-### S4 界面面板（已开始）
+### S4 界面面板（已完成）
 
 - 契约 `SurfacePanelSnapshot/Item` 与 `surface.panel.state`；App 的 `PanelSurface` 用
   `InterfaceMemberResolver` 只投影可显示的成员（停用/缺宏不上面板）。
@@ -184,16 +190,16 @@ DPI 125/150/200% 下的落点。
   折叠/排列算，位置按目标客户区原点 + `InterfaceLayout` 偏移并夹在客户区内，`PlaceAbove` 把窗口排到
   目标窗口上方，拖动走系统移动循环并回报位置；帧经 `surface.panel.changed` 推送。
 - **生产已切换**：`NativeSurfaceHost.Panels` 改用 `IPanelOverlay` 与 `PanelGeometry`（尺寸、客户区
-  偏移、夹取、`PlaceAbove` z 序、拖动回报 `StoreLayout`）；`FloatingSurfaceWindow`(603) 与
-  `NativeSurfaceHost.Panels.cs`(292) 的原生实现、`InterfaceSurfaceTests` 一并删除。真机验收未做。
+  偏移、夹取、`PlaceAbove` z 序、拖动回报 `StoreLayout`）；面板的原生窗口实现、`NativeSurfaceHost.Panels.cs`
+  的原生绘制与窗口类用例一并删除，文件现在只留宿主接线（190 行）。真机验收未做。
 - 成员点击：`surface.panel.run` 按名字查找并只在宏启用时运行；页面只对可显示成员发命令。
 - 折叠与排列：`surface.panel.view` 把状态记在 App 的 `PanelSurface`（按组键），页面标题栏两个按钮
-  切换；`Snapshot` 优先读记忆值，切换生产入口时原生窗口那份 `_surfaceViews` 可以删掉。
+  切换；`Snapshot` 优先读记忆值。
 - **生产已切换**（见上）：原生窗口与窗口类测试已删除。
 
 ### S3 轮盘
 
-**已完成（第一步）**：`WheelGeometry` 早已是纯函数并有 `WheelMenuTests.Gesture/Drawing` 覆盖；新增
+**已完成（第一步）**：`WheelGeometry` 早已是纯函数并有 `WheelGestureTests` 覆盖；新增
 `surface.wheel.state`（`SurfaceWheelSnapshot/Slot`）与 App 的 `WheelSurface` 投影，页面
 `features/overlay/wheel` 用生成的 SVG 画扇区（Lit 模板里的嵌套 SVG 会落进 HTML 命名空间，
 必须整段 `unsafeSVG`）。`WheelSurfaceTests` 覆盖“有宏的格子出现在正确环/位置”与空轮盘。
@@ -201,8 +207,8 @@ DPI 125/150/200% 下的落点。
 实测能用真实项目数据画出扇区。布局帧 `surface.wheel.changed` 走完整快照；瞄准帧改走轻量
 `surface.wheel.aim`（按 Latest 合并），页面只更新动态层，`IWheelOverlay.SetAim` 负责推送。
 **手势已切换**：`NativeSurfaceHost.Wheel` 改为驱动 `WheelOverlayHost`（定位到指针、瞄准帧、滚动换
-场景、超时、关闭），命中测试改用 `WheelGeometry` + 已解析布局；原生 `WheelMenuWindow.cs`(526)、
-`WheelCanvas.cs`(332) 与窗口类测试已删除，`WheelGesture` 用例保留为 `WheelGestureTests`。
+场景、超时、关闭），命中测试改用 `WheelGeometry` + 已解析布局；原生轮盘窗与画布实现、窗口类
+测试已删除，`WheelGesture` 的用例保留在 `WheelGestureTests`。
 **预热已接**：壳启动时两个浮层都在屏幕外 `Show` 一次并把页面加载完再 `Hide`，第一次呼出只剩
 `Show()`（S0 实测 9 ms）。真机手势验收仍未做。
 
@@ -232,14 +238,14 @@ DPI 125/150/200% 下的落点。
 
 **菜单交互（Quicker 式）**：呼出与点击不激活窗口；未置顶时全局鼠标钩子把菜单外的点击当作"离开"并收起
 （同进程窗口上点击也算，不依赖前台切换），置顶时只由 Esc、右上角关闭或再次按呼出键收起；搜索仍只在
-点放大镜后临时取得键盘。空格子左键或右键添加宏，右键第二项"添加并设置图标"在选完宏后直接打开原生
+点放大镜后临时取得键盘。空格子左键或右键添加宏，右键第二项"添加并设置图标"在选完宏后直接打开页面内
 图标选择器（Lucide 或图片）；左侧底栏按钮为当前前台程序建立进程名相等的场景规则，右侧为禁止在此程序
 呼出；上半区/下半区的加号各自加分页，滚轮悬在哪个半区就翻哪组页。
 
-**原生选择器迁移（2026-11-24）**：MenuMacroPickerWindow、MenuIconPickerWindow 删除，宏选择改为
-空格右键的二级列表（surface.menu.macros + surface.menu.cell.assign），图标选择器由页面内
-wg-icon-picker 承担（icon.names + 懒取 icon.path + 图片对话框），菜单格与设置轮盘共用；
-图标写回走 surface.menu.cell.icon，图片对话框经 surface.menu.image 在挂起自动关闭的状态下打开。
+**原生选择器迁移（2026-11-24）**：菜单图标与宏选择窗删除，宏选择改为空格右键的二级列表
+（`surface.menu.macros` + `surface.menu.cell.assign`），图标选择器由页面内 `wg-icon-picker` 承担
+（`icon.names` + 懒取 `icon.path` + 图片对话框），菜单格与设置轮盘共用；图标写回走
+`surface.menu.cell.icon`，图片对话框经 `surface.menu.image` 在挂起自动关闭的状态下打开。
 置顶状态由宿主持有并在打开/切换时推 surface.menu.pinned，设置里可选择是否跨打开记忆；外边点击
 由宿主自己的 Hook.MouseDown（派发到 UI 线程）加按钮轮询兜底，置顶时不响应。右键层移出
 .panel 的 overflow:hidden 并按窗口四边夹取，二级宏列表位置同源。
@@ -254,23 +260,20 @@ HideLabelWithIcon、FollowTheme 进入快照由页面实际绘制；每次打开
 页面按 PopAnimation 做一次缩放淡入，时长由 `settings.wheel.update/popAnimationMs` 的滑块传入。
 设置页增加“轮盘”导航，外观开关、预览和动作管理沿用同一几何；格子右键不再出现针对当前程序的规则/屏蔽项，这两项只留在底栏。
 
-已自动验证：`WheelSurfaceTests` 9 条（圈数/宽外圈/第三圈/tone/中心文案/画布/aim 偏移/外观开关/Opening）、
-`WheelPlacementTests` 3 条（边缘夹取与关闭夹取）、
+已自动验证：`WheelSurfaceTests` 9 条（圆环与格子、外观开关、空外圈、宽外圈、第三圈、tone、
+Opening、中心文案、aim 偏移）、`WheelPlacementTests` 3 条（边缘夹取、指针不动、关闭夹取；与
+`WheelSurfaceTests` 同在 `WheelSurfaceTests.cs`）、
 `MenuSurfaceTests` 格子描述、`npm run check`。已手工看：菜单尺寸与图标、搜索默认隐藏/点开可
 输入/Esc 收起、右键无浏览器菜单、轮盘完整网格与透明窗口。真机剩余：面板折叠/滚动、轮盘手势与
 引导线、多屏与 DPI。
 
-### S4 界面面板
-
-**S4 已完成**：投影 `PanelSurface`、几何 `PanelGeometry`、每组宿主 `PanelOverlayHost`、页面
-`features/overlay/panel`；原生窗口删除。**剩余验收**（真机）：跟随、折叠、界面热键、多程序多分组。
-
 ### S5 收尾（清理债务一并结清）
 
-- P8 **已完成**：`Themes/Controls.axaml` 由 1133 行拆成 436 + 291 + 275 三份（Styles.Resources 留原位，
-  后两份经 `StyleInclude` 按原顺序接上），每份都在 600 行以内；
-- P9：mock 改为由 C# 夹具生成的快照 + 仅保留交互桩，目标 <2,500 行；
-- P5：`AppSettings` 实例注入（见 §6）在本阶段前完成，浮层处理器直接接收实例；
+- P8 **已完成**：`Themes/Controls.axaml` 由 1133 行拆成 258 + 209 + 249 三份（合计 716，
+  Styles.Resources 留原位，后两份经 `StyleInclude` 按原顺序接上）；
+- P9：mock 现为 26 个文件 5,341 行，其中编辑器 mock 17 个文件 3,999 行；目标改为“先外置纯数据，
+  再评估 <3,500”；
+- P5：`AppSettings` 实例注入（见 §6）已完成，浮层处理器直接接收实例；
 - P3/P4：保存/打开已移出界面线程（UI 线程准备计划 → 后台写/读包 → UI 线程收尾）；浮层本身没有
   长 IO，busy 事件暂不需要。
 
@@ -282,28 +285,31 @@ HideLabelWithIcon、FollowTheme 进入快照由页面实际绘制；每次打开
 | 独占全屏游戏盖不住置顶窗口 | 游戏场景不可用 | S0 实测；必要时对全屏程序回退原生 |
 | 浮层首帧慢（实测 607ms） | 热键按下才建就不可用 | 预建隐藏宿主 + 预热页面；热键只 Show（19–25ms） |
 | 焦点竞争（菜单搜索 vs 游戏按键） | 按键丢失 | 菜单显式请求焦点；关闭即还原前台；快捷键由页面回传（S0 已验证） |
-| 多通道推送交错 | 快照串面 | 按面队列 + 每面 revision；Bridge.Tests 覆盖 |
+| 多通道推送交错 | 快照串面 | 按面队列 + 每面 revision；`BridgeSurfaceTests` 覆盖 |
 | 拖拽与右键在 WebView 内不跟手 | 操作困难 | 用页面指针事件 + 拖动时低延迟推送；必要时 JS 内本地预览 |
 
 ## 5. 验收
 
-- 契约：`ContractGenerationTests`、`WhaleGenie.Bridge.Tests`、新 `surface.*` 对账用例；
+- 契约：`ContractGenerationTests`、`BridgeSurfaceTests`、新 `surface.*` 对账用例；
 - 行为：每个浮层的真机清单（打开延迟、搜索、拖拽、右键、置顶、多屏、DPI、游戏前台）；
-- 结构：界面工程不再存在三块原生窗口；`LayeringTests` 通过；
-- 清理：样式表已拆成 436/340/324 三份；`LocalSettings` 静态调用点已归零；mock 从 5,550 降到 4,902，
-  其中编辑器 mock 承载 e2e 行为，目标按 roadmap 重定；
-- 全量：`dotnet test`、`npm run check`、`git diff --check` 全绿。
+- 结构：界面工程不再存在三块原生浮层窗口；`LayeringTests` 通过；
+- 清理：主题五份为 `Tokens.axaml` 293、`FluentKeys.axaml` 627、`Controls.axaml` 258、
+  `Controls.Badges.axaml` 209、`Controls.Navigation.axaml` 249（Controls 三份合计 716）；
+  `LocalSettings` 静态调用点已归零；mock 现为 26 个文件 5,341 行，其中编辑器 mock 17 个文件
+  3,999 行，目标按 roadmap 重定；
+- 全量：`dotnet test`、`npm run check`、`npm run e2e`、`git diff --check` 全绿。
 
 ## 6. 与清理债务的关系
 
 | 债务 | 现状 | 归属阶段 |
 | --- | --- | --- |
 | P5 设置注入 | 已完成：`AppSettings` 实例注入，静态门面只剩测试使用 | 完成 |
-| P8 主题 | 已完成：`Controls.axaml` 1133 → 436 + 340 + 324 | 完成 |
-| P9 mock | 4,902 行（词表已改由 `Strings` 生成）；目标重定为“先外置纯数据，再评估 <3,500” | 后续 |
+| P8 主题 | 已完成：`Controls.axaml` 由 1133 行拆成 258 + 209 + 249 三份（合计 716） | 完成 |
+| P9 mock | 26 个文件 5,341 行，其中编辑器 mock 17 个文件 3,999 行；目标重定为“先外置纯数据，再评估 <3,500” | 后续 |
 | P3/P4 IO | 已完成保存与打开：MCP 保存、窗口保存/另存为、页面打开/重载都在后台读写包 | 完成 |
 
 ## 7. 不在本轮
 
-桌面拾取器（点/区域/窗口/元素/浏览器/取景，约 6,900 行）依赖抓屏、置顶覆盖与跨程序指针，
-排在浮层之后单独评估；在那之前它们继续用原生窗口，不并入浮层宿主。
+桌面拾取器（点/区域/窗口/元素/浏览器/取景，32 个文件 5,880 行）依赖抓屏、置顶覆盖与跨程序指针，
+排在浮层之后单独评估；在那之前它们继续用原生窗口，不并入浮层宿主。tier-1 覆盖层的成本测量与
+迁移决策登记在 [roadmap](../roadmap.md)。
