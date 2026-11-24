@@ -111,8 +111,6 @@ public static class BridgeMethods
         "settings.wheel.scene.select",
         "settings.wheel.slot.set",
         "settings.wheel.update",
-        "settings.windows.list",
-        "settings.windows.pick",
         "strings.bundle",
         "surface.menu.activate",
         "surface.menu.block",
@@ -143,8 +141,10 @@ public static class BridgeMethods
         "window.close",
         "window.drag",
         "window.focus",
+        "window.list",
         "window.maximize",
         "window.minimize",
+        "window.pick",
         "window.pin",
     ];
 }

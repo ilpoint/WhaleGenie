@@ -225,7 +225,7 @@ export class WgWindowRule extends LitElement {
   private async loadWindows(): Promise<void> {
     this.busy = true;
     try {
-      const state = await bridge.value.call<WindowRulePickerState>('settings.windows.list');
+      const state = await bridge.value.call<WindowRulePickerState>('window.list');
       this.windows = state.windows;
       this.hows = state.hows;
       this.error = '';
@@ -239,7 +239,7 @@ export class WgWindowRule extends LitElement {
   private async pickWindow(): Promise<void> {
     this.busy = true;
     try {
-      const window = await bridge.value.call<WindowEntryState | null>('settings.windows.pick');
+      const window = await bridge.value.call<WindowEntryState | null>('window.pick');
       if (window) {
         this.chooseWindow(window);
         this.windows = [window, ...this.windows.filter((entry) => entry.handle !== window.handle)];

@@ -87,16 +87,6 @@ internal sealed class EditorPickerHost(Func<Window?> owner, IDeviceLayer devices
                         ? Result(colour.At.X, colour.At.Y, colour: colour.Colour.ToHex())
                         : EditorPickResult.Cancelled;
                 }
-            case EditorPickKind.WindowTitle:
-                {
-                    var match = Enum.TryParse<WindowMatch>(request.WindowMatch, ignoreCase: true,
-                        out var parsed) ? parsed : WindowMatch.Title;
-                    var picked = await WindowPickerWindow.PickAsync(window, match, devices.Windows);
-                    return picked is { Length: > 0 }
-                        ? new EditorPickResult(true, 0, 0, 0, 0, 0, 0, string.Empty,
-                            string.Empty, picked, string.Empty, string.Empty, [], [], string.Empty, false)
-                        : EditorPickResult.Cancelled;
-                }
             case EditorPickKind.Window:
                 {
                     using var aside = AppWindows.StepAside(window);

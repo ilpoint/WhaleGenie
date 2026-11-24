@@ -179,18 +179,8 @@ public class SettingsBridgeTests
         server.Register(new SettingsBridge(
             new SettingsViewModel(() => DriverInputState.Ready, project: project.Workspace,
                 markMenuChanged: project.MarkMenuChanged, system: project.SystemSwitch),
-            project.Workspace, WhaleGenie.Runtime.SharedDevices.Current,
-            new NoSettingsPickers(), changed));
+            project.Workspace, changed));
         return server;
-    }
-
-    private sealed class NoSettingsPickers : WhaleGenie.Bridge.ISettingsPickerHost
-    {
-        public Task<WhaleGenie.Models.MenuIconReference?> PickMenuIconAsync()
-            => Task.FromResult<WhaleGenie.Models.MenuIconReference?>(null);
-
-        public Task<WhaleGenie.Core.Devices.WindowInfo?> PickWindowAsync()
-            => Task.FromResult<WhaleGenie.Core.Devices.WindowInfo?>(null);
     }
 
     private static RecordingChannel Channel(BridgeServer server)

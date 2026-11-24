@@ -17,6 +17,7 @@ export interface ActionFieldHost {
   captureKey(event: KeyboardEvent): void;
   write(field: string, value: string): void;
   pick(name: string, mode: string): void;
+  openWindowList(): void;
   openWindowRule(field: EditorActionField): void;
   windowPick(name: string): void;
   openPad(name: string, index: number, mode: string): Promise<void>;
@@ -69,7 +70,7 @@ export function renderEditor(host: ActionFieldHost, field: EditorActionField): T
           <input .value=${field.value}
             @change=${(event: Event) => host.write('text', (event.target as HTMLInputElement).value)} />
           <button class="chip" type="button"
-            @click=${() => void host.pick(field.name, 'windowTitle')}>${t('Add.PickWindow')}</button>
+            @click=${() => host.openWindowList()}>${t('Add.PickWindow')}</button>
         </div>
       `;
     }

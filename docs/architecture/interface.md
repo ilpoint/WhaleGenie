@@ -95,8 +95,9 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 `theme.get/theme.set`，语言变化由 `strings.changed` 推回页面。C# 仍是唯一设置模型，页面不保存第二份
 设置文件；设置项一律即时生效并立即落盘。
 
-菜单规则和轮盘场景的窗口规则表单也在网页：`settings.windows.list` 提供当前打开的窗口，
-`settings.windows.pick` 只打开原生 `WindowPickWindow` 覆盖层取得一个窗口，规则本身由页面编辑后经
+菜单规则、轮盘场景和编辑器窗口标题字段共用一个窗口列表：`window.list` 由
+`WindowListBridge` 提供当前打开的窗口，网页的 `wg-window-list` 对话框挑一条；`window.pick` 只打开
+原生 `WindowPickWindow` 覆盖层取得一个窗口。规则本身由页面编辑后经
 `settings.menu.rule.*` / `settings.wheel.scene.*` 写回项目。轮盘的扇区动作在网页里选宏、备注和图标，
 位置坐标与扇区几何由 C# 的 `WheelGeometry` 算好后随快照返回，保证编辑器和实时轮盘不会各画一套。
 图标选择仍打开 `MenuIconPickerWindow`，因为它要在内置图标、图片文件和项目资源之间做桌面选择。

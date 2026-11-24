@@ -514,6 +514,26 @@ test('触发入口可添加并捕获按键', async ({ page }) => {
     .toBe(true);
 });
 
+test('窗口标题字段从网页窗口列表选择并写回', async ({ page }) => {
+  await openEditor(page);
+  await page.locator('wg-macro-settings select[aria-label="添加入口"]').selectOption({ label: '窗口' });
+  await page.locator('wg-macro-settings button.link-button', { hasText: '添加入口' }).click();
+  const fields = page.locator('wg-macro-settings .trigger-fields');
+  await expect(fields).toBeVisible();
+  await fields.locator('button', { hasText: '拾取窗口…' }).click();
+  const list = page.locator('wg-window-list');
+  await expect(list).toBeVisible();
+  await expect(list.locator('.window')).toHaveCount(2);
+  await list.locator('.window', { hasText: 'Calculator' }).click();
+  await list.locator('fluent-button', { hasText: '确定' }).click();
+  await expect(list).toHaveCount(0);
+  await expect(fields.locator('input').first()).toHaveValue('Calculator');
+  await expect.poll(() => called(page, 'window.list', {})).toBe(true);
+  await expect
+    .poll(() => called(page, 'editor.trigger', { kind: 'field', family: 'window', field: 'title' }))
+    .toBe(true);
+});
+
 test('热字串字符键盘和结束键格子可用', async ({ page }) => {
   await openEditor(page);
   await page.locator('wg-macro-settings select[aria-label="添加入口"]').selectOption({ label: '字串' });

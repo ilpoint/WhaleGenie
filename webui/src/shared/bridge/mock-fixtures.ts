@@ -105,6 +105,10 @@ export const demoWindows: WindowEntryState[] = [
     handle: 1, title: 'Untitled - Notepad', process: 'notepad', className: 'Notepad',
     detail: '800×600', summary: 'notepad · Notepad · 800×600',
   },
+  {
+    handle: 2, title: 'Calculator', process: 'calc', className: 'CalcFrame',
+    detail: '320×240', summary: 'calc · CalcFrame · 320×240',
+  },
 ];
 
 /** 菜单浮层：两页常见宏与一页默认上下文，够开发与 e2e 看见分页和空格子。 */

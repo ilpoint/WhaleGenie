@@ -22,17 +22,13 @@ internal sealed partial class SettingsBridge : IBridgeHandler
 {
     private readonly SettingsViewModel _settings;
     private readonly ProjectWorkspace _project;
-    private readonly IDeviceLayer _devices;
-    private readonly ISettingsPickerHost _pickers;
     private readonly Action _changed;
 
     internal SettingsBridge(SettingsViewModel settings, ProjectWorkspace project,
-        IDeviceLayer devices, ISettingsPickerHost pickers, Action? changed = null)
+        Action? changed = null)
     {
         _settings = settings;
         _project = project;
-        _devices = devices;
-        _pickers = pickers;
         _changed = changed ?? (() => { });
     }
 

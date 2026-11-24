@@ -92,8 +92,6 @@ export type BridgeMethod =
   | 'settings.wheel.scene.select'
   | 'settings.wheel.slot.set'
   | 'settings.wheel.update'
-  | 'settings.windows.list'
-  | 'settings.windows.pick'
   | 'strings.bundle'
   | 'surface.menu.activate'
   | 'surface.menu.block'
@@ -124,6 +122,8 @@ export type BridgeMethod =
   | 'window.close'
   | 'window.drag'
   | 'window.focus'
+  | 'window.list'
   | 'window.maximize'
   | 'window.minimize'
+  | 'window.pick'
   | 'window.pin';

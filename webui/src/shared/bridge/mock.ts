@@ -1,6 +1,7 @@
 import { demoMenu, demoSurfacePanel, demoSurfaceMenu, demoSurfaceWheel, demoWheel } from './mock-fixtures.js';
 import wordTables from './generated/strings.json';
 import { handleSettings } from './mock-settings.js';
+import { handleWindow } from './mock-window.js';
 import { handleRun } from './mock-run.js';
 import { handleShell } from './mock-shell.js';
 import { handleSurfaceMenu } from './mock-menu.js';
@@ -188,6 +189,8 @@ export class MockTransport implements BridgeTransport {
     try {
       if (method.startsWith('settings.')) {
         result = handleSettings(this, method, params);
+      } else if (method === 'window.list' || method === 'window.pick') {
+        result = handleWindow(method);
       } else if (method.startsWith('run.')) {
         result = handleRun(this, method, params);
       } else if (method === 'surface.panel.view') {
@@ -423,5 +426,4 @@ export class MockTransport implements BridgeTransport {
     queueMicrotask(() => this.receive?.(copy));
   }
 }
-
 

@@ -124,8 +124,6 @@
       LAYER1 TextBox.Field TextControl
       STATIC Border.Badge
       STATIC Border.Sunken
-      STATIC ListBox.List
-      STATIC ListBox.List.Boxed
       STATIC TextBlock.Body
       STATIC TextBlock.Caption
       STATIC TextBlock.Hint

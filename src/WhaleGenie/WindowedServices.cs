@@ -112,8 +112,9 @@ internal static class WindowedServices
                 main.Workspace.CurrentPath, main.MarkMenuChanged,
                 main.SystemSwitch, new MenuIconCatalogAdapter(),
                 sp.GetRequiredService<AppSettings>());
-            server.Register(new SettingsBridge(settings, main.Workspace, devices,
-                new SettingsPickerHost(() => sp.GetService<WebShellWindow>(), devices),
+            server.Register(new WindowListBridge(devices.Windows,
+                new WindowPickHost(() => sp.GetService<WebShellWindow>(), devices)));
+            server.Register(new SettingsBridge(settings, main.Workspace,
                 () =>
                 {
                     if (sp.GetService<WebShellWindow>()?.Actions is { } shell)

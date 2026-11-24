@@ -4,7 +4,6 @@ import type {
   SettingsWheelState,
   WindowRuleState,
 } from './protocol.js';
-import { demoWindows } from './mock-fixtures.js';
 import type { MockContext } from './mock-context.js';
 
 /** Settings-domain answers for the mock host. The transport routes by the settings. prefix. */
@@ -27,21 +26,6 @@ export function handleSettings(host: MockContext, method: string, params: Record
           }
           break;
         }
-        case 'settings.windows.list':
-          result = {
-            windows: demoWindows,
-            hows: [
-              { value: 'titleContains', label: '标题包含' },
-              { value: 'titleEquals', label: '标题等于' },
-              { value: 'process', label: '进程名包含' },
-              { value: 'class', label: '窗口类包含' },
-              { value: 'handle', label: '窗口句柄（当前实例）' },
-            ],
-          };
-          break;
-        case 'settings.windows.pick':
-          result = demoWindows[0];
-          break;
         case 'settings.menu.capture': {
           const binding = String(params['binding'] ?? '');
           host.settingsState = {

@@ -1,19 +1,15 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Runtime;
-using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
 
-// Window rules shared by the menu and the wheel: the open windows the page can choose from, the
-// one desktop pick that still needs a native overlay, and the rule shape both editors send back.
+// The rule shape both editors send back, read the same way whether it came from a menu rule or a
+// wheel scene.
 internal sealed partial class SettingsBridge
 {
     private static WindowRuleState RuleDto(WindowRule rule) => new(
@@ -80,67 +76,5 @@ internal sealed partial class SettingsBridge
             out number)
             ? number
             : 0;
-    }
-
-    private WindowRulePickerState WindowPickerState()
-    {
-        IReadOnlyList<WindowEntry> entries;
-        try
-        {
-            entries = WindowPickerViewModel.From(_devices.Windows);
-        }
-        catch (Exception)
-        {
-            entries = [];
-        }
-
-        var own = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? string.Empty);
-        return new WindowRulePickerState(
-            [.. entries
-                .Where(entry => !string.Equals(entry.Process, own, StringComparison.OrdinalIgnoreCase))
-                .Select(entry => new WindowEntryState(
-                    entry.Handle,
-                    entry.Title,
-                    entry.Process,
-                    entry.Class,
-                    entry.Detail,
-                    entry.Summary))],
-            [.. WindowHow.Values.Select((value, index) => new SettingsChoice(
-                value, Strings.Get($"WindowRule.How.{value}", WindowHow.Labels[index])))]);
-    }
-
-    private Task<object?> WindowPicker(JsonElement parameters)
-        => Task.FromResult<object?>(WindowPickerState());
-
-    private async Task<object?> PickWindow()
-    {
-        var window = await _pickers.PickWindowAsync();
-        if (window is null)
-        {
-            return null;
-        }
-
-        var process = string.Empty;
-        var className = string.Empty;
-        try
-        {
-            process = _devices.Windows.ProcessOf(window.Handle);
-            className = _devices.Windows.ClassOf(window.Handle);
-        }
-        catch (Exception)
-        {
-            // A window that stopped existing between the click and the read still has its
-            // title and handle; an empty process or class just means the rule uses the title.
-        }
-
-        return new WindowEntryState(
-            window.Handle,
-            window.Title,
-            process,
-            className,
-            $"{window.Size.Width}×{window.Size.Height}",
-            string.Join(" · ", new[] { process, className }
-                .Where(part => part.Length > 0)
-                .Append($"{window.Size.Width}×{window.Size.Height}")));
     }
 }

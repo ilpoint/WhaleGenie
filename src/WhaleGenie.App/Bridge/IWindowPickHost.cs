@@ -3,8 +3,8 @@ using WhaleGenie.Core.Devices;
 
 namespace WhaleGenie.Bridge;
 
-/// <summary>The native picker the settings page still opens: a desktop window.</summary>
-public interface ISettingsPickerHost
+/// <summary>The desktop overlay that takes one window by pointing at it.</summary>
+public interface IWindowPickHost
 {
     Task<WindowInfo?> PickWindowAsync();
 }

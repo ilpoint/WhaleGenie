@@ -3,13 +3,12 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using WhaleGenie.Bridge;
 using WhaleGenie.Core.Devices;
-using WhaleGenie.Models;
 using WhaleGenie.Views;
 
 namespace WhaleGenie.Views.Pickers;
 
-/// <summary>The native menu-icon and window pickers behind the settings bridge's port.</summary>
-internal sealed class SettingsPickerHost(Func<Window?> owner, IDeviceLayer devices) : ISettingsPickerHost
+/// <summary>The native window overlay behind the bridge's window pick.</summary>
+internal sealed class WindowPickHost(Func<Window?> owner, IDeviceLayer devices) : IWindowPickHost
 {
     public async Task<WindowInfo?> PickWindowAsync()
     {

@@ -4,6 +4,7 @@ import type {
   EditorActionField,
   EditorKeyPad,
   EditorWindowPreview,
+  WindowEntryState,
 } from '../../shared/bridge/protocol.js';
 import { emptyRule } from '../../shared/window-rule/window-rule-dialog.js';
 import type { WindowRuleState } from '../../shared/bridge/protocol.js';
@@ -15,6 +16,7 @@ import './value-field.js';
 import './action-rows.js';
 import './key-pad.js';
 import '../../shared/window-rule/window-rule-dialog.js';
+import '../../shared/window/window-list.js';
 
 /**
  * One field of an action draft. The field's kind and the buttons beside it come from the snapshot;
@@ -39,6 +41,9 @@ export class WgActionField extends LitElement {
 
   @state()
   livePreview: EditorWindowPreview | null = null;
+
+  @state()
+  private windowListOpen = false;
 
   private previewTimer = 0;
 
@@ -101,6 +106,11 @@ export class WgActionField extends LitElement {
             @wg-rule-submit=${(event: CustomEvent<WindowRuleState>) => void this.submitWindowRule(event)}
             @wg-rule-close=${() => { this.windowRuleField = null; }}></wg-window-rule>`
         : nothing}
+      ${this.windowListOpen
+        ? html`<wg-window-list
+            @wg-window-list-choose=${(event: CustomEvent<WindowEntryState>) => this.chooseWindowTitle(event)}
+            @wg-window-list-cancel=${() => { this.windowListOpen = false; }}></wg-window-list>`
+        : nothing}
       </div>
     `;
   }
@@ -115,6 +125,15 @@ export class WgActionField extends LitElement {
 
   pick(name: string, mode: string): void {
     void editor.action.pickAction(name, mode);
+  }
+
+  openWindowList(): void {
+    this.windowListOpen = true;
+  }
+
+  private chooseWindowTitle(event: CustomEvent<WindowEntryState>): void {
+    this.windowListOpen = false;
+    this.write('text', event.detail.title);
   }
 
   openWindowRule(field: EditorActionField): void {

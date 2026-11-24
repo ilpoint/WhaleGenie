@@ -3,7 +3,11 @@ import { macroSettingsCss } from './macro-settings-css.js';
 import { customElement, state } from 'lit/decorators.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
-import type { EditorCharacterPad, EditorTrigger } from '../../shared/bridge/protocol.js';
+import type {
+  EditorCharacterPad,
+  EditorTrigger,
+  WindowEntryState,
+} from '../../shared/bridge/protocol.js';
 import { keyboardChord } from '../../shared/input/capture.js';
 import { editor } from './editor-store.js';
 import { renderTriggerFields } from './triggers/trigger-fields.js';
@@ -11,6 +15,7 @@ import { renderSpecific } from './specific-render.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
 import './character-pad.js';
+import '../../shared/window/window-list.js';
 
 /**
  * Macro settings: the general half (name, description, group and the trigger entries) and the
@@ -33,6 +38,9 @@ export class WgMacroSettings extends LitElement {
 
   @state()
   private characterPad: EditorCharacterPad | null = null;
+
+  @state()
+  private windowListTrigger = '';
 
   private characterTrigger = '';
   private endCaptureTrigger = '';
@@ -179,6 +187,12 @@ export class WgMacroSettings extends LitElement {
             : nothing}
         </div>
         ${selected ? renderTriggerFields(this, selected) : nothing}
+        ${this.windowListTrigger
+          ? html`<wg-window-list
+              @wg-window-list-choose=${(event: CustomEvent<WindowEntryState>) =>
+                void this.chooseTriggerWindow(event)}
+              @wg-window-list-cancel=${() => { this.windowListTrigger = ''; }}></wg-window-list>`
+          : nothing}
         ${editor.get().snapshot?.triggerProblemSummary
           ? html`<p class="problem">${editor.get().snapshot?.triggerProblemSummary}</p>`
           : nothing}
@@ -203,6 +217,18 @@ export class WgMacroSettings extends LitElement {
     const trigger = editor.get().snapshot?.triggers.find((entry) =>
       entry.id === this.characterTrigger);
     return trigger?.hotstringText ?? '';
+  }
+
+  openWindowList(trigger: EditorTrigger): void {
+    this.windowListTrigger = trigger.id;
+  }
+
+  private async chooseTriggerWindow(event: CustomEvent<WindowEntryState>): Promise<void> {
+    const trigger = this.windowListTrigger;
+    this.windowListTrigger = '';
+    if (trigger.length > 0) {
+      await editor.triggers.setTriggerWindow(trigger, 'title', event.detail.title);
+    }
   }
 
   async openCharacterPad(trigger: EditorTrigger): Promise<void> {

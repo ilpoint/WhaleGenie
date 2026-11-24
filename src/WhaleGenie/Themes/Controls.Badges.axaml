@@ -77,7 +77,7 @@
       `AccentSurface` + `AccentText` 两套都是 5.7:1。这不是偏好，是第 9 节那条底线。
 
       边是 1px，静息就占着（透明），选中才亮出来：选中因此有底、字、边框三重信号，尺寸一次都不动。
-      态写在模板的 `ContentPresenter` 上——这是 `ListBoxItem` 一族画底的地方，与 `ListBox.List` 同一条。
+      态写在模板的 `ContentPresenter` 上——这是 `ListBoxItem` 一族画底的地方。
     -->
 
 
@@ -100,75 +100,11 @@
     -->
 
 
-    <!--
-      列表一族：四个壳 + 两种行。
-
-      **态画在模板的 `ContentPresenter` 上，不是 `ListBoxItem` 自身。** `ListBoxItem*` 没有层 1
-      可覆盖的键，所以这一族必须自己写；而写在自身上的话语法合法、编译通过，屏幕上什么都不发生
-      ——这是"读错观察点"的写侧版本。Fluent 的模板把行的底与边框画在 `ContentPresenter` 上，
-      所以选择器一律 `/template/ ContentPresenter`。
-
-      选择器用后代（空格）还是子代（`>`）都能用——**别按视觉树推断**。`>` 看的是**逻辑父级**，
-      而 `ListBoxItem` 的逻辑父级就是 `ListBox`（容器是 `ItemsControl` 的逻辑子元素，面板只是视觉父级）。
-      这一节原先写的是"写 `>` 匹配不到"，**实测是错的**（`GlobalVariablesWindow` 的 `FilterList`
-      用 `>` 写的那几条逐项生效）。要判一条行样式活没活，读行上的属性，别按树推。
-
-      `.Bare` 不是可选项：`Border.Card.*` 放进 `ListBoxItem` 之后两层都会画底（行有 hover/selected
-      底、卡片自己也有），所以先有"行全透明"这一档，卡片才敢往里放。写 `Border.Card.*` 之前先确认
-      `.Bare` 在。
-    -->
 <!--
       **样式只管外观，尺寸留给元素。** 分隔条的朝向是**布局决定的**：竖条有宽、横条有高。
       样式统一给 `Width=6` 必然错一半——横向条会被压成 6px 宽，可抓的地方缩成中间一小条，
       **而且不报任何错**。宽高属于"使用场景"，不属于"外观"。
     -->
-
-
-
-    <Style Selector="ListBox.List">
-        <Setter Property="Padding" Value="{DynamicResource Pad0}" />
-        <Setter Property="Background" Value="Transparent" />
-    </Style>
-
-    <Style Selector="ListBox.List ListBoxItem">
-        <Setter Property="MinWidth" Value="0" />
-        <!-- 下限而不是定高：一行文字的行是 32，而步骤行有两行字、还有换行的时候。写死高度的地方，
-            多出来的那一行就压到卡片边线下面去了（看起来像"字被边框挡住"）。 -->
-        <Setter Property="MinHeight" Value="32" />
-        <Setter Property="Padding" Value="{DynamicResource PadRow}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
-    </Style>
-    <!--
-      选中态左侧有一条 2px 的指示条，所以**静息态就要把同样粗细的透明边框占上**：不占的话，选中
-      那一刻内容会右移 2px。位置跳动在截图里永远看不出来，只有并排对比才看得见。
-      规则见文件头第 5 条：态只改颜色，不改尺寸。
-    -->
-    <Style Selector="ListBox.List ListBoxItem /template/ ContentPresenter">
-        <Setter Property="BorderThickness" Value="2,0,0,0" />
-        <Setter Property="BorderBrush" Value="Transparent" />
-    </Style>
-    <Style Selector="ListBox.List ListBoxItem:pointerover /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource OverlayHover}" />
-    </Style>
-    <Style Selector="ListBox.List ListBoxItem:pressed /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource OverlayPressed}" />
-    </Style>
-    <Style Selector="ListBox.List ListBoxItem:selected /template/ ContentPresenter">
-        <Setter Property="Background" Value="{DynamicResource AccentSurface}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource AccentText}" />
-    </Style>
-    <Style Selector="ListBox.List ListBoxItem:disabled /template/ ContentPresenter">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabled}" />
-    </Style>
-
-    <Style Selector="ListBox.List.Boxed">
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderControl}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource RadiusControl}" />
-        <Setter Property="Padding" Value="{DynamicResource Pad1}" />
-        <Setter Property="Background" Value="{DynamicResource SurfaceWindow}" />
-    </Style>
 
     <!--
       胶囊一档靠描边站住，不靠底色差：胶囊底与它所在的面板同值之后，"两个填充之间的亮度差"这条
@@ -180,20 +116,6 @@
 
 
 
-    <!-- 全透明的一档：行的六个态都不画底，外观交给放进来的子元素。 -->
-
-
-
-
-
-
-
-    <!--
-      带行距的一档：卡片放进 `List` 里时，行与行之间要留一道缝，而 `ListBox` 没有 `Spacing`
-      （`ItemsControl` 的宿主是面板，我们拿不到它的一致入口），所以行距只能长在 `ListBoxItem` 上。
-      末行也多出这 6px——那是这一档的代价，比"每个窗口自己写一条 Margin"便宜。
-      6 是数字不是令牌：它是这一族内部的一次决定，跟"高度允许族定义里写一次"同一条规矩。
-    -->
 
 
     <!-- 步骤树：一行就是一步，30 够装图标、名称、徽标与一句截断的摘要。展开箭头由树控件画，

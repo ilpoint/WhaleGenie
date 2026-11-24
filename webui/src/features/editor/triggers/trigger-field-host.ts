@@ -8,5 +8,5 @@ export interface TriggerFieldHost {
   openCharacterPad(trigger: EditorTrigger): Promise<void>;
   beginEndCapture(trigger: EditorTrigger): void;
   beginInterfaceCapture(trigger: EditorTrigger): void;
+  openWindowList(trigger: EditorTrigger): void;
 }
-

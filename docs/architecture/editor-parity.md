@@ -23,7 +23,7 @@
 | 颜色点拾取、颜色/必须不是/容差 | action-rows.ts、editor.actionLook(colours) | 本轮补齐 |
 | 偏移点选 | action-page.ts、editor.actionLook(offset) + LookPickWindow | 本轮补齐 |
 | 点位/框选/窗口位置尺寸 | editor.actionPick + 原生覆盖层 | 已有 |
-| 窗口文本字段选择 | WindowPickerWindow + editor.actionPick(windowTitle) | 本轮补齐 |
+| 窗口文本字段选择 | wg-window-list、window.list + 网页对话框 | 已搬网页 |
 | 窗口规则匹配方式/内容/句柄/预览 | wg-window-rule、editor.actionWindowPreview | 本轮补齐 |
 | 窗口“本宏用过的/打开的/捕获/沿用/前台” | action-field.ts、editor.actionWindow* | 已接基本路径，规则对话框覆盖完整编辑 |
 | UIA 元素拾取/测试 | ElementPickerWindow、ElementFlash、editor.actionTestElement | 本轮补齐 |
@@ -39,7 +39,7 @@
 
 - **step-tree.ts**：步骤列表和引导线，本轮保留并增强。
 - 旧 Avalonia 的 ActionEditorView.*、MacroEditorViewModel 仍是有用的行为参考；不因为网页有同名实现就删除其 C# 模型。
-- 旧键盘窗口和字符串键盘窗口不恢复为原生窗口：网页的 key-pad.ts、character-pad.ts 是替代实现；原生 LookPickWindow、WindowPickerWindow、区域/颜色/点位/UIA 覆盖层仍作为桌面覆盖层保留。
+- 旧键盘窗口和字符串键盘窗口不恢复为原生窗口：网页的 key-pad.ts、character-pad.ts 是替代实现；原生 LookPickWindow、WindowPickWindow、区域/颜色/点位/UIA 覆盖层仍作为桌面覆盖层保留。
 
 ## 没有消费点时的处理
 

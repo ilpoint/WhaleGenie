@@ -14,8 +14,6 @@ internal sealed partial class SettingsBridge
 {
     private void RegisterMenu(BridgeServer server)
     {
-        server.Register("settings.windows.list", WindowPicker);
-        server.Register("settings.windows.pick", _ => PickWindow());
         server.Register("settings.menu.capture", CaptureMenuLauncher);
         server.Register("settings.menu.clear", _ => Task.FromResult<object?>(ClearMenuLauncher()));
         server.Register("settings.menu.rule.add", AddMenuRule);

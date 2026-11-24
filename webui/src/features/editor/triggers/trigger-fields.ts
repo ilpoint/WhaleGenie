@@ -137,14 +137,21 @@ export function renderTriggerFields(host: TriggerFieldHost, trigger: EditorTrigg
     } else if (trigger.kind === 'Window' || trigger.kind === 'Interface') {
       const isWindow = trigger.kind === 'Window';
       fields.push(html`
-        <label class="field">
+        <div class="field">
           <span>${t('WindowPart.Title')}</span>
-          <input .value=${isWindow ? trigger.windowTitle : trigger.interfaceTitle}
-            @change=${(event: Event) => void (isWindow
-              ? editor.triggers.setTriggerWindow(trigger.id, 'title', (event.target as HTMLInputElement).value)
-              : editor.triggers.setTriggerInterface(trigger.id, 'title',
-                (event.target as HTMLInputElement).value))} />
-        </label>
+          <div class="inline">
+            <input .value=${isWindow ? trigger.windowTitle : trigger.interfaceTitle}
+              @change=${(event: Event) => void (isWindow
+                ? editor.triggers.setTriggerWindow(trigger.id, 'title',
+                  (event.target as HTMLInputElement).value)
+                : editor.triggers.setTriggerInterface(trigger.id, 'title',
+                  (event.target as HTMLInputElement).value))} />
+            ${isWindow
+              ? html`<button class="link-button" type="button"
+                  @click=${() => host.openWindowList(trigger)}>${t('Add.PickWindow')}</button>`
+              : nothing}
+          </div>
+        </div>
         <label class="field">
           <span>${t('WindowRule.Process')}</span>
           <input .value=${isWindow ? trigger.windowProcess : trigger.interfaceProcess}

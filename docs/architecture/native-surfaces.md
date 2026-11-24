@@ -27,7 +27,6 @@
 | 点位覆盖层 | `Views/Pickers/PointPickerWindow` | 十字线、UIA 描边与窗口坐标基准只能在桌面上取 |
 | UIA 元素覆盖层 | `Views/Pickers/ElementPickerWindow` | 跨进程 UI Automation 命中测试与描边 |
 | 窗口拾取覆盖层 | `Views/Pickers/WindowPickWindow` | 跟着指针框住桌面上任意窗口，必须跨进程读窗口；规则表单已在网页 |
-| 窗口列表选择 | `Views/Pickers/WindowPickerWindow` | 按标题/进程/窗口类列出打开的窗口，供普通窗口文本字段选择匹配值 |
 | 偏差点选覆盖层 | `Views/Pickers/LookPickWindow` | 在步骤刚看到的取景图上点偏移或颜色点，含放大镜、缩放和备选色 |
 | 元素测试框 | `Views/Common/ScreenFrameWindow`、`Views/Run/ElementFlash` | UIA 元素测试需要跨进程框出控件；动作仍不执行 |
 | 浏览器选择 | `Views/Pickers/BrowserPicker` | 列出本机浏览器配置并打开目标浏览器，属于桌面能力 |
@@ -43,5 +42,5 @@
 
 编辑器、动作编辑、取值、全局/局部变量、设置主窗、高级设置窗、主题调色板、原生关于窗、原生轮盘
 动作编辑窗和运行调试窗已全部删除；对应的窗口用例随窗口退役。动作字段的桌面拾取器随后以覆盖层形式
-恢复，入口改由网页桥命令打开；偏差点选、窗口列表选择和 UIA 元素测试框也保留在同一侧。编辑、设置、轮盘规则与运行行为由 `HeadlessEditorSession`、
+恢复，入口改由网页桥命令打开；偏差点选与 UIA 元素测试框也保留在同一侧；按标题/进程/窗口类列出窗口的列表已搬到网页，由 `window.list` 与 `wg-window-list` 提供。编辑、设置、轮盘规则与运行行为由 `HeadlessEditorSession`、
 `SettingsViewModel`、`RunViewModel` 的 C# 用例和网页用例覆盖。
