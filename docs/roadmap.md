@@ -16,23 +16,18 @@
 
 阶段按顺序实施。每一阶段只解决一类问题，完成后删除本节对应内容。
 
-### 界面迁移到网页壳
+### 界面迁移到网页壳（已完成，余下只有真机验收）
 
-**实现状态（2026-11）**：网页壳、编辑器、设置、运行面板与三块运行期浮层都已迁完，原生只剩
-拾取器、后台问话与宿主。剩余三项：
+**实现状态（2026-11）**：网页壳、编辑器、设置、运行面板、三块运行期浮层、窗口列表与导入导出向导
+都已迁完；拾取器决定长期保留原生（理由见
+[native-surfaces.md](architecture/native-surfaces.md#拾取器为什么不再迁2026-11-决定)）；mock 的纯数据
+已外置到 `webui/src/shared/bridge/data/`，行为桩留在 `mock-*.ts`（不再以行数作为目标，见
+[dev/webui.md](dev/webui.md) 的 mock 段落）。
 
-- **tier-1 拾取覆盖层的成本测量与决策**：取色、区域、点位、UIA、窗口与偏差点选仍是原生 Avalonia
-  覆盖层（`Views/Pickers`，32 个文件 6,732 行）。先在真机测把它们换成透明网页浮层的成本——冷/热
-  首帧、指针跟随延迟、键盘焦点、100–200% DPI 与多屏落点——再决定迁哪几个；测量前不承诺迁移。
-- **P9 mock 收缩**（行数按仓库规模台账口径，含空行）：纯数据已外置到
-  `webui/src/shared/bridge/data/`（9 份 JSON，约 51 KB），mock*.ts 由 5,841 降到 26 个文件
-  4,837 行，其中编辑器 mock 16 个文件 3,364 行。剩下的是命令分派与状态机，继续压缩会改行为；
-  下一步评估能否在保持 e2e（`editor.spec.ts`，820 行）覆盖的前提下低于 3,500。收缩时原 C0 的编辑器门禁仍按聚合命令核对：
-  `editor.session`、`editor.steps`、`editor.step`、`editor.sessionState`、`editor.sessionTabs`、
-  `editor.sessionActions`。
-- **真机验收清单**：游戏全屏与无边框全屏、多屏（含负坐标）、DPI 125/150/200%、菜单/轮盘/面板的
-  打开与跟随、拾取器在 150% DPI 下的读数，只能由使用者完成；清单与现有测量见
-  [surfaces-migration.md](architecture/surfaces-migration.md) §3 与 §5。
+剩下只有真机验收：游戏全屏与无边框全屏、多屏（含负坐标）、DPI 125/150/200%、菜单/轮盘/面板的
+打开、跟随与置顶顺序（先让置顶程序在前再呼出）、拾取器在 150% DPI 下的读数。清单与现有测量见
+[surfaces-migration.md](architecture/surfaces-migration.md) §3 与 §5，逐项做法见
+[dev/validation.md](dev/validation.md)。
 
 ## 待评估
 
@@ -40,32 +35,20 @@
 
 ### 结构与诊断
 
-- **测试与真机共用设置文件**：无头测试与用户运行的程序都会读写 `%LOCALAPPDATA%\WhaleGenie\settings.json`（`AppPaths.State` 是不可重定向的固定路径）。网页桥测试已改为注入 no-op 记忆动作，不再写真实文件；仍用 MainViewModel 的窗口侧测试会写。升级为阶段前先取得污染面测量：列出所有写 `LocalSettings` 的测试与写进真实文件的字段，再决定是让 `AppPaths` 可重定向、还是测试装配统一接管。
-
 - **无界面命令行**：`Models/`、`Storage/`、`Localization/` 已出界面工程，但只服务 MCP 与包读写；
   仍不新增 CLI 入口，除非出现 CI 批量验包、脚本生成宏等真实调用方。
 - **MCP 工具发现与审计登记**：工具类型和审计调用仍有手工登记点。先通过故障注入确认漏登记能否被
   现有测试发现，再决定是否采用自动发现或统一拦截。
-
-### 用词
-
-- **术语统一（已统计，尚未换代）**：按 2026-11-24 的实测，界面文案里「快捷键」16 行、ActionStrings 5 行，
-  「热键」Strings 3 行、manual 5 行、其它文档 29 行；屏幕侧「抓屏」只出现在文档 7 行，用户文案用
-  「屏幕捕获」1 行，「截图」在 ActionStrings 7 行、manual 21 行。但「图片」（Strings 33 / ActionStrings
-  35 / manual 51）与「画面」（Strings 34 / ActionStrings 66 / manual 69）多数不是同一概念：图片指参考
-  图，画面指抓到的帧。换代的前提是先按概念列出替换表（每个概念一个词），而不是按字面合并同义词；
-  验收要给出替换表、涉及的动作字段与失败键，并同步 `docs/manual/` 各篇与 `ActionStrings`。
+- **文件读写失败细分与撞名策略**（见下节两条）：要动 `ActionSemantics.json`、`RunVocabulary` 与
+  引擎，归属 vendored 的 `core/` 仓库，按 AGENTS.md 的 subtree 规则在那边立项，不在这里改。
 
 ### 动作与编辑器表达
 
-- **询问与说明的重复入口**：评估 `control.ask` 与 `control.input`、`control.note` 与步骤备注的
-  实际使用差异，再决定合并或保留。
-- **变量写入动作数量**：评估 `setVariable`、全局累计和列表写入动作在动作库中的搜索与选择成本，
-  不仅为减少动作数量而合并。
-- **子宏入口**：评估子宏 Dock 的导航与插入用途；只有页面导航已有等价入口且使用数据支持时才移除。
-- **程序族的命令行预览**：`process.start` / `command.run` 的程序、参数、工作目录是并列三格，编辑期
-  看不到拼起来的命令。前提是先定预览里要不要把变量的名字显示出来；验收是两格各自改动后预览跟着变、
-  参数为空时不画这一行。
+2026-11 收尾时决定保留现状的三项：`control.ask`（等回答）与 `control.input`（读字段）是两种交互，
+`control.note` 进运行日志而步骤备注只属于编辑态；变量写入的多个动作按目标不同分开；子宏 Dock 已有
+页面入口。`process.start` / `command.run` 的选择是**不做**编辑期命令行预览——引擎按三个字段取值，
+预览只能显示拼好的字面量，无法诚实表示变量。
+
 - **列表动作的行表**：`control.listAdd` / `listInsert` / `listSet` 只有一格 `value`，`control.forEach`
   的 `items` 也只有一格整值，编辑期看不见目标列表里已有什么、也不能一次给多项。前提是先弄清「看见已有
   条目」与「一次给多项」是不是同一件事；验收要有真实宏说明需要哪一种。
