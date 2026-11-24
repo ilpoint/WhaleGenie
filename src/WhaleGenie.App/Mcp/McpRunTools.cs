@@ -54,6 +54,7 @@ public sealed class McpRunTools
         _devices = devices;
     }
 
+    [McpAudited("run {name}")]
     [McpServerTool(Name = "whalegenie_run_macro", Destructive = true,
             Title = "Run a macro"),
      Description("Runs one macro and answers with how it ended and what every step worked out. Needs the person to have turned on \"Allow the AI to run macros\"（允许 AI 运行宏） in the WhaleGenie MCP flyout, which is a different switch from \"Allow direct control\"（允许直接控制）; without it the call is refused with RunNotAllowed. Pass a draftId to run the draft's version, which is how a change is tried before it is applied. A run already going makes this one refuse with RunBusy. The answer carries the run's id, which stop_macro takes and run_status reports. Set wait to false for a macro that takes longer than a call should: the answer comes back at once with status Started, and the same id is then read with run_status or ended with stop_macro.")]
@@ -66,7 +67,6 @@ public sealed class McpRunTools
         {
             if (!McpControl.AllowsRun)
             {
-                McpAudit.Note("run_macro", "refused", McpErrors.RunNotAllowed);
                 return McpErrors.Fail(McpErrors.RunNotAllowed,
                     "Running a macro is not allowed right now, so nothing was run.",
                     "Ask the person to turn on \"Allow the AI to run macros\"（允许 AI 运行宏） in the WhaleGenie MCP flyout. It is a separate switch from \"Allow direct control\"（允许直接控制）, and a running server reads it before every call, so nothing has to be restarted.");
@@ -183,7 +183,6 @@ public sealed class McpRunTools
                     finally
                     {
                         capture.Finish(result, ended);
-                        McpAudit.Note("run_macro", $"{runName} {ended}");
 
                         lock (Gate)
                         {
@@ -213,7 +212,9 @@ public sealed class McpRunTools
                     }
                     catch (Exception error) when (error is not OutOfMemoryException)
                     {
-                        McpAudit.Note("run_macro", $"{runName} stopped on {error.GetType().Name}");
+                        // The call already answered "Started" and its line is written; how the run
+                        // ended is in the run log. A task nobody awaits must still not leave the
+                        // exception unobserved.
                     }
                 });
 
@@ -240,6 +241,7 @@ public sealed class McpRunTools
             }
         });
 
+    [McpAudited("stop {runId}")]
     [McpServerTool(Name = "whalegenie_stop_macro", Destructive = true,
             Title = "Stop a run"),
      Description("Asks the run that is going to stop. A step already under way finishes or gives up on its own timeout; everything after it is skipped, and the run ends as Stopped.")]
@@ -265,11 +267,11 @@ public sealed class McpRunTools
             }
 
             _running.Cancel();
-            McpAudit.Note("stop_macro", _runningId);
             return Task.FromResult(McpErrors.Ok(new { stopped = _runningId }));
         }
     }
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_run_status", ReadOnly = true,
             Title = "What is running"),
      Description("Says whether a run is going right now and what it is, so a client can tell a stopped run from one that never started.")]

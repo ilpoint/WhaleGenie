@@ -25,6 +25,7 @@ public sealed partial class McpTools
     /// is saved — so it is written here, not inside a draft, and it is behind the same switch as
     /// anything else that puts something on this machine.
     /// </summary>
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_put_image", Destructive = true,
             Title = "Store an image for a macro"),
      Description("Stores an image in the project's assets folder and answers with the name a step points at. Give the bytes (base64) or a file on this machine (path). A step uses it in a parameter called image, for example {\"image\":\"shot.png\"}; the file travels with the package when the project is saved.")]

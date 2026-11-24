@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -319,6 +320,73 @@ public class McpRunTests : IDisposable
 
             return true;
         });
+    }
+
+    /// <summary>
+    /// The run tools reach the machine, so each call leaves one line: the macro it ran and the run
+    /// it stopped. The line comes from the declaration the method carries, which is what makes a
+    /// tool that touches the machine record itself in one place instead of in the body.
+    /// </summary>
+    [Fact]
+    public void Run_and_stop_each_write_one_audit_line()
+    {
+        Ui.RunAsync(async () =>
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+                "mcp-audit-" + Guid.NewGuid().ToString("N"));
+            var original = McpAudit.Folder;
+            McpAudit.Folder = folder;
+            _gate.Run = true;
+            try
+            {
+                await using var loop = McpLoopback.Start(new MainViewModel());
+                await using var client = await loop.ConnectAsync();
+
+                var draft = await Draft(client);
+                await Put(client, draft, """
+                    {"name":"留痕","steps":[{"type":"control.delay","params":{"ms":"1200"}}]}
+                    """);
+
+                var started = JsonDocument.Parse(await Call(client, "whalegenie_run_macro",
+                    new Dictionary<string, object?>
+                    {
+                        ["name"] = "留痕",
+                        ["draftId"] = draft,
+                        ["wait"] = false,
+                    })).RootElement;
+                var runId = started.GetProperty("runId").GetString()!;
+                Assert.False(string.IsNullOrEmpty(runId));
+
+                await Call(client, "whalegenie_stop_macro",
+                    new Dictionary<string, object?> { ["runId"] = runId });
+
+                await loop.StopAsync();
+
+                var lines = File.ReadAllLines(McpAudit.File);
+                var ran = Assert.Single(lines, line => Tool(line) == "whalegenie_run_macro");
+                Assert.Contains("run 留痕", ran, StringComparison.Ordinal);
+
+                var stopped = Assert.Single(lines, line => Tool(line) == "whalegenie_stop_macro");
+                Assert.Contains("stop " + runId, stopped, StringComparison.Ordinal);
+            }
+            finally
+            {
+                McpAudit.Folder = original;
+                _gate.Run = false;
+                if (Directory.Exists(folder))
+                {
+                    Directory.Delete(folder, true);
+                }
+            }
+
+            return true;
+        });
+
+        static string Tool(string line)
+        {
+            var fields = line.Split('\t');
+            return fields.Length > 1 ? fields[1] : string.Empty;
+        }
     }
 
     private static async Task<string> Draft(McpClient client)

@@ -21,6 +21,7 @@ namespace WhaleGenie.Mcp;
 [McpServerToolType]
 public sealed class McpRunLogTools
 {
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_list_runs", ReadOnly = true,
             Title = "List the last runs"),
      Description("Lists the last runs WhaleGenie performed, newest first, with the total. A run comes from the person pressing Run, from a trigger, or from whalegenie_run_macro.")]
@@ -37,6 +38,7 @@ public sealed class McpRunLogTools
         }));
     }
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_get_run_log", ReadOnly = true,
             Title = "Read one run's log"),
      Description("Returns one run's log and step outcomes, or the latest run when no id is given. A long log is cut off and says so: totalLines is what the run wrote, returned is what came back.")]
@@ -103,6 +105,7 @@ public sealed class McpRunLogTools
         }));
     }
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_get_last_failure_log", ReadOnly = true,
             Title = "Read the newest failure log"),
      Description("Returns the newest failure log WhaleGenie wrote, or the one at a path an earlier answer named. Only files a failed run writes are read: the call log the server keeps is not one of them.")]

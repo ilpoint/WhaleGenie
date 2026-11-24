@@ -65,10 +65,17 @@
 控制权限。
 
 `WhaleGenie.Mcp` 保存协议宿主、草稿、补丁、预览与项目编辑工具，不引用 Avalonia；`McpLiveProject`
-是 `IProjectGateway` 的调度器实现，留在应用层（`WhaleGenie.App`），`McpPreview` 提供应用前差异。`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。
-工具类型由 `AppServices` 注册，并由它作为 tool owner 列表交给 `McpServerHost`；机器控制、运行宏
-与运行日志工具留在应用层（`WhaleGenie.App`），项目编辑工具在 `WhaleGenie.Mcp`。新增工具须在组合根登记并验证
-`tools.list`。`--mcp` 在 Avalonia 之前运行：窗口化运行注册 Avalonia 的调度器与窗口让位，无窗口运行注册直接调度器与“没有窗口可让”的实现，因此协议、草稿与控制工具都不需要启动界面框架。
+是 `IProjectGateway` 的调度器实现，留在应用层（`WhaleGenie.App`），`McpPreview` 提供应用前差异。
+`McpTolerantTool` 统一处理参数形状错误，`McpErrors` 提供稳定拒绝码。工具靠扫描发现：`McpServerHost`
+接收要扫描的两个程序集（`WhaleGenie.Mcp` 与 `WhaleGenie.App`），反射找出带 `[McpServerTool]` 方法的
+类型并逐个从容器取实例——容器里有就取注册的那份，没有就用 `ActivatorUtilities.CreateInstance` 按
+构造参数现建，同一类型只取一次。机器控制、运行宏与运行日志工具留在应用层（`WhaleGenie.App`），
+项目编辑工具在 `WhaleGenie.Mcp`；组合根只登记它们需要的依赖，不再维护 owner 清单。新增工具就是写
+方法与声明：方法上加 `[McpReadOnly]`（只看不记）或 `[McpAudited(...)]`（记一行），两者都没有或同时
+出现时宿主拒绝启动，`tools.list` 由对账用例核对。
+
+`--mcp` 在 Avalonia 之前运行：窗口化运行注册 Avalonia 的调度器与窗口让位，无窗口运行注册直接调度器
+与“没有窗口可让”的实现，因此协议、草稿与控制工具都不需要启动界面框架。
 
 `McpResources` 提供动作目录、动作矩阵、项目与宏资源。当前不声明资源订阅，客户端通过修订号判断
 缓存是否失效。`RunFactory` 复用普通运行路径，MCP 运行宏仍受单运行限制。工具拒绝统一返回稳定 `code`、
@@ -93,4 +100,9 @@
 它验证协议面，不替代引擎测试或真实桌面验收。
 
 `McpAudit` 将改变状态、操作机器或导出完整图像的调用写入 `logs/mcp-YYYY-MM-DD.log`。文本输入只记录
-长度。新增此类工具时必须明确审计行为，失败日志与 MCP 审计按文件名前缀区分。
+长度，只读调用不写行；格式是时间、工具、摘要、结果四段制表符分隔，失败日志与 MCP 审计按文件名前缀区分。
+审计靠声明：`[McpAudited("run {name}")]` 由统一拦截器 `McpAuditedTool` 在 `McpTolerantTool` 外层调用后补一行，
+模板里的 `{参数名}` 取本次请求的参数，数组与对象写成数量、字符串截短，失败时结果写拒绝码；
+`[McpAudited(Handled = true)]` 表示工具体内自己写行、拦截器不重复写。`McpToolCensusTests` 核对每个方法恰好
+一种声明并与 `tools.list` 对账，`McpAuditTests` 核对拦截器写行与声明规则，`McpRunTests` 核对 run 与
+stop 各写一行。

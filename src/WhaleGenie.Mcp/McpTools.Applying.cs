@@ -19,6 +19,7 @@ namespace WhaleGenie.Mcp;
 // What a draft would do: validating it, previewing the change, applying it, and saving the package.
 public sealed partial class McpTools
 {
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_validate", ReadOnly = true,
             Title = "Check a draft"),
      Description("Checks every macro in a draft against the action catalogue, including hidden actions and each child list's childKeys, and the interface declarations. Blocking problems stop apply; hints never do. Every problem names the macro and, where there is one, the step id it came from.")]
@@ -27,6 +28,7 @@ public sealed partial class McpTools
         => McpErrors.RunAsync(async () => McpErrors.Ok(
             Shape(await Ui(() => McpDraftStore.Validate(drafts.Get(draftId))))));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_preview_apply", ReadOnly = true,
             Title = "See what apply would change"),
      Description("Says what whalegenie_apply would change, before anything is written: macros that appear, disappear or change (and for a changed one the steps that came, went, moved, or no longer say the same thing), plus the global declarations that move. The validation verdict comes with it, so one call answers whether this draft is worth applying.")]
@@ -53,6 +55,7 @@ public sealed partial class McpTools
             });
         });
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_apply", Destructive = true,
             Title = "Apply a draft to the project"),
      Description("Writes a draft back into the open project. It refuses a draft the validator calls blocking, because a macro that cannot run is not worth putting in front of the person; pass force to write it anyway. It does not save the package.")]
@@ -97,6 +100,7 @@ public sealed partial class McpTools
             });
         });
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_save_project", Destructive = true,
             Title = "Save the package"),
      Description("Saves the open project to its current .wgmacro package, after keeping a .bak copy.")]

@@ -19,6 +19,7 @@ namespace WhaleGenie.Mcp;
 // Opening the project a client works on, the drafts it has open, and reading a picture beside it.
 public sealed partial class McpTools
 {
+    [McpAudited("opened a draft")]
     [McpServerTool(Name = "whalegenie_open_project",
             Title = "Open a draft"),
      Description("Takes a snapshot of the open project and returns a draft id for editing it. Everything is edited through that id; nothing reaches the window until apply. A session holds at most eight drafts: opening one more drops the oldest that was already applied, and says which in dropped; with none applied the call is refused with TooManyDrafts rather than losing work.")]
@@ -40,6 +41,7 @@ public sealed partial class McpTools
             });
         });
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_list_drafts", ReadOnly = true,
             Title = "List the drafts that are open"),
      Description("Lists the drafts this server is holding: the id, the project each was taken from, when it was taken, how many macros it holds and whether it has been applied. A draft is dropped when the server stops or when it is discarded, so this is the answer to \"what is still pending\".")]
@@ -62,6 +64,7 @@ public sealed partial class McpTools
             });
         });
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_read_picture", ReadOnly = true,
             Title = "Read a picture a macro saved"),
      Description("Returns a PNG that a step saved, as an image. Only files inside the project folder or the log folder are read: this is for looking at what a capture step produced, not for reading any file on the machine.")]

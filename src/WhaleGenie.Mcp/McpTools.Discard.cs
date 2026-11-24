@@ -8,6 +8,7 @@ namespace WhaleGenie.Mcp;
 // Dropping a draft that will not be applied.
 public sealed partial class McpTools
 {
+    [McpAudited("drop draft {draftId}")]
     [McpServerTool(Name = "whalegenie_discard", Destructive = true,
             Title = "Discard a draft"),
      Description("Drops a draft. Applied changes already in the project stay there and can still be saved by the person.")]

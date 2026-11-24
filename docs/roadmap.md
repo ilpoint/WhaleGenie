@@ -37,8 +37,6 @@
 
 - **无界面命令行**：`Models/`、`Storage/`、`Localization/` 已出界面工程，但只服务 MCP 与包读写；
   仍不新增 CLI 入口，除非出现 CI 批量验包、脚本生成宏等真实调用方。
-- **MCP 工具发现与审计登记**：工具类型和审计调用仍有手工登记点。先通过故障注入确认漏登记能否被
-  现有测试发现，再决定是否采用自动发现或统一拦截。
 - **文件读写失败细分与撞名策略**（见下节两条）：要动 `ActionSemantics.json`、`RunVocabulary` 与
   引擎，归属 vendored 的 `core/` 仓库，按 AGENTS.md 的 subtree 规则在那边立项，不在这里改。
 

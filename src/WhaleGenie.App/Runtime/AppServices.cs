@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
@@ -11,7 +12,7 @@ namespace WhaleGenie;
 
 /// <summary>
 /// What every kind of run wires up, whether or not a window is ever shown: the project, the shared
-/// variables, the draft store, the tools the MCP server is handed, and the triggers. It is one place
+/// variables, the draft store, what the MCP tools are built from, and the triggers. It is one place
 /// because a run that had to carry one more thing had to be changed in three, and the one that got
 /// missed failed in a way that read like the macro's own fault.
 /// </summary>
@@ -50,19 +51,27 @@ internal static class AppServices
             NoWindowAside.Instance, AppSettings.Shared).BuildServiceProvider();
 
     /// <summary>
-    /// The server over this run's container. The tool owners are named here rather than inside the
-    /// server, so adding a tool is one registration beside the others instead of an edit in a
-    /// second project.
+    /// The server over this run's container. The two assemblies the tools live in are named here
+    /// because the composition root is what knows both halves; the tools themselves are not, so a
+    /// new one is a method with a declaration rather than an entry in a second list.
     /// </summary>
     internal static McpServerHost Host(IServiceProvider services)
-        => new(services, Owners(services));
+        => new(services, ToolAssemblies);
 
     /// <summary>The same graph a check builds when it has a project and no window.</summary>
     internal static McpServerHost HostFor(ProjectWorkspace project)
     {
         var services = Minimal(project);
-        return new McpServerHost(services, Owners(services), ownsServices: true);
+        return new McpServerHost(services, ToolAssemblies, ownsServices: true);
     }
+
+    /// <summary>
+    /// Where the server looks for tools: this server's own project editing tools, and the machine,
+    /// run, run log and project tools the application adds. Both are scanned, so adding a tool on
+    /// either side needs no change here.
+    /// </summary>
+    private static readonly IReadOnlyList<Assembly> ToolAssemblies =
+        [typeof(McpTools).Assembly, typeof(McpRunTools).Assembly];
 
     /// <summary>
     /// Everything a run needs, with the two pieces that differ between a window and no window left
@@ -121,13 +130,4 @@ internal static class AppServices
 
         return services;
     }
-
-    private static IReadOnlyList<object> Owners(IServiceProvider services)
-        =>
-        [
-            services.GetRequiredService<McpTools>(),
-            services.GetRequiredService<McpControlTools>(),
-            services.GetRequiredService<McpRunTools>(),
-            services.GetRequiredService<McpRunLogTools>(),
-        ];
 }

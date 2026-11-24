@@ -17,6 +17,7 @@ namespace WhaleGenie.Mcp;
 // Acting on a window: bringing it up, moving it and closing it.
 public sealed partial class McpControlTools
 {
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_window_activate", Destructive = true, Title = "Bring a window forward"),
      Description("Brings one window to the front, restoring it first when it was shrunk. This is how a window is chosen before keys and clicks are sent to it.")]
     public Task<CallToolResult> WindowActivate(
@@ -44,6 +45,7 @@ public sealed partial class McpControlTools
             return new { handle, activated = raised, requested = asked };
         }))));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_window_move", Destructive = true, Title = "Move or resize a window"),
      Description("Moves and resizes one window, in screen pixels.")]
     public Task<CallToolResult> WindowMove(
@@ -78,6 +80,7 @@ public sealed partial class McpControlTools
             };
         }))));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_window_close", Destructive = true, Title = "Close a window"),
      Description("Asks one window to close, the same as clicking its close button.")]
     public Task<CallToolResult> WindowClose(

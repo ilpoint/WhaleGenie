@@ -21,7 +21,7 @@ namespace WhaleGenie.Mcp;
 /// </summary>
 public sealed class McpServerHost : IAsyncDisposable, IDisposable
 {
-    private readonly IReadOnlyList<object> _owners;
+    private readonly IReadOnlyList<Assembly> _assemblies;
     private readonly IServiceProvider _services;
     private readonly bool _ownsServices;
     private IHost? _host;
@@ -29,15 +29,17 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
 
     /// <summary>
     /// A server over the run's own container, so a tool and the window share one draft store rather
-    /// than one each. The tool owners are handed in rather than discovered here: the project
-    /// editing tools live with this server, while the ones that touch the machine, run a macro or
-    /// read a run log belong to the interface project and are named where they are built.
+    /// than one each. The tools are found by scanning <paramref name="assemblies"/> for methods
+    /// marked as tools, and built from the container: the project editing tools live with this
+    /// server, while the ones that touch the machine, run a macro or read a run log belong to the
+    /// interface project, and neither has to be listed here. A list of owners was a second place to
+    /// register a tool, and the one that was forgotten went missing without a word.
     /// </summary>
-    public McpServerHost(IServiceProvider services, IReadOnlyList<object> owners,
+    public McpServerHost(IServiceProvider services, IReadOnlyList<Assembly> assemblies,
         bool ownsServices = false)
     {
         _services = services;
-        _owners = owners;
+        _assemblies = assemblies;
         _ownsServices = ownsServices;
     }
 
@@ -159,29 +161,47 @@ public sealed class McpServerHost : IAsyncDisposable, IDisposable
 
     /// <summary>
     /// Every tool this server offers, each wrapped so a wrongly shaped argument is answered with a
-    /// coded refusal instead of the runtime's message about the call failing. The owners come from
-    /// the run's container, so a new tool class is registered once instead of being listed here as
-    /// well — a list would go stale without saying anything.
+    /// coded refusal instead of the runtime's message about the call failing, and so the line its
+    /// declaration asks for is written after the call. The tool classes are the ones in the scanned
+    /// assemblies that have a marked method, so writing the method is the whole of adding a tool.
     /// </summary>
-    private IReadOnlyList<McpServerTool> Tools()
+    internal IReadOnlyList<McpServerTool> Tools()
     {
         var tools = new List<McpServerTool>();
-        foreach (var owner in _owners)
+        foreach (var (type, methods) in ToolClasses())
         {
-            foreach (var method in owner.GetType().GetMethods(
-                         BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-            {
-                if (method.GetCustomAttribute<McpServerToolAttribute>() is null)
-                {
-                    continue;
-                }
+            // One instance per class: a tool that holds state is the same object for every method
+            // it offers, which is what keeps the run tools' one-run-at-a-time rule meaningful.
+            // What the container holds is preferred, so a tool and the window share what the
+            // registration gave them; a class that was registered for its dependencies rather than
+            // itself is built from them.
+            var owner = _services.GetService(type)
+                ?? ActivatorUtilities.CreateInstance(_services, type);
 
-                tools.Add(new McpTolerantTool(McpServerTool.Create(method, owner, null)));
+            foreach (var method in methods)
+            {
+                tools.Add(new McpAuditedTool(
+                    new McpTolerantTool(McpServerTool.Create(method, owner, null)),
+                    McpToolDeclaration.Of(method)));
             }
         }
 
         return tools;
     }
+
+    /// <summary>The scanned assemblies' tool classes, each with the methods that make it one.</summary>
+    private IEnumerable<(Type Type, IReadOnlyList<MethodInfo> Methods)> ToolClasses()
+        => _assemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .Select(type => (Type: type, Methods: ToolMethods(type)))
+            .Where(entry => entry.Methods.Count > 0)
+            .OrderBy(entry => entry.Type.FullName, StringComparer.Ordinal);
+
+    private static IReadOnlyList<MethodInfo> ToolMethods(Type type)
+        => type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(method => method.GetCustomAttribute<McpServerToolAttribute>() is not null)
+            .OrderBy(method => method.MetadataToken)
+            .ToList();
 
     private IHost Build(Stream input, Stream output)
     {

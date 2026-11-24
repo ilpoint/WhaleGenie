@@ -10,7 +10,7 @@ namespace WhaleGenie.Mcp.Tests;
 /// "what did it change" afterwards, and the answer has to be readable without a terminal: one line
 /// per call, the tool, what it was pointed at, and how it ended.
 /// </summary>
-public class McpAuditTests
+public partial class McpAuditTests
 {
     /// <summary>A folder of its own, so the checks do not write into the program's own log folder.</summary>
     private static string Fresh()

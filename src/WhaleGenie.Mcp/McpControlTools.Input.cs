@@ -17,6 +17,7 @@ namespace WhaleGenie.Mcp;
 // Driving the machine: the mouse, keys and typing.
 public sealed partial class McpControlTools
 {
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_mouse_move", Destructive = true, Title = "Move the pointer"),
      Description("Moves the pointer to a point of the screen, the way a person's hand does. Input goes to whatever window has the focus.")]
     public Task<CallToolResult> MouseMove(
@@ -29,6 +30,7 @@ public sealed partial class McpControlTools
             return new { x, y, durationMs = Span(durationMs), cursor = Where() };
         }))));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_mouse_click", Destructive = true, Title = "Click"),
      Description("Moves the pointer to a point and presses a mouse button there.")]
     public Task<CallToolResult> MouseClick(
@@ -47,6 +49,7 @@ public sealed partial class McpControlTools
             return new { button = pressed, x, y, clicks = times, cursor = Where() };
         }))));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_mouse_scroll", Destructive = true, Title = "Turn the wheel"),
      Description("Turns the wheel at a point of the screen, or where the pointer already is.")]
     public Task<CallToolResult> MouseScroll(
@@ -67,6 +70,7 @@ public sealed partial class McpControlTools
             }));
         }));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_mouse_drag", Destructive = true, Title = "Drag"),
      Description("Presses a mouse button at one point, walks the pointer to another with it held, and lets go there.")]
     public Task<CallToolResult> MouseDrag(
@@ -91,6 +95,7 @@ public sealed partial class McpControlTools
             };
         }))));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_key", Destructive = true, Title = "Press keys"),
      Description("Presses one key, or a chord of keys held together such as Ctrl+Shift+S, the way a person's hands do. Input goes to whatever window has the focus.")]
     public Task<CallToolResult> Key(
@@ -130,6 +135,7 @@ public sealed partial class McpControlTools
             return new { key = name, holdMs = Span(holdMs) };
         }))));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_type_text", Destructive = true, Title = "Type text"),
      Description("Types text where the keyboard is pointing, one character at a time when an interval is asked for. The text itself is not echoed back.")]
     public Task<CallToolResult> TypeText(

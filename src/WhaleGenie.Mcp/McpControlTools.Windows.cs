@@ -17,6 +17,7 @@ namespace WhaleGenie.Mcp;
 // The windows on the machine: the list, the element at a point, and what one says.
 public sealed partial class McpControlTools
 {
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_list_windows", ReadOnly = true, Title = "List the windows"),
      Description("Lists the top-level windows on the desktop, frontmost first, with the handle, title, rectangle and state of each. An empty value lists every window. With details on, each window also carries its program name and window class — what a filter on process or class matched, which the plain listing cannot show.")]
     public Task<CallToolResult> ListWindows(
@@ -46,6 +47,7 @@ public sealed partial class McpControlTools
             return new { total = windows.Count, windows };
         }))));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_element_at", ReadOnly = true, Title = "Name the control at a point"),
      Description("Reads the control at one point of the screen through UI Automation: its name, automation id, control type, class, rectangle, window title, what it is holding and whether it can be used, and the selector a macro could use for it. Answers found=false when nothing there can be named.")]
     public Task<CallToolResult> ElementAt(
@@ -83,6 +85,7 @@ public sealed partial class McpControlTools
             };
         }))));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_find_elements", ReadOnly = true, Title = "Find controls by selector"),
      Description("Finds the controls a selector names, in the order a person counts them, up to a limit. A selector is what whalegenie_element_at answers with: a control type and the parts of it to match, such as Button[name='Save'].")]
     public Task<CallToolResult> FindElements(
@@ -111,6 +114,7 @@ public sealed partial class McpControlTools
             };
         }))));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_window_info", ReadOnly = true, Title = "What one window is"),
      Description("Reads one window by handle: its title, rectangle, state, program name, class and the size of the part it draws in. This is how a client checks that a window it moved or activated is the window it meant.")]
     public Task<CallToolResult> WindowInfo(

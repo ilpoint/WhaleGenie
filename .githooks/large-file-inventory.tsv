@@ -92,7 +92,7 @@
 485	tests/WhaleGenie.Tests/LocalSettingsTests.cs	keep: 本机设置的单一测试
 662	tests/WhaleGenie.Tests/LocalizationTests.cs	keep: 语言切换的单一测试
 593	tests/WhaleGenie.Tests/McpControlTests.cs	keep: MCP 控制工具的单一测试
-344	tests/WhaleGenie.Tests/McpRunTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
+412	tests/WhaleGenie.Tests/McpRunTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
 326	tests/WhaleGenie.Tests/McpServerTests.Patches.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
 325	tests/WhaleGenie.Tests/McpServerTests.StepPatch.cs	keep: MCP 测试的一族，按工具主题拆分后单一职责
 306	tests/WhaleGenie.Tests/ProjectSaveTests.cs	keep: 一组同主题用例，共用同一套夹具与同一个行为
@@ -108,7 +108,7 @@
 5912	src/WhaleGenie.Localization/Strings.cs	exempt: 文案查表，键与文案一一对应
 331	src/WhaleGenie.Mcp/ActionKnowledge.cs	keep: 动作目录的查询与描述投影，单一职责
 415	src/WhaleGenie.Mcp/McpDraftStore.cs	keep: 草稿表与其上限、校验入口，单一职责
-315	src/WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
+317	src/WhaleGenie.App/Mcp/McpRunTools.cs	keep: 一组同域工具与它们的输入输出
 598	src/WhaleGenie.Domain/Models/ActionDefinition.cs	keep: 动作定义模型
 322	src/WhaleGenie.Domain/Models/ActionCatalog.cs	keep: 动作目录投影：语义目录加展示覆盖项，并按值形态推断默认控件
 519	src/WhaleGenie.Domain/Models/VariableChoices.cs	keep: 变量候选模型与其来源、用途、字段，单一职责

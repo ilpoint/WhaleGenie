@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using WhaleGenie.Localization;
+using WhaleGenie.Mcp;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Tests;
@@ -29,5 +30,10 @@ internal static class StatePathForChecks
         var process = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
         AppSettings.Shared.FilePath = Path.Combine(folder, "checks-settings-" + process + ".json");
         AppDiagnostics.FilePathOverride = Path.Combine(folder, "checks-runtime-" + process + ".log");
+
+        // The audit log takes a line from every tool that changes something or reaches the
+        // machine, and both suites call those tools; left where the program keeps it, a run of the
+        // checks would write into the log of whoever is using WhaleGenie on this machine.
+        McpAudit.Folder = Path.Combine(folder, "checks-mcp-" + process);
     }
 }

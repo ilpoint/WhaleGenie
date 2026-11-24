@@ -17,14 +17,19 @@ namespace WhaleGenie.Mcp;
 // The screen: a capture, a pixel and where the pointer is.
 public sealed partial class McpControlTools
 {
-    /// <summary>The tools as the server makes them, over this program's own device layer.</summary>
-    /// <summary>The same tools over a device layer a check hands in.</summary>
-    internal McpControlTools(Func<IDeviceLayer> devices, IWindowAside aside)
+    /// <summary>
+    /// The tool class over the device layer and the window aside the run assembled. The pair is
+    /// handed in rather than read from a static, so a check drives the tools over a pretend machine
+    /// and a run that never asks for a device never builds one. It is public because the server
+    /// builds a tool class the container was not given from the constructors it finds.
+    /// </summary>
+    public McpControlTools(Func<IDeviceLayer> devices, IWindowAside aside)
     {
         _devices = devices;
         _aside = aside;
     }
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_capture_screen", Title = "Look at the screen"),
      Description("Takes a picture of the desktop, or of one window, and returns it as a PNG image. Coordinates are screen pixels; a region left empty is the whole desktop, or the whole window when a window is named.")]
     public Task<CallToolResult> CaptureScreen(
@@ -80,6 +85,7 @@ public sealed partial class McpControlTools
             };
         });
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_pixel_at", ReadOnly = true, Title = "Colour of one pixel"),
      Description("Reads the colour of one pixel of the desktop as #RRGGBB, in screen pixels.")]
     public Task<CallToolResult> PixelAt(
@@ -91,6 +97,7 @@ public sealed partial class McpControlTools
             return new { x, y, color = colour.ToHex() };
         }))));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_cursor", ReadOnly = true, Title = "Where the pointer is"),
      Description("Where the pointer is right now, in screen pixels.")]
     public Task<CallToolResult> Cursor()

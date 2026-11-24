@@ -19,7 +19,7 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
   `git subtree` 引入的一份，**不在这里改**：引擎、画面获取、Windows 适配器和它们的三套用例在那边
   提交，再用 `git subtree pull --prefix=core core main --squash` 取回来。
 - `WhaleGenie.Domain` 不依赖 Avalonia、窗口、ViewModel 或 MCP；`WhaleGenie.Mcp` 不依赖 Avalonia、
-  Views 或 Runtime，机器控制、运行宏与运行日志工具由 `WhaleGenie.App` 作为 tool owner 注入。
+  Views 或 Runtime，机器控制、运行宏与运行日志工具留在 `WhaleGenie.App`，由 MCP 宿主扫描两个程序集发现。
 - `WhaleGenie.App` 不依赖 Avalonia 或任何窗口类型：触发器、运行编排、系统开关（`SystemState`）、
   MCP 宿主与工具、两种启动形态共用的组合根都在这里，界面工程只在它上面补窗口与主 ViewModel。
 - 系统开关只有一个写者：`SystemState` 在 `WhaleGenie.App`，页面、热键与窗口写同一个对象；触发宿主
@@ -67,8 +67,8 @@ WhaleGenie（鲸灵）是 Windows 上的通用宏与自动化工具，游戏与�
    文案、测试和文档同版删除。不兼容的文件形状变化须升级包格式并拒绝旧包，退役动作报
    `Run.Unsupported`。
 8. **有状态依赖由组合根组装。** `AppServices` 负责对象图，`SharedDevices` 负责共享设备，
-   `App.axaml.cs` 负责生命周期；窗口和 ViewModel 通过构造函数取得依赖。新增 MCP 工具还须纳入宿主
-   发现列表并验证注册。
+   `App.axaml.cs` 负责生命周期；窗口和 ViewModel 通过构造函数取得依赖。新增 MCP 工具只写方法与
+   审计声明：宿主扫描两个程序集发现它，对账用例核对 `tools.list` 与声明。
 9. **失败键与日志键分离。** `Run.*` 供宏分支处理并同步 `RunKeys` 与手册，用户失败键使用 `User.*`，
    日志使用 `Log.*`。步骤结果只属于本次尝试，未写入即为空，不得沿用重试、循环或子宏的旧值。
 10. **自动化可行的行为必须进入测试。** 无头测试验证引擎请求、界面逻辑和可读取的样式状态；真实输入、

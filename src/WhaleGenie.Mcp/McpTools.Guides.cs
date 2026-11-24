@@ -19,6 +19,7 @@ namespace WhaleGenie.Mcp;
 // The pages a client reads before writing: instructions, the template, the macro list and the globals.
 public sealed partial class McpTools
 {
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_instructions", ReadOnly = true,
             Title = "Read the workflow"),
      Description("Returns the default writing or debugging instructions, for clients that do not show MCP prompts.")]
@@ -27,6 +28,7 @@ public sealed partial class McpTools
         => Task.FromResult(McpErrors.Plain(
             topic == InstructionTopic.Debug ? McpPrompts.DebugMacro() : McpPrompts.WriteMacro()));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_macro_template", ReadOnly = true,
             Title = "Empty macro"),
      Description("Returns an empty macro in the exact JSON shape whalegenie_put_macro accepts.")]
@@ -35,6 +37,7 @@ public sealed partial class McpTools
         => McpErrors.RunAsync(async () => McpErrors.Ok(
             await Ui(() => new MacroItem { Name = name }.ToJson())));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_list_macros", ReadOnly = true,
             Title = "List the macros in a draft"),
      Description("Lists the macros in an MCP draft with the total, and for each one the arguments it declares (name, type, required) and the results it hands back — which is what a call to it has to know. A long project is paged: hasMore says whether anything was left out.")]
@@ -58,6 +61,7 @@ public sealed partial class McpTools
             };
         })));
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_get_macro", ReadOnly = true,
             Title = "Read one macro"),
      Description("Returns one macro as the JSON the package stores, triggers included: the same shape whalegenie_put_macro accepts. When only one step's parameters are wanted, whalegenie_get_step reads that step alone instead of the whole macro.")]
@@ -75,6 +79,7 @@ public sealed partial class McpTools
                 : McpErrors.Ok(await Ui(() => draft.MacroJson(macro)));
         });
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_get_step", ReadOnly = true,
             Title = "Read one step"),
      Description("Returns one step of a macro as the JSON the package stores, the path it sits at, and whatever validation says about that step alone. Reading one step is what a client needs before changing one parameter: fetching the whole macro for that is the cost this avoids.")]
@@ -130,6 +135,7 @@ public sealed partial class McpTools
                 : McpErrors.Ok(answer);
         });
 
+    [McpReadOnly]
     [McpServerTool(Name = "whalegenie_get_globals", ReadOnly = true,
             Title = "Read the global declarations"),
      Description("Returns the package's global variable declarations in the shape whalegenie_set_globals takes, so a whole-list write does not have to be made blind.")]

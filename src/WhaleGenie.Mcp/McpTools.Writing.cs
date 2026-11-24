@@ -19,6 +19,7 @@ namespace WhaleGenie.Mcp;
 // Changing a draft: putting a macro, patching one, deleting one and setting the globals.
 public sealed partial class McpTools
 {
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_put_macro", Destructive = true,
             Title = "Write a whole macro"),
      Description("Adds or replaces a whole macro in a draft. The object has the same shape as whalegenie_get_macro. The answer carries the outline of what was written (every step's id, type and path) and what validation says, split into blocking problems and hints. The macro itself is not echoed back unless includeMacro is set; use whalegenie_patch_macro to change one thing in a long macro instead of sending it again.")]
@@ -53,6 +54,7 @@ public sealed partial class McpTools
                 });
         });
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_patch_macro", Destructive = true,
             Title = "Change one step"),
      Description("Changes a macro without sending it again: one operation per change, applied in order. set changes one parameter's value, whole records included (a record with a field missing is refused); setRow changes the columns of one row of a table, addRow adds one, removeRow takes one out (a table is a call's arguments, a step's results, the places a search looks); insert adds a step to a list; remove takes one out; move puts a step in another place. A value is a shape, not a line of text: a string is the text it is, a number is a number, and a name or an operation is sent as the object a macro file writes, such as {\"name\":\"count\"} or {\"op\":\"+\",\"left\":1,\"right\":2}. A patch is one write or none — if any operation does not fit, nothing changes and the refusal says which operation and what that list accepts.")]
@@ -122,6 +124,7 @@ public sealed partial class McpTools
             return McpErrors.Ok(answer);
         });
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_delete_macro", Destructive = true,
             Title = "Delete one macro"),
      Description("Deletes one macro from a draft; nothing is saved until whalegenie_save_project.")]
@@ -135,6 +138,7 @@ public sealed partial class McpTools
             return new { deleted = name, macroCount = draft.MacroSnapshot().Count };
         })));
 
+    [McpAudited(Handled = true)]
     [McpServerTool(Name = "whalegenie_set_globals", Destructive = true,
             Title = "Replace the global variables"),
      Description("Replaces the global variable declarations in a draft. Each entry is {name, type, default, description}.")]

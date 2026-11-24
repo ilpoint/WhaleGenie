@@ -21,6 +21,12 @@ public static class McpAudit
     private static readonly object Gate = new();
 
     /// <summary>
+    /// How much of one field a line keeps. The record answers "what did it change", and a paragraph
+    /// of an argument is not that answer; the cap is generous enough for a path or a sentence.
+    /// </summary>
+    private const int FieldLimit = 240;
+
+    /// <summary>
     /// Where the record is written. It is settable so a check can write somewhere it may clean up
     /// rather than into the program's own folder; nothing else changes it.
     /// </summary>
@@ -64,6 +70,14 @@ public static class McpAudit
         }
     }
 
-    /// <summary>A value that cannot break the one-line-per-call shape of the file.</summary>
-    private static string One(string text) => text.Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
+    /// <summary>
+    /// A value that cannot break the one-line-per-call shape of the file, and cannot push the rest
+    /// of the line out of sight: a template reads a name out of a request, and a request may hold a
+    /// whole macro where a name belongs.
+    /// </summary>
+    private static string One(string text)
+    {
+        var one = text.Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
+        return one.Length <= FieldLimit ? one : one[..FieldLimit] + "...";
+    }
 }
