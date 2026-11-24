@@ -6,6 +6,7 @@ import type {
   EditorStep,
   EditorTrigger,
 } from './protocol.js';
+import type { StepLocation } from './mock-editor-step-ops.js';
 import {
   changeCondition,
   changeRows,
@@ -199,37 +200,84 @@ export function stepsLift(host: MockEditor): EditorSnapshot | null {
   }
 
 export function stepsMoveTo(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
-    const ids = host.requestedSteps(params);
-    const target = typeof params['target'] === 'string' ? params['target'] as string : '';
-    const before = params['before'] === true;
     const document = host.activeSnapshot();
-    if (!document || target.length === 0) {
+    const target = typeof params['target'] === 'string' ? params['target'] as string : '';
+    const parentId = typeof params['parentId'] === 'string' ? params['parentId'] as string : '';
+    if (!document || (target.length === 0 && parentId.length === 0)) {
       return document;
     }
 
-    const targetLocation = locateStep(document.steps, target);
-    if (!targetLocation) {
-      return document;
-    }
-
-    const selected = ids
-      .map((id) => locateStep(document.steps, id))
-      .filter((found): found is NonNullable<typeof found> => found !== null)
-      .sort((left, right) => left.index - right.index);
+    const selected = located(document.steps, host.requestedSteps(params));
     if (selected.length === 0) {
       return document;
     }
 
-    const moved = selected.map((found) => found.list[found.index]!);
-    for (const found of [...selected].reverse()) {
-      found.list.splice(found.index, 1);
+    // The child list is the section the snapshot names; the page sends it as data-list.
+    if (parentId.length > 0) {
+      return moveIntoSection(host, document, selected, parentId,
+        typeof params['list'] === 'string' ? params['list'] as string : '', params['index']);
     }
 
-    const targetIndex = targetLocation.list.findIndex((step) => step.id === target);
-    const at = targetIndex + (before ? 0 : 1);
-    targetLocation.list.splice(Math.max(0, at), 0, ...moved);
-    return host.change((documentNow) => ({ ...documentNow, dirty: true, steps: documentNow.steps }));
+    return moveBesideTarget(host, document, selected, target, params['before'] === true);
   }
+
+/** The requested ids that still exist, in tree order. */
+function located(steps: EditorStep[], ids: string[]): StepLocation[] {
+  return ids
+    .map((id) => locateStep(steps, id))
+    .filter((found): found is StepLocation => found !== null)
+    .sort((left, right) => left.index - right.index);
+}
+
+/** Take the selected steps out of their lists and hand them back in tree order. */
+function detach(selected: StepLocation[]): EditorStep[] {
+  const moved = selected.map((found) => found.list[found.index]!);
+  for (const found of [...selected].reverse()) {
+    found.list.splice(found.index, 1);
+  }
+
+  return moved;
+}
+
+function moveIntoSection(host: MockEditor, document: EditorSnapshot, selected: StepLocation[],
+    parentId: string, list: string, index: unknown): EditorSnapshot | null {
+  const slot = sectionList(document.steps, parentId, list);
+  if (!slot) {
+    throw new Error('步骤 ' + parentId + ' 没有名为 ' + list + ' 的子列表。');
+  }
+
+  const moved = detach(selected);
+  const wanted = typeof index === 'number' ? index : slot.length;
+  slot.splice(Math.max(0, Math.min(wanted, slot.length)), 0, ...moved);
+  return host.change((documentNow) => ({ ...documentNow, dirty: true, steps: documentNow.steps }));
+}
+
+function moveBesideTarget(host: MockEditor, document: EditorSnapshot, selected: StepLocation[],
+    target: string, before: boolean): EditorSnapshot | null {
+  const location = locateStep(document.steps, target);
+  if (!location) {
+    return document;
+  }
+
+  const moved = detach(selected);
+  const at = location.list.findIndex((step) => step.id === target);
+  location.list.splice(Math.max(0, at + (before ? 0 : 1)), 0, ...moved);
+  return host.change((documentNow) => ({ ...documentNow, dirty: true, steps: documentNow.steps }));
+}
+
+/** The child list of a block by the snapshot's own section name. */
+function sectionList(steps: EditorStep[], parentId: string, list: string): EditorStep[] | null {
+  const found = locateStep(steps, parentId);
+  if (!found) {
+    return null;
+  }
+
+  const parent = found.list[found.index]!;
+  const section = list.length > 0
+    ? parent.sections.find((candidate) => candidate.name === list)
+    : parent.sections[0];
+  return section ? section.steps : null;
+}
 
 export function cloneStep(host: MockEditor, step: EditorStep): EditorStep {
     const copy = structuredClone(step);

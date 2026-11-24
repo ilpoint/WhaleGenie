@@ -7,6 +7,11 @@ import { editor } from './editor-store.js';
 
 export interface StepTreeSectionsHost {
   renderStep(step: EditorStep, depth: number): TemplateResult;
+  /** How the drop state marks this section's empty area: 'into' while a drop would land here. */
+  sectionDrop(parentId: string, list: string): 'into' | 'none';
+  onSectionDragOver(event: DragEvent, parentId: string, list: string): void;
+  onSectionDragLeave(parentId: string, list: string): void;
+  onSectionDrop(event: DragEvent, parentId: string, list: string): void;
 }
 
 export function renderStepSections(host: StepTreeSectionsHost, step: EditorStep, depth: number): TemplateResult {
@@ -34,9 +39,19 @@ export function renderStepSections(host: StepTreeSectionsHost, step: EditorStep,
               >${icon('plus')}${cases ? t('Editor.AddBranch') : t('Editor.AddStep')}</button>
             </div>
             ${section.steps.length === 0
-              ? html`<div class="section-empty" data-depth=${String(depth + 1)}>${cases
-                ? t('Editor.EmptyBranchList')
-                : t('Editor.NoStepsHint')}</div>`
+              ? html`<div
+                  class="section-empty"
+                  data-depth=${String(depth + 1)}
+                  data-parent-id=${step.id}
+                  data-list=${section.name}
+                  data-drop=${host.sectionDrop(step.id, section.name)}
+                  @dragover=${(event: DragEvent) =>
+                    host.onSectionDragOver(event, step.id, section.name)}
+                  @dragleave=${() => host.onSectionDragLeave(step.id, section.name)}
+                  @drop=${(event: DragEvent) => host.onSectionDrop(event, step.id, section.name)}
+                >${cases
+                  ? t('Editor.EmptyBranchList')
+                  : t('Editor.NoStepsHint')}</div>`
               : html`
                 <div class="list" role="list">
                   ${repeat(section.steps, (child) => child.id,

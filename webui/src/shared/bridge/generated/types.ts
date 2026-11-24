@@ -595,6 +595,9 @@ export type EditorSessionCommand =
   | EditorSessionSaveCommand
   | EditorSessionCloseCommand
   | EditorSessionPublicMacroAddCommand
+  | EditorSessionSubMacroCreateCommand
+  | EditorSessionSubMacroCopyCommand
+  | EditorSessionSubMacroDeleteCommand
   | EditorSessionExportCommand;
 
 export interface EditorSessionOpenCommand {
@@ -649,6 +652,22 @@ export interface EditorSessionCloseCommand {
 export interface EditorSessionPublicMacroAddCommand {
   kind: 'publicMacroAdd';
   id: string;
+}
+
+export interface EditorSessionSubMacroCreateCommand {
+  kind: 'subMacroCreate';
+  name?: string | null;
+}
+
+export interface EditorSessionSubMacroCopyCommand {
+  kind: 'subMacroCopy';
+  from: string;
+  name?: string | null;
+}
+
+export interface EditorSessionSubMacroDeleteCommand {
+  kind: 'subMacroDelete';
+  name: string;
 }
 
 export interface EditorSessionExportCommand {
@@ -757,6 +776,9 @@ export interface EditorStepsCommand {
   delta?: number | null;
   text?: string | null;
   after?: string | null;
+  parentId?: string | null;
+  list?: string | null;
+  index?: number | null;
 }
 
 export interface EditorTabSnapshot {

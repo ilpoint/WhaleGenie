@@ -321,6 +321,13 @@ export const stepTreeCss = css`
       font-size: var(--fontSizeBase100);
     }
 
+    .section-empty[data-drop='into'] {
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorBrandBackground2);
+      box-shadow: inset 0 0 0 var(--strokeWidthThin) var(--colorBrandStroke1);
+      color: var(--colorBrandForeground2);
+    }
+
     .block > .row {
       background: var(--colorNeutralBackground2);
       border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);

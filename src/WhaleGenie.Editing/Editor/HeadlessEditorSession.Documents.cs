@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
@@ -39,75 +38,9 @@ internal sealed partial class HeadlessEditorSession
             .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
             ?? throw new InvalidOperationException("the public library has no macro " + id);
         var macro = MacroItem.FromJson(entry.Macro.ToSubMacroJson());
-        var taken = _model.SubMacros.Select(candidate => candidate.Name)
-            .Concat(_workspace.Macros.Select(candidate => candidate.Name))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var stem = macro.Name.Trim();
-        var name = stem;
-        for (var index = 2; taken.Contains(name); index++)
-        {
-            name = stem + " " + index.ToString(CultureInfo.InvariantCulture);
-        }
-
-        macro.Name = name;
+        macro.Name = SubMacroEditor.UniqueName(TakenMacroNames(), macro.Name);
         _model.SubMacros.Add(macro);
-
-        var call = new MacroStep
-        {
-            Type = "control.runMacro",
-            Meta = StepMeta.New,
-            Parameters =
-            [
-                new StepParameter
-                {
-                    Name = "macro",
-                    Kind = ActionParameterKind.Macro,
-                    Written = Formula.Text(name),
-                },
-            ],
-        };
-
-        if (macro.Parameters.Count > 0)
-        {
-            call.Parameters.Add(new StepParameter
-            {
-                Name = FieldNames.Arguments,
-                Kind = ActionParameterKind.Arguments,
-                Rows =
-                [
-                    .. macro.Parameters.Select(parameter => new StepParameterRow
-                    {
-                        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
-                        {
-                            [FieldNames.Name] = Formula.Text(parameter.Name),
-                            [FieldNames.Value] = Formula.Text(string.Empty),
-                        },
-                    }),
-                ],
-            });
-        }
-
-        if (macro.Results.Count > 0)
-        {
-            call.Parameters.Add(new StepParameter
-            {
-                Name = "returns",
-                Kind = ActionParameterKind.Returns,
-                Rows =
-                [
-                    .. macro.Results.Select(result => new StepParameterRow
-                    {
-                        Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
-                        {
-                            [FieldNames.Key] = Formula.Text(result.Name),
-                            [FieldNames.Name] = Formula.Text(result.Name),
-                        },
-                    }),
-                ],
-            });
-        }
-
-        _model.Steps.Add(call);
+        _model.Steps.Add(SubMacroEditor.CallStep(macro));
         _model.SettleStepIds();
         _model.IsDirty = true;
         return Snapshot();

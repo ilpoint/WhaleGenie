@@ -4,6 +4,7 @@ import type {
   EditorSnapshot,
 } from '../../../shared/bridge/protocol.js';
 import { flattenSteps } from '../editor-model.js';
+import { describeError } from '../../../shared/errors.js';
 import { t } from '../../../shared/strings/strings.js';
 
 /** The steps command family. All state lives in EditorCore; C# remains the source of truth. */
@@ -28,6 +29,80 @@ export class EditorStepService {
     });
 
     return ok;
+  }
+
+  /**
+   * The submacro commands answer with the whole snapshot, like every session command. A rejected
+   * one (deleting a submacro a step still calls) keeps the bridge's own sentence in the page
+   * notice: the dialog is closed by then, so the words have to outlive it.
+   */
+  private async subMacroCommand(params: Record<string, unknown>): Promise<boolean> {
+    try {
+      const snapshot = await this.core.client.call<EditorSnapshot | null>('editor.session', params);
+      this.core.applySnapshot(snapshot);
+      this.core.state.notice = '';
+      this.core.notify();
+      return true;
+    } catch (error) {
+      this.core.state.notice = describeError(error);
+      this.core.notify();
+      return false;
+    }
+  }
+
+  /** An empty submacro, or a name the host makes unique when none is given. */
+  async createSubMacro(name?: string): Promise<boolean> {
+    const params: Record<string, unknown> = { kind: 'subMacroCreate' };
+    const wanted = name?.trim() ?? '';
+    if (wanted.length > 0) {
+      params['name'] = wanted;
+    }
+
+    return this.subMacroCommand(params);
+  }
+
+  /** A copy of an existing submacro or project macro; omitting the name lets the host name it. */
+  async copySubMacro(from: string, name?: string): Promise<boolean> {
+    const source = from.trim();
+    if (source.length === 0) {
+      return false;
+    }
+
+    const params: Record<string, unknown> = { kind: 'subMacroCopy', from: source };
+    const wanted = name?.trim() ?? '';
+    if (wanted.length > 0) {
+      params['name'] = wanted;
+    }
+
+    return this.subMacroCommand(params);
+  }
+
+  async deleteSubMacro(name: string): Promise<boolean> {
+    const wanted = name.trim();
+    if (wanted.length === 0) {
+      return false;
+    }
+
+    return this.subMacroCommand({ kind: 'subMacroDelete', name: wanted });
+  }
+
+  /**
+   * Move steps into a block's own child list. `index` is the slot in that list as the page shows
+   * it; the list name is the snapshot's section name, never a guess about the step type.
+   */
+  async moveStepsInto(parentId: string, index: number, list?: string,
+    ids?: string[]): Promise<boolean> {
+    const steps = ids && ids.length > 0 ? ids : [...this.core.state.selectedStepIds];
+    if (steps.length === 0 || parentId.length === 0) {
+      return false;
+    }
+
+    const params: Record<string, unknown> = { kind: 'move', steps, parentId, index };
+    if (list !== undefined && list.length > 0) {
+      params['list'] = list;
+    }
+
+    return this.core.snapshotCommand('editor.steps', params);
   }
 
   async addStep(type: string, parentId?: string, list?: string): Promise<boolean> {

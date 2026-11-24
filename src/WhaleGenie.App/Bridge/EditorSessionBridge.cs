@@ -76,46 +76,53 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
             return null;
         }
 
-        return new
-        {
-            name = snapshot.Name,
-            description = snapshot.Description,
-            group = snapshot.Group,
-            subMacros = snapshot.SubMacros,
-            callableParameters = snapshot.CallableParameters,
-            callableResults = snapshot.CallableResults,
-            followInputLimit = snapshot.FollowInputLimit,
-            inputLimit = snapshot.InputLimit,
-            toggleKey = snapshot.ToggleKey,
-            dirty = snapshot.Dirty,
-            stepCount = snapshot.StepCount,
-            steps = snapshot.Steps,
-            triggers = snapshot.Triggers,
-            variables = snapshot.Variables,
-            globals = snapshot.Globals,
-            valueChoices = snapshot.ValueChoices,
-            valueFunctions = snapshot.ValueFunctions,
-            conditionCompares = snapshot.ConditionCompares,
-            variableTypes = snapshot.VariableTypes,
-            triggerKinds = snapshot.TriggerKinds,
-            canUndo = snapshot.CanUndo,
-            canRedo = snapshot.CanRedo,
-            canSave = snapshot.CanSave,
-            nameProblem = snapshot.NameProblem,
-            problemSummary = snapshot.ProblemSummary,
-            declarationProblemSummary = snapshot.DeclarationProblemSummary,
-            callImpactSummary = snapshot.CallImpactSummary,
-            notice = snapshot.Notice,
-            triggerProblemSummary = snapshot.TriggerProblemSummary,
-            toggleKeyProblem = snapshot.ToggleKeyProblem,
-            recording = snapshot.Recording,
-            isSubMacro = snapshot.IsSubMacro,
-            tabs = _documents.Tabs,
-            activeKey = _documents.ActiveKey,
-            actionForm = active.ActionFormState(),
-            revision = snapshot.Revision,
-        };
+        return Envelope(snapshot, active.ActionFormState());
     }
+
+    /// <summary>
+    /// One snapshot in the shape the page draws: the macro body, the tabs beside it and the action
+    /// being written. A command answered by another document's session still hands the page the
+    /// tabs it already had, so its strip is not left empty by an answer about the root macro.
+    /// </summary>
+    private object Envelope(EditorSnapshot snapshot, EditorActionFormSnapshot actionForm) => new
+    {
+        name = snapshot.Name,
+        description = snapshot.Description,
+        group = snapshot.Group,
+        subMacros = snapshot.SubMacros,
+        callableParameters = snapshot.CallableParameters,
+        callableResults = snapshot.CallableResults,
+        followInputLimit = snapshot.FollowInputLimit,
+        inputLimit = snapshot.InputLimit,
+        toggleKey = snapshot.ToggleKey,
+        dirty = snapshot.Dirty,
+        stepCount = snapshot.StepCount,
+        steps = snapshot.Steps,
+        triggers = snapshot.Triggers,
+        variables = snapshot.Variables,
+        globals = snapshot.Globals,
+        valueChoices = snapshot.ValueChoices,
+        valueFunctions = snapshot.ValueFunctions,
+        conditionCompares = snapshot.ConditionCompares,
+        variableTypes = snapshot.VariableTypes,
+        triggerKinds = snapshot.TriggerKinds,
+        canUndo = snapshot.CanUndo,
+        canRedo = snapshot.CanRedo,
+        canSave = snapshot.CanSave,
+        nameProblem = snapshot.NameProblem,
+        problemSummary = snapshot.ProblemSummary,
+        declarationProblemSummary = snapshot.DeclarationProblemSummary,
+        callImpactSummary = snapshot.CallImpactSummary,
+        notice = snapshot.Notice,
+        triggerProblemSummary = snapshot.TriggerProblemSummary,
+        toggleKeyProblem = snapshot.ToggleKeyProblem,
+        recording = snapshot.Recording,
+        isSubMacro = snapshot.IsSubMacro,
+        tabs = _documents.Tabs,
+        activeKey = _documents.ActiveKey,
+        actionForm = actionForm,
+        revision = snapshot.Revision,
+    };
 
     private static readonly JsonSerializerOptions CommandOptions = new()
     {

@@ -16,6 +16,9 @@ namespace WhaleGenie.Contracts;
 [JsonDerivedType(typeof(EditorSessionSaveCommand), "save")]
 [JsonDerivedType(typeof(EditorSessionCloseCommand), "close")]
 [JsonDerivedType(typeof(EditorSessionPublicMacroAddCommand), "publicMacroAdd")]
+[JsonDerivedType(typeof(EditorSessionSubMacroCreateCommand), "subMacroCreate")]
+[JsonDerivedType(typeof(EditorSessionSubMacroCopyCommand), "subMacroCopy")]
+[JsonDerivedType(typeof(EditorSessionSubMacroDeleteCommand), "subMacroDelete")]
 [JsonDerivedType(typeof(EditorSessionExportCommand), "export")]
 public abstract record EditorSessionCommand;
 
@@ -65,6 +68,19 @@ public sealed record EditorSessionCloseCommand(string? Key = null) : EditorSessi
 /// <summary>Add a public macro call step.</summary>
 [BridgeContract]
 public sealed record EditorSessionPublicMacroAddCommand(string Id) : EditorSessionCommand;
+
+/// <summary>Make an empty sub-macro; without a name it is given the next free one.</summary>
+[BridgeContract]
+public sealed record EditorSessionSubMacroCreateCommand(string? Name = null) : EditorSessionCommand;
+
+/// <summary>Copy an existing sub-macro or project macro into the current macro.</summary>
+[BridgeContract]
+public sealed record EditorSessionSubMacroCopyCommand(string From, string? Name = null)
+    : EditorSessionCommand;
+
+/// <summary>Remove a sub-macro this macro no longer calls.</summary>
+[BridgeContract]
+public sealed record EditorSessionSubMacroDeleteCommand(string Name) : EditorSessionCommand;
 
 /// <summary>Export the document as a package at the chosen path.</summary>
 [BridgeContract]

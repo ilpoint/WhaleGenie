@@ -84,6 +84,23 @@ internal sealed class HeadlessEditorWorkspace(ProjectWorkspace workspace,
         return session;
     }
 
+    /// <summary>
+    /// Brings a document to the front by the session object itself. A command answered by another
+    /// document — a child's command is answered by the macro that owns it — leaves the report on
+    /// that document, so the strip has to follow it.
+    /// </summary>
+    public void Activate(HeadlessEditorSession session)
+    {
+        foreach (var key in _order)
+        {
+            if (_sessions.TryGetValue(key, out var open) && ReferenceEquals(open, session))
+            {
+                _active = key;
+                return;
+            }
+        }
+    }
+
     public HeadlessEditorSession Activate(string key)
     {
         if (!_sessions.TryGetValue(key, out var session))

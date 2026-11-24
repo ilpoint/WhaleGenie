@@ -128,6 +128,10 @@ internal sealed partial class EditorSessionBridge
                 return Snapshot();
             case EditorSessionPublicMacroAddCommand add:
                 return Required().AddPublicMacro(SessionText(add.Id, "Bridge.EditorNeedsStep"));
+            case EditorSessionSubMacroCreateCommand:
+            case EditorSessionSubMacroCopyCommand:
+            case EditorSessionSubMacroDeleteCommand:
+                return ApplySubMacro(command);
             case EditorSessionExportCommand export:
                 return Required().Export(SessionText(export.Path, "Bridge.EditorNeedsFile"));
             default:

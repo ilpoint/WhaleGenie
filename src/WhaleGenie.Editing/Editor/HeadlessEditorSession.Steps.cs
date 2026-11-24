@@ -214,6 +214,32 @@ internal sealed partial class HeadlessEditorSession
         _model.MoveSelectionTo(target.Value.List, target.Value.Index + (before ? 0 : 1));
     }
 
+    /// <summary>
+    /// Puts the picked steps inside a block's child list. Naming the list is what lets a drop land
+    /// in a branch that has no row of its own yet: the block says which branch it means and the
+    /// index says where in it, and an index left out appends.
+    /// </summary>
+    public void MoveStepsInto(IReadOnlyList<string> stepIds, string parentId, string? listName,
+        int? index)
+    {
+        var steps = FindSteps(stepIds);
+        var parent = FindStep(parentId)
+            ?? throw new InvalidOperationException("the macro has no step " + parentId);
+        var list = parent.StepLists.FirstOrDefault(parameter =>
+                listName is not { Length: > 0 }
+                || string.Equals(parameter.Name, listName, StringComparison.Ordinal))?.Steps
+            ?? throw new InvalidOperationException(listName is { Length: > 0 }
+                ? "step " + parentId + " has no child list " + listName
+                : "step " + parentId + " holds no sub-steps");
+        if (steps.Count == 0)
+        {
+            return;
+        }
+
+        _model.SetSelection(steps);
+        _model.MoveSelectionTo(list, Math.Clamp(index ?? list.Count, 0, list.Count));
+    }
+
     public string CopySteps(IReadOnlyList<string> stepIds)
     {
         var text = MacroEditorViewModel.SerializeSteps(FindSteps(stepIds));

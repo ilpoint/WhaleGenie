@@ -70,7 +70,30 @@ internal sealed partial class HeadlessEditorSession
         // A submacro document has no triggers and no arm key of its own; the editor form and the
         // tab strip read this flag.
         _model.IsSubMacro = owner is not null;
-        _model.MacroLifted += lifted => _workspace.AddMacro(lifted);
+        _model.MacroLifted += lifted =>
+        {
+            _workspace.AddMacro(lifted);
+            RefreshCallables();
+        };
+        RefreshCallables();
+    }
+
+    /// <summary>
+    /// Hands the model the macros a call step may reach: the project's macros, this document's own
+    /// children, and — for a submacro document — its siblings. The native window did this when it
+    /// opened; without it every <c>control.runMacro</c> step reads as a call to a macro that is not
+    /// there, and the call step's picker has nothing to offer.
+    /// </summary>
+    private void RefreshCallables()
+    {
+        IEnumerable<MacroItem> siblings = _owner is { } owner ? owner._model.SubMacros : [];
+        _model.SetProjectMacros([.. _workspace.Macros
+            .Where(macro => !ReferenceEquals(macro, _existing))
+            .Select(macro => macro.Callable)
+            .Concat(siblings
+                .Where(macro => !ReferenceEquals(macro, _existing))
+                .Select(macro => macro.Callable))
+            .Concat(_model.SubMacros.Select(macro => macro.Callable))]);
     }
 
     public static HeadlessEditorSession OpenSubmacro(ProjectWorkspace workspace,

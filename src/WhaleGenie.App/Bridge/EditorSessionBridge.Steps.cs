@@ -13,7 +13,11 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
 
-/// <summary>Steps, conditions and recording: the body of the macro being edited.</summary>
+/// <summary>
+/// Steps, conditions and recording: the body of the macro being edited. A move either names the
+/// step it lands in front of, or the block and list it lands inside, which is how a drag reaches a
+/// branch that has no row of its own yet.
+/// </summary>
 
 internal sealed partial class EditorSessionBridge
 {
@@ -155,8 +159,16 @@ internal sealed partial class EditorSessionBridge
                 session.GroupSteps(steps);
                 return Snapshot();
             case "move":
-                session.MoveStepsTo(steps,
-                    StepsText(command.Target, "Bridge.EditorNeedsStep"), command.Before ?? false);
+                if (command.ParentId is { Length: > 0 } parentId)
+                {
+                    session.MoveStepsInto(steps, parentId, command.List, command.Index);
+                }
+                else
+                {
+                    session.MoveStepsTo(steps,
+                        StepsText(command.Target, "Bridge.EditorNeedsStep"), command.Before ?? false);
+                }
+
                 return Snapshot();
             case "moveBy":
                 session.MoveStepsBy(steps, command.Delta ?? 0);

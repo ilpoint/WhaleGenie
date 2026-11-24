@@ -1,12 +1,13 @@
 import { LitElement, html, nothing } from 'lit';
 import { editorPaletteCss } from './editor-palette-css.js';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import { icon, iconForCategory } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { actionSections, paletteActions } from './editor-model.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { editorBase } from './editor-css.js';
+import './editor-submacro-dialogs.js';
 
 /**
  * The action library in the shell's side bar: four docks' worth reduced to the three that have a
@@ -19,6 +20,12 @@ export class WgEditorPalette extends LitElement {
   static styles = [editorBase, editorPaletteCss];
 
   protected readonly editorController = new StoreController<void>(this, editor);
+
+  @state()
+  private copyOpen = false;
+
+  @state()
+  private deleteName = '';
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -144,6 +151,8 @@ export class WgEditorPalette extends LitElement {
         aria-selected=${state.paletteSource === source ? 'true' : 'false'}
         title=${label}
         @click=${() => {
+          this.copyOpen = false;
+          this.deleteName = '';
           editor.ui.setPaletteSource(source);
           if (source === 'sub' && state.paletteSource === 'sub' && state.snapshot === null) {
             return;
@@ -185,23 +194,44 @@ export class WgEditorPalette extends LitElement {
     `;
   }
 
-  private renderSubMacros(names: string[]) {
-    if (names.length === 0) {
-      return html`<p class="empty">${t('Palette.NoSubMacros')}</p>`;
-    }
+  /** No open document means no submacro list to add to; the two tools stay disabled. */
+  private get noDocument(): boolean {
+    return editor.get().snapshot === null;
+  }
 
+  private renderSubMacros(names: string[]) {
     return html`
-      ${names.map((name) => html`
-        <button
-          type="button"
-          class="sub-card"
-          title=${t('Editor.OpenSubMacro')}
-          @click=${() => void editor.session.openSubmacro(name)}
-        >
-          ${icon('workflow')}
-          <span>${name}</span>
+      <div class="sub-tools">
+        <button class="link-button sub-new" type="button" title=${t('Editor.NewSubMacro')}
+          ?disabled=${this.noDocument}
+          @click=${() => void editor.steps.createSubMacro()}>
+          ${icon('plus')}${t('Editor.NewSubMacro')}
         </button>
-      `)}
+        <button class="link-button sub-copy" type="button" title=${t('Editor.PickSubMacro')}
+          ?disabled=${this.noDocument}
+          @click=${() => { this.copyOpen = true; }}>
+          ${icon('copy')}${t('Editor.Context.Copy')}
+        </button>
+      </div>
+      ${names.length === 0
+        ? html`<p class="empty">${t('Palette.NoSubMacros')}</p>`
+        : names.map((name) => html`
+          <div class="sub-card sub-row" data-submacro=${name}>
+            <button type="button" class="sub-open" title=${t('Editor.OpenSubMacro')}
+              @click=${() => void editor.session.openSubmacro(name)}>
+              ${icon('workflow')}<span>${name}</span>
+            </button>
+            <button type="button" class="ghost sub-remove" title=${t('Editor.DeleteSubMacro')}
+              aria-label=${t('Editor.DeleteSubMacro')}
+              @click=${() => { this.deleteName = name; }}>
+              ${icon('delete')}
+            </button>
+          </div>
+        `)}
+      <wg-submacro-copy-dialog .open=${this.copyOpen} .names=${names}
+        @wg-close=${() => { this.copyOpen = false; }}></wg-submacro-copy-dialog>
+      <wg-submacro-delete-dialog .open=${this.deleteName.length > 0} .name=${this.deleteName}
+        @wg-close=${() => { this.deleteName = ''; }}></wg-submacro-delete-dialog>
     `;
   }
 }

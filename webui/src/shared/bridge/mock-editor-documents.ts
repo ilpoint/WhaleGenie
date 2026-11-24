@@ -235,3 +235,120 @@ export function stopRecording(host: MockEditor): {
     : host.activeSnapshot();
   return { captured, steps, snapshot };
 }
+
+/** A name that does not shadow one the document or the project already has. */
+function uniqueSubMacroName(document: EditorSnapshot, wanted: string,
+  takenNames: readonly string[] = []): string {
+  const names = [...document.subMacros, ...takenNames];
+  const base = wanted.trim().length > 0 ? wanted.trim() : '子宏';
+  const taken = (candidate: string): boolean => names.some(
+    (name) => name.toLocaleLowerCase() === candidate.toLocaleLowerCase());
+  if (!taken(base)) {
+    return base;
+  }
+
+  for (let number = 2; ; number++) {
+    const candidate = base + ' ' + String(number);
+    if (!taken(candidate)) {
+      return candidate;
+    }
+  }
+}
+
+/**
+ * The hosted submacro commands. These are the mock's own words: the page never reads them, and the
+ * real host sends the words from its table.
+ */
+export function subMacroCreate(host: MockEditor, name?: string | null): EditorSnapshot | null {
+  const wanted = name ?? '';
+  const projectNames = host.macros().map((macro) => macro.name);
+  return host.change((document) => ({
+    ...document,
+    dirty: true,
+    subMacros: [...document.subMacros, uniqueSubMacroName(document, wanted, projectNames)],
+  }));
+}
+
+export function subMacroCopy(host: MockEditor, from: string, name?: string | null): EditorSnapshot | null {
+  const source = from.trim();
+  const document = host.activeSnapshot();
+  if (!document || source.length === 0) {
+    throw new Error('复制子宏需要一个来源名字。');
+  }
+
+  const known = document.subMacros.some((candidate) => candidate === source)
+    || host.macros().some((macro) => macro.name === source);
+  if (!known) {
+    throw new Error('没有名为“' + source + '”的宏。');
+  }
+
+  // Like the host: the copy takes the source's name when none is asked for, and a call step
+  // reaches it from the end of the root list, because a copy nothing calls would be unreachable.
+  const wanted = name?.trim() ?? '';
+  const copy = uniqueSubMacroName(document, wanted.length > 0 ? wanted : source,
+    host.macros().map((macro) => macro.name));
+  const call = callStepFor(host, copy);
+  return host.change((current) => ({
+    ...current,
+    dirty: true,
+    subMacros: [...current.subMacros, copy],
+    steps: call ? [...current.steps, call] : current.steps,
+  }));
+}
+
+/** A runMacro step naming the child, the way the host leaves a call after a copy. */
+function callStepFor(host: MockEditor, name: string): EditorStep | null {
+  const action = findAction('control.runMacro');
+  if (!action) {
+    return null;
+  }
+
+  const step = stepFromAction(action, host.nextStepId());
+  const parameter = step.parameters.find((candidate) => candidate.name === 'macro');
+  if (parameter) {
+    parameter.value = name;
+  }
+
+  return step;
+}
+
+export function subMacroDelete(host: MockEditor, name: string): EditorSnapshot | null {
+  const wanted = name.trim();
+  const document = host.activeSnapshot();
+  if (!document || wanted.length === 0) {
+    throw new Error('删除子宏需要一个名字。');
+  }
+
+  if (!document.subMacros.includes(wanted)) {
+    throw new Error('没有名为“' + wanted + '”的子宏。');
+  }
+
+  if (callsMacro(document.steps, wanted)) {
+    throw new Error('子宏“' + wanted + '”仍在被调用：请先移除“' + document.name
+      + '”中对它的调用，再删除它。');
+  }
+
+  return host.change((current) => ({
+    ...current,
+    dirty: true,
+    subMacros: current.subMacros.filter((candidate) => candidate !== wanted),
+  }));
+}
+
+/** True when any step (at any depth) calls the named macro. */
+function callsMacro(steps: readonly EditorStep[], name: string): boolean {
+  for (const step of steps) {
+    const macro = step.parameters.find((parameter) => parameter.name === 'macro');
+    if (step.type === 'control.runMacro' && macro?.value === name) {
+      return true;
+    }
+
+    for (const section of step.sections) {
+      if (callsMacro(section.steps, name)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}

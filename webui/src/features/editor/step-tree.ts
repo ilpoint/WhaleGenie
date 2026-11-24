@@ -10,6 +10,7 @@ import { StoreController } from '../../shared/lit/store-controller.js';
 import { categoryOfAction, findStep, visibleStepIds } from './editor-model.js';
 import { handleStepTreeKeydown } from './step-tree-keyboard.js';
 import { renderStepSections } from './step-tree-sections.js';
+import { StepTreeDrop, type StepRowBox } from './step-tree-drop.js';
 import { editorBase } from './editor-css.js';
 
 /**
@@ -22,12 +23,10 @@ export class WgStepTree extends LitElement {
 
   protected readonly editorController = new StoreController<void>(this, editor);
 
-  private dropTarget: { id: string; before: boolean } | null = null;
+  private readonly drop = new StepTreeDrop(this);
 
   @state()
   private menu: { x: number; y: number; stepId: string } | null = null;
-
-  private dragIds: string[] = [];
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -62,7 +61,12 @@ export class WgStepTree extends LitElement {
           </div>
         `
         : nothing}
-      <div class="scroll" @keydown=${this.onKeydown}>
+      <div
+        class="scroll"
+        @keydown=${this.onKeydown}
+        @dragover=${(event: DragEvent) => this.onScrollDragOver(event)}
+        @drop=${(event: DragEvent) => this.onScrollDrop(event)}
+      >
         ${snapshot.steps.length === 0
           ? html`
             <div class="empty">
@@ -94,9 +98,8 @@ export class WgStepTree extends LitElement {
           tabindex="0"
           data-selected=${selected ? 'true' : 'false'}
           data-primary=${primary ? 'true' : 'false'}
-          data-drop=${this.dropTarget?.id === step.id
-            ? (this.dropTarget.before ? 'before' : 'after')
-            : 'none'}
+          data-step-id=${step.id}
+          data-drop=${this.drop.rowMark(step.id)}
           data-problem=${step.problem.length > 0 ? 'true' : 'false'}
           data-skipped=${step.enabled ? 'false' : 'true'}
           aria-current=${primary ? 'true' : 'false'}
@@ -104,11 +107,12 @@ export class WgStepTree extends LitElement {
           @click=${(event: MouseEvent) => this.onRowClick(event, step.id)}
           @dblclick=${() => { editor.ui.selectStep(step.id); editor.action.openStepEditor(); }}
           @contextmenu=${(event: MouseEvent) => this.onContextMenu(event, step.id)}
-          @dragstart=${(event: DragEvent) => this.onDragStart(event, step.id)}
-          @dragover=${(event: DragEvent) => this.onDragOver(event, step.id)}
-          @dragleave=${() => { if (this.dropTarget?.id === step.id) { this.dropTarget = null; this.clearDropMarks(); } }}
-          @drop=${(event: DragEvent) => this.onDrop(event, step.id)}
-          @dragend=${() => { this.dropTarget = null; this.dragIds = []; }}
+          @dragstart=${(event: DragEvent) => this.drop.start(event, step.id)}
+          @dragover=${(event: DragEvent) =>
+            this.drop.overRow(event, event.currentTarget as HTMLElement, step.id)}
+          @dragleave=${() => this.drop.leaveRow(step.id)}
+          @drop=${(event: DragEvent) => this.drop.dropRow(event, step.id)}
+          @dragend=${() => this.drop.end()}
           @keydown=${(event: KeyboardEvent) => {
             if (event.target !== event.currentTarget) {
               return;
@@ -224,59 +228,47 @@ export class WgStepTree extends LitElement {
     };
   }
 
-  private onDragStart(event: DragEvent, id: string): void {
-    this.dragIds = editor.get().selectedStepIds.includes(id)
-      ? editor.ui.selectedSteps()
-      : [id];
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', this.dragIds.join(','));
+  /** A section's empty area asks the drop state what mark to draw. */
+  sectionDrop(parentId: string, list: string): 'into' | 'none' {
+    return this.drop.sectionMark(parentId, list);
+  }
+
+  onSectionDragOver(event: DragEvent, parentId: string, list: string): void {
+    this.drop.overSection(event, parentId, list);
+  }
+
+  onSectionDragLeave(parentId: string, list: string): void {
+    this.drop.leaveSection(parentId, list);
+  }
+
+  onSectionDrop(event: DragEvent, parentId: string, list: string): void {
+    this.drop.dropSection(event, parentId, list);
+  }
+
+  /** The root list's own background: a pointer below the last row appends after that row. */
+  private onScrollDragOver(event: DragEvent): void {
+    if (event.target === event.currentTarget) {
+      this.drop.overListEnd(event, this.rootRowBoxes());
     }
   }
 
-  private onDragOver(event: DragEvent, id: string): void {
-    const external = event.dataTransfer
-      ? Array.from(event.dataTransfer.types).includes('application/x-whalegenie-action')
-      : false;
-    if (!external && (this.dragIds.length === 0 || this.dragIds.includes(id))) {
-      return;
-    }
-
-    event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'move';
-    }
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    const before = event.clientY < rect.top + rect.height / 2;
-    this.clearDropMarks();
-    this.dropTarget = { id, before };
-    (event.currentTarget as HTMLElement).dataset['drop'] = before ? 'before' : 'after';
-  }
-
-  private clearDropMarks(): void {
-    for (const row of this.renderRoot.querySelectorAll<HTMLElement>('.row[data-drop]')) {
-      row.dataset['drop'] = 'none';
+  private onScrollDrop(event: DragEvent): void {
+    if (event.target === event.currentTarget) {
+      this.drop.dropListEnd(event, this.rootRowBoxes());
     }
   }
 
-  private onDrop(event: DragEvent, id: string): void {
-    event.preventDefault();
-    this.clearDropMarks();
-    const target = this.dropTarget;
-    const actionKey = event.dataTransfer?.getData('application/x-whalegenie-action') ?? '';
-    const ids = this.dragIds;
-    this.dropTarget = null;
-    this.dragIds = [];
-    if (!target || target.id !== id) {
-      return;
+  private rootRowBoxes(): StepRowBox[] {
+    const boxes: StepRowBox[] = [];
+    for (const row of this.renderRoot.querySelectorAll<HTMLElement>('.scroll > .list > .step > .row')) {
+      const id = row.dataset['stepId'] ?? '';
+      if (id.length > 0) {
+        const rect = row.getBoundingClientRect();
+        boxes.push({ id, top: rect.top, height: rect.height });
+      }
     }
 
-    if (actionKey.length > 0) {
-      void editor.action.openAction(actionKey, { targetStepId: id, before: target.before });
-      return;
-    }
-
-    void editor.steps.moveStepsTo(id, target.before, ids);
+    return boxes;
   }
 
   clearMenu(): void {

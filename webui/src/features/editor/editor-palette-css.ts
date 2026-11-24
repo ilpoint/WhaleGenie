@@ -213,6 +213,83 @@ export const editorPaletteCss = css`
       outline-offset: -1px;
     }
 
+    .sub-tools {
+      display: flex;
+      gap: var(--spacingHorizontalXS);
+      margin-bottom: var(--spacingVerticalS);
+    }
+
+    .sub-tools .link-button {
+      display: inline-flex;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .sub-tools .link-button svg {
+      width: 12px;
+      height: 12px;
+      flex: none;
+    }
+
+    .sub-tools .link-button:disabled {
+      color: var(--colorNeutralForegroundDisabled);
+      cursor: default;
+    }
+
+    .sub-row {
+      gap: 0;
+      padding: 0;
+      cursor: default;
+    }
+
+    .sub-row .sub-open {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: var(--spacingHorizontalXS);
+      min-width: 0;
+      padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: var(--fontSizeBase200);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .sub-row .sub-open:focus-visible {
+      outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
+      outline-offset: -1px;
+    }
+
+    .sub-row .sub-open span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sub-row .sub-open svg {
+      width: 13px;
+      height: 13px;
+      flex: none;
+    }
+
+    .sub-row .sub-remove {
+      flex: none;
+      width: 28px;
+      height: 28px;
+      margin-right: 2px;
+      color: var(--colorNeutralForeground3);
+    }
+
+    .sub-row .sub-remove:hover {
+      color: var(--colorPaletteRedForeground1);
+    }
+
     .empty {
       padding: var(--spacingVerticalL) var(--spacingHorizontalS);
       color: var(--colorNeutralForeground3);

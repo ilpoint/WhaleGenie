@@ -41,28 +41,8 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
       case 'editor.steps':
         return handleStepsCommand(host, params);
 
-      case 'editor.condition': {
-        switch (String(params['kind'] ?? '')) {
-          case 'rowAdd':
-            return host.conditionCommand(params, (condition, path) =>
-              addConditionNode(condition, path, 'row'));
-          case 'groupAdd':
-            return host.conditionCommand(params, (condition, path) =>
-              addConditionNode(condition, path, 'group'));
-          case 'rowRemove':
-            return host.conditionCommand(params, (condition, path) =>
-              removeConditionNode(condition, path));
-          case 'row':
-            return host.conditionCommand(params, (condition, path) =>
-              setConditionCell(condition, path, host.text(params, 'field'),
-                host.text(params, 'value')));
-          case 'join':
-            return host.conditionCommand(params, (condition, path) =>
-              setConditionJoinAt(condition, path, host.text(params, 'join')));
-          default:
-            throw new Error('不认识条件命令 ' + String(params['kind']) + '。');
-        }
-      }
+      case 'editor.condition':
+        return handleConditionCommand(host, params);
       case 'editor.trigger':
         return handleTriggerCommand(host, params);
       case 'editor.hotstringKeyPad':
@@ -186,7 +166,12 @@ function handleStepsCommand(host: MockEditor, params: Record<string, unknown>): 
 }
 
 function handleSessionCommand(host: MockEditor, params: Record<string, unknown>): unknown {
-  switch (String(params['kind'] ?? '')) {
+  const kind = String(params['kind'] ?? '');
+  if (kind.startsWith('subMacro')) {
+    return handleSubMacroCommand(host, kind, params);
+  }
+
+  switch (kind) {
     case 'open':
       return host.open(host.text(params, 'name'));
     case 'new':
@@ -213,6 +198,44 @@ function handleSessionCommand(host: MockEditor, params: Record<string, unknown>)
       return host.addStep({ type: 'control.runMacro' });
     default:
       throw new Error('不认识会话命令 ' + String(params['kind']) + '。');
+  }
+}
+
+/** The submacro kinds: an added, a copied or a removed one, all answering with the snapshot. */
+function handleSubMacroCommand(host: MockEditor, kind: string,
+    params: Record<string, unknown>): unknown {
+  switch (kind) {
+    case 'subMacroCreate':
+      return host.subMacroCreate(host.optionalText(params, 'name'));
+    case 'subMacroCopy':
+      return host.subMacroCopy(host.text(params, 'from'), host.optionalText(params, 'name'));
+    case 'subMacroDelete':
+      return host.subMacroDelete(host.text(params, 'name'));
+    default:
+      throw new Error('不认识子宏命令 ' + kind + '。');
+  }
+}
+
+/** One condition command from the page; the kind picks the edit. */
+function handleConditionCommand(host: MockEditor, params: Record<string, unknown>): unknown {
+  switch (String(params['kind'] ?? '')) {
+    case 'rowAdd':
+      return host.conditionCommand(params, (condition, path) =>
+        addConditionNode(condition, path, 'row'));
+    case 'groupAdd':
+      return host.conditionCommand(params, (condition, path) =>
+        addConditionNode(condition, path, 'group'));
+    case 'rowRemove':
+      return host.conditionCommand(params, (condition, path) =>
+        removeConditionNode(condition, path));
+    case 'row':
+      return host.conditionCommand(params, (condition, path) =>
+        setConditionCell(condition, path, host.text(params, 'field'), host.text(params, 'value')));
+    case 'join':
+      return host.conditionCommand(params, (condition, path) =>
+        setConditionJoinAt(condition, path, host.text(params, 'join')));
+    default:
+      throw new Error('不认识条件命令 ' + String(params['kind']) + '。');
   }
 }
 

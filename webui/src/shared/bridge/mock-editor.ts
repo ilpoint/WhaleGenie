@@ -15,6 +15,9 @@ import {
   close as closeCommand,
   tabs as tabsCommand,
   subOpen as subOpenCommand,
+  subMacroCreate as subMacroCreateCommand,
+  subMacroCopy as subMacroCopyCommand,
+  subMacroDelete as subMacroDeleteCommand,
   change as changeCommand,
   patch as patchCommand,
   macroSetting as macroSettingCommand,
@@ -144,6 +147,21 @@ export class MockEditor {
   /** Opens a submacro of the active document as a document of its own. */
   subOpen(...args: Tail<Parameters<typeof subOpenCommand>>): ReturnType<typeof subOpenCommand> {
     return subOpenCommand(this, ...args);
+  }
+
+  /** Adds an empty submacro; a name given here still has to be unique in the document. */
+  subMacroCreate(...args: Tail<Parameters<typeof subMacroCreateCommand>>): ReturnType<typeof subMacroCreateCommand> {
+    return subMacroCreateCommand(this, ...args);
+  }
+
+  /** Copies an existing submacro or a project macro under a fresh name. */
+  subMacroCopy(...args: Tail<Parameters<typeof subMacroCopyCommand>>): ReturnType<typeof subMacroCopyCommand> {
+    return subMacroCopyCommand(this, ...args);
+  }
+
+  /** Removes a submacro; a call to it anywhere in the document refuses the delete. */
+  subMacroDelete(...args: Tail<Parameters<typeof subMacroDeleteCommand>>): ReturnType<typeof subMacroDeleteCommand> {
+    return subMacroDeleteCommand(this, ...args);
   }
 
   /** Every editor command the host serves; the main mock only forwards the method and params. */
