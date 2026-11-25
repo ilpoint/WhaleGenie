@@ -24,7 +24,8 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
         var read = await packages.PreviewAsync(path, cancellationToken).ConfigureAwait(false);
         if (read.Ok && read.Value is { } contents)
         {
-            return PackageOutcomes.Success(BuildPlan(project, path, contents));
+            return PackageOutcomes.Success(TransferPlanner.BuildImportPlan(contents, path,
+                Path.GetFileName(path), GlobalNames(project)));
         }
 
         return PackageOutcomes.Failed<ProjectImportPlan>(read.Problem,
@@ -35,29 +36,9 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
         string path, CancellationToken cancellationToken = default)
         => PreviewAsync(project, path, cancellationToken);
 
-    private static ProjectImportPlan BuildPlan(ProjectWorkspace project, string path,
-        PackageContents contents)
-    {
-        var name = Path.GetFileName(path);
-        return new ProjectImportPlan(
-            path,
-            name,
-            Rows(contents.Macros, contents.Triggers),
-            [.. contents.Globals.Select(variable => new TransferGlobal(
-                variable.Name.Trim(),
-                variable.LocalType,
-                project.Variables.IsGlobal(variable.Name.Trim())))],
-            new PackagePreview(
-                name,
-                contents.FormatVersion,
-                contents.AppVersion,
-                contents.SavedUtc,
-                HasProject: contents.HasProject,
-                HasLibrary: contents.Library.Count > 0,
-                TriggerCount: contents.Triggers.Entries.Count,
-                [.. contents.Library.Select(entry => new PreviewLibraryEntry(
-                    entry.Id, entry.Macro.Name, entry.Version, "package"))]));
-    }
+    private static IReadOnlySet<string> GlobalNames(ProjectWorkspace project)
+        => project.Variables.Globals.Select(variable => variable.Name.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Writes the ticked part of a package into the project, or the public library, and answers the
@@ -81,13 +62,14 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
                 read.Message ?? Strings.Get("Bridge.PackageOpenFailed"), read.Error);
         }
 
-        var (picks, missing) = Chosen(contents.Macros, names);
-        if (missing is not null)
+        var selection = TransferPlanner.Select(contents.Macros, names);
+        if (selection.Missing is { } missing)
         {
             return PackageOutcomes.Failed<string>(PackageProblem.UnknownMacro,
                 Strings.Format("Bridge.TransferUnknownMacro", missing));
         }
 
+        var picks = selection.Picks;
         if (picks.Count == 0)
         {
             // Nothing ticked is an ordinary answer in the wizard, not a bad package: the report
@@ -116,16 +98,16 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
 
         var chosen = picks.Select(pick => pick.Macro).ToList();
         var questions = MacroImport.Decisions(chosen, contents.Globals, project.Variables.Globals);
-        var answerProblem = Answer(questions, decisions);
-        if (answerProblem is not null)
+        var plan = TransferPlanner.ApplyDecisions(questions, decisions);
+        if (plan.Problem is { } answerProblem)
         {
-            return PackageOutcomes.Failed<string>(answerProblem.Value,
+            return PackageOutcomes.Failed<string>(answerProblem,
                 Strings.Get("Bridge.TransferUnknownAction"));
         }
 
         try
         {
-            var report = MacroImport.IntoProject(project, contents, chosen, questions);
+            var report = MacroImport.IntoProject(project, contents, chosen, plan.Questions);
             if (contents.Library.Count > 0)
             {
                 var folder = ImageAssets.FolderFor(project.CurrentPath);
@@ -144,7 +126,7 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
                 }
             }
 
-            return PackageOutcomes.Success(ReportText(report));
+            return PackageOutcomes.Success(TransferPlanner.ReportText(report));
         }
         catch (Exception error)
         {
@@ -155,38 +137,26 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
     /// <summary>Everything the project could export, with a file name to start the save dialog.</summary>
     public PackageOutcome<ProjectExportPlan> PlanExport(ProjectWorkspace project,
         bool includeLibrary = true)
-    {
-        var first = project.Macros.FirstOrDefault()?.Name.Trim() ?? string.Empty;
-        var suggested = SafeName(first) + MacroPackage.Extension;
-        var carry = includeLibrary && project.Library.Count > 0;
-        var preview = new PackagePreview(
-            suggested,
-            MacroPackage.FormatVersion,
-            AppVersion.Text,
-            string.Empty,
-            HasProject: true,
-            HasLibrary: carry,
-            TriggerCount: project.Triggers.Entries.Count,
-            carry
-                ? [.. project.Library.Select(entry => new PreviewLibraryEntry(
-                    entry.Id, entry.Macro.Name, entry.Version, "project"))]
-                : []);
-        return PackageOutcomes.Success(new ProjectExportPlan(
-            suggested, Rows(project.Macros, project.Triggers), preview));
-    }
+        => PackageOutcomes.Success(TransferPlanner.BuildExportPlan(Snapshot(project),
+            includeLibrary));
+
+    private static TransferProjectSnapshot Snapshot(ProjectWorkspace project)
+        => new(project.Macros, project.Triggers, project.Variables.Globals, project.Library,
+            AppVersion.Text);
 
     /// <summary>Writes the ticked macros, their triggers, pictures and variables into a package.</summary>
     public async Task<PackageOutcome<ExportResult>> ApplyExportAsync(ProjectWorkspace project,
         string path, IReadOnlyList<string> names, bool includeLibrary = true,
         CancellationToken cancellationToken = default)
     {
-        var (picks, missing) = Chosen(project.Macros, names);
-        if (missing is not null)
+        var selection = TransferPlanner.Select(project.Macros, names);
+        if (selection.Missing is { } missing)
         {
             return PackageOutcomes.Failed<ExportResult>(PackageProblem.UnknownMacro,
                 Strings.Format("Bridge.TransferUnknownMacro", missing));
         }
 
+        var picks = selection.Picks;
         if (picks.Count == 0)
         {
             return PackageOutcomes.Failed<ExportResult>(PackageProblem.UnknownMacro,
@@ -251,201 +221,4 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
         }
     }
 
-    /// <summary>
-    /// What the import did, in the order a person checks it: what arrived, what had to be renamed,
-    /// what happened to the variables, and what now needs their attention.
-    /// </summary>
-    internal static string ReportText(ImportReport report)
-    {
-        var lines = new List<string>();
-
-        if (report.Added.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportMacros",
-                string.Join("、", report.Added.Select(macro => macro.Name))));
-        }
-        if (report.RenamedMacros.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportRenamed",
-                string.Join("、", report.RenamedMacros.Select(pair => pair.Was + " → " + pair.Now))));
-        }
-        var globals = new List<string>();
-        if (report.GlobalsAdded.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalAdded", string.Join("、", report.GlobalsAdded)));
-        }
-        if (report.GlobalsRenamed.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalRenamed",
-                string.Join("、", report.GlobalsRenamed)));
-        }
-        if (report.GlobalsOverwritten.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalOverwritten",
-                string.Join("、", report.GlobalsOverwritten)));
-        }
-        if (report.GlobalsKept.Count > 0)
-        {
-            globals.Add(Strings.Format("Import.GlobalKept", string.Join("、", report.GlobalsKept)));
-        }
-        if (globals.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportGlobals", string.Join("；", globals)));
-        }
-        if (report.DuplicateTriggers.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportDuplicates",
-                string.Join("；", report.DuplicateTriggers)));
-        }
-        if (report.ScriptsToCheck.Count > 0)
-        {
-            lines.Add(Strings.Format("Import.ReportScripts", string.Join("；", report.ScriptsToCheck)));
-        }
-
-        return lines.Count == 0 ? Strings.Get("Import.ReportNothing") : string.Join("\n", lines);
-    }
-
-    /// <summary>
-    /// One decision for every global conflict the person answered. A name that is not in conflict
-    /// was not asked about and is ignored; an answer the wizard does not offer is a bad request
-    /// rather than something to guess at.
-    /// </summary>
-    private static PackageProblem? Answer(IReadOnlyList<GlobalDecision> questions,
-        IReadOnlyList<ImportDecision> decisions)
-    {
-        foreach (var decision in decisions)
-        {
-            var wanted = decision.Name.Trim();
-            var matching = questions.Where(question =>
-                string.Equals(question.Arriving.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
-            foreach (var question in matching)
-            {
-                var answer = decision.Action.Trim().ToLowerInvariant() switch
-                {
-                    ImportActions.Keep => GlobalChoice.UseProject,
-                    ImportActions.Overwrite => GlobalChoice.Overwrite,
-                    ImportActions.Rename => GlobalChoice.Rename,
-                    _ => (GlobalChoice?)null,
-                };
-                if (answer is null)
-                {
-                    return PackageProblem.UnknownAction;
-                }
-
-                question.Choice = answer.Value;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// The rows a wizard shows, in the order a tree is read: a macro and then the submacros written
-    /// inside it. The order is what lets the page cover them without a parent field: every submacro
-    /// after a macro belongs to it until the next macro starts.
-    /// </summary>
-    private static IReadOnlyList<TransferMacro> Rows(IReadOnlyList<MacroItem> macros,
-        ProjectTriggers triggers)
-    {
-        var rows = new List<TransferMacro>();
-        foreach (var macro in macros)
-        {
-            AddRow(macro, isSub: false, depth: 0, triggers, rows);
-        }
-
-        return rows;
-    }
-
-    private static void AddRow(MacroItem macro, bool isSub, int depth, ProjectTriggers triggers,
-        List<TransferMacro> rows)
-    {
-        rows.Add(new TransferMacro(
-            macro.Name.Trim(),
-            Kind(macro.Name, triggers),
-            macro.Steps.Count,
-            MacroCheck.DeclarationFaults(macro.Callable).FirstOrDefault() ?? string.Empty,
-            isSub,
-            depth));
-
-        foreach (var sub in macro.SubMacros)
-        {
-            AddRow(sub, isSub: true, depth + 1, triggers, rows);
-        }
-    }
-
-    /// <summary>The trigger kinds the macro answers to, as the editor's picker says them.</summary>
-    private static string Kind(string macroName, ProjectTriggers triggers)
-    {
-        var kinds = triggers.ForMacro(macroName)
-            .Select(entry => entry.KindLabel)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        return kinds.Count == 0 ? Strings.Get("Trigger.Unset") : string.Join("、", kinds);
-    }
-
-    /// <summary>The ticked macros, found again by name and in the order the package holds them.</summary>
-    private static (IReadOnlyList<Pick> Picks, string? Missing) Chosen(
-        IReadOnlyList<MacroItem> macros, IReadOnlyList<string> names)
-    {
-        var wanted = names.Select(name => name.Trim())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var chosen = new List<Pick>();
-        var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var macro in macros)
-        {
-            Choose(macro, isSub: false, wanted, matched, chosen);
-        }
-
-        return (chosen, wanted.FirstOrDefault(name => !matched.Contains(name)));
-    }
-
-    private static void Choose(MacroItem macro, bool isSub, IReadOnlySet<string> wanted,
-        HashSet<string> matched, List<Pick> chosen)
-    {
-        var name = macro.Name.Trim();
-        if (wanted.Contains(name))
-        {
-            chosen.Add(new Pick(macro, isSub));
-            matched.Add(name);
-            foreach (var sub in macro.SubMacros)
-            {
-                Cover(sub, matched);
-            }
-
-            return;
-        }
-
-        // Ticking a macro covers the submacros written inside it: they travel inside it, so they
-        // cannot be taken on their own in the same import. Ticking one on its own takes it alone.
-        foreach (var sub in macro.SubMacros)
-        {
-            Choose(sub, isSub: true, wanted, matched, chosen);
-        }
-    }
-
-    /// <summary>A submacro a ticked macro carries, so its name is not mistaken for a missing one.</summary>
-    private static void Cover(MacroItem macro, HashSet<string> matched)
-    {
-        matched.Add(macro.Name.Trim());
-        foreach (var sub in macro.SubMacros)
-        {
-            Cover(sub, matched);
-        }
-    }
-
-    /// <summary>A macro's name with the characters a file name cannot hold taken out.</summary>
-    private static string SafeName(string name)
-    {
-        var text = name.Trim();
-        foreach (var bad in Path.GetInvalidFileNameChars())
-        {
-            text = text.Replace(bad, '-');
-        }
-
-        text = text.Trim('-', '.', ' ');
-        return text.Length == 0 ? "macro" : text;
-    }
-
-    private readonly record struct Pick(MacroItem Macro, bool IsSub);
 }

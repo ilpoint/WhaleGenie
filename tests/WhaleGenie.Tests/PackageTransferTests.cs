@@ -309,7 +309,7 @@ public class PackageTransferTests : IDisposable
     {
         var report = new ImportReport([], [], [], [], [], [], [], []);
 
-        Assert.Equal(Strings.Get("Import.ReportNothing"), PackageTransferService.ReportText(report));
+        Assert.Equal(Strings.Get("Import.ReportNothing"), TransferPlanner.ReportText(report));
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public class PackageTransferTests : IDisposable
             [],
             []);
 
-        var text = PackageTransferService.ReportText(report);
+        var text = TransferPlanner.ReportText(report);
 
         Assert.Contains("arrived", text, StringComparison.Ordinal);
         Assert.Contains("old", text, StringComparison.Ordinal);
