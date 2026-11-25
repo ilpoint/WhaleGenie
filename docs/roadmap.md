@@ -18,15 +18,17 @@
 
 ### 函数式核心与命令式外壳（进行中）
 
-**实现状态**：`TransferPlanner` 已抽出为包转移的纯核心，负责计划行、全局冲突、选择、决定与
-报告；`PackageTransferService` 只做包读取、工程/库写入和错误映射。纯核心测试不需要文件或工程。
+**实现状态**：`TransferPlanner` 是包转移的纯核心（计划行、冲突、选择、决定、报告）；`PackageShapeReader`、
+`PackageManifestBuilder`、`PackageReadme` 把包形状、manifest 与 README 从 ZIP/时钟外壳中拆出；
+`McpDraftRules` 是草稿校验的纯核心；`SubMacroEditor.CanDelete` 把子宏删除判断与列表修改分开。
+纯核心测试不需要文件、工程、草稿会话或时钟。
 
 **下一步**：
 
-- 包 codec 的 manifest/区段构造与解析抽成纯函数，`FilePackageStore` 只保留 zip、资源解包、
+- 继续把包 codec 的节点文档组装/资源收集边界收紧，`FilePackageStore` 只保留 zip、资源解包、
   临时文件与备份；
-- MCP 草稿的 diff、字段校验与冲突检查抽成纯函数，宿主保留权限、审计与 revision 闸门；
-- 编辑器只抽步骤树、子宏复制/改名等高风险变换，`EditorDocumentSet`/会话仍保持命令式外壳。
+- MCP 草稿的客户端 JSON 解析与 diff 只留纯函数，宿主保留权限、审计与 revision 闸门；
+- 编辑器只继续抽步骤树、子宏复制/改名的纯变换，`EditorDocumentSet`/会话仍保持命令式外壳。
 
 **边界**：宏运行时、输入/画面/窗口设备、UI 状态机、文件选择器和 WebView 留在外壳；不为了纯函数
 复制每帧画面或整棵步骤树。新增纯核心不读写文件、不依赖当前时间/随机 ID，测试以记录和列表为输入。
