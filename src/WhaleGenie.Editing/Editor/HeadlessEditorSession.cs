@@ -42,7 +42,8 @@ internal sealed partial class HeadlessEditorSession
 
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing,
         HeadlessEditorSession? owner = null, string submacroOriginal = "",
-        IDeviceLayer? devices = null, IEditorSettings? settings = null)
+        IDeviceLayer? devices = null, IEditorSettings? settings = null,
+        IReadOnlyCollection<string>? takenNames = null)
     {
         _workspace = workspace;
         _existing = existing;
@@ -68,7 +69,7 @@ internal sealed partial class HeadlessEditorSession
         }
         else
         {
-            _model.UseDefaultName(workspace.Macros.Select(macro => macro.Name));
+            _model.UseDefaultName(takenNames ?? workspace.Macros.Select(macro => macro.Name));
         }
 
         // A submacro document has no triggers and no arm key of its own; the editor form and the
@@ -116,12 +117,27 @@ internal sealed partial class HeadlessEditorSession
             devices ?? owner._devices, settings ?? owner._settings);
     }
 
-    public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name,
+    /// <summary>
+    /// A new child that is not in the owner's model yet. It becomes a normal child only when the
+    /// document is saved, so an abandoned draft leaves no half-made submacro in the macro list.
+    /// </summary>
+    public static HeadlessEditorSession OpenNewSubmacro(ProjectWorkspace workspace,
+        HeadlessEditorSession owner, IReadOnlyCollection<string> taken, string? wanted,
         IDeviceLayer? devices = null, IEditorSettings? settings = null)
+    {
+        var draft = SubMacroEditor.NewSubMacro(taken, wanted);
+        return new HeadlessEditorSession(workspace, draft, owner, string.Empty,
+            devices ?? owner._devices, settings ?? owner._settings);
+    }
+
+    public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name,
+        IDeviceLayer? devices = null, IEditorSettings? settings = null,
+        IReadOnlyCollection<string>? takenNames = null)
     {
         if (name is not { Length: > 0 })
         {
-            return new HeadlessEditorSession(workspace, null, devices: devices, settings: settings);
+            return new HeadlessEditorSession(workspace, null, devices: devices, settings: settings,
+                takenNames: takenNames);
         }
 
         var existing = workspace.Macros.FirstOrDefault(candidate =>

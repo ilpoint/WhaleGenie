@@ -26,6 +26,8 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
     public void Register(BridgeServer server)
     {
         server.Register("library.state", _ => Task.FromResult<object?>(State()));
+        server.Register("library.create", Create);
+        server.Register("library.import", Import);
         server.Register("library.delete", Delete);
         server.Register("library.publish", Publish);
     }
@@ -43,6 +45,57 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
         {
             return new LibraryState([], error.Message);
         }
+    }
+
+    /// <summary>
+    /// Adds a blank entry. The library is a place to start from as well as a shelf of finished
+    /// macros; a blank callable is valid and can be filled in by copying it into a project.
+    /// </summary>
+    private Task<object?> Create(JsonElement parameters)
+    {
+        var wanted = parameters.TryGetProperty("name", out var named) ? named.GetString() : null;
+        return Change(entries =>
+        {
+            var name = FreeName(entries, wanted);
+            return [.. entries, new PublicMacroEntry(Guid.NewGuid().ToString("N"), 1,
+                new MacroItem { Name = name })];
+        });
+    }
+
+    /// <summary>Adds every macro a package holds to the library, each under a free name.</summary>
+    private Task<object?> Import(JsonElement parameters)
+    {
+        var path = parameters.TryGetProperty("path", out var named) ? named.GetString() : null;
+        if (path is not { Length: > 0 })
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsFile"));
+        }
+
+        try
+        {
+            var contents = MacroPackage.Load(path);
+            MacroImport.IntoLibrary(contents.Macros, _library);
+            return Task.FromResult<object?>(State());
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException)
+        {
+            throw new BridgeFailureException(BridgeErrors.Internal, error.Message);
+        }
+    }
+
+    private static string FreeName(IReadOnlyList<PublicMacroEntry> entries, string? wanted)
+    {
+        var taken = entries.Select(entry => entry.Macro.Name.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var stem = wanted?.Trim() is { Length: > 0 } named ? named : Strings.Get("Library.NewName");
+        var name = stem;
+        for (var index = 2; taken.Contains(name); index++)
+        {
+            name = stem + " " + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        return name;
     }
 
     /// <summary>

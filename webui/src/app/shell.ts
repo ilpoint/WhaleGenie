@@ -12,38 +12,24 @@ import '../features/library/library-page.js';
 import '../features/settings/settings-page.js';
 import '../features/run/run-page.js';
 import '../features/about/about-page.js';
-import { project } from '../shared/project/store.js';
-import { systemSwitch } from '../shared/system/system.js';
+import { editor } from '../features/editor/editor-store.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
-import type { ProjectState, SystemSwitchState } from '../shared/bridge/protocol.js';
+import type { EditorSnapshot } from '../shared/bridge/protocol.js';
 
 /**
  * 应用壳：网页标题栏 + 左侧导航 + 内容区 + 底部状态条。窗口按钮、置顶与拖动都在标题栏里；
- * 这里管当前路由、项目保存状态与系统开关的两行只读摘录。系统开关本身在左侧栏，这里只把
- * 完整文字和开关键再写一遍，方便被侧栏省略的长组合键仍能读到。
+ * 这里管当前路由与当前编辑文档的保存状态。项目本身的状态归标题栏，系统开关归左侧栏。
  */
 @customElement('wg-shell')
 export class WgShell extends LitElement {
   @state()
   private route: Route = currentRoute();
 
-  @state()
-  private document: ProjectState | null = null;
-
-  @state()
-  private system: SystemSwitchState | null = null;
-
   protected readonly stringsController = new StoreController(this, strings);
 
-  protected readonly projectController = new StoreController(this, project, (value) => {
-    this.document = value;
-  });
-
-  protected readonly systemController = new StoreController(this, systemSwitch, (value) => {
-    this.system = value;
-  });
+  protected readonly editorController = new StoreController<void>(this, editor);
 
   protected readonly popstateController = new WindowEventController(this, 'popstate', () => {
     this.route = currentRoute();
@@ -113,9 +99,7 @@ export class WgShell extends LitElement {
       <wg-nav .active=${this.route} @wg-navigate=${this.onNavigate}></wg-nav>
       <div class="content ${this.route === 'editor' ? 'editor' : ''}">${this.renderRoute()}</div>
       <footer class="status" role="status">
-        <span data-status="project">${this.projectLabel()}</span>
-        <span data-status="dirty" title=${this.saveError()}>${this.saveLabel()}</span>
-        <span data-status="system">${this.systemLabel()}</span>
+        <span data-status="editor" title=${this.editorError()}>${this.editorLabel()}</span>
       </footer>
       <wg-confirm></wg-confirm>
       <wg-transfer></wg-transfer>
@@ -123,33 +107,16 @@ export class WgShell extends LitElement {
     `;
   }
 
-  private projectLabel(): string {
-    return this.document?.name || t('Shell.UntitledProject');
+  private editorError(): string {
+    return editor.get().snapshot?.problemSummary ?? '';
   }
 
-  private saveError(): string {
-    return this.document?.saveError ?? '';
-  }
-
-  private saveLabel(): string {
-    if (this.document?.saving) {
-      return t('Shell.Saving');
-    }
-
-    if (this.document?.saveError) {
-      return t('Shell.SaveFailed');
-    }
-
-    return t(this.document?.dirty ? 'Shell.Field.Dirty' : 'Shell.Field.Clean');
-  }
-
-  private systemLabel(): string {
-    const enabled = this.system?.enabled ?? false;
-    const state = t(enabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled');
-    const key = this.system?.hotkeyDisplay ?? '';
-    return t('Shell.SystemStatus')
-      .replace('{0}', state)
-      .replace('{1}', key.length > 0 ? key : t('Common.None'));
+  private editorLabel(): string {
+    const snapshot: EditorSnapshot | null = editor.get().snapshot;
+    const state = snapshot === null
+      ? t('Editor.NoDocument')
+      : t(snapshot.dirty ? 'Shell.Field.Dirty' : 'Shell.Field.Clean');
+    return t('Shell.EditorStatus').replace('{0}', state);
   }
 
   private renderRoute() {

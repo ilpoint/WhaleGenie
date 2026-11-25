@@ -25,18 +25,16 @@ test('启动直接落在宏列表', async ({ page }) => {
   await expect(page.locator('wg-home')).toHaveCount(0);
 });
 
-test('状态条跟随项目推送', async ({ page }) => {
-  const status = page.locator('wg-shell .status');
-  await expect(status.locator('[data-status="project"]')).toHaveText('未命名项目');
-  await expect(status.locator('[data-status="dirty"]')).toHaveText('已保存');
-  await expect(status.locator('[data-status="system"]')).toContainText('已停用');
+test('标题栏显示项目自动保存，状态条显示编辑器保存状态', async ({ page }) => {
+  const title = page.locator('wg-titlebar .title');
+  await expect(title).toContainText('未命名项目');
+  await expect(title).toContainText('项目自动保存已开启');
+  const status = page.locator('wg-shell .status [data-status="editor"]');
+  await expect(status).toHaveText('编辑器：没有打开的文档');
 
-  await page.locator('wg-nav .system .power').click();
-  await expect(status.locator('[data-status="system"]')).toContainText('已启用');
-  await expect(page.locator('wg-nav .system')).toHaveAttribute('data-enabled', 'true');
-
-  await page.locator('wg-macros .card fluent-switch').first().click();
-  await expect(status.locator('[data-status="dirty"]')).toHaveText('有未保存修改');
+  await page.locator('wg-nav .activity button[aria-label="宏"]').click();
+  await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
+  await expect(status).toHaveText('编辑器：已保存');
 });
 
 test('帮助菜单的关于页显示第三方组件', async ({ page }) => {
@@ -67,6 +65,7 @@ test('标题栏文件与帮助菜单', async ({ page }) => {
   await expect(page.getByRole('menuitem', { name: '打开宏项目' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: '保存宏项目' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: '导入…' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: '导出宏…' })).toBeVisible();
 
   const help = page.locator('wg-titlebar .menu', { hasText: '帮助' }).getByRole('button', { name: '帮助' });
   await help.click();
@@ -243,19 +242,21 @@ test('MCP 浮层切换授权', async ({ page }) => {
     .toBe('true|false');
 });
 
-test('编辑器可把当前宏发布到公共宏库', async ({ page }) => {
+test('编辑器不再发布，公共宏库可新建和导入', async ({ page }) => {
   await page.locator('wg-nav .activity button[aria-label="宏"]').click();
   await page.locator('wg-macros .card', { hasText: '自动保存' }).dblclick();
-  const publish = page.locator('wg-macro-settings .footer fluent-button',
-    { hasText: '发布到宏库' });
-  await expect(publish).toBeEnabled();
-  await publish.click();
-  await expect
-    .poll(() => page.evaluate(() => window.__mock!.seen.includes('library.publish')))
-    .toBe(true);
+  await expect(page.locator('wg-macro-settings .footer fluent-button',
+    { hasText: '发布到宏库' })).toHaveCount(0);
 
   await page.locator('wg-nav .activity button[aria-label="公共宏库"]').click();
-  await expect(page.locator('wg-library .card', { hasText: '自动保存' })).toBeVisible();
+  await page.locator('wg-library .tools fluent-button', { hasText: '新建' }).click();
+  await expect(page.locator('wg-library .card', { hasText: '公共宏 2' })).toBeVisible();
+
+  await page.locator('wg-library .tools fluent-button', { hasText: '从文件导入' }).click();
+  await expect
+    .poll(() => page.evaluate(() => window.__mock!.seen.includes('library.import')))
+    .toBe(true);
+  await expect(page.locator('wg-library .card', { hasText: '包里的宏' })).toBeVisible();
 });
 
 test('设置页自定义主题可改强调色', async ({ page }) => {

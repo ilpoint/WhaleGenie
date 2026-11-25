@@ -41,7 +41,7 @@ export class WgEditorPalette extends LitElement {
     const state = editor.get();
     const actions = paletteActions(state.actions, state.paletteSource, state.category, state.search);
     const sections = actionSections(actions);
-    const subMacros = state.snapshot?.subMacros ?? [];
+    const subMacros = state.snapshot?.rootSubMacros ?? state.snapshot?.subMacros ?? [];
     const needle = state.search.trim().toLocaleLowerCase();
     const shownSubMacros = subMacros.filter((name) =>
       needle.length === 0 || name.toLocaleLowerCase().includes(needle));
@@ -212,7 +212,7 @@ export class WgEditorPalette extends LitElement {
         <button class="link-button sub-copy" type="button" title=${t('Editor.PickSubMacro')}
           ?disabled=${this.noDocument}
           @click=${() => { this.copyOpen = true; }}>
-          ${icon('copy')}${t('Editor.Context.Copy')}
+          ${icon('copy')}${t('Editor.ImportSubMacro')}
         </button>
       </div>
       ${names.length === 0
@@ -230,7 +230,7 @@ export class WgEditorPalette extends LitElement {
             </button>
           </div>
         `)}
-      <wg-submacro-copy-dialog .open=${this.copyOpen} .names=${names}
+      <wg-submacro-copy-dialog .open=${this.copyOpen}
         @wg-close=${() => { this.copyOpen = false; }}></wg-submacro-copy-dialog>
       <wg-submacro-delete-dialog .open=${this.deleteName.length > 0} .name=${this.deleteName}
         @wg-close=${() => { this.deleteName = ''; }}></wg-submacro-delete-dialog>

@@ -117,11 +117,7 @@ export class WgEditorTabs extends LitElement {
       margin: 0 var(--spacingHorizontalXS);
     }
 
-    .export {
-      align-self: center;
-      margin-left: auto;
-    }
-  `];
+    `];
 
   protected readonly editorController = new StoreController<void>(this, editor);
 
@@ -166,12 +162,6 @@ export class WgEditorTabs extends LitElement {
           </div>
         `)}
         <span style="flex:1"></span>
-        <button
-          class="ghost export"
-          title=${t('Editor.ExportDocument')}
-          aria-label=${t('Editor.ExportDocument')}
-          @click=${() => void editor.session.exportDocument()}
-        >${icon('export')}</button>
         <button
           class="ghost new"
           title=${t('Main.AddMacro')}

@@ -5,6 +5,7 @@ import {
   subMacroCopy,
   subMacroCreate,
   subMacroDelete,
+  subMacroImport,
   undoRedo,
 } from './mock-editor-documents.js';
 import { handleDocumentCommand } from './mock-editor-session-documents.js';
@@ -217,6 +218,8 @@ function handleSubMacroCommand(host: MockEditor, kind: string,
       return subMacroCopy(host, host.text(params, 'from'), host.optionalText(params, 'name'));
     case 'subMacroDelete':
       return subMacroDelete(host, host.text(params, 'name'));
+    case 'subMacroImport':
+      return subMacroImport(host, host.text(params, 'reference'), host.optionalText(params, 'name'));
     default:
       throw new Error('不认识子宏命令 ' + kind + '。');
   }

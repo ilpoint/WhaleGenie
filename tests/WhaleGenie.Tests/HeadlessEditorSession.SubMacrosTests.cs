@@ -20,17 +20,23 @@ namespace WhaleGenie.Tests;
 public class HeadlessEditorSessionSubMacroTests
 {
     [Fact]
-    public void A_new_child_reaches_the_action_library_and_the_steps()
+    public void A_new_child_is_a_draft_tab_until_it_is_saved()
     {
         var workspace = new ProjectWorkspace();
         workspace.AddMacro(new MacroItem { Name = "host" });
         var documents = new EditorDocumentSet(workspace);
         var session = documents.Open("host");
+        var hostId = Assert.IsType<string>(documents.ActiveId);
 
-        var created = session.CreateSubMacro("helper");
+        var child = documents.CreateSubmacro(hostId, "helper");
 
-        Assert.Contains("helper", created.SubMacros);
-        Assert.True(created.Dirty);
+        Assert.Equal("helper", child.Name);
+        Assert.DoesNotContain("helper", session.Snapshot().SubMacros);
+        Assert.Contains(hostId, documents.Tabs.Select(tab => tab.DocumentId));
+
+        var saved = child.Save();
+        Assert.True(saved.Succeeded);
+        Assert.Contains("helper", session.Snapshot().SubMacros);
 
         session.OpenActionDraft("control.runMacro");
         var macros = session.ActionForm.Form.Parameters
@@ -46,6 +52,36 @@ public class HeadlessEditorSessionSubMacroTests
         Assert.Equal("control.runMacro", call.Type);
         Assert.Equal("helper",
             Assert.Single(call.Parameters, parameter => parameter.Name == "macro").Value);
+    }
+
+    [Fact]
+    public async Task Importing_a_project_macro_opens_it_as_a_child_without_a_call_step()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "host" });
+        var source = new MacroItem { Name = "shared" };
+        source.Steps.Add(new MacroStep { Type = "control.log" });
+        workspace.AddMacro(source);
+
+        var channel = new RecordingChannel();
+        var server = new BridgeServer();
+        server.Attach(channel);
+        new EditorSessionBridge(new WhaleGenie.Editor.EditorDocumentService(workspace), workspace).Register(server);
+
+        await Call(server, """{"id":1,"method":"editor.session","params":{"kind":"open","name":"host"}}""");
+        await Call(server, """
+            {"id":2,"method":"editor.session","params":
+              {"kind":"subMacroImport","source":"project","reference":"shared"}}
+            """);
+
+        var answer = channel.Sent[^1].GetProperty("result");
+        Assert.Equal("shared 2", answer.GetProperty("name").GetString());
+        Assert.True(answer.GetProperty("isSubMacro").GetBoolean());
+        Assert.Contains(answer.GetProperty("rootSubMacros").EnumerateArray(),
+            name => name.GetString() == "shared 2");
+        Assert.DoesNotContain(answer.GetProperty("steps").EnumerateArray(),
+            step => step.GetProperty("type").GetString() == "control.runMacro");
+        Assert.Single(answer.GetProperty("steps").EnumerateArray());
     }
 
     [Fact]
@@ -85,10 +121,9 @@ public class HeadlessEditorSessionSubMacroTests
         var hostId = Assert.IsType<string>(documents.ActiveId);
         var child = documents.OpenSubmacro(hostId, "helper");
 
-        var created = child.CreateSubMacro("deeper");
-
-        Assert.Contains("deeper", created.SubMacros);
-        Assert.DoesNotContain("deeper", child.SubMacros);
+        var deeper = documents.CreateSubmacro(documents.ActiveId, "deeper");
+        Assert.DoesNotContain("deeper", child.Snapshot().RootSubMacros!);
+        Assert.True(deeper.Save().Succeeded);
         Assert.Contains("deeper", documents.Activate(hostId).Snapshot().SubMacros);
 
         child.DeleteSubMacro("deeper");
@@ -103,7 +138,9 @@ public class HeadlessEditorSessionSubMacroTests
         workspace.AddMacro(new MacroItem { Name = "host" });
         var documents = new EditorDocumentSet(workspace);
         var session = documents.Open("host");
-        session.CreateSubMacro("helper");
+        var hostId = Assert.IsType<string>(documents.ActiveId);
+        var child = documents.CreateSubmacro(hostId, "helper");
+        child.Save();
         session.AddStep("control.runMacro", null, null,
             new Dictionary<string, string> { ["macro"] = "helper" });
 
@@ -140,21 +177,35 @@ public class HeadlessEditorSessionSubMacroTests
         await Call(server, """{"id":1,"method":"editor.session","params":{"kind":"open","name":"host"}}""");
         await Call(server,
             """{"id":2,"method":"editor.session","params":{"kind":"subMacroCreate","name":"helper"}}""");
-        var created = channel.Sent[1];
+        var created = channel.Sent[^1];
         Assert.True(created.GetProperty("ok").GetBoolean());
-        Assert.Contains(created.GetProperty("result").GetProperty("subMacros").EnumerateArray(),
+        var createdSnapshot = created.GetProperty("result");
+        Assert.Equal("helper 2", createdSnapshot.GetProperty("name").GetString());
+        Assert.Empty(createdSnapshot.GetProperty("subMacros").EnumerateArray());
+        Assert.Contains(createdSnapshot.GetProperty("rootSubMacros").EnumerateArray(),
+            name => name.GetString() == "helper");
+        Assert.Equal(2, createdSnapshot.GetProperty("tabs").GetArrayLength());
+
+        var documentId = createdSnapshot.GetProperty("documentId").GetString();
+        await Call(server, JsonSerializer.Serialize(new
+        {
+            id = 3,
+            method = "editor.save",
+            @params = new { documentId },
+        }));
+        var saved = channel.Sent[^1].GetProperty("result").GetProperty("snapshot");
+        Assert.Contains(saved.GetProperty("rootSubMacros").EnumerateArray(),
             name => name.GetString() == "helper 2");
-        Assert.NotEmpty(created.GetProperty("result").GetProperty("tabs").EnumerateArray());
 
         await Call(server,
-            """{"id":3,"method":"editor.session","params":{"kind":"subMacroCopy","from":"nowhere"}}""");
-        var missing = channel.Sent[2];
+            """{"id":4,"method":"editor.session","params":{"kind":"subMacroCopy","from":"nowhere"}}""");
+        var missing = channel.Sent[^1];
         Assert.Equal(BridgeErrors.NoSuchMacro,
             missing.GetProperty("error").GetProperty("code").GetString());
 
         await Call(server,
-            """{"id":4,"method":"editor.session","params":{"kind":"subMacroDelete","name":"helper"}}""");
-        var refused = channel.Sent[3];
+            """{"id":5,"method":"editor.session","params":{"kind":"subMacroDelete","name":"helper"}}""");
+        var refused = channel.Sent[^1];
         Assert.Equal(BridgeErrors.BadArgument,
             refused.GetProperty("error").GetProperty("code").GetString());
         Assert.Equal(Strings.Format("Bridge.SubMacroInUse", "helper"),

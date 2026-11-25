@@ -138,6 +138,17 @@ internal sealed partial class HeadlessEditorSession
     /// </summary>
     internal bool ApplyChildDraft(string originalName, MacroItem updated)
     {
+        if (originalName.Trim().Length == 0)
+        {
+            // A new child was opened as a document before it belonged to the macro. Saving that
+            // document is the moment it enters the list; an abandoned tab never did.
+            updated.Name = SubMacroEditor.UniqueName(TakenMacroNames(), updated.Name);
+            _model.SubMacros.Add(updated);
+            _model.IsDirty = true;
+            RefreshCallables();
+            return true;
+        }
+
         var index = _model.SubMacros.FindIndex(macro =>
             string.Equals(macro.Name, originalName, StringComparison.OrdinalIgnoreCase));
         if (index < 0)
@@ -147,6 +158,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SubMacros[index] = updated;
         _model.IsDirty = true;
+        RefreshCallables();
         return true;
     }
 

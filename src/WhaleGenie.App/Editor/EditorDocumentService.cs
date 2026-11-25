@@ -62,6 +62,20 @@ public sealed class EditorDocumentService : IEditorDocuments
         return session;
     }
 
+    internal HeadlessEditorSession CreateSubmacro(string? ownerId, string? name)
+    {
+        var session = _documents.CreateSubmacro(ownerId, name);
+        Notify();
+        return session;
+    }
+
+    internal HeadlessEditorSession ImportSubmacro(string? ownerId, MacroItem source, string? name)
+    {
+        var session = _documents.ImportSubmacro(ownerId, source, name);
+        Notify();
+        return session;
+    }
+
     internal HeadlessEditorSession Activate(string documentId)
     {
         var session = _documents.Activate(documentId);

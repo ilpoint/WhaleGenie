@@ -77,9 +77,39 @@ internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
 
     public HeadlessEditorSession New()
     {
-        var session = HeadlessEditorSession.Open(workspace, null, devices, _settings);
+        var session = HeadlessEditorSession.Open(workspace, null, devices, _settings,
+            RootNamesForNewDocument());
         Add(session, ownerId: null);
         return session;
+    }
+
+    /// <summary>
+    /// A new child document. It is not in the owner's model yet: only saving it puts the child in
+    /// the list, so clicking New twice and abandoning one leaves no half-made submacro behind.
+    /// </summary>
+    public HeadlessEditorSession CreateSubmacro(string? ownerDocumentId, string? name)
+    {
+        var owner = ResolveOwner(ownerDocumentId);
+        var root = owner.Session.RootDocument;
+        var taken = root.TakenMacroNames();
+        foreach (var document in ChildrenOf(owner))
+        {
+            taken.Add(document.Session.Name);
+        }
+
+        var session = HeadlessEditorSession.OpenNewSubmacro(workspace, root, taken, name,
+            devices, _settings);
+        Add(session, owner.Id);
+        return session;
+    }
+
+    /// <summary>Copies a macro into the owner's child list and opens the new child as a tab.</summary>
+    public HeadlessEditorSession ImportSubmacro(string? ownerDocumentId, MacroItem source,
+        string? name)
+    {
+        var owner = ResolveOwner(ownerDocumentId);
+        var child = owner.Session.RootDocument.ImportSubmacro(source, name);
+        return OpenSubmacro(owner.Id, child.Name);
     }
 
     /// <summary>
@@ -304,6 +334,24 @@ internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
     private Document? FindRootFor(MacroItem macro)
         => _documents.FirstOrDefault(document =>
             document.OwnerId is null && document.Session.Matches(macro));
+
+    /// <summary>
+    /// The names a new project macro may not take: the project's macros and every root document
+    /// already open, saved or not. Without the second half every click of the add button asked for
+    /// the same default name while an earlier unsaved tab still held it.
+    /// </summary>
+    private HashSet<string> RootNamesForNewDocument()
+    {
+        var names = new HashSet<string>(
+            workspace.Macros.Select(macro => macro.Name),
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var document in _documents.Where(document => document.OwnerId is null))
+        {
+            names.Add(document.Session.Name);
+        }
+
+        return names;
+    }
 
     private void Activate(Document document) => _active = document;
 

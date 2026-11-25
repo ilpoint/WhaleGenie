@@ -45,6 +45,12 @@ export class WgLibrary extends LitElement {
       line-height: 1.5;
     }
 
+    .tools {
+      display: flex;
+      gap: var(--spacingHorizontalS);
+      margin: 0 0 var(--spacingVerticalL);
+    }
+
     .cards {
       display: grid;
       gap: var(--spacingVerticalS);
@@ -102,6 +108,12 @@ export class WgLibrary extends LitElement {
     return html`
       <h1>${t('Library.Heading')}</h1>
       <p class="intro">${t('Library.Intro')}</p>
+      <div class="tools">
+        <fluent-button appearance="accent" ?disabled=${this.busy.length > 0}
+          @click=${() => void this.createEntry()}>${t('Library.New')}</fluent-button>
+        <fluent-button appearance="subtle" ?disabled=${this.busy.length > 0}
+          @click=${() => void this.importPackage()}>${t('Library.Import')}</fluent-button>
+      </div>
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
       ${this.entries.length === 0
         ? html`<div class="empty">
@@ -157,6 +169,37 @@ export class WgLibrary extends LitElement {
     this.error = '';
     try {
       const state = await bridge.value.call<LibraryState>('library.delete', { id });
+      this.apply(state);
+    } catch (error) {
+      this.error = String(error);
+    } finally {
+      this.busy = '';
+    }
+  }
+
+  private async createEntry(): Promise<void> {
+    this.busy = 'new';
+    this.error = '';
+    try {
+      const state = await bridge.value.call<LibraryState>('library.create', {});
+      this.apply(state);
+    } catch (error) {
+      this.error = String(error);
+    } finally {
+      this.busy = '';
+    }
+  }
+
+  private async importPackage(): Promise<void> {
+    this.busy = 'import';
+    this.error = '';
+    try {
+      const path = await bridge.value.call<string | null>('dialog.pickOpenPackage');
+      if (!path) {
+        return;
+      }
+
+      const state = await bridge.value.call<LibraryState>('library.import', { path });
       this.apply(state);
     } catch (error) {
       this.error = String(error);

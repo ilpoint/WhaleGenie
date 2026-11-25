@@ -284,30 +284,6 @@ export class EditorSessionService {
     });
   }
 
-  async exportDocument(): Promise<void> {
-    const snapshot = this.core.state.snapshot;
-    if (!snapshot) {
-      return;
-    }
-
-    try {
-      const path = await this.core.request<string | null>('dialog.pickSavePackage', {
-        suggested: snapshot.name + '.wgmacro',
-      });
-      if (!path) {
-        return;
-      }
-
-      await this.core.request<boolean>('editor.session', { kind: 'export', path });
-      this.core.state.error = '';
-      this.core.showNotice(t('Editor.Exported'));
-    } catch (error) {
-      this.core.state.error = describeError(error);
-    }
-
-    this.core.notify();
-  }
-
   /** Copies this macro into the public library in the callable shape; C# owns the versioning. */
   async publishToLibrary(): Promise<boolean> {
     const snapshot = this.core.state.snapshot;

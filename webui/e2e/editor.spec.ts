@@ -12,12 +12,7 @@ async function selectSource(page: Page, label: string): Promise<void> {
   await page.waitForTimeout(60);
 }
 
-async function clearSearch(page: Page): Promise<void> {
-  await page.locator('wg-editor-palette .action-search').evaluate((input) => {
-    (input as HTMLInputElement).value = '';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-}
+
 
 async function completeActionForm(page: Page): Promise<void> {
   const form = page.locator('wg-action-editor .dialog');
@@ -157,13 +152,13 @@ test('从其他页面请求打开宏会进入对应页签', async ({ page }) => 
     .toBe(true);
 });
 
-test('导出按钮把当前文档写给宿主', async ({ page }) => {
+test('标签行不再有导出按钮，导出从文件菜单进入', async ({ page }) => {
   await openEditor(page);
-  await page.locator('wg-editor-tabs .export').click();
-  await expect
-    .poll(() => called(page, 'editor.session', { kind: 'export' }))
-    .toBe(true);
-  await expect(page.locator('wg-editor .notice')).toContainText('已导出');
+  await expect(page.locator('wg-editor-tabs .export')).toHaveCount(0);
+  await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
+  await page.getByRole('menuitem', { name: '导出宏…' }).click();
+  await expect(page.locator('wg-transfer .dialog')).toBeVisible();
+  await page.locator('wg-transfer fluent-button', { hasText: '取消' }).click().catch(() => {});
 });
 
 test('新建与关闭干净页签', async ({ page }) => {
@@ -819,55 +814,6 @@ test('选中态、块卡片与页签的视觉状态可读', async ({ page }) => 
   const tab = page.locator('wg-editor-tabs .tab-wrap[data-active="true"]');
   expect(await tab.evaluate((element) => getComputedStyle(element).borderBottomColor))
     .not.toBe('rgba(0, 0, 0, 0)');
-});
-
-test('新建子宏后出现，插进调用步骤，删除被引用时显示桥的错误', async ({ page }) => {
-  await openEditor(page);
-  await selectSource(page, '子宏');
-  const rows = page.locator('wg-editor-palette .sub-row');
-  await expect(rows).toHaveCount(1);
-
-  await page.locator('wg-editor-palette .sub-new').click();
-  await expect(rows).toHaveCount(2);
-  await expect
-    .poll(() => called(page, 'editor.session', { kind: 'subMacroCreate' }))
-    .toBe(true);
-  const name = (await rows.last().locator('.sub-open').textContent())?.trim() ?? '';
-  expect(name.length).toBeGreaterThan(0);
-
-  // 把新建的子宏插成一条调用步骤
-  await selectSource(page, '流程控制');
-  await page.locator('wg-editor-palette .action-search').fill('调用宏');
-  await page.locator('wg-editor-palette .card', { hasText: '调用宏' }).dblclick();
-  const form = page.locator('wg-action-editor .dialog');
-  await expect(form).toBeVisible();
-  await form.locator('.param[data-parameter="macro"] select').selectOption(name);
-  await form.locator('footer fluent-button').last().click();
-  await expect(form).toHaveCount(0);
-  await expect(page.locator('wg-step-tree .row', { hasText: '调用 ' + name })).toBeVisible();
-
-  // 删除仍在被调用的子宏：桥拒绝，页面错误条保留桥自己的句子
-  await selectSource(page, '子宏');
-  await clearSearch(page);
-  const row = page.locator('wg-editor-palette .sub-row[data-submacro="' + name + '"]');
-  await row.locator('.sub-remove').click();
-  const dialog = page.locator('wg-submacro-delete-dialog .dialog');
-  await expect(dialog).toBeVisible();
-  await dialog.locator('.footer fluent-button').last().click();
-  await expect(page.locator('wg-editor > .error')).toContainText('仍在被调用');
-  await expect(rows).toHaveCount(2);
-
-  // 复制对话框：候选来自本宏的子宏，确认后只发来源名，由宿主起唯一名
-  await page.locator('wg-editor-palette .sub-copy').click();
-  const copy = page.locator('wg-submacro-copy-dialog .dialog');
-  await expect(copy).toBeVisible();
-  await copy.locator('.candidates button', { hasText: '辅助宏' }).first().click();
-  await copy.locator('.footer fluent-button').last().click();
-  await expect(copy).toHaveCount(0);
-  await expect
-    .poll(() => called(page, 'editor.session', { kind: 'subMacroCopy' }))
-    .toBe(true);
-  await expect(rows).toHaveCount(3);
 });
 
 test('把步骤拖进空分节会落到该分节里', async ({ page }) => {

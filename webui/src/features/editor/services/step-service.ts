@@ -76,6 +76,29 @@ export class EditorStepService {
     return this.subMacroCommand(params);
   }
 
+  /**
+   * Brings a macro from the public library, this project or a package file in as a child.
+   * A file source names the package and the macro inside it; the host reads the file.
+   */
+  async importSubMacro(source: 'public' | 'project' | 'file', reference: string,
+    path?: string): Promise<boolean> {
+    const wanted = reference.trim();
+    if (wanted.length === 0) {
+      return false;
+    }
+
+    const params: Record<string, unknown> = {
+      kind: 'subMacroImport',
+      source,
+      reference: wanted,
+    };
+    if (path !== undefined && path.length > 0) {
+      params['path'] = path;
+    }
+
+    return this.subMacroCommand(params);
+  }
+
   async deleteSubMacro(name: string): Promise<boolean> {
     const wanted = name.trim();
     if (wanted.length === 0) {

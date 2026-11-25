@@ -120,9 +120,12 @@ export function tabs(host: MockEditor): EditorTab[] {
 /** One snapshot with the strip that belongs beside it and the action form the host holds. */
 export function withTabs(host: MockEditor, document: EditorSnapshot): EditorSnapshot {
   host.snapshotRevision += 1;
+  const ownerId = host.owners.get(document.documentId) ?? null;
+  const root = ownerId === null ? document : host.documents.get(ownerId) ?? document;
   return {
     ...document,
     documentId: document.documentId,
+    rootSubMacros: [...root.subMacros],
     tabs: tabs(host),
     activeDocumentId: host.activeDocumentId,
     actionForm: host.actionForm,
@@ -132,14 +135,15 @@ export function withTabs(host: MockEditor, document: EditorSnapshot): EditorSnap
 
 export function subOpen(host: MockEditor, name?: string | null,
   ownerDocumentId?: string | null): EditorSnapshot {
-  const ownerId = ownerDocumentId !== undefined && ownerDocumentId !== null
+  const requested = ownerDocumentId !== undefined && ownerDocumentId !== null
     && ownerDocumentId.length > 0
     ? ownerDocumentId
     : host.activeDocumentId;
-  if (ownerId === null) {
+  if (requested === null) {
     throw new Error('先打开一个宏，才能打开它的子宏。');
   }
 
+  const ownerId = rootDocumentId(host, requested);
   const owner = host.documents.get(ownerId);
   if (!owner) {
     throw new Error('编辑器里还没有打开的文档。');
@@ -252,6 +256,59 @@ export function stopRecording(host: MockEditor): {
   return { captured, steps, snapshot };
 }
 
+/** Brings a project macro in as a child and opens it; the import leaves no call step behind. */
+export function subMacroImport(host: MockEditor, reference: string,
+  name?: string | null): EditorSnapshot | null {
+  const source = reference.trim();
+  const activeId = host.activeDocumentId;
+  if (activeId === null || source.length === 0) {
+    throw new Error('导入子宏需要一个来源名字。');
+  }
+
+  const rootId = rootDocumentId(host, activeId);
+  const root = host.documents.get(rootId);
+  if (!root) {
+    throw new Error('编辑器里没有打开的文档。');
+  }
+
+  const known = host.macros().some((macro) => macro.name === source);
+  if (!known) {
+    throw new Error('没有名为“' + source + '”的宏。');
+  }
+
+  const wanted = name?.trim() ?? '';
+  const childName = uniqueSubMacroName(root, wanted.length > 0 ? wanted : source,
+    host.macros().map((macro) => macro.name));
+  const childId = host.nextDocumentId();
+  const child = createDocumentSnapshot(childId, childName, {
+    isSubMacro: true,
+    subMacros: [],
+    rootSubMacros: [...root.subMacros, childName],
+  });
+  host.documents.set(rootId, {
+    ...root,
+    dirty: true,
+    subMacros: [...root.subMacros, childName],
+  });
+  host.documents.set(childId, child);
+  host.owners.set(childId, rootId);
+  host.activeDocumentId = childId;
+  return withTabs(host, child);
+}
+
+/** The root a document belongs to, following the owner chain a nested child would have. */
+function rootDocumentId(host: MockEditor, documentId: string): string {
+  let current = documentId;
+  for (;;) {
+    const owner = host.owners.get(current) ?? null;
+    if (owner === null) {
+      return current;
+    }
+
+    current = owner;
+  }
+}
+
 /** A name that does not shadow one the document or the project already has. */
 function uniqueSubMacroName(document: EditorSnapshot, wanted: string,
   takenNames: readonly string[] = []): string {
@@ -276,13 +333,30 @@ function uniqueSubMacroName(document: EditorSnapshot, wanted: string,
  * real host sends the words from its table.
  */
 export function subMacroCreate(host: MockEditor, name?: string | null): EditorSnapshot | null {
-  const wanted = name ?? '';
-  const projectNames = host.macros().map((macro) => macro.name);
-  return host.change((document) => ({
-    ...document,
-    dirty: true,
-    subMacros: [...document.subMacros, uniqueSubMacroName(document, wanted, projectNames)],
-  }));
+  const parent = host.activeDocumentId === null ? null : host.documents.get(host.activeDocumentId);
+  if (!parent) {
+    return null;
+  }
+
+  const rootId = rootDocumentId(host, parent.documentId);
+  const root = host.documents.get(rootId) ?? parent;
+  const taken = [
+    ...root.subMacros,
+    ...host.macros().map((macro) => macro.name),
+    ...[...host.documents.entries()]
+      .filter(([id]) => host.owners.get(id) === rootId)
+      .map(([, document]) => document.name),
+  ];
+  const childId = host.nextDocumentId();
+  const child = createDocumentSnapshot(childId, uniqueSubMacroName(root, name ?? '', taken), {
+    isSubMacro: true,
+    subMacros: [],
+    rootSubMacros: [...root.subMacros],
+  });
+  host.documents.set(childId, child);
+  host.owners.set(childId, rootId);
+  host.activeDocumentId = childId;
+  return withTabs(host, child);
 }
 
 export function subMacroCopy(host: MockEditor, from: string, name?: string | null): EditorSnapshot | null {
@@ -330,9 +404,15 @@ function callStepFor(host: MockEditor, name: string): EditorStep | null {
 
 export function subMacroDelete(host: MockEditor, name: string): EditorSnapshot | null {
   const wanted = name.trim();
-  const document = host.activeSnapshot();
-  if (!document || wanted.length === 0) {
+  const activeId = host.activeDocumentId;
+  if (activeId === null || wanted.length === 0) {
     throw new Error('删除子宏需要一个名字。');
+  }
+
+  const rootId = rootDocumentId(host, activeId);
+  const document = host.documents.get(rootId);
+  if (!document) {
+    throw new Error('编辑器里没有打开的文档。');
   }
 
   if (!document.subMacros.includes(wanted)) {
@@ -344,11 +424,13 @@ export function subMacroDelete(host: MockEditor, name: string): EditorSnapshot |
       + '”中对它的调用，再删除它。');
   }
 
-  return host.change((current) => ({
-    ...current,
+  const next = {
+    ...document,
     dirty: true,
-    subMacros: current.subMacros.filter((candidate) => candidate !== wanted),
-  }));
+    subMacros: document.subMacros.filter((candidate) => candidate !== wanted),
+  };
+  host.documents.set(rootId, next);
+  return host.activeSnapshot();
 }
 
 /** True when any step (at any depth) calls the named macro. */

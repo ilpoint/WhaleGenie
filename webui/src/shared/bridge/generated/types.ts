@@ -614,6 +614,7 @@ export type EditorSessionCommand =
   | EditorSessionPublicMacroAddCommand
   | EditorSessionSubMacroCreateCommand
   | EditorSessionSubMacroCopyCommand
+  | EditorSessionSubMacroImportCommand
   | EditorSessionSubMacroDeleteCommand
   | EditorSessionExportCommand;
 
@@ -684,6 +685,14 @@ export interface EditorSessionSubMacroCopyCommand {
   name?: string | null;
 }
 
+export interface EditorSessionSubMacroImportCommand {
+  kind: 'subMacroImport';
+  source: string;
+  reference?: string | null;
+  path?: string | null;
+  name?: string | null;
+}
+
 export interface EditorSessionSubMacroDeleteCommand {
   kind: 'subMacroDelete';
   name: string;
@@ -728,6 +737,7 @@ export interface EditorSnapshot {
   activeDocumentId: string | null;
   actionForm: EditorActionFormSnapshot | null;
   revision: number;
+  rootSubMacros: string[] | null;
 }
 
 export interface EditorStepCommand {

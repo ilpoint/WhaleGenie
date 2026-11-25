@@ -154,6 +154,28 @@ public class PackageTransferTests : IDisposable
     }
 
     [Fact]
+    public void A_macro_of_only_empty_note_and_log_steps_survives_the_round_trip()
+    {
+        var macro = new MacroItem { Name = "空动作宏" };
+        macro.Steps.Add(new MacroStep { Type = "control.note" });
+        macro.Steps.Add(new MacroStep { Type = "control.log" });
+        _project.AddMacro(macro);
+
+        var path = Package("empty-steps");
+        PackageTransfer.ApplyExport(_project, path, ["空动作宏"]);
+
+        var fresh = new ProjectWorkspace();
+        var plan = PackageTransfer.PlanImport(fresh, path);
+        Assert.Equal("空动作宏", Assert.Single(plan.Macros).Name);
+        Assert.Equal(2, plan.Macros[0].Steps);
+
+        PackageTransfer.ApplyImport(fresh, path, ["空动作宏"], [], _library);
+
+        var imported = Assert.Single(fresh.Macros);
+        Assert.Equal(2, imported.Steps.Count);
+    }
+
+    [Fact]
     public void An_unknown_macro_name_is_refused()
     {
         var path = Package("missing");

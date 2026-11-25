@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WhaleGenie.Contracts;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
+using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Bridge;
 
@@ -19,8 +22,8 @@ internal sealed partial class EditorSessionBridge
         switch (command)
         {
             case EditorSessionSubMacroCreateCommand create:
-                return SubMacroAnswer(session,
-                    session.CreateSubMacro(OptionalSubMacroName(create.Name)));
+                _documents.CreateSubmacro(_documents.ActiveId, OptionalSubMacroName(create.Name));
+                return Snapshot();
             case EditorSessionSubMacroCopyCommand copy:
                 {
                     var source = RequiredSubMacroText(copy.From);
@@ -55,10 +58,57 @@ internal sealed partial class EditorSessionBridge
                     }
                 }
 
+            case EditorSessionSubMacroImportCommand import:
+                _documents.ImportSubmacro(_documents.ActiveId, ImportedMacro(import),
+                    OptionalSubMacroName(import.Name));
+                return Snapshot();
+
             default:
                 throw new BridgeFailureException(BridgeErrors.BadArgument,
                     Strings.Get("Bridge.EditorNeedsMacro"));
         }
+    }
+
+    /// <summary>
+    /// The macro an import names, from the one of the three sources it says. A library entry
+    /// keeps its callable shape; a package macro is read with its pictures already unpacked into
+    /// the project's asset folder; a project macro is the one already in memory.
+    /// </summary>
+    private MacroItem ImportedMacro(EditorSessionSubMacroImportCommand command)
+    {
+        var reference = RequiredSubMacroText(command.Reference);
+        var source = command.Source.Trim().ToLowerInvariant();
+        return source switch
+        {
+            "public" => PublicLibraryMacro(reference),
+            "project" => workspace.Macros.FirstOrDefault(macro => string.Equals(
+                macro.Name.Trim(), reference, StringComparison.OrdinalIgnoreCase))
+                ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                    Strings.Format("Bridge.NoSuchMacro", reference)),
+            "file" => PackageMacro(RequiredSubMacroText(command.Path), reference),
+            _ => throw new BridgeFailureException(BridgeErrors.BadArgument,
+                Strings.Get("Bridge.EditorNeedsMacro")),
+        };
+    }
+
+    private MacroItem PublicLibraryMacro(string id)
+    {
+        var entry = PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary)
+            .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
+            ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                Strings.Format("Bridge.NoSuchMacro", id));
+        return PublicMacroLibrary.CopyToProject(entry,
+            ImageAssets.FolderFor(workspace.CurrentPath),
+            PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
+    }
+
+    private MacroItem PackageMacro(string path, string name)
+    {
+        var contents = MacroPackage.Load(path, ImageAssets.FolderFor(workspace.CurrentPath));
+        return contents.Macros.FirstOrDefault(macro => string.Equals(
+            macro.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
+            ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+                Strings.Format("Bridge.NoSuchMacro", name));
     }
 
     /// <summary>

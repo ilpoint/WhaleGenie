@@ -18,6 +18,7 @@ namespace WhaleGenie.Contracts;
 [JsonDerivedType(typeof(EditorSessionPublicMacroAddCommand), "publicMacroAdd")]
 [JsonDerivedType(typeof(EditorSessionSubMacroCreateCommand), "subMacroCreate")]
 [JsonDerivedType(typeof(EditorSessionSubMacroCopyCommand), "subMacroCopy")]
+[JsonDerivedType(typeof(EditorSessionSubMacroImportCommand), "subMacroImport")]
 [JsonDerivedType(typeof(EditorSessionSubMacroDeleteCommand), "subMacroDelete")]
 [JsonDerivedType(typeof(EditorSessionExportCommand), "export")]
 public abstract record EditorSessionCommand;
@@ -85,6 +86,17 @@ public sealed record EditorSessionSubMacroCreateCommand(string? Name = null) : E
 /// <summary>Copy an existing sub-macro or project macro into the current macro.</summary>
 [BridgeContract]
 public sealed record EditorSessionSubMacroCopyCommand(string From, string? Name = null)
+    : EditorSessionCommand;
+
+/// <summary>
+/// Bring a macro into the current macro as a child. <paramref name="Source"/> is
+/// <c>public</c> (a library entry id), <c>project</c> (a project macro name) or <c>file</c>
+/// (a package path and macro name in <paramref name="Reference"/>). The child is not called yet;
+/// importing only gives the macro a child to call when the person adds the call step.
+/// </summary>
+[BridgeContract]
+public sealed record EditorSessionSubMacroImportCommand(
+    string Source, string? Reference = null, string? Path = null, string? Name = null)
     : EditorSessionCommand;
 
 /// <summary>Remove a sub-macro this macro no longer calls.</summary>

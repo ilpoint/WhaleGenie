@@ -34,9 +34,9 @@ export function save(host: MockEditor, documentId?: string): EditorSaveResponse 
 
   const results: EditorDocumentSaveResult[] = [];
   if ((host.owners.get(id) ?? null) !== null) {
-    if (host.documents.get(id)?.dirty === true) {
-      results.push(saveOne(host, id));
-    }
+    // A child is saved explicitly even before it has edits: that is how a new child document
+    // enters its owner's list, matching the host's Save.
+    results.push(saveOne(host, id));
   } else {
     for (const child of childrenOf(host, id)) {
       if (host.documents.get(child)?.dirty === true) {
@@ -126,11 +126,16 @@ function saveOne(host: MockEditor, documentId: string): EditorDocumentSaveResult
       };
     }
 
-    host.documents.set(ownerId, { ...owner, dirty: true });
-    host.documents.set(documentId, { ...document, dirty: false });
+    const childName = document.name.trim();
+    const subMacros = owner.subMacros.includes(childName)
+      ? owner.subMacros
+      : [...owner.subMacros, childName];
+    host.documents.set(ownerId, { ...owner, dirty: true, subMacros });
+    host.savedNames.set(documentId, childName);
+    host.documents.set(documentId, { ...document, name: childName, dirty: false });
     return {
       documentId,
-      name: document.name,
+      name: childName,
       outcome: 'saved',
       problem: null,
     };

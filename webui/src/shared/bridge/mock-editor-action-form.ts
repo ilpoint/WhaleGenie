@@ -112,9 +112,12 @@ export function refreshActionForm(host: MockEditor): void {
   const missing = parameters.filter((parameter) =>
     parameter.required && parameter.value.trim().length === 0);
   const canConfirm = missing.length === 0;
-  // A macro field offers the document's own submacros, exactly what the page's select shows.
-  const document = host.activeDocumentId === null ? null : host.documents.get(host.activeDocumentId);
-  const macros = (document?.subMacros ?? []).map((name) => ({
+  // A macro field offers the root document's children, even when a child is the tab in front.
+  const activeId = host.activeDocumentId;
+  const document = activeId === null ? null : host.documents.get(activeId) ?? null;
+  const owner = document === null ? null : host.owners.get(document.documentId) ?? null;
+  const root = owner === null ? document : host.documents.get(owner) ?? document;
+  const macros = (root?.subMacros ?? []).map((name) => ({
     value: name, label: name,
   }));
   for (const row of [...rows, ...advancedRows]) {

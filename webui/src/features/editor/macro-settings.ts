@@ -95,12 +95,6 @@ export class WgMacroSettings extends LitElement {
         ${state.error
           ? html`<span class="error" title=${state.error}>${state.error}</span>`
           : html`<span style="flex:1"></span>`}
-        <fluent-button appearance="subtle"
-          ?disabled=${snapshot.isSubMacro || !snapshot.canSave}
-          title=${t('Editor.PublishPublicMacro')}
-          @click=${() => void editor.session.publishToLibrary()}>
-          ${t('Editor.PublishPublicMacro')}
-        </fluent-button>
         <fluent-button class="save-all" appearance="subtle"
           title=${t('Editor.Save')}
           aria-label=${t('Editor.SaveAll')}

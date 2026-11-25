@@ -1,5 +1,9 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { bridge } from '../../shared/bridge/bridge.js';
+import type { ProjectImportPlan } from '../../shared/bridge/protocol.js';
+import { project } from '../../shared/project/store.js';
+import { describeError } from '../../shared/errors.js';
 import { icon } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
@@ -43,6 +47,35 @@ const dialogStyles = css`
     margin: 0;
     font-size: var(--fontSizeBase400);
     font-weight: var(--fontWeightSemibold);
+  }
+
+  .sources {
+    display: flex;
+    gap: var(--spacingHorizontalXS);
+  }
+
+  .sources button {
+    flex: 1;
+    min-height: 30px;
+    padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+    border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
+    border-radius: var(--borderRadiusMedium);
+    background: var(--colorNeutralBackground1);
+    color: var(--colorNeutralForeground1);
+    font: inherit;
+    font-size: var(--fontSizeBase200);
+    cursor: pointer;
+  }
+
+  .sources button[aria-selected='true'] {
+    border-color: var(--colorBrandStroke1);
+    background: var(--colorBrandBackground2);
+    color: var(--colorBrandForeground2);
+  }
+
+  .file-pick {
+    justify-content: center;
+    border-style: dashed !important;
   }
 
   .dialog input {
@@ -121,60 +154,66 @@ export class WgSubMacroCopyDialog extends LitElement {
   @property({ type: Boolean, reflect: true })
   open = false;
 
-  /** The submacros the open document already has; a project macro can still be typed by name. */
-  @property({ attribute: false })
-  names: readonly string[] = [];
+  @state()
+  private source: 'public' | 'project' | 'file' = 'public';
 
   @state()
-  private from = '';
+  private query = '';
+
+  @state()
+  private path = '';
+
+  @state()
+  private fileMacros: string[] = [];
+
+  @state()
+  private busy = false;
+
+  @state()
+  private error = '';
 
   static styles = [editorBase, dialogStyles];
+
+  willUpdate(changed: Map<string, unknown>): void {
+    if (this.open && changed.has('open')) {
+      this.query = '';
+      this.path = '';
+      this.fileMacros = [];
+      this.error = '';
+      this.busy = false;
+    }
+  }
 
   render() {
     if (!this.open) {
       return nothing;
     }
 
-    const needle = this.from.trim().toLocaleLowerCase();
-    const candidates = needle.length === 0
-      ? this.names
-      : this.names.filter((name) => name.toLocaleLowerCase().includes(needle));
     return html`
       <div class="overlay" @click=${() => this.close()}>
         <div class="dialog" role="dialog" aria-modal="true"
           @click=${(event: Event) => event.stopPropagation()}>
           <h2>${t('Editor.PickSubMacro')}</h2>
+          <div class="sources" role="tablist" aria-label=${t('Editor.ImportSubMacro')}>
+            ${this.sourceButton('public', t('Editor.ImportSource.Public'))}
+            ${this.sourceButton('project', t('Editor.ImportSource.Project'))}
+            ${this.sourceButton('file', t('Editor.ImportSource.File'))}
+          </div>
           <input
-            .value=${this.from}
+            .value=${this.query}
             placeholder=${t('Editor.PickSubMacroSearch')}
             aria-label=${t('Editor.PickSubMacroSearch')}
-            @input=${(event: Event) => { this.from = (event.target as HTMLInputElement).value; }}
-            @keydown=${(event: KeyboardEvent) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                this.confirm();
-              }
-            }}
+            @input=${(event: Event) => { this.query = (event.target as HTMLInputElement).value; }}
           />
-          <div class="candidates" role="listbox" aria-label=${t('Editor.PickSubMacro')}>
-            ${this.names.length === 0
-              ? html`<p class="empty">${t('Palette.NoSubMacros')}</p>`
-              : candidates.map((name) => html`
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected=${name === this.from ? 'true' : 'false'}
-                  @click=${() => { this.from = name; }}
-                >${icon('workflow')}<span>${name}</span></button>
-              `)}
+          ${this.error.length > 0 ? html`<p class="error">${this.error}</p>` : nothing}
+          <div class="candidates" role="listbox" aria-label=${t('Editor.ImportSubMacro')}>
+            ${this.source === 'public' ? this.renderPublic(this.needle()) : nothing}
+            ${this.source === 'project' ? this.renderProject(this.needle()) : nothing}
+            ${this.source === 'file' ? this.renderFile(this.needle()) : nothing}
           </div>
           <div class="footer">
             <fluent-button appearance="subtle" @click=${() => this.close()}>
               ${t('Common.Cancel')}
-            </fluent-button>
-            <fluent-button appearance="accent" ?disabled=${this.from.trim().length === 0}
-              @click=${() => this.confirm()}>
-              ${t('Editor.Context.Copy')}
             </fluent-button>
           </div>
         </div>
@@ -182,18 +221,97 @@ export class WgSubMacroCopyDialog extends LitElement {
     `;
   }
 
-  private confirm(): void {
-    const from = this.from.trim();
-    if (from.length === 0) {
-      return;
+  private sourceButton(source: 'public' | 'project' | 'file', label: string) {
+    return html`
+      <button type="button" role="tab" aria-selected=${this.source === source ? 'true' : 'false'}
+        @click=${() => { this.source = source; }}>
+        ${label}
+      </button>
+    `;
+  }
+
+  private needle(): string {
+    return this.query.trim().toLocaleLowerCase();
+  }
+
+  private renderPublic(needle: string) {
+    const entries = editor.get().publicMacros.filter((entry) =>
+      needle.length === 0 || entry.name.toLocaleLowerCase().includes(needle));
+    return entries.length === 0
+      ? html`<p class="empty">${t('Palette.NoPublicMacros')}</p>`
+      : entries.map((entry) => html`
+        <button type="button" role="option"
+          @click=${() => this.take('public', entry.id)}>
+          ${icon('folder')}<span>${entry.name}</span>
+        </button>
+      `);
+  }
+
+  private renderProject(needle: string) {
+    const macros = (project.current()?.macros ?? []).filter((macro) =>
+      needle.length === 0 || macro.name.toLocaleLowerCase().includes(needle));
+    return macros.length === 0
+      ? html`<p class="empty">${t('Editor.NoProjectsMacros')}</p>`
+      : macros.map((macro) => html`
+        <button type="button" role="option"
+          @click=${() => this.take('project', macro.name)}>
+          ${icon('workflow')}<span>${macro.name}</span>
+        </button>
+      `);
+  }
+
+  private renderFile(needle: string) {
+    if (this.fileMacros.length === 0) {
+      return html`
+        <button type="button" class="file-pick" ?disabled=${this.busy}
+          @click=${() => void this.pickFile()}>
+          ${icon('folder')}<span>${t('Editor.ChoosePackage')}</span>
+        </button>
+      `;
     }
 
-    void editor.steps.copySubMacro(from);
+    const macros = this.fileMacros.filter((name) =>
+      needle.length === 0 || name.toLocaleLowerCase().includes(needle));
+    return html`
+      <p class="message">${this.path}</p>
+      ${macros.length === 0
+        ? html`<p class="empty">${t('Import.NoMacros')}</p>`
+        : macros.map((name) => html`
+          <button type="button" role="option" @click=${() => this.take('file', name, this.path)}>
+            ${icon('workflow')}<span>${name}</span>
+          </button>
+        `)}
+    `;
+  }
+
+  private async pickFile(): Promise<void> {
+    this.error = '';
+    this.busy = true;
+    try {
+      const path = await bridge.value.call<string | null>('dialog.pickOpenPackage');
+      if (!path) {
+        return;
+      }
+
+      const plan = await bridge.value.call<ProjectImportPlan>('project.importPlan', { path });
+      this.path = path;
+      this.fileMacros = plan.macros.map((macro) => macro.name);
+      if (this.fileMacros.length === 0) {
+        this.error = t('Import.NoMacros');
+      }
+    } catch (error) {
+      this.error = describeError(error);
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private take(source: 'public' | 'project' | 'file', reference: string, path?: string): void {
     this.close();
+    void editor.steps.importSubMacro(source, reference, path);
   }
 
   private close(): void {
-    this.from = '';
     this.open = false;
     this.dispatchEvent(new CustomEvent('wg-close', { bubbles: true, composed: true }));
   }

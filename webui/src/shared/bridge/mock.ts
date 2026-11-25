@@ -220,6 +220,24 @@ export class MockTransport implements BridgeTransport {
           this.libraryEntries = this.libraryEntries.filter((entry) => entry.id !== String(params['id']));
           result = { entries: this.libraryEntries, error: null };
           break;
+        case 'library.create':
+          this.libraryEntries = [...this.libraryEntries, {
+            id: 'library-' + String(this.libraryEntries.length + 1),
+            name: '公共宏 ' + String(this.libraryEntries.length + 1),
+            version: 1,
+            description: '',
+          }];
+          result = { entries: this.libraryEntries, error: null };
+          break;
+        case 'library.import':
+          this.libraryEntries = [...this.libraryEntries, {
+            id: 'library-' + String(this.libraryEntries.length + 1),
+            name: '包里的宏',
+            version: 1,
+            description: '',
+          }];
+          result = { entries: this.libraryEntries, error: null };
+          break;
         case 'library.publish': {
           const name = String(params['name'] ?? '');
           const macro = this.projectState.macros.find((entry) => entry.name === name);

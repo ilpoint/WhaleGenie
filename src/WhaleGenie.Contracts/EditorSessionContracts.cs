@@ -27,7 +27,8 @@ public sealed record EditorSnapshot(
     string CallImpactSummary, string Notice, string TriggerProblemSummary,
     string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro,
     IReadOnlyList<EditorTabSnapshot> Tabs, string? ActiveDocumentId,
-    EditorActionFormSnapshot? ActionForm, int Revision);
+    EditorActionFormSnapshot? ActionForm, int Revision,
+    IReadOnlyList<string>? RootSubMacros = null);
 
 /// <summary>One global declaration in the editor.</summary>
 [BridgeContract]

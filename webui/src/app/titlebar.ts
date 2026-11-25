@@ -10,7 +10,7 @@ import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import { windowMirror } from '../shared/window/window.js';
-import { startImport, transfer } from '../features/transfer/index.js';
+import { startExport, startImport, transfer } from '../features/transfer/index.js';
 import { editor } from '../features/editor/editor-store.js';
 import type { BridgeMethod } from '../shared/bridge/protocol.js';
 import whale from '../assets/whale.png';
@@ -22,7 +22,7 @@ import whale from '../assets/whale.png';
 @customElement('wg-titlebar')
 export class WgTitlebar extends LitElement {
   @state()
-  private project: { name: string | null; untitled: boolean } | null = null;
+  private project: { name: string | null; untitled: boolean; autoSave: boolean } | null = null;
 
   @state()
   private placement = 'normal';
@@ -193,7 +193,9 @@ export class WgTitlebar extends LitElement {
   protected readonly stringsController = new StoreController(this, strings);
 
   protected readonly projectController = new StoreController(this, project, (state) => {
-    this.project = state ? { name: state.name, untitled: state.untitled } : null;
+    this.project = state
+      ? { name: state.name, untitled: state.untitled, autoSave: state.autoSave }
+      : null;
   });
 
   protected readonly windowController = new StoreController(this, windowMirror, (state) => {
@@ -235,6 +237,7 @@ export class WgTitlebar extends LitElement {
                   <button role="menuitem" @click=${() => this.run('project.save')}>${t('Main.SaveProject')}</button>
                   <button role="menuitem" @click=${() => this.run('project.saveAs')}>${t('Main.SaveProjectAs')}</button>
                   <button role="menuitem" @click=${() => void this.onImport()}>${t('Main.Import')}</button>
+                  <button role="menuitem" @click=${() => void this.onExport()}>${t('Main.ExportMacro')}</button>
                   <button role="menuitem" @click=${() => this.run('project.closeAll')}>${t('Main.CloseAll')}</button>
                   <div class="separator" role="separator"></div>
                   <button role="menuitem" @click=${() => this.run('app.quit')}>${t('Main.Exit')}</button>
@@ -261,7 +264,7 @@ export class WgTitlebar extends LitElement {
         </div>
         <span class="title">
           ${t('Main.Title')}
-          <span class="project">· ${this.projectName()}</span>
+          <span class="project">· ${this.projectLabel()}</span>
         </span>
         <div class="buttons">
           <button
@@ -289,6 +292,13 @@ export class WgTitlebar extends LitElement {
         </div>
       </header>
     `;
+  }
+
+  private projectLabel(): string {
+    const name = this.projectName();
+    return this.project?.autoSave === true
+      ? t('Shell.ProjectNameAutoSave').replace('{0}', name)
+      : name;
   }
 
   private projectName(): string {
@@ -334,6 +344,17 @@ export class WgTitlebar extends LitElement {
       }
     } catch (error) {
       transfer.fail('import', describeError(error));
+    }
+  }
+
+  private async onExport(): Promise<void> {
+    this.menu = null;
+    try {
+      const session = await startExport(bridge.value);
+      const active = editor.get().snapshot?.name ?? '';
+      transfer.show(session, active.length > 0 ? [active] : []);
+    } catch (error) {
+      transfer.fail('export', describeError(error));
     }
   }
 

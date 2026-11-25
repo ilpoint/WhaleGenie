@@ -20,18 +20,22 @@ internal sealed partial class HeadlessEditorSession
     /// </summary>
     internal HeadlessEditorSession RootDocument => _owner is null ? this : _owner.RootDocument;
 
-    /// <summary>An empty child, named so no other macro already answers to that name.</summary>
-    public EditorSnapshot CreateSubMacro(string? name)
+    /// <summary>
+    /// Brings a macro in as a child of this macro. Importing does not leave a call step behind:
+    /// the child is in the list, and the person adds the call when they know where it belongs.
+    /// </summary>
+    internal MacroItem ImportSubmacro(MacroItem source, string? name)
     {
         if (_owner is not null)
         {
-            return RootDocument.CreateSubMacro(name);
+            return RootDocument.ImportSubmacro(source, name);
         }
 
-        _model.SubMacros.Add(SubMacroEditor.NewSubMacro(TakenMacroNames(), name));
+        var copy = SubMacroEditor.Copy(source, TakenMacroNames(), name);
+        _model.SubMacros.Add(copy);
         _model.IsDirty = true;
         RefreshCallables();
-        return Snapshot();
+        return copy;
     }
 
     /// <summary>
@@ -87,7 +91,7 @@ internal sealed partial class HeadlessEditorSession
     }
 
     /// <summary>The names a new child may not take: this document's children and the project macros.</summary>
-    private HashSet<string> TakenMacroNames()
+    internal HashSet<string> TakenMacroNames()
         => _model.SubMacros.Select(macro => macro.Name)
             .Concat(_workspace.Macros.Select(macro => macro.Name))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);

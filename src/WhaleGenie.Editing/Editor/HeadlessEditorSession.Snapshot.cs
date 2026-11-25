@@ -57,7 +57,10 @@ internal sealed partial class HeadlessEditorSession
             Tabs: [],
             ActiveDocumentId: null,
             ActionForm: null,
-            Revision: ++_revision);
+            Revision: ++_revision,
+            RootSubMacros: (_owner?.RootDocument ?? this)._model.SubMacros
+                .Select(macro => macro.Name)
+                .ToList());
     }
 
     /// <summary>The design-time check grouped by the step it belongs to, both messages when one

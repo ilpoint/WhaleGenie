@@ -22,10 +22,12 @@
 
 一次保存由 `ProjectMacroCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、
 收下之后才清脏。它给出四种结局——页面挡住了、项目没收（目标已不在工程里）、未改动、已经进包；
-`EditorDocumentService` 把逐文档结局交给页面，页面只负责显示原因并保留脏状态。子宏保存只写回父宏
-编辑模型，父宏保存才把整份宏提交给项目，因此工程对象不会在编辑器背后被改掉。页签身份由
+`EditorDocumentSet` 把逐文档结局交给页面，页面只负责显示原因并保留脏状态。子宏保存只写回父宏
+编辑模型，父宏保存才把整份宏提交给项目，因此工程对象不会在编辑器背后被改掉。新建子宏先开一份
+草稿文档，保存成功才进入父宏的子宏列表；草稿被放弃时父宏没有留下半成品。页签身份由
 `EditorDocumentSet` 的 `documentId` 回答：保存、改名、保存后重开、子宏打开都复用同一个文档；
-关掉当前页签时激活左侧邻居，父宏关闭会连同它的子文档。
+关掉当前页签时激活左侧邻居，父宏关闭会连同它的子文档。子宏文档的 `rootSubMacros` 始终给出所属
+根宏的已保存子宏名，页面在子宏页签上仍能显示这份列表。
 
 工程替换（打开/重载/关闭全部）先经 `ProjectSession.PrepareProjectChangeAsync`：有脏文档就问一次
 保存/放弃/取消，工程本身脏时再问工程保存；取消则原工程不动。MCP 在仍有打开的编辑文档时拒绝应用
@@ -140,7 +142,9 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 导航默认落在宏列表，`#home` 只作为旧地址的别名，不保留第二个页面。活动栏底部常驻系统开关与
 开关键：`system.state` 给初始快照，`system.changed` 在开关、设置快捷键或配置变化后推送；组合键由
 页面按 `+` 拆行显示，但键名与“未设置”的说法由程序给出。公共宏库按“无触发的可调用宏”工作：库页
-只管理条目，编辑器把它复制成当前宏的子宏并留下调用步骤；库页不再把工程宏当成可编辑的第二份副本。
+管理条目、可新建空白条目并从宏包导入；编辑器把库条目作为当前宏的子宏导入，不把工程宏当成可编辑
+的第二份副本。子宏页签的“新建”只开草稿，确认保存后才进入父宏列表；旁边的“导入”从公共宏库、
+当前工程或配置文件取一份，作为子宏打开。
 
 分层是一条硬边界：
 
@@ -173,8 +177,8 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 `MacroEditorViewModel` 与 `ProjectMacroCommit`；每份文档有一个稳定 `documentId`，页签、激活、
 关闭和子宏归属都按它而不是按会改名的宏名来寻址。`EditorDocumentService`（App）把文档集包成桥、
 退出询问和工程替换共用的门面。桥只传快照与命令：`editor.session`（open/new/subOpen/macroSetting/
-activate/patch/undo/redo/deactivate/close/publicMacroAdd/subMacroCreate/subMacroCopy/subMacroDelete/
-export）、`editor.save`、`editor.saveAll`、`editor.discardAll`、`editor.unsavedDocuments`，以及
+activate/patch/undo/redo/deactivate/close/publicMacroAdd/subMacroCreate/subMacroCopy/subMacroImport/
+subMacroDelete/export）、`editor.save`、`editor.saveAll`、`editor.discardAll`、`editor.unsavedDocuments`，以及
 `editor.steps`（多选/复制/粘贴/分组/移动/删除）、`editor.step`（单步/参数/落点）、`editor.condition`、
 `editor.trigger`、`editor.variable`、`editor.declaration`、`editor.record`、`editor.action`（page/
 field/rowAdd/rowRemove/rowMove/rowCell/returns/returnsFixName/callArgument/meta/global/branch/window/

@@ -128,6 +128,57 @@ public class LibraryBridgeTests
         }
     }
 
+    [Fact]
+    public async Task The_library_can_start_a_blank_entry_and_import_a_package()
+    {
+        var folder = Folder();
+        try
+        {
+            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
+            var workspace = new ProjectWorkspace();
+            var server = new BridgeServer();
+            var channel = new Channel();
+            server.Attach(channel);
+            server.Register(new LibraryBridge(workspace, null, libraryPath));
+
+            await server.AcceptAsync("""{"id":1,"method":"library.create","params":{}}""");
+            await server.AcceptAsync("""{"id":2,"method":"library.create","params":{}}""");
+            var created = Answer(channel, 2).GetProperty("result")
+                .GetProperty("entries").EnumerateArray().Select(entry => entry.GetProperty("name").GetString())
+                .ToList();
+            Assert.Equal(["公共宏", "公共宏 2"], created);
+
+            var package = Path.Combine(folder, "incoming.wgmacro");
+            MacroPackage.Save(package, [new MacroItem { Name = "外部宏" }],
+                new ProjectTriggers(), [], "test", null);
+            await server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 3,
+                method = "library.import",
+                @params = new { path = package },
+            }));
+
+            var imported = Answer(channel, 3).GetProperty("result")
+                .GetProperty("entries").EnumerateArray().Select(entry => entry.GetProperty("name").GetString())
+                .ToList();
+            Assert.Contains("外部宏", imported);
+            Assert.Contains(PublicMacroLibrary.Load(libraryPath),
+                entry => entry.Macro.Name == "外部宏");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    private static JsonElement Answer(Channel channel, int id)
+    {
+        var text = channel.Sent.Last(candidate => candidate.Contains("\"id\":" + id,
+            StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(text);
+        return document.RootElement.Clone();
+    }
+
     private static Task Publish(BridgeServer server, int id)
         => server.AcceptAsync(JsonSerializer.Serialize(new
         {
