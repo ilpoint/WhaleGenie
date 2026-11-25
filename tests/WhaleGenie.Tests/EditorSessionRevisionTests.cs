@@ -69,11 +69,48 @@ public class EditorSessionRevisionTests
             tab.GetProperty("documentId").GetString());
     }
 
+    [Fact]
+    public async Task Confirming_an_action_answers_with_the_whole_editor_snapshot()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "note" });
+        var server = new BridgeServer();
+        var channel = new Channel();
+        server.Attach(channel);
+        new EditorSessionBridge(new WhaleGenie.Editor.EditorDocumentService(workspace), workspace)
+            .Register(server);
+        await Call(server, channel, """{"id":1,"method":"bridge.ready"}""");
+        var opened = (await Call(server, channel,
+            """{"id":2,"method":"editor.session","params":{"kind":"open","name":"note"}}"""))
+            .GetProperty("result");
+        var documentId = opened.GetProperty("activeDocumentId").GetString();
+
+        await Call(server, channel,
+            """{"id":3,"method":"editor.actionOpen","params":{"type":"control.note"}}""");
+        var confirmed = (await Call(server, channel,
+            """{"id":4,"method":"editor.actionConfirm"}""")).GetProperty("result");
+
+        Assert.Equal(1, confirmed.GetProperty("stepCount").GetInt32());
+        Assert.Equal("control.note", confirmed.GetProperty("steps")[0].GetProperty("type").GetString());
+        Assert.Equal(string.Empty, confirmed.GetProperty("steps")[0].GetProperty("detail").GetString());
+        Assert.Equal(JsonValueKind.Object, confirmed.GetProperty("actionForm").ValueKind);
+        Assert.False(confirmed.GetProperty("actionForm").GetProperty("open").GetBoolean());
+        var tab = Assert.Single(confirmed.GetProperty("tabs").EnumerateArray());
+        Assert.Equal(documentId, tab.GetProperty("documentId").GetString());
+        Assert.Equal(documentId, confirmed.GetProperty("activeDocumentId").GetString());
+        Assert.True(confirmed.GetProperty("revision").GetInt32()
+            > opened.GetProperty("revision").GetInt32());
+    }
+
     private static async Task<JsonElement> Call(BridgeServer server, Channel channel, string request)
     {
         channel.Sent.Clear();
+        var id = JsonDocument.Parse(request).RootElement.GetProperty("id").GetInt32();
         await server.AcceptAsync(request);
-        using var document = JsonDocument.Parse(Assert.Single(channel.Sent));
+        var answer = channel.Sent.Last(text =>
+            text.Contains($"\"id\":{id}", StringComparison.Ordinal)
+            && text.Contains("\"ok\"", StringComparison.Ordinal));
+        using var document = JsonDocument.Parse(answer);
         return document.RootElement.Clone();
     }
 

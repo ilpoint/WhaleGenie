@@ -68,8 +68,8 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
         server.Register("editor.sessionActions", _ => Task.FromResult<object?>(Actions()));
         server.Register("editor.action", ActionCommand);
         server.Register("editor.actionOpen", ActionOpen);
-        server.Register("editor.actionConfirm", _ => Task.FromResult<object?>(Required().ConfirmActionDraft()));
-        server.Register("editor.actionCancel", _ => Task.FromResult<object?>(Required().CancelActionDraft()));
+        server.Register("editor.actionConfirm", _ => Task.FromResult<object?>(ActionConfirm()));
+        server.Register("editor.actionCancel", _ => Task.FromResult<object?>(ActionCancel()));
         server.Register("editor.actionWindowPreview", ActionWindowPreview);
         server.Register("editor.actionPick", ActionPick);
         server.Register("editor.actionLook", ActionLook);
@@ -89,6 +89,24 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
     {
         var snapshot = _documents.Snapshot();
         return snapshot is null ? null : Envelope(snapshot);
+    }
+
+    /// <summary>
+    /// Committing or cancelling an action draft changes the document's steps and its dirty flag.
+    /// The answer has to be the same bridge snapshot every other edit returns — tabs, active id
+    /// and the action form included — or the page's revision gate can drop it and the new step
+    /// never appears in the list.
+    /// </summary>
+    private object? ActionConfirm()
+    {
+        Required().ConfirmActionDraft();
+        return Snapshot();
+    }
+
+    private object? ActionCancel()
+    {
+        Required().CancelActionDraft();
+        return Snapshot();
     }
 
     /// <summary>

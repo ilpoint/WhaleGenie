@@ -52,7 +52,7 @@ internal sealed partial class EditorSessionBridge
                     At: key.At,
                     Width: key.Width,
                     Append: key.Append)),
-                EditorValueConfirmCommand => Required().ConfirmValue(),
+                EditorValueConfirmCommand => ValueConfirm(),
                 EditorValueCancelCommand => Required().CancelValue(),
                 _ => throw new BridgeFailureException(BridgeErrors.BadArgument,
                     Strings.Get("Bridge.EditorNeedsField")),
@@ -62,6 +62,23 @@ internal sealed partial class EditorSessionBridge
         {
             throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
         }
+    }
+
+    /// <summary>
+    /// A confirmed value changes a step parameter. The outcome's bare snapshot is not a bridge
+    /// snapshot — it has no tabs, active document or envelope revision — so the confirmed one is
+    /// wrapped the same way every other edit is; otherwise the page's revision gate can drop it
+    /// and the new value never reaches the row.
+    /// </summary>
+    private EditorValueOutcome ValueConfirm()
+    {
+        var outcome = Required().ConfirmValue();
+        if (!outcome.Closed || !outcome.Applied || _documents.Snapshot() is not { } snapshot)
+        {
+            return outcome;
+        }
+
+        return outcome with { State = Envelope(snapshot) };
     }
 
     private EditorValueSnapshot OpenValue(EditorValueOpenCommand open)

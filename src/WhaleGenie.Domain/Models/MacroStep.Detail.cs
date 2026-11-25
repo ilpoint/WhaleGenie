@@ -84,6 +84,13 @@ public partial class MacroStep : INotifyPropertyChanged
             }
 
             var values = string.Join(", ", parts);
+            if (values.Length == 0 && Type == "control.note")
+            {
+                // A note's whole content is its parameter; an empty one has nothing to say on the
+                // detail line, and printing the catalogue key there reads like an error.
+                return string.Empty;
+            }
+
             return values.Length == 0 ? Type : $"{Type} · {values}";
         }
     }
