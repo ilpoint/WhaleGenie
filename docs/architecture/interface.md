@@ -119,7 +119,8 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 导入/导出也走网页：`project.importPlan/importApply` 与 `project.exportPlan/exportApply` 由
 `PackageTransferService` 负责计划与应用，网页 `wg-transfer` 向导收集勾选与全局变量决定；它只把文件读写交给
 `IPackageStore`，把单独子宏的落点交给 `IPublicLibraryStore`，不再直接调 codec。原生侧不再有选择宏或
-冲突确认的窗口。公共宏库文件是独立的 `.wglib`，工程选择器只列 `.wgmacro`。
+冲突确认的窗口。工程和公共宏库是同一种 `.wgmacro` 包；公共库用 `library/entries.json`
+区段区分，工程选择器遇到它会明确拒绝。
 
 
 ### 7.6 网页壳与桥接
