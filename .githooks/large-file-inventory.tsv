@@ -162,7 +162,6 @@
 37674	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 430	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 371	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
-451	src/WhaleGenie.App/Projects/PackageTransferService.cs	keep: 导入/导出计划、勾选解析与工程/公共库落点在同一用例里，页面只负责选择
 311	src/WhaleGenie.App/Projects/ProjectSaver.cs	keep: 包文件唯一写者——防抖、显式保存、替换闸门与状态是同一个并发边界
 401	src/WhaleGenie.Editing/Editor/EditorDocumentSet.cs	keep: 打开文档的标识、页签顺序与父子关系只在文档集一处维护
 441	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
@@ -175,5 +174,5 @@
 301	src/WhaleGenie.App/Runtime/MenuSurface.cs	keep: 菜单投影与格子编辑命令同属一处；页面只收快照
 321	src/WhaleGenie/Web/MenuOverlayHost.cs	keep: 一个菜单浮层的窗口职责：定位、置顶记忆、键盘交接、外边点击与前台刷新
 329	src/WhaleGenie/Web/WheelOverlayHost.cs	keep: 轮盘窗口的单一职责：屏幕定位、隐藏准备帧、居中、瞄准事件与超时；页面 ready 握手与重试在此闭环
-22188	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
+22408	docs/architecture/interface.md	keep: 应用/桥/编辑/运行各层的接口与事实来源在一份文档里互相对照，拆开会让同一契约出现两处说法
 318	tests/WhaleGenie.Tests/HeadlessEditorSession.SubMacrosTests.cs	keep: 子宏会话命令的一族用例（新建/导入/子文档归属），共用同一套宿主和断言
