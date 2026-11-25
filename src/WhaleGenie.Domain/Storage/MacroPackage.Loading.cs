@@ -87,35 +87,18 @@ public static partial class MacroPackage
         var manifest = ReadObject(archive, ManifestEntry)
             ?? throw new InvalidDataException("The package has no manifest.json.");
 
-        var format = manifest["format"]?.GetValue<string>();
-        if (!string.Equals(format, FormatId, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidDataException($"'{format}' is not a WhaleGenie macro package.");
-        }
-
-        var version = manifest["version"]?.GetValue<int>() ?? 0;
-        if (version != FormatVersion)
-        {
-            throw new InvalidDataException(
-                Strings.Format("Package.FormatUnreadable", version, FormatVersion));
-        }
-
         var libraryNode = ReadObject(archive, LibraryEntriesEntry);
         var hasLibraryFolder = archive.Entries.Any(entry =>
             entry.FullName.StartsWith(LibraryFolder, StringComparison.OrdinalIgnoreCase));
-        if (libraryNode is null && hasLibraryFolder)
-        {
-            throw new InvalidDataException(Strings.Get("Package.LibraryEntriesMissing"));
-        }
+        var shape = PackageShapeReader.Read(manifest,
+            archive.GetEntry(TriggersEntry) is not null, hasLibraryFolder, libraryNode);
 
-        var hasProject = archive.GetEntry(TriggersEntry) is not null;
-        var hasLibrary = libraryNode is not null;
-        if (expected == PackageKind.Project && !hasProject)
+        if (expected == PackageKind.Project && !shape.HasProject)
         {
             throw new PackageKindMismatchException(PackageKind.Library);
         }
 
-        if (expected == PackageKind.Library && !hasLibrary)
+        if (expected == PackageKind.Library && !shape.HasLibrary)
         {
             throw new PackageKindMismatchException(PackageKind.Project);
         }
@@ -154,12 +137,12 @@ public static partial class MacroPackage
         // to that name meaning whichever happened to be read first.
         Disambiguate(macros, DateTime.Now);
 
-        var triggers = hasProject
+        var triggers = shape.HasProject
             ? ProjectTriggers.FromJson(ReadObject(archive, TriggersEntry))
             : new ProjectTriggers();
         ExpandMenuIcons(triggers, assets.Expand);
 
-        var globals = hasProject ? ReadGlobals(manifest) : [];
+        var globals = shape.HasProject ? ReadGlobals(manifest) : [];
 
         IReadOnlyList<PublicMacroEntry>? library = null;
         if (libraryNode is not null)
@@ -173,10 +156,10 @@ public static partial class MacroPackage
             Globals = globals,
             Triggers = triggers,
             Library = library,
-            FormatVersion = version,
-            AppVersion = ReadString(manifest, "appVersion"),
-            SavedUtc = ReadString(manifest, "savedUtc"),
-            HasProject = hasProject,
+            FormatVersion = shape.FormatVersion,
+            AppVersion = shape.AppVersion,
+            SavedUtc = shape.SavedUtc,
+            HasProject = shape.HasProject,
         };
     }
 

@@ -359,57 +359,5 @@ public sealed class McpDraftStore
 
     /// <summary>Checks every macro, including the call graph between them.</summary>
     public static McpDraftValidation Validate(McpDraft draft)
-    {
-        var blocking = new List<McpProblem>();
-        var hints = new List<McpProblem>();
-        var macros = draft.MacroSnapshot();
-        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var macro in macros)
-        {
-            var name = macro.Name.Trim();
-            if (name.Length == 0)
-            {
-                blocking.Add(new McpProblem(string.Empty, null, "MacroNameMissing", "A macro has no name."));
-                continue;
-            }
-
-            if (!names.Add(name))
-            {
-                blocking.Add(new McpProblem(name, null, "MacroNameDuplicate",
-                    $"Two macros are named \"{name}\"."));
-            }
-        }
-
-        var callables = macros.Select(macro => macro.Callable).ToList();
-        foreach (var macro in macros)
-        {
-            // The editor has always drawn these apart: a fault makes the macro impossible to call,
-            // a warning is worth reading while it is being written. Applying follows the same line.
-            foreach (var fault in MacroCheck.DeclarationFaultProblems(macro.Callable))
-            {
-                blocking.Add(new McpProblem(macro.Name, null, fault.Code, fault.Message));
-            }
-
-            foreach (var warning in MacroCheck.DeclarationWarnings(macro.Callable))
-            {
-                hints.Add(new McpProblem(macro.Name, null, "DeclarationWarning", warning));
-            }
-
-            foreach (var problem in MacroCheck.Inspect(macro.Steps, macro.Callable, callables,
-                         draft.Globals))
-            {
-                // The editor draws both kinds on the step; only the ones that cannot work stops an
-                // apply. A draft carrying a hint is a draft somebody may still be halfway through
-                // writing, and refusing it would teach the client to fight the check.
-                var written = new McpProblem(macro.Name,
-                    problem.Step.Id.Length > 0 ? problem.Step.Id : null,
-                    problem.Code, problem.Message);
-
-                (problem.Severity == MacroProblemSeverity.Blocking ? blocking : hints).Add(written);
-            }
-        }
-
-        return new McpDraftValidation(blocking.Count == 0, blocking, hints);
-    }
+        => McpDraftRules.Validate(draft.MacroSnapshot(), draft.Globals);
 }

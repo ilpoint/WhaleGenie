@@ -135,17 +135,24 @@ internal static class SubMacroEditor
     }
 
     /// <summary>
+    /// Whether a child can be removed: it exists and no step still calls it. This answer is pure;
+    /// <see cref="Delete"/> is the shell that removes the list entry only after this says yes.
+    /// </summary>
+    public static bool CanDelete(MacroItem owner, string name)
+        => owner.SubMacros.Exists(macro => Named(macro, name)) && !Referenced(owner, name);
+
+    /// <summary>
     /// Removes a child the macro no longer calls, and answers false while a call is still there:
     /// a call into a name that has just gone would be a mistake nobody asked to make.
     /// </summary>
     public static bool Delete(MacroItem owner, string name)
     {
-        var index = owner.SubMacros.FindIndex(macro => Named(macro, name));
-        if (index < 0 || Referenced(owner, name))
+        if (!CanDelete(owner, name))
         {
             return false;
         }
 
+        var index = owner.SubMacros.FindIndex(macro => Named(macro, name));
         owner.SubMacros.RemoveAt(index);
         return true;
     }
