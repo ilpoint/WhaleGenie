@@ -20,8 +20,8 @@
 
 **实现状态**：`TransferPlanner` 是包转移的纯核心（计划行、冲突、选择、决定、报告）；`PackageShapeReader`、
 `PackageManifestBuilder`、`PackageReadme` 把包形状、manifest 与 README 从 ZIP/时钟外壳中拆出；
-`McpDraftRules` 是草稿校验的纯核心；`SubMacroEditor.CanDelete` 把子宏删除判断与列表修改分开。
-纯核心测试不需要文件、工程、草稿会话或时钟。
+`McpDraftRules` 是草稿校验的纯核心，`McpPreview.Of` 的列表版本把 diff 也从草稿锁中拆出；子宏删除判断
+`SubMacroEditor.CanDelete` 与列表修改分开。纯核心测试不需要文件、工程、草稿会话或时钟。
 
 **下一步**：
 
