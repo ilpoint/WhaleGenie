@@ -14,6 +14,7 @@ public enum PackageProblem
     NotFound,
     Unreadable,
     InvalidFormat,
+    LibraryNotProject,
     WriteFailed,
     AccessDenied,
     UnknownMacro,

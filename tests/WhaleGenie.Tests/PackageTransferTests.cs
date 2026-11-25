@@ -33,7 +33,7 @@ public class PackageTransferTests : IDisposable
     public PackageTransferTests()
     {
         Directory.CreateDirectory(_folder);
-        _library = Path.Combine(_folder, "public-macros" + PublicMacroLibrary.Extension);
+        _library = Path.Combine(_folder, "public-macros" + MacroPackage.Extension);
         _transfer = new PackageTransferService(new FilePackageStore(),
             new FilePublicLibraryStore(_library));
     }
@@ -209,6 +209,20 @@ public class PackageTransferTests : IDisposable
 
         Assert.True(result.Ok);
         Assert.Equal(Strings.Get("Import.ReportNothing"), result.Value);
+        Assert.Empty(_project.Macros);
+    }
+
+    [Fact]
+    public async Task A_library_package_is_refused_by_project_transfer()
+    {
+        var path = Package("library");
+        PublicMacroLibrary.Save(path,
+            [new PublicMacroEntry("public-id", 1, new MacroItem { Name = "shared" })], "test");
+
+        var plan = await _transfer.PlanImportAsync(_project, path);
+
+        Assert.False(plan.Ok);
+        Assert.Equal(PackageProblem.LibraryNotProject, plan.Problem);
         Assert.Empty(_project.Macros);
     }
 

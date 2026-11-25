@@ -24,7 +24,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wglib");
+            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
             var workspace = new ProjectWorkspace();
             var macro = new MacroItem
             {
@@ -67,7 +67,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wglib");
+            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
             var workspace = new ProjectWorkspace();
             var macro = new MacroItem { Name = "shared", Description = "first" };
             workspace.AddMacro(macro);
@@ -96,7 +96,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wglib");
+            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
             var workspace = new ProjectWorkspace();
             workspace.AddMacro(new MacroItem { Name = "shared" });
             var server = new BridgeServer();
@@ -134,7 +134,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wglib");
+            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
             var workspace = new ProjectWorkspace();
             var server = new BridgeServer();
             var channel = new Channel();
@@ -164,6 +164,45 @@ public class LibraryBridgeTests
             Assert.Contains("外部宏", imported);
             Assert.Contains(PublicMacroLibrary.Load(libraryPath),
                 entry => entry.Macro.Name == "外部宏");
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public async Task A_library_package_merges_its_entries_and_versions()
+    {
+        var folder = Folder();
+        try
+        {
+            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
+            var sourcePath = Path.Combine(folder, "other-library.wgmacro");
+            PublicMacroLibrary.Save(sourcePath,
+                [new PublicMacroEntry("source-id", 5, new MacroItem { Name = "shared" })],
+                "test");
+
+            var workspace = new ProjectWorkspace();
+            var server = new BridgeServer();
+            var channel = new Channel();
+            server.Attach(channel);
+            server.Register(new LibraryBridge(workspace, null, libraryPath));
+
+            await server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 1,
+                method = "library.import",
+                @params = new { path = sourcePath },
+            }));
+
+            var answer = Answer(channel, 1);
+            Assert.True(answer.GetProperty("ok").GetBoolean(), answer.ToString());
+            var stored = PublicMacroLibrary.Load(libraryPath);
+            var imported = Assert.Single(stored);
+            Assert.Equal("source-id", imported.Id);
+            Assert.Equal(5, imported.Version);
+            Assert.Equal("shared", imported.Macro.Name);
         }
         finally
         {

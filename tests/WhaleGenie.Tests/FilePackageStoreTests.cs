@@ -57,6 +57,27 @@ public class FilePackageStoreTests
     }
 
     [Fact]
+    public async Task A_library_package_is_reported_as_a_project_kind_mismatch()
+    {
+        var folder = Folder();
+        try
+        {
+            var path = Path.Combine(folder, "library.wgmacro");
+            PublicMacroLibrary.Save(path,
+                [new PublicMacroEntry("public-id", 1, new MacroItem { Name = "shared" })], "test");
+
+            var read = await _store.ReadAsync(path, Path.Combine(folder, "assets"));
+
+            Assert.False(read.Ok);
+            Assert.Equal(PackageProblem.LibraryNotProject, read.Problem);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
     public async Task A_broken_archive_is_reported_as_an_invalid_format()
     {
         var folder = Folder();

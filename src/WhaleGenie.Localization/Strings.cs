@@ -1061,10 +1061,6 @@ public sealed class Strings : INotifyPropertyChanged
             "Public macro names and ids must be non-empty and unique.",
         ["PublicMacroManager.BadDeclaration"] =
             "The public macro '{0}' has a declaration problem: {1}.",
-        ["PublicMacroManager.NoManifest"] = "The public macro library has no manifest.json.",
-        ["PublicMacroManager.NotALibrary"] = "That file is not a WhaleGenie public macro library.",
-        ["PublicMacroManager.WrongVersion"] =
-            "The public macro library is format {0}; this WhaleGenie reads format {1}.",
         ["PublicMacroManager.LoadFailed"] = "The public macro library could not be read: {0}",
         ["PublicMacroManager.SaveFailed"] = "The public macro library was not saved: {0}",
 
@@ -2242,6 +2238,18 @@ public sealed class Strings : INotifyPropertyChanged
         ["Package.SaveFailed"] = "This file could not be saved",
         ["Package.BadDeclaration"] =
             "The macro \"{0}\" has a declaration that cannot be called (\"{1}\"): fix its parameters or results before saving.",
+        ["Package.LibraryNotProject"] =
+            "This is a public macro library package, not a project package.",
+        ["Package.ProjectNotLibrary"] =
+            "This is a project package, not a public macro library package.",
+        ["Package.LibraryEntriesMissing"] =
+            "The package has a library/ folder but no library/entries.json.",
+        ["Package.LibraryVersionUnreadable"] =
+            "The library entries are schema {0}; this version reads schema {1}.",
+        ["Package.LibraryHasTriggers"] =
+            "A public macro library package cannot contain triggers.json.",
+        ["Package.LibraryHasVariables"] =
+            "A public macro library package cannot contain project variables.",
 
         // ---------------------------------------------------------------- recovery
         ["Recover.Title"] = "Work from the last run was found",
@@ -3773,10 +3781,6 @@ public sealed class Strings : INotifyPropertyChanged
         ["PublicMacroManager.DefaultName"] = "公共宏",
         ["PublicMacroManager.DuplicateName"] = "公共宏的名称与标识不能为空，也不能重复。",
         ["PublicMacroManager.BadDeclaration"] = "公共宏“{0}”的声明有问题：{1}。",
-        ["PublicMacroManager.NoManifest"] = "公共宏库里没有 manifest.json。",
-        ["PublicMacroManager.NotALibrary"] = "这个文件不是鲸灵的公共宏库。",
-        ["PublicMacroManager.WrongVersion"] =
-            "公共宏库是格式 {0}，当前鲸灵读取格式 {1}。",
         ["PublicMacroManager.LoadFailed"] = "公共宏库读取失败：{0}",
         ["PublicMacroManager.SaveFailed"] = "公共宏库没有保存：{0}",
 
@@ -5274,6 +5278,13 @@ public sealed class Strings : INotifyPropertyChanged
             "该文件使用格式 {0} 写入，本版本鲸灵读取格式 {1}；请用写入它的版本导出后再打开。",
         ["Package.SaveFailed"] = "无法保存该文件",
         ["Package.BadDeclaration"] = "宏「{0}」的声明「{1}」不能用来调用：先修正形参或结果，再保存。",
+        ["Package.LibraryNotProject"] = "这个文件是公共宏库包，不是工程包。",
+        ["Package.ProjectNotLibrary"] = "这个文件是工程包，不是公共宏库包。",
+        ["Package.LibraryEntriesMissing"] = "这个包有 library/ 目录，但缺少 library/entries.json。",
+        ["Package.LibraryVersionUnreadable"] =
+            "公共库条目是结构 {0}，当前版本读取结构 {1}。",
+        ["Package.LibraryHasTriggers"] = "公共宏库包不能包含 triggers.json。",
+        ["Package.LibraryHasVariables"] = "公共宏库包不能包含工程变量。",
 
         // ---------------------------------------------------------------- recovery
         ["Recover.Title"] = "发现上次未保存的内容",

@@ -7,11 +7,13 @@ using WhaleGenie.Storage;
 namespace WhaleGenie.Projects;
 
 /// <summary>The outcome a window's file operation reports to its caller.</summary>
-public readonly record struct ProjectFileResult(bool Ok, Exception? Error)
+public readonly record struct ProjectFileResult(bool Ok, Exception? Error,
+    PackageProblem Problem = PackageProblem.None)
 {
     public static ProjectFileResult Success() => new(true, null);
 
-    public static ProjectFileResult Failed(Exception error) => new(false, error);
+    public static ProjectFileResult Failed(Exception error,
+        PackageProblem problem = PackageProblem.None) => new(false, error, problem);
 }
 
 /// <summary>
@@ -27,7 +29,8 @@ public sealed class ProjectFileService(IPackageStore packages)
             .ConfigureAwait(false).GetAwaiter().GetResult();
         if (!read.Ok || read.Value is null)
         {
-            return ProjectFileResult.Failed(read.Error ?? new InvalidDataException(read.Message));
+            return ProjectFileResult.Failed(read.Error ?? new InvalidDataException(read.Message),
+                read.Problem);
         }
 
         workspace.ApplyPackage(path, read.Value);
@@ -44,7 +47,8 @@ public sealed class ProjectFileService(IPackageStore packages)
         var read = await packages.ReadAsync(path, MacroPackage.AssetFolderFor(path));
         if (!read.Ok || read.Value is null)
         {
-            return ProjectFileResult.Failed(read.Error ?? new InvalidDataException(read.Message));
+            return ProjectFileResult.Failed(read.Error ?? new InvalidDataException(read.Message),
+                read.Problem);
         }
 
         workspace.ApplyPackage(path, read.Value);
@@ -58,7 +62,8 @@ public sealed class ProjectFileService(IPackageStore packages)
             .ConfigureAwait(false).GetAwaiter().GetResult();
         if (!write.Ok)
         {
-            return ProjectFileResult.Failed(write.Error ?? new IOException(write.Message));
+            return ProjectFileResult.Failed(write.Error ?? new IOException(write.Message),
+                write.Problem);
         }
 
         workspace.MarkSaved(plan);
@@ -75,7 +80,8 @@ public sealed class ProjectFileService(IPackageStore packages)
         var write = await packages.WriteAsync(Request(plan));
         if (!write.Ok)
         {
-            return ProjectFileResult.Failed(write.Error ?? new IOException(write.Message));
+            return ProjectFileResult.Failed(write.Error ?? new IOException(write.Message),
+                write.Problem);
         }
 
         workspace.MarkSaved(plan);

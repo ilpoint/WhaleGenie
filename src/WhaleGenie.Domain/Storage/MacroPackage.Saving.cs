@@ -128,6 +128,64 @@ public static partial class MacroPackage
     }
 
     /// <summary>
+    /// Writes a public library as the same package with <c>library/entries.json</c>. It carries no
+    /// triggers or project variables: a library entry is a callable macro, not a project.
+    /// </summary>
+    public static void SaveLibrary(string path, IReadOnlyList<PublicMacroEntry> entries,
+        string appVersion, string? assetFolder = null)
+    {
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in entries)
+        {
+            var name = entry.Macro.Name.Trim();
+            var id = entry.Id.Trim();
+            if (name.Length == 0 || id.Length == 0 || !names.Add(name) || !ids.Add(id))
+            {
+                throw new InvalidDataException(Strings.Get("PublicMacroManager.DuplicateName"));
+            }
+
+            var problems = entry.Macro.Callable.Problems();
+            if (problems.Count > 0)
+            {
+                throw new InvalidDataException(Strings.Format(
+                    "PublicMacroManager.BadDeclaration", name, problems[0].Name));
+            }
+        }
+
+        var fullPath = Path.GetFullPath(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? ".");
+        var temporary = fullPath + ".tmp";
+        try
+        {
+            using (var stream = File.Create(temporary))
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
+            {
+                SaveInto(archive, fullPath, [.. entries.Select(entry => entry.Macro)],
+                    new ProjectTriggers(), [], appVersion, assetFolder, entries);
+            }
+
+            if (File.Exists(fullPath))
+            {
+                var backup = BackupPathFor(fullPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(backup) ?? ".");
+                File.Copy(fullPath, backup, true);
+            }
+
+            File.Move(temporary, fullPath, true);
+        }
+        catch
+        {
+            if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Gives every macro after the first one of its name a suffix saying when it was read, so a
     /// package that carries two macros of one name still arrives as two macros. The first one keeps
     /// the name, because that is the one the file’s call sites and triggers were written against.

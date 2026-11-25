@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Tests;
 
@@ -29,6 +30,26 @@ public class ProjectFilesTests
             var opened = TestProjectFiles.Service.Open(loaded, path);
             Assert.True(opened.Ok, opened.Error?.Message);
             Assert.Equal("saved", Assert.Single(loaded.Macros).Name);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void A_library_package_is_not_an_engineering_package()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"whalegenie-library-{Guid.NewGuid():N}.wgmacro");
+        try
+        {
+            PublicMacroLibrary.Save(path,
+                [new PublicMacroEntry("public-id", 1, new MacroItem { Name = "shared" })], "test");
+
+            var result = TestProjectFiles.Service.Open(new ProjectWorkspace(), path);
+
+            Assert.False(result.Ok);
+            Assert.Equal(PackageProblem.LibraryNotProject, result.Problem);
         }
         finally
         {

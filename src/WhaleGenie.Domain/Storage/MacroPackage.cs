@@ -23,9 +23,32 @@ public sealed class PackageContents
     public required ProjectTriggers Triggers { get; init; }
 }
 
+/// <summary>A package whose <c>library/</c> section holds versioned callable macros.</summary>
+public sealed class LibraryContents
+{
+    public required IReadOnlyList<PublicMacroEntry> Entries { get; init; }
+}
+
+/// <summary>Which of the one package format's two sections a file carries.</summary>
+public enum PackageKind
+{
+    Project,
+    Library,
+}
+
+/// <summary>A package read through the wrong entry point; the caller maps this to its own words.</summary>
+public sealed class PackageKindMismatchException(PackageKind actual)
+    : IOException(actual == PackageKind.Library
+        ? Strings.Get("Package.LibraryNotProject")
+        : Strings.Get("Package.ProjectNotLibrary"))
+{
+    public PackageKind Actual { get; } = actual;
+}
+
 /// <summary>
 /// Reads and writes the <c>.wgmacro</c> macro package: a zip holding a manifest, a readme,
-/// one JSON document per macro and the images those macros reference.
+/// one JSON document per macro and the images those macros reference. A library is the same
+/// package with <c>library/entries.json</c>; it has no project triggers or project variables.
 /// </summary>
 public static partial class MacroPackage
 {
@@ -49,6 +72,11 @@ public static partial class MacroPackage
     private const string NodesFolder = "nodes/";
     private const string AssetsFolder = "assets/";
     private const string ImageParameter = "image";
+    private const string LibraryFolder = "library/";
+    private const string LibraryEntriesEntry = "library/entries.json";
+
+    /// <summary>The shape of <c>library/entries.json</c>, independent of the outer package version.</summary>
+    public const int LibraryEntriesVersion = 1;
 
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 }

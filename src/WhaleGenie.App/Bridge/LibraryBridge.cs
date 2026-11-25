@@ -77,15 +77,52 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
         }
 
         var read = await _packages.ReadAsync(path, ImageAssets.FolderFor(path));
+        if (!read.Ok && read.Problem == PackageProblem.LibraryNotProject)
+        {
+            // The same package format carries both kinds. Selecting a library package here merges
+            // its entries; selecting the library's own file again is a no-op rather than a way to
+            // duplicate every entry.
+            if (SamePath(path, _store.Path))
+            {
+                return State();
+            }
+
+            IReadOnlyList<PublicMacroEntry> arriving;
+            try
+            {
+                arriving = _store.Load(path);
+            }
+            catch (Exception error) when (error is IOException or InvalidDataException)
+            {
+                throw new BridgeFailureException(BridgeErrors.PackageOpenFailed, error.Message);
+            }
+
+            return Change(current => [.. current, .. PublicMacroLibrary.Merge(arriving, current,
+                PublicMacroLibrary.AssetFolderFor(_store.Path),
+                PublicMacroLibrary.AssetFolderFor(path))]);
+        }
+
         if (!read.Ok || read.Value is not { } contents)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
                 read.Message ?? Strings.Get("Bridge.PackageOpenFailed"));
         }
 
-        MacroImport.IntoLibrary(contents.Macros, _store);
+        try
+        {
+            MacroImport.IntoLibrary(contents.Macros, _store);
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException)
+        {
+            throw new BridgeFailureException(BridgeErrors.Internal, error.Message);
+        }
+
         return State();
     }
+
+    private static bool SamePath(string left, string right)
+        => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right),
+            StringComparison.OrdinalIgnoreCase);
 
     private static string FreeName(IReadOnlyList<PublicMacroEntry> entries, string? wanted)
     {

@@ -20,11 +20,13 @@ public static partial class MacroPackage
 {
     private static void SaveInto(ZipArchive archive, string packagePath,
         IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
-        IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder)
+        IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder,
+        IReadOnlyList<PublicMacroEntry>? library = null)
     {
         var assets = new AssetCollector(archive,
             [AssetFolderFor(packagePath), Path.GetDirectoryName(packagePath), assetFolder]);
         var manifestMacros = new JsonArray();
+        var libraryEntries = new JsonArray();
         var files = new List<(string Name, string Trigger, string Loop, int Steps)>();
         var index = 0;
 
@@ -43,6 +45,19 @@ public static partial class MacroPackage
                 ["document"] = entryName,
                 ["steps"] = macro.Steps.Count,
             });
+
+            if (library is not null)
+            {
+                var entry = library[index - 1];
+                libraryEntries.Add(new JsonObject
+                {
+                    ["id"] = entry.Id,
+                    ["version"] = Math.Max(1, entry.Version),
+                    ["name"] = macro.Name.Trim(),
+                    ["description"] = macro.Description,
+                    ["document"] = entryName,
+                });
+            }
 
             var entries = triggers.ForMacro(macro.Name);
             files.Add((macro.Name, string.Join(" / ", entries.Select(entry => entry.KindLabel)),
@@ -76,20 +91,38 @@ public static partial class MacroPackage
         };
 
         WriteEntry(archive, ManifestEntry, manifest.ToJsonString(Indented));
-        WriteEntry(archive, TriggersEntry, triggersNode.ToJsonString(Indented));
-        WriteEntry(archive, ReadmeEntry, BuildReadme(appVersion, files, globals, assets.Stored));
+        if (library is null)
+        {
+            WriteEntry(archive, TriggersEntry, triggersNode.ToJsonString(Indented));
+        }
+        else
+        {
+            WriteEntry(archive, LibraryEntriesEntry, new JsonObject
+            {
+                ["version"] = LibraryEntriesVersion,
+                ["entries"] = libraryEntries,
+            }.ToJsonString(Indented));
+        }
+
+        WriteEntry(archive, ReadmeEntry,
+            BuildReadme(appVersion, files, globals, assets.Stored, library is not null));
     }
 
     /// <summary>Human readable summary stored next to the JSON, for people opening the zip.</summary>
     private static string BuildReadme(string appVersion,
         IReadOnlyList<(string Name, string Trigger, string Loop, int Steps)> macros,
-        IReadOnlyList<VariableDefinition> globals, IReadOnlyList<string> assets)
+        IReadOnlyList<VariableDefinition> globals, IReadOnlyList<string> assets,
+        bool library = false)
     {
         var text = new StringBuilder();
-        text.AppendLine("# WhaleGenie macro package");
+        text.AppendLine(library ? "# WhaleGenie public macro library" : "# WhaleGenie macro package");
         text.AppendLine();
-        text.AppendLine("This file is a WhaleGenie macro project. It is a zip archive; rename it to")
-            .AppendLine("`.zip` if you want to look inside without WhaleGenie.");
+        text.AppendLine(library
+                ? "This file is a WhaleGenie public macro library. It is a package with callable"
+                : "This file is a WhaleGenie macro project. It is a zip archive; rename it to")
+            .AppendLine(library
+                ? "macros under `library/entries.json`, not a project."
+                : "`.zip` if you want to look inside without WhaleGenie.");
         text.AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture,
             $"- Format: `{FormatId}` version {FormatVersion}");
@@ -104,7 +137,14 @@ public static partial class MacroPackage
         text.AppendLine("| --- | --- |");
         text.AppendLine("| `manifest.json` | Format version and the list of everything in the package. |");
         text.AppendLine("| `README.md` | This file. |");
-        text.AppendLine("| `triggers.json` | Trigger entries, floating-group positions, menu pages, blocked programs and the menu launcher. |");
+        if (library)
+        {
+            text.AppendLine("| `library/entries.json` | Callable entries and their public versions. |");
+        }
+        else
+        {
+            text.AppendLine("| `triggers.json` | Trigger entries, floating-group positions, menu pages, blocked programs and the menu launcher. |");
+        }
         text.AppendLine("| `nodes/` | One JSON document per macro, holding its steps. |");
         text.AppendLine("| `assets/` | Images the macros use, referenced as `assets/<file>`. |");
         text.AppendLine();

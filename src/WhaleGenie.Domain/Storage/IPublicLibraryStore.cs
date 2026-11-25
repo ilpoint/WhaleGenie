@@ -5,7 +5,8 @@ namespace WhaleGenie.Storage;
 
 /// <summary>
 /// The public library's storage boundary. Editing asks it for the callable entries and App asks it
-/// to load, save and copy one; the archive format remains in <see cref="PublicMacroLibrary"/>.
+/// to load, save and copy one; the archive is the same <c>.wgmacro</c> package as a project, with
+/// a <c>library/entries.json</c> section instead of project triggers.
 /// </summary>
 public interface IPublicLibraryStore
 {
@@ -22,8 +23,8 @@ public interface IPublicLibraryStore
 }
 
 /// <summary>
-/// The real public library file. The format is the existing library format and the extension is
-/// <c>.wglib</c>: it is not a project package, even though both are ZIP files.
+/// The real public library file. It is the project package format with a library section, so the
+/// codec, atomic replacement and backup are the same as for a project.
 /// </summary>
 public sealed class FilePublicLibraryStore(string? path = null) : IPublicLibraryStore
 {

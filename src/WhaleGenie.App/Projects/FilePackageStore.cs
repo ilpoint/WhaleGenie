@@ -57,6 +57,8 @@ public sealed class FilePackageStore : IPackageStore
 
     private static PackageProblem ProblemForRead(Exception error) => error switch
     {
+        PackageKindMismatchException { Actual: PackageKind.Library } => PackageProblem.LibraryNotProject,
+        PackageKindMismatchException => PackageProblem.InvalidFormat,
         FileNotFoundException or DirectoryNotFoundException => PackageProblem.NotFound,
         InvalidDataException => PackageProblem.InvalidFormat,
         UnauthorizedAccessException => PackageProblem.AccessDenied,

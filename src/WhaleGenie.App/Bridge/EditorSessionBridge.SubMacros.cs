@@ -5,6 +5,7 @@ using WhaleGenie.Contracts;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Storage;
 
 namespace WhaleGenie.Bridge;
@@ -108,6 +109,12 @@ internal sealed partial class EditorSessionBridge
             .ConfigureAwait(false).GetAwaiter().GetResult();
         if (!read.Ok || read.Value is not { } contents)
         {
+            if (read.Problem == PackageProblem.LibraryNotProject)
+            {
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Package.LibraryNotProject"));
+            }
+
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
                 read.Message ?? Strings.Get("Bridge.PackageOpenFailed"));
         }

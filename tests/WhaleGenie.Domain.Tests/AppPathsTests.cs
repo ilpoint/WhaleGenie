@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Domain.Tests;
 
@@ -92,12 +93,14 @@ public class AppPathsTests
         }
     }
 
-    /// <summary>
-    /// 程序自己的文件夹只留在那儿的东西：公共宏库跟着它，因为那是可以被拷走的成品。
-    /// </summary>
+    /// <summary>公共宏库和工程包一样放在用户的漫游数据下，程序文件夹不再保存会变化的数据。</summary>
     [Fact]
-    public void The_public_library_stays_with_the_program()
+    public void The_public_library_lives_in_the_users_roaming_data()
     {
-        Assert.StartsWith(AppPaths.Root, AppPaths.PublicMacroLibrary, StringComparison.Ordinal);
+        var roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        Assert.StartsWith(roaming, AppPaths.PublicMacroLibrary, StringComparison.Ordinal);
+        Assert.Equal(AppPaths.Library, Path.GetDirectoryName(AppPaths.PublicMacroLibrary));
+        Assert.EndsWith(MacroPackage.Extension, AppPaths.PublicMacroLibrary,
+            StringComparison.OrdinalIgnoreCase);
     }
 }

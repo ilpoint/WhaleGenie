@@ -322,7 +322,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private static BridgeFailureException PackageFailure(PackageProblem problem, string? message,
         string fileCode, string? path)
     {
-        if (problem is PackageProblem.UnknownMacro or PackageProblem.UnknownAction)
+        if (problem is PackageProblem.UnknownMacro or PackageProblem.UnknownAction
+            or PackageProblem.LibraryNotProject)
         {
             return new BridgeFailureException(BridgeErrors.BadArgument,
                 message ?? Strings.Get("Bridge.EditorNeedsMacro"));
@@ -508,6 +509,12 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             : await _projectFiles.OpenAsync(_workspace, path);
         if (!opened.Ok)
         {
+            if (opened.Problem == PackageProblem.LibraryNotProject)
+            {
+                throw new BridgeFailureException(BridgeErrors.BadArgument,
+                    Strings.Get("Package.LibraryNotProject"));
+            }
+
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
                 Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path),
                     opened.Error?.Message ?? string.Empty));

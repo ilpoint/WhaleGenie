@@ -42,16 +42,19 @@ public static class AppPaths
     public static string Recovery { get; } = Path.Combine(State, "recovery.json");
 
     /// <summary>
-    /// Callable macros shared by every project opened by this copy of WhaleGenie. It follows the
-    /// program folder so a portable copy keeps its library with it.
+    /// Callable macros shared by every project opened by this copy of WhaleGenie. It lives beside
+    /// the projects under the person's roaming application data, in a folder whose name says what
+    /// it is; a portable copy no longer carries the library with the program.
     /// </summary>
+    public static string Library { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhaleGenie", "library");
+
     public static string PublicMacroLibrary { get; } =
-        Path.Combine(Root, "library", "public-macros"
-            + WhaleGenie.Storage.PublicMacroLibrary.Extension);
+        Path.Combine(Library, "public-macros" + MacroPackage.Extension);
 
     /// <summary>Images unpacked from the public macro library.</summary>
     public static string PublicMacroAssets { get; } =
-        Path.Combine(Root, "library", "public-macros.assets");
+        Path.Combine(Library, "public-macros.assets");
 
     /// <summary>
     /// The working files one macro package owns: the pictures unpacked out of it and the copy of the

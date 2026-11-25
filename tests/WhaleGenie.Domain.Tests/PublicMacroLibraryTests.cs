@@ -10,12 +10,10 @@ namespace WhaleGenie.Domain.Tests;
 public class PublicMacroLibraryTests
 {
     [Fact]
-    public void The_library_has_its_own_extension_and_is_not_a_project_package()
+    public void The_library_is_the_project_package_with_a_library_section()
     {
-        Assert.EndsWith(PublicMacroLibrary.Extension, AppPaths.PublicMacroLibrary,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.NotEqual(MacroPackage.Extension, PublicMacroLibrary.Extension);
-        Assert.NotEqual(PublicMacroLibrary.FormatId, MacroPackage.FormatId);
+        Assert.Equal(MacroPackage.Extension, Path.GetExtension(AppPaths.PublicMacroLibrary));
+        Assert.Equal("library", Path.GetFileName(Path.GetDirectoryName(AppPaths.PublicMacroLibrary)));
     }
 
     [Fact]
@@ -24,7 +22,7 @@ public class PublicMacroLibraryTests
         var folder = TemporaryFolder();
         try
         {
-            var path = Path.Combine(folder, "public-macros.wglib");
+            var path = Path.Combine(folder, "public-macros.wgmacro");
             var child = new MacroItem
             {
                 Name = "helper",
@@ -95,13 +93,70 @@ public class PublicMacroLibraryTests
         var folder = TemporaryFolder();
         try
         {
-            var path = Path.Combine(folder, "public-macros.wglib");
+            var path = Path.Combine(folder, "public-macros.wgmacro");
             Assert.Empty(PublicMacroLibrary.Load(path));
 
             File.WriteAllText(path, "not a package");
             var before = File.ReadAllBytes(path);
             Assert.ThrowsAny<Exception>(() => PublicMacroLibrary.Load(path));
             Assert.Equal(before, File.ReadAllBytes(path));
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void Merging_keeps_a_version_and_makes_room_for_a_taken_id_and_name()
+    {
+        var folder = TemporaryFolder();
+        try
+        {
+            var existing = new PublicMacroEntry("same-id", 2,
+                new MacroItem { Name = "shared" });
+            var arriving = new PublicMacroEntry("same-id", 5,
+                new MacroItem { Name = "shared" });
+
+            var added = Assert.Single(PublicMacroLibrary.Merge([arriving], [existing],
+                Path.Combine(folder, "target.assets"), Path.Combine(folder, "source.assets")));
+
+            Assert.NotEqual("same-id", added.Id);
+            Assert.Equal(5, added.Version);
+            Assert.NotEqual("shared", added.Macro.Name);
+            Assert.Null(added.Macro.Origin);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void A_library_pack_carries_the_pictures_its_entries_use()
+    {
+        var folder = TemporaryFolder();
+        try
+        {
+            var picture = Path.Combine(folder, "button.png");
+            File.WriteAllBytes(picture, [4, 3, 2, 1]);
+            var macro = new MacroItem { Name = "shared" };
+            macro.Steps.Add(Step("vision.findImage",
+                new StepParameter
+                {
+                    Name = "image",
+                    Kind = ActionParameterKind.Image,
+                    Written = Fields.Shape(picture),
+                }));
+
+            var path = Path.Combine(folder, "public-macros.wgmacro");
+            PublicMacroLibrary.Save(path, [new PublicMacroEntry("public-id", 1, macro)], "test");
+
+            var loaded = Assert.Single(PublicMacroLibrary.Load(path));
+            var image = Assert.Single(loaded.Macro.Steps).Parameters
+                .Single(parameter => parameter.Name == "image").Value;
+            Assert.True(Path.IsPathRooted(image));
+            Assert.Equal([4, 3, 2, 1], File.ReadAllBytes(image));
         }
         finally
         {

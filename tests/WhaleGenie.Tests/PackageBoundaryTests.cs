@@ -18,10 +18,17 @@ public class PackageBoundaryTests
         var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             Path.Combine("src", "WhaleGenie.App", "Projects", "FilePackageStore.cs"),
+            Path.Combine("src", "WhaleGenie.Domain", "Storage", "PublicMacroLibrary.cs"),
         };
         var offenders = SourceFiles()
-            .Where(file => File.ReadAllText(file).Contains("MacroPackage.Load(", StringComparison.Ordinal)
-                || File.ReadAllText(file).Contains("MacroPackage.Save(", StringComparison.Ordinal))
+            .Where(file =>
+            {
+                var text = File.ReadAllText(file);
+                return text.Contains("MacroPackage.Load(", StringComparison.Ordinal)
+                    || text.Contains("MacroPackage.Save(", StringComparison.Ordinal)
+                    || text.Contains("MacroPackage.LoadLibrary(", StringComparison.Ordinal)
+                    || text.Contains("MacroPackage.SaveLibrary(", StringComparison.Ordinal);
+            })
             .Select(file => Path.GetRelativePath(RepoPaths.Root, file))
             .Where(path => !allowed.Contains(path))
             .ToList();

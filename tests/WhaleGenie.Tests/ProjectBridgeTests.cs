@@ -418,6 +418,38 @@ public class ProjectBridgeTests : IDisposable
     }
 
     [Fact]
+    public async Task A_library_package_is_refused_as_a_project()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, "public-macros" + MacroPackage.Extension);
+        PublicMacroLibrary.Save(path,
+            [new PublicMacroEntry("public-id", 1, new MacroItem { Name = "shared" })], "test");
+
+        try
+        {
+            await _server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 1,
+                method = "project.open",
+                @params = new { path },
+            }));
+
+            var answer = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":1")))
+                .RootElement;
+            Assert.False(answer.GetProperty("ok").GetBoolean());
+            Assert.Equal(BridgeErrors.BadArgument,
+                answer.GetProperty("error").GetProperty("code").GetString());
+            Assert.Contains("公共宏库", answer.GetProperty("error").GetProperty("message").GetString());
+            Assert.Empty(_workspace.Macros);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
     public async Task Reloading_needs_a_file_to_reload_from()
     {
         await _server.AcceptAsync("""{"id":1,"method":"project.reload"}""");
