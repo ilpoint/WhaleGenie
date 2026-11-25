@@ -22,7 +22,8 @@
 
 公共宏库跟着用户的漫游数据走：`%APPDATA%\WhaleGenie\library\public-macros.wgmacro` 与同目录的
 `public-macros.assets\`，所有项目共用；它和工程包是同一种 `.wgmacro`，包里用 `library/` 区段区分。
-把程序文件夹拷给别人不再带走公共库。
+工程包也可以带自己的 `library/` 区段，这些条目随工程文件走，只属于该工程；工程保存/另存/导出时
+按设置携带，打开时直接出现在编辑器的「本工程」公共宏里。
 
 脚本要的包放在程序目录下的 `packages` 里：`packages\python` 是 Python 包，`packages\nuget` 是
 C# 脚本用的 NuGet 包；装不进去时改用 `%LOCALAPPDATA%\WhaleGenie\packages`。浏览器动作的登录档案
