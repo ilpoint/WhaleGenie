@@ -52,10 +52,19 @@ public sealed record McpPreviewResult(
 public static class McpPreview
 {
     public static McpPreviewResult Of(McpDraft draft)
+        => Of(draft.Basis.Macros, draft.MacroSnapshot(), draft.Basis.Globals, draft.Globals);
+
+    /// <summary>
+    /// The pure diff: the two macro lists and two global lists are enough. No draft lock, project or
+    /// clock is involved, so a caller can preview any candidate before it has a session.
+    /// </summary>
+    public static McpPreviewResult Of(IReadOnlyList<MacroItem> beforeMacros,
+        IReadOnlyList<MacroItem> afterMacros, IReadOnlyList<VariableDefinition> beforeGlobals,
+        IReadOnlyList<VariableDefinition> afterGlobals)
     {
-        var before = draft.Basis.Macros.ToDictionary(macro => macro.Name.Trim(),
+        var before = beforeMacros.ToDictionary(macro => macro.Name.Trim(),
             StringComparer.OrdinalIgnoreCase);
-        var after = draft.MacroSnapshot().ToDictionary(macro => macro.Name.Trim(),
+        var after = afterMacros.ToDictionary(macro => macro.Name.Trim(),
             StringComparer.OrdinalIgnoreCase);
 
         var macros = new List<McpMacroChange>();
@@ -95,7 +104,7 @@ public static class McpPreview
 
         return new McpPreviewResult(
             macros,
-            Globals(draft.Basis.Globals, draft.Globals),
+            Globals(beforeGlobals, afterGlobals),
             new McpPreviewTotals(added, changed, removed, after.Count - added - changed));
     }
 

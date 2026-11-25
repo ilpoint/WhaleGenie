@@ -12,6 +12,23 @@ namespace WhaleGenie.Mcp.Tests;
 public class McpDraftRulesTests
 {
     [Fact]
+    public void The_preview_diff_is_a_function_of_the_two_snapshots()
+    {
+        var before = new MacroItem { Name = "kept" };
+        var after = new MacroItem { Name = "kept" };
+        after.Steps.Add(new MacroStep { Type = "control.log" });
+        var added = new MacroItem { Name = "new" };
+
+        var result = McpPreview.Of([before], [after, added], [], []);
+
+        Assert.Equal(1, result.Totals.Added);
+        Assert.Equal(1, result.Totals.Changed);
+        Assert.Equal(0, result.Totals.Removed);
+        Assert.Equal("new", result.Macros.Single(change => change.Change == "added").Name);
+        Assert.Equal("kept", result.Macros.Single(change => change.Change == "changed").Name);
+    }
+
+    [Fact]
     public void A_duplicate_name_blocks_with_the_shared_name()
     {
         var result = McpDraftRules.Validate(
