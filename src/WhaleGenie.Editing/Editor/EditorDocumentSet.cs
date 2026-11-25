@@ -6,6 +6,7 @@ using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Editing;
 
@@ -21,9 +22,12 @@ namespace WhaleGenie.Editing;
 /// its left (or the next one to the right when there is no left).
 /// </remarks>
 internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
-    IDeviceLayer? devices = null, IEditorSettings? settings = null)
+    IDeviceLayer? devices = null, IEditorSettings? settings = null,
+    IPublicLibraryStore? publicLibrary = null)
 {
     private readonly IEditorSettings _settings = settings ?? DefaultEditorSettings.Instance;
+    private readonly IPublicLibraryStore _publicLibrary =
+        publicLibrary ?? EmptyPublicLibraryStore.Instance;
     private readonly List<Document> _documents = [];
     private readonly Dictionary<string, Document> _byId = new(StringComparer.Ordinal);
 
@@ -78,7 +82,7 @@ internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
     public HeadlessEditorSession New()
     {
         var session = HeadlessEditorSession.Open(workspace, null, devices, _settings,
-            RootNamesForNewDocument());
+            RootNamesForNewDocument(), _publicLibrary);
         Add(session, ownerId: null);
         return session;
     }
@@ -98,7 +102,7 @@ internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
         }
 
         var session = HeadlessEditorSession.OpenNewSubmacro(workspace, root, taken, name,
-            devices, _settings);
+            devices, _settings, _publicLibrary);
         Add(session, owner.Id);
         return session;
     }
@@ -135,7 +139,8 @@ internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
             return existing.Session;
         }
 
-        var session = HeadlessEditorSession.Open(workspace, macro.Name, devices, _settings);
+        var session = HeadlessEditorSession.Open(workspace, macro.Name, devices, _settings,
+            publicLibrary: _publicLibrary);
         Add(session, ownerId: null);
         return session;
     }
@@ -158,7 +163,7 @@ internal sealed class EditorDocumentSet(ProjectWorkspace workspace,
         }
 
         var session = HeadlessEditorSession.OpenSubmacro(workspace, owner.Session, wanted, devices,
-            _settings);
+            _settings, _publicLibrary);
         Add(session, owner.Id);
         return session;
     }

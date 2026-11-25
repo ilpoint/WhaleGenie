@@ -31,6 +31,7 @@ internal sealed partial class HeadlessEditorSession
     private List<GlobalDraftEntry>? _globalDraft;
     private readonly IDeviceLayer? _devices;
     private readonly IEditorSettings _settings;
+    private readonly IPublicLibraryStore _publicLibrary;
     private HeadlessValueSession? _valueSession;
     private MacroItem? _existing;
     private HeadlessActionSession? _actionSession;
@@ -43,13 +44,15 @@ internal sealed partial class HeadlessEditorSession
     private HeadlessEditorSession(ProjectWorkspace workspace, MacroItem? existing,
         HeadlessEditorSession? owner = null, string submacroOriginal = "",
         IDeviceLayer? devices = null, IEditorSettings? settings = null,
-        IReadOnlyCollection<string>? takenNames = null)
+        IReadOnlyCollection<string>? takenNames = null,
+        IPublicLibraryStore? publicLibrary = null)
     {
         _workspace = workspace;
         _existing = existing;
         _owner = owner;
         _devices = devices;
         _settings = settings ?? DefaultEditorSettings.Instance;
+        _publicLibrary = publicLibrary ?? EmptyPublicLibraryStore.Instance;
         _submacroOriginal = submacroOriginal;
         _model = new MacroEditorViewModel
         {
@@ -108,13 +111,14 @@ internal sealed partial class HeadlessEditorSession
 
     public static HeadlessEditorSession OpenSubmacro(ProjectWorkspace workspace,
         HeadlessEditorSession owner, string name, IDeviceLayer? devices = null,
-        IEditorSettings? settings = null)
+        IEditorSettings? settings = null, IPublicLibraryStore? publicLibrary = null)
     {
         var submacro = owner._model.SubMacros.FirstOrDefault(candidate =>
             string.Equals(candidate.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("the macro has no sub-macro named " + name);
         return new HeadlessEditorSession(workspace, submacro, owner, submacro.Name,
-            devices ?? owner._devices, settings ?? owner._settings);
+            devices ?? owner._devices, settings ?? owner._settings,
+            publicLibrary: publicLibrary ?? owner._publicLibrary);
     }
 
     /// <summary>
@@ -123,21 +127,23 @@ internal sealed partial class HeadlessEditorSession
     /// </summary>
     public static HeadlessEditorSession OpenNewSubmacro(ProjectWorkspace workspace,
         HeadlessEditorSession owner, IReadOnlyCollection<string> taken, string? wanted,
-        IDeviceLayer? devices = null, IEditorSettings? settings = null)
+        IDeviceLayer? devices = null, IEditorSettings? settings = null,
+        IPublicLibraryStore? publicLibrary = null)
     {
         var draft = SubMacroEditor.NewSubMacro(taken, wanted);
         return new HeadlessEditorSession(workspace, draft, owner, string.Empty,
-            devices ?? owner._devices, settings ?? owner._settings);
+            devices ?? owner._devices, settings ?? owner._settings,
+            publicLibrary: publicLibrary ?? owner._publicLibrary);
     }
 
     public static HeadlessEditorSession Open(ProjectWorkspace workspace, string? name,
         IDeviceLayer? devices = null, IEditorSettings? settings = null,
-        IReadOnlyCollection<string>? takenNames = null)
+        IReadOnlyCollection<string>? takenNames = null, IPublicLibraryStore? publicLibrary = null)
     {
         if (name is not { Length: > 0 })
         {
             return new HeadlessEditorSession(workspace, null, devices: devices, settings: settings,
-                takenNames: takenNames);
+                takenNames: takenNames, publicLibrary: publicLibrary);
         }
 
         var existing = workspace.Macros.FirstOrDefault(candidate =>

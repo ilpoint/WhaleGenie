@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Storage;
 
 namespace WhaleGenie.Bridge;
@@ -18,10 +19,13 @@ namespace WhaleGenie.Bridge;
 /// puts a project macro into the library as an editable second copy of the macro list.
 /// </summary>
 internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dialogs = null,
-    string? libraryPath = null)
+    string? libraryPath = null, IPublicLibraryStore? store = null,
+    IPackageStore? packages = null)
     : IBridgeHandler
 {
-    private readonly string _library = libraryPath ?? AppPaths.PublicMacroLibrary;
+    private readonly IPublicLibraryStore _store =
+        store ?? new FilePublicLibraryStore(libraryPath);
+    private readonly IPackageStore _packages = packages ?? new FilePackageStore();
 
     public void Register(BridgeServer server)
     {
@@ -63,7 +67,7 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
     }
 
     /// <summary>Adds every macro a package holds to the library, each under a free name.</summary>
-    private Task<object?> Import(JsonElement parameters)
+    private async Task<object?> Import(JsonElement parameters)
     {
         var path = parameters.TryGetProperty("path", out var named) ? named.GetString() : null;
         if (path is not { Length: > 0 })
@@ -72,16 +76,15 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
                 Strings.Get("Bridge.EditorNeedsFile"));
         }
 
-        try
+        var read = await _packages.ReadAsync(path, ImageAssets.FolderFor(path));
+        if (!read.Ok || read.Value is not { } contents)
         {
-            var contents = MacroPackage.Load(path);
-            MacroImport.IntoLibrary(contents.Macros, _library);
-            return Task.FromResult<object?>(State());
+            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
+                read.Message ?? Strings.Get("Bridge.PackageOpenFailed"));
         }
-        catch (Exception error) when (error is IOException or InvalidDataException)
-        {
-            throw new BridgeFailureException(BridgeErrors.Internal, error.Message);
-        }
+
+        MacroImport.IntoLibrary(contents.Macros, _store);
+        return State();
     }
 
     private static string FreeName(IReadOnlyList<PublicMacroEntry> entries, string? wanted)
@@ -168,7 +171,7 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
         try
         {
             var entries = change(Entries());
-            PublicMacroLibrary.Save(_library, entries, AppVersion.Text);
+            _store.Save(entries, AppVersion.Text);
             return Task.FromResult<object?>(State());
         }
         catch (Exception error) when (error is IOException or InvalidDataException)
@@ -194,5 +197,5 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
                 Strings.Get("PublicMacroManager.Delete"));
 
     private IReadOnlyList<PublicMacroEntry> Entries()
-        => PublicMacroLibrary.Load(_library);
+        => _store.Load();
 }

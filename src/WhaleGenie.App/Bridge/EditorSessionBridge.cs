@@ -11,6 +11,8 @@ using WhaleGenie.Editing;
 using WhaleGenie.Editor;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Bridge;
@@ -24,10 +26,14 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
     ProjectWorkspace workspace,
     IDeviceLayer? devices = null, IEditorSettings? settings = null,
     IEditorPickerHost? pickers = null, IEditorWindowAside? aside = null,
-    IEditorBrowserTestHost? browserTests = null, IEditorElementTestHost? elementTests = null)
+    IEditorBrowserTestHost? browserTests = null, IEditorElementTestHost? elementTests = null,
+    IPublicLibraryStore? publicLibrary = null, IPackageStore? packages = null)
     : IBridgeHandler
 {
     private readonly EditorDocumentService _documents = documents;
+    private readonly IPublicLibraryStore _publicLibrary =
+        publicLibrary ?? EmptyPublicLibraryStore.Instance;
+    private readonly IPackageStore _packages = packages ?? new FilePackageStore();
     private readonly IDeviceLayer? _devices = devices;
     private readonly IEditorSettings _settings = settings ?? DefaultEditorSettings.Instance;
     private readonly IEditorPickerHost? _pickers = pickers;
@@ -158,17 +164,30 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
 
 
 
-    private static EditorCatalogue Actions()
+    private EditorCatalogue Actions()
         => new(
             ActionCatalog.RunnableActions.Count,
             HeadlessEditorSession.Actions(),
             HeadlessEditorSession.ActionCategories(),
-            HeadlessEditorSession.PublicMacros(),
+            PublicMacros(),
             HeadlessEditorSession.ValueFunctions,
             HeadlessEditorSession.VariableTypes,
             HeadlessEditorSession.ConditionCompares,
             HeadlessEditorSession.TriggerKindOptions,
             HeadlessEditorSession.SystemValueChoices);
+
+    private IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros()
+    {
+        try
+        {
+            return [.. _publicLibrary.Load().Select(entry => new EditorPublicMacroSnapshot(
+                entry.Id, entry.Version, entry.Macro.Name, entry.Macro.Description))];
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
 
     private HeadlessEditorSession Required()
         => _documents.Required();

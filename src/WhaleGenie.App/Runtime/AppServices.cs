@@ -8,6 +8,7 @@ using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie;
 
@@ -106,6 +107,7 @@ internal static class AppServices
 
         services.AddSingleton<McpDraftStore>();
         services.AddSingleton<IPackageStore, FilePackageStore>();
+        services.AddSingleton<IPublicLibraryStore>(_ => new FilePublicLibraryStore());
         services.AddSingleton<ProjectFileService>();
         services.AddSingleton<McpLiveProject>();
         services.AddSingleton<IProjectGateway>(sp => sp.GetRequiredService<McpLiveProject>());

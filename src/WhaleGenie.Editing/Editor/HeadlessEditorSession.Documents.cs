@@ -13,31 +13,16 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Editing;
 
-/// <summary>The document's lifecycle outside its steps: the public library, export and save.</summary>
+/// <summary>The document's lifecycle outside its steps: the public library and save.</summary>
 
 internal sealed partial class HeadlessEditorSession
 {
-    /// <summary>Writes the page in front to a package of its own, the way the native export did.</summary>
-    public static IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros()
-    {
-        try
-        {
-            return [.. PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary).Select(entry =>
-                new EditorPublicMacroSnapshot(entry.Id, entry.Version,
-                    entry.Macro.Name, entry.Macro.Description))];
-        }
-        catch (Exception)
-        {
-            return [];
-        }
-    }
-
     public EditorSnapshot AddPublicMacro(string id)
     {
-        var entry = PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary)
+        var entry = _publicLibrary.Load()
             .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
             ?? throw new InvalidOperationException("the public library has no macro " + id);
-        var macro = MacroItem.FromJson(entry.Macro.ToSubMacroJson());
+        var macro = _publicLibrary.CopyToProject(entry, ImageAssets.FolderFor(_workspace.CurrentPath));
         macro.Name = SubMacroEditor.UniqueName(TakenMacroNames(), macro.Name);
         _model.SubMacros.Add(macro);
         _model.Steps.Add(SubMacroEditor.CallStep(macro));

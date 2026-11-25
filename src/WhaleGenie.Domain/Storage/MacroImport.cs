@@ -139,8 +139,13 @@ public static class MacroImport
     /// </summary>
     public static IReadOnlyList<PublicMacroEntry> IntoLibrary(IReadOnlyList<MacroItem> chosen,
         string library)
+        => IntoLibrary(chosen, new FilePublicLibraryStore(library));
+
+    /// <summary>Adds the chosen submacros through the public library port.</summary>
+    public static IReadOnlyList<PublicMacroEntry> IntoLibrary(IReadOnlyList<MacroItem> chosen,
+        IPublicLibraryStore library)
     {
-        var entries = PublicMacroLibrary.Load(library).ToList();
+        var entries = library.Load().ToList();
         var names = entries.Select(entry => entry.Macro.Name.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -157,7 +162,7 @@ public static class MacroImport
             names.Add(copy.Name);
         }
 
-        PublicMacroLibrary.Save(library, entries, AppVersion.Text);
+        library.Save(entries, AppVersion.Text);
         return added;
     }
 

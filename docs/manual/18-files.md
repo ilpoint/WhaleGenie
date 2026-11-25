@@ -20,7 +20,7 @@
 （上一次保存替换掉的包）。同目录下的 `default.wgmacro` 是**默认项目**：第一次启动没有上次项目
 时，自动保存开启就用它；第一次真正保存前不会创建空文件。
 
-公共宏库跟着程序目录走：`library\public-macros.wgmacro` 与 `library\public-macros.assets\`，
+公共宏库跟着程序目录走：`library\public-macros.wglib` 与 `library\public-macros.assets\`，
 所有项目共用，把程序文件夹拷给别人才会一起带走。
 
 脚本要的包放在程序目录下的 `packages` 里：`packages\python` 是 Python 包，`packages\nuget` 是

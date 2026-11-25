@@ -59,7 +59,6 @@ export type {
   EditorSessionActivateCommand,
   EditorSessionCloseCommand,
   EditorSessionCommand,
-  EditorSessionExportCommand,
   EditorSessionMacroSettingCommand,
   EditorSessionNewCommand,
   EditorSessionOpenCommand,

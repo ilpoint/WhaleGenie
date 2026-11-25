@@ -10,12 +10,21 @@ namespace WhaleGenie.Domain.Tests;
 public class PublicMacroLibraryTests
 {
     [Fact]
+    public void The_library_has_its_own_extension_and_is_not_a_project_package()
+    {
+        Assert.EndsWith(PublicMacroLibrary.Extension, AppPaths.PublicMacroLibrary,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual(MacroPackage.Extension, PublicMacroLibrary.Extension);
+        Assert.NotEqual(PublicMacroLibrary.FormatId, MacroPackage.FormatId);
+    }
+
+    [Fact]
     public void A_public_macro_round_trips_with_its_version_and_submacros()
     {
         var folder = TemporaryFolder();
         try
         {
-            var path = Path.Combine(folder, "public-macros.wgmacro");
+            var path = Path.Combine(folder, "public-macros.wglib");
             var child = new MacroItem
             {
                 Name = "helper",
@@ -86,7 +95,7 @@ public class PublicMacroLibraryTests
         var folder = TemporaryFolder();
         try
         {
-            var path = Path.Combine(folder, "public-macros.wgmacro");
+            var path = Path.Combine(folder, "public-macros.wglib");
             Assert.Empty(PublicMacroLibrary.Load(path));
 
             File.WriteAllText(path, "not a package");

@@ -7,6 +7,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Editor;
 
@@ -23,9 +24,9 @@ public sealed class EditorDocumentService : IEditorDocuments
     public event Action? Changed;
 
     public EditorDocumentService(ProjectWorkspace workspace, IDeviceLayer? devices = null,
-        IEditorSettings? settings = null)
+        IEditorSettings? settings = null, IPublicLibraryStore? publicLibrary = null)
     {
-        _documents = new EditorDocumentSet(workspace, devices, settings);
+        _documents = new EditorDocumentSet(workspace, devices, settings, publicLibrary);
     }
 
     /// <summary>The active session, for the action/value command families that edit one document.</summary>

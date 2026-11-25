@@ -25,7 +25,7 @@ import type {
 } from '../../../src/shared/bridge/protocol.js';
 
 function macro(name: string, isSub = false): TransferMacro {
-  return { name, kind: '', steps: 1, problem: '', isSub };
+  return { name, kind: '', steps: 1, problem: '', isSub, depth: isSub ? 1 : 0 };
 }
 
 function importPlan(): ProjectImportPlan {

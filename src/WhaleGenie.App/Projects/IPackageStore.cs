@@ -16,6 +16,9 @@ public enum PackageProblem
     InvalidFormat,
     WriteFailed,
     AccessDenied,
+    UnknownMacro,
+    UnknownAction,
+    ImportFailed,
 }
 
 /// <summary>

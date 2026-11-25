@@ -93,18 +93,25 @@ internal sealed partial class EditorSessionBridge
 
     private MacroItem PublicLibraryMacro(string id)
     {
-        var entry = PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary)
+        var entry = _publicLibrary.Load()
             .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
             ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
                 Strings.Format("Bridge.NoSuchMacro", id));
-        return PublicMacroLibrary.CopyToProject(entry,
+        return _publicLibrary.CopyToProject(entry,
             ImageAssets.FolderFor(workspace.CurrentPath),
-            PublicMacroLibrary.AssetFolderFor(AppPaths.PublicMacroLibrary));
+            PublicMacroLibrary.AssetFolderFor(_publicLibrary.Path));
     }
 
     private MacroItem PackageMacro(string path, string name)
     {
-        var contents = MacroPackage.Load(path, ImageAssets.FolderFor(workspace.CurrentPath));
+        var read = _packages.ReadAsync(path, ImageAssets.FolderFor(workspace.CurrentPath))
+            .ConfigureAwait(false).GetAwaiter().GetResult();
+        if (!read.Ok || read.Value is not { } contents)
+        {
+            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
+                read.Message ?? Strings.Get("Bridge.PackageOpenFailed"));
+        }
+
         return contents.Macros.FirstOrDefault(macro => string.Equals(
             macro.Name.Trim(), name.Trim(), StringComparison.OrdinalIgnoreCase))
             ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,

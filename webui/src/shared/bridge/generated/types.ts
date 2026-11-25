@@ -1761,6 +1761,7 @@ export interface TransferMacro {
   steps: number;
   problem: string;
   isSub: boolean;
+  depth: number;
 }
 
 export interface WindowEntryState {

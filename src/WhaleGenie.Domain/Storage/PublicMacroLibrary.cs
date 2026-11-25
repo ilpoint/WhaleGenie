@@ -27,6 +27,10 @@ public static class PublicMacroLibrary
     public const string FormatId = "whalegenie.public-macro.library";
     public const int FormatVersion = 2;
 
+    /// <summary>The library has its own extension: it is not a project package and must not be
+    /// offered by the project picker.</summary>
+    public const string Extension = ".wglib";
+
     private const string ManifestEntry = "manifest.json";
     private const string MacrosFolder = "macros/";
     private const string AssetsFolder = "assets/";

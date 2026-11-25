@@ -8,7 +8,7 @@
 
 | 状态 | 主要持有者 |
 | --- | --- |
-| 项目文档态 | `ProjectWorkspace`（Domain）：宏、触发器、路径、修订号、`Changed` 与整体替换 `Replaced`；`ProjectSaver`（App）是包文件唯一的写者，按改动防抖写回，并用 `ReplaceAsync` 把打开/重载与在途写串行化 |
+| 项目文档态 | `ProjectWorkspace`（Domain）：宏、触发器、路径、修订号、`Changed` 与整体替换 `Replaced`；`ProjectSaver`（App）是工程包唯一队列，`IPackageStore`/`FilePackageStore` 是它和导入导出共用的原子读写边界；`ProjectSaver` 用 `ReplaceAsync` 把打开/重载与在途写串行化 |
 | 编辑态 | `EditorDocumentSet` 与 `HeadlessEditorSession`：稳定文档标识、打开的页签、父子关系、录制与编辑操作，以及每份文档「这次编辑有未保存内容」；`EditorDocumentService`（App）是桥、退出询问和工程替换共同使用的文档门面 |
 | 运行期态 | `TriggerRuntime`、运行宿主和窗口字段：触发快照、浮动界面、恢复和运行显示 |
 | 系统开关 | `SystemState`（App）：页面、热键与窗口读写同一个对象，触发宿主跟随它启停 |
@@ -117,8 +117,9 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 嵌入的第三方组件清单；项目链接经 `app.openExternal` 交给系统浏览器。原生关于窗口与主题调色板已删除。
 
 导入/导出也走网页：`project.importPlan/importApply` 与 `project.exportPlan/exportApply` 由
-`PackageTransfer` 负责计划与应用，网页 `wg-transfer` 向导收集勾选与全局变量决定；原生侧不再有
-选择宏或冲突确认的窗口。
+`PackageTransferService` 负责计划与应用，网页 `wg-transfer` 向导收集勾选与全局变量决定；它只把文件读写交给
+`IPackageStore`，把单独子宏的落点交给 `IPublicLibraryStore`，不再直接调 codec。原生侧不再有选择宏或
+冲突确认的窗口。公共宏库文件是独立的 `.wglib`，工程选择器只列 `.wgmacro`。
 
 
 ### 7.6 网页壳与桥接
@@ -178,7 +179,7 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 关闭和子宏归属都按它而不是按会改名的宏名来寻址。`EditorDocumentService`（App）把文档集包成桥、
 退出询问和工程替换共用的门面。桥只传快照与命令：`editor.session`（open/new/subOpen/macroSetting/
 activate/patch/undo/redo/deactivate/close/publicMacroAdd/subMacroCreate/subMacroCopy/subMacroImport/
-subMacroDelete/export）、`editor.save`、`editor.saveAll`、`editor.discardAll`、`editor.unsavedDocuments`，以及
+subMacroDelete）、`editor.save`、`editor.saveAll`、`editor.discardAll`、`editor.unsavedDocuments`，以及
 `editor.steps`（多选/复制/粘贴/分组/移动/删除）、`editor.step`（单步/参数/落点）、`editor.condition`、
 `editor.trigger`、`editor.variable`、`editor.declaration`、`editor.record`、`editor.action`（page/
 field/rowAdd/rowRemove/rowMove/rowCell/returns/returnsFixName/callArgument/meta/global/branch/window/

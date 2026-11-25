@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using WhaleGenie.Bridge;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Execution;
@@ -25,12 +26,16 @@ public class PackageTransferTests : IDisposable
 
     private readonly string _library;
 
+    private readonly PackageTransferService _transfer;
+
     private readonly ProjectWorkspace _project = new();
 
     public PackageTransferTests()
     {
         Directory.CreateDirectory(_folder);
-        _library = Path.Combine(_folder, "public-macros.wgmacro");
+        _library = Path.Combine(_folder, "public-macros" + PublicMacroLibrary.Extension);
+        _transfer = new PackageTransferService(new FilePackageStore(),
+            new FilePublicLibraryStore(_library));
     }
 
     public void Dispose()
@@ -42,12 +47,14 @@ public class PackageTransferTests : IDisposable
     }
 
     [Fact]
-    public void An_empty_project_takes_what_the_package_holds()
+    public async Task An_empty_project_takes_what_the_package_holds()
     {
         var path = Package("from");
         Save(path, [new MacroItem { Name = "远程" }], []);
 
-        var plan = PackageTransfer.PlanImport(_project, path);
+        var planOutcome = await _transfer.PlanImportAsync(_project, path);
+        Assert.True(planOutcome.Ok);
+        var plan = planOutcome.Value!;
         var row = Assert.Single(plan.Macros);
         Assert.Equal(path, plan.Source);
         Assert.Equal("from.wgmacro", plan.FileName);
@@ -57,7 +64,9 @@ public class PackageTransferTests : IDisposable
         Assert.Empty(row.Problem);
         Assert.Empty(plan.Globals);
 
-        var report = PackageTransfer.ApplyImport(_project, path, ["远程"], [], _library);
+        var reportOutcome = await _transfer.ApplyImportAsync(_project, path, ["远程"], []);
+        Assert.True(reportOutcome.Ok);
+        var report = reportOutcome.Value!;
 
         Assert.Contains("远程", report, StringComparison.Ordinal);
         Assert.Equal("远程", Assert.Single(_project.Macros).Name);
@@ -67,19 +76,22 @@ public class PackageTransferTests : IDisposable
     [InlineData("keep")]
     [InlineData("overwrite")]
     [InlineData("rename")]
-    public void A_global_both_sides_declare_is_settled_by_the_answer(string action)
+    public async Task A_global_both_sides_declare_is_settled_by_the_answer(string action)
     {
         _project.Variables.Adopt(Global("计数", ValueKind.Number, Formula.Number(1)));
         var path = Package("conflict");
         Save(path, [Reading("远程", "计数")],
             [Global("计数", ValueKind.Text, Formula.Text("file"))]);
 
-        var plan = PackageTransfer.PlanImport(_project, path);
+        var planOutcome = await _transfer.PlanImportAsync(_project, path);
+        Assert.True(planOutcome.Ok);
+        var plan = planOutcome.Value!;
         var arriving = Assert.Single(plan.Globals);
         Assert.True(arriving.Conflicts);
 
-        PackageTransfer.ApplyImport(_project, path,
-            ["远程"], [new ImportDecision("计数", action)], _library);
+        var applied = await _transfer.ApplyImportAsync(_project, path,
+            ["远程"], [new ImportDecision("计数", action)]);
+        Assert.True(applied.Ok);
 
         var macro = Assert.Single(_project.Macros);
         switch (action)
@@ -106,19 +118,23 @@ public class PackageTransferTests : IDisposable
     }
 
     [Fact]
-    public void A_lone_submacro_goes_to_the_public_library()
+    public async Task A_lone_submacro_goes_to_the_public_library()
     {
         var parent = new MacroItem { Name = "父" };
         parent.SubMacros.Add(new MacroItem { Name = "子" });
         var path = Package("library");
         Save(path, [parent], []);
 
-        var plan = PackageTransfer.PlanImport(_project, path);
+        var planOutcome = await _transfer.PlanImportAsync(_project, path);
+        Assert.True(planOutcome.Ok);
+        var plan = planOutcome.Value!;
         Assert.Equal(2, plan.Macros.Count);
         Assert.False(plan.Macros[0].IsSub);
         Assert.True(plan.Macros[1].IsSub);
 
-        var report = PackageTransfer.ApplyImport(_project, path, ["子"], [], _library);
+        var reportOutcome = await _transfer.ApplyImportAsync(_project, path, ["子"], []);
+        Assert.True(reportOutcome.Ok);
+        var report = reportOutcome.Value!;
 
         Assert.Empty(_project.Macros);
         Assert.Contains("子", report, StringComparison.Ordinal);
@@ -127,34 +143,40 @@ public class PackageTransferTests : IDisposable
     }
 
     [Fact]
-    public void An_export_can_be_imported_again()
+    public async Task An_export_can_be_imported_again()
     {
         _project.AddMacro(Reading("甲", "计数"));
         _project.Variables.Adopt(Global("计数", ValueKind.Number, Formula.Number(2)));
 
-        var plan = PackageTransfer.PlanExport(_project);
+        var planOutcome = _transfer.PlanExport(_project);
+        Assert.True(planOutcome.Ok);
+        var plan = planOutcome.Value!;
         Assert.EndsWith(MacroPackage.Extension, plan.SuggestedName, StringComparison.Ordinal);
         Assert.Equal("甲", Assert.Single(plan.Macros).Name);
 
         var path = Package("export");
-        var result = PackageTransfer.ApplyExport(_project, path, ["甲"]);
-        Assert.Equal(path, result.Path);
+        var exported = await _transfer.ApplyExportAsync(_project, path, ["甲"]);
+        Assert.True(exported.Ok);
+        Assert.Equal(path, exported.Value!.Path);
 
         var fresh = new ProjectWorkspace();
-        var incoming = PackageTransfer.PlanImport(fresh, path);
+        var incomingOutcome = await _transfer.PlanImportAsync(fresh, path);
+        Assert.True(incomingOutcome.Ok);
+        var incoming = incomingOutcome.Value!;
         Assert.Contains(incoming.Macros, macro => macro.Name == "甲");
         var variable = Assert.Single(incoming.Globals);
         Assert.Equal("计数", variable.Name);
         Assert.False(variable.Conflicts);
 
-        PackageTransfer.ApplyImport(fresh, path, ["甲"], [], _library);
+        var imported = await _transfer.ApplyImportAsync(fresh, path, ["甲"], []);
+        Assert.True(imported.Ok);
 
         Assert.Equal("甲", Assert.Single(fresh.Macros).Name);
         Assert.Contains(fresh.Variables.Globals, global => global.Name == "计数");
     }
 
     [Fact]
-    public void A_macro_of_only_empty_note_and_log_steps_survives_the_round_trip()
+    public async Task A_macro_of_only_empty_note_and_log_steps_survives_the_round_trip()
     {
         var macro = new MacroItem { Name = "空动作宏" };
         macro.Steps.Add(new MacroStep { Type = "control.note" });
@@ -162,30 +184,45 @@ public class PackageTransferTests : IDisposable
         _project.AddMacro(macro);
 
         var path = Package("empty-steps");
-        PackageTransfer.ApplyExport(_project, path, ["空动作宏"]);
+        Assert.True((await _transfer.ApplyExportAsync(_project, path, ["空动作宏"])).Ok);
 
         var fresh = new ProjectWorkspace();
-        var plan = PackageTransfer.PlanImport(fresh, path);
+        var planOutcome = await _transfer.PlanImportAsync(fresh, path);
+        Assert.True(planOutcome.Ok);
+        var plan = planOutcome.Value!;
         Assert.Equal("空动作宏", Assert.Single(plan.Macros).Name);
         Assert.Equal(2, plan.Macros[0].Steps);
 
-        PackageTransfer.ApplyImport(fresh, path, ["空动作宏"], [], _library);
+        Assert.True((await _transfer.ApplyImportAsync(fresh, path, ["空动作宏"], [])).Ok);
 
         var imported = Assert.Single(fresh.Macros);
         Assert.Equal(2, imported.Steps.Count);
     }
 
     [Fact]
-    public void An_unknown_macro_name_is_refused()
+    public async Task Nothing_ticked_is_reported_as_nothing_added()
+    {
+        var path = Package("nothing");
+        Save(path, [new MacroItem { Name = "在的" }], []);
+
+        var result = await _transfer.ApplyImportAsync(_project, path, [], []);
+
+        Assert.True(result.Ok);
+        Assert.Equal(Strings.Get("Import.ReportNothing"), result.Value);
+        Assert.Empty(_project.Macros);
+    }
+
+    [Fact]
+    public async Task An_unknown_macro_name_is_refused()
     {
         var path = Package("missing");
         Save(path, [new MacroItem { Name = "在的" }], []);
 
-        var error = Assert.Throws<BridgeFailureException>(
-            () => PackageTransfer.ApplyImport(_project, path, ["没的"], [], _library));
+        var result = await _transfer.ApplyImportAsync(_project, path, ["没的"], []);
 
-        Assert.Equal(BridgeErrors.BadArgument, error.Code);
-        Assert.Contains("没的", error.Message, StringComparison.Ordinal);
+        Assert.False(result.Ok);
+        Assert.Equal(PackageProblem.UnknownMacro, result.Problem);
+        Assert.Contains("没的", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -193,7 +230,7 @@ public class PackageTransferTests : IDisposable
     {
         var report = new ImportReport([], [], [], [], [], [], [], []);
 
-        Assert.Equal(Strings.Get("Import.ReportNothing"), PackageTransfer.ReportText(report));
+        Assert.Equal(Strings.Get("Import.ReportNothing"), PackageTransferService.ReportText(report));
     }
 
     [Fact]
@@ -209,7 +246,7 @@ public class PackageTransferTests : IDisposable
             [],
             []);
 
-        var text = PackageTransfer.ReportText(report);
+        var text = PackageTransferService.ReportText(report);
 
         Assert.Contains("arrived", text, StringComparison.Ordinal);
         Assert.Contains("old", text, StringComparison.Ordinal);

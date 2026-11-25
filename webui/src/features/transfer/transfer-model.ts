@@ -108,7 +108,12 @@ export function toggleRow(model: TransferModel, index: number, checked: boolean)
 
   row.checked = checked;
   if (!row.macro.isSub) {
-    for (let next = index + 1; next < rows.length && rows[next]!.macro.isSub; next++) {
+    for (let next = index + 1; next < rows.length; next++) {
+      const depth = rows[next]!.macro.depth ?? 0;
+      if (depth === 0) {
+        break;
+      }
+
       rows[next]!.checked = checked;
       rows[next]!.covered = checked;
     }
@@ -122,7 +127,7 @@ export function setAll(model: TransferModel, checked: boolean): TransferModel {
   const rows = model.rows.map((row) => ({
     ...row,
     checked,
-    covered: row.macro.isSub ? checked : false,
+    covered: (row.macro.depth ?? 0) > 0 ? checked : false,
   }));
   return { ...model, rows };
 }
@@ -212,7 +217,11 @@ function build(macros: readonly TransferMacro[], preselect: readonly string[]): 
       return;
     }
 
-    for (let next = index + 1; next < rows.length && rows[next]!.macro.isSub; next++) {
+    for (let next = index + 1; next < rows.length; next++) {
+      if ((rows[next]!.macro.depth ?? 0) === 0) {
+        break;
+      }
+
       rows[next]!.checked = true;
       rows[next]!.covered = true;
     }

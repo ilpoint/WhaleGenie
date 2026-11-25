@@ -39,6 +39,9 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The project's package reads and writes; the bridge only chooses and reports.</summary>
     private readonly ProjectFileService _projectFiles;
 
+    /// <summary>The import/export use case; the bridge only maps its result to the wire.</summary>
+    private readonly PackageTransferService _transfer;
+
     /// <summary>
     /// The system switch the page draws. The trigger host is the one that follows it; this handler
     /// only writes the same object the window and the hotkey write.
@@ -71,7 +74,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        IFileDialogs files, ProjectFileService projectFiles, DialogBridge dialogs,
+        IFileDialogs files, ProjectFileService projectFiles, PackageTransferService transfer,
+        DialogBridge dialogs,
         Action<UiSound>? playSound = null, Action<string>? rememberProject = null,
         AppSettings? settings = null, IProjectSaver? saver = null,
         IProjectChangeGuard? changeGuard = null, IUiPost? ui = null)
@@ -82,6 +86,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _system = system;
         _files = files;
         _projectFiles = projectFiles;
+        _transfer = transfer;
         _dialogs = dialogs;
         _saver = saver;
         _changeGuard = changeGuard;
@@ -232,26 +237,29 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
     /// <summary>What an export could hold, before the page asks which macros and where.</summary>
     private Task<object?> ExportPlan(JsonElement _)
-        => Task.FromResult<object?>(PackageTransfer.PlanExport(_workspace));
+    {
+        var plan = _transfer.PlanExport(_workspace);
+        if (!plan.Ok)
+        {
+            throw PackageFailure(plan.Problem, plan.Message, BridgeErrors.PackageSaveFailed, null);
+        }
+
+        return Task.FromResult<object?>(plan.Value);
+    }
 
     /// <summary>Writes the ticked macros into the file the page's save dialog picked.</summary>
-    private Task<object?> ExportApply(JsonElement parameters)
+    private async Task<object?> ExportApply(JsonElement parameters)
     {
         var path = RequiredPath(parameters);
         var names = Names(parameters);
-        try
+        var result = await _transfer.ApplyExportAsync(_workspace, path, names);
+        if (!result.Ok)
         {
-            return Task.FromResult<object?>(PackageTransfer.ApplyExport(_workspace, path, names));
+            throw PackageFailure(result.Problem, result.Message,
+                BridgeErrors.PackageSaveFailed, path);
         }
-        catch (BridgeFailureException)
-        {
-            throw;
-        }
-        catch (Exception error)
-        {
-            throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
-                Strings.Format("Bridge.PackageSaveFailed", Path.GetFileName(path), error.Message));
-        }
+
+        return result.Value;
     }
 
     private MacroItem Find(JsonElement parameters)
@@ -272,18 +280,17 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// What a package would bring, before any of it is written. A package that cannot be read is
     /// named to the page with the same words the window list uses; the project stays as it was.
     /// </summary>
-    private Task<object?> ImportPlan(JsonElement parameters)
+    private async Task<object?> ImportPlan(JsonElement parameters)
     {
         var path = RequiredPath(parameters);
-        try
+        var plan = await _transfer.PlanImportAsync(_workspace, path);
+        if (!plan.Ok)
         {
-            return Task.FromResult<object?>(PackageTransfer.PlanImport(_workspace, path));
+            throw PackageFailure(plan.Problem, plan.Message,
+                BridgeErrors.PackageOpenFailed, path);
         }
-        catch (Exception error)
-        {
-            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
-        }
+
+        return plan.Value;
     }
 
     /// <summary>
@@ -292,25 +299,43 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// hears about it with the usual change event; the words come back with the state so the
     /// wizard can show the report and the list the same answer.
     /// </summary>
-    private Task<object?> ImportApply(JsonElement parameters)
+    private async Task<object?> ImportApply(JsonElement parameters)
     {
         var path = RequiredPath(parameters);
         var names = Names(parameters);
         var decisions = Decisions(parameters);
-        try
+        var result = await _transfer.ApplyImportAsync(_workspace, path, names, decisions);
+        if (!result.Ok)
         {
-            var report = PackageTransfer.ApplyImport(_workspace, path, names, decisions);
-            return Task.FromResult<object?>(new ImportResult(report, State()));
+            throw PackageFailure(result.Problem, result.Message,
+                BridgeErrors.PackageOpenFailed, path);
         }
-        catch (BridgeFailureException)
+
+        return new ImportResult(result.Value!, State());
+    }
+
+    /// <summary>
+    /// One package failure becomes one bridge failure. A bad name or action is the page's bad
+    /// argument; a file that could not be read or written keeps the old package error codes and
+    /// names the file the way the native messages do.
+    /// </summary>
+    private static BridgeFailureException PackageFailure(PackageProblem problem, string? message,
+        string fileCode, string? path)
+    {
+        if (problem is PackageProblem.UnknownMacro or PackageProblem.UnknownAction)
         {
-            throw;
+            return new BridgeFailureException(BridgeErrors.BadArgument,
+                message ?? Strings.Get("Bridge.EditorNeedsMacro"));
         }
-        catch (Exception error)
-        {
-            throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
-                Strings.Format("Bridge.PackageOpenFailed", Path.GetFileName(path), error.Message));
-        }
+
+        var detail = message ?? string.Empty;
+        var text = path is { Length: > 0 }
+            ? Strings.Format(fileCode == BridgeErrors.PackageSaveFailed
+                    ? "Bridge.PackageSaveFailed"
+                    : "Bridge.PackageOpenFailed",
+                Path.GetFileName(path), detail)
+            : detail;
+        return new BridgeFailureException(fileCode, text);
     }
 
     private async Task<object?> SystemSwitch(JsonElement parameters)

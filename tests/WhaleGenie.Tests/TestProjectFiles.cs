@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Tests;
 
@@ -11,6 +12,9 @@ namespace WhaleGenie.Tests;
 internal static class TestProjectFiles
 {
     public static ProjectFileService Service { get; } = new(new FilePackageStore());
+
+    public static PackageTransferService Transfer { get; } = new(
+        new FilePackageStore(), EmptyPublicLibraryStore.Instance);
 
     public static ProjectFileResult Save(ProjectWorkspace workspace, string path)
         => Service.Save(workspace, path);

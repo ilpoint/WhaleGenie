@@ -8,6 +8,7 @@ using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
+using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
 using WhaleGenie.Views.Pickers;
@@ -56,7 +57,11 @@ internal static class WindowedServices
 
     private static void Add(IServiceCollection services) =>
         services.AddSingleton<IPackageStore, FilePackageStore>()
+        .AddSingleton<IPublicLibraryStore>(_ => new FilePublicLibraryStore())
         .AddSingleton<ProjectFileService>()
+        .AddSingleton(sp => new PackageTransferService(
+            sp.GetRequiredService<IPackageStore>(),
+            sp.GetRequiredService<IPublicLibraryStore>()))
         .AddSingleton<RunQuestionHost>()
         .AddSingleton(sp => new ProjectSaver(
             sp.GetRequiredService<ProjectWorkspace>(),
@@ -77,7 +82,8 @@ internal static class WindowedServices
         .AddSingleton(sp => new EditorDocumentService(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>().Devices,
-            new LocalEditorSettings(sp.GetRequiredService<AppSettings>())))
+            new LocalEditorSettings(sp.GetRequiredService<AppSettings>()),
+            sp.GetRequiredService<IPublicLibraryStore>()))
         .AddSingleton(sp => new EditorSessionBridge(
             sp.GetRequiredService<EditorDocumentService>(),
             sp.GetRequiredService<ProjectWorkspace>(),
@@ -87,7 +93,9 @@ internal static class WindowedServices
                 sp.GetRequiredService<TriggerRuntime>().Devices),
             new EditorWindowAside(() => sp.GetService<WebShellWindow>()),
             new EditorBrowserTestHost(),
-            new EditorElementTestHost(() => sp.GetService<WebShellWindow>())))
+            new EditorElementTestHost(() => sp.GetService<WebShellWindow>()),
+            sp.GetRequiredService<IPublicLibraryStore>(),
+            sp.GetRequiredService<IPackageStore>()))
         .AddSingleton<IEditorDocuments>(sp => sp.GetRequiredService<EditorDocumentService>())
         .AddSingleton<EditorLeavePrompt>()
         .AddSingleton<IEditorLeavePrompt>(sp => sp.GetRequiredService<EditorLeavePrompt>())
@@ -142,14 +150,17 @@ internal static class WindowedServices
             server.Register(new ProjectBridge(project,
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
                 new ProjectDialogs(() => sp.GetService<WebShellWindow>()),
-                sp.GetRequiredService<ProjectFileService>(), dialogs,
+                sp.GetRequiredService<ProjectFileService>(),
+                sp.GetRequiredService<PackageTransferService>(), dialogs,
                 settings: sp.GetRequiredService<AppSettings>(),
                 saver: sp.GetRequiredService<IProjectSaver>(),
                 changeGuard: sp.GetRequiredService<IProjectChangeGuard>(),
                 ui: new AvaloniaUiPost()));
             var devices = sp.GetRequiredService<TriggerRuntime>().Devices;
             server.Register(sp.GetRequiredService<EditorSessionBridge>());
-            server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>(), dialogs));
+            server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>(), dialogs,
+                store: sp.GetRequiredService<IPublicLibraryStore>(),
+                packages: sp.GetRequiredService<IPackageStore>()));
             var main = sp.GetRequiredService<MainViewModel>();
             var settings = new SettingsViewModel(
                 SharedDevices.Current.Driver, null, main.Workspace,

@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using WhaleGenie.Bridge;
+using System.Threading;
+using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
@@ -11,45 +12,62 @@ using WhaleGenie.Storage;
 namespace WhaleGenie.Projects;
 
 /// <summary>
-/// The import and export the page's transfer wizard runs: what a package holds before anything is
-/// written, and the one write that carries the ticks out.
+/// The import and export the page's transfer wizard runs. The file read/write is the package store;
+/// extracting rows, finding the ticks and deciding project versus library remains one application
+/// use case, so the bridge, MCP and a future caller share it without speaking bridge errors.
 /// </summary>
-/// <remarks>
-/// The two directions are the same question — a tree of macros and a tick — so they share the walk
-/// that lists them and the one that finds the ticks again. What differs is the write: an import
-/// either adds macros to the project or puts lone submacros in the public library, and an export
-/// writes a package of the chosen macros and the variables they read. No window and no picker is
-/// involved here, which is what lets the whole path be a use case rather than a click.
-/// </remarks>
-public static class PackageTransfer
+public sealed class PackageTransferService(IPackageStore packages, IPublicLibraryStore publicLibrary)
 {
-    /// <summary>What a package file would bring, with the conflicts the project already has.</summary>
-    public static ProjectImportPlan PlanImport(ProjectWorkspace project, string path)
+    public async Task<PackageOutcome<ProjectImportPlan>> PlanImportAsync(ProjectWorkspace project,
+        string path, CancellationToken cancellationToken = default)
     {
-        var contents = Read(project, path);
-        return new ProjectImportPlan(
+        var read = await packages.ReadAsync(path, ImageAssets.FolderFor(project.CurrentPath),
+            cancellationToken).ConfigureAwait(false);
+        if (!read.Ok || read.Value is not { } contents)
+        {
+            return PackageOutcomes.Failed<ProjectImportPlan>(read.Problem,
+                read.Message ?? Strings.Get("Bridge.PackageOpenFailed"), read.Error);
+        }
+
+        return PackageOutcomes.Success(new ProjectImportPlan(
             path,
             Path.GetFileName(path),
             Rows(contents.Macros, contents.Triggers),
             [.. contents.Globals.Select(variable => new TransferGlobal(
                 variable.Name.Trim(),
                 variable.LocalType,
-                project.Variables.IsGlobal(variable.Name.Trim())))]);
+                project.Variables.IsGlobal(variable.Name.Trim())))]));
     }
 
     /// <summary>
     /// Writes the ticked part of a package into the project, or the public library, and answers the
-    /// words the wizard shows.
+    /// words the wizard shows. The project is touched on the caller's thread after the package was
+    /// read on the store's worker.
     /// </summary>
-    public static string ApplyImport(ProjectWorkspace project, string path,
+    public async Task<PackageOutcome<string>> ApplyImportAsync(ProjectWorkspace project, string path,
         IReadOnlyList<string> names, IReadOnlyList<ImportDecision> decisions,
-        string? publicLibrary = null)
+        CancellationToken cancellationToken = default)
     {
-        var contents = Read(project, path);
-        var picks = Chosen(contents.Macros, names);
+        var read = await packages.ReadAsync(path, ImageAssets.FolderFor(project.CurrentPath),
+            cancellationToken).ConfigureAwait(false);
+        if (!read.Ok || read.Value is not { } contents)
+        {
+            return PackageOutcomes.Failed<string>(read.Problem,
+                read.Message ?? Strings.Get("Bridge.PackageOpenFailed"), read.Error);
+        }
+
+        var (picks, missing) = Chosen(contents.Macros, names);
+        if (missing is not null)
+        {
+            return PackageOutcomes.Failed<string>(PackageProblem.UnknownMacro,
+                Strings.Format("Bridge.TransferUnknownMacro", missing));
+        }
+
         if (picks.Count == 0)
         {
-            return Strings.Get("Import.ReportNothing");
+            // Nothing ticked is an ordinary answer in the wizard, not a bad package: the report
+            // says that nothing was added.
+            return PackageOutcomes.Success(Strings.Get("Import.ReportNothing"));
         }
 
         // Submacros ticked on their own belong in the public library, because that is where
@@ -57,34 +75,62 @@ public static class PackageTransfer
         // import into the project instead: the ticks are then one tree, not a pile of pieces.
         if (picks.All(pick => pick.IsSub))
         {
-            var added = MacroImport.IntoLibrary([.. picks.Select(pick => pick.Macro)],
-                publicLibrary ?? AppPaths.PublicMacroLibrary);
-            return Strings.Format("Import.LibraryAdded",
-                string.Join("、", added.Select(entry => entry.Macro.Name)));
+            try
+            {
+                var added = MacroImport.IntoLibrary([.. picks.Select(pick => pick.Macro)],
+                    publicLibrary);
+                return PackageOutcomes.Success(Strings.Format("Import.LibraryAdded",
+                    string.Join("、", added.Select(entry => entry.Macro.Name))));
+            }
+            catch (Exception error)
+            {
+                return PackageOutcomes.Failed<string>(PackageProblem.ImportFailed,
+                    error.Message, error);
+            }
         }
 
         var chosen = picks.Select(pick => pick.Macro).ToList();
         var questions = MacroImport.Decisions(chosen, contents.Globals, project.Variables.Globals);
-        Answer(questions, decisions);
-        return ReportText(MacroImport.IntoProject(project, contents, chosen, questions));
+        var answerProblem = Answer(questions, decisions);
+        if (answerProblem is not null)
+        {
+            return PackageOutcomes.Failed<string>(answerProblem.Value,
+                Strings.Get("Bridge.TransferUnknownAction"));
+        }
+
+        try
+        {
+            return PackageOutcomes.Success(ReportText(
+                MacroImport.IntoProject(project, contents, chosen, questions)));
+        }
+        catch (Exception error)
+        {
+            return PackageOutcomes.Failed<string>(PackageProblem.ImportFailed, error.Message, error);
+        }
     }
 
     /// <summary>Everything the project could export, with a file name to start the save dialog.</summary>
-    public static ProjectExportPlan PlanExport(ProjectWorkspace project)
+    public PackageOutcome<ProjectExportPlan> PlanExport(ProjectWorkspace project)
     {
         var first = project.Macros.FirstOrDefault()?.Name.Trim() ?? string.Empty;
-        return new ProjectExportPlan(SafeName(first) + MacroPackage.Extension,
-            Rows(project.Macros, project.Triggers));
+        return PackageOutcomes.Success(new ProjectExportPlan(
+            SafeName(first) + MacroPackage.Extension, Rows(project.Macros, project.Triggers)));
     }
 
     /// <summary>Writes the ticked macros, their triggers, pictures and variables into a package.</summary>
-    public static ExportResult ApplyExport(ProjectWorkspace project, string path,
-        IReadOnlyList<string> names)
+    public async Task<PackageOutcome<ExportResult>> ApplyExportAsync(ProjectWorkspace project,
+        string path, IReadOnlyList<string> names, CancellationToken cancellationToken = default)
     {
-        var picks = Chosen(project.Macros, names);
+        var (picks, missing) = Chosen(project.Macros, names);
+        if (missing is not null)
+        {
+            return PackageOutcomes.Failed<ExportResult>(PackageProblem.UnknownMacro,
+                Strings.Format("Bridge.TransferUnknownMacro", missing));
+        }
+
         if (picks.Count == 0)
         {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
+            return PackageOutcomes.Failed<ExportResult>(PackageProblem.UnknownMacro,
                 Strings.Get("Bridge.TransferNeedsMacro"));
         }
 
@@ -92,11 +138,20 @@ public static class PackageTransfer
         // the public library uses: nothing in a file says which half of a tree a macro came from.
         var chosen = picks.Select(pick => pick.IsSub ? MacroImport.Promoted(pick.Macro) : pick.Macro)
             .ToList();
-        MacroPackage.Save(path, MacroBundle.Copies(chosen),
+        var write = await packages.WriteAsync(new PackageWriteRequest(
+            path,
+            MacroBundle.Copies(chosen),
             MacroBundle.Take(project.Triggers, chosen),
-            MacroBundle.UsedGlobals(chosen, project.Variables.Globals), AppVersion.Text,
-            ImageAssets.FolderFor(project.CurrentPath));
-        return new ExportResult(path);
+            MacroBundle.UsedGlobals(chosen, project.Variables.Globals),
+            AppVersion.Text,
+            ImageAssets.FolderFor(project.CurrentPath)), cancellationToken).ConfigureAwait(false);
+        if (!write.Ok)
+        {
+            return PackageOutcomes.Failed<ExportResult>(write.Problem,
+                write.Message ?? Strings.Get("Bridge.PackageSaveFailed"), write.Error);
+        }
+
+        return PackageOutcomes.Success(new ExportResult(path));
     }
 
     /// <summary>
@@ -124,7 +179,8 @@ public static class PackageTransfer
         }
         if (report.GlobalsRenamed.Count > 0)
         {
-            globals.Add(Strings.Format("Import.GlobalRenamed", string.Join("、", report.GlobalsRenamed)));
+            globals.Add(Strings.Format("Import.GlobalRenamed",
+                string.Join("、", report.GlobalsRenamed)));
         }
         if (report.GlobalsOverwritten.Count > 0)
         {
@@ -152,15 +208,12 @@ public static class PackageTransfer
         return lines.Count == 0 ? Strings.Get("Import.ReportNothing") : string.Join("\n", lines);
     }
 
-    private static PackageContents Read(ProjectWorkspace project, string path)
-        => MacroPackage.Load(path, ImageAssets.FolderFor(project.CurrentPath));
-
     /// <summary>
     /// One decision for every global conflict the person answered. A name that is not in conflict
     /// was not asked about and is ignored; an answer the wizard does not offer is a bad request
     /// rather than something to guess at.
     /// </summary>
-    private static void Answer(IReadOnlyList<GlobalDecision> questions,
+    private static PackageProblem? Answer(IReadOnlyList<GlobalDecision> questions,
         IReadOnlyList<ImportDecision> decisions)
     {
         foreach (var decision in decisions)
@@ -170,16 +223,23 @@ public static class PackageTransfer
                 string.Equals(question.Arriving.Name.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
             foreach (var question in matching)
             {
-                question.Choice = decision.Action.Trim().ToLowerInvariant() switch
+                var answer = decision.Action.Trim().ToLowerInvariant() switch
                 {
                     ImportActions.Keep => GlobalChoice.UseProject,
                     ImportActions.Overwrite => GlobalChoice.Overwrite,
                     ImportActions.Rename => GlobalChoice.Rename,
-                    _ => throw new BridgeFailureException(BridgeErrors.BadArgument,
-                        Strings.Get("Bridge.TransferUnknownAction")),
+                    _ => (GlobalChoice?)null,
                 };
+                if (answer is null)
+                {
+                    return PackageProblem.UnknownAction;
+                }
+
+                question.Choice = answer.Value;
             }
         }
+
+        return null;
     }
 
     /// <summary>
@@ -193,13 +253,13 @@ public static class PackageTransfer
         var rows = new List<TransferMacro>();
         foreach (var macro in macros)
         {
-            AddRow(macro, isSub: false, triggers, rows);
+            AddRow(macro, isSub: false, depth: 0, triggers, rows);
         }
 
         return rows;
     }
 
-    private static void AddRow(MacroItem macro, bool isSub, ProjectTriggers triggers,
+    private static void AddRow(MacroItem macro, bool isSub, int depth, ProjectTriggers triggers,
         List<TransferMacro> rows)
     {
         rows.Add(new TransferMacro(
@@ -207,11 +267,12 @@ public static class PackageTransfer
             Kind(macro.Name, triggers),
             macro.Steps.Count,
             MacroCheck.DeclarationFaults(macro.Callable).FirstOrDefault() ?? string.Empty,
-            isSub));
+            isSub,
+            depth));
 
         foreach (var sub in macro.SubMacros)
         {
-            AddRow(sub, isSub: true, triggers, rows);
+            AddRow(sub, isSub: true, depth + 1, triggers, rows);
         }
     }
 
@@ -226,8 +287,8 @@ public static class PackageTransfer
     }
 
     /// <summary>The ticked macros, found again by name and in the order the package holds them.</summary>
-    private static IReadOnlyList<Pick> Chosen(IReadOnlyList<MacroItem> macros,
-        IReadOnlyList<string> names)
+    private static (IReadOnlyList<Pick> Picks, string? Missing) Chosen(
+        IReadOnlyList<MacroItem> macros, IReadOnlyList<string> names)
     {
         var wanted = names.Select(name => name.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -239,14 +300,7 @@ public static class PackageTransfer
             Choose(macro, isSub: false, wanted, matched, chosen);
         }
 
-        var missing = wanted.FirstOrDefault(name => !matched.Contains(name));
-        if (missing is not null)
-        {
-            throw new BridgeFailureException(BridgeErrors.BadArgument,
-                Strings.Format("Bridge.TransferUnknownMacro", missing));
-        }
-
-        return chosen;
+        return (chosen, wanted.FirstOrDefault(name => !matched.Contains(name)));
     }
 
     private static void Choose(MacroItem macro, bool isSub, IReadOnlySet<string> wanted,

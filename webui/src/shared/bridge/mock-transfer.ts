@@ -35,6 +35,7 @@ export class MockTransfer {
             steps: 2,
             problem: '',
             isSub: false,
+            depth: 0,
           })),
         };
         return plan;
@@ -47,8 +48,8 @@ export class MockTransfer {
           source: path,
           fileName: path.split('/').pop() ?? path,
           macros: [
-            { name: '包里的宏', kind: '键', steps: 2, problem: '', isSub: false },
-            { name: '读表', kind: '未设置触发入口', steps: 1, problem: '', isSub: true },
+            { name: '包里的宏', kind: '键', steps: 2, problem: '', isSub: false, depth: 0 },
+            { name: '读表', kind: '未设置触发入口', steps: 1, problem: '', isSub: true, depth: 1 },
           ],
           globals: [{ name: '计数', type: '数字', conflicts: true }],
         };

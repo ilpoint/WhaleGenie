@@ -11,7 +11,7 @@ namespace WhaleGenie.Contracts;
 /// </remarks>
 [BridgeContract]
 public sealed record TransferMacro(
-    string Name, string Kind, int Steps, string Problem, bool IsSub);
+    string Name, string Kind, int Steps, string Problem, bool IsSub, int Depth = 0);
 
 /// <summary>One global variable the file declares, and whether the project already has the name.</summary>
 [BridgeContract]

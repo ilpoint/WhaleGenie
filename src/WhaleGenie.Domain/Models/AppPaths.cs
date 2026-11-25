@@ -46,7 +46,8 @@ public static class AppPaths
     /// program folder so a portable copy keeps its library with it.
     /// </summary>
     public static string PublicMacroLibrary { get; } =
-        Path.Combine(Root, "library", "public-macros.wgmacro");
+        Path.Combine(Root, "library", "public-macros"
+            + WhaleGenie.Storage.PublicMacroLibrary.Extension);
 
     /// <summary>Images unpacked from the public macro library.</summary>
     public static string PublicMacroAssets { get; } =

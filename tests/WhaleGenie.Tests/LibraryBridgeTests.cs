@@ -24,7 +24,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
+            var libraryPath = Path.Combine(folder, "public-macros.wglib");
             var workspace = new ProjectWorkspace();
             var macro = new MacroItem
             {
@@ -67,7 +67,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
+            var libraryPath = Path.Combine(folder, "public-macros.wglib");
             var workspace = new ProjectWorkspace();
             var macro = new MacroItem { Name = "shared", Description = "first" };
             workspace.AddMacro(macro);
@@ -96,7 +96,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
+            var libraryPath = Path.Combine(folder, "public-macros.wglib");
             var workspace = new ProjectWorkspace();
             workspace.AddMacro(new MacroItem { Name = "shared" });
             var server = new BridgeServer();
@@ -134,7 +134,7 @@ public class LibraryBridgeTests
         var folder = Folder();
         try
         {
-            var libraryPath = Path.Combine(folder, "public-macros.wgmacro");
+            var libraryPath = Path.Combine(folder, "public-macros.wglib");
             var workspace = new ProjectWorkspace();
             var server = new BridgeServer();
             var channel = new Channel();
