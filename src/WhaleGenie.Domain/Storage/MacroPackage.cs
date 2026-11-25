@@ -21,6 +21,19 @@ public sealed class PackageContents
     public required IReadOnlyList<VariableDefinition> Globals { get; init; }
 
     public required ProjectTriggers Triggers { get; init; }
+
+    /// <summary>Whether the package carries a project section; false for a library-only file.</summary>
+    public bool HasProject { get; init; } = true;
+
+    /// <summary>The manifest facts a preview shows; a loaded project always has them.</summary>
+    public int FormatVersion { get; init; } = MacroPackage.FormatVersion;
+
+    public string AppVersion { get; init; } = string.Empty;
+
+    public string SavedUtc { get; init; } = string.Empty;
+
+    /// <summary>The project's embedded public macros, when the package carries a library section.</summary>
+    public IReadOnlyList<PublicMacroEntry> Library { get; init; } = [];
 }
 
 /// <summary>A package whose <c>library/</c> section holds versioned callable macros.</summary>

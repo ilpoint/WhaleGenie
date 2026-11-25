@@ -79,6 +79,7 @@ public static class BridgeMethods
         "project.exportPlan",
         "project.importApply",
         "project.importPlan",
+        "project.preview",
         "project.open",
         "project.reload",
         "project.save",

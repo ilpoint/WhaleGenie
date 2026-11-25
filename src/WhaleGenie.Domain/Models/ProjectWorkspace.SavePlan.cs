@@ -17,7 +17,8 @@ public sealed record ProjectSavePlan(
     IReadOnlyList<VariableDefinition> Globals,
     string AppVersion,
     string? AssetFolder,
-    int Revision);
+    int Revision,
+    IReadOnlyList<PublicMacroEntry> Library);
 
 public sealed partial class ProjectWorkspace
 {
@@ -43,7 +44,11 @@ public sealed partial class ProjectWorkspace
                 [.. Variables.Globals.Select(Clone)],
                 _appVersion,
                 ImageAssets.FolderFor(CurrentPath),
-                Revision);
+                Revision,
+                [.. _library.Select(CloneEntry)]);
+
+    private static PublicMacroEntry CloneEntry(PublicMacroEntry entry)
+        => new(entry.Id, entry.Version, MacroItem.FromJson(entry.Macro.ToJson()));
 
     /// <summary>
     /// Records that the file now holds the project as it stood when <paramref name="plan"/> was

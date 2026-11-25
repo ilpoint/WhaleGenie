@@ -21,6 +21,7 @@ namespace WhaleGenie.Models;
 public sealed partial class ProjectWorkspace : ObservableObject
 {
     private readonly string _appVersion;
+    private readonly List<PublicMacroEntry> _library = [];
     private string? _currentPath;
     private bool _isDirty;
     private int _revision;
@@ -54,6 +55,13 @@ public sealed partial class ProjectWorkspace : ObservableObject
 
     /// <summary>Every trigger entry in the project, including the one the list is filtered by.</summary>
     public ProjectTriggers Triggers { get; } = new();
+
+    /// <summary>
+    /// Public macros that travel inside this project package. They are a project-local shelf, not
+    /// the machine-wide library: opening another project's package cannot change this machine's
+    /// public macros.
+    /// </summary>
+    public IReadOnlyList<PublicMacroEntry> Library => _library;
 
     /// <summary>Package file the macros are saved to, or <c>null</c> before the first save.</summary>
     public string? CurrentPath
@@ -89,6 +97,9 @@ public sealed partial class ProjectWorkspace : ObservableObject
     /// changes that arrive while it is already unsaved, and the dirty flag does not move for those.
     /// </summary>
     public event EventHandler? Changed;
+
+    /// <summary>Raised when the embedded public macro shelf changes, without every macro edit.</summary>
+    public event EventHandler? LibraryChanged;
 
     /// <summary>
     /// Raised when the whole document is replaced by another one (a package opened, a draft
@@ -194,9 +205,11 @@ public sealed partial class ProjectWorkspace : ObservableObject
     public void ClearMacros()
     {
         Macros.Clear();
+        _library.Clear();
         Triggers.Entries.Clear();
         Triggers.InterfaceLayouts.Clear();
         Triggers.ResetMenu();
+        LibraryChanged?.Invoke(this, EventArgs.Empty);
         MarkDirty();
     }
 
@@ -229,6 +242,17 @@ public sealed partial class ProjectWorkspace : ObservableObject
     }
 
     /// <summary>
+    /// Adds entries from another package to this project's embedded library. The caller already
+    /// resolved names and ids; the project only owns the shelf and its dirty flag.
+    /// </summary>
+    public void MergeLibrary(IReadOnlyList<PublicMacroEntry> entries)
+    {
+        _library.AddRange(entries);
+        LibraryChanged?.Invoke(this, EventArgs.Empty);
+        MarkDirty();
+    }
+
+    /// <summary>
     /// Replaces everything with a package already read on some other thread. The reader owns the
     /// file; this part owns the lists.
     /// </summary>
@@ -241,11 +265,14 @@ public sealed partial class ProjectWorkspace : ObservableObject
         }
         Triggers.ReplaceAll(contents.Triggers);
         Triggers.Project([.. Macros]);
+        _library.Clear();
+        _library.AddRange(contents.Library);
         LoadSharedVariables(contents.Globals, replace: true, Persisted);
 
         CurrentPath = path;
         IsDirty = false;
         Revision++;
+        LibraryChanged?.Invoke(this, EventArgs.Empty);
         Replaced?.Invoke(this, EventArgs.Empty);
     }
 

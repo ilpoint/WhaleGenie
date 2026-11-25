@@ -182,12 +182,14 @@ export class WgEditorPalette extends LitElement {
             type="button"
             class="sub-card"
             title=${macro.description || macro.name}
-            @click=${() => void editor.steps.addPublicMacro(macro.id)}
+            @click=${() => void editor.steps.addPublicMacro(macro.id, macro.version, macro.source)}
           >
             ${icon('folder')}
             <span>
               <span>${macro.name}</span>
-              <span class="meta">${t('Palette.MacroVersion').replace('{0}', String(macro.version))}</span>
+              <span class="meta">${t('Palette.MacroVersion').replace('{0}', String(macro.version))}
+                · ${t(macro.source === 'project'
+                  ? 'Palette.MacroFromProject' : 'Palette.MacroFromLocal')}</span>
             </span>
           </button>
         `)}

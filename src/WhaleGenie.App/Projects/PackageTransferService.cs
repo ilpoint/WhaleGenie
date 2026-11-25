@@ -18,25 +18,45 @@ namespace WhaleGenie.Projects;
 /// </summary>
 public sealed class PackageTransferService(IPackageStore packages, IPublicLibraryStore publicLibrary)
 {
-    public async Task<PackageOutcome<ProjectImportPlan>> PlanImportAsync(ProjectWorkspace project,
+    public async Task<PackageOutcome<ProjectImportPlan>> PreviewAsync(ProjectWorkspace project,
         string path, CancellationToken cancellationToken = default)
     {
-        var read = await packages.ReadAsync(path, ImageAssets.FolderFor(project.CurrentPath),
-            cancellationToken).ConfigureAwait(false);
-        if (!read.Ok || read.Value is not { } contents)
+        var read = await packages.PreviewAsync(path, cancellationToken).ConfigureAwait(false);
+        if (read.Ok && read.Value is { } contents)
         {
-            return PackageOutcomes.Failed<ProjectImportPlan>(read.Problem,
-                read.Message ?? Strings.Get("Bridge.PackageOpenFailed"), read.Error);
+            return PackageOutcomes.Success(BuildPlan(project, path, contents));
         }
 
-        return PackageOutcomes.Success(new ProjectImportPlan(
+        return PackageOutcomes.Failed<ProjectImportPlan>(read.Problem,
+            read.Message ?? Strings.Get("Bridge.PackageOpenFailed"), read.Error);
+    }
+
+    public Task<PackageOutcome<ProjectImportPlan>> PlanImportAsync(ProjectWorkspace project,
+        string path, CancellationToken cancellationToken = default)
+        => PreviewAsync(project, path, cancellationToken);
+
+    private static ProjectImportPlan BuildPlan(ProjectWorkspace project, string path,
+        PackageContents contents)
+    {
+        var name = Path.GetFileName(path);
+        return new ProjectImportPlan(
             path,
-            Path.GetFileName(path),
+            name,
             Rows(contents.Macros, contents.Triggers),
             [.. contents.Globals.Select(variable => new TransferGlobal(
                 variable.Name.Trim(),
                 variable.LocalType,
-                project.Variables.IsGlobal(variable.Name.Trim())))]));
+                project.Variables.IsGlobal(variable.Name.Trim())))],
+            new PackagePreview(
+                name,
+                contents.FormatVersion,
+                contents.AppVersion,
+                contents.SavedUtc,
+                HasProject: contents.HasProject,
+                HasLibrary: contents.Library.Count > 0,
+                TriggerCount: contents.Triggers.Entries.Count,
+                [.. contents.Library.Select(entry => new PreviewLibraryEntry(
+                    entry.Id, entry.Macro.Name, entry.Version, "package"))]));
     }
 
     /// <summary>
@@ -46,12 +66,17 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
     /// </summary>
     public async Task<PackageOutcome<string>> ApplyImportAsync(ProjectWorkspace project, string path,
         IReadOnlyList<string> names, IReadOnlyList<ImportDecision> decisions,
-        CancellationToken cancellationToken = default)
+        bool libraryToProject = true, CancellationToken cancellationToken = default)
     {
         var read = await packages.ReadAsync(path, ImageAssets.FolderFor(project.CurrentPath),
             cancellationToken).ConfigureAwait(false);
         if (!read.Ok || read.Value is not { } contents)
         {
+            if (read.Problem == PackageProblem.LibraryNotProject)
+            {
+                return ApplyStandaloneLibrary(project, path, libraryToProject);
+            }
+
             return PackageOutcomes.Failed<string>(read.Problem,
                 read.Message ?? Strings.Get("Bridge.PackageOpenFailed"), read.Error);
         }
@@ -100,8 +125,26 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
 
         try
         {
-            return PackageOutcomes.Success(ReportText(
-                MacroImport.IntoProject(project, contents, chosen, questions)));
+            var report = MacroImport.IntoProject(project, contents, chosen, questions);
+            if (contents.Library.Count > 0)
+            {
+                var folder = ImageAssets.FolderFor(project.CurrentPath);
+                if (libraryToProject)
+                {
+                    var added = PublicMacroLibrary.Merge(contents.Library, project.Library,
+                        folder, folder);
+                    project.MergeLibrary(added);
+                }
+                else
+                {
+                    var added = PublicMacroLibrary.Merge(contents.Library,
+                        publicLibrary.Load(), PublicMacroLibrary.AssetFolderFor(publicLibrary.Path),
+                        folder);
+                    publicLibrary.Save([.. publicLibrary.Load(), .. added], AppVersion.Text);
+                }
+            }
+
+            return PackageOutcomes.Success(ReportText(report));
         }
         catch (Exception error)
         {
@@ -110,16 +153,32 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
     }
 
     /// <summary>Everything the project could export, with a file name to start the save dialog.</summary>
-    public PackageOutcome<ProjectExportPlan> PlanExport(ProjectWorkspace project)
+    public PackageOutcome<ProjectExportPlan> PlanExport(ProjectWorkspace project,
+        bool includeLibrary = true)
     {
         var first = project.Macros.FirstOrDefault()?.Name.Trim() ?? string.Empty;
+        var suggested = SafeName(first) + MacroPackage.Extension;
+        var carry = includeLibrary && project.Library.Count > 0;
+        var preview = new PackagePreview(
+            suggested,
+            MacroPackage.FormatVersion,
+            AppVersion.Text,
+            string.Empty,
+            HasProject: true,
+            HasLibrary: carry,
+            TriggerCount: project.Triggers.Entries.Count,
+            carry
+                ? [.. project.Library.Select(entry => new PreviewLibraryEntry(
+                    entry.Id, entry.Macro.Name, entry.Version, "project"))]
+                : []);
         return PackageOutcomes.Success(new ProjectExportPlan(
-            SafeName(first) + MacroPackage.Extension, Rows(project.Macros, project.Triggers)));
+            suggested, Rows(project.Macros, project.Triggers), preview));
     }
 
     /// <summary>Writes the ticked macros, their triggers, pictures and variables into a package.</summary>
     public async Task<PackageOutcome<ExportResult>> ApplyExportAsync(ProjectWorkspace project,
-        string path, IReadOnlyList<string> names, CancellationToken cancellationToken = default)
+        string path, IReadOnlyList<string> names, bool includeLibrary = true,
+        CancellationToken cancellationToken = default)
     {
         var (picks, missing) = Chosen(project.Macros, names);
         if (missing is not null)
@@ -144,7 +203,9 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
             MacroBundle.Take(project.Triggers, chosen),
             MacroBundle.UsedGlobals(chosen, project.Variables.Globals),
             AppVersion.Text,
-            ImageAssets.FolderFor(project.CurrentPath)), cancellationToken).ConfigureAwait(false);
+            ImageAssets.FolderFor(project.CurrentPath),
+            project.Library.Count > 0 && includeLibrary ? project.Library : null),
+            cancellationToken).ConfigureAwait(false);
         if (!write.Ok)
         {
             return PackageOutcomes.Failed<ExportResult>(write.Problem,
@@ -152,6 +213,42 @@ public sealed class PackageTransferService(IPackageStore packages, IPublicLibrar
         }
 
         return PackageOutcomes.Success(new ExportResult(path));
+    }
+
+    private PackageOutcome<string> ApplyStandaloneLibrary(ProjectWorkspace project, string path,
+        bool libraryToProject)
+    {
+        try
+        {
+            var entries = publicLibrary.Load(path);
+            if (entries.Count == 0)
+            {
+                return PackageOutcomes.Failed<string>(PackageProblem.InvalidFormat,
+                    Strings.Get("Package.NoLibrary"));
+            }
+
+            var source = PublicMacroLibrary.AssetFolderFor(path);
+            if (libraryToProject)
+            {
+                var target = ImageAssets.FolderFor(project.CurrentPath);
+                var added = PublicMacroLibrary.Merge(entries, project.Library, target, source);
+                project.MergeLibrary(added);
+                return PackageOutcomes.Success(Strings.Format("Import.LibraryAdded",
+                    string.Join("、", added.Select(entry => entry.Macro.Name))));
+            }
+
+            var targetLibrary = PublicMacroLibrary.AssetFolderFor(publicLibrary.Path);
+            var addedToMachine = PublicMacroLibrary.Merge(entries, publicLibrary.Load(),
+                targetLibrary, source);
+            publicLibrary.Save([.. publicLibrary.Load(), .. addedToMachine], AppVersion.Text);
+            return PackageOutcomes.Success(Strings.Format("Import.LibraryAdded",
+                string.Join("、", addedToMachine.Select(entry => entry.Macro.Name))));
+        }
+        catch (Exception error)
+        {
+            return PackageOutcomes.Failed<string>(PackageProblem.ImportFailed, error.Message,
+                error);
+        }
     }
 
     /// <summary>

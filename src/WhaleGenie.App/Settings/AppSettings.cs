@@ -98,6 +98,35 @@ public sealed class AppSettings
         => Write(model => model.AutoSaveProject = autoSave);
 
     /// <summary>
+    /// Which public macros the editor lists: the machine library, the current project's embedded
+    /// shelf, or both. The value is kept as one of three stable words so the page sends no enum.
+    /// </summary>
+    public string LoadPublicMacroEditorSources()
+    {
+        var value = Read().PublicMacroEditorSources.Trim().ToLowerInvariant();
+        return value is "local" or "project" ? value : "both";
+    }
+
+    public void StorePublicMacroEditorSources(string sources)
+    {
+        var value = sources.Trim().ToLowerInvariant();
+        Write(model => model.PublicMacroEditorSources =
+            value is "local" or "project" ? value : "both");
+    }
+
+    /// <summary>Whether an exported project package carries its embedded public macros.</summary>
+    public bool LoadExportEmbeddedLibrary() => Read().ExportEmbeddedLibrary;
+
+    public void StoreExportEmbeddedLibrary(bool include)
+        => Write(model => model.ExportEmbeddedLibrary = include);
+
+    /// <summary>Whether imported library entries merge into the project shelf (not the machine one).</summary>
+    public bool LoadImportLibraryToProject() => Read().ImportLibraryToProject;
+
+    public void StoreImportLibraryToProject(bool project)
+        => Write(model => model.ImportLibraryToProject = project);
+
+    /// <summary>
     /// Whether triggers are already listening when the program starts. Off means the system stays
     /// disabled until it is turned on, which is the quieter thing to do on a shared machine.
     /// </summary>

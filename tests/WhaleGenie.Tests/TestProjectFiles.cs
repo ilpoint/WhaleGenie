@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading.Tasks;
 using WhaleGenie.Models;
 using WhaleGenie.Projects;
@@ -13,8 +14,11 @@ internal static class TestProjectFiles
 {
     public static ProjectFileService Service { get; } = new(new FilePackageStore());
 
+    private static readonly string TestLibrary = Path.Combine(Path.GetTempPath(),
+        "whalegenie-tests", "public-" + Guid.NewGuid().ToString("N") + MacroPackage.Extension);
+
     public static PackageTransferService Transfer { get; } = new(
-        new FilePackageStore(), EmptyPublicLibraryStore.Instance);
+        new FilePackageStore(), new FilePublicLibraryStore(TestLibrary));
 
     public static ProjectFileResult Save(ProjectWorkspace workspace, string path)
         => Service.Save(workspace, path);

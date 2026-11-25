@@ -17,12 +17,24 @@ namespace WhaleGenie.Editing;
 
 internal sealed partial class HeadlessEditorSession
 {
-    public EditorSnapshot AddPublicMacro(string id)
+    public EditorSnapshot AddPublicMacro(string id, string source = "local", int version = 0)
     {
-        var entry = _publicLibrary.Load()
-            .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException("the public library has no macro " + id);
-        var macro = _publicLibrary.CopyToProject(entry, ImageAssets.FolderFor(_workspace.CurrentPath));
+        var entry = source == "project"
+            ? _workspace.Library.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, id, StringComparison.Ordinal)
+                && (version <= 0 || candidate.Version == version))
+            : _publicLibrary.Load().FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, id, StringComparison.Ordinal)
+                && (version <= 0 || candidate.Version == version));
+        var found = entry ?? throw new InvalidOperationException(
+            "the public library has no macro " + id + " version " + version);
+        var sourceFolder = source == "project"
+            ? ImageAssets.FolderFor(_workspace.CurrentPath)
+            : PublicMacroLibrary.AssetFolderFor(_publicLibrary.Path);
+        var targetFolder = ImageAssets.FolderFor(_workspace.CurrentPath);
+        var macro = source == "project"
+            ? PublicMacroLibrary.CopyToProject(found, targetFolder, sourceFolder)
+            : _publicLibrary.CopyToProject(found, targetFolder, sourceFolder);
         macro.Name = SubMacroEditor.UniqueName(TakenMacroNames(), macro.Name);
         _model.SubMacros.Add(macro);
         _model.Steps.Add(SubMacroEditor.CallStep(macro));

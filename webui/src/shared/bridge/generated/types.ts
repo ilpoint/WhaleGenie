@@ -546,6 +546,7 @@ export interface EditorPublicMacroSnapshot {
   version: number;
   name: string;
   description: string;
+  source: string;
 }
 
 export interface EditorRecordCommand {
@@ -671,6 +672,8 @@ export interface EditorSessionCloseCommand {
 export interface EditorSessionPublicMacroAddCommand {
   kind: 'publicMacroAdd';
   id: string;
+  version: number;
+  source: string;
 }
 
 export interface EditorSessionSubMacroCreateCommand {
@@ -690,6 +693,8 @@ export interface EditorSessionSubMacroImportCommand {
   reference?: string | null;
   path?: string | null;
   name?: string | null;
+  version: number;
+  librarySource?: string | null;
 }
 
 export interface EditorSessionSubMacroDeleteCommand {
@@ -1316,9 +1321,28 @@ export interface McpState {
   auditFile: string;
 }
 
+export interface PackagePreview {
+  fileName: string;
+  formatVersion: number;
+  appVersion: string;
+  savedUtc: string;
+  hasProject: boolean;
+  hasLibrary: boolean;
+  triggerCount: number;
+  library: PreviewLibraryEntry[];
+}
+
+export interface PreviewLibraryEntry {
+  id: string;
+  name: string;
+  version: number;
+  source: string;
+}
+
 export interface ProjectExportPlan {
   suggestedName: string;
   macros: TransferMacro[];
+  preview: PackagePreview;
 }
 
 export interface ProjectImportPlan {
@@ -1326,6 +1350,7 @@ export interface ProjectImportPlan {
   fileName: string;
   macros: TransferMacro[];
   globals: TransferGlobal[];
+  preview: PackagePreview;
 }
 
 export interface ProjectState {
@@ -1510,6 +1535,9 @@ export interface SettingsPatch {
   language?: string | null;
   systemHotkey?: string | null;
   recordStopKey?: string | null;
+  publicMacroEditorSources?: string | null;
+  exportEmbeddedLibrary?: boolean | null;
+  importLibraryToProject?: boolean | null;
 }
 
 export interface SettingsState {
@@ -1548,6 +1576,9 @@ export interface SettingsState {
   screenWays: SettingsChoice[];
   menu: SettingsMenuState;
   wheel: SettingsWheelState;
+  publicMacroEditorSources: string;
+  exportEmbeddedLibrary: boolean;
+  importLibraryToProject: boolean;
   limits: SettingsLimits;
 }
 

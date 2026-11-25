@@ -2,6 +2,7 @@ import type { SettingsPatch } from '../../shared/bridge/protocol.js';
 import type { EditableSetting } from './settings-model.js';
 
 type BooleanSetting = Extract<EditableSetting, 'loadLastProjectAtStart' | 'autoSaveProject'
+  | 'exportEmbeddedLibrary' | 'importLibraryToProject'
   | 'systemAtStart' | 'enabledFirst' | 'ignoreOwnInput' | 'soundSystem' | 'soundMacro'
   | 'preloadOcr' | 'frameRateFollow' | 'frameCache' | 'attachDriverAtStart' | 'runAsAdmin'>;
 
@@ -20,6 +21,7 @@ export function patchFor(field: EditableSetting, value: string): SettingsPatch {
     case 'language': return { language: value };
     case 'systemHotkey': return { systemHotkey: value };
     case 'recordStopKey': return { recordStopKey: value };
+    case 'publicMacroEditorSources': return { publicMacroEditorSources: value };
     default: return booleanPatch(field, value);
   }
 }
@@ -28,6 +30,8 @@ function booleanPatch(field: BooleanSetting, value: string): SettingsPatch {
   switch (field) {
     case 'loadLastProjectAtStart': return { loadLastProjectAtStart: value === 'true' };
     case 'autoSaveProject': return { autoSaveProject: value === 'true' };
+    case 'exportEmbeddedLibrary': return { exportEmbeddedLibrary: value === 'true' };
+    case 'importLibraryToProject': return { importLibraryToProject: value === 'true' };
     case 'systemAtStart': return { systemAtStart: value === 'true' };
     case 'enabledFirst': return { enabledFirst: value === 'true' };
     case 'ignoreOwnInput': return { ignoreOwnInput: value === 'true' };

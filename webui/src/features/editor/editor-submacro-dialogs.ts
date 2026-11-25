@@ -241,8 +241,9 @@ export class WgSubMacroCopyDialog extends LitElement {
       ? html`<p class="empty">${t('Palette.NoPublicMacros')}</p>`
       : entries.map((entry) => html`
         <button type="button" role="option"
-          @click=${() => this.take('public', entry.id)}>
+          @click=${() => this.take('public', entry.id, undefined, entry.version, entry.source)}>
           ${icon('folder')}<span>${entry.name}</span>
+          <span class="meta">v${entry.version}</span>
         </button>
       `);
   }
@@ -306,9 +307,10 @@ export class WgSubMacroCopyDialog extends LitElement {
     }
   }
 
-  private take(source: 'public' | 'project' | 'file', reference: string, path?: string): void {
+  private take(source: 'public' | 'project' | 'file', reference: string, path?: string,
+    version = 0, librarySource = 'local'): void {
     this.close();
-    void editor.steps.importSubMacro(source, reference, path);
+    void editor.steps.importSubMacro(source, reference, path, version, librarySource);
   }
 
   private close(): void {

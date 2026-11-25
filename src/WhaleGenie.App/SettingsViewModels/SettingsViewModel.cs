@@ -55,6 +55,9 @@ public partial class SettingsViewModel : ViewModelBase
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         LoadLastProjectAtStart = _settings.LoadLastProjectAtStart();
         AutoSaveProject = _settings.LoadAutoSaveProject();
+        PublicMacroEditorSources = _settings.LoadPublicMacroEditorSources();
+        ExportEmbeddedLibrary = _settings.LoadExportEmbeddedLibrary();
+        ImportLibraryToProject = _settings.LoadImportLibraryToProject();
         SystemAtStart = _settings.LoadSystemAtStart();
         EnabledFirst = _settings.LoadEnabledFirst();
         PreloadOcr = _settings.LoadPreloadOcr();

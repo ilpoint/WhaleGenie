@@ -134,6 +134,12 @@ export class EditorStore {
     this.core.notify();
   }
 
+  /** The project's embedded shelf changed while the editor was open. */
+  applyPublicMacros(macros: EditorUiState['publicMacros']): void {
+    this.core.state.publicMacros = [...macros];
+    this.core.notify();
+  }
+
   /** Leaving the route must not keep a draft, a value window, a recorder or a question alive. */
   leaveEditor(): void {
     this.dialog.cancel();

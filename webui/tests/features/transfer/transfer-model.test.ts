@@ -10,15 +10,18 @@ import {
   importDestination,
   importModel,
   onlySubMacros,
+  openModel,
   setAll,
   setDecision,
   startExport,
   startImport,
+  startOpen,
   toggleRow,
   type TransferCaller,
 } from '../../../src/features/transfer/transfer-model.js';
 import type {
   BridgeMethod,
+  PackagePreview,
   ProjectExportPlan,
   ProjectImportPlan,
   TransferMacro,
@@ -26,6 +29,19 @@ import type {
 
 function macro(name: string, isSub = false): TransferMacro {
   return { name, kind: '', steps: 1, problem: '', isSub, depth: isSub ? 1 : 0 };
+}
+
+function preview(fileName: string, hasLibrary = false): PackagePreview {
+  return {
+    fileName,
+    formatVersion: 33,
+    appVersion: 'test',
+    savedUtc: '',
+    hasProject: true,
+    hasLibrary,
+    triggerCount: 0,
+    library: hasLibrary ? [{ id: 'lib', name: '子', version: 1, source: 'package' }] : [],
+  };
 }
 
 function importPlan(): ProjectImportPlan {
@@ -37,11 +53,16 @@ function importPlan(): ProjectImportPlan {
       { name: '计数', type: '数字', conflicts: true },
       { name: '新名', type: '文本', conflicts: false },
     ],
+    preview: preview('incoming.wgmacro', true),
   };
 }
 
 function exportPlan(): ProjectExportPlan {
-  return { suggestedName: '父.wgmacro', macros: [macro('父'), macro('子', true)] };
+  return {
+    suggestedName: '父.wgmacro',
+    macros: [macro('父'), macro('子', true)],
+    preview: preview('父.wgmacro'),
+  };
 }
 
 class Recorder implements TransferCaller {
@@ -107,16 +128,34 @@ describe('transfer selection', () => {
 });
 
 describe('transfer commands', () => {
+  it('opens and previews through the same package read as import', async () => {
+    const recorder = new Recorder({
+      'dialog.pickOpenPackage': '/incoming.wgmacro',
+      'project.preview': importPlan(),
+    });
+
+    const session = await startOpen(recorder);
+
+    expect(recorder.calls.map((call) => call.method)).toEqual([
+      'dialog.pickOpenPackage',
+      'project.preview',
+    ]);
+    expect(session?.mode).toBe('open');
+    const model = openModel(importPlan());
+    expect(model.preview.hasLibrary).toBe(true);
+    expect(model.rows).toHaveLength(3);
+  });
+
   it('imports by picking, reading the plan, then applying the ticks', async () => {
     const recorder = new Recorder({
       'dialog.pickOpenPackage': '/incoming.wgmacro',
-      'project.importPlan': importPlan(),
+      'project.preview': importPlan(),
       'project.importApply': { report: 'done', state: {} },
     });
     const session = await startImport(recorder);
     expect(recorder.calls.map((call) => call.method)).toEqual([
       'dialog.pickOpenPackage',
-      'project.importPlan',
+      'project.preview',
     ]);
     expect(recorder.calls[1]!.params).toEqual({ path: '/incoming.wgmacro' });
     expect(session).not.toBeNull();
@@ -126,7 +165,7 @@ describe('transfer commands', () => {
 
     expect(recorder.calls.map((call) => call.method)).toEqual([
       'dialog.pickOpenPackage',
-      'project.importPlan',
+      'project.preview',
       'project.importApply',
     ]);
     expect(recorder.calls[2]!.params).toEqual({

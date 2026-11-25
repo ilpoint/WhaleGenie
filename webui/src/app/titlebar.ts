@@ -10,7 +10,7 @@ import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import { windowMirror } from '../shared/window/window.js';
-import { startExport, startImport, transfer } from '../features/transfer/index.js';
+import { startExport, startImport, startOpen, transfer } from '../features/transfer/index.js';
 import { editor } from '../features/editor/editor-store.js';
 import type { BridgeMethod } from '../shared/bridge/protocol.js';
 import whale from '../assets/whale.png';
@@ -233,7 +233,7 @@ export class WgTitlebar extends LitElement {
             </button>
             ${this.menu === 'file'
               ? html`<div class="dropdown" role="menu">
-                  <button role="menuitem" @click=${() => this.run('project.open')}>${t('Main.OpenProject')}</button>
+                  <button role="menuitem" @click=${() => void this.onOpen()}>${t('Main.OpenProject')}</button>
                   <button role="menuitem" @click=${() => this.run('project.save')}>${t('Main.SaveProject')}</button>
                   <button role="menuitem" @click=${() => this.run('project.saveAs')}>${t('Main.SaveProjectAs')}</button>
                   <button role="menuitem" @click=${() => void this.onImport()}>${t('Main.Import')}</button>
@@ -332,6 +332,19 @@ export class WgTitlebar extends LitElement {
   private run(command: BridgeMethod): void {
     this.menu = null;
     void bridge.value.call(command);
+  }
+
+  /** Opening shows the same package preview as importing; the primary action differs. */
+  private async onOpen(): Promise<void> {
+    this.menu = null;
+    try {
+      const session = await startOpen(bridge.value);
+      if (session !== null) {
+        transfer.show(session);
+      }
+    } catch (error) {
+      transfer.fail('open', describeError(error));
+    }
   }
 
   /** Import asks for the file first, then hands the plan to the wizard. */

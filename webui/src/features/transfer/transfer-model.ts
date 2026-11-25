@@ -3,14 +3,15 @@ import type {
   ExportResult,
   ImportDecision,
   ImportResult,
+  PackagePreview,
   ProjectExportPlan,
   ProjectImportPlan,
   TransferGlobal,
   TransferMacro,
 } from '../../shared/bridge/protocol.js';
 
-/** Which way macros are travelling. The two modes share a list and differ in what is written. */
-export type TransferMode = 'import' | 'export';
+/** Which way the package is being used: opened, imported, or composed for export. */
+export type TransferMode = 'open' | 'import' | 'export';
 
 /** What a person may answer about a global both sides declare. */
 export type ConflictAction = 'keep' | 'overwrite' | 'rename';
@@ -25,6 +26,7 @@ export interface TransferRow {
 /** The wizard's selection, its conflict answers, and the rows it draws. */
 export interface TransferModel {
   mode: TransferMode;
+  preview: PackagePreview;
   rows: TransferRow[];
   conflicts: TransferGlobal[];
   decisions: Record<string, ConflictAction>;
@@ -48,7 +50,15 @@ export interface ExportTransfer {
   plan: ProjectExportPlan;
 }
 
-export type Transfer = ImportTransfer | ExportTransfer;
+/** A package opened as a preview; the user may open it or import it after seeing its contents. */
+export interface OpenTransfer {
+  mode: 'open';
+  intent: 'open' | 'library';
+  path: string;
+  plan: ProjectImportPlan;
+}
+
+export type Transfer = ImportTransfer | ExportTransfer | OpenTransfer;
 
 /**
  * The rows that count: ticked and not carried by a ticked macro above. This is the one rule the
@@ -76,6 +86,7 @@ export function conflictDecisions(model: TransferModel): ImportDecision[] {
 export function importModel(plan: ProjectImportPlan): TransferModel {
   return {
     mode: 'import',
+    preview: plan.preview,
     rows: build(plan.macros, []),
     conflicts: plan.globals.filter((global) => global.conflicts),
     decisions: Object.fromEntries(
@@ -85,10 +96,22 @@ export function importModel(plan: ProjectImportPlan): TransferModel {
   };
 }
 
+/** A package opened before deciding: the same content, with no ticks to collect yet. */
+export function openModel(plan: ProjectImportPlan): TransferModel {
+  return {
+    mode: 'open',
+    preview: plan.preview,
+    rows: build(plan.macros, []),
+    conflicts: plan.globals.filter((global) => global.conflicts),
+    decisions: {},
+  };
+}
+
 /** A model for the macros that could leave. A card's macro starts ticked. */
 export function exportModel(plan: ProjectExportPlan, preselect: readonly string[] = []): TransferModel {
   return {
     mode: 'export',
+    preview: plan.preview,
     rows: build(plan.macros, preselect),
     conflicts: [],
     decisions: {},
@@ -157,6 +180,28 @@ export function importApplyParams(
   return { path, names: chosenNames(model), decisions: conflictDecisions(model) };
 }
 
+/** What the open flow asks first: the package is read once and shown before any action. */
+export async function startOpen(calls: TransferCaller): Promise<OpenTransfer | null> {
+  const path = await calls.call<string | null>('dialog.pickOpenPackage');
+  if (!path) {
+    return null;
+  }
+
+  const plan = await calls.call<ProjectImportPlan>('project.preview', { path });
+  return { mode: 'open', intent: 'open', path, plan };
+}
+
+/** The library page's import opens the same preview, with merging as its primary action. */
+export async function startLibraryImport(calls: TransferCaller): Promise<OpenTransfer | null> {
+  const path = await calls.call<string | null>('dialog.pickOpenPackage');
+  if (!path) {
+    return null;
+  }
+
+  const plan = await calls.call<ProjectImportPlan>('project.preview', { path });
+  return { mode: 'open', intent: 'library', path, plan };
+}
+
 /** What the import flow asks first, then what it reads. */
 export async function startImport(calls: TransferCaller): Promise<ImportTransfer | null> {
   const path = await calls.call<string | null>('dialog.pickOpenPackage');
@@ -164,7 +209,7 @@ export async function startImport(calls: TransferCaller): Promise<ImportTransfer
     return null;
   }
 
-  const plan = await calls.call<ProjectImportPlan>('project.importPlan', { path });
+  const plan = await calls.call<ProjectImportPlan>('project.preview', { path });
   return { mode: 'import', path, plan };
 }
 

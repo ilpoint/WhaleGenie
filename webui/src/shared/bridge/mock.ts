@@ -401,6 +401,11 @@ export class MockTransport implements BridgeTransport {
       return;
     }
 
+    if (method.startsWith('library.')
+        && result !== null && typeof result === 'object' && 'entries' in result) {
+      this.push('library.changed', result);
+    }
+
     this.answer({ id: request.id, ok: true, result });
   }
 

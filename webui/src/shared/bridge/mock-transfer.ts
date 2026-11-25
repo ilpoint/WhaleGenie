@@ -19,6 +19,7 @@ export class MockTransfer {
     return method === 'project.exportPlan'
       || method === 'project.exportApply'
       || method === 'project.importPlan'
+      || method === 'project.preview'
       || method === 'project.importApply'
       || method === 'dialog.pickOpenPackage'
       || method === 'dialog.pickSavePackage';
@@ -26,64 +27,95 @@ export class MockTransfer {
 
   answer(method: string, params: Record<string, unknown>): unknown {
     switch (method) {
-      case 'project.exportPlan': {
-        const plan: ProjectExportPlan = {
-          suggestedName: `${this.project().macros[0]?.name ?? 'macros'}.wgmacro`,
-          macros: this.project().macros.map((entry) => ({
-            name: entry.name,
-            kind: entry.triggerSummary,
-            steps: 2,
-            problem: '',
-            isSub: false,
-            depth: 0,
-          })),
-        };
-        return plan;
-      }
+      case 'project.exportPlan':
+        return this.exportPlan();
       case 'project.exportApply':
         return { path: String(params['path'] ?? '/mock/export.wgmacro') };
-      case 'project.importPlan': {
-        const path = String(params['path'] ?? '/mock/opened-project.wgmacro');
-        this.plan = {
-          source: path,
-          fileName: path.split('/').pop() ?? path,
-          macros: [
-            { name: '包里的宏', kind: '键', steps: 2, problem: '', isSub: false, depth: 0 },
-            { name: '读表', kind: '未设置触发入口', steps: 1, problem: '', isSub: true, depth: 1 },
-          ],
-          globals: [{ name: '计数', type: '数字', conflicts: true }],
-        };
-        return this.plan;
-      }
-      case 'project.importApply': {
-        const names = (params['names'] as string[] | undefined) ?? [];
-        const imported: MacroEntry[] = (this.plan?.macros ?? [])
-          .filter((macro) => names.includes(macro.name))
-          .map((macro) => ({
-            name: macro.name,
-            group: '',
-            description: '',
-            enabled: true,
-            running: false,
-            triggerSummary: macro.kind,
-            triggerActions: '',
-            triggerPreview: macro.kind,
-            views: ['All'],
-          }));
-        const next: ProjectState = {
-          ...this.project(),
-          dirty: true,
-          revision: this.project().revision + 1,
-          macros: [...this.project().macros, ...imported],
-        };
-        this.replace(next);
-        this.push('project.changed', next);
-        return { report: names.join('、'), state: next };
-      }
+      case 'project.importPlan':
+      case 'project.preview':
+        return this.importPlan(params);
+      case 'project.importApply':
+        return this.applyImport(params);
       case 'dialog.pickOpenPackage':
         return '/mock/opened-project.wgmacro';
       default:
         return `/mock/${String(params['suggested'] ?? 'macros.wgmacro')}`;
     }
+  }
+
+  private exportPlan(): ProjectExportPlan {
+    const name = `${this.project().macros[0]?.name ?? 'macros'}.wgmacro`;
+    return {
+      suggestedName: name,
+      macros: this.project().macros.map((entry) => ({
+        name: entry.name,
+        kind: entry.triggerSummary,
+        steps: 2,
+        problem: '',
+        isSub: false,
+        depth: 0,
+      })),
+      preview: {
+        fileName: name,
+        formatVersion: 33,
+        appVersion: 'mock',
+        savedUtc: '',
+        hasProject: true,
+        hasLibrary: false,
+        triggerCount: this.project().macros.length,
+        library: [],
+      },
+    };
+  }
+
+  private importPlan(params: Record<string, unknown>): ProjectImportPlan {
+    const path = String(params['path'] ?? '/mock/opened-project.wgmacro');
+    const fileName = path.split('/').pop() ?? path;
+    this.plan = {
+      source: path,
+      fileName,
+      macros: [
+        { name: '包里的宏', kind: '键', steps: 2, problem: '', isSub: false, depth: 0 },
+        { name: '读表', kind: '未设置触发入口', steps: 1, problem: '', isSub: true, depth: 1 },
+      ],
+      globals: [{ name: '计数', type: '数字', conflicts: true }],
+      preview: {
+        fileName,
+        formatVersion: 33,
+        appVersion: 'mock',
+        savedUtc: '',
+        hasProject: true,
+        hasLibrary: true,
+        triggerCount: 2,
+        library: [{ id: 'mock-library-read-table', name: '读表', version: 1, source: 'package' }],
+      },
+    };
+    return this.plan;
+  }
+
+  private applyImport(params: Record<string, unknown>): unknown {
+    const names = (params['names'] as string[] | undefined) ?? [];
+    const imported: MacroEntry[] = (this.plan?.macros ?? [])
+      .filter((macro) => names.includes(macro.name))
+      .map((macro) => ({
+        name: macro.name,
+        group: '',
+        description: '',
+        enabled: true,
+        running: false,
+        triggerSummary: macro.kind,
+        triggerActions: '',
+        triggerPreview: macro.kind,
+        views: ['All'],
+      }));
+    const next: ProjectState = {
+      ...this.project(),
+      dirty: true,
+      revision: this.project().revision + 1,
+      macros: [...this.project().macros, ...imported],
+    };
+    this.replace(next);
+    this.push('project.changed', next);
+    return { report: names.join('、'), state: next };
   }
 }

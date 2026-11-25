@@ -27,10 +27,12 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
     IDeviceLayer? devices = null, IEditorSettings? settings = null,
     IEditorPickerHost? pickers = null, IEditorWindowAside? aside = null,
     IEditorBrowserTestHost? browserTests = null, IEditorElementTestHost? elementTests = null,
-    IPublicLibraryStore? publicLibrary = null, IPackageStore? packages = null)
+    IPublicLibraryStore? publicLibrary = null, IPackageStore? packages = null,
+    AppSettings? appSettings = null)
     : IBridgeHandler
 {
     private readonly EditorDocumentService _documents = documents;
+    private readonly AppSettings? _appSettings = appSettings;
     private readonly IPublicLibraryStore _publicLibrary =
         publicLibrary ?? EmptyPublicLibraryStore.Instance;
     private readonly IPackageStore _packages = packages ?? new FilePackageStore();
@@ -56,6 +58,7 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
     {
         _server = server;
         _documents.Changed += OnDocumentsChanged;
+        workspace.LibraryChanged += (_, _) => OnLibraryChanged();
         server.Register("editor.session", SessionAction);
         server.Register("editor.save", SaveAction);
         server.Register("editor.saveAll", SaveAllAction);
@@ -178,16 +181,32 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
 
     private IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros()
     {
+        var snapshots = new List<EditorPublicMacroSnapshot>();
+        var sources = _appSettings?.LoadPublicMacroEditorSources() ?? "both";
+        if (sources != "local")
+        {
+            snapshots.AddRange(workspace.Library.Select(entry => Snapshot(entry, "project")));
+        }
+
+        if (sources == "project")
+        {
+            return snapshots;
+        }
+
         try
         {
-            return [.. _publicLibrary.Load().Select(entry => new EditorPublicMacroSnapshot(
-                entry.Id, entry.Version, entry.Macro.Name, entry.Macro.Description))];
+            snapshots.AddRange(_publicLibrary.Load().Select(entry => Snapshot(entry, "local")));
         }
         catch (Exception)
         {
-            return [];
+            // A broken machine library must not hide the project's own shelf.
         }
+
+        return snapshots;
     }
+
+    private static EditorPublicMacroSnapshot Snapshot(PublicMacroEntry entry, string source)
+        => new(entry.Id, entry.Version, entry.Macro.Name, entry.Macro.Description, source);
 
     private HeadlessEditorSession Required()
         => _documents.Required();
@@ -199,4 +218,11 @@ internal sealed partial class EditorSessionBridge(EditorDocumentService document
     /// </summary>
     private void OnDocumentsChanged()
         => _ = _server?.PushAsync("editor.changed", Snapshot());
+
+    private void OnLibraryChanged()
+        => _ = _server?.PushAsync("editor.publicMacros", PublicMacros());
+
+    /// <summary>Re-sends the public-macro rows after a setting changes which shelves are listed.</summary>
+    internal void PublishPublicMacros()
+        => _ = _server?.PushAsync("editor.publicMacros", PublicMacros());
 }

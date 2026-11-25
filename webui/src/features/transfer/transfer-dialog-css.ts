@@ -122,4 +122,49 @@ export const transferDialogCss = css`
       white-space: pre-line;
       color: var(--colorNeutralForeground1);
     }
+
+    .preview {
+      display: grid;
+      gap: var(--spacingVerticalS);
+      padding: var(--spacingVerticalS);
+      border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      border-radius: var(--borderRadiusMedium);
+      background: var(--colorNeutralBackground2);
+    }
+
+    .preview-head,
+    .preview-entry {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: var(--spacingHorizontalS);
+    }
+
+    .preview-head .name,
+    .preview-entry .name {
+      font-weight: var(--fontWeightSemibold);
+    }
+
+    .preview-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--spacingHorizontalM);
+    }
+
+    .preview-columns h3 {
+      margin: 0 0 var(--spacingVerticalXS);
+      font-size: var(--fontSizeBase300);
+      font-weight: var(--fontWeightSemibold);
+    }
+
+    .preview-columns p,
+    .preview-entry {
+      margin: 0;
+    }
+
+    @media (max-width: 520px) {
+      .preview-columns {
+        grid-template-columns: 1fr;
+      }
+    }
  `;

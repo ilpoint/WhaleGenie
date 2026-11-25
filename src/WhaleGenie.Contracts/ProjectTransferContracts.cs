@@ -17,13 +17,30 @@ public sealed record TransferMacro(
 [BridgeContract]
 public sealed record TransferGlobal(string Name, string Type, bool Conflicts);
 
+/// <summary>One public macro the preview sees in a package or in the current project.</summary>
+[BridgeContract]
+public sealed record PreviewLibraryEntry(string Id, string Name, int Version, string Source);
+
+/// <summary>The package-level facts both open and import show before any choice.</summary>
+[BridgeContract]
+public sealed record PackagePreview(
+    string FileName,
+    int FormatVersion,
+    string AppVersion,
+    string SavedUtc,
+    bool HasProject,
+    bool HasLibrary,
+    int TriggerCount,
+    IReadOnlyList<PreviewLibraryEntry> Library);
+
 /// <summary>What an import would bring, before any of it is written.</summary>
 [BridgeContract]
 public sealed record ProjectImportPlan(
     string Source,
     string FileName,
     IReadOnlyList<TransferMacro> Macros,
-    IReadOnlyList<TransferGlobal> Globals);
+    IReadOnlyList<TransferGlobal> Globals,
+    PackagePreview Preview);
 
 /// <summary>The answer to one global-variable conflict the import asked about.</summary>
 /// <remarks>
@@ -40,7 +57,10 @@ public sealed record ImportResult(string Report, ProjectState State);
 
 /// <summary>What an export could hold: every macro of the project, submacros included.</summary>
 [BridgeContract]
-public sealed record ProjectExportPlan(string SuggestedName, IReadOnlyList<TransferMacro> Macros);
+public sealed record ProjectExportPlan(
+    string SuggestedName,
+    IReadOnlyList<TransferMacro> Macros,
+    PackagePreview Preview);
 
 /// <summary>Where an export was written.</summary>
 [BridgeContract]

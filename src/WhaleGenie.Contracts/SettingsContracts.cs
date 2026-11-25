@@ -182,6 +182,9 @@ public sealed record SettingsState(
     IReadOnlyList<SettingsChoice> ScreenWays,
     SettingsMenuState Menu,
     SettingsWheelState Wheel,
+    string PublicMacroEditorSources,
+    bool ExportEmbeddedLibrary,
+    bool ImportLibraryToProject,
     SettingsLimits Limits);
 
 /// <summary>One open window the rule editor can choose from.</summary>

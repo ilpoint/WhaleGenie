@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json.Nodes;
+using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 using WhaleGenie.Storage;
 
@@ -41,6 +42,42 @@ public class PackageKindTests
             Assert.Equal("public-id", loaded.Id);
             Assert.Equal(4, loaded.Version);
             Assert.Equal("shared", loaded.Macro.Name);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void A_preview_does_not_extract_pictures_or_create_an_asset_folder()
+    {
+        var folder = Folder();
+        try
+        {
+            var picture = Path.Combine(folder, "button.png");
+            File.WriteAllBytes(picture, [1, 2, 3]);
+            var macro = new MacroItem { Name = "project" };
+            macro.Steps.Add(new MacroStep
+            {
+                Type = "vision.findImage",
+                Parameters =
+                [
+                    new StepParameter
+                    {
+                        Name = "image",
+                        Kind = ActionParameterKind.Image,
+                        Written = Fields.Shape(picture),
+                    },
+                ],
+            });
+            var path = Path.Combine(folder, "preview.wgmacro");
+            MacroPackage.Save(path, [macro], new ProjectTriggers(), [], "test");
+
+            var preview = MacroPackage.Preview(path);
+
+            Assert.True(preview.HasProject);
+            Assert.False(Directory.Exists(MacroPackage.AssetFolderFor(path)));
         }
         finally
         {
@@ -100,22 +137,24 @@ public class PackageKindTests
     }
 
     [Fact]
-    public void A_library_package_cannot_carry_project_triggers()
+    public void A_project_package_can_carry_its_own_library_section()
     {
         var folder = Folder();
         try
         {
-            var path = Path.Combine(folder, "public-macros.wgmacro");
-            PublicMacroLibrary.Save(path,
-                [new PublicMacroEntry("public-id", 1, new MacroItem { Name = "shared" })], "test");
-            using (var archive = ZipFile.Open(path, ZipArchiveMode.Update))
-            {
-                using var writer = new StreamWriter(archive.CreateEntry("triggers.json").Open());
-                writer.Write("{}");
-            }
+            var path = Path.Combine(folder, "project-with-library.wgmacro");
+            MacroPackage.Save(path, [new MacroItem { Name = "project" }],
+                new ProjectTriggers(), [], "test", library:
+                [new PublicMacroEntry("public-id", 3, new MacroItem { Name = "shared" })]);
 
-            var error = Assert.Throws<InvalidDataException>(() => MacroPackage.LoadLibrary(path));
-            Assert.Contains("triggers", error.Message, StringComparison.Ordinal);
+            var project = MacroPackage.Load(path);
+            Assert.Equal("project", Assert.Single(project.Macros).Name);
+            var shared = Assert.Single(project.Library);
+            Assert.Equal("public-id", shared.Id);
+            Assert.Equal(3, shared.Version);
+            Assert.Equal("shared", Assert.Single(MacroPackage.LoadLibrary(path).Entries).Macro.Name);
+            Assert.True(HasEntry(path, "triggers.json"));
+            Assert.True(HasEntry(path, "library/entries.json"));
         }
         finally
         {

@@ -35,14 +35,34 @@ public sealed class FilePackageStore : IPackageStore
         }
     }
 
+    public async Task<PackageOutcome<PackageContents>> PreviewAsync(string path,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var contents = await Task.Run(() => MacroPackage.Preview(path), cancellationToken)
+                .ConfigureAwait(false);
+            return PackageOutcomes.Success(contents);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            return PackageOutcomes.Failed<PackageContents>(ProblemForRead(error),
+                error.Message, error);
+        }
+    }
+
     public async Task<PackageOutcome> WriteAsync(PackageWriteRequest request,
         CancellationToken cancellationToken = default)
     {
         try
         {
             await Task.Run(() => MacroPackage.Save(request.Path, request.Macros,
-                request.Triggers, request.Globals, request.AppVersion, request.AssetFolder),
-                cancellationToken).ConfigureAwait(false);
+                request.Triggers, request.Globals, request.AppVersion, request.AssetFolder,
+                request.Library), cancellationToken).ConfigureAwait(false);
             return PackageOutcome.Success();
         }
         catch (OperationCanceledException)

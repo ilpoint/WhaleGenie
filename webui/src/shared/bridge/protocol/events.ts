@@ -1,9 +1,10 @@
 /** events bridge shapes. The barrel protocol.ts re-exports this file. */
 import type { DialogRequest, StringsBundle, ThemeState, WindowState } from './app.js';
-import type { EditorSnapshot } from './editor.js';
+import type { EditorPublicMacroSnapshot, EditorSnapshot } from './editor.js';
 import type { ProjectState } from './project.js';
 import type { SystemSwitchState } from './system.js';
 import type { McpState } from './mcp.js';
+import type { LibraryState } from './library.js';
 import type { RunLogBatch, RunLook, RunState, RunStep } from './run.js';
 import type { SurfacePanelSnapshot } from './panel.js';
 import type { SurfaceWheelSnapshot } from './wheel.js';
@@ -16,8 +17,10 @@ export interface BridgeEvents {
   'system.changed': SystemSwitchState;
   'dialog.request': DialogRequest;
   'mcp.changed': McpState;
+  'library.changed': LibraryState;
   'editor.openRequested': { name: string };
   'editor.changed': EditorSnapshot | null;
+  'editor.publicMacros': EditorPublicMacroSnapshot[];
   'editor.leaveAsked': { requestId: number; documents: string[] };
   'editor.leaveCancelled': { requestId: number };
   'run.changed': RunState;

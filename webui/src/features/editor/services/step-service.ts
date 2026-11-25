@@ -11,7 +11,7 @@ import { t } from '../../../shared/strings/strings.js';
 export class EditorStepService {
   constructor(private readonly core: EditorCore) {}
 
-  async addPublicMacro(id: string): Promise<boolean> {
+  async addPublicMacro(id: string, version = 0, source = 'local'): Promise<boolean> {
     const snapshot = this.core.state.snapshot;
     if (!snapshot) {
       return false;
@@ -19,7 +19,7 @@ export class EditorStepService {
 
     const before = new Set(flattenSteps(snapshot.steps).map((step) => step.id));
     const ok = await this.core.mutate<EditorSnapshot>('editor.session',
-      { kind: 'publicMacroAdd', id }, (next) => {
+      { kind: 'publicMacroAdd', id, version, source }, (next) => {
       this.core.applySnapshot(next);
       const added = flattenSteps(next.steps).find((step) => !before.has(step.id));
       if (added) {
@@ -81,7 +81,7 @@ export class EditorStepService {
    * A file source names the package and the macro inside it; the host reads the file.
    */
   async importSubMacro(source: 'public' | 'project' | 'file', reference: string,
-    path?: string): Promise<boolean> {
+    path?: string, version = 0, librarySource = 'local'): Promise<boolean> {
     const wanted = reference.trim();
     if (wanted.length === 0) {
       return false;
@@ -91,6 +91,8 @@ export class EditorStepService {
       kind: 'subMacroImport',
       source,
       reference: wanted,
+      version,
+      librarySource,
     };
     if (path !== undefined && path.length > 0) {
       params['path'] = path;

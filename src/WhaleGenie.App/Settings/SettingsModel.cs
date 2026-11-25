@@ -65,6 +65,15 @@ internal sealed class SettingsModel
     /// </summary>
     public bool AutoSaveProject { get; set; } = true;
 
+    /// <summary>"both", "local" or "project": which public-macro shelves the editor lists.</summary>
+    public string PublicMacroEditorSources { get; set; } = "both";
+
+    /// <summary>Whether a project export carries the project's embedded public macros.</summary>
+    public bool ExportEmbeddedLibrary { get; set; } = true;
+
+    /// <summary>Whether imported package libraries merge into the project shelf rather than the machine one.</summary>
+    public bool ImportLibraryToProject { get; set; } = true;
+
     /// <summary>
     /// Whether triggers listen as soon as the program starts. Off by default: a macro program that
     /// starts taking keyboard and mouse the moment it opens is a surprise nobody asked for.

@@ -65,11 +65,12 @@ public sealed record PackageWriteRequest(
     ProjectTriggers Triggers,
     IReadOnlyList<VariableDefinition> Globals,
     string AppVersion,
-    string? AssetFolder)
+    string? AssetFolder,
+    IReadOnlyList<PublicMacroEntry>? Library = null)
 {
     public static PackageWriteRequest From(ProjectSavePlan plan)
         => new(plan.Path, plan.Macros, plan.Triggers, plan.Globals, plan.AppVersion,
-            plan.AssetFolder);
+            plan.AssetFolder, plan.Library.Count == 0 ? null : plan.Library);
 }
 
 /// <summary>
@@ -81,6 +82,10 @@ public interface IPackageStore
 {
     /// <summary>Reads a package and unpacks its pictures into <paramref name="assetFolder"/>.</summary>
     Task<PackageOutcome<PackageContents>> ReadAsync(string path, string assetFolder,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Reads a summary without extracting pictures, for the pre-open/pre-import view.</summary>
+    Task<PackageOutcome<PackageContents>> PreviewAsync(string path,
         CancellationToken cancellationToken = default);
 
     /// <summary>Writes the archive atomically, preserving the previous package as a backup.</summary>

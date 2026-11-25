@@ -61,7 +61,7 @@ public static partial class MacroPackage
     /// </param>
     public static void Save(string path, IReadOnlyList<MacroItem> macros,
         ProjectTriggers triggers, IReadOnlyList<VariableDefinition> globals, string appVersion,
-        string? assetFolder = null)
+        string? assetFolder = null, IReadOnlyList<PublicMacroEntry>? library = null)
     {
         // A macro the editor has just built has names but no identities yet. Settling here is
         // idempotent: a macro that came from a file keeps every id it has, and a new declaration
@@ -100,7 +100,8 @@ public static partial class MacroPackage
             using (var stream = File.Create(temporary))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                SaveInto(archive, fullPath, macros, triggers, globals, appVersion, assetFolder);
+                SaveInto(archive, fullPath, macros, triggers, globals, appVersion, assetFolder,
+                    projectSection: true, library: library);
             }
 
             // The package being replaced is kept as a copy under the program's data folder. A save
@@ -161,8 +162,8 @@ public static partial class MacroPackage
             using (var stream = File.Create(temporary))
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create))
             {
-                SaveInto(archive, fullPath, [.. entries.Select(entry => entry.Macro)],
-                    new ProjectTriggers(), [], appVersion, assetFolder, entries);
+                SaveInto(archive, fullPath, [], new ProjectTriggers(), [], appVersion,
+                    assetFolder, projectSection: false, library: entries);
             }
 
             if (File.Exists(fullPath))

@@ -213,7 +213,69 @@ public class PackageTransferTests : IDisposable
     }
 
     [Fact]
-    public async Task A_library_package_is_refused_by_project_transfer()
+    public async Task An_export_can_carry_and_reimport_the_project_library()
+    {
+        _project.AddMacro(new MacroItem { Name = "甲" });
+        _project.MergeLibrary(
+            [new PublicMacroEntry("project-lib", 3, new MacroItem { Name = "shared" })]);
+
+        var plan = _transfer.PlanExport(_project);
+        Assert.True(plan.Value!.Preview.HasLibrary);
+        Assert.Equal("shared", Assert.Single(plan.Value.Preview.Library).Name);
+
+        var path = Package("with-library");
+        Assert.True((await _transfer.ApplyExportAsync(_project, path, ["甲"])).Ok);
+
+        var fresh = new ProjectWorkspace();
+        var preview = await _transfer.PlanImportAsync(fresh, path);
+        Assert.True(preview.Ok);
+        Assert.True(preview.Value!.Preview.HasLibrary);
+        Assert.Equal("project-lib",
+            Assert.Single(preview.Value.Preview.Library).Id);
+
+        var imported = await _transfer.ApplyImportAsync(fresh, path, ["甲"], []);
+        Assert.True(imported.Ok);
+        Assert.Equal("project-lib", Assert.Single(fresh.Library).Id);
+        Assert.Equal(3, Assert.Single(fresh.Library).Version);
+    }
+
+    [Fact]
+    public async Task Export_can_leave_the_project_library_behind()
+    {
+        _project.AddMacro(new MacroItem { Name = "甲" });
+        _project.MergeLibrary(
+            [new PublicMacroEntry("project-lib", 1, new MacroItem { Name = "shared" })]);
+
+        var path = Package("without-library");
+        var result = await _transfer.ApplyExportAsync(_project, path, ["甲"], includeLibrary: false);
+        Assert.True(result.Ok);
+
+        var fresh = new ProjectWorkspace();
+        var preview = await _transfer.PlanImportAsync(fresh, path);
+        Assert.True(preview.Ok);
+        Assert.False(preview.Value!.Preview.HasLibrary);
+        Assert.Empty(preview.Value.Preview.Library);
+    }
+
+    [Fact]
+    public async Task Importing_a_library_package_can_target_the_machine_library()
+    {
+        var path = Package("library-target");
+        PublicMacroLibrary.Save(path,
+            [new PublicMacroEntry("machine-id", 2, new MacroItem { Name = "shared" })], "test");
+
+        var result = await _transfer.ApplyImportAsync(_project, path, [], [],
+            libraryToProject: false);
+        Assert.True(result.Ok);
+
+        Assert.Empty(_project.Library);
+        var machine = Assert.Single(PublicMacroLibrary.Load(_library));
+        Assert.Equal("machine-id", machine.Id);
+        Assert.Equal(2, machine.Version);
+    }
+
+    [Fact]
+    public async Task A_library_package_previews_as_library_only()
     {
         var path = Package("library");
         PublicMacroLibrary.Save(path,
@@ -221,8 +283,11 @@ public class PackageTransferTests : IDisposable
 
         var plan = await _transfer.PlanImportAsync(_project, path);
 
-        Assert.False(plan.Ok);
-        Assert.Equal(PackageProblem.LibraryNotProject, plan.Problem);
+        Assert.True(plan.Ok);
+        Assert.Empty(plan.Value!.Macros);
+        Assert.False(plan.Value.Preview.HasProject);
+        Assert.True(plan.Value.Preview.HasLibrary);
+        Assert.Equal("shared", Assert.Single(plan.Value.Preview.Library).Name);
         Assert.Empty(_project.Macros);
     }
 

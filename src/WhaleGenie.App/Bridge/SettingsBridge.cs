@@ -80,6 +80,9 @@ internal sealed partial class SettingsBridge : IBridgeHandler
             way.Way.ToString(), way.ToString()))],
         MenuState(),
         WheelState(),
+        _settings.PublicMacroEditorSources,
+        _settings.ExportEmbeddedLibrary,
+        _settings.ImportLibraryToProject,
         new SettingsLimits(
             LogRetention.Fewest,
             LogRetention.Most,
@@ -140,6 +143,9 @@ internal sealed partial class SettingsBridge : IBridgeHandler
         if (patch.FrameRate is { } frameRate) { _settings.FrameRate = frameRate; touched = true; }
         if (patch.FrameCacheAge is { } frameCacheAge) { _settings.FrameCacheAge = frameCacheAge; touched = true; }
         if (patch.LogCount is { } logCount) { _settings.LogCount = logCount; touched = true; }
+        if (patch.PublicMacroEditorSources is { } sources) { _settings.PublicMacroEditorSources = sources; touched = true; }
+        if (patch.ExportEmbeddedLibrary is { } exportLibrary) { _settings.ExportEmbeddedLibrary = exportLibrary; touched = true; }
+        if (patch.ImportLibraryToProject is { } importProject) { _settings.ImportLibraryToProject = importProject; touched = true; }
         if (patch.WindowWay is { } windowWay)
         {
             _settings.SelectedWindowWay = _settings.WindowWays.First(way =>

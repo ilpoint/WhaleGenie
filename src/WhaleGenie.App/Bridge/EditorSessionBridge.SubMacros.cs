@@ -81,7 +81,8 @@ internal sealed partial class EditorSessionBridge
         var source = command.Source.Trim().ToLowerInvariant();
         return source switch
         {
-            "public" => PublicLibraryMacro(reference),
+            "public" => PublicLibraryMacro(reference, command.Version,
+                command.LibrarySource ?? "local"),
             "project" => workspace.Macros.FirstOrDefault(macro => string.Equals(
                 macro.Name.Trim(), reference, StringComparison.OrdinalIgnoreCase))
                 ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
@@ -92,15 +93,21 @@ internal sealed partial class EditorSessionBridge
         };
     }
 
-    private MacroItem PublicLibraryMacro(string id)
+    private MacroItem PublicLibraryMacro(string id, int version = 0, string source = "local")
     {
-        var entry = _publicLibrary.Load()
-            .FirstOrDefault(candidate => string.Equals(candidate.Id, id, StringComparison.Ordinal))
-            ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
-                Strings.Format("Bridge.NoSuchMacro", id));
-        return _publicLibrary.CopyToProject(entry,
-            ImageAssets.FolderFor(workspace.CurrentPath),
-            PublicMacroLibrary.AssetFolderFor(_publicLibrary.Path));
+        var entry = source == "project"
+            ? workspace.Library.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, id, StringComparison.Ordinal)
+                && (version <= 0 || candidate.Version == version))
+            : _publicLibrary.Load().FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, id, StringComparison.Ordinal)
+                && (version <= 0 || candidate.Version == version));
+        var found = entry ?? throw new BridgeFailureException(BridgeErrors.NoSuchMacro,
+            Strings.Format("Bridge.NoSuchMacro", id));
+        var assetFolder = source == "project"
+            ? ImageAssets.FolderFor(workspace.CurrentPath)
+            : PublicMacroLibrary.AssetFolderFor(_publicLibrary.Path);
+        return _publicLibrary.CopyToProject(found, assetFolder, assetFolder);
     }
 
     private MacroItem PackageMacro(string path, string name)

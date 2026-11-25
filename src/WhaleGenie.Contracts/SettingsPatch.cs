@@ -27,4 +27,7 @@ public sealed record SettingsPatch(
     string? ScreenWay,
     string? Language,
     string? SystemHotkey,
-    string? RecordStopKey);
+    string? RecordStopKey,
+    string? PublicMacroEditorSources,
+    bool? ExportEmbeddedLibrary,
+    bool? ImportLibraryToProject);

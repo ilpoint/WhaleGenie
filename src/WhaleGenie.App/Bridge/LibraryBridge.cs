@@ -26,9 +26,11 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
     private readonly IPublicLibraryStore _store =
         store ?? new FilePublicLibraryStore(libraryPath);
     private readonly IPackageStore _packages = packages ?? new FilePackageStore();
+    private BridgeServer? _server;
 
     public void Register(BridgeServer server)
     {
+        _server = server;
         server.Register("library.state", _ => Task.FromResult<object?>(State()));
         server.Register("library.create", Create);
         server.Register("library.import", Import);
@@ -117,7 +119,9 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
             throw new BridgeFailureException(BridgeErrors.Internal, error.Message);
         }
 
-        return State();
+        var state = State();
+        _ = _server?.PushAsync("library.changed", state);
+        return state;
     }
 
     private static bool SamePath(string left, string right)
@@ -209,7 +213,9 @@ internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dial
         {
             var entries = change(Entries());
             _store.Save(entries, AppVersion.Text);
-            return Task.FromResult<object?>(State());
+            var state = State();
+            _ = _server?.PushAsync("library.changed", state);
+            return Task.FromResult<object?>(state);
         }
         catch (Exception error) when (error is IOException or InvalidDataException)
         {

@@ -62,6 +62,35 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void Public_macro_choices_have_safe_defaults_and_round_trip()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-appsettings-"
+            + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var file = Path.Combine(folder, "settings.json");
+            var settings = new AppSettings(file);
+            Assert.Equal("both", settings.LoadPublicMacroEditorSources());
+            Assert.True(settings.LoadExportEmbeddedLibrary());
+            Assert.True(settings.LoadImportLibraryToProject());
+
+            settings.StorePublicMacroEditorSources("nonsense");
+            settings.StoreExportEmbeddedLibrary(false);
+            settings.StoreImportLibraryToProject(false);
+
+            var fresh = new AppSettings(file);
+            Assert.Equal("both", fresh.LoadPublicMacroEditorSources());
+            Assert.False(fresh.LoadExportEmbeddedLibrary());
+            Assert.False(fresh.LoadImportLibraryToProject());
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void The_menu_pin_is_off_by_default_and_round_trips_when_remembered()
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-appsettings-" + Guid.NewGuid().ToString("N"));

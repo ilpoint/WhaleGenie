@@ -95,7 +95,8 @@ internal static class WindowedServices
             new EditorBrowserTestHost(),
             new EditorElementTestHost(() => sp.GetService<WebShellWindow>()),
             sp.GetRequiredService<IPublicLibraryStore>(),
-            sp.GetRequiredService<IPackageStore>()))
+            sp.GetRequiredService<IPackageStore>(),
+            sp.GetRequiredService<AppSettings>()))
         .AddSingleton<IEditorDocuments>(sp => sp.GetRequiredService<EditorDocumentService>())
         .AddSingleton<EditorLeavePrompt>()
         .AddSingleton<IEditorLeavePrompt>(sp => sp.GetRequiredService<EditorLeavePrompt>())
@@ -179,6 +180,7 @@ internal static class WindowedServices
 
                     systemBridge.Publish();
                     autoSave.OnSettingsChanged();
+                    sp.GetService<EditorSessionBridge>()?.PublishPublicMacros();
                 }));
             server.Register(new RunBridge(sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>(), new AvaloniaUiPost()));

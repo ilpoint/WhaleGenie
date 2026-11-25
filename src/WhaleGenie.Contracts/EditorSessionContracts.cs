@@ -4,7 +4,8 @@ namespace WhaleGenie.Contracts;
 
 /// <summary>One public macro in the library a session can copy from.</summary>
 [BridgeContract]
-public sealed record EditorPublicMacroSnapshot(string Id, int Version, string Name, string Description);
+public sealed record EditorPublicMacroSnapshot(string Id, int Version, string Name,
+    string Description, string Source);
 
 /// <summary>One page of an action form: its key, its label and whether it carries anything.</summary>
 [BridgeContract]

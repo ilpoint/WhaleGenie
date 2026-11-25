@@ -43,6 +43,31 @@ public partial class SettingsViewModel
         }
     }
 
+    partial void OnPublicMacroEditorSourcesChanged(string value)
+    {
+        if (!string.Equals(value, _settings.LoadPublicMacroEditorSources(),
+                StringComparison.OrdinalIgnoreCase))
+        {
+            _settings.StorePublicMacroEditorSources(value);
+        }
+    }
+
+    partial void OnExportEmbeddedLibraryChanged(bool value)
+    {
+        if (value != _settings.LoadExportEmbeddedLibrary())
+        {
+            _settings.StoreExportEmbeddedLibrary(value);
+        }
+    }
+
+    partial void OnImportLibraryToProjectChanged(bool value)
+    {
+        if (value != _settings.LoadImportLibraryToProject())
+        {
+            _settings.StoreImportLibraryToProject(value);
+        }
+    }
+
     /// <summary>Stores whether triggers listen as soon as the program starts.</summary>
     partial void OnSystemAtStartChanged(bool value)
     {

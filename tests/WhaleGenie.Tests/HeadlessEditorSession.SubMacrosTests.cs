@@ -7,6 +7,7 @@ using WhaleGenie.Bridge;
 using WhaleGenie.Editing;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Tests;
 
@@ -107,6 +108,25 @@ public class HeadlessEditorSessionSubMacroTests
         Assert.Equal("control.log",
             Assert.Single(saved.SubMacros.Single(macro => macro.Name == "renamed").Steps).Type);
         Assert.Equal("control.log", Assert.Single(library.Steps).Type);
+    }
+
+    [Fact]
+    public void A_project_embedded_public_macro_becomes_a_child_in_one_call()
+    {
+        var workspace = new ProjectWorkspace();
+        workspace.AddMacro(new MacroItem { Name = "host" });
+        workspace.MergeLibrary(
+            [new PublicMacroEntry("public-id", 4, new MacroItem { Name = "shared" })]);
+        var session = new EditorDocumentSet(workspace).Open("host");
+
+        session.AddPublicMacro("public-id", "project", 4);
+
+        Assert.Contains("shared", session.Snapshot().SubMacros);
+        Assert.True(session.Save().Succeeded);
+        var shared = Assert.Single(workspace.Macros.Single().SubMacros);
+        Assert.Equal("shared", shared.Name);
+        Assert.Equal("public-id", shared.Origin!.Id);
+        Assert.Equal(4, shared.Origin.Version);
     }
 
     [Fact]

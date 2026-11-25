@@ -21,7 +21,7 @@ public static partial class MacroPackage
     private static void SaveInto(ZipArchive archive, string packagePath,
         IReadOnlyList<MacroItem> macros, ProjectTriggers triggers,
         IReadOnlyList<VariableDefinition> globals, string appVersion, string? assetFolder,
-        IReadOnlyList<PublicMacroEntry>? library = null)
+        bool projectSection, IReadOnlyList<PublicMacroEntry>? library = null)
     {
         var assets = new AssetCollector(archive,
             [AssetFolderFor(packagePath), Path.GetDirectoryName(packagePath), assetFolder]);
@@ -46,22 +46,27 @@ public static partial class MacroPackage
                 ["steps"] = macro.Steps.Count,
             });
 
-            if (library is not null)
-            {
-                var entry = library[index - 1];
-                libraryEntries.Add(new JsonObject
-                {
-                    ["id"] = entry.Id,
-                    ["version"] = Math.Max(1, entry.Version),
-                    ["name"] = macro.Name.Trim(),
-                    ["description"] = macro.Description,
-                    ["document"] = entryName,
-                });
-            }
-
             var entries = triggers.ForMacro(macro.Name);
             files.Add((macro.Name, string.Join(" / ", entries.Select(entry => entry.KindLabel)),
                 entries.Count.ToString(CultureInfo.InvariantCulture), macro.Steps.Count));
+        }
+
+        foreach (var entry in library ?? [])
+        {
+            index++;
+            var entryName =
+                $"{NodesFolder}{index:00}-library-{Slug(entry.Macro.Name)}.json";
+            var document = entry.Macro.ToJson();
+            RewriteAssets(document, assets.Import);
+            WriteEntry(archive, entryName, document.ToJsonString(Indented));
+            libraryEntries.Add(new JsonObject
+            {
+                ["id"] = entry.Id,
+                ["version"] = Math.Max(1, entry.Version),
+                ["name"] = entry.Macro.Name.Trim(),
+                ["description"] = entry.Macro.Description,
+                ["document"] = entryName,
+            });
         }
 
         var manifestVariables = new JsonArray();
@@ -91,11 +96,16 @@ public static partial class MacroPackage
         };
 
         WriteEntry(archive, ManifestEntry, manifest.ToJsonString(Indented));
-        if (library is null)
+        if (projectSection)
         {
             WriteEntry(archive, TriggersEntry, triggersNode.ToJsonString(Indented));
         }
-        else
+        else if (library is null)
+        {
+            throw new InvalidOperationException("a package needs a project or library section");
+        }
+
+        if (library is not null)
         {
             WriteEntry(archive, LibraryEntriesEntry, new JsonObject
             {
@@ -105,24 +115,25 @@ public static partial class MacroPackage
         }
 
         WriteEntry(archive, ReadmeEntry,
-            BuildReadme(appVersion, files, globals, assets.Stored, library is not null));
+            BuildReadme(appVersion, files, globals, assets.Stored, projectSection,
+                library is not null));
     }
 
     /// <summary>Human readable summary stored next to the JSON, for people opening the zip.</summary>
     private static string BuildReadme(string appVersion,
         IReadOnlyList<(string Name, string Trigger, string Loop, int Steps)> macros,
         IReadOnlyList<VariableDefinition> globals, IReadOnlyList<string> assets,
-        bool library = false)
+        bool projectSection, bool librarySection)
     {
         var text = new StringBuilder();
-        text.AppendLine(library ? "# WhaleGenie public macro library" : "# WhaleGenie macro package");
+        text.AppendLine(projectSection ? "# WhaleGenie macro package" : "# WhaleGenie public macro library");
         text.AppendLine();
-        text.AppendLine(library
-                ? "This file is a WhaleGenie public macro library. It is a package with callable"
-                : "This file is a WhaleGenie macro project. It is a zip archive; rename it to")
-            .AppendLine(library
-                ? "macros under `library/entries.json`, not a project."
-                : "`.zip` if you want to look inside without WhaleGenie.");
+        text.AppendLine(projectSection
+                ? "This file is a WhaleGenie macro project. It is a zip archive; rename it to"
+                : "This file is a WhaleGenie public macro library. It is a package with callable")
+            .AppendLine(projectSection
+                ? "`.zip` if you want to look inside without WhaleGenie."
+                : "macros under `library/entries.json`, not a project.");
         text.AppendLine();
         text.AppendLine(CultureInfo.InvariantCulture,
             $"- Format: `{FormatId}` version {FormatVersion}");
@@ -137,13 +148,13 @@ public static partial class MacroPackage
         text.AppendLine("| --- | --- |");
         text.AppendLine("| `manifest.json` | Format version and the list of everything in the package. |");
         text.AppendLine("| `README.md` | This file. |");
-        if (library)
-        {
-            text.AppendLine("| `library/entries.json` | Callable entries and their public versions. |");
-        }
-        else
+        if (projectSection)
         {
             text.AppendLine("| `triggers.json` | Trigger entries, floating-group positions, menu pages, blocked programs and the menu launcher. |");
+        }
+        if (librarySection)
+        {
+            text.AppendLine("| `library/entries.json` | Callable entries and their public versions. |");
         }
         text.AppendLine("| `nodes/` | One JSON document per macro, holding its steps. |");
         text.AppendLine("| `assets/` | Images the macros use, referenced as `assets/<file>`. |");

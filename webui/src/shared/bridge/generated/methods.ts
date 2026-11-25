@@ -61,6 +61,7 @@ export type BridgeMethod =
   | 'project.importApply'
   | 'project.importPlan'
   | 'project.open'
+  | 'project.preview'
   | 'project.reload'
   | 'project.save'
   | 'project.saveAs'

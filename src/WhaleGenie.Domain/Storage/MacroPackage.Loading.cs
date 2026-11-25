@@ -31,29 +31,54 @@ public static partial class MacroPackage
 
     private static PackageContents Load(string path, string assetFolder, bool reuseExisting)
     {
-        var read = Read(path, assetFolder, reuseExisting, PackageKind.Project);
-        return new PackageContents
+        var read = Read(path, assetFolder, reuseExisting, PackageKind.Project,
+            extractAssets: true);
+        return ToContents(read);
+    }
+
+    /// <summary>
+    /// Reads the package summary used before a person chooses open or import. It parses documents
+    /// but never extracts a picture, so cancelling a preview leaves no asset folder behind.
+    /// </summary>
+    public static PackageContents Preview(string path)
+    {
+        try
+        {
+            var project = Read(path, AssetFolderFor(path), reuseExisting: true,
+                PackageKind.Project, extractAssets: false);
+            return ToContents(project);
+        }
+        catch (PackageKindMismatchException error) when (error.Actual == PackageKind.Library)
+        {
+            var library = Read(path, AssetFolderFor(path), reuseExisting: true,
+                PackageKind.Library, extractAssets: false);
+            return ToContents(library);
+        }
+    }
+
+    private static PackageContents ToContents(RawPackage read)
+        => new()
         {
             Macros = read.Macros,
             Globals = read.Globals,
             Triggers = read.Triggers,
+            Library = read.Library ?? [],
+            FormatVersion = read.FormatVersion,
+            AppVersion = read.AppVersion,
+            SavedUtc = read.SavedUtc,
+            HasProject = read.HasProject,
         };
-    }
 
-    /// <summary>
-    /// Reads the public-library section of a package. A project package is refused rather than
-    /// half-read: a library file must say which callable macros and versions it carries.
-    /// </summary>
     public static LibraryContents LoadLibrary(string path, string? assetFolder = null,
         bool reuseExisting = true)
     {
         var read = Read(path, assetFolder ?? AssetFolderFor(path), reuseExisting,
-            PackageKind.Library);
+            PackageKind.Library, extractAssets: true);
         return new LibraryContents { Entries = read.Library ?? [] };
     }
 
     private static RawPackage Read(string path, string assetFolder, bool reuseExisting,
-        PackageKind expected)
+        PackageKind expected, bool extractAssets)
     {
         var fullPath = Path.GetFullPath(path);
         using var stream = File.OpenRead(fullPath);
@@ -83,28 +108,20 @@ public static partial class MacroPackage
             throw new InvalidDataException(Strings.Get("Package.LibraryEntriesMissing"));
         }
 
-        var kind = libraryNode is null ? PackageKind.Project : PackageKind.Library;
-        if (kind != expected)
+        var hasProject = archive.GetEntry(TriggersEntry) is not null;
+        var hasLibrary = libraryNode is not null;
+        if (expected == PackageKind.Project && !hasProject)
         {
-            throw new PackageKindMismatchException(kind);
+            throw new PackageKindMismatchException(PackageKind.Library);
         }
 
-        if (kind == PackageKind.Library)
+        if (expected == PackageKind.Library && !hasLibrary)
         {
-            if (archive.GetEntry(TriggersEntry) is not null)
-            {
-                throw new InvalidDataException(Strings.Get("Package.LibraryHasTriggers"));
-            }
-
-            if (manifest["variables"] is JsonArray { Count: > 0 })
-            {
-                throw new InvalidDataException(Strings.Get("Package.LibraryHasVariables"));
-            }
+            throw new PackageKindMismatchException(PackageKind.Project);
         }
 
-        var assets = new AssetExtractor(archive, assetFolder, reuseExisting);
+        var assets = new AssetExtractor(archive, assetFolder, reuseExisting, extractAssets);
         var macros = new List<MacroItem>();
-        var byDocument = new Dictionary<string, MacroItem>(StringComparer.Ordinal);
 
         foreach (var item in manifest["macros"] as JsonArray ?? [])
         {
@@ -128,7 +145,6 @@ public static partial class MacroPackage
 
             macro.IsEnabled = ReadBool(entry, "enabled", true);
             macros.Add(macro);
-            byDocument[document] = macro;
         }
 
         // Two macros with one name can only come from a file somebody edited by hand: the editor
@@ -138,19 +154,17 @@ public static partial class MacroPackage
         // to that name meaning whichever happened to be read first.
         Disambiguate(macros, DateTime.Now);
 
-        var triggers = kind == PackageKind.Project
+        var triggers = hasProject
             ? ProjectTriggers.FromJson(ReadObject(archive, TriggersEntry))
             : new ProjectTriggers();
         ExpandMenuIcons(triggers, assets.Expand);
 
-        var globals = kind == PackageKind.Project
-            ? ReadGlobals(manifest)
-            : [];
+        var globals = hasProject ? ReadGlobals(manifest) : [];
 
         IReadOnlyList<PublicMacroEntry>? library = null;
-        if (kind == PackageKind.Library)
+        if (libraryNode is not null)
         {
-            library = ReadLibraryEntries(libraryNode!, byDocument);
+            library = ReadLibraryEntries(archive, libraryNode, assets);
         }
 
         return new RawPackage
@@ -159,6 +173,10 @@ public static partial class MacroPackage
             Globals = globals,
             Triggers = triggers,
             Library = library,
+            FormatVersion = version,
+            AppVersion = ReadString(manifest, "appVersion"),
+            SavedUtc = ReadString(manifest, "savedUtc"),
+            HasProject = hasProject,
         };
     }
 
@@ -185,8 +203,8 @@ public static partial class MacroPackage
         return globals;
     }
 
-    private static List<PublicMacroEntry> ReadLibraryEntries(JsonObject library,
-        IReadOnlyDictionary<string, MacroItem> macros)
+    private static List<PublicMacroEntry> ReadLibraryEntries(ZipArchive archive, JsonObject library,
+        AssetExtractor assets)
     {
         var version = library["version"]?.GetValue<int>() ?? 0;
         if (version != LibraryEntriesVersion)
@@ -205,22 +223,20 @@ public static partial class MacroPackage
 
             var id = ReadString(descriptor, "id").Trim();
             var document = ReadString(descriptor, "document").Trim();
-            if (id.Length == 0 || document.Length == 0 || !macros.TryGetValue(document, out var macro))
+            if (id.Length == 0 || document.Length == 0
+                || ReadObject(archive, document) is not { } node)
             {
                 continue;
             }
 
-            var name = ReadString(descriptor, "name").Trim();
-            if (name.Length > 0)
-            {
-                macro.Name = name;
-            }
-
-            var description = ReadString(descriptor, "description");
-            if (description.Length > 0)
-            {
-                macro.Description = description;
-            }
+            RewriteAssets(node, assets.Expand);
+            var macro = MacroItem.FromJson(node);
+            macro.Name = ReadString(descriptor, "name").Trim() is { Length: > 0 } name
+                ? name
+                : macro.Name.Trim();
+            macro.Description = ReadString(descriptor, "description") is { Length: > 0 } description
+                ? description
+                : macro.Description;
 
             var macroVersion = descriptor["version"] is JsonValue value
                 && value.TryGetValue<int>(out var parsed)
@@ -241,5 +257,13 @@ public static partial class MacroPackage
         public required ProjectTriggers Triggers { get; init; }
 
         public IReadOnlyList<PublicMacroEntry>? Library { get; init; }
+
+        public int FormatVersion { get; init; }
+
+        public string AppVersion { get; init; } = string.Empty;
+
+        public string SavedUtc { get; init; } = string.Empty;
+
+        public bool HasProject { get; init; }
     }
 }

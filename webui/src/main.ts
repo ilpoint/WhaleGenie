@@ -85,6 +85,7 @@ if (!overlayRoute) {
 
   // A project replacement closed documents in C#; no command the page sent carries that change.
   client.on('editor.changed', (snapshot) => editor.applyHostSnapshot(snapshot));
+  client.on('editor.publicMacros', (macros) => editor.applyPublicMacros(macros));
 }
 
 const bundle = await client.call<StringsBundle>('strings.bundle');

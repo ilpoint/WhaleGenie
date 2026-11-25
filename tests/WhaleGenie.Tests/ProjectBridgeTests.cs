@@ -267,6 +267,57 @@ public class ProjectBridgeTests : IDisposable
     }
 
     [Fact]
+    public async Task A_package_preview_lists_project_and_embedded_library_content()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, "both" + MacroPackage.Extension);
+        var libraryOnly = Path.Combine(folder, "library" + MacroPackage.Extension);
+        MacroPackage.Save(path, [new MacroItem { Name = "project" }],
+            new ProjectTriggers(), [], "1.2.3",
+            library: [new PublicMacroEntry("lib-id", 4, new MacroItem { Name = "shared" })]);
+        PublicMacroLibrary.Save(libraryOnly,
+            [new PublicMacroEntry("only-id", 2, new MacroItem { Name = "only" })], "1.2.3");
+
+        try
+        {
+            await _server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 1,
+                method = "project.preview",
+                @params = new { path },
+            }));
+            var preview = JsonDocument.Parse(_channel.Sent.Single(text =>
+                text.Contains("\"id\":1"))).RootElement.GetProperty("result");
+            Assert.True(preview.GetProperty("preview").GetProperty("hasProject").GetBoolean());
+            Assert.True(preview.GetProperty("preview").GetProperty("hasLibrary").GetBoolean());
+            Assert.Equal("lib-id", preview.GetProperty("preview").GetProperty("library")
+                .EnumerateArray().Single().GetProperty("id").GetString());
+            Assert.Empty(_workspace.Macros);
+
+            await _server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 2,
+                method = "project.preview",
+                @params = new { path = libraryOnly },
+            }));
+            var libraryPreview = JsonDocument.Parse(_channel.Sent.Single(text =>
+                text.Contains("\"id\":2"))).RootElement.GetProperty("result");
+            var facts = libraryPreview.GetProperty("preview");
+            Assert.False(facts.GetProperty("hasProject").GetBoolean());
+            Assert.True(facts.GetProperty("hasLibrary").GetBoolean());
+            Assert.Empty(libraryPreview.GetProperty("macros").EnumerateArray());
+            Assert.Equal("only", facts.GetProperty("library").EnumerateArray().Single()
+                .GetProperty("name").GetString());
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
     public async Task A_package_plan_and_apply_round_trip_over_the_bridge()
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests", Guid.NewGuid().ToString("N"));

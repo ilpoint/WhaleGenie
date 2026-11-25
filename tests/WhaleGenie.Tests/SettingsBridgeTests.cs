@@ -58,6 +58,31 @@ public class SettingsBridgeTests
     }
 
     [Fact]
+    public async Task The_public_macro_settings_are_written_and_shown()
+    {
+        using var files = new TempSettings();
+        var server = Server(new MainViewModel());
+        var channel = Channel(server);
+
+        var answer = await Call(server, channel, "settings.update", new
+        {
+            patch = new
+            {
+                publicMacroEditorSources = "project",
+                exportEmbeddedLibrary = false,
+                importLibraryToProject = false,
+            },
+        });
+
+        Assert.Equal("project", answer.GetProperty("publicMacroEditorSources").GetString());
+        Assert.False(answer.GetProperty("exportEmbeddedLibrary").GetBoolean());
+        Assert.False(answer.GetProperty("importLibraryToProject").GetBoolean());
+        Assert.Equal("project", AppSettings.Shared.LoadPublicMacroEditorSources());
+        Assert.False(AppSettings.Shared.LoadExportEmbeddedLibrary());
+        Assert.False(AppSettings.Shared.LoadImportLibraryToProject());
+    }
+
+    [Fact]
     public async Task The_automatic_save_switch_is_part_of_the_settings_patch()
     {
         using var files = new TempSettings();

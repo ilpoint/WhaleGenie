@@ -62,6 +62,30 @@ export function renderSettingsCards(host: SettingsSectionsHost): TemplateResult 
 
         ${renderTheme(host.theme, host.themeActions())}
 
+        <section class="card" data-settings-section="general">
+          <div class="card-head">
+            <h2>${t('Settings.PublicMacros')}</h2>
+            <span class="note">${t('Settings.PublicMacrosNote')}</span>
+          </div>
+          <div class="row">
+            <label>${t('Settings.PublicMacroEditorSources')}</label>
+            <select @change=${(event: Event) => void host.changeSetting(
+              'publicMacroEditorSources', event)}>
+              <option value="both" ?selected=${settings.publicMacroEditorSources === 'both'}>
+                ${t('Settings.PublicMacroSources.Both')}
+              </option>
+              <option value="project" ?selected=${settings.publicMacroEditorSources === 'project'}>
+                ${t('Settings.PublicMacroSources.Project')}
+              </option>
+              <option value="local" ?selected=${settings.publicMacroEditorSources === 'local'}>
+                ${t('Settings.PublicMacroSources.Local')}
+              </option>
+            </select>
+          </div>
+          ${toggle(host, 'exportEmbeddedLibrary', 'Settings.ExportEmbeddedLibrary')}
+          ${toggle(host, 'importLibraryToProject', 'Settings.ImportLibraryToProject')}
+        </section>
+
         <section class="card" data-settings-section="input">
           <div class="card-head">
             <h2>${t('Settings.Hotkeys')}</h2>

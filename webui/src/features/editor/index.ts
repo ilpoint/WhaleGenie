@@ -30,7 +30,7 @@ export async function newMacro(): Promise<boolean> {
  * becomes a project macro by itself; it lives on as a sub-macro with a call step, which is what
  * "use it" means.
  */
-export async function usePublicMacro(id: string): Promise<boolean> {
+export async function usePublicMacro(id: string, version = 0, source = 'local'): Promise<boolean> {
   await editor.session.ensureLoaded();
   if (editor.get().snapshot === null) {
     if (!(await editor.session.newDocument())) {
@@ -38,7 +38,7 @@ export async function usePublicMacro(id: string): Promise<boolean> {
     }
   }
 
-  if (!(await editor.steps.addPublicMacro(id))) {
+  if (!(await editor.steps.addPublicMacro(id, version, source))) {
     return false;
   }
 

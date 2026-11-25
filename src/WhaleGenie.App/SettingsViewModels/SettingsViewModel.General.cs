@@ -32,6 +32,16 @@ public partial class SettingsViewModel
     [ObservableProperty]
     public partial bool AutoSaveProject { get; set; }
 
+    /// <summary>"both", "local" or "project".</summary>
+    [ObservableProperty]
+    public partial string PublicMacroEditorSources { get; set; } = "both";
+
+    [ObservableProperty]
+    public partial bool ExportEmbeddedLibrary { get; set; } = true;
+
+    [ObservableProperty]
+    public partial bool ImportLibraryToProject { get; set; } = true;
+
     /// <summary>
     /// Whether triggers listen as soon as the program starts. Off leaves the system disabled until it
     /// is turned on, which is the quieter thing to do on a shared machine.

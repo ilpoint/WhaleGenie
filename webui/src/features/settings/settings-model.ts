@@ -7,6 +7,9 @@ export type CaptureKind = 'systemHotkey' | 'recordStopKey' | 'menu' | 'wheelRepe
 export type EditableSetting =
   | 'loadLastProjectAtStart'
   | 'autoSaveProject'
+  | 'publicMacroEditorSources'
+  | 'exportEmbeddedLibrary'
+  | 'importLibraryToProject'
   | 'systemAtStart'
   | 'enabledFirst'
   | 'ignoreOwnInput'

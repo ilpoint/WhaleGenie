@@ -23,13 +23,16 @@ public static partial class MacroPackage
         private readonly ZipArchive _archive;
         private readonly string _folder;
         private readonly bool _reuseExisting;
+        private readonly bool _extract;
         private readonly Dictionary<string, string> _mapped = new(StringComparer.OrdinalIgnoreCase);
 
-        public AssetExtractor(ZipArchive archive, string folder, bool reuseExisting)
+        public AssetExtractor(ZipArchive archive, string folder, bool reuseExisting,
+            bool extract = true)
         {
             _archive = archive;
             _folder = folder;
             _reuseExisting = reuseExisting;
+            _extract = extract;
         }
 
         /// <summary>
@@ -84,7 +87,8 @@ public static partial class MacroPackage
 
         public string Expand(string value)
         {
-            if (!value.StartsWith(AssetsFolder, StringComparison.OrdinalIgnoreCase))
+            if (!_extract
+                || !value.StartsWith(AssetsFolder, StringComparison.OrdinalIgnoreCase))
             {
                 return value;
             }

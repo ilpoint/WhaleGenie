@@ -4,6 +4,8 @@ export type {
   ImportDecision,
   ImportResult,
   MacroEntry,
+  PackagePreview,
+  PreviewLibraryEntry,
   ProjectExportPlan,
   ProjectImportPlan,
   ProjectState,

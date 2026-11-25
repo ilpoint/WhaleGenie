@@ -7,6 +7,7 @@ import { icon } from '../../shared/icons.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { usePublicMacro } from '../editor/index.js';
+import { startLibraryImport, transfer } from '../transfer/index.js';
 
 /**
  * The public macro library. Entries are callable macros with no trigger of their own; the page
@@ -99,9 +100,18 @@ export class WgLibrary extends LitElement {
     }
   `;
 
+  private unsubscribeLibrary: (() => void) | undefined;
+
   connectedCallback(): void {
     super.connectedCallback();
+    this.unsubscribeLibrary = bridge.value.on('library.changed', (state) => this.apply(state));
     void this.load();
+  }
+
+  disconnectedCallback(): void {
+    this.unsubscribeLibrary?.();
+    this.unsubscribeLibrary = undefined;
+    super.disconnectedCallback();
   }
 
   render() {
@@ -133,7 +143,7 @@ export class WgLibrary extends LitElement {
                 <div class="entry-actions">
                   <fluent-button appearance="accent"
                     ?disabled=${this.busy.length > 0}
-                    @click=${() => void this.use(entry.id)}>
+                    @click=${() => void this.use(entry.id, entry.version)}>
                     ${t('Library.Use')}
                   </fluent-button>
                   <fluent-button appearance="subtle"
@@ -150,11 +160,11 @@ export class WgLibrary extends LitElement {
     `;
   }
 
-  private async use(id: string): Promise<void> {
+  private async use(id: string, version: number): Promise<void> {
     this.busy = id;
     this.error = '';
     try {
-      if (!(await usePublicMacro(id))) {
+      if (!(await usePublicMacro(id, version, 'local'))) {
         this.error = t('Library.UseFailed');
       }
     } catch (error) {
@@ -191,20 +201,15 @@ export class WgLibrary extends LitElement {
   }
 
   private async importPackage(): Promise<void> {
-    this.busy = 'import';
+    this.busy = '';
     this.error = '';
     try {
-      const path = await bridge.value.call<string | null>('dialog.pickOpenPackage');
-      if (!path) {
-        return;
+      const session = await startLibraryImport(bridge.value);
+      if (session !== null) {
+        transfer.show(session);
       }
-
-      const state = await bridge.value.call<LibraryState>('library.import', { path });
-      this.apply(state);
     } catch (error) {
       this.error = String(error);
-    } finally {
-      this.busy = '';
     }
   }
 

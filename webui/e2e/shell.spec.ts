@@ -149,6 +149,10 @@ test('打开包后标题与列表跟着换，保存清掉未保存标记', async
   // 按钮文案是词表的原话（"打开宏项目"），选择器必须按整句匹配。
   await page.locator('wg-titlebar .menu', { hasText: '文件' }).getByRole('button', { name: '文件' }).click();
   await page.getByRole('menuitem', { name: '打开宏项目' }).click();
+  const preview = page.locator('wg-transfer');
+  await expect(preview).toContainText('包内容');
+  await expect(preview).toContainText('包里的宏');
+  await preview.locator('fluent-button', { hasText: '打开宏项目' }).click();
   await expect(page.locator('wg-titlebar .title')).toContainText('opened-project');
   await expect(page.locator('wg-macros .card .name')).toContainText('包里的宏');
   await expect(page.locator('wg-macros .filebar .path')).toContainText('opened-project.wgmacro');
@@ -253,9 +257,13 @@ test('编辑器不再发布，公共宏库可新建和导入', async ({ page }) 
   await expect(page.locator('wg-library .card', { hasText: '公共宏 2' })).toBeVisible();
 
   await page.locator('wg-library .tools fluent-button', { hasText: '从文件导入' }).click();
+  const libraryPreview = page.locator('wg-transfer');
+  await expect(libraryPreview).toContainText('包内容');
+  await libraryPreview.locator('fluent-button', { hasText: '合并公共宏' }).click();
   await expect
     .poll(() => page.evaluate(() => window.__mock!.seen.includes('library.import')))
     .toBe(true);
+  await libraryPreview.locator('fluent-button', { hasText: '关闭' }).click();
   await expect(page.locator('wg-library .card', { hasText: '包里的宏' })).toBeVisible();
 });
 
@@ -520,7 +528,7 @@ test('导入导出向导走完一个往返', async ({ page }) => {
 
   await expect(page.locator('wg-macros .card', { hasText: '包里的宏' })).toBeVisible();
   await expect
-    .poll(() => called(page, 'project.importPlan', { path: '/mock/opened-project.wgmacro' }))
+    .poll(() => called(page, 'project.preview', { path: '/mock/opened-project.wgmacro' }))
     .toBe(true);
   await expect
     .poll(() => page.evaluate(() => window.__mock!.seen.includes('project.importApply')))

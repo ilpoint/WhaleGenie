@@ -112,6 +112,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         server.Register("project.system", SystemSwitch);
         server.Register("project.open", Open);
         server.Register("project.importPlan", ImportPlan);
+        server.Register("project.preview", ImportPlan);
         server.Register("project.importApply", ImportApply);
         server.Register("project.save", Save);
         server.Register("project.saveAs", SaveAs);
@@ -238,7 +239,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>What an export could hold, before the page asks which macros and where.</summary>
     private Task<object?> ExportPlan(JsonElement _)
     {
-        var plan = _transfer.PlanExport(_workspace);
+        var plan = _transfer.PlanExport(_workspace, _settings.LoadExportEmbeddedLibrary());
         if (!plan.Ok)
         {
             throw PackageFailure(plan.Problem, plan.Message, BridgeErrors.PackageSaveFailed, null);
@@ -252,7 +253,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     {
         var path = RequiredPath(parameters);
         var names = Names(parameters);
-        var result = await _transfer.ApplyExportAsync(_workspace, path, names);
+        var result = await _transfer.ApplyExportAsync(_workspace, path, names,
+            _settings.LoadExportEmbeddedLibrary());
         if (!result.Ok)
         {
             throw PackageFailure(result.Problem, result.Message,
@@ -304,7 +306,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         var path = RequiredPath(parameters);
         var names = Names(parameters);
         var decisions = Decisions(parameters);
-        var result = await _transfer.ApplyImportAsync(_workspace, path, names, decisions);
+        var result = await _transfer.ApplyImportAsync(_workspace, path, names, decisions,
+            _settings.LoadImportLibraryToProject());
         if (!result.Ok)
         {
             throw PackageFailure(result.Problem, result.Message,

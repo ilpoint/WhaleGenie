@@ -74,9 +74,10 @@ public sealed record EditorSessionDeactivateCommand : EditorSessionCommand;
 public sealed record EditorSessionCloseCommand(string? DocumentId = null, bool? Discard = null)
     : EditorSessionCommand;
 
-/// <summary>Add a public macro call step.</summary>
+/// <summary>Add a public macro call step; the source names the project shelf or machine library.</summary>
 [BridgeContract]
-public sealed record EditorSessionPublicMacroAddCommand(string Id) : EditorSessionCommand;
+public sealed record EditorSessionPublicMacroAddCommand(string Id, int Version = 0,
+    string Source = "local") : EditorSessionCommand;
 
 /// <summary>Make an empty sub-macro; without a name it is given the next free one.</summary>
 [BridgeContract]
@@ -95,7 +96,8 @@ public sealed record EditorSessionSubMacroCopyCommand(string From, string? Name 
 /// </summary>
 [BridgeContract]
 public sealed record EditorSessionSubMacroImportCommand(
-    string Source, string? Reference = null, string? Path = null, string? Name = null)
+    string Source, string? Reference = null, string? Path = null, string? Name = null,
+    int Version = 0, string? LibrarySource = null)
     : EditorSessionCommand;
 
 /// <summary>Remove a sub-macro this macro no longer calls.</summary>

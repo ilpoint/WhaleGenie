@@ -14,12 +14,14 @@ import {
   exportModel,
   importModel,
   onlySubMacros,
+  openModel,
   setAll,
   setDecision,
   toggleRow,
   type ConflictAction,
   type ExportTransfer,
   type ImportTransfer,
+  type OpenTransfer,
   type Transfer,
   type TransferModel,
 } from './transfer-model.js';
@@ -33,7 +35,7 @@ import {
 
 interface TransferState {
   open: boolean;
-  mode: 'import' | 'export';
+  mode: 'open' | 'import' | 'export';
   session: Transfer | null;
   preselect: string[];
   error: string;
@@ -52,7 +54,7 @@ class TransferStore {
     this.state.set({ open: true, mode: session.mode, session, preselect: [...preselect], error: '' });
   }
 
-  fail(mode: 'import' | 'export', message: string): void {
+  fail(mode: 'open' | 'import' | 'export', message: string): void {
     this.state.set({ open: true, mode, session: null, preselect: [], error: message });
   }
 
@@ -92,9 +94,11 @@ export class WgTransfer extends LitElement {
     this.openState = value;
     this.model = value.session === null
       ? null
-      : value.session.mode === 'import'
-        ? importModel((value.session as ImportTransfer).plan)
-        : exportModel((value.session as ExportTransfer).plan, value.preselect);
+      : value.session.mode === 'open'
+        ? openModel((value.session as OpenTransfer).plan)
+        : value.session.mode === 'import'
+          ? importModel((value.session as ImportTransfer).plan)
+          : exportModel((value.session as ExportTransfer).plan, value.preselect);
     this.error = value.error;
     this.result = '';
     this.resultTitle = '';
@@ -129,33 +133,89 @@ export class WgTransfer extends LitElement {
     return this.frame(html`
       <div>
         <h2>${this.heading()}</h2>
-        <p class="hint">${t(this.openState.mode === 'import' ? 'Import.Hint' : 'Export.Hint')}</p>
-        ${this.openState.session.mode === 'import'
-          ? html`<p class="hint">${t('Import.File').replace('{0}',
-              (this.openState.session as ImportTransfer).plan.fileName)}</p>`
-          : nothing}
+        <p class="hint">${t(this.openState.mode === 'open'
+          ? 'Package.PreviewHint'
+          : this.openState.mode === 'import' ? 'Import.Hint' : 'Export.Hint')}</p>
+        ${this.openState.session.mode === 'open'
+          ? html`<p class="hint">${(this.openState.session as OpenTransfer).path}</p>`
+          : this.openState.session.mode === 'import'
+            ? html`<p class="hint">${t('Import.File').replace('{0}',
+                (this.openState.session as ImportTransfer).plan.fileName)}</p>`
+            : nothing}
       </div>
+      ${this.previewSection()}
       ${this.rows()}
       ${this.conflictRows()}
       ${this.error.length > 0 ? html`<p class="error">${this.error}</p>` : nothing}
+      ${this.footer()}
+    `);
+  }
+
+  private footer() {
+    return this.openState.mode === 'open' ? this.openFooter() : this.transferFooter();
+  }
+
+  private openFooter() {
+    const session = this.openState.session;
+    const libraryIntent = session?.mode === 'open' && session.intent === 'library';
+    return html`
       <div class="footer">
-        <span class="count">${t('Transfer.Selected').replace('{0}', String(chosenNames(this.model).length))}</span>
-        ${this.openState.session.mode === 'import'
-          ? html`<span class="count">${t(onlySubMacros(this.model) ? 'Import.ToLibrary' : 'Import.ToProject')}</span>`
+        <span class="count">${t('Package.ProjectCount').replace('{0}',
+          String(this.model?.preview.hasProject ? this.model.rows.length : 0))}</span>
+        <span class="count">${t('Package.LibraryCount').replace('{0}',
+          String(this.model?.preview.library.length ?? 0))}</span>
+        <fluent-button appearance="subtle" ?disabled=${this.busy} @click=${this.close}>
+          ${t('Common.Cancel')}
+        </fluent-button>
+        ${libraryIntent
+          ? this.model?.preview.hasLibrary
+            ? html`<fluent-button appearance="accent" ?disabled=${this.busy}
+                @click=${this.mergeLibraryOnly}>${t('Package.MergeLibrary')}</fluent-button>`
+            : nothing
+          : this.model?.preview.hasProject
+            ? html`<fluent-button appearance="accent" ?disabled=${this.busy}
+                @click=${this.openProject}>${t('Main.OpenProject')}</fluent-button>`
+            : this.model?.preview.hasLibrary
+              ? html`<fluent-button appearance="accent" ?disabled=${this.busy}
+                  @click=${this.mergeLibraryOnly}>${t('Package.MergeLibrary')}</fluent-button>`
+              : nothing}
+      </div>
+    `;
+  }
+
+  private transferFooter() {
+    const model = this.model;
+    if (model === null) {
+      return nothing;
+    }
+
+    const importOnlyLibrary = this.openState.mode === 'import'
+      && !model.preview.hasProject && model.preview.hasLibrary;
+    return html`
+      <div class="footer">
+        <span class="count">${t('Transfer.Selected').replace('{0}', String(chosenNames(model).length))}</span>
+        ${this.openState.mode === 'import' && model.preview.hasProject
+          ? html`<span class="count">${t(onlySubMacros(model) ? 'Import.ToLibrary' : 'Import.ToProject')}</span>`
           : nothing}
         <fluent-button appearance="subtle" ?disabled=${this.busy} @click=${this.close}>
           ${t('Common.Cancel')}
         </fluent-button>
-        <fluent-button appearance="accent" ?disabled=${this.busy || chosenNames(this.model).length === 0}
-          @click=${this.execute}>
-          ${t(this.openState.mode === 'import' ? 'Import.Do' : 'Export.Do')}
-        </fluent-button>
+        ${importOnlyLibrary
+          ? html`<fluent-button appearance="accent" ?disabled=${this.busy}
+              @click=${this.mergeLibraryOnly}>${t('Package.MergeLibrary')}</fluent-button>`
+          : html`<fluent-button appearance="accent"
+              ?disabled=${this.busy || chosenNames(model).length === 0}
+              @click=${this.execute}>
+              ${t(this.openState.mode === 'import' ? 'Import.Do' : 'Export.Do')}
+            </fluent-button>`}
       </div>
-    `);
+    `;
   }
 
   private heading(): string {
-    return t(this.openState.mode === 'import' ? 'Import.Title' : 'Export.Title');
+    return t(this.openState.mode === 'open'
+      ? 'Package.PreviewTitle'
+      : this.openState.mode === 'import' ? 'Import.Title' : 'Export.Title');
   }
 
   private frame(body: TemplateResult) {
@@ -175,7 +235,21 @@ export class WgTransfer extends LitElement {
     }
 
     if (this.model.rows.length === 0) {
-      return html`<p class="hint">${t(this.openState.mode === 'import' ? 'Import.Nothing' : 'Export.Nothing')}</p>`;
+      return html`<p class="hint">${t(this.openState.mode === 'export' ? 'Export.Nothing' : 'Import.Nothing')}</p>`;
+    }
+
+    if (this.openState.mode === 'open') {
+      return html`
+        <div class="rows">
+          ${this.model.rows.map((row) => html`
+            <div class="row" data-sub=${String(row.macro.isSub)}>
+              <span class="name">${row.macro.name}</span>
+              <span class="meta">${row.macro.kind}</span>
+              <span class="meta">${t('Transfer.Steps').replace('{0}', String(row.macro.steps))}</span>
+            </div>
+          `)}
+        </div>
+      `;
     }
 
     return html`
@@ -201,8 +275,93 @@ export class WgTransfer extends LitElement {
     `;
   }
 
+  private previewSection() {
+    const preview = this.model?.preview;
+    if (!preview) {
+      return nothing;
+    }
+
+    return html`
+      <div class="preview">
+        <div class="preview-head">
+          <span class="name">${preview.fileName}</span>
+          <span class="meta">${t('Package.Format').replace('{0}', String(preview.formatVersion))}</span>
+          ${preview.appVersion.length > 0
+            ? html`<span class="meta">${t('Package.WrittenBy').replace('{0}', preview.appVersion)}</span>`
+            : nothing}
+        </div>
+        <div class="preview-columns">
+          <section>
+            <h3>${t('Package.Project')}</h3>
+            ${preview.hasProject
+              ? html`<p class="hint">${t('Package.ProjectSummary')
+                .replace('{0}', String(this.model?.rows.length ?? 0))
+                .replace('{1}', String(preview.triggerCount))}</p>`
+              : html`<p class="hint">${t('Package.NoProject')}</p>`}
+          </section>
+          <section>
+            <h3>${t('Package.Library')}</h3>
+            ${preview.library.length === 0
+              ? html`<p class="hint">${t('Package.NoLibrary')}</p>`
+              : preview.library.map((entry) => html`
+                <div class="preview-entry">
+                  <span class="name">${entry.name}</span>
+                  <span class="meta">v${entry.version}</span>
+                  <span class="meta">${t(entry.source === 'project'
+                    ? 'Package.SourceProject' : 'Package.SourcePackage')}</span>
+                </div>
+              `)}
+          </section>
+        </div>
+      </div>
+    `;
+  }
+
+  private readonly openProject = async (): Promise<void> => {
+    const session = this.openState.session;
+    if (session === null || session.mode !== 'open') {
+      return;
+    }
+
+    this.busy = true;
+    this.error = '';
+    try {
+      await bridge.value.call('project.open', { path: session.path });
+      this.close();
+    } catch (error) {
+      this.error = describeError(error);
+    } finally {
+      this.busy = false;
+    }
+  };
+
+  private readonly mergeLibraryOnly = async (): Promise<void> => {
+    const session = this.openState.session;
+    if (session === null || session.mode === 'export') {
+      return;
+    }
+
+    this.busy = true;
+    this.error = '';
+    try {
+      if (session.mode === 'open' && session.intent === 'library') {
+        await bridge.value.call('library.import', { path: session.path });
+      } else {
+        await bridge.value.call('project.importApply',
+          { path: session.path, names: [], decisions: [] });
+      }
+      this.resultTitle = t('Package.MergeLibrary');
+      this.result = t('Package.Merged');
+    } catch (error) {
+      this.error = describeError(error);
+    } finally {
+      this.busy = false;
+    }
+  };
+
   private conflictRows() {
-    if (this.model === null || this.model.conflicts.length === 0) {
+    if (this.openState.mode === 'open'
+      || this.model === null || this.model.conflicts.length === 0) {
       return nothing;
     }
 
@@ -250,7 +409,7 @@ export class WgTransfer extends LitElement {
   private async execute(): Promise<void> {
     const session = this.openState.session;
     const model = this.model;
-    if (session === null || model === null) {
+    if (session === null || model === null || session.mode === 'open') {
       return;
     }
 
