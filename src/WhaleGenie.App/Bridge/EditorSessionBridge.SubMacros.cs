@@ -72,7 +72,7 @@ internal sealed partial class EditorSessionBridge
         // root's steps would arrive under the child's tab.
         var root = document.RootDocument;
         _documents.Activate(root);
-        return Envelope(snapshot, root.ActionFormState());
+        return Snapshot();
     }
 
     /// <summary>A name the command may leave out, which asks the program to pick the next free one.</summary>

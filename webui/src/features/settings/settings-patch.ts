@@ -1,9 +1,9 @@
 import type { SettingsPatch } from '../../shared/bridge/protocol.js';
 import type { EditableSetting } from './settings-model.js';
 
-type BooleanSetting = Extract<EditableSetting, 'loadLastProjectAtStart' | 'systemAtStart'
-  | 'enabledFirst' | 'ignoreOwnInput' | 'soundSystem' | 'soundMacro' | 'preloadOcr'
-  | 'frameRateFollow' | 'frameCache' | 'attachDriverAtStart' | 'runAsAdmin'>;
+type BooleanSetting = Extract<EditableSetting, 'loadLastProjectAtStart' | 'autoSaveProject'
+  | 'systemAtStart' | 'enabledFirst' | 'ignoreOwnInput' | 'soundSystem' | 'soundMacro'
+  | 'preloadOcr' | 'frameRateFollow' | 'frameCache' | 'attachDriverAtStart' | 'runAsAdmin'>;
 
 /**
  * One settings control's string value as the typed patch the bridge accepts. The page keeps
@@ -27,6 +27,7 @@ export function patchFor(field: EditableSetting, value: string): SettingsPatch {
 function booleanPatch(field: BooleanSetting, value: string): SettingsPatch {
   switch (field) {
     case 'loadLastProjectAtStart': return { loadLastProjectAtStart: value === 'true' };
+    case 'autoSaveProject': return { autoSaveProject: value === 'true' };
     case 'systemAtStart': return { systemAtStart: value === 'true' };
     case 'enabledFirst': return { enabledFirst: value === 'true' };
     case 'ignoreOwnInput': return { ignoreOwnInput: value === 'true' };

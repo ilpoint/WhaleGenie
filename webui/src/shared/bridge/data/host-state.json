@@ -51,6 +51,7 @@
   },
   "settings": {
     "loadLastProjectAtStart": true,
+    "autoSaveProject": true,
     "systemAtStart": false,
     "enabledFirst": true,
     "ignoreOwnInput": true,
@@ -132,6 +133,9 @@
   "project": {
     "path": null,
     "name": null,
+    "autoSave": true,
+    "saving": false,
+    "saveError": null,
     "untitled": true,
     "dirty": false,
     "revision": 0,

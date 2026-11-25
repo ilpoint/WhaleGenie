@@ -8,8 +8,8 @@ import { editorBase } from './editor-css.js';
 
 /**
  * The document strip: one tab per macro or submacro the C# workspace has open. The C# session is
- * the truth — closing a clean tab asks the bridge to close, and a dirty tab opens the save-and-close
- * question first.
+ * the truth — each tab carries a stable document id, so a saved or renamed document keeps its
+ * tab, and the close button hands the id to the one dialog service.
  */
 @customElement('wg-editor-tabs')
 export class WgEditorTabs extends LitElement {
@@ -121,37 +121,6 @@ export class WgEditorTabs extends LitElement {
       align-self: center;
       margin-left: auto;
     }
-
-    .confirm-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 80;
-      display: grid;
-      place-items: center;
-      background: var(--shell-scrim);
-    }
-
-    .confirm {
-      width: min(420px, calc(100vw - 32px));
-      padding: var(--spacingVerticalL) var(--spacingHorizontalXL);
-    }
-
-    .confirm h2 {
-      margin: 0 0 var(--spacingVerticalS);
-      font-size: var(--fontSizeBase400);
-      font-weight: var(--fontWeightSemibold);
-    }
-
-    .confirm p {
-      margin: 0 0 var(--spacingVerticalL);
-      color: var(--colorNeutralForeground1);
-    }
-
-    .confirm-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: var(--spacingHorizontalS);
-    }
   `];
 
   protected readonly editorController = new StoreController<void>(this, editor);
@@ -161,19 +130,20 @@ export class WgEditorTabs extends LitElement {
     return html`
       <div class="strip" role="tablist" aria-label=${t('Editor.DocumentTabs')} @keydown=${this.onKeydown}>
         ${state.tabs.map((tab) => html`
-          <div class="tab-wrap" data-active=${tab.key === state.activeKey ? 'true' : 'false'}>
+          <div class="tab-wrap" data-document-id=${tab.documentId}
+            data-active=${tab.documentId === state.activeDocumentId ? 'true' : 'false'}>
             <button
               class="tab"
               role="tab"
-              data-key=${tab.key}
-              aria-selected=${tab.key === state.activeKey ? 'true' : 'false'}
-              tabindex=${tab.key === state.activeKey ? '0' : '-1'}
+              data-document-id=${tab.documentId}
+              aria-selected=${tab.documentId === state.activeDocumentId ? 'true' : 'false'}
+              tabindex=${tab.documentId === state.activeDocumentId ? '0' : '-1'}
               title=${tab.name}
-              @click=${() => void editor.session.activateTab(tab.key)}
+              @click=${() => void editor.session.activateDocument(tab.documentId)}
               @auxclick=${(event: MouseEvent) => {
                 if (event.button === 1) {
                   event.preventDefault();
-                  editor.session.requestCloseTab(tab.key);
+                  editor.dialog.closeDocument(tab.documentId);
                 }
               }}
             >
@@ -190,7 +160,7 @@ export class WgEditorTabs extends LitElement {
               aria-label=${t('Common.Close')}
               @click=${(event: Event) => {
                 event.stopPropagation();
-                editor.session.requestCloseTab(tab.key);
+                editor.dialog.closeDocument(tab.documentId);
               }}
             >${icon('close')}</button>
           </div>
@@ -209,31 +179,12 @@ export class WgEditorTabs extends LitElement {
           @click=${() => void editor.session.newDocument()}
         >${icon('plus')}</button>
       </div>
-      ${state.closeRequest
-        ? html`
-          <div class="confirm-overlay" @click=${() => editor.session.cancelClose()}>
-            <div class="confirm panel" role="dialog" aria-modal="true"
-              @click=${(event: Event) => event.stopPropagation()}>
-              <h2>${t('Editor.UnsavedTitle')}</h2>
-              <p>${t('Editor.UnsavedMessage')}</p>
-              <div class="confirm-actions">
-                <fluent-button appearance="subtle" @click=${() => editor.session.cancelClose()}>
-                  ${t('Common.Cancel')}
-                </fluent-button>
-                <fluent-button appearance="accent" @click=${() => void editor.session.confirmClose()}>
-                  ${t('Editor.Save')}
-                </fluent-button>
-              </div>
-            </div>
-          </div>
-        `
-        : nothing}
     `;
   }
 
   private onKeydown = (event: KeyboardEvent): void => {
     const state = editor.get();
-    const index = state.tabs.findIndex((tab) => tab.key === state.activeKey);
+    const index = state.tabs.findIndex((tab) => tab.documentId === state.activeDocumentId);
     if (index < 0) {
       return;
     }
@@ -257,9 +208,9 @@ export class WgEditorTabs extends LitElement {
       return;
     }
 
-    void editor.session.activateTab(tab.key).then(() => {
+    void editor.session.activateDocument(tab.documentId).then(() => {
       const button = this.renderRoot.querySelector<HTMLButtonElement>(
-        `.tab[data-key="${CSS.escape(tab.key)}"]`);
+        `.tab[data-document-id="${CSS.escape(tab.documentId)}"]`);
       button?.focus();
     });
   };

@@ -1,6 +1,7 @@
 import type {
   EditorParameter,
   EditorSnapshot,
+  EditorValueFunctionSnapshot,
   EditorValueNode,
   EditorValueOutcome,
   EditorValueSnapshot,
@@ -27,6 +28,8 @@ interface ValuePanelData {
 
 const DATA = raw as unknown as ValuePanelData;
 
+type ValueAnswer = Omit<EditorValueOutcome, 'state'>;
+
 export class MockValueEditor {
   private text: string;
   private textBody: string;
@@ -45,6 +48,7 @@ export class MockValueEditor {
   constructor(
     private readonly document: EditorSnapshot,
     private readonly parameter: EditorParameter,
+    private readonly functions: EditorValueFunctionSnapshot[],
     private readonly write: (value: string) => void,
   ) {
     this.text = parameter.value;
@@ -64,13 +68,13 @@ export class MockValueEditor {
         || variable.display.toLowerCase().includes(this.wallSearch.trim().toLowerCase())));
     const functionGroups = [
       { group: '', label: '全部', selected: this.functionGroup.length === 0 },
-      ...[...new Set(this.document.valueFunctions.map((fn) => fn.group))].map((group) => ({
+      ...[...new Set(this.functions.map((fn) => fn.group))].map((group) => ({
         group,
         label: group,
         selected: this.functionGroup === group,
       })),
     ];
-    const functions: EditorValuePickerFunction[] = this.document.valueFunctions
+    const functions: EditorValuePickerFunction[] = this.functions
       .filter((fn) => this.functionGroup.length === 0 || fn.group === this.functionGroup)
       .filter((fn) => this.functionQuery.trim().length === 0
         || fn.name.toLowerCase().includes(this.functionQuery.trim().toLowerCase()))
@@ -243,7 +247,7 @@ export class MockValueEditor {
     return this.snapshot();
   }
 
-  confirm(): EditorValueOutcome {
+  confirm(): ValueAnswer {
     const value = this.mode === 'Name'
       ? (this.looking || this.wallSearch.trim())
       : this.mode === 'Text' ? this.textBody : this.text;
@@ -255,7 +259,7 @@ export class MockValueEditor {
     return { closed: true, applied: true, snapshot: this.snapshot() };
   }
 
-  cancel(): EditorValueOutcome {
+  cancel(): ValueAnswer {
     return { closed: true, applied: false, snapshot: this.snapshot() };
   }
 

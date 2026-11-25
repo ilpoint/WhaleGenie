@@ -22,13 +22,15 @@ internal sealed class ShellHost : IDisposable
     internal ShellHost(ProjectWorkspace workspace, SystemState system, TriggerRuntime runtime,
         RunQuestionHost questions, ShellNativeWindows actions, Window owner, ITriggerFocusProbe focus,
         IMenuOverlay menuOverlay, IWheelOverlay wheelOverlay,
-        Func<string, IPanelOverlay> panelFactory, PanelSurface panelFrames)
+        Func<string, IPanelOverlay> panelFactory, PanelSurface panelFrames,
+        WhaleGenie.Projects.IProjectSaver saver, WhaleGenie.Editor.IEditorDocuments editor,
+        WhaleGenie.Editor.IEditorLeavePrompt editorPrompt)
     {
         _actions = actions;
         _owner = owner;
 
         _session = new ProjectSession(workspace, () => owner, actions.SaveAsync,
-            contents => actions.Restore(contents));
+            contents => actions.Restore(contents), editor, saver, editorPrompt);
         _session.Watch();
 
         _surface = new NativeSurfaceHost(workspace, runtime, system, runtime.Devices,

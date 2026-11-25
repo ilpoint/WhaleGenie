@@ -66,7 +66,7 @@ public class StringsBundleTests
                 var answer = JsonDocument.Parse(channel.Sent.Single(text => text.Contains("\"id\":2"))).RootElement;
                 Assert.Equal(2, answer.GetProperty("id").GetInt32());
                 var entries = answer.GetProperty("result").GetProperty("entries");
-                Assert.False(string.IsNullOrWhiteSpace(entries.GetProperty("Shell.Home").GetString()));
+                Assert.False(string.IsNullOrWhiteSpace(entries.GetProperty("Shell.Macros").GetString()));
 
                 // Switching the language is a push, not a poll: the page that is already up hears
                 // about the new bundle without asking again.

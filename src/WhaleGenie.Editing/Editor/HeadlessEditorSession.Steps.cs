@@ -35,9 +35,27 @@ internal sealed partial class HeadlessEditorSession
         }
     }
 
-    public void Undo() => _model.UndoCommand.Execute(null);
+    public void Undo()
+    {
+        if (!_model.CanUndo)
+        {
+            return;
+        }
 
-    public void Redo() => _model.RedoCommand.Execute(null);
+        _model.UndoCommand.Execute(null);
+        _model.IsDirty = true;
+    }
+
+    public void Redo()
+    {
+        if (!_model.CanRedo)
+        {
+            return;
+        }
+
+        _model.RedoCommand.Execute(null);
+        _model.IsDirty = true;
+    }
 
     /// <summary>
     /// Adds one catalogue step at the root or inside a named child list of a block, then writes
@@ -56,6 +74,7 @@ internal sealed partial class HeadlessEditorSession
             }
 
             _model.AddStep(step);
+            _model.IsDirty = true;
         }
         else
         {
@@ -136,6 +155,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SetSelection(steps);
         _model.DeleteSelectedCommand.Execute(null);
+        _model.IsDirty = true;
     }
 
     public void DuplicateSteps(IReadOnlyList<string> stepIds)
@@ -148,6 +168,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SetSelection(steps);
         _model.PasteSteps(steps);
+        _model.IsDirty = true;
     }
 
     public void GroupSteps(IReadOnlyList<string> stepIds)
@@ -160,6 +181,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SetSelection(steps);
         _model.GroupSelectedCommand.Execute(null);
+        _model.IsDirty = true;
     }
 
     public void LiftSteps(IReadOnlyList<string> stepIds)
@@ -172,6 +194,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SetSelection(steps);
         _model.LiftSelectedCommand.Execute(null);
+        _model.IsDirty = true;
     }
 
     public void MoveStepsBy(IReadOnlyList<string> stepIds, int delta)
@@ -199,6 +222,8 @@ internal sealed partial class HeadlessEditorSession
                 _model.MoveSelectedDownCommand.Execute(null);
             }
         }
+
+        _model.IsDirty = true;
     }
 
     public void MoveStepsTo(IReadOnlyList<string> stepIds, string targetId, bool before)
@@ -212,6 +237,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SetSelection(steps);
         _model.MoveSelectionTo(target.Value.List, target.Value.Index + (before ? 0 : 1));
+        _model.IsDirty = true;
     }
 
     /// <summary>
@@ -238,6 +264,7 @@ internal sealed partial class HeadlessEditorSession
 
         _model.SetSelection(steps);
         _model.MoveSelectionTo(list, Math.Clamp(index ?? list.Count, 0, list.Count));
+        _model.IsDirty = true;
     }
 
     public string CopySteps(IReadOnlyList<string> stepIds)
@@ -266,6 +293,7 @@ internal sealed partial class HeadlessEditorSession
         var anchor = afterStepId is { Length: > 0 } id ? FindStep(id) : null;
         _model.SetSelection(anchor is null ? [] : [anchor]);
         _model.PasteSteps(steps);
+        _model.IsDirty = true;
     }
 
     public void SetStepEnabled(string stepId, bool enabled)

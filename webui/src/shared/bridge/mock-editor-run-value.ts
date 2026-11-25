@@ -18,7 +18,7 @@ export function handleValueRun(host: MockEditor, method: string, params: Record<
             if (outcome.closed) {
               host.valueEditor = null;
             }
-            return outcome;
+            return { ...outcome, state: outcome.applied ? host.activeSnapshot() : null };
           }
           case 'cancel': {
             if (!host.valueEditor) {
@@ -26,7 +26,7 @@ export function handleValueRun(host: MockEditor, method: string, params: Record<
             }
             const outcome = host.valueEditor.cancel();
             host.valueEditor = null;
-            return outcome;
+            return { ...outcome, state: null };
           }
           default:
             throw new Error('不认识取值命令 ' + String(params['kind']) + '。');

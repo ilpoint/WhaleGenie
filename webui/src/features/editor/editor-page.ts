@@ -6,6 +6,7 @@ import { t } from '../../shared/strings/strings.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
 import { WindowEventController } from '../../shared/lit/window-event-controller.js';
+import { go } from '../../shared/navigation/router.js';
 import { findStep, flattenSteps } from './editor-model.js';
 import { editorBase } from './editor-css.js';
 import './editor-tabs.js';
@@ -36,8 +37,8 @@ export class WgEditor extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
-    editor.session.ensureLoaded();
-    editor.session.refresh();
+    // 启动只拉一次：会话服务先把共享目录取来，再取当前文档。页面本身不再补一次。
+    void editor.session.ensureLoaded();
   }
 
   disconnectedCallback(): void {
@@ -52,10 +53,10 @@ export class WgEditor extends LitElement {
     const singleStep = state.selectedStepIds.length === 1;
     return html`
       <h1 class="sr-only">${t('Shell.Editor')}</h1>
-      ${state.notice
+      ${snapshot !== null && state.notice
         ? html`<div class="notice">${state.notice}</div>`
         : nothing}
-      ${state.error
+      ${snapshot !== null && state.error
         ? html`
           <div class="error">
             <fluent-message-bar intent="error" layout="multiline"
@@ -68,9 +69,14 @@ export class WgEditor extends LitElement {
           <div class="empty">
             <span class="title">${t('Editor.NoDocument')}</span>
             <span>${t('Editor.NoDocumentHint')}</span>
-            <fluent-button appearance="accent" @click=${() => void editor.session.newDocument()}>
-              ${t('Main.AddMacro')}
-            </fluent-button>
+            <div class="empty-actions">
+              <fluent-button appearance="subtle" @click=${() => void go('macros')}>
+                ${t('Editor.OpenMacroList')}
+              </fluent-button>
+              <fluent-button appearance="accent" @click=${() => void editor.session.newDocument()}>
+                ${t('Main.AddMacro')}
+              </fluent-button>
+            </div>
           </div>
         `
         : html`
@@ -191,6 +197,33 @@ export class WgEditor extends LitElement {
     }
   };
 
+  /**
+   * Ctrl+S first finishes the draft the page is showing: the action form's confirmation and the
+   * value window's answer are part of saving the document the person is looking at, and a refusal
+   * stops the save with the reason already on screen.
+   */
+  private async saveCurrent(): Promise<void> {
+    const form = editor.get().actionForm;
+    if (form?.open === true) {
+      if (!form.canConfirm) {
+        if (form.validationMessage.length > 0) {
+          editor.setError(form.validationMessage);
+        }
+        return;
+      }
+
+      if (!(await editor.action.confirmAction())) {
+        return;
+      }
+    }
+
+    if (editor.get().valueEditor !== null && !(await editor.value.confirmValue())) {
+      return;
+    }
+
+    await editor.session.save();
+  }
+
   private onKeydown = (event: KeyboardEvent): void => {
     const target = event.target;
     const typing = target instanceof HTMLInputElement
@@ -219,12 +252,25 @@ export class WgEditor extends LitElement {
     switch (event.key.toLowerCase()) {
       case 's':
         event.preventDefault();
-        void editor.session.save();
+        if (event.shiftKey) {
+          void editor.session.saveAll();
+        } else {
+          void this.saveCurrent();
+        }
         break;
       case 'w': {
         event.preventDefault();
-        if (state.activeKey.length > 0) {
-          editor.session.requestCloseTab(state.activeKey);
+        if (state.actionForm !== null || state.valueEditor !== null) {
+          // The draft belongs to this page; Ctrl+W throws it away before it throws the tab away.
+          if (state.actionForm !== null) {
+            void editor.action.cancelAction();
+          }
+
+          if (state.valueEditor !== null) {
+            void editor.value.cancelValue();
+          }
+        } else if (state.activeDocumentId.length > 0) {
+          editor.dialog.closeDocument(state.activeDocumentId);
         }
         break;
       }

@@ -1,13 +1,18 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { bridge } from '../../shared/bridge/bridge.js';
-import type { BridgeMethod, LibraryEntry } from '../../shared/bridge/protocol.js';
+import type { LibraryEntry, LibraryState } from '../../shared/bridge/protocol.js';
+import { go } from '../../shared/navigation/router.js';
 import { icon } from '../../shared/icons.js';
-import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
+import { usePublicMacro } from '../editor/index.js';
 
-/** The public macro library: what every project may copy, and the way to remove an entry. */
+/**
+ * The public macro library. Entries are callable macros with no trigger of their own; the page
+ * manages them and hands one to the editor, where it becomes a sub-macro of the document in
+ * front. It never turns an entry into a project macro: that is the editor's call step.
+ */
 @customElement('wg-library')
 export class WgLibrary extends LitElement {
   @state()
@@ -17,19 +22,9 @@ export class WgLibrary extends LitElement {
   private error = '';
 
   @state()
-  private macros: string[] = [];
-
-  @state()
-  private selectedMacro = '';
+  private busy = '';
 
   protected readonly stringsController = new StoreController(this, strings);
-
-  protected readonly projectController = new StoreController(this, project, (state) => {
-    this.macros = state?.macros.map((macro) => macro.name) ?? [];
-    if (this.selectedMacro.length === 0) {
-      this.selectedMacro = this.macros[0] ?? '';
-    }
-  });
 
   static styles = css`
     :host {
@@ -47,28 +42,7 @@ export class WgLibrary extends LitElement {
     .intro {
       color: var(--colorNeutralForeground2);
       margin: 0 0 var(--spacingVerticalL);
-    }
-
-    .source {
-      display: flex;
-      gap: var(--spacingHorizontalS);
-      align-items: center;
-      margin-bottom: var(--spacingVerticalM);
-    }
-
-    .source select {
-      min-width: 220px;
-      font: inherit;
-      padding: var(--spacingVerticalSNudge) var(--spacingHorizontalM);
-      border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
-      border-radius: var(--borderRadiusMedium);
-      background: var(--colorNeutralBackground1);
-      color: var(--colorNeutralForeground1);
-    }
-
-    .entry-actions {
-      display: flex;
-      gap: var(--spacingHorizontalXS);
+      line-height: 1.5;
     }
 
     .cards {
@@ -97,6 +71,12 @@ export class WgLibrary extends LitElement {
       font-size: var(--fontSizeBase200);
     }
 
+    .entry-actions {
+      display: flex;
+      gap: var(--spacingHorizontalXS);
+      align-items: center;
+    }
+
     .empty,
     .error {
       color: var(--colorNeutralForeground2);
@@ -104,6 +84,12 @@ export class WgLibrary extends LitElement {
 
     .error {
       color: var(--colorPaletteRedForeground1);
+    }
+
+    .empty {
+      display: grid;
+      justify-items: start;
+      gap: var(--spacingVerticalS);
     }
   `;
 
@@ -116,20 +102,14 @@ export class WgLibrary extends LitElement {
     return html`
       <h1>${t('Library.Heading')}</h1>
       <p class="intro">${t('Library.Intro')}</p>
-      <div class="source">
-        <select
-          .value=${this.selectedMacro}
-          @change=${(event: Event) => { this.selectedMacro = (event.target as HTMLSelectElement).value; }}
-        >
-          ${this.macros.map((name) => html`<option value=${name}>${name}</option>`)}
-        </select>
-        <fluent-button appearance="accent" @click=${() => void this.addFromProject()}>
-          ${t('Library.AddFromProject')}
-        </fluent-button>
-      </div>
       ${this.error ? html`<p class="error">${this.error}</p>` : nothing}
       ${this.entries.length === 0
-        ? html`<p class="empty">${t('Library.Empty')}</p>`
+        ? html`<div class="empty">
+            <p>${t('Library.Empty')}</p>
+            <fluent-button appearance="subtle" @click=${() => void go('macros')}>
+              ${t('Library.OpenMacros')}
+            </fluent-button>
+          </div>`
         : html`<div class="cards">
             ${this.entries.map((entry) => html`
               <div class="card">
@@ -139,18 +119,18 @@ export class WgLibrary extends LitElement {
                   <div class="version">v${entry.version}</div>
                 </div>
                 <div class="entry-actions">
-                  <fluent-button
-                    appearance="subtle"
-                    title=${t('Library.ReplaceFromProject')}
-                    aria-label=${t('Library.ReplaceFromProject')}
-                    @click=${() => void this.replaceFromProject(entry.id)}
-                  >${icon('edit')}</fluent-button>
-                  <fluent-button
-                    appearance="subtle"
+                  <fluent-button appearance="accent"
+                    ?disabled=${this.busy.length > 0}
+                    @click=${() => void this.use(entry.id)}>
+                    ${t('Library.Use')}
+                  </fluent-button>
+                  <fluent-button appearance="subtle"
                     title=${t('Library.Delete')}
                     aria-label=${t('Library.Delete')}
-                    @click=${() => void this.deleteEntry(entry.id)}
-                  >${icon('delete')}</fluent-button>
+                    ?disabled=${this.busy.length > 0}
+                    @click=${() => void this.removeEntry(entry.id)}>
+                    ${icon('delete')}
+                  </fluent-button>
                 </div>
               </div>
             `)}
@@ -158,53 +138,44 @@ export class WgLibrary extends LitElement {
     `;
   }
 
-  private async addFromProject(): Promise<void> {
-    if (!this.selectedMacro) {
-      return;
-    }
-
-    await this.change('library.add', { name: this.selectedMacro });
-  }
-
-  private async replaceFromProject(id: string): Promise<void> {
-    if (!this.selectedMacro) {
-      return;
-    }
-
-    await this.change('library.replace', { id, name: this.selectedMacro });
-  }
-
-  private async change(method: BridgeMethod, params: Record<string, unknown>): Promise<void> {
+  private async use(id: string): Promise<void> {
+    this.busy = id;
+    this.error = '';
     try {
-      const state = await bridge.value.call<{ entries: LibraryEntry[]; error: string | null }>(
-        method, params);
-      this.entries = state.entries;
-      this.error = state.error ?? '';
+      if (!(await usePublicMacro(id))) {
+        this.error = t('Library.UseFailed');
+      }
     } catch (error) {
       this.error = String(error);
+    } finally {
+      this.busy = '';
+    }
+  }
+
+  private async removeEntry(id: string): Promise<void> {
+    this.busy = id;
+    this.error = '';
+    try {
+      const state = await bridge.value.call<LibraryState>('library.delete', { id });
+      this.apply(state);
+    } catch (error) {
+      this.error = String(error);
+    } finally {
+      this.busy = '';
     }
   }
 
   private async load(): Promise<void> {
     try {
-      const state = await bridge.value.call<{ entries: LibraryEntry[]; error: string | null }>(
-        'library.state');
-      this.entries = state.entries;
-      this.error = state.error ?? '';
+      this.apply(await bridge.value.call<LibraryState>('library.state'));
     } catch (error) {
       this.error = String(error);
     }
   }
 
-  private async deleteEntry(id: string): Promise<void> {
-    try {
-      const state = await bridge.value.call<{ entries: LibraryEntry[]; error: string | null }>(
-        'library.delete', { id });
-      this.entries = state.entries;
-      this.error = state.error ?? '';
-    } catch (error) {
-      this.error = String(error);
-    }
+  private apply(state: LibraryState): void {
+    this.entries = state.entries;
+    this.error = state.error ?? '';
   }
 }
 

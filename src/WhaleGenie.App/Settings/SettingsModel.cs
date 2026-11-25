@@ -59,6 +59,13 @@ internal sealed class SettingsModel
     public bool LoadLastProjectAtStart { get; set; } = true;
 
     /// <summary>
+    /// Whether a change is written back to the package and, while a macro is open, committed as it
+    /// is edited. On by default: a person who has just saved a macro should not be asked to save
+    /// the project all over again when they leave.
+    /// </summary>
+    public bool AutoSaveProject { get; set; } = true;
+
+    /// <summary>
     /// Whether triggers listen as soon as the program starts. Off by default: a macro program that
     /// starts taking keyboard and mouse the moment it opens is a surprise nobody asked for.
     /// </summary>

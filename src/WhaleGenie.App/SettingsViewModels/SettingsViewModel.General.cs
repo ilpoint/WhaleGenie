@@ -26,6 +26,13 @@ public partial class SettingsViewModel
     public partial bool LoadLastProjectAtStart { get; set; }
 
     /// <summary>
+    /// Whether changes are written back to the package and an edited macro is committed as it is
+    /// edited. On by default; turning it off brings back the explicit save and the exit question.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool AutoSaveProject { get; set; }
+
+    /// <summary>
     /// Whether triggers listen as soon as the program starts. Off leaves the system disabled until it
     /// is turned on, which is the quieter thing to do on a shared machine.
     /// </summary>

@@ -13,7 +13,9 @@ dotnet run --project src/WhaleGenie
 pwsh build/site.ps1
 ```
 
-网页壳（`webui/`）用 npm 构建，构建界面工程时会自动执行（增量，网页没改就不调 npm）：
+网页壳（`webui/`）用 npm 构建，构建界面工程时会自动执行：网页源变了只重新构建；只有
+`package.json` / `package-lock.json` 变了才先 `npm ci`。`npm ci` 会重装 `node_modules`，开着
+`npm run dev` 时先停掉开发服务器，否则正在使用的 esbuild 可执行文件会被占用。
 
 ```powershell
 cd webui

@@ -213,6 +213,21 @@ export const editorPaletteCss = css`
       outline-offset: -1px;
     }
 
+    .public-hint {
+      margin: 0 0 var(--spacingVerticalS);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--fontSizeBase100);
+      line-height: 1.4;
+    }
+
+    .public-manage {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      margin-top: var(--spacingVerticalS);
+      font-size: var(--fontSizeBase100);
+    }
+
     .sub-tools {
       display: flex;
       gap: var(--spacingHorizontalXS);

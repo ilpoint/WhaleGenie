@@ -12,13 +12,24 @@ import { FakeBridge } from '../../fakes/bridge.js';
 
 const step = (id: string): EditorStep => ({ id, sections: [] } as unknown as EditorStep);
 
-const snapshot = (name = 'demo', steps: EditorStep[] = []): EditorSnapshot =>
+const snapshot = (name = 'demo', steps: EditorStep[] = [], dirty = false): EditorSnapshot =>
   ({
+    documentId: 'doc-1',
     name,
     description: '',
     group: '',
     steps,
     isSubMacro: false,
+    activeDocumentId: 'doc-1',
+    tabs: [{
+      documentId: 'doc-1',
+      name,
+      dirty,
+      problem: false,
+      isSubMacro: false,
+      ownerDocumentId: null,
+    }],
+    revision: 1,
   } as unknown as EditorSnapshot);
 
 const strings = {
@@ -66,14 +77,79 @@ describe('editor services', () => {
 
   it('a failed save leaves the error text and returns false', async () => {
     const bridge = new FakeBridge();
-    bridge.fail('editor.session', new Error('disk full'));
+    const open = snapshot('demo', [], true);
+    bridge.reply('editor.save', {
+      snapshot: open,
+      results: [{
+        documentId: 'doc-1',
+        name: 'demo',
+        outcome: 'blocked',
+        problem: 'disk full',
+      }],
+    });
     const store = storeWith(bridge);
-    const open = snapshot('demo');
     store.get().snapshot = open;
+    store.get().tabs = open.tabs;
+    store.get().activeDocumentId = 'doc-1';
     store.get().draftName = open.name;
+    store.get().draftDescription = open.description;
+    store.get().draftGroup = open.group;
 
     await expect(store.session.save()).resolves.toBe(false);
     expect(store.get().error).toContain('disk full');
+    expect(store.get().tabs.some((tab) => tab.dirty)).toBe(true);
+  });
+
+  it('a saved answer marks the document saved and clears the error', async () => {
+    const bridge = new FakeBridge();
+    const open = snapshot('demo', [], true);
+    bridge.reply('editor.save', {
+      snapshot: snapshot('demo'),
+      results: [{
+        documentId: 'doc-1',
+        name: 'demo',
+        outcome: 'saved',
+        problem: null,
+      }],
+    });
+    const store = storeWith(bridge);
+    store.get().snapshot = open;
+    store.get().tabs = open.tabs;
+    store.get().activeDocumentId = 'doc-1';
+    store.get().draftName = open.name;
+    store.get().draftDescription = open.description;
+    store.get().draftGroup = open.group;
+    store.get().error = '旧的错误';
+
+    await expect(store.session.save()).resolves.toBe(true);
+    expect(bridge.calls[0]).toEqual({ method: 'editor.save', params: {} });
+    expect(store.get().error).toBe('');
+    expect(store.get().saved).toBe(true);
+  });
+
+  it('a conflict keeps the document dirty and names every reason', async () => {
+    const bridge = new FakeBridge();
+    const open = snapshot('demo', [], true);
+    bridge.reply('editor.save', {
+      snapshot: open,
+      results: [{
+        documentId: 'doc-1',
+        name: 'demo',
+        outcome: 'conflict',
+        problem: '工程里已经没有这个宏',
+      }],
+    });
+    const store = storeWith(bridge);
+    store.get().snapshot = open;
+    store.get().tabs = open.tabs;
+    store.get().activeDocumentId = 'doc-1';
+    store.get().draftName = open.name;
+    store.get().draftDescription = open.description;
+    store.get().draftGroup = open.group;
+
+    await expect(store.session.save()).resolves.toBe(false);
+    expect(store.get().error).toContain('工程里已经没有这个宏');
+    expect(store.get().tabs.some((tab) => tab.dirty)).toBe(true);
   });
 
   it('openAction applies the form and its page', async () => {

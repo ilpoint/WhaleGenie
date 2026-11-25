@@ -18,7 +18,7 @@
 `last.wgmacro.bak`。它们不放在包旁边：项目文件夹因此只有 `.wgmacro`，包放在只读位置时也有地方解图，
 两个同名的包也不会互相覆盖。
 写包时找图有两个来源：包自己旁边，以及调用方交过来的来源目录（`Save` 的 `assetFolder`）——
-导出所选宏、另存到别处、从公共宏库导出都写在图片从来没去过的地方，不给这一项，`assets/x.png`
+导出所选宏、另存到别处都写在图片从来没去过的地方，不给这一项，`assets/x.png`
 就解析不到，图会被悄悄漏掉。`AssetCollector` 对每个目录先试 `目录/assets/x.png`，再试 `目录/x.png`，
 因为值可能是相对包的路径，也可能只是解包目录里的文件名。
 
@@ -26,23 +26,34 @@
 菜单呼出键与系统总开关属于当前机器的 `LocalSettings`，切换项目不改变它们。父宏与内嵌子宏保存在
 同一宏文档中；公共宏拖入项目时复制内容并固定来源版本，不随后续库更新。
 
-工程文档状态由 `src/WhaleGenie.Domain/Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号与
-`Changed` 事件都在这一处更新。`MainViewModel` 只保留系统开关并把文档转发给原生菜单、轮盘与设置；
-宏列表的搜索、分组、视图与排序由页面自己持有，编辑器与 `RunFactory` 直接读 `ProjectWorkspace`。`McpLiveProject` 实现
-`Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与资源只依赖这个接口，不依赖窗口模型。
+工程文档状态由 `src/WhaleGenie.Domain/Models/ProjectWorkspace` 持有：宏、触发入口、共享变量、包路径、脏标记、修订号、
+`Changed` 与整体替换 `Replaced` 事件都在这一处更新。`MainViewModel` 只保留系统开关并把文档转发给原生
+菜单、轮盘与设置；宏列表的搜索、分组、视图与排序由页面自己持有，编辑器与 `RunFactory` 直接读
+`ProjectWorkspace`。`McpLiveProject` 实现 `Mcp/IProjectGateway`，负责把读写切到界面线程；MCP 工具与
+资源只依赖这个接口，不依赖窗口模型。
 
-编辑器保存是一次“项目先说接受不接受”的提交：`ProjectWorkspace.ReplaceMacro` 只在目标宏仍在列表中时
-写入并回答 `true`。草稿应用会替换列表里的实例，因此编辑期间被草稿改过的宏保存时得到 `false`；编辑器
-不清草稿、不关窗口，保留恢复快照并显示原因，避免把用户编辑静默写丢。
+`ProjectSaver`（App）是包文件的唯一写入口：工程文档变更后按短防抖复制计划、在工作线程写 zip，再按
+`ProjectSavePlan.Revision` 决定能否清脏；显式保存、退出和 MCP 保存也走同一个写者。打开/重载用
+`ReplaceAsync` 等待在途写并暂停新的自动保存，避免旧文档覆盖刚打开的包。宏编辑器自己的未保存改动不算
+工程变更；它要在关闭页签、离开编辑器或退出时被明确提交进工程之后，才轮到自动保存写盘。首次启动没有
+上次项目时，`ProjectStartup` 落到 `%APPDATA%\WhaleGenie\projects\default.wgmacro`；文件在第一次真正
+保存前不创建。
+
+编辑器保存是一次“项目先说接受不接受”的提交：`EditorDocumentService` 按稳定 `documentId` 找到文档，
+`ProjectMacroCommit` 只在目标宏仍在列表中时写入并回答 `replaced/added/unchanged`；目标已被草稿替换或
+删除时回答 `conflict`。页面收到逐文档结局，只把 `saved/unchanged` 当成功；`blocked/conflict` 保留脏
+状态并显示原因，避免把用户编辑静默写丢。子宏保存先写入父宏编辑模型，父宏保存才提交整个宏。工程替换
+前由 `ProjectSession.PrepareProjectChangeAsync` 处理打开的文档和工程未保存改动；有打开的编辑文档时
+MCP 应用草稿返回可重试拒绝。
 
 包外状态分为：
 
 | 状态 | 位置 | 说明 |
 | --- | --- | --- |
-| 本机设置 | 程序目录 `settings.json` | 主题、捕获、MCP 权限和启动行为等 |
+| 本机设置 | `%LOCALAPPDATA%\WhaleGenie\settings.json` | 主题、捕获、MCP 权限、自动保存和启动行为等 |
 | 全局变量（声明与当前值） | 内存 | `VariableSession`：组合根建一个，`ProjectWorkspace` 持有，编辑器、运行面板、触发器和 MCP 从它读写；项目包保存声明，值只在本进程内共享，不随包走 |
 | 持久化全局变量值 | `%LOCALAPPDATA%\WhaleGenie\persistent-variables.json` | 只保存声明为持久化的值；声明仍在包内。文件版本 2 按名字保存、值写成 JSON；更旧的形状不迁移，更高版本只读不覆盖。由 `PersistedVariables` 实例持有路径、定时器与索引，经容器注入；勾选只在保存时显式写入，运行期写入由表的变更事件补写 |
-| 崩溃恢复 | 程序目录 `recovery.json` | `RecoveryStore` 与 `RecoveryWriter` 保存未提交编辑状态 |
+| 崩溃恢复 | `%LOCALAPPDATA%\WhaleGenie\recovery.json` | `RecoveryStore` 与 `RecoveryWriter` 保存未提交编辑状态 |
 | 脚本包 | 程序目录 `packages/`，必要时回退到 `%LOCALAPPDATA%\WhaleGenie\packages` | Python 与 NuGet 包的独立缓存 |
 
 ## 9. MCP

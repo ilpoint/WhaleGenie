@@ -2,8 +2,11 @@ using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Bridge;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Editing;
+using WhaleGenie.Editor;
 using WhaleGenie.Localization;
+using WhaleGenie.Mcp;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.ViewModels;
 using WhaleGenie.Views;
@@ -53,13 +56,47 @@ internal static class WindowedServices
 
     private static void Add(IServiceCollection services) =>
         services.AddSingleton<RunQuestionHost>()
+        .AddSingleton(sp => new ProjectSaver(
+            sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<AppSettings>(),
+            sp.GetRequiredService<IUiDispatcher>()))
+        .AddSingleton<IProjectSaver>(sp => sp.GetRequiredService<ProjectSaver>())
+        .AddSingleton(sp => new ShellProjectChangeGuard(() => sp.GetService<WebShellWindow>()))
+        .AddSingleton<IProjectChangeGuard>(sp => sp.GetRequiredService<ShellProjectChangeGuard>())
+        .AddSingleton(sp => new McpLiveProject(
+            sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<IUiDispatcher>(),
+            sp.GetRequiredService<ProjectSaver>(),
+            sp.GetRequiredService<IEditorDocuments>()))
+        .AddSingleton(sp => new SystemBridge(
+            sp.GetRequiredService<SystemState>(), sp.GetRequiredService<AppSettings>()))
+        .AddSingleton(sp => new EditorDocumentService(
+            sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<TriggerRuntime>().Devices,
+            new LocalEditorSettings(sp.GetRequiredService<AppSettings>())))
+        .AddSingleton(sp => new EditorSessionBridge(
+            sp.GetRequiredService<EditorDocumentService>(),
+            sp.GetRequiredService<ProjectWorkspace>(),
+            sp.GetRequiredService<TriggerRuntime>().Devices,
+            new LocalEditorSettings(sp.GetRequiredService<AppSettings>()),
+            new EditorPickerHost(() => sp.GetService<WebShellWindow>(),
+                sp.GetRequiredService<TriggerRuntime>().Devices),
+            new EditorWindowAside(() => sp.GetService<WebShellWindow>()),
+            new EditorBrowserTestHost(),
+            new EditorElementTestHost(() => sp.GetService<WebShellWindow>())))
+        .AddSingleton<IEditorDocuments>(sp => sp.GetRequiredService<EditorDocumentService>())
+        .AddSingleton<EditorLeavePrompt>()
+        .AddSingleton<IEditorLeavePrompt>(sp => sp.GetRequiredService<EditorLeavePrompt>())
         .AddSingleton(sp => new ShellHostFactory(sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<SystemState>(), sp.GetRequiredService<TriggerRuntime>(),
             sp.GetRequiredService<RunQuestionHost>(),
             sp.GetRequiredService<MenuSurfaceBridge>(),
             sp.GetRequiredService<WheelSurfaceBridge>(),
             sp.GetRequiredService<PanelSurfaceBridge>(),
-            sp.GetRequiredService<AppSettings>()))
+            sp.GetRequiredService<AppSettings>(),
+            sp.GetRequiredService<IProjectSaver>(),
+            sp.GetRequiredService<IEditorDocuments>(),
+            sp.GetRequiredService<IEditorLeavePrompt>()))
         .AddSingleton(sp => new PanelSurfaceBridge(new PanelSurface(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<TriggerRuntime>())))
@@ -92,18 +129,21 @@ internal static class WindowedServices
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             var project = sp.GetRequiredService<ProjectWorkspace>();
+            var autoSave = sp.GetRequiredService<ProjectSaver>();
+            var systemBridge = sp.GetRequiredService<SystemBridge>();
+            server.Register(systemBridge);
+            var editorPrompt = sp.GetRequiredService<EditorLeavePrompt>();
+            server.Register(editorPrompt);
             server.Register(new ProjectBridge(project,
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
-                new ProjectDialogs(() => sp.GetService<WebShellWindow>()), dialogs));
+                new ProjectDialogs(() => sp.GetService<WebShellWindow>()), dialogs,
+                settings: sp.GetRequiredService<AppSettings>(),
+                saver: sp.GetRequiredService<IProjectSaver>(),
+                changeGuard: sp.GetRequiredService<IProjectChangeGuard>(),
+                ui: new AvaloniaUiPost()));
             var devices = sp.GetRequiredService<TriggerRuntime>().Devices;
-            server.Register(new EditorSessionBridge(
-                sp.GetRequiredService<ProjectWorkspace>(), devices,
-                new LocalEditorSettings(sp.GetRequiredService<AppSettings>()),
-                new EditorPickerHost(() => sp.GetService<WebShellWindow>(), devices),
-                new EditorWindowAside(() => sp.GetService<WebShellWindow>()),
-                new EditorBrowserTestHost(),
-                new EditorElementTestHost(() => sp.GetService<WebShellWindow>())));
-            server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>()));
+            server.Register(sp.GetRequiredService<EditorSessionBridge>());
+            server.Register(new LibraryBridge(sp.GetRequiredService<ProjectWorkspace>(), dialogs));
             var main = sp.GetRequiredService<MainViewModel>();
             var settings = new SettingsViewModel(
                 SharedDevices.Current.Driver, null, main.Workspace,
@@ -119,6 +159,9 @@ internal static class WindowedServices
                     {
                         shell.RefreshAfterSettings();
                     }
+
+                    systemBridge.Publish();
+                    autoSave.OnSettingsChanged();
                 }));
             server.Register(new RunBridge(sp.GetRequiredService<ProjectWorkspace>(),
                 sp.GetRequiredService<TriggerRuntime>(), new AvaloniaUiPost()));

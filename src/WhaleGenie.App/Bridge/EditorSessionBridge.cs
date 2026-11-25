@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Core.Recording;
 using WhaleGenie.Editing;
+using WhaleGenie.Editor;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
@@ -18,14 +20,14 @@ namespace WhaleGenie.Bridge;
 /// step, save, close. The native editor is still the one a person uses; this is the path the page
 /// will take in C1, and the gate that proves it can be built without moving the model out of C#.
 /// </summary>
-internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
+internal sealed partial class EditorSessionBridge(EditorDocumentService documents,
+    ProjectWorkspace workspace,
     IDeviceLayer? devices = null, IEditorSettings? settings = null,
     IEditorPickerHost? pickers = null, IEditorWindowAside? aside = null,
     IEditorBrowserTestHost? browserTests = null, IEditorElementTestHost? elementTests = null)
     : IBridgeHandler
 {
-    private readonly HeadlessEditorWorkspace _documents = new(workspace, devices,
-        settings ?? DefaultEditorSettings.Instance);
+    private readonly EditorDocumentService _documents = documents;
     private readonly IDeviceLayer? _devices = devices;
     private readonly IEditorSettings _settings = settings ?? DefaultEditorSettings.Instance;
     private readonly IEditorPickerHost? _pickers = pickers;
@@ -35,10 +37,25 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
     private RecordingSession? _recording;
     private volatile bool _stopRecordingRequested;
 
+    /// <summary>
+    /// The order every editor snapshot reaches the page in. It belongs to the bridge rather than to
+    /// one document: the page keeps one strip with several documents, and a new document must not
+    /// carry a number lower than the one the page is already showing.
+    /// </summary>
+    private int _snapshotRevision;
+
+    private BridgeServer? _server;
+
     public void Register(BridgeServer server)
     {
+        _server = server;
+        _documents.Changed += OnDocumentsChanged;
         server.Register("editor.session", SessionAction);
-        server.Register("editor.sessionTabs", _ => Task.FromResult<object?>(Tabs()));
+        server.Register("editor.save", SaveAction);
+        server.Register("editor.saveAll", SaveAllAction);
+        server.Register("editor.discardAll", _ => Task.FromResult<object?>(DiscardAllAction()));
+        server.Register("editor.unsavedDocuments", _ => Task.FromResult<object?>(
+            new EditorUnsavedDocumentsSnapshot(_documents.UnsavedDocuments)));
         server.Register("editor.declaration", DeclarationAction);
         server.Register("editor.sessionState", _ => Task.FromResult<object?>(Snapshot()));
         server.Register("editor.step", StepAction);
@@ -70,59 +87,25 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
 
     private object? Snapshot()
     {
-        var active = _documents.Active;
-        if (active?.Snapshot() is not { } snapshot)
-        {
-            return null;
-        }
-
-        return Envelope(snapshot, active.ActionFormState());
+        var snapshot = _documents.Snapshot();
+        return snapshot is null ? null : Envelope(snapshot);
     }
 
     /// <summary>
-    /// One snapshot in the shape the page draws: the macro body, the tabs beside it and the action
-    /// being written. A command answered by another document's session still hands the page the
-    /// tabs it already had, so its strip is not left empty by an answer about the root macro.
+    /// One snapshot in the shape the page draws: the active document, the strip beside it and the
+    /// action being written. The bridge owns the wire revision because the page orders the whole
+    /// strip, while a document's own counter only orders that session's answers.
     /// </summary>
-    private object Envelope(EditorSnapshot snapshot, EditorActionFormSnapshot actionForm) => new
-    {
-        name = snapshot.Name,
-        description = snapshot.Description,
-        group = snapshot.Group,
-        subMacros = snapshot.SubMacros,
-        callableParameters = snapshot.CallableParameters,
-        callableResults = snapshot.CallableResults,
-        followInputLimit = snapshot.FollowInputLimit,
-        inputLimit = snapshot.InputLimit,
-        toggleKey = snapshot.ToggleKey,
-        dirty = snapshot.Dirty,
-        stepCount = snapshot.StepCount,
-        steps = snapshot.Steps,
-        triggers = snapshot.Triggers,
-        variables = snapshot.Variables,
-        globals = snapshot.Globals,
-        valueChoices = snapshot.ValueChoices,
-        valueFunctions = snapshot.ValueFunctions,
-        conditionCompares = snapshot.ConditionCompares,
-        variableTypes = snapshot.VariableTypes,
-        triggerKinds = snapshot.TriggerKinds,
-        canUndo = snapshot.CanUndo,
-        canRedo = snapshot.CanRedo,
-        canSave = snapshot.CanSave,
-        nameProblem = snapshot.NameProblem,
-        problemSummary = snapshot.ProblemSummary,
-        declarationProblemSummary = snapshot.DeclarationProblemSummary,
-        callImpactSummary = snapshot.CallImpactSummary,
-        notice = snapshot.Notice,
-        triggerProblemSummary = snapshot.TriggerProblemSummary,
-        toggleKeyProblem = snapshot.ToggleKeyProblem,
-        recording = snapshot.Recording,
-        isSubMacro = snapshot.IsSubMacro,
-        tabs = _documents.Tabs,
-        activeKey = _documents.ActiveKey,
-        actionForm = actionForm,
-        revision = snapshot.Revision,
-    };
+    private EditorSnapshot Envelope(EditorSnapshot snapshot)
+        => snapshot with
+        {
+            ActionForm = _documents.Active?.ActionFormState(),
+            Revision = Interlocked.Increment(ref _snapshotRevision),
+        };
+
+    /// <summary>The answer to an explicit save, with one result per document the command touched.</summary>
+    private EditorSaveResponse SaveResponse(IReadOnlyList<EditorDocumentSaveResult> results)
+        => new(_documents.Snapshot() is { } snapshot ? Envelope(snapshot) : null, results);
 
     private static readonly JsonSerializerOptions CommandOptions = new()
     {
@@ -162,9 +145,21 @@ internal sealed partial class EditorSessionBridge(ProjectWorkspace workspace,
             ActionCatalog.RunnableActions.Count,
             HeadlessEditorSession.Actions(),
             HeadlessEditorSession.ActionCategories(),
-            HeadlessEditorSession.PublicMacros());
+            HeadlessEditorSession.PublicMacros(),
+            HeadlessEditorSession.ValueFunctions,
+            HeadlessEditorSession.VariableTypes,
+            HeadlessEditorSession.ConditionCompares,
+            HeadlessEditorSession.TriggerKindOptions,
+            HeadlessEditorSession.SystemValueChoices);
 
     private HeadlessEditorSession Required()
-        => _documents.Active ?? throw new BridgeFailureException(BridgeErrors.BadArgument,
-            Strings.Get("Bridge.EditorNoSession"));
+        => _documents.Required();
+
+    /// <summary>
+    /// The documents moved outside a page command — a project replacement closed them, or the
+    /// exit question discarded them. The strip in the page has to hear it even though no command
+    /// it sent produced the snapshot.
+    /// </summary>
+    private void OnDocumentsChanged()
+        => _ = _server?.PushAsync("editor.changed", Snapshot());
 }

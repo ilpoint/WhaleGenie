@@ -10,12 +10,14 @@ import { MockEditor } from './mock-editor.js';
 import { MockTransfer } from './mock-transfer.js';
 import type {
   AppInfo,
+  EditorSnapshot,
   LibraryEntry,
   MacroEntry,
   McpState,
   ProjectState,
   SettingsState,
   RunState,
+  SystemSwitchState,
   StringsBundle,
   SurfaceMenuSnapshot,
   SurfacePanelSnapshot,
@@ -95,6 +97,7 @@ export class MockTransport implements BridgeTransport {
   private readonly mockEditor = new MockEditor(
     () => this.projectState.macros,
     () => this.info.language,
+    (document, previousName) => this.macroSaved(document, previousName),
   );
 
   constructor() {
@@ -106,6 +109,52 @@ export class MockTransport implements BridgeTransport {
 
   onMessage(handler: (message: unknown) => void): void {
     this.receive = handler;
+  }
+
+  /** The switch and its key as the side bar reads them. The project owns the switch. */
+  system(): SystemSwitchState {
+    return {
+      enabled: this.projectState.systemEnabled,
+      hotkeyDisplay: this.settingsState.systemHotkey.length > 0
+        ? this.settingsState.systemHotkey
+        : wordTables.zh['Common.None']!,
+    };
+  }
+
+  /** The editor saved a macro: the mock project really takes the new name and contents. */
+  private macroSaved(document: EditorSnapshot, previousName: string | null): void {
+    if (document.isSubMacro) {
+      return;
+    }
+
+    const macros = [...this.projectState.macros];
+    const at = macros.findIndex((entry) => entry.name === previousName
+      || entry.name === document.name);
+    const existing = at >= 0 ? macros[at] : undefined;
+    const entry: MacroEntry = {
+      name: document.name,
+      group: document.group,
+      description: document.description,
+      enabled: existing?.enabled ?? true,
+      running: false,
+      triggerSummary: existing?.triggerSummary ?? '',
+      triggerActions: existing?.triggerActions ?? '',
+      triggerPreview: existing?.triggerPreview ?? '',
+      views: existing?.views ?? ['All'],
+    };
+    if (at >= 0) {
+      macros[at] = entry;
+    } else {
+      macros.push(entry);
+    }
+
+    this.projectState = {
+      ...this.projectState,
+      macros,
+      dirty: !this.projectState.autoSave,
+      revision: this.projectState.revision + 1,
+    };
+    this.push('project.changed', this.projectState);
   }
 
   /** 测试与演练用：假装宿主推来一个事件。 */
@@ -171,23 +220,23 @@ export class MockTransport implements BridgeTransport {
           this.libraryEntries = this.libraryEntries.filter((entry) => entry.id !== String(params['id']));
           result = { entries: this.libraryEntries, error: null };
           break;
-        case 'library.add': {
-          const macro = this.projectState.macros.find((entry) => entry.name === params['name']);
-          this.libraryEntries = [...this.libraryEntries, {
-            id: 'library-' + String(this.libraryEntries.length + 1),
-            name: String(params['name'] ?? macro?.name ?? ''),
-            version: 1,
-            description: macro?.description ?? '',
-          }];
+        case 'library.publish': {
+          const name = String(params['name'] ?? '');
+          const macro = this.projectState.macros.find((entry) => entry.name === name);
+          const existing = this.libraryEntries.find((entry) => entry.name === name);
+          this.libraryEntries = existing
+            ? this.libraryEntries.map((entry) => entry.id === existing.id
+              ? { ...entry, version: entry.version + 1 }
+              : entry)
+            : [...this.libraryEntries, {
+              id: 'library-' + String(this.libraryEntries.length + 1),
+              name,
+              version: 1,
+              description: macro?.description ?? '',
+            }];
           result = { entries: this.libraryEntries, error: null };
           break;
         }
-        case 'library.replace':
-          this.libraryEntries = this.libraryEntries.map((entry) => entry.id === params['id']
-            ? { ...entry, name: String(params['name'] ?? entry.name), version: entry.version + 1 }
-            : entry);
-          result = { entries: this.libraryEntries, error: null };
-          break;
         case 'project.delete':
           this.pendingDelete = String(params['name']);
           this.push('dialog.request', {
@@ -200,6 +249,9 @@ export class MockTransport implements BridgeTransport {
           break;
         case 'project.state':
           result = this.projectState;
+          break;
+        case 'system.state':
+          result = this.system();
           break;
         case 'project.toggle':
           for (const entry of this.projectState.macros) {
@@ -217,6 +269,7 @@ export class MockTransport implements BridgeTransport {
             systemEnabled: params['enabled'] === true,
           };
           this.push('project.changed', this.projectState);
+          this.push('system.changed', this.system());
           break;
         case 'dialog.pickImage':
           result = { path: 'C:\\shot.png' };
@@ -283,9 +336,6 @@ export class MockTransport implements BridgeTransport {
 
           this.projectState = {
             ...this.projectState,
-            path: null,
-            name: null,
-            untitled: true,
             dirty: false,
             macros: [],
             groups: [],
@@ -322,7 +372,11 @@ export class MockTransport implements BridgeTransport {
         id: request.id,
         ok: false,
         error: {
-          code: 'BadArgument',
+          // A handler may carry a specific code (an editor close that needs the person's answer);
+          // everything else keeps the generic refusal.
+          code: typeof (error as { code?: unknown })?.code === 'string'
+            ? (error as { code: string }).code
+            : 'BadArgument',
           message: error instanceof Error ? error.message : String(error),
         },
       });

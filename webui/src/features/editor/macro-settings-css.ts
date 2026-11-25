@@ -64,6 +64,34 @@ export const macroSettingsCss = css`
       min-width: 0;
     }
 
+    .footer .save-all {
+      padding-inline: var(--spacingHorizontalXS);
+    }
+
+    .project-status {
+      flex: none;
+      padding: var(--spacingVerticalXS) var(--spacingHorizontalL);
+      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+      background: var(--colorNeutralBackground2);
+      color: var(--colorNeutralForeground3);
+      font-size: var(--fontSizeBase100);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .project-status[data-project-status='saving'] {
+      color: var(--colorBrandForeground1);
+    }
+
+    .project-status[data-project-status='error'] {
+      color: var(--colorStatusDangerForeground1);
+    }
+
+    .project-status[data-project-status='dirty'] {
+      color: var(--colorStatusWarningForeground1);
+    }
+
     .tabs button {
       border: none;
       border-bottom: 2px solid transparent;

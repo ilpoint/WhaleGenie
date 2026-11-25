@@ -22,7 +22,8 @@ public class ProjectMacroCommitTests
         project.RemoveMacro(target);
         project.IsDirty = false;
 
-        Assert.False(commit.Apply(new MacroDraft(target, [], []), []));
+        Assert.Equal(MacroCommitOutcome.TargetGone,
+            commit.Apply(new MacroDraft(target, [], []), []).Outcome);
 
         Assert.Empty(project.Macros);
         Assert.False(project.IsDirty, "a refused macro marked the project changed");
@@ -36,7 +37,7 @@ public class ProjectMacroCommitTests
         project.IsDirty = false;
 
         Assert.True(commit.Apply(new MacroDraft(target,
-            project.Triggers.ForMacro(target.Name), project.Triggers.InterfaceLayouts), []));
+            project.Triggers.ForMacro(target.Name), project.Triggers.InterfaceLayouts), []).Accepted);
 
         Assert.Same(target, Assert.Single(project.Macros));
         Assert.Empty(stopped);
@@ -51,7 +52,7 @@ public class ProjectMacroCommitTests
         var edited = new MacroItem { Name = "login-renamed" };
         project.IsDirty = false;
 
-        Assert.True(commit.Apply(new MacroDraft(edited, [], []), []));
+        Assert.True(commit.Apply(new MacroDraft(edited, [], []), []).Accepted);
 
         Assert.Equal(["login"], stopped);
         Assert.Same(edited, Assert.Single(project.Macros));
@@ -66,7 +67,7 @@ public class ProjectMacroCommitTests
         var macro = new MacroItem { Name = "from-menu" };
         project.IsDirty = false;
 
-        Assert.True(commit.Apply(new MacroDraft(macro, [], []), []));
+        Assert.True(commit.Apply(new MacroDraft(macro, [], []), []).Accepted);
 
         Assert.Same(macro, commit.Target);
         Assert.Same(macro, Assert.Single(project.Macros));
@@ -84,8 +85,8 @@ public class ProjectMacroCommitTests
         var parent = new MacroItem { Name = "parent" };
         var draft = new MacroDraft(parent, [], []);
 
-        Assert.True(commit.Apply(draft, [child]));
-        Assert.True(commit.Apply(draft, [child]));
+        Assert.True(commit.Apply(draft, [child]).Accepted);
+        Assert.True(commit.Apply(draft, [child]).Accepted);
 
         Assert.Equal(2, project.Macros.Count);
         Assert.Single(project.Macros, macro => macro.Name == "child");
@@ -104,7 +105,7 @@ public class ProjectMacroCommitTests
         // hotkey it was shown with, and storing that must not move the panel back to its default.
         project.Triggers.StoreLayout(rule, 10, 20);
 
-        Assert.True(commit.Apply(new MacroDraft(macro, [], [layout]), []));
+        Assert.True(commit.Apply(new MacroDraft(macro, [], [layout]), []).Accepted);
 
         var stored = Assert.Single(project.Triggers.InterfaceLayouts);
         Assert.Equal("Ctrl+Alt+U", stored.ToggleHotkey);
@@ -120,7 +121,7 @@ public class ProjectMacroCommitTests
         var entry = new TriggerEntry { MacroName = target.Name, Spec = new KeySpec("F8") };
         project.IsDirty = false;
 
-        Assert.True(commit.Apply(new MacroDraft(target, [entry], []), []));
+        Assert.True(commit.Apply(new MacroDraft(target, [entry], []), []).Accepted);
 
         Assert.Equal(["login"], stopped);
         Assert.True(project.IsDirty);

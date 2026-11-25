@@ -66,13 +66,22 @@
   </ItemGroup>
 
   <!--
-    网页界面的构建目标：输入/输出时间戳做增量，网页没改就不调 npm。npm ci 由 lock 文件锁住
-    版本，与 CI 上装出来的一致。
+    网页界面的依赖安装与构建分开做增量。npm ci 会先删掉 node_modules，包括 Vite 正在使用的
+    esbuild.exe；若每次改网页都跑它，开着 npm run dev 的人下一次构建就必然撞上共享文件被占用。
+    所以只有 package.json / lock 变了才重装（node_modules 里的 lock 副本作输出），普通源文件
+    改动只重新构建。
   -->
-  <Target Name="BuildWebUi" BeforeTargets="BeforeBuild" Condition="'$(WhaleGenieSkipWebUi)' != 'true'"
+  <Target Name="InstallWebUiDependencies" BeforeTargets="BeforeBuild"
+          Condition="'$(WhaleGenieSkipWebUi)' != 'true'"
+          Inputs="$(WebUiRoot)\package.json;$(WebUiRoot)\package-lock.json"
+          Outputs="$(WebUiRoot)\node_modules\.package-lock.json">
+    <Exec Command="npm ci --no-audit --no-fund" WorkingDirectory="$(WebUiRoot)" />
+  </Target>
+
+  <Target Name="BuildWebUi" BeforeTargets="BeforeBuild" DependsOnTargets="InstallWebUiDependencies"
+          Condition="'$(WhaleGenieSkipWebUi)' != 'true'"
           Inputs="$(WebUiRoot)\package.json;$(WebUiRoot)\package-lock.json;$(WebUiRoot)\index.html;$(WebUiRoot)\vite.config.ts;$(WebUiRoot)\tsconfig.json;$(WebUiRoot)\src\**"
           Outputs="$(WebUiRoot)\dist\index.html">
-    <Exec Command="npm ci --no-audit --no-fund" WorkingDirectory="$(WebUiRoot)" />
     <Exec Command="npm run build" WorkingDirectory="$(WebUiRoot)" />
   </Target>
 

@@ -5,7 +5,7 @@ namespace WhaleGenie.Contracts;
 /// <summary>The answer of the value editor: whether it closed, and whether the field was written.</summary>
 [BridgeContract]
 public sealed record EditorValueOutcome(
-    bool Closed, bool Applied, EditorValueSnapshot Snapshot);
+    bool Closed, bool Applied, EditorValueSnapshot Snapshot, EditorSnapshot? State = null);
 
 /// <summary>One box a trial found on the frame.</summary>
 [BridgeContract]
@@ -25,10 +25,15 @@ public sealed record EditorTrialReply(
     bool NeedsConfirm, string? Title, string? Question, string? Refused,
     EditorTrialResult? Result);
 
-/// <summary>The action catalogue and the rail's order.</summary>
+/// <summary>The action catalogue and the rail's order, plus the tables every document shares.</summary>
 [BridgeContract]
 public sealed record EditorCatalogue(
     int Count,
     IReadOnlyList<EditorActionSnapshot> Actions,
     IReadOnlyList<EditorActionCategorySnapshot> Categories,
-    IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros);
+    IReadOnlyList<EditorPublicMacroSnapshot> PublicMacros,
+    IReadOnlyList<EditorValueFunctionSnapshot> ValueFunctions,
+    IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
+    IReadOnlyList<EditorConditionCompareSnapshot> ConditionCompares,
+    IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds,
+    IReadOnlyList<EditorValueChoiceSnapshot> SystemValueChoices);

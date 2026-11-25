@@ -113,7 +113,7 @@ export function refreshActionForm(host: MockEditor): void {
     parameter.required && parameter.value.trim().length === 0);
   const canConfirm = missing.length === 0;
   // A macro field offers the document's own submacros, exactly what the page's select shows.
-  const document = host.activeKey === null ? null : host.documents.get(host.activeKey);
+  const document = host.activeDocumentId === null ? null : host.documents.get(host.activeDocumentId);
   const macros = (document?.subMacros ?? []).map((name) => ({
     value: name, label: name,
   }));

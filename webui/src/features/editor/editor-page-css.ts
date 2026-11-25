@@ -139,4 +139,11 @@ export const editorPageCss = css`
       color: var(--colorNeutralForeground1);
       font-size: var(--fontSizeBase400);
     }
+
+    .empty-actions {
+      display: flex;
+      justify-content: center;
+      gap: var(--spacingHorizontalS);
+      margin-top: var(--spacingVerticalS);
+    }
   `;

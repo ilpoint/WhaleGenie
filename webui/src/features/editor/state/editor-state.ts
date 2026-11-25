@@ -6,10 +6,11 @@ export function createEditorState(): EditorUiState {
   return {
     snapshot: null,
     tabs: [],
-    activeKey: '',
+    activeDocumentId: '',
     actions: [],
     categories: [],
     publicMacros: [],
+    catalogue: null,
     selectedStepId: '',
     selectedStepIds: [],
     selectedActionKey: '',
@@ -27,7 +28,6 @@ export function createEditorState(): EditorUiState {
     error: '',
     notice: '',
     saved: false,
-    closeRequest: null,
     loading: true,
     draftName: '',
     draftDescription: '',
@@ -42,8 +42,14 @@ export function createEditorState(): EditorUiState {
   };
 }
 
-/** Applies a session snapshot, keeping the selection valid against the new tree. */
+/**
+ * Applies a session snapshot, keeping the selection valid against the new tree. A document-level
+ * message belongs to the document that produced it: an empty editor or another tab must not keep
+ * showing the last one's notice, error or saved mark. The close question lives in the dialog
+ * service, so switching documents does not touch it.
+ */
 export function applySnapshotToState(state: EditorUiState, snapshot: EditorSnapshot | null): void {
+  const previousDocumentId = state.activeDocumentId;
   state.snapshot = snapshot;
   if (snapshot === null) {
     state.selectedStepId = '';
@@ -52,13 +58,33 @@ export function applySnapshotToState(state: EditorUiState, snapshot: EditorSnaps
     state.draftDescription = '';
     state.draftGroup = '';
     state.tabs = [];
-    state.activeKey = '';
+    state.activeDocumentId = '';
     state.actionForm = null;
+    state.actionError = '';
+    state.notice = '';
+    state.error = '';
+    state.saved = false;
+    state.valueEditor = null;
+    state.valueError = '';
+    state.stepEditorOpen = false;
+    state.recording = false;
+    state.captured = 0;
+    state.trial = null;
     return;
   }
 
-  state.tabs = snapshot.tabs ?? [];
-  state.activeKey = snapshot.activeKey ?? '';
+  state.tabs = snapshot.tabs;
+  state.activeDocumentId = snapshot.activeDocumentId ?? snapshot.documentId;
+  if (state.activeDocumentId !== previousDocumentId) {
+    // The previous document's success or failure is not this document's state.
+    state.notice = '';
+    state.error = '';
+    state.saved = false;
+    state.valueEditor = null;
+    state.valueError = '';
+    state.stepEditorOpen = false;
+  }
+
   state.actionForm = snapshot.actionForm?.open ? snapshot.actionForm : null;
   if (state.actionForm) {
     state.actionPage = state.actionForm.page;

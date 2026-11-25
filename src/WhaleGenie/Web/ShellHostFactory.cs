@@ -18,7 +18,10 @@ internal sealed class ShellHostFactory(
     MenuSurfaceBridge menu,
     WheelSurfaceBridge wheel,
     PanelSurfaceBridge panelFrames,
-    AppSettings settings)
+    AppSettings settings,
+    WhaleGenie.Projects.IProjectSaver saver,
+    WhaleGenie.Editor.IEditorDocuments editor,
+    WhaleGenie.Editor.IEditorLeavePrompt editorPrompt)
 {
     public ShellHost Create(WebShellWindow owner)
     {
@@ -31,7 +34,7 @@ internal sealed class ShellHostFactory(
                 return true;
             },
             macro => owner.OpenRun(macro.Name),
-            () => owner.OpenSettings());
+            () => owner.OpenSettings(), settings, saver);
 
         // The menu is the Lit overlay in every build now; the native menu window is gone.
         var bridge = owner.Bridge
@@ -48,7 +51,8 @@ internal sealed class ShellHostFactory(
         wheelOverlay.Warm();
         var shell = new ShellHost(workspace, system, runtime, questions, actions, owner, owner,
             menu.Overlay, wheelOverlay,
-            key => new PanelOverlayHost(bridge, panelFrames, key), panelFrames.Surface);
+            key => new PanelOverlayHost(bridge, panelFrames, key), panelFrames.Surface,
+            saver, editor, editorPrompt);
 #if DEBUG
         if (App.WheelOverlay)
         {

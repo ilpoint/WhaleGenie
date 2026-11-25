@@ -22,7 +22,6 @@ import fileText from 'lucide-static/icons/file-text.svg?raw';
 import folder from 'lucide-static/icons/folder.svg?raw';
 import gamepad from 'lucide-static/icons/gamepad-2.svg?raw';
 import globe from 'lucide-static/icons/globe.svg?raw';
-import house from 'lucide-static/icons/house.svg?raw';
 import info from 'lucide-static/icons/info.svg?raw';
 import keyboard from 'lucide-static/icons/keyboard.svg?raw';
 import layoutGrid from 'lucide-static/icons/layout-grid.svg?raw';
@@ -35,10 +34,12 @@ import panelRightClose from 'lucide-static/icons/panel-right-close.svg?raw';
 import panelRightOpen from 'lucide-static/icons/panel-right-open.svg?raw';
 import pencil from 'lucide-static/icons/pencil.svg?raw';
 import pin from 'lucide-static/icons/pin.svg?raw';
+import power from 'lucide-static/icons/power.svg?raw';
 import play from 'lucide-static/icons/play.svg?raw';
 import plus from 'lucide-static/icons/plus.svg?raw';
 import redo from 'lucide-static/icons/redo-2.svg?raw';
 import scanText from 'lucide-static/icons/scan-text.svg?raw';
+import saveAll from 'lucide-static/icons/save-all.svg?raw';
 import search from 'lucide-static/icons/search.svg?raw';
 import settings from 'lucide-static/icons/settings.svg?raw';
 import square from 'lucide-static/icons/square.svg?raw';
@@ -56,7 +57,6 @@ import x from 'lucide-static/icons/x.svg?raw';
  * style instead of each page carrying its own paths.
  */
 const icons = {
-  home: house,
   macros: list,
   editor: filePen,
   run: play,
@@ -64,6 +64,7 @@ const icons = {
   settings,
   about: info,
   pin,
+  power,
   minimize: minus,
   maximize: square,
   restore: copy,
@@ -80,6 +81,7 @@ const icons = {
   group,
   search,
   plus,
+  'save-all': saveAll,
   'chevron-right': chevronRight,
   'chevron-down': chevronDown,
   'arrow-up': arrowUp,

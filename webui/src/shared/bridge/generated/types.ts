@@ -309,6 +309,11 @@ export interface EditorCatalogue {
   actions: EditorActionSnapshot[];
   categories: EditorActionCategorySnapshot[];
   publicMacros: EditorPublicMacroSnapshot[];
+  valueFunctions: EditorValueFunctionSnapshot[];
+  variableTypes: EditorVariableTypeSnapshot[];
+  conditionCompares: EditorConditionCompareSnapshot[];
+  triggerKinds: EditorTriggerKindSnapshot[];
+  systemValueChoices: EditorValueChoiceSnapshot[];
 }
 
 export interface EditorCharacterCapSnapshot {
@@ -390,6 +395,13 @@ export interface EditorDeclarationCommand {
   value?: string | null;
   fieldIndex?: number | null;
   offset?: number | null;
+}
+
+export interface EditorDocumentSaveResult {
+  documentId: string;
+  name: string;
+  outcome: string;
+  problem: string | null;
 }
 
 export interface EditorDurationSnapshot {
@@ -583,6 +595,11 @@ export interface EditorRowSnapshot {
   cells: string[];
 }
 
+export interface EditorSaveResponse {
+  snapshot: EditorSnapshot | null;
+  results: EditorDocumentSaveResult[];
+}
+
 export type EditorSessionCommand =
   | EditorSessionOpenCommand
   | EditorSessionNewCommand
@@ -592,7 +609,7 @@ export type EditorSessionCommand =
   | EditorSessionPatchCommand
   | EditorSessionUndoCommand
   | EditorSessionRedoCommand
-  | EditorSessionSaveCommand
+  | EditorSessionDeactivateCommand
   | EditorSessionCloseCommand
   | EditorSessionPublicMacroAddCommand
   | EditorSessionSubMacroCreateCommand
@@ -612,6 +629,7 @@ export interface EditorSessionNewCommand {
 export interface EditorSessionSubOpenCommand {
   kind: 'subOpen';
   name: string;
+  ownerDocumentId?: string | null;
 }
 
 export interface EditorSessionMacroSettingCommand {
@@ -622,7 +640,7 @@ export interface EditorSessionMacroSettingCommand {
 
 export interface EditorSessionActivateCommand {
   kind: 'activate';
-  key: string;
+  documentId: string;
 }
 
 export interface EditorSessionPatchCommand {
@@ -640,13 +658,14 @@ export interface EditorSessionRedoCommand {
   kind: 'redo';
 }
 
-export interface EditorSessionSaveCommand {
-  kind: 'save';
+export interface EditorSessionDeactivateCommand {
+  kind: 'deactivate';
 }
 
 export interface EditorSessionCloseCommand {
   kind: 'close';
-  key?: string | null;
+  documentId?: string | null;
+  discard?: boolean | null;
 }
 
 export interface EditorSessionPublicMacroAddCommand {
@@ -676,6 +695,7 @@ export interface EditorSessionExportCommand {
 }
 
 export interface EditorSnapshot {
+  documentId: string;
   name: string;
   description: string;
   group: string;
@@ -692,10 +712,6 @@ export interface EditorSnapshot {
   variables: EditorVariableSnapshot[];
   globals: EditorGlobalSnapshot[];
   valueChoices: EditorValueChoiceSnapshot[];
-  valueFunctions: EditorValueFunctionSnapshot[];
-  conditionCompares: EditorConditionCompareSnapshot[];
-  variableTypes: EditorVariableTypeSnapshot[];
-  triggerKinds: EditorTriggerKindSnapshot[];
   canUndo: boolean;
   canRedo: boolean;
   canSave: boolean;
@@ -708,8 +724,8 @@ export interface EditorSnapshot {
   toggleKeyProblem: string;
   recording: EditorRecordingSnapshot;
   isSubMacro: boolean;
-  tabs: EditorTabSnapshot[] | null;
-  activeKey: string | null;
+  tabs: EditorTabSnapshot[];
+  activeDocumentId: string | null;
   actionForm: EditorActionFormSnapshot | null;
   revision: number;
 }
@@ -782,11 +798,12 @@ export interface EditorStepsCommand {
 }
 
 export interface EditorTabSnapshot {
-  key: string;
+  documentId: string;
   name: string;
   dirty: boolean;
   problem: boolean;
   isSubMacro: boolean;
+  ownerDocumentId: string | null;
 }
 
 export interface EditorTrialBox {
@@ -978,6 +995,10 @@ export interface EditorTriggerSnapshot {
   interfaceGroupMembers: string[];
 }
 
+export interface EditorUnsavedDocumentsSnapshot {
+  names: string[];
+}
+
 export interface EditorValueChoiceSnapshot {
   name: string;
   type: string;
@@ -1105,6 +1126,7 @@ export interface EditorValueOutcome {
   closed: boolean;
   applied: boolean;
   snapshot: EditorValueSnapshot;
+  state: EditorSnapshot | null;
 }
 
 export interface EditorValuePartSnapshot {
@@ -1309,6 +1331,9 @@ export interface ProjectState {
   dirty: boolean;
   revision: number;
   systemEnabled: boolean;
+  autoSave: boolean;
+  saving: boolean;
+  saveError: string | null;
   enabledFirst: boolean;
   views: string[];
   groups: string[];
@@ -1461,6 +1486,7 @@ export interface SettingsMenuState {
 
 export interface SettingsPatch {
   loadLastProjectAtStart?: boolean | null;
+  autoSaveProject?: boolean | null;
   systemAtStart?: boolean | null;
   enabledFirst?: boolean | null;
   ignoreOwnInput?: boolean | null;
@@ -1484,6 +1510,7 @@ export interface SettingsPatch {
 
 export interface SettingsState {
   loadLastProjectAtStart: boolean;
+  autoSaveProject: boolean;
   systemAtStart: boolean;
   enabledFirst: boolean;
   ignoreOwnInput: boolean;
@@ -1700,6 +1727,11 @@ export interface SurfaceWheelSnapshot {
   centerX: number;
   centerY: number;
   opening: boolean;
+}
+
+export interface SystemSwitchState {
+  enabled: boolean;
+  hotkeyDisplay: string;
 }
 
 export interface ThemeState {

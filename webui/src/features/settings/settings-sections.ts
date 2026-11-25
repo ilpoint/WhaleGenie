@@ -54,6 +54,8 @@ export function renderSettingsCards(host: SettingsSectionsHost): TemplateResult 
             </select>
           </div>
           ${toggle(host, 'loadLastProjectAtStart', 'Settings.LoadLastProject')}
+          ${toggle(host, 'autoSaveProject', 'Settings.AutoSaveProject')}
+          <p class="status">${t('Settings.AutoSaveProjectNote')}</p>
           ${toggle(host, 'systemAtStart', 'Settings.SystemAtStart')}
           ${toggle(host, 'enabledFirst', 'Settings.EnabledFirst')}
         </section>

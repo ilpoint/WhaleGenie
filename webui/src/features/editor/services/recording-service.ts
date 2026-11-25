@@ -10,7 +10,7 @@ export class EditorRecordingService {
 
   async startRecording(): Promise<void> {
     try {
-      const state = await this.core.client.call<{ recording: boolean; captured: number }>(
+      const state = await this.core.request<{ recording: boolean; captured: number }>(
         'editor.record', { kind: 'start' });
       this.core.state.recording = state.recording;
       this.core.state.captured = state.captured;
@@ -27,7 +27,7 @@ export class EditorRecordingService {
 
   private async pollRecording(): Promise<void> {
     try {
-      const state = await this.core.client.call<{
+      const state = await this.core.request<{
         recording?: boolean;
         captured: number;
         snapshot?: EditorSnapshot;
@@ -56,7 +56,7 @@ export class EditorRecordingService {
     window.clearInterval(this.recordTimer);
     this.recordTimer = 0;
     try {
-      const result = await this.core.client.call<{
+      const result = await this.core.request<{
         captured: number;
         steps: number;
         snapshot: EditorSnapshot;

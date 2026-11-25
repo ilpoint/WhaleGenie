@@ -76,6 +76,7 @@ internal sealed partial class HeadlessEditorSession
 
         _actionSession = null;
         _actionTarget = null;
+        _model.IsDirty = true;
         return Snapshot();
     }
 

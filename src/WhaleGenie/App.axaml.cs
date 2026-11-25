@@ -11,6 +11,7 @@ using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
 using WhaleGenie.Platform.Windows;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Views;
 using WhaleGenie.Web;
@@ -137,21 +138,11 @@ public partial class App : Application
         desktop.MainWindow = window;
 
         // The person's last package comes back with the window: an empty list every morning is a
-        // step nobody asked for. A file that is not there any more leaves the window empty rather
-        // than failing to start, and the path is kept for the drive that was not plugged in.
-        if (AppSettings.Shared.LoadLastProjectAtStart()
-            && AppSettings.Shared.LastProject() is { Length: > 0 } last && File.Exists(last))
-        {
-            try
-            {
-                services.GetRequiredService<ProjectWorkspace>().OpenPackage(last);
-            }
-            catch (Exception error) when (error is IOException or InvalidDataException
-                or UnauthorizedAccessException or InvalidOperationException or NotSupportedException)
-            {
-                // A package that cannot be read is not a reason to refuse to start.
-            }
-        }
+        // step nobody asked for. A first start with no package at all lands in the default
+        // project, so the first macro has somewhere to go without a Save As first. A file that is
+        // not there any more leaves the window empty rather than failing to start.
+        ProjectStartup.OpenAtStart(services.GetRequiredService<ProjectWorkspace>(),
+            AppSettings.Shared);
 
         // From here on, the window is put out of the way rather than closed, and the icon in the
         // notification area is how it comes back and how the program is stopped. The window is

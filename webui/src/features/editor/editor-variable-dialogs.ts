@@ -157,7 +157,7 @@ export class WgLocalVariables extends LitElement {
                 <select .value=${variable.type} ?disabled=${!variable.isDeclared}
                   @change=${(event: Event) => void editor.variables.patchVariable(variable.name, 'type',
                     (event.target as HTMLSelectElement).value)}>
-                  ${(snapshot.variableTypes).map((type) => html`
+                  ${(editor.get().catalogue?.variableTypes ?? []).map((type) => html`
                     <option value=${type.value}>${type.label}</option>
                   `)}
                 </select>
@@ -247,7 +247,7 @@ export class WgGlobalVariables extends LitElement {
                 <select .value=${global.type}
                   @change=${(event: Event) => void editor.variables.patchGlobal(global.name, 'type',
                     (event.target as HTMLSelectElement).value)}>
-                  ${snapshot.variableTypes.map((type) => html`
+                  ${(editor.get().catalogue?.variableTypes ?? []).map((type) => html`
                     <option value=${type.value}>${type.label}</option>
                   `)}
                 </select>

@@ -8,6 +8,7 @@ namespace WhaleGenie.Contracts;
 [BridgePatch]
 public sealed record SettingsPatch(
     bool? LoadLastProjectAtStart,
+    bool? AutoSaveProject,
     bool? SystemAtStart,
     bool? EnabledFirst,
     bool? IgnoreOwnInput,

@@ -22,7 +22,8 @@ internal sealed class ShellNativeWindows(
     Func<Window?> owner,
     Func<MacroItem, bool> openEditor,
     Action<MacroItem> openRun,
-    Action openSettings, WhaleGenie.Localization.AppSettings? settings = null)
+    Action openSettings, WhaleGenie.Localization.AppSettings? settings = null,
+    WhaleGenie.Projects.IProjectSaver? saver = null)
     : INativeSurfaceActions, IDisposable
 {
     private readonly WhaleGenie.Localization.AppSettings _settings =
@@ -67,7 +68,9 @@ internal sealed class ShellNativeWindows(
             }
         }
 
-        var saved = await ProjectFiles.SaveAsync(workspace, path);
+        var saved = saver is not null
+            ? await saver.SaveAsync(path)
+            : await ProjectFiles.SaveAsync(workspace, path);
         if (!saved.Ok)
         {
             await ConfirmDialog.ShowAsync(window, Strings.Get("Package.SaveFailed"),

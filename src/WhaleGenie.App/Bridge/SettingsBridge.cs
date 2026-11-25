@@ -43,6 +43,7 @@ internal sealed partial class SettingsBridge : IBridgeHandler
 
     private SettingsState State() => new(
         _settings.LoadLastProjectAtStart,
+        _settings.AutoSaveProject,
         _settings.SystemAtStart,
         _settings.EnabledFirst,
         _settings.IgnoreOwnInput,
@@ -124,6 +125,7 @@ internal sealed partial class SettingsBridge : IBridgeHandler
 
         var touched = false;
         if (patch.LoadLastProjectAtStart is { } loadLast) { _settings.LoadLastProjectAtStart = loadLast; touched = true; }
+        if (patch.AutoSaveProject is { } autoSave) { _settings.AutoSaveProject = autoSave; touched = true; }
         if (patch.SystemAtStart is { } systemAtStart) { _settings.SystemAtStart = systemAtStart; touched = true; }
         if (patch.EnabledFirst is { } enabledFirst) { _settings.EnabledFirst = enabledFirst; touched = true; }
         if (patch.IgnoreOwnInput is { } ignoreOwnInput) { _settings.IgnoreOwnInput = ignoreOwnInput; touched = true; }

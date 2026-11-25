@@ -297,7 +297,7 @@ export function renderConditionNode(host: ActionFieldHost, field: EditorActionFi
         <select .value=${node.compare}
           @change=${(event: Event) => void editor.steps.setConditionRow(
             host.stepId, field.name, path, 'compare', (event.target as HTMLSelectElement).value)}>
-          ${(editor.get().snapshot?.conditionCompares ?? []).map((compare) => html`
+          ${(editor.get().catalogue?.conditionCompares ?? []).map((compare) => html`
             <option value=${compare.value}>${compare.label}</option>`)}
         </select>
         <div class="inline">

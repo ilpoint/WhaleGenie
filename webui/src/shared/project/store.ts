@@ -13,6 +13,11 @@ class ProjectStore {
     return this.state.subscribe(listener);
   }
 
+  /** 当前镜像；离开页面前判断自动保存开没开、项目脏没脏时读它。 */
+  current(): ProjectState | null {
+    return this.state.get();
+  }
+
   /** 仅供启动装配与事件接线：灌入一份。 */
   load(value: ProjectState): void {
     this.state.set(value);

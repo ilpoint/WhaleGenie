@@ -88,6 +88,16 @@ public sealed class AppSettings
         => Write(model => model.LoadLastProjectAtStart = load);
 
     /// <summary>
+    /// Whether a change is written back to the package and an edited macro is committed as it is
+    /// edited. On by default, which is what makes leaving the program a quiet act.
+    /// </summary>
+    public bool LoadAutoSaveProject() => Read().AutoSaveProject;
+
+    /// <summary>Stores whether changes are saved as they happen.</summary>
+    public void StoreAutoSaveProject(bool autoSave)
+        => Write(model => model.AutoSaveProject = autoSave);
+
+    /// <summary>
     /// Whether triggers are already listening when the program starts. Off means the system stays
     /// disabled until it is turned on, which is the quieter thing to do on a shared machine.
     /// </summary>

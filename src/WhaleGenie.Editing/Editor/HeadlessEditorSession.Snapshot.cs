@@ -25,6 +25,7 @@ internal sealed partial class HeadlessEditorSession
         var macro = _model.Draft().Macro;
         var problems = ProblemByStep();
         return new EditorSnapshot(
+            string.Empty,
             Name,
             Description,
             Group,
@@ -41,10 +42,6 @@ internal sealed partial class HeadlessEditorSession
             Variables,
             Globals,
             ValueChoices,
-            ValueFunctions,
-            ConditionCompares,
-            VariableTypes,
-            TriggerKindOptions,
             CanUndo,
             CanRedo,
             CanSave,
@@ -57,6 +54,9 @@ internal sealed partial class HeadlessEditorSession
             ToggleKeyProblem,
             Recording,
             IsSubMacro,
+            Tabs: [],
+            ActiveDocumentId: null,
+            ActionForm: null,
             Revision: ++_revision);
     }
 

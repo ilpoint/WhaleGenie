@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WhaleGenie.Storage;
@@ -10,11 +11,13 @@ namespace WhaleGenie.Models;
 /// </summary>
 public sealed record ProjectSavePlan(
     string Path,
+    string? PreviousPath,
     IReadOnlyList<MacroItem> Macros,
     ProjectTriggers Triggers,
     IReadOnlyList<VariableDefinition> Globals,
     string AppVersion,
-    string? AssetFolder);
+    string? AssetFolder,
+    int Revision);
 
 public sealed partial class ProjectWorkspace
 {
@@ -34,11 +37,44 @@ public sealed partial class ProjectWorkspace
     public ProjectSavePlan PrepareSave(string path)
         => new(
                 path,
+                CurrentPath,
                 [.. Macros.Select(macro => MacroItem.FromJson(macro.ToJson()))],
                 Triggers.Copy(),
                 [.. Variables.Globals.Select(Clone)],
                 _appVersion,
-                ImageAssets.FolderFor(CurrentPath));
+                ImageAssets.FolderFor(CurrentPath),
+                Revision);
+
+    /// <summary>
+    /// Records that the file now holds the project as it stood when <paramref name="plan"/> was
+    /// copied. A change made while the file was being written is newer than the file, so the
+    /// document stays unsaved and the next save carries it; clearing the flag blindly would lose
+    /// that change from every prompt and every recovery draft.
+    /// </summary>
+    /// <remarks>
+    /// A save has two legitimate shapes: the plan was copied from the path the project still
+    /// points at (an ordinary save, or the first write of a save-as), or the plan's target is
+    /// already the current path (another save of the same file finished first). Any other
+    /// current path means the project was replaced or moved to a different document while this
+    /// plan was being written; that write belongs to the old document and must not pull the
+    /// project back to it.
+    /// </remarks>
+    public void MarkSaved(ProjectSavePlan plan)
+    {
+        var sameDocument = string.IsNullOrEmpty(CurrentPath)
+            || string.Equals(CurrentPath, plan.PreviousPath, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(CurrentPath, plan.Path, StringComparison.OrdinalIgnoreCase);
+        if (!sameDocument)
+        {
+            return;
+        }
+
+        CurrentPath = plan.Path;
+        if (Revision == plan.Revision)
+        {
+            IsDirty = false;
+        }
+    }
 
     /// <summary>Records that the file now holds this project's contents.</summary>
     public void MarkSaved(string path)

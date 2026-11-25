@@ -4,15 +4,28 @@
 
 ## 程序自己的文件放哪儿
 
-`settings.json`（设置页里的选择）和 `logs`（运行失败时的文字日志）都写在 `WhaleGenie.exe` 所在的
-目录：整个文件夹拷走就等于把设置一起带走，两个副本放在一起也不会互相干扰。装在只让管理员
-写的地方（比如 `Program Files`）时这两样写不进去，程序照常运行，只是设置不落盘、失败不留日志。
+程序自己的状态在 `%LOCALAPPDATA%\WhaleGenie\`：
 
-脚本要的包放在同一个目录下的 `packages` 里：`packages\python` 是 Python 包，`packages\nuget` 是 C# 脚本
-用的 NuGet 包。它们与设置一样跟着程序目录走，装不进去时改用 `%LOCALAPPDATA%\WhaleGenie\packages`。
+| 文件 | 放的是什么 |
+| --- | --- |
+| `settings.json` | 设置页里的选择，包含自动保存项目、系统开关键、主题与语言 |
+| `logs\` | 运行失败与 MCP 的文字日志，默认保留最近 100 份 |
+| `recovery.json` | 上次停止前尚未写盘的工程文档（宏列表、共享变量与包路径）；下次启动会问要不要恢复。编辑器中尚未保存进工程的文档不在这里 |
 
-浏览器动作的**登录档案**也放在这里：`browsers\<浏览器>\<档案名>` 是「打开浏览器」那一格「档案」说的地方，
-一份档案一个文件夹，删掉文件夹就等于让它重新登录一次（见「浏览器」）。
+这些放在用户目录里，升级、重装或换一个安装位置都不会带走；程序装在只让管理员写的地方时也照样
+能保存。
 
-宏和宏包不跟着程序走：默认在「文档」目录下的 `WhaleGenie` 里（`%USERPROFILE%\Documents\WhaleGenie`），
-它在哪由打开的宏包决定。
+工程包与它的工作文件在 `%APPDATA%\WhaleGenie\projects\`：每个包有一个以包名和路径哈希命名的
+文件夹，里面是 `assets\`（包里解出来的图，步骤里的图片引用指的就是它）与 `last.wgmacro.bak`
+（上一次保存替换掉的包）。同目录下的 `default.wgmacro` 是**默认项目**：第一次启动没有上次项目
+时，自动保存开启就用它；第一次真正保存前不会创建空文件。
+
+公共宏库跟着程序目录走：`library\public-macros.wgmacro` 与 `library\public-macros.assets\`，
+所有项目共用，把程序文件夹拷给别人才会一起带走。
+
+脚本要的包放在程序目录下的 `packages` 里：`packages\python` 是 Python 包，`packages\nuget` 是
+C# 脚本用的 NuGet 包；装不进去时改用 `%LOCALAPPDATA%\WhaleGenie\packages`。浏览器动作的登录档案
+也放在程序目录的 `browsers\<浏览器>\<档案名>`，一份档案一个文件夹。
+
+宏包本身在哪儿由你打开或另存为的位置决定；「自动保存项目」写的始终是当前这一份包，另存为后
+下一份自动保存也写到新位置。第一次保存之前截的图放在系统「图片」文件夹下的 `WhaleGenie\`。

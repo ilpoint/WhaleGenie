@@ -22,7 +22,7 @@ export class EditorActionService {
   async openAction(type: string,
     target: { targetStepId?: string; before?: boolean; parentId?: string; list?: string } = {}): Promise<boolean> {
     try {
-      const form = await this.core.client.call<EditorActionForm>('editor.actionOpen', {
+      const form = await this.core.request<EditorActionForm>('editor.actionOpen', {
         type,
         ...target,
       });
@@ -42,7 +42,7 @@ export class EditorActionService {
 
   async openStepAction(stepId: string): Promise<boolean> {
     try {
-      const form = await this.core.client.call<EditorActionForm>('editor.actionOpen', { stepId });
+      const form = await this.core.request<EditorActionForm>('editor.actionOpen', { stepId });
       this.core.state.actionForm = form;
       this.core.state.actionPage = form.page;
       this.core.state.actionError = '';
@@ -71,7 +71,7 @@ export class EditorActionService {
       ? new Set(flattenSteps(this.core.state.snapshot.steps).map((step) => step.id))
       : new Set<string>();
     try {
-      const next = await this.core.client.call<EditorSnapshot>('editor.actionConfirm');
+      const next = await this.core.request<EditorSnapshot>('editor.actionConfirm');
       this.core.applySnapshot(next);
       this.core.state.actionForm = null;
       this.core.state.actionError = '';
@@ -96,7 +96,7 @@ export class EditorActionService {
     }
 
     try {
-      await this.core.client.call<EditorSnapshot>('editor.actionCancel');
+      await this.core.request<EditorSnapshot>('editor.actionCancel');
     } catch {
       // The form is page state; closing it must not be blocked by a failed discard.
     }
@@ -174,7 +174,7 @@ export class EditorActionService {
 
   async previewActionWindow(name: string, rule: string): Promise<EditorWindowPreview | null> {
     try {
-      return await this.core.client.call<EditorWindowPreview | null>('editor.actionWindowPreview',
+      return await this.core.request<EditorWindowPreview | null>('editor.actionWindowPreview',
         { name, rule });
     } catch (error) {
       this.core.fail(error);
@@ -184,7 +184,7 @@ export class EditorActionService {
 
   async runAction(confirmed = false): Promise<EditorTrialReply | null> {
     try {
-      const reply = await this.core.client.call<EditorTrialReply>('editor.actionRun', { confirmed });
+      const reply = await this.core.request<EditorTrialReply>('editor.actionRun', { confirmed });
       if (reply.result) {
         this.core.state.trial = reply.result;
         this.core.notify();
@@ -204,7 +204,7 @@ export class EditorActionService {
 
   async keyPad(mode = 'key'): Promise<EditorKeyPad | null> {
     try {
-      return await this.core.client.call<EditorKeyPad>('editor.actionKeyPad', { mode });
+      return await this.core.request<EditorKeyPad>('editor.actionKeyPad', { mode });
     } catch (error) {
       this.core.fail(error);
       return null;
@@ -227,7 +227,7 @@ export class EditorActionService {
 
   async pickWindowForAction(): Promise<{ chosen: boolean; rule: string; title: string } | null> {
     try {
-      return await this.core.client.call<{ chosen: boolean; rule: string; title: string }>(
+      return await this.core.request<{ chosen: boolean; rule: string; title: string }>(
         'editor.actionWindowPick');
     } catch (error) {
       this.core.fail(error);

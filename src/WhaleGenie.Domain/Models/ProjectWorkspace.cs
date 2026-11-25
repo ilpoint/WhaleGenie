@@ -91,11 +91,18 @@ public sealed partial class ProjectWorkspace : ObservableObject
     public event EventHandler? Changed;
 
     /// <summary>
+    /// Raised when the whole document is replaced by another one (a package opened, a draft
+    /// applied, a recovery restored). Unlike <see cref="Changed"/> this is raised even when the
+    /// arriving document is already clean, because every instance the window was holding is gone.
+    /// </summary>
+    public event EventHandler? Replaced;
+
+    /// <summary>
     /// Adds a macro created in the macro editor and assigns it a display name. The entries the
     /// editor made for it come in the same write, so the project never holds a macro whose triggers
     /// have not arrived yet.
     /// </summary>
-    public void AddMacro(MacroItem macro, IReadOnlyList<TriggerEntry>? entries = null)
+    public MacroItem AddMacro(MacroItem macro, IReadOnlyList<TriggerEntry>? entries = null)
     {
         if (string.IsNullOrWhiteSpace(macro.Name))
         {
@@ -130,6 +137,7 @@ public sealed partial class ProjectWorkspace : ObservableObject
 
         Triggers.Project([macro]);
         MarkDirty();
+        return macro;
     }
 
     /// <summary>
@@ -254,6 +262,7 @@ public sealed partial class ProjectWorkspace : ObservableObject
         CurrentPath = path;
         IsDirty = false;
         Revision++;
+        Replaced?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

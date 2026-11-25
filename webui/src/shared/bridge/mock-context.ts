@@ -4,6 +4,7 @@ import type {
   RunState,
   SettingsState,
   StringsBundle,
+  SystemSwitchState,
   SurfaceMenuSnapshot,
   SurfacePanelSnapshot,
   SurfaceWheelSnapshot,
@@ -15,6 +16,8 @@ import type {
 export interface MockContext {
   info: AppInfo;
   settingsState: SettingsState;
+  /** The side bar's side of the switch: current state plus the key that flips it. */
+  system(): SystemSwitchState;
   push(event: string, payload: unknown): void;
   bundle(): StringsBundle;
 }

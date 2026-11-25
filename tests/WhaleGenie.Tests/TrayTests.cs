@@ -419,6 +419,27 @@ public class TrayTests
         });
     }
 
+    [Fact]
+    public void A_close_another_question_already_cancelled_is_not_hidden()
+    {
+        Ui.Run(() =>
+        {
+            // The project session sets e.Cancel before the tray sees the close when it is about to
+            // show an unsaved-work question. Hiding then would take the question off the screen
+            // with the window it belongs to.
+            var window = new AskingWindow();
+            window.Show();
+            var tray = new AppTray(window, new FakeArea(), () => { });
+
+            window.Close();
+
+            Assert.True(window.IsVisible);
+
+            tray.Dispose();
+            window.Close();
+        });
+    }
+
     /// <summary>
     /// Stands in for a window that turns a close down to ask the person something, which is what
     /// the main window and the macro editor do — and what has to be written down before the base

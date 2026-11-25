@@ -7,6 +7,7 @@ import type {
   EditorValueSnapshot,
 } from './protocol.js';
 import { MockValueEditor } from './mock-value-editor.js';
+import { defaultValueFunctions } from './mock-editor-fixtures.js';
 import {
   changeCondition,
   changeRows,
@@ -49,7 +50,7 @@ export function openValue(host: MockEditor, params: Record<string, unknown>): Ed
         valueForm: 'Value',
         isNumber: false,
       };
-      host.valueEditor = new MockValueEditor(document, synthetic, (value) => {
+      host.valueEditor = new MockValueEditor(document, synthetic, defaultValueFunctions(), (value) => {
         if (draftStep && host.actionForm) {
           host.actionStep = changeCondition([host.actionStep!], step.id, parameter.name,
             (condition) => setConditionCell(condition, conditionPath, conditionField, value))[0]!;
@@ -78,7 +79,7 @@ export function openValue(host: MockEditor, params: Record<string, unknown>): Ed
         valueForm: 'Value',
         isNumber: false,
       };
-      host.valueEditor = new MockValueEditor(document, synthetic, (value) => {
+      host.valueEditor = new MockValueEditor(document, synthetic, defaultValueFunctions(), (value) => {
         const update = (rows: EditorRow[]): EditorRow[] => rows.map((row, index) => index === rowIndex
           ? { ...row, cells: row.cells.map((content, cellIndex) =>
             cellIndex === cell ? value : content) }
@@ -98,7 +99,7 @@ export function openValue(host: MockEditor, params: Record<string, unknown>): Ed
       return host.valueEditor.snapshot();
     }
 
-    host.valueEditor = new MockValueEditor(document, parameter, (value) => {
+    host.valueEditor = new MockValueEditor(document, parameter, defaultValueFunctions(), (value) => {
       if (draftStep && host.actionForm) {
         host.actionStep = setParameter([host.actionStep!], step.id, parameter.name, value)[0]!;
         host.refreshActionForm();

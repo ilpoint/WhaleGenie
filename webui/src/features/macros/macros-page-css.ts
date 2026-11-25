@@ -33,6 +33,14 @@ export const macrosPageCss = css`
       text-align: right;
     }
 
+    .save-error {
+      margin: 0;
+      padding: var(--spacingVerticalS) var(--spacingHorizontalXL);
+      color: var(--colorPaletteRedForeground1);
+      background: var(--colorPaletteRedBackground1);
+      font-size: var(--fontSizeBase200);
+    }
+
     .dock {
       display: flex;
       flex-wrap: wrap;
@@ -59,9 +67,7 @@ export const macrosPageCss = css`
     }
 
     .dock button:focus-visible,
-    .tools input:focus-visible,
-    .footer fluent-button:focus-visible,
-    .footer fluent-switch:focus-visible {
+    .tools input:focus-visible {
       outline: var(--strokeWidthThicker) solid var(--colorStrokeFocus2);
       outline-offset: -1px;
     }
@@ -199,18 +205,4 @@ export const macrosPageCss = css`
       padding: var(--spacingVerticalXXL);
     }
 
-    .footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--spacingHorizontalL);
-      padding: var(--spacingVerticalM) var(--spacingHorizontalXL);
-      border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
-    }
-
-    .footer .system {
-      display: flex;
-      align-items: center;
-      gap: var(--spacingHorizontalM);
-    }
   `;

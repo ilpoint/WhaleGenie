@@ -3,6 +3,7 @@ import { editorPaletteCss } from './editor-palette-css.js';
 import { customElement, state } from 'lit/decorators.js';
 import { icon, iconForCategory } from '../../shared/icons.js';
 import { t } from '../../shared/strings/strings.js';
+import { go } from '../../shared/navigation/router.js';
 import { actionSections, paletteActions } from './editor-model.js';
 import { editor } from './editor-store.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
@@ -172,25 +173,26 @@ export class WgEditorPalette extends LitElement {
       needle.length === 0
       || macro.name.toLocaleLowerCase().includes(needle)
       || macro.description.toLocaleLowerCase().includes(needle));
-    if (macros.length === 0) {
-      return html`<p class="empty">${t('Palette.NoPublicMacros')}</p>`;
-    }
-
     return html`
-      ${macros.map((macro) => html`
-        <button
-          type="button"
-          class="sub-card"
-          title=${macro.description || macro.name}
-          @click=${() => void editor.steps.addPublicMacro(macro.id)}
-        >
-          ${icon('folder')}
-          <span>
-            <span>${macro.name}</span>
-            <span class="meta">${t('Palette.MacroVersion').replace('{0}', String(macro.version))}</span>
-          </span>
-        </button>
-      `)}
+      <p class="public-hint">${t('Editor.PublicMacroHint')}</p>
+      ${macros.length === 0
+        ? html`<p class="empty">${t('Palette.NoPublicMacros')}</p>`
+        : macros.map((macro) => html`
+          <button
+            type="button"
+            class="sub-card"
+            title=${macro.description || macro.name}
+            @click=${() => void editor.steps.addPublicMacro(macro.id)}
+          >
+            ${icon('folder')}
+            <span>
+              <span>${macro.name}</span>
+              <span class="meta">${t('Palette.MacroVersion').replace('{0}', String(macro.version))}</span>
+            </span>
+          </button>
+        `)}
+      <button class="link-button public-manage" type="button"
+        @click=${() => void go('library')}>${t('Editor.ManagePublicMacros')}</button>
     `;
   }
 

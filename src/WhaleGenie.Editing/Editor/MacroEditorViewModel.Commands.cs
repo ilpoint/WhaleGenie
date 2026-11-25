@@ -79,28 +79,11 @@ public partial class MacroEditorViewModel
     {
         base.OnPropertyChanged(e);
 
-        // Highlighting rows in the list, and starting or stopping a recording, are not edits
-        // of the macro itself, and neither is what the design-time check made of it.
-        if (!_loading && e.PropertyName is not (nameof(IsDirty) or nameof(HasSelection)
-                or nameof(SelectedSteps) or nameof(IsRecording) or nameof(RecordedEvents)
-                or nameof(Problems) or nameof(HasProblems) or nameof(HasStepProblems)
-                or nameof(DeclarationProblems) or nameof(HasDeclarationProblems)
-                or nameof(SelectedTrigger) or nameof(HasSelectedTrigger)
-                or nameof(ShowsTriggerSettings) or nameof(ShowsLoopMode) or nameof(ShowsTriggerOnce)
-                or nameof(TriggerEntries) or nameof(TriggerKindOptions) or nameof(TriggerKindChoices)
-                or nameof(TriggerProblemSummary) or nameof(HasTriggerProblem)
-                or nameof(HotstringEndKeys) or nameof(IsCapturingHotstringEnd)
-                or nameof(HotstringEndCaptureStatus) or nameof(HotstringEndCaptureButton)
-                or nameof(IsCapturingInterfaceHotkey) or nameof(InterfaceToggleHotkey)
-                or nameof(InterfaceHotkeyProblem)
-                or nameof(InterfaceHotkeyButton) or nameof(InterfaceToggleHotkeyDisplay)
-                or nameof(SettingsPage) or nameof(IsGeneralSettingsPage)
-                or nameof(IsSpecificSettingsPage) or nameof(IsCapturingToggleKey)
-                or nameof(ToggleKeyDisplay) or nameof(ToggleKeyButton) or nameof(ToggleKeyProblem)
-                or nameof(HasBlockingDeclarationProblems) or nameof(CanSave)
-                or nameof(CallImpactSummary) or nameof(HasCallImpact)
-                or nameof(ProblemSummary) or nameof(DeclarationProblemSummary)
-                or nameof(NameProblem) or nameof(HasNameProblem)))
+        // Only a property that carries document state is an edit. Selection, capture mode, the
+        // settings page and the design-time check's own output are changes of what the editor is
+        // doing, not of the macro. The registry is checked against the model by a test so a new
+        // document property cannot quietly become view state.
+        if (!_loading && MacroDocumentFields.IsDocument(e.PropertyName))
         {
             MarkDirty();
         }

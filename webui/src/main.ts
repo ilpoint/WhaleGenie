@@ -11,13 +11,20 @@ import '@fluentui/web-components/checkbox.js';
 import { BridgeClient } from './shared/bridge/client.js';
 import { bridge } from './shared/bridge/bridge.js';
 import { pickTransport } from './shared/bridge/pick.js';
-import type { AppInfo, ProjectState, StringsBundle, ThemeState } from './shared/bridge/protocol.js';
+import type {
+  AppInfo,
+  ProjectState,
+  StringsBundle,
+  SystemSwitchState,
+  ThemeState,
+} from './shared/bridge/protocol.js';
 import { strings } from './shared/strings/strings.js';
 import { theme } from './shared/theme/theme.js';
 import { appInfo } from './shared/app/app.js';
 import { project } from './shared/project/store.js';
 import { windowMirror } from './shared/window/window.js';
-import { go } from './shared/navigation/router.js';
+import { currentRoute, go, setNavigationGuard } from './shared/navigation/router.js';
+import { systemSwitch } from './shared/system/system.js';
 import './shared/icons/icon.js';
 import './features/overlay/menu-overlay.js';
 import './features/overlay/wheel.js';
@@ -42,16 +49,46 @@ installFocusReporting();
 // 测试与调试的观察口：e2e 与控制台可以手动注册监听、手动调请求。
 window.__bridge = client;
 
-const bundle = await client.call<StringsBundle>('strings.bundle');
-strings.load(bundle);
-
 // 同一份产物也承载浮层：#overlay/menu 只画菜单，不画壳。浮层与壳是两个 WebView，各自附着在
 // 自己的桥面上（Main / Menu），所以这里必须先决定画哪一张，再去拉那一张要的数据。
 // The native host asks for an overlay twice over — a query the file URL always keeps and the hash
 // the router reads — because a file navigation may drop the fragment on some WebView builds.
+// 这个判断在第一个 await 之前完成，下面的离开守卫才能在壳第一次可点击时就已经装好。
 const query = new URLSearchParams(window.location.search);
 const overlayRoute = query.get('overlay')
   ?? (window.location.hash.startsWith('#overlay/') ? window.location.hash.slice('#overlay/'.length) : null);
+
+if (!overlayRoute) {
+  // 离开编辑器先问未保存的宏。守卫在数据加载前就装好，第一次点左侧也不会漏。
+  setNavigationGuard(async (to) => {
+    if (currentRoute() !== 'editor' || to === 'editor') {
+      return true;
+    }
+
+    if (!(await editor.dialog.confirmLeave())) {
+      return false;
+    }
+
+    // 页面离开时先把取值/动作草稿与录制交给宿主收尾，再让页面清掉自己的副本。
+    await editor.session.deactivate();
+    return true;
+  });
+
+  // 原生窗口关闭/退出也会问同一个问题；网页画出来，回答再让宿主继续。没有页面时宿主
+  // 的 AskAsync 返回 null，仍走它的原生兜底。
+  client.on('editor.leaveAsked', ({ requestId, documents }) => {
+    editor.answerLeaveAsked(requestId, documents);
+  });
+  client.on('editor.leaveCancelled', ({ requestId }) => {
+    editor.cancelLeaveAsked(requestId);
+  });
+
+  // A project replacement closed documents in C#; no command the page sent carries that change.
+  client.on('editor.changed', (snapshot) => editor.applyHostSnapshot(snapshot));
+}
+
+const bundle = await client.call<StringsBundle>('strings.bundle');
+strings.load(bundle);
 
 theme.load(await client.call<ThemeState>('theme.get'));
 client.on('strings.changed', (next) => strings.load(next));
@@ -67,15 +104,17 @@ if (overlayRoute) {
 } else {
   appInfo.load(await client.call<AppInfo>('app.info'));
   project.load(await client.call<ProjectState>('project.state'));
+  systemSwitch.load(await client.call<SystemSwitchState>('system.state'));
 
   client.on('window.changed', (next) => windowMirror.load(next));
   client.on('project.changed', (next) => project.load(next));
-  client.on('settings.openRequested', () => go('settings'));
+  client.on('system.changed', (next) => systemSwitch.load(next));
+  client.on('settings.openRequested', () => void go('settings'));
   client.on('run.openRequested', ({ name }) => {
     void client.call('run.load', { name }).then(() => go('run'));
   });
   client.on('editor.openRequested', ({ name }) => {
-    void editor.session.open(name).then(() => go('editor'));
+    void editor.session.open(name).then(() => void go('editor'));
   });
 }
 

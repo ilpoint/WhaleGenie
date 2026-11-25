@@ -84,7 +84,7 @@ export class EditorTriggersService {
 
   async hotstringKeyPad(): Promise<EditorCharacterPad | null> {
     try {
-      return await this.core.client.call<EditorCharacterPad>('editor.hotstringKeyPad');
+      return await this.core.request<EditorCharacterPad>('editor.hotstringKeyPad');
     } catch (error) {
       this.core.fail(error);
       return null;

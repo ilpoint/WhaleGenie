@@ -1,20 +1,13 @@
 import type { MockEditor } from './mock-editor.js';
 import { actionCatalogue } from './mock-editor-actions.js';
 import {
-  activate,
-  close,
-  macroSetting,
-  newDocument,
-  open,
-  patch,
-  save,
   stopRecording,
   subMacroCopy,
   subMacroCreate,
   subMacroDelete,
-  subOpen,
-  tabs,
+  undoRedo,
 } from './mock-editor-documents.js';
+import { handleDocumentCommand } from './mock-editor-session-documents.js';
 import {
   addStep,
   addTrigger,
@@ -64,8 +57,6 @@ export function handleSessionRun(host: MockEditor, method: string, params: Recor
   switch (method) {
       case 'editor.session':
         return handleSessionCommand(host, params);
-      case 'editor.sessionTabs':
-        return tabs(host);
       case 'editor.sessionState':
         return host.activeSnapshot();
       case 'editor.declaration':
@@ -205,34 +196,15 @@ function handleSessionCommand(host: MockEditor, params: Record<string, unknown>)
     return handleSubMacroCommand(host, kind, params);
   }
 
-  switch (kind) {
-    case 'open':
-      return open(host, host.text(params, 'name'));
-    case 'new':
-      return newDocument(host);
-    case 'subOpen':
-      return subOpen(host, host.text(params, 'name'));
-    case 'activate':
-      return activate(host, host.text(params, 'key'));
-    case 'close':
-      return close(host, host.optionalText(params, 'key'));
-    case 'patch':
-      return patch(host, params);
-    case 'macroSetting':
-      return macroSetting(host, params);
-    case 'undo':
-      return host.change((document) => ({ ...document, canUndo: false, canRedo: true }));
-    case 'redo':
-      return host.change((document) => ({ ...document, canUndo: true, canRedo: false }));
-    case 'export':
-      return true;
-    case 'save':
-      return save(host);
-    case 'publicMacroAdd':
-      return addStep(host, { type: 'control.runMacro' });
-    default:
-      throw new Error('不认识会话命令 ' + String(params['kind']) + '。');
+  if (kind === 'undo' || kind === 'redo') {
+    return undoRedo(host, kind);
   }
+
+  if (kind === 'export') {
+    return true;
+  }
+
+  return handleDocumentCommand(host, kind, params);
 }
 
 /** The submacro kinds: an added, a copied or a removed one, all answering with the snapshot. */

@@ -6,6 +6,7 @@ export type { BridgeMethod } from './generated/methods.js';
 export * from './protocol/envelope.js';
 export * from './protocol/app.js';
 export * from './protocol/project.js';
+export * from './protocol/system.js';
 export * from './protocol/settings.js';
 export * from './protocol/run.js';
 export * from './protocol/library.js';

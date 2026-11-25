@@ -76,7 +76,7 @@ public static class ProjectFiles
             var plan = workspace.PrepareSave(path);
             await Task.Run(() => MacroPackage.Save(plan.Path, plan.Macros,
                 plan.Triggers, plan.Globals, plan.AppVersion, plan.AssetFolder));
-            workspace.MarkSaved(plan.Path);
+            workspace.MarkSaved(plan);
             return ProjectFileResult.Success();
         }
         catch (Exception error)

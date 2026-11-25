@@ -8,210 +8,226 @@ import { presentDocument, stepFromAction } from './mock-editor-steps.js';
 import type { EditorStep } from './protocol.js';
 import { findAction } from './mock-editor-actions.js';
 
-const NEW_KEY = '\u0000new';
-
-export function open(host: MockEditor, name?: string | null): EditorSnapshot  {
-    const trimmed = name?.trim() ?? '';
-    const key = trimmed.length > 0 ? trimmed : NEW_KEY;
-    let document = host.documents.get(key);
-    if (!document) {
-      const macro = trimmed.length > 0
-        ? host.macros().find((entry) => entry.name.trim().toLocaleLowerCase()
-          === trimmed.toLocaleLowerCase())
-        : undefined;
-      document = createDocumentSnapshot(trimmed.length > 0 ? trimmed : '未命名宏', {
-        description: macro?.description ?? '',
-        group: macro?.group ?? '',
-        subMacros: trimmed.length > 0 ? ['辅助宏'] : [],
-      });
-      host.documents.set(key, document);
-    }
-
-    host.activeKey = key;
-    return withTabs(host, document);
+/** Opens a project macro, or activates the document that already holds it. */
+export function open(host: MockEditor, name?: string | null): EditorSnapshot {
+  const trimmed = name?.trim() ?? '';
+  if (trimmed.length === 0) {
+    const first = [...host.documents.keys()][0];
+    return first === undefined ? newDocument(host) : activate(host, first);
   }
 
-export function newDocument(host: MockEditor): EditorSnapshot  {
-    const key = nextNewKey(host);
-    const document = createDocumentSnapshot('未命名宏', {});
-    host.documents.set(key, document);
-    host.activeKey = key;
-    return withTabs(host, document);
+  const existing = findRoot(host, trimmed);
+  if (existing !== null) {
+    return activate(host, existing);
   }
+
+  const macro = host.macros().find((entry) => entry.name.trim().toLocaleLowerCase()
+    === trimmed.toLocaleLowerCase());
+  const documentId = host.nextDocumentId();
+  const document = createDocumentSnapshot(documentId, trimmed, {
+    description: macro?.description ?? '',
+    group: macro?.group ?? '',
+    subMacros: macro ? ['辅助宏'] : [],
+  });
+  host.documents.set(documentId, document);
+  host.owners.set(documentId, null);
+  if (macro) {
+    host.savedNames.set(documentId, macro.name);
+  }
+
+  host.activeDocumentId = documentId;
+  return withTabs(host, document);
+}
+
+export function newDocument(host: MockEditor): EditorSnapshot {
+  const documentId = host.nextDocumentId();
+  const document = createDocumentSnapshot(documentId, '未命名宏', {});
+  host.documents.set(documentId, document);
+  host.owners.set(documentId, null);
+  host.activeDocumentId = documentId;
+  return withTabs(host, document);
+}
 
 export function newSession(host: MockEditor): EditorSnapshot {
-    return newDocument(host);
+  return newDocument(host);
+}
+
+export function activate(host: MockEditor, documentId: string): EditorSnapshot {
+  const document = host.documents.get(documentId);
+  if (!document) {
+    throw new Error('编辑器里没有这个文档：' + documentId + '。');
   }
 
-export function activate(host: MockEditor, key: string): EditorSnapshot  {
-    const document = host.documents.get(key);
-    if (!document) {
-      throw new Error('编辑器里没有这个文档：' + key + '。');
-    }
+  host.activeDocumentId = documentId;
+  return withTabs(host, document);
+}
 
-    host.activeKey = key;
-    return withTabs(host, document);
+export function close(host: MockEditor, documentId?: string | null,
+  discard = false): EditorSnapshot | null {
+  const target = documentId !== undefined && documentId !== null && documentId.length > 0
+    ? documentId
+    : host.activeDocumentId;
+  if (target === null) {
+    return null;
   }
 
-export function close(host: MockEditor, key?: string | null): EditorSnapshot | null  {
-    const target = key !== undefined && key !== null && key.length > 0 ? key : host.activeKey;
-    if (target === null) {
-      return null;
-    }
-
-    const document = host.documents.get(target);
-    if (!document) {
-      return host.activeSnapshot();
-    }
-
-    if (document.dirty) {
-      throw new Error('这份文档还有未保存修改，请先保存再关闭。');
-    }
-
-    const wasActive = host.activeKey === target;
-    host.documents.delete(target);
-    if (wasActive) {
-      const keys = [...host.documents.keys()];
-      host.activeKey = keys.length > 0 ? keys[keys.length - 1]! : null;
-    }
-
+  if (!host.documents.has(target)) {
     return host.activeSnapshot();
   }
 
-function withTabs(host: MockEditor, document: EditorSnapshot): EditorSnapshot {
+  const ids = [...host.documents.keys()];
+  const subtree = ids.filter((id) => id === target || host.owners.get(id) === target);
+  if (!discard && subtree.some((id) => host.documents.get(id)?.dirty === true)) {
+    throw Object.assign(new Error('这份文档还有未保存修改，请先保存再关闭。'), {
+      code: 'Editor.Unsaved',
+    });
+  }
+
+  const index = ids.indexOf(target);
+  for (const id of subtree) {
+    host.documents.delete(id);
+    host.owners.delete(id);
+    host.savedNames.delete(id);
+  }
+
+  if (host.activeDocumentId !== null && subtree.includes(host.activeDocumentId)) {
+    const remaining = [...host.documents.keys()];
+    const neighbour = remaining[Math.max(0, Math.min(index - 1, remaining.length - 1))];
+    host.activeDocumentId = neighbour ?? remaining[0] ?? null;
+  }
+
+  return activeSnapshot(host);
+}
+
+/** The undo/redo pair shares one command shape; only the direction changes. */
+export function undoRedo(host: MockEditor, kind: string): EditorSnapshot | null {
+  return host.change((document) => kind === 'undo'
+    ? { ...document, canUndo: false, canRedo: true }
+    : { ...document, canUndo: true, canRedo: false });
+}
+
+export function tabs(host: MockEditor): EditorTab[] {
+  return [...host.documents.entries()].map(([documentId, document]) => ({
+    documentId,
+    name: document.name,
+    dirty: document.dirty,
+    problem: !document.canSave,
+    isSubMacro: document.isSubMacro,
+    ownerDocumentId: host.owners.get(documentId) ?? null,
+  }));
+}
+
+/** One snapshot with the strip that belongs beside it and the action form the host holds. */
+export function withTabs(host: MockEditor, document: EditorSnapshot): EditorSnapshot {
   host.snapshotRevision += 1;
   return {
     ...document,
-    tabs: tabs(host).tabs,
-    activeKey: host.activeKey,
+    documentId: document.documentId,
+    tabs: tabs(host),
+    activeDocumentId: host.activeDocumentId,
     actionForm: host.actionForm,
     revision: host.snapshotRevision,
   };
 }
 
-export function tabs(host: MockEditor): { activeKey: string | null; tabs: EditorTab[] } {
-  return {
-    activeKey: host.activeKey,
-    tabs: [...host.documents.entries()].map(([key, document]) => ({
-      key,
-      name: document.name,
-      dirty: document.dirty,
-      problem: !document.canSave,
-      isSubMacro: document.isSubMacro,
-    })),
-  };
+export function subOpen(host: MockEditor, name?: string | null,
+  ownerDocumentId?: string | null): EditorSnapshot {
+  const ownerId = ownerDocumentId !== undefined && ownerDocumentId !== null
+    && ownerDocumentId.length > 0
+    ? ownerDocumentId
+    : host.activeDocumentId;
+  if (ownerId === null) {
+    throw new Error('先打开一个宏，才能打开它的子宏。');
+  }
+
+  const owner = host.documents.get(ownerId);
+  if (!owner) {
+    throw new Error('编辑器里还没有打开的文档。');
+  }
+
+  const trimmed = name?.trim() ?? '';
+  if (trimmed.length === 0) {
+    throw new Error('子宏需要一个名字。');
+  }
+
+  if (!owner.subMacros.some((macro) => macro.trim() === trimmed)) {
+    throw new Error('这个宏没有名为 ' + trimmed + ' 的子宏。');
+  }
+
+  const existing = [...host.documents.entries()].find(([documentId, document]) =>
+    host.owners.get(documentId) === ownerId
+    && document.name.toLocaleLowerCase() === trimmed.toLocaleLowerCase());
+  if (existing) {
+    return activate(host, existing[0]);
+  }
+
+  const documentId = host.nextDocumentId();
+  const document = createDocumentSnapshot(documentId, trimmed, { isSubMacro: true });
+  host.documents.set(documentId, document);
+  host.owners.set(documentId, ownerId);
+  host.activeDocumentId = documentId;
+  return withTabs(host, document);
 }
 
-export function subOpen(host: MockEditor, name?: string | null): EditorSnapshot  {
-    const parentKey = host.activeKey;
-    if (parentKey === null) {
-      throw new Error('先打开一个宏，才能打开它的子宏。');
-    }
-
-    const trimmed = name?.trim() ?? '';
-    if (trimmed.length === 0) {
-      throw new Error('子宏需要一个名字。');
-    }
-
-    const parent = host.documents.get(parentKey);
-    if (!parent) {
-      throw new Error('编辑器里还没有打开的文档。');
-    }
-
-    if (!parent.subMacros.some((macro) => macro.trim() === trimmed)) {
-      throw new Error('这个宏没有名为 ' + trimmed + ' 的子宏。');
-    }
-
-    const key = 'sub:' + parentKey + ':' + trimmed;
-    let document = host.documents.get(key);
-    if (!document) {
-      document = createDocumentSnapshot(trimmed, { isSubMacro: true });
-      host.documents.set(key, document);
-    }
-
-    host.activeKey = key;
-    return withTabs(host, document);
+export function change(host: MockEditor,
+  changeOne: (document: EditorSnapshot) => EditorSnapshot): EditorSnapshot | null {
+  const documentId = host.activeDocumentId;
+  if (documentId === null) {
+    return null;
   }
 
-export function change(host: MockEditor, change: (document: EditorSnapshot) => EditorSnapshot): EditorSnapshot | null  {
-    const key = host.activeKey;
-    if (key === null) {
-      return null;
-    }
-
-    const document = host.documents.get(key);
-    if (!document) {
-      return null;
-    }
-
-    const next = presentDocument(change(document));
-    host.documents.set(key, next);
-    return withTabs(host, next);
+  const document = host.documents.get(documentId);
+  if (!document) {
+    return null;
   }
 
-export function patch(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null  {
-    const name = host.optionalText(params, 'name');
-    const description = host.optionalText(params, 'description');
-    const group = host.optionalText(params, 'group');
-    return host.change((document) => ({
-      ...document,
-      name: name ?? document.name,
-      description: description ?? document.description,
-      group: group ?? document.group,
-      dirty: true,
-    }));
-  }
+  const next = presentDocument(changeOne(document));
+  host.documents.set(documentId, next);
+  return withTabs(host, next);
+}
 
-export function macroSetting(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null  {
-    const field = host.text(params, 'field');
-    const value = host.text(params, 'value');
-    return host.change((document) => {
-      switch (field) {
-        case 'followInputLimit':
-          return { ...document, dirty: true, followInputLimit: value === 'true' };
-        case 'inputLimit': {
-          const limit = Number(value);
-          return {
-            ...document,
-            dirty: true,
-            inputLimit: Number.isFinite(limit) ? limit : document.inputLimit,
-          };
-        }
-        case 'toggleKey':
-          return { ...document, dirty: true, toggleKey: value };
-        default:
-          return { ...document, dirty: true };
+export function patch(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
+  const name = host.optionalText(params, 'name');
+  const description = host.optionalText(params, 'description');
+  const group = host.optionalText(params, 'group');
+  return host.change((document) => ({
+    ...document,
+    name: name ?? document.name,
+    description: description ?? document.description,
+    group: group ?? document.group,
+    dirty: true,
+  }));
+}
+
+export function macroSetting(host: MockEditor, params: Record<string, unknown>): EditorSnapshot | null {
+  const field = host.text(params, 'field');
+  const value = host.text(params, 'value');
+  return host.change((document) => {
+    switch (field) {
+      case 'followInputLimit':
+        return { ...document, dirty: true, followInputLimit: value === 'true' };
+      case 'inputLimit': {
+        const limit = Number(value);
+        return {
+          ...document,
+          dirty: true,
+          inputLimit: Number.isFinite(limit) ? limit : document.inputLimit,
+        };
       }
-    });
-  }
-
-export function activeSnapshot(host: MockEditor): EditorSnapshot | null  {
-    const document = host.activeKey === null ? null : host.documents.get(host.activeKey) ?? null;
-    return document ? withTabs(host, document) : null;
-  }
-
-export function nextNewKey(host: MockEditor): string  {
-    let key = NEW_KEY;
-    for (let index = 2; host.documents.has(key); index++) {
-      key = NEW_KEY + ':' + String(index);
+      case 'toggleKey':
+        return { ...document, dirty: true, toggleKey: value };
+      default:
+        return { ...document, dirty: true };
     }
+  });
+}
 
-    return key;
-  }
-
-export function save(host: MockEditor): EditorSnapshot | null  {
-    return host.change((document) => {
-      if (document.name.trim().length === 0) {
-        throw new Error('宏需要一个名字。');
-      }
-
-      return {
-        ...document,
-        name: document.name.trim(),
-        dirty: false,
-      };
-    });
-  }
+export function activeSnapshot(host: MockEditor): EditorSnapshot | null {
+  const document = host.activeDocumentId === null
+    ? null
+    : host.documents.get(host.activeDocumentId) ?? null;
+  return document ? withTabs(host, document) : null;
+}
 
 export function stopRecording(host: MockEditor): {
   captured: number;
@@ -351,4 +367,17 @@ function callsMacro(steps: readonly EditorStep[], name: string): boolean {
   }
 
   return false;
+}
+
+/** The open root document whose name is the given one. */
+function findRoot(host: MockEditor, name: string): string | null {
+  const wanted = name.toLocaleLowerCase();
+  for (const [documentId, document] of host.documents) {
+    if ((host.owners.get(documentId) ?? null) === null
+        && document.name.toLocaleLowerCase() === wanted) {
+      return documentId;
+    }
+  }
+
+  return null;
 }

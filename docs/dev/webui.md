@@ -15,7 +15,8 @@ main.ts
 
 - `app/` 可以 import `features/` 与 `shared/`；`features/` 只能 import `shared/` 和自己的文件。
 - `shared/` 不得 import `features/` 或 `app/`。
-- feature 之间默认不互相 import；确需组合时只经对方的 `index.ts`（当前唯一例子：`macros -> mcp`）。
+- feature 之间默认不互相 import；确需组合时只经对方的 `index.ts`（当前例子：`macros -> mcp`、
+  `library -> editor`、`app -> editor`）。
 - `tests/architecture.test.ts` 按解析后的路径检查这些规则；原生 `no-restricted-imports` 只看
   import 字符串，不解析相对路径，因此边界以该测试为准。
 
@@ -87,12 +88,26 @@ features/<feature>/
   （命令请求可省略）。首批是 `editor.value`（open/command/confirm/cancel）与
   `editor.trigger`（add/remove/field 等）、`editor.action`（page/field/row 等）、
   `editor.declaration`（family/kind 矩阵）、`editor.condition`（行/组/join）、
-  `editor.variable`（local/global × add/patch/remove）、`editor.session`（open/new/save/close 等）、
+  `editor.variable`（local/global × add/patch/remove）、`editor.session`（open/new/activate/close/…）、
   `editor.steps`（多选/复制/粘贴）、`editor.step`（单步/参数）、
-  `editor.record`（start/stop/state/option/delayScale）。
-- 编辑命令的返回值是带 `tabs`/`activeKey`/`actionForm` 的完整快照；页面成功后不再追加
-  `sessionTabs` 或刷新动作表单，`sessionTabs` 只在没有活动文档时兜底。
-- 快照带单调 `revision`；页面丢弃 revision 不大于当前值的快照，迟到的响应不会覆盖新状态。
+  `editor.record`（start/stop/state/option/delayScale）。保存不是会话联合的一员：
+  `editor.save` / `editor.saveAll` 返回 `EditorSaveResponse`，逐文档给出
+  `saved/unchanged/blocked/conflict/missing` 与原因；只有前两种算成功。`editor.discardAll`、
+  `editor.unsavedDocuments` 与 `editor.session { kind:'deactivate' }` 分别负责离开时的丢弃、名单与草稿收尾。
+- 编辑命令的返回值是带 `documentId`/`tabs`/`activeDocumentId`/`actionForm` 的完整快照；页签身份
+  是稳定 `documentId`，不是宏名。宿主在命令之外关闭文档时用事件 `editor.changed` 推同一形状的
+  快照（没有活动文档时为 `null`），页面按 revision 应用。
+- 快照带单调 `revision`，由桥在整条编辑器线上递增，不是每个文档各自递增；页面可以跨页签
+  比较它。页面丢弃 revision 不大于当前值的快照，迟到的响应不会覆盖新状态。页面自己的编辑命令
+  串行执行（`EditorCore` 队列），不与激活、保存互相穿插。
+- 宿主关闭窗口/退出时问“这些宏还没保存”的通道是事件 `editor.leaveAsked`（带 `requestId` 与
+  `documents`）与命令 `editor.leaveAnswered`（`{ requestId, leave }`）。页面用同一个
+  `wg-editor-unsaved` 回答；事件用 `BridgePushMode.All`，两个询问不会互相覆盖。超时由宿主推
+  `editor.leaveCancelled` 让页面关闭同一请求。
+- 编辑器反馈只有一层对话框：`EditorDialogService` 统一处理关闭文档、离开编辑器与宿主询问，
+  保存失败/冲突的逐条原因留在对话框里；页面没有第二个 `closeRequest` 副本。C# 对“页面以为干净、
+  实际脏”的关闭回 `Editor.Unsaved`，页面识别后打开同一三选一，禁止写成红色横幅。空状态不渲染
+  文档级 notice/error。
   矩阵型命令用一条 `[BridgeRequest]` 记录，可空字段生成
   `?:`，不必为每个 kind 建派生记录。新增编辑器命令时优先扩展现有联合，不再加一条按字段拆的
   `editor.*` 方法。
@@ -174,7 +189,9 @@ ESLint（`src/**/*.ts`）：
 
 新增页面：
 
-1. 在 `shared/navigation/router.ts` 加路由，在 `app/shell.ts` 的 `renderRoute` 接页面。
+1. 在 `shared/navigation/router.ts` 加路由，在 `app/shell.ts` 的 `renderRoute` 接页面。空 hash 与旧
+   `#home` 都落到 `macros`；页面切换走异步 `go()`，需要拦下离开时用 `setNavigationGuard`，编辑器用它
+   询问未保存的宏。
 2. 导航项由 `Shell.<Route>` 键驱动；在 `Strings` 两种语言补键。
 3. 在 `features/<name>/` 建 page；需要状态时先想清楚是本地还是跨组件。
 4. 加一条 e2e 冒烟；文案键由 `WebUiBoundaryTests` 对账。

@@ -1,13 +1,13 @@
 import { LitElement, html, nothing } from 'lit';
 import { macrosPageCss } from './macros-page-css.js';
 import { customElement, query, state } from 'lit/decorators.js';
-import { go } from '../../shared/navigation/router.js';
 import { bridge } from '../../shared/bridge/bridge.js';
 import { describeError } from '../../shared/errors.js';
 import { icon } from '../../shared/icons.js';
 import { project } from '../../shared/project/store.js';
 import { strings, t } from '../../shared/strings/strings.js';
 import { StoreController } from '../../shared/lit/store-controller.js';
+import { newMacro, openMacro } from '../editor/index.js';
 import type {
   BridgeFailurePayload,
   BridgeMethod,
@@ -84,7 +84,13 @@ export class WgMacros extends LitElement {
           <fluent-button appearance="subtle" @click=${this.onReload}>${t('Main.ReloadCurrent')}</fluent-button>
         ` : nothing}
         <fluent-button appearance="subtle" @click=${this.onMcp}>${t('Mcp.Title')}</fluent-button>
+        <fluent-button appearance="accent" @click=${this.onAddMacro}>${t('Main.AddMacro')}</fluent-button>
       </div>
+      ${this.state.saveError
+        ? html`<p class="save-error" role="alert" title=${this.state.saveError}>
+            ${t('Shell.SaveFailed')} · ${this.state.saveError}
+          </p>`
+        : nothing}
       <div class="filters">
         <div class="dock" role="tablist">
           ${this.state.views.map((view) => html`
@@ -117,17 +123,6 @@ export class WgMacros extends LitElement {
           : visible.length === 0
             ? this.renderNoMatch()
             : visible.map((entry) => this.renderCard(entry))}
-      </div>
-      <div class="footer">
-        <div class="system">
-          <fluent-switch
-            ?checked=${this.state.systemEnabled}
-            aria-label=${t(this.state.systemEnabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled')}
-            @change=${this.onSystemToggle}
-          ></fluent-switch>
-          <span>${t(this.state.systemEnabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled')}</span>
-        </div>
-        <fluent-button appearance="accent" @click=${this.onAddMacro}>${t('Main.AddMacro')}</fluent-button>
       </div>
       <wg-mcp-panel></wg-mcp-panel>
     `;
@@ -256,15 +251,6 @@ export class WgMacros extends LitElement {
     void this.call('project.toggle', { name: entry.name });
   }
 
-  private onSystemToggle(): void {
-    if (this.state === null) {
-      return;
-    }
-
-    // 页面不翻转自己的状态：真相在程序侧，project.changed 会带着新值回来。
-    void this.call('project.system', { enabled: !this.state.systemEnabled });
-  }
-
   private async onExport(entry: MacroEntry): Promise<void> {
     // The plan is the page's call, so a project it cannot read is said here; the wizard asks the
     // rest — which macros travel and where the package goes.
@@ -305,15 +291,11 @@ export class WgMacros extends LitElement {
 
   private async onAddMacro(): Promise<void> {
     // 网页编辑器是默认编辑器：先开一份 C# 会话，再切到编辑器路由。
-    if (await this.call('editor.session', { kind: 'new' })) {
-      go('editor');
-    }
+    await newMacro();
   }
 
   private async onEdit(entry: MacroEntry): Promise<void> {
-    if (await this.call('editor.session', { kind: 'open', name: entry.name })) {
-      go('editor');
-    }
+    await openMacro(entry.name);
   }
 
   private onRun(entry: MacroEntry): void {

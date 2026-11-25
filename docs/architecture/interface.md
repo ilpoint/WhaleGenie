@@ -8,24 +8,28 @@
 
 | 状态 | 主要持有者 |
 | --- | --- |
-| 项目文档态 | `ProjectWorkspace`（App）：宏、触发器、路径、修订号和「磁盘上的包已过期」这一标记；`MainViewModel` 只做窗口侧转发 |
-| 编辑态 | `HeadlessEditorWorkspace` 与 `HeadlessEditorSession`：打开的文档、子宏、录制、编辑操作，以及「这次编辑有未保存内容」 |
+| 项目文档态 | `ProjectWorkspace`（Domain）：宏、触发器、路径、修订号、`Changed` 与整体替换 `Replaced`；`ProjectSaver`（App）是包文件唯一的写者，按改动防抖写回，并用 `ReplaceAsync` 把打开/重载与在途写串行化 |
+| 编辑态 | `EditorDocumentSet` 与 `HeadlessEditorSession`：稳定文档标识、打开的页签、父子关系、录制与编辑操作，以及每份文档「这次编辑有未保存内容」；`EditorDocumentService`（App）是桥、退出询问和工程替换共同使用的文档门面 |
 | 运行期态 | `TriggerRuntime`、运行宿主和窗口字段：触发快照、浮动界面、恢复和运行显示 |
 | 系统开关 | `SystemState`（App）：页面、热键与窗口读写同一个对象，触发宿主跟随它启停 |
 | 纯界面态 | 窗口与控件：拖动、落点、滚动、焦点和弹出层 |
 
 编辑器里的改动由会话记一次：页面自己知道内容变没变，会话把它们与「新增了文档、抬出了子宏」这类
-没有页面承载的改动合成一个答案，窗口再把它发布到项目文档态。关闭、恢复草稿与关闭确认问的是同一个
-答案，不会各自拼一遍。草稿本身由 `RecoveryDraft` 保管：第一次变脏立刻写、之后的改动等停顿再写、
-退出时只收回自己写过的——「谁写的谁收回」这条规则因此只有一处实现，打开又关掉一个编辑器不会顺手
-丢掉上一次运行留下的草稿。网页壳与编辑器都用它，差别只在一次写往磁盘上放什么：编辑器放正在写
-的那个宏，壳放整个项目。
+没有页面承载的改动合成一个答案，窗口再把它发布到项目文档态。关闭与关闭确认问的是同一个答案，不会
+各自拼一遍。自动保存只覆盖工程包：宏提交进项目之后由 `ProjectSaver` 写盘；单个宏的编辑不会自己
+提交，关闭页签、离开编辑器、关闭主窗口或退出时仍问“保存 / 不保存 / 取消”。恢复快照只保存工程
+包和共享变量，打开而未提交的编辑器草稿不进入恢复文件。
 
-一次保存由 `ProjectMacroCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、收下之后
-才清脏并收草稿。它给出三种结局——页面挡住了、项目没收、已经进包——窗口只负责把它们说出来：把挡住
-的那一页翻到前面、点明项目为什么没收、或者关窗。宏交给项目后的落位与去重也由它回答：目标宏是否还在
-列表、抬出的子宏是否只加入一次、未改动时是否真的写回，以及新宏落在菜单还是轮盘。页签也有同一处回答：哪个页面代表某个宏、关掉一页之后谁在前。后者要记住按下关闭按钮时的
-前台，因为按钮长在页签上，按下的那一刻前台已经换成要走的那一页。
+一次保存由 `ProjectMacroCommit` 回答：不能写的页面先被挡住、什么都还没构建，构建出的宏先问项目、
+收下之后才清脏。它给出四种结局——页面挡住了、项目没收（目标已不在工程里）、未改动、已经进包；
+`EditorDocumentService` 把逐文档结局交给页面，页面只负责显示原因并保留脏状态。子宏保存只写回父宏
+编辑模型，父宏保存才把整份宏提交给项目，因此工程对象不会在编辑器背后被改掉。页签身份由
+`EditorDocumentSet` 的 `documentId` 回答：保存、改名、保存后重开、子宏打开都复用同一个文档；
+关掉当前页签时激活左侧邻居，父宏关闭会连同它的子文档。
+
+工程替换（打开/重载/关闭全部）先经 `ProjectSession.PrepareProjectChangeAsync`：有脏文档就问一次
+保存/放弃/取消，工程本身脏时再问工程保存；取消则原工程不动。MCP 在仍有打开的编辑文档时拒绝应用
+草稿并要求重试。
 
 窗口与视图按功能分目录：`Views/Pickers`（取色/区域/点位/UIA/窗口/偏差点选覆盖层与拾取宿主）、
 `Views/Common`（跨窗口的画法辅助与元素测试框）、`Views/Run`（元素测试的闪烁框）、`Views/Settings`
@@ -40,7 +44,9 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 
 ### 7.2 宏编辑模型与取值
 
-宏编辑器的界面在网页壳（§7.6）；C# 侧由 `MacroEditorViewModel`、`HeadlessEditorSession` 与`HeadlessEditorWorkspace` 提供文档、步骤树、动作表单、条件与取值模型，桥只传快照与命令。`MacroStep.Detail`/`InputMark`/`MetaSummary`、`StepLists` 与 `ActionSemantics` 是步骤行、分节和字段的读法来源；页面不另写第二套。步骤 id 仍由 `StepIds` 发号，重复时在载入或合并处重发并报告。取值构建器在网页里只是文本框加变量/函数片，最终值仍由 C# 的 `Formula` 读回。
+宏编辑器的界面在网页壳（§7.6）；C# 侧由 `MacroEditorViewModel`、`HeadlessEditorSession` 与
+`EditorDocumentSet` 提供文档、步骤树、动作表单、条件与取值模型，`EditorDocumentService` 把它们交给
+桥、退出询问和工程替换。桥只传快照与命令。`MacroStep.Detail`/`InputMark`/`MetaSummary`、`StepLists` 与 `ActionSemantics` 是步骤行、分节和字段的读法来源；页面不另写第二套。步骤 id 仍由 `StepIds` 发号，重复时在载入或合并处重发并报告。取值构建器在网页里只是文本框加变量/函数片，最终值仍由 C# 的 `Formula` 读回。
 
 ### 7.3 主题资源
 
@@ -88,9 +94,12 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 
 ### 7.5 设置页
 
-设置页是网页：`webui/src/features/settings/settings-page.ts` 从 `settings.state` 读一份快照，常规、语言、
-主题、热键、声音、屏幕读取、画面、输入、驱动、存储、菜单呼出、窗口规则、轮盘菜单与轮盘动作都在
-页面里编辑。改动逐项经桥写回同一个 `SettingsViewModel/LocalSettings`；主题走
+设置页是网页：`webui/src/features/settings/settings-page.ts` 从 `settings.state` 读一份快照；常规卡片里的
+“自动保存项目”默认开，开启后 `ProjectSaver` 在宏提交进项目、启停宏或改触发器之后把工程包写回，
+关闭后仍由显式保存与退出询问负责。没有上次项目的首次启动落到
+`%APPDATA%\WhaleGenie\projects\default.wgmacro`（默认项目），在第一次真正保存前不创建空文件。常规、语言、主题、热键、声音、屏幕读取、画面、
+输入、驱动、存储、菜单呼出、窗口规则、轮盘菜单与轮盘动作都在页面里编辑。改动逐项经桥写回同一个
+`SettingsViewModel/LocalSettings`；主题走
 `theme.get/theme.set`，语言变化由 `strings.changed` 推回页面。C# 仍是唯一设置模型，页面不保存第二份
 设置文件；设置项一律即时生效并立即落盘。
 
@@ -120,15 +129,25 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 网页壳是程序的主界面：标题栏、导航与页面都画在一张网页里，由 WebView 控件承载。系统开关、触发器、
 菜单、轮盘、浮层、后台问话、恢复/未保存流程以及文件与导入/导出编排都不再挂在一个原生主窗上；壳
 接管 ProjectSession、NativeSurfaceHost 与 TriggerHost。设置页、运行面板、编辑器、关于与帮助都已走
-网页入口；`MainViewModel` 只为原生拾取器转发项目视图。窗口本体 `WebShellWindow` 只保留外框
+网页入口；`MainViewModel` 只为原生拾取器转发项目视图，项目替换与未保存询问由
+`ProjectSession`/`ShellProjectChangeGuard` 负责。窗口本体 `WebShellWindow` 只保留外框
 职责——尺寸、窗口状态与拖动——其余全部是页面的事。
+
+关闭窗口或退出时有未保存宏，原生侧不再直接弹 `ConfirmDialog`，而是通过
+`editor.leaveAsked` 请网页画同一个“保存 / 不保存 / 取消”对话框，页面以 `editor.leaveAnswered`
+交回结果；只有页面未 ready、重载或没有 WebView 时才回退到原生框。
+
+导航默认落在宏列表，`#home` 只作为旧地址的别名，不保留第二个页面。活动栏底部常驻系统开关与
+开关键：`system.state` 给初始快照，`system.changed` 在开关、设置快捷键或配置变化后推送；组合键由
+页面按 `+` 拆行显示，但键名与“未设置”的说法由程序给出。公共宏库按“无触发的可调用宏”工作：库页
+只管理条目，编辑器把它复制成当前宏的子宏并留下调用步骤；库页不再把工程宏当成可编辑的第二份副本。
 
 分层是一条硬边界：
 
 | 层 | 位置 | 职责 |
 | --- | --- | --- |
 | 宿主适配 | `src/WhaleGenie/Web/` | `WebShellWindow`（外框与网页装载）、`WebOverlayWindow`（透明浮层宿主）、`OverlayProbeWindow`（Debug 首帧探针）各自持有 `NativeWebView`；`WebBridge` 只做网页消息与桥之间的管道 |
-| 桥协议与处理器 | `src/WhaleGenie.App/Bridge/` | `BridgeServer` 路由请求/应答/事件；全部处理器（应用、字符串、主题、窗口、项目、编辑器、设置、运行）与端口在此；UI 只实现端口 |
+| 桥协议与处理器 | `src/WhaleGenie.App/Bridge/` | `BridgeServer` 路由请求/应答/事件；全部处理器（应用、字符串、主题、窗口、项目、系统、公共宏库、编辑器、设置、运行）与端口在此；UI 只实现端口 |
 | 触发会话与原生面 | `src/WhaleGenie/Runtime/` | `TriggerHost` 持系统热键、计划与声音；`NativeSurfaceHost` 持菜单、轮盘、浮层与前台订阅；`RunQuestionHost` 持后台问话；`ProjectSession` 持恢复与未保存流程；`SystemState`（App）是页面/热键/窗口共写的开关 |
 | 网页前端 | `webui/` | Lit 组件、桥客户端、词表与主题 store、mock 宿主 |
 
@@ -150,19 +169,22 @@ XAML 使用编译绑定，CommunityToolkit.Mvvm 提供源生成命令。窗口�
 整包下发，页面没有回退逻辑；主题经 `ThemeController` 应用并落盘，页面用 Fluent 令牌铺色，不读
 设置文件。页面文案硬编码由同一条测试拦住（见 `WebUiBoundaryTests`）。
 
-编辑器在同一方向：`HeadlessEditorWorkspace` 持有多个 `HeadlessEditorSession`，每个会话持有
-`MacroEditorViewModel` 与 `ProjectMacroCommit`；桥只传快照与命令，编辑域是聚合方法加 `kind`
-判别联合：`editor.session`（open/new/subOpen/macroSetting/activate/patch/undo/redo/save/close/
-publicMacroAdd/subMacroCreate/subMacroCopy/subMacroDelete/export）、`editor.steps`（多选/复制/粘贴/
-分组/移动/删除）、`editor.step`（单步/参数/落点）、`editor.condition`、`editor.trigger`、
-`editor.variable`、`editor.declaration`、`editor.record`、`editor.action`（page/field/rowAdd/
-rowRemove/rowMove/rowCell/returns/returnsFixName/callArgument/meta/global/branch/window/windowRule/
-padKey）、`editor.value`（open/command/confirm/cancel），以及只读快照 `editor.sessionState`、
-`editor.sessionTabs`、`editor.sessionActions`。快照同时给出步骤的分节（`sections`，每个子列表带
-本地化标题）、摘要、问题、输入去向与步骤设置摘要，动作目录的类别/小分组/顺序，变量组的显示名与
-持久化，以及每份文档的页签脏/问题/子宏标记；页面不再按动作名或参数自己拼这些事实。`editor.step`
-的 `kind` 带 `parentId`/`list`/`index` 与 `parameters`（预置字段），用来把动作放进指定分节或
-在加入时就写好字段。
+编辑器在同一方向：`EditorDocumentSet` 持有多个 `HeadlessEditorSession`，每个会话持有
+`MacroEditorViewModel` 与 `ProjectMacroCommit`；每份文档有一个稳定 `documentId`，页签、激活、
+关闭和子宏归属都按它而不是按会改名的宏名来寻址。`EditorDocumentService`（App）把文档集包成桥、
+退出询问和工程替换共用的门面。桥只传快照与命令：`editor.session`（open/new/subOpen/macroSetting/
+activate/patch/undo/redo/deactivate/close/publicMacroAdd/subMacroCreate/subMacroCopy/subMacroDelete/
+export）、`editor.save`、`editor.saveAll`、`editor.discardAll`、`editor.unsavedDocuments`，以及
+`editor.steps`（多选/复制/粘贴/分组/移动/删除）、`editor.step`（单步/参数/落点）、`editor.condition`、
+`editor.trigger`、`editor.variable`、`editor.declaration`、`editor.record`、`editor.action`（page/
+field/rowAdd/rowRemove/rowMove/rowCell/returns/returnsFixName/callArgument/meta/global/branch/window/
+windowRule/padKey）、`editor.value`（open/command/confirm/cancel）。只读快照
+`editor.sessionState` 与 `editor.sessionActions` 返回正文、页签和静态目录；静态目录（函数、变量
+类型、比较符、触发种类、系统变量）只随 `editor.sessionActions` 发送一次，快照不再重复。保存回答是
+`EditorSaveResponse`，逐文档给出 `saved/unchanged/blocked/conflict/missing` 与原因，只有前两种算
+成功。快照的 `revision` 由 `EditorSessionBridge` 在整条编辑器线上递增，页面因此可以跨页签比较
+先后；`editor.changed` 用于宿主侧关闭文档等没有对应命令的变化。`editor.step` 的 `kind` 带
+`parentId`/`list`/`index` 与 `parameters`（预置字段），用来把动作放进指定分节或在加入时就写好字段。
 
 取值走的是同一条方向：`ValueDraft`/`SlotNodes` 和恢复的 `ValuePickerViewModel` 在 C# 里持有
 Token 结构、光标、撤销与检查；`editor.value` 的 open/command/confirm/cancel 只传

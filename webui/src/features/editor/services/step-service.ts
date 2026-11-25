@@ -38,14 +38,13 @@ export class EditorStepService {
    */
   private async subMacroCommand(params: Record<string, unknown>): Promise<boolean> {
     try {
-      const snapshot = await this.core.client.call<EditorSnapshot | null>('editor.session', params);
+      const snapshot = await this.core.request<EditorSnapshot | null>('editor.session', params);
       this.core.applySnapshot(snapshot);
-      this.core.state.notice = '';
+      this.core.clearNotice();
       this.core.notify();
       return true;
     } catch (error) {
-      this.core.state.notice = describeError(error);
-      this.core.notify();
+      this.core.setError(describeError(error));
       return false;
     }
   }
@@ -231,12 +230,11 @@ export class EditorStepService {
     }
 
     try {
-      const text = await this.core.client.call<string>('editor.steps', { kind: 'copy', steps });
+      const text = await this.core.request<string>('editor.steps', { kind: 'copy', steps });
       if (text.length > 0 && navigator.clipboard) {
         void navigator.clipboard.writeText(text).catch(() => undefined);
       }
-      this.core.state.notice = t('Palette.Copy');
-      this.core.notify();
+      this.core.showNotice(t('Palette.Copy'));
       return true;
     } catch (error) {
       this.core.fail(error);
@@ -251,7 +249,7 @@ export class EditorStepService {
     }
 
     try {
-      const text = await this.core.client.call<string>('editor.steps', { kind: 'cut', steps });
+      const text = await this.core.request<string>('editor.steps', { kind: 'cut', steps });
       if (text.length > 0 && navigator.clipboard) {
         void navigator.clipboard.writeText(text).catch(() => undefined);
       }
@@ -267,7 +265,7 @@ export class EditorStepService {
 
   async pasteSteps(after?: string): Promise<boolean> {
     try {
-      await this.core.client.call<EditorSnapshot>('editor.steps', {
+      await this.core.request<EditorSnapshot>('editor.steps', {
         kind: 'paste',
         after: after ?? this.core.state.selectedStepId,
       });
@@ -341,7 +339,7 @@ export class EditorStepService {
 
   async pickImage(stepId: string, name: string): Promise<void> {
     try {
-      const picked = await this.core.client.call<{ path: string | null }>('dialog.pickImage');
+      const picked = await this.core.request<{ path: string | null }>('dialog.pickImage');
       if (picked.path) {
         await this.patchParameter(stepId, name, picked.path);
       }

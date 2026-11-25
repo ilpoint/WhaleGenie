@@ -29,6 +29,10 @@ export function handleSettings(host: MockContext, method: string, params: Record
             };
             host.push('strings.changed', host.bundle());
           }
+
+          if (patch.systemHotkey !== undefined) {
+            host.push('system.changed', host.system());
+          }
           break;
         }
         case 'settings.menu.capture': {

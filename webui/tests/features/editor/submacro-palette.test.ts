@@ -106,7 +106,7 @@ describe('editor submacro commands', () => {
     expect(store.get().snapshot?.subMacros).toEqual([]);
   });
 
-  it('桥拒绝删除被引用的子宏时，把桥自己的句子留在页面 notice', async () => {
+  it('桥拒绝删除被引用的子宏时，把桥自己的句子留在页面错误条', async () => {
     const bridge = new FakeBridge();
     bridge.fail('editor.session', new Error('子宏“辅助”仍在被调用：请先移除调用。'));
     const store = storeWith(bridge);
@@ -114,7 +114,8 @@ describe('editor submacro commands', () => {
 
     await expect(store.steps.deleteSubMacro('辅助')).resolves.toBe(false);
 
-    expect(store.get().notice).toContain('仍在被调用');
+    expect(store.get().error).toContain('仍在被调用');
+    expect(store.get().notice).toBe('');
     expect(store.get().snapshot?.subMacros).toEqual(['辅助']);
   });
 

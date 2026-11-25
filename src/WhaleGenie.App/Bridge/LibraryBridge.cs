@@ -12,18 +12,22 @@ using WhaleGenie.Storage;
 namespace WhaleGenie.Bridge;
 
 /// <summary>
-/// The public macro library as the page sees it. The page lists and removes entries and can put
-/// a project macro into the library or replace one with the current version of a project macro;
-/// the native manager window is no longer needed for the library to stay usable.
+/// The public macro library as the page sees it. Entries are callable macros with no trigger of
+/// their own; a project gets a copy, and how that copy is called is the editor's business. The
+/// page lists and removes entries and publishes the macro that is open in the editor; nothing here
+/// puts a project macro into the library as an editable second copy of the macro list.
 /// </summary>
-internal sealed class LibraryBridge(ProjectWorkspace project) : IBridgeHandler
+internal sealed class LibraryBridge(ProjectWorkspace project, DialogBridge? dialogs = null,
+    string? libraryPath = null)
+    : IBridgeHandler
 {
+    private readonly string _library = libraryPath ?? AppPaths.PublicMacroLibrary;
+
     public void Register(BridgeServer server)
     {
         server.Register("library.state", _ => Task.FromResult<object?>(State()));
         server.Register("library.delete", Delete);
-        server.Register("library.add", Add);
-        server.Register("library.replace", Replace);
+        server.Register("library.publish", Publish);
     }
 
     private LibraryState State()
@@ -41,52 +45,77 @@ internal sealed class LibraryBridge(ProjectWorkspace project) : IBridgeHandler
         }
     }
 
-    private Task<object?> Delete(JsonElement parameters)
+    /// <summary>
+    /// Removes one entry. Deleting is not something the page does by itself: the library is shared
+    /// by every project, and a mistaken click would take the definition away from all of them.
+    /// </summary>
+    private async Task<object?> Delete(JsonElement parameters)
     {
         var id = RequiredId(parameters);
-        return Change(entries => entries.Where(entry =>
-            !string.Equals(entry.Id, id, StringComparison.Ordinal)).ToList());
+        var entry = Entries().FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, id, StringComparison.Ordinal));
+        if (entry is null)
+        {
+            return State();
+        }
+
+        if (dialogs is not null)
+        {
+            var accepted = await dialogs.ConfirmAsync(
+                Strings.Get("PublicMacroManager.DeleteTitle"),
+                Strings.Format("PublicMacroManager.DeleteMessage", entry.Macro.Name),
+                Strings.Get("PublicMacroManager.Delete"),
+                Strings.Get("Common.Cancel"));
+            if (!accepted)
+            {
+                return State();
+            }
+        }
+
+        return await Change(entries => entries
+            .Where(candidate => !string.Equals(candidate.Id, id, StringComparison.Ordinal))
+            .ToList());
     }
 
-    private Task<object?> Add(JsonElement parameters)
+    /// <summary>
+    /// Copies the named project macro into the library in the callable shape: a sub-macro document
+    /// has no trigger, recorder or interface of its own, because those belong to the project that
+    /// starts it. Publishing the same name again replaces the entry and raises its version only
+    /// when the definition really changed.
+    /// </summary>
+    private Task<object?> Publish(JsonElement parameters)
     {
         var macro = ProjectMacro(parameters);
+        var copy = MacroItem.FromJson(macro.ToSubMacroJson());
+        copy.Name = macro.Name.Trim();
+        copy.Description = macro.Description;
+
         return Change(entries =>
         {
-            var name = UniqueName(entries, macro.Name.Trim().Length > 0 ? macro.Name : "macro");
-            var copy = MacroItem.FromJson(macro.ToJson());
-            copy.Name = name;
-            return [.. entries, new PublicMacroEntry(Guid.NewGuid().ToString("N"), 1, copy)];
+            var existing = entries.FirstOrDefault(entry => string.Equals(
+                entry.Macro.Name.Trim(), copy.Name, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                return [.. entries, new PublicMacroEntry(Guid.NewGuid().ToString("N"), 1, copy)];
+            }
+
+            var version = string.Equals(Stored(existing.Macro), Stored(copy), StringComparison.Ordinal)
+                ? existing.Version
+                : existing.Version + 1;
+            return [.. entries.Select(entry => ReferenceEquals(entry, existing)
+                ? new PublicMacroEntry(entry.Id, version, copy)
+                : entry)];
         });
     }
 
-    private Task<object?> Replace(JsonElement parameters)
-    {
-        var id = RequiredId(parameters);
-        var macro = ProjectMacro(parameters);
-        return Change(entries => [.. entries.Select(entry =>
-        {
-            if (!string.Equals(entry.Id, id, StringComparison.Ordinal))
-            {
-                return entry;
-            }
-
-            var copy = MacroItem.FromJson(macro.ToJson());
-            copy.Name = UniqueName(entries, macro.Name, id);
-            var version = string.Equals(entry.Macro.ToJson().ToJsonString(),
-                copy.ToJson().ToJsonString(), StringComparison.Ordinal)
-                ? entry.Version
-                : entry.Version + 1;
-            return new PublicMacroEntry(entry.Id, version, copy);
-        })]);
-    }
+    private static string Stored(MacroItem macro) => macro.ToSubMacroJson().ToJsonString();
 
     private Task<object?> Change(Func<IReadOnlyList<PublicMacroEntry>, List<PublicMacroEntry>> change)
     {
         try
         {
             var entries = change(Entries());
-            PublicMacroLibrary.Save(AppPaths.PublicMacroLibrary, entries, AppVersion.Text);
+            PublicMacroLibrary.Save(_library, entries, AppVersion.Text);
             return Task.FromResult<object?>(State());
         }
         catch (Exception error) when (error is IOException or InvalidDataException)
@@ -111,25 +140,6 @@ internal sealed class LibraryBridge(ProjectWorkspace project) : IBridgeHandler
             : throw new BridgeFailureException(BridgeErrors.BadArgument,
                 Strings.Get("PublicMacroManager.Delete"));
 
-    private static IReadOnlyList<PublicMacroEntry> Entries()
-        => PublicMacroLibrary.Load(AppPaths.PublicMacroLibrary);
-
-    private static string UniqueName(IReadOnlyList<PublicMacroEntry> entries, string wanted,
-        string? exceptId = null)
-    {
-        var name = wanted.Trim();
-        if (name.Length == 0)
-        {
-            name = "macro";
-        }
-
-        for (var index = 2; entries.Any(entry =>
-            !string.Equals(entry.Id, exceptId, StringComparison.Ordinal)
-            && string.Equals(entry.Macro.Name, name, StringComparison.OrdinalIgnoreCase)); index++)
-        {
-            name = wanted.Trim() + " " + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        return name;
-    }
+    private IReadOnlyList<PublicMacroEntry> Entries()
+        => PublicMacroLibrary.Load(_library);
 }

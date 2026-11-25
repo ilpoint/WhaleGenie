@@ -208,7 +208,20 @@ internal sealed partial class HeadlessEditorSession
         ];
 
     public IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices
-        => [.. _model.CollectVariables().Select(choice => new EditorValueChoiceSnapshot(
+        => [.. _model.CollectVariables()
+            .Where(choice => choice.Origin != VariableOrigin.System)
+            .Select(ChoiceSnapshot)];
+
+    /// <summary>
+    /// The values every macro can read, sent once with the catalogue rather than with every
+    /// document snapshot. Uses counts are not part of this shape, so no macro-specific work is
+    /// done here.
+    /// </summary>
+    public static IReadOnlyList<EditorValueChoiceSnapshot> SystemValueChoices
+        => [.. VariableChoices.For([], []).Select(ChoiceSnapshot)];
+
+    private static EditorValueChoiceSnapshot ChoiceSnapshot(VariableChoice choice)
+        => new(
             choice.Name,
             choice.Type is { } type ? WhaleGenie.Models.VariableTypes.Name(type) : "text",
             choice.Origin.ToString(),
@@ -216,7 +229,7 @@ internal sealed partial class HeadlessEditorSession
             choice.Description,
             choice.Group.ToString(),
             choice.Display,
-            choice.IsPersistent))];
+            choice.IsPersistent);
 
     public IReadOnlyList<EditorGlobalSnapshot> Globals
         => [.. (_globalDraft?.Select(entry => entry.Variable) ?? _workspace.Variables.Globals)

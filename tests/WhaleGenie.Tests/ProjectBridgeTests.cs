@@ -7,6 +7,7 @@ using WhaleGenie.Bridge;
 using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 using WhaleGenie.Storage;
 
@@ -82,6 +83,22 @@ public class ProjectBridgeTests : IDisposable
         // The page sorts the list itself; the program hands it the preference rather than sorting.
         Assert.Equal(LocalSettings.LoadEnabledFirst(),
             state.GetProperty("enabledFirst").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_default_project_has_its_own_name_and_reports_the_save_state()
+    {
+        _workspace.CurrentPath = AppPaths.DefaultProject;
+        await _server.AcceptAsync("""{"id":1,"method":"project.state"}""");
+
+        var state = JsonDocument.Parse(_channel.Sent.Last(text => text.Contains("\"id\":1")))
+            .RootElement.GetProperty("result");
+
+        Assert.Equal(Strings.Get("Project.DefaultName"), state.GetProperty("name").GetString());
+        Assert.False(state.GetProperty("untitled").GetBoolean());
+        Assert.True(state.GetProperty("autoSave").GetBoolean());
+        Assert.False(state.GetProperty("saving").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, state.GetProperty("saveError").ValueKind);
     }
 
     [Fact]
@@ -408,6 +425,101 @@ public class ProjectBridgeTests : IDisposable
         var answer = JsonDocument.Parse(_channel.Sent.Single(text => text.Contains("\"id\":1"))).RootElement;
         Assert.False(answer.GetProperty("ok").GetBoolean());
         Assert.Equal(BridgeErrors.BadArgument, answer.GetProperty("error").GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task A_cancelled_project_change_guard_keeps_the_current_project()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, "incoming" + MacroPackage.Extension);
+        MacroPackage.Save(path, [new MacroItem { Name = "incoming" }], new ProjectTriggers(), [], "0.0.0");
+
+        try
+        {
+            var workspace = new ProjectWorkspace();
+            workspace.AddMacro(new MacroItem { Name = "current" });
+            var server = new BridgeServer();
+            var channel = new RecordingChannel();
+            server.Attach(channel);
+            var guard = new Guard { Answer = false };
+            var dialogs = new DialogBridge();
+            server.Register(dialogs);
+            server.Register(new ProjectBridge(workspace, _runtime, _system,
+                new NoFileDialogs(), dialogs, rememberProject: _ => { },
+                changeGuard: guard));
+
+            await server.AcceptAsync(JsonSerializer.Serialize(new
+            {
+                id = 1,
+                method = "project.open",
+                @params = new { path },
+            }));
+
+            Assert.Equal(ProjectChangeKind.Open, guard.Kind);
+            Assert.Equal("current", workspace.Macros.Single().Name);
+            Assert.Null(workspace.CurrentPath);
+        }
+        finally
+        {
+            Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public async Task One_turn_of_changes_produces_one_project_push()
+    {
+        var workspace = new ProjectWorkspace();
+        var server = new BridgeServer();
+        var channel = new RecordingChannel();
+        server.Attach(channel);
+        var post = new QueuedPost();
+        var dialogs = new DialogBridge();
+        server.Register(dialogs);
+        server.Register(new ProjectBridge(workspace, _runtime, _system,
+            new NoFileDialogs(), dialogs, rememberProject: _ => { }, ui: post));
+        await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
+        channel.Sent.Clear();
+
+        workspace.AddMacro(new MacroItem { Name = "one" });
+        workspace.AddMacro(new MacroItem { Name = "two" });
+
+        Assert.Single(post.Actions);
+        post.RunAll();
+        await Task.Delay(50);
+        Assert.Single(channel.Sent, text => text.Contains("\"event\":\"project.changed\""));
+    }
+
+    private sealed class Guard : IProjectChangeGuard
+    {
+        public bool Answer { get; init; }
+
+        public ProjectChangeKind Kind { get; private set; }
+
+        public Task<bool> ConfirmAsync(ProjectChangeKind kind)
+        {
+            Kind = kind;
+            return Task.FromResult(Answer);
+        }
+    }
+
+    private sealed class QueuedPost : IUiPost
+    {
+        public List<Action> Actions { get; } = [];
+
+        public void Post(Action action) => Actions.Add(action);
+
+        public Task<T> InvokeAsync<T>(Func<Task<T>> work) => work();
+
+        public void RunAll()
+        {
+            foreach (var action in Actions.ToList())
+            {
+                action();
+            }
+
+            Actions.Clear();
+        }
     }
 
     private sealed class RecordingChannel : IBridgeChannel

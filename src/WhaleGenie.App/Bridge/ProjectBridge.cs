@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using WhaleGenie.Contracts;
 using WhaleGenie.Localization;
@@ -53,12 +54,24 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The settings file behind the last-package memory and the list order.</summary>
     private readonly AppSettings _settings;
 
+    /// <summary>The one writer of the package file; null in a check that only reads state.</summary>
+    private readonly IProjectSaver? _saver;
+
+    /// <summary>The question before a project replacement; null when this shell has none.</summary>
+    private readonly IProjectChangeGuard? _changeGuard;
+
+    /// <summary>Where the one coalesced state push is posted; inline in a check.</summary>
+    private readonly IUiPost _ui;
+
+    private int _pushQueued;
+
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
         IFileDialogs files, DialogBridge dialogs,
         Action<UiSound>? playSound = null, Action<string>? rememberProject = null,
-        AppSettings? settings = null)
+        AppSettings? settings = null, IProjectSaver? saver = null,
+        IProjectChangeGuard? changeGuard = null, IUiPost? ui = null)
     {
         _settings = settings ?? AppSettings.Shared;
         _workspace = workspace;
@@ -66,6 +79,9 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _system = system;
         _files = files;
         _dialogs = dialogs;
+        _saver = saver;
+        _changeGuard = changeGuard;
+        _ui = ui ?? InlineUiPost.Instance;
         _playSound = playSound ?? (sound => AppSound.Play(_settings, sound));
         _rememberProject = rememberProject ?? _settings.StoreLastProject;
     }
@@ -101,8 +117,16 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _system.Changed += OnSystemChanged;
         _runtime.Triggers.StatusChanged += OnTriggerStatusChanged;
         _workspace.Changed += OnProjectChanged;
-        _workspace.Macros.CollectionChanged += OnMacrosChanged;
+        _workspace.Replaced += OnProjectChanged;
         _workspace.Triggers.Changed += OnTriggersChanged;
+        if (_saver is not null)
+        {
+            _saver.Changed += OnAutoSaveChanged;
+        }
+
+        // The list's trigger summaries and the default project's name are words the program
+        // composes; a language switch has to reach the page even when no project field moved.
+        Strings.Current.LanguageChanged += OnLanguageChanged;
     }
 
     public void Dispose()
@@ -110,17 +134,26 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _system.Changed -= OnSystemChanged;
         _runtime.Triggers.StatusChanged -= OnTriggerStatusChanged;
         _workspace.Changed -= OnProjectChanged;
-        _workspace.Macros.CollectionChanged -= OnMacrosChanged;
+        _workspace.Replaced -= OnProjectChanged;
         _workspace.Triggers.Changed -= OnTriggersChanged;
+        if (_saver is not null)
+        {
+            _saver.Changed -= OnAutoSaveChanged;
+        }
+
+        Strings.Current.LanguageChanged -= OnLanguageChanged;
     }
 
     private ProjectState State() => new(
         _workspace.CurrentPath,
-        _workspace.CurrentPath is { } path ? Path.GetFileNameWithoutExtension(path) : null,
+        ProjectName(_workspace.CurrentPath),
         _workspace.CurrentPath is null,
         _workspace.IsDirty,
         _workspace.Revision,
         _system.IsEnabled,
+        _settings.LoadAutoSaveProject(),
+        _saver?.IsSaving ?? false,
+        _saver?.Error,
         _settings.LoadEnabledFirst(),
         Enum.GetNames<MacroView>(),
         [.. _workspace.Macros
@@ -190,7 +223,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
         _runtime.Triggers.Stop(macro.Name);
         _workspace.RemoveMacro(macro);
-        await PushState();
         return null;
     }
 
@@ -308,6 +340,12 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return null;
         }
 
+        if (_changeGuard is not null
+            && !await _changeGuard.ConfirmAsync(ProjectChangeKind.Open))
+        {
+            return null;
+        }
+
         await OpenPackage(openPath);
         return null;
     }
@@ -330,7 +368,9 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return await SaveAs(parameters);
         }
 
-        var saved = await ProjectFiles.SaveAsync(_workspace, path);
+        var saved = _saver is not null
+            ? await _saver.SaveAsync(path)
+            : await ProjectFiles.SaveAsync(_workspace, path);
         if (!saved.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
@@ -376,6 +416,12 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
                 Strings.Get("Bridge.ReloadNeedsFile"));
         }
 
+        if (_changeGuard is not null
+            && !await _changeGuard.ConfirmAsync(ProjectChangeKind.Reload))
+        {
+            return null;
+        }
+
         await OpenPackage(path);
         return null;
     }
@@ -402,16 +448,35 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
             return null;
         }
 
-        _runtime.Triggers.StopAll();
-        _workspace.ClearMacros();
-        _workspace.CurrentPath = null;
-        await PushState();
+        if (_changeGuard is not null
+            && !await _changeGuard.ConfirmAsync(ProjectChangeKind.CloseAll))
+        {
+            return null;
+        }
+
+        if (_saver is { } saver)
+        {
+            await saver.ReplaceAsync(() =>
+            {
+                _runtime.Triggers.StopAll();
+                _workspace.ClearMacros();
+                return Task.FromResult(true);
+            });
+        }
+        else
+        {
+            _runtime.Triggers.StopAll();
+            _workspace.ClearMacros();
+        }
+
         return null;
     }
 
     private async Task OpenPackage(string path)
     {
-        var opened = await ProjectFiles.OpenAsync(_workspace, path);
+        var opened = _saver is { } saver
+            ? await saver.ReplaceAsync(() => ProjectFiles.OpenAsync(_workspace, path))
+            : await ProjectFiles.OpenAsync(_workspace, path);
         if (!opened.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,
@@ -420,7 +485,6 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         }
 
         _rememberProject(path);
-        await PushState();
     }
 
     /// <summary>Asks where a package goes; the answer is a path or "called off".</summary>
@@ -506,23 +570,61 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// its own thread; the macro states are written here, and the page hears about them with the
     /// same event every other change rides on.
     /// </summary>
-    private void OnTriggerStatusChanged()
-        => _ = _server?.PushAsync("project.changed", State());
+    private void OnTriggerStatusChanged() => SchedulePush();
 
-    private void OnSystemChanged()
-        => _ = _server?.PushAsync("project.changed", State());
+    private void OnSystemChanged() => SchedulePush();
 
-    private void OnProjectChanged(object? sender, EventArgs args)
-        => _ = _server?.PushAsync("project.changed", State());
+    private void OnProjectChanged(object? sender, EventArgs args) => SchedulePush();
 
-    private void OnMacrosChanged(object? sender, NotifyCollectionChangedEventArgs args)
+    private void OnTriggersChanged(object? sender, EventArgs args) => SchedulePush();
+
+    private void OnAutoSaveChanged() => SchedulePush();
+
+    private void OnLanguageChanged() => SchedulePush();
+
+    /// <summary>
+    /// One state push per turn. A mutation can raise several events (a macro joins the list and
+    /// the revision moves); posting the state once means the page never sees the step between
+    /// them, and a burst of edits cannot queue a burst of full project snapshots.
+    /// </summary>
+    private void SchedulePush()
     {
-        // Opening a package replaces the collection without raising a project change of its own.
-        _ = _server?.PushAsync("project.changed", State());
+        if (Interlocked.Exchange(ref _pushQueued, 1) == 1)
+        {
+            return;
+        }
+
+        _ui.Post(() =>
+        {
+            Interlocked.Exchange(ref _pushQueued, 0);
+            _ = _server?.PushAsync("project.changed", State());
+        });
     }
 
-    private void OnTriggersChanged(object? sender, EventArgs args)
-        => _ = _server?.PushAsync("project.changed", State());
-
     private Task PushState() => _server!.PushAsync("project.changed", State());
+
+    /// <summary>The name a package is shown under; the default project has a word of its own.</summary>
+    private static string? ProjectName(string? path)
+    {
+        if (path is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        try
+        {
+            if (string.Equals(Path.GetFullPath(path), Path.GetFullPath(AppPaths.DefaultProject),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return Strings.Get("Project.DefaultName");
+            }
+        }
+        catch (Exception error) when (error is ArgumentException or NotSupportedException
+            or PathTooLongException)
+        {
+            // A path this long or this odd has no special name; the file name is still the answer.
+        }
+
+        return Path.GetFileNameWithoutExtension(path);
+    }
 }

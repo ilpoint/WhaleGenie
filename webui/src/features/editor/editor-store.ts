@@ -1,9 +1,10 @@
 import type { BridgeApi } from '../../shared/bridge/client.js';
 import { bridgeApi } from '../../shared/bridge/bridge.js';
-import type { ProjectState } from '../../shared/bridge/protocol.js';
-import { project } from '../../shared/project/store.js';
+import type { EditorSnapshot, ProjectState } from '../../shared/bridge/protocol.js';
 import { strings } from '../../shared/strings/strings.js';
+import { EditorCatalogueService } from './services/catalogue-service.js';
 import { EditorCore } from './services/editor-core.js';
+import { EditorDialogService } from './services/dialog-service.js';
 import { EditorSessionService } from './services/session-service.js';
 import { EditorActionService } from './services/action-service.js';
 import { EditorStepService } from './services/step-service.js';
@@ -27,6 +28,8 @@ export interface EditorDeps {
   client?: BridgeApi;
   strings?: EditorStrings;
   project?: EditorProject;
+  /** Answers the host's leave question; the shell wires it to editor.leaveAnswered. */
+  answerHost?: (requestId: number, leave: boolean) => void;
 }
 
 /**
@@ -36,7 +39,15 @@ export interface EditorDeps {
 export class EditorStore {
   private readonly core: EditorCore;
 
+  private readonly answerHost: (requestId: number, leave: boolean) => void;
+
+  private hostRequestId: number | null = null;
+
+  readonly catalogue: EditorCatalogueService;
+
   readonly session: EditorSessionService;
+
+  readonly dialog: EditorDialogService;
 
   readonly action: EditorActionService;
 
@@ -57,12 +68,17 @@ export class EditorStore {
   constructor(deps: EditorDeps = {}) {
     this.core = new EditorCore(deps.client ?? bridgeApi);
     this.value = new EditorValueService(this.core);
+    this.catalogue = new EditorCatalogueService(this.core, deps.strings ?? strings);
     this.session = new EditorSessionService(
       this.core,
       deps.strings ?? strings,
-      deps.project ?? project,
       this.value,
+      this.catalogue,
     );
+    this.dialog = new EditorDialogService(this.session, this.core);
+    this.answerHost = deps.answerHost ?? ((requestId, leave) => {
+      void bridgeApi.call('editor.leaveAnswered', { requestId, leave });
+    });
     this.action = new EditorActionService(this.core);
     this.steps = new EditorStepService(this.core);
     this.triggers = new EditorTriggersService(this.core);
@@ -80,18 +96,50 @@ export class EditorStore {
     return this.core.subscribe(listener);
   }
 
-  ensureLoaded(): void {
-    this.session.ensureLoaded();
+  ensureLoaded(): Promise<void> {
+    return this.session.ensureLoaded();
   }
 
   refresh(): void {
     this.session.refresh();
   }
 
-  /** Leaving the route must not keep a draft, a value window, or a recorder alive. */
+  /**
+   * The host asked whether its window may close with these documents unsaved. The same dialog is
+   * used, and the answer goes back once for the one request.
+   */
+  answerLeaveAsked(requestId: number, documents: readonly string[]): void {
+    this.hostRequestId = requestId;
+    void this.dialog.confirmLeave(documents).then((leave) => {
+      this.answerHost(requestId, leave);
+      if (this.hostRequestId === requestId) {
+        this.hostRequestId = null;
+      }
+    });
+  }
+
+  /** The host stopped waiting for one question; close it if that is the one on screen. */
+  cancelLeaveAsked(requestId: number): void {
+    if (this.hostRequestId !== requestId) {
+      return;
+    }
+
+    this.hostRequestId = null;
+    this.dialog.cancel();
+  }
+
+  /** A snapshot the host pushed because a project replacement closed documents, not a command. */
+  applyHostSnapshot(snapshot: EditorSnapshot | null): void {
+    this.core.applySnapshot(snapshot);
+    this.core.notify();
+  }
+
+  /** Leaving the route must not keep a draft, a value window, a recorder or a question alive. */
   leaveEditor(): void {
+    this.dialog.cancel();
     this.core.state.actionForm = null;
     this.core.state.actionError = '';
+    this.core.clearDocumentTransient();
     this.value.closeValue();
     if (this.core.state.recording) {
       void this.recording.stopRecording();

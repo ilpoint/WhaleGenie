@@ -24,7 +24,7 @@ public class HeadlessEditorSessionSubMacroTests
     {
         var workspace = new ProjectWorkspace();
         workspace.AddMacro(new MacroItem { Name = "host" });
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
         var session = documents.Open("host");
 
         var created = session.CreateSubMacro("helper");
@@ -56,7 +56,7 @@ public class HeadlessEditorSessionSubMacroTests
         var library = new MacroItem { Name = "library" };
         library.Steps.Add(new MacroStep { Type = "control.log" });
         workspace.AddMacro(library);
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
         var session = documents.Open("host");
 
         var copied = session.CopySubMacro("library", "renamed");
@@ -66,7 +66,7 @@ public class HeadlessEditorSessionSubMacroTests
             .Single(parameter => parameter.Name == "macro")
             .Value);
 
-        Assert.True(session.Save());
+        Assert.True(session.Save().Succeeded);
         var saved = workspace.Macros.Single(macro => macro.Name == "host");
         Assert.Equal("control.log",
             Assert.Single(saved.SubMacros.Single(macro => macro.Name == "renamed").Steps).Type);
@@ -80,19 +80,20 @@ public class HeadlessEditorSessionSubMacroTests
         var root = new MacroItem { Name = "host" };
         root.SubMacros.Add(new MacroItem { Name = "helper" });
         workspace.AddMacro(root);
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
         documents.Open("host");
-        var child = documents.OpenSubmacro("host", "helper");
+        var hostId = Assert.IsType<string>(documents.ActiveId);
+        var child = documents.OpenSubmacro(hostId, "helper");
 
         var created = child.CreateSubMacro("deeper");
 
         Assert.Contains("deeper", created.SubMacros);
         Assert.DoesNotContain("deeper", child.SubMacros);
-        Assert.Contains("deeper", documents.Activate("host").Snapshot().SubMacros);
+        Assert.Contains("deeper", documents.Activate(hostId).Snapshot().SubMacros);
 
         child.DeleteSubMacro("deeper");
 
-        Assert.DoesNotContain("deeper", documents.Activate("host").Snapshot().SubMacros);
+        Assert.DoesNotContain("deeper", documents.Activate(hostId).Snapshot().SubMacros);
     }
 
     [Fact]
@@ -100,7 +101,7 @@ public class HeadlessEditorSessionSubMacroTests
     {
         var workspace = new ProjectWorkspace();
         workspace.AddMacro(new MacroItem { Name = "host" });
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
         var session = documents.Open("host");
         session.CreateSubMacro("helper");
         session.AddStep("control.runMacro", null, null,
@@ -134,7 +135,7 @@ public class HeadlessEditorSessionSubMacroTests
         var channel = new RecordingChannel();
         var server = new BridgeServer();
         server.Attach(channel);
-        new EditorSessionBridge(workspace).Register(server);
+        new EditorSessionBridge(new WhaleGenie.Editor.EditorDocumentService(workspace), workspace).Register(server);
 
         await Call(server, """{"id":1,"method":"editor.session","params":{"kind":"open","name":"host"}}""");
         await Call(server,
@@ -173,7 +174,7 @@ public class HeadlessEditorSessionSubMacroTests
         var channel = new RecordingChannel();
         var server = new BridgeServer();
         server.Attach(channel);
-        new EditorSessionBridge(workspace).Register(server);
+        new EditorSessionBridge(new WhaleGenie.Editor.EditorDocumentService(workspace), workspace).Register(server);
 
         await Call(server, """{"id":1,"method":"editor.session","params":{"kind":"open","name":"moves"}}""");
         await Call(server, """{"id":2,"method":"editor.step","params":{"kind":"add","type":"control.try"}}""");

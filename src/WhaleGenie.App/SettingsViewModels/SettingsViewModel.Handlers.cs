@@ -34,6 +34,15 @@ public partial class SettingsViewModel
         }
     }
 
+    /// <summary>Stores whether changes are saved as they happen.</summary>
+    partial void OnAutoSaveProjectChanged(bool value)
+    {
+        if (value != _settings.LoadAutoSaveProject())
+        {
+            _settings.StoreAutoSaveProject(value);
+        }
+    }
+
     /// <summary>Stores whether triggers listen as soon as the program starts.</summary>
     partial void OnSystemAtStartChanged(bool value)
     {

@@ -11,6 +11,7 @@ import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
 import { windowMirror } from '../shared/window/window.js';
 import { startImport, transfer } from '../features/transfer/index.js';
+import { editor } from '../features/editor/editor-store.js';
 import type { BridgeMethod } from '../shared/bridge/protocol.js';
 import whale from '../assets/whale.png';
 
@@ -315,7 +316,7 @@ export class WgTitlebar extends LitElement {
 
   private openAbout(): void {
     this.menu = null;
-    go('about');
+    void go('about');
   }
 
   private run(command: BridgeMethod): void {
@@ -360,7 +361,12 @@ export class WgTitlebar extends LitElement {
 
   private onClose(): void {
     // 关闭交给窗口本身：托盘把它拦下来藏起，真正的退出在托盘菜单与 app.quit。
-    void bridge.value.call('window.close');
+    // 关闭之前先问编辑器里的宏：隐藏不等于保存，问过再藏才没有漏保存。
+    void editor.dialog.confirmLeave().then((leave) => {
+      if (leave) {
+        void bridge.value.call('window.close');
+      }
+    });
   }
 }
 

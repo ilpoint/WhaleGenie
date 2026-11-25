@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Editor;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
@@ -243,5 +244,40 @@ public class McpDraftTests
                     StringComparison.Ordinal));
             return true;
         });
+    }
+
+    [Fact]
+    public async Task Applying_a_draft_with_editor_documents_open_is_refused()
+    {
+        var project = new MainViewModel();
+        project.AddMacro(new MacroItem { Name = "open" });
+        var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance,
+            editor: new OpenDocuments());
+        var basis = await live.SnapshotAsync();
+
+        var failure = await Assert.ThrowsAsync<McpFailure>(() =>
+            live.ApplyAsync(basis, [new MacroItem { Name = "changed" }], []));
+
+        Assert.Equal(McpErrors.RevisionConflict, failure.Code);
+        Assert.Contains("open macro documents", failure.Message, StringComparison.Ordinal);
+        Assert.Equal("open", project.Workspace.Macros.Single().Name);
+    }
+
+    private sealed class OpenDocuments : IEditorDocuments
+    {
+        public bool HasUnsavedWork => false;
+
+        public bool HasOpenDocuments => true;
+
+        public System.Collections.Generic.IReadOnlyList<string> UnsavedDocuments => [];
+
+        public System.Threading.Tasks.Task<EditorSaveAllResult> SaveAllAsync()
+            => System.Threading.Tasks.Task.FromResult(new EditorSaveAllResult(true, []));
+
+        public System.Threading.Tasks.Task DiscardAllAsync()
+            => System.Threading.Tasks.Task.CompletedTask;
+
+        public System.Threading.Tasks.Task CloseAllAsync()
+            => System.Threading.Tasks.Task.CompletedTask;
     }
 }

@@ -13,7 +13,7 @@ namespace WhaleGenie.Contracts;
 [JsonDerivedType(typeof(EditorSessionPatchCommand), "patch")]
 [JsonDerivedType(typeof(EditorSessionUndoCommand), "undo")]
 [JsonDerivedType(typeof(EditorSessionRedoCommand), "redo")]
-[JsonDerivedType(typeof(EditorSessionSaveCommand), "save")]
+[JsonDerivedType(typeof(EditorSessionDeactivateCommand), "deactivate")]
 [JsonDerivedType(typeof(EditorSessionCloseCommand), "close")]
 [JsonDerivedType(typeof(EditorSessionPublicMacroAddCommand), "publicMacroAdd")]
 [JsonDerivedType(typeof(EditorSessionSubMacroCreateCommand), "subMacroCreate")]
@@ -30,18 +30,19 @@ public sealed record EditorSessionOpenCommand(string? Name = null) : EditorSessi
 [BridgeContract]
 public sealed record EditorSessionNewCommand : EditorSessionCommand;
 
-/// <summary>Open a sub-macro below the active document.</summary>
+/// <summary>Open a sub-macro below the document named, or the active one when the key is omitted.</summary>
 [BridgeContract]
-public sealed record EditorSessionSubOpenCommand(string Name) : EditorSessionCommand;
+public sealed record EditorSessionSubOpenCommand(string Name, string? OwnerDocumentId = null)
+    : EditorSessionCommand;
 
 /// <summary>Write one macro setting.</summary>
 [BridgeContract]
 public sealed record EditorSessionMacroSettingCommand(string Field, string Value)
     : EditorSessionCommand;
 
-/// <summary>Activate an open document tab.</summary>
+/// <summary>Activate an open document tab by its stable identifier.</summary>
 [BridgeContract]
-public sealed record EditorSessionActivateCommand(string Key) : EditorSessionCommand;
+public sealed record EditorSessionActivateCommand(string DocumentId) : EditorSessionCommand;
 
 /// <summary>Write the macro's name, description or group.</summary>
 [BridgeContract]
@@ -57,13 +58,21 @@ public sealed record EditorSessionUndoCommand : EditorSessionCommand;
 [BridgeContract]
 public sealed record EditorSessionRedoCommand : EditorSessionCommand;
 
-/// <summary>Save the active document.</summary>
+/// <summary>
+/// Finish work on the page without closing its documents: the action or value draft it had open
+/// is dropped, and an active recording stops. Used when the page is left.
+/// </summary>
 [BridgeContract]
-public sealed record EditorSessionSaveCommand : EditorSessionCommand;
+public sealed record EditorSessionDeactivateCommand : EditorSessionCommand;
 
-/// <summary>Close a tab, or the active one when the key is omitted.</summary>
+/// <summary>
+/// Close a tab by its stable identifier, or the active one when the identifier is omitted.
+/// <paramref name="Discard"/> lets the person say the changes are not wanted — the same answer
+/// the close question offers.
+/// </summary>
 [BridgeContract]
-public sealed record EditorSessionCloseCommand(string? Key = null) : EditorSessionCommand;
+public sealed record EditorSessionCloseCommand(string? DocumentId = null, bool? Discard = null)
+    : EditorSessionCommand;
 
 /// <summary>Add a public macro call step.</summary>
 [BridgeContract]

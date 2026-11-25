@@ -13,6 +13,7 @@ public sealed record EditorActionPageSnapshot(string Key, string Label, bool Pre
 /// <summary>The editor session's snapshot: the macro fields and the step tree.</summary>
 [BridgeContract]
 public sealed record EditorSnapshot(
+    string DocumentId,
     string Name, string Description, string Group,
     IReadOnlyList<string> SubMacros, IReadOnlyList<EditorMacroParameterSnapshot> CallableParameters,
     IReadOnlyList<EditorMacroResultSnapshot> CallableResults,
@@ -21,15 +22,12 @@ public sealed record EditorSnapshot(
     IReadOnlyList<EditorStepSnapshot> Steps, IReadOnlyList<EditorTriggerSnapshot> Triggers,
     IReadOnlyList<EditorVariableSnapshot> Variables, IReadOnlyList<EditorGlobalSnapshot> Globals,
     IReadOnlyList<EditorValueChoiceSnapshot> ValueChoices,
-    IReadOnlyList<EditorValueFunctionSnapshot> ValueFunctions,
-    IReadOnlyList<EditorConditionCompareSnapshot> ConditionCompares,
-    IReadOnlyList<EditorVariableTypeSnapshot> VariableTypes,
-    IReadOnlyList<EditorTriggerKindSnapshot> TriggerKinds, bool CanUndo, bool CanRedo,
+    bool CanUndo, bool CanRedo,
     bool CanSave, string? NameProblem, string ProblemSummary, string DeclarationProblemSummary,
     string CallImpactSummary, string Notice, string TriggerProblemSummary,
     string ToggleKeyProblem, EditorRecordingSnapshot Recording, bool IsSubMacro,
-    IReadOnlyList<EditorTabSnapshot>? Tabs = null, string? ActiveKey = null,
-    EditorActionFormSnapshot? ActionForm = null, int Revision = 0);
+    IReadOnlyList<EditorTabSnapshot> Tabs, string? ActiveDocumentId,
+    EditorActionFormSnapshot? ActionForm, int Revision);
 
 /// <summary>One global declaration in the editor.</summary>
 [BridgeContract]
@@ -180,7 +178,9 @@ public sealed record EditorActionParameterSnapshot(
 
 /// <summary>One open editor document's tab.</summary>
 [BridgeContract]
-public sealed record EditorTabSnapshot(string Key, string Name, bool Dirty, bool Problem, bool IsSubMacro);
+public sealed record EditorTabSnapshot(
+    string DocumentId, string Name, bool Dirty, bool Problem, bool IsSubMacro,
+    string? OwnerDocumentId);
 
 /// <summary>The keys drawn for a key field or a key sequence.</summary>
 [BridgeContract]

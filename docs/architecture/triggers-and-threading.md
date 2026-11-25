@@ -44,7 +44,11 @@ Core 的录制层将原始输入翻译为去抖、合并后的 `RecordedAction`�
 - **互斥原语**：`SharedDoors.Input`、`SharedDoors.Browser` 和 MCP 单运行控制分别保护不同资源，不合并为全局大锁。
 
 退出时不得在界面线程同步等待 MCP 停止，因为 MCP 请求可能正在等待界面线程。窗口隐藏与进程退出
-必须区分；真正的退出流程统一处理未保存内容、触发器、MCP、共享设备和虚拟输入设备。
+必须区分；真正的退出流程统一处理未保存内容、触发器、MCP、共享设备和虚拟输入设备。未保存内容分两层：
+`ProjectSession` 先对打开着的宏问「保存 / 不保存 / 取消」，保存的宏进入工程后再由
+`ProjectSaver.FlushAsync` 把工程包写盘；自动保存开启时项目那一问通常不会再出现，关闭时则照旧。
+关窗口和退出询问的是同一个网页对话框（`editor.leaveAsked` / `editor.leaveAnswered`）；页面未 ready、
+重载或没有 WebView 时才回退到原生 `ConfirmDialog`。
 
 ## 12. 当前设计取舍与限制
 

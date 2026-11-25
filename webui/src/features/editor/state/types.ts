@@ -2,6 +2,7 @@ import type {
   EditorAction,
   EditorActionCategory,
   EditorActionForm,
+  EditorCatalogue,
   EditorPublicMacro,
   EditorSnapshot,
   EditorTab,
@@ -16,10 +17,12 @@ export type InspectorTab = 'step' | 'variables' | 'macro';
 export interface EditorUiState {
   snapshot: EditorSnapshot | null;
   tabs: EditorTab[];
-  activeKey: string;
+  activeDocumentId: string;
   actions: EditorAction[];
   categories: EditorActionCategory[];
   publicMacros: EditorPublicMacro[];
+  /** The tables every document shares, loaded once at start, on language change and after a publish. */
+  catalogue: EditorCatalogue | null;
   selectedStepId: string;
   selectedStepIds: string[];
   selectedActionKey: string;
@@ -35,7 +38,6 @@ export interface EditorUiState {
   error: string;
   notice: string;
   saved: boolean;
-  closeRequest: EditorTab | null;
   loading: boolean;
   draftName: string;
   draftDescription: string;

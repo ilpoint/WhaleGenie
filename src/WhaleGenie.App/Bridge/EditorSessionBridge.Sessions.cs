@@ -67,23 +67,16 @@ internal sealed partial class EditorSessionBridge
                 return Snapshot();
             case EditorSessionSubOpenCommand sub:
                 var subName = SessionText(sub.Name, "Bridge.EditorNeedsMacro");
-                var parentKey = _documents.ActiveKey;
-                if (parentKey is null)
-                {
-                    throw new BridgeFailureException(BridgeErrors.BadArgument,
-                        Strings.Get("Bridge.EditorNeedsMacro"));
-                }
-
                 _documents.Active?.CloseValueEditor();
                 _documents.Active?.CancelActionDraft();
-                _documents.OpenSubmacro(parentKey, subName);
+                _documents.OpenSubmacro(sub.OwnerDocumentId, subName);
                 return Snapshot();
             case EditorSessionMacroSettingCommand setting:
                 Required().SetMacroSetting(
                     SessionText(setting.Field, "Bridge.EditorNeedsField"), setting.Value);
                 return Snapshot();
             case EditorSessionActivateCommand activate:
-                var activeKey = SessionText(activate.Key, "Bridge.EditorNeedsDocument");
+                var activeKey = SessionText(activate.DocumentId, "Bridge.EditorNeedsDocument");
                 _documents.Active?.CloseValueEditor();
                 _documents.Active?.CancelActionDraft();
                 _documents.Activate(activeKey);
@@ -97,32 +90,30 @@ internal sealed partial class EditorSessionBridge
             case EditorSessionRedoCommand:
                 Required().Redo();
                 return Snapshot();
-            case EditorSessionSaveCommand:
-                var session = Required();
-                try
-                {
-                    if (!session.Save())
-                    {
-                        throw new BridgeFailureException(BridgeErrors.Internal,
-                            Strings.Get("Bridge.EditorSaveFailed"));
-                    }
-                }
-                catch (InvalidOperationException error)
-                {
-                    throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
-                }
-
+            case EditorSessionDeactivateCommand:
+                _documents.Deactivate();
                 return Snapshot();
             case EditorSessionCloseCommand close:
                 _documents.Active?.CloseValueEditor();
                 _documents.Active?.CancelActionDraft();
-                if (close.Key is { Length: > 0 } closeKey)
+                var discard = close.Discard == true;
+                try
                 {
-                    _documents.Close(closeKey);
+                    if (close.DocumentId is { Length: > 0 } closeId)
+                    {
+                        _documents.Close(closeId, discard);
+                    }
+                    else
+                    {
+                        _documents.CloseActive(discard);
+                    }
                 }
-                else
+                catch (InvalidOperationException) when (!discard)
                 {
-                    _documents.CloseActive();
+                    // The page thought the tab was clean; the workspace knows better. Send the
+                    // person back to the save/discard/cancel question instead of a red banner.
+                    throw new BridgeFailureException(BridgeErrors.EditorUnsaved,
+                        Strings.Get("Editor.CloseDirty"));
                 }
 
                 return Snapshot();
@@ -144,11 +135,27 @@ internal sealed partial class EditorSessionBridge
         => value is { Length: > 0 }
             ? value
             : throw new BridgeFailureException(BridgeErrors.BadArgument, Strings.Get(key));
-    private object Tabs() => new
+    private Task<object?> SaveAction(JsonElement parameters)
     {
-        activeKey = _documents.ActiveKey,
-        tabs = _documents.Tabs,
-    };
+        var documentId = OptionalString(parameters, "documentId");
+        try
+        {
+            return Task.FromResult<object?>(SaveResponse(_documents.Save(documentId)));
+        }
+        catch (InvalidOperationException error)
+        {
+            throw new BridgeFailureException(BridgeErrors.BadArgument, error.Message);
+        }
+    }
+
+    private Task<object?> SaveAllAction(JsonElement _)
+        => Task.FromResult<object?>(SaveResponse(_documents.SaveAll()));
+
+    private object? DiscardAllAction()
+    {
+        _documents.DiscardAll();
+        return Snapshot();
+    }
 
 
 

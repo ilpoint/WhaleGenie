@@ -6,6 +6,31 @@ using WhaleGenie.ViewModels;
 
 namespace WhaleGenie.Editing;
 
+/// <summary>What the project did with the macro an editor handed back.</summary>
+internal enum MacroCommitOutcome
+{
+    /// <summary>A new macro joined the list.</summary>
+    Added,
+
+    /// <summary>The target macro was replaced by the edited one.</summary>
+    Replaced,
+
+    /// <summary>The draft said exactly what the project already held.</summary>
+    Unchanged,
+
+    /// <summary>The target macro is no longer in the list; the draft was not written.</summary>
+    TargetGone,
+}
+
+/// <summary>The answer of one commit, with the instance the document is bound to afterwards.</summary>
+internal readonly record struct MacroCommitResult(MacroCommitOutcome Outcome, MacroItem? Target)
+{
+    /// <summary>True when the project holds the draft after this commit.</summary>
+    public bool Accepted
+        => Outcome is MacroCommitOutcome.Added or MacroCommitOutcome.Replaced
+            or MacroCommitOutcome.Unchanged;
+}
+
 /// <summary>
 /// What the project does with the macro an editor hands back: it joins the list, replaces the one
 /// that was edited, or is left alone because it says exactly what the project already holds.
@@ -36,12 +61,12 @@ internal sealed class ProjectMacroCommit(
     /// and replacing one that is no longer there would silently drop the edit. False leaves the
     /// work in the editor, which shows why and keeps its draft.
     /// </summary>
-    public bool Apply(MacroDraft draft, IReadOnlyList<MacroItem> lifted)
+    public MacroCommitResult Apply(MacroDraft draft, IReadOnlyList<MacroItem> lifted)
     {
         var current = Target;
         if (current is { } targetInList && !project.Macros.Contains(targetInList))
         {
-            return false;
+            return new MacroCommitResult(MacroCommitOutcome.TargetGone, null);
         }
 
         // A stretch of steps lifted into a macro of its own during the session is real work: it
@@ -58,18 +83,18 @@ internal sealed class ProjectMacroCommit(
         if (current is null)
         {
             StoreTriggerSettings(draft.Layouts);
-            project.AddMacro(draft.Macro, draft.Entries);
-            PlaceNewMacro(newView, draft.Macro, project);
-            Target = draft.Macro;
+            var added = project.AddMacro(draft.Macro, draft.Entries);
+            PlaceNewMacro(newView, added, project);
+            Target = added;
             followRecovery();
-            return true;
+            return new MacroCommitResult(MacroCommitOutcome.Added, added);
         }
 
         // Saving an unchanged macro is not a project change. This also makes the close after a
         // successful save a no-op rather than a second insertion or replacement.
         if (Same(project, current, draft))
         {
-            return true;
+            return new MacroCommitResult(MacroCommitOutcome.Unchanged, current);
         }
 
         // The edited macro replaces the one the trigger may be running.
@@ -77,7 +102,7 @@ internal sealed class ProjectMacroCommit(
         StoreTriggerSettings(draft.Layouts);
         if (!project.ReplaceMacro(current, draft.Macro, draft.Entries))
         {
-            return false;
+            return new MacroCommitResult(MacroCommitOutcome.TargetGone, null);
         }
 
         Target = draft.Macro;
@@ -86,7 +111,7 @@ internal sealed class ProjectMacroCommit(
         // The editor has just let its draft go, so the list is the only copy of this macro: it
         // goes into the snapshot now rather than waiting for the next turn of the timer.
         followRecovery();
-        return true;
+        return new MacroCommitResult(MacroCommitOutcome.Replaced, draft.Macro);
     }
 
     /// <summary>

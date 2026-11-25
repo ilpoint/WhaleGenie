@@ -77,57 +77,77 @@ internal sealed partial class HeadlessEditorSession
         return true;
     }
 
-    public bool Save()
+    public DocumentSaveOutcome Save()
     {
         if (!CanSave)
         {
-            throw new InvalidOperationException(SaveProblem is { Length: > 0 } problem
-                ? problem
-                : Strings.Get("Editor.Problem.CannotSave"));
+            return new DocumentSaveOutcome(EditorSaveOutcomes.Blocked,
+                SaveProblem is { Length: > 0 } problem
+                    ? problem
+                    : Strings.Get("Editor.Problem.CannotSave"));
         }
 
         var draft = _model.Draft();
         if (_owner is not null)
         {
-            _owner.ReplaceSubmacro(_submacroOriginal, draft.Macro);
-            _model.IsDirty = false;
+            if (!_owner.ApplyChildDraft(_submacroOriginal, draft.Macro))
+            {
+                return new DocumentSaveOutcome(EditorSaveOutcomes.Conflict,
+                    Strings.Format("Editor.Save.TargetGone", Name));
+            }
+
             _existing = draft.Macro;
-            return true;
+            _submacroOriginal = draft.Macro.Name;
+            _originalName = draft.Macro.Name;
+            _model.IsDirty = false;
+            return new DocumentSaveOutcome(EditorSaveOutcomes.Saved, null);
         }
 
         var commit = new ProjectMacroCommit(_workspace, _existing, MacroView.All,
             _ => { }, () => { }, () => { });
-        commit.Apply(draft, []);
+        var result = commit.Apply(draft, []);
+        if (result.Outcome == MacroCommitOutcome.TargetGone)
+        {
+            return new DocumentSaveOutcome(EditorSaveOutcomes.Conflict,
+                Strings.Format("Editor.Save.TargetGone", Name));
+        }
+
         CommitGlobals();
+        _existing = result.Target;
+        if (_existing is { } target
+            && !string.Equals(_model.Name.Trim(), target.Name.Trim(), StringComparison.Ordinal))
+        {
+            // The project makes a new macro's name unique. The page has to show the name the
+            // project actually took, not the draft name it sent.
+            _model.Name = target.Name;
+        }
+
+        _originalName = _existing?.Name.Trim() ?? draft.Macro.Name.Trim();
         _model.IsDirty = false;
-        _existing = _workspace.Macros.FirstOrDefault(candidate => candidate.Name == draft.Macro.Name);
-        return _existing is not null;
+        return new DocumentSaveOutcome(
+            result.Outcome == MacroCommitOutcome.Unchanged
+                ? EditorSaveOutcomes.Unchanged
+                : EditorSaveOutcomes.Saved,
+            null);
     }
 
-    private void ReplaceSubmacro(string originalName, MacroItem updated)
+    /// <summary>
+    /// Puts a saved child draft into this macro's model. The child owns the edit until the macro
+    /// that owns it is saved; touching the project's own macro here would make the parent's later
+    /// save look unchanged and lose the edit.
+    /// </summary>
+    internal bool ApplyChildDraft(string originalName, MacroItem updated)
     {
         var index = _model.SubMacros.FindIndex(macro =>
             string.Equals(macro.Name, originalName, StringComparison.OrdinalIgnoreCase));
         if (index < 0)
         {
-            _model.SubMacros.Add(updated);
-        }
-        else
-        {
-            _model.SubMacros[index] = updated;
+            return false;
         }
 
-        if (_existing is not null)
-        {
-            var existingIndex = _existing.SubMacros.FindIndex(macro =>
-                string.Equals(macro.Name, originalName, StringComparison.OrdinalIgnoreCase));
-            if (existingIndex >= 0)
-            {
-                _existing.SubMacros[existingIndex] = updated;
-            }
-        }
-
+        _model.SubMacros[index] = updated;
         _model.IsDirty = true;
+        return true;
     }
 
 }

@@ -35,7 +35,7 @@ public partial class RecoveryTests
             Assert.False(only.IsEnabled);
             Assert.Equal("input.keyPress", Assert.Single(only.Steps).Type);
             Assert.Equal(@"C:\work\macros.wgmacro", found.PackagePath);
-            Assert.Null(found.Editor);
+            Assert.Single(found.Macros);
         }));
     }
 
@@ -66,62 +66,6 @@ public partial class RecoveryTests
             Assert.Equal(VariableScope.Global, only.Scope);
             Assert.Equal("hi", only.DefaultValue);
             Assert.Equal("what to say", only.Description);
-        });
-    }
-
-    [Fact]
-    public void The_project_and_the_open_editor_are_kept_side_by_side()
-    {
-        InOwnFile(_ =>
-        {
-            RecoveryStore.SaveProject([Named("login")], new ProjectTriggers(), [], null);
-            RecoveryStore.SaveEditor(Named("draft"), [], "login");
-
-            var both = RecoveryStore.Load();
-
-            Assert.NotNull(both);
-            Assert.Single(both!.Macros);
-            Assert.NotNull(both.Editor);
-            Assert.Equal("draft", both.Editor!.Macro.Name);
-            Assert.Equal("login", both.Editor.Replaces);
-
-            // The editor handing its macro over, or being let go, must leave the list alone.
-            RecoveryStore.ClearEditor();
-
-            var onlyList = RecoveryStore.Load();
-            Assert.NotNull(onlyList);
-            Assert.Single(onlyList!.Macros);
-            Assert.Null(onlyList.Editor);
-
-            // And the other way round: saving the list must not take the editor's draft with it.
-            RecoveryStore.SaveEditor(Named("draft"), [], string.Empty);
-            RecoveryStore.ClearProject();
-
-            var onlyEditor = RecoveryStore.Load();
-            Assert.NotNull(onlyEditor);
-            Assert.Empty(onlyEditor!.Macros);
-            Assert.Null(onlyEditor.PackagePath);
-            Assert.NotNull(onlyEditor.Editor);
-            Assert.Equal(string.Empty, onlyEditor.Editor!.Replaces);
-        });
-    }
-
-    [Fact]
-    public void An_unfinished_declaration_comes_back_from_the_snapshot()
-    {
-        InOwnFile(_ =>
-        {
-            var macro = Named("draft");
-            macro.Parameters.Add(new MacroParameter { Name = string.Empty });
-            macro.Results.Add(new MacroResult { Name = string.Empty });
-            RecoveryStore.SaveEditor(macro, [], string.Empty);
-
-            var found = RecoveryStore.Load();
-
-            Assert.NotNull(found?.Editor);
-            Assert.Single(found!.Editor!.Macro.Parameters);
-            Assert.Single(found.Editor.Macro.Results);
-            Assert.Equal(string.Empty, found.Editor.Macro.Parameters[0].Name);
         });
     }
 }

@@ -138,7 +138,7 @@ public sealed class TriggerHost : IDisposable
 
         _system.Changed += OnSystemChanged;
         _workspace.Changed += OnWorkspaceChanged;
-        _workspace.Macros.CollectionChanged += OnMacrosChanged;
+        _workspace.Replaced += OnWorkspaceReplaced;
         _workspace.Triggers.Changed += OnTriggersChanged;
 
         AttachHooks();
@@ -155,7 +155,7 @@ public sealed class TriggerHost : IDisposable
         _attached = false;
         _system.Changed -= OnSystemChanged;
         _workspace.Changed -= OnWorkspaceChanged;
-        _workspace.Macros.CollectionChanged -= OnMacrosChanged;
+        _workspace.Replaced -= OnWorkspaceReplaced;
         _workspace.Triggers.Changed -= OnTriggersChanged;
         _runtime.Triggers.StatusChanged -= OnTriggerStatusChanged;
         _runtime.Triggers.MenuRequested -= OnMenuRequested;
@@ -199,8 +199,7 @@ public sealed class TriggerHost : IDisposable
 
     private void OnWorkspaceChanged(object? sender, EventArgs e) => PublishPlan();
 
-    private void OnMacrosChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        => PublishPlan();
+    private void OnWorkspaceReplaced(object? sender, EventArgs e) => PublishPlan();
 
     private void OnTriggersChanged(object? sender, EventArgs e) => PublishPlan();
 

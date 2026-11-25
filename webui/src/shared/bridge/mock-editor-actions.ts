@@ -7,6 +7,13 @@ import type {
   EditorPublicMacro,
 } from './protocol.js';
 import raw from './data/editor-catalogue.json';
+import {
+  defaultConditionCompares,
+  defaultTriggerKinds,
+  defaultValueFunctions,
+  defaultVariableTypes,
+  systemValueChoices,
+} from './mock-editor-fixtures.js';
 
 /**
  * 编辑器 mock 的动作目录：类别、分组、次序与动作清单都是固定数据，放在
@@ -127,6 +134,11 @@ export function actionCatalogue(language: string): EditorCatalogue {
     actions,
     categories,
     publicMacros: DATA.publicMacros[english ? 'en' : 'zh'] ?? [],
+    valueFunctions: defaultValueFunctions(),
+    variableTypes: defaultVariableTypes(),
+    conditionCompares: defaultConditionCompares(),
+    triggerKinds: defaultTriggerKinds(),
+    systemValueChoices: systemValueChoices(),
   };
 }
 

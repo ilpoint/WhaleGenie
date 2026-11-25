@@ -6,6 +6,7 @@ export type CaptureKind = 'systemHotkey' | 'recordStopKey' | 'menu' | 'wheelRepe
 /** The settings fields the general page may write; everything else is read-only there. */
 export type EditableSetting =
   | 'loadLastProjectAtStart'
+  | 'autoSaveProject'
   | 'systemAtStart'
   | 'enabledFirst'
   | 'ignoreOwnInput'

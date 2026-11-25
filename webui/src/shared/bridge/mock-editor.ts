@@ -15,6 +15,7 @@ import { refreshActionForm } from './mock-editor-action-form.js';
 import { handleSessionRun } from './mock-editor-run-session.js';
 import { handleValueRun } from './mock-editor-run-value.js';
 import { handleActionRun } from './mock-editor-run-action.js';
+import { handleSaveRun } from './mock-editor-save.js';
 
 /** One project macro the mock editor may open; the mock passes the project list through. */
 export interface MockMacroEntry {
@@ -32,7 +33,12 @@ export interface MockMacroEntry {
 export class MockEditor {
   readonly documents = new Map<string, EditorSnapshot>();
 
-  activeKey: string | null = null;
+  readonly owners = new Map<string, string | null>();
+
+  /** The project name a document last saved under, so a rename replaces its macro. */
+  readonly savedNames = new Map<string, string>();
+
+  activeDocumentId: string | null = null;
 
   recording = false;
 
@@ -43,6 +49,8 @@ export class MockEditor {
   stepSequence = 0;
 
   triggerSequence = 0;
+
+  private documentSequence = 0;
 
   valueEditor: MockValueEditor | null = null;
 
@@ -64,12 +72,16 @@ export class MockEditor {
 
   readonly language: () => string;
 
+  readonly onSaved: (document: EditorSnapshot, previousName: string | null) => void;
+
   constructor(
     macros: readonly MockMacroEntry[] | (() => readonly MockMacroEntry[]) = () => [],
     language: string | (() => string) = 'zh-Hans',
+    onSaved: (document: EditorSnapshot, previousName: string | null) => void = () => {},
   ) {
     this.macros = typeof macros === 'function' ? macros : () => macros;
     this.language = typeof language === 'function' ? language : () => language;
+    this.onSaved = onSaved;
   }
 
   /** Every editor command the host serves; the main mock only forwards the method and params. */
@@ -80,6 +92,11 @@ export class MockEditor {
 
     if (method.startsWith('editor.value')) {
       return handleValueRun(this, method, params);
+    }
+
+    if (method.startsWith('editor.save') || method === 'editor.discardAll'
+        || method === 'editor.unsavedDocuments') {
+      return handleSaveRun(this, method, params);
     }
 
     // handler 的 switch 覆盖 editor.session* 之外的 step/steps/condition/trigger/variable/
@@ -112,6 +129,11 @@ export class MockEditor {
   nextTriggerId(): string {
     this.triggerSequence += 1;
     return 'trigger-' + String(this.triggerSequence);
+  }
+
+  nextDocumentId(): string {
+    this.documentSequence += 1;
+    return 'doc-' + String(this.documentSequence);
   }
 
   patchTrigger(

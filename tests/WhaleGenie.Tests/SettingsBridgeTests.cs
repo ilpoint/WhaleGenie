@@ -58,6 +58,20 @@ public class SettingsBridgeTests
     }
 
     [Fact]
+    public async Task The_automatic_save_switch_is_part_of_the_settings_patch()
+    {
+        using var files = new TempSettings();
+        var server = Server(new MainViewModel());
+        var channel = Channel(server);
+
+        var answer = await Call(server, channel, "settings.update",
+            new { patch = new { autoSaveProject = false } });
+
+        Assert.False(answer.GetProperty("autoSaveProject").GetBoolean());
+        Assert.False(AppSettings.Shared.LoadAutoSaveProject());
+    }
+
+    [Fact]
     public async Task An_empty_settings_patch_is_refused_and_changes_nothing()
     {
         using var files = new TempSettings();

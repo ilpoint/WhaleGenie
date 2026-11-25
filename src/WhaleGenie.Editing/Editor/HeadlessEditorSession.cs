@@ -25,7 +25,8 @@ internal sealed partial class HeadlessEditorSession
     private readonly ProjectWorkspace _workspace;
     private readonly MacroEditorViewModel _model;
     private readonly HeadlessEditorSession? _owner;
-    private readonly string _submacroOriginal = string.Empty;
+    private string _submacroOriginal = string.Empty;
+    private string _originalName = string.Empty;
     private readonly Dictionary<StepParameter, ConditionDraft> _conditionDrafts = [];
     private List<GlobalDraftEntry>? _globalDraft;
     private readonly IDeviceLayer? _devices;
@@ -55,6 +56,9 @@ internal sealed partial class HeadlessEditorSession
             Persisted = workspace.Persisted,
             Settings = _settings,
         };
+        _originalName = existing is { } opened
+            ? opened.Name.Trim()
+            : submacroOriginal.Trim();
         _model.LoadProjectTriggerSettings(workspace.Triggers, [.. workspace.Macros]);
         if (existing is not null)
         {
@@ -76,6 +80,11 @@ internal sealed partial class HeadlessEditorSession
             RefreshCallables();
         };
         RefreshCallables();
+
+        // Reading the document into the model must not count as an edit. Some of the refresh
+        // paths above write observable properties the dirty check hears; opening a macro and
+        // closing it again is the one thing a person should never be asked to save.
+        _model.IsDirty = false;
     }
 
     /// <summary>
@@ -131,7 +140,38 @@ internal sealed partial class HeadlessEditorSession
 
     public string Group => _model.Group;
 
+    /// <summary>The project macro this document was opened from or last saved to, if any.</summary>
+    internal MacroItem? Target => _existing;
+
+    /// <summary>
+    /// The name the document was opened under or last bound to. A document whose project target
+    /// was replaced by another instance is still found by this name, so opening the same macro
+    /// again activates the draft instead of creating a second tab.
+    /// </summary>
+    internal string OriginalName => _originalName;
+
+    /// <summary>Whether this document stands for the given project macro, by instance or by name.</summary>
+    internal bool Matches(MacroItem macro)
+        => ReferenceEquals(_existing, macro)
+           || (_existing is not null
+               && string.Equals(_existing.Name.Trim(), macro.Name.Trim(),
+                   StringComparison.OrdinalIgnoreCase))
+           || (_existing is null
+               && _originalName.Length > 0
+               && string.Equals(_originalName, macro.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+
     public bool IsDirty => _model.IsDirty;
+
+    /// <summary>
+    /// Ends the transient work a page owns without saving or closing the document: an open action
+    /// form, an open value field, and a recorder that is still writing into the draft.
+    /// </summary>
+    internal void Deactivate()
+    {
+        CloseValueEditor();
+        CancelActionDraft();
+        _model.StopRecording();
+    }
 
     public bool CanSave => _model.CanSave;
 

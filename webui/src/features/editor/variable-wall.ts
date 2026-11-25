@@ -128,8 +128,15 @@ export class WgVariableWall extends LitElement {
   protected readonly editorController = new StoreController<void>(this, editor);
 
   render() {
-    const snapshot = editor.get().snapshot;
-    const choices = wallVariables(snapshot?.valueChoices ?? [], this.filter, this.search);
+    const state = editor.get();
+    const snapshot = state.snapshot;
+    const merged = new Map<string, EditorValueChoice>();
+    for (const choice of [...(state.catalogue?.systemValueChoices ?? []),
+      ...(snapshot?.valueChoices ?? [])]) {
+      merged.set(choice.name, choice);
+    }
+
+    const choices = wallVariables([...merged.values()], this.filter, this.search);
     const looking = choices.find((choice) => choice.name === this.looking);
     const filters: { value: VariableGroupFilter; label: string; hint: string }[] = [
       { value: 'All', label: t('VarWall.All'), hint: t('VarWall.AllHint') },

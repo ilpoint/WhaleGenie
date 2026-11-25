@@ -54,6 +54,7 @@ public partial class SettingsViewModel : ViewModelBase
         PackagePath = packagePath;
         SelectedLanguage = Languages.First(option => option.Language == Strings.Current.Language);
         LoadLastProjectAtStart = _settings.LoadLastProjectAtStart();
+        AutoSaveProject = _settings.LoadAutoSaveProject();
         SystemAtStart = _settings.LoadSystemAtStart();
         EnabledFirst = _settings.LoadEnabledFirst();
         PreloadOcr = _settings.LoadPreloadOcr();

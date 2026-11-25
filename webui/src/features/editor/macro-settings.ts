@@ -6,9 +6,11 @@ import { t } from '../../shared/strings/strings.js';
 import type {
   EditorCharacterPad,
   EditorTrigger,
+  ProjectState,
   WindowEntryState,
 } from '../../shared/bridge/protocol.js';
 import { keyboardChord } from '../../shared/input/capture.js';
+import { project } from '../../shared/project/store.js';
 import { editor } from './editor-store.js';
 import { renderTriggerFields } from './triggers/trigger-fields.js';
 import { renderSpecific } from './specific-render.js';
@@ -42,6 +44,9 @@ export class WgMacroSettings extends LitElement {
   @state()
   private windowListTrigger = '';
 
+  @state()
+  private projectState: ProjectState | null = null;
+
   private characterTrigger = '';
   private endCaptureTrigger = '';
   private interfaceCaptureTrigger = '';
@@ -49,6 +54,10 @@ export class WgMacroSettings extends LitElement {
   static styles = [editorBase, macroSettingsCss];
 
   protected readonly editorController = new StoreController<void>(this, editor);
+
+  protected readonly projectController = new StoreController(this, project, (value) => {
+    this.projectState = value;
+  });
 
   disconnectedCallback(): void {
     window.removeEventListener('keydown', this.onEndCapture, true);
@@ -86,6 +95,18 @@ export class WgMacroSettings extends LitElement {
         ${state.error
           ? html`<span class="error" title=${state.error}>${state.error}</span>`
           : html`<span style="flex:1"></span>`}
+        <fluent-button appearance="subtle"
+          ?disabled=${snapshot.isSubMacro || !snapshot.canSave}
+          title=${t('Editor.PublishPublicMacro')}
+          @click=${() => void editor.session.publishToLibrary()}>
+          ${t('Editor.PublishPublicMacro')}
+        </fluent-button>
+        <fluent-button class="save-all" appearance="subtle"
+          title=${t('Editor.Save')}
+          aria-label=${t('Editor.SaveAll')}
+          @click=${() => void editor.session.saveAll()}>
+          ${icon('save-all')}
+        </fluent-button>
         <fluent-button appearance="accent"
           ?disabled=${!snapshot.dirty || !snapshot.canSave}
           @click=${() => void editor.session.save()}>${t('Editor.Save')}</fluent-button>
@@ -93,12 +114,42 @@ export class WgMacroSettings extends LitElement {
           ?disabled=${snapshot.isSubMacro || snapshot.steps.length === 0 || !snapshot.canSave}
           @click=${() => void editor.session.run()}>${t('Editor.RunDebug')}</fluent-button>
       </div>
+      ${this.renderProjectStatus()}
       ${this.characterPad
         ? html`<wg-character-pad .pad=${this.characterPad} .text=${this.hotstringText()}
             @wg-character-submit=${(event: CustomEvent<{ text: string }>) => void this.submitCharacter(event)}
             @wg-character-close=${() => { this.characterPad = null; }}></wg-character-pad>`
         : nothing}
     `;
+  }
+
+  private renderProjectStatus(): TemplateResult | typeof nothing {
+    const state = this.projectState;
+    if (!state) {
+      return nothing;
+    }
+
+    if (state.saveError) {
+      return html`
+        <div class="project-status" data-project-status="error" title=${state.saveError}>
+          ${t('Editor.Project.WriteFailed')} · ${state.saveError}
+        </div>
+      `;
+    }
+
+    if (state.saving) {
+      return html`
+        <div class="project-status" data-project-status="saving">${t('Editor.Project.Writing')}</div>
+      `;
+    }
+
+    if (!state.autoSave && state.dirty) {
+      return html`
+        <div class="project-status" data-project-status="dirty">${t('Editor.Project.NotWritten')}</div>
+      `;
+    }
+
+    return nothing;
   }
 
   private renderGeneral(): TemplateResult {
@@ -201,7 +252,7 @@ export class WgMacroSettings extends LitElement {
             @change=${(event: Event) => {
               this.newTriggerKind = (event.target as HTMLSelectElement).value;
             }}>
-            ${(editor.get().snapshot?.triggerKinds ?? []).map((kind) => html`
+            ${(editor.get().catalogue?.triggerKinds ?? []).map((kind) => html`
               <option value=${kind.value}>${kind.label}</option>
             `)}
           </select>

@@ -68,7 +68,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 
 三个窗口套件各自一份无头会话：会话属于运行它的程序集，借用别人的会在错误的线程上拆除，所以
 `Ui`、`TestApp` 这些夹具以链接方式编进每个套件（一份源码，每个套件一份副本），套件之间因此可以
-并行跑；界面相关的三个套件合计 1,611 条用例，串行 6 分半，分片后全量 2 分钟。
+并行跑；各套件共用一份夹具，不互相借用会话。
 
 两个支撑库不含测试：`WhaleGenie.TestSupport` 给引擎侧两套件提供替身设备层与样本文件，
 `WhaleGenie.App.TestSupport` 给应用侧两套件提供建步骤的 `Fields` 与假桌面 `ChecksDevices`。产品工程
@@ -77,7 +77,7 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 | 工程 | 主要职责 | 不得承担 |
 | --- | --- | --- |
 | `WhaleGenie` | 窗口、原生选择器/遮罩适配、应用生命周期、窗口化组合根与 WebView 适配 | 在组合根之外直接选择第三方设备实现；把界面类型传入 Core/Domain/Mcp/App |
-| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务、系统开关（`SystemState`）、MCP 宿主与设备控制/运行工具、全部桥处理器与推送队列（应用信息、字符串、MCP、库、窗口、主题、壳门、对话框、项目、编辑器、设置、运行）、运行与设置模型、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
+| `WhaleGenie.App` | 触发器、运行编排、录制翻译、项目服务（含 `ProjectSaver`、`ProjectStartup`、包的默认项目与唯一写入口）、系统开关（`SystemState`）与 `SystemBridge`、MCP 宿主与设备控制/运行工具、全部桥处理器与推送队列（应用信息、字符串、MCP、库、窗口、主题、壳门、对话框、项目、系统、编辑器、设置、运行）、运行与设置模型、窗口化与无窗口共用的组合根 | Avalonia 与任何窗口类型；把应用状态放进界面线程 |
 | `WhaleGenie.Contracts` | 桥的请求/应答/事件记录、方法与端口；只依赖 BCL，页面类型由它生成 | Avalonia、Domain/Core 类型、设备或文件读写 |
 | `WhaleGenie.Editing` | 编辑模型与无头会话（已迁入；键位表、字符面板、`ViewModelBase`、取值选择器、形状树、变量墙、参数/条件/动作行模型、窗口预览、动作表单/快照、动作页/返回/时长/热字串选项、变量中心/局部变量草稿、延迟刻度、宏编辑器模型、`HeadlessActionSession`、`HeadlessValueSession`、`HeadlessEditorSession` 与工作区已迁入）；`net10.0-windows10.0.19041`，引用 Contracts、Domain、Localization 与 Core | Avalonia、窗口、WebView、项目文档读写 |
 | `WhaleGenie.Domain` | 宏文档模型、工程文档、设计期检查、包读写、图片文件与尺寸、热字串识别与录制步骤构建 | Avalonia、窗口、ViewModel、MCP、设备控制 |
@@ -90,6 +90,12 @@ OpenCV、Playwright、FlaUI 等原生依赖，这条边界由工程引用直接�
 `App.axaml.cs`、`Program.cs` 与 `Runtime/SharedDevices.cs` 是引用具体 Windows 实现的限定例外：
 分别负责应用生命周期、脚本宿主分派和设备组合。其他窗口、ViewModel 与应用代码只依赖 Core 契约，
 `LayeringTests` 按这一白名单检查窗口与应用两层；Core 对适配器工程的引用由编译关系直接排除。
+
+`ProjectSaver` 是窗口化运行里包文件的唯一写者：页面、窗口化的 MCP、退出询问和自动保存都经它
+串行写盘；它按 `ProjectSavePlan` 的修订号清脏，写盘期间的新改动保持未保存，打开/重载通过
+`ReplaceAsync` 等待在途写。无窗口 MCP 没有这个服务，仍走 `McpLiveProject` 的显式保存。`ProjectStartup` 决定启动时打开上次项目、
+默认项目还是空列表；`SystemBridge` 把 `SystemState` 与 `AppSettings` 里的系统快捷键作为
+`system.state`/`system.changed` 交给侧边栏，开关本体仍只有 `SystemState` 一个写者。
 
 `WhaleGenie.Localization` 只放文案表；`LocalSettings.cs`（读写本机设置）与主题选择的值类型随
 应用层走，因为运行、触发器和无窗口服务都要读它们。`LanguageRefresh.cs`（驱动 Avalonia 绑定刷新）

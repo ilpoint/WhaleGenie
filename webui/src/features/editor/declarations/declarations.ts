@@ -9,7 +9,7 @@ export function renderDeclarations(): TemplateResult {
       return html``;
     }
 
-    const types = snapshot.variableTypes;
+    const types = editor.get().catalogue?.variableTypes ?? [];
     return html`
       <h3>${t('MacroInterface.Parameters')}</h3>
       <div class="declarations">
@@ -103,7 +103,7 @@ export function renderDeclarations(): TemplateResult {
 
 function renderRecordFields(kind: 'parameter' | 'result', index: number,
     fields: { name: string; type: string }[]): TemplateResult {
-    const types = editor.get().snapshot?.variableTypes ?? [];
+    const types = editor.get().catalogue?.variableTypes ?? [];
     return html`
       <div class="record-fields">
         ${fields.map((field, fieldIndex) => html`

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Storage;
 
 namespace WhaleGenie.Mcp;
@@ -13,7 +14,9 @@ namespace WhaleGenie.Mcp;
 /// through the interface thread the window owns; a run with no window passes a dispatcher that
 /// answers on the calling thread.
 /// </summary>
-public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui) : IProjectGateway
+public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui,
+    IProjectSaver? autoSave = null, WhaleGenie.Editor.IEditorDocuments? editor = null)
+    : IProjectGateway
 {
     public async Task<McpProjectStatus> StatusAsync()
         => await ui.InvokeAsync(() =>
@@ -44,6 +47,15 @@ public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui) :
         IReadOnlyList<VariableDefinition> globals)
         => await ui.InvokeAsync(() =>
         {
+            if (editor is { HasOpenDocuments: true })
+            {
+                throw new McpFailure(McpErrors.RevisionConflict,
+                    "The editor has open macro documents, so the project cannot be replaced.",
+                    "Close the macro tabs in WhaleGenie, then open the draft again and apply it. " +
+                    "Nothing was written.",
+                    retryable: true);
+            }
+
             if (project.Revision != basis.Revision)
             {
                 throw new McpFailure(McpErrors.RevisionConflict,
@@ -64,6 +76,25 @@ public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui) :
     /// </summary>
     public async Task<string> SaveAsync()
     {
+        // The window's own Save is behind the same writer: two writers of one package can replace
+        // each other's temporary file, and a tool that saved beside a quiet write would make that
+        // possible. A run with no window has no auto-save service and keeps its own path.
+        if (autoSave is not null)
+        {
+            var saved = await autoSave.SaveAsync();
+            if (!saved.Ok)
+            {
+                throw new McpFailure(McpErrors.Internal,
+                    "The project could not be saved: " + (saved.Error?.Message ?? "unknown error"),
+                    "The file may be open in another program, or the folder may be read-only. " +
+                    "Nothing in the project was changed; try saving again.",
+                    retryable: true);
+            }
+
+            McpAudit.Note("project.save", project.CurrentPath ?? string.Empty);
+            return project.CurrentPath ?? string.Empty;
+        }
+
         // The copy is made on the interface thread; the zip is written on a worker so a large
         // project does not freeze the window; the clean flag goes back on the interface thread.
         var plan = await ui.InvokeAsync(() => project.PrepareSave()

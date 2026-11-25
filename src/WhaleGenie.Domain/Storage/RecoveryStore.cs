@@ -12,35 +12,6 @@ using WhaleGenie.Models;
 
 namespace WhaleGenie.Storage;
 
-/// <summary>
-/// The macro the editor was holding when the program stopped, and which macro in the list it
-/// stood for. The editor is a window of its own and its work is not in the list yet, so it has to
-/// be kept apart from the project the snapshot also carries.
-/// </summary>
-public sealed class RecoveryEditor
-{
-    public required MacroItem Macro { get; init; }
-
-    /// <summary>The trigger entries the editor was holding for that macro.</summary>
-    public IReadOnlyList<TriggerEntry> Entries { get; init; } = [];
-
-    /// <summary>Name of the macro the draft was editing, or empty when it was a new macro.</summary>
-    public required string Replaces { get; init; }
-
-    /// <summary>
-    /// True while the draft holds something a person would miss. A macro that is still called what
-    /// a new one is called, with no step in it and nothing written about it, is the state the editor
-    /// opened in: offering it back asks a question whose answer is the same blank form, on every
-    /// run, for as long as the file is left behind.
-    /// </summary>
-    public bool IsWorthKeeping => Macro.Steps.Count > 0
-        || Macro.Description.Trim().Length > 0
-        || Macro.ToggleKey.Trim().Length > 0
-        || Macro.InputRate is not null
-        || Entries.Count > 0
-        || !MacroNames.IsDefault(Macro.Name);
-}
-
 /// <summary>Everything the program was holding that had not been written to a package.</summary>
 public sealed class RecoveryContents
 {
@@ -53,30 +24,22 @@ public sealed class RecoveryContents
     /// <summary>Package the macro list came from, or null when it had never been saved.</summary>
     public string? PackagePath { get; init; }
 
-    /// <summary>The macro the editor was holding, or null when no editor was open.</summary>
-    public RecoveryEditor? Editor { get; init; }
-
     /// <summary>When this snapshot was last written.</summary>
     public DateTime? SavedUtc { get; init; }
 
     /// <summary>True when there is nothing in it worth offering back.</summary>
-    public bool IsEmpty => Macros.Count == 0 && PackagePath is null
-        && (Editor is null || !Editor.IsWorthKeeping);
+    public bool IsEmpty => Macros.Count == 0 && PackagePath is null;
 }
 
 /// <summary>
-/// The safety net under the two places work is written by hand: the macro list, which only
-/// reaches disk when the project is saved, and the macro editor, whose macro has not joined the
-/// list yet. Neither is on disk when the program is stopped without notice — a crash, or the
-/// machine losing power — so the work is written out as it changes, and the next run can offer
-/// it back.
+/// The safety net under the place work is written by hand: the macro list, which only reaches disk
+/// when the project is saved. It is not on disk when the program is stopped without notice — a
+/// crash, or the machine losing power — so the work is written out as it changes, and the next
+/// run can offer it back.
 /// </summary>
 /// <remarks>
-/// One file holds both the project and the editor draft, written by whoever has something to
-/// keep. Each writer changes only its own part and leaves the other where it was, so the two
-/// never overwrite each other's work. Writes go to a temporary file and are moved into place,
-/// the way a package is written, so a stop in the middle of a write cannot leave a half file
-/// where a whole one was.
+/// Writes go to a temporary file and are moved into place, the way a package is written, so a
+/// stop in the middle of a write cannot leave a half file where a whole one was.
 /// </remarks>
 public static class RecoveryStore
 {
@@ -90,11 +53,10 @@ public static class RecoveryStore
     /// same text as this is not written again.
     /// </summary>
     /// <remarks>
-    /// It is the whole of the file rather than one part of it, because the parts are written by two
-    /// windows and a part written beside another is only the same file if what stood next to it
-    /// stood there too. It is emptied whenever the file stops being what it says — it is removed,
-    /// or a file that cannot be read is taken away — so that work written again after the snapshot
-    /// went is written out rather than taken for already kept.
+    /// It is the whole of the project part rather than a fragment, so work written again after the
+    /// snapshot went is written out rather than taken for already kept. The file is emptied
+    /// whenever the snapshot stops being what it says — it is removed, or a file that cannot be
+    /// read is taken away.
     /// </remarks>
     private static string _written = string.Empty;
 
@@ -174,33 +136,6 @@ public static class RecoveryStore
 
     /// <summary>Forgets the macro list, because it is saved or the user let it go.</summary>
     public static void ClearProject() => Update("project", null);
-
-    /// <summary>Records the macro the editor is holding, and what it stands for.</summary>
-    public static void SaveEditor(MacroItem macro, IReadOnlyList<TriggerEntry> entries, string replaces)
-    {
-        // 什么都没写的草稿不写：它下次打开就是同一张空表单，留着只会让下次启动问一句
-        // "发现上次未保存的内容"，答了也没有东西回来。
-        if (!new RecoveryEditor { Macro = macro, Entries = entries, Replaces = replaces }.IsWorthKeeping)
-        {
-            Update("editor", null);
-            return;
-        }
-
-        var editor = new JsonObject
-        {
-            ["macro"] = macro.ToJson(),
-            ["triggers"] = new JsonArray([.. entries.Select(entry => entry.ToJson())]),
-        };
-        if (!string.IsNullOrEmpty(replaces))
-        {
-            editor["replaces"] = replaces;
-        }
-
-        Update("editor", editor);
-    }
-
-    /// <summary>Forgets the editor draft, because the editor closed or handed its macro over.</summary>
-    public static void ClearEditor() => Update("editor", null);
 
     /// <summary>Removes the whole snapshot.</summary>
     public static void Clear()
@@ -295,26 +230,12 @@ public static class RecoveryStore
 
         var triggers = ResumeTriggers(project);
 
-        RecoveryEditor? editor = null;
-        if (root["editor"] is JsonObject editorEntry && editorEntry["macro"] is JsonObject macroNode)
-        {
-            editor = new RecoveryEditor
-            {
-                Macro = MacroItem.FromJson(macroNode),
-                Entries = [.. (editorEntry["triggers"] as JsonArray ?? [])
-                    .OfType<JsonObject>()
-                    .Select(TriggerEntry.FromJson)],
-                Replaces = editorEntry["replaces"]?.GetValue<string>() ?? string.Empty,
-            };
-        }
-
         var contents = new RecoveryContents
         {
             Macros = macros,
             Triggers = triggers,
             Globals = globals,
             PackagePath = project?["package"]?.GetValue<string>(),
-            Editor = editor,
             SavedUtc = DateTime.TryParse(root["savedUtc"]?.GetValue<string>(),
                 CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var saved)
                 ? saved
@@ -335,9 +256,9 @@ public static class RecoveryStore
             : new ProjectTriggers();
 
     /// <summary>
-    /// Puts one part of the snapshot in place, or takes it out when <paramref name="node"/> is
-    /// nothing, and removes the file once neither part is left. Everything under one lock, so the
-    /// project writer and the editor writer never leave each other a half-read file.
+    /// Puts the project part of the snapshot in place, or takes it out when <paramref name="node"/>
+    /// is nothing, and removes the file once nothing is left. Everything under one lock, so a
+    /// check cannot read a half-written file.
     ///
     /// What the whole file would come to is read before anything is written, and the file is left
     /// alone when it already says that. The file is only there to be found after a stop without
@@ -390,20 +311,17 @@ public static class RecoveryStore
     }
 
     /// <summary>
-    /// What the snapshot is about, as text, or nothing when it is about nothing: the two parts the
-    /// file carries, without the moment it was taken and the version that took it.
+    /// What the snapshot is about, as text, or nothing when it is about nothing: the project part
+    /// without the moment it was taken and the version that took it.
     /// </summary>
     private static string Content(JsonObject root)
     {
         var parts = new JsonObject();
-        foreach (var name in new[] { "project", "editor" })
+        if (root["project"] is { } part)
         {
-            if (root[name] is { } part)
-            {
-                // A copy, because a node stands in one place at a time and this one is also the
-                // file's own.
-                parts[name] = part.DeepClone();
-            }
+            // A copy, because a node stands in one place at a time and this one is also the
+            // file's own.
+            parts["project"] = part.DeepClone();
         }
 
         return parts.Count == 0 ? string.Empty : parts.ToJsonString();

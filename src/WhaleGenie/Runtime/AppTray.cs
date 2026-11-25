@@ -219,8 +219,10 @@ public sealed class AppTray : IDisposable, WhaleGenie.Contracts.IAppExit
     /// </summary>
     private void OnClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (_exiting)
+        if (_exiting || e.Cancel)
         {
+            // A question from the project session already said the window is staying; hiding it
+            // under the dialog would take the question away with the window.
             return;
         }
 

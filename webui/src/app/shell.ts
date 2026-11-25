@@ -5,7 +5,7 @@ import './titlebar.js';
 import './nav.js';
 import '../features/dialogs/confirm.js';
 import '../features/transfer/transfer-dialog.js';
-import '../features/home/home-page.js';
+import '../features/editor/editor-unsaved.js';
 import '../features/macros/macros-page.js';
 import '../features/editor/editor-page.js';
 import '../features/library/library-page.js';
@@ -13,15 +13,16 @@ import '../features/settings/settings-page.js';
 import '../features/run/run-page.js';
 import '../features/about/about-page.js';
 import { project } from '../shared/project/store.js';
+import { systemSwitch } from '../shared/system/system.js';
 import { strings, t } from '../shared/strings/strings.js';
 import { StoreController } from '../shared/lit/store-controller.js';
 import { WindowEventController } from '../shared/lit/window-event-controller.js';
-import type { ProjectState } from '../shared/bridge/protocol.js';
+import type { ProjectState, SystemSwitchState } from '../shared/bridge/protocol.js';
 
 /**
  * 应用壳：网页标题栏 + 左侧导航 + 内容区 + 底部状态条。窗口按钮、置顶与拖动都在标题栏里；
- * 这里管当前路由与项目状态的两行只读摘录。仍由原生窗口承担的区域显示占位页，按钮经桥把对应
- * 窗口请出来。
+ * 这里管当前路由、项目保存状态与系统开关的两行只读摘录。系统开关本身在左侧栏，这里只把
+ * 完整文字和开关键再写一遍，方便被侧栏省略的长组合键仍能读到。
  */
 @customElement('wg-shell')
 export class WgShell extends LitElement {
@@ -31,10 +32,17 @@ export class WgShell extends LitElement {
   @state()
   private document: ProjectState | null = null;
 
+  @state()
+  private system: SystemSwitchState | null = null;
+
   protected readonly stringsController = new StoreController(this, strings);
 
   protected readonly projectController = new StoreController(this, project, (value) => {
     this.document = value;
+  });
+
+  protected readonly systemController = new StoreController(this, systemSwitch, (value) => {
+    this.system = value;
   });
 
   protected readonly popstateController = new WindowEventController(this, 'popstate', () => {
@@ -91,7 +99,11 @@ export class WgShell extends LitElement {
   `;
 
   private onNavigate(event: CustomEvent<{ route: Route }>): void {
-    go(event.detail.route);
+    void this.navigate(event.detail.route);
+  }
+
+  private async navigate(route: Route): Promise<void> {
+    await go(route);
     this.route = currentRoute();
   }
 
@@ -102,12 +114,12 @@ export class WgShell extends LitElement {
       <div class="content ${this.route === 'editor' ? 'editor' : ''}">${this.renderRoute()}</div>
       <footer class="status" role="status">
         <span data-status="project">${this.projectLabel()}</span>
-        <span data-status="revision">${this.revisionLabel()}</span>
-        <span data-status="dirty">${this.dirtyLabel()}</span>
+        <span data-status="dirty" title=${this.saveError()}>${this.saveLabel()}</span>
         <span data-status="system">${this.systemLabel()}</span>
       </footer>
       <wg-confirm></wg-confirm>
       <wg-transfer></wg-transfer>
+      <wg-editor-unsaved></wg-editor-unsaved>
     `;
   }
 
@@ -115,22 +127,33 @@ export class WgShell extends LitElement {
     return this.document?.name || t('Shell.UntitledProject');
   }
 
-  private revisionLabel(): string {
-    return 'R' + (this.document?.revision ?? 0);
+  private saveError(): string {
+    return this.document?.saveError ?? '';
   }
 
-  private dirtyLabel(): string {
+  private saveLabel(): string {
+    if (this.document?.saving) {
+      return t('Shell.Saving');
+    }
+
+    if (this.document?.saveError) {
+      return t('Shell.SaveFailed');
+    }
+
     return t(this.document?.dirty ? 'Shell.Field.Dirty' : 'Shell.Field.Clean');
   }
 
   private systemLabel(): string {
-    return t(this.document?.systemEnabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled');
+    const enabled = this.system?.enabled ?? false;
+    const state = t(enabled ? 'Main.SystemEnabled' : 'Main.SystemDisabled');
+    const key = this.system?.hotkeyDisplay ?? '';
+    return t('Shell.SystemStatus')
+      .replace('{0}', state)
+      .replace('{1}', key.length > 0 ? key : t('Common.None'));
   }
 
   private renderRoute() {
     switch (this.route) {
-      case 'home':
-        return html`<wg-home></wg-home>`;
       case 'macros':
         return html`<wg-macros></wg-macros>`;
       case 'editor':

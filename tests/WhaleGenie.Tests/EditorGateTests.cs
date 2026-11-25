@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Editing;
 using WhaleGenie.Models;
@@ -30,7 +31,7 @@ public class EditorGateTests
         session.Patch(description: "after");
         session.AddStep("control.delay");
         Assert.True(session.IsDirty);
-        Assert.True(session.Save());
+        Assert.True(session.Save().Succeeded);
 
         var saved = Assert.Single(workspace.Macros);
         Assert.Equal("gate", saved.Name);
@@ -457,14 +458,14 @@ public class EditorGateTests
     {
         var workspace = new ProjectWorkspace();
         workspace.AddMacro(new MacroItem { Name = "closable" });
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
         var session = documents.Open("closable");
 
         session.Patch(description: "changed");
         Assert.Throws<InvalidOperationException>(() => documents.CloseActive());
         Assert.Single(documents.Tabs);
 
-        Assert.True(session.Save());
+        Assert.True(session.Save().Succeeded);
         documents.CloseActive();
         Assert.Empty(documents.Tabs);
     }
@@ -479,18 +480,18 @@ public class EditorGateTests
         session.Patch(name: string.Empty);
         Assert.False(session.CanSave);
         Assert.NotEmpty(session.SaveProblem);
-        Assert.Throws<InvalidOperationException>(() => session.Save());
+        Assert.Equal(EditorSaveOutcomes.Blocked, session.Save().Outcome);
 
         session.Patch(name: "still-valid");
         Assert.True(session.CanSave);
-        Assert.True(session.Save());
+        Assert.True(session.Save().Succeeded);
     }
 
     [Fact]
     public void A_blank_document_can_be_added_without_a_project_macro()
     {
         var workspace = new ProjectWorkspace();
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
 
         var first = documents.New();
         Assert.Same(first, documents.Active);
@@ -507,17 +508,19 @@ public class EditorGateTests
         var workspace = new ProjectWorkspace();
         workspace.AddMacro(new MacroItem { Name = "one" });
         workspace.AddMacro(new MacroItem { Name = "two" });
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
 
         documents.Open("one").Patch(description: "edited one");
         documents.Open("two").Patch(description: "edited two");
         Assert.Equal(2, documents.Tabs.Count);
 
-        var one = documents.Activate("one");
+        var oneId = documents.Tabs.Single(tab => tab.Name == "one").DocumentId;
+        var twoId = documents.Tabs.Single(tab => tab.Name == "two").DocumentId;
+        var one = documents.Activate(oneId);
         Assert.Equal("edited one", one.Description);
         Assert.True(one.IsDirty);
 
-        var two = documents.Activate("two");
+        var two = documents.Activate(twoId);
         Assert.Equal("edited two", two.Description);
         Assert.True(two.IsDirty);
     }
@@ -635,7 +638,7 @@ public class EditorGateTests
         session.PatchGlobal("shared", "persist", "true");
         session.AddVariable();
         session.PatchVariable("", "name", "local");
-        Assert.True(session.Save());
+        Assert.True(session.Save().Succeeded);
 
         var choices = session.Snapshot().ValueChoices;
         var shared = choices.Single(choice => choice.Name == "shared");
@@ -645,7 +648,8 @@ public class EditorGateTests
 
         var local = choices.Single(choice => choice.Name == "local");
         Assert.Equal("Local", local.Group);
-        Assert.Contains(choices, choice => choice.Group == "System");
+        Assert.Contains(HeadlessEditorSession.SystemValueChoices,
+            choice => choice.Group == "System");
     }
 
     [Fact]
@@ -657,7 +661,7 @@ public class EditorGateTests
         workspace.AddMacro(parent);
         workspace.AddMacro(new MacroItem { Name = "two" });
 
-        var documents = new HeadlessEditorWorkspace(workspace);
+        var documents = new EditorDocumentSet(workspace);
         var first = documents.Open("one");
         documents.Open("two");
         first.Patch(description: "edited");
@@ -666,7 +670,8 @@ public class EditorGateTests
         Assert.True(tabs.Single(tab => tab.Name == "one").Dirty);
         Assert.False(tabs.Single(tab => tab.Name == "two").Dirty);
 
-        var sub = documents.OpenSubmacro("one", "sub");
+        var sub = documents.OpenSubmacro(
+            documents.Tabs.Single(tab => tab.Name == "one").DocumentId, "sub");
         Assert.True(documents.Tabs.Single(tab => tab.Name == "sub").IsSubMacro);
         Assert.Same(sub, documents.Active);
     }

@@ -1,4 +1,12 @@
-import type { EditorSnapshot, EditorTrigger } from './protocol.js';
+import type {
+  EditorConditionCompareSnapshot,
+  EditorSnapshot,
+  EditorTrigger,
+  EditorTriggerKindSnapshot,
+  EditorValueChoiceSnapshot,
+  EditorValueFunctionSnapshot,
+  EditorVariableTypeSnapshot,
+} from './protocol.js';
 import { presentDocument } from './mock-editor-steps.js';
 import raw from './data/editor-fixtures.json';
 
@@ -8,17 +16,16 @@ import raw from './data/editor-fixtures.json';
  */
 
 type TriggerDefaults = Omit<EditorTrigger, 'id' | 'kind' | 'kindLabel' | 'hotstringEndKeys'>;
-type DocumentBase = Omit<EditorSnapshot, 'name' | 'valueChoices' | 'valueFunctions'
-  | 'conditionCompares' | 'variableTypes' | 'triggerKinds'>;
+type DocumentBase = Omit<EditorSnapshot, 'name' | 'documentId'>;
 
 interface EditorFixtures {
   triggerKinds: Record<string, string>;
   triggerDefaults: TriggerDefaults;
   hotstringEndKeys: EditorTrigger['hotstringEndKeys'];
-  valueChoices: EditorSnapshot['valueChoices'];
-  valueFunctions: EditorSnapshot['valueFunctions'];
-  conditionCompares: EditorSnapshot['conditionCompares'];
-  variableTypes: EditorSnapshot['variableTypes'];
+  valueChoices: EditorValueChoiceSnapshot[];
+  valueFunctions: EditorValueFunctionSnapshot[];
+  conditionCompares: EditorConditionCompareSnapshot[];
+  variableTypes: EditorVariableTypeSnapshot[];
   document: DocumentBase;
 }
 
@@ -53,23 +60,27 @@ export function changeTrigger(
   };
 }
 
-export function defaultValueChoices(): EditorSnapshot['valueChoices'] {
+export function defaultValueChoices(): EditorValueChoiceSnapshot[] {
   return structuredClone(DATA.valueChoices);
 }
 
-export function defaultValueFunctions(): EditorSnapshot['valueFunctions'] {
+export function systemValueChoices(): EditorValueChoiceSnapshot[] {
+  return structuredClone(DATA.valueChoices);
+}
+
+export function defaultValueFunctions(): EditorValueFunctionSnapshot[] {
   return structuredClone(DATA.valueFunctions);
 }
 
-export function defaultConditionCompares(): EditorSnapshot['conditionCompares'] {
+export function defaultConditionCompares(): EditorConditionCompareSnapshot[] {
   return structuredClone(DATA.conditionCompares);
 }
 
-export function defaultVariableTypes(): EditorSnapshot['variableTypes'] {
+export function defaultVariableTypes(): EditorVariableTypeSnapshot[] {
   return structuredClone(DATA.variableTypes);
 }
 
-export function defaultTriggerKinds(): EditorSnapshot['triggerKinds'] {
+export function defaultTriggerKinds(): EditorTriggerKindSnapshot[] {
   return Object.entries(DATA.triggerKinds).map(([value, label]) => ({ value, label }));
 }
 
@@ -164,17 +175,17 @@ export function interfaceTrigger(
 }
 
 export function createDocumentSnapshot(
+  documentId: string,
   name: string,
   overrides: Partial<EditorSnapshot>,
 ): EditorSnapshot {
   return presentDocument({
     ...structuredClone(DATA.document),
+    documentId,
     name,
     valueChoices: defaultValueChoices(),
-    valueFunctions: defaultValueFunctions(),
-    conditionCompares: defaultConditionCompares(),
-    variableTypes: defaultVariableTypes(),
-    triggerKinds: defaultTriggerKinds(),
+    tabs: [],
+    activeDocumentId: null,
     ...overrides,
   });
 }

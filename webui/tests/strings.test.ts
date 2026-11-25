@@ -19,7 +19,7 @@ describe('strings store', () => {
     const stop = strings.subscribe((bundle) => seen.push(Object.keys(bundle.entries).length));
 
     strings.load({ language: 'en', entries: { 'Shell.Home': 'Home' } });
-    strings.load({ language: 'zh-Hans', entries: { 'Shell.Home': '首页', 'Main.Title': '鲸灵' } });
+    strings.load({ language: 'zh-Hans', entries: { 'Shell.Macros': '宏', 'Main.Title': '鲸灵' } });
     stop();
     strings.load({ language: 'en', entries: {} });
 

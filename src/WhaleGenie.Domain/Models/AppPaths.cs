@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using WhaleGenie.Storage;
 
 namespace WhaleGenie.Models;
 
@@ -60,4 +61,13 @@ public static class AppPaths
     /// </summary>
     public static string Projects { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhaleGenie", "projects");
+
+    /// <summary>
+    /// The project a first start opens instead of beginning with an empty list. It is an ordinary
+    /// package in the projects folder: it can be saved as another file, reopened, or deleted, and
+    /// nothing about it is special except that this copy of the program knows to pick it up when
+    /// there is no previous project to open.
+    /// </summary>
+    public static string DefaultProject { get; } =
+        Path.Combine(Projects, "default" + MacroPackage.Extension);
 }

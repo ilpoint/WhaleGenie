@@ -188,6 +188,9 @@ public partial class WebShellWindow : Window, ITriggerFocusProbe
     /// <summary>The native windows the page can still ask for; null until the host is up.</summary>
     internal ShellNativeWindows? Actions => _host?.Actions;
 
+    /// <summary>The project session the shell owns; null until the window has opened.</summary>
+    internal ProjectSession? Session => _host?.Session;
+
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);

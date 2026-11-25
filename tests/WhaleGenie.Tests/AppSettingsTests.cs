@@ -41,6 +41,27 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void The_automatic_save_switch_is_on_by_default_and_round_trips()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "whalegenie-appsettings-"
+            + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var file = Path.Combine(folder, "settings.json");
+            var settings = new AppSettings(file);
+            Assert.True(settings.LoadAutoSaveProject());
+
+            settings.StoreAutoSaveProject(false);
+            Assert.False(new AppSettings(file).LoadAutoSaveProject());
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void The_menu_pin_is_off_by_default_and_round_trips_when_remembered()
     {
         var folder = Path.Combine(Path.GetTempPath(), "whalegenie-appsettings-" + Guid.NewGuid().ToString("N"));

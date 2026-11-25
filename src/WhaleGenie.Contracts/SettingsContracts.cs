@@ -148,6 +148,7 @@ public sealed record SettingsWheelState(
 [BridgeContract]
 public sealed record SettingsState(
     bool LoadLastProjectAtStart,
+    bool AutoSaveProject,
     bool SystemAtStart,
     bool EnabledFirst,
     bool IgnoreOwnInput,
