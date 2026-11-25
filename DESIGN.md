@@ -248,6 +248,8 @@ RequestedThemeVariant="HighContrast" 制造半套主题。系统高对比度下�
   项目名（未命名项目显示 `Shell.UntitledProject`，自动保存开启时括号写出“项目自动保存已开启”），
   右侧依次为置顶、最小化、最大化/还原、关闭。
 - **文件**菜单承载打开、保存、另存为、导入、导出与全部关闭；**帮助**菜单显示版本、使用手册与关于。
+  打开宏包使用程序自绘的 `PackagePickerWindow`（只列目录与 `*.wgmacro`），不调用 Windows
+  资源管理器文件对话框，避免某个 shell 右键扩展把进程一起带崩；图片选择与保存仍走系统选择器。
   页内文件栏不再重复这五条命令，只保留项目路径、未保存标记、重载与 MCP。
 - 窗口钮 46×32、直角贴顶，与系统 caption 同形：静息透明，悬停
   `--colorNeutralBackground1Hover`，按下取 Pressed 变体；关闭钮悬停取红色语义

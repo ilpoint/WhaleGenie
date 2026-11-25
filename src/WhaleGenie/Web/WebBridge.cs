@@ -25,8 +25,12 @@ public sealed class WebBridge(NativeWebView webView) : IBridgeChannel
     internal void Listen()
         => webView.WebMessageReceived += (_, received) =>
         {
-            AppDiagnostics.Note("webshell.message", $"{received.Body?.GetType().Name ?? "null"}: {received.Body}");
-            if (received.Body is string body)
+            var body = received.Body as string;
+            AppDiagnostics.Note("webshell.message",
+                body is null
+                    ? received.Body?.GetType().Name ?? "null"
+                    : body.Length <= 240 ? body : body[..240] + "…");
+            if (body is not null)
             {
                 MessageFromWeb?.Invoke(body);
             }

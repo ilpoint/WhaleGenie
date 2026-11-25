@@ -35,7 +35,7 @@
 
 窗口与视图按功能分目录：`Views/Pickers`（取色/区域/点位/UIA/窗口/偏差点选覆盖层与拾取宿主）、
 `Views/Common`（跨窗口的画法辅助与元素测试框）、`Views/Run`（元素测试的闪烁框）、`Views/Settings`
-（主题探针）与 `Views/Shell`（窗口外壳、文件选择与通用对话框）；`ViewModels` 只剩 `Mcp` 与 `Shell`。
+（主题探针）与 `Views/Shell`（窗口外壳、`PackagePickerWindow` 包文件选择与通用对话框）；`ViewModels` 只剩 `Mcp` 与 `Shell`。
 宏编辑器、动作表单、步骤树、条件与取值构建器、宏菜单、轮盘与界面面板都已迁入网页壳（§7.6），
 原生侧只保留要抓桌面或透明置顶的拾取器、后台问话与网页宿主。命名空间仍是
 `WhaleGenie.Views` 与 `WhaleGenie.ViewModels`，所以搬文件不改类型名，XAML 也只改资源字典那几条

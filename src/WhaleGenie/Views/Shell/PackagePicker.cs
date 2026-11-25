@@ -21,6 +21,15 @@ internal static class PackagePicker
     /// <summary>The file a person picked, or null when they closed the dialog.</summary>
     internal static async Task<string?> PickAsync(TopLevel owner, string title)
     {
+        if (owner is Window window)
+        {
+            // The shell dialog would load the file type's context-menu extensions into this
+            // process; a right-click on a package can then crash the program. The app-owned
+            // picker is the one that wins here.
+            return await PackagePickerWindow.PickAsync(window, title,
+                WhaleGenie.Models.AppPaths.Projects);
+        }
+
         var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = title,
