@@ -43,7 +43,7 @@ public class ProjectSavePlanTests
             var project = new ProjectWorkspace { CurrentPath = oldPath };
             project.AddMacro(new MacroItem { Name = "one" });
 
-            var saved = await ProjectFiles.SaveAsync(project, newPath);
+            var saved = await TestProjectFiles.Service.SaveAsync(project, newPath);
 
             Assert.True(saved.Ok);
             Assert.True(File.Exists(newPath));
@@ -53,11 +53,11 @@ public class ProjectSavePlanTests
             // The next ordinary save belongs to the file the project now names, not the one it
             // was opened from.
             project.AddMacro(new MacroItem { Name = "two" });
-            var again = await ProjectFiles.SaveAsync(project, project.CurrentPath!);
+            var again = await TestProjectFiles.Service.SaveAsync(project, project.CurrentPath!);
 
             Assert.True(again.Ok);
             var reopened = new ProjectWorkspace();
-            Assert.True(ProjectFiles.Open(reopened, newPath).Ok);
+            Assert.True(TestProjectFiles.Service.Open(reopened, newPath).Ok);
             Assert.Equal(["one", "two"], reopened.Macros.Select(macro => macro.Name));
             Assert.False(File.Exists(oldPath),
                 "a save-as must not write the file the project was opened from");
@@ -79,7 +79,7 @@ public class ProjectSavePlanTests
             project.AddMacro(new MacroItem { Name = "one" });
             var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
 
-            var saved = await ProjectFiles.SaveAsync(project, path);
+            var saved = await TestProjectFiles.Service.SaveAsync(project, path);
 
             Assert.True(saved.Ok);
             Assert.True(File.Exists(path));
@@ -102,11 +102,11 @@ public class ProjectSavePlanTests
             var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
             var source = new ProjectWorkspace();
             source.AddMacro(new MacroItem { Name = "one" });
-            Assert.True((await ProjectFiles.SaveAsync(source, path)).Ok);
+            Assert.True((await TestProjectFiles.Service.SaveAsync(source, path)).Ok);
 
             var target = new ProjectWorkspace();
             target.AddMacro(new MacroItem { Name = "old" });
-            var opened = await ProjectFiles.OpenAsync(target, path);
+            var opened = await TestProjectFiles.Service.OpenAsync(target, path);
 
             Assert.True(opened.Ok);
             Assert.Equal(path, target.CurrentPath);

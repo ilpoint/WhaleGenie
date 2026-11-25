@@ -23,7 +23,7 @@ public class ProjectStartupTests
             var defaultPackage = Path.Combine(folder, "default.wgmacro");
             var project = new ProjectWorkspace();
 
-            var opened = ProjectStartup.OpenAtStart(project, settings, defaultPackage);
+            var opened = ProjectStartup.OpenAtStart(project, settings, TestProjectFiles.Service, defaultPackage);
 
             Assert.False(opened);
             Assert.Equal(defaultPackage, project.CurrentPath);
@@ -45,10 +45,10 @@ public class ProjectStartupTests
             var defaultPackage = Path.Combine(folder, "default.wgmacro");
             var source = new ProjectWorkspace();
             source.AddMacro(new MacroItem { Name = "from-default" });
-            Assert.True((await ProjectFiles.SaveAsync(source, defaultPackage)).Ok);
+            Assert.True((await TestProjectFiles.Service.SaveAsync(source, defaultPackage)).Ok);
 
             var project = new ProjectWorkspace();
-            var opened = ProjectStartup.OpenAtStart(project, settings, defaultPackage);
+            var opened = ProjectStartup.OpenAtStart(project, settings, TestProjectFiles.Service, defaultPackage);
 
             Assert.True(opened);
             Assert.Equal(defaultPackage, project.CurrentPath);
@@ -70,12 +70,12 @@ public class ProjectStartupTests
             var last = Path.Combine(folder, "last.wgmacro");
             var source = new ProjectWorkspace();
             source.AddMacro(new MacroItem { Name = "from-last" });
-            Assert.True((await ProjectFiles.SaveAsync(source, last)).Ok);
+            Assert.True((await TestProjectFiles.Service.SaveAsync(source, last)).Ok);
             settings.StoreLastProject(last);
 
             var defaultPackage = Path.Combine(folder, "default.wgmacro");
             var project = new ProjectWorkspace();
-            var opened = ProjectStartup.OpenAtStart(project, settings, defaultPackage);
+            var opened = ProjectStartup.OpenAtStart(project, settings, TestProjectFiles.Service, defaultPackage);
 
             Assert.True(opened);
             Assert.Equal(last, project.CurrentPath);
@@ -95,7 +95,7 @@ public class ProjectStartupTests
             var settings = Settings(folder, loadLast: false, autoSave: true);
             var project = new ProjectWorkspace();
 
-            var opened = ProjectStartup.OpenAtStart(project, settings,
+            var opened = ProjectStartup.OpenAtStart(project, settings, TestProjectFiles.Service,
                 Path.Combine(folder, "default.wgmacro"));
 
             Assert.False(opened);
@@ -117,7 +117,7 @@ public class ProjectStartupTests
             settings.StoreLastProject(Path.Combine(folder, "gone.wgmacro"));
             var project = new ProjectWorkspace();
 
-            var opened = ProjectStartup.OpenAtStart(project, settings,
+            var opened = ProjectStartup.OpenAtStart(project, settings, TestProjectFiles.Service,
                 Path.Combine(folder, "default.wgmacro"));
 
             Assert.False(opened);

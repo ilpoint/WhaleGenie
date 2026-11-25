@@ -228,22 +228,6 @@ public sealed partial class ProjectWorkspace : ObservableObject
         MarkDirty();
     }
 
-    /// <summary>Writes the macro list and the shared variables to a package file.</summary>
-    public void SavePackage(string path)
-    {
-        // The pictures are in the folder of the project as it stands now, which is not the folder of
-        // the file being written when this is a save-as: without saying so, a package written
-        // somewhere else silently loses the pictures it refers to.
-        MacroPackage.Save(path, [.. Macros], Triggers, [.. Variables.Globals], _appVersion,
-            ImageAssets.FolderFor(CurrentPath));
-        CurrentPath = path;
-        IsDirty = false;
-    }
-
-    /// <summary>Replaces everything with the contents of a package file.</summary>
-    public void OpenPackage(string path)
-        => ApplyPackage(path, MacroPackage.Load(path));
-
     /// <summary>
     /// Replaces everything with a package already read on some other thread. The reader owns the
     /// file; this part owns the lists.

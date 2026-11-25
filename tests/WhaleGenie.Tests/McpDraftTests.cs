@@ -7,6 +7,7 @@ using WhaleGenie.Editor;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Storage;
 using WhaleGenie.ViewModels;
 
@@ -31,9 +32,9 @@ public class McpDraftTests
                 var project = new MainViewModel();
                 project.AddMacro(new MacroItem { Name = "原宏" });
                 project.CurrentPath = path;
-                project.SavePackage(path);
+                TestProjectFiles.Service.Save(project.Workspace, path);
 
-                var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+                var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance, new FilePackageStore());
                 var basis = await live.SnapshotAsync();
                 var drafts = new McpDraftStore();
                 var draft = drafts.Create(basis).Draft;
@@ -69,7 +70,7 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var project = new MainViewModel();
-            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance, new FilePackageStore());
             var draft = new McpDraftStore().Create(await live.SnapshotAsync()).Draft;
 
             // A run reports every step as step.<id>.outcome, so a macro written through MCP has to
@@ -131,14 +132,14 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var store = new McpDraftStore();
-            var basis = await new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance).SnapshotAsync();
+            var basis = await new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance, new FilePackageStore()).SnapshotAsync();
 
             for (var index = 0; index < McpDraftStore.MaxDrafts; index++)
             {
                 store.Create(basis);
             }
 
-            var refusal = Assert.Throws<McpFailure>(() => store.Create(basis));
+            var refusal = Assert.Throws<McpFailure>((Action)(() => store.Create(basis)));
             Assert.Equal(McpErrors.TooManyDrafts, refusal.Code);
             Assert.Equal(McpDraftStore.MaxDrafts, store.Open);
             return true;
@@ -156,7 +157,7 @@ public class McpDraftTests
         Ui.RunAsync(async () =>
         {
             var store = new McpDraftStore();
-            var basis = await new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance).SnapshotAsync();
+            var basis = await new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance, new FilePackageStore()).SnapshotAsync();
 
             var first = store.Create(basis).Draft;
             for (var index = 1; index < McpDraftStore.MaxDrafts; index++)
@@ -183,7 +184,7 @@ public class McpDraftTests
         {
             var project = new MainViewModel();
             project.AddMacro(new MacroItem { Name = "原宏" });
-            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance, new FilePackageStore());
             var basis = await live.SnapshotAsync();
             var draft = new McpDraftStore().Create(basis).Draft;
 
@@ -200,7 +201,7 @@ public class McpDraftTests
     {
         Ui.RunAsync(async () =>
         {
-            var live = new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(new MainViewModel().Workspace, DirectUiDispatcher.Instance, new FilePackageStore());
             await Assert.ThrowsAsync<McpFailure>(() => live.SaveAsync());
             return true;
         });
@@ -213,7 +214,7 @@ public class McpDraftTests
         {
             var project = new MainViewModel();
             project.AddMacro(new MacroItem { Name = "原宏" });
-            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance);
+            var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance, new FilePackageStore());
             var draft = new McpDraftStore().Create(await live.SnapshotAsync()).Draft;
             var bad = new MacroItem { Name = "非法分支" };
             bad.Steps.Add(new MacroStep
@@ -251,7 +252,7 @@ public class McpDraftTests
     {
         var project = new MainViewModel();
         project.AddMacro(new MacroItem { Name = "open" });
-        var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance,
+        var live = new McpLiveProject(project.Workspace, DirectUiDispatcher.Instance, new FilePackageStore(),
             editor: new OpenDocuments());
         var basis = await live.SnapshotAsync();
 

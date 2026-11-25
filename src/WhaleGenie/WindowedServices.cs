@@ -55,17 +55,21 @@ internal static class WindowedServices
     }
 
     private static void Add(IServiceCollection services) =>
-        services.AddSingleton<RunQuestionHost>()
+        services.AddSingleton<IPackageStore, FilePackageStore>()
+        .AddSingleton<ProjectFileService>()
+        .AddSingleton<RunQuestionHost>()
         .AddSingleton(sp => new ProjectSaver(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<AppSettings>(),
-            sp.GetRequiredService<IUiDispatcher>()))
+            sp.GetRequiredService<IUiDispatcher>(),
+            sp.GetRequiredService<ProjectFileService>()))
         .AddSingleton<IProjectSaver>(sp => sp.GetRequiredService<ProjectSaver>())
         .AddSingleton(sp => new ShellProjectChangeGuard(() => sp.GetService<WebShellWindow>()))
         .AddSingleton<IProjectChangeGuard>(sp => sp.GetRequiredService<ShellProjectChangeGuard>())
         .AddSingleton(sp => new McpLiveProject(
             sp.GetRequiredService<ProjectWorkspace>(),
             sp.GetRequiredService<IUiDispatcher>(),
+            sp.GetRequiredService<IPackageStore>(),
             sp.GetRequiredService<ProjectSaver>(),
             sp.GetRequiredService<IEditorDocuments>()))
         .AddSingleton(sp => new SystemBridge(
@@ -95,6 +99,7 @@ internal static class WindowedServices
             sp.GetRequiredService<PanelSurfaceBridge>(),
             sp.GetRequiredService<AppSettings>(),
             sp.GetRequiredService<IProjectSaver>(),
+            sp.GetRequiredService<ProjectFileService>(),
             sp.GetRequiredService<IEditorDocuments>(),
             sp.GetRequiredService<IEditorLeavePrompt>()))
         .AddSingleton(sp => new PanelSurfaceBridge(new PanelSurface(
@@ -136,7 +141,8 @@ internal static class WindowedServices
             server.Register(editorPrompt);
             server.Register(new ProjectBridge(project,
                 sp.GetRequiredService<TriggerRuntime>(), sp.GetRequiredService<SystemState>(),
-                new ProjectDialogs(() => sp.GetService<WebShellWindow>()), dialogs,
+                new ProjectDialogs(() => sp.GetService<WebShellWindow>()),
+                sp.GetRequiredService<ProjectFileService>(), dialogs,
                 settings: sp.GetRequiredService<AppSettings>(),
                 saver: sp.GetRequiredService<IProjectSaver>(),
                 changeGuard: sp.GetRequiredService<IProjectChangeGuard>(),

@@ -27,7 +27,7 @@ public class ProjectSaverTests
             var oldPackage = Path.Combine(folder, "old.wgmacro");
             var newPackage = Path.Combine(folder, "new.wgmacro");
             var project = new ProjectWorkspace { CurrentPath = oldPackage };
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(50));
 
             project.AddMacro(new MacroItem { Name = "old" });
@@ -59,7 +59,7 @@ public class ProjectSaverTests
             var settings = Settings(folder, autoSave: true);
             var newPackage = Path.Combine(folder, "new.wgmacro");
             var project = new ProjectWorkspace { CurrentPath = Path.Combine(folder, "old.wgmacro") };
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(10));
 
             await auto.ReplaceAsync(() =>
@@ -72,7 +72,7 @@ public class ProjectSaverTests
 
             await Until(() => File.Exists(newPackage) && !project.IsDirty);
             var reopened = new ProjectWorkspace();
-            Assert.True(ProjectFiles.Open(reopened, newPackage).Ok);
+            Assert.True(TestProjectFiles.Service.Open(reopened, newPackage).Ok);
             Assert.Equal("new", reopened.Macros.Single().Name);
         }
         finally
@@ -90,7 +90,7 @@ public class ProjectSaverTests
             var settings = Settings(folder, autoSave: true);
             var package = Path.Combine(folder, "macros.wgmacro");
             var project = new ProjectWorkspace { CurrentPath = package };
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(10));
 
             project.AddMacro(new MacroItem { Name = "kept" });
@@ -115,8 +115,8 @@ public class ProjectSaverTests
             var package = Path.Combine(folder, "macros.wgmacro");
             var project = new ProjectWorkspace { CurrentPath = package };
             project.AddMacro(new MacroItem { Name = "one", Description = "before" });
-            Assert.True((await ProjectFiles.SaveAsync(project, package)).Ok);
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            Assert.True((await TestProjectFiles.Service.SaveAsync(project, package)).Ok);
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(10));
             var documents = new EditorDocumentSet(project);
             var session = documents.Open("one");
@@ -134,7 +134,7 @@ public class ProjectSaverTests
             await Until(() => File.Exists(package) && !project.IsDirty);
 
             var reopened = new ProjectWorkspace();
-            Assert.True(ProjectFiles.Open(reopened, package).Ok);
+            Assert.True(TestProjectFiles.Service.Open(reopened, package).Ok);
             Assert.Equal("edited but not saved", reopened.Macros.Single().Description);
         }
         finally
@@ -152,7 +152,7 @@ public class ProjectSaverTests
             var settings = Settings(folder, autoSave: false);
             var package = Path.Combine(folder, "macros.wgmacro");
             var project = new ProjectWorkspace { CurrentPath = package };
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(10));
 
             project.AddMacro(new MacroItem { Name = "quiet" });
@@ -176,7 +176,7 @@ public class ProjectSaverTests
             var settings = Settings(folder, autoSave: false);
             var package = Path.Combine(folder, "macros.wgmacro");
             var project = new ProjectWorkspace { CurrentPath = package };
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(10));
 
             project.AddMacro(new MacroItem { Name = "manual" });
@@ -200,7 +200,7 @@ public class ProjectSaverTests
         {
             var settings = Settings(folder, autoSave: true);
             var project = new ProjectWorkspace { CurrentPath = folder };
-            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance,
+            using var auto = new ProjectSaver(project, settings, DirectUiDispatcher.Instance, TestProjectFiles.Service,
                 TimeSpan.FromMilliseconds(10));
 
             project.AddMacro(new MacroItem { Name = "stuck" });

@@ -615,8 +615,7 @@ export type EditorSessionCommand =
   | EditorSessionSubMacroCreateCommand
   | EditorSessionSubMacroCopyCommand
   | EditorSessionSubMacroImportCommand
-  | EditorSessionSubMacroDeleteCommand
-  | EditorSessionExportCommand;
+  | EditorSessionSubMacroDeleteCommand;
 
 export interface EditorSessionOpenCommand {
   kind: 'open';
@@ -696,11 +695,6 @@ export interface EditorSessionSubMacroImportCommand {
 export interface EditorSessionSubMacroDeleteCommand {
   kind: 'subMacroDelete';
   name: string;
-}
-
-export interface EditorSessionExportCommand {
-  kind: 'export';
-  path: string;
 }
 
 export interface EditorSnapshot {

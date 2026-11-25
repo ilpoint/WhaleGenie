@@ -170,29 +170,6 @@ public class ValueEditorTests
     }
 
     [Fact]
-    public void Export_writes_a_package_of_its_own()
-    {
-        var workspace = new ProjectWorkspace();
-        workspace.AddMacro(new MacroItem { Name = "export" });
-        var session = HeadlessEditorSession.Open(workspace, "export");
-        session.AddStep("control.delay");
-        var path = Path.Combine(Path.GetTempPath(),
-            "whalegenie-export-" + Guid.NewGuid().ToString("N") + ".wgmacro");
-        try
-        {
-            Assert.True(session.Export(path));
-            Assert.True(File.Exists(path));
-        }
-        finally
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-    }
-
-    [Fact]
     public void Cancelling_a_value_does_not_change_the_step()
     {
         var workspace = new ProjectWorkspace();

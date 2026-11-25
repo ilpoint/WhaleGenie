@@ -37,7 +37,7 @@ public class ProjectBridgeTests : IDisposable
         _dialogs = new DialogBridge();
         _server.Register(_dialogs);
         _server.Register(new ProjectBridge(_workspace, _runtime, _system,
-            new NoFileDialogs(), _dialogs,
+            new NoFileDialogs(), TestProjectFiles.Service, _dialogs,
             sound => _sounds.Add(sound), rememberProject: _ => { }));
     }
 
@@ -446,7 +446,7 @@ public class ProjectBridgeTests : IDisposable
             var dialogs = new DialogBridge();
             server.Register(dialogs);
             server.Register(new ProjectBridge(workspace, _runtime, _system,
-                new NoFileDialogs(), dialogs, rememberProject: _ => { },
+                new NoFileDialogs(), TestProjectFiles.Service, dialogs, rememberProject: _ => { },
                 changeGuard: guard));
 
             await server.AcceptAsync(JsonSerializer.Serialize(new
@@ -477,7 +477,7 @@ public class ProjectBridgeTests : IDisposable
         var dialogs = new DialogBridge();
         server.Register(dialogs);
         server.Register(new ProjectBridge(workspace, _runtime, _system,
-            new NoFileDialogs(), dialogs, rememberProject: _ => { }, ui: post));
+            new NoFileDialogs(), TestProjectFiles.Service, dialogs, rememberProject: _ => { }, ui: post));
         await server.AcceptAsync("""{"id":1,"method":"bridge.ready"}""");
         channel.Sent.Clear();
 

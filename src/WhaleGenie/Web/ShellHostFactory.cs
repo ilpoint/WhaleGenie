@@ -20,6 +20,7 @@ internal sealed class ShellHostFactory(
     PanelSurfaceBridge panelFrames,
     AppSettings settings,
     WhaleGenie.Projects.IProjectSaver saver,
+    WhaleGenie.Projects.ProjectFileService files,
     WhaleGenie.Editor.IEditorDocuments editor,
     WhaleGenie.Editor.IEditorLeavePrompt editorPrompt)
 {
@@ -34,7 +35,7 @@ internal sealed class ShellHostFactory(
                 return true;
             },
             macro => owner.OpenRun(macro.Name),
-            () => owner.OpenSettings(), settings, saver);
+            () => owner.OpenSettings(), settings, saver, files);
 
         // The menu is the Lit overlay in every build now; the native menu window is gone.
         var bridge = owner.Bridge

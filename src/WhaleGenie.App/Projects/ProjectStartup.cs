@@ -18,7 +18,7 @@ public static class ProjectStartup
     /// list with their path remembered.
     /// </summary>
     public static bool OpenAtStart(ProjectWorkspace workspace, AppSettings settings,
-        string? defaultProject = null)
+        ProjectFileService files, string? defaultProject = null)
     {
         var wantedDefault = defaultProject ?? AppPaths.DefaultProject;
         var last = settings.LastProject();
@@ -27,7 +27,7 @@ public static class ProjectStartup
             && last is { Length: > 0 }
             && File.Exists(last))
         {
-            return ProjectFiles.Open(workspace, last).Ok;
+            return files.Open(workspace, last).Ok;
         }
 
         // "Start empty" is a real choice: it must not be undone by the default project.
@@ -43,7 +43,7 @@ public static class ProjectStartup
 
         if (File.Exists(wantedDefault))
         {
-            return ProjectFiles.Open(workspace, wantedDefault).Ok;
+            return files.Open(workspace, wantedDefault).Ok;
         }
 
         // No file yet: the path is where the first change will be written. Nothing is created on

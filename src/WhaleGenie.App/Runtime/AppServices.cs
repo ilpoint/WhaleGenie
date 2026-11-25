@@ -6,6 +6,7 @@ using WhaleGenie.Core.Devices;
 using WhaleGenie.Localization;
 using WhaleGenie.Mcp;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie;
@@ -104,6 +105,8 @@ internal static class AppServices
         services.AddSingleton(settings);
 
         services.AddSingleton<McpDraftStore>();
+        services.AddSingleton<IPackageStore, FilePackageStore>();
+        services.AddSingleton<ProjectFileService>();
         services.AddSingleton<McpLiveProject>();
         services.AddSingleton<IProjectGateway>(sp => sp.GetRequiredService<McpLiveProject>());
         services.AddSingleton<McpTools>();

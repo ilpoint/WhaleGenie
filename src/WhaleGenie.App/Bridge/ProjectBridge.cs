@@ -36,6 +36,9 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     /// <summary>The file pickers; the UI project owns the windows and their filters.</summary>
     private readonly IFileDialogs _files;
 
+    /// <summary>The project's package reads and writes; the bridge only chooses and reports.</summary>
+    private readonly ProjectFileService _projectFiles;
+
     /// <summary>
     /// The system switch the page draws. The trigger host is the one that follows it; this handler
     /// only writes the same object the window and the hotkey write.
@@ -68,7 +71,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private BridgeServer? _server;
 
     internal ProjectBridge(ProjectWorkspace workspace, TriggerRuntime runtime, SystemState system,
-        IFileDialogs files, DialogBridge dialogs,
+        IFileDialogs files, ProjectFileService projectFiles, DialogBridge dialogs,
         Action<UiSound>? playSound = null, Action<string>? rememberProject = null,
         AppSettings? settings = null, IProjectSaver? saver = null,
         IProjectChangeGuard? changeGuard = null, IUiPost? ui = null)
@@ -78,6 +81,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
         _runtime = runtime;
         _system = system;
         _files = files;
+        _projectFiles = projectFiles;
         _dialogs = dialogs;
         _saver = saver;
         _changeGuard = changeGuard;
@@ -370,7 +374,7 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
 
         var saved = _saver is not null
             ? await _saver.SaveAsync(path)
-            : await ProjectFiles.SaveAsync(_workspace, path);
+            : await _projectFiles.SaveAsync(_workspace, path);
         if (!saved.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageSaveFailed,
@@ -475,8 +479,8 @@ public sealed class ProjectBridge : IBridgeHandler, IDisposable
     private async Task OpenPackage(string path)
     {
         var opened = _saver is { } saver
-            ? await saver.ReplaceAsync(() => ProjectFiles.OpenAsync(_workspace, path))
-            : await ProjectFiles.OpenAsync(_workspace, path);
+            ? await saver.ReplaceAsync(() => _projectFiles.OpenAsync(_workspace, path))
+            : await _projectFiles.OpenAsync(_workspace, path);
         if (!opened.Ok)
         {
             throw new BridgeFailureException(BridgeErrors.PackageOpenFailed,

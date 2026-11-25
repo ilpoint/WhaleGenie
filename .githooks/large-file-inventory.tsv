@@ -113,7 +113,7 @@
 322	src/WhaleGenie.Domain/Models/ActionCatalog.cs	keep: 动作目录投影：语义目录加展示覆盖项，并按值形态推断默认控件
 519	src/WhaleGenie.Domain/Models/VariableChoices.cs	keep: 变量候选模型与其来源、用途、字段，单一职责
 302	src/WhaleGenie.Domain/Models/MacroStep.Detail.cs	keep: 步骤行摘要的唯一投影——动作、参数、条件与流程各自的读法按动作键集中在一处
-371	src/WhaleGenie.Domain/Models/ProjectWorkspace.cs	keep: 工程文档状态（宏、触发、变量、路径、修订号）在一处更新
+355	src/WhaleGenie.Domain/Models/ProjectWorkspace.cs	keep: 工程文档状态（宏、触发、变量、路径、修订号）在一处更新
 303	src/WhaleGenie/Runtime/AppTray.cs	keep: 一段运行期职责
 399	src/WhaleGenie.Domain/Storage/PublicMacroLibrary.cs	keep: 一种存储的读写与恢复
 376	src/WhaleGenie.Domain/Storage/RecoveryStore.cs	keep: 一种存储的读写与恢复
@@ -150,7 +150,7 @@
 374	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Caret.cs	keep: 接缝、光标移动、撤销与清空共用同一份接缝投影
 355	src/WhaleGenie.Editing/Value/ValuePickerViewModel.Moving.cs	keep: 材料写入、删除与移动同属对形状的一次修改
 321	src/WhaleGenie.Editing/Editor/ShapeTree.cs	keep: 形状树的查找、替换、插入与删除是同一组路径操作
-630	src/WhaleGenie.App/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关、文件操作与传送计划/写入是同一次任务的读取集
+634	src/WhaleGenie.App/Bridge/ProjectBridge.cs	keep: 项目桥一域——状态信封、系统开关、文件操作与传送计划/写入是同一次任务的读取集
 539	tests/WhaleGenie.Tests/ProjectBridgeTests.cs	keep: 项目桥一个域的用例集（状态、启停、文件、问话、传送），夹具与断言共享一份读写管道
 480	src/WhaleGenie/Runtime/TriggerHost.cs	keep: 触发宿主一个域——钩子、热键计划、切换与声音是同一个实体的反应；原生面由 surface 接口接管
 423	src/WhaleGenie.App/Bridge/SettingsBridge.Wheel.cs	keep: 轮盘设置、场景与动作管理共用同一份快照、几何与写入路径，拆开会让一次编辑跨文件
@@ -159,10 +159,10 @@
 549	src/WhaleGenie.Editing/Actions/HeadlessActionSession.cs	split: 动作草稿的字段、行表、条件、窗口与值命令同在一个会话类；下一步按字段/行表/拾取拆分
 308	src/WhaleGenie.Editing/Actions/EditorActionSnapshot.cs	keep: 动作表单快照工厂只负责把表单投影成快照
 724	tests/WhaleGenie.Tests/EditorGateTests.cs	split: 编辑器会话与快照用例已超过 700 行；下一步按快照/步骤/声明/触发分族拆测试文件
-37039	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
+36925	webui/src/shared/bridge/generated/types.ts	exempt: 由 C# 契约生成的唯一 TypeScript 模块，体量随契约增长
 430	src/WhaleGenie.App/Bridge/BridgeServer.cs	keep: 桥的路由、ready 缓冲与推送队列是同一个进程内协议边界的职责
 371	src/WhaleGenie.App/Bridge/EditorSessionBridge.Steps.cs	keep: 步骤、条件与录制命令同属编辑正文的一次读取
-309	src/WhaleGenie.App/Projects/ProjectSaver.cs	keep: 包文件唯一写者——防抖、显式保存、替换闸门与状态是同一个并发边界
+311	src/WhaleGenie.App/Projects/ProjectSaver.cs	keep: 包文件唯一写者——防抖、显式保存、替换闸门与状态是同一个并发边界
 396	src/WhaleGenie.Editing/Editor/EditorDocumentSet.cs	keep: 打开文档的标识、页签顺序与父子关系只在文档集一处维护
 441	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Steps.cs	keep: 步骤、参数与条件同属编辑正文的一次读取
 330	src/WhaleGenie.Editing/Editor/HeadlessEditorSession.Snapshot.cs	keep: 编辑快照投影一族（步骤/条件/动作/标签），只把模型读成线上形状

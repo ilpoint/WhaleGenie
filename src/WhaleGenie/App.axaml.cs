@@ -142,7 +142,7 @@ public partial class App : Application
         // project, so the first macro has somewhere to go without a Save As first. A file that is
         // not there any more leaves the window empty rather than failing to start.
         ProjectStartup.OpenAtStart(services.GetRequiredService<ProjectWorkspace>(),
-            AppSettings.Shared);
+            AppSettings.Shared, services.GetRequiredService<ProjectFileService>());
 
         // From here on, the window is put out of the way rather than closed, and the icon in the
         // notification area is how it comes back and how the program is stopped. The window is

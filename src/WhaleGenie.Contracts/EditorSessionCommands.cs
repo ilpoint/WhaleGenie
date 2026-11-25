@@ -20,7 +20,6 @@ namespace WhaleGenie.Contracts;
 [JsonDerivedType(typeof(EditorSessionSubMacroCopyCommand), "subMacroCopy")]
 [JsonDerivedType(typeof(EditorSessionSubMacroImportCommand), "subMacroImport")]
 [JsonDerivedType(typeof(EditorSessionSubMacroDeleteCommand), "subMacroDelete")]
-[JsonDerivedType(typeof(EditorSessionExportCommand), "export")]
 public abstract record EditorSessionCommand;
 
 /// <summary>Open a macro by name; a missing name opens the first document.</summary>
@@ -102,7 +101,3 @@ public sealed record EditorSessionSubMacroImportCommand(
 /// <summary>Remove a sub-macro this macro no longer calls.</summary>
 [BridgeContract]
 public sealed record EditorSessionSubMacroDeleteCommand(string Name) : EditorSessionCommand;
-
-/// <summary>Export the document as a package at the chosen path.</summary>
-[BridgeContract]
-public sealed record EditorSessionExportCommand(string Path) : EditorSessionCommand;

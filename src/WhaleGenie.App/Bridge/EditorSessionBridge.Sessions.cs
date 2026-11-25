@@ -124,8 +124,6 @@ internal sealed partial class EditorSessionBridge
             case EditorSessionSubMacroDeleteCommand:
             case EditorSessionSubMacroImportCommand:
                 return ApplySubMacro(command);
-            case EditorSessionExportCommand export:
-                return Required().Export(SessionText(export.Path, "Bridge.EditorNeedsFile"));
             default:
                 throw new BridgeFailureException(BridgeErrors.BadArgument,
                     Strings.Get("Bridge.EditorNeedsMacro"));

@@ -53,14 +53,14 @@ public class ProjectSaveTests
             var path = Path.Combine(folder, "macros" + MacroPackage.Extension);
             var first = new MainViewModel();
             first.AddMacro(new MacroItem { Name = "login" });
-            first.SavePackage(path);
+            TestProjectFiles.Service.Save(first.Workspace, path);
 
             // Nothing was replaced yet, so there is nothing to keep.
             Assert.False(File.Exists(MacroPackage.BackupPathFor(path)));
 
             var second = new MainViewModel();
             second.AddMacro(new MacroItem { Name = "logout" });
-            second.SavePackage(path);
+            TestProjectFiles.Service.Save(second.Workspace, path);
 
             // What is kept is the package that was there before, not the one just written.
             var kept = MacroPackage.Load(MacroPackage.BackupPathFor(path));
@@ -95,11 +95,11 @@ public class ProjectSaveTests
                 Name = "fromFirst",
                 Scope = VariableScope.Global,
             });
-            a.SavePackage(first);
+            TestProjectFiles.Service.Save(a.Workspace, first);
 
             var b = new MainViewModel();
             b.AddMacro(new MacroItem { Name = "two" });
-            b.SavePackage(second);
+            TestProjectFiles.Service.Save(b.Workspace, second);
 
             // A project that was open a moment ago still holds its own variables; opening another
             // package takes them away rather than merging the two tables.
@@ -109,7 +109,7 @@ public class ProjectSaveTests
                 Name = "fromFirst",
                 Scope = VariableScope.Global,
             });
-            opened.OpenPackage(second);
+            TestProjectFiles.Service.Open(opened.Workspace, second);
 
             Assert.Empty(opened.Variables.Globals);
             Assert.Contains(a.Variables.Globals, variable => variable.Name == "fromFirst");
@@ -129,7 +129,7 @@ public class ProjectSaveTests
             var viewModel = new MainViewModel();
             var macro = new MacroItem { Name = "login" };
             viewModel.AddMacro(macro);
-            viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
+            TestProjectFiles.Service.Save(viewModel.Workspace, Path.Combine(folder, "macros" + MacroPackage.Extension));
 
             Assert.False(viewModel.HasUnsavedChanges);
 
@@ -153,7 +153,7 @@ public class ProjectSaveTests
             var viewModel = new MainViewModel();
             var macro = new MacroItem { Name = "login" };
             viewModel.AddMacro(macro);
-            viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
+            TestProjectFiles.Service.Save(viewModel.Workspace, Path.Combine(folder, "macros" + MacroPackage.Extension));
 
             viewModel.ReplaceMacro(macro, new MacroItem { Name = "login", Description = "edited" });
 
@@ -174,14 +174,14 @@ public class ProjectSaveTests
         {
             var viewModel = new MainViewModel();
             viewModel.AddMacro(new MacroItem { Name = "login" });
-            viewModel.SavePackage(path);
+            TestProjectFiles.Service.Save(viewModel.Workspace, path);
 
             Assert.False(viewModel.HasUnsavedChanges);
             Assert.Equal(path, viewModel.CurrentPath);
 
             // Reading it back is where the file is now the truth, so there is nothing on top of it.
             var reopened = new MainViewModel();
-            reopened.OpenPackage(path);
+            TestProjectFiles.Service.Open(reopened.Workspace, path);
 
             Assert.False(reopened.HasUnsavedChanges);
             Assert.Single(reopened.Macros);
@@ -201,7 +201,7 @@ public class ProjectSaveTests
             var viewModel = new MainViewModel();
             var macro = new MacroItem { Name = "login" };
             viewModel.AddMacro(macro);
-            viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
+            TestProjectFiles.Service.Save(viewModel.Workspace, Path.Combine(folder, "macros" + MacroPackage.Extension));
 
             viewModel.ClearMacros();
 
@@ -223,7 +223,7 @@ public class ProjectSaveTests
         {
             var viewModel = new MainViewModel();
             viewModel.AddMacro(new MacroItem { Name = "login" });
-            viewModel.SavePackage(Path.Combine(folder, "macros" + MacroPackage.Extension));
+            TestProjectFiles.Service.Save(viewModel.Workspace, Path.Combine(folder, "macros" + MacroPackage.Extension));
 
             var before = viewModel.Globals();
             Assert.False(viewModel.GlobalsChangedSince(before));

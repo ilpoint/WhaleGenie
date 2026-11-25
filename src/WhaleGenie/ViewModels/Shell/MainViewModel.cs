@@ -180,12 +180,6 @@ public partial class MainViewModel : ViewModelBase
 
     internal void MarkMenuChanged() => Workspace.MarkMenuChanged();
 
-    /// <summary>Writes the macro list and the shared variables to a package file.</summary>
-    public void SavePackage(string path) => Workspace.SavePackage(path);
-
-    /// <summary>Replaces everything with the contents of a package file.</summary>
-    public void OpenPackage(string path) => Workspace.OpenPackage(path);
-
     /// <summary>Puts a stopped run's work back into the list.</summary>
     public void RestoreFrom(Storage.RecoveryContents contents) => Workspace.RestoreFrom(contents);
 

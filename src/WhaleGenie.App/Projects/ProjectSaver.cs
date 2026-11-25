@@ -16,7 +16,7 @@ namespace WhaleGenie.Projects;
 /// </summary>
 /// <remarks>
 /// A save copies the project on the caller's thread and writes the zip on a worker, the way
-/// <see cref="ProjectFiles.SaveAsync"/> already did. What is new is the revision check: work that
+/// <see cref="ProjectFileService.SaveAsync"/> already did. What is new is the revision check: work that
 /// arrives while the file is being written is newer than the file, so it stays unsaved and a second
 /// pass carries it, instead of being silently cleared along with the first.
 /// </remarks>
@@ -25,6 +25,7 @@ public sealed class ProjectSaver : IProjectSaver, IDisposable
     private readonly ProjectWorkspace _workspace;
     private readonly AppSettings _settings;
     private readonly IUiDispatcher _ui;
+    private readonly ProjectFileService _files;
     private readonly TimeSpan _delay;
     private readonly SemaphoreSlim _writeGate = new(1, 1);
     private readonly object _pendingGate = new();
@@ -40,11 +41,12 @@ public sealed class ProjectSaver : IProjectSaver, IDisposable
     /// it short; the program uses a little under a second.
     /// </summary>
     public ProjectSaver(ProjectWorkspace workspace, AppSettings settings, IUiDispatcher ui,
-        TimeSpan? delay = null)
+        ProjectFileService files, TimeSpan? delay = null)
     {
         _workspace = workspace;
         _settings = settings;
         _ui = ui;
+        _files = files;
         _delay = delay ?? TimeSpan.FromMilliseconds(800);
 
         _workspace.Changed += OnWorkspaceChanged;
@@ -120,8 +122,8 @@ public sealed class ProjectSaver : IProjectSaver, IDisposable
             RaiseChanged();
 
             // The copy is made here, on the interface thread; the zip is written on a worker
-            // inside ProjectFiles.SaveAsync and the plan's revision decides whether clear is safe.
-            var result = await ProjectFiles.SaveAsync(_workspace, target);
+            // inside ProjectFileService.SaveAsync and the plan's revision decides whether clear is safe.
+            var result = await _files.SaveAsync(_workspace, target);
             wrote = result.Ok;
             if (result.Ok)
             {

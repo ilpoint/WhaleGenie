@@ -15,7 +15,8 @@ namespace WhaleGenie.Mcp;
 /// answers on the calling thread.
 /// </summary>
 public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui,
-    IProjectSaver? autoSave = null, WhaleGenie.Editor.IEditorDocuments? editor = null)
+    IPackageStore packages, IProjectSaver? autoSave = null,
+    WhaleGenie.Editor.IEditorDocuments? editor = null)
     : IProjectGateway
 {
     public async Task<McpProjectStatus> StatusAsync()
@@ -102,11 +103,20 @@ public sealed class McpLiveProject(ProjectWorkspace project, IUiDispatcher ui,
                 "The project has no package path yet, so there is nothing to save to.",
                 "Ask the person to save the project once in WhaleGenie, or to choose a location when MCP starts."));
 
-        await Task.Run(() => MacroPackage.Save(plan.Path, plan.Macros, plan.Triggers, plan.Globals,
-            plan.AppVersion, plan.AssetFolder));
+        var write = await packages.WriteAsync(PackageWriteRequest.From(plan))
+            .ConfigureAwait(false);
+        if (!write.Ok)
+        {
+            throw new McpFailure(McpErrors.Internal,
+                "The project could not be saved: " + (write.Error?.Message ?? write.Message ?? "unknown error"),
+                "The file may be open in another program, or the folder may be read-only. " +
+                "Nothing in the project was changed; try saving again.",
+                retryable: true);
+        }
+
         await ui.InvokeAsync(() =>
         {
-            project.MarkSaved(plan.Path);
+            project.MarkSaved(plan);
             return true;
         });
 

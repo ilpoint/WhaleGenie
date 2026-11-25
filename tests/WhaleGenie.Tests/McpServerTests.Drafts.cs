@@ -56,7 +56,7 @@ public partial class McpServerTests
                 });
                 viewModel.AddMacro(existing);
                 viewModel.CurrentPath = path;
-                viewModel.SavePackage(path);
+                TestProjectFiles.Service.Save(viewModel.Workspace, path);
 
                 await using var loop = McpLoopback.Start(viewModel);
                 await using var client = await loop.ConnectAsync();

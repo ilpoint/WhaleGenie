@@ -46,37 +46,6 @@ internal sealed partial class HeadlessEditorSession
         return Snapshot();
     }
 
-    public bool Export(string path)
-    {
-        if (path.Trim().Length == 0)
-        {
-            throw new InvalidOperationException("an export needs a file name");
-        }
-
-        var draft = _model.IsSubMacro
-            ? new MacroDraft(_model.BuildMacro(), [], [])
-            : _model.Draft();
-        var triggers = new ProjectTriggers();
-        foreach (var entry in draft.Entries)
-        {
-            triggers.Entries.Add(entry.Copy());
-        }
-
-        foreach (var layout in draft.Layouts)
-        {
-            triggers.InterfaceLayouts.Add(layout);
-        }
-
-        var assets = _workspace.CurrentPath is { Length: > 0 } current
-            ? MacroPackage.AssetFolderFor(current)
-            : null;
-        MacroPackage.Save(path, [draft.Macro],
-            MacroBundle.Take(triggers, [draft.Macro]),
-            MacroBundle.UsedGlobals([draft.Macro], _workspace.Variables.Globals),
-            AppVersion.Text, assets);
-        return true;
-    }
-
     public DocumentSaveOutcome Save()
     {
         if (!CanSave)

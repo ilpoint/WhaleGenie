@@ -23,11 +23,16 @@ internal sealed class ShellNativeWindows(
     Func<MacroItem, bool> openEditor,
     Action<MacroItem> openRun,
     Action openSettings, WhaleGenie.Localization.AppSettings? settings = null,
-    WhaleGenie.Projects.IProjectSaver? saver = null)
+    WhaleGenie.Projects.IProjectSaver? saver = null,
+    WhaleGenie.Projects.ProjectFileService? files = null)
     : INativeSurfaceActions, IDisposable
 {
     private readonly WhaleGenie.Localization.AppSettings _settings =
         settings ?? WhaleGenie.Localization.AppSettings.Shared;
+
+    private readonly WhaleGenie.Projects.ProjectFileService _files =
+        files ?? new WhaleGenie.Projects.ProjectFileService(
+            new WhaleGenie.Projects.FilePackageStore());
 
     /// <summary>The trigger host, once the shell has built it; settings republishes the plan.</summary>
     internal TriggerHost? Host { get; set; }
@@ -70,7 +75,7 @@ internal sealed class ShellNativeWindows(
 
         var saved = saver is not null
             ? await saver.SaveAsync(path)
-            : await ProjectFiles.SaveAsync(workspace, path);
+            : await _files.SaveAsync(workspace, path);
         if (!saved.Ok)
         {
             await ConfirmDialog.ShowAsync(window, Strings.Get("Package.SaveFailed"),

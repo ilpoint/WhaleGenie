@@ -21,12 +21,12 @@ public class ProjectFilesTests
             var workspace = new ProjectWorkspace();
             workspace.AddMacro(new MacroItem { Name = "saved" });
 
-            var saved = ProjectFiles.Save(workspace, path);
+            var saved = TestProjectFiles.Service.Save(workspace, path);
             Assert.True(saved.Ok, saved.Error?.Message);
             Assert.True(File.Exists(path));
 
             var loaded = new ProjectWorkspace();
-            var opened = ProjectFiles.Open(loaded, path);
+            var opened = TestProjectFiles.Service.Open(loaded, path);
             Assert.True(opened.Ok, opened.Error?.Message);
             Assert.Equal("saved", Assert.Single(loaded.Macros).Name);
         }
@@ -39,7 +39,7 @@ public class ProjectFilesTests
     [Fact]
     public void A_missing_package_is_a_result_not_an_exception()
     {
-        var result = ProjectFiles.Open(new ProjectWorkspace(),
+        var result = TestProjectFiles.Service.Open(new ProjectWorkspace(),
             Path.Combine(Path.GetTempPath(), $"whalegenie-missing-{Guid.NewGuid():N}.wgmacro"));
 
         Assert.False(result.Ok);

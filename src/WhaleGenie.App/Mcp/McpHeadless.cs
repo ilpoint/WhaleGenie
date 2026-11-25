@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
+using WhaleGenie.Projects;
 using WhaleGenie.Runtime;
 
 namespace WhaleGenie.Mcp;
@@ -31,7 +32,7 @@ internal static class McpHeadless
         // switching one over there takes effect here on the next call rather than at the next start.
         McpControl.Stored = () => McpGrants.Current(AppSettings.Shared);
 
-        if (Setup(project, options) is { } failure)
+        if (Setup(project, services.GetRequiredService<ProjectFileService>(), options) is { } failure)
         {
             Console.Error.WriteLine($"whalegenie: {failure}");
             services.Dispose();
@@ -107,14 +108,15 @@ internal static class McpHeadless
     /// <summary>
     /// Opens the project this run serves, or makes an empty one. Nothing here touches a window.
     /// </summary>
-    private static string? Setup(ProjectWorkspace project, McpHostOptions options)
+    private static string? Setup(ProjectWorkspace project, ProjectFileService files,
+        McpHostOptions options)
     {
         try
         {
             if (options.PackagePath is { } path)
             {
-                project.OpenPackage(path);
-                return null;
+                var opened = files.Open(project, path);
+                return opened.Ok ? null : $"cannot open the project: {opened.Error?.Message}";
             }
 
             if (options.NewFolder is { } folder)
@@ -122,8 +124,8 @@ internal static class McpHeadless
                 Directory.CreateDirectory(folder);
                 var created = Path.Combine(folder, "doctor.wgmacro");
                 project.CurrentPath = created;
-                project.SavePackage(created);
-                return null;
+                var saved = files.Save(project, created);
+                return saved.Ok ? null : $"cannot write the project: {saved.Error?.Message}";
             }
 
             // Neither told which package to serve: the one the window had open last is what the
@@ -131,7 +133,11 @@ internal static class McpHeadless
             // is still better than failing to start.
             if (AppSettings.Shared.LastProject() is { Length: > 0 } last && File.Exists(last))
             {
-                project.OpenPackage(last);
+                var opened = files.Open(project, last);
+                if (!opened.Ok)
+                {
+                    return $"cannot open the project: {opened.Error?.Message}";
+                }
             }
 
             return null;
