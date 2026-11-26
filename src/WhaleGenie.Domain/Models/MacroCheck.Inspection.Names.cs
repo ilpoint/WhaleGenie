@@ -19,12 +19,21 @@ public static partial class MacroCheck
                 return;
             }
 
+            var pointer = Pointer(step);
             foreach (var parameter in step.Parameters)
             {
                 // Step lists hold other steps rather than a value of their own, and text written
                 // in another language spells its own variables with a $.
                 if (parameter.Kind is ActionParameterKind.Steps
                     || step.ParameterDefinition(parameter) is { ForeignText: true })
+                {
+                    continue;
+                }
+
+                // A click or a drag told to work at the pointer does not read the place or the
+                // numbers beside it: warning about a name there would be asking about a field the
+                // step has already decided to ignore.
+                if (pointer && parameter.Name is "place" or "x" or "y")
                 {
                     continue;
                 }
@@ -38,6 +47,10 @@ public static partial class MacroCheck
                 }
             }
         }
+
+        /// <summary>True when the step was told to work wherever the pointer is.</summary>
+        private static bool Pointer(MacroStep step)
+            => string.Equals(step.Text("useCursor").Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
         /// A value the reader could not read. A value is a shape, and a shape that could not be

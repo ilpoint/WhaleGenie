@@ -52,6 +52,34 @@ public partial class MacroCheckTests
         Assert.Same(reader, problem.Step);
     }
     [Fact]
+    public void A_variable_nothing_defines_is_named_without_a_dollar()
+    {
+        var reader = Set("结果", Formula.Binary("+", Formula.Name("位置"), Formula.Number("1", 1d)));
+
+        var problem = Assert.Single(Inspect(reader));
+
+        Assert.DoesNotContain("$", problem.Message);
+        Assert.Contains("位置", problem.Message);
+    }
+
+    [Fact]
+    public void A_pointer_click_does_not_report_the_place_it_ignores()
+    {
+        var click = Step("input.mouseClick",
+            Flag("useCursor", true),
+            new StepParameter
+            {
+                Name = "place",
+                Kind = ActionParameterKind.Point,
+                Written = Formula.Name("位置"),
+            },
+            Text("x", "10"), Text("y", "20"));
+
+        Assert.DoesNotContain(Inspect(click), problem =>
+            problem.Code == MacroProblemCode.UndefinedVariable);
+    }
+
+    [Fact]
     public void A_variable_the_macro_defines_itself_is_left_alone()
         => Assert.Empty(Inspect(Set("计数", Formula.Number("0", 0d)), Set("结果", Formula.Binary("+", Formula.Name("计数"), Formula.Number("1", 1d)))));
 

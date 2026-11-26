@@ -59,6 +59,18 @@ public partial class MacroCheckTests
     }
 
     [Fact]
+    public void A_return_row_without_a_name_is_not_a_missing_column()
+    {
+        // A row with a key and no name is a result that was not kept; it is not an action asking
+        // for a column the file forgot.
+        var step = Step("file.path", Text("path", "a.txt"), Text("operation", "name"),
+            Returned(("part", "")));
+
+        Assert.DoesNotContain(Inspect(step), problem =>
+            problem.Code == MacroProblemCode.MissingRowColumn);
+    }
+
+    [Fact]
     public void Declaration_problems_are_said_without_a_call()
     {
         var bad = Callable("坏", ["同名", "同名"], [""], []);

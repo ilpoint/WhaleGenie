@@ -137,6 +137,15 @@ public static partial class MacroCheck
                         Add(step, MacroProblemCode.ExclusiveRowColumn, Strings.Format("Editor.Problem.ExclusiveRowColumn",
                             definition.LocalLabel));
                     }
+                    // A return row without a name is a result that was not kept. The file never
+                    // writes one, but a draft or an older shape can hold one; it is not a column the
+                    // action needs, so it is not reported as missing.
+                    if (definition.Kind is ActionParameterKind.Returns
+                        && Formula.IsNothing(row.Cell(FieldNames.Name)))
+                    {
+                        continue;
+                    }
+
                     foreach (var column in definition.Semantics.Columns.Where(column => column.Required))
                     {
                         if (Formula.IsNothing(row.Cell(column.Name)))
