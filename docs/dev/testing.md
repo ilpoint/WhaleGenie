@@ -82,13 +82,16 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | --- | --- | --- |
 | Domain 的 `StepParameter.File.cs` | 44 | 100% |
 | 库仓的 `FormulaJson.cs` | 36 | 91.67% |
+| 库仓的 `RecordingTranslator.cs` | 231 | 77.49% |
 | Editing 的 `RowShapes.cs`、`EditorValueParts.cs` | 67 | 100% |
 
 Editing 只变异纯行变换与 parts 转换（67 个计分变异，100%）；行 VM 里的显示、占位、`Prepare`/`Remove`
 不在变异范围。Stryker 的 CompileError 与 Ignored 不计分。
 
-库仓 clone 里的同一份 `tools/stryker.ps1` 只跑 `FormulaJson.cs`；它剩的三项是 JSON 标量默认分支与
-数字解析失败的消息（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价）。
+库仓的 `tools/stryker.ps1` 按区域跑（`formula-json`、`recording`、`expressions`、`rules`、
+`devices`），在这里只记最近一次基线；`FormulaJson` 剩的三项是 JSON 标量默认分支与数字解析失败的消息
+（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价），录制区域的存活项集中在
+合并间隔与按住/双击的边界。
 
 ### 界面与无头测试注意事项
 
