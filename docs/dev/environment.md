@@ -36,7 +36,8 @@ npm run e2e          # 端到端冒烟（系统 Edge，走构建产物的 previe
 引入到这里：**它不在这里改**，改动去 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core)，
 再 `git subtree pull --prefix=core core main --squash`。库的构建设置与包版本跟着它自己走
 （`core/Directory.Build.props`、`core/Directory.Packages.props`），打包与发布也在那边的 CI。
-分发关系见 [core-api.md 的分发一节](../architecture/core-api.md)。
+分发关系见 [core-api.md 的分发一节](../architecture/core-api.md)。顺序是先合并库仓改动，再由
+`sync-core`（每日）或上面的 `git subtree pull` 取回；主仓里的 `core/` 目录不要提交改动。
 
 解决方案只提供 `x64` 平台。根目录 `Directory.Build.props` 统一设置目标平台并将警告视为错误，
 因此构建通过也意味着没有编译警告。分析器只对产品工程启用 Recommended 集，测试工程除外；
