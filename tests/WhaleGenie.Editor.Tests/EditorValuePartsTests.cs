@@ -25,10 +25,42 @@ public class EditorValuePartsTests
     }
 
     [Fact]
+    public void Text_and_name_parts_keep_their_payloads()
+    {
+        var text = Assert.Single(EditorValueParts.Of(Formula.Text("hello")));
+        Assert.Equal("text", text.Kind);
+        Assert.Equal("hello", text.Text);
+        Assert.Equal(string.Empty, text.Name);
+
+        var name = Assert.Single(EditorValueParts.Of(Formula.Name("count")));
+        Assert.Equal("name", name.Kind);
+        Assert.Equal(string.Empty, name.Text);
+        Assert.Equal("count", name.Name);
+
+        Assert.Empty(EditorValueParts.Of(Formula.Name(string.Empty)));
+    }
+
+    [Fact]
+    public void A_run_keeps_each_part_with_its_own_payload()
+    {
+        var parts = EditorValueParts.Of(
+            Formula.Run([Formula.Text("a"), Formula.Name("b"), Formula.Number("1", 1d)]));
+
+        Assert.Equal(3, parts.Count);
+        Assert.Equal(("text", "a", string.Empty),
+            (parts[0].Kind, parts[0].Text, parts[0].Name));
+        Assert.Equal(("name", string.Empty, "b"),
+            (parts[1].Kind, parts[1].Text, parts[1].Name));
+        Assert.Equal("text", parts[2].Kind);
+        Assert.False(string.IsNullOrEmpty(parts[2].Text));
+    }
+
+    [Fact]
     public void Empty_text_has_no_parts()
     {
         Assert.Empty(EditorValueParts.Of(Formula.Nothing));
         Assert.Empty(EditorValueParts.Of(Formula.Text(string.Empty)));
+        Assert.True(Formula.IsNothing(EditorValueParts.ShapeOf([])));
     }
 
     [Fact]

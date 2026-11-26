@@ -1,7 +1,9 @@
 using System.Linq;
 using System.Text.Json.Nodes;
+using WhaleGenie.Contracts;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
+using WhaleGenie.Editing;
 using WhaleGenie.Models;
 using WhaleGenie.ViewModels;
 
@@ -63,6 +65,69 @@ public class ShapeDraftTests
         var written = RegionRowViewModel.From(row).ToRow();
 
         SameCells(row, written);
+    }
+
+    [Fact]
+    public void An_empty_call_argument_is_left_out()
+    {
+        var argument = new CallArgumentRowViewModel("arg", string.Empty, required: false,
+            declared: true);
+
+        Assert.Null(argument.ToRow());
+    }
+
+    [Fact]
+    public void An_empty_argument_passed_on_purpose_is_written_without_a_value()
+    {
+        var argument = new CallArgumentRowViewModel("arg", string.Empty, required: false,
+            declared: true);
+        argument.Load(Formula.Nothing, given: true);
+
+        var row = argument.ToRow();
+
+        Assert.NotNull(row);
+        Assert.Equal("arg", row!.Text(FieldNames.Name));
+        Assert.Equal("true", Formula.Word(row.Cell(FieldNames.Given)));
+        Assert.False(row.Cells.ContainsKey(FieldNames.Value));
+    }
+
+    [Fact]
+    public void A_region_line_is_a_rectangle_only_when_every_place_is_four_numbers()
+    {
+        Assert.True(RowShapes.LooksLikeRectangle("10,20,30,40;\n"));
+        Assert.False(RowShapes.LooksLikeRectangle(""));
+        Assert.False(RowShapes.LooksLikeRectangle("10,20,30,40;bad"));
+        Assert.False(RowShapes.LooksLikeRectangle("1,2,3,x"));
+        Assert.False(RowShapes.LooksLikeRectangle("1,2,3,4,5"));
+    }
+
+    [Fact]
+    public void A_parts_cell_keeps_a_name_only_when_it_names_something()
+    {
+        var shape = EditorValueParts.ShapeOf(
+            [new EditorValuePartSnapshot("name", "literally text", string.Empty)]);
+
+        Assert.Equal(Formula.Text("literally text"), shape);
+        Assert.True(Formula.IsNothing(EditorValueParts.ShapeOf([])));
+        Assert.True(Formula.IsNothing(EditorValueParts.ShapeOf(null)));
+
+        var fallback = EditorValueParts.Of(
+            Formula.Run([Formula.Text("a"), Formula.Number("1", 1d)])).Last();
+        Assert.Equal("text", fallback.Kind);
+        Assert.Equal(string.Empty, fallback.Name);
+    }
+
+    [Fact]
+    public void An_empty_region_row_reads_as_four_empty_cells()
+    {
+        var reading = RowShapes.ReadRegion(new StepParameterRow());
+
+        Assert.Equal(string.Empty, reading.Variable);
+        Assert.True(Formula.IsNothing(reading.X));
+        Assert.True(Formula.IsNothing(reading.Y));
+        Assert.True(Formula.IsNothing(reading.Width));
+        Assert.True(Formula.IsNothing(reading.Height));
+        Assert.True(Formula.IsNothing(RowShapes.RegionText("   ")));
     }
 
     [Fact]

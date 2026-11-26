@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
-using WhaleGenie.Core.Variables;
 using WhaleGenie.Localization;
 using WhaleGenie.Models;
 
@@ -141,79 +139,27 @@ public partial class RegionRowViewModel : ViewModelBase
     /// out rather than written as zero, because a zero is a place rather than none.
     /// </summary>
     public StepParameterRow ToRow()
-    {
-        var row = new StepParameterRow();
-        var named = OrVariable.Trim();
-        if (named.Length > 0)
-        {
-            row.Set("text", TextCell(named));
-            return row;
-        }
-
-        Keep(row, "x", X.Shape);
-        Keep(row, "y", Y.Shape);
-        Keep(row, FieldNames.Width, Width.Shape);
-        Keep(row, FieldNames.Height, Height.Shape);
-        return row;
-    }
-
-    /// <summary>
-    /// What a row written as one thing says: a rectangle written out is text, and anything else
-    /// is the name of a variable. The box is the only place a person names a variable here, so a
-    /// word that is not a rectangle is a name rather than text that happens to look like one.
-    /// </summary>
-    internal static ExpressionNode TextCell(string text)
-    {
-        var written = text.Trim();
-        return LooksLikeRectangle(written) || !VariableName.IsName(written)
-            ? Formula.Text(written)
-            : Formula.Name(written);
-    }
-
-    /// <summary>
-    /// True when the line is one or more rectangles written out: four numbers, one rectangle a
-    /// line. A name never has four comma-separated numbers in it, so the two uses of the cell do
-    /// not have to be guessed apart.
-    /// </summary>
-    private static bool LooksLikeRectangle(string text)
-    {
-        var places = text.Split([';', '\n', '\r'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return places.Length > 0 && places.All(place =>
-        {
-            var cells = place.Split(',', StringSplitOptions.TrimEntries);
-            return cells.Length == 4 && cells.All(cell =>
-                double.TryParse(cell, NumberStyles.Float, CultureInfo.InvariantCulture, out _));
-        });
-    }
+        => RowShapes.RegionRow(X.Shape, Y.Shape, Width.Shape, Height.Shape, OrVariable);
 
     /// <summary>One row back out of the macro file.</summary>
     public static RegionRowViewModel From(StepParameterRow row)
     {
         var place = new RegionRowViewModel();
-        var named = row.Text("text");
+        var reading = RowShapes.ReadRegion(row);
 
         // A row that names something is a row that names something: the name is the whole answer,
         // and four numbers beside it would be a second one.
-        if (named.Trim().Length > 0)
+        if (reading.Variable.Length > 0)
         {
-            place.OrVariable = named.Trim();
+            place.OrVariable = reading.Variable;
             return place;
         }
 
-        place.X.Write(row.Cell("x"));
-        place.Y.Write(row.Cell("y"));
-        place.Width.Write(row.Cell(FieldNames.Width));
-        place.Height.Write(row.Cell(FieldNames.Height));
+        place.X.Write(reading.X);
+        place.Y.Write(reading.Y);
+        place.Width.Write(reading.Width);
+        place.Height.Write(reading.Height);
         return place;
-    }
-
-    private static void Keep(StepParameterRow row, string column, ExpressionNode shape)
-    {
-        if (!Formula.IsNothing(shape))
-        {
-            row.Set(column, shape);
-        }
     }
 
     /// <summary>

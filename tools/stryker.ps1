@@ -31,8 +31,7 @@ try {
                 Join-Path $root 'tests/WhaleGenie.Tests/WhaleGenie.Tests.csproj'
             )
             Mutate = @(
-                '**/RegionRowViewModel.cs'
-                '**/CallArgumentRowViewModel.cs'
+                '**/RowShapes.cs'
                 '**/EditorValueParts.cs'
             )
             Filter = 'FullyQualifiedName~ShapeDraftTests|FullyQualifiedName~EditorValuePartsTests|FullyQualifiedName~HeadlessActionSessionTests'

@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
-using WhaleGenie.Core.Execution;
 using WhaleGenie.Core.Expressions;
 using WhaleGenie.Models;
 
@@ -157,34 +155,7 @@ public partial class CallArgumentRowViewModel : ViewModelBase
     /// the same thing at greater length. A value that is empty on purpose is written, because that
     /// is the one case where the empty box is the answer.
     /// </summary>
-    public StepParameterRow? ToRow()
-    {
-        var value = Value.Trim();
-        if (value.Length == 0 && !Given)
-        {
-            return null;
-        }
-
-        var row = new StepParameterRow
-        {
-            Cells = new Dictionary<string, ExpressionNode>(StringComparer.OrdinalIgnoreCase)
-            {
-                [FieldNames.Name] = Formula.Text(Name),
-            },
-        };
-
-        if (!Formula.IsNothing(_shape))
-        {
-            row.Set(FieldNames.Value, _shape);
-        }
-
-        if (Given)
-        {
-            row.Set(FieldNames.Given, Formula.Constant("true"));
-        }
-
-        return row;
-    }
+    public StepParameterRow? ToRow() => RowShapes.CallRow(Name, _shape, Value, Given);
 
     /// <summary>
     /// Takes the words under the row: what the argument is, what kind of value it wants and whether

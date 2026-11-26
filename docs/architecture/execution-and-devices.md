@@ -175,8 +175,9 @@ Core 负责原始事件到录制动作的翻译；由于 `MacroStep` 属于界�
 
 模型与表单、线缆之间守同一条形状边界：`StepParameter.Written` 与行单元格只收 `ExpressionNode`，
 显示行只用于渲染，不能回写模型；`ValueOf` 是唯一的文件读取入口；窗口规则分清变量与字面量，
-规则文本用可读 JSON 保存。表单行由 `EditorValueParts` 在快照与命令之间转成 parts，页面只收发
-形状而不是猜一行字。往返法则与模块职责见 [ADR 0003](../adr/0003-value-shape-boundary.md)。
+规则文本用可读 JSON 保存。表单行由 `RowShapes` 在数字/名字/矩形之间做纯变换，`EditorValueParts` 在快照与
+命令之间转成 parts；页面只收发形状而不是猜一行字。往返法则与模块职责见
+[ADR 0003](../adr/0003-value-shape-boundary.md)。
 位置使用带 `x`、`y` 的记录，矩形使用带 `left`、`top`、`width`、`height` 的记录；记录字段统一通过
 `field(记录, "名字")` 读取，不增加第二套访问语法。字段形状、单位和空值含义仍由动作目录声明。
 

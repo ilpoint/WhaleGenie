@@ -44,9 +44,16 @@ internal static class EditorValueParts
     /// text the input held.
     /// </summary>
     public static ExpressionNode ShapeOf(IReadOnlyList<EditorValuePartSnapshot>? parts)
-        => parts is not { Count: > 0 }
-            ? Formula.Nothing
-            : Formula.Run(parts.Select(part => part.Kind == "name" && part.Name.Trim().Length > 0
-                ? Formula.Name(part.Name.Trim())
-                : Formula.Text(part.Text)));
+    {
+        if (parts is null)
+        {
+            return Formula.Nothing;
+        }
+
+        // An empty run is nothing, so a cell with no parts and a cell of only empty text take the
+        // same road: Formula.Run([]) is the empty shape.
+        return Formula.Run(parts.Select(part => part.Kind == "name" && part.Name.Trim().Length > 0
+            ? Formula.Name(part.Name.Trim())
+            : Formula.Text(part.Text)));
+    }
 }

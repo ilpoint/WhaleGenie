@@ -58,7 +58,8 @@
 
 两个等式不要混：文件用 `JsonNode.DeepEquals`，模型用测试侧的结构比较器。`ToJson` 相等分不清
 `Formula.Text("{\"name\":\"窗口\"}")` 与 `Formula.Name("窗口")`，窗口规则写成变量与写成字面量
-在文件里都是对象。行单元格的载荷由 `EditorValueParts` 在快照与命令之间双向转换，页面只收发 parts。
+在文件里都是对象。行单元格的载荷由 `EditorValueParts` 在快照与命令之间双向转换，页面只收发 parts；行本身在
+`Editing/Value/RowShapes` 里完成数字/名字/矩形与 parts 的纯变换。
 
 改了字段形状、行表列或 `ValueOf` 一类读取路径时，先加一条会失败的生成器断言，再改实现。
 已保存的项目包用 `tools/WhaleGenie.ProjectScan` 只读扫描，报告不自动修。
@@ -80,12 +81,10 @@ pwsh tools/stryker.ps1 -Target domain   # 或 editing / all
 | --- | --- | --- |
 | Domain 的 `StepParameter.File.cs` | 44 | 100% |
 | 库仓的 `FormulaJson.cs` | 36 | 91.67% |
-| Editing 的 `RegionRowViewModel`、`CallArgumentRowViewModel`、`EditorValueParts` | 119 | 31.43% |
+| Editing 的 `RowShapes.cs`、`EditorValueParts.cs` | 67 | 100% |
 
-Editing 的 56 个 NoCoverage 与 64 个存活集中在显示文案、占位提示、`Prepare`/`Remove` 与等价判断，
-不在形状边界内；行变换本身由 `ShapeDraftTests`、`EditorValuePartsTests` 与
-`HeadlessActionSessionTests` 覆盖。要把它变成 100% 门禁，先把纯变换从行 VM 抽到单独文件，再只变异
-那一份。Stryker 的 CompileError 与 Ignored 不计分。
+Editing 只变异纯行变换与 parts 转换（67 个计分变异，100%）；行 VM 里的显示、占位、`Prepare`/`Remove`
+不在变异范围。Stryker 的 CompileError 与 Ignored 不计分。
 
 库仓 clone 里的同一份 `tools/stryker.ps1` 只跑 `FormulaJson.cs`；它剩的三项是 JSON 标量默认分支与
 数字解析失败的消息（只在不可达输入上出现）和 `Number` 的 decimal 快路径（对合法 JSON 数字等价）。

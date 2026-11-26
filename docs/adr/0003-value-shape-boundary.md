@@ -1,6 +1,6 @@
 # ADR 0003：值的形状边界与往返法则
 
-- 状态：已采纳（实现中：Core、Domain、Editing 与线缆已落地；真实项目验收与完整变异基线待做）
+- 状态：已采纳（Core、Domain、Editing、线缆、扫描器与变异门禁已落地；真实项目/宏的桌面验收待做）
 - 日期：2026-11-26
 - 相关：[路线图](../roadmap.md)、[构建环境](../dev/environment.md)、[测试分层](../dev/testing.md)、[架构](../architecture.md)
 
@@ -24,7 +24,9 @@
 1. **模型只收形状。** `StepParameter.Written` 与 `StepParameterRow.Cells` 只接受 `ExpressionNode`。`Value`/`Text` 是渲染，永远不作为模型输入。`StepParameterRow.SetLine` 删除；需要文字时在输入适配器里显式写 `Formula.Text`。
 2. **一行字变成形状只发生一次。** 只在输入适配器（表单输入、页面补丁）里发生，且只变成 `Formula.Text`。名字只能来自取值窗口，落成 `VariableNode`。区域 `text` 列按内容判断：看起来像矩形字面量 → `Formula.Text`，否则 → `Formula.Name`；照 [ColourRowViewModel](../../src/WhaleGenie.Editing/Actions/ColourRowViewModel.cs) 的 `Stored()` 写法。
 3. **线缆表达力必须不小于模型表达力。** 能持有名字或公式的行单元格，载荷必须带 `EditorValuePartSnapshot`（已有类型）或等价的 {kind, text, name}；只有纯文字字段可以只传字符串。命令回传同样的结构，未编辑的单元格不重写。
-4. **纯变换与表单分开。** `ToRow`、`ToStep`、`ApplyValue` 一类放进 `Editing/Value` 的纯函数；表单 VM 只持有草稿与显示，不产出模型。页面只渲染 parts、收集输入，不解释形状。
+4. **纯变换与表单分开。** `ToRow`、`ToStep`、`ApplyValue` 一类放进 `Editing/Value` 的纯函数（区域与调用参数的
+   行变换在 `RowShapes`，parts 在 `EditorValueParts`）；表单 VM 只持有草稿与显示，不产出模型。页面只渲染
+   parts、收集输入，不解释形状。
 5. **文件用规范化 JSON，模型用结构相等。** `ConcatNode`、`CallNode`、`ListNode` 内部是 `IReadOnlyList`，record 相等对列表是引用比较。文件法则（L2、L4）用 `JsonNode.DeepEquals`；模型法则（L1、L3、L5）用测试侧的结构比较器，不新增 Core 公共 API：JSON 相等分不清 `Formula.Text("{\"name\":\"窗口\"}")` 与 `Formula.Name("窗口")`，而窗口规则写成变量与写成字面量在文件里都是对象。`HoleNode` 是编辑期占位，与 `Nothing` 视为同一，不进入文件。
 6. **两仓改动按库仓优先。** Core 的 codec 与 L1/L2 在 [ilpoint/WhaleGenie.Core](https://github.com/ilpoint/WhaleGenie.Core) 提交并验收；主仓 `core/` 只读，按 [dev/environment.md](../dev/environment.md) 的 subtree/`sync-core` 流程取回。`FormulaJson.Read` 签名不变，不新增公共比较器；Core 公共面基线不变。
 

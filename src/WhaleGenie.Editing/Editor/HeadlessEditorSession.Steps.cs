@@ -400,7 +400,7 @@ internal sealed partial class HeadlessEditorSession
         {
             if (column == "text")
             {
-                return RegionRowViewModel.TextCell(value);
+                return RowShapes.RegionText(value);
             }
 
             if (decimal.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture,

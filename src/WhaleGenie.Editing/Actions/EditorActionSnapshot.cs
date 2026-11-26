@@ -251,7 +251,7 @@ internal static class EditorActionSnapshotFactory
 
     /// <summary>The one-name box of a region row, which may be a name or a written rectangle.</summary>
     private static EditorRowCellSnapshot Cell(string variable)
-        => new(variable, EditorValueParts.Of(RegionRowViewModel.TextCell(variable)));
+        => new(variable, EditorValueParts.Of(RowShapes.RegionText(variable)));
 
     private static EditorConditionSnapshot? Condition(StepParameterViewModel field)
     {
